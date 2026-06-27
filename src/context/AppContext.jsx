@@ -24,6 +24,7 @@ export function AppProvider({ children }) {
   const [caixaAberto,     setCaixaAbertoLocal]   = useState(true);
   const [sessaoAbertaEm,  setSessaoAbertaEmLocal] = useState(null);
   const [meiosPagamento,  setMeiosPagamentoLocal] = useState(["dinheiro", "credito", "debito", "pix"]);
+  const [metodosCustom,   setMetodosCustomLocal]  = useState([]);
   const [taxaServico,     setTaxaServicoLocal]    = useState(false);
   const [credentials,     setCredentialsLocal]   = useState({});
   const [estoque,       setEstoqueLocal]     = useState({});
@@ -87,6 +88,8 @@ export function AppProvider({ children }) {
         if (meios?.value && Array.isArray(meios.value) && meios.value.length > 0) setMeiosPagamentoLocal(meios.value);
         const taxa = configData.find(c => c.key === "taxa_servico");
         if (taxa?.value !== undefined) setTaxaServicoLocal(!!taxa.value);
+        const custom = configData.find(c => c.key === "metodos_custom");
+        if (custom?.value && Array.isArray(custom.value)) setMetodosCustomLocal(custom.value);
       }
 
       setLoading(false);
@@ -313,6 +316,11 @@ export function AppProvider({ children }) {
     await supabase.from("config").upsert({ key: "meios_pagamento", value: val });
   };
 
+  const setMetodosCustom = async (val) => {
+    setMetodosCustomLocal(val);
+    await supabase.from("config").upsert({ key: "metodos_custom", value: val });
+  };
+
   const setTaxaServico = async (val) => {
     setTaxaServicoLocal(!!val);
     await supabase.from("config").upsert({ key: "taxa_servico", value: !!val });
@@ -324,7 +332,7 @@ export function AppProvider({ children }) {
   const value = {
     loading,
     // dados
-    products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, credentials, estoque,
+    products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, metodosCustom, credentials, estoque,
     currentUser, isMobile, mobileChoice,
     lancadas, addLancada,
     // setter simples (sem persistência)
@@ -343,6 +351,7 @@ export function AppProvider({ children }) {
     addFechamento,
     setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, saveCredential, updateEstoque,
     taxaServico, setTaxaServico,
+    metodosCustom, setMetodosCustom,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

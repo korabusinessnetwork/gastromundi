@@ -5,7 +5,7 @@ import { getSizes } from "@/constants/sizes";
 import { hashPassword, passwordStrength, sanitizeInput } from "@/utils";
 import { getPermissions } from "@/constants/roles";
 import C from "@/constants/colors";
-import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet } from "react-icons/lu";
 
 const ROLES = [
   { id: "admin",   label: "Administrador", color: C.accent },
@@ -292,39 +292,6 @@ function UsuariosTab({ sz }) {
           </div>
         </div>
 
-        {/* Permissões de acesso */}
-        <div>
-          <div style={{
-            fontSize: 14, fontWeight: 700, color: C.muted,
-            textTransform: "uppercase", letterSpacing: 1.2, marginBottom: sz.padSm,
-          }}>
-            Permissões de Acesso
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: sz.gap - 4 }}>
-            {[
-              { icon: "📟", label: "PDV",  color: C.green, desc: "Libera acesso à tela de Frente de Caixa no computador. Necessário para caixas e gerentes que operam as comandas." },
-              { icon: "📱", label: "Palm", color: C.blue,  desc: "Libera acesso à interface mobile. Permite que garçons usem o celular para abrir mesas e registrar pedidos." },
-            ].map(p => (
-              <div key={p.label} style={{
-                display: "flex", alignItems: "flex-start", gap: 14,
-                background: C.surface, borderRadius: 12,
-                border: `1px solid ${p.color}33`,
-                padding: `${sz.padSm}px ${sz.padSm + 4}px`,
-              }}>
-                <span style={{ fontSize: sz.fontXl - 4, flexShrink: 0 }}>{p.icon}</span>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontWeight: 700, fontSize: sz.fontBase, color: p.color }}>{p.label}</span>
-                    <span style={permChip(p.color)}>{p.label}</span>
-                  </div>
-                  <div style={{ fontSize: sz.fontSm + 1, color: C.muted, lineHeight: 1.5 }}>
-                    {p.desc}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Header */}
@@ -648,12 +615,15 @@ const METODOS_CATALOG = [
 // ── Aba Meios de Pagamento ────────────────────────────────────────
 
 function MeiosPagamentoTab({ sz }) {
-  const { meiosPagamento, setMeiosPagamento, currentUser } = useApp();
-  const [ativos, setAtivos] = useState(
+  const { meiosPagamento, setMeiosPagamento, metodosCustom, setMetodosCustom, currentUser } = useApp();
+  const [ativos,       setAtivos]      = useState(
     meiosPagamento?.length ? meiosPagamento : METODOS_CATALOG.map(m => m.id)
   );
-  const [salvando, setSalvando] = useState(false);
-  const [okMsg,    setOkMsg]    = useState(false);
+  const [salvando,     setSalvando]    = useState(false);
+  const [okMsg,        setOkMsg]       = useState(false);
+  const [showForm,     setShowForm]    = useState(false);
+  const [novoNome,     setNovoNome]    = useState("");
+  const [adicionando,  setAdicionando] = useState(false);
 
   const isAdmin = currentUser?.role === "admin";
 
@@ -671,48 +641,159 @@ function MeiosPagamentoTab({ sz }) {
     setOkMsg(true);
   };
 
+  const adicionarCustom = async () => {
+    const nome = novoNome.trim();
+    if (!nome || adicionando) return;
+    setAdicionando(true);
+    const id = `custom_${nome.toLowerCase().replace(/\s+/g, "_")}_${Date.now()}`;
+    const novo = { id, label: nome };
+    const novosCustom = [...(metodosCustom ?? []), novo];
+    const novosAtivos = [...ativos, id];
+    await setMetodosCustom(novosCustom);
+    await setMeiosPagamento(novosAtivos);
+    setAtivos(novosAtivos);
+    setNovoNome("");
+    setShowForm(false);
+    setAdicionando(false);
+    setOkMsg(false);
+  };
+
+  const removerCustom = async (id) => {
+    const novosCustom = (metodosCustom ?? []).filter(m => m.id !== id);
+    const novosAtivos = ativos.filter(a => a !== id);
+    await setMetodosCustom(novosCustom);
+    await setMeiosPagamento(novosAtivos);
+    setAtivos(novosAtivos);
+    setOkMsg(false);
+  };
+
+  const todosMetodos = [
+    ...METODOS_CATALOG,
+    ...(metodosCustom ?? []).map(m => ({ ...m, Icon: LuWallet, desc: "Forma de pagamento personalizada", custom: true })),
+  ];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: sz.pad }}>
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: sz.pad }}>
-        <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, marginBottom: 4 }}>Meios de Pagamento</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>Meios de Pagamento</div>
+          {isAdmin && (
+            <button
+              onClick={() => { setShowForm(v => !v); setNovoNome(""); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${C.accent}`,
+                background: showForm ? C.accent : "transparent",
+                color: showForm ? "#fff" : C.accent,
+                cursor: "pointer", fontWeight: 700, fontSize: sz.fontSm,
+                fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
+              }}
+            >
+              <LuPlus size={15} /> Adicionar
+            </button>
+          )}
+        </div>
         <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginBottom: sz.pad }}>
           Ative ou desative as formas de pagamento disponíveis no checkout e no fechamento de caixa.
         </div>
 
+        {/* Formulário inline para novo método */}
+        {showForm && isAdmin && (
+          <div style={{
+            marginBottom: sz.pad, padding: sz.padSm,
+            background: C.surface, borderRadius: 12, border: `1.5px solid ${C.accent}44`,
+            display: "flex", gap: 10, alignItems: "center",
+          }}>
+            <input
+              autoFocus
+              value={novoNome}
+              onChange={e => setNovoNome(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") adicionarCustom(); if (e.key === "Escape") setShowForm(false); }}
+              placeholder="Nome da forma de pagamento..."
+              maxLength={40}
+              style={{
+                flex: 1, padding: "10px 14px", borderRadius: 8,
+                border: `1.5px solid ${C.border}`, background: C.card,
+                color: C.text, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none",
+              }}
+              onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
+              onBlur={e => e.currentTarget.style.borderColor = C.border}
+            />
+            <button
+              onClick={adicionarCustom}
+              disabled={!novoNome.trim() || adicionando}
+              style={{
+                padding: "10px 18px", borderRadius: 8, border: "none",
+                background: novoNome.trim() ? C.accent : C.faint,
+                color: "#fff", fontWeight: 700, fontSize: sz.fontSm,
+                cursor: novoNome.trim() ? "pointer" : "not-allowed", fontFamily: "inherit",
+              }}
+            >
+              {adicionando ? "..." : "Confirmar"}
+            </button>
+            <button
+              onClick={() => setShowForm(false)}
+              style={{
+                padding: "10px 14px", borderRadius: 8, border: `1px solid ${C.border}`,
+                background: "transparent", color: C.muted,
+                cursor: "pointer", fontFamily: "inherit", fontSize: sz.fontSm,
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: sz.gap }}>
-          {METODOS_CATALOG.map(m => {
+          {todosMetodos.map(m => {
             const ativo = ativos.includes(m.id);
             return (
-              <button
-                key={m.id}
-                onClick={() => toggle(m.id)}
-                disabled={!isAdmin}
-                style={{
-                  padding: `${sz.pad}px ${sz.padSm}px`,
-                  borderRadius: 14,
-                  border: `2px solid ${ativo ? C.accent : C.border}`,
-                  background: ativo ? `${C.accent}10` : C.surface,
-                  color: ativo ? C.accent : C.muted,
-                  cursor: isAdmin ? "pointer" : "default",
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-                  transition: "border-color 0.15s, background 0.15s, color 0.15s",
-                  opacity: !isAdmin ? 0.7 : 1,
-                  fontFamily: "inherit",
-                }}
-              >
-                <m.Icon size={26} />
-                <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>{m.label}</div>
-                <div style={{ fontSize: sz.fontSm, color: ativo ? `${C.accent}bb` : C.muted }}>{m.desc}</div>
-                <div style={{
-                  fontSize: 14, fontWeight: 700,
-                  background: ativo ? `${C.green}18` : `${C.faint}`,
-                  color: ativo ? C.green : C.muted,
-                  border: `1px solid ${ativo ? C.green : C.border}44`,
-                  padding: "2px 10px", borderRadius: 20, marginTop: 2,
-                }}>
-                  {ativo ? "Ativo" : "Desabilitado"}
-                </div>
-              </button>
+              <div key={m.id} style={{ position: "relative" }}>
+                <button
+                  onClick={() => toggle(m.id)}
+                  disabled={!isAdmin}
+                  style={{
+                    width: "100%",
+                    padding: `${sz.pad}px ${sz.padSm}px`,
+                    borderRadius: 14,
+                    border: `2px solid ${ativo ? C.accent : C.border}`,
+                    background: ativo ? `${C.accent}10` : C.surface,
+                    color: ativo ? C.accent : C.muted,
+                    cursor: isAdmin ? "pointer" : "default",
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                    transition: "border-color 0.15s, background 0.15s, color 0.15s",
+                    opacity: !isAdmin ? 0.7 : 1,
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <m.Icon size={26} />
+                  <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>{m.label}</div>
+                  <div style={{ fontSize: sz.fontSm, color: ativo ? `${C.accent}bb` : C.muted }}>{m.desc}</div>
+                  <div style={{
+                    fontSize: 14, fontWeight: 700,
+                    background: ativo ? `${C.green}18` : `${C.faint}`,
+                    color: ativo ? C.green : C.muted,
+                    border: `1px solid ${ativo ? C.green : C.border}44`,
+                    padding: "2px 10px", borderRadius: 20, marginTop: 2,
+                  }}>
+                    {ativo ? "Ativo" : "Desabilitado"}
+                  </div>
+                </button>
+                {m.custom && isAdmin && (
+                  <button
+                    onClick={() => removerCustom(m.id)}
+                    title="Remover"
+                    style={{
+                      position: "absolute", top: 8, right: 8,
+                      background: `${C.red}20`, border: `1px solid ${C.red}44`,
+                      borderRadius: 6, color: C.red, cursor: "pointer",
+                      padding: "4px 6px", display: "flex", alignItems: "center",
+                    }}
+                  >
+                    <LuTrash2 size={13} />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
@@ -774,11 +855,12 @@ function GeralTab({ sz }) {
     <div style={{ maxWidth: 600 }}>
       <div style={{
         background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
-        padding: sz.pad, display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: sz.pad, display: "flex", flexDirection: "row",
+        alignItems: "center", gap: sz.pad,
       }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Taxa de Serviço</div>
-          <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 4 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: sz.fontBase, lineHeight: 1.3 }}>Taxa de Serviço</div>
+          <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 4, lineHeight: 1.4 }}>
             Cobra automaticamente 10% de taxa de serviço no fechamento
           </div>
         </div>
@@ -786,21 +868,22 @@ function GeralTab({ sz }) {
           onClick={handleToggle}
           disabled={saving}
           style={{
-            width: 56, height: 30, borderRadius: 15, border: "none",
+            width: 56, height: 30, borderRadius: 15, border: "none", padding: 0,
             background: taxaServico ? C.green : C.faint,
             cursor: saving ? "not-allowed" : "pointer",
             position: "relative", transition: "background 0.2s", flexShrink: 0,
-            opacity: saving ? 0.7 : 1,
+            opacity: saving ? 0.7 : 1, outline: "none",
           }}
         >
           <span style={{
-            position: "absolute", top: 3,
+            position: "absolute",
+            top: "50%", transform: "translateY(-50%)",
             left: taxaServico ? 29 : 3,
-            width: 24, height: 24, borderRadius: 12,
+            width: 24, height: 24, borderRadius: "50%",
             background: "#fff",
             transition: "left 0.2s",
             display: "block",
-            boxShadow: "0 1px 4px #0004",
+            boxShadow: "0 1px 4px #0006",
           }} />
         </button>
       </div>

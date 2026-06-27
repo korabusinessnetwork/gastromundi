@@ -2,7 +2,7 @@
 import C from "@/constants/colors";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuPrinter } from "react-icons/lu";
+import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuPrinter, LuWallet } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 
 const fmtComanda = (name) =>
@@ -17,7 +17,7 @@ const METODOS_CATALOG = [
 
 const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
 
-function imprimirComanda({ comanda, itensVisiveis, total, metodo, valorRecebido, troco }) {
+function imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, total, metodo, valorRecebido, troco }) {
   const agora = new Date().toLocaleString("pt-BR");
   const nomeComanda = fmtComanda(comanda?.comanda);
 
@@ -100,6 +100,10 @@ function imprimirComanda({ comanda, itensVisiveis, total, metodo, valorRecebido,
       ${linhasAtivos}
     </tbody>
     <tfoot>
+      ${valorTaxa > 0 ? `
+      <tr><td colspan="3" style="padding:6px 4px 2px;font-size:12px;color:#555;">Subtotal</td><td style="text-align:right;padding:6px 4px 2px;font-size:12px;color:#555;">R$ ${subtotal.toFixed(2)}</td></tr>
+      <tr><td colspan="3" style="padding:2px 4px;font-size:12px;color:#555;">Taxa de Serviço (10%)</td><td style="text-align:right;padding:2px 4px;font-size:12px;color:#555;">R$ ${valorTaxa.toFixed(2)}</td></tr>
+      ` : ""}
       <tr class="total-row">
         <td colspan="3">TOTAL</td>
         <td style="text-align:right;">R$ ${total.toFixed(2)}</td>
@@ -131,13 +135,18 @@ function imprimirComanda({ comanda, itensVisiveis, total, metodo, valorRecebido,
 export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const { meiosPagamento } = useApp();
+  const { meiosPagamento, metodosCustom, taxaServico } = useApp();
+  const catalogCompleto = [
+    ...METODOS_CATALOG,
+    ...(metodosCustom ?? []).map(m => ({ ...m, Icon: LuWallet })),
+  ];
   const ativos = meiosPagamento?.length ? meiosPagamento : METODOS_CATALOG.map(m => m.id);
-  const METODOS = ativos.map(id => METODOS_CATALOG.find(m => m.id === id)).filter(Boolean);
+  const METODOS = ativos.map(id => catalogCompleto.find(m => m.id === id)).filter(Boolean);
 
   const [metodo,      setMetodo]      = useState(null);
   const [recebido,    setRecebido]    = useState("");
   const [confirmando, setConfirmando] = useState(false);
+  const [aplicarTaxa, setAplicarTaxa] = useState(!!taxaServico);
 
   // Agrupa itens ativos pelo mesmo produto (name + price), somando qty e unindo obs
   const itensAgrupados = items.filter(i => !i.cancelado).reduce((acc, item) => {
@@ -153,7 +162,9 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   }, {});
   const itensVisiveis = Object.values(itensAgrupados);
 
-  const total         = itensVisiveis.reduce((s, i) => s + i.price * i.qty, 0);
+  const subtotal      = itensVisiveis.reduce((s, i) => s + i.price * i.qty, 0);
+  const valorTaxa     = aplicarTaxa ? subtotal * 0.10 : 0;
+  const total         = subtotal + valorTaxa;
   const valorRecebido = parseFloat(recebido.replace(",", ".")) || 0;
   const troco         = metodo === "dinheiro" ? valorRecebido - total : 0;
   const podeConfirmar = metodo && (metodo !== "dinheiro" || valorRecebido >= total);
@@ -161,10 +172,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const handleConfirm = async () => {
     if (!podeConfirmar || confirmando) return;
     setConfirmando(true);
-    await onConfirm({ metodo, recebido: valorRecebido, troco: Math.max(0, troco) });
+    await onConfirm({ metodo, recebido: valorRecebido, troco: Math.max(0, troco), total, taxaServico: aplicarTaxa, valorTaxa });
   };
 
-  const handlePrint = () => imprimirComanda({ comanda, itensVisiveis, total, metodo, valorRecebido, troco });
+  const handlePrint = () => imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, total, metodo, valorRecebido, troco });
 
   const isMob = sz.checkoutResumo === 0;
 
@@ -302,6 +313,34 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                 </div>
               );
             })}
+
+            {/* Taxa de Serviço */}
+            {taxaServico && (
+              <div style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                paddingTop: 14, marginTop: 4,
+                borderTop: `1px solid ${C.border}`,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: sz.fontSm, color: C.muted }}>Taxa de Serviço (10%)</span>
+                  <button
+                    onClick={() => setAplicarTaxa(v => !v)}
+                    style={{
+                      fontSize: sz.fontSm - 1, fontWeight: 700, padding: "3px 10px",
+                      borderRadius: 8, border: `1.5px solid ${aplicarTaxa ? C.red + "88" : C.green + "88"}`,
+                      background: aplicarTaxa ? `${C.red}15` : `${C.green}15`,
+                      color: aplicarTaxa ? C.red : C.green,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    {aplicarTaxa ? "Remover" : "Aplicar"}
+                  </button>
+                </div>
+                <span style={{ fontWeight: 700, fontSize: sz.fontBase, color: aplicarTaxa ? C.text : C.muted, textDecoration: aplicarTaxa ? "none" : "line-through" }}>
+                  R$ {(subtotal * 0.10).toFixed(2)}
+                </span>
+              </div>
+            )}
 
             {/* Total */}
             <div style={{
