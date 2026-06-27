@@ -23,6 +23,7 @@ export function AppProvider({ children }) {
   const [fundoAtual,      setFundoAtualLocal]    = useState(0);
   const [caixaAberto,     setCaixaAbertoLocal]   = useState(true);
   const [sessaoAbertaEm,  setSessaoAbertaEmLocal] = useState(null);
+  const [meiosPagamento,  setMeiosPagamentoLocal] = useState(["dinheiro", "credito", "debito", "pix"]);
   const [credentials,     setCredentialsLocal]   = useState({});
   const [estoque,       setEstoqueLocal]     = useState({});
   const [loading,       setLoading]          = useState(true);
@@ -81,6 +82,8 @@ export function AppProvider({ children }) {
         if (sessao?.value) setSessaoAbertaEmLocal(sessao.value);
         if (creds)   setCredentialsLocal(typeof creds.value === "object" ? creds.value : {});
         if (estq)    setEstoqueLocal(typeof estq.value === "object" ? estq.value : {});
+        const meios = configData.find(c => c.key === "meios_pagamento");
+        if (meios?.value && Array.isArray(meios.value) && meios.value.length > 0) setMeiosPagamentoLocal(meios.value);
       }
 
       setLoading(false);
@@ -302,13 +305,18 @@ export function AppProvider({ children }) {
     await supabase.from("config").upsert({ key: "sessao_aberta_em", value: val });
   };
 
+  const setMeiosPagamento = async (val) => {
+    setMeiosPagamentoLocal(val);
+    await supabase.from("config").upsert({ key: "meios_pagamento", value: val });
+  };
+
   // ── Context value ─────────────────────────────────────────────
   const addLancada = (id) => setLancadas(prev => new Set([...prev, id]));
 
   const value = {
     loading,
     // dados
-    products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, credentials, estoque,
+    products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, credentials, estoque,
     currentUser, isMobile, mobileChoice,
     lancadas, addLancada,
     // setter simples (sem persistência)
@@ -325,7 +333,7 @@ export function AppProvider({ children }) {
     addUser, updateUser, removeUser,
     // outros
     addFechamento,
-    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, saveCredential, updateEstoque,
+    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, saveCredential, updateEstoque,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

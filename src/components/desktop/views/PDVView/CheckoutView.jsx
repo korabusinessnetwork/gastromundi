@@ -3,20 +3,24 @@ import C from "@/constants/colors";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone } from "react-icons/lu";
+import { useApp } from "@/context/AppContext";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
-const METODOS = [
-  { id: "debito",   label: "Débito",   Icon: LuSmartphone },
-  { id: "credito",  label: "Crédito",  Icon: LuCreditCard },
-  { id: "pix",      label: "Pix",      Icon: LuZap        },
+const METODOS_CATALOG = [
   { id: "dinheiro", label: "Dinheiro", Icon: LuBanknote   },
+  { id: "credito",  label: "Crédito",  Icon: LuCreditCard },
+  { id: "debito",   label: "Débito",   Icon: LuSmartphone },
+  { id: "pix",      label: "Pix",      Icon: LuZap        },
 ];
 
 export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
+  const { meiosPagamento } = useApp();
+  const ativos = meiosPagamento?.length ? meiosPagamento : METODOS_CATALOG.map(m => m.id);
+  const METODOS = ativos.map(id => METODOS_CATALOG.find(m => m.id === id)).filter(Boolean);
 
   const [metodo,      setMetodo]      = useState(null);
   const [recebido,    setRecebido]    = useState("");
@@ -185,8 +189,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
               <div style={{
                 flex: 1,
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gridTemplateRows: "1fr 1fr",
+                gridTemplateColumns: METODOS.length === 1 ? "1fr" : "1fr 1fr",
+                gridTemplateRows: `repeat(${Math.ceil(METODOS.length / 2)}, 1fr)`,
                 gap: 14,
               }}>
                 {METODOS.map(m => (

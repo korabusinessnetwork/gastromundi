@@ -1,11 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
+import { supabase } from "@/lib/supabase";
 import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
-import { LuTriangleAlert } from "react-icons/lu";
+import { LuTriangleAlert, LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon } from "react-icons/lu";
 
 const EMOJIS = ["🍺","🥤","💧","🍹","🍸","🥂","🍷","🍵","☕","🍔","🍟","🍕","🌭","🥪","🥗","🍝","🍣","🍜","🌮","🥩","🍗","🍖","🥚","🧀","🍰","🍦","🍫","🍿","🧂","🍱"];
 
@@ -27,10 +28,58 @@ export default function ProdutosView() {
   const [busca, setBusca]       = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  // ── Gerenciamento de categorias ──────────────────────────────
+  const [showCatModal,  setShowCatModal]  = useState(false);
+  const [catExtra,      setCatExtra]      = useState([]);   // categorias pré-criadas (sem produtos)
+  const [catEditando,   setCatEditando]   = useState(null); // { name, input }
+  const [catNova,       setCatNova]       = useState("");
+  const [catOpLoading,  setCatOpLoading]  = useState(false);
+
+  useEffect(() => {
+    supabase.from("config").select("value").eq("key", "categorias_extra").single()
+      .then(({ data }) => { if (data?.value && Array.isArray(data.value)) setCatExtra(data.value); });
+  }, []);
+
+  const salvarCatExtra = async (lista) => {
+    setCatExtra(lista);
+    await supabase.from("config").upsert({ key: "categorias_extra", value: lista });
+  };
+
+  const criarCategoria = async () => {
+    const nome = catNova.trim();
+    if (!nome || catOpLoading || categorias.includes(nome)) return;
+    setCatOpLoading(true);
+    await salvarCatExtra([...catExtra, nome]);
+    setCatNova("");
+    setCatOpLoading(false);
+  };
+
+  const renomearCategoria = async () => {
+    if (!catEditando || catOpLoading) return;
+    const novoNome = catEditando.input.trim();
+    const nomeAntigo = catEditando.name;
+    if (!novoNome || novoNome === nomeAntigo) { setCatEditando(null); return; }
+    setCatOpLoading(true);
+    const novosExtras = catExtra.map(c => c === nomeAntigo ? novoNome : c);
+    await salvarCatExtra(novosExtras);
+    const afetados = products.filter(p => p.category === nomeAntigo);
+    await Promise.all(afetados.map(p => updateProduct(p.id, { category: novoNome })));
+    if (catFiltro === nomeAntigo) setCatFiltro(novoNome);
+    setCatEditando(null);
+    setCatOpLoading(false);
+  };
+
+  const excluirCategoria = async (nome) => {
+    if (catOpLoading || products.some(p => p.category === nome)) return;
+    setCatOpLoading(true);
+    await salvarCatExtra(catExtra.filter(c => c !== nome));
+    setCatOpLoading(false);
+  };
+
   const categorias = useMemo(() => {
-    const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
-    return cats.sort();
-  }, [products]);
+    const fromProducts = products.map(p => p.category).filter(Boolean);
+    return [...new Set([...catExtra, ...fromProducts])].sort();
+  }, [products, catExtra]);
 
   const produtosFiltrados = useMemo(() => {
     return products
@@ -137,17 +186,31 @@ export default function ProdutosView() {
           />
 
           {isAdmin && (
-            <button
-              onClick={abrirNovo}
-              style={{
-                padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: "none",
-                background: C.accent, color: "#fff",
-                fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
-              + Novo Produto
-            </button>
+            <>
+              <button
+                onClick={() => setShowCatModal(true)}
+                style={{
+                  padding: `9px ${sz.pad - 8}px`, borderRadius: 10,
+                  border: `1px solid ${C.border}`, background: C.surface,
+                  color: C.text, fontWeight: 700, fontSize: sz.fontBase,
+                  cursor: "pointer", whiteSpace: "nowrap",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}
+              >
+                <LuTag size={15} /> Categorias
+              </button>
+              <button
+                onClick={abrirNovo}
+                style={{
+                  padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: "none",
+                  background: C.accent, color: "#fff",
+                  fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                + Novo Produto
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -479,6 +542,175 @@ export default function ProdutosView() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Modal Gerenciar Categorias ── */}
+      {showCatModal && createPortal(
+        <div
+          onClick={e => { if (e.target === e.currentTarget) { setShowCatModal(false); setCatEditando(null); setCatNova(""); } }}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 9000, padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
+          }}
+        >
+          <div style={{
+            background: C.card, borderRadius: 20, padding: 28,
+            width: "100%", maxWidth: 480,
+            border: `1px solid ${C.border}`,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+            color: C.text, display: "flex", flexDirection: "column", gap: 20,
+            maxHeight: "85vh",
+          }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}>
+                  <LuTag size={18} color={C.accent} /> Categorias
+                </div>
+                <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
+                  {categorias.length} categoria{categorias.length !== 1 ? "s" : ""} cadastrada{categorias.length !== 1 ? "s" : ""}
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowCatModal(false); setCatEditando(null); setCatNova(""); }}
+                style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 4 }}
+              >
+                <LuXIcon size={20} />
+              </button>
+            </div>
+
+            {/* Lista de categorias */}
+            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, minHeight: 0 }}>
+              {categorias.length === 0 && (
+                <div style={{ color: C.muted, fontSize: 14, textAlign: "center", padding: 24 }}>
+                  Nenhuma categoria ainda. Crie uma abaixo.
+                </div>
+              )}
+              {categorias.map(cat => {
+                const qtdProdutos = products.filter(p => p.category === cat).length;
+                const emEdicao    = catEditando?.name === cat;
+                const podeExcluir = qtdProdutos === 0;
+                return (
+                  <div
+                    key={cat}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "11px 14px", borderRadius: 12,
+                      background: emEdicao ? C.alow : C.surface,
+                      border: `1px solid ${emEdicao ? C.accent + "66" : C.border}`,
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {emEdicao ? (
+                      <>
+                        <input
+                          autoFocus
+                          value={catEditando.input}
+                          onChange={e => setCatEditando(v => ({ ...v, input: e.target.value }))}
+                          onKeyDown={e => { if (e.key === "Enter") renomearCategoria(); if (e.key === "Escape") setCatEditando(null); }}
+                          style={{
+                            flex: 1, padding: "6px 10px", borderRadius: 8,
+                            border: `1.5px solid ${C.accent}`,
+                            background: C.card, color: C.text,
+                            fontSize: 14, fontWeight: 600, fontFamily: "inherit", outline: "none",
+                          }}
+                        />
+                        <button
+                          onClick={renomearCategoria}
+                          disabled={catOpLoading}
+                          style={{ background: C.accent, border: "none", borderRadius: 8, color: "#fff", cursor: "pointer", padding: "6px 10px", lineHeight: 0 }}
+                        >
+                          <LuCheck size={15} />
+                        </button>
+                        <button
+                          onClick={() => setCatEditando(null)}
+                          style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: "pointer", padding: "6px 10px", lineHeight: 0 }}
+                        >
+                          <LuXIcon size={15} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>{cat}</span>
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 10,
+                          background: C.card, color: C.muted, border: `1px solid ${C.border}`,
+                        }}>
+                          {qtdProdutos} {qtdProdutos === 1 ? "produto" : "produtos"}
+                        </span>
+                        <button
+                          onClick={() => setCatEditando({ name: cat, input: cat })}
+                          title="Renomear"
+                          style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: "pointer", padding: "6px 9px", lineHeight: 0 }}
+                        >
+                          <LuPencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => excluirCategoria(cat)}
+                          disabled={!podeExcluir || catOpLoading}
+                          title={podeExcluir ? "Excluir categoria" : `Remova os ${qtdProdutos} produto(s) antes de excluir`}
+                          style={{
+                            background: "none",
+                            border: `1px solid ${podeExcluir ? C.red + "55" : C.border}`,
+                            borderRadius: 8,
+                            color: podeExcluir ? C.red : C.border,
+                            cursor: podeExcluir ? "pointer" : "not-allowed",
+                            padding: "6px 9px", lineHeight: 0,
+                            opacity: podeExcluir ? 1 : 0.4,
+                          }}
+                        >
+                          <LuTrash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Nova categoria */}
+            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 18 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                Nova Categoria
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  value={catNova}
+                  onChange={e => setCatNova(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && criarCategoria()}
+                  placeholder="Ex: Bebidas, Lanches, Sobremesas..."
+                  maxLength={40}
+                  style={{
+                    flex: 1, padding: "11px 14px", borderRadius: 10,
+                    border: `1.5px solid ${catNova.trim() ? C.accent : C.border}`,
+                    background: C.surface, color: C.text,
+                    fontSize: 14, fontFamily: "inherit", outline: "none",
+                    transition: "border-color 0.15s",
+                  }}
+                />
+                <button
+                  onClick={criarCategoria}
+                  disabled={!catNova.trim() || catOpLoading || categorias.includes(catNova.trim())}
+                  style={{
+                    padding: "11px 20px", borderRadius: 10, border: "none",
+                    background: catNova.trim() && !categorias.includes(catNova.trim()) ? C.accent : C.surface,
+                    color: catNova.trim() && !categorias.includes(catNova.trim()) ? "#fff" : C.muted,
+                    fontWeight: 700, fontSize: 14, cursor: catNova.trim() && !categorias.includes(catNova.trim()) ? "pointer" : "not-allowed",
+                    whiteSpace: "nowrap", fontFamily: "inherit",
+                    transition: "background 0.15s",
+                  }}
+                >
+                  {catOpLoading ? "..." : "Adicionar"}
+                </button>
+              </div>
+              {catNova.trim() && categorias.includes(catNova.trim()) && (
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>Esta categoria já existe.</div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Modal Confirmar Exclusão ── */}

@@ -5,7 +5,7 @@ import { getSizes } from "@/constants/sizes";
 import { hashPassword, passwordStrength, sanitizeInput } from "@/utils";
 import { getPermissions } from "@/constants/roles";
 import C from "@/constants/colors";
-import { LuEye, LuEyeOff } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap } from "react-icons/lu";
 
 const ROLES = [
   { id: "admin",   label: "Administrador", color: C.accent },
@@ -636,12 +636,134 @@ const overlayStyle = {
   zIndex: 300,
 };
 
+// ── Catálogo de métodos de pagamento ────────────────────────────────
+
+const METODOS_CATALOG = [
+  { id: "dinheiro", label: "Dinheiro", Icon: LuBanknote,   desc: "Pagamento em espécie" },
+  { id: "credito",  label: "Crédito",  Icon: LuCreditCard, desc: "Cartão de crédito" },
+  { id: "debito",   label: "Débito",   Icon: LuSmartphone, desc: "Cartão de débito" },
+  { id: "pix",      label: "Pix",      Icon: LuZap,        desc: "Pagamento via Pix" },
+];
+
+// ── Aba Meios de Pagamento ────────────────────────────────────────
+
+function MeiosPagamentoTab({ sz }) {
+  const { meiosPagamento, setMeiosPagamento, currentUser } = useApp();
+  const [ativos, setAtivos] = useState(
+    meiosPagamento?.length ? meiosPagamento : METODOS_CATALOG.map(m => m.id)
+  );
+  const [salvando, setSalvando] = useState(false);
+  const [okMsg,    setOkMsg]    = useState(false);
+
+  const isAdmin = currentUser?.role === "admin";
+
+  const toggle = (id) => {
+    if (!isAdmin) return;
+    setAtivos(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
+    setOkMsg(false);
+  };
+
+  const salvar = async () => {
+    if (ativos.length === 0 || salvando) return;
+    setSalvando(true);
+    await setMeiosPagamento(ativos);
+    setSalvando(false);
+    setOkMsg(true);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: sz.pad }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: sz.pad }}>
+        <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, marginBottom: 4 }}>Meios de Pagamento</div>
+        <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginBottom: sz.pad }}>
+          Ative ou desative as formas de pagamento disponíveis no checkout e no fechamento de caixa.
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: sz.gap }}>
+          {METODOS_CATALOG.map(m => {
+            const ativo = ativos.includes(m.id);
+            return (
+              <button
+                key={m.id}
+                onClick={() => toggle(m.id)}
+                disabled={!isAdmin}
+                style={{
+                  padding: `${sz.pad}px ${sz.padSm}px`,
+                  borderRadius: 14,
+                  border: `2px solid ${ativo ? C.accent : C.border}`,
+                  background: ativo ? `${C.accent}10` : C.surface,
+                  color: ativo ? C.accent : C.muted,
+                  cursor: isAdmin ? "pointer" : "default",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                  transition: "border-color 0.15s, background 0.15s, color 0.15s",
+                  opacity: !isAdmin ? 0.7 : 1,
+                  fontFamily: "inherit",
+                }}
+              >
+                <m.Icon size={26} />
+                <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>{m.label}</div>
+                <div style={{ fontSize: sz.fontSm, color: ativo ? `${C.accent}bb` : C.muted }}>{m.desc}</div>
+                <div style={{
+                  fontSize: 11, fontWeight: 700,
+                  background: ativo ? `${C.green}18` : `${C.faint}`,
+                  color: ativo ? C.green : C.muted,
+                  border: `1px solid ${ativo ? C.green : C.border}44`,
+                  padding: "2px 10px", borderRadius: 20, marginTop: 2,
+                }}>
+                  {ativo ? "Ativo" : "Desabilitado"}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {ativos.length === 0 && (
+          <div style={{
+            marginTop: sz.padSm, padding: "10px 14px", borderRadius: 8,
+            background: `${C.red}15`, border: `1px solid ${C.red}44`,
+            color: C.red, fontSize: 13, fontWeight: 600,
+          }}>
+            ⚠️ É necessário pelo menos um meio de pagamento ativo.
+          </div>
+        )}
+      </div>
+
+      {isAdmin && (
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 14 }}>
+          {okMsg && (
+            <span style={{ fontSize: 13, color: C.green, fontWeight: 600 }}>✓ Configurações salvas</span>
+          )}
+          <button
+            onClick={salvar}
+            disabled={salvando || ativos.length === 0}
+            style={{
+              padding: "10px 24px", borderRadius: 10, border: "none",
+              background: (salvando || ativos.length === 0) ? C.faint : C.accent,
+              color: "#fff", fontWeight: 700, fontSize: sz.fontBase,
+              cursor: (salvando || ativos.length === 0) ? "not-allowed" : "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            {salvando ? "Salvando..." : "Salvar Configurações"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── View principal ────────────────────────────────────────────────
+
+const ABAS_CONFIG = [
+  { id: "usuarios",        label: "Usuários" },
+  { id: "meios_pagamento", label: "Meios de Pagamento" },
+];
 
 export default function ConfiguracoesView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const { currentUser } = useApp();
+  const [aba, setAba] = useState("usuarios");
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
@@ -654,13 +776,34 @@ export default function ConfiguracoesView() {
       }}>
         <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Configurações</div>
         <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 2 }}>
-          Gerencie os usuários do sistema
+          Gerencie os usuários e configurações do sistema
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 4, marginTop: sz.padSm }}>
+          {ABAS_CONFIG.map(a => (
+            <button
+              key={a.id}
+              onClick={() => setAba(a.id)}
+              style={{
+                padding: "7px 16px", borderRadius: 8, border: "none",
+                background: aba === a.id ? C.accent : "transparent",
+                color: aba === a.id ? "#fff" : C.muted,
+                cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
+                transition: "background 0.15s, color 0.15s",
+                fontFamily: "inherit",
+              }}
+            >
+              {a.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Conteúdo */}
       <div style={{ flex: 1, overflowY: "auto", padding: sz.pad }}>
-        <UsuariosTab sz={sz} />
+        {aba === "usuarios"        && <UsuariosTab sz={sz} />}
+        {aba === "meios_pagamento" && <MeiosPagamentoTab sz={sz} />}
       </div>
     </div>
   );

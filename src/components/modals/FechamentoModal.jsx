@@ -1,54 +1,61 @@
 import { useState, useMemo } from "react";
 import C from "@/constants/colors";
 import { LuLock, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPencil } from "react-icons/lu";
+import { useApp } from "@/context/AppContext";
 
-const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
-const METODOS_ICON  = { dinheiro: LuBanknote, credito: LuCreditCard, debito: LuSmartphone, pix: LuZap };
-const METODOS_ORDER = ["dinheiro", "credito", "debito", "pix"];
+const METODOS_CATALOG = {
+  dinheiro: { label: "Dinheiro", Icon: LuBanknote   },
+  credito:  { label: "Crédito",  Icon: LuCreditCard },
+  debito:   { label: "Débito",   Icon: LuSmartphone },
+  pix:      { label: "Pix",      Icon: LuZap        },
+};
 
 function fmtR(v) { return "R$ " + Number(v ?? 0).toFixed(2); }
 function parsVal(s) { return Math.max(0, parseFloat(String(s ?? "").replace(",", ".")) || 0); }
 
-function buildSistema(sales, fundoAtual, sessaoAbertaEm) {
+function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios) {
   const inicio = sessaoAbertaEm
     ? new Date(sessaoAbertaEm).getTime()
     : new Date(new Date().toDateString()).getTime();
   const hoje = (sales ?? []).filter(s => s && new Date(s.at).getTime() >= inicio);
-  const m = { dinheiro: 0, credito: 0, debito: 0, pix: 0 };
+  const m = {};
+  meios.forEach(k => { m[k] = 0; });
   hoje.forEach(v => { if (m[v.metodo] !== undefined) m[v.metodo] += v.total ?? 0; });
-  m.dinheiro += fundoAtual; // caixa físico inclui o fundo inicial
+  if (m.dinheiro !== undefined) m.dinheiro += fundoAtual;
   return { hoje, m };
 }
 
 export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onConfirm, onClose }) {
+  const { meiosPagamento } = useApp();
+  const meios = meiosPagamento?.length ? meiosPagamento : Object.keys(METODOS_CATALOG);
+
   const [salvando, setSalvando] = useState(false);
 
   const { hoje, m: sistema } = useMemo(
-    () => buildSistema(sales, fundoAtual, sessaoAbertaEm),
-    [sales, fundoAtual, sessaoAbertaEm]
+    () => buildSistema(sales, fundoAtual, sessaoAbertaEm, meios),
+    [sales, fundoAtual, sessaoAbertaEm, meios]
   );
 
   const totalVendas = hoje.reduce((s, v) => s + (v.total ?? 0), 0);
   const totalSistema = totalVendas + fundoAtual;
 
-  // Estado editável — pré-preenchido com os valores do sistema
   const [conf, setConf] = useState(() => {
-    const { m } = buildSistema(sales, fundoAtual, sessaoAbertaEm);
+    const { m } = buildSistema(sales, fundoAtual, sessaoAbertaEm, meios);
     const r = {};
-    METODOS_ORDER.forEach(k => { r[k] = m[k].toFixed(2); });
+    meios.forEach(k => { r[k] = m[k].toFixed(2); });
     return r;
   });
 
   const setMetodo = (k, v) => setConf(prev => ({ ...prev, [k]: v }));
 
-  const totalConferido = METODOS_ORDER.reduce((s, k) => s + parsVal(conf[k]), 0);
+  const totalConferido = meios.reduce((s, k) => s + parsVal(conf[k] ?? "0"), 0);
   const diferencaTotal = totalConferido - totalSistema;
 
   const handleConfirm = async () => {
     if (salvando) return;
     setSalvando(true);
     const conferidoPorMetodo = {};
-    METODOS_ORDER.forEach(k => { conferidoPorMetodo[k] = parsVal(conf[k]); });
+    meios.forEach(k => { conferidoPorMetodo[k] = parsVal(conf[k] ?? "0"); });
     await onConfirm({ totalVendas, totalConferido, conferidoPorMetodo });
   };
 
@@ -102,9 +109,9 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             </span>
           </div>
 
-          {METODOS_ORDER.map(metodo => {
-            const Icon       = METODOS_ICON[metodo];
-            const sistemaVal = sistema[metodo];
+          {meios.map(metodo => {
+            const { Icon, label } = METODOS_CATALOG[metodo] ?? { label: metodo, Icon: LuBanknote };
+            const sistemaVal = sistema[metodo] ?? 0;
             const confVal    = parsVal(conf[metodo]);
             const diff       = confVal - sistemaVal;
             const hasDiff    = Math.abs(diff) > 0.004;
@@ -120,7 +127,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600 }}>
                       <Icon size={15} color={C.muted} />
-                      {METODOS_LABEL[metodo]}
+                      {label}
                     </div>
                     {metodo === "dinheiro" && (
                       <div style={{ fontSize: 11, color: C.muted, marginTop: 3, paddingLeft: 23 }}>

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
 import { exportToPDF, exportToXLSX } from "@/lib/exportReport";
@@ -8,7 +9,7 @@ import C from "@/constants/colors";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
   LuLock, LuTriangleAlert, LuPackage, LuClipboardList, LuShieldAlert, LuEye, LuEyeOff,
-  LuPrinter, LuDownload,
+  LuPrinter, LuDownload, LuX,
 } from "react-icons/lu";
 
 const ABAS = ["Vendas", "Fechamentos", "Logs", "Credenciais"];
@@ -170,6 +171,169 @@ function ExportBar({ onPDF, onXLSX, sz }) {
   );
 }
 
+// ── Modal de detalhe de fechamento ────────────────────────────────
+
+const METODOS_DETALHE = [
+  { id: "dinheiro", label: "Dinheiro", Icon: LuBanknote   },
+  { id: "credito",  label: "Crédito",  Icon: LuCreditCard },
+  { id: "debito",   label: "Débito",   Icon: LuSmartphone },
+  { id: "pix",      label: "Pix",      Icon: LuZap        },
+];
+
+function FechamentoDetalheModal({ f, onClose }) {
+  const metodos = f.conferidoPorMetodo
+    ? Object.keys(f.conferidoPorMetodo)
+    : METODOS_DETALHE.map(m => m.id);
+  const totalEsperado = (f.totalVendas ?? 0) + (f.fundo ?? 0);
+  const diferenca     = (f.totalConferido ?? 0) - totalEsperado;
+
+  return createPortal(
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 500, fontFamily: "'Inter',system-ui,sans-serif",
+      }}
+    >
+      <div style={{
+        background: C.card, borderRadius: 20, padding: 28,
+        width: 520, border: `1px solid ${C.border}`,
+        display: "flex", flexDirection: "column", gap: 20,
+        maxHeight: "90vh", overflowY: "auto",
+      }}>
+
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+              background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <LuLock size={22} color={C.accent} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 18 }}>Fechamento de Caixa</div>
+              <div style={{ color: C.muted, fontSize: 13, marginTop: 2 }}>
+                {fmtData(f.at)}
+              </div>
+              <div style={{ color: C.muted, fontSize: 12, marginTop: 1 }}>
+                {f.user ?? "—"}{f.role ? ` · ${f.role}` : ""}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none", border: `1px solid ${C.border}`,
+              borderRadius: 8, padding: "6px 8px", cursor: "pointer",
+              color: C.muted, display: "flex", alignItems: "center",
+            }}
+          >
+            <LuX size={16} />
+          </button>
+        </div>
+
+        {/* Tabela por método */}
+        {f.conferidoPorMetodo && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            <div style={{
+              display: "grid", gridTemplateColumns: "1fr 110px",
+              gap: 8, paddingBottom: 8, marginBottom: 2,
+              borderBottom: `1px solid ${C.border}`,
+              fontSize: 11, fontWeight: 700, color: C.muted,
+              textTransform: "uppercase", letterSpacing: 1,
+            }}>
+              <span>Método</span>
+              <span style={{ textAlign: "right" }}>Conferido</span>
+            </div>
+            {metodos.map(id => {
+              const cat = METODOS_DETALHE.find(m => m.id === id);
+              const Icon = cat?.Icon ?? LuBanknote;
+              const label = cat?.label ?? id;
+              const val = f.conferidoPorMetodo[id] ?? 0;
+              return (
+                <div key={id} style={{
+                  display: "grid", gridTemplateColumns: "1fr 110px",
+                  gap: 8, alignItems: "center", padding: "11px 0",
+                  borderBottom: `1px solid ${C.border}`,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600 }}>
+                    <Icon size={15} color={C.muted} />
+                    {label}
+                    {id === "dinheiro" && f.fundo > 0 && (
+                      <span style={{ fontSize: 11, color: C.muted, fontWeight: 400 }}>
+                        (inclui fundo {fmtR(f.fundo)})
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ textAlign: "right", fontWeight: 800, fontSize: 14 }}>
+                    {fmtR(val)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Resumo */}
+        <div style={{
+          background: C.surface, borderRadius: 14,
+          border: `1px solid ${C.border}`, padding: 16,
+          display: "flex", flexDirection: "column", gap: 9,
+        }}>
+          {[
+            { label: "Total de Vendas (sistema)", value: fmtR(f.totalVendas) },
+            { label: "Fundo de Caixa",            value: fmtR(f.fundo)       },
+          ].map(r => (
+            <div key={r.label} style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 13, color: C.muted }}>{r.label}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: C.muted }}>{r.value}</span>
+            </div>
+          ))}
+
+          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 9, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 700, fontSize: 14 }}>Total Esperado em Caixa</span>
+            <span style={{ fontWeight: 800, fontSize: 15, color: C.muted }}>{fmtR(totalEsperado)}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 800, fontSize: 15 }}>Total Conferido</span>
+            <span style={{ fontWeight: 900, fontSize: 17, color: C.green }}>{fmtR(f.totalConferido)}</span>
+          </div>
+
+          <div style={{
+            padding: "12px 16px", borderRadius: 10, marginTop: 4,
+            background: diferenca >= 0 ? `${C.green}14` : `${C.red}14`,
+            border: `1.5px solid ${(diferenca >= 0 ? C.green : C.red)}55`,
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+            <span style={{ fontWeight: 600, fontSize: 13, color: C.muted }}>
+              {diferenca >= 0 ? "Sobra no Caixa" : "Falta no Caixa"}
+            </span>
+            <span style={{ fontWeight: 900, fontSize: 18, color: diferenca >= 0 ? C.green : C.red }}>
+              {diferenca >= 0 ? "+" : ""}{fmtR(diferenca)}
+            </span>
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          style={{
+            padding: "11px", borderRadius: 10,
+            border: `1px solid ${C.border}`, background: "none",
+            color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 14,
+            fontFamily: "inherit",
+          }}
+        >
+          Fechar
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ── View principal ────────────────────────────────────────────────
 
 export default function RelatorioView() {
@@ -177,9 +341,10 @@ export default function RelatorioView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
 
-  const [aba,        setAba]        = useState("Vendas");
-  const [periodo,    setPeriodo]    = useState("hoje");
-  const [metodoFilt, setMetodoFilt] = useState("todos");
+  const [aba,         setAba]         = useState("Vendas");
+  const [periodo,     setPeriodo]     = useState("hoje");
+  const [fechDetalhe, setFechDetalhe] = useState(null);
+  const [metodoFilt,  setMetodoFilt]  = useState("todos");
   const [logTipo,    setLogTipo]    = useState("todos");
   const [subVendas,  setSubVendas]  = useState("resumido");
   const [senhasVisiveis, setSenhasVisiveis] = useState({});
@@ -609,6 +774,7 @@ export default function RelatorioView() {
                       <Th right>Total Vendas</Th>
                       <Th right>Conferido</Th>
                       <Th right>Diferença</Th>
+                      <Th></Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -617,9 +783,10 @@ export default function RelatorioView() {
                       return (
                         <tr
                           key={f.id ?? i}
+                          onClick={() => setFechDetalhe(f)}
                           onMouseEnter={e => e.currentTarget.style.background = C.surface}
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                          style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
+                          style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s", cursor: "pointer" }}
                         >
                           <Td sz={sz} muted nowrap>{fmtData(f.at)}</Td>
                           <Td sz={sz}>{f.user ?? "—"}</Td>
@@ -628,6 +795,16 @@ export default function RelatorioView() {
                           <Td sz={sz} right color={C.green}><span style={{ fontWeight: 700 }}>{fmtR(f.totalConferido)}</span></Td>
                           <Td sz={sz} right color={dif >= 0 ? C.green : C.red}>
                             <span style={{ fontWeight: 800 }}>{dif >= 0 ? "+" : ""}{fmtR(dif)}</span>
+                          </Td>
+                          <Td sz={sz} right>
+                            <span style={{
+                              fontSize: sz.fontSm, fontWeight: 600, color: C.accent,
+                              padding: "3px 10px", borderRadius: 20,
+                              background: `${C.accent}10`, border: `1px solid ${C.accent}33`,
+                              whiteSpace: "nowrap",
+                            }}>
+                              Ver detalhes
+                            </span>
                           </Td>
                         </tr>
                       );
@@ -847,6 +1024,10 @@ export default function RelatorioView() {
           </div>
         )}
       </div>
+
+      {fechDetalhe && (
+        <FechamentoDetalheModal f={fechDetalhe} onClose={() => setFechDetalhe(null)} />
+      )}
     </div>
   );
 }
