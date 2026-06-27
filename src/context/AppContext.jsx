@@ -24,6 +24,7 @@ export function AppProvider({ children }) {
   const [caixaAberto,     setCaixaAbertoLocal]   = useState(true);
   const [sessaoAbertaEm,  setSessaoAbertaEmLocal] = useState(null);
   const [meiosPagamento,  setMeiosPagamentoLocal] = useState(["dinheiro", "credito", "debito", "pix"]);
+  const [taxaServico,     setTaxaServicoLocal]    = useState(false);
   const [credentials,     setCredentialsLocal]   = useState({});
   const [estoque,       setEstoqueLocal]     = useState({});
   const [loading,       setLoading]          = useState(true);
@@ -84,6 +85,8 @@ export function AppProvider({ children }) {
         if (estq)    setEstoqueLocal(typeof estq.value === "object" ? estq.value : {});
         const meios = configData.find(c => c.key === "meios_pagamento");
         if (meios?.value && Array.isArray(meios.value) && meios.value.length > 0) setMeiosPagamentoLocal(meios.value);
+        const taxa = configData.find(c => c.key === "taxa_servico");
+        if (taxa?.value !== undefined) setTaxaServicoLocal(!!taxa.value);
       }
 
       setLoading(false);
@@ -310,6 +313,11 @@ export function AppProvider({ children }) {
     await supabase.from("config").upsert({ key: "meios_pagamento", value: val });
   };
 
+  const setTaxaServico = async (val) => {
+    setTaxaServicoLocal(!!val);
+    await supabase.from("config").upsert({ key: "taxa_servico", value: !!val });
+  };
+
   // ── Context value ─────────────────────────────────────────────
   const addLancada = (id) => setLancadas(prev => new Set([...prev, id]));
 
@@ -334,6 +342,7 @@ export function AppProvider({ children }) {
     // outros
     addFechamento,
     setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, saveCredential, updateEstoque,
+    taxaServico, setTaxaServico,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

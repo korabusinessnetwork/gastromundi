@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
@@ -35,7 +35,7 @@ const STATUS_COMPRA = {
 function Field({ label, children }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
         {label}
       </div>
       {children}
@@ -54,7 +54,7 @@ function Inp({ value, onChange, placeholder, type = "text", disabled }) {
       style={{
         width: "100%", padding: "10px 12px", borderRadius: 10,
         border: `1.5px solid ${C.border}`, background: disabled ? C.faint : C.surface,
-        color: C.text, fontSize: 14, fontFamily: "inherit",
+        color: C.text, fontSize: 17, fontFamily: "inherit",
         outline: "none", boxSizing: "border-box",
         opacity: disabled ? 0.6 : 1,
       }}
@@ -72,7 +72,7 @@ function Txta({ value, onChange, placeholder, rows = 3 }) {
       style={{
         width: "100%", padding: "10px 12px", borderRadius: 10,
         border: `1.5px solid ${C.border}`, background: C.surface,
-        color: C.text, fontSize: 14, fontFamily: "inherit",
+        color: C.text, fontSize: 17, fontFamily: "inherit",
         outline: "none", resize: "vertical", boxSizing: "border-box", lineHeight: 1.5,
       }}
     />
@@ -107,7 +107,7 @@ function ModalBase({ title, onClose, onSave, saveLabel = "Salvar", saving, width
         </div>
         {children}
         <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 14, fontFamily: "inherit" }}>
+          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17, fontFamily: "inherit" }}>
             Cancelar
           </button>
           <button
@@ -117,7 +117,7 @@ function ModalBase({ title, onClose, onSave, saveLabel = "Salvar", saving, width
               flex: 2, padding: 12, borderRadius: 10, border: "none",
               background: saving ? C.faint : C.accent,
               color: "#fff", cursor: saving ? "not-allowed" : "pointer",
-              fontWeight: 700, fontSize: 14, fontFamily: "inherit",
+              fontWeight: 700, fontSize: 17, fontFamily: "inherit",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
             }}
           >
@@ -135,7 +135,7 @@ function DeleteConfirm({ msg, onCancel, onConfirm }) {
     <div onClick={e => { if (e.target === e.currentTarget) onCancel(); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 600, fontFamily: "'Inter',system-ui,sans-serif" }}>
       <div style={{ background: C.card, borderRadius: 16, padding: 28, width: 380, border: `1px solid ${C.border}`, color: C.text, display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ fontWeight: 800, fontSize: 17 }}>Confirmar exclusão</div>
-        <div style={{ color: C.muted, fontSize: 14 }} dangerouslySetInnerHTML={{ __html: msg }} />
+        <div style={{ color: C.muted, fontSize: 17 }} dangerouslySetInnerHTML={{ __html: msg }} />
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onCancel} style={{ flex: 1, padding: 11, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>Cancelar</button>
           <button onClick={onConfirm} style={{ flex: 1, padding: 11, borderRadius: 10, border: "none", background: C.red, color: "#fff", cursor: "pointer", fontWeight: 700, fontFamily: "inherit" }}>Excluir</button>
@@ -148,7 +148,7 @@ function DeleteConfirm({ msg, onCancel, onConfirm }) {
 
 function CardBtn({ onClick, children }) {
   return (
-    <button onClick={onClick} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "5px 10px", cursor: "pointer", color: C.muted, display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+    <button onClick={onClick} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "5px 10px", cursor: "pointer", color: C.muted, display: "flex", alignItems: "center", gap: 4, fontSize: 18, fontWeight: 600, fontFamily: "inherit" }}>
       {children}
     </button>
   );
@@ -158,14 +158,14 @@ function EmptyMsg({ icon: Icon, msg }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: 60, color: C.muted }}>
       <div style={{ opacity: 0.3 }}><Icon size={44} /></div>
-      <div style={{ fontSize: 14, fontWeight: 600 }}>{msg}</div>
+      <div style={{ fontSize: 17, fontWeight: 600 }}>{msg}</div>
     </div>
   );
 }
 
 function AddBtn({ onClick, label }) {
   return (
-    <button onClick={onClick} style={{ padding: "9px 18px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit" }}>
+    <button onClick={onClick} style={{ padding: "9px 18px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontWeight: 700, fontSize: 17, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit" }}>
       <LuPlus size={15} /> {label}
     </button>
   );
@@ -278,11 +278,11 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                 {/* KPIs */}
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ flex: 1, background: C.surface, borderRadius: 10, padding: "9px 12px" }}>
-                    <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, marginBottom: 2, textTransform: "uppercase", letterSpacing: 0.8 }}>Rendimento</div>
+                    <div style={{ fontSize: 13, color: C.muted, fontWeight: 700, marginBottom: 2, textTransform: "uppercase", letterSpacing: 0.8 }}>Rendimento</div>
                     <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>{f.rendimento || "—"} porç.</div>
                   </div>
                   <div style={{ flex: 1, background: `${C.green}10`, border: `1px solid ${C.green}33`, borderRadius: 10, padding: "9px 12px" }}>
-                    <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, marginBottom: 2, textTransform: "uppercase", letterSpacing: 0.8 }}>Custo/porção</div>
+                    <div style={{ fontSize: 13, color: C.muted, fontWeight: 700, marginBottom: 2, textTransform: "uppercase", letterSpacing: 0.8 }}>Custo/porção</div>
                     <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: C.green }}>{fmtR(cp)}</div>
                   </div>
                 </div>
@@ -292,9 +292,9 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                   <div style={{ display: "flex", flexDirection: "column", gap: 0, borderRadius: 10, border: `1px solid ${C.border}`, overflow: "hidden" }}>
                     {/* Cabeçalho da tabela */}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 60px", padding: "7px 12px", background: C.surface, borderBottom: `1px solid ${C.border}` }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>Ingrediente</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>Necessário</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "right" }}>Em estoque</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>Ingrediente</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>Necessário</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "right" }}>Em estoque</div>
                     </div>
 
                     {ings.map((ing, i) => {
@@ -324,9 +324,9 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                           {/* Nome */}
                           <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
                             {emojiShow
-                              ? <span style={{ fontSize: 15, flexShrink: 0 }}>{emojiShow}</span>
+                              ? <span style={{ fontSize: 18, flexShrink: 0 }}>{emojiShow}</span>
                               : <LuPackage size={13} color={C.muted} style={{ flexShrink: 0 }} />}
-                            <span style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <span style={{ fontSize: 16, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {nomeShow || <span style={{ color: C.muted, fontStyle: "italic" }}>sem nome</span>}
                             </span>
                             {produto && (
@@ -335,12 +335,12 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                           </div>
 
                           {/* Qtd necessária */}
-                          <div style={{ fontSize: 11, fontWeight: 700, color: C.text, textAlign: "center" }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, textAlign: "center" }}>
                             {qtdNec > 0 ? (
                               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
                                 <span>{fmtQtd(qtdNec)} {ucLabel}</span>
                                 {temConv && (
-                                  <span style={{ fontSize: 10, color: C.muted, fontWeight: 500 }}>
+                                  <span style={{ fontSize: 13, color: C.muted, fontWeight: 500 }}>
                                     ={fmtQtd(qtdNecEst)} {ueLabel}
                                   </span>
                                 )}
@@ -351,11 +351,11 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                           {/* Qtd em estoque */}
                           <div style={{ textAlign: "right" }}>
                             {qtdEstq === null ? (
-                              <span style={{ fontSize: 11, color: C.muted }}>—</span>
+                              <span style={{ fontSize: 14, color: C.muted }}>—</span>
                             ) : (
                               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
                                 <span style={{
-                                  fontSize: 12, fontWeight: 700, color: corEstq,
+                                  fontSize: 18, fontWeight: 700, color: corEstq,
                                   background: `${corEstq}15`, border: `1px solid ${corEstq}44`,
                                   borderRadius: 6, padding: "2px 7px",
                                 }}>
@@ -371,14 +371,14 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                 )}
 
                 {ings.length === 0 && (
-                  <div style={{ fontSize: 12, color: C.muted, textAlign: "center", padding: "10px 0", fontStyle: "italic" }}>
+                  <div style={{ fontSize: 18, color: C.muted, textAlign: "center", padding: "10px 0", fontStyle: "italic" }}>
                     Nenhum ingrediente cadastrado
                   </div>
                 )}
 
                 {/* Custo total */}
                 {ct > 0 && (
-                  <div style={{ fontSize: 12, color: C.muted, textAlign: "right" }}>
+                  <div style={{ fontSize: 18, color: C.muted, textAlign: "right" }}>
                     Custo total dos ingredientes: <strong style={{ color: C.text }}>{fmtR(ct)}</strong>
                   </div>
                 )}
@@ -415,7 +415,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
 
             {/* Esquerda: lista de ingredientes adicionados */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
                 Ingredientes da receita
               </div>
 
@@ -424,7 +424,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                 {form.ingredientes.length > 0 && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 64px 54px 80px 28px", gap: 6, paddingBottom: 4, borderBottom: `1px solid ${C.border}` }}>
                     {["Ingrediente", "Qtd", "Un", "R$/un", ""].map((h, i) => (
-                      <div key={i} style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
+                      <div key={i} style={{ fontSize: 13, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
                     ))}
                   </div>
                 )}
@@ -443,8 +443,8 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                         background: `${C.accent}12`, border: `1px solid ${C.accent}33`,
                         borderRadius: 8, padding: "7px 10px", minWidth: 0,
                       }}>
-                        {emojiChip && <span style={{ fontSize: 15, flexShrink: 0 }}>{emojiChip}</span>}
-                        <span style={{ fontWeight: 600, fontSize: 13, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{nomeChip}</span>
+                        {emojiChip && <span style={{ fontSize: 18, flexShrink: 0 }}>{emojiChip}</span>}
+                        <span style={{ fontWeight: 600, fontSize: 16, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{nomeChip}</span>
                         <LuLink size={11} color={C.accent} style={{ flexShrink: 0 }} />
                       </div>
                     ) : (
@@ -452,23 +452,23 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                         value={ing.nome}
                         onChange={e => setIng(i, "nome", e.target.value)}
                         placeholder="Nome do ingrediente"
-                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
                       />
                     )}
                     <input
                       type="number" value={ing.qtd} onChange={e => setIng(i, "qtd", e.target.value)}
                       placeholder="0"
-                      style={{ width: "100%", padding: "8px 6px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13, fontFamily: "inherit", outline: "none", textAlign: "center", boxSizing: "border-box" }}
+                      style={{ width: "100%", padding: "8px 6px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", textAlign: "center", boxSizing: "border-box" }}
                     />
                     <input
                       value={ing.unidade} onChange={e => setIng(i, "unidade", e.target.value)}
                       placeholder="un"
-                      style={{ width: "100%", padding: "8px 6px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13, fontFamily: "inherit", outline: "none", textAlign: "center", boxSizing: "border-box" }}
+                      style={{ width: "100%", padding: "8px 6px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", textAlign: "center", boxSizing: "border-box" }}
                     />
                     <input
                       type="number" value={ing.custoUnit} onChange={e => setIng(i, "custoUnit", e.target.value)}
                       placeholder="0,00"
-                      style={{ width: "100%", padding: "8px 6px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13, fontFamily: "inherit", outline: "none", textAlign: "right", boxSizing: "border-box" }}
+                      style={{ width: "100%", padding: "8px 6px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", textAlign: "right", boxSizing: "border-box" }}
                     />
                     <button onClick={() => removeIng(i)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, cursor: "pointer", color: C.muted, padding: "5px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <LuX size={12} />
@@ -478,16 +478,16 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                 })}
 
                 {form.ingredientes.length === 0 && (
-                  <div style={{ fontSize: 13, color: C.muted, padding: "24px 0", textAlign: "center", border: `1.5px dashed ${C.border}`, borderRadius: 10 }}>
+                  <div style={{ fontSize: 16, color: C.muted, padding: "24px 0", textAlign: "center", border: `1.5px dashed ${C.border}`, borderRadius: 10 }}>
                     Selecione itens do estoque ao lado<br />
-                    <span style={{ fontSize: 12 }}>ou adicione manualmente</span>
+                    <span style={{ fontSize: 18 }}>ou adicione manualmente</span>
                   </div>
                 )}
 
                 {/* Botão manual */}
                 <button
                   onClick={adicionarManual}
-                  style={{ alignSelf: "flex-start", background: "none", border: `1px dashed ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: C.muted, fontSize: 12, fontWeight: 600, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}
+                  style={{ alignSelf: "flex-start", background: "none", border: `1px dashed ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", color: C.muted, fontSize: 18, fontWeight: 600, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}
                 >
                   <LuPlus size={12} /> Adicionar manualmente
                 </button>
@@ -496,10 +496,10 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
               {/* Resumo de custo */}
               {form.ingredientes.length > 0 && (
                 <div style={{ background: C.surface, borderRadius: 10, padding: "12px 14px", border: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between" }}>
-                  <div style={{ fontSize: 12, color: C.muted }}>
+                  <div style={{ fontSize: 18, color: C.muted }}>
                     Custo total: <strong style={{ color: C.text }}>{fmtR(custoTotal)}</strong>
                   </div>
-                  <div style={{ fontSize: 12, color: C.muted }}>
+                  <div style={{ fontSize: 18, color: C.muted }}>
                     Por porção: <strong style={{ color: C.green }}>{fmtR(custoPorcao)}</strong>
                   </div>
                 </div>
@@ -508,7 +508,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
 
             {/* Direita: painel de busca no estoque */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8, background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
                 Itens do Estoque
               </div>
 
@@ -523,7 +523,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                   style={{
                     width: "100%", padding: "8px 10px 8px 30px",
                     borderRadius: 9, border: `1.5px solid ${C.border}`,
-                    background: C.card, color: C.text, fontSize: 13,
+                    background: C.card, color: C.text, fontSize: 16,
                     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                   }}
                 />
@@ -537,7 +537,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
               {/* Lista de produtos */}
               <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 3, maxHeight: 260 }}>
                 {produtosFiltrados.length === 0 ? (
-                  <div style={{ fontSize: 12, color: C.muted, textAlign: "center", padding: "20px 0" }}>
+                  <div style={{ fontSize: 18, color: C.muted, textAlign: "center", padding: "20px 0" }}>
                     Nenhum produto encontrado
                   </div>
                 ) : (
@@ -562,8 +562,8 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                       >
                         <span style={{ fontSize: 17, flexShrink: 0 }}>{p.emoji || "📦"}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 12, color: jaAdicionado ? C.accent : C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-                          <div style={{ fontSize: 11, color: C.muted }}>{p.category}</div>
+                          <div style={{ fontWeight: 600, fontSize: 18, color: jaAdicionado ? C.accent : C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                          <div style={{ fontSize: 14, color: C.muted }}>{p.category}</div>
                         </div>
                         {jaAdicionado ? (
                           <LuCheck size={13} color={C.accent} style={{ flexShrink: 0 }} />
@@ -576,7 +576,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                 )}
               </div>
 
-              <div style={{ fontSize: 11, color: C.muted, textAlign: "center", borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+              <div style={{ fontSize: 14, color: C.muted, textAlign: "center", borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
                 {produtosFiltrados.length} produto{produtosFiltrados.length !== 1 ? "s" : ""} encontrado{produtosFiltrados.length !== 1 ? "s" : ""}
               </div>
             </div>
@@ -650,7 +650,7 @@ function NotasTab({ sz, notas, onSave, onDelete }) {
                 </div>
               </div>
               {n.conteudo && <div style={{ fontSize: sz.fontSm + 1, color: C.muted, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{n.conteudo.length > 200 ? n.conteudo.slice(0, 200) + "…" : n.conteudo}</div>}
-              {n.criadaEm && <div style={{ fontSize: 11, color: C.muted, marginTop: "auto" }}>{fmtDt(n.criadaEm)}</div>}
+              {n.criadaEm && <div style={{ fontSize: 14, color: C.muted, marginTop: "auto" }}>{fmtDt(n.criadaEm)}</div>}
             </div>
           ))}
         </div>
@@ -720,7 +720,7 @@ function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                 {["Nome", "Categoria", "Contato", "Telefone", ""].map((h, i) => (
-                  <th key={i} style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>
+                  <th key={i} style={{ padding: "12px 16px", textAlign: "left", fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -826,7 +826,7 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                 {["Data", "Fornecedor", "Itens", "Total", "Status", ""].map((h, i) => (
-                  <th key={i} style={{ padding: "12px 16px", textAlign: i >= 2 ? "right" : "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>
+                  <th key={i} style={{ padding: "12px 16px", textAlign: i >= 2 ? "right" : "left", fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -863,7 +863,7 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Fornecedor *">
               {fns.length > 0 ? (
-                <select value={form.fornecedor} onChange={e => setF("fornecedor", e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: form.fornecedor ? C.text : C.muted, fontSize: 14, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+                <select value={form.fornecedor} onChange={e => setF("fornecedor", e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: form.fornecedor ? C.text : C.muted, fontSize: 17, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
                   <option value="">Selecionar...</option>
                   {fns.map(n => <option key={n} value={n}>{n}</option>)}
                   <option value="__outro">Outro (digitar)</option>
@@ -882,8 +882,8 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
 
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>Itens</div>
-              <button onClick={addItem} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: C.accent, fontSize: 12, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>Itens</div>
+              <button onClick={addItem} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: C.accent, fontSize: 18, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
                 <LuPlus size={12} /> Adicionar item
               </button>
             </div>
@@ -899,11 +899,11 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
                   </button>
                 </div>
               ))}
-              {form.itens.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nenhum item adicionado</div>}
+              {form.itens.length === 0 && <div style={{ fontSize: 16, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nenhum item adicionado</div>}
             </div>
             {form.itens.length > 0 && (
-              <div style={{ marginTop: 10, textAlign: "right", fontSize: 13, color: C.muted }}>
-                Total: <strong style={{ color: C.green, fontSize: 15 }}>{fmtR(totalForm)}</strong>
+              <div style={{ marginTop: 10, textAlign: "right", fontSize: 16, color: C.muted }}>
+                Total: <strong style={{ color: C.green, fontSize: 18 }}>{fmtR(totalForm)}</strong>
               </div>
             )}
           </div>
@@ -994,12 +994,12 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
             const aliqMedia = lista.reduce((s, i) => s + (parseFloat(i.aliquota) || 0), 0) / lista.length;
             return (
               <div key={tipo} style={{ background: `${cor}10`, border: `1px solid ${cor}33`, borderRadius: 12, padding: "10px 16px", minWidth: 120 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: cor, textTransform: "uppercase", letterSpacing: 0.8 }}>{tipo}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: cor, textTransform: "uppercase", letterSpacing: 0.8 }}>{tipo}</div>
                 <div style={{ fontWeight: 800, fontSize: 18, color: cor, marginTop: 2 }}>
                   {lista.length === 1 ? `${parseFloat(lista[0].aliquota) || 0}%` : `${lista.length} reg.`}
                 </div>
                 {lista.length > 1 && (
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>média {aliqMedia.toFixed(1)}%</div>
+                  <div style={{ fontSize: 14, color: C.muted, marginTop: 1 }}>média {aliqMedia.toFixed(1)}%</div>
                 )}
               </div>
             );
@@ -1020,14 +1020,14 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
                   <div style={{ fontWeight: 900, fontSize: 20, color: cor, lineHeight: 1 }}>
                     {parseFloat(imp.aliquota) || 0}
                   </div>
-                  <div style={{ fontSize: 11, color: cor, fontWeight: 700 }}>%</div>
+                  <div style={{ fontSize: 14, color: cor, fontWeight: 700 }}>%</div>
                 </div>
 
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                     <span style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>{imp.nome}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: `${cor}15`, border: `1px solid ${cor}44`, color: cor }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: `${cor}15`, border: `1px solid ${cor}44`, color: cor }}>
                       {imp.tipo}
                     </span>
                   </div>
@@ -1092,12 +1092,12 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
                 value={form.aliquota}
                 onChange={e => setF("aliquota", e.target.value)}
                 placeholder="0,00"
-                style={{ width: "100%", padding: "10px 36px 10px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 15, fontWeight: 700, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                style={{ width: "100%", padding: "10px 36px 10px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 18, fontWeight: 700, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
               />
-              <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, fontWeight: 700, fontSize: 14 }}>%</span>
+              <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, fontWeight: 700, fontSize: 17 }}>%</span>
             </div>
             {form.aliquota && (
-              <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>
+              <div style={{ fontSize: 18, color: C.muted, marginTop: 6 }}>
                 Sobre R$ 1.000,00 → <strong style={{ color: C.text }}>R$ {(parseFloat(form.aliquota) * 10).toFixed(2)}</strong> de imposto
               </div>
             )}
@@ -1155,7 +1155,7 @@ function GradeInicial({ sz, onSelecionar, fichas, notas, fornecedores, compras, 
               <div style={{ fontSize: sz.fontSm + 1, color: C.muted, lineHeight: 1.5 }}>{s.desc}</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.surface, color: C.muted, border: `1px solid ${C.border}` }}>
+              <span style={{ fontSize: 18, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: C.surface, color: C.muted, border: `1px solid ${C.border}` }}>
                 {contadores[s.id]} {contadores[s.id] === 1 ? "registro" : "registros"}
               </span>
               <LuChevronRight size={16} color={C.muted} />

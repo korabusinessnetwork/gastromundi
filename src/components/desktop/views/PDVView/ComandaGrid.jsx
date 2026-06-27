@@ -1,8 +1,8 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import C from "@/constants/colors";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuUser } from "react-icons/lu";
+import { LuUser, LuClock } from "react-icons/lu";
 
 const TOTAL = 1000;
 const PAGE  = 50;
@@ -13,14 +13,15 @@ function fmtComanda(name) {
 }
 
 function getElapsed(dateStr) {
-  if (!dateStr) return "";
+  if (!dateStr) return { label: "", color: C.muted, warn: false };
   const diff = Date.now() - new Date(dateStr).getTime();
   const m    = Math.floor(diff / 60000);
-  if (m < 1)  return "agora";
-  if (m < 60) return `${m}min`;
+  if (m < 1)  return { label: "agora",             color: C.green, warn: false };
+  if (m < 30) return { label: `${m}min`,            color: C.muted, warn: false };
+  if (m < 60) return { label: `${m}min`,            color: AMBER,   warn: true  };
   const h = Math.floor(m / 60);
   const r = m % 60;
-  return `${h}h${r > 0 ? `${r}min` : ""}`;
+  return { label: `${h}h${r > 0 ? `${r}min` : ""}`, color: "#ef4444", warn: true };
 }
 
 export default function ComandaGrid({ abertas, visitadas = new Set(), selected, onSelect, onOpenEmpty, busca = "" }) {
@@ -28,7 +29,6 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
   const sz = getSizes(width);
   const [limite, setLimite] = useState(PAGE);
 
-  // lookup: comanda number string → order
   const mapa = {};
   (abertas ?? []).forEach(o => { mapa[String(o.comanda)] = o; });
 
@@ -40,12 +40,9 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
       fmtComanda(o.comanda).toLowerCase().includes(q) ||
       (o.garcom ?? "").toLowerCase().includes(q)
     );
-
-    // Se a busca for um número e não há comanda aberta com esse número, mostra o slot para abrir
-    const numBusca = /^\d+$/.test(busca.trim()) ? parseInt(busca.trim(), 10) : null;
+    const numBusca      = /^\d+$/.test(busca.trim()) ? parseInt(busca.trim(), 10) : null;
     const slotDisponivel = numBusca && !mapa[String(numBusca)] ? numBusca : null;
-
-    const vazio = aberasFiltradas.length === 0 && !slotDisponivel;
+    const vazio          = aberasFiltradas.length === 0 && !slotDisponivel;
 
     return (
       <div style={{ height: "100%", overflowY: "auto", padding: `${sz.pad}px ${sz.pad + 4}px` }}>
@@ -56,50 +53,105 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
             <div style={{ fontSize: sz.fontSm + 1 }}>"{busca}" não corresponde a nenhuma comanda em aberto</div>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 560, margin: "0 auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 580, margin: "0 auto" }}>
             {slotDisponivel && (
               <button
                 onClick={() => onOpenEmpty(String(slotDisponivel))}
-                style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderRadius: 14, border: `1.5px dashed ${C.accent}55`, background: `${C.accent}07`, color: C.text, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "background 0.15s" }}
-                onMouseEnter={e => e.currentTarget.style.background = `${C.accent}12`}
-                onMouseLeave={e => e.currentTarget.style.background = `${C.accent}07`}
+                style={{
+                  display: "flex", alignItems: "center", gap: 14,
+                  padding: "16px 20px", borderRadius: 14,
+                  border: `1.5px dashed ${C.accent}66`,
+                  background: `${C.accent}08`,
+                  color: C.text, cursor: "pointer", textAlign: "left",
+                  fontFamily: "inherit", transition: "background 0.15s, border-color 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = `${C.accent}14`; e.currentTarget.style.borderColor = C.accent; }}
+                onMouseLeave={e => { e.currentTarget.style.background = `${C.accent}08`; e.currentTarget.style.borderColor = `${C.accent}66`; }}
               >
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>+</div>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 22, flexShrink: 0, color: C.accent, fontWeight: 900,
+                }}>+</div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: sz.fontBase + 1, color: C.accent }}>Abrir Comanda {slotDisponivel}</div>
+                  <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2, color: C.accent }}>Abrir Comanda {slotDisponivel}</div>
                   <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 2 }}>Disponível · clique para abrir</div>
                 </div>
               </button>
             )}
 
             {aberasFiltradas.map(order => {
-              const items    = Array.isArray(order.items) ? order.items : [];
-              const qtdTotal = items.reduce((s, i) => s + (i.qty || 1), 0);
-              const total    = order.total ?? items.reduce((s, i) => s + i.price * (i.qty || 1), 0);
-              const hasItems = qtdTotal > 0;
+              const items      = Array.isArray(order.items) ? order.items : [];
+              const ativos     = items.filter(i => !i.cancelado);
+              const qtdTotal   = ativos.reduce((s, i) => s + (i.qty || 1), 0);
+              const total      = ativos.reduce((s, i) => s + i.price * (i.qty || 1), 0);
+              const hasItems   = qtdTotal > 0;
               const isVisitada = visitadas.has(order.id);
               const isSelected = selected?.id === order.id;
-              const borderColor = isSelected ? C.accent : isVisitada ? AMBER : hasItems ? `${C.blue}66` : C.border;
-              const bgColor     = isSelected ? C.alow    : isVisitada ? `${AMBER}14` : C.card;
+              const elapsed    = getElapsed(order.created_at);
+
+              const borderColor = isSelected ? C.accent : isVisitada ? AMBER : hasItems ? `${C.blue}55` : C.border;
+              const bgColor     = isSelected ? `${C.accent}0d` : isVisitada ? `${AMBER}10` : C.card;
+
               return (
                 <button
                   key={order.id}
                   onClick={() => onSelect(order)}
-                  style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderRadius: 14, border: `1.5px solid ${borderColor}`, background: bgColor, color: C.text, cursor: "pointer", textAlign: "left", fontFamily: "inherit", transition: "border-color 0.15s, background 0.15s" }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 14,
+                    padding: "14px 18px", borderRadius: 14,
+                    border: `1.5px solid ${borderColor}`,
+                    background: bgColor,
+                    color: C.text, cursor: "pointer", textAlign: "left",
+                    fontFamily: "inherit",
+                    boxShadow: isSelected ? `0 4px 20px ${C.accent}22` : isVisitada ? `0 2px 12px ${AMBER}18` : "none",
+                    transition: "border-color 0.15s, background 0.15s, box-shadow 0.15s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 16px rgba(0,0,0,0.15)`; e.currentTarget.style.borderColor = isSelected ? C.accent : C.accent + "66"; }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = isSelected ? `0 4px 20px ${C.accent}22` : isVisitada ? `0 2px 12px ${AMBER}18` : "none"; e.currentTarget.style.borderColor = borderColor; }}
                 >
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 16, color: C.muted, flexShrink: 0 }}>
+                  {/* Badge número */}
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 11, flexShrink: 0,
+                    background: isSelected ? C.accent : isVisitada ? AMBER : hasItems ? `${C.blue}18` : C.surface,
+                    border: `1.5px solid ${isSelected ? C.accent : isVisitada ? AMBER : hasItems ? `${C.blue}44` : C.border}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontWeight: 900, fontSize: 18,
+                    color: isSelected ? "#fff" : isVisitada ? "#fff" : hasItems ? C.blue : C.muted,
+                  }}>
                     {/^\d+$/.test(String(order.comanda ?? "").trim()) ? order.comanda : "C"}
                   </div>
+
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>{fmtComanda(order.comanda) || `#${String(order.id).slice(-4).toUpperCase()}`}</div>
-                    {order.garcom && <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 2 }}>{order.garcom}</div>}
+                    <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, marginBottom: 2 }}>
+                      {fmtComanda(order.comanda) || `#${String(order.id).slice(-4).toUpperCase()}`}
+                    </div>
+                    <div style={{ fontSize: sz.fontSm + 1, color: C.muted, display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+                      {order.mesa && (
+                        <span style={{ background: `${C.accent}14`, color: C.accent, fontWeight: 700, borderRadius: 5, padding: "1px 6px", fontSize: sz.fontSm }}>
+                          🪑 {order.mesa}{order.apelido ? ` · ${order.apelido}` : ""}
+                        </span>
+                      )}
+                      {!order.mesa && order.apelido && (
+                        <span style={{ background: `${C.accent}14`, color: C.accent, fontWeight: 700, borderRadius: 5, padding: "1px 6px", fontSize: sz.fontSm }}>
+                          {order.apelido}
+                        </span>
+                      )}
+                      {order.garcom && (
+                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          <LuUser size={10} /> {order.garcom}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: sz.fontBase + 1, color: hasItems ? C.green : C.muted }}>
+
+                  <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+                    <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: hasItems ? C.green : C.muted }}>
                       {hasItems ? `R$ ${total.toFixed(2)}` : "Vazio"}
                     </div>
-                    <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>
-                      {hasItems ? `${qtdTotal} ${qtdTotal === 1 ? "item" : "itens"}` : ""}
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: sz.fontSm, color: elapsed.color }}>
+                      <LuClock size={10} /> {elapsed.label}
                     </div>
                   </div>
                 </button>
@@ -159,95 +211,141 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
 }
 
 function ComandaCard({ num, order, isSelected, isVisitada, onClick, sz }) {
+  const [hovered, setHovered] = useState(false);
+
   if (!order) {
     return (
       <button
         onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
-          background: C.card,
-          border: `1.5px dashed ${C.border}`,
+          background: hovered ? `${C.accent}0a` : C.card,
+          border: `1.5px ${hovered ? "solid" : "dashed"} ${hovered ? C.accent + "88" : C.border}`,
           borderRadius: 16,
           padding: `${sz.pad}px ${sz.padSm + 4}px`,
           cursor: "pointer", textAlign: "left",
-          color: C.muted, width: "100%",
+          color: hovered ? C.text : C.muted,
+          width: "100%",
           display: "flex", flexDirection: "column", gap: sz.gap - 6,
-          opacity: 0.55, transition: "opacity 0.15s, border-color 0.15s",
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.opacity = "1";
-          e.currentTarget.style.borderColor = C.accent + "88";
-          e.currentTarget.style.borderStyle = "solid";
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.opacity = "0.55";
-          e.currentTarget.style.borderColor = C.border;
-          e.currentTarget.style.borderStyle = "dashed";
+          opacity: hovered ? 1 : 0.45,
+          transition: "opacity 0.15s, border-color 0.15s, background 0.15s, border-style 0.1s",
+          minHeight: 90,
         }}
       >
-        <div style={{ fontWeight: 800, fontSize: sz.fontLg - 2 }}>Comanda {num}</div>
-        <div style={{ fontSize: sz.fontSm, color: C.muted }}>Disponível · clique para abrir</div>
+        <div style={{ fontWeight: 800, fontSize: sz.fontLg - 2, color: hovered ? C.accent : C.muted }}>
+          {num}
+        </div>
+        <div style={{ fontSize: sz.fontSm, color: hovered ? C.muted : C.faint }}>
+          Disponível
+        </div>
       </button>
     );
   }
 
   const items    = Array.isArray(order.items) ? order.items : [];
-  const qtdTotal = items.reduce((s, i) => s + (i.qty || 1), 0);
-  const total    = order.total ?? items.reduce((s, i) => s + (i.price * (i.qty || 1)), 0);
+  const ativos   = items.filter(i => !i.cancelado);
+  const qtdTotal = ativos.reduce((s, i) => s + (i.qty || 1), 0);
+  const total    = ativos.reduce((s, i) => s + (i.price * (i.qty || 1)), 0);
   const hasItems = qtdTotal > 0;
   const elapsed  = getElapsed(order.created_at);
 
   const borderColor = isSelected ? C.accent
                     : isVisitada ? AMBER
-                    : hasItems   ? `${C.blue}66`
+                    : hasItems   ? `${C.blue}55`
                     : C.border;
-  const bgColor     = isSelected ? C.alow
-                    : isVisitada ? `${AMBER}14`
+  const bgColor     = isSelected ? `${C.accent}0d`
+                    : isVisitada ? `${AMBER}10`
                     : C.card;
+  const shadow      = isSelected ? `0 4px 24px ${C.accent}28`
+                    : isVisitada ? `0 2px 12px ${AMBER}20`
+                    : hovered    ? "0 4px 16px rgba(0,0,0,0.14)"
+                    : "none";
 
   return (
     <button
       onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         background: bgColor,
-        border: `1.5px solid ${borderColor}`,
+        border: `1.5px solid ${hovered && !isSelected ? C.accent + "55" : borderColor}`,
         borderRadius: 16,
         padding: `${sz.pad}px ${sz.padSm + 4}px`,
         cursor: "pointer", textAlign: "left",
         color: C.text, width: "100%",
         display: "flex", flexDirection: "column", gap: sz.gap - 2,
-        transition: "border-color 0.15s, background 0.15s",
+        boxShadow: shadow,
+        transition: "border-color 0.15s, background 0.15s, box-shadow 0.2s",
       }}
     >
+      {/* Header: número + tempo */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-        <div style={{ fontWeight: 800, fontSize: sz.fontLg - 2, lineHeight: 1.2 }}>
-          {fmtComanda(order.comanda) || `#${String(order.id).slice(-4).toUpperCase()}`}
+        <div style={{ fontWeight: 900, fontSize: sz.fontLg - 1, lineHeight: 1.1, color: isSelected ? C.accent : C.text }}>
+          {num}
         </div>
         <span style={{
-          fontSize: sz.fontSm - 1, fontWeight: 600, color: C.muted,
-          background: C.surface, padding: "3px 8px", borderRadius: 8,
+          fontSize: sz.fontSm - 1, fontWeight: 700, color: elapsed.color,
+          background: elapsed.warn ? `${elapsed.color}14` : C.surface,
+          border: elapsed.warn ? `1px solid ${elapsed.color}33` : `1px solid ${C.border}`,
+          padding: "3px 8px", borderRadius: 8,
           whiteSpace: "nowrap", flexShrink: 0,
+          display: "flex", alignItems: "center", gap: 3,
         }}>
-          {elapsed}
+          <LuClock size={10} /> {elapsed.label}
         </span>
       </div>
 
-      {order.garcom && (
-        <div style={{ fontSize: sz.fontSm, color: C.muted, display: "flex", alignItems: "center", gap: 5 }}>
-          <LuUser size={11} />
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {order.garcom}
-          </span>
+      {/* Nome da comanda (se diferente do número) */}
+      {!/^\d+$/.test(String(order.comanda ?? "").trim()) && (
+        <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: C.text, marginTop: -4 }}>
+          {order.comanda}
         </div>
       )}
 
+      {/* Mesa + apelido + garçom */}
+      {(order.mesa || order.apelido || order.garcom) && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
+          {order.mesa && (
+            <span style={{
+              fontSize: sz.fontSm, fontWeight: 700, color: C.accent,
+              background: `${C.accent}14`, borderRadius: 6, padding: "2px 7px",
+            }}>
+              🪑 {order.mesa}{order.apelido ? ` · ${order.apelido}` : ""}
+            </span>
+          )}
+          {!order.mesa && order.apelido && (
+            <span style={{
+              fontSize: sz.fontSm, fontWeight: 700, color: C.accent,
+              background: `${C.accent}14`, borderRadius: 6, padding: "2px 7px",
+            }}>
+              {order.apelido}
+            </span>
+          )}
+          {order.garcom && (
+            <span style={{ fontSize: sz.fontSm, color: C.muted, display: "flex", alignItems: "center", gap: 3 }}>
+              <LuUser size={10} /> {order.garcom}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Rodapé: itens + total */}
       <div style={{
-        borderTop: `1px solid ${C.border}`, paddingTop: sz.padSm - 2,
+        borderTop: `1px solid ${C.border}`, paddingTop: sz.padSm - 2, marginTop: "auto",
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
-        <span style={{ fontSize: sz.fontSm, color: C.muted }}>
+        <span style={{
+          fontSize: sz.fontSm, color: hasItems ? C.muted : C.faint,
+          background: hasItems ? C.surface : "transparent",
+          borderRadius: 6, padding: hasItems ? "2px 7px" : "0",
+        }}>
           {hasItems ? `${qtdTotal} ${qtdTotal === 1 ? "item" : "itens"}` : "Vazio"}
         </span>
-        <span style={{ fontWeight: 700, fontSize: sz.fontBase + 1, color: hasItems ? C.green : C.muted }}>
+        <span style={{
+          fontWeight: 800, fontSize: sz.fontBase + 1,
+          color: hasItems ? C.green : C.faint,
+        }}>
           {hasItems ? `R$ ${total.toFixed(2)}` : "—"}
         </span>
       </div>

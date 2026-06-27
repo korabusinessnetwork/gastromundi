@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -131,7 +131,7 @@ export default function EstoqueView() {
               <thead>
                 <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                   {["Produto", "Categoria", "Preço", "Saldo", "Entrada"].map((h, i) => (
-                    <th key={i} style={{ padding: "12px 16px", textAlign: i >= 3 ? "center" : "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap" }}>{h}</th>
+                    <th key={i} style={{ padding: "12px 16px", textAlign: i >= 3 ? "center" : "left", fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -164,7 +164,7 @@ export default function EstoqueView() {
                           <div>
                             <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>{p.name}</div>
                             {(temP || temC) && (
-                              <div style={{ fontSize: 11, color: C.muted, marginTop: 2, display: "flex", gap: 8 }}>
+                              <div style={{ fontSize: 14, color: C.muted, marginTop: 2, display: "flex", gap: 8 }}>
                                 {temC && <span>consumo: {uc}</span>}
                                 {temP && <span>compra: {units.map(u => u.unidade).join(", ")}</span>}
                               </div>
@@ -189,13 +189,13 @@ export default function EstoqueView() {
                       <td style={{ padding: "14px 16px", textAlign: "center" }}>
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
                           <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2, color: cor }}>{fmtQtd(qty)}</div>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: cor, opacity: 0.8 }}>{ue}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: cor, opacity: 0.8 }}>{ue}</div>
                           {temC && qty > 0 && (
-                            <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
+                            <div style={{ fontSize: 14, color: C.muted, marginTop: 1 }}>
                               ≈ {fmtQtd(estoqueParaConsumo(qty, p))} {uc}
                             </div>
                           )}
-                          <div style={{ fontSize: 10, color: cor, marginTop: 2, fontWeight: 600 }}>
+                          <div style={{ fontSize: 13, color: cor, marginTop: 2, fontWeight: 600 }}>
                             {qty === 0 ? "Sem estoque" : qty <= LIMITE_BAIXO ? "Baixo" : "OK"}
                           </div>
                         </div>
@@ -211,14 +211,14 @@ export default function EstoqueView() {
                                 <button
                                   key={idx}
                                   onClick={() => setModo(p.id, idx)}
-                                  style={{ padding: "5px 10px", border: "none", borderRight: `1px solid ${C.border}`, background: modo === idx ? C.accent : "none", color: modo === idx ? "#fff" : C.muted, cursor: "pointer", fontWeight: 600, fontSize: 11, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit", whiteSpace: "nowrap" }}
+                                  style={{ padding: "5px 10px", border: "none", borderRight: `1px solid ${C.border}`, background: modo === idx ? C.accent : "none", color: modo === idx ? "#fff" : C.muted, cursor: "pointer", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit", whiteSpace: "nowrap" }}
                                 >
                                   <LuShoppingCart size={11} /> {u.unidade}
                                 </button>
                               ))}
                               <button
                                 onClick={() => setModo(p.id, "estoque")}
-                                style={{ padding: "5px 10px", border: "none", background: modo === "estoque" ? C.surface : "none", color: modo === "estoque" ? C.text : C.muted, cursor: "pointer", fontWeight: 600, fontSize: 11, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit", whiteSpace: "nowrap" }}
+                                style={{ padding: "5px 10px", border: "none", background: modo === "estoque" ? C.surface : "none", color: modo === "estoque" ? C.text : C.muted, cursor: "pointer", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit", whiteSpace: "nowrap" }}
                               >
                                 <LuBox size={11} /> {ue}
                               </button>
@@ -236,14 +236,14 @@ export default function EstoqueView() {
                                 placeholder="0"
                                 style={{ width: 68, padding: "7px 8px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", textAlign: "center", MozAppearance: "textfield", appearance: "textfield" }}
                               />
-                              <span style={{ fontSize: 11, color: C.muted, fontWeight: 600 }}>
+                              <span style={{ fontSize: 14, color: C.muted, fontWeight: 600 }}>
                                 {modo === "estoque" ? ue : (units[modo]?.unidade ?? ue)}
                               </span>
                             </div>
 
                             {/* Preview de conversão */}
                             {previewEst !== null && (
-                              <div style={{ fontSize: 11, color: C.blue }}>
+                              <div style={{ fontSize: 14, color: C.blue }}>
                                 = {fmtQtd(previewEst)} {ue}
                               </div>
                             )}
@@ -251,7 +251,7 @@ export default function EstoqueView() {
                             <button
                               onClick={() => handleAdicionar(p)}
                               disabled={busy || !rawInput || rawNum <= 0}
-                              style={{ padding: "7px 16px", borderRadius: 8, border: "none", background: rawNum > 0 ? C.accent : C.faint, color: rawNum > 0 ? "#fff" : C.muted, cursor: rawNum > 0 ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 12, fontFamily: "inherit", whiteSpace: "nowrap" }}
+                              style={{ padding: "7px 16px", borderRadius: 8, border: "none", background: rawNum > 0 ? C.accent : C.faint, color: rawNum > 0 ? "#fff" : C.muted, cursor: rawNum > 0 ? "pointer" : "not-allowed", fontWeight: 700, fontSize: 18, fontFamily: "inherit", whiteSpace: "nowrap" }}
                             >
                               {busy ? "..." : "+ Adicionar"}
                             </button>
@@ -270,7 +270,7 @@ export default function EstoqueView() {
                                 onChange={e => handleDireto(p.id, parseFloat(e.target.value) || 0)}
                                 style={{ width: 60, textAlign: "center", padding: "6px 6px", borderRadius: 8, border: `1.5px solid ${cor}66`, background: `${cor}12`, color: cor, fontWeight: 800, fontSize: sz.fontBase + 1, fontFamily: "inherit", outline: "none", MozAppearance: "textfield", appearance: "textfield" }}
                               />
-                              <span style={{ fontSize: 10, color: C.muted, fontWeight: 600 }}>{ue}</span>
+                              <span style={{ fontSize: 13, color: C.muted, fontWeight: 600 }}>{ue}</span>
                             </div>
                             <button onClick={() => handleDireto(p.id, qty + 1)} disabled={busy} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface, color: C.text, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <LuPlus size={14} />

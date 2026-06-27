@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -51,7 +51,7 @@ function Avatar({ name, size = 40 }) {
 function Label({ children }) {
   return (
     <div style={{
-      fontSize: 11, fontWeight: 700, color: C.muted,
+      fontSize: 14, fontWeight: 700, color: C.muted,
       textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8,
     }}>
       {children}
@@ -103,7 +103,7 @@ function StrengthBar({ pwd }) {
           }} />
         ))}
       </div>
-      <div style={{ fontSize: 11, color: s.color, fontWeight: 600 }}>{s.label}</div>
+      <div style={{ fontSize: 14, color: s.color, fontWeight: 600 }}>{s.label}</div>
     </div>
   );
 }
@@ -114,7 +114,7 @@ function ErrBox({ msg }) {
     <div style={{
       padding: "10px 14px", borderRadius: 8,
       background: `${C.red}15`, border: `1px solid ${C.red}44`,
-      color: C.red, fontSize: 13, fontWeight: 600,
+      color: C.red, fontSize: 16, fontWeight: 600,
     }}>
       ⚠️ {msg}
     </div>
@@ -127,7 +127,7 @@ function OkBox({ msg }) {
     <div style={{
       padding: "10px 14px", borderRadius: 8,
       background: `${C.green}15`, border: `1px solid ${C.green}44`,
-      color: C.green, fontSize: 13, fontWeight: 600,
+      color: C.green, fontSize: 16, fontWeight: 600,
     }}>
       ✓ {msg}
     </div>
@@ -259,7 +259,7 @@ function UsuariosTab({ sz }) {
         {/* Cargos */}
         <div>
           <div style={{
-            fontSize: 11, fontWeight: 700, color: C.muted,
+            fontSize: 14, fontWeight: 700, color: C.muted,
             textTransform: "uppercase", letterSpacing: 1.2, marginBottom: sz.padSm,
           }}>
             Cargos
@@ -295,7 +295,7 @@ function UsuariosTab({ sz }) {
         {/* Permissões de acesso */}
         <div>
           <div style={{
-            fontSize: 11, fontWeight: 700, color: C.muted,
+            fontSize: 14, fontWeight: 700, color: C.muted,
             textTransform: "uppercase", letterSpacing: 1.2, marginBottom: sz.padSm,
           }}>
             Permissões de Acesso
@@ -354,7 +354,7 @@ function UsuariosTab({ sz }) {
               {["", "Nome", "Usuário", "Cargo", "Acesso", ""].map((h, i) => (
                 <th key={i} style={{
                   padding: "12px 16px", textAlign: "left",
-                  fontSize: 11, fontWeight: 700, color: C.muted,
+                  fontSize: 14, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: 1,
                 }}>
                   {h}
@@ -377,7 +377,7 @@ function UsuariosTab({ sz }) {
                   <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>
                     {u.name}
                     {u.id === currentUser?.id && (
-                      <span style={{ fontSize: 11, color: C.accent, marginLeft: 8, fontWeight: 600 }}>você</span>
+                      <span style={{ fontSize: 14, color: C.accent, marginLeft: 8, fontWeight: 600 }}>você</span>
                     )}
                   </div>
                 </td>
@@ -441,7 +441,7 @@ function UsuariosTab({ sz }) {
 
             <Field label="Usuário (login) *">
               <TextInput value={form.username} onChange={v => setF("username", v.toLowerCase())} placeholder="Ex: joao" maxLength={30} sz={sz} />
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Apenas letras, números e _ (sem espaços)</div>
+              <div style={{ fontSize: 14, color: C.muted, marginTop: 4 }}>Apenas letras, números e _ (sem espaços)</div>
             </Field>
 
             <Field label="Cargo *">
@@ -610,7 +610,7 @@ function ToggleChip({ active, onClick, color, children, sz }) {
 // ── Estilos utilitários ───────────────────────────────────────────
 
 const permChip = (color) => ({
-  fontSize: 11, fontWeight: 700,
+  fontSize: 14, fontWeight: 700,
   background: `${color}15`, border: `1px solid ${color}33`,
   color, padding: "2px 8px", borderRadius: 20,
 });
@@ -620,7 +620,7 @@ const actionBtn = (color) => ({
   border: `1px solid ${color ? `${color}44` : C.border}`,
   background: color ? `${color}0f` : "none",
   color: color ?? C.text,
-  cursor: "pointer", fontWeight: 600, fontSize: 13,
+  cursor: "pointer", fontWeight: 600, fontSize: 16,
 });
 
 const cancelBtn = (sz) => ({
@@ -704,7 +704,7 @@ function MeiosPagamentoTab({ sz }) {
                 <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>{m.label}</div>
                 <div style={{ fontSize: sz.fontSm, color: ativo ? `${C.accent}bb` : C.muted }}>{m.desc}</div>
                 <div style={{
-                  fontSize: 11, fontWeight: 700,
+                  fontSize: 14, fontWeight: 700,
                   background: ativo ? `${C.green}18` : `${C.faint}`,
                   color: ativo ? C.green : C.muted,
                   border: `1px solid ${ativo ? C.green : C.border}44`,
@@ -721,7 +721,7 @@ function MeiosPagamentoTab({ sz }) {
           <div style={{
             marginTop: sz.padSm, padding: "10px 14px", borderRadius: 8,
             background: `${C.red}15`, border: `1px solid ${C.red}44`,
-            color: C.red, fontSize: 13, fontWeight: 600,
+            color: C.red, fontSize: 16, fontWeight: 600,
           }}>
             ⚠️ É necessário pelo menos um meio de pagamento ativo.
           </div>
@@ -731,7 +731,7 @@ function MeiosPagamentoTab({ sz }) {
       {isAdmin && (
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 14 }}>
           {okMsg && (
-            <span style={{ fontSize: 13, color: C.green, fontWeight: 600 }}>✓ Configurações salvas</span>
+            <span style={{ fontSize: 16, color: C.green, fontWeight: 600 }}>✓ Configurações salvas</span>
           )}
           <button
             onClick={salvar}
@@ -755,15 +755,64 @@ function MeiosPagamentoTab({ sz }) {
 // ── View principal ────────────────────────────────────────────────
 
 const ABAS_CONFIG = [
+  { id: "geral",           label: "Geral" },
   { id: "usuarios",        label: "Usuários" },
   { id: "meios_pagamento", label: "Meios de Pagamento" },
 ];
+
+function GeralTab({ sz }) {
+  const { taxaServico, setTaxaServico } = useApp();
+  const [saving, setSaving] = useState(false);
+
+  const handleToggle = async () => {
+    setSaving(true);
+    await setTaxaServico(!taxaServico);
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ maxWidth: 600 }}>
+      <div style={{
+        background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
+        padding: sz.pad, display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Taxa de Serviço</div>
+          <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 4 }}>
+            Cobra automaticamente 10% de taxa de serviço no fechamento
+          </div>
+        </div>
+        <button
+          onClick={handleToggle}
+          disabled={saving}
+          style={{
+            width: 56, height: 30, borderRadius: 15, border: "none",
+            background: taxaServico ? C.green : C.faint,
+            cursor: saving ? "not-allowed" : "pointer",
+            position: "relative", transition: "background 0.2s", flexShrink: 0,
+            opacity: saving ? 0.7 : 1,
+          }}
+        >
+          <span style={{
+            position: "absolute", top: 3,
+            left: taxaServico ? 29 : 3,
+            width: 24, height: 24, borderRadius: 12,
+            background: "#fff",
+            transition: "left 0.2s",
+            display: "block",
+            boxShadow: "0 1px 4px #0004",
+          }} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function ConfiguracoesView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const { currentUser } = useApp();
-  const [aba, setAba] = useState("usuarios");
+  const [aba, setAba] = useState("geral");
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
@@ -802,6 +851,7 @@ export default function ConfiguracoesView() {
 
       {/* Conteúdo */}
       <div style={{ flex: 1, overflowY: "auto", padding: sz.pad }}>
+        {aba === "geral"           && <GeralTab sz={sz} />}
         {aba === "usuarios"        && <UsuariosTab sz={sz} />}
         {aba === "meios_pagamento" && <MeiosPagamentoTab sz={sz} />}
       </div>

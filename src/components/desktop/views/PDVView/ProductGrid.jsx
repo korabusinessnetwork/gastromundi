@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import C from "@/constants/colors";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -53,7 +53,7 @@ export default function ProductGrid({ products, onAdd }) {
         {filtrados.length === 0 && (
           <div style={{
             gridColumn: "1 / -1", color: C.muted,
-            fontSize: 14, textAlign: "center", padding: 32,
+            fontSize: 17, textAlign: "center", padding: 32,
           }}>
             Nenhum produto nesta categoria
           </div>

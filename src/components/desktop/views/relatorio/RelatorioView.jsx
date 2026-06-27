@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, Fragment } from "react";
+﻿import { useState, useMemo, useEffect, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
@@ -9,10 +9,10 @@ import C from "@/constants/colors";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
   LuLock, LuTriangleAlert, LuPackage, LuClipboardList, LuShieldAlert, LuEye, LuEyeOff,
-  LuPrinter, LuDownload, LuX,
+  LuPrinter, LuDownload, LuX, LuCircleX,
 } from "react-icons/lu";
 
-const ABAS = ["Vendas", "Fechamentos", "Logs", "Credenciais"];
+const ABAS = ["Vendas", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
 
 const PERIODOS = [
   { id: "hoje",   label: "Hoje" },
@@ -80,7 +80,7 @@ function Th({ children, right }) {
   return (
     <th style={{
       padding: "12px 16px", textAlign: right ? "right" : "left",
-      fontSize: 11, fontWeight: 700, color: C.muted,
+      fontSize: 14, fontWeight: 700, color: C.muted,
       textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap",
     }}>
       {children}
@@ -216,10 +216,10 @@ function FechamentoDetalheModal({ f, onClose }) {
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: 18 }}>Fechamento de Caixa</div>
-              <div style={{ color: C.muted, fontSize: 13, marginTop: 2 }}>
+              <div style={{ color: C.muted, fontSize: 16, marginTop: 2 }}>
                 {fmtData(f.at)}
               </div>
-              <div style={{ color: C.muted, fontSize: 12, marginTop: 1 }}>
+              <div style={{ color: C.muted, fontSize: 18, marginTop: 1 }}>
                 {f.user ?? "—"}{f.role ? ` · ${f.role}` : ""}
               </div>
             </div>
@@ -243,7 +243,7 @@ function FechamentoDetalheModal({ f, onClose }) {
               display: "grid", gridTemplateColumns: "1fr 110px",
               gap: 8, paddingBottom: 8, marginBottom: 2,
               borderBottom: `1px solid ${C.border}`,
-              fontSize: 11, fontWeight: 700, color: C.muted,
+              fontSize: 14, fontWeight: 700, color: C.muted,
               textTransform: "uppercase", letterSpacing: 1,
             }}>
               <span>Método</span>
@@ -260,16 +260,16 @@ function FechamentoDetalheModal({ f, onClose }) {
                   gap: 8, alignItems: "center", padding: "11px 0",
                   borderBottom: `1px solid ${C.border}`,
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 17, fontWeight: 600 }}>
                     <Icon size={15} color={C.muted} />
                     {label}
                     {id === "dinheiro" && f.fundo > 0 && (
-                      <span style={{ fontSize: 11, color: C.muted, fontWeight: 400 }}>
+                      <span style={{ fontSize: 14, color: C.muted, fontWeight: 400 }}>
                         (inclui fundo {fmtR(f.fundo)})
                       </span>
                     )}
                   </div>
-                  <div style={{ textAlign: "right", fontWeight: 800, fontSize: 14 }}>
+                  <div style={{ textAlign: "right", fontWeight: 800, fontSize: 17 }}>
                     {fmtR(val)}
                   </div>
                 </div>
@@ -285,10 +285,10 @@ function FechamentoDetalheModal({ f, onClose }) {
             borderRadius: 12, padding: "12px 14px",
             display: "flex", flexDirection: "column", gap: 4,
           }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.accent, textTransform: "uppercase", letterSpacing: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.accent, textTransform: "uppercase", letterSpacing: 1 }}>
               Observação
             </div>
-            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 16, color: C.text, lineHeight: 1.6 }}>
               {f.observacao}
             </div>
           </div>
@@ -305,17 +305,17 @@ function FechamentoDetalheModal({ f, onClose }) {
             { label: "Fundo de Caixa",            value: fmtR(f.fundo)       },
           ].map(r => (
             <div key={r.label} style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 13, color: C.muted }}>{r.label}</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: C.muted }}>{r.value}</span>
+              <span style={{ fontSize: 16, color: C.muted }}>{r.label}</span>
+              <span style={{ fontSize: 16, fontWeight: 600, color: C.muted }}>{r.value}</span>
             </div>
           ))}
 
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 9, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>Total Esperado em Caixa</span>
-            <span style={{ fontWeight: 800, fontSize: 15, color: C.muted }}>{fmtR(totalEsperado)}</span>
+            <span style={{ fontWeight: 700, fontSize: 17 }}>Total Esperado em Caixa</span>
+            <span style={{ fontWeight: 800, fontSize: 18, color: C.muted }}>{fmtR(totalEsperado)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 800, fontSize: 15 }}>Total Conferido</span>
+            <span style={{ fontWeight: 800, fontSize: 18 }}>Total Conferido</span>
             <span style={{ fontWeight: 900, fontSize: 17, color: C.green }}>{fmtR(f.totalConferido)}</span>
           </div>
 
@@ -325,7 +325,7 @@ function FechamentoDetalheModal({ f, onClose }) {
             border: `1.5px solid ${(diferenca >= 0 ? C.green : C.red)}55`,
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
-            <span style={{ fontWeight: 600, fontSize: 13, color: C.muted }}>
+            <span style={{ fontWeight: 600, fontSize: 16, color: C.muted }}>
               {diferenca >= 0 ? "Sobra no Caixa" : "Falta no Caixa"}
             </span>
             <span style={{ fontWeight: 900, fontSize: 18, color: diferenca >= 0 ? C.green : C.red }}>
@@ -339,7 +339,7 @@ function FechamentoDetalheModal({ f, onClose }) {
           style={{
             padding: "11px", borderRadius: 10,
             border: `1px solid ${C.border}`, background: "none",
-            color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 14,
+            color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
             fontFamily: "inherit",
           }}
         >
@@ -354,7 +354,7 @@ function FechamentoDetalheModal({ f, onClose }) {
 // ── View principal ────────────────────────────────────────────────
 
 export default function RelatorioView() {
-  const { sales, fechamentos, users, credentials, currentUser } = useApp();
+  const { sales, fechamentos, pending, users, credentials, currentUser } = useApp();
   const { width } = useResponsive();
   const sz = getSizes(width);
 
@@ -405,6 +405,61 @@ export default function RelatorioView() {
   const fechsFiltrados = useMemo(() =>
     filtrarPorPeriodo(fechamentos, "at", periodo),
   [fechamentos, periodo]);
+
+  // ── Cancelamentos ─────────────────────────────────────────────
+  const cancelamentos = useMemo(() => {
+    const linhas = [];
+
+    // vendas finalizadas — itens cancelados dentro delas
+    const vendasPeriodo = filtrarPorPeriodo(sales, "at", periodo);
+    vendasPeriodo.forEach(v => {
+      (Array.isArray(v.items) ? v.items : [])
+        .filter(it => it.cancelado)
+        .forEach(it => linhas.push({
+          comanda:       v.comanda ?? "—",
+          cashier:       v.cashier ?? "—",
+          canceladoPor:  it.canceladoPor || "—",
+          at:            v.at,
+          nome:          it.name ?? "—",
+          emoji:         it.emoji ?? "",
+          qty:           it.qty ?? 1,
+          price:         it.price ?? 0,
+          motivo:        it.motivoCancelamento || "—",
+          origem:        "Finalizada",
+        }));
+    });
+
+    // comandas em aberto — itens cancelados
+    const pendingPeriodo = filtrarPorPeriodo(pending ?? [], "created_at", periodo);
+    pendingPeriodo.forEach(p => {
+      (Array.isArray(p.items) ? p.items : [])
+        .filter(it => it.cancelado)
+        .forEach(it => linhas.push({
+          comanda:       p.comanda ?? "—",
+          cashier:       p.garcom  ?? "—",
+          canceladoPor:  it.canceladoPor || "—",
+          at:            p.updated_at ?? p.created_at,
+          nome:          it.name ?? "—",
+          emoji:         it.emoji ?? "",
+          qty:           it.qty ?? 1,
+          price:         it.price ?? 0,
+          motivo:        it.motivoCancelamento || "—",
+          origem:        "Em aberto",
+        }));
+    });
+
+    return linhas.sort((a, b) => new Date(b.at) - new Date(a.at));
+  }, [sales, pending, periodo]);
+
+  const kpisCancelamentos = useMemo(() => {
+    const total    = cancelamentos.length;
+    const qtd      = cancelamentos.reduce((s, c) => s + c.qty, 0);
+    const valor    = cancelamentos.reduce((s, c) => s + c.price * c.qty, 0);
+    const motivos  = {};
+    cancelamentos.forEach(c => { motivos[c.motivo] = (motivos[c.motivo] ?? 0) + 1; });
+    const topMotivo = Object.entries(motivos).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
+    return { total, qtd, valor, topMotivo };
+  }, [cancelamentos]);
 
   // ── Logs ──────────────────────────────────────────────────────
   const logsFiltrados = useMemo(() => {
@@ -470,6 +525,25 @@ export default function RelatorioView() {
       credentials[u.username] ?? "não registrada",
     ]);
     exportToPDF("Credenciais de Acesso", headers, rows, "");
+  };
+
+  const exportCancelamentos = (fmt) => {
+    const headers = ["Comanda", "Produto", "Qtd", "Unit. (R$)", "Valor (R$)", "Motivo", "Cancelado por", "Finalizado por", "Origem", "Data/Hora"];
+    const rows = cancelamentos.map(c => [
+      c.comanda,
+      (c.emoji ? `${c.emoji} ` : "") + c.nome,
+      c.qty,
+      Number(c.price).toFixed(2),
+      Number(c.price * c.qty).toFixed(2),
+      c.motivo,
+      c.canceladoPor || "—",
+      c.cashier || "—",
+      c.origem,
+      fmtData(c.at),
+    ]);
+    const totais = `Total: ${kpisCancelamentos.qtd} item(ns) cancelado(s) · Valor: R$ ${kpisCancelamentos.valor.toFixed(2)}`;
+    if (fmt === "pdf") exportToPDF("Relatório de Cancelamentos", headers, rows, periodo, { totais });
+    else               exportToXLSX("Cancelamentos", headers, rows, periodo);
   };
 
   const exportLogs = (fmt) => {
@@ -783,6 +857,133 @@ export default function RelatorioView() {
           </div>
         )}
 
+        {/* ══ CANCELAMENTOS ══ */}
+        {aba === "Cancelamentos" && (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+            {/* KPIs */}
+            <div style={{
+              display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+              gap: sz.gap, padding: `${sz.pad}px ${sz.pad}px ${sz.padSm}px`,
+              flexShrink: 0,
+            }}>
+              <KpiCard label="Ocorrências"       value={kpisCancelamentos.total}                        color={C.red}    Icon={LuCircleX}       sz={sz} />
+              <KpiCard label="Itens Cancelados"  value={kpisCancelamentos.qtd}                          color="#f97316"  Icon={LuPackage}       sz={sz} />
+              <KpiCard label="Valor Perdido"     value={fmtR(kpisCancelamentos.valor)}                  color={C.red}    Icon={LuBanknote}      sz={sz} />
+              <KpiCard label="Motivo Mais Comum" value={kpisCancelamentos.topMotivo}                    color={C.muted}  Icon={LuTriangleAlert} sz={sz} />
+            </div>
+
+            {/* Toolbar */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "flex-end",
+              padding: `0 ${sz.pad}px ${sz.padSm}px`, flexShrink: 0,
+            }}>
+              <ExportBar onPDF={() => exportCancelamentos("pdf")} onXLSX={() => exportCancelamentos("xlsx")} sz={sz} />
+            </div>
+
+            {/* Tabela */}
+            <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
+              {cancelamentos.length === 0 ? (
+                <Empty icon={LuCircleX} msg="Nenhum cancelamento no período selecionado" sz={sz} />
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <Th>Comanda</Th>
+                      <Th>Produto</Th>
+                      <Th right>Qtd</Th>
+                      <Th right>Valor</Th>
+                      <Th>Motivo</Th>
+                      <Th>Cancelado por</Th>
+                      <Th>Finalizado por</Th>
+                      <Th>Origem</Th>
+                      <Th right>Data / Hora</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cancelamentos.map((c, i) => (
+                      <tr
+                        key={i}
+                        onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                        style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
+                      >
+                        <Td sz={sz}>
+                          <span style={{ fontWeight: 700 }}>{/^\d+$/.test(String(c.comanda ?? "").trim()) ? `Comanda ${c.comanda}` : c.comanda}</span>
+                        </Td>
+                        <Td sz={sz}>
+                          <span style={{ fontWeight: 600 }}>
+                            {c.emoji ? `${c.emoji} ` : ""}{c.nome}
+                          </span>
+                        </Td>
+                        <Td sz={sz} right>
+                          <span style={{
+                            fontWeight: 800, color: C.red,
+                            background: `${C.red}14`, border: `1px solid ${C.red}33`,
+                            borderRadius: 8, padding: "2px 10px", fontSize: sz.fontSm + 1,
+                          }}>
+                            ×{c.qty}
+                          </span>
+                        </Td>
+                        <Td sz={sz} right color={C.red}>
+                          <span style={{ fontWeight: 800 }}>- {fmtR(c.price * c.qty)}</span>
+                        </Td>
+                        <Td sz={sz}>
+                          {c.motivo !== "—" ? (
+                            <span style={{
+                              fontSize: sz.fontSm + 1, color: C.muted,
+                              background: C.surface, borderRadius: 8,
+                              padding: "3px 10px", display: "inline-block",
+                              maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}
+                              title={c.motivo}
+                            >
+                              {c.motivo}
+                            </span>
+                          ) : <span style={{ color: C.muted }}>—</span>}
+                        </Td>
+                        <Td sz={sz}>
+                          {c.canceladoPor && c.canceladoPor !== "—"
+                            ? <span style={{ fontWeight: 600, color: C.red }}>{c.canceladoPor}</span>
+                            : <span style={{ color: C.muted }}>—</span>}
+                        </Td>
+                        <Td sz={sz}>
+                          {c.cashier && c.cashier !== "—"
+                            ? <span style={{ fontWeight: 600, color: C.text }}>{c.cashier}</span>
+                            : <span style={{ color: C.muted }}>—</span>}
+                        </Td>
+                        <Td sz={sz}>
+                          <span style={{
+                            fontSize: sz.fontSm, fontWeight: 700,
+                            padding: "3px 10px", borderRadius: 20,
+                            background: c.origem === "Em aberto" ? `${C.accent}14` : `${C.green}14`,
+                            border: `1px solid ${c.origem === "Em aberto" ? C.accent : C.green}44`,
+                            color: c.origem === "Em aberto" ? C.accent : C.green,
+                          }}>
+                            {c.origem}
+                          </span>
+                        </Td>
+                        <Td sz={sz} right muted nowrap>{fmtData(c.at)}</Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: `2px solid ${C.border}` }}>
+                      <td colSpan={3} style={{ padding: "12px 16px", fontWeight: 700, fontSize: sz.fontBase, color: C.muted }}>
+                        {kpisCancelamentos.qtd} item(ns) cancelado(s)
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, fontSize: sz.fontLg, color: C.red }}>
+                        - {fmtR(kpisCancelamentos.valor)}
+                      </td>
+                      <td colSpan={5} />
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ══ FECHAMENTOS ══ */}
         {aba === "Fechamentos" && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -1034,7 +1235,7 @@ export default function RelatorioView() {
                               width: 32, height: 32, borderRadius: 16,
                               background: C.accent, color: "#fff",
                               display: "flex", alignItems: "center", justifyContent: "center",
-                              fontWeight: 800, fontSize: 12, flexShrink: 0,
+                              fontWeight: 800, fontSize: 18, flexShrink: 0,
                             }}>
                               {(u.name ?? "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
                             </div>

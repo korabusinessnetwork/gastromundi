@@ -1,8 +1,8 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import C from "@/constants/colors";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone } from "react-icons/lu";
+import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuPrinter } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 
 const fmtComanda = (name) =>
@@ -15,6 +15,119 @@ const METODOS_CATALOG = [
   { id: "pix",      label: "Pix",      Icon: LuZap        },
 ];
 
+const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
+
+function imprimirComanda({ comanda, itensVisiveis, total, metodo, valorRecebido, troco }) {
+  const agora = new Date().toLocaleString("pt-BR");
+  const nomeComanda = fmtComanda(comanda?.comanda);
+
+  const cancelados = (Array.isArray(comanda?.items) ? comanda.items : []).filter(i => i.cancelado);
+  const canceladosAgrupados = cancelados.reduce((acc, item) => {
+    const chave = `${item.name}||${item.price}`;
+    if (acc[chave]) { acc[chave].qty += (item.qty ?? 1); }
+    else { acc[chave] = { ...item, qty: item.qty ?? 1 }; }
+    return acc;
+  }, {});
+  const canceladosVisiveis = Object.values(canceladosAgrupados);
+
+  const linhasAtivos = itensVisiveis.map(it => {
+    const obs = Array.isArray(it.obs) ? it.obs : [];
+    return `
+      <tr>
+        <td style="padding:6px 4px;border-bottom:1px dashed #ccc;">${it.emoji ?? ""} ${it.name}</td>
+        <td style="padding:6px 4px;border-bottom:1px dashed #ccc;text-align:center;">${it.qty}</td>
+        <td style="padding:6px 4px;border-bottom:1px dashed #ccc;text-align:right;">R$ ${Number(it.price).toFixed(2)}</td>
+        <td style="padding:6px 4px;border-bottom:1px dashed #ccc;text-align:right;font-weight:bold;">R$ ${(it.price * it.qty).toFixed(2)}</td>
+      </tr>
+      ${obs.map(o => `<tr><td colspan="4" style="padding:2px 4px 6px 16px;font-size:11px;color:#666;">📝 ${o}</td></tr>`).join("")}
+    `;
+  }).join("");
+
+  const linhasCancelados = canceladosVisiveis.map(it => `
+    <tr style="color:#999;">
+      <td style="padding:4px;text-decoration:line-through;">${it.emoji ?? ""} ${it.name}</td>
+      <td style="padding:4px;text-align:center;text-decoration:line-through;">${it.qty}</td>
+      <td colspan="2" style="padding:4px;text-align:right;font-size:11px;">
+        CANCELADO${it.motivoCancelamento ? ` — ${it.motivoCancelamento}` : ""}
+      </td>
+    </tr>
+  `).join("");
+
+  const blocoTroco = metodo === "dinheiro" && valorRecebido > 0 ? `
+    <tr><td colspan="4" style="padding:4px 4px 0;font-size:12px;color:#555;">Recebido: R$ ${Number(valorRecebido).toFixed(2)}</td></tr>
+    <tr><td colspan="4" style="padding:0 4px 4px;font-size:12px;color:#555;">Troco: R$ ${Math.max(0, troco).toFixed(2)}</td></tr>
+  ` : "";
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Comanda ${nomeComanda}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: 'Courier New', monospace; font-size: 13px; color: #111; width: 300px; margin: 0 auto; padding: 16px 8px; }
+    h1 { font-size: 18px; text-align: center; margin-bottom: 4px; }
+    .sub { text-align: center; color: #555; font-size: 11px; margin-bottom: 12px; }
+    hr { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 11px; text-align: left; padding: 4px; border-bottom: 2px solid #111; }
+    th:nth-child(2) { text-align: center; }
+    th:nth-child(3), th:nth-child(4) { text-align: right; }
+    .total-row td { font-size: 15px; font-weight: bold; padding: 10px 4px 4px; }
+    .metodo { text-align: center; font-size: 12px; color: #555; margin-top: 8px; }
+    .rodape { text-align: center; font-size: 11px; color: #888; margin-top: 16px; }
+    .sec-label { font-size: 11px; font-weight: bold; color: #555; padding: 8px 0 4px; letter-spacing: 1px; text-transform: uppercase; }
+    @media print { body { width: 100%; } }
+  </style>
+</head>
+<body>
+  <h1>🍽 Gastromundi</h1>
+  <div class="sub">${nomeComanda}${comanda?.garcom ? ` · ${comanda.garcom}` : ""}</div>
+  <div class="sub">${agora}</div>
+  <hr/>
+
+  <div class="sec-label">Itens</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Produto</th>
+        <th>Qtd</th>
+        <th>Unit.</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${linhasAtivos}
+    </tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="3">TOTAL</td>
+        <td style="text-align:right;">R$ ${total.toFixed(2)}</td>
+      </tr>
+      ${blocoTroco}
+    </tfoot>
+  </table>
+
+  ${metodo ? `<div class="metodo">Pagamento: ${METODOS_LABEL[metodo] ?? metodo}</div>` : ""}
+
+  ${canceladosVisiveis.length > 0 ? `
+  <hr/>
+  <div class="sec-label">Cancelados</div>
+  <table><tbody>${linhasCancelados}</tbody></table>
+  ` : ""}
+
+  <hr/>
+  <div class="rodape">Obrigado pela preferência!</div>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank", "width=360,height=600");
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 400);
+}
+
 export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
@@ -26,7 +139,21 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const [recebido,    setRecebido]    = useState("");
   const [confirmando, setConfirmando] = useState(false);
 
-  const total         = items.reduce((s, i) => s + i.price * i.qty, 0);
+  // Agrupa itens ativos pelo mesmo produto (name + price), somando qty e unindo obs
+  const itensAgrupados = items.filter(i => !i.cancelado).reduce((acc, item) => {
+    const chave = `${item.name}||${item.price}`;
+    const obs   = Array.isArray(item.obs) ? item.obs : (item.obs ? [item.obs] : []);
+    if (acc[chave]) {
+      acc[chave].qty += (item.qty ?? 1);
+      obs.forEach(o => { if (!acc[chave].obs.includes(o)) acc[chave].obs.push(o); });
+    } else {
+      acc[chave] = { ...item, qty: item.qty ?? 1, obs };
+    }
+    return acc;
+  }, {});
+  const itensVisiveis = Object.values(itensAgrupados);
+
+  const total         = itensVisiveis.reduce((s, i) => s + i.price * i.qty, 0);
   const valorRecebido = parseFloat(recebido.replace(",", ".")) || 0;
   const troco         = metodo === "dinheiro" ? valorRecebido - total : 0;
   const podeConfirmar = metodo && (metodo !== "dinheiro" || valorRecebido >= total);
@@ -36,6 +163,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
     setConfirmando(true);
     await onConfirm({ metodo, recebido: valorRecebido, troco: Math.max(0, troco) });
   };
+
+  const handlePrint = () => imprimirComanda({ comanda, itensVisiveis, total, metodo, valorRecebido, troco });
+
+  const isMob = sz.checkoutResumo === 0;
 
   return (
     <>
@@ -54,102 +185,128 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
 
         {/* ── Header ── */}
         <div style={{
-          padding: "16px 24px", borderBottom: `1px solid ${C.border}`,
-          display: "flex", alignItems: "center", gap: 14, flexShrink: 0,
+          padding: "16px 28px", borderBottom: `1px solid ${C.border}`,
+          display: "flex", alignItems: "center", gap: 16, flexShrink: 0,
         }}>
           <button
             onClick={onBack}
             disabled={confirmando}
             style={{
-              background: "none", border: `1px solid ${C.border}`,
-              borderRadius: 8, color: C.muted, cursor: "pointer",
-              padding: "7px 14px", fontWeight: 600, fontSize: 13,
-              display: "flex", alignItems: "center", gap: 6,
+              background: C.surface,
+              border: `1.5px solid ${C.border}`,
+              borderRadius: 10, color: C.text,
+              cursor: confirmando ? "not-allowed" : "pointer",
+              padding: "10px 18px",
+              fontWeight: 700, fontSize: 18,
+              display: "flex", alignItems: "center", gap: 8,
+              transition: "background 0.15s, border-color 0.15s",
+              opacity: confirmando ? 0.5 : 1,
             }}
+            onMouseEnter={e => { if (!confirmando) { e.currentTarget.style.background = C.accent; e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = "#fff"; } }}
+            onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.text; }}
           >
-            <LuArrowLeft size={15} /> Voltar
+            <LuArrowLeft size={16} /> Voltar
           </button>
-          <div>
+
+          <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 18 }}>Finalizar Comanda</div>
-            <div style={{ color: C.muted, fontSize: 13, marginTop: 2 }}>
-              {fmtComanda(comanda?.comanda)} · {items.length} {items.length === 1 ? "item" : "itens"}
+            <div style={{ color: C.muted, fontSize: 16, marginTop: 2 }}>
+              {fmtComanda(comanda?.comanda)} · {itensVisiveis.reduce((s, i) => s + i.qty, 0)} {itensVisiveis.reduce((s, i) => s + i.qty, 0) === 1 ? "item" : "itens"}
             </div>
           </div>
+
+          {/* Botão Imprimir */}
+          <button
+            onClick={handlePrint}
+            style={{
+              background: C.surface,
+              border: `1.5px solid ${C.border}`,
+              borderRadius: 10, color: C.text,
+              cursor: "pointer",
+              padding: "10px 18px",
+              fontWeight: 700, fontSize: 17,
+              display: "flex", alignItems: "center", gap: 8,
+              transition: "background 0.15s, border-color 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent; }}
+            onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.text; }}
+          >
+            <LuPrinter size={16} /> Imprimir
+          </button>
         </div>
 
         {/* ── Body ── */}
-        {(() => {
-          const isMob = sz.checkoutResumo === 0;
-          return (
         <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0, flexDirection: isMob ? "column" : "row" }}>
 
-          {/* Resumo do pedido */}
+          {/* ── Resumo do pedido ── */}
           <div style={{
             width: isMob ? "100%" : sz.checkoutResumo,
             maxHeight: isMob ? "38%" : undefined,
             flexShrink: 0, overflowY: "auto",
             borderRight: isMob ? "none" : `1px solid ${C.border}`,
             borderBottom: isMob ? `1px solid ${C.border}` : "none",
-            padding: isMob ? "14px 16px" : `${sz.pad + 4}px ${sz.pad + 8}px`,
+            padding: isMob ? "16px 20px" : "28px 32px",
             display: "flex", flexDirection: "column",
           }}>
             <div style={{
-              fontSize: 11, fontWeight: 700, color: C.muted,
-              textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 22,
+              fontSize: 16, fontWeight: 700, color: C.muted,
+              textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 20,
             }}>
-              Resumo do Pedido · {fmtComanda(comanda?.comanda)}
+              Resumo · {fmtComanda(comanda?.comanda)}
             </div>
 
-            {/* Itens — fluem naturalmente, sem flex:1 */}
-            {items.map((item, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex", alignItems: "center", gap: 18,
-                  padding: "18px 0", borderBottom: `1px solid ${C.border}`,
-                }}
-              >
-                <div style={{
-                  width: 52, height: 52, borderRadius: 12, flexShrink: 0,
-                  background: C.alow, border: `1.5px solid ${C.accent}44`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontWeight: 900, fontSize: 20, color: C.accent,
+            {itensVisiveis.map((item, i) => {
+              const obsArr = Array.isArray(item.obs) ? item.obs : [];
+              const qty = item.qty;
+              return (
+                <div key={i} style={{
+                  display: "flex", alignItems: "flex-start", gap: 16,
+                  padding: "16px 0", borderBottom: `1px solid ${C.border}`,
                 }}>
-                  {item.qty}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontWeight: 700, fontSize: sz.fontLg - 1, lineHeight: 1.2,
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                    background: C.alow, border: `1.5px solid ${C.accent}44`,
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                    gap: 1,
                   }}>
-                    {item.name}
+                    {item.emoji
+                      ? <span style={{ fontSize: 20, lineHeight: 1 }}>{item.emoji}</span>
+                      : null}
+                    <span style={{ fontWeight: 900, fontSize: item.emoji ? 11 : 18, color: C.accent, lineHeight: 1 }}>×{qty}</span>
                   </div>
-                  <div style={{ fontSize: sz.fontBase - 1, color: C.muted, marginTop: 4 }}>
-                    {item.qty}× R$ {Number(item.price).toFixed(2)}
-                  </div>
-                  {item.obs && (
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
-                      marginTop: 6, fontSize: sz.fontSm + 1,
-                      color: C.accent, fontStyle: "italic",
-                      background: C.alow, borderRadius: 6,
-                      padding: "3px 8px", display: "inline-block",
+                      fontWeight: 700, fontSize: sz.fontLg - 1, lineHeight: 1.2,
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                     }}>
-                      📝 {item.obs}
+                      {item.name}
                     </div>
-                  )}
-                </div>
+                    <div style={{ fontSize: sz.fontBase, color: C.muted, marginTop: 4 }}>
+                      {qty}× R$ {Number(item.price).toFixed(2)}
+                    </div>
+                    {obsArr.map((obs, j) => (
+                      <div key={j} style={{
+                        marginTop: 5, fontSize: 18,
+                        color: C.accent, background: C.alow,
+                        borderRadius: 6, padding: "3px 8px", display: "inline-block",
+                      }}>
+                        📝 {obs}
+                      </div>
+                    ))}
+                  </div>
 
-                <div style={{ fontWeight: 800, fontSize: sz.fontLg, color: C.text, textAlign: "right", flexShrink: 0 }}>
-                  R$ {(item.price * item.qty).toFixed(2)}
+                  <div style={{ fontWeight: 800, fontSize: sz.fontLg, color: C.text, textAlign: "right", flexShrink: 0 }}>
+                    R$ {(item.price * qty).toFixed(2)}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
-            {/* Total — logo abaixo dos itens */}
+            {/* Total */}
             <div style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              paddingTop: 24, marginTop: 8,
+              paddingTop: 20, marginTop: 8,
               borderTop: `2px solid ${C.border}`,
             }}>
               <span style={{ fontWeight: 800, fontSize: sz.fontLg, color: C.muted }}>Total</span>
@@ -162,30 +319,20 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
           {/* ── Sidebar de pagamento ── */}
           <div style={{
             flex: 1,
-            borderLeft: `1px solid ${C.border}`,
             background: C.card,
             display: "flex", flexDirection: "column",
+            overflow: "hidden",
           }}>
-            {/* Cabeçalho da sidebar */}
-            <div style={{
-              padding: "28px 32px 20px",
-              borderBottom: `1px solid ${C.border}`,
-            }}>
-              <div style={{
-                fontSize: 11, fontWeight: 700, color: C.muted,
-                textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6,
-              }}>
+            <div style={{ padding: "24px 32px 18px", borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 4 }}>
                 Forma de Pagamento
               </div>
-              <div style={{ fontSize: 14, color: C.muted }}>
+              <div style={{ fontSize: 17, color: C.muted }}>
                 Selecione como o cliente vai pagar
               </div>
             </div>
 
-            {/* Corpo da sidebar — cards preenchem o espaço disponível */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px 32px", gap: 20, overflow: "hidden" }}>
-
-              {/* Grid de métodos — cresce para preencher a altura */}
               <div style={{
                 flex: 1,
                 display: "grid",
@@ -193,40 +340,49 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                 gridTemplateRows: `repeat(${Math.ceil(METODOS.length / 2)}, 1fr)`,
                 gap: 14,
               }}>
-                {METODOS.map(m => (
-                  <button
-                    key={m.id}
-                    onClick={() => { setMetodo(m.id); setRecebido(""); }}
-                    style={{
-                      borderRadius: 16,
-                      border: `2px solid ${metodo === m.id ? C.accent : C.border}`,
-                      background: metodo === m.id ? C.alow : C.surface,
-                      color: metodo === m.id ? C.accent : C.text,
-                      cursor: "pointer", fontWeight: 700, fontSize: sz.fontLg - 1,
-                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12,
-                      transition: "border-color 0.15s, background 0.15s, color 0.15s",
-                    }}
-                  >
-                    <m.Icon size={sz.fontXl + 2} />
-                    {m.label}
-                  </button>
-                ))}
+                {METODOS.map(m => {
+                  const ativo = metodo === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => { setMetodo(m.id); setRecebido(""); }}
+                      style={{
+                        borderRadius: 16,
+                        border: `2px solid ${ativo ? C.accent : C.border}`,
+                        background: ativo ? C.alow : C.surface,
+                        color: ativo ? C.accent : C.text,
+                        cursor: "pointer",
+                        fontWeight: 700,
+                        fontSize: sz.fontLg,
+                        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
+                        transition: "border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s",
+                        boxShadow: ativo ? `0 0 0 4px ${C.accent}22` : "none",
+                      }}
+                    >
+                      <div style={{
+                        width: 52, height: 52, borderRadius: 14,
+                        background: ativo ? `${C.accent}22` : C.card,
+                        border: `1.5px solid ${ativo ? C.accent + "55" : C.border}`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "background 0.15s, border-color 0.15s",
+                      }}>
+                        <m.Icon size={24} />
+                      </div>
+                      {m.label}
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Campo de valor recebido — só pra dinheiro */}
               {metodo === "dinheiro" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, flexShrink: 0 }}>
-                  <label style={{
-                    fontSize: 11, fontWeight: 700, color: C.muted,
-                    textTransform: "uppercase", letterSpacing: 1.5,
-                  }}>
+                  <label style={{ fontSize: 16, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1.2 }}>
                     Valor Recebido
                   </label>
                   <div style={{ position: "relative" }}>
                     <span style={{
-                      position: "absolute", left: 18, top: "50%",
-                      transform: "translateY(-50%)",
-                      color: C.muted, fontSize: 16, fontWeight: 600,
+                      position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)",
+                      color: C.muted, fontSize: 18, fontWeight: 700,
                     }}>
                       R$
                     </span>
@@ -239,16 +395,18 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                       onChange={e => setRecebido(e.target.value)}
                       placeholder={total.toFixed(2)}
                       style={{
-                        width: "100%", padding: "16px 18px 16px 52px",
+                        width: "100%", padding: "16px 18px 16px 56px",
                         borderRadius: 12, border: `1.5px solid ${C.border}`,
                         background: C.surface, color: C.text,
-                        fontSize: sz.fontXl - 4, fontWeight: 700,
+                        fontSize: sz.fontXl - 2, fontWeight: 700,
                         boxSizing: "border-box", fontFamily: "inherit", outline: "none",
+                        transition: "border-color 0.15s",
                       }}
+                      onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
+                      onBlur={e => e.currentTarget.style.borderColor = C.border}
                     />
                   </div>
 
-                  {/* Troco / Faltam */}
                   {valorRecebido > 0 && (
                     <div style={{
                       padding: "16px 20px", borderRadius: 12,
@@ -256,10 +414,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                       border: `1.5px solid ${troco >= 0 ? C.green : C.red}55`,
                       display: "flex", justifyContent: "space-between", alignItems: "center",
                     }}>
-                      <span style={{ fontSize: sz.fontBase, fontWeight: 600, color: C.muted }}>
+                      <span style={{ fontSize: sz.fontBase + 1, fontWeight: 700, color: C.muted }}>
                         {troco >= 0 ? "Troco" : "Faltam"}
                       </span>
-                      <span style={{ fontSize: sz.fontXl - 4, fontWeight: 900, color: troco >= 0 ? C.green : C.red }}>
+                      <span style={{ fontSize: sz.fontXl - 2, fontWeight: 900, color: troco >= 0 ? C.green : C.red }}>
                         R$ {Math.abs(troco).toFixed(2)}
                       </span>
                     </div>
@@ -268,14 +426,13 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
               )}
             </div>
 
-            {/* Rodapé fixo com botão */}
             <div style={{
               padding: "20px 32px 28px",
               borderTop: `1px solid ${C.border}`,
               display: "flex", flexDirection: "column", gap: 10,
             }}>
               {!metodo && (
-                <div style={{ fontSize: 13, color: C.muted, textAlign: "center", marginBottom: 4 }}>
+                <div style={{ fontSize: 16, color: C.muted, textAlign: "center", marginBottom: 4 }}>
                   Selecione a forma de pagamento acima
                 </div>
               )}
@@ -287,8 +444,9 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                   background: podeConfirmar ? C.green : C.faint,
                   color: "#fff", fontWeight: 800, fontSize: 18,
                   cursor: podeConfirmar ? "pointer" : "not-allowed",
-                  transition: "background 0.2s",
+                  transition: "background 0.2s, box-shadow 0.2s",
                   letterSpacing: 0.3,
+                  boxShadow: podeConfirmar ? `0 4px 20px ${C.green}44` : "none",
                 }}
               >
                 {confirmando ? "Processando..." : "✓ Confirmar Pagamento"}
@@ -296,7 +454,6 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
             </div>
           </div>
         </div>
-        );})()}
       </div>
     </>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
@@ -6,7 +6,7 @@ import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
-import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX } from "react-icons/lu";
+import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil } from "react-icons/lu";
 import ComandaGrid   from "./ComandaGrid";
 import ProductGrid   from "./ProductGrid";
 import CartPanel     from "./CartPanel";
@@ -19,7 +19,7 @@ export default function PDVView() {
   const {
     pending, products, estoque,
     addPending, updatePending, removePending, addSale,
-    caixaAberto, currentUser,
+    caixaAberto, currentUser, sales, users,
     lancadas, addLancada,
   } = useApp();
 
@@ -51,21 +51,72 @@ export default function PDVView() {
   const [nomeComanda,       setNomeComanda]       = useState("");
   const [criando,           setCriando]           = useState(false);
   const [confirmCancelar,   setConfirmCancelar]   = useState(false);
-  const [showVerItens,      setShowVerItens]      = useState(false);
   const [showTransferir,    setShowTransferir]    = useState(false);
-  const [transQtds,         setTransQtds]         = useState({});   // { [itemIdx]: qty }
-  const [transDestino,      setTransDestino]      = useState(null); // order id destino
+  const [showSaldo,         setShowSaldo]         = useState(false);
+  const [saldoSenha,        setSaldoSenha]        = useState("");
+  const [saldoSenhaErro,    setSaldoSenhaErro]    = useState(false);
+  const [saldoAutorizado,   setSaldoAutorizado]   = useState(false);
+  const [saldoSenhaVis,     setSaldoSenhaVis]     = useState(false);
+  const [transQtds,         setTransQtds]         = useState({});         // { [itemIdx]: qty }
+  const [transDestino,      setTransDestino]      = useState(null);       // order id destino (null = nova)
+  const [transMode,         setTransMode]         = useState("lista");    // "lista" | "numero" | "nova"
+  const [transNumero,       setTransNumero]       = useState("");         // número digitado manualmente
+  const [transNomeNova,     setTransNomeNova]     = useState("");         // nome da nova comanda
+  const [transNumeroErro,   setTransNumeroErro]   = useState("");
   const [transferindo,      setTransferindo]      = useState(false);
+  const [showMesa,          setShowMesa]          = useState(false);
+  const [mesaInput,         setMesaInput]         = useState("");
+  const [apelidoInput,      setApelidoInput]      = useState("");
+  const [mesaPendingOrder,  setMesaPendingOrder]  = useState(null);
+  const [salvandoMesa,      setSalvandoMesa]      = useState(false);
 
   const abertas = pending.filter(o => o.status !== "closed");
 
-  // ── Selecionar comanda → entra no modo pedido ──────────────────
+  // ── Selecionar comanda → pede mesa antes de entrar ────────────
   const handleSelectComanda = (order) => {
     setBuscaComanda("");
-    setSelected(order);
-    setCartItems([]);
-    setAbaAtiva("produtos");
-    setMode("pedido");
+    if (order.mesa) {
+      // Já tem mesa definida — entra direto
+      setSelected(order);
+      setCartItems([]);
+      setAbaAtiva("produtos");
+      setMode("pedido");
+    } else {
+      setMesaInput("");
+      setApelidoInput(order.apelido || "");
+      setMesaPendingOrder(order);
+      setShowMesa(true);
+    }
+  };
+
+  const abrirEditarMesa = () => {
+    setMesaInput(selected?.mesa || "");
+    setApelidoInput(selected?.apelido || "");
+    setMesaPendingOrder(selected);
+    setShowMesa(true);
+  };
+
+  const handleConfirmarMesa = async () => {
+    if (!mesaPendingOrder || salvandoMesa) return;
+    const mesa    = mesaInput.trim();
+    const apelido = apelidoInput.trim();
+    setSalvandoMesa(true);
+    try {
+      const mudou = mesa !== (mesaPendingOrder.mesa || "") || apelido !== (mesaPendingOrder.apelido || "");
+      if (mudou) await updatePending(mesaPendingOrder.id, { mesa, apelido });
+      const order = { ...mesaPendingOrder, mesa, apelido };
+      setSelected(order);
+      // Só muda de modo se ainda não estava no pedido
+      if (mode !== "pedido") {
+        setCartItems([]);
+        setAbaAtiva("produtos");
+        setMode("pedido");
+      }
+      setShowMesa(false);
+      setMesaPendingOrder(null);
+    } finally {
+      setSalvandoMesa(false);
+    }
   };
 
   const handleBack = () => {
@@ -107,7 +158,7 @@ export default function PDVView() {
       addLancada(selected.id);
       logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados na ${fmtComanda(selected.comanda)} · ${novos.length} tipo(s) · R$ ${total.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, tipos: novos.length, total });
       setToast(true);
-      setTimeout(() => setToast(false), 3000);
+      setTimeout(() => setToast(false), 6000);
       handleBack();
     } catch (err) {
       console.error("Erro ao lançar pedido:", err);
@@ -173,7 +224,11 @@ export default function PDVView() {
     };
     await addPending(order);
     logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta: ${order.comanda}`, name: currentUser?.name, role: currentUser?.role, comanda: order.comanda });
-    handleSelectComanda(order);
+    setBuscaComanda("");
+    setMesaInput("");
+    setApelidoInput("");
+    setMesaPendingOrder(order);
+    setShowMesa(true);
   };
 
   // ── Transferir itens entre comandas ──────────────────────────
@@ -183,51 +238,95 @@ export default function PDVView() {
     itens.forEach((_, idx) => { qtds[idx] = 0; });
     setTransQtds(qtds);
     setTransDestino(null);
+    setTransMode("lista");
+    setTransNumero("");
+    setTransNomeNova("");
+    setTransNumeroErro("");
     setShowTransferir(true);
   };
 
   const handleTransferir = async () => {
-    if (!transDestino || transferindo) return;
+    const algumSelecionado = Object.values(transQtds).some(q => q > 0);
+    if (!algumSelecionado || transferindo) return;
+
     const itens = Array.isArray(selected?.items) ? selected.items : [];
-    const destino = abertas.find(o => o.id === transDestino);
-    if (!destino) return;
+
+    // Resolve o destino dependendo do modo
+    let destinoId   = transDestino;
+    let nomeDestino = "";
+
+    if (transMode === "numero") {
+      const num = transNumero.trim();
+      if (!num) { setTransNumeroErro("Digite o número da comanda."); return; }
+      const encontrada = abertas.find(o => String(o.comanda).trim() === num && o.id !== selected?.id);
+      if (!encontrada) { setTransNumeroErro(`Comanda ${num} não encontrada ou é a mesma de origem.`); return; }
+      destinoId   = encontrada.id;
+      nomeDestino = fmtComanda(encontrada.comanda);
+    } else if (transMode === "nova") {
+      const nomeNova = transNomeNova.trim();
+      if (!nomeNova) { setTransNumeroErro("Digite o nome ou número da nova comanda."); return; }
+      const jaExiste = abertas.find(o => String(o.comanda).trim() === nomeNova);
+      if (jaExiste) { setTransNumeroErro(`Comanda "${nomeNova}" já existe.`); return; }
+      destinoId   = null; // será criada
+      nomeDestino = fmtComanda(nomeNova);
+    } else {
+      if (!destinoId) return;
+      const d = abertas.find(o => o.id === destinoId);
+      nomeDestino = d ? fmtComanda(d.comanda) : "";
+    }
 
     setTransferindo(true);
     try {
-      // Itens a transferir (apenas os com qty > 0)
       const aTransferir = itens
         .map((it, idx) => ({ it, qty: transQtds[idx] ?? 0 }))
         .filter(x => x.qty > 0);
 
-      // Origem: subtrai qtds ou remove item
+      // Origem: subtrai ou remove
       const novosOrigem = itens.map((it, idx) => {
         const qRemover = transQtds[idx] ?? 0;
         if (!qRemover) return it;
         const novaQty = (it.qty ?? 1) - qRemover;
         return novaQty > 0 ? { ...it, qty: novaQty } : null;
       }).filter(Boolean);
+      const totalOrigem = novosOrigem.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
 
-      // Destino: acumula itens (agrupa por id de produto)
-      const novosDestino = [...(Array.isArray(destino.items) ? destino.items : [])];
-      aTransferir.forEach(({ it, qty }) => {
-        const existIdx = novosDestino.findIndex(d => d.id === it.id);
-        if (existIdx >= 0) {
-          novosDestino[existIdx] = { ...novosDestino[existIdx], qty: (novosDestino[existIdx].qty ?? 1) + qty };
-        } else {
-          novosDestino.push({ ...it, qty });
-        }
-      });
+      if (transMode === "nova") {
+        // Cria nova comanda com os itens transferidos
+        const itensNova = aTransferir.map(({ it, qty }) => ({ ...it, qty }));
+        const totalNova = itensNova.reduce((s, i) => s + i.price * i.qty, 0);
+        const novaOrder = {
+          id:         crypto.randomUUID(),
+          comanda:    transNomeNova.trim(),
+          garcom:     currentUser?.name || "",
+          items:      itensNova,
+          total:      totalNova,
+          status:     "open",
+          created_at: new Date().toISOString(),
+        };
+        await Promise.all([
+          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }),
+          addPending(novaOrder),
+        ]);
+      } else {
+        // Destino existente
+        const destino    = abertas.find(o => o.id === destinoId);
+        const novosDestino = [...(Array.isArray(destino.items) ? destino.items : [])];
+        aTransferir.forEach(({ it, qty }) => {
+          const existIdx = novosDestino.findIndex(d => d.id === it.id && !d.cancelado);
+          if (existIdx >= 0) {
+            novosDestino[existIdx] = { ...novosDestino[existIdx], qty: (novosDestino[existIdx].qty ?? 1) + qty };
+          } else {
+            novosDestino.push({ ...it, qty });
+          }
+        });
+        const totalDestino = novosDestino.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+        await Promise.all([
+          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }),
+          updatePending(destinoId,   { items: novosDestino, total: totalDestino }),
+        ]);
+      }
 
-      const totalOrigem  = novosOrigem.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-      const totalDestino = novosDestino.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-
-      await Promise.all([
-        updatePending(selected.id,  { items: novosOrigem,  total: totalOrigem  }),
-        updatePending(transDestino, { items: novosDestino, total: totalDestino }),
-      ]);
-
-      const nomeDestino = /^\d+$/.test(String(destino.comanda ?? "").trim()) ? `Comanda ${destino.comanda}` : destino.comanda;
-      const qtdTransf   = aTransferir.reduce((s, x) => s + x.qty, 0);
+      const qtdTransf = aTransferir.reduce((s, x) => s + x.qty, 0);
       logAction(currentUser?.username, "itens:transferir", { msg: `Transferência: ${qtdTransf} item(ns) de ${fmtComanda(selected.comanda)} → ${nomeDestino}`, name: currentUser?.name, role: currentUser?.role, de: selected.comanda, para: nomeDestino, qtd: qtdTransf });
       setSelected(prev => ({ ...prev, items: novosOrigem, total: totalOrigem }));
       setShowTransferir(false);
@@ -256,7 +355,11 @@ export default function PDVView() {
     setNomeComanda("");
     setShowNova(false);
     setCriando(false);
-    handleSelectComanda(order);
+    setBuscaComanda("");
+    setMesaInput("");
+    setApelidoInput("");
+    setMesaPendingOrder(order);
+    setShowMesa(true);
   };
 
   if (!caixaAberto) {
@@ -303,7 +406,7 @@ export default function PDVView() {
                   borderRadius: 10, color: C.text,
                   cursor: "pointer",
                   padding: "10px 18px",
-                  fontWeight: 700, fontSize: 15,
+                  fontWeight: 700, fontSize: 18,
                   display: "flex", alignItems: "center", gap: 8,
                   transition: "background 0.15s, border-color 0.15s",
                 }}
@@ -321,57 +424,60 @@ export default function PDVView() {
                 <LuArrowLeft size={16} /> Voltar
               </button>
             )}
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 18 }}>
-                {mode === "pedido" ? fmtComanda(selected?.comanda) : "Frente de Caixa"}
+            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 18 }}>
+                  {mode === "pedido" ? fmtComanda(selected?.comanda) : "Frente de Caixa"}
+                </div>
+                <div style={{ color: C.muted, fontSize: 16, marginTop: 2 }}>
+                  {mode === "pedido"
+                    ? <>
+                        {selected?.mesa && <span style={{ marginRight: 6 }}>🪑 Mesa {selected.mesa}{selected?.apelido ? ` · ${selected.apelido}` : ""} ·</span>}
+                        {cartItems.length} {cartItems.length === 1 ? "tipo de item" : "tipos de item"} no carrinho
+                      </>
+                    : `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} em aberto`}
+                </div>
               </div>
-              <div style={{ color: C.muted, fontSize: 13, marginTop: 2 }}>
-                {mode === "pedido"
-                  ? `${cartItems.length} ${cartItems.length === 1 ? "tipo de item" : "tipos de item"} no carrinho`
-                  : `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} em aberto`}
-              </div>
-            </div>
-          </div>
-
-          {/* Centro: busca de comandas (apenas no grid) */}
-          {mode === "grid" ? (
-            <div style={{ position: "relative" }}>
-              <LuSearch
-                size={15}
-                color={buscaComanda ? C.accent : C.muted}
-                style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", transition: "color 0.15s" }}
-              />
-              <input
-                value={buscaComanda}
-                onChange={e => setBuscaComanda(e.target.value)}
-                placeholder="Buscar comanda..."
-                style={{
-                  width: 280,
-                  padding: "10px 36px",
-                  borderRadius: 10,
-                  border: `1.5px solid ${buscaComanda ? C.accent + "66" : C.border}`,
-                  background: C.surface,
-                  color: C.text,
-                  fontSize: 14,
-                  fontFamily: "inherit",
-                  outline: "none",
-                  boxSizing: "border-box",
-                  transition: "border-color 0.15s",
-                }}
-              />
-              {buscaComanda && (
+              {mode === "grid" && (
                 <button
-                  onClick={() => setBuscaComanda("")}
-                  style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 2 }}
+                  onClick={() => { setShowSaldo(true); setSaldoSenha(""); setSaldoSenhaErro(false); setSaldoAutorizado(false); setSaldoSenhaVis(false); }}
+                  title="Saldo do dia"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 7,
+                    padding: "8px 16px", borderRadius: 10,
+                    border: `1px solid ${C.border}`, background: C.surface,
+                    color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 16,
+                    transition: "background 0.15s, color 0.15s, border-color 0.15s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = C.card; e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.accent + "66"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border; }}
                 >
-                  <LuX size={14} />
+                  <LuChartBar size={15} /> Saldo do Dia
                 </button>
               )}
             </div>
-          ) : <div />}
+          </div>
+
+          {/* Centro: vazio */}
+          <div />
 
           {/* Direita: ações */}
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
+          {/* Toast inline — visível no grid após lançar */}
+          {mode === "grid" && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 8,
+              background: `${C.green}18`, border: `1px solid ${C.green}44`,
+              color: C.green, borderRadius: 10, padding: "9px 16px",
+              fontWeight: 700, fontSize: 17,
+              pointerEvents: "none",
+              transition: "opacity 0.3s, transform 0.3s",
+              opacity: toast ? 1 : 0,
+              transform: toast ? "translateY(0)" : "translateY(-6px)",
+            }}>
+              ✓ Pedido lançado!
+            </div>
+          )}
           {mode === "grid" && (
             <button
               onClick={() => { setShowNova(true); setNomeComanda(""); }}
@@ -379,7 +485,7 @@ export default function PDVView() {
               style={{
                 padding: "10px 20px", borderRadius: 10, border: "none",
                 background: caixaAberto ? C.accent : C.faint,
-                color: "#fff", fontWeight: 700, fontSize: 14,
+                color: "#fff", fontWeight: 700, fontSize: 17,
                 cursor: caixaAberto ? "pointer" : "not-allowed",
                 display: "flex", alignItems: "center", gap: 6,
               }}
@@ -390,17 +496,36 @@ export default function PDVView() {
 
           {mode === "pedido" && (() => {
             const itensLancados = Array.isArray(selected?.items) ? selected.items : [];
-            if (itensLancados.length > 0) {
-              const qtdTotal = itensLancados.reduce((s, i) => s + (i.qty ?? 1), 0);
-              return (
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            return (
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {/* Botão Editar Mesa — sempre visível no modo pedido */}
+                <button
+                  onClick={abrirEditarMesa}
+                  title="Editar mesa e apelido"
+                  style={{
+                    padding: "10px 14px", borderRadius: 10,
+                    border: `1px solid ${C.border}`,
+                    background: C.surface,
+                    color: C.muted, fontWeight: 700, fontSize: 17,
+                    cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 6,
+                    transition: "background 0.15s, color 0.15s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = C.card; e.currentTarget.style.color = C.text; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.color = C.muted; }}
+                >
+                  <LuPencil size={14} />
+                  {selected?.mesa ? `Mesa ${selected.mesa}` : "Mesa"}
+                </button>
+
+                {itensLancados.length > 0 ? (
                   <button
                     onClick={abrirTransferir}
                     style={{
                       padding: "10px 18px", borderRadius: 10,
                       border: `1px solid ${C.border}`,
                       background: C.surface,
-                      color: C.muted, fontWeight: 700, fontSize: 14,
+                      color: C.muted, fontWeight: 700, fontSize: 17,
                       cursor: "pointer",
                       display: "flex", alignItems: "center", gap: 7,
                       transition: "background 0.15s, color 0.15s",
@@ -410,49 +535,25 @@ export default function PDVView() {
                   >
                     <LuArrowLeftRight size={15} /> Transferir
                   </button>
+                ) : (
                   <button
-                    onClick={() => setShowVerItens(true)}
+                    onClick={() => setConfirmCancelar(true)}
                     style={{
                       padding: "10px 20px", borderRadius: 10,
-                      border: `1px solid ${C.accent}55`,
-                      background: `${C.accent}0f`,
-                      color: C.accent, fontWeight: 700, fontSize: 14,
+                      border: `1px solid ${C.red}55`,
+                      background: `${C.red}0f`,
+                      color: C.red, fontWeight: 700, fontSize: 17,
                       cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: 8,
+                      display: "flex", alignItems: "center", gap: 6,
                       transition: "background 0.15s",
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = `${C.accent}1e`}
-                    onMouseLeave={e => e.currentTarget.style.background = `${C.accent}0f`}
+                    onMouseEnter={e => e.currentTarget.style.background = `${C.red}1e`}
+                    onMouseLeave={e => e.currentTarget.style.background = `${C.red}0f`}
                   >
-                    Ver itens
-                    <span style={{
-                      background: C.accent, color: "#fff",
-                      borderRadius: 10, padding: "1px 8px",
-                      fontSize: 12, fontWeight: 800,
-                    }}>
-                      {qtdTotal}
-                    </span>
+                    Cancelar Pedido
                   </button>
-                </div>
-              );
-            }
-            return (
-              <button
-                onClick={() => setConfirmCancelar(true)}
-                style={{
-                  padding: "10px 20px", borderRadius: 10,
-                  border: `1px solid ${C.red}55`,
-                  background: `${C.red}0f`,
-                  color: C.red, fontWeight: 700, fontSize: 14,
-                  cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 6,
-                  transition: "background 0.15s",
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = `${C.red}1e`}
-                onMouseLeave={e => e.currentTarget.style.background = `${C.red}0f`}
-              >
-                Cancelar Pedido
-              </button>
+                )}
+              </div>
             );
           })()}
           </div>
@@ -488,12 +589,12 @@ export default function PDVView() {
               }}
             >
               <LuTriangleAlert size={16} color="#f59e0b" />
-              <span style={{ fontWeight: 700, fontSize: 13, color: "#f59e0b", flex: 1 }}>
+              <span style={{ fontWeight: 700, fontSize: 16, color: "#f59e0b", flex: 1 }}>
                 {criticos.length > 0 && `${criticos.length} produto${criticos.length !== 1 ? "s" : ""} sem estoque`}
                 {criticos.length > 0 && baixos.length > 0 && " · "}
                 {baixos.length > 0 && `${baixos.length} com estoque baixo`}
               </span>
-              <span style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 18, color: "#f59e0b", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                 {alertaAberto ? <><LuChevronUp size={14} /> Ocultar</> : <><LuChevronDown size={14} /> Ver</>}
               </span>
             </button>
@@ -507,7 +608,7 @@ export default function PDVView() {
                 {criticos.map(p => (
                   <span key={p.id} style={{
                     display: "flex", alignItems: "center", gap: 6,
-                    padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+                    padding: "4px 12px", borderRadius: 20, fontSize: 18, fontWeight: 700,
                     background: `${C.red}18`, border: `1px solid ${C.red}44`, color: C.red,
                   }}>
                     {p.emoji} {p.name} · <span style={{ fontWeight: 900 }}>0</span>
@@ -516,7 +617,7 @@ export default function PDVView() {
                 {baixos.map(p => (
                   <span key={p.id} style={{
                     display: "flex", alignItems: "center", gap: 6,
-                    padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+                    padding: "4px 12px", borderRadius: 20, fontSize: 18, fontWeight: 700,
                     background: "#f59e0b18", border: "1px solid #f59e0b44", color: "#f59e0b",
                   }}>
                     {p.emoji} {p.name} · <span style={{ fontWeight: 900 }}>{estoque[p.id]}</span>
@@ -527,6 +628,51 @@ export default function PDVView() {
           </div>
         );
       })()}
+
+      {/* ── Busca de comandas (apenas no grid) ──────────────────── */}
+      {mode === "grid" && (
+        <div style={{
+          flexShrink: 0,
+          padding: "14px 24px",
+          borderBottom: `1px solid ${C.border}`,
+          display: "flex", justifyContent: "center",
+        }}>
+          <div style={{ position: "relative", width: "100%", maxWidth: 560 }}>
+            <LuSearch
+              size={18}
+              color={buscaComanda ? C.accent : C.muted}
+              style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", transition: "color 0.15s" }}
+            />
+            <input
+              value={buscaComanda}
+              onChange={e => { if (e.target.value === "" || /^\d+$/.test(e.target.value)) setBuscaComanda(e.target.value); }}
+              placeholder="Buscar comanda..."
+              inputMode="numeric"
+              style={{
+                width: "100%",
+                padding: "13px 44px",
+                borderRadius: 12,
+                border: `1.5px solid ${buscaComanda ? C.accent + "88" : C.border}`,
+                background: C.surface,
+                color: C.text,
+                fontSize: 16,
+                fontFamily: "inherit",
+                outline: "none",
+                boxSizing: "border-box",
+                transition: "border-color 0.15s",
+              }}
+            />
+            {buscaComanda && (
+              <button
+                onClick={() => setBuscaComanda("")}
+                style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 2 }}
+              >
+                <LuX size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Body ────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
@@ -565,7 +711,7 @@ export default function PDVView() {
                       border: "none",
                       borderBottom: `2px solid ${abaAtiva === key ? C.accent : "transparent"}`,
                       color: abaAtiva === key ? C.accent : C.muted,
-                      fontWeight: 700, fontSize: 14, cursor: "pointer",
+                      fontWeight: 700, fontSize: 17, cursor: "pointer",
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                     }}
                   >
@@ -592,6 +738,23 @@ export default function PDVView() {
                 onLancar={handleLancar}
                 onFinalizar={handleFinalizar}
                 salvando={salvando}
+                onRemoveAcumulado={async (idx, qty, motivo) => {
+                  const novos = selected.items.map((it, i) => {
+                    if (i !== idx) return it;
+                    const novaQty = (it.qty ?? 1) - qty;
+                    if (novaQty > 0) {
+                      // cancela parcialmente: divide em ativo + cancelado
+                      return [
+                        { ...it, qty: novaQty },
+                        { ...it, qty, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "" },
+                      ];
+                    }
+                    return { ...it, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "" };
+                  }).flat();
+                  const novoTotal = novos.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+                  await updatePending(selected.id, { items: novos, total: novoTotal });
+                  setSelected(prev => ({ ...prev, items: novos, total: novoTotal }));
+                }}
               />
             )}
           </>
@@ -625,11 +788,11 @@ export default function PDVView() {
             width: 340, border: `1px solid ${C.border}`,
           }}>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>Nova Comanda</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
+            <div style={{ fontSize: 16, color: C.muted, marginBottom: 20 }}>
               Informe o nome ou número da mesa
             </div>
 
-            <label style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
+            <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
               Nome / Número
             </label>
             <input
@@ -643,7 +806,7 @@ export default function PDVView() {
                 display: "block", width: "100%", marginTop: 8,
                 padding: "12px 14px", borderRadius: 10,
                 border: `1px solid ${C.border}`,
-                background: C.surface, color: C.text, fontSize: 15,
+                background: C.surface, color: C.text, fontSize: 18,
                 boxSizing: "border-box", fontFamily: "inherit", outline: "none",
               }}
             />
@@ -654,7 +817,7 @@ export default function PDVView() {
                 style={{
                   flex: 1, padding: 12, borderRadius: 10,
                   border: `1px solid ${C.border}`, background: "none",
-                  color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 14,
+                  color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
                 }}
               >
                 Cancelar
@@ -667,7 +830,7 @@ export default function PDVView() {
                   background: nomeComanda.trim() ? C.accent : C.faint,
                   color: "#fff",
                   cursor: nomeComanda.trim() ? "pointer" : "not-allowed",
-                  fontWeight: 700, fontSize: 14,
+                  fontWeight: 700, fontSize: 17,
                 }}
               >
                 {criando ? "Abrindo..." : "Abrir"}
@@ -706,7 +869,7 @@ export default function PDVView() {
                 <div style={{ fontWeight: 900, fontSize: 17, display: "flex", alignItems: "center", gap: 8 }}>
                   <LuArrowLeftRight size={18} /> Transferir itens
                 </div>
-                <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                <div style={{ fontSize: 18, color: C.muted, marginTop: 2 }}>
                   De: {/^\d+$/.test(String(selected?.comanda ?? "").trim()) ? `Comanda ${selected?.comanda}` : selected?.comanda}
                 </div>
               </div>
@@ -721,7 +884,7 @@ export default function PDVView() {
             <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
               {/* Seção: itens a transferir */}
               <div style={{ padding: "16px 24px 8px", flexShrink: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
                   Selecione os itens e quantidades
                 </div>
                 {(Array.isArray(selected?.items) ? selected.items : []).map((item, idx) => {
@@ -738,10 +901,10 @@ export default function PDVView() {
                     }}>
                       {item.emoji && <span style={{ fontSize: 18 }}>{item.emoji}</span>}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <div style={{ fontWeight: 600, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {item.name}
                         </div>
-                        <div style={{ fontSize: 11, color: C.muted }}>Disponível: {qty}</div>
+                        <div style={{ fontSize: 14, color: C.muted }}>Disponível: {qty}</div>
                       </div>
                       {/* Qty selector */}
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
@@ -751,7 +914,7 @@ export default function PDVView() {
                         >
                           <span style={{ fontSize: 16, lineHeight: 1 }}>−</span>
                         </button>
-                        <span style={{ minWidth: 22, textAlign: "center", fontWeight: 800, fontSize: 14, color: ativo ? C.accent : C.muted }}>
+                        <span style={{ minWidth: 22, textAlign: "center", fontWeight: 800, fontSize: 17, color: ativo ? C.accent : C.muted }}>
                           {qSel}
                         </span>
                         <button
@@ -766,7 +929,7 @@ export default function PDVView() {
                             padding: "4px 10px", borderRadius: 7, border: "none",
                             background: ativo ? `${C.accent}22` : C.surface,
                             color: ativo ? C.accent : C.muted,
-                            cursor: "pointer", fontSize: 11, fontWeight: 700,
+                            cursor: "pointer", fontSize: 14, fontWeight: 700,
                           }}
                         >
                           {ativo && qSel === qty ? "Todos ✓" : "Todos"}
@@ -779,52 +942,157 @@ export default function PDVView() {
 
               {/* Seção: comanda destino */}
               <div style={{ padding: "8px 24px 16px", flexShrink: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
                   Transferir para
                 </div>
-                {abertas.filter(o => o.id !== selected?.id).length === 0 ? (
-                  <div style={{ fontSize: 13, color: C.muted, padding: "12px 0" }}>
-                    Nenhuma outra comanda aberta.
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {abertas.filter(o => o.id !== selected?.id).map(o => {
-                      const nome    = /^\d+$/.test(String(o.comanda ?? "").trim()) ? `Comanda ${o.comanda}` : o.comanda;
-                      const selecionado = transDestino === o.id;
+
+                {/* Abas de modo */}
+                <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+                  {[
+                    { id: "lista",  label: "Comandas abertas" },
+                    { id: "numero", label: "Buscar por número" },
+                    { id: "nova",   label: "+ Nova comanda" },
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => { setTransMode(tab.id); setTransDestino(null); setTransNumeroErro(""); }}
+                      style={{
+                        padding: "6px 12px", borderRadius: 8, fontSize: 18, fontWeight: 700,
+                        border: `1.5px solid ${transMode === tab.id ? C.accent : C.border}`,
+                        background: transMode === tab.id ? `${C.accent}14` : C.surface,
+                        color: transMode === tab.id ? C.accent : C.muted,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Modo: lista de comandas abertas */}
+                {transMode === "lista" && (
+                  abertas.filter(o => o.id !== selected?.id).length === 0 ? (
+                    <div style={{ fontSize: 16, color: C.muted, padding: "12px 0" }}>
+                      Nenhuma outra comanda aberta.
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {abertas.filter(o => o.id !== selected?.id).map(o => {
+                        const nome = fmtComanda(o.comanda) || `#${String(o.id).slice(-4).toUpperCase()}`;
+                        const sel  = transDestino === o.id;
+                        return (
+                          <button
+                            key={o.id}
+                            onClick={() => setTransDestino(o.id)}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 12,
+                              padding: "10px 14px", borderRadius: 12,
+                              border: `1.5px solid ${sel ? C.green + "88" : C.border}`,
+                              background: sel ? `${C.green}0f` : C.surface,
+                              cursor: "pointer", textAlign: "left", color: C.text,
+                              transition: "border-color 0.15s, background 0.15s",
+                            }}
+                          >
+                            <div style={{
+                              width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                              background: sel ? `${C.green}22` : C.card,
+                              border: `1px solid ${sel ? C.green + "55" : C.border}`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 17, fontWeight: 800, color: sel ? C.green : C.muted,
+                            }}>
+                              {sel ? "✓" : "#"}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: 16 }}>{nome}</div>
+                              {o.garcom && <div style={{ fontSize: 14, color: C.muted }}>{o.garcom}</div>}
+                            </div>
+                            {o.total > 0 && (
+                              <div style={{ fontWeight: 700, fontSize: 16, color: C.green, flexShrink: 0 }}>
+                                R$ {Number(o.total).toFixed(2)}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )
+                )}
+
+                {/* Modo: buscar por número */}
+                {transMode === "numero" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        autoFocus
+                        type="text"
+                        inputMode="numeric"
+                        value={transNumero}
+                        onChange={e => { setTransNumero(e.target.value.replace(/\D/g, "")); setTransNumeroErro(""); setTransDestino(null); }}
+                        placeholder="Ex: 42"
+                        style={{
+                          width: "100%", padding: "12px 16px", borderRadius: 10,
+                          border: `1.5px solid ${transNumeroErro ? C.red : C.border}`,
+                          background: C.surface, color: C.text,
+                          fontSize: 18, fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+                    {transNumeroErro && (
+                      <div style={{ fontSize: 18, color: C.red, fontWeight: 600 }}>{transNumeroErro}</div>
+                    )}
+                    {/* Preview da comanda encontrada */}
+                    {(() => {
+                      if (!transNumero.trim()) return null;
+                      const encontrada = abertas.find(o => String(o.comanda).trim() === transNumero.trim() && o.id !== selected?.id);
+                      if (!encontrada) return (
+                        <div style={{ fontSize: 18, color: C.muted, padding: "6px 0" }}>
+                          Nenhuma comanda aberta com esse número.
+                        </div>
+                      );
                       return (
-                        <button
-                          key={o.id}
-                          onClick={() => setTransDestino(o.id)}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 12,
-                            padding: "10px 14px", borderRadius: 12,
-                            border: `1.5px solid ${selecionado ? C.green + "88" : C.border}`,
-                            background: selecionado ? `${C.green}0f` : C.surface,
-                            cursor: "pointer", textAlign: "left", color: C.text,
-                            transition: "border-color 0.15s, background 0.15s",
-                          }}
-                        >
-                          <div style={{
-                            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                            background: selecionado ? `${C.green}22` : C.card,
-                            border: `1px solid ${selecionado ? C.green + "55" : C.border}`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 14, fontWeight: 800, color: selecionado ? C.green : C.muted,
-                          }}>
-                            {selecionado ? "✓" : "#"}
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+                          borderRadius: 12, border: `1.5px solid ${C.green}66`,
+                          background: `${C.green}0a`,
+                        }}>
+                          <div style={{ fontSize: 18 }}>✓</div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 16, color: C.green }}>{fmtComanda(encontrada.comanda)}</div>
+                            {encontrada.garcom && <div style={{ fontSize: 14, color: C.muted }}>{encontrada.garcom}</div>}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, fontSize: 13 }}>{nome || `#${String(o.id).slice(-4).toUpperCase()}`}</div>
-                            {o.garcom && <div style={{ fontSize: 11, color: C.muted }}>{o.garcom}</div>}
-                          </div>
-                          {o.total > 0 && (
-                            <div style={{ fontWeight: 700, fontSize: 13, color: C.green, flexShrink: 0 }}>
-                              R$ {Number(o.total).toFixed(2)}
+                          {encontrada.total > 0 && (
+                            <div style={{ marginLeft: "auto", fontWeight: 700, fontSize: 16, color: C.green }}>
+                              R$ {Number(encontrada.total).toFixed(2)}
                             </div>
                           )}
-                        </button>
+                        </div>
                       );
-                    })}
+                    })()}
+                  </div>
+                )}
+
+                {/* Modo: nova comanda */}
+                {transMode === "nova" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ fontSize: 18, color: C.muted, marginBottom: 2 }}>
+                      Uma nova comanda será criada com os itens selecionados.
+                    </div>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={transNomeNova}
+                      onChange={e => { setTransNomeNova(e.target.value); setTransNumeroErro(""); }}
+                      placeholder="Nome ou número da nova comanda (ex: 99)"
+                      style={{
+                        width: "100%", padding: "12px 16px", borderRadius: 10,
+                        border: `1.5px solid ${transNumeroErro ? C.red : C.border}`,
+                        background: C.surface, color: C.text,
+                        fontSize: 17, fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+                      }}
+                    />
+                    {transNumeroErro && (
+                      <div style={{ fontSize: 18, color: C.red, fontWeight: 600 }}>{transNumeroErro}</div>
+                    )}
                   </div>
                 )}
               </div>
@@ -833,13 +1101,23 @@ export default function PDVView() {
             {/* Footer */}
             {(() => {
               const algumSelecionado = Object.values(transQtds).some(q => q > 0);
-              const pode = algumSelecionado && transDestino;
-              const qtdTransferir = Object.values(transQtds).reduce((s, q) => s + q, 0);
-              const nomeDestino = (() => {
+              const qtdTransferir    = Object.values(transQtds).reduce((s, q) => s + q, 0);
+
+              let pode = false;
+              let nomeDestino = "";
+              if (transMode === "lista") {
+                pode = algumSelecionado && !!transDestino;
                 const d = abertas.find(o => o.id === transDestino);
-                if (!d) return "";
-                return /^\d+$/.test(String(d.comanda ?? "").trim()) ? `Comanda ${d.comanda}` : d.comanda;
-              })();
+                nomeDestino = d ? fmtComanda(d.comanda) : "";
+              } else if (transMode === "numero") {
+                const encontrada = abertas.find(o => String(o.comanda).trim() === transNumero.trim() && o.id !== selected?.id);
+                pode = algumSelecionado && !!encontrada;
+                nomeDestino = encontrada ? fmtComanda(encontrada.comanda) : "";
+              } else if (transMode === "nova") {
+                pode = algumSelecionado && !!transNomeNova.trim();
+                nomeDestino = transNomeNova.trim() ? fmtComanda(transNomeNova.trim()) : "nova comanda";
+              }
+
               return (
                 <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, flexShrink: 0, display: "flex", gap: 10 }}>
                   <button
@@ -847,7 +1125,7 @@ export default function PDVView() {
                     style={{
                       flex: 1, padding: "12px 0", borderRadius: 12,
                       border: `1px solid ${C.border}`, background: "none",
-                      color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 14,
+                      color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
                     }}
                   >
                     Cancelar
@@ -859,7 +1137,7 @@ export default function PDVView() {
                       flex: 2, padding: "12px 0", borderRadius: 12, border: "none",
                       background: pode ? C.green : C.faint,
                       color: "#fff", cursor: pode ? "pointer" : "not-allowed",
-                      fontWeight: 800, fontSize: 14,
+                      fontWeight: 800, fontSize: 17,
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                     }}
                   >
@@ -869,94 +1147,6 @@ export default function PDVView() {
                         ? <><LuArrowLeftRight size={15} /> Transferir {qtdTransferir} item{qtdTransferir !== 1 ? "s" : ""} → {nomeDestino}</>
                         : "Selecione itens e destino"}
                   </button>
-                </div>
-              );
-            })()}
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* ── Popup: Ver Itens Lançados ───────────────────────────── */}
-      {showVerItens && createPortal(
-        <div
-          onClick={e => { if (e.target === e.currentTarget) setShowVerItens(false); }}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9000,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
-          }}
-        >
-          <div style={{
-            background: C.card, borderRadius: 20,
-            width: "100%", maxWidth: 480,
-            maxHeight: "80vh", display: "flex", flexDirection: "column",
-            border: `1px solid ${C.border}`,
-            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-            color: C.text, overflow: "hidden",
-          }}>
-            {/* Header */}
-            <div style={{
-              padding: "20px 24px", borderBottom: `1px solid ${C.border}`,
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              flexShrink: 0,
-            }}>
-              <div>
-                <div style={{ fontWeight: 900, fontSize: 17 }}>Itens lançados</div>
-                <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-                  {/^\d+$/.test(String(selected?.comanda ?? "").trim()) ? `Comanda ${selected?.comanda}` : selected?.comanda}
-                </div>
-              </div>
-              <button
-                onClick={() => setShowVerItens(false)}
-                style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, display: "flex", alignItems: "center", fontSize: 18, fontWeight: 400 }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Lista */}
-            <div style={{ flex: 1, overflowY: "auto" }}>
-              {(() => {
-                const itens = Array.isArray(selected?.items) ? selected.items : [];
-                if (itens.length === 0) return (
-                  <div style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 14 }}>Nenhum item lançado.</div>
-                );
-
-                const handleRemoveItem = async (idx, qty) => {
-                  const novos = selected.items.map((it, i) => {
-                    if (i !== idx) return it;
-                    const novaQty = (it.qty ?? 1) - qty;
-                    return novaQty > 0 ? { ...it, qty: novaQty } : null;
-                  }).filter(Boolean);
-                  const novoTotal = novos.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-                  await updatePending(selected.id, { items: novos, total: novoTotal });
-                  setSelected(prev => ({ ...prev, items: novos, total: novoTotal }));
-                  if (novos.length === 0) setShowVerItens(false);
-                };
-
-                return itens.map((item, idx) => (
-                  <ItemVerRow key={idx} item={item} onRemove={(qty) => handleRemoveItem(idx, qty)} />
-                ));
-              })()}
-            </div>
-
-            {/* Footer total */}
-            {(() => {
-              const itens = Array.isArray(selected?.items) ? selected.items : [];
-              if (itens.length === 0) return null;
-              const total = itens.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-              return (
-                <div style={{
-                  padding: "16px 24px", borderTop: `1px solid ${C.border}`,
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  flexShrink: 0,
-                }}>
-                  <span style={{ fontWeight: 700, fontSize: 15 }}>Total lançado</span>
-                  <span style={{ fontWeight: 900, fontSize: 20, color: C.green }}>
-                    R$ {total.toFixed(2)}
-                  </span>
                 </div>
               );
             })()}
@@ -994,7 +1184,7 @@ export default function PDVView() {
               </div>
               <div>
                 <div style={{ fontWeight: 900, fontSize: 17 }}>Cancelar pedido?</div>
-                <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
+                <div style={{ fontSize: 16, color: C.muted, marginTop: 2 }}>
                   {/^\d+$/.test(String(selected?.comanda ?? "").trim()) ? `Comanda ${selected?.comanda}` : selected?.comanda}
                 </div>
               </div>
@@ -1003,7 +1193,7 @@ export default function PDVView() {
             <div style={{
               padding: "12px 16px", borderRadius: 10, marginBottom: 20,
               background: `${C.red}0d`, border: `1px solid ${C.red}33`,
-              fontSize: 13, color: C.muted, lineHeight: 1.5,
+              fontSize: 16, color: C.muted, lineHeight: 1.5,
             }}>
               A comanda será <strong style={{ color: C.red }}>removida permanentemente</strong>. Esta ação não pode ser desfeita.
             </div>
@@ -1014,7 +1204,7 @@ export default function PDVView() {
                 style={{
                   flex: 1, padding: "13px 0", borderRadius: 12,
                   border: `1px solid ${C.border}`, background: "none",
-                  color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 14,
+                  color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
                 }}
               >
                 Voltar
@@ -1029,7 +1219,7 @@ export default function PDVView() {
                 style={{
                   flex: 1, padding: "13px 0", borderRadius: 12, border: "none",
                   background: C.red, color: "#fff",
-                  cursor: "pointer", fontWeight: 800, fontSize: 15,
+                  cursor: "pointer", fontWeight: 800, fontSize: 18,
                 }}
               >
                 Sim, cancelar
@@ -1040,94 +1230,415 @@ export default function PDVView() {
         document.body
       )}
 
-      {/* ── Toast: Pedido enviado ────────────────────────────────── */}
-      <div style={{
-        position: "fixed", top: 24, right: 24, zIndex: 500,
-        display: "flex", alignItems: "center", gap: 10,
-        background: C.green, color: "#fff",
-        padding: "14px 20px", borderRadius: 12,
-        fontWeight: 700, fontSize: 15,
-        boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-        pointerEvents: "none",
-        transition: "opacity 0.3s, transform 0.3s",
-        opacity: toast ? 1 : 0,
-        transform: toast ? "translateY(0)" : "translateY(-12px)",
-      }}>
-        ✓ Pedido enviado com sucesso!
-      </div>
+      {/* ── Popup: Mesa ──────────────────────────────────────────── */}
+      {showMesa && mesaPendingOrder && createPortal(
+        <div
+          onClick={e => { if (e.target === e.currentTarget) { handleConfirmarMesa(); } }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9100,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
+          }}
+        >
+          <div style={{
+            background: C.card, borderRadius: 20,
+            width: "100%", maxWidth: 380,
+            border: `1px solid ${C.border}`,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+            color: C.text, overflow: "hidden",
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: "20px 24px", borderBottom: `1px solid ${C.border}`,
+              display: "flex", alignItems: "center", gap: 12,
+            }}>
+              <div style={{
+                width: 42, height: 42, borderRadius: 12,
+                background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 20,
+              }}>
+                🪑
+              </div>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: 17 }}>
+                  {fmtComanda(mesaPendingOrder.comanda)}
+                </div>
+                <div style={{ fontSize: 18, color: C.muted, marginTop: 1 }}>
+                  {mesaPendingOrder.mesa ? "Editar mesa e apelido" : "Informe a mesa antes de continuar"}
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+
+              {/* Mesa */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ fontSize: 18, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                  Número ou nome da mesa <span style={{ color: C.red }}>*</span>
+                </label>
+                <input
+                  autoFocus
+                  type="text"
+                  value={mesaInput}
+                  onChange={e => setMesaInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleConfirmarMesa()}
+                  placeholder="Ex: 5, Varanda, Salão 2..."
+                  maxLength={40}
+                  style={{
+                    width: "100%", padding: "13px 16px", borderRadius: 10,
+                    border: `1.5px solid ${!mesaInput.trim() ? C.red + "88" : C.border}`,
+                    background: C.surface,
+                    color: C.text, fontSize: 18, fontFamily: "inherit",
+                    outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
+                  }}
+                  onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
+                  onBlur={e => e.currentTarget.style.borderColor = !mesaInput.trim() ? C.red + "88" : C.border}
+                />
+                {!mesaInput.trim() && (
+                  <div style={{ fontSize: 14, color: C.red, fontWeight: 600 }}>Campo obrigatório.</div>
+                )}
+              </div>
+
+              {/* Apelido */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ fontSize: 18, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                  Apelido do cliente <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={apelidoInput}
+                  onChange={e => setApelidoInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleConfirmarMesa()}
+                  placeholder="Ex: João, Família Silva..."
+                  maxLength={40}
+                  style={{
+                    width: "100%", padding: "13px 16px", borderRadius: 10,
+                    border: `1.5px solid ${C.border}`, background: C.surface,
+                    color: C.text, fontSize: 18, fontFamily: "inherit",
+                    outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
+                  }}
+                  onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
+                  onBlur={e => e.currentTarget.style.borderColor = C.border}
+                />
+              </div>
+
+              <div style={{ fontSize: 14, color: C.muted }}>
+                Apelido é opcional. Pressione Enter ou clique em Entrar para continuar.
+              </div>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => { setShowMesa(false); setMesaPendingOrder(null); }}
+                  style={{
+                    flex: 1, padding: "12px 0", borderRadius: 11,
+                    border: `1px solid ${C.border}`, background: "none",
+                    color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmarMesa}
+                  disabled={salvandoMesa || !mesaInput.trim()}
+                  style={{
+                    flex: 2, padding: "12px 0", borderRadius: 11, border: "none",
+                    background: mesaInput.trim() ? C.accent : C.faint,
+                    color: "#fff",
+                    cursor: (salvandoMesa || !mesaInput.trim()) ? "not-allowed" : "pointer",
+                    fontWeight: 800, fontSize: 17,
+                    opacity: salvandoMesa ? 0.7 : 1,
+                  }}
+                >
+                  {salvandoMesa ? "Entrando..." : "Entrar na comanda →"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Popup: Saldo do Dia ──────────────────────────────────── */}
+      {showSaldo && createPortal(
+        <SaldoModal
+          onClose={() => setShowSaldo(false)}
+          senha={saldoSenha}
+          setSenha={setSaldoSenha}
+          senhaErro={saldoSenhaErro}
+          setSenhaErro={setSaldoSenhaErro}
+          autorizado={saldoAutorizado}
+          setAutorizado={setSaldoAutorizado}
+          senhaVis={saldoSenhaVis}
+          setSenhaVis={setSaldoSenhaVis}
+          users={users}
+          sales={sales}
+          pending={pending}
+        />,
+        document.body
+      )}
+
     </div>
   );
 }
 
-function ItemVerRow({ item, onRemove }) {
-  const [qtyRemover, setQtyRemover] = useState(1);
-  const qty = item.qty ?? 1;
-  const obsArr = Array.isArray(item.obs) ? item.obs : (item.obs ? [item.obs] : []);
+// ── Modal de Saldo do Dia ─────────────────────────────────────────
+function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending }) {
+  const hoje = new Date().toDateString();
+
+  const vendasHoje = (sales ?? []).filter(s => s.at && new Date(s.at).toDateString() === hoje);
+  const totalVendas = vendasHoje.reduce((s, v) => s + (v.total ?? 0), 0);
+  const qtdVendas   = vendasHoje.length;
+
+  const abertas = (pending ?? []).filter(p => p.status !== "closed");
+  const totalAberto = abertas.reduce((s, p) => {
+    const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
+    return s + ativos.reduce((x, i) => x + (i.price ?? 0) * (i.qty ?? 1), 0);
+  }, 0);
+
+  const porMetodo = {};
+  vendasHoje.forEach(v => { porMetodo[v.metodo] = (porMetodo[v.metodo] ?? 0) + (v.total ?? 0); });
+
+  const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
+  const METODOS_COLOR = { dinheiro: "#10b981", credito: "#3b82f6", debito: "#8b5cf6", pix: "#f59e0b" };
+
+  const verificarSenha = () => {
+    const admins = (users ?? []).filter(u => u.role === "admin" || u.role === "gerente");
+    const match  = admins.some(u => u.password === senha || u._plainPassword === senha);
+    if (match) { setAutorizado(true); setSenhaErro(false); }
+    else        { setSenhaErro(true); }
+  };
 
   return (
-    <div style={{
-      padding: "14px 24px",
-      borderBottom: `1px solid ${C.border}`,
-      display: "flex", flexDirection: "column", gap: 6,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {item.emoji && <span style={{ fontSize: 20 }}>{item.emoji}</span>}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>
-            {item.name}
-            <span style={{ color: C.muted, fontWeight: 500 }}> × {qty}</span>
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: "fixed", inset: 0, zIndex: 9200,
+        background: "rgba(0,0,0,0.75)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
+      }}
+    >
+      <div style={{
+        background: C.card, borderRadius: 20,
+        width: "100%", maxWidth: autorizado ? 520 : 400,
+        border: `1px solid ${C.border}`,
+        boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+        color: C.text, overflow: "hidden",
+        transition: "max-width 0.3s",
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: "20px 24px", borderBottom: `1px solid ${C.border}`,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: 12,
+              background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <LuChartBar size={20} color={C.accent} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 17 }}>Saldo do Dia</div>
+              <div style={{ fontSize: 18, color: C.muted, marginTop: 1 }}>
+                {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
+              </div>
+            </div>
           </div>
-          {obsArr.map((obs, j) => (
-            <div key={j} style={{ fontSize: 12, color: C.accent, marginTop: 2 }}>↳ {obs}</div>
-          ))}
+          <button
+            onClick={onClose}
+            style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, display: "flex", alignItems: "center" }}
+          >
+            <LuX size={18} />
+          </button>
         </div>
-        <div style={{ fontWeight: 700, fontSize: 14, color: C.green, flexShrink: 0 }}>
-          R$ {(item.price * qty).toFixed(2)}
-        </div>
-      </div>
 
-      {/* Controle de exclusão */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 4 }}>
-        <span style={{ fontSize: 12, color: C.muted, flex: 1 }}>Excluir:</span>
-        <button
-          onClick={() => setQtyRemover(q => Math.max(1, q - 1))}
-          disabled={qtyRemover <= 1}
-          style={{
-            width: 28, height: 28, borderRadius: 7,
-            border: `1px solid ${C.border}`, background: C.surface,
-            color: C.text, cursor: qtyRemover > 1 ? "pointer" : "not-allowed",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            opacity: qtyRemover <= 1 ? 0.4 : 1,
-          }}
-        >
-          <span style={{ fontSize: 16, lineHeight: 1 }}>−</span>
-        </button>
-        <span style={{ minWidth: 24, textAlign: "center", fontWeight: 800, fontSize: 14 }}>{qtyRemover}</span>
-        <button
-          onClick={() => setQtyRemover(q => Math.min(qty, q + 1))}
-          disabled={qtyRemover >= qty}
-          style={{
-            width: 28, height: 28, borderRadius: 7,
-            border: `1px solid ${C.border}`, background: C.surface,
-            color: C.text, cursor: qtyRemover < qty ? "pointer" : "not-allowed",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            opacity: qtyRemover >= qty ? 0.4 : 1,
-          }}
-        >
-          <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
-        </button>
-        <button
-          onClick={() => onRemove(qtyRemover)}
-          style={{
-            padding: "5px 14px", borderRadius: 8, border: "none",
-            background: C.red, color: "#fff",
-            cursor: "pointer", fontWeight: 700, fontSize: 12,
-            display: "flex", alignItems: "center", gap: 5,
-          }}
-        >
-          🗑 Excluir {qtyRemover === qty ? "tudo" : qtyRemover}
-        </button>
+        {/* Corpo: senha ou dados */}
+        {!autorizado ? (
+          <div style={{ padding: 28, display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              background: `${C.accent}10`, border: `1px solid ${C.accent}33`,
+              borderRadius: 12, padding: "12px 16px",
+              fontSize: 16, color: C.muted,
+            }}>
+              <LuLock size={16} color={C.accent} style={{ flexShrink: 0 }} />
+              Acesso restrito a administradores e gerentes.
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ fontSize: 18, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                Senha
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  autoFocus
+                  type={senhaVis ? "text" : "password"}
+                  value={senha}
+                  onChange={e => { setSenha(e.target.value); setSenhaErro(false); }}
+                  onKeyDown={e => e.key === "Enter" && verificarSenha()}
+                  placeholder="Digite a senha de acesso"
+                  style={{
+                    width: "100%", padding: "13px 44px 13px 16px",
+                    borderRadius: 10, border: `1.5px solid ${senhaErro ? C.red : C.border}`,
+                    background: C.surface, color: C.text,
+                    fontSize: 18, fontFamily: "inherit", outline: "none",
+                    boxSizing: "border-box", transition: "border-color 0.15s",
+                  }}
+                />
+                <button
+                  onClick={() => setSenhaVis(v => !v)}
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", display: "flex", padding: 2 }}
+                >
+                  {senhaVis ? <LuEyeOff size={16} /> : <LuEye size={16} />}
+                </button>
+              </div>
+              {senhaErro && (
+                <div style={{ fontSize: 18, color: C.red, fontWeight: 600 }}>
+                  Senha incorreta. Apenas administradores e gerentes têm acesso.
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={onClose}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 11, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17 }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={verificarSenha}
+                disabled={!senha.trim()}
+                style={{
+                  flex: 1, padding: "12px 0", borderRadius: 11, border: "none",
+                  background: senha.trim() ? C.accent : C.faint,
+                  color: "#fff", cursor: senha.trim() ? "pointer" : "not-allowed",
+                  fontWeight: 700, fontSize: 17,
+                }}
+              >
+                Acessar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
+
+            {/* KPIs */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {[
+                { label: "Vendas Finalizadas", value: `R$ ${totalVendas.toFixed(2)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: C.green },
+                { label: "Em Aberto (estimado)", value: `R$ ${totalAberto.toFixed(2)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: C.accent },
+              ].map(k => (
+                <div key={k.label} style={{
+                  background: C.surface, border: `1px solid ${C.border}`,
+                  borderRadius: 14, padding: "16px 18px",
+                }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>{k.label}</div>
+                  <div style={{ fontWeight: 900, fontSize: 22, color: k.color }}>{k.value}</div>
+                  <div style={{ fontSize: 18, color: C.muted, marginTop: 4 }}>{k.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Total geral */}
+            <div style={{
+              background: `${C.green}10`, border: `1.5px solid ${C.green}44`,
+              borderRadius: 14, padding: "16px 20px",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 17, color: C.text }}>Total do Dia (projetado)</div>
+                <div style={{ fontSize: 18, color: C.muted, marginTop: 2 }}>Fechadas + em aberto</div>
+              </div>
+              <div style={{ fontWeight: 900, fontSize: 26, color: C.green }}>
+                R$ {(totalVendas + totalAberto).toFixed(2)}
+              </div>
+            </div>
+
+            {/* Por método de pagamento */}
+            {Object.keys(porMetodo).length > 0 && (
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                  Vendas por Método
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {Object.entries(porMetodo).sort((a, b) => b[1] - a[1]).map(([metodo, val]) => (
+                    <div key={metodo} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      background: C.surface, borderRadius: 10, padding: "10px 14px",
+                      border: `1px solid ${C.border}`,
+                    }}>
+                      <span style={{
+                        fontSize: 16, fontWeight: 700,
+                        color: METODOS_COLOR[metodo] ?? C.muted,
+                        background: `${METODOS_COLOR[metodo] ?? C.muted}18`,
+                        border: `1px solid ${METODOS_COLOR[metodo] ?? C.muted}44`,
+                        borderRadius: 8, padding: "3px 10px",
+                      }}>
+                        {METODOS_LABEL[metodo] ?? metodo}
+                      </span>
+                      <span style={{ fontWeight: 800, fontSize: 18, color: C.text }}>
+                        R$ {Number(val).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Comandas em aberto */}
+            {abertas.length > 0 && (
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                  Comandas em Aberto
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 180, overflowY: "auto" }}>
+                  {abertas.map(p => {
+                    const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
+                    const subtotal = ativos.reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0);
+                    return (
+                      <div key={p.id} style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        background: C.surface, borderRadius: 10, padding: "10px 14px",
+                        border: `1px solid ${C.border}`,
+                      }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 16 }}>{fmtComanda(p.comanda)}</div>
+                          {p.garcom && <div style={{ fontSize: 14, color: C.muted }}>{p.garcom}</div>}
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontWeight: 800, fontSize: 17, color: subtotal > 0 ? C.accent : C.muted }}>
+                            {subtotal > 0 ? `R$ ${subtotal.toFixed(2)}` : "Sem itens"}
+                          </div>
+                          <div style={{ fontSize: 14, color: C.muted }}>
+                            {ativos.reduce((s, i) => s + (i.qty ?? 1), 0)} item(ns)
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={onClose}
+              style={{
+                padding: "12px 0", borderRadius: 11, border: `1px solid ${C.border}`,
+                background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
+              }}
+            >
+              Fechar
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

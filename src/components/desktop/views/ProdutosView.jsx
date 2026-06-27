@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
@@ -298,7 +298,7 @@ export default function ProdutosView() {
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                 {["", "Nome", "Categoria", "Unidade", "Preço", ""].map((h, i) => (
-                  <th key={i} style={{ padding: `12px ${i === 0 ? sz.pad : 16}px`, textAlign: i >= 4 ? "right" : "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap" }}>{h}</th>
+                  <th key={i} style={{ padding: `12px ${i === 0 ? sz.pad : 16}px`, textAlign: i >= 4 ? "right" : "left", fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -313,7 +313,7 @@ export default function ProdutosView() {
                     <td style={{ padding: "14px 16px" }}>
                       <div style={{ fontWeight: 700, fontSize: sz.fontBase + 1 }}>{p.name}</div>
                       {(p.unidade_consumo || units.length > 0) && (
-                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2, display: "flex", gap: 8 }}>
+                        <div style={{ fontSize: 14, color: C.muted, marginTop: 2, display: "flex", gap: 8 }}>
                           {p.unidade_consumo && <span>consumo: {p.unidade_consumo}</span>}
                           {units.length > 0 && <span>compra: {units.map(u => u.unidade).join(", ")}</span>}
                         </div>
@@ -411,10 +411,10 @@ export default function ProdutosView() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <Label>Unidade de estoque *</Label>
                 <input value={form.unidade_estoque} onChange={e => setUnidadeEstoque(e.target.value)} placeholder="ex: L, kg, un, g, ml" style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${form.unidade_estoque ? C.accent + "55" : C.border}`, background: C.card, color: C.text, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
-                <div style={{ fontSize: 11, color: C.muted }}>Como este insumo será armazenado no estoque.</div>
+                <div style={{ fontSize: 14, color: C.muted }}>Como este insumo será armazenado no estoque.</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {SUGESTOES_ESTOQUE.map(u => (
-                    <button key={u} onClick={() => setUnidadeEstoque(u)} style={{ padding: "4px 12px", borderRadius: 20, border: `1px solid ${form.unidade_estoque === u ? C.accent : C.border}`, background: form.unidade_estoque === u ? C.alow : "none", color: form.unidade_estoque === u ? C.accent : C.muted, cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>{u}</button>
+                    <button key={u} onClick={() => setUnidadeEstoque(u)} style={{ padding: "4px 12px", borderRadius: 20, border: `1px solid ${form.unidade_estoque === u ? C.accent : C.border}`, background: form.unidade_estoque === u ? C.alow : "none", color: form.unidade_estoque === u ? C.accent : C.muted, cursor: "pointer", fontSize: 18, fontWeight: 600, fontFamily: "inherit" }}>{u}</button>
                   ))}
                 </div>
               </div>
@@ -428,7 +428,7 @@ export default function ProdutosView() {
                   <ToggleBtn on={consumoDiferente} onToggle={toggleConsumoDiferente} label={consumoDiferente ? "Diferente" : "Igual ao estoque"} />
                 </div>
                 {!consumoDiferente ? (
-                  <div style={{ fontSize: 13, color: C.muted, padding: "8px 12px", background: C.card, borderRadius: 8, border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 16, color: C.muted, padding: "8px 12px", background: C.card, borderRadius: 8, border: `1px solid ${C.border}` }}>
                     Consumo registrado em: <strong style={{ color: C.text }}>{ue}</strong>
                   </div>
                 ) : (
@@ -438,15 +438,15 @@ export default function ProdutosView() {
                       <div style={{ display: "flex", alignItems: "flex-end", gap: 10, minWidth: "max-content" }}>
                         {/* Esquerdo: sincronizado */}
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                          <span style={{ fontSize: 10, color: C.accent, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>sincronizado</span>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: C.accent, background: C.alow, padding: "10px 18px", borderRadius: 10, border: `2px solid ${C.accent}55`, minWidth: 76, textAlign: "center" }}>
+                          <span style={{ fontSize: 13, color: C.accent, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>sincronizado</span>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: C.accent, background: C.alow, padding: "10px 18px", borderRadius: 10, border: `2px solid ${C.accent}55`, minWidth: 76, textAlign: "center" }}>
                             {form.unidade_estoque || "—"}
                           </div>
                         </div>
-                        <span style={{ fontSize: 13, color: C.muted, fontWeight: 600, paddingBottom: 12 }}>é equivalente a</span>
+                        <span style={{ fontSize: 16, color: C.muted, fontWeight: 600, paddingBottom: 12 }}>é equivalente a</span>
                         {/* Número */}
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                          <span style={{ fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>quantidade</span>
+                          <span style={{ fontSize: 13, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>quantidade</span>
                           <input
                             type="number"
                             step="0.001"
@@ -459,10 +459,10 @@ export default function ProdutosView() {
                         </div>
                         {/* Direito: badge da unidade escolhida */}
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                          <span style={{ fontSize: 10, color: form.unidade_consumo ? C.green : C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                          <span style={{ fontSize: 13, color: form.unidade_consumo ? C.green : C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
                             {form.unidade_consumo ? "selecionado" : "selecione"}
                           </span>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: form.unidade_consumo ? C.green : C.muted, background: form.unidade_consumo ? `${C.green}15` : C.surface, padding: "10px 18px", borderRadius: 10, border: `2px solid ${form.unidade_consumo ? C.green + "55" : C.border}`, minWidth: 76, textAlign: "center" }}>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: form.unidade_consumo ? C.green : C.muted, background: form.unidade_consumo ? `${C.green}15` : C.surface, padding: "10px 18px", borderRadius: 10, border: `2px solid ${form.unidade_consumo ? C.green + "55" : C.border}`, minWidth: 76, textAlign: "center" }}>
                             {form.unidade_consumo || "—"}
                           </div>
                         </div>
@@ -471,14 +471,14 @@ export default function ProdutosView() {
                     {/* Grid de seleção */}
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
                       {SUGESTOES_ESTOQUE.map(u => (
-                        <button key={u} onClick={() => setField("unidade_consumo", u)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${form.unidade_consumo === u ? C.green : C.border}`, background: form.unidade_consumo === u ? `${C.green}18` : C.surface, color: form.unidade_consumo === u ? C.green : C.muted, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", transition: "all 0.12s" }}>
+                        <button key={u} onClick={() => setField("unidade_consumo", u)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${form.unidade_consumo === u ? C.green : C.border}`, background: form.unidade_consumo === u ? `${C.green}18` : C.surface, color: form.unidade_consumo === u ? C.green : C.muted, cursor: "pointer", fontSize: 16, fontWeight: 700, fontFamily: "inherit", transition: "all 0.12s" }}>
                           {u}
                         </button>
                       ))}
                     </div>
                     {/* Confirmação */}
                     {form.unidade_estoque && fcFator > 0 && form.unidade_consumo && (
-                      <div style={{ fontSize: 12, color: C.green, padding: "6px 10px", background: `${C.green}10`, borderRadius: 8, border: `1px solid ${C.green}33`, marginTop: 12 }}>
+                      <div style={{ fontSize: 18, color: C.green, padding: "6px 10px", background: `${C.green}10`, borderRadius: 8, border: `1px solid ${C.green}33`, marginTop: 12 }}>
                         ✓ 1 {form.unidade_estoque} = {fmtQtd(fcFator)} {form.unidade_consumo} · ex: 10 {form.unidade_estoque} = {fmtQtd(10 * fcFator)} {form.unidade_consumo}
                       </div>
                     )}
@@ -508,13 +508,13 @@ export default function ProdutosView() {
                 </div>
 
                 {!compraDiferente ? (
-                  <div style={{ fontSize: 13, color: C.muted, padding: "8px 12px", background: C.card, borderRadius: 8, border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 16, color: C.muted, padding: "8px 12px", background: C.card, borderRadius: 8, border: `1px solid ${C.border}` }}>
                     Comprado em: <strong style={{ color: C.text }}>{ue}</strong>
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {form.unidades_compra.length === 0 && (
-                      <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "14px 0", border: `1.5px dashed ${C.border}`, borderRadius: 10 }}>
+                      <div style={{ fontSize: 16, color: C.muted, textAlign: "center", padding: "14px 0", border: `1.5px dashed ${C.border}`, borderRadius: 10 }}>
                         Nenhuma unidade adicionada
                       </div>
                     )}
@@ -533,10 +533,10 @@ export default function ProdutosView() {
                                 onBlur={() => setEditingUC(null)}
                                 onKeyDown={e => e.key === "Enter" && setEditingUC(null)}
                                 placeholder="fornecedor"
-                                style={{ flex: 1, padding: "6px 10px", borderRadius: 8, border: `1.5px solid ${C.blue}66`, background: C.surface, color: C.text, fontSize: 13, fontWeight: 700, fontFamily: "inherit", outline: "none" }}
+                                style={{ flex: 1, padding: "6px 10px", borderRadius: 8, border: `1.5px solid ${C.blue}66`, background: C.surface, color: C.text, fontSize: 16, fontWeight: 700, fontFamily: "inherit", outline: "none" }}
                               />
                             ) : (
-                              <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: u.unidade ? C.text : C.muted }}>
+                              <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: u.unidade ? C.text : C.muted }}>
                                 {u.unidade ? u.unidade.toUpperCase() : "FORNECEDOR"}
                               </span>
                             )}
@@ -560,15 +560,15 @@ export default function ProdutosView() {
                             <div style={{ display: "flex", alignItems: "flex-end", gap: 10, minWidth: "max-content" }}>
                               {/* Esquerdo: sincronizado com unidade_estoque */}
                               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                                <span style={{ fontSize: 10, color: C.blue, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>sincronizado</span>
-                                <div style={{ fontSize: 15, fontWeight: 800, color: C.blue, background: `${C.blue}15`, padding: "10px 18px", borderRadius: 10, border: `2px solid ${C.blue}55`, minWidth: 76, textAlign: "center" }}>
+                                <span style={{ fontSize: 13, color: C.blue, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>sincronizado</span>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: C.blue, background: `${C.blue}15`, padding: "10px 18px", borderRadius: 10, border: `2px solid ${C.blue}55`, minWidth: 76, textAlign: "center" }}>
                                   {ue || "—"}
                                 </div>
                               </div>
-                              <span style={{ fontSize: 13, color: C.muted, fontWeight: 600, paddingBottom: 12 }}>é equivalente a</span>
+                              <span style={{ fontSize: 16, color: C.muted, fontWeight: 600, paddingBottom: 12 }}>é equivalente a</span>
                               {/* Número */}
                               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                                <span style={{ fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>quantidade</span>
+                                <span style={{ fontSize: 13, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>quantidade</span>
                                 <input
                                   type="number"
                                   step="0.001"
@@ -581,10 +581,10 @@ export default function ProdutosView() {
                               </div>
                               {/* Direito: badge da unidade escolhida no grid */}
                               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                                <span style={{ fontSize: 10, color: u.unidade_destino ? C.blue : C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                                <span style={{ fontSize: 13, color: u.unidade_destino ? C.blue : C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
                                   {u.unidade_destino ? "selecionado" : "selecione"}
                                 </span>
-                                <div style={{ fontSize: 15, fontWeight: 800, color: u.unidade_destino ? C.blue : C.muted, background: u.unidade_destino ? `${C.blue}15` : C.surface, padding: "10px 18px", borderRadius: 10, border: `2px solid ${u.unidade_destino ? C.blue + "55" : C.border}`, minWidth: 76, textAlign: "center" }}>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: u.unidade_destino ? C.blue : C.muted, background: u.unidade_destino ? `${C.blue}15` : C.surface, padding: "10px 18px", borderRadius: 10, border: `2px solid ${u.unidade_destino ? C.blue + "55" : C.border}`, minWidth: 76, textAlign: "center" }}>
                                   {u.unidade_destino || "—"}
                                 </div>
                               </div>
@@ -593,14 +593,14 @@ export default function ProdutosView() {
                           {/* Grid de seleção da unidade destino */}
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                             {SUGESTOES_ESTOQUE.map(s => (
-                              <button key={s} onClick={() => setUC(idx, "unidade_destino", s)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${u.unidade_destino === s ? C.blue : C.border}`, background: u.unidade_destino === s ? `${C.blue}18` : C.surface, color: u.unidade_destino === s ? C.blue : C.muted, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", transition: "all 0.12s" }}>
+                              <button key={s} onClick={() => setUC(idx, "unidade_destino", s)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${u.unidade_destino === s ? C.blue : C.border}`, background: u.unidade_destino === s ? `${C.blue}18` : C.surface, color: u.unidade_destino === s ? C.blue : C.muted, cursor: "pointer", fontSize: 16, fontWeight: 700, fontFamily: "inherit", transition: "all 0.12s" }}>
                                 {s}
                               </button>
                             ))}
                           </div>
                           {/* Confirmação / preview */}
                           {u.unidade && fp > 0 && u.unidade_destino && (
-                            <div style={{ fontSize: 12, color: C.blue, padding: "6px 10px", background: `${C.blue}10`, borderRadius: 8, border: `1px solid ${C.blue}33` }}>
+                            <div style={{ fontSize: 18, color: C.blue, padding: "6px 10px", background: `${C.blue}10`, borderRadius: 8, border: `1px solid ${C.blue}33` }}>
                               ✓ 1 {u.unidade} = {fmtQtd(fp)} {u.unidade_destino} · entrada de 1 {u.unidade} → +{fmtQtd(fp)} {u.unidade_destino} ao estoque
                             </div>
                           )}
@@ -611,7 +611,7 @@ export default function ProdutosView() {
                     {/* Botão adicionar */}
                     <button
                       onClick={addUnidadeCompra}
-                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 10, border: `1.5px dashed ${C.accent}55`, background: `${C.accent}07`, color: C.accent, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit", width: "100%" }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 10, border: `1.5px dashed ${C.accent}55`, background: `${C.accent}07`, color: C.accent, cursor: "pointer", fontWeight: 700, fontSize: 16, fontFamily: "inherit", width: "100%" }}
                     >
                       <LuPlus size={14} /> Adicionar unidade de compra
                     </button>
@@ -622,20 +622,20 @@ export default function ProdutosView() {
               {/* Resumo final */}
               {form.unidade_estoque && (consumoDiferente || (compraDiferente && form.unidades_compra.some(u => u.unidade && u.fator))) && (
                 <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Resumo das conversões</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Resumo das conversões</div>
                   {compraDiferente && form.unidades_compra.filter(u => u.unidade && u.fator).map((u, idx) => (
-                    <div key={idx} style={{ fontSize: 12, display: "flex", justifyContent: "space-between" }}>
+                    <div key={idx} style={{ fontSize: 18, display: "flex", justifyContent: "space-between" }}>
                       <span style={{ color: C.muted }}>Compra ({u.unidade}):</span>
                       <span>1 {u.unidade} → <strong style={{ color: C.blue }}>{fmtQtd(parseFloat(u.fator))} {ue}</strong></span>
                     </div>
                   ))}
                   {consumoDiferente && form.unidade_consumo && (
-                    <div style={{ fontSize: 12, display: "flex", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: 18, display: "flex", justifyContent: "space-between" }}>
                       <span style={{ color: C.muted }}>Consumo:</span>
                       <span>1 {ue} → <strong style={{ color: C.green }}>{fcFator || "?"} {uc}</strong></span>
                     </div>
                   )}
-                  <div style={{ fontSize: 12, display: "flex", justifyContent: "space-between" }}>
+                  <div style={{ fontSize: 18, display: "flex", justifyContent: "space-between" }}>
                     <span style={{ color: C.muted }}>Estoque:</span>
                     <span style={{ color: C.muted }}>referência → <strong style={{ color: C.text }}>{ue}</strong></span>
                   </div>
@@ -668,12 +668,12 @@ export default function ProdutosView() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}><LuTag size={18} color={C.accent} /> Categorias</div>
-                <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{categorias.length} categoria{categorias.length !== 1 ? "s" : ""}</div>
+                <div style={{ fontSize: 16, color: C.muted, marginTop: 2 }}>{categorias.length} categoria{categorias.length !== 1 ? "s" : ""}</div>
               </div>
               <button onClick={() => { setShowCatModal(false); setCatEditando(null); setCatNova(""); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 4 }}><LuXIcon size={20} /></button>
             </div>
             <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6, minHeight: 0 }}>
-              {categorias.length === 0 && <div style={{ color: C.muted, fontSize: 14, textAlign: "center", padding: 24 }}>Nenhuma categoria ainda.</div>}
+              {categorias.length === 0 && <div style={{ color: C.muted, fontSize: 17, textAlign: "center", padding: 24 }}>Nenhuma categoria ainda.</div>}
               {categorias.map(cat => {
                 const qtdProdutos = products.filter(p => p.category === cat).length;
                 const emEdicao    = catEditando?.name === cat;
@@ -682,14 +682,14 @@ export default function ProdutosView() {
                   <div key={cat} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 12, background: emEdicao ? C.alow : C.surface, border: `1px solid ${emEdicao ? C.accent + "66" : C.border}`, transition: "all 0.15s" }}>
                     {emEdicao ? (
                       <>
-                        <input autoFocus value={catEditando.input} onChange={e => setCatEditando(v => ({ ...v, input: e.target.value }))} onKeyDown={e => { if (e.key === "Enter") renomearCategoria(); if (e.key === "Escape") setCatEditando(null); }} style={{ flex: 1, padding: "6px 10px", borderRadius: 8, border: `1.5px solid ${C.accent}`, background: C.card, color: C.text, fontSize: 14, fontWeight: 600, fontFamily: "inherit", outline: "none" }} />
+                        <input autoFocus value={catEditando.input} onChange={e => setCatEditando(v => ({ ...v, input: e.target.value }))} onKeyDown={e => { if (e.key === "Enter") renomearCategoria(); if (e.key === "Escape") setCatEditando(null); }} style={{ flex: 1, padding: "6px 10px", borderRadius: 8, border: `1.5px solid ${C.accent}`, background: C.card, color: C.text, fontSize: 17, fontWeight: 600, fontFamily: "inherit", outline: "none" }} />
                         <button onClick={renomearCategoria} disabled={catOpLoading} style={{ background: C.accent, border: "none", borderRadius: 8, color: "#fff", cursor: "pointer", padding: "6px 10px", lineHeight: 0 }}><LuCheck size={15} /></button>
                         <button onClick={() => setCatEditando(null)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: "pointer", padding: "6px 10px", lineHeight: 0 }}><LuXIcon size={15} /></button>
                       </>
                     ) : (
                       <>
-                        <span style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>{cat}</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 10, background: C.card, color: C.muted, border: `1px solid ${C.border}` }}>{qtdProdutos} {qtdProdutos === 1 ? "produto" : "produtos"}</span>
+                        <span style={{ flex: 1, fontWeight: 700, fontSize: 17 }}>{cat}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 9px", borderRadius: 10, background: C.card, color: C.muted, border: `1px solid ${C.border}` }}>{qtdProdutos} {qtdProdutos === 1 ? "produto" : "produtos"}</span>
                         <button onClick={() => setCatEditando({ name: cat, input: cat })} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: "pointer", padding: "6px 9px", lineHeight: 0 }}><LuPencil size={14} /></button>
                         <button onClick={() => excluirCategoria(cat)} disabled={!podeExcluir || catOpLoading} style={{ background: "none", border: `1px solid ${podeExcluir ? C.red + "55" : C.border}`, borderRadius: 8, color: podeExcluir ? C.red : C.border, cursor: podeExcluir ? "pointer" : "not-allowed", padding: "6px 9px", lineHeight: 0, opacity: podeExcluir ? 1 : 0.4 }}><LuTrash2 size={14} /></button>
                       </>
@@ -699,14 +699,14 @@ export default function ProdutosView() {
               })}
             </div>
             <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 18 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Nova Categoria</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Nova Categoria</div>
               <div style={{ display: "flex", gap: 8 }}>
-                <input value={catNova} onChange={e => setCatNova(e.target.value)} onKeyDown={e => e.key === "Enter" && criarCategoria()} placeholder="Ex: Bebidas, Lanches..." maxLength={40} style={{ flex: 1, padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${catNova.trim() ? C.accent : C.border}`, background: C.surface, color: C.text, fontSize: 14, fontFamily: "inherit", outline: "none" }} />
-                <button onClick={criarCategoria} disabled={!catNova.trim() || catOpLoading || categorias.includes(catNova.trim())} style={{ padding: "11px 20px", borderRadius: 10, border: "none", background: catNova.trim() && !categorias.includes(catNova.trim()) ? C.accent : C.surface, color: catNova.trim() && !categorias.includes(catNova.trim()) ? "#fff" : C.muted, fontWeight: 700, fontSize: 14, cursor: catNova.trim() && !categorias.includes(catNova.trim()) ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
+                <input value={catNova} onChange={e => setCatNova(e.target.value)} onKeyDown={e => e.key === "Enter" && criarCategoria()} placeholder="Ex: Bebidas, Lanches..." maxLength={40} style={{ flex: 1, padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${catNova.trim() ? C.accent : C.border}`, background: C.surface, color: C.text, fontSize: 17, fontFamily: "inherit", outline: "none" }} />
+                <button onClick={criarCategoria} disabled={!catNova.trim() || catOpLoading || categorias.includes(catNova.trim())} style={{ padding: "11px 20px", borderRadius: 10, border: "none", background: catNova.trim() && !categorias.includes(catNova.trim()) ? C.accent : C.surface, color: catNova.trim() && !categorias.includes(catNova.trim()) ? "#fff" : C.muted, fontWeight: 700, fontSize: 17, cursor: catNova.trim() && !categorias.includes(catNova.trim()) ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
                   {catOpLoading ? "..." : "Adicionar"}
                 </button>
               </div>
-              {catNova.trim() && categorias.includes(catNova.trim()) && <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>Esta categoria já existe.</div>}
+              {catNova.trim() && categorias.includes(catNova.trim()) && <div style={{ fontSize: 18, color: C.muted, marginTop: 6 }}>Esta categoria já existe.</div>}
             </div>
           </div>
         </div>,
@@ -726,15 +726,15 @@ export default function ProdutosView() {
                   </div>
                   <div>
                     <div style={{ fontWeight: 900, fontSize: 17 }}>Excluir produto?</div>
-                    <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{p?.emoji} <strong style={{ color: C.text }}>{p?.name}</strong></div>
+                    <div style={{ fontSize: 16, color: C.muted, marginTop: 2 }}>{p?.emoji} <strong style={{ color: C.text }}>{p?.name}</strong></div>
                   </div>
                 </div>
-                <div style={{ padding: "12px 16px", borderRadius: 10, marginBottom: 20, background: `${C.red}0d`, border: `1px solid ${C.red}33`, fontSize: 13, color: C.muted, lineHeight: 1.5 }}>
+                <div style={{ padding: "12px 16px", borderRadius: 10, marginBottom: 20, background: `${C.red}0d`, border: `1px solid ${C.red}33`, fontSize: 16, color: C.muted, lineHeight: 1.5 }}>
                   Esta ação <strong style={{ color: C.red }}>não pode ser desfeita</strong>. O produto será removido permanentemente.
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => setDeleteId(null)} style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>Cancelar</button>
-                  <button onClick={confirmarDelete} disabled={deletando} style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: "none", background: deletando ? C.faint : C.red, color: "#fff", cursor: deletando ? "not-allowed" : "pointer", fontWeight: 800, fontSize: 15 }}>{deletando ? "Excluindo..." : "Sim, excluir"}</button>
+                  <button onClick={() => setDeleteId(null)} style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17 }}>Cancelar</button>
+                  <button onClick={confirmarDelete} disabled={deletando} style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: "none", background: deletando ? C.faint : C.red, color: "#fff", cursor: deletando ? "not-allowed" : "pointer", fontWeight: 800, fontSize: 18 }}>{deletando ? "Excluindo..." : "Sim, excluir"}</button>
                 </div>
               </div>
             </div>
@@ -747,19 +747,19 @@ export default function ProdutosView() {
 }
 
 function Label({ children }) {
-  return <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1.2 }}>{children}</div>;
+  return <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1.2 }}>{children}</div>;
 }
 
 function Input({ value, onChange, placeholder, maxLength, style }) {
   return (
-    <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} style={{ display: "block", width: "100%", marginTop: 8, padding: "11px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 15, boxSizing: "border-box", fontFamily: "inherit", outline: "none", ...style }} />
+    <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} style={{ display: "block", width: "100%", marginTop: 8, padding: "11px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 18, boxSizing: "border-box", fontFamily: "inherit", outline: "none", ...style }} />
   );
 }
 
 function ToggleBtn({ on, onToggle, label }) {
   return (
     <button onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 7, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
-      <span style={{ fontSize: 11, color: on ? C.accent : C.muted, fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: 14, color: on ? C.accent : C.muted, fontWeight: 600 }}>{label}</span>
       <div style={{ width: 36, height: 20, borderRadius: 10, background: on ? C.accent : C.faint, padding: 2, display: "flex", alignItems: "center", justifyContent: on ? "flex-end" : "flex-start", transition: "all 0.2s", flexShrink: 0 }}>
         <div style={{ width: 16, height: 16, borderRadius: "50%", background: "#fff" }} />
       </div>
