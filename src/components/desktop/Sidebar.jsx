@@ -3,11 +3,12 @@ import { createPortal } from "react-dom";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/constants/roles";
+import { hashPassword, isV2Hash } from "@/utils/crypto";
 import C from "@/constants/colors";
 import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
-  LuHistory, LuX, LuUser, LuArrowLeft,
+  LuHistory, LuX, LuUser, LuArrowLeft, LuShieldAlert,
 } from "react-icons/lu";
 
 const NAV_ICONS = {
@@ -19,7 +20,7 @@ const NAV_ICONS = {
 };
 
 export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogout, onBackToChoice, onClose }) {
-  const { currentUser, pending, sales, sessaoAbertaEm } = useApp();
+  const { currentUser, pending, sales, sessaoAbertaEm, users } = useApp();
   const role    = ROLES[currentUser?.role] || ROLES.garcom;
   const abertas  = pending.filter(o => o.status !== "closed");
   const fechadas = sessaoAbertaEm
@@ -29,11 +30,41 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
   const [showFechadas,    setShowFechadas]   = useState(false);
   const [fechadaDetalhe, setFechadaDetalhe] = useState(null);
 
+  // Auth guard para Relatório (caixa)
+  const [showAuthRel, setShowAuthRel] = useState(false);
+  const [authUser,    setAuthUser]    = useState("");
+  const [authPass,    setAuthPass]    = useState("");
+  const [authError,   setAuthError]   = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+
+  const openAuthRel = () => { setAuthUser(""); setAuthPass(""); setAuthError(""); setShowAuthRel(true); };
+
+  const handleAuthRelatorio = async () => {
+    if (authLoading) return;
+    const username = authUser.trim().toLowerCase();
+    const user = (users ?? []).find(u => u.username === username && (u.role === "admin" || u.role === "gerente"));
+    if (!user) { setAuthError("Usuário não encontrado ou sem permissão de acesso."); return; }
+    setAuthLoading(true);
+    try {
+      const hashed = await hashPassword(authPass);
+      const match  = isV2Hash(user.password) ? user.password === hashed : false;
+      if (!match) { setAuthError("Senha incorreta."); return; }
+      setShowAuthRel(false);
+      navigate("/app/relatorio", { state: { ts: Date.now() } });
+      onClose?.();
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const temRelatorio = !!currentUser?.permissions?.relatorio;
+  const relatorioVisivel = temRelatorio || !!currentUser?.permissions?.pdv;
+
   const allItems = [
     { to: "/app/pdv",       label: "Frente de Caixa",  perm: "pdv",      badge: pending.length || null },
     { to: "/app/produtos",  label: "Cadastro Produtos", perm: "produtos"  },
-    { to: "/app/relatorio", label: "Relatório",         perm: "relatorio" },
-  ].filter(item => currentUser?.permissions?.[item.perm]);
+    { to: "/app/relatorio", label: "Relatório",         perm: "relatorio", extra: relatorioVisivel },
+  ].filter(item => currentUser?.permissions?.[item.perm] || item.extra);
 
   const bottomItems = [
     { to: "/app/estoque",       label: "Estoque",        perm: "estoque"       },
@@ -129,9 +160,23 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
 
       {/* Navegação principal */}
       <nav style={{ flex: 1, padding: "10px 0", overflowY: "auto" }}>
-        {allItems.map(item => (
+        {allItems.map(item => {
+          const guardado = item.to === "/app/relatorio" && !temRelatorio;
+          const isActive = location.pathname === item.to;
+          return (
           <div key={item.to}>
-            <NavItem item={item} />
+            {guardado ? (
+              <button
+                onClick={openAuthRel}
+                style={{ ...linkStyle(isActive), color: isActive ? C.accent : C.muted }}
+              >
+                <LuChartBar size={17} />
+                <span style={{ flex: 1 }}>{item.label}</span>
+                <LuLock size={13} style={{ opacity: 0.6 }} />
+              </button>
+            ) : (
+              <NavItem item={item} />
+            )}
             {/* Botão Comandas Fechadas — logo abaixo de Frente de Caixa */}
             {item.to === "/app/pdv" && fechadas.length > 0 && (
               <button
@@ -159,8 +204,120 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
       </nav>
+
+      {/* Modal Auth — Relatório (caixa) */}
+      {showAuthRel && createPortal(
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowAuthRel(false); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9100,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontFamily: "'Inter',system-ui,sans-serif",
+          }}
+        >
+          <div style={{
+            background: C.card, borderRadius: 20, padding: 32,
+            width: 400, border: `1px solid ${C.border}`,
+            display: "flex", flexDirection: "column", gap: 20,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+          }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <LuShieldAlert size={22} color={C.accent} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 17 }}>Acesso Restrito</div>
+                <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
+                  Informe as credenciais de um administrador ou gerente
+                </div>
+              </div>
+            </div>
+
+            {/* Campos */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Usuário</div>
+                <input
+                  autoFocus
+                  value={authUser}
+                  onChange={e => { setAuthUser(e.target.value); setAuthError(""); }}
+                  onKeyDown={e => e.key === "Enter" && document.getElementById("auth-rel-pass")?.focus()}
+                  placeholder="nome de usuário"
+                  autoComplete="off"
+                  style={{
+                    width: "100%", padding: "12px 14px", borderRadius: 10,
+                    border: `1.5px solid ${authError ? C.red + "88" : C.border}`,
+                    background: C.surface, color: C.text, fontSize: 14,
+                    fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Senha</div>
+                <input
+                  id="auth-rel-pass"
+                  type="password"
+                  value={authPass}
+                  onChange={e => { setAuthPass(e.target.value); setAuthError(""); }}
+                  onKeyDown={e => e.key === "Enter" && handleAuthRelatorio()}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  style={{
+                    width: "100%", padding: "12px 14px", borderRadius: 10,
+                    border: `1.5px solid ${authError ? C.red + "88" : C.border}`,
+                    background: C.surface, color: C.text, fontSize: 14,
+                    fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              {authError && (
+                <div style={{ fontSize: 13, color: C.red, fontWeight: 600, padding: "8px 12px", background: `${C.red}12`, borderRadius: 8, border: `1px solid ${C.red}33` }}>
+                  {authError}
+                </div>
+              )}
+            </div>
+
+            {/* Botões */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setShowAuthRel(false)}
+                style={{
+                  flex: 1, padding: 12, borderRadius: 10,
+                  border: `1px solid ${C.border}`, background: "none",
+                  color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 14,
+                  fontFamily: "inherit",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAuthRelatorio}
+                disabled={!authUser.trim() || !authPass || authLoading}
+                style={{
+                  flex: 2, padding: 12, borderRadius: 10, border: "none",
+                  background: authUser.trim() && authPass && !authLoading ? C.accent : C.surface,
+                  color: authUser.trim() && authPass && !authLoading ? "#fff" : C.muted,
+                  cursor: authUser.trim() && authPass && !authLoading ? "pointer" : "not-allowed",
+                  fontWeight: 700, fontSize: 14, fontFamily: "inherit",
+                  transition: "background 0.15s",
+                }}
+              >
+                {authLoading ? "Verificando..." : "Acessar Relatório"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Modal Comandas Fechadas */}
       {showFechadas && createPortal(
