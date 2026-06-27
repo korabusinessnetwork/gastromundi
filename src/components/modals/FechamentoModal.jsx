@@ -29,7 +29,8 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
   const { meiosPagamento } = useApp();
   const meios = meiosPagamento?.length ? meiosPagamento : Object.keys(METODOS_CATALOG);
 
-  const [salvando, setSalvando] = useState(false);
+  const [salvando,    setSalvando]    = useState(false);
+  const [observacao,  setObservacao]  = useState("");
 
   const { hoje, m: sistema } = useMemo(
     () => buildSistema(sales, fundoAtual, sessaoAbertaEm, meios),
@@ -56,7 +57,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
     setSalvando(true);
     const conferidoPorMetodo = {};
     meios.forEach(k => { conferidoPorMetodo[k] = parsVal(conf[k] ?? "0"); });
-    await onConfirm({ totalVendas, totalConferido, conferidoPorMetodo });
+    await onConfirm({ totalVendas, totalConferido, conferidoPorMetodo, observacao: observacao.trim() || null });
   };
 
   return (
@@ -204,6 +205,37 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
               {diferencaTotal >= 0 ? "+" : ""}{fmtR(diferencaTotal)}
             </span>
           </div>
+        </div>
+
+        {/* Observação */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: C.muted,
+            textTransform: "uppercase", letterSpacing: 1,
+          }}>
+            Observação (opcional)
+          </div>
+          <textarea
+            value={observacao}
+            onChange={e => setObservacao(e.target.value)}
+            placeholder="Ex: sobra de R$ 10 devolvida ao caixa, cliente X pagou amanhã..."
+            maxLength={400}
+            rows={3}
+            style={{
+              width: "100%", padding: "10px 12px",
+              borderRadius: 10, border: `1.5px solid ${observacao ? C.accent + "66" : C.border}`,
+              background: C.surface, color: C.text,
+              fontSize: 13, fontFamily: "inherit", outline: "none",
+              resize: "none", lineHeight: 1.5,
+              boxSizing: "border-box",
+              transition: "border-color 0.15s",
+            }}
+          />
+          {observacao && (
+            <div style={{ fontSize: 11, color: C.muted, textAlign: "right" }}>
+              {observacao.length}/400
+            </div>
+          )}
         </div>
 
         {/* Botões */}

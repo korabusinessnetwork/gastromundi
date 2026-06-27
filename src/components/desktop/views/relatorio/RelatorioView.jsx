@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
@@ -156,7 +156,7 @@ function ExportBar({ onPDF, onXLSX, sz }) {
       </button>
       <button
         onClick={onXLSX}
-        title="Exportar XLSX"
+        title="Exportar Excel"
         style={{
           display: "flex", alignItems: "center", gap: 5,
           padding: "6px 13px", borderRadius: 8,
@@ -165,7 +165,7 @@ function ExportBar({ onPDF, onXLSX, sz }) {
           fontSize: sz.fontSm + 1, fontWeight: 600, whiteSpace: "nowrap",
         }}
       >
-        <LuDownload size={13} /> XLSX
+        <LuDownload size={13} /> Excel
       </button>
     </div>
   );
@@ -201,6 +201,7 @@ function FechamentoDetalheModal({ f, onClose }) {
         width: 520, border: `1px solid ${C.border}`,
         display: "flex", flexDirection: "column", gap: 20,
         maxHeight: "90vh", overflowY: "auto",
+        color: C.text, fontFamily: "'Inter',system-ui,sans-serif",
       }}>
 
         {/* Header */}
@@ -274,6 +275,22 @@ function FechamentoDetalheModal({ f, onClose }) {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Observação */}
+        {f.observacao && (
+          <div style={{
+            background: `${C.accent}0c`, border: `1px solid ${C.accent}33`,
+            borderRadius: 12, padding: "12px 14px",
+            display: "flex", flexDirection: "column", gap: 4,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.accent, textTransform: "uppercase", letterSpacing: 1 }}>
+              Observação
+            </div>
+            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>
+              {f.observacao}
+            </div>
           </div>
         )}
 
@@ -442,6 +459,17 @@ export default function RelatorioView() {
     });
     if (fmt === "pdf") exportToPDF("Fechamentos de Caixa", headers, rows, periodo);
     else               exportToXLSX("Fechamentos de Caixa", headers, rows, periodo);
+  };
+
+  const exportCredenciais = () => {
+    const headers = ["Usuário", "Login", "Cargo", "Senha"];
+    const rows = users.map(u => [
+      u.name ?? "—",
+      `@${u.username}`,
+      u.role ?? "—",
+      credentials[u.username] ?? "não registrada",
+    ]);
+    exportToPDF("Credenciais de Acesso", headers, rows, "");
   };
 
   const exportLogs = (fmt) => {
@@ -780,33 +808,60 @@ export default function RelatorioView() {
                   <tbody>
                     {fechsFiltrados.map((f, i) => {
                       const dif = (f.totalConferido ?? 0) - (f.totalVendas ?? 0);
+                      const hasObs = !!f.observacao;
                       return (
-                        <tr
-                          key={f.id ?? i}
-                          onClick={() => setFechDetalhe(f)}
-                          onMouseEnter={e => e.currentTarget.style.background = C.surface}
-                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                          style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s", cursor: "pointer" }}
-                        >
-                          <Td sz={sz} muted nowrap>{fmtData(f.at)}</Td>
-                          <Td sz={sz}>{f.user ?? "—"}</Td>
-                          <Td sz={sz} right>{fmtR(f.fundo)}</Td>
-                          <Td sz={sz} right><span style={{ fontWeight: 700 }}>{fmtR(f.totalVendas)}</span></Td>
-                          <Td sz={sz} right color={C.green}><span style={{ fontWeight: 700 }}>{fmtR(f.totalConferido)}</span></Td>
-                          <Td sz={sz} right color={dif >= 0 ? C.green : C.red}>
-                            <span style={{ fontWeight: 800 }}>{dif >= 0 ? "+" : ""}{fmtR(dif)}</span>
-                          </Td>
-                          <Td sz={sz} right>
-                            <span style={{
-                              fontSize: sz.fontSm, fontWeight: 600, color: C.accent,
-                              padding: "3px 10px", borderRadius: 20,
-                              background: `${C.accent}10`, border: `1px solid ${C.accent}33`,
-                              whiteSpace: "nowrap",
-                            }}>
-                              Ver detalhes
-                            </span>
-                          </Td>
-                        </tr>
+                        <Fragment key={f.id ?? i}>
+                          <tr
+                            onClick={() => setFechDetalhe(f)}
+                            onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                            style={{
+                              borderBottom: hasObs ? "none" : `1px solid ${C.border}`,
+                              transition: "background 0.1s", cursor: "pointer",
+                            }}
+                          >
+                            <Td sz={sz} muted nowrap>{fmtData(f.at)}</Td>
+                            <Td sz={sz}>{f.user ?? "—"}</Td>
+                            <Td sz={sz} right>{fmtR(f.fundo)}</Td>
+                            <Td sz={sz} right><span style={{ fontWeight: 700 }}>{fmtR(f.totalVendas)}</span></Td>
+                            <Td sz={sz} right color={C.green}><span style={{ fontWeight: 700 }}>{fmtR(f.totalConferido)}</span></Td>
+                            <Td sz={sz} right color={dif >= 0 ? C.green : C.red}>
+                              <span style={{ fontWeight: 800 }}>{dif >= 0 ? "+" : ""}{fmtR(dif)}</span>
+                            </Td>
+                            <Td sz={sz} right>
+                              <span style={{
+                                fontSize: sz.fontSm, fontWeight: 600, color: C.accent,
+                                padding: "3px 10px", borderRadius: 20,
+                                background: `${C.accent}10`, border: `1px solid ${C.accent}33`,
+                                whiteSpace: "nowrap",
+                              }}>
+                                Ver detalhes
+                              </span>
+                            </Td>
+                          </tr>
+                          {hasObs && (
+                            <tr
+                              onClick={() => setFechDetalhe(f)}
+                              style={{ borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}
+                            >
+                              <td colSpan={7} style={{ padding: "0 16px 10px" }}>
+                                <div style={{
+                                  fontSize: sz.fontSm + 1, color: C.muted,
+                                  lineHeight: 1.5, fontStyle: "italic",
+                                }}>
+                                  <span style={{
+                                    fontStyle: "normal", fontWeight: 700,
+                                    color: C.accent, marginRight: 6, fontSize: sz.fontSm,
+                                    textTransform: "uppercase", letterSpacing: 0.5,
+                                  }}>
+                                    Obs.:
+                                  </span>
+                                  {f.observacao}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
                       );
                     })}
                   </tbody>
@@ -927,13 +982,28 @@ export default function RelatorioView() {
 
         {aba === "Credenciais" && isAdmin && (
           <div style={{ flex: 1, overflowY: "auto", padding: sz.pad }}>
-            <div style={{
-              background: `${C.red}10`, border: `1px solid ${C.red}33`,
-              borderRadius: 12, padding: "12px 16px", marginBottom: sz.pad,
-              fontSize: sz.fontSm + 1, color: C.red, fontWeight: 600,
-            }}>
-              <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
-              Área restrita — estas informações são confidenciais. Não compartilhe com terceiros.
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: sz.pad }}>
+              <div style={{
+                flex: 1, background: `${C.red}10`, border: `1px solid ${C.red}33`,
+                borderRadius: 12, padding: "12px 16px",
+                fontSize: sz.fontSm + 1, color: C.red, fontWeight: 600,
+              }}>
+                <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                Área restrita — estas informações são confidenciais. Não compartilhe com terceiros.
+              </div>
+              <button
+                onClick={exportCredenciais}
+                title="Exportar PDF"
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "10px 16px", borderRadius: 10, flexShrink: 0,
+                  border: `1px solid ${C.border}`, background: "none",
+                  color: C.muted, cursor: "pointer",
+                  fontSize: sz.fontSm + 1, fontWeight: 600, whiteSpace: "nowrap",
+                }}
+              >
+                <LuPrinter size={14} /> PDF
+              </button>
             </div>
 
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>

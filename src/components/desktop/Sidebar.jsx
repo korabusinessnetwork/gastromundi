@@ -6,7 +6,7 @@ import { ROLES } from "@/constants/roles";
 import { hashPassword, isV2Hash } from "@/utils/crypto";
 import C from "@/constants/colors";
 import {
-  LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings,
+  LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
   LuHistory, LuX, LuUser, LuArrowLeft, LuShieldAlert,
 } from "react-icons/lu";
@@ -17,6 +17,7 @@ const NAV_ICONS = {
   "/app/relatorio":     LuChartBar,
   "/app/estoque":       LuArchive,
   "/app/configuracoes": LuSettings,
+  "/app/admin":         LuBriefcase,
 };
 
 export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogout, onBackToChoice, onClose }) {
@@ -68,6 +69,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
 
   const bottomItems = [
     { to: "/app/estoque",       label: "Estoque",        perm: "estoque"       },
+    { to: "/app/admin",         label: "Área Admin",     perm: "configuracoes" },
     { to: "/app/configuracoes", label: "Configurações",  perm: "configuracoes" },
   ].filter(item => currentUser?.permissions?.[item.perm]);
 

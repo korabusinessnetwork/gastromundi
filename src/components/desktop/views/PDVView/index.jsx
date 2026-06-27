@@ -6,7 +6,7 @@ import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
-import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock } from "react-icons/lu";
+import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX } from "react-icons/lu";
 import ComandaGrid   from "./ComandaGrid";
 import ProductGrid   from "./ProductGrid";
 import CartPanel     from "./CartPanel";
@@ -44,6 +44,7 @@ export default function PDVView() {
 
   const [toast,         setToast]         = useState(false);
   const [alertaAberto,  setAlertaAberto]  = useState(true);
+  const [buscaComanda,  setBuscaComanda]  = useState("");
 
   // modal nova comanda
   const [showNova,          setShowNova]          = useState(false);
@@ -60,6 +61,7 @@ export default function PDVView() {
 
   // ── Selecionar comanda → entra no modo pedido ──────────────────
   const handleSelectComanda = (order) => {
+    setBuscaComanda("");
     setSelected(order);
     setCartItems([]);
     setAbaAtiva("produtos");
@@ -67,6 +69,7 @@ export default function PDVView() {
   };
 
   const handleBack = () => {
+    setBuscaComanda("");
     setMode("grid");
     setSelected(null);
     setCartItems([]);
@@ -283,9 +286,13 @@ export default function PDVView() {
       {mode !== "checkout" && (
         <div style={{
           padding: "16px 24px", borderBottom: `1px solid ${C.border}`,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
+          alignItems: "center",
+          gap: 16,
           flexShrink: 0,
         }}>
+          {/* Esquerda: título / voltar */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {mode === "pedido" && (
               <button
@@ -326,6 +333,45 @@ export default function PDVView() {
             </div>
           </div>
 
+          {/* Centro: busca de comandas (apenas no grid) */}
+          {mode === "grid" ? (
+            <div style={{ position: "relative" }}>
+              <LuSearch
+                size={15}
+                color={buscaComanda ? C.accent : C.muted}
+                style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", transition: "color 0.15s" }}
+              />
+              <input
+                value={buscaComanda}
+                onChange={e => setBuscaComanda(e.target.value)}
+                placeholder="Buscar comanda..."
+                style={{
+                  width: 280,
+                  padding: "10px 36px",
+                  borderRadius: 10,
+                  border: `1.5px solid ${buscaComanda ? C.accent + "66" : C.border}`,
+                  background: C.surface,
+                  color: C.text,
+                  fontSize: 14,
+                  fontFamily: "inherit",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  transition: "border-color 0.15s",
+                }}
+              />
+              {buscaComanda && (
+                <button
+                  onClick={() => setBuscaComanda("")}
+                  style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 2 }}
+                >
+                  <LuX size={14} />
+                </button>
+              )}
+            </div>
+          ) : <div />}
+
+          {/* Direita: ações */}
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
           {mode === "grid" && (
             <button
               onClick={() => { setShowNova(true); setNomeComanda(""); }}
@@ -409,6 +455,7 @@ export default function PDVView() {
               </button>
             );
           })()}
+          </div>
         </div>
       )}
 
@@ -492,6 +539,7 @@ export default function PDVView() {
               selected={null}
               onSelect={handleSelectComanda}
               onOpenEmpty={handleOpenEmpty}
+              busca={buscaComanda}
             />
           </div>
         )}

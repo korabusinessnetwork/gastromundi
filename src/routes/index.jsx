@@ -12,6 +12,7 @@ import ProdutosPage     from "@/pages/desktop/ProdutosPage";
 import RelatorioPage    from "@/pages/desktop/RelatorioPage";
 import ConfiguracoesPage from "@/pages/desktop/ConfiguracoesPage";
 import EstoquePage        from "@/pages/desktop/EstoquePage";
+import AdminPage          from "@/pages/desktop/AdminPage";
 
 const router = createBrowserRouter([
   // Raiz → redireciona baseado no estado de auth (tratado no LoginPage)
@@ -89,6 +90,14 @@ const router = createBrowserRouter([
         element: (
           <PrivateRoute requiredPermission="estoque">
             <EstoquePage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "admin",
+        element: (
+          <PrivateRoute requiredPermission="configuracoes">
+            <AdminPage />
           </PrivateRoute>
         ),
       },

@@ -19,12 +19,20 @@ create table if not exists users (
 );
 
 create table if not exists products (
-  id        uuid    primary key default gen_random_uuid(),
-  name      text    not null,
-  price     numeric not null,
-  category  text    not null,
-  emoji     text,
-  active    boolean not null default true
+  id                    uuid    primary key default gen_random_uuid(),
+  name                  text    not null,
+  price                 numeric not null,
+  category              text    not null,
+  emoji                 text,
+  unidade_estoque       text    not null default 'un',
+  unidade_consumo       text,
+  fator_consumo_estoque numeric(10,4) default 1,
+  unidades_compra       jsonb   not null default '[]',
+  -- Campos legados (mantidos para retrocompatibilidade):
+  unidade_compra        text,
+  fator_compra_estoque  numeric(10,4),
+  detalhamento_compra   text,
+  active                boolean not null default true
 );
 
 -- Pedidos em aberto — tem Realtime ativado
@@ -123,6 +131,33 @@ insert into config (key, value) values
   ('caixa_aberto', 'true'),
   ('fundo_atual',  '0')
 on conflict (key) do nothing;
+
+-- ── Migração: sistema de unidades de medida ───────────────────────
+-- Rode no SQL Editor se a tabela products já existir:
+--
+--   -- Se você rodou a migration anterior que adicionou 'unidade':
+--   ALTER TABLE products RENAME COLUMN unidade TO unidade_estoque;
+--   ALTER TABLE products ALTER COLUMN unidade_estoque SET DEFAULT 'un';
+--
+--   -- Se nunca adicionou nada (ou quer partir do zero com esses nomes):
+--   ALTER TABLE products ADD COLUMN IF NOT EXISTS unidade_estoque       TEXT          NOT NULL DEFAULT 'un';
+--   ALTER TABLE products ADD COLUMN IF NOT EXISTS unidade_consumo       TEXT;
+--   ALTER TABLE products ADD COLUMN IF NOT EXISTS fator_consumo_estoque NUMERIC(10,4)          DEFAULT 1;
+--   ALTER TABLE products ADD COLUMN IF NOT EXISTS unidades_compra       JSONB         NOT NULL DEFAULT '[]';
+--   -- (campos legados opcionais, mantidos para retrocompatibilidade):
+--   ALTER TABLE products ADD COLUMN IF NOT EXISTS unidade_compra        TEXT;
+--   ALTER TABLE products ADD COLUMN IF NOT EXISTS fator_compra_estoque  NUMERIC(10,4);
+--   ALTER TABLE products ADD COLUMN IF NOT EXISTS detalhamento_compra   TEXT;
+--
+--   -- Migrar dados dos campos legados para o novo array (executar uma vez):
+--   UPDATE products
+--     SET unidades_compra = jsonb_build_array(jsonb_build_object(
+--       'unidade', unidade_compra,
+--       'fator',   fator_compra_estoque,
+--       'detalhamento', COALESCE(detalhamento_compra, '')
+--     ))
+--   WHERE unidade_compra IS NOT NULL AND (unidades_compra = '[]' OR unidades_compra IS NULL);
+--
 
 -- ── Migração (rodar se já tiver dados no banco) ─────────────────
 -- Se você já executou o schema antigo, rode os comandos abaixo
