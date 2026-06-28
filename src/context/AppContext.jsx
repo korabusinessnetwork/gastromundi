@@ -290,6 +290,12 @@ export function AppProvider({ children }) {
     await supabase.from("config").upsert({ key: "estoque", value: updated });
   };
 
+  // Atualiza múltiplos produtos de uma vez (evita race condition em imports em lote)
+  const bulkSetEstoque = async (newEstoque) => {
+    setEstoqueLocal(newEstoque);
+    await supabase.from("config").upsert({ key: "estoque", value: newEstoque });
+  };
+
   const saveCredential = async (username, plainPassword) => {
     const updated = { ...credentials, [username]: plainPassword };
     setCredentialsLocal(updated);
@@ -349,7 +355,7 @@ export function AppProvider({ children }) {
     addUser, updateUser, removeUser,
     // outros
     addFechamento,
-    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, saveCredential, updateEstoque,
+    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, saveCredential, updateEstoque, bulkSetEstoque,
     taxaServico, setTaxaServico,
     metodosCustom, setMetodosCustom,
   };

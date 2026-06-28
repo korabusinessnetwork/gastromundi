@@ -9,8 +9,9 @@ import {
   LuPlus, LuPencil, LuTrash2, LuX, LuClipboardList,
   LuStickyNote, LuTruck, LuShoppingCart, LuCheck,
   LuCalendar, LuArrowLeft, LuChevronRight, LuSearch,
-  LuLink, LuPackage, LuPercent,
+  LuLink, LuPackage, LuPercent, LuFileText,
 } from "react-icons/lu";
+import NotasFiscaisTab from "@/components/desktop/views/NotasFiscaisTab";
 import {
   consumoParaEstoque, labelEstoque, labelConsumo,
   temConversaoConsumo, fmtQtd,
@@ -1132,10 +1133,11 @@ const SECOES = [
   { id: "fornecedores", label: "Fornecedores",  desc: "Contatos e cadastro de fornecedores",       Icon: LuTruck,        color: C.blue    },
   { id: "compras",      label: "Compras",       desc: "Registro de compras e pedidos",             Icon: LuShoppingCart, color: C.green   },
   { id: "impostos",     label: "Impostos",      desc: "Alíquotas e configuração fiscal",           Icon: LuPercent,      color: "#f97316" },
+  { id: "notas_fiscais", label: "Notas Fiscais", desc: "Importação de NF-e via XML e controle de entradas", Icon: LuFileText, color: C.blue },
 ];
 
-function GradeInicial({ sz, onSelecionar, fichas, notas, fornecedores, compras, impostos }) {
-  const contadores = { fichas: fichas.length, notas: notas.length, fornecedores: fornecedores.length, compras: compras.length, impostos: impostos.length };
+function GradeInicial({ sz, onSelecionar, fichas, notas, fornecedores, compras, impostos, notasFiscaisCount }) {
+  const contadores = { fichas: fichas.length, notas: notas.length, fornecedores: fornecedores.length, compras: compras.length, impostos: impostos.length, notas_fiscais: notasFiscaisCount };
   return (
     <div style={{ maxWidth: 700, margin: "0 auto" }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -1174,27 +1176,32 @@ export default function AdminView() {
   const sz = getSizes(width);
   const { products, estoque } = useApp();
 
-  const [secao,        setSecao]        = useState(null);
-  const [fichas,       setFichas]       = useState([]);
-  const [notas,        setNotas]        = useState([]);
-  const [fornecedores, setFornecedores] = useState([]);
-  const [compras,      setCompras]      = useState([]);
-  const [impostos,     setImpostos]     = useState([]);
-  const [loading,      setLoading]      = useState(true);
+  const [secao,              setSecao]              = useState(null);
+  const [fichas,             setFichas]             = useState([]);
+  const [notas,              setNotas]              = useState([]);
+  const [fornecedores,       setFornecedores]       = useState([]);
+  const [compras,            setCompras]            = useState([]);
+  const [impostos,           setImpostos]           = useState([]);
+  const [notasFiscaisCount,  setNotasFiscaisCount]  = useState(0);
+  const [loading,            setLoading]            = useState(true);
 
   useEffect(() => {
-    supabase.from("config").select("key, value")
-      .in("key", ["fichas_tecnicas", "notas_admin", "fornecedores", "compras", "impostos"])
-      .then(({ data }) => {
-        if (!data) { setLoading(false); return; }
+    Promise.all([
+      supabase.from("config").select("key, value")
+        .in("key", ["fichas_tecnicas", "notas_admin", "fornecedores", "compras", "impostos"]),
+      supabase.from("notas_fiscais").select("id", { count: "exact", head: true }),
+    ]).then(([{ data }, { count }]) => {
+      if (data) {
         const get = (key) => { const r = data.find(d => d.key === key); return Array.isArray(r?.value) ? r.value : []; };
         setFichas(get("fichas_tecnicas"));
         setNotas(get("notas_admin"));
         setFornecedores(get("fornecedores"));
         setCompras(get("compras"));
         setImpostos(get("impostos"));
-        setLoading(false);
-      });
+      }
+      setNotasFiscaisCount(count || 0);
+      setLoading(false);
+    });
   }, []);
 
   const handleSave = async (key, value) => {
@@ -1233,7 +1240,7 @@ export default function AdminView() {
         {loading ? (
           <div style={{ color: C.muted, textAlign: "center", padding: 60 }}>Carregando...</div>
         ) : !secao ? (
-          <GradeInicial sz={sz} onSelecionar={setSecao} fichas={fichas} notas={notas} fornecedores={fornecedores} compras={compras} impostos={impostos} />
+          <GradeInicial sz={sz} onSelecionar={setSecao} fichas={fichas} notas={notas} fornecedores={fornecedores} compras={compras} impostos={impostos} notasFiscaisCount={notasFiscaisCount} />
         ) : (
           <>
             {secao === "fichas"       && <FichasTecnicasTab sz={sz} fichas={fichas}             products={products} estoque={estoque} onSave={handleSave} onDelete={handleSave} />}
@@ -1241,6 +1248,7 @@ export default function AdminView() {
             {secao === "fornecedores" && <FornecedoresTab   sz={sz} fornecedores={fornecedores} onSave={handleSave} onDelete={handleSave} />}
             {secao === "compras"      && <ComprasTab        sz={sz} compras={compras}           fornecedores={fornecedores} onSave={handleSave} onDelete={handleSave} />}
             {secao === "impostos"     && <ImpostosTab       sz={sz} impostos={impostos}          onSave={handleSave} onDelete={handleSave} />}
+            {secao === "notas_fiscais" && <NotasFiscaisTab sz={sz} />}
           </>
         )}
       </div>

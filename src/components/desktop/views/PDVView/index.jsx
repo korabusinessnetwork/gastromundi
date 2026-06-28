@@ -23,6 +23,7 @@ export default function PDVView() {
     addPending, updatePending, removePending, addSale,
     caixaAberto, currentUser, sales, users, metodosCustom,
     lancadas, addLancada,
+    updateEstoque,
   } = useApp();
 
   const { width } = useResponsive();
@@ -228,6 +229,18 @@ export default function PDVView() {
 
     await addSale(sale);
     await removePending(selected.id);
+
+    // Desconta estoque dos itens vendidos (ignora cancelados; apenas itens com id de produto)
+    const itensAtivos = todosItens.filter(i => !i.cancelado && i.id);
+    const delta = {};
+    for (const item of itensAtivos) {
+      delta[item.id] = (delta[item.id] ?? 0) + (item.qty ?? 1);
+    }
+    for (const [prodId, qty] of Object.entries(delta)) {
+      const atual = estoque[prodId] ?? 0;
+      if (atual > 0) await updateEstoque(prodId, atual - qty);
+    }
+
     logAction(currentUser?.username, "comanda:finalizar", { msg: `Comanda ${selected.comanda} finalizada · R$ ${total.toFixed(2)} · ${metodo}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, total, metodo });
     handleBack();
   };
