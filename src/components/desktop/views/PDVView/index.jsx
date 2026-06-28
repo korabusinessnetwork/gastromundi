@@ -7,6 +7,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil } from "react-icons/lu";
+import { hashPassword } from "@/utils/crypto";
 import ComandaGrid   from "./ComandaGrid";
 import ProductGrid   from "./ProductGrid";
 import CartPanel     from "./CartPanel";
@@ -19,7 +20,7 @@ export default function PDVView() {
   const {
     pending, products, estoque,
     addPending, updatePending, removePending, addSale,
-    caixaAberto, currentUser, sales, users,
+    caixaAberto, currentUser, sales, users, metodosCustom,
     lancadas, addLancada,
   } = useApp();
 
@@ -64,7 +65,14 @@ export default function PDVView() {
   const [transNomeNova,     setTransNomeNova]     = useState("");         // nome da nova comanda
   const [transNumeroErro,   setTransNumeroErro]   = useState("");
   const [transferindo,      setTransferindo]      = useState(false);
-  const [showMesa,          setShowMesa]          = useState(false);
+  const [showCancelarComanda,    setShowCancelarComanda]    = useState(false);
+  const [cancelarSenha,          setCancelarSenha]          = useState("");
+  const [cancelarSenhaErro,      setCancelarSenhaErro]      = useState(false);
+  const [cancelarSenhaVis,       setCancelarSenhaVis]       = useState(false);
+  const [cancelarAutorizado,     setCancelarAutorizado]     = useState(false);
+  const [cancelarMotivo,         setCancelarMotivo]         = useState("");
+  const [cancelandoComanda,      setCancelandoComanda]      = useState(false);
+  const [showMesa,               setShowMesa]               = useState(false);
   const [mesaInput,         setMesaInput]         = useState("");
   const [apelidoInput,      setApelidoInput]      = useState("");
   const [mesaPendingOrder,  setMesaPendingOrder]  = useState(null);
@@ -302,6 +310,8 @@ export default function PDVView() {
           total:      totalNova,
           status:     "open",
           created_at: new Date().toISOString(),
+          mesa:       selected?.mesa    || "",
+          apelido:    selected?.apelido || "",
         };
         await Promise.all([
           updatePending(selected.id, { items: novosOrigem, total: totalOrigem }),
@@ -328,7 +338,15 @@ export default function PDVView() {
 
       const qtdTransf = aTransferir.reduce((s, x) => s + x.qty, 0);
       logAction(currentUser?.username, "itens:transferir", { msg: `Transferência: ${qtdTransf} item(ns) de ${fmtComanda(selected.comanda)} → ${nomeDestino}`, name: currentUser?.name, role: currentUser?.role, de: selected.comanda, para: nomeDestino, qtd: qtdTransf });
-      setSelected(prev => ({ ...prev, items: novosOrigem, total: totalOrigem }));
+
+      const itensAtivosRestantes = novosOrigem.filter(i => !i.cancelado);
+      if (itensAtivosRestantes.length === 0) {
+        await removePending(selected.id);
+        setSelected(null);
+        setMode("comandas");
+      } else {
+        setSelected(prev => ({ ...prev, items: novosOrigem, total: totalOrigem }));
+      }
       setShowTransferir(false);
     } finally {
       setTransferindo(false);
@@ -519,6 +537,7 @@ export default function PDVView() {
                 </button>
 
                 {itensLancados.length > 0 ? (
+                  <>
                   <button
                     onClick={abrirTransferir}
                     style={{
@@ -535,6 +554,23 @@ export default function PDVView() {
                   >
                     <LuArrowLeftRight size={15} /> Transferir
                   </button>
+                  <button
+                    onClick={() => { setShowCancelarComanda(true); setCancelarSenha(""); setCancelarSenhaErro(false); setCancelarAutorizado(false); setCancelarMotivo(""); }}
+                    style={{
+                      padding: "10px 18px", borderRadius: 10,
+                      border: `1px solid ${C.red}55`,
+                      background: `${C.red}0f`,
+                      color: C.red, fontWeight: 700, fontSize: 17,
+                      cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: 7,
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = `${C.red}22`; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = `${C.red}0f`; }}
+                  >
+                    <LuX size={15} /> Cancelar Comanda
+                  </button>
+                  </>
                 ) : (
                   <button
                     onClick={() => setConfirmCancelar(true)}
@@ -840,6 +876,148 @@ export default function PDVView() {
         </div>
       )}
 
+      {/* ── Popup: Cancelar Comanda ─────────────────────────────── */}
+      {showCancelarComanda && createPortal(
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowCancelarComanda(false); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9100,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div style={{
+            background: C.card, borderRadius: 20, border: `1px solid ${C.border}`,
+            width: "100%", maxWidth: 420,
+            display: "flex", flexDirection: "column",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+          }}>
+            {/* Header */}
+            <div style={{ padding: "22px 28px 18px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 20, color: C.red }}>Cancelar Comanda</div>
+                <div style={{ fontSize: 15, color: C.muted, marginTop: 3 }}>{fmtComanda(selected?.comanda)}</div>
+              </div>
+              <button onClick={() => setShowCancelarComanda(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 6 }}>
+                <LuX size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 18 }}>
+              {!cancelarAutorizado ? (
+                <>
+                  <div style={{ fontSize: 16, color: C.muted, lineHeight: 1.5 }}>
+                    Esta ação cancelará <strong style={{ color: C.text }}>todos os itens</strong> da comanda. Digite a senha de administrador ou gerente para continuar.
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      autoFocus
+                      type={cancelarSenhaVis ? "text" : "password"}
+                      value={cancelarSenha}
+                      onChange={e => { setCancelarSenha(e.target.value); setCancelarSenhaErro(false); }}
+                      onKeyDown={async e => {
+                        if (e.key === "Enter") {
+                          const hashed = await hashPassword(cancelarSenha);
+                          const admins = (users ?? []).filter(u => u.role === "admin" || u.role === "gerente");
+                          const ok = admins.some(u => u.password === hashed);
+                          if (ok) { setCancelarAutorizado(true); setCancelarSenhaErro(false); }
+                          else setCancelarSenhaErro(true);
+                        }
+                      }}
+                      placeholder="Senha de admin ou gerente"
+                      style={{
+                        width: "100%", padding: "13px 44px 13px 16px", borderRadius: 10, boxSizing: "border-box",
+                        border: `1.5px solid ${cancelarSenhaErro ? C.red : C.border}`,
+                        background: C.surface, color: C.text, fontSize: 17, fontFamily: "inherit", outline: "none",
+                      }}
+                    />
+                    <button
+                      onClick={() => setCancelarSenhaVis(v => !v)}
+                      style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }}
+                    >
+                      {cancelarSenhaVis ? <LuEyeOff size={18} /> : <LuEye size={18} />}
+                    </button>
+                  </div>
+                  {cancelarSenhaErro && <div style={{ fontSize: 15, color: C.red, fontWeight: 600 }}>Senha incorreta.</div>}
+                  <button
+                    onClick={async () => {
+                      const hashed = await hashPassword(cancelarSenha);
+                      const admins = (users ?? []).filter(u => u.role === "admin" || u.role === "gerente");
+                      const ok = admins.some(u => u.password === hashed);
+                      if (ok) { setCancelarAutorizado(true); setCancelarSenhaErro(false); }
+                      else setCancelarSenhaErro(true);
+                    }}
+                    disabled={!cancelarSenha}
+                    style={{
+                      padding: "13px", borderRadius: 10, border: "none",
+                      background: cancelarSenha ? C.accent : C.faint,
+                      color: "#fff", fontWeight: 700, fontSize: 17,
+                      cursor: cancelarSenha ? "pointer" : "not-allowed", fontFamily: "inherit",
+                    }}
+                  >
+                    Verificar Senha
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 16, color: C.muted, lineHeight: 1.5 }}>
+                    Motivo do cancelamento (opcional):
+                  </div>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={cancelarMotivo}
+                    onChange={e => setCancelarMotivo(e.target.value)}
+                    placeholder="Ex: cliente desistiu, erro no pedido..."
+                    maxLength={120}
+                    style={{
+                      width: "100%", padding: "13px 16px", borderRadius: 10, boxSizing: "border-box",
+                      border: `1.5px solid ${C.border}`,
+                      background: C.surface, color: C.text, fontSize: 17, fontFamily: "inherit", outline: "none",
+                    }}
+                  />
+                  <div style={{ padding: "14px 16px", borderRadius: 10, background: `${C.red}12`, border: `1px solid ${C.red}44`, fontSize: 15, color: C.red, fontWeight: 600 }}>
+                    ⚠️ {(selected?.items ?? []).filter(i => !i.cancelado).length} item(ns) serão cancelados e enviados para o relatório.
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (cancelandoComanda) return;
+                      setCancelandoComanda(true);
+                      try {
+                        const motivo = cancelarMotivo.trim();
+                        const quemCancelou = currentUser?.name || "";
+                        const novosItens = (selected.items ?? []).map(it =>
+                          it.cancelado ? it : { ...it, cancelado: true, motivoCancelamento: motivo, canceladoPor: quemCancelou }
+                        );
+                        await removePending(selected.id);
+                        setSelected(null);
+                        setMode("comandas");
+                        setShowCancelarComanda(false);
+                        logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda ${fmtComanda(selected.comanda)} cancelada por ${quemCancelou}`, name: quemCancelou, role: currentUser?.role, comanda: selected.comanda, motivo });
+                      } finally {
+                        setCancelandoComanda(false);
+                      }
+                    }}
+                    disabled={cancelandoComanda}
+                    style={{
+                      padding: "13px", borderRadius: 10, border: "none",
+                      background: cancelandoComanda ? C.faint : C.red,
+                      color: "#fff", fontWeight: 800, fontSize: 17,
+                      cursor: cancelandoComanda ? "not-allowed" : "pointer", fontFamily: "inherit",
+                      boxShadow: `0 4px 16px ${C.red}44`,
+                    }}
+                  >
+                    {cancelandoComanda ? "Cancelando..." : "✕ Confirmar Cancelamento"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* ── Popup: Transferir Itens ─────────────────────────────── */}
       {showTransferir && createPortal(
         <div
@@ -1134,17 +1312,20 @@ export default function PDVView() {
                     onClick={handleTransferir}
                     disabled={!pode || transferindo}
                     style={{
-                      flex: 2, padding: "12px 0", borderRadius: 12, border: "none",
+                      flex: 2, padding: "12px 16px", borderRadius: 12, border: "none",
                       background: pode ? C.green : C.faint,
                       color: "#fff", cursor: pode ? "pointer" : "not-allowed",
-                      fontWeight: 800, fontSize: 17,
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                      fontWeight: 800, fontSize: 17, fontFamily: "inherit",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                      boxShadow: pode ? `0 4px 16px ${C.green}44` : "none",
+                      transition: "background 0.2s, box-shadow 0.2s",
                     }}
                   >
                     {transferindo
                       ? "Transferindo..."
                       : pode
-                        ? <><LuArrowLeftRight size={15} /> Transferir {qtdTransferir} item{qtdTransferir !== 1 ? "s" : ""} → {nomeDestino}</>
+                        ? <><LuArrowLeftRight size={16} /> Transferindo para {nomeDestino}</>
                         : "Selecione itens e destino"}
                   </button>
                 </div>
@@ -1376,6 +1557,7 @@ export default function PDVView() {
           users={users}
           sales={sales}
           pending={pending}
+          metodosCustom={metodosCustom}
         />,
         document.body
       )}
@@ -1385,7 +1567,7 @@ export default function PDVView() {
 }
 
 // ── Modal de Saldo do Dia ─────────────────────────────────────────
-function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending }) {
+function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending, metodosCustom }) {
   const hoje = new Date().toDateString();
 
   const vendasHoje = (sales ?? []).filter(s => s.at && new Date(s.at).toDateString() === hoje);
@@ -1401,12 +1583,14 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   const porMetodo = {};
   vendasHoje.forEach(v => { porMetodo[v.metodo] = (porMetodo[v.metodo] ?? 0) + (v.total ?? 0); });
 
-  const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
+  const customLabels = Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label]));
+  const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix", ...customLabels };
   const METODOS_COLOR = { dinheiro: "#10b981", credito: "#3b82f6", debito: "#8b5cf6", pix: "#f59e0b" };
 
-  const verificarSenha = () => {
+  const verificarSenha = async () => {
+    const hashed = await hashPassword(senha);
     const admins = (users ?? []).filter(u => u.role === "admin" || u.role === "gerente");
-    const match  = admins.some(u => u.password === senha || u._plainPassword === senha);
+    const match  = admins.some(u => u.password === hashed);
     if (match) { setAutorizado(true); setSenhaErro(false); }
     else        { setSenhaErro(true); }
   };

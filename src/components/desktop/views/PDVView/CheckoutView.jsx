@@ -2,7 +2,8 @@
 import C from "@/constants/colors";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuPrinter, LuWallet } from "react-icons/lu";
+import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuPrinter, LuWallet, LuPercent, LuX } from "react-icons/lu";
+import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 
 const fmtComanda = (name) =>
@@ -17,7 +18,7 @@ const METODOS_CATALOG = [
 
 const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
 
-function imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, total, metodo, valorRecebido, troco }) {
+function imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, ajusteAplicado, valorAjuste, total, metodo, valorRecebido, troco }) {
   const agora = new Date().toLocaleString("pt-BR");
   const nomeComanda = fmtComanda(comanda?.comanda);
 
@@ -100,9 +101,10 @@ function imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, total, m
       ${linhasAtivos}
     </tbody>
     <tfoot>
-      ${valorTaxa > 0 ? `
+      ${(valorTaxa > 0 || (ajusteAplicado && valorAjuste !== 0)) ? `
       <tr><td colspan="3" style="padding:6px 4px 2px;font-size:12px;color:#555;">Subtotal</td><td style="text-align:right;padding:6px 4px 2px;font-size:12px;color:#555;">R$ ${subtotal.toFixed(2)}</td></tr>
-      <tr><td colspan="3" style="padding:2px 4px;font-size:12px;color:#555;">Taxa de Serviço (10%)</td><td style="text-align:right;padding:2px 4px;font-size:12px;color:#555;">R$ ${valorTaxa.toFixed(2)}</td></tr>
+      ${valorTaxa > 0 ? `<tr><td colspan="3" style="padding:2px 4px;font-size:12px;color:#555;">Taxa de Serviço (10%)</td><td style="text-align:right;padding:2px 4px;font-size:12px;color:#555;">R$ ${valorTaxa.toFixed(2)}</td></tr>` : ""}
+      ${ajusteAplicado && valorAjuste !== 0 ? `<tr><td colspan="3" style="padding:2px 4px;font-size:12px;color:${valorAjuste < 0 ? "#e53e3e" : "#38a169"};">${ajusteAplicado.tipo === "desconto" ? "Desconto" : "Acréscimo"} (${ajusteAplicado.mode === "percentual" ? ajusteAplicado.valor + "%" : "R$ " + parseFloat(ajusteAplicado.valor).toFixed(2)})</td><td style="text-align:right;padding:2px 4px;font-size:12px;color:${valorAjuste < 0 ? "#e53e3e" : "#38a169"};">${valorAjuste < 0 ? "-" : "+"}R$ ${Math.abs(valorAjuste).toFixed(2)}</td></tr>` : ""}
       ` : ""}
       <tr class="total-row">
         <td colspan="3">TOTAL</td>
@@ -143,10 +145,17 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const ativos = meiosPagamento?.length ? meiosPagamento : METODOS_CATALOG.map(m => m.id);
   const METODOS = ativos.map(id => catalogCompleto.find(m => m.id === id)).filter(Boolean);
 
-  const [metodo,      setMetodo]      = useState(null);
-  const [recebido,    setRecebido]    = useState("");
-  const [confirmando, setConfirmando] = useState(false);
-  const [aplicarTaxa, setAplicarTaxa] = useState(!!taxaServico);
+  const [metodo,        setMetodo]        = useState(null);
+  const [recebido,      setRecebido]      = useState("");
+  const [confirmando,   setConfirmando]   = useState(false);
+  const [aplicarTaxa,   setAplicarTaxa]   = useState(!!taxaServico);
+
+  // Desconto / Acréscimo
+  const [showAjuste,    setShowAjuste]    = useState(false);
+  const [ajusteTipo,    setAjusteTipo]    = useState("desconto"); // "desconto" | "acrescimo"
+  const [ajusteMode,    setAjusteMode]    = useState("percentual"); // "percentual" | "fixo"
+  const [ajusteValor,   setAjusteValor]   = useState("");
+  const [ajusteAplicado, setAjusteAplicado] = useState(null); // { tipo, mode, valor } ou null
 
   // Agrupa itens ativos pelo mesmo produto (name + price), somando qty e unindo obs
   const itensAgrupados = items.filter(i => !i.cancelado).reduce((acc, item) => {
@@ -164,7 +173,16 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
 
   const subtotal      = itensVisiveis.reduce((s, i) => s + i.price * i.qty, 0);
   const valorTaxa     = aplicarTaxa ? subtotal * 0.10 : 0;
-  const total         = subtotal + valorTaxa;
+  const baseComTaxa   = subtotal + valorTaxa;
+
+  const calcAjuste = (base, aj) => {
+    if (!aj) return 0;
+    const v = parseFloat(aj.valor) || 0;
+    const val = aj.mode === "percentual" ? base * (v / 100) : v;
+    return aj.tipo === "desconto" ? -val : val;
+  };
+  const valorAjuste   = calcAjuste(baseComTaxa, ajusteAplicado);
+  const total         = Math.max(0, baseComTaxa + valorAjuste);
   const valorRecebido = parseFloat(recebido.replace(",", ".")) || 0;
   const troco         = metodo === "dinheiro" ? valorRecebido - total : 0;
   const podeConfirmar = metodo && (metodo !== "dinheiro" || valorRecebido >= total);
@@ -172,10 +190,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const handleConfirm = async () => {
     if (!podeConfirmar || confirmando) return;
     setConfirmando(true);
-    await onConfirm({ metodo, recebido: valorRecebido, troco: Math.max(0, troco), total, taxaServico: aplicarTaxa, valorTaxa });
+    await onConfirm({ metodo, recebido: valorRecebido, troco: Math.max(0, troco), total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste });
   };
 
-  const handlePrint = () => imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, total, metodo, valorRecebido, troco });
+  const handlePrint = () => imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, ajusteAplicado, valorAjuste, total, metodo, valorRecebido, troco });
 
   const isMob = sz.checkoutResumo === 0;
 
@@ -225,6 +243,23 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
               {fmtComanda(comanda?.comanda)} · {itensVisiveis.reduce((s, i) => s + i.qty, 0)} {itensVisiveis.reduce((s, i) => s + i.qty, 0) === 1 ? "item" : "itens"}
             </div>
           </div>
+
+          {/* Botão Desconto/Acréscimo */}
+          <button
+            onClick={() => { setShowAjuste(true); setAjusteValor(ajusteAplicado?.valor ?? ""); setAjusteTipo(ajusteAplicado?.tipo ?? "desconto"); setAjusteMode(ajusteAplicado?.mode ?? "percentual"); }}
+            style={{
+              background: ajusteAplicado ? `${ajusteAplicado.tipo === "desconto" ? C.red : C.green}18` : C.surface,
+              border: `1.5px solid ${ajusteAplicado ? (ajusteAplicado.tipo === "desconto" ? C.red : C.green) + "66" : C.border}`,
+              borderRadius: 10,
+              color: ajusteAplicado ? (ajusteAplicado.tipo === "desconto" ? C.red : C.green) : C.text,
+              cursor: "pointer", padding: "10px 18px",
+              fontWeight: 700, fontSize: 17,
+              display: "flex", alignItems: "center", gap: 8,
+              transition: "background 0.15s, border-color 0.15s",
+            }}
+          >
+            <LuPercent size={16} /> {ajusteAplicado ? (ajusteAplicado.tipo === "desconto" ? "Desconto" : "Acréscimo") : "Desconto / Acréscimo"}
+          </button>
 
           {/* Botão Imprimir */}
           <button
@@ -322,7 +357,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                 borderTop: `1px solid ${C.border}`,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: sz.fontSm, color: C.muted }}>Taxa de Serviço (10%)</span>
+                  <span style={{ fontSize: sz.fontBase, color: C.muted, fontWeight: 600 }}>Taxa de Serviço (10%)</span>
                   <button
                     onClick={() => setAplicarTaxa(v => !v)}
                     style={{
@@ -338,6 +373,36 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                 </div>
                 <span style={{ fontWeight: 700, fontSize: sz.fontBase, color: aplicarTaxa ? C.text : C.muted, textDecoration: aplicarTaxa ? "none" : "line-through" }}>
                   R$ {(subtotal * 0.10).toFixed(2)}
+                </span>
+              </div>
+            )}
+
+            {/* Desconto / Acréscimo aplicado */}
+            {ajusteAplicado && valorAjuste !== 0 && (
+              <div style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                paddingTop: 14, marginTop: 4,
+                borderTop: `1px solid ${C.border}`,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: sz.fontSm, color: ajusteAplicado.tipo === "desconto" ? C.red : C.green }}>
+                    {ajusteAplicado.tipo === "desconto" ? "Desconto" : "Acréscimo"}
+                    {" "}({ajusteAplicado.mode === "percentual" ? `${ajusteAplicado.valor}%` : `R$ ${parseFloat(ajusteAplicado.valor).toFixed(2)}`})
+                  </span>
+                  <button
+                    onClick={() => setAjusteAplicado(null)}
+                    style={{
+                      fontSize: sz.fontSm - 2, fontWeight: 700, padding: "2px 8px",
+                      borderRadius: 6, border: `1px solid ${C.border}`,
+                      background: "transparent", color: C.muted,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    Remover
+                  </button>
+                </div>
+                <span style={{ fontWeight: 700, fontSize: sz.fontBase, color: ajusteAplicado.tipo === "desconto" ? C.red : C.green }}>
+                  {valorAjuste < 0 ? "-" : "+"}R$ {Math.abs(valorAjuste).toFixed(2)}
                 </span>
               </div>
             )}
@@ -494,6 +559,174 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
           </div>
         </div>
       </div>
+      {/* ── Popup Desconto / Acréscimo ── */}
+      {showAjuste && createPortal(
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowAjuste(false); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9300,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div style={{
+            background: C.card, borderRadius: 20, border: `1px solid ${C.border}`,
+            width: "100%", maxWidth: 420,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+            display: "flex", flexDirection: "column",
+          }}>
+            {/* Header */}
+            <div style={{ padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: sz.fontXl, color: "#fff" }}>Desconto / Acréscimo</div>
+                <div style={{ fontSize: sz.fontBase, fontWeight: 700, color: C.muted, marginTop: 4 }}>Total atual: R$ {baseComTaxa.toFixed(2)}</div>
+              </div>
+              <button onClick={() => setShowAjuste(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 6 }}>
+                <LuX size={sz.fontLg} />
+              </button>
+            </div>
+
+            <div style={{ padding: `${sz.padSm}px ${sz.pad}px ${sz.pad}px`, display: "flex", flexDirection: "column", gap: sz.padSm }}>
+
+              {/* Tipo */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: sz.gap }}>
+                {[
+                  { id: "desconto",  label: "Desconto",  sub: "Reduz o valor",   color: C.red   },
+                  { id: "acrescimo", label: "Acréscimo", sub: "Aumenta o valor", color: C.green },
+                ].map(t => (
+                  <button key={t.id} onClick={() => setAjusteTipo(t.id)} style={{
+                    padding: `${sz.padSm}px 12px`, borderRadius: 12, fontFamily: "inherit", cursor: "pointer",
+                    border: `2px solid ${ajusteTipo === t.id ? t.color : C.border}`,
+                    background: ajusteTipo === t.id ? `${t.color}18` : C.surface,
+                    textAlign: "center", transition: "all 0.15s",
+                  }}>
+                    <div style={{ fontWeight: 800, fontSize: sz.fontLg, color: ajusteTipo === t.id ? t.color : C.text }}>{t.label}</div>
+                    <div style={{ fontSize: sz.fontSm, color: ajusteTipo === t.id ? t.color + "bb" : C.muted, marginTop: 4 }}>{t.sub}</div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Modo */}
+              <div style={{ display: "flex", background: C.surface, borderRadius: 10, padding: 4, gap: 4, border: `1px solid ${C.border}` }}>
+                {[{ id: "percentual", label: "Percentual (%)" }, { id: "fixo", label: "Valor Fixo (R$)" }].map(m => (
+                  <button key={m.id} onClick={() => { setAjusteMode(m.id); setAjusteValor(""); }} style={{
+                    flex: 1, padding: `${sz.gap}px 8px`, borderRadius: 8, border: "none",
+                    background: ajusteMode === m.id ? C.card : "transparent",
+                    color: ajusteMode === m.id ? C.text : C.muted,
+                    fontWeight: ajusteMode === m.id ? 700 : 500,
+                    fontSize: sz.fontBase, cursor: "pointer", fontFamily: "inherit",
+                    boxShadow: ajusteMode === m.id ? "0 1px 4px rgba(0,0,0,0.2)" : "none",
+                    transition: "all 0.15s",
+                  }}>
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Input */}
+              <div>
+                <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: C.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                  {ajusteMode === "percentual" ? "Percentual de " : "Valor de "}{ajusteTipo === "desconto" ? "desconto" : "acréscimo"}
+                </div>
+                <div style={{ position: "relative" }}>
+                  <span style={{
+                    position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)",
+                    color: C.muted, fontSize: sz.fontLg, fontWeight: 700, pointerEvents: "none", userSelect: "none",
+                  }}>
+                    {ajusteMode === "percentual" ? "%" : "R$"}
+                  </span>
+                  <input
+                    autoFocus
+                    type="number"
+                    min="0"
+                    max={ajusteMode === "percentual" ? "100" : undefined}
+                    step={ajusteMode === "percentual" ? "1" : "0.01"}
+                    value={ajusteValor}
+                    onChange={e => setAjusteValor(e.target.value)}
+                    placeholder="0"
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && parseFloat(ajusteValor) > 0) {
+                        setAjusteAplicado({ tipo: ajusteTipo, mode: ajusteMode, valor: ajusteValor });
+                        setShowAjuste(false);
+                      }
+                    }}
+                    style={{
+                      width: "100%", padding: `${sz.padSm}px ${sz.padSm}px ${sz.padSm}px 52px`,
+                      borderRadius: 12, boxSizing: "border-box",
+                      border: `2px solid ${C.border}`, background: C.surface, color: C.text,
+                      fontSize: sz.fontXl + 4, fontWeight: 800, fontFamily: "inherit", outline: "none",
+                      transition: "border-color 0.15s",
+                    }}
+                    onFocus={e => e.currentTarget.style.borderColor = C.accent + "99"}
+                    onBlur={e => e.currentTarget.style.borderColor = C.border}
+                  />
+                </div>
+              </div>
+
+              {/* Preview */}
+              {parseFloat(ajusteValor) > 0 && (() => {
+                const v   = parseFloat(ajusteValor) || 0;
+                const val = ajusteMode === "percentual" ? baseComTaxa * (v / 100) : v;
+                const novoTotal = Math.max(0, ajusteTipo === "desconto" ? baseComTaxa - val : baseComTaxa + val);
+                const cor = ajusteTipo === "desconto" ? C.red : C.green;
+                return (
+                  <div style={{ borderRadius: 12, overflow: "hidden", border: `1.5px solid ${cor}55`, background: `${cor}0c` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${cor}22` }}>
+                      <span style={{ fontSize: sz.fontBase, color: C.muted }}>Total atual</span>
+                      <span style={{ fontSize: sz.fontBase, fontWeight: 700, color: C.muted }}>R$ {baseComTaxa.toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${cor}22` }}>
+                      <span style={{ fontSize: sz.fontBase, color: cor, fontWeight: 600 }}>{ajusteTipo === "desconto" ? "− Desconto" : "+ Acréscimo"}</span>
+                      <span style={{ fontSize: sz.fontBase, fontWeight: 700, color: cor }}>{ajusteTipo === "desconto" ? "−" : "+"}R$ {val.toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: `${sz.padSm}px ${sz.padSm}px` }}>
+                      <span style={{ fontSize: sz.fontLg, fontWeight: 700, color: C.text }}>Novo Total</span>
+                      <span style={{ fontSize: sz.fontXl + 2, fontWeight: 900, color: cor }}>R$ {novoTotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Ações */}
+              <div style={{ display: "flex", gap: sz.gap, paddingTop: 2 }}>
+                {ajusteAplicado && (
+                  <button
+                    onClick={() => { setAjusteAplicado(null); setShowAjuste(false); }}
+                    style={{
+                      flex: 1, padding: `${sz.gap}px`, borderRadius: 10,
+                      border: `1.5px solid ${C.border}`, background: "none",
+                      color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit",
+                    }}
+                  >
+                    Remover
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (!(parseFloat(ajusteValor) > 0)) return;
+                    setAjusteAplicado({ tipo: ajusteTipo, mode: ajusteMode, valor: ajusteValor });
+                    setShowAjuste(false);
+                  }}
+                  disabled={!(parseFloat(ajusteValor) > 0)}
+                  style={{
+                    flex: 2, padding: `${sz.gap}px`, borderRadius: 10, border: "none",
+                    background: parseFloat(ajusteValor) > 0 ? C.accent : C.faint,
+                    color: "#fff", fontWeight: 800, fontSize: sz.fontLg,
+                    cursor: parseFloat(ajusteValor) > 0 ? "pointer" : "not-allowed",
+                    fontFamily: "inherit",
+                    boxShadow: parseFloat(ajusteValor) > 0 ? `0 4px 20px ${C.accent}44` : "none",
+                    transition: "background 0.15s, box-shadow 0.15s",
+                  }}
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

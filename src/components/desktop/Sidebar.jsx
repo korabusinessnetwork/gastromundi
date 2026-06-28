@@ -5,6 +5,8 @@ import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/constants/roles";
 import { hashPassword, isV2Hash } from "@/utils/crypto";
 import C from "@/constants/colors";
+import { getSizes } from "@/constants/sizes";
+import { useResponsive } from "@/utils/hooks";
 import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
@@ -22,6 +24,8 @@ const NAV_ICONS = {
 
 export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogout, onBackToChoice, onClose }) {
   const { currentUser, pending, sales, sessaoAbertaEm, users } = useApp();
+  const { width } = useResponsive();
+  const sz = getSizes(width);
   const role    = ROLES[currentUser?.role] || ROLES.garcom;
   const abertas  = pending.filter(o => o.status !== "closed");
   const fechadas = sessaoAbertaEm
@@ -77,7 +81,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
     width: "100%", padding: "12px 20px", background: isActive ? C.alow : "none",
     border: "none", borderLeft: `3px solid ${isActive ? C.accent : "transparent"}`,
     color: isActive ? C.accent : C.muted,
-    cursor: "pointer", textAlign: "left", fontSize: 17, fontWeight: 600,
+    cursor: "pointer", textAlign: "left", fontSize: sz.fontBase, fontWeight: 600,
     display: "flex", alignItems: "center", gap: 10, transition: "all 0.15s",
     textDecoration: "none",
   });
@@ -98,10 +102,10 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
           onClose?.();
         }}
       >
-        <Icon size={17} />
+        <Icon size={sz.fontBase} />
         <span style={{ flex: 1 }}>{item.label}</span>
         {item.badge ? (
-          <span style={{ background: C.red, color: "#fff", borderRadius: 10, padding: "2px 7px", fontSize: 14, fontWeight: 800 }}>
+          <span style={{ background: C.red, color: "#fff", borderRadius: 10, padding: "2px 7px", fontSize: sz.fontSm, fontWeight: 800 }}>
             {item.badge}
           </span>
         ) : null}
@@ -114,11 +118,11 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
 
       {/* Logo */}
       <div style={{ padding: "20px 20px 14px", borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ fontWeight: 900, fontSize: 17, letterSpacing: "-0.3px", lineHeight: 1.2 }}>
+        <div style={{ fontWeight: 900, fontSize: sz.fontBase + 1, letterSpacing: "-0.3px", lineHeight: 1.2 }}>
           GASTROMUNDI<br />
-          <span style={{ color: C.muted, fontWeight: 400, fontSize: 14 }}>by Kora</span>
+          <span style={{ color: C.muted, fontWeight: 400, fontSize: sz.fontSm }}>by Kora</span>
         </div>
-        <div style={{ background: C.alow, color: C.accent, fontSize: 13, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 20, display: "inline-block", marginTop: 6 }}>
+        <div style={{ background: C.alow, color: C.accent, fontSize: sz.fontSm - 1, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 20, display: "inline-block", marginTop: 6 }}>
           PDV GESTÃO
         </div>
       </div>
@@ -134,16 +138,16 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
 
       {/* Usuário */}
       <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 34, height: 34, borderRadius: "50%", background: `${role.color}22`, border: `1px solid ${role.color}55`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 17, color: role.color, flexShrink: 0 }}>
+        <div style={{ width: 34, height: 34, borderRadius: "50%", background: `${role.color}22`, border: `1px solid ${role.color}55`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: sz.fontBase, color: role.color, flexShrink: 0 }}>
           {currentUser?.name?.[0]?.toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontWeight: 700, fontSize: sz.fontBase, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {currentUser?.name}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-            <span style={{ fontSize: 14, color: C.muted }}>{currentUser?.username}</span>
-            <span style={{ fontSize: 13, padding: "1px 6px", borderRadius: 10, fontWeight: 700, background: caixaAberto ? `${C.green}22` : `${C.red}22`, color: caixaAberto ? C.green : C.red, display: "flex", alignItems: "center", gap: 3 }}>
+            <span style={{ fontSize: sz.fontSm, color: C.muted }}>{currentUser?.username}</span>
+            <span style={{ fontSize: sz.fontSm - 1, padding: "1px 6px", borderRadius: 10, fontWeight: 700, background: caixaAberto ? `${C.green}22` : `${C.red}22`, color: caixaAberto ? C.green : C.red, display: "flex", alignItems: "center", gap: 3 }}>
               <LuCircle size={5} fill="currentColor" /> {caixaAberto ? "Aberto" : "Fechado"}
             </span>
           </div>
@@ -187,7 +191,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                   width: "100%", padding: "9px 20px 9px 44px",
                   background: "none", border: "none", borderLeft: "3px solid transparent",
                   color: C.muted, cursor: "pointer", textAlign: "left",
-                  fontSize: 16, fontWeight: 600,
+                  fontSize: sz.fontBase, fontWeight: 600,
                   display: "flex", alignItems: "center", gap: 8,
                   transition: "color 0.15s",
                 }}
@@ -198,7 +202,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                 <span style={{ flex: 1 }}>Comandas fechadas</span>
                 <span style={{
                   background: C.surface, color: C.muted, borderRadius: 10,
-                  padding: "1px 7px", fontSize: 14, fontWeight: 700,
+                  padding: "1px 7px", fontSize: sz.fontSm, fontWeight: 700,
                   border: `1px solid ${C.border}`,
                 }}>
                   {fechadas.length}
@@ -494,7 +498,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
         {caixaAberto ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {abertas.length > 0 && (
-              <div style={{ fontSize: 14, fontWeight: 600, color: C.red, textAlign: "center", padding: "4px 8px", background: `${C.red}12`, borderRadius: 8, border: `1px solid ${C.red}33` }}>
+              <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: C.red, textAlign: "center", padding: "4px 8px", background: `${C.red}12`, borderRadius: 8, border: `1px solid ${C.red}33` }}>
                 {abertas.length} comanda{abertas.length !== 1 ? "s" : ""} em aberto
               </div>
             )}
@@ -508,7 +512,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                 background: abertas.length > 0 ? C.surface : `${C.red}0f`,
                 color: abertas.length > 0 ? C.muted : C.red,
                 cursor: abertas.length > 0 ? "not-allowed" : "pointer",
-                fontSize: 16, fontWeight: 800,
+                fontSize: sz.fontBase, fontWeight: 800,
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                 opacity: abertas.length > 0 ? 0.6 : 1,
               }}
@@ -517,7 +521,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
             </button>
           </div>
         ) : (
-          <button onClick={onAbertura} style={{ width: "100%", padding: "11px 0", borderRadius: 10, border: `1px solid ${C.green}55`, background: `${C.green}0f`, color: C.green, cursor: "pointer", fontSize: 16, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+          <button onClick={onAbertura} style={{ width: "100%", padding: "11px 0", borderRadius: 10, border: `1px solid ${C.green}55`, background: `${C.green}0f`, color: C.green, cursor: "pointer", fontSize: sz.fontBase, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
             <LuLockOpen size={15} /> Abrir Caixa
           </button>
         )}
