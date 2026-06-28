@@ -53,7 +53,8 @@ export default function PDVView() {
   const [showNova,          setShowNova]          = useState(false);
   const [nomeComanda,       setNomeComanda]       = useState("");
   const [criando,           setCriando]           = useState(false);
-  const [confirmCancelar,   setConfirmCancelar]   = useState(false);
+  const [confirmCancelar,        setConfirmCancelar]        = useState(false);
+  const [confirmCancelarMotivo,  setConfirmCancelarMotivo]  = useState("");
   const [showTransferir,    setShowTransferir]    = useState(false);
   const [showSaldo,         setShowSaldo]         = useState(false);
   const [saldoSenha,        setSaldoSenha]        = useState("");
@@ -611,7 +612,7 @@ export default function PDVView() {
                   </>
                 ) : (
                   <button
-                    onClick={() => setConfirmCancelar(true)}
+                    onClick={() => { setConfirmCancelar(true); setConfirmCancelarMotivo(""); }}
                     style={{
                       padding: "10px 20px", borderRadius: 10,
                       border: `1px solid ${C.red}55`,
@@ -1000,7 +1001,7 @@ export default function PDVView() {
               ) : (
                 <>
                   <div style={{ fontSize: 16, color: C.muted, lineHeight: 1.5 }}>
-                    Motivo do cancelamento (opcional):
+                    Motivo do cancelamento <span style={{ color: C.red }}>*</span>
                   </div>
                   <input
                     autoFocus
@@ -1011,7 +1012,7 @@ export default function PDVView() {
                     maxLength={120}
                     style={{
                       width: "100%", padding: "13px 16px", borderRadius: 10, boxSizing: "border-box",
-                      border: `1.5px solid ${C.border}`,
+                      border: `1.5px solid ${cancelarMotivo.trim() ? C.accent + "88" : C.border}`,
                       background: C.surface, color: C.text, fontSize: 17, fontFamily: "inherit", outline: "none",
                     }}
                   />
@@ -1037,13 +1038,13 @@ export default function PDVView() {
                         setCancelandoComanda(false);
                       }
                     }}
-                    disabled={cancelandoComanda}
+                    disabled={cancelandoComanda || !cancelarMotivo.trim()}
                     style={{
                       padding: "13px", borderRadius: 10, border: "none",
-                      background: cancelandoComanda ? C.faint : C.red,
+                      background: (cancelandoComanda || !cancelarMotivo.trim()) ? C.faint : C.red,
                       color: "#fff", fontWeight: 800, fontSize: 17,
-                      cursor: cancelandoComanda ? "not-allowed" : "pointer", fontFamily: "inherit",
-                      boxShadow: `0 4px 16px ${C.red}44`,
+                      cursor: (cancelandoComanda || !cancelarMotivo.trim()) ? "not-allowed" : "pointer", fontFamily: "inherit",
+                      boxShadow: cancelarMotivo.trim() ? `0 4px 16px ${C.red}44` : "none",
                     }}
                   >
                     {cancelandoComanda ? "Cancelando..." : "✕ Confirmar Cancelamento"}
@@ -1410,11 +1411,30 @@ export default function PDVView() {
             </div>
 
             <div style={{
-              padding: "12px 16px", borderRadius: 10, marginBottom: 20,
+              padding: "12px 16px", borderRadius: 10, marginBottom: 16,
               background: `${C.red}0d`, border: `1px solid ${C.red}33`,
               fontSize: 16, color: C.muted, lineHeight: 1.5,
             }}>
               A comanda será <strong style={{ color: C.red }}>removida permanentemente</strong>. Esta ação não pode ser desfeita.
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                Motivo do cancelamento <span style={{ color: C.red }}>*</span>
+              </div>
+              <input
+                autoFocus
+                type="text"
+                value={confirmCancelarMotivo}
+                onChange={e => setConfirmCancelarMotivo(e.target.value)}
+                placeholder="Ex: cliente desistiu, erro no pedido..."
+                maxLength={120}
+                style={{
+                  width: "100%", padding: "11px 14px", borderRadius: 10, boxSizing: "border-box",
+                  border: `1.5px solid ${confirmCancelarMotivo.trim() ? C.accent + "88" : C.border}`,
+                  background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none",
+                }}
+              />
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
@@ -1432,14 +1452,17 @@ export default function PDVView() {
                 onClick={async () => {
                   setConfirmCancelar(false);
                   const itensComanda = Array.isArray(selected?.items) ? selected.items : [];
-                  logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda cancelada: ${fmtComanda(selected.comanda)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, items: itensComanda });
+                  logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda cancelada: ${fmtComanda(selected.comanda)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), items: itensComanda });
                   await removePending(selected.id);
                   handleBack();
                 }}
+                disabled={!confirmCancelarMotivo.trim()}
                 style={{
                   flex: 1, padding: "13px 0", borderRadius: 12, border: "none",
-                  background: C.red, color: "#fff",
-                  cursor: "pointer", fontWeight: 800, fontSize: 18,
+                  background: confirmCancelarMotivo.trim() ? C.red : C.faint,
+                  color: "#fff",
+                  cursor: confirmCancelarMotivo.trim() ? "pointer" : "not-allowed",
+                  fontWeight: 800, fontSize: 18,
                 }}
               >
                 Sim, cancelar
