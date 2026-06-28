@@ -69,8 +69,10 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
       setConfirmExcluir(null);
       return;
     }
-    // Itens lançados: valida senha se ainda não validada
+    // Itens lançados: motivo e senha obrigatórios
+    if (!motivo.trim()) return;
     if (!itemSenhaOk) {
+      if (!itemSenha) return;
       const hashed = await hashPassword(itemSenha);
       const autorizado = users.some(u =>
         ["admin", "gerente"].includes(u.role) && u.password === hashed
