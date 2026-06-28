@@ -46,7 +46,7 @@ export default function PDVView() {
   const [abaAtiva,    setAbaAtiva]    = useState("produtos"); // mobile tab
 
   const [toast,         setToast]         = useState(false);
-  const [alertaAberto,  setAlertaAberto]  = useState(true);
+  const [alertaAberto,  setAlertaAberto]  = useState(false);
   const [buscaComanda,  setBuscaComanda]  = useState("");
 
   // modal nova comanda
