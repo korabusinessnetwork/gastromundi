@@ -1431,7 +1431,8 @@ export default function PDVView() {
               <button
                 onClick={async () => {
                   setConfirmCancelar(false);
-                  logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda cancelada: ${fmtComanda(selected.comanda)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda });
+                  const itensComanda = Array.isArray(selected?.items) ? selected.items : [];
+                  logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda cancelada: ${fmtComanda(selected.comanda)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, items: itensComanda });
                   await removePending(selected.id);
                   handleBack();
                 }}

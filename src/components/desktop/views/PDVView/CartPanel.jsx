@@ -3,7 +3,9 @@ import { createPortal } from "react-dom";
 import C from "@/constants/colors";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX } from "react-icons/lu";
+import { useApp } from "@/context/AppContext";
+import { hashPassword } from "@/utils/crypto";
+import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -11,6 +13,7 @@ const fmtComanda = (name) =>
 export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, onLancar, onFinalizar, salvando, onRemoveAcumulado }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
+  const { users } = useApp();
 
   const itensAcumulados = Array.isArray(comanda?.items) ? comanda.items : [];
   // para totais e contagens, exclui cancelados
@@ -28,6 +31,11 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
   // popup de exclusão: { tipo: "carrinho"|"lancado", idx, qtyMax, qtySel, motivo, item }
   const [confirmExcluir, setConfirmExcluir] = useState(null);
   const [qtyInputStr,    setQtyInputStr]    = useState("");
+  // senha para cancelamento de item lançado
+  const [itemSenha,    setItemSenha]    = useState("");
+  const [itemSenhaErro, setItemSenhaErro] = useState(false);
+  const [itemSenhaVis, setItemSenhaVis] = useState(false);
+  const [itemSenhaOk,  setItemSenhaOk]  = useState(false);
 
   const getObs = (item) => Array.isArray(item.obs) ? item.obs : (item.obs ? [item.obs] : []);
 
@@ -50,16 +58,28 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
     const qtyMax = item.qty ?? 1;
     setConfirmExcluir({ tipo, idx, qtyMax, qtySel: qtyMax, motivo: "", item });
     setQtyInputStr(String(qtyMax));
+    setItemSenha(""); setItemSenhaErro(false); setItemSenhaVis(false); setItemSenhaOk(false);
   };
 
-  const confirmarExclusao = () => {
+  const confirmarExclusao = async () => {
     if (!confirmExcluir) return;
     const { tipo, idx, qtySel, motivo } = confirmExcluir;
     if (tipo === "carrinho") {
       onChangeQty(idx, (items[idx]?.qty ?? 0) - qtySel);
-    } else {
-      onRemoveAcumulado(idx, qtySel, motivo.trim());
+      setConfirmExcluir(null);
+      return;
     }
+    // Itens lançados: valida senha se ainda não validada
+    if (!itemSenhaOk) {
+      const hashed = await hashPassword(itemSenha);
+      const autorizado = users.some(u =>
+        ["admin", "gerente"].includes(u.role) && u.password === hashed
+      );
+      if (!autorizado) { setItemSenhaErro(true); return; }
+      setItemSenhaOk(true);
+      setItemSenhaErro(false);
+    }
+    onRemoveAcumulado(idx, qtySel, motivo.trim());
     setConfirmExcluir(null);
   };
 
@@ -383,7 +403,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
       {/* ── Popup: Confirmar exclusão / cancelamento ──────────────── */}
       {confirmExcluir && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) setConfirmExcluir(null); }}
+          onClick={e => { if (e.target === e.currentTarget) { setConfirmExcluir(null); setItemSenha(""); setItemSenhaErro(false); setItemSenhaOk(false); } }}
           style={{
             position: "fixed", inset: 0, zIndex: 9100,
             background: "rgba(0,0,0,0.7)",
@@ -505,6 +525,43 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
               </div>
             )}
 
+            {/* Senha admin/gerente — apenas para itens lançados */}
+            {confirmExcluir.tipo === "lancado" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>
+                  <LuLock size={13} /> Senha do administrador / gerente
+                </label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={itemSenhaVis ? "text" : "password"}
+                    value={itemSenha}
+                    onChange={e => { setItemSenha(e.target.value); setItemSenhaErro(false); setItemSenhaOk(false); }}
+                    onKeyDown={e => { if (e.key === "Enter") confirmarExclusao(); }}
+                    placeholder="Digite a senha..."
+                    style={{
+                      width: "100%", padding: "11px 42px 11px 14px",
+                      borderRadius: 10, border: `1.5px solid ${itemSenhaErro ? C.red : itemSenhaOk ? C.green : C.border}`,
+                      background: C.surface, color: C.text,
+                      fontSize: 16, fontFamily: "inherit", outline: "none",
+                      boxSizing: "border-box", transition: "border-color 0.15s",
+                    }}
+                  />
+                  <button
+                    onClick={() => setItemSenhaVis(v => !v)}
+                    style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 0, display: "flex" }}
+                  >
+                    {itemSenhaVis ? <LuEyeOff size={16} /> : <LuEye size={16} />}
+                  </button>
+                </div>
+                {itemSenhaErro && (
+                  <div style={{ fontSize: 14, color: C.red, fontWeight: 600 }}>Senha incorreta. Apenas admin ou gerente pode cancelar itens.</div>
+                )}
+                {itemSenhaOk && (
+                  <div style={{ fontSize: 14, color: C.green, fontWeight: 600 }}>✓ Autorizado</div>
+                )}
+              </div>
+            )}
+
             {/* Botões */}
             <div style={{ display: "flex", gap: 10 }}>
               <button
@@ -519,12 +576,12 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
               </button>
               <button
                 onClick={confirmarExclusao}
-                disabled={confirmExcluir.tipo === "lancado" && !confirmExcluir.motivo.trim()}
+                disabled={confirmExcluir.tipo === "lancado" && (!confirmExcluir.motivo.trim() || !itemSenha)}
                 style={{
                   flex: 1, padding: "13px 0", borderRadius: 12, border: "none",
-                  background: (confirmExcluir.tipo === "lancado" && !confirmExcluir.motivo.trim()) ? C.faint : C.red,
+                  background: (confirmExcluir.tipo === "lancado" && (!confirmExcluir.motivo.trim() || !itemSenha)) ? C.faint : C.red,
                   color: "#fff",
-                  cursor: (confirmExcluir.tipo === "lancado" && !confirmExcluir.motivo.trim()) ? "not-allowed" : "pointer",
+                  cursor: (confirmExcluir.tipo === "lancado" && (!confirmExcluir.motivo.trim() || !itemSenha)) ? "not-allowed" : "pointer",
                   fontWeight: 800, fontSize: 17,
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                 }}
