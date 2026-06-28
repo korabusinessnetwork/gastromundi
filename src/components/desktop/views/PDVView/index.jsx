@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
@@ -110,11 +111,14 @@ export default function PDVView() {
     const apelido = apelidoInput.trim();
     setSalvandoMesa(true);
     try {
-      const mudou = mesa !== (mesaPendingOrder.mesa || "") || apelido !== (mesaPendingOrder.apelido || "");
-      if (mudou) await updatePending(mesaPendingOrder.id, { mesa, apelido });
-      const order = { ...mesaPendingOrder, mesa, apelido };
+      let order = { ...mesaPendingOrder, mesa, apelido };
+      if (!order._virtual) {
+        // Comanda já existe — atualiza só se mudou
+        const mudou = mesa !== (mesaPendingOrder.mesa || "") || apelido !== (mesaPendingOrder.apelido || "");
+        if (mudou) await updatePending(order.id, { mesa, apelido });
+      }
+      // Se virtual, mantém _virtual — será persistida ao lançar
       setSelected(order);
-      // Só muda de modo se ainda não estava no pedido
       if (mode !== "pedido") {
         setCartItems([]);
         setAbaAtiva("produtos");
@@ -158,13 +162,19 @@ export default function PDVView() {
     if (!selected || cartItems.length === 0 || salvando) return;
     setSalvando(true);
     try {
-      const anteriores = Array.isArray(selected.items) ? selected.items : [];
+      // Persiste comanda se ainda for virtual
+      let ordem = selected;
+      if (ordem._virtual) {
+        ordem = await persistirVirtual(ordem);
+        setSelected(ordem);
+      }
+      const anteriores = Array.isArray(ordem.items) ? ordem.items : [];
       const novos      = cartItems.map(({ _key, ...rest }) => rest);
       const acumulados = [...anteriores, ...novos];
       const total      = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-      await updatePending(selected.id, { items: acumulados, total });
-      addLancada(selected.id);
-      logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados na ${fmtComanda(selected.comanda)} · ${novos.length} tipo(s) · R$ ${total.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, tipos: novos.length, total });
+      await updatePending(ordem.id, { items: acumulados, total });
+      addLancada(ordem.id);
+      logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados na ${fmtComanda(ordem.comanda)} · ${novos.length} tipo(s) · R$ ${total.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: ordem.comanda, tipos: novos.length, total });
       setToast(true);
       setTimeout(() => setToast(false), 6000);
       handleBack();
@@ -177,12 +187,18 @@ export default function PDVView() {
 
   // ── Ir para checkout — acumula itens locais antes de finalizar ─
   const handleFinalizar = async () => {
+    let ordem = selected;
+    if (ordem._virtual) {
+      if (cartItems.length === 0) return; // não faz sentido finalizar sem itens
+      ordem = await persistirVirtual(ordem);
+      setSelected(ordem);
+    }
     if (cartItems.length > 0) {
-      const anteriores = Array.isArray(selected.items) ? selected.items : [];
+      const anteriores = Array.isArray(ordem.items) ? ordem.items : [];
       const novos      = cartItems.map(({ _key, ...rest }) => rest);
       const acumulados = [...anteriores, ...novos];
       const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-      await updatePending(selected.id, { items: acumulados, total: novoTotal });
+      await updatePending(ordem.id, { items: acumulados, total: novoTotal });
       setSelected(prev => ({ ...prev, items: acumulados, total: novoTotal }));
       setCartItems([]);
     }
@@ -216,12 +232,14 @@ export default function PDVView() {
     handleBack();
   };
 
-  // ── Abrir slot vazio (cria comanda direto pelo número) ────────
-  const handleOpenEmpty = async (nome) => {
+  // ── Abrir slot vazio — cria comanda virtual (só persiste ao lançar) ──
+  const handleOpenEmpty = (nome) => {
     if (!caixaAberto) return;
     const order = {
       id:         crypto.randomUUID(),
       comanda:    nome,
+      mesa:       "",
+      apelido:    "",
       items:      [],
       status:     "open",
       total:      0,
@@ -229,14 +247,21 @@ export default function PDVView() {
       created_by: currentUser?.username || "",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      _virtual:   true, // não persistida ainda
     };
-    await addPending(order);
-    logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta: ${order.comanda}`, name: currentUser?.name, role: currentUser?.role, comanda: order.comanda });
     setBuscaComanda("");
     setMesaInput("");
     setApelidoInput("");
     setMesaPendingOrder(order);
     setShowMesa(true);
+  };
+
+  // ── Persiste comanda virtual no banco ─────────────────────────
+  const persistirVirtual = async (order) => {
+    const { _virtual, ...payload } = order;
+    await addPending(payload);
+    logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta: ${order.comanda}`, name: currentUser?.name, role: currentUser?.role, comanda: order.comanda });
+    return payload;
   };
 
   // ── Transferir itens entre comandas ──────────────────────────
@@ -991,10 +1016,10 @@ export default function PDVView() {
                           it.cancelado ? it : { ...it, cancelado: true, motivoCancelamento: motivo, canceladoPor: quemCancelou }
                         );
                         await removePending(selected.id);
-                        setSelected(null);
-                        setMode("comandas");
                         setShowCancelarComanda(false);
-                        logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda ${fmtComanda(selected.comanda)} cancelada por ${quemCancelou}`, name: quemCancelou, role: currentUser?.role, comanda: selected.comanda, motivo });
+                        setSelected(null);
+                        setMode("grid");
+                        logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda ${fmtComanda(selected.comanda)} cancelada por ${quemCancelou}`, name: quemCancelou, role: currentUser?.role, comanda: selected.comanda, motivo, items: novosItens });
                       } finally {
                         setCancelandoComanda(false);
                       }
@@ -1569,6 +1594,18 @@ export default function PDVView() {
 // ── Modal de Saldo do Dia ─────────────────────────────────────────
 function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending, metodosCustom }) {
   const hoje = new Date().toDateString();
+  const [logsComandaCancelada, setLogsComandaCancelada] = useState([]);
+
+  useEffect(() => {
+    if (!autorizado) return;
+    const inicioDia = new Date(new Date().toDateString()).toISOString();
+    supabase
+      .from("operator_logs")
+      .select("payload, created_at")
+      .eq("action_type", "comanda:cancelar")
+      .gte("created_at", inicioDia)
+      .then(({ data }) => setLogsComandaCancelada(data ?? []));
+  }, [autorizado]);
 
   const vendasHoje = (sales ?? []).filter(s => s.at && new Date(s.at).toDateString() === hoje);
   const totalVendas = vendasHoje.reduce((s, v) => s + (v.total ?? 0), 0);
@@ -1579,6 +1616,25 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
     const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
     return s + ativos.reduce((x, i) => x + (i.price ?? 0) * (i.qty ?? 1), 0);
   }, 0);
+
+  // Cancelamentos: itens cancelados em comandas abertas + em vendas do dia + comandas inteiras canceladas
+  const canceladosAbertos = abertas.flatMap(p =>
+    (Array.isArray(p.items) ? p.items : []).filter(i => i.cancelado)
+  );
+  const canceladosFechados = vendasHoje.flatMap(v =>
+    (Array.isArray(v.items) ? v.items : []).filter(i => i.cancelado)
+  );
+  // Itens de comandas inteiras canceladas (vindos dos logs)
+  const canceladosComanda = logsComandaCancelada.flatMap(log => {
+    const items = Array.isArray(log.payload?.items) ? log.payload.items : [];
+    const motivo = log.payload?.motivo || "";
+    const canceladoPor = log.payload?.name || "";
+    const comanda = log.payload?.comanda || "—";
+    return items.map(i => ({ ...i, motivoCancelamento: motivo, canceladoPor, _comanda: comanda, _comandaCancelada: true }));
+  });
+  const todosCancelados = [...canceladosAbertos, ...canceladosFechados, ...canceladosComanda];
+  const totalCancelado  = todosCancelados.reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0);
+  const qtdCancelados   = todosCancelados.reduce((s, i) => s + (i.qty ?? 1), 0);
 
   const porMetodo = {};
   vendasHoje.forEach(v => { porMetodo[v.metodo] = (porMetodo[v.metodo] ?? 0) + (v.total ?? 0); });
@@ -1729,6 +1785,42 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
               ))}
             </div>
 
+            {/* Card de Cancelamentos */}
+            <div style={{
+              background: `${C.red}0c`, border: `1.5px solid ${C.red}33`,
+              borderRadius: 14, padding: "16px 20px",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+                  Cancelamentos do Dia
+                </div>
+                <div style={{ fontSize: 18, color: C.muted }}>
+                  {qtdCancelados} {qtdCancelados === 1 ? "item cancelado" : "itens cancelados"}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                  {canceladosAbertos.length > 0 && (
+                    <span style={{ fontSize: 13, color: C.muted, background: C.surface, borderRadius: 6, padding: "2px 8px" }}>
+                      {canceladosAbertos.reduce((s,i)=>s+(i.qty??1),0)} em aberto
+                    </span>
+                  )}
+                  {canceladosFechados.length > 0 && (
+                    <span style={{ fontSize: 13, color: C.muted, background: C.surface, borderRadius: 6, padding: "2px 8px" }}>
+                      {canceladosFechados.reduce((s,i)=>s+(i.qty??1),0)} em fechadas
+                    </span>
+                  )}
+                  {canceladosComanda.length > 0 && (
+                    <span style={{ fontSize: 13, color: C.red, background: `${C.red}12`, borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>
+                      {canceladosComanda.reduce((s,i)=>s+(i.qty??1),0)} de comanda{logsComandaCancelada.length !== 1 ? "s" : ""} cancelada{logsComandaCancelada.length !== 1 ? "s" : ""} ({logsComandaCancelada.length})
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={{ fontWeight: 900, fontSize: 24, color: C.red }}>
+                {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
+              </div>
+            </div>
+
             {/* Total geral */}
             <div style={{
               background: `${C.green}10`, border: `1.5px solid ${C.green}44`,
@@ -1769,6 +1861,47 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                       <span style={{ fontWeight: 800, fontSize: 18, color: C.text }}>
                         R$ {Number(val).toFixed(2)}
                       </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Detalhe dos itens cancelados */}
+            {todosCancelados.length > 0 && (
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                  Itens Cancelados
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 200, overflowY: "auto" }}>
+                  {todosCancelados.map((item, idx) => (
+                    <div key={idx} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      background: C.surface, borderRadius: 10, padding: "10px 14px",
+                      border: `1px solid ${item._comandaCancelada ? C.red + "55" : C.red + "22"}`,
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ fontWeight: 700, fontSize: 15, color: C.text, textDecoration: "line-through", opacity: 0.7 }}>
+                            {item.emoji ? `${item.emoji} ` : ""}{item.name}{(item.qty ?? 1) > 1 ? ` ×${item.qty}` : ""}
+                          </span>
+                          {item._comandaCancelada && (
+                            <span style={{ fontSize: 12, fontWeight: 700, color: C.red, background: `${C.red}14`, borderRadius: 5, padding: "1px 6px" }}>
+                              comanda cancelada
+                            </span>
+                          )}
+                        </div>
+                        {(item.motivoCancelamento || item.canceladoPor || item._comanda) && (
+                          <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
+                            {item._comanda ? `${item._comanda} · ` : ""}
+                            {item.canceladoPor ? `${item.canceladoPor}` : ""}
+                            {item.motivoCancelamento && item.motivoCancelamento !== "—" ? ` — ${item.motivoCancelamento}` : ""}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ fontWeight: 800, fontSize: 15, color: C.red, flexShrink: 0, marginLeft: 12 }}>
+                        - R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}
+                      </div>
                     </div>
                   ))}
                 </div>

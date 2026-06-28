@@ -15,10 +15,11 @@ import {
 const ABAS = ["Vendas", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
 
 const PERIODOS = [
-  { id: "hoje",   label: "Hoje" },
-  { id: "semana", label: "7 dias" },
-  { id: "mes",    label: "30 dias" },
-  { id: "tudo",   label: "Tudo" },
+  { id: "hoje",    label: "Hoje"    },
+  { id: "semana",  label: "7 dias"  },
+  { id: "mes",     label: "30 dias" },
+  { id: "tudo",    label: "Tudo"    },
+  { id: "custom",  label: "Período" },
 ];
 
 const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
@@ -38,8 +39,17 @@ function tipoLog(actionType) {
 
 const SALE_PREFIXES = new Set(["comanda", "itens", "produto"]);
 
-function filtrarPorPeriodo(list, campo, periodo) {
+function filtrarPorPeriodo(list, campo, periodo, customInicio, customFim) {
   if (periodo === "tudo") return list;
+  if (periodo === "custom") {
+    if (!customInicio && !customFim) return list;
+    const ini = customInicio ? new Date(customInicio + "T00:00:00").getTime() : 0;
+    const fim = customFim    ? new Date(customFim    + "T23:59:59").getTime() : Infinity;
+    return list.filter(r => {
+      const t = r[campo] ? new Date(r[campo]).getTime() : 0;
+      return t >= ini && t <= fim;
+    });
+  }
   const hojeInicio = new Date(new Date().toDateString()).getTime();
   const dias  = periodo === "semana" ? 7 : 30;
   const desde = Date.now() - dias * 24 * 60 * 60 * 1000;
@@ -358,9 +368,11 @@ export default function RelatorioView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
 
-  const [aba,         setAba]         = useState("Vendas");
-  const [periodo,     setPeriodo]     = useState("hoje");
-  const [fechDetalhe, setFechDetalhe] = useState(null);
+  const [aba,           setAba]           = useState("Vendas");
+  const [periodo,       setPeriodo]       = useState("hoje");
+  const [customInicio,  setCustomInicio]  = useState("");
+  const [customFim,     setCustomFim]     = useState("");
+  const [fechDetalhe,   setFechDetalhe]   = useState(null);
   const [metodoFilt,  setMetodoFilt]  = useState("todos");
   const [logTipo,    setLogTipo]    = useState("todos");
   const [subVendas,  setSubVendas]  = useState("resumido");
@@ -386,10 +398,10 @@ export default function RelatorioView() {
 
   // ── Vendas ────────────────────────────────────────────────────
   const vendasFiltradas = useMemo(() => {
-    let l = filtrarPorPeriodo(sales, "at", periodo);
+    let l = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim);
     if (metodoFilt !== "todos") l = l.filter(s => s.metodo === metodoFilt);
     return l;
-  }, [sales, periodo, metodoFilt]);
+  }, [sales, periodo, metodoFilt, customInicio, customFim]);
 
   const kpis = useMemo(() => {
     const total  = vendasFiltradas.reduce((s, v) => s + (v.total ?? 0), 0);
@@ -403,15 +415,15 @@ export default function RelatorioView() {
 
   // ── Fechamentos ───────────────────────────────────────────────
   const fechsFiltrados = useMemo(() =>
-    filtrarPorPeriodo(fechamentos, "at", periodo),
-  [fechamentos, periodo]);
+    filtrarPorPeriodo(fechamentos, "at", periodo, customInicio, customFim),
+  [fechamentos, periodo, customInicio, customFim]);
 
   // ── Cancelamentos ─────────────────────────────────────────────
   const cancelamentos = useMemo(() => {
     const linhas = [];
 
     // vendas finalizadas — itens cancelados dentro delas
-    const vendasPeriodo = filtrarPorPeriodo(sales, "at", periodo);
+    const vendasPeriodo = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim);
     vendasPeriodo.forEach(v => {
       (Array.isArray(v.items) ? v.items : [])
         .filter(it => it.cancelado)
@@ -430,7 +442,7 @@ export default function RelatorioView() {
     });
 
     // comandas em aberto — itens cancelados
-    const pendingPeriodo = filtrarPorPeriodo(pending ?? [], "created_at", periodo);
+    const pendingPeriodo = filtrarPorPeriodo(pending ?? [], "created_at", periodo, customInicio, customFim);
     pendingPeriodo.forEach(p => {
       (Array.isArray(p.items) ? p.items : [])
         .filter(it => it.cancelado)
@@ -449,7 +461,7 @@ export default function RelatorioView() {
     });
 
     return linhas.sort((a, b) => new Date(b.at) - new Date(a.at));
-  }, [sales, pending, periodo]);
+  }, [sales, pending, periodo, customInicio, customFim]);
 
   const kpisCancelamentos = useMemo(() => {
     const total    = cancelamentos.length;
@@ -463,11 +475,11 @@ export default function RelatorioView() {
 
   // ── Logs ──────────────────────────────────────────────────────
   const logsFiltrados = useMemo(() => {
-    let l = filtrarPorPeriodo(opLogs, "created_at", periodo);
+    let l = filtrarPorPeriodo(opLogs, "created_at", periodo, customInicio, customFim);
     if (logTipo === "venda")       l = l.filter(x => SALE_PREFIXES.has((x.action_type ?? "").split(":")[0]));
     else if (logTipo !== "todos")  l = l.filter(x => (x.action_type ?? "").startsWith(logTipo + ":"));
     return l;
-  }, [opLogs, periodo, logTipo]);
+  }, [opLogs, periodo, logTipo, customInicio, customFim]);
 
   // ── Handlers de exportação ────────────────────────────────────
   const totalItens = (v) => Array.isArray(v.items) ? v.items.reduce((s, it) => s + (it.qty ?? 1), 0) : 0;
@@ -575,22 +587,69 @@ export default function RelatorioView() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 6 }}>
-          {PERIODOS.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setPeriodo(p.id)}
-              style={{
-                padding: "8px 16px", borderRadius: 10, border: "none",
-                background: periodo === p.id ? C.accent : C.surface,
-                color: periodo === p.id ? "#fff" : C.muted,
-                cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
-                transition: "background 0.15s, color 0.15s",
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            {PERIODOS.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setPeriodo(p.id)}
+                style={{
+                  padding: "8px 16px", borderRadius: 10, border: "none",
+                  background: periodo === p.id ? C.accent : C.surface,
+                  color: periodo === p.id ? "#fff" : C.muted,
+                  cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
+                  transition: "background 0.15s, color 0.15s",
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {periodo === "custom" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="date"
+                value={customInicio}
+                onChange={e => setCustomInicio(e.target.value)}
+                style={{
+                  padding: "7px 12px", borderRadius: 9,
+                  border: `1.5px solid ${customInicio ? C.accent : C.border}`,
+                  background: C.surface, color: C.text,
+                  fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none",
+                  cursor: "pointer", transition: "border-color 0.15s",
+                }}
+              />
+              <span style={{ color: C.muted, fontWeight: 600, fontSize: sz.fontSm + 1 }}>até</span>
+              <input
+                type="date"
+                value={customFim}
+                min={customInicio || undefined}
+                onChange={e => setCustomFim(e.target.value)}
+                style={{
+                  padding: "7px 12px", borderRadius: 9,
+                  border: `1.5px solid ${customFim ? C.accent : C.border}`,
+                  background: C.surface, color: C.text,
+                  fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none",
+                  cursor: "pointer", transition: "border-color 0.15s",
+                }}
+              />
+              {(customInicio || customFim) && (
+                <button
+                  onClick={() => { setCustomInicio(""); setCustomFim(""); }}
+                  style={{
+                    background: "none", border: `1px solid ${C.border}`,
+                    borderRadius: 8, padding: "6px 8px", cursor: "pointer",
+                    color: C.muted, display: "flex", alignItems: "center",
+                    transition: "border-color 0.15s",
+                  }}
+                  title="Limpar datas"
+                >
+                  <LuX size={14} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

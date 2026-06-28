@@ -185,7 +185,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const total         = Math.max(0, baseComTaxa + valorAjuste);
   const valorRecebido = parseFloat(recebido.replace(",", ".")) || 0;
   const troco         = metodo === "dinheiro" ? valorRecebido - total : 0;
-  const podeConfirmar = metodo && (metodo !== "dinheiro" || valorRecebido >= total);
+  const podeConfirmar = !!metodo;
 
   const handleConfirm = async () => {
     if (!podeConfirmar || confirmando) return;
@@ -288,12 +288,13 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
           <div style={{
             width: isMob ? "100%" : sz.checkoutResumo,
             maxHeight: isMob ? "38%" : undefined,
-            flexShrink: 0, overflowY: "auto",
+            flexShrink: 0,
             borderRight: isMob ? "none" : `1px solid ${C.border}`,
             borderBottom: isMob ? `1px solid ${C.border}` : "none",
-            padding: isMob ? "16px 20px" : "28px 32px",
             display: "flex", flexDirection: "column",
           }}>
+            {/* Área scrollável — itens */}
+            <div style={{ flex: 1, overflowY: "auto", padding: isMob ? "16px 20px" : "28px 32px" }}>
             <div style={{
               fontSize: 16, fontWeight: 700, color: C.muted,
               textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 20,
@@ -348,13 +349,16 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                 </div>
               );
             })}
+            </div>{/* fim área scrollável */}
+
+            {/* Rodapé fixo — taxa, desconto, total */}
+            <div style={{ flexShrink: 0, padding: isMob ? "12px 20px 16px" : "16px 32px 24px", borderTop: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 0 }}>
 
             {/* Taxa de Serviço */}
             {taxaServico && (
               <div style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
-                paddingTop: 14, marginTop: 4,
-                borderTop: `1px solid ${C.border}`,
+                paddingBottom: 12,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: sz.fontBase, color: C.muted, fontWeight: 600 }}>Taxa de Serviço (10%)</span>
@@ -381,8 +385,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
             {ajusteAplicado && valorAjuste !== 0 && (
               <div style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
-                paddingTop: 14, marginTop: 4,
-                borderTop: `1px solid ${C.border}`,
+                paddingBottom: 12,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: sz.fontSm, color: ajusteAplicado.tipo === "desconto" ? C.red : C.green }}>
@@ -410,7 +413,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
             {/* Total */}
             <div style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              paddingTop: 20, marginTop: 8,
+              paddingTop: 16, marginTop: 8,
               borderTop: `2px solid ${C.border}`,
             }}>
               <span style={{ fontWeight: 800, fontSize: sz.fontLg, color: C.muted }}>Total</span>
@@ -418,6 +421,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                 R$ {total.toFixed(2)}
               </span>
             </div>
+
+            </div>{/* fim rodapé fixo */}
           </div>
 
           {/* ── Sidebar de pagamento ── */}
@@ -481,7 +486,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
               {metodo === "dinheiro" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, flexShrink: 0 }}>
                   <label style={{ fontSize: 16, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1.2 }}>
-                    Valor Recebido
+                    Calcular Troco <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, fontSize: 14 }}>(opcional)</span>
                   </label>
                   <div style={{ position: "relative" }}>
                     <span style={{
@@ -514,14 +519,14 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                   {valorRecebido > 0 && (
                     <div style={{
                       padding: "16px 20px", borderRadius: 12,
-                      background: troco >= 0 ? `${C.green}14` : `${C.red}14`,
-                      border: `1.5px solid ${troco >= 0 ? C.green : C.red}55`,
+                      background: troco >= 0 ? `${C.green}14` : `${C.accent}14`,
+                      border: `1.5px solid ${troco >= 0 ? C.green : C.accent}55`,
                       display: "flex", justifyContent: "space-between", alignItems: "center",
                     }}>
                       <span style={{ fontSize: sz.fontBase + 1, fontWeight: 700, color: C.muted }}>
-                        {troco >= 0 ? "Troco" : "Faltam"}
+                        {troco >= 0 ? "Troco" : "Falta"}
                       </span>
-                      <span style={{ fontSize: sz.fontXl - 2, fontWeight: 900, color: troco >= 0 ? C.green : C.red }}>
+                      <span style={{ fontSize: sz.fontXl - 2, fontWeight: 900, color: troco >= 0 ? C.green : C.accent }}>
                         R$ {Math.abs(troco).toFixed(2)}
                       </span>
                     </div>

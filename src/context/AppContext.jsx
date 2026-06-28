@@ -332,7 +332,7 @@ export function AppProvider({ children }) {
   const value = {
     loading,
     // dados
-    products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, metodosCustom, credentials, estoque,
+    products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, credentials, estoque,
     currentUser, isMobile, mobileChoice,
     lancadas, addLancada,
     // setter simples (sem persistência)

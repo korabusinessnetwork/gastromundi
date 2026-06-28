@@ -227,17 +227,39 @@ function ComandaCard({ num, order, isSelected, isVisitada, onClick, sz }) {
           cursor: "pointer", textAlign: "left",
           color: hovered ? C.text : C.muted,
           width: "100%",
-          display: "flex", flexDirection: "column", gap: sz.gap - 6,
+          display: "flex", flexDirection: "column", gap: sz.gap - 2,
           opacity: hovered ? 1 : 0.45,
           transition: "opacity 0.15s, border-color 0.15s, background 0.15s, border-style 0.1s",
-          minHeight: 90,
         }}
       >
-        <div style={{ fontWeight: 800, fontSize: sz.fontLg - 2, color: hovered ? C.accent : C.muted }}>
-          {num}
+        {/* Header: número + tempo placeholder */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
+          <div style={{ fontWeight: 900, fontSize: sz.fontLg - 1, lineHeight: 1.1, color: hovered ? C.accent : C.muted }}>
+            {num}
+          </div>
+          <span style={{
+            fontSize: sz.fontSm - 1, fontWeight: 700, color: C.faint,
+            background: C.surface, border: `1px solid ${C.border}`,
+            padding: "3px 8px", borderRadius: 8,
+            whiteSpace: "nowrap", flexShrink: 0,
+            display: "flex", alignItems: "center", gap: 3, opacity: 0,
+          }}>
+            <LuClock size={10} /> —
+          </span>
         </div>
-        <div style={{ fontSize: sz.fontSm, color: hovered ? C.muted : C.faint }}>
-          Disponível
+
+        {/* Mesa/garçom placeholder — ocupa mesmo espaço */}
+        <div style={{ fontSize: sz.fontSm, color: C.faint, minHeight: sz.fontSm + 4 }}>
+          {hovered ? "Clique para abrir" : "Disponível"}
+        </div>
+
+        {/* Rodapé placeholder */}
+        <div style={{
+          borderTop: `1px solid ${C.border}`, paddingTop: sz.padSm - 2, marginTop: "auto",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+        }}>
+          <span style={{ fontSize: sz.fontSm, color: C.faint }}>—</span>
+          <span style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: C.faint }}>—</span>
         </div>
       </button>
     );

@@ -227,7 +227,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
         >
           <div style={{
             background: C.card, borderRadius: 20, padding: 32,
-            width: 400, border: `1px solid ${C.border}`,
+            width: "90%", maxWidth: 400, border: `1px solid ${C.border}`,
             display: "flex", flexDirection: "column", gap: 20,
             boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
           }}>

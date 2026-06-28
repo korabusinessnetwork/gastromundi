@@ -44,7 +44,7 @@ export default function LoginPage() {
 
   return (
     <div style={{ background: C.bg, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
-      <div style={{ width: "100%", maxWidth: sz.checkoutResumo > 0 ? sz.checkoutResumo - 80 : 360, padding: `0 ${sz.pad}px` }}>
+      <div style={{ width: "100%", maxWidth: sz.checkoutResumo > 0 ? sz.checkoutResumo - 80 : "100%", padding: `0 ${sz.pad}px`, boxSizing: "border-box" }}>
         <div style={{ textAlign: "center", marginBottom: sz.pad + 8 }}>
           <div style={{ fontWeight: 900, fontSize: sz.fontXl, letterSpacing: "-0.5px" }}>GASTROMUNDI</div>
           <div style={{ color: C.muted, fontSize: sz.fontBase - 1, marginTop: 4 }}>by Kora · Acesso ao Sistema</div>
