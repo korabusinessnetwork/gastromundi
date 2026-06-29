@@ -5,6 +5,7 @@ import C from "@/constants/colors";
 import {
   LuPrinter, LuRefreshCw, LuCircleAlert, LuX,
   LuSettings, LuWifi, LuWifiOff, LuShieldCheck, LuLoader,
+  LuPlay, LuSquareCheckBig,
 } from "react-icons/lu";
 
 const LS_KEY = "gastromundi:impressoras_config_v2";
@@ -172,8 +173,9 @@ export default function ImpressorasConfig({ sz }) {
   const { status, impressoras, erroMsg, conectar, atualizar } = useQZTray();
   const [locais, setLocais]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [configs, setConfigs] = useState(lerConfig());
-  const [modal, setModal]     = useState(null); // local object
+  const [configs, setConfigs]   = useState(lerConfig());
+  const [modal, setModal]       = useState(null); // local object
+  const [testando, setTestando] = useState({}); // { [localId]: "idle"|"ok"|"erro" }
 
   useEffect(() => {
     supabase
@@ -193,6 +195,47 @@ export default function ImpressorasConfig({ sz }) {
     delete cfg[localId];
     salvarConfig(cfg);
     setConfigs(lerConfig());
+  };
+
+  const imprimirTeste = async (local, nomePrinter) => {
+    setTestando(prev => ({ ...prev, [local.id]: "idle" }));
+    try {
+      const qz = (await import("qz-tray")).default;
+      const config = qz.configs.create(nomePrinter);
+
+      const agora = new Date().toLocaleString("pt-BR");
+      const linha = (txt, tamanho = 32) => txt.padEnd(tamanho).slice(0, tamanho);
+
+      const dados = [
+        { type: "raw", format: "plain", data:
+          "\x1B\x40"                          // inicializa impressora
+          + "\x1B\x61\x01"                    // centraliza
+          + "\x1B\x21\x30"                    // fonte dupla (grande)
+          + "GASTROMUNDI\n"
+          + "\x1B\x21\x00"                    // fonte normal
+          + "by Kora\n"
+          + "--------------------------------\n"
+          + "\x1B\x61\x00"                    // alinha esquerda
+          + `Local: ${local.nome}\n`
+          + `Impressora: ${nomePrinter}\n`
+          + `Data: ${agora}\n`
+          + "--------------------------------\n"
+          + "\x1B\x61\x01"                    // centraliza
+          + "IMPRESSAO DE TESTE OK\n"
+          + "--------------------------------\n"
+          + "\n\n\n"
+          + "\x1D\x56\x41\x03"               // corte parcial
+        },
+      ];
+
+      await qz.print(config, dados);
+      setTestando(prev => ({ ...prev, [local.id]: "ok" }));
+      setTimeout(() => setTestando(prev => ({ ...prev, [local.id]: undefined })), 4000);
+    } catch (e) {
+      console.error("[imprimirTeste]", e);
+      setTestando(prev => ({ ...prev, [local.id]: "erro" }));
+      setTimeout(() => setTestando(prev => ({ ...prev, [local.id]: undefined })), 4000);
+    }
   };
 
   // ── Banner de conexão QZ Tray ────────────────────────────────────
@@ -351,7 +394,40 @@ export default function ImpressorasConfig({ sz }) {
                 )}
 
                 {/* Botões */}
-                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
+                  {/* Botão teste — só aparece quando configurado + conectado */}
+                  {cfg && conectado && (() => {
+                    const st = testando[local.id];
+                    const ocupado = st === "idle";
+                    return (
+                      <button
+                        onClick={() => !ocupado && imprimirTeste(local, cfg.nome)}
+                        disabled={ocupado}
+                        title="Imprimir página de teste"
+                        style={{
+                          display: "flex", alignItems: "center", gap: 6,
+                          padding: "8px 13px", borderRadius: 9,
+                          border: `1.5px solid ${st === "ok" ? C.green + "66" : st === "erro" ? C.red + "66" : C.border}`,
+                          background: st === "ok" ? `${C.green}0f` : st === "erro" ? `${C.red}0f` : C.surface,
+                          color: st === "ok" ? C.green : st === "erro" ? C.red : C.muted,
+                          cursor: ocupado ? "not-allowed" : "pointer",
+                          fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit",
+                          transition: "border-color 0.15s, background 0.15s",
+                        }}
+                      >
+                        {ocupado
+                          ? <LuLoader size={13} style={{ animation: "spin 1s linear infinite" }} />
+                          : st === "ok"
+                            ? <LuSquareCheckBig size={13} />
+                            : st === "erro"
+                              ? <LuCircleAlert size={13} />
+                              : <LuPlay size={13} />
+                        }
+                        {st === "ok" ? "Enviado!" : st === "erro" ? "Erro" : "Testar"}
+                      </button>
+                    );
+                  })()}
+
                   {cfg && (
                     <button
                       onClick={() => removerConfig(local.id)}
