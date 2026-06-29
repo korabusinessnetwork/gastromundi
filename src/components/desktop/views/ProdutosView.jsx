@@ -199,7 +199,7 @@ export default function ProdutosView() {
       unidades_compra:       form.compras
         .filter(c => c.unidade && c.fator)
         .map(c => ({ nome: c.nome.trim() || null, unidade: c.unidade, fator: parseFloat(c.fator), unidade_destino: ue })),
-      codigo_barras:         form.codigo_barras.trim() || null,
+      ...(FEATURE_BARCODE_SCANNER ? { codigo_barras: form.codigo_barras.trim() || null } : {}),
     };
     let dbError = null;
     if (modal === "novo") {

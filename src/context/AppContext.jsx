@@ -54,7 +54,7 @@ export function AppProvider({ children }) {
         { data: fechamentosData, error: eFech  },
         { data: configData,   error: eConfig   },
       ] = await Promise.all([
-        supabase.from("products").select("id,name,price,category,emoji,active,description,unit").eq("active", true).order("id"),
+        supabase.from("products").select("*").eq("active", true).order("id"),
         supabase.from("pending").select("*").order("created_at", { ascending: false }),
         supabase.from("sales").select("id,data,created_at").order("created_at", { ascending: false }),
         supabase.from("users").select("id,name,username,password,role,active").eq("active", true),
