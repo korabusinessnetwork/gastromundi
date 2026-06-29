@@ -18,6 +18,7 @@ const EMPTY_FORM = {
   unidade_estoque: "",
   compras: [],
   unidade_consumo: "",
+  codigo_barras: "",
 };
 
 export default function ProdutosView() {
@@ -132,6 +133,7 @@ export default function ProdutosView() {
       unidade_estoque: p.unidade_estoque ?? p.unidade ?? "",
       compras,
       unidade_consumo: p.unidade_consumo ?? "",
+      codigo_barras:   p.codigo_barras ?? "",
     });
     setErro("");
     setEditId(p.id);
@@ -196,6 +198,7 @@ export default function ProdutosView() {
       unidades_compra:       form.compras
         .filter(c => c.unidade && c.fator)
         .map(c => ({ nome: c.nome.trim() || null, unidade: c.unidade, fator: parseFloat(c.fator), unidade_destino: ue })),
+      codigo_barras:         form.codigo_barras.trim() || null,
     };
     let dbError = null;
     if (modal === "novo") {
@@ -355,6 +358,12 @@ export default function ProdutosView() {
             <div>
               <Label>Nome *</Label>
               <Input value={form.name} onChange={v => setField("name", v)} placeholder="Ex: Cerveja 600ml" maxLength={60} />
+            </div>
+
+            {/* Código de barras */}
+            <div>
+              <Label>Código de barras (EAN/QR)</Label>
+              <Input value={form.codigo_barras} onChange={v => setField("codigo_barras", v)} placeholder="Ex: 7891234567890" maxLength={64} />
             </div>
 
             {/* Categoria — oculta para insumos */}

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
@@ -7,8 +7,10 @@ import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
-import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil } from "react-icons/lu";
+import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode } from "react-icons/lu";
 import { hashPassword } from "@/utils/crypto";
+import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
+import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import ComandaGrid   from "./ComandaGrid";
 import ProductGrid   from "./ProductGrid";
 import CartPanel     from "./CartPanel";
@@ -81,6 +83,11 @@ export default function PDVView() {
   const [mesaPendingOrder,  setMesaPendingOrder]  = useState(null);
   const [salvandoMesa,      setSalvandoMesa]      = useState(false);
 
+  // ── Barcode scanner (FEATURE_BARCODE_SCANNER) ─────────────────
+  const [barcodeInputOpen,  setBarcodeInputOpen]  = useState(false);
+  const [barcodeValue,      setBarcodeValue]      = useState("");
+  const [barcodeFeedback,   setBarcodeFeedback]   = useState(null); // null | "ok" | "notfound"
+
   const abertas = pending.filter(o => o.status !== "closed");
 
   // ── Selecionar comanda → pede mesa antes de entrar ────────────
@@ -148,6 +155,22 @@ export default function PDVView() {
       return [...prev, { ...product, qty: 1, _key: Date.now() + Math.random() }];
     });
   };
+
+  // ── Barcode scan handler ──────────────────────────────────────
+  const handleBarcodeScan = useCallback((code) => {
+    if (!FEATURE_BARCODE_SCANNER || mode !== "pedido") return;
+    const found = products.find(p => p.codigo_barras && p.codigo_barras === code && p.active !== false);
+    if (found) {
+      handleAddProduct(found);
+      setBarcodeFeedback("ok");
+      setBarcodeValue("");
+    } else {
+      setBarcodeFeedback("notfound");
+    }
+    setTimeout(() => setBarcodeFeedback(null), 2500);
+  }, [products, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useBarcodeScanner(handleBarcodeScan, FEATURE_BARCODE_SCANNER && mode === "pedido");
 
   const handleChangeQty = (index, newQty) => {
     if (newQty <= 0) setCartItems(prev => prev.filter((_, i) => i !== index));
@@ -555,6 +578,80 @@ export default function PDVView() {
             const itensLancados = Array.isArray(selected?.items) ? selected.items : [];
             return (
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+
+                {/* ── Barcode scanner UI (FEATURE_BARCODE_SCANNER) ── */}
+                {FEATURE_BARCODE_SCANNER && (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {/* Feedback inline */}
+                      {barcodeFeedback && (
+                        <span style={{
+                          fontSize: 13, fontWeight: 700, padding: "4px 10px", borderRadius: 8,
+                          background: barcodeFeedback === "ok" ? `${C.green}18` : `${C.red}18`,
+                          color: barcodeFeedback === "ok" ? C.green : C.red,
+                          border: `1px solid ${barcodeFeedback === "ok" ? C.green : C.red}44`,
+                          whiteSpace: "nowrap",
+                        }}>
+                          {barcodeFeedback === "ok" ? "✓ Item adicionado" : "Código não encontrado"}
+                        </span>
+                      )}
+                      {/* Botão toggle scanner */}
+                      <button
+                        type="button"
+                        onClick={() => { setBarcodeInputOpen(v => !v); setBarcodeValue(""); setBarcodeFeedback(null); }}
+                        title="Scanner de código de barras"
+                        style={{
+                          padding: "10px 14px", borderRadius: 10,
+                          border: `1.5px solid ${barcodeInputOpen ? C.accent : C.border}`,
+                          background: barcodeInputOpen ? `${C.accent}12` : C.surface,
+                          color: barcodeInputOpen ? C.accent : C.muted,
+                          cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                          fontWeight: 700, fontSize: 15, fontFamily: "inherit",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <LuScanBarcode size={16} />
+                        Scanner
+                      </button>
+                    </div>
+                    {/* Campo de input manual — colapsável */}
+                    {barcodeInputOpen && (
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <input
+                          autoFocus
+                          type="text"
+                          value={barcodeValue}
+                          onChange={e => setBarcodeValue(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") { handleBarcodeScan(barcodeValue.trim()); } }}
+                          placeholder="Digite ou escaneie o código..."
+                          maxLength={64}
+                          style={{
+                            width: 220, padding: "8px 12px",
+                            borderRadius: 9, border: `1.5px solid ${C.border}`,
+                            background: C.surface, color: C.text,
+                            fontSize: 14, fontFamily: "inherit", outline: "none",
+                            boxSizing: "border-box",
+                          }}
+                          onFocus={e => { e.currentTarget.style.borderColor = C.accent; }}
+                          onBlur={e => { e.currentTarget.style.borderColor = C.border; }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleBarcodeScan(barcodeValue.trim())}
+                          style={{
+                            padding: "8px 14px", borderRadius: 9, border: "none",
+                            background: barcodeValue.trim() ? C.accent : C.faint,
+                            color: "#fff", cursor: barcodeValue.trim() ? "pointer" : "not-allowed",
+                            fontWeight: 700, fontSize: 14, fontFamily: "inherit",
+                          }}
+                        >
+                          OK
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Botão Editar Mesa — sempre visível no modo pedido */}
                 <button
                   onClick={abrirEditarMesa}
