@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import C from "@/constants/colors";
-import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid, LuLogOut } from "react-icons/lu";
+import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid, LuLogOut, LuClock } from "react-icons/lu";
 
 const TOTAL_COMANDAS = 1000;
 const PAGE = 50;
@@ -37,6 +37,19 @@ export default function MobilePage() {
   const [lancMesa,      setLancMesa]      = useState("");
   const [lancErro,      setLancErro]      = useState("");
 
+  // Detalhe da comanda (bottom sheet)
+  const [detalheComanda, setDetalheComanda] = useState(null); // order object
+  const [detalheVisible, setDetalheVisible] = useState(false);
+
+  const abrirDetalhe = (order) => {
+    setDetalheComanda(order);
+    setDetalheVisible(true);
+  };
+  const fecharDetalhe = () => {
+    setDetalheVisible(false);
+    setTimeout(() => setDetalheComanda(null), 300);
+  };
+
   const abertas = pending.filter(o => o.status !== "closed");
   const mapa    = {};
   abertas.forEach(o => { mapa[String(o.comanda)] = o; });
@@ -65,6 +78,20 @@ export default function MobilePage() {
     setLancMesa("");
     setLancErro("");
     setShowLancar(true);
+  };
+
+  const selecionarComanda = (comanda, mesa = "") => {
+    const order = mapa[String(comanda)];
+    const hasItems = order && Array.isArray(order.items) && order.items.length > 0;
+    if (hasItems) {
+      abrirDetalhe(order);
+    } else {
+      setLancComanda(String(comanda));
+      setLancMesa(mesa || "");
+      setLancErro("");
+      setMode("pedido");
+      setShowLancar(true);
+    }
   };
 
   const handleLancar = async () => {
@@ -212,7 +239,7 @@ export default function MobilePage() {
                   const borderColor = isLancada ? AMBER : hasItems ? `${C.blue}66` : C.border;
                   const bgColor     = isLancada ? `${AMBER}14` : hasItems ? `${C.blue}0a` : C.card;
                   return (
-                    <div key={order.id} style={{ background: bgColor, border: `1.5px solid ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: C.text, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div key={order.id} onClick={() => selecionarComanda(order.comanda, order.mesa)} style={{ background: bgColor, border: `1.5px solid ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: C.text, display: "flex", flexDirection: "column", gap: 6, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                       <div style={{ fontWeight: 800, fontSize: 16 }}>{fmtComanda(order.comanda)}</div>
                       {order.mesa && <div style={{ fontSize: 12, color: C.muted }}>Mesa {order.mesa}</div>}
                       {order.garcom && <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
@@ -235,7 +262,7 @@ export default function MobilePage() {
                   const borderColor = isLancada ? AMBER : hasItems ? `${C.blue}66` : C.border;
                   const bgColor     = isLancada ? `${AMBER}14` : hasItems ? `${C.blue}0a` : C.card;
                   return (
-                    <div key={num} style={{ background: bgColor, border: `1.5px ${order ? "solid" : "dashed"} ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: C.text, display: "flex", flexDirection: "column", gap: 6, opacity: !order ? 0.45 : 1 }}>
+                    <div key={num} onClick={() => selecionarComanda(num, order?.mesa)} style={{ background: bgColor, border: `1.5px ${order ? "solid" : "dashed"} ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: C.text, display: "flex", flexDirection: "column", gap: 6, opacity: !order ? 0.45 : 1, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                       <div style={{ fontWeight: 800, fontSize: 16 }}>Comanda {num}</div>
                       {order ? (
                         <>
@@ -555,6 +582,117 @@ export default function MobilePage() {
                 {salvando ? "Enviando..." : mapa[lancComanda.trim()] ? "✓ Adicionar à Comanda" : "✓ Criar e Lançar"}
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Bottom sheet — detalhe da comanda */}
+      {createPortal(
+        <div
+          onClick={e => { if (e.target === e.currentTarget) fecharDetalhe(); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9100,
+            background: detalheVisible ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0)",
+            display: "flex", alignItems: "flex-end",
+            fontFamily: "'Inter',system-ui,sans-serif",
+            pointerEvents: detalheComanda ? "auto" : "none",
+            transition: "background 0.3s",
+          }}
+        >
+          <div style={{
+            background: C.card, borderRadius: "20px 20px 0 0",
+            width: "100%", maxHeight: "80dvh",
+            border: `1px solid ${C.border}`,
+            boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
+            boxSizing: "border-box",
+            display: "flex", flexDirection: "column",
+            transform: detalheVisible ? "translateY(0)" : "translateY(100%)",
+            transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)",
+          }}>
+            {detalheComanda && (() => {
+              const order = detalheComanda;
+              const items = Array.isArray(order.items) ? order.items : [];
+              const totalOrder = items.reduce((s, it) => s + (it.price ?? 0) * (it.qty ?? 1), 0);
+              const hora = order.updated_at
+                ? new Date(order.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                : order.created_at
+                ? new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                : null;
+              const data = order.updated_at
+                ? new Date(order.updated_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
+                : null;
+              return (
+                <>
+                  {/* Handle */}
+                  <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+                    <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border }} />
+                  </div>
+
+                  {/* Header */}
+                  <div style={{ padding: "8px 20px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                    <div>
+                      <div style={{ fontWeight: 900, fontSize: 20, color: C.text }}>{fmtComanda(order.comanda)}</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 4 }}>
+                        {order.mesa && <span style={{ fontSize: 13, color: C.muted }}>Mesa {order.mesa}</span>}
+                        {order.garcom && <span style={{ fontSize: 13, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><LuUser size={12} /> {order.garcom}</span>}
+                        {hora && <span style={{ fontSize: 13, color: C.accent, display: "flex", alignItems: "center", gap: 4 }}><LuClock size={12} /> {data} às {hora}</span>}
+                      </div>
+                    </div>
+                    <button onClick={fecharDetalhe} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, lineHeight: 0, flexShrink: 0 }}>
+                      <LuX size={22} />
+                    </button>
+                  </div>
+
+                  {/* Itens */}
+                  <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+                    {items.map((item, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 20px", borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, color: C.accent, flexShrink: 0 }}>
+                          {item.qty ?? 1}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{item.name}</div>
+                          {item.emoji && <div style={{ fontSize: 12, color: C.muted }}>{item.emoji}</div>}
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: C.green, flexShrink: 0 }}>
+                          R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Footer */}
+                  <div style={{ padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", borderTop: `1px solid ${C.border}`, display: "flex", gap: 10, alignItems: "center" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>Total</div>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: C.green }}>R$ {totalOrder.toFixed(2)}</div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        fecharDetalhe();
+                        setTimeout(() => {
+                          setLancComanda(String(order.comanda));
+                          setLancMesa(order.mesa || "");
+                          setLancErro("");
+                          setMode("pedido");
+                          setShowLancar(true);
+                        }, 320);
+                      }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        background: C.accent, border: "none", borderRadius: 12,
+                        color: "#fff", cursor: "pointer",
+                        padding: "14px 20px", fontWeight: 800, fontSize: 15,
+                        WebkitTapHighlightColor: "transparent",
+                      }}
+                    >
+                      <LuPlus size={16} /> Adicionar itens
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>,
         document.body
