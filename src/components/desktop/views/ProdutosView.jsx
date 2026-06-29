@@ -248,7 +248,6 @@ export default function ProdutosView() {
           <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 2 }}>{products.length} cadastrado{products.length !== 1 ? "s" : ""}</div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar produto..." style={{ padding: "9px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, outline: "none", fontFamily: "inherit", width: 220 }} />
           {isAdmin && (
             <>
               <button onClick={() => setShowCatModal(true)} style={{ padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
@@ -269,12 +268,22 @@ export default function ProdutosView() {
       </div>
 
       {/* Filtros de categoria */}
-      <div style={{ display: "flex", gap: 8, padding: `12px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, overflowX: "auto", flexShrink: 0 }}>
+      <div style={{ display: "flex", gap: 8, padding: `12px ${sz.pad}px`, overflowX: "auto", flexShrink: 0 }}>
         {["Todos", ...categorias].map(cat => (
           <button key={cat} onClick={() => setCatFiltro(cat)} style={{ padding: "7px 18px", borderRadius: 20, border: "none", background: catFiltro === cat ? C.accent : C.surface, color: catFiltro === cat ? "#fff" : C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, whiteSpace: "nowrap", flexShrink: 0, transition: "background 0.15s, color 0.15s" }}>
             {cat}
           </button>
         ))}
+      </div>
+
+      {/* Campo de busca centralizado */}
+      <div style={{ display: "flex", justifyContent: "center", padding: `10px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <input
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          placeholder="Buscar produto..."
+          style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, outline: "none", fontFamily: "inherit", width: "100%", maxWidth: 420 }}
+        />
       </div>
 
       {/* Tabela */}
