@@ -79,8 +79,9 @@ export default function MobilePage() {
   };
 
   const abrirModalLancar = () => {
-    setLancComanda("");
-    setLancMesa("");
+    // preserva comanda pré-preenchida (ex.: vinda de "Adicionar itens")
+    setLancComanda(prev => prev || "");
+    setLancMesa(prev => prev || "");
     setLancErro("");
     setShowLancar(true);
   };
@@ -136,6 +137,8 @@ export default function MobilePage() {
       logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados (palm) na Comanda ${nomeComanda} · ${novos.length} tipo(s) · R$ ${novoTotal.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, tipos: novos.length, total: novoTotal, via: "palm" });
 
       setShowLancar(false);
+      setLancComanda("");
+      setLancMesa("");
       setCartItems([]);
       setCartAberto(false);
       setToast(true);
@@ -568,7 +571,16 @@ export default function MobilePage() {
                     <div style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>Total</div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: C.green }}>R$ {totalOrder.toFixed(2)}</div>
                   </div>
-                  <button onClick={() => { fecharDetalhe(); setTimeout(() => { setLancComanda(String(order.comanda)); setLancMesa(order.mesa || ""); setLancErro(""); setMode("pedido"); setShowLancar(true); }, 320); }} style={{ display: "flex", alignItems: "center", gap: 8, background: C.accent, border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "14px 20px", fontWeight: 800, fontSize: 15, WebkitTapHighlightColor: "transparent" }}>
+                  <button onClick={() => {
+                    fecharDetalhe();
+                    setTimeout(() => {
+                      setLancComanda(String(order.comanda));
+                      setLancMesa(order.mesa || "");
+                      setLancErro("");
+                      setMode("pedido");
+                      // não abre o modal — usuário seleciona produtos primeiro
+                    }, 320);
+                  }} style={{ display: "flex", alignItems: "center", gap: 8, background: C.accent, border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "14px 20px", fontWeight: 800, fontSize: 15, WebkitTapHighlightColor: "transparent" }}>
                     <LuPlus size={16} /> Adicionar itens
                   </button>
                 </div>
