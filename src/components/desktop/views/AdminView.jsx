@@ -12,6 +12,7 @@ import {
   LuLink, LuPackage, LuPercent, LuFileText, LuSlidersHorizontal,
 } from "react-icons/lu";
 import NotasFiscaisTab from "@/components/desktop/views/NotasFiscaisTab";
+import ImpostosAdmin from "@/components/desktop/views/ImpostosAdmin";
 import {
   consumoParaEstoque, labelEstoque, labelConsumo,
   temConversaoConsumo, fmtQtd,
@@ -1297,7 +1298,7 @@ export default function AdminView() {
             {secao === "fichas"       && <FichasTecnicasTab sz={sz} fichas={fichas}             products={products} estoque={estoque} onSave={handleSave} onDelete={handleSave} />}
             {secao === "fornecedores" && <FornecedoresTab   sz={sz} fornecedores={fornecedores} onSave={handleSave} onDelete={handleSave} />}
             {secao === "compras"      && <ComprasTab        sz={sz} compras={compras}           fornecedores={fornecedores} onSave={handleSave} onDelete={handleSave} />}
-            {secao === "impostos"     && <ImpostosTab       sz={sz} impostos={impostos}          onSave={handleSave} onDelete={handleSave} />}
+            {secao === "impostos"     && <ImpostosAdmin      sz={sz} />}
             {secao === "notas_fiscais" && (
               <NotasFiscaisTab
                 sz={sz}

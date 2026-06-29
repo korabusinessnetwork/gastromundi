@@ -40,6 +40,7 @@ export default function ProdutosView() {
   const [unidadesMedida, setUnidadesMedida] = useState([]);
   const [editingCompra, setEditingCompra] = useState(null);
   const [isInsumo, setIsInsumo] = useState(false);
+  const [isProducao, setIsProducao] = useState(false);
 
 
   // ── Categorias ────────────────────────────────────────────────
@@ -91,7 +92,7 @@ export default function ProdutosView() {
     setCatOpLoading(false);
   };
 
-  const CATS_FIXAS = ["Insumo"];
+  const CATS_FIXAS = ["Insumo", "Produção"];
 
   const categorias = useMemo(() => {
     const fromProducts = products.map(p => p.category).filter(Boolean);
@@ -106,17 +107,20 @@ export default function ProdutosView() {
 
   // ── Modal ─────────────────────────────────────────────────────
 
-  const abrirNovo = (insumo = false) => {
+  const abrirNovo = (insumo = false, producao = false) => {
     setIsInsumo(insumo);
-    setForm({ ...EMPTY_FORM, category: insumo ? "Insumo" : "" });
+    setIsProducao(producao);
+    setForm({ ...EMPTY_FORM, category: insumo ? "Insumo" : producao ? "Produção" : "" });
     setErro("");
     setEditId(null);
     setModal("novo");
   };
 
   const abrirEditar = (p) => {
-    const insumo = p.category === "Insumo";
+    const insumo   = p.category === "Insumo";
+    const producao = p.category === "Produção";
     setIsInsumo(insumo);
+    setIsProducao(producao);
     let compras = [];
     if (Array.isArray(p.unidades_compra) && p.unidades_compra.length > 0) {
       compras = p.unidades_compra.map(u => ({
@@ -191,7 +195,7 @@ export default function ProdutosView() {
     const payload = {
       name:                  form.name.trim().toUpperCase(),
       price:                 isInsumo ? 0 : parseFloat(String(form.price).replace(",", ".")),
-      category:              isInsumo ? "Insumo" : form.category.trim(),
+      category:              isInsumo ? "Insumo" : isProducao ? "Produção" : form.category.trim(),
       emoji:                 form.emoji || null,
       unidade_estoque:       ue,
       unidade_consumo:       form.unidade_consumo.trim() || null,
@@ -205,11 +209,13 @@ export default function ProdutosView() {
     if (modal === "novo") {
       const { error } = await addProduct({ id: crypto.randomUUID(), ...payload });
       dbError = error;
-      if (!error) logAction(currentUser?.username, isInsumo ? "insumo:criar" : "produto:criar", { msg: `${isInsumo ? "Insumo" : "Produto"} cadastrado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
+      const tipo = isInsumo ? "Insumo" : isProducao ? "Item de Produção" : "Produto";
+      if (!error) logAction(currentUser?.username, isInsumo ? "insumo:criar" : isProducao ? "producao:criar" : "produto:criar", { msg: `${tipo} cadastrado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
     } else {
+      const tipo = isInsumo ? "Insumo" : isProducao ? "Item de Produção" : "Produto";
       const { error } = await updateProduct(editId, payload);
       dbError = error;
-      if (!error) logAction(currentUser?.username, isInsumo ? "insumo:editar" : "produto:editar", { msg: `${isInsumo ? "Insumo" : "Produto"} editado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
+      if (!error) logAction(currentUser?.username, isInsumo ? "insumo:editar" : isProducao ? "producao:editar" : "produto:editar", { msg: `${tipo} editado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
     }
     setSalvando(false);
     if (dbError) { setErro(dbError.message ?? "Erro ao salvar. Verifique o console."); return; }
@@ -250,6 +256,9 @@ export default function ProdutosView() {
               </button>
               <button onClick={() => abrirNovo(true)} style={{ padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: `1.5px solid ${C.green}`, background: `${C.green}12`, color: C.green, fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer", whiteSpace: "nowrap" }}>
                 + Novo Insumo
+              </button>
+              <button onClick={() => abrirNovo(false, true)} style={{ padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: `1.5px solid ${C.blue}`, background: `${C.blue}12`, color: C.blue, fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer", whiteSpace: "nowrap" }}>
+                + Item de Produção
               </button>
               <button onClick={() => abrirNovo(false)} style={{ padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer", whiteSpace: "nowrap" }}>
                 + Novo Produto
@@ -332,7 +341,11 @@ export default function ProdutosView() {
         <div onClick={e => { if (e.target === e.currentTarget) fecharModal(); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
           <div style={{ background: C.card, borderRadius: 20, padding: 24, width: "100%", maxWidth: 560, border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 20, maxHeight: "92vh", overflowY: "auto", color: C.text, fontFamily: "inherit", boxSizing: "border-box" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>{modal === "novo" ? (isInsumo ? "Novo Insumo" : "Novo Produto") : (isInsumo ? "Editar Insumo" : "Editar Produto")}</div>
+              <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>
+                {modal === "novo"
+                  ? isInsumo ? "Novo Insumo" : isProducao ? "Novo Item de Produção" : "Novo Produto"
+                  : isInsumo ? "Editar Insumo" : isProducao ? "Editar Item de Produção" : "Editar Produto"}
+              </div>
               <button onClick={fecharModal} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: "pointer", padding: "6px 8px", display: "flex", alignItems: "center", justifyContent: "center" }}><LuXIcon size={16} /></button>
             </div>
 
@@ -369,8 +382,8 @@ export default function ProdutosView() {
               </div>
             )}
 
-            {/* Categoria — oculta para insumos */}
-            {!isInsumo && (
+            {/* Categoria — oculta para insumos e itens de produção (categoria fixa) */}
+            {!isInsumo && !isProducao && (
               <div>
                 <Label>Categoria *</Label>
                 <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
@@ -551,7 +564,9 @@ export default function ProdutosView() {
             <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
               <button onClick={fecharModal} style={{ flex: 1, padding: 13, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase }}>Cancelar</button>
               <button onClick={salvar} disabled={salvando} style={{ flex: 2, padding: 13, borderRadius: 10, border: "none", background: salvando ? C.faint : C.accent, color: "#fff", cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontBase }}>
-                {salvando ? "Salvando..." : modal === "novo" ? (isInsumo ? "Cadastrar Insumo" : "Cadastrar Produto") : "Salvar Alterações"}
+                {salvando ? "Salvando..." : modal === "novo"
+                  ? isInsumo ? "Cadastrar Insumo" : isProducao ? "Cadastrar Item" : "Cadastrar Produto"
+                  : "Salvar Alterações"}
               </button>
             </div>
           </div>
