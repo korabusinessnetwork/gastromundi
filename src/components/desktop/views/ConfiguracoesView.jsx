@@ -6,7 +6,8 @@ import { getSizes } from "@/constants/sizes";
 import { hashPassword, passwordStrength, sanitizeInput } from "@/utils";
 import { getPermissions } from "@/constants/roles";
 import C from "@/constants/colors";
-import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX } from "react-icons/lu";
+import { createPortal } from "react-dom";
+import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert } from "react-icons/lu";
 
 const ROLES = [
   { id: "admin",   label: "Administrador", color: C.accent },
@@ -850,6 +851,8 @@ function UnidadesMedidaTab({ sz }) {
   const [loading,     setLoading]     = useState(true);
   const [addForms,    setAddForms]    = useState({ estoque: EMPTY_ADD, compra: EMPTY_ADD, consumo: EMPTY_ADD });
   const [salvando,    setSalvando]    = useState({ estoque: false, compra: false, consumo: false });
+  const [deleteInfo,  setDeleteInfo]  = useState(null); // { id, nome, abbr, afetados }
+  const [deletando,   setDeletando]   = useState(false);
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
 
@@ -877,10 +880,50 @@ function UnidadesMedidaTab({ sz }) {
     setSalvando(s => ({ ...s, [tipo]: false }));
   };
 
-  const remover = async (id, nome) => {
-    if (!window.confirm(`Remover "${nome}"?`)) return;
-    await supabase.from("unidades_medida").delete().eq("id", id);
-    setUnidades(prev => prev.filter(u => u.id !== id));
+  const iniciarRemover = async (unidade) => {
+    const abbr = unidade.abreviacao;
+    const { data: produtos } = await supabase
+      .from("products")
+      .select("id, unidade_estoque, unidade_consumo, unidades_compra");
+    const afetados = (produtos || []).filter(p =>
+      p.unidade_estoque === abbr ||
+      p.unidade_consumo === abbr ||
+      (Array.isArray(p.unidades_compra) && p.unidades_compra.some(c => c.unidade === abbr))
+    ).length;
+    setDeleteInfo({ id: unidade.id, nome: unidade.nome, abbr, afetados });
+  };
+
+  const confirmarRemover = async () => {
+    if (!deleteInfo || deletando) return;
+    setDeletando(true);
+    const { abbr } = deleteInfo;
+
+    // 1. Desvincula unidade_estoque → volta para string vazia (field not null, mas produtos sem unidade ficam sem config)
+    await supabase.from("products").update({ unidade_estoque: "" }).eq("unidade_estoque", abbr);
+
+    // 2. Limpa unidade_consumo
+    await supabase.from("products").update({ unidade_consumo: null }).eq("unidade_consumo", abbr);
+
+    // 3. Remove entradas de unidades_compra que usam essa abreviação
+    const { data: comCompra } = await supabase
+      .from("products")
+      .select("id, unidades_compra")
+      .not("unidades_compra", "eq", "[]");
+    const afetadosCompra = (comCompra || []).filter(p =>
+      Array.isArray(p.unidades_compra) && p.unidades_compra.some(c => c.unidade === abbr)
+    );
+    for (const p of afetadosCompra) {
+      await supabase
+        .from("products")
+        .update({ unidades_compra: p.unidades_compra.filter(c => c.unidade !== abbr) })
+        .eq("id", p.id);
+    }
+
+    // 4. Exclui a unidade
+    await supabase.from("unidades_medida").delete().eq("id", deleteInfo.id);
+    setUnidades(prev => prev.filter(u => u.id !== deleteInfo.id));
+    setDeleteInfo(null);
+    setDeletando(false);
   };
 
   if (loading) {
@@ -888,6 +931,7 @@ function UnidadesMedidaTab({ sz }) {
   }
 
   return (
+    <>
     <div style={{ display: "flex", flexDirection: "column", gap: sz.pad }}>
       {TIPOS_UNIDADE.map(({ tipo, label, color }) => {
         const lista   = unidades.filter(u => u.tipo === tipo);
@@ -917,7 +961,7 @@ function UnidadesMedidaTab({ sz }) {
                   <span style={{ flex: 1, fontSize: sz.fontBase, color: C.text }}>{u.nome}</span>
                   {isAdmin && (
                     <button
-                      onClick={() => remover(u.id, u.nome)}
+                      onClick={() => iniciarRemover(u)}
                       title="Remover"
                       style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, color: C.muted, cursor: "pointer", padding: "4px 7px", display: "flex", alignItems: "center", lineHeight: 0, transition: "border-color 0.12s, color 0.12s" }}
                       onMouseEnter={e => { e.currentTarget.style.borderColor = C.red + "66"; e.currentTarget.style.color = C.red; }}
@@ -963,6 +1007,56 @@ function UnidadesMedidaTab({ sz }) {
         );
       })}
     </div>
+
+    {deleteInfo && createPortal(
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 420 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: `${C.red}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <LuTriangleAlert size={22} color={C.red} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2 }}>Excluir unidade</div>
+              <div style={{ fontSize: sz.fontSm + 1, color: C.muted }}>Esta ação não pode ser desfeita.</div>
+            </div>
+          </div>
+
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: sz.fontBase, marginBottom: 4 }}>
+              "{deleteInfo.nome}" ({deleteInfo.abbr})
+            </div>
+            {deleteInfo.afetados > 0 ? (
+              <div style={{ fontSize: sz.fontSm + 1, color: C.red, fontWeight: 600 }}>
+                ⚠ {deleteInfo.afetados} {deleteInfo.afetados === 1 ? "produto ficará" : "produtos ficarão"} sem essa unidade configurada após a exclusão.
+              </div>
+            ) : (
+              <div style={{ fontSize: sz.fontSm + 1, color: C.muted }}>
+                Nenhum produto utiliza essa unidade.
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={() => setDeleteInfo(null)}
+              disabled={deletando}
+              style={{ flex: 1, padding: "11px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: deletando ? "not-allowed" : "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit", opacity: deletando ? 0.5 : 1 }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmarRemover}
+              disabled={deletando}
+              style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: deletando ? C.faint : C.red, color: "#fff", cursor: deletando ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
+            >
+              {deletando ? "Excluindo..." : "Sim, excluir"}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 }
 
