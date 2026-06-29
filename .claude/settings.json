@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npx vite *)",
       "Bash(grep -v \"//.*fontSize\")",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(Get-Content \"c:\\\\Users\\\\Bonas\\\\Documents\\\\Gastromundi by Kora\\\\gastromundi\\\\.env.local\")",
+      "Bash(Select-String \"SUPABASE_URL\")"
     ]
   }
 }
