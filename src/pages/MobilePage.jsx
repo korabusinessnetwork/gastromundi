@@ -440,6 +440,14 @@ export default function MobilePage() {
 
         {cartAberto && cartItems.length > 0 && (
           <div style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, maxHeight: 200, overflowY: "auto", padding: "8px 0" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 14px 6px", borderBottom: `1px solid ${C.border}` }}>
+              <button
+                onClick={() => { setCartItems([]); setCartAberto(false); }}
+                style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 12, fontWeight: 700, padding: "4px 0", display: "flex", alignItems: "center", gap: 4, WebkitTapHighlightColor: "transparent" }}
+              >
+                <LuX size={13} /> Limpar carrinho
+              </button>
+            </div>
             {cartItems.map((item, i) => (
               <div key={item._key ?? i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", borderBottom: i < cartItems.length - 1 ? `1px solid ${C.border}` : "none" }}>
                 <span style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>{item.name}</span>
