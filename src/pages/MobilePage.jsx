@@ -519,22 +519,49 @@ export default function MobilePage() {
                   </div>
                   <button onClick={fecharDetalhe} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, lineHeight: 0, flexShrink: 0 }}><LuX size={22} /></button>
                 </div>
-                <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
-                  {items.map((item, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 20px", borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, color: C.accent, flexShrink: 0 }}>{item.qty ?? 1}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{item.name}</div>
-                        {item.launched_at && (
-                          <div style={{ fontSize: 11, color: C.muted, display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
-                            <LuClock size={10} />
-                            {new Date(item.launched_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                <div style={{ flex: 1, overflowY: "auto" }}>
+                  {items.map((item, i) => {
+                    const qty = item.qty ?? 1;
+                    const lancHora = item.launched_at
+                      ? new Date(item.launched_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                      : null;
+                    return (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                        {/* Badge de quantidade — destaque visual */}
+                        <div style={{
+                          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                          background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+                          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                          lineHeight: 1,
+                        }}>
+                          <span style={{ fontWeight: 900, fontSize: 18, color: C.accent }}>{qty}</span>
+                          <span style={{ fontSize: 9, color: C.accent, opacity: 0.7, fontWeight: 700, letterSpacing: 0.3 }}>un</span>
+                        </div>
+                        {/* Nome + horário */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 15, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {item.emoji ? `${item.emoji} ${item.name}` : item.name}
                           </div>
-                        )}
+                          {lancHora && (
+                            <div style={{ fontSize: 11, color: C.muted, display: "flex", alignItems: "center", gap: 3, marginTop: 3 }}>
+                              <LuClock size={10} /> {lancHora}
+                            </div>
+                          )}
+                        </div>
+                        {/* Preço */}
+                        <div style={{ flexShrink: 0, textAlign: "right" }}>
+                          <div style={{ fontWeight: 800, fontSize: 15, color: C.green }}>
+                            R$ {((item.price ?? 0) * qty).toFixed(2)}
+                          </div>
+                          {qty > 1 && (
+                            <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
+                              {qty}× R$ {Number(item.price ?? 0).toFixed(2)}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: C.green, flexShrink: 0 }}>R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div style={{ padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", borderTop: `1px solid ${C.border}`, display: "flex", gap: 10, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
