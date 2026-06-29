@@ -47,20 +47,28 @@ export function AppProvider({ children }) {
   useEffect(() => {
     async function bootstrap() {
       const [
-        { data: productsData },
-        { data: pendingData },
-        { data: salesData },
-        { data: usersData },
-        { data: fechamentosData },
-        { data: configData },
+        { data: productsData, error: eProducts },
+        { data: pendingData,  error: ePending  },
+        { data: salesData,    error: eSales    },
+        { data: usersData,    error: eUsers    },
+        { data: fechamentosData, error: eFech  },
+        { data: configData,   error: eConfig   },
       ] = await Promise.all([
         supabase.from("products").select("id,name,price,category,emoji,active,description,unit").eq("active", true).order("id"),
-        supabase.from("pending").select("id,comanda,mesa,items,status,total,garcom,created_by,created_at,updated_at").order("created_at", { ascending: false }),
-        supabase.from("sales").select("id,data,at,comanda,cashier,metodo,total,troco,items").order("at", { ascending: false }),
-        supabase.from("users").select("id,name,username,password,role,permissions,active").eq("active", true),
-        supabase.from("fechamentos").select("id,data,created_at,user,role,fundo,totalVendas,totalConferido,metodos,obs").order("created_at", { ascending: false }),
+        supabase.from("pending").select("*").order("created_at", { ascending: false }),
+        supabase.from("sales").select("id,data,created_at").order("created_at", { ascending: false }),
+        supabase.from("users").select("id,name,username,password,role,active").eq("active", true),
+        supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
         supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","credentials","estoque","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
       ]);
+
+      if (eUsers)    console.error("[bootstrap] users error:", eUsers);
+      if (eProducts) console.error("[bootstrap] products error:", eProducts);
+      if (ePending)  console.error("[bootstrap] pending error:", ePending);
+      if (eSales)    console.error("[bootstrap] sales error:", eSales);
+      if (eFech)     console.error("[bootstrap] fechamentos error:", eFech);
+      if (eConfig)   console.error("[bootstrap] config error:", eConfig);
+      console.log("[bootstrap] users carregados:", usersData?.length ?? 0, usersData?.map(u => u.username));
 
       if (productsData?.length)    setProductsLocal(productsData);
       if (pendingData)             setPendingLocal(pendingData);
