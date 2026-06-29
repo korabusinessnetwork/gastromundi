@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +21,97 @@ const EMPTY_FORM = {
   unidade_consumo: "",
   codigo_barras: "",
 };
+
+const CATS_VISIVEIS = 6; // quantas categorias mostrar antes do "Mais"
+
+function CategoriasComBusca({ categorias, catFiltro, setCatFiltro, busca, setBusca, sz }) {
+  const todas = ["Todos", ...categorias];
+  const visiveis = todas.slice(0, CATS_VISIVEIS);
+  const extras   = todas.slice(CATS_VISIVEIS);
+  const [aberto, setAberto] = useState(false);
+  const dropRef = useRef(null);
+
+  // fecha dropdown ao clicar fora
+  useEffect(() => {
+    if (!aberto) return;
+    const handler = (e) => {
+      if (dropRef.current && !dropRef.current.contains(e.target)) setAberto(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [aberto]);
+
+  const btnCat = (cat, small = false) => {
+    const ativo = catFiltro === cat;
+    return (
+      <button
+        key={cat}
+        onClick={() => { setCatFiltro(cat); setAberto(false); }}
+        style={{
+          padding: small ? "6px 14px" : "7px 18px",
+          borderRadius: 20, border: "none",
+          background: ativo ? C.accent : C.surface,
+          color: ativo ? "#fff" : C.muted,
+          cursor: "pointer", fontWeight: 600,
+          fontSize: sz.fontBase, whiteSpace: "nowrap",
+          flexShrink: 0, transition: "background 0.15s, color 0.15s",
+          textAlign: "left", fontFamily: "inherit",
+          width: small ? "100%" : undefined,
+        }}
+      >
+        {cat}
+      </button>
+    );
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: `12px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+      {/* Categorias visíveis */}
+      <div style={{ display: "flex", gap: 8, flex: 1, flexWrap: "nowrap", overflow: "hidden" }}>
+        {visiveis.map(cat => btnCat(cat))}
+
+        {/* Botão "Mais categorias" */}
+        {extras.length > 0 && (
+          <div ref={dropRef} style={{ position: "relative", flexShrink: 0 }}>
+            <button
+              onClick={() => setAberto(v => !v)}
+              style={{
+                padding: "7px 18px", borderRadius: 20, border: "none",
+                background: (aberto || extras.includes(catFiltro)) ? C.accent : C.surface,
+                color: (aberto || extras.includes(catFiltro)) ? "#fff" : C.muted,
+                cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase,
+                whiteSpace: "nowrap", transition: "background 0.15s, color 0.15s",
+                fontFamily: "inherit",
+              }}
+            >
+              {extras.includes(catFiltro) ? catFiltro : `+ ${extras.length} mais`} ▾
+            </button>
+
+            {aberto && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 6px)", left: 0,
+                background: C.card, border: `1px solid ${C.border}`,
+                borderRadius: 12, padding: 8, zIndex: 200,
+                minWidth: 180, boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                display: "flex", flexDirection: "column", gap: 4,
+              }}>
+                {extras.map(cat => btnCat(cat, true))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Campo de busca */}
+      <input
+        value={busca}
+        onChange={e => setBusca(e.target.value)}
+        placeholder="Buscar produto..."
+        style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, outline: "none", fontFamily: "inherit", width: 260, flexShrink: 0 }}
+      />
+    </div>
+  );
+}
 
 export default function ProdutosView() {
   const { products, addProduct, updateProduct, removeProduct, currentUser } = useApp();
@@ -267,23 +358,15 @@ export default function ProdutosView() {
         </div>
       </div>
 
-      {/* Filtros de categoria */}
       {/* Categorias + Busca */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: `12px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-        <div style={{ display: "flex", gap: 8, overflowX: "auto", flex: 1, flexShrink: 0 }}>
-          {["Todos", ...categorias].map(cat => (
-            <button key={cat} onClick={() => setCatFiltro(cat)} style={{ padding: "7px 18px", borderRadius: 20, border: "none", background: catFiltro === cat ? C.accent : C.surface, color: catFiltro === cat ? "#fff" : C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, whiteSpace: "nowrap", flexShrink: 0, transition: "background 0.15s, color 0.15s" }}>
-              {cat}
-            </button>
-          ))}
-        </div>
-        <input
-          value={busca}
-          onChange={e => setBusca(e.target.value)}
-          placeholder="Buscar produto..."
-          style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, outline: "none", fontFamily: "inherit", width: 260, flexShrink: 0 }}
-        />
-      </div>
+      <CategoriasComBusca
+        categorias={categorias}
+        catFiltro={catFiltro}
+        setCatFiltro={setCatFiltro}
+        busca={busca}
+        setBusca={setBusca}
+        sz={sz}
+      />
 
       {/* Tabela */}
       <div style={{ flex: 1, overflowY: "auto" }}>
