@@ -127,7 +127,8 @@ export default function MobilePage() {
       }
 
       const anteriores = Array.isArray(order.items) ? order.items : [];
-      const novos      = cartItems.map(({ _key, ...rest }) => rest);
+      const agora      = new Date().toISOString();
+      const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
       const acumulados = [...anteriores, ...novos];
       const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
       await updatePending(order.id, { items: acumulados, total: novoTotal });
@@ -524,7 +525,12 @@ export default function MobilePage() {
                       <div style={{ width: 28, height: 28, borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, color: C.accent, flexShrink: 0 }}>{item.qty ?? 1}</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{item.name}</div>
-                        {item.emoji && <div style={{ fontSize: 12, color: C.muted }}>{item.emoji}</div>}
+                        {item.launched_at && (
+                          <div style={{ fontSize: 11, color: C.muted, display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
+                            <LuClock size={10} />
+                            {new Date(item.launched_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        )}
                       </div>
                       <div style={{ fontWeight: 700, fontSize: 14, color: C.green, flexShrink: 0 }}>R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}</div>
                     </div>
