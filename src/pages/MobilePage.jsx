@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
@@ -45,14 +45,17 @@ export default function MobilePage() {
   // Detalhe da comanda (bottom sheet)
   const [detalheComanda, setDetalheComanda] = useState(null); // order object
   const [detalheVisible, setDetalheVisible] = useState(false);
+  const detalheTimer = useRef(null);
 
   const abrirDetalhe = (order) => {
+    // cancela qualquer close em andamento para evitar race condition
+    if (detalheTimer.current) clearTimeout(detalheTimer.current);
     setDetalheComanda(order);
     setDetalheVisible(true);
   };
   const fecharDetalhe = () => {
     setDetalheVisible(false);
-    setTimeout(() => setDetalheComanda(null), 300);
+    detalheTimer.current = setTimeout(() => setDetalheComanda(null), 300);
   };
 
   const abertas = pending.filter(o => o.status !== "closed");
@@ -201,7 +204,7 @@ export default function MobilePage() {
               {abertas.length} comanda{abertas.length !== 1 ? "s" : ""} em aberto
             </div>
           </div>
-          <button onClick={() => setMode("pedido")} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: C.accent, border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, fontSize: 14, WebkitTapHighlightColor: "transparent" }}>
+          <button onClick={() => { setMode("pedido"); setLancComanda(""); setLancMesa(""); }} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: C.accent, border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, fontSize: 14, WebkitTapHighlightColor: "transparent" }}>
             <LuArrowLeft size={16} /> Voltar
           </button>
         </div>
@@ -306,7 +309,7 @@ export default function MobilePage() {
           </div>
         </div>
         <button
-          onClick={() => setMode("grid")}
+          onClick={() => { setMode("grid"); setLancComanda(""); setLancMesa(""); }}
           style={{
             display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
             background: C.surface, border: `1.5px solid ${C.border}`, borderRadius: 12,
@@ -427,7 +430,7 @@ export default function MobilePage() {
           <div style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, maxHeight: 200, overflowY: "auto", padding: "8px 0" }}>
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 14px 6px", borderBottom: `1px solid ${C.border}` }}>
               <button
-                onClick={() => { setCartItems([]); setCartAberto(false); }}
+                onClick={() => { setCartItems([]); setCartAberto(false); setLancComanda(""); setLancMesa(""); }}
                 style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 12, fontWeight: 700, padding: "4px 0", display: "flex", alignItems: "center", gap: 4, WebkitTapHighlightColor: "transparent" }}
               >
                 <LuX size={13} /> Limpar carrinho
@@ -506,7 +509,8 @@ export default function MobilePage() {
       <div onClick={e => { if (e.target === e.currentTarget) fecharDetalhe(); }} style={{ position: "fixed", inset: 0, zIndex: 9100, background: detalheVisible ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif", pointerEvents: detalheComanda ? "auto" : "none", transition: "background 0.3s" }}>
         <div style={{ background: C.card, borderRadius: "20px 20px 0 0", width: "100%", maxHeight: "80dvh", border: `1px solid ${C.border}`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", transform: detalheVisible ? "translateY(0)" : "translateY(100%)", transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)" }}>
           {detalheComanda && (() => {
-            const order = detalheComanda;
+            // sempre usa dados frescos do pending; fallback para o snapshot local (ex: logo após lançamento)
+            const order = mapa[String(detalheComanda.comanda)] ?? detalheComanda;
             const items = Array.isArray(order.items) ? order.items : [];
             const totalOrder = items.reduce((s, it) => s + (it.price ?? 0) * (it.qty ?? 1), 0);
             const hora = order.updated_at
