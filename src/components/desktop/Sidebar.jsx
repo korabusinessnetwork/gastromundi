@@ -114,7 +114,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
   };
 
   return (
-    <aside style={{ background: C.card, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100vh" }}>
+    <aside style={{ background: C.card, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100dvh" }}>
 
       {/* Logo */}
       <div style={{ padding: "20px 20px 14px", borderBottom: `1px solid ${C.border}` }}>

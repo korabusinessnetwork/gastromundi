@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import C from "@/constants/colors";
+import { getSizes } from "@/constants/sizes";
+import { useResponsive } from "@/utils/hooks";
 import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid, LuLogOut, LuClock } from "react-icons/lu";
 
 const TOTAL_COMANDAS = 1000;
@@ -20,6 +22,9 @@ export default function MobilePage() {
     lancadas, addLancada,
     logout,
   } = useApp();
+
+  const { width } = useResponsive();
+  const sz = getSizes(width);
 
   const [mode,       setMode]       = useState("pedido"); // "pedido" | "grid"
   const [cartItems,  setCartItems]  = useState([]);
@@ -206,7 +211,7 @@ export default function MobilePage() {
                 <div style={{ fontWeight: 600, fontSize: 15 }}>Nenhuma comanda encontrada</div>
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: sz.gridCols, gap: 12, padding: 16 }}>
                 {resultadosGrid.map(order => {
                   const isLancada = lancadas.has(order.id);
                   const items     = Array.isArray(order.items) ? order.items : [];
@@ -226,7 +231,7 @@ export default function MobilePage() {
             )
           ) : (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: sz.gridCols, gap: 12, padding: 16 }}>
                 {Array.from({ length: limite }, (_, i) => i + 1).map(num => {
                   const order     = mapa[String(num)];
                   const isLancada = order ? lancadas.has(order.id) : false;
@@ -348,7 +353,7 @@ export default function MobilePage() {
         const qItens = buscaItens.trim().toLowerCase();
         const visiveis = qItens ? filtrados.filter(p => p.name.toLowerCase().includes(qItens)) : filtrados;
         return (
-          <div style={{ flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: 14, alignContent: "start", paddingBottom: "calc(120px + env(safe-area-inset-bottom))" }}>
+          <div style={{ flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: sz.gridCols, gap: 10, padding: 14, alignContent: "start", paddingBottom: "calc(120px + env(safe-area-inset-bottom))" }}>
             {visiveis.length === 0 ? (
               <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, gap: 10, color: C.muted }}>
                 <LuSearch size={40} style={{ opacity: 0.3 }} />
