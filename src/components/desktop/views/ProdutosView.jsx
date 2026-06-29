@@ -7,20 +7,17 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { labelEstoque, getUnidadesCompra, fmtQtd } from "@/utils/conversaoUnidades";
-import { LuTriangleAlert, LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon, LuRuler, LuPlus } from "react-icons/lu";
+import { LuTriangleAlert, LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon, LuRuler } from "react-icons/lu";
 
 const EMOJIS = ["🍺","🥤","💧","🍹","🍸","🥂","🍷","🍵","☕","🍔","🍟","🍕","🌭","🥪","🥗","🍝","🍣","🍜","🌮","🥩","🍗","🍖","🥚","🧀","🍰","🍦","🍫","🍿","🧂","🍱"];
 
-const SUGESTOES_ESTOQUE = ["un", "kg", "g", "L", "ml", "cx", "pct", "dt"];
-
-const EMPTY_UC = { unidade: "", fator: "", detalhamento: "", unidade_destino: "" };
+const EMPTY_COMPRA = { nome: "", unidade: "", fator: "" };
 
 const EMPTY_FORM = {
   name: "", price: "", category: "", emoji: "",
-  unidade_estoque: "un",
+  unidade_estoque: "",
+  compras: [],
   unidade_consumo: "",
-  fator_consumo_estoque: "",
-  unidades_compra: [],
 };
 
 export default function ProdutosView() {
@@ -36,12 +33,12 @@ export default function ProdutosView() {
   const [deleteId,  setDeleteId]  = useState(null);
   const [deletando, setDeletando] = useState(false);
   const [catFiltro,    setCatFiltro]    = useState("Todos");
-  const [editingUC,    setEditingUC]    = useState(null); // índice do card com nome em edição
   const [busca,     setBusca]     = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [unidadesMedida, setUnidadesMedida] = useState([]);
+  const [editingCompra, setEditingCompra] = useState(null);
+  const [isInsumo, setIsInsumo] = useState(false);
 
-  const [consumoDiferente, setConsumoDiferente] = useState(false);
-  const [compraDiferente,  setCompraDiferente]  = useState(false);
 
   // ── Categorias ────────────────────────────────────────────────
   const [showCatModal,  setShowCatModal]  = useState(false);
@@ -53,6 +50,8 @@ export default function ProdutosView() {
   useEffect(() => {
     supabase.from("config").select("value").eq("key", "categorias_extra").single()
       .then(({ data }) => { if (data?.value && Array.isArray(data.value)) setCatExtra(data.value); });
+    supabase.from("unidades_medida").select("*").order("ordem")
+      .then(({ data }) => { if (data) setUnidadesMedida(data); });
   }, []);
 
   const salvarCatExtra = async (lista) => {
@@ -102,46 +101,35 @@ export default function ProdutosView() {
 
   // ── Modal ─────────────────────────────────────────────────────
 
-  const resetToggles = () => { setConsumoDiferente(false); setCompraDiferente(false); };
-
-  const abrirNovo = () => {
-    setForm(EMPTY_FORM);
+  const abrirNovo = (insumo = false) => {
+    setIsInsumo(insumo);
+    setForm({ ...EMPTY_FORM, category: insumo ? "Insumo" : "" });
     setErro("");
     setEditId(null);
-    resetToggles();
     setModal("novo");
   };
 
   const abrirEditar = (p) => {
-    let unidades_compra = [];
+    const insumo = p.category === "Insumo";
+    setIsInsumo(insumo);
+    let compras = [];
     if (Array.isArray(p.unidades_compra) && p.unidades_compra.length > 0) {
-      unidades_compra = p.unidades_compra.map(u => ({
-        unidade:         u.unidade ?? "",
-        fator:           u.fator != null ? String(u.fator) : "",
-        detalhamento:    u.detalhamento ?? "",
-        unidade_destino: u.unidade_destino ?? "",
+      compras = p.unidades_compra.map(u => ({
+        nome:    u.nome ?? "",
+        unidade: u.unidade ?? "",
+        fator:   u.fator != null ? String(u.fator) : "",
       }));
-    } else if (p.unidade_compra) {
-      unidades_compra = [{
-        unidade:         p.unidade_compra,
-        fator:           p.fator_compra_estoque ? String(p.fator_compra_estoque) : "",
-        detalhamento:    p.detalhamento_compra ?? "",
-        unidade_destino: "",
-      }];
     }
 
     setForm({
-      name:                  p.name,
-      price:                 String(p.price),
-      category:              p.category ?? "",
-      emoji:                 p.emoji ?? "",
-      unidade_estoque:       p.unidade_estoque ?? p.unidade ?? "un",
-      unidade_consumo:       p.unidade_consumo ?? "",
-      fator_consumo_estoque: p.fator_consumo_estoque ? String(p.fator_consumo_estoque) : "",
-      unidades_compra,
+      name:            p.name,
+      price:           String(p.price ?? "0"),
+      category:        p.category ?? "",
+      emoji:           p.emoji ?? "",
+      unidade_estoque: p.unidade_estoque ?? p.unidade ?? "",
+      compras,
+      unidade_consumo: p.unidade_consumo ?? "",
     });
-    setConsumoDiferente(!!p.unidade_consumo);
-    setCompraDiferente(unidades_compra.length > 0);
     setErro("");
     setEditId(p.id);
     setModal("editar");
@@ -150,52 +138,41 @@ export default function ProdutosView() {
   const fecharModal = () => {
     setModal(null);
     setShowEmojiPicker(false);
+    setEditingCompra(null);
     setErro("");
-    resetToggles();
   };
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const setUnidadeEstoque = (v) => setField("unidade_estoque", v);
+  const addCompra = () => setForm(f => {
+    const n = f.compras.length + 1;
+    const nome = f.compras.filter(c => c.nome.startsWith("Fornecedor")).length > 0
+      ? `Fornecedor ${n}` : "Fornecedor";
+    return { ...f, compras: [...f.compras, { ...EMPTY_COMPRA, nome }] };
+  });
 
-  const toggleConsumoDiferente = () => {
-    if (consumoDiferente) {
-      setConsumoDiferente(false);
-      setForm(f => ({ ...f, unidade_consumo: "" }));
-    } else {
-      setConsumoDiferente(true);
-    }
-  };
+  const setCompra = (idx, k, v) => setForm(f => ({
+    ...f,
+    compras: f.compras.map((c, i) => i === idx ? { ...c, [k]: v } : c),
+  }));
 
-  // ── Helpers de unidades de compra ─────────────────────────────
-  const addUnidadeCompra = () =>
-    setForm(f => ({ ...f, unidades_compra: [...f.unidades_compra, { ...EMPTY_UC, unidade: `Fornecedor ${f.unidades_compra.length + 1}` }] }));
-
-  const setUC = (idx, k, v) =>
-    setForm(f => ({
-      ...f,
-      unidades_compra: f.unidades_compra.map((u, i) => i === idx ? { ...u, [k]: v } : u),
-    }));
-
-  const removeUC = (idx) =>
-    setForm(f => ({ ...f, unidades_compra: f.unidades_compra.filter((_, i) => i !== idx) }));
+  const removeCompra = (idx) => setForm(f => ({
+    ...f,
+    compras: f.compras.filter((_, i) => i !== idx),
+  }));
 
   // ── Validação ─────────────────────────────────────────────────
   const validar = () => {
-    if (!form.name.trim())             return "Informe o nome do produto.";
-    if (!form.price)                   return "Informe o preço.";
-    const p = parseFloat(String(form.price).replace(",", "."));
-    if (isNaN(p) || p <= 0)           return "Preço deve ser maior que zero.";
-    if (!form.category.trim())         return "Informe a categoria.";
-    if (!form.unidade_estoque.trim())  return "Informe a unidade de estoque.";
-    if (consumoDiferente && !form.unidade_consumo.trim()) return "Informe a unidade de consumo ou desative o toggle.";
-    if (consumoDiferente && !form.fator_consumo_estoque)  return "Informe o fator de conversão de consumo.";
-    if (compraDiferente) {
-      if (form.unidades_compra.length === 0) return "Adicione ao menos uma unidade de compra.";
-      for (const u of form.unidades_compra) {
-        if (!u.unidade.trim()) return "Preencha o nome de todas as unidades de compra.";
-        if (!u.fator)          return "Preencha o fator de conversão de todas as unidades de compra.";
-      }
+    if (!form.name.trim())            return "Informe o nome.";
+    if (!isInsumo) {
+      if (!form.price)                return "Informe o preço.";
+      const p = parseFloat(String(form.price).replace(",", "."));
+      if (isNaN(p) || p <= 0)        return "Preço deve ser maior que zero.";
+    }
+    if (!form.category.trim())        return "Informe a categoria.";
+    if (!form.unidade_estoque.trim()) return "Selecione a unidade de estoque.";
+    for (const c of form.compras) {
+      if (c.unidade && !c.fator) return `Informe o fator de conversão do fornecedor "${c.nome || "sem nome"}".`;
     }
     return null;
   };
@@ -204,32 +181,28 @@ export default function ProdutosView() {
     const err = validar();
     if (err) { setErro(err); return; }
     setSalvando(true);
+    const ue = form.unidade_estoque.trim() || "un";
     const payload = {
-      name:                  form.name.trim(),
-      price:                 parseFloat(String(form.price).replace(",", ".")),
-      category:              form.category.trim(),
+      name:                  form.name.trim().toUpperCase(),
+      price:                 isInsumo ? 0 : parseFloat(String(form.price).replace(",", ".")),
+      category:              isInsumo ? "Insumo" : form.category.trim(),
       emoji:                 form.emoji || null,
-      unidade_estoque:       form.unidade_estoque.trim() || "un",
-      unidade_consumo:       consumoDiferente && form.unidade_consumo.trim() ? form.unidade_consumo.trim() : null,
-      fator_consumo_estoque: consumoDiferente && form.fator_consumo_estoque ? parseFloat(form.fator_consumo_estoque) : 1,
-      unidades_compra:       compraDiferente
-        ? form.unidades_compra
-            .filter(u => u.unidade.trim() && u.fator)
-            .map(u => ({ unidade: u.unidade.trim(), fator: parseFloat(u.fator), detalhamento: u.detalhamento.trim() || null, unidade_destino: u.unidade_destino || null }))
-        : [],
-      unidade_compra:       null,
-      fator_compra_estoque: null,
-      detalhamento_compra:  null,
+      unidade_estoque:       ue,
+      unidade_consumo:       form.unidade_consumo.trim() || null,
+      fator_consumo_estoque: 1,
+      unidades_compra:       form.compras
+        .filter(c => c.unidade && c.fator)
+        .map(c => ({ nome: c.nome.trim() || null, unidade: c.unidade, fator: parseFloat(c.fator), unidade_destino: ue })),
     };
     let dbError = null;
     if (modal === "novo") {
       const { error } = await addProduct({ id: crypto.randomUUID(), ...payload });
       dbError = error;
-      if (!error) logAction(currentUser?.username, "produto:criar", { msg: `Produto cadastrado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
+      if (!error) logAction(currentUser?.username, isInsumo ? "insumo:criar" : "produto:criar", { msg: `${isInsumo ? "Insumo" : "Produto"} cadastrado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
     } else {
       const { error } = await updateProduct(editId, payload);
       dbError = error;
-      if (!error) logAction(currentUser?.username, "produto:editar", { msg: `Produto editado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
+      if (!error) logAction(currentUser?.username, isInsumo ? "insumo:editar" : "produto:editar", { msg: `${isInsumo ? "Insumo" : "Produto"} editado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
     }
     setSalvando(false);
     if (dbError) { setErro(dbError.message ?? "Erro ao salvar. Verifique o console."); return; }
@@ -248,9 +221,9 @@ export default function ProdutosView() {
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
 
-  const fcFator = parseFloat(form.fator_consumo_estoque) || 0;
-  const ue = form.unidade_estoque || "…";
-  const uc = form.unidade_consumo || "…";
+  const unidadesEstoque = unidadesMedida.filter(u => u.tipo === "estoque");
+  const unidadesCompra  = unidadesMedida.filter(u => u.tipo === "compra");
+  const unidadesConsumo = unidadesMedida.filter(u => u.tipo === "consumo");
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
@@ -268,7 +241,10 @@ export default function ProdutosView() {
               <button onClick={() => setShowCatModal(true)} style={{ padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
                 <LuTag size={15} /> Categorias
               </button>
-              <button onClick={abrirNovo} style={{ padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer", whiteSpace: "nowrap" }}>
+              <button onClick={() => abrirNovo(true)} style={{ padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: `1.5px solid ${C.green}`, background: `${C.green}12`, color: C.green, fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer", whiteSpace: "nowrap" }}>
+                + Novo Insumo
+              </button>
+              <button onClick={() => abrirNovo(false)} style={{ padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer", whiteSpace: "nowrap" }}>
                 + Novo Produto
               </button>
             </>
@@ -349,7 +325,7 @@ export default function ProdutosView() {
         <div onClick={e => { if (e.target === e.currentTarget) fecharModal(); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
           <div style={{ background: C.card, borderRadius: 20, padding: 24, width: "100%", maxWidth: 560, border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 20, maxHeight: "92vh", overflowY: "auto", color: C.text, fontFamily: "inherit", boxSizing: "border-box" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>{modal === "novo" ? "Novo Produto" : "Editar Produto"}</div>
+              <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>{modal === "novo" ? (isInsumo ? "Novo Insumo" : "Novo Produto") : (isInsumo ? "Editar Insumo" : "Editar Produto")}</div>
               <button onClick={fecharModal} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: "pointer", padding: "6px 8px", display: "flex", alignItems: "center", justifyContent: "center" }}><LuXIcon size={16} /></button>
             </div>
 
@@ -378,269 +354,175 @@ export default function ProdutosView() {
               <Input value={form.name} onChange={v => setField("name", v)} placeholder="Ex: Cerveja 600ml" maxLength={60} />
             </div>
 
-            {/* Categoria */}
-            <div>
-              <Label>Categoria *</Label>
-              <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                {categorias.map(cat => (
-                  <button key={cat} onClick={() => setField("category", cat)} style={{ padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${form.category === cat ? C.accent : C.border}`, background: form.category === cat ? C.alow : C.surface, color: form.category === cat ? C.accent : C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1 }}>
-                    {cat}
-                  </button>
-                ))}
+            {/* Categoria — oculta para insumos */}
+            {!isInsumo && (
+              <div>
+                <Label>Categoria *</Label>
+                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                  {categorias.map(cat => (
+                    <button key={cat} onClick={() => setField("category", cat)} style={{ padding: "6px 14px", borderRadius: 20, border: `1.5px solid ${form.category === cat ? C.accent : C.border}`, background: form.category === cat ? C.alow : C.surface, color: form.category === cat ? C.accent : C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1 }}>
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+                <Input value={form.category} onChange={v => setField("category", v)} placeholder="Ou digite uma nova categoria" maxLength={40} style={{ marginTop: 8 }} />
               </div>
-              <Input value={form.category} onChange={v => setField("category", v)} placeholder="Ou digite uma nova categoria" maxLength={40} style={{ marginTop: 8 }} />
-            </div>
+            )}
 
-            {/* Preço */}
-            <div>
-              <Label>Preço (R$) *</Label>
-              <div style={{ position: "relative", marginTop: 8 }}>
-                <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: sz.fontBase, fontWeight: 600 }}>R$</span>
-                <input type="number" min="0" step="0.01" value={form.price} onChange={e => setField("price", e.target.value)} placeholder="0,00" style={{ width: "100%", padding: `11px 14px 11px 42px`, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase + 2, fontWeight: 700, boxSizing: "border-box", fontFamily: "inherit", outline: "none" }} />
+            {/* Preço — oculto para insumos */}
+            {!isInsumo && (
+              <div>
+                <Label>Preço (R$) *</Label>
+                <div style={{ position: "relative", marginTop: 8 }}>
+                  <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: sz.fontBase, fontWeight: 600 }}>R$</span>
+                  <input type="number" min="0" step="0.01" value={form.price} onChange={e => setField("price", e.target.value)} placeholder="0,00" style={{ width: "100%", padding: `11px 14px 11px 42px`, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase + 2, fontWeight: 700, boxSizing: "border-box", fontFamily: "inherit", outline: "none" }} />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* ── Seção: Unidades de medida ── */}
-            <div style={{ background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 16, display: "flex", flexDirection: "column", gap: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <LuRuler size={15} color={C.accent} />
                 <span style={{ fontWeight: 800, fontSize: sz.fontBase, color: C.text }}>Unidades de medida</span>
               </div>
 
               {/* Bloco 1: Unidade de estoque */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Label>Unidade de estoque *</Label>
-                <input value={form.unidade_estoque} onChange={e => setUnidadeEstoque(e.target.value)} placeholder="ex: L, kg, un, g, ml" style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${form.unidade_estoque ? C.accent + "55" : C.border}`, background: C.card, color: C.text, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
-                <div style={{ fontSize: 14, color: C.muted }}>Como este insumo será armazenado no estoque.</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {SUGESTOES_ESTOQUE.map(u => (
-                    <button key={u} onClick={() => setUnidadeEstoque(u)} style={{ padding: "4px 12px", borderRadius: 20, border: `1px solid ${form.unidade_estoque === u ? C.accent : C.border}`, background: form.unidade_estoque === u ? C.alow : "none", color: form.unidade_estoque === u ? C.accent : C.muted, cursor: "pointer", fontSize: 18, fontWeight: 600, fontFamily: "inherit" }}>{u}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ borderTop: `1px solid ${C.border}` }} />
-
-              {/* Bloco 2: Unidade de consumo */}
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <Label>Unidade de consumo</Label>
-                  <ToggleBtn on={consumoDiferente} onToggle={toggleConsumoDiferente} label={consumoDiferente ? "Diferente" : "Igual ao estoque"} />
+                <div style={{ fontSize: sz.fontBase, fontWeight: 600, color: C.text }}>
+                  Eu estoco esse produto em
                 </div>
-                {!consumoDiferente ? (
-                  <div style={{ fontSize: 16, color: C.muted, padding: "8px 12px", background: C.card, borderRadius: 8, border: `1px solid ${C.border}` }}>
-                    Consumo registrado em: <strong style={{ color: C.text }}>{ue}</strong>
-                  </div>
+                {unidadesEstoque.length === 0 ? (
+                  <div style={{ fontSize: 13, color: C.muted }}>Nenhuma unidade de estoque cadastrada.</div>
                 ) : (
-                  <div style={{ background: C.card, borderRadius: 12, border: `1.5px solid ${C.green}33`, padding: "16px" }}>
-                    {/* Equação — linha única com scroll se necessário */}
-                    <div style={{ overflowX: "auto", paddingBottom: 4 }}>
-                      <div style={{ display: "flex", alignItems: "flex-end", gap: 10, minWidth: "max-content" }}>
-                        {/* Esquerdo: sincronizado */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                          <span style={{ fontSize: 13, color: C.accent, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>sincronizado</span>
-                          <div style={{ fontSize: 18, fontWeight: 800, color: C.accent, background: C.alow, padding: "10px 18px", borderRadius: 10, border: `2px solid ${C.accent}55`, minWidth: 76, textAlign: "center" }}>
-                            {form.unidade_estoque || "—"}
-                          </div>
-                        </div>
-                        <span style={{ fontSize: 16, color: C.muted, fontWeight: 600, paddingBottom: 12 }}>é equivalente a</span>
-                        {/* Número */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                          <span style={{ fontSize: 13, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>quantidade</span>
-                          <input
-                            type="number"
-                            step="0.001"
-                            min="0"
-                            value={form.fator_consumo_estoque}
-                            onChange={e => setField("fator_consumo_estoque", e.target.value)}
-                            placeholder="0"
-                            style={{ width: 96, padding: "10px 12px", borderRadius: 10, border: `2px solid ${form.fator_consumo_estoque ? C.green + "88" : C.border}`, background: C.surface, color: C.text, fontSize: 16, fontWeight: 700, fontFamily: "inherit", outline: "none", textAlign: "center" }}
-                          />
-                        </div>
-                        {/* Direito: badge da unidade escolhida */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                          <span style={{ fontSize: 13, color: form.unidade_consumo ? C.green : C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                            {form.unidade_consumo ? "selecionado" : "selecione"}
-                          </span>
-                          <div style={{ fontSize: 18, fontWeight: 800, color: form.unidade_consumo ? C.green : C.muted, background: form.unidade_consumo ? `${C.green}15` : C.surface, padding: "10px 18px", borderRadius: 10, border: `2px solid ${form.unidade_consumo ? C.green + "55" : C.border}`, minWidth: 76, textAlign: "center" }}>
-                            {form.unidade_consumo || "—"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Grid de seleção */}
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
-                      {SUGESTOES_ESTOQUE.map(u => (
-                        <button key={u} onClick={() => setField("unidade_consumo", u)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${form.unidade_consumo === u ? C.green : C.border}`, background: form.unidade_consumo === u ? `${C.green}18` : C.surface, color: form.unidade_consumo === u ? C.green : C.muted, cursor: "pointer", fontSize: 16, fontWeight: 700, fontFamily: "inherit", transition: "all 0.12s" }}>
-                          {u}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Confirmação */}
-                    {form.unidade_estoque && fcFator > 0 && form.unidade_consumo && (
-                      <div style={{ fontSize: 18, color: C.green, padding: "6px 10px", background: `${C.green}10`, borderRadius: 8, border: `1px solid ${C.green}33`, marginTop: 12 }}>
-                        ✓ 1 {form.unidade_estoque} = {fmtQtd(fcFator)} {form.unidade_consumo} · ex: 10 {form.unidade_estoque} = {fmtQtd(10 * fcFator)} {form.unidade_consumo}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ borderTop: `1px solid ${C.border}` }} />
-
-              {/* Bloco 3: Unidades de compra (múltiplas) */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <Label>Unidades de compra</Label>
-                  <ToggleBtn
-                    on={compraDiferente}
-                    onToggle={() => {
-                      if (compraDiferente) {
-                        setCompraDiferente(false);
-                        setForm(f => ({ ...f, unidades_compra: [] }));
-                      } else {
-                        setCompraDiferente(true);
-                        setForm(f => ({ ...f, unidades_compra: f.unidades_compra.length ? f.unidades_compra : [{ ...EMPTY_UC, unidade: "Fornecedor 1" }] }));
-                      }
-                    }}
-                    label={compraDiferente ? `${form.unidades_compra.length} configurada${form.unidades_compra.length !== 1 ? "s" : ""}` : "Igual ao estoque"}
-                  />
-                </div>
-
-                {!compraDiferente ? (
-                  <div style={{ fontSize: 16, color: C.muted, padding: "8px 12px", background: C.card, borderRadius: 8, border: `1px solid ${C.border}` }}>
-                    Comprado em: <strong style={{ color: C.text }}>{ue}</strong>
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {form.unidades_compra.length === 0 && (
-                      <div style={{ fontSize: 16, color: C.muted, textAlign: "center", padding: "14px 0", border: `1.5px dashed ${C.border}`, borderRadius: 10 }}>
-                        Nenhuma unidade adicionada
-                      </div>
-                    )}
-
-                    {form.unidades_compra.map((u, idx) => {
-                      const fp = parseFloat(u.fator) || 0;
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {unidadesEstoque.map(u => {
+                      const sel = form.unidade_estoque === u.abreviacao;
                       return (
-                        <div key={idx} style={{ background: C.card, borderRadius: 12, border: `1.5px solid ${C.blue}33`, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-                          {/* Cabeçalho do card */}
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                            {editingUC === idx ? (
-                              <input
-                                autoFocus
-                                value={u.unidade}
-                                onChange={e => setUC(idx, "unidade", e.target.value)}
-                                onBlur={() => setEditingUC(null)}
-                                onKeyDown={e => e.key === "Enter" && setEditingUC(null)}
-                                placeholder="fornecedor"
-                                style={{ flex: 1, padding: "6px 10px", borderRadius: 8, border: `1.5px solid ${C.blue}66`, background: C.surface, color: C.text, fontSize: 16, fontWeight: 700, fontFamily: "inherit", outline: "none" }}
-                              />
-                            ) : (
-                              <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: u.unidade ? C.text : C.muted }}>
-                                {u.unidade ? u.unidade.toUpperCase() : "FORNECEDOR"}
-                              </span>
-                            )}
-                            <button
-                              onClick={() => setEditingUC(editingUC === idx ? null : idx)}
-                              title="Editar nome"
-                              style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, cursor: "pointer", color: editingUC === idx ? C.blue : C.muted, padding: "4px 7px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                            >
-                              <LuPencil size={12} />
-                            </button>
-                            <button
-                              onClick={() => removeUC(idx)}
-                              style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, cursor: "pointer", color: C.muted, padding: "4px 7px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-                            >
-                              <LuXIcon size={13} />
-                            </button>
-                          </div>
-
-                          {/* Equação visual — igual ao bloco de consumo */}
-                          <div style={{ overflowX: "auto", paddingBottom: 4 }}>
-                            <div style={{ display: "flex", alignItems: "flex-end", gap: 10, minWidth: "max-content" }}>
-                              {/* Esquerdo: sincronizado com unidade_estoque */}
-                              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                                <span style={{ fontSize: 13, color: C.blue, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>sincronizado</span>
-                                <div style={{ fontSize: 18, fontWeight: 800, color: C.blue, background: `${C.blue}15`, padding: "10px 18px", borderRadius: 10, border: `2px solid ${C.blue}55`, minWidth: 76, textAlign: "center" }}>
-                                  {ue || "—"}
-                                </div>
-                              </div>
-                              <span style={{ fontSize: 16, color: C.muted, fontWeight: 600, paddingBottom: 12 }}>é equivalente a</span>
-                              {/* Número */}
-                              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                                <span style={{ fontSize: 13, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>quantidade</span>
-                                <input
-                                  type="number"
-                                  step="0.001"
-                                  min="0"
-                                  value={u.fator}
-                                  onChange={e => setUC(idx, "fator", e.target.value)}
-                                  placeholder="0"
-                                  style={{ width: 96, padding: "10px 12px", borderRadius: 10, border: `2px solid ${u.fator ? C.blue + "88" : C.border}`, background: C.surface, color: C.text, fontSize: 16, fontWeight: 700, fontFamily: "inherit", outline: "none", textAlign: "center" }}
-                                />
-                              </div>
-                              {/* Direito: badge da unidade escolhida no grid */}
-                              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                                <span style={{ fontSize: 13, color: u.unidade_destino ? C.blue : C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                                  {u.unidade_destino ? "selecionado" : "selecione"}
-                                </span>
-                                <div style={{ fontSize: 18, fontWeight: 800, color: u.unidade_destino ? C.blue : C.muted, background: u.unidade_destino ? `${C.blue}15` : C.surface, padding: "10px 18px", borderRadius: 10, border: `2px solid ${u.unidade_destino ? C.blue + "55" : C.border}`, minWidth: 76, textAlign: "center" }}>
-                                  {u.unidade_destino || "—"}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          {/* Grid de seleção da unidade destino */}
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            {SUGESTOES_ESTOQUE.map(s => (
-                              <button key={s} onClick={() => setUC(idx, "unidade_destino", s)} style={{ padding: "6px 14px", borderRadius: 8, border: `2px solid ${u.unidade_destino === s ? C.blue : C.border}`, background: u.unidade_destino === s ? `${C.blue}18` : C.surface, color: u.unidade_destino === s ? C.blue : C.muted, cursor: "pointer", fontSize: 16, fontWeight: 700, fontFamily: "inherit", transition: "all 0.12s" }}>
-                                {s}
-                              </button>
-                            ))}
-                          </div>
-                          {/* Confirmação / preview */}
-                          {u.unidade && fp > 0 && u.unidade_destino && (
-                            <div style={{ fontSize: 18, color: C.blue, padding: "6px 10px", background: `${C.blue}10`, borderRadius: 8, border: `1px solid ${C.blue}33` }}>
-                              ✓ 1 {u.unidade} = {fmtQtd(fp)} {u.unidade_destino} · entrada de 1 {u.unidade} → +{fmtQtd(fp)} {u.unidade_destino} ao estoque
-                            </div>
-                          )}
-                        </div>
+                        <button key={u.id} onClick={() => setField("unidade_estoque", u.abreviacao)} style={{ padding: "8px 16px", borderRadius: 10, border: `2px solid ${sel ? C.accent : C.border}`, background: sel ? C.alow : C.card, color: sel ? C.accent : C.muted, cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", transition: "all 0.12s" }}>
+                          {u.abreviacao}
+                          <span style={{ fontSize: 11, fontWeight: 500, marginLeft: 4, opacity: 0.7 }}>{u.nome !== u.abreviacao ? u.nome : ""}</span>
+                        </button>
                       );
                     })}
-
-                    {/* Botão adicionar */}
-                    <button
-                      onClick={addUnidadeCompra}
-                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 10, border: `1.5px dashed ${C.accent}55`, background: `${C.accent}07`, color: C.accent, cursor: "pointer", fontWeight: 700, fontSize: 16, fontFamily: "inherit", width: "100%" }}
-                    >
-                      <LuPlus size={14} /> Adicionar unidade de compra
-                    </button>
                   </div>
                 )}
               </div>
 
-              {/* Resumo final */}
-              {form.unidade_estoque && (consumoDiferente || (compraDiferente && form.unidades_compra.some(u => u.unidade && u.fator))) && (
-                <div style={{ background: C.card, borderRadius: 10, border: `1px solid ${C.border}`, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Resumo das conversões</div>
-                  {compraDiferente && form.unidades_compra.filter(u => u.unidade && u.fator).map((u, idx) => (
-                    <div key={idx} style={{ fontSize: 18, display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: C.muted }}>Compra ({u.unidade}):</span>
-                      <span>1 {u.unidade} → <strong style={{ color: C.blue }}>{fmtQtd(parseFloat(u.fator))} {ue}</strong></span>
+              <div style={{ borderTop: `1px solid ${C.border}` }} />
+
+              {/* Bloco 2: Unidades de compra (multi-fornecedor) */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ fontSize: sz.fontBase, fontWeight: 600, color: C.text }}>Unidade de compra</div>
+
+                {form.compras.length === 0 && (
+                  <div style={{ fontSize: 13, color: C.muted }}>Nenhum fornecedor adicionado.</div>
+                )}
+
+                {form.compras.map((c, idx) => {
+                  const fator = parseFloat(c.fator) || 0;
+                  const isEditing = editingCompra === idx;
+                  return (
+                    <div key={idx} style={{ background: C.card, borderRadius: 12, border: `1.5px solid ${C.blue}33`, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+                      {/* Cabeçalho com nome do fornecedor */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {isEditing ? (
+                          <input
+                            autoFocus
+                            value={c.nome}
+                            onChange={e => setCompra(idx, "nome", e.target.value)}
+                            onBlur={() => setEditingCompra(null)}
+                            onKeyDown={e => e.key === "Enter" && setEditingCompra(null)}
+                            maxLength={40}
+                            style={{ flex: 1, padding: "5px 9px", borderRadius: 7, border: `1.5px solid ${C.blue}66`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontWeight: 700, fontFamily: "inherit", outline: "none" }}
+                          />
+                        ) : (
+                          <span style={{ flex: 1, fontWeight: 700, fontSize: sz.fontBase, color: c.nome ? C.text : C.muted }}>
+                            {c.nome || "Fornecedor"}
+                          </span>
+                        )}
+                        <button onClick={() => setEditingCompra(isEditing ? null : idx)} title="Renomear" style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, cursor: "pointer", color: isEditing ? C.blue : C.muted, padding: "4px 7px", display: "flex", alignItems: "center", lineHeight: 0 }}>
+                          <LuPencil size={12} />
+                        </button>
+                        <button onClick={() => removeCompra(idx)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, cursor: "pointer", color: C.muted, padding: "4px 7px", display: "flex", alignItems: "center", lineHeight: 0 }}>
+                          <LuXIcon size={13} />
+                        </button>
+                      </div>
+
+                      {/* Frase de conversão */}
+                      <div style={{ fontSize: sz.fontBase, color: C.text }}>
+                        Uma{" "}
+                        <span style={{ color: C.blue, fontWeight: 800 }}>{c.unidade || "…"}</span>
+                        {" "}equivale a{" "}
+                        <input
+                          type="number"
+                          step="0.001"
+                          min="0"
+                          value={c.fator}
+                          onChange={e => setCompra(idx, "fator", e.target.value)}
+                          placeholder="0"
+                          style={{ width: 68, padding: "4px 8px", borderRadius: 7, border: `2px solid ${c.fator ? C.blue + "88" : C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontWeight: 700, fontFamily: "inherit", outline: "none", textAlign: "center", display: "inline-block", verticalAlign: "middle" }}
+                        />
+                        {" "}<span style={{ color: C.accent, fontWeight: 800 }}>{form.unidade_estoque || "…"}</span>{" "}de estoque
+                      </div>
+
+                      {/* Botões de unidade */}
+                      {unidadesCompra.length === 0 ? (
+                        <div style={{ fontSize: 13, color: C.muted }}>Nenhuma unidade de compra cadastrada.</div>
+                      ) : (
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {unidadesCompra.map(u => {
+                            const sel = c.unidade === u.abreviacao;
+                            return (
+                              <button key={u.id} onClick={() => setCompra(idx, "unidade", sel ? "" : u.abreviacao)} style={{ padding: "6px 14px", borderRadius: 9, border: `2px solid ${sel ? C.blue : C.border}`, background: sel ? `${C.blue}15` : C.surface, color: sel ? C.blue : C.muted, cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", transition: "all 0.12s" }}>
+                                {u.abreviacao}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Preview */}
+                      {c.unidade && fator > 0 && form.unidade_estoque && (
+                        <div style={{ fontSize: 13, color: C.blue, padding: "5px 9px", background: `${C.blue}10`, borderRadius: 7, border: `1px solid ${C.blue}33` }}>
+                          ✓ 1 {c.unidade} → +{fmtQtd(fator)} {form.unidade_estoque} no estoque
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {consumoDiferente && form.unidade_consumo && (
-                    <div style={{ fontSize: 18, display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: C.muted }}>Consumo:</span>
-                      <span>1 {ue} → <strong style={{ color: C.green }}>{fcFator || "?"} {uc}</strong></span>
-                    </div>
-                  )}
-                  <div style={{ fontSize: 18, display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: C.muted }}>Estoque:</span>
-                    <span style={{ color: C.muted }}>referência → <strong style={{ color: C.text }}>{ue}</strong></span>
-                  </div>
+                  );
+                })}
+
+                <button
+                  onClick={addCompra}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 10, border: `1.5px dashed ${C.blue}55`, background: `${C.blue}07`, color: C.blue, cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
+                >
+                  <LuPencil size={13} /> + Adicionar fornecedor
+                </button>
+              </div>
+
+              <div style={{ borderTop: `1px solid ${C.border}` }} />
+
+              {/* Bloco 3: Unidade de consumo */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ fontSize: sz.fontBase, fontWeight: 600, color: C.text }}>
+                  Eu consumo/vendo em
                 </div>
-              )}
+                {unidadesConsumo.length === 0 ? (
+                  <div style={{ fontSize: 13, color: C.muted }}>Nenhuma unidade de consumo cadastrada.</div>
+                ) : (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {unidadesConsumo.map(u => {
+                      const sel = form.unidade_consumo === u.abreviacao;
+                      return (
+                        <button key={u.id} onClick={() => setField("unidade_consumo", sel ? "" : u.abreviacao)} style={{ padding: "8px 16px", borderRadius: 10, border: `2px solid ${sel ? C.green : C.border}`, background: sel ? `${C.green}15` : C.card, color: sel ? C.green : C.muted, cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", transition: "all 0.12s" }}>
+                          {u.abreviacao}
+                          <span style={{ fontSize: 11, fontWeight: 500, marginLeft: 4, opacity: 0.7 }}>{u.nome !== u.abreviacao ? u.nome : ""}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Erro */}
@@ -654,7 +536,7 @@ export default function ProdutosView() {
             <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
               <button onClick={fecharModal} style={{ flex: 1, padding: 13, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase }}>Cancelar</button>
               <button onClick={salvar} disabled={salvando} style={{ flex: 2, padding: 13, borderRadius: 10, border: "none", background: salvando ? C.faint : C.accent, color: "#fff", cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontBase }}>
-                {salvando ? "Salvando..." : modal === "novo" ? "Cadastrar Produto" : "Salvar Alterações"}
+                {salvando ? "Salvando..." : modal === "novo" ? (isInsumo ? "Cadastrar Insumo" : "Cadastrar Produto") : "Salvar Alterações"}
               </button>
             </div>
           </div>
@@ -756,13 +638,3 @@ function Input({ value, onChange, placeholder, maxLength, style }) {
   );
 }
 
-function ToggleBtn({ on, onToggle, label }) {
-  return (
-    <button onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 7, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
-      <span style={{ fontSize: 14, color: on ? C.accent : C.muted, fontWeight: 600 }}>{label}</span>
-      <div style={{ width: 36, height: 20, borderRadius: 10, background: on ? C.accent : C.faint, padding: 2, display: "flex", alignItems: "center", justifyContent: on ? "flex-end" : "flex-start", transition: "all 0.2s", flexShrink: 0 }}>
-        <div style={{ width: 16, height: 16, borderRadius: "50%", background: "#fff" }} />
-      </div>
-    </button>
-  );
-}

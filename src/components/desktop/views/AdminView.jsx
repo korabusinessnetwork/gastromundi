@@ -7,7 +7,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import {
   LuPlus, LuPencil, LuTrash2, LuX, LuClipboardList,
-  LuStickyNote, LuTruck, LuShoppingCart, LuCheck,
+  LuTruck, LuShoppingCart, LuCheck,
   LuCalendar, LuArrowLeft, LuChevronRight, LuSearch,
   LuLink, LuPackage, LuPercent, LuFileText,
 } from "react-icons/lu";
@@ -23,7 +23,6 @@ const uid   = () => Date.now().toString(36) + Math.random().toString(36).slice(2
 const fmtR  = (v) => "R$ " + Number(v ?? 0).toFixed(2);
 const fmtDt = (d) => d ? new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "—";
 
-const NOTE_CORES = [C.accent, C.blue, C.green, "#f59e0b", C.red];
 
 const STATUS_COMPRA = {
   pendente:  { label: "Pendente",  color: "#f59e0b" },
@@ -603,81 +602,6 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
 
 // ── Aba: Notas ────────────────────────────────────────────────────
 
-const NOTA_VAZIA = { id: "", titulo: "", conteudo: "", cor: C.accent, criadaEm: "" };
-
-function NotasTab({ sz, notas, onSave, onDelete }) {
-  const [form,     setForm]     = useState(null);
-  const [saving,   setSaving]   = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
-
-  const abrirNova   = () => setForm({ ...NOTA_VAZIA, id: uid(), criadaEm: new Date().toISOString() });
-  const abrirEditar = (n) => setForm({ ...n });
-  const fechar      = () => setForm(null);
-  const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  const salvar = async () => {
-    if (!form?.titulo?.trim()) return;
-    setSaving(true);
-    const nova = [...notas.filter(n => n.id !== form.id), { ...form, titulo: form.titulo.trim() }]
-      .sort((a, b) => new Date(b.criadaEm) - new Date(a.criadaEm));
-    await onSave("notas_admin", nova);
-    setSaving(false);
-    fechar();
-  };
-
-  const excluir = async () => {
-    await onDelete("notas_admin", notas.filter(n => n.id !== deleteId));
-    setDeleteId(null);
-  };
-
-  return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <div style={{ color: C.muted, fontSize: sz.fontSm + 1 }}>{notas.length} nota{notas.length !== 1 ? "s" : ""}</div>
-        <AddBtn onClick={abrirNova} label="Nova Nota" />
-      </div>
-
-      {notas.length === 0 ? (
-        <EmptyMsg icon={LuStickyNote} msg="Nenhuma nota cadastrada" />
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
-          {notas.map(n => (
-            <div key={n.id} style={{ background: C.card, borderRadius: 16, border: `1px solid ${C.border}`, borderTop: `4px solid ${n.cor ?? C.accent}`, padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>{n.titulo}</div>
-                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                  <CardBtn onClick={() => abrirEditar(n)}><LuPencil size={12} /></CardBtn>
-                  <CardBtn onClick={() => setDeleteId(n.id)}><LuTrash2 size={12} /></CardBtn>
-                </div>
-              </div>
-              {n.conteudo && <div style={{ fontSize: sz.fontSm + 1, color: C.muted, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{n.conteudo.length > 200 ? n.conteudo.slice(0, 200) + "…" : n.conteudo}</div>}
-              {n.criadaEm && <div style={{ fontSize: 14, color: C.muted, marginTop: "auto" }}>{fmtDt(n.criadaEm)}</div>}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {form && (
-        <ModalBase title={notas.find(n => n.id === form.id) ? "Editar Nota" : "Nova Nota"} onClose={fechar} onSave={salvar} saving={saving}>
-          <Field label="Título *"><Inp value={form.titulo} onChange={v => setF("titulo", v)} placeholder="Título da nota" /></Field>
-          <Field label="Conteúdo"><Txta value={form.conteudo} onChange={v => setF("conteudo", v)} placeholder="Escreva aqui..." rows={5} /></Field>
-          <Field label="Cor">
-            <div style={{ display: "flex", gap: 10 }}>
-              {NOTE_CORES.map(cor => (
-                <button key={cor} onClick={() => setF("cor", cor)} style={{ width: 28, height: 28, borderRadius: "50%", background: cor, border: "none", cursor: "pointer", flexShrink: 0, outline: form.cor === cor ? `3px solid ${cor}` : "none", outlineOffset: 2 }} />
-              ))}
-            </div>
-          </Field>
-        </ModalBase>
-      )}
-
-      {deleteId && (
-        <DeleteConfirm msg={`A nota <strong>${notas.find(n => n.id === deleteId)?.titulo}</strong> será removida.`} onCancel={() => setDeleteId(null)} onConfirm={excluir} />
-      )}
-    </div>
-  );
-}
-
 // ── Aba: Fornecedores ─────────────────────────────────────────────
 
 const FORN_VAZIO = { id: "", nome: "", categoria: "", contato: "", telefone: "", email: "", observacoes: "" };
@@ -1129,15 +1053,14 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
 
 const SECOES = [
   { id: "fichas",       label: "Ficha Técnica", desc: "Receitas, ingredientes e custo por porção", Icon: LuClipboardList, color: C.accent  },
-  { id: "notas",        label: "Notas",         desc: "Anotações e lembretes internos",            Icon: LuStickyNote,   color: "#f59e0b" },
   { id: "fornecedores", label: "Fornecedores",  desc: "Contatos e cadastro de fornecedores",       Icon: LuTruck,        color: C.blue    },
   { id: "compras",      label: "Compras",       desc: "Registro de compras e pedidos",             Icon: LuShoppingCart, color: C.green   },
   { id: "impostos",     label: "Impostos",      desc: "Alíquotas e configuração fiscal",           Icon: LuPercent,      color: "#f97316" },
   { id: "notas_fiscais", label: "Notas Fiscais", desc: "Importação de NF-e via XML e controle de entradas", Icon: LuFileText, color: C.blue },
 ];
 
-function GradeInicial({ sz, onSelecionar, fichas, notas, fornecedores, compras, impostos, notasFiscaisCount }) {
-  const contadores = { fichas: fichas.length, notas: notas.length, fornecedores: fornecedores.length, compras: compras.length, impostos: impostos.length, notas_fiscais: notasFiscaisCount };
+function GradeInicial({ sz, onSelecionar, fichas, fornecedores, compras, impostos, notasFiscaisCount }) {
+  const contadores = { fichas: fichas.length, fornecedores: fornecedores.length, compras: compras.length, impostos: impostos.length, notas_fiscais: notasFiscaisCount };
   return (
     <div style={{ maxWidth: 700, margin: "0 auto" }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -1178,7 +1101,6 @@ export default function AdminView() {
 
   const [secao,              setSecao]              = useState(null);
   const [fichas,             setFichas]             = useState([]);
-  const [notas,              setNotas]              = useState([]);
   const [fornecedores,       setFornecedores]       = useState([]);
   const [compras,            setCompras]            = useState([]);
   const [impostos,           setImpostos]           = useState([]);
@@ -1188,13 +1110,12 @@ export default function AdminView() {
   useEffect(() => {
     Promise.all([
       supabase.from("config").select("key, value")
-        .in("key", ["fichas_tecnicas", "notas_admin", "fornecedores", "compras", "impostos"]),
+        .in("key", ["fichas_tecnicas", "fornecedores", "compras", "impostos"]),
       supabase.from("notas_fiscais").select("id", { count: "exact", head: true }),
     ]).then(([{ data }, { count }]) => {
       if (data) {
         const get = (key) => { const r = data.find(d => d.key === key); return Array.isArray(r?.value) ? r.value : []; };
         setFichas(get("fichas_tecnicas"));
-        setNotas(get("notas_admin"));
         setFornecedores(get("fornecedores"));
         setCompras(get("compras"));
         setImpostos(get("impostos"));
@@ -1207,7 +1128,6 @@ export default function AdminView() {
   const handleSave = async (key, value) => {
     await supabase.from("config").upsert({ key, value });
     if (key === "fichas_tecnicas") setFichas(value);
-    if (key === "notas_admin")     setNotas(value);
     if (key === "fornecedores")    setFornecedores(value);
     if (key === "compras")         setCompras(value);
     if (key === "impostos")        setImpostos(value);
@@ -1240,11 +1160,10 @@ export default function AdminView() {
         {loading ? (
           <div style={{ color: C.muted, textAlign: "center", padding: 60 }}>Carregando...</div>
         ) : !secao ? (
-          <GradeInicial sz={sz} onSelecionar={setSecao} fichas={fichas} notas={notas} fornecedores={fornecedores} compras={compras} impostos={impostos} notasFiscaisCount={notasFiscaisCount} />
+          <GradeInicial sz={sz} onSelecionar={setSecao} fichas={fichas} fornecedores={fornecedores} compras={compras} impostos={impostos} notasFiscaisCount={notasFiscaisCount} />
         ) : (
           <>
             {secao === "fichas"       && <FichasTecnicasTab sz={sz} fichas={fichas}             products={products} estoque={estoque} onSave={handleSave} onDelete={handleSave} />}
-            {secao === "notas"        && <NotasTab          sz={sz} notas={notas}               onSave={handleSave} onDelete={handleSave} />}
             {secao === "fornecedores" && <FornecedoresTab   sz={sz} fornecedores={fornecedores} onSave={handleSave} onDelete={handleSave} />}
             {secao === "compras"      && <ComprasTab        sz={sz} compras={compras}           fornecedores={fornecedores} onSave={handleSave} onDelete={handleSave} />}
             {secao === "impostos"     && <ImpostosTab       sz={sz} impostos={impostos}          onSave={handleSave} onDelete={handleSave} />}

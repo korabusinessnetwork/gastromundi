@@ -214,7 +214,7 @@ export default function PDVView() {
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
     const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
     const todosItens      = [...itensAcumulados, ...itensLocais];
-    const total           = todosItens.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+    const total           = todosItens.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
 
     const sale = {
       id:      crypto.randomUUID(),
@@ -667,7 +667,7 @@ export default function PDVView() {
               <span style={{ fontWeight: 700, fontSize: 16, color: "#f59e0b", flex: 1 }}>
                 {criticos.length > 0 && `${criticos.length} produto${criticos.length !== 1 ? "s" : ""} sem estoque`}
                 {criticos.length > 0 && baixos.length > 0 && " · "}
-                {baixos.length > 0 && `${baixos.length} com estoque baixo`}
+                {baixos.length > 0 && `${baixos.length} produtos com estoque baixo`}
               </span>
               <span style={{ fontSize: 18, color: "#f59e0b", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                 {alertaAberto ? <><LuChevronUp size={14} /> Ocultar</> : <><LuChevronDown size={14} /> Ver</>}
@@ -708,15 +708,15 @@ export default function PDVView() {
       {mode === "grid" && (
         <div style={{
           flexShrink: 0,
-          padding: "14px 24px",
+          padding: "16px 24px",
           borderBottom: `1px solid ${C.border}`,
           display: "flex", justifyContent: "center",
         }}>
-          <div style={{ position: "relative", width: "100%", maxWidth: 560 }}>
+          <div style={{ position: "relative", width: "100%", maxWidth: 760 }}>
             <LuSearch
-              size={18}
+              size={20}
               color={buscaComanda ? C.accent : C.muted}
-              style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", transition: "color 0.15s" }}
+              style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", transition: "color 0.15s" }}
             />
             <input
               value={buscaComanda}
@@ -725,12 +725,12 @@ export default function PDVView() {
               inputMode="numeric"
               style={{
                 width: "100%",
-                padding: "13px 44px",
-                borderRadius: 12,
+                padding: "16px 52px",
+                borderRadius: 14,
                 border: `1.5px solid ${buscaComanda ? C.accent + "88" : C.border}`,
                 background: C.surface,
                 color: C.text,
-                fontSize: 16,
+                fontSize: 18,
                 fontFamily: "inherit",
                 outline: "none",
                 boxSizing: "border-box",
@@ -1866,7 +1866,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
             }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 17, color: C.text }}>Total do Dia (projetado)</div>
-                <div style={{ fontSize: 18, color: C.muted, marginTop: 2 }}>Fechadas + em aberto</div>
+                <div style={{ fontSize: 18, color: C.muted, marginTop: 2 }}>Fechadas + em aberto · cancelamentos não incluídos</div>
               </div>
               <div style={{ fontWeight: 900, fontSize: 26, color: C.green }}>
                 R$ {(totalVendas + totalAberto).toFixed(2)}

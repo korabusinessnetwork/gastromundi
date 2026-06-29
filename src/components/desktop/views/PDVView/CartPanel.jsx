@@ -56,8 +56,8 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
   const abrirExcluir = (tipo, idx, item) => {
     const qtyMax = item.qty ?? 1;
-    setConfirmExcluir({ tipo, idx, qtyMax, qtySel: qtyMax, motivo: "", item });
-    setQtyInputStr(String(qtyMax));
+    setConfirmExcluir({ tipo, idx, qtyMax, qtySel: 1, motivo: "", item });
+    setQtyInputStr("1");
     setItemSenha(""); setItemSenhaErro(false); setItemSenhaVis(false); setItemSenhaOk(false);
   };
 

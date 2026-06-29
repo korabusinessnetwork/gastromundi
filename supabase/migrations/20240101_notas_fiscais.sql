@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS notas_fiscais (
 CREATE TABLE IF NOT EXISTS notas_fiscais_itens (
   id                 UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   nota_fiscal_id     UUID REFERENCES notas_fiscais(id) ON DELETE CASCADE,
-  product_id         UUID REFERENCES products(id) ON DELETE SET NULL,
+  product_id         BIGINT REFERENCES products(id) ON DELETE SET NULL,
   descricao_xml      TEXT,
   codigo_xml         TEXT,
   unidade_xml        TEXT,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS notas_fiscais_itens (
 -- Entradas de estoque geradas por cada nota
 CREATE TABLE IF NOT EXISTS estoque_entradas (
   id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  product_id     UUID REFERENCES products(id) ON DELETE CASCADE,
+  product_id     BIGINT REFERENCES products(id) ON DELETE CASCADE,
   nota_fiscal_id UUID REFERENCES notas_fiscais(id) ON DELETE SET NULL,
   quantidade     NUMERIC(12,4),
   preco_unitario NUMERIC(12,4),

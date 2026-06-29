@@ -273,7 +273,12 @@ export default function NotasFiscaisTab({ sz }) {
     if (!file.name.toLowerCase().endsWith(".xml")) {
       setXmlErro("Apenas arquivos .xml são aceitos."); return;
     }
-    const text = await file.text();
+    // Detecta encoding declarado no XML (NF-e v3.10 pode ser ISO-8859-1)
+    const rawBuffer = await file.arrayBuffer();
+    const sniff = new TextDecoder("utf-8").decode(rawBuffer.slice(0, 200));
+    const encMatch = sniff.match(/encoding=["']([^"']+)["']/i);
+    const charset = encMatch ? encMatch[1] : "utf-8";
+    const text = new TextDecoder(charset).decode(rawBuffer);
     const result = parseNFe(text);
     if (!result.valido) { setXmlErro(result.erro); return; }
     setXmlErro("");

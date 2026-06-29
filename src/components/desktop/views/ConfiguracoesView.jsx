@@ -1,11 +1,12 @@
-﻿import { useState, useMemo } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
+import { supabase } from "@/lib/supabase";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { hashPassword, passwordStrength, sanitizeInput } from "@/utils";
 import { getPermissions } from "@/constants/roles";
 import C from "@/constants/colors";
-import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX } from "react-icons/lu";
 
 const ROLES = [
   { id: "admin",   label: "Administrador", color: C.accent },
@@ -833,12 +834,145 @@ function MeiosPagamentoTab({ sz }) {
   );
 }
 
+// ── Aba Unidades de Medida ────────────────────────────────────────
+
+const TIPOS_UNIDADE = [
+  { tipo: "estoque", label: "Unidade de estoque", color: C.blue   },
+  { tipo: "compra",  label: "Unidade de compra",  color: C.green  },
+  { tipo: "consumo", label: "Unidade de consumo", color: "#f59e0b" },
+];
+
+const EMPTY_ADD = { abbr: "", nome: "" };
+
+function UnidadesMedidaTab({ sz }) {
+  const { currentUser } = useApp();
+  const [unidades,    setUnidades]    = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [addForms,    setAddForms]    = useState({ estoque: EMPTY_ADD, compra: EMPTY_ADD, consumo: EMPTY_ADD });
+  const [salvando,    setSalvando]    = useState({ estoque: false, compra: false, consumo: false });
+
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+
+  useEffect(() => {
+    supabase.from("unidades_medida").select("*").order("ordem").order("nome")
+      .then(({ data }) => { setUnidades(data ?? []); setLoading(false); });
+  }, []);
+
+  const setAddField = (tipo, field, value) =>
+    setAddForms(f => ({ ...f, [tipo]: { ...f[tipo], [field]: value } }));
+
+  const adicionar = async (tipo) => {
+    const { abbr, nome } = addForms[tipo];
+    if (!abbr.trim() || !nome.trim()) return;
+    setSalvando(s => ({ ...s, [tipo]: true }));
+    const { data, error } = await supabase
+      .from("unidades_medida")
+      .insert({ abreviacao: abbr.trim(), nome: nome.trim(), tipo, ordem: 99 })
+      .select()
+      .single();
+    if (!error && data) {
+      setUnidades(prev => [...prev, data]);
+      setAddForms(f => ({ ...f, [tipo]: EMPTY_ADD }));
+    }
+    setSalvando(s => ({ ...s, [tipo]: false }));
+  };
+
+  const remover = async (id, nome) => {
+    if (!window.confirm(`Remover "${nome}"?`)) return;
+    await supabase.from("unidades_medida").delete().eq("id", id);
+    setUnidades(prev => prev.filter(u => u.id !== id));
+  };
+
+  if (loading) {
+    return <div style={{ color: C.muted, fontSize: sz.fontBase, padding: sz.pad }}>Carregando...</div>;
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: sz.pad }}>
+      {TIPOS_UNIDADE.map(({ tipo, label, color }) => {
+        const lista   = unidades.filter(u => u.tipo === tipo);
+        const form    = addForms[tipo];
+        const salvandoEste = salvando[tipo];
+        return (
+          <div key={tipo} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>
+            {/* Cabeçalho */}
+            <div style={{ padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
+              <span style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: C.text }}>{label}</span>
+              <span style={{ fontSize: sz.fontSm, color: C.muted, marginLeft: 4 }}>{lista.length} cadastrada{lista.length !== 1 ? "s" : ""}</span>
+            </div>
+
+            {/* Lista */}
+            <div style={{ padding: `${sz.padSm}px ${sz.pad}px`, display: "flex", flexDirection: "column", gap: 6 }}>
+              {lista.length === 0 && (
+                <div style={{ fontSize: sz.fontSm + 1, color: C.muted, padding: "8px 0" }}>
+                  Nenhuma unidade cadastrada.
+                </div>
+              )}
+              {lista.map(u => (
+                <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}` }}>
+                  <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: sz.fontBase, color, minWidth: 44 }}>
+                    {u.abreviacao}
+                  </span>
+                  <span style={{ flex: 1, fontSize: sz.fontBase, color: C.text }}>{u.nome}</span>
+                  {isAdmin && (
+                    <button
+                      onClick={() => remover(u.id, u.nome)}
+                      title="Remover"
+                      style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, color: C.muted, cursor: "pointer", padding: "4px 7px", display: "flex", alignItems: "center", lineHeight: 0, transition: "border-color 0.12s, color 0.12s" }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = C.red + "66"; e.currentTarget.style.color = C.red; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; }}
+                    >
+                      <LuX size={13} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Formulário inline de adição */}
+            {isAdmin && (
+              <div style={{ padding: `0 ${sz.pad}px ${sz.padSm}px`, display: "flex", gap: 8 }}>
+                <input
+                  value={form.abbr}
+                  onChange={e => setAddField(tipo, "abbr", e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && adicionar(tipo)}
+                  placeholder="abrev."
+                  maxLength={10}
+                  style={{ width: 80, padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${form.abbr ? color + "88" : C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontFamily: "monospace", fontWeight: 700, outline: "none", boxSizing: "border-box" }}
+                />
+                <input
+                  value={form.nome}
+                  onChange={e => setAddField(tipo, "nome", e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && adicionar(tipo)}
+                  placeholder="Nome completo"
+                  maxLength={40}
+                  style={{ flex: 1, padding: "9px 12px", borderRadius: 8, border: `1.5px solid ${form.nome ? color + "88" : C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                />
+                <button
+                  onClick={() => adicionar(tipo)}
+                  disabled={!form.abbr.trim() || !form.nome.trim() || salvandoEste}
+                  style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: form.abbr.trim() && form.nome.trim() ? color : C.faint, color: "#fff", fontWeight: 700, fontSize: sz.fontBase, cursor: form.abbr.trim() && form.nome.trim() ? "pointer" : "not-allowed", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}
+                >
+                  <LuPlus size={14} />
+                  {salvandoEste ? "..." : "Adicionar"}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── View principal ────────────────────────────────────────────────
 
 const ABAS_CONFIG = [
-  { id: "geral",           label: "Geral" },
-  { id: "usuarios",        label: "Usuários" },
-  { id: "meios_pagamento", label: "Meios de Pagamento" },
+  { id: "geral",            label: "Geral" },
+  { id: "usuarios",         label: "Usuários" },
+  { id: "meios_pagamento",  label: "Meios de Pagamento" },
+  { id: "unidades_medida",  label: "Unidades de Medida" },
 ];
 
 function GeralTab({ sz }) {
@@ -937,6 +1071,7 @@ export default function ConfiguracoesView() {
         {aba === "geral"           && <GeralTab sz={sz} />}
         {aba === "usuarios"        && <UsuariosTab sz={sz} />}
         {aba === "meios_pagamento" && <MeiosPagamentoTab sz={sz} />}
+        {aba === "unidades_medida" && <UnidadesMedidaTab sz={sz} />}
       </div>
     </div>
   );
