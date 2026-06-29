@@ -88,10 +88,11 @@ export default function MobilePage() {
 
   const selecionarComanda = (comanda, mesa = "") => {
     const order = mapa[String(comanda)];
-    const hasItems = order && Array.isArray(order.items) && order.items.length > 0;
-    if (hasItems) {
+    if (order) {
+      // comanda já existe → sempre mostra o detalhe (mesmo sem itens)
       abrirDetalhe(order);
     } else {
+      // slot vazio → fluxo rápido de lançamento
       setLancComanda(String(comanda));
       setLancMesa(mesa || "");
       setLancErro("");
@@ -136,6 +137,9 @@ export default function MobilePage() {
       addLancada(order.id);
       logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados (palm) na Comanda ${nomeComanda} · ${novos.length} tipo(s) · R$ ${novoTotal.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, tipos: novos.length, total: novoTotal, via: "palm" });
 
+      // order atualizado localmente — não depende do Supabase sync
+      const updatedOrder = { ...order, items: acumulados, total: novoTotal, updated_at: agora };
+
       setShowLancar(false);
       setLancComanda("");
       setLancMesa("");
@@ -143,6 +147,9 @@ export default function MobilePage() {
       setCartAberto(false);
       setToast(true);
       setTimeout(() => setToast(false), 3000);
+      setMode("grid");
+      // reabre o detalhe imediatamente com os dados locais
+      setTimeout(() => abrirDetalhe(updatedOrder), 80);
     } catch (e) {
       console.error(e);
       setLancErro("Erro ao lançar pedido. Tente novamente.");
