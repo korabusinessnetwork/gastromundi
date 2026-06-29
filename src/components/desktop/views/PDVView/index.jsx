@@ -93,13 +93,15 @@ export default function PDVView() {
   // ── Selecionar comanda → pede mesa antes de entrar ────────────
   const handleSelectComanda = (order) => {
     setBuscaComanda("");
-    if (order.mesa) {
-      // Já tem mesa definida — entra direto
+    const temItens = Array.isArray(order.items) && order.items.length > 0;
+    if (order.mesa || temItens) {
+      // Tem mesa definida OU já tem itens (ex: lançado pelo Palm sem mesa) — entra direto
       setSelected(order);
       setCartItems([]);
       setAbaAtiva("produtos");
       setMode("pedido");
     } else {
+      // Comanda vazia e sem mesa criada no PDV — pede mesa
       setMesaInput("");
       setApelidoInput(order.apelido || "");
       setMesaPendingOrder(order);
