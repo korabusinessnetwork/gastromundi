@@ -277,12 +277,12 @@ export default function ProdutosView() {
       </div>
 
       {/* Campo de busca centralizado */}
-      <div style={{ display: "flex", justifyContent: "center", padding: `10px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", padding: `10px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
         <input
           value={busca}
           onChange={e => setBusca(e.target.value)}
           placeholder="Buscar produto..."
-          style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, outline: "none", fontFamily: "inherit", width: "100%", maxWidth: 420 }}
+          style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, outline: "none", fontFamily: "inherit", width: 260 }}
         />
       </div>
 
