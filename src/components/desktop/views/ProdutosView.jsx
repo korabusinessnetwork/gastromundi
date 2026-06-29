@@ -268,21 +268,20 @@ export default function ProdutosView() {
       </div>
 
       {/* Filtros de categoria */}
-      <div style={{ display: "flex", gap: 8, padding: `12px ${sz.pad}px`, overflowX: "auto", flexShrink: 0 }}>
-        {["Todos", ...categorias].map(cat => (
-          <button key={cat} onClick={() => setCatFiltro(cat)} style={{ padding: "7px 18px", borderRadius: 20, border: "none", background: catFiltro === cat ? C.accent : C.surface, color: catFiltro === cat ? "#fff" : C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, whiteSpace: "nowrap", flexShrink: 0, transition: "background 0.15s, color 0.15s" }}>
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Campo de busca centralizado */}
-      <div style={{ display: "flex", justifyContent: "flex-end", padding: `10px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+      {/* Categorias + Busca */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: `12px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", flex: 1, flexShrink: 0 }}>
+          {["Todos", ...categorias].map(cat => (
+            <button key={cat} onClick={() => setCatFiltro(cat)} style={{ padding: "7px 18px", borderRadius: 20, border: "none", background: catFiltro === cat ? C.accent : C.surface, color: catFiltro === cat ? "#fff" : C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, whiteSpace: "nowrap", flexShrink: 0, transition: "background 0.15s, color 0.15s" }}>
+              {cat}
+            </button>
+          ))}
+        </div>
         <input
           value={busca}
           onChange={e => setBusca(e.target.value)}
           placeholder="Buscar produto..."
-          style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, outline: "none", fontFamily: "inherit", width: 260 }}
+          style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, outline: "none", fontFamily: "inherit", width: 260, flexShrink: 0 }}
         />
       </div>
 
