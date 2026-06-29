@@ -7,7 +7,8 @@ import { hashPassword, passwordStrength, sanitizeInput } from "@/utils";
 import { getPermissions } from "@/constants/roles";
 import C from "@/constants/colors";
 import { createPortal } from "react-dom";
-import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter } from "react-icons/lu";
+import ConfiguracaoImpressao from "./impressao/ConfiguracaoImpressao";
 
 const ROLES = [
   { id: "admin",   label: "Administrador", color: C.accent },
@@ -1063,10 +1064,11 @@ function UnidadesMedidaTab({ sz }) {
 // ── View principal ────────────────────────────────────────────────
 
 const ABAS_CONFIG = [
-  { id: "geral",            label: "Geral" },
-  { id: "usuarios",         label: "Usuários" },
-  { id: "meios_pagamento",  label: "Meios de Pagamento" },
-  { id: "unidades_medida",  label: "Unidades de Medida" },
+  { id: "geral",            label: "Geral",               adminOnly: false },
+  { id: "usuarios",         label: "Usuários",            adminOnly: false },
+  { id: "meios_pagamento",  label: "Meios de Pagamento",  adminOnly: false },
+  { id: "unidades_medida",  label: "Unidades de Medida",  adminOnly: false },
+  { id: "impressao",        label: "Impressão",           adminOnly: true  },
 ];
 
 function GeralTab({ sz }) {
@@ -1123,7 +1125,10 @@ export default function ConfiguracoesView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const { currentUser } = useApp();
+  const isAdmin = currentUser?.role === "admin";
   const [aba, setAba] = useState("geral");
+
+  const abasVisiveis = ABAS_CONFIG.filter(a => !a.adminOnly || isAdmin);
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
@@ -1140,8 +1145,8 @@ export default function ConfiguracoesView() {
         </div>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 4, marginTop: sz.padSm }}>
-          {ABAS_CONFIG.map(a => (
+        <div style={{ display: "flex", gap: 4, marginTop: sz.padSm, flexWrap: "wrap" }}>
+          {abasVisiveis.map(a => (
             <button
               key={a.id}
               onClick={() => setAba(a.id)}
@@ -1152,8 +1157,10 @@ export default function ConfiguracoesView() {
                 cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
                 transition: "background 0.15s, color 0.15s",
                 fontFamily: "inherit",
+                display: "flex", alignItems: "center", gap: 6,
               }}
             >
+              {a.id === "impressao" && <LuPrinter size={13} />}
               {a.label}
             </button>
           ))}
@@ -1166,6 +1173,7 @@ export default function ConfiguracoesView() {
         {aba === "usuarios"        && <UsuariosTab sz={sz} />}
         {aba === "meios_pagamento" && <MeiosPagamentoTab sz={sz} />}
         {aba === "unidades_medida" && <UnidadesMedidaTab sz={sz} />}
+        {aba === "impressao" && isAdmin && <ConfiguracaoImpressao sz={sz} />}
       </div>
     </div>
   );
