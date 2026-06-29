@@ -163,19 +163,20 @@ export default function MobilePage() {
     );
   }
 
-  // ── GRID de comandas ──────────────────────────────────────────
-  if (mode === "grid") {
-    const qGrid = buscaGrid.trim().toLowerCase();
-    const resultadosGrid = qGrid
-      ? abertas.filter(o => {
-          const nome = String(o.comanda).toLowerCase();
-          return nome.includes(qGrid) || fmtComanda(o.comanda).toLowerCase().includes(qGrid) || (o.garcom ?? "").toLowerCase().includes(qGrid);
-        })
-      : null;
+  const qGrid = buscaGrid.trim().toLowerCase();
+  const resultadosGrid = qGrid
+    ? abertas.filter(o => {
+        const nome = String(o.comanda).toLowerCase();
+        return nome.includes(qGrid) || fmtComanda(o.comanda).toLowerCase().includes(qGrid) || (o.garcom ?? "").toLowerCase().includes(qGrid);
+      })
+    : null;
 
-    return (
+  // ── PEDIDO (tela de produtos) ─────────────────────────────────
+  return (
+    <>
+    {/* ── GRID de comandas ── */}
+    {mode === "grid" && (
       <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: C.bg, fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
-
         {/* Header */}
         <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid ${C.border}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div>
@@ -184,44 +185,18 @@ export default function MobilePage() {
               {abertas.length} comanda{abertas.length !== 1 ? "s" : ""} em aberto
             </div>
           </div>
-          <button
-            onClick={() => setMode("pedido")}
-            style={{
-              display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
-              background: C.accent, border: "none", borderRadius: 12,
-              color: "#fff", cursor: "pointer",
-              padding: "10px 16px", fontWeight: 700, fontSize: 14,
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
+          <button onClick={() => setMode("pedido")} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: C.accent, border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, fontSize: 14, WebkitTapHighlightColor: "transparent" }}>
             <LuArrowLeft size={16} /> Voltar
           </button>
         </div>
-
         {/* Busca */}
         <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
           <div style={{ position: "relative" }}>
             <LuSearch size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
-            <input
-              value={buscaGrid}
-              onChange={e => setBuscaGrid(e.target.value)}
-              placeholder="Buscar comanda por nome ou número..."
-              style={{
-                width: "100%", padding: "11px 36px 11px 36px",
-                borderRadius: 12, border: `1.5px solid ${buscaGrid ? C.accent : C.border}`,
-                background: C.surface, color: C.text,
-                fontSize: 15, fontFamily: "inherit", outline: "none",
-                boxSizing: "border-box", transition: "border-color 0.15s",
-              }}
-            />
-            {buscaGrid && (
-              <button onClick={() => setBuscaGrid("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 2 }}>
-                <LuX size={16} />
-              </button>
-            )}
+            <input value={buscaGrid} onChange={e => setBuscaGrid(e.target.value)} placeholder="Buscar comanda por nome ou número..." style={{ width: "100%", padding: "11px 36px 11px 36px", borderRadius: 12, border: `1.5px solid ${buscaGrid ? C.accent : C.border}`, background: C.surface, color: C.text, fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }} />
+            {buscaGrid && <button onClick={() => setBuscaGrid("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 2 }}><LuX size={16} /></button>}
           </div>
         </div>
-
         {/* Grid */}
         <div style={{ flex: 1, overflowY: "auto" }}>
           {resultadosGrid !== null ? (
@@ -243,9 +218,7 @@ export default function MobilePage() {
                       <div style={{ fontWeight: 800, fontSize: 16 }}>{fmtComanda(order.comanda)}</div>
                       {order.mesa && <div style={{ fontSize: 12, color: C.muted }}>Mesa {order.mesa}</div>}
                       {order.garcom && <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
-                      <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? C.green : C.muted }}>
-                        {hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}
-                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? C.green : C.muted }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
                     </div>
                   );
                 })}
@@ -268,9 +241,7 @@ export default function MobilePage() {
                         <>
                           {order.mesa && <div style={{ fontSize: 12, color: C.muted }}>Mesa {order.mesa}</div>}
                           {order.garcom && <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
-                          <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? C.green : C.muted }}>
-                            {hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}
-                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? C.green : C.muted }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
                         </>
                       ) : (
                         <div style={{ fontSize: 12, color: C.muted }}>Disponível</div>
@@ -290,12 +261,10 @@ export default function MobilePage() {
           )}
         </div>
       </div>
-    );
-  }
+    )}
 
-  // ── PEDIDO (tela de produtos) ─────────────────────────────────
-  return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: C.bg, fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
+    {/* ── PEDIDO ── */}
+    {mode === "pedido" && <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: C.bg, fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
 
       {/* Header */}
       <div style={{
@@ -475,237 +444,104 @@ export default function MobilePage() {
         </button>
       </div>
 
-      {/* Toast */}
-      <ToastMsg visible={toast} />
+    </div>}
 
-      {/* Modal Lançar — bottom sheet */}
-      {showLancar && createPortal(
-        <div
-          onClick={e => { if (e.target === e.currentTarget && !salvando) { setShowLancar(false); } }}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9000,
-            background: "rgba(0,0,0,0.65)",
-            display: "flex", alignItems: "flex-end",
-            fontFamily: "'Inter',system-ui,sans-serif",
-          }}
-        >
-          <div style={{
-            background: C.card, borderRadius: "20px 20px 0 0",
-            padding: 24, width: "100%",
-            border: `1px solid ${C.border}`,
-            boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
-            boxSizing: "border-box",
-            display: "flex", flexDirection: "column", gap: 16,
-          }}>
-            {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 18, color: C.text }}>Lançar Pedido</div>
-                <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
-                  {qtdTotal} {qtdTotal === 1 ? "item" : "itens"} · R$ {total.toFixed(2)}
-                </div>
-              </div>
-              <button
-                onClick={() => { if (!salvando) setShowLancar(false); }}
-                style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, lineHeight: 0 }}
-              >
-                <LuX size={22} />
-              </button>
-            </div>
+    {/* Toast — sempre visível independente do mode */}
+    <ToastMsg visible={toast} />
 
-            {/* Campos */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
-                  Número da Comanda *
-                </div>
-                <input
-                  autoFocus
-                  value={lancComanda}
-                  onChange={e => { setLancComanda(e.target.value); setLancErro(""); }}
-                  onKeyDown={e => e.key === "Enter" && document.getElementById("palm-mesa")?.focus()}
-                  placeholder="Ex: 42 ou Mesa VIP"
-                  maxLength={40}
-                  style={{
-                    width: "100%", padding: "14px 16px",
-                    borderRadius: 12, border: `1.5px solid ${lancErro ? C.red + "88" : C.border}`,
-                    background: C.surface, color: C.text,
-                    fontSize: 16, fontFamily: "inherit", outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
-                  Mesa <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span>
-                </div>
-                <input
-                  id="palm-mesa"
-                  value={lancMesa}
-                  onChange={e => setLancMesa(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleLancar()}
-                  placeholder="Ex: 5"
-                  maxLength={20}
-                  style={{
-                    width: "100%", padding: "14px 16px",
-                    borderRadius: 12, border: `1.5px solid ${C.border}`,
-                    background: C.surface, color: C.text,
-                    fontSize: 16, fontFamily: "inherit", outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-              {lancErro && (
-                <div style={{ fontSize: 14, color: C.red, fontWeight: 600, padding: "8px 12px", background: `${C.red}12`, borderRadius: 8, border: `1px solid ${C.red}33` }}>
-                  {lancErro}
-                </div>
-              )}
+    {/* Modal Lançar */}
+    {showLancar && createPortal(
+      <div
+        onClick={e => { if (e.target === e.currentTarget && !salvando) setShowLancar(false); }}
+        style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif" }}
+      >
+        <div style={{ background: C.card, borderRadius: "20px 20px 0 0", padding: 24, width: "100%", border: `1px solid ${C.border}`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 18, color: C.text }}>Lançar Pedido</div>
+              <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{qtdTotal} {qtdTotal === 1 ? "item" : "itens"} · R$ {total.toFixed(2)}</div>
             </div>
-
-            {/* Ações */}
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={() => { if (!salvando) setShowLancar(false); }}
-                style={{
-                  flex: 1, padding: 14, borderRadius: 12,
-                  border: `1px solid ${C.border}`, background: "none",
-                  color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 15,
-                  fontFamily: "inherit",
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleLancar}
-                disabled={!lancComanda.trim() || salvando}
-                style={{
-                  flex: 2, padding: 14, borderRadius: 12, border: "none",
-                  background: lancComanda.trim() && !salvando ? C.accent : C.surface,
-                  color: lancComanda.trim() && !salvando ? "#fff" : C.muted,
-                  cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed",
-                  fontWeight: 800, fontSize: 15, fontFamily: "inherit",
-                  transition: "background 0.15s, color 0.15s",
-                }}
-              >
-                {salvando ? "Enviando..." : mapa[lancComanda.trim()] ? "✓ Adicionar à Comanda" : "✓ Criar e Lançar"}
-              </button>
-            </div>
+            <button onClick={() => { if (!salvando) setShowLancar(false); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, lineHeight: 0 }}><LuX size={22} /></button>
           </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Bottom sheet — detalhe da comanda */}
-      {createPortal(
-        <div
-          onClick={e => { if (e.target === e.currentTarget) fecharDetalhe(); }}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9100,
-            background: detalheVisible ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0)",
-            display: "flex", alignItems: "flex-end",
-            fontFamily: "'Inter',system-ui,sans-serif",
-            pointerEvents: detalheComanda ? "auto" : "none",
-            transition: "background 0.3s",
-          }}
-        >
-          <div style={{
-            background: C.card, borderRadius: "20px 20px 0 0",
-            width: "100%", maxHeight: "80dvh",
-            border: `1px solid ${C.border}`,
-            boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
-            boxSizing: "border-box",
-            display: "flex", flexDirection: "column",
-            transform: detalheVisible ? "translateY(0)" : "translateY(100%)",
-            transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)",
-          }}>
-            {detalheComanda && (() => {
-              const order = detalheComanda;
-              const items = Array.isArray(order.items) ? order.items : [];
-              const totalOrder = items.reduce((s, it) => s + (it.price ?? 0) * (it.qty ?? 1), 0);
-              const hora = order.updated_at
-                ? new Date(order.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-                : order.created_at
-                ? new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-                : null;
-              const data = order.updated_at
-                ? new Date(order.updated_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })
-                : null;
-              return (
-                <>
-                  {/* Handle */}
-                  <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
-                    <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border }} />
-                  </div>
-
-                  {/* Header */}
-                  <div style={{ padding: "8px 20px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-                    <div>
-                      <div style={{ fontWeight: 900, fontSize: 20, color: C.text }}>{fmtComanda(order.comanda)}</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 4 }}>
-                        {order.mesa && <span style={{ fontSize: 13, color: C.muted }}>Mesa {order.mesa}</span>}
-                        {order.garcom && <span style={{ fontSize: 13, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><LuUser size={12} /> {order.garcom}</span>}
-                        {hora && <span style={{ fontSize: 13, color: C.accent, display: "flex", alignItems: "center", gap: 4 }}><LuClock size={12} /> {data} às {hora}</span>}
-                      </div>
-                    </div>
-                    <button onClick={fecharDetalhe} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, lineHeight: 0, flexShrink: 0 }}>
-                      <LuX size={22} />
-                    </button>
-                  </div>
-
-                  {/* Itens */}
-                  <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
-                    {items.map((item, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 20px", borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : "none" }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, color: C.accent, flexShrink: 0 }}>
-                          {item.qty ?? 1}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{item.name}</div>
-                          {item.emoji && <div style={{ fontSize: 12, color: C.muted }}>{item.emoji}</div>}
-                        </div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: C.green, flexShrink: 0 }}>
-                          R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Footer */}
-                  <div style={{ padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", borderTop: `1px solid ${C.border}`, display: "flex", gap: 10, alignItems: "center" }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>Total</div>
-                      <div style={{ fontSize: 20, fontWeight: 900, color: C.green }}>R$ {totalOrder.toFixed(2)}</div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        fecharDetalhe();
-                        setTimeout(() => {
-                          setLancComanda(String(order.comanda));
-                          setLancMesa(order.mesa || "");
-                          setLancErro("");
-                          setMode("pedido");
-                          setShowLancar(true);
-                        }, 320);
-                      }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 8,
-                        background: C.accent, border: "none", borderRadius: 12,
-                        color: "#fff", cursor: "pointer",
-                        padding: "14px 20px", fontWeight: 800, fontSize: 15,
-                        WebkitTapHighlightColor: "transparent",
-                      }}
-                    >
-                      <LuPlus size={16} /> Adicionar itens
-                    </button>
-                  </div>
-                </>
-              );
-            })()}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Número da Comanda *</div>
+              <input autoFocus value={lancComanda} onChange={e => { setLancComanda(e.target.value); setLancErro(""); }} onKeyDown={e => e.key === "Enter" && document.getElementById("palm-mesa")?.focus()} placeholder="Ex: 42 ou Mesa VIP" maxLength={40} style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${lancErro ? C.red + "88" : C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Mesa <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span></div>
+              <input id="palm-mesa" value={lancMesa} onChange={e => setLancMesa(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLancar()} placeholder="Ex: 5" maxLength={20} style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+            </div>
+            {lancErro && <div style={{ fontSize: 14, color: C.red, fontWeight: 600, padding: "8px 12px", background: `${C.red}12`, borderRadius: 8, border: `1px solid ${C.red}33` }}>{lancErro}</div>}
           </div>
-        </div>,
-        document.body
-      )}
-    </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => { if (!salvando) setShowLancar(false); }} style={{ flex: 1, padding: 14, borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 15, fontFamily: "inherit" }}>Cancelar</button>
+            <button onClick={handleLancar} disabled={!lancComanda.trim() || salvando} style={{ flex: 2, padding: 14, borderRadius: 12, border: "none", background: lancComanda.trim() && !salvando ? C.accent : C.surface, color: lancComanda.trim() && !salvando ? "#fff" : C.muted, cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 15, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}>
+              {salvando ? "Enviando..." : mapa[lancComanda.trim()] ? "✓ Adicionar à Comanda" : "✓ Criar e Lançar"}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
+
+    {/* Bottom sheet — detalhe da comanda */}
+    {createPortal(
+      <div onClick={e => { if (e.target === e.currentTarget) fecharDetalhe(); }} style={{ position: "fixed", inset: 0, zIndex: 9100, background: detalheVisible ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif", pointerEvents: detalheComanda ? "auto" : "none", transition: "background 0.3s" }}>
+        <div style={{ background: C.card, borderRadius: "20px 20px 0 0", width: "100%", maxHeight: "80dvh", border: `1px solid ${C.border}`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", transform: detalheVisible ? "translateY(0)" : "translateY(100%)", transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)" }}>
+          {detalheComanda && (() => {
+            const order = detalheComanda;
+            const items = Array.isArray(order.items) ? order.items : [];
+            const totalOrder = items.reduce((s, it) => s + (it.price ?? 0) * (it.qty ?? 1), 0);
+            const hora = order.updated_at
+              ? new Date(order.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+              : order.created_at ? new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
+            const data = order.updated_at ? new Date(order.updated_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : null;
+            return (
+              <>
+                <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+                  <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border }} />
+                </div>
+                <div style={{ padding: "8px 20px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: 20, color: C.text }}>{fmtComanda(order.comanda)}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 4 }}>
+                      {order.mesa && <span style={{ fontSize: 13, color: C.muted }}>Mesa {order.mesa}</span>}
+                      {order.garcom && <span style={{ fontSize: 13, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><LuUser size={12} /> {order.garcom}</span>}
+                      {hora && <span style={{ fontSize: 13, color: C.accent, display: "flex", alignItems: "center", gap: 4 }}><LuClock size={12} /> {data} às {hora}</span>}
+                    </div>
+                  </div>
+                  <button onClick={fecharDetalhe} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, lineHeight: 0, flexShrink: 0 }}><LuX size={22} /></button>
+                </div>
+                <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+                  {items.map((item, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 20px", borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, color: C.accent, flexShrink: 0 }}>{item.qty ?? 1}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{item.name}</div>
+                        {item.emoji && <div style={{ fontSize: 12, color: C.muted }}>{item.emoji}</div>}
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: C.green, flexShrink: 0 }}>R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", borderTop: `1px solid ${C.border}`, display: "flex", gap: 10, alignItems: "center" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>Total</div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: C.green }}>R$ {totalOrder.toFixed(2)}</div>
+                  </div>
+                  <button onClick={() => { fecharDetalhe(); setTimeout(() => { setLancComanda(String(order.comanda)); setLancMesa(order.mesa || ""); setLancErro(""); setMode("pedido"); setShowLancar(true); }, 320); }} style={{ display: "flex", alignItems: "center", gap: 8, background: C.accent, border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "14px 20px", fontWeight: 800, fontSize: 15, WebkitTapHighlightColor: "transparent" }}>
+                    <LuPlus size={16} /> Adicionar itens
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 }
 
