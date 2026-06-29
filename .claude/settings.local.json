@@ -6,7 +6,10 @@
       "Bash(npx vite *)",
       "Bash(npm install *)",
       "Bash(npm list *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(git commit -m ' *)",
+      "Skill(update-config)",
+      "Skill(update-config:*)"
     ]
   }
 }
