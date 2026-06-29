@@ -529,12 +529,13 @@ export default function RelatorioView() {
   };
 
   const exportCredenciais = () => {
-    const headers = ["Usuário", "Login", "Cargo", "Senha"];
+    // Senhas mascaradas no PDF — documento impresso pode ser visto por terceiros
+    const headers = ["Usuário", "Login", "Cargo", "Senha cadastrada"];
     const rows = users.map(u => [
       u.name ?? "—",
       `@${u.username}`,
       u.role ?? "—",
-      credentials[u.username] ?? "não registrada",
+      credentials[u.username] ? "••••••••" : "não registrada",
     ]);
     exportToPDF("Credenciais de Acesso", headers, rows, "");
   };

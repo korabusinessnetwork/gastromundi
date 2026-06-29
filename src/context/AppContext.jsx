@@ -54,12 +54,12 @@ export function AppProvider({ children }) {
         { data: fechamentosData },
         { data: configData },
       ] = await Promise.all([
-        supabase.from("products").select("*").eq("active", true).order("id"),
-        supabase.from("pending").select("*").order("created_at", { ascending: false }),
-        supabase.from("sales").select("*").order("at", { ascending: false }),
-        supabase.from("users").select("*").eq("active", true),
-        supabase.from("fechamentos").select("*").order("created_at", { ascending: false }),
-        supabase.from("config").select("*"),
+        supabase.from("products").select("id,name,price,category,emoji,active,description,unit").eq("active", true).order("id"),
+        supabase.from("pending").select("id,comanda,mesa,items,status,total,garcom,created_by,created_at,updated_at").order("created_at", { ascending: false }),
+        supabase.from("sales").select("id,data,at,comanda,cashier,metodo,total,troco,items").order("at", { ascending: false }),
+        supabase.from("users").select("id,name,username,password,role,permissions,active").eq("active", true),
+        supabase.from("fechamentos").select("id,data,created_at,user,role,fundo,totalVendas,totalConferido,metodos,obs").order("created_at", { ascending: false }),
+        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","credentials","estoque","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
       ]);
 
       if (productsData?.length)    setProductsLocal(productsData);
@@ -296,7 +296,11 @@ export function AppProvider({ children }) {
     await supabase.from("config").upsert({ key: "estoque", value: newEstoque });
   };
 
+  // AVISO: credentials armazena senhas legíveis para fins de recuperação
+  // administrativa. Não armazena a senha de autenticação SHA-256.
+  // Acesso restrito a role admin/gerente via permissão "configuracoes".
   const saveCredential = async (username, plainPassword) => {
+    if (!plainPassword) return;
     const updated = { ...credentials, [username]: plainPassword };
     setCredentialsLocal(updated);
     await supabase.from("config").upsert({ key: "credentials", value: updated });
