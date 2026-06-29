@@ -14,9 +14,18 @@ import {
   LuPackage, LuTriangleAlert, LuCircleAlert,
   LuMinus, LuPlus, LuShoppingCart, LuBox,
   LuLock, LuLockOpen, LuEye, LuEyeOff, LuKeyRound,
+  LuChevronUp, LuChevronDown, LuChevronsUpDown,
 } from "react-icons/lu";
 
 const LIMITE_BAIXO = 10;
+
+const COLUNAS = [
+  { key: "name",     label: "Produto",   align: "left"   },
+  { key: "category", label: "Categoria", align: "left"   },
+  { key: "price",    label: "Preço",     align: "left"   },
+  { key: "saldo",    label: "Saldo",     align: "center" },
+  { key: "entrada",  label: "Entrada",   align: "center", sortable: false },
+];
 
 function estoqueColor(qty) {
   if (qty === 0)           return C.red;
@@ -32,6 +41,8 @@ export default function EstoqueView() {
   const [busca,     setBusca]     = useState("");
   const [categoria, setCategoria] = useState("Todos");
   const [salvando,  setSalvando]  = useState({});
+  const [sortKey,   setSortKey]   = useState("name");
+  const [sortDir,   setSortDir]   = useState("asc");
 
   // Por produto: modo de entrada ("estoque" | índice numérico da unidade de compra) e valor digitado
   const [modoEntrada, setModoEntrada] = useState({});
@@ -56,8 +67,29 @@ export default function EstoqueView() {
     let l = products;
     if (busca)                l = l.filter(p => p.name?.toLowerCase().includes(busca.toLowerCase()));
     if (categoria !== "Todos") l = l.filter(p => p.category === categoria);
+    l = [...l].sort((a, b) => {
+      let va, vb;
+      if (sortKey === "saldo") {
+        va = estoque[a.id] ?? 0;
+        vb = estoque[b.id] ?? 0;
+      } else if (sortKey === "price") {
+        va = Number(a.price) || 0;
+        vb = Number(b.price) || 0;
+      } else {
+        va = (a[sortKey] ?? "").toString().toLowerCase();
+        vb = (b[sortKey] ?? "").toString().toLowerCase();
+      }
+      if (va < vb) return sortDir === "asc" ? -1 : 1;
+      if (va > vb) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
     return l;
-  }, [products, busca, categoria]);
+  }, [products, busca, categoria, sortKey, sortDir, estoque]);
+
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  };
 
   const totalItens   = products.reduce((s, p) => s + (estoque[p.id] ?? 0), 0);
   const semEstoque   = products.filter(p => (estoque[p.id] ?? 0) === 0).length;
@@ -209,9 +241,39 @@ export default function EstoqueView() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                  {["Produto", "Categoria", "Preço", "Saldo", "Entrada"].map((h, i) => (
-                    <th key={i} style={{ padding: "12px 16px", textAlign: i >= 3 ? "center" : "left", fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap" }}>{h}</th>
-                  ))}
+                  {COLUNAS.map(col => {
+                    const ativo = sortKey === col.key;
+                    const sortable = col.sortable !== false;
+                    return (
+                      <th
+                        key={col.key}
+                        onClick={sortable ? () => toggleSort(col.key) : undefined}
+                        style={{
+                          padding: "12px 16px",
+                          textAlign: col.align,
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: ativo ? C.accent : C.muted,
+                          textTransform: "uppercase",
+                          letterSpacing: 1,
+                          whiteSpace: "nowrap",
+                          cursor: sortable ? "pointer" : "default",
+                          userSelect: "none",
+                        }}
+                        onMouseEnter={sortable ? e => { if (!ativo) e.currentTarget.style.color = C.text; } : undefined}
+                        onMouseLeave={sortable ? e => { e.currentTarget.style.color = ativo ? C.accent : C.muted; } : undefined}
+                      >
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          {col.label}
+                          {sortable && (
+                            ativo
+                              ? (sortDir === "asc" ? <LuChevronUp size={13} /> : <LuChevronDown size={13} />)
+                              : <LuChevronsUpDown size={13} style={{ opacity: 0.35 }} />
+                          )}
+                        </span>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
