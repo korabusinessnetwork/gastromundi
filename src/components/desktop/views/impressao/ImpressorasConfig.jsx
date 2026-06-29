@@ -1,304 +1,166 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import C from "@/constants/colors";
 import {
-  LuPrinter, LuWifi, LuUsb, LuMonitor, LuRefreshCw,
-  LuShieldCheck, LuCircleAlert, LuX, LuSettings, LuPlay,
+  LuPrinter, LuRefreshCw, LuCircleAlert, LuX,
+  LuSettings, LuWifi, LuWifiOff, LuShieldCheck, LuLoader,
 } from "react-icons/lu";
 
-const LS_KEY = "gastromundi:impressoras_config";
-
-const TIPOS = [
-  { id: "sistema",  label: "Sistema",         Icon: LuMonitor, desc: "Usa o diálogo de impressão do Windows" },
-  { id: "rede",     label: "Rede (IP)",        Icon: LuWifi,    desc: "Impressora térmica via TCP/IP" },
-  { id: "usb",      label: "USB",              Icon: LuUsb,     desc: "Impressora conectada por USB (Chrome/Edge)" },
-];
+const LS_KEY = "gastromundi:impressoras_config_v2";
 
 function lerConfig() {
   try { return JSON.parse(localStorage.getItem(LS_KEY) ?? "{}"); } catch { return {}; }
 }
-
 function salvarConfig(cfg) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); } catch {}
 }
 
-// ── Modal de configuração de uma impressora ────────────────────────
+// ── Estado de conexão com QZ Tray ──────────────────────────────────
 
-function ModalConfig({ local, onClose, sz }) {
-  const cfg = lerConfig();
-  const inicial = cfg[local.id] ?? { tipo: "sistema", nome: "", ip: "", porta: "9100" };
+function useQZTray() {
+  const [status, setStatus]         = useState("idle");     // idle | conectando | conectado | erro
+  const [impressoras, setImpressoras] = useState([]);
+  const [erroMsg, setErroMsg]       = useState("");
 
-  const [tipo,  setTipo]  = useState(inicial.tipo);
-  const [nome,  setNome]  = useState(inicial.nome);
-  const [ip,    setIp]    = useState(inicial.ip ?? "");
-  const [porta, setPorta] = useState(inicial.porta ?? "9100");
-  const [usbNome, setUsbNome] = useState(inicial.usbNome ?? "");
-  const [usbIds,  setUsbIds]  = useState(inicial.usbIds ?? null); // { vendorId, productId }
-  const [buscandoUsb, setBuscandoUsb] = useState(false);
-  const [usbErro, setUsbErro] = useState("");
-  const [testando, setTestando] = useState(false);
-  const [testeStatus, setTesteStatus] = useState(null); // "ok" | "erro" | null
-
-  const podeSlavar = tipo === "sistema"
-    || (tipo === "rede" && ip.trim() && porta.trim())
-    || (tipo === "usb" && usbIds);
-
-  const buscarUsb = async () => {
-    setUsbErro("");
-    setBuscandoUsb(true);
+  const conectar = useCallback(async () => {
+    setStatus("conectando");
+    setErroMsg("");
     try {
-      if (!navigator.usb) throw new Error("WebUSB não suportado neste navegador. Use Chrome ou Edge.");
-      // Filtros comuns de impressoras ESC/POS (Epson, Star, Bixolon, etc.)
-      const filtros = [
-        { classCode: 7 },        // USB Printer class
-        { vendorId: 0x04b8 },    // Epson
-        { vendorId: 0x0519 },    // Star Micronics
-        { vendorId: 0x154f },    // Seiko / SII
-        { vendorId: 0x0dd4 },    // Custom (CUSTOM spa)
-      ];
-      const device = await navigator.usb.requestDevice({ filters: filtros });
-      setUsbIds({ vendorId: device.vendorId, productId: device.productId });
-      setUsbNome(device.productName || `${device.vendorId.toString(16)}:${device.productId.toString(16)}`);
-      setUsbErro("");
+      // Importação dinâmica para evitar erro de build em ambientes sem qz-tray
+      const qz = (await import("qz-tray")).default;
+
+      if (!qz.websocket.isActive()) {
+        await qz.websocket.connect({ retries: 1, delay: 1 });
+      }
+
+      const lista = await qz.printers.find();
+      setImpressoras(Array.isArray(lista) ? lista : [lista].filter(Boolean));
+      setStatus("conectado");
     } catch (e) {
-      if (e.name !== "NotFoundError") {
-        setUsbErro(e.message ?? "Erro ao acessar USB.");
+      const msg = e?.message ?? "";
+      if (msg.includes("Unable to establish") || msg.includes("Connection refused") || msg.includes("WebSocket")) {
+        setErroMsg("QZ Tray não encontrado. Certifique-se de que o QZ Tray está instalado e em execução neste computador.");
+      } else {
+        setErroMsg(msg || "Erro ao conectar ao QZ Tray.");
       }
-    } finally {
-      setBuscandoUsb(false);
+      setStatus("erro");
     }
-  };
+  }, []);
 
-  const testar = async () => {
-    setTestando(true);
-    setTesteStatus(null);
+  const atualizar = useCallback(async () => {
+    if (status !== "conectado") { await conectar(); return; }
     try {
-      if (tipo === "sistema") {
-        window.print();
-        setTesteStatus("ok");
-      } else if (tipo === "rede") {
-        // Tenta fetch para verificar alcance (sem CORS — só para detectar timeout)
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 3000);
-        try {
-          await fetch(`http://${ip.trim()}:${porta.trim()}`, { signal: controller.signal, mode: "no-cors" });
-          setTesteStatus("ok");
-        } catch (e) {
-          // "Failed to fetch" com no-cors pode ser CORS mas significa que o host respondeu
-          if (e.name === "AbortError") setTesteStatus("erro");
-          else setTesteStatus("ok"); // respondeu mas bloqueado por CORS = está online
-        } finally {
-          clearTimeout(timer);
-        }
-      } else if (tipo === "usb") {
-        if (!usbIds) { setTesteStatus("erro"); return; }
-        const devices = await navigator.usb.getDevices();
-        const found = devices.some(d => d.vendorId === usbIds.vendorId && d.productId === usbIds.productId);
-        setTesteStatus(found ? "ok" : "erro");
-      }
+      const qz = (await import("qz-tray")).default;
+      const lista = await qz.printers.find();
+      setImpressoras(Array.isArray(lista) ? lista : [lista].filter(Boolean));
     } catch {
-      setTesteStatus("erro");
-    } finally {
-      setTestando(false);
+      setStatus("idle");
     }
-  };
+  }, [status, conectar]);
+
+  return { status, impressoras, erroMsg, conectar, atualizar };
+}
+
+// ── Modal de seleção de impressora para um local ───────────────────
+
+function ModalSelecionarImpressora({ local, impressoras, onClose, sz }) {
+  const cfgAtual = lerConfig()[local.id] ?? null;
+  const [selecionada, setSelecionada] = useState(cfgAtual?.nome ?? "");
 
   const salvar = () => {
     const cfg = lerConfig();
-    cfg[local.id] = { tipo, nome: nome.trim(), ip: ip.trim(), porta: porta.trim(), usbNome, usbIds };
+    if (selecionada) {
+      cfg[local.id] = { nome: selecionada };
+    } else {
+      delete cfg[local.id];
+    }
     salvarConfig(cfg);
-    onClose(cfg[local.id]);
-  };
-
-  const remover = () => {
-    const cfg = lerConfig();
-    delete cfg[local.id];
-    salvarConfig(cfg);
-    onClose(null);
+    onClose(true);
   };
 
   return createPortal(
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(undefined); }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(false); }}
       style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(0,0,0,0.72)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter',system-ui,sans-serif" }}
     >
-      <div style={{ background: C.card, borderRadius: 20, width: "100%", maxWidth: 480, border: `1px solid ${C.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", gap: 20, padding: 28, maxHeight: "90vh", overflowY: "auto" }}>
+      <div style={{ background: C.card, borderRadius: 20, width: "100%", maxWidth: 480, border: `1px solid ${C.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", gap: 20, padding: 28, maxHeight: "85vh" }}>
 
         {/* Título */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>Configurar Impressora</div>
-            <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>Local: <strong>{local.nome}</strong></div>
+            <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>Selecionar Impressora</div>
+            <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>
+              Local: <strong>{local.nome}</strong>
+            </div>
           </div>
-          <button onClick={() => onClose(undefined)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 4 }}>
+          <button onClick={() => onClose(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 4 }}>
             <LuX size={20} />
           </button>
         </div>
 
-        {/* Apelido opcional */}
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
-            Apelido <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span>
-          </div>
-          <input
-            value={nome}
-            onChange={e => setNome(e.target.value)}
-            placeholder={`Ex: Impressora ${local.nome}`}
-            maxLength={60}
-            style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
-          />
-        </div>
-
-        {/* Tipo de conexão */}
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Tipo de conexão</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {TIPOS.map(t => {
-              const ativo = tipo === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => { setTipo(t.id); setTesteStatus(null); }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 14,
-                    padding: "12px 16px", borderRadius: 12, cursor: "pointer",
-                    border: `1.5px solid ${ativo ? C.accent : C.border}`,
-                    background: ativo ? `${C.accent}10` : C.surface,
-                    textAlign: "left", fontFamily: "inherit",
-                    transition: "border-color 0.15s, background 0.15s",
-                  }}
-                >
-                  <t.Icon size={20} color={ativo ? C.accent : C.muted} />
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: ativo ? C.accent : C.text }}>{t.label}</div>
-                    <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 1 }}>{t.desc}</div>
-                  </div>
-                  {ativo && <div style={{ marginLeft: "auto", width: 8, height: 8, borderRadius: "50%", background: C.accent }} />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Campos por tipo */}
-        {tipo === "rede" && (
-          <div style={{ display: "flex", gap: 10 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Endereço IP</div>
-              <input
-                value={ip}
-                onChange={e => setIp(e.target.value)}
-                placeholder="192.168.1.100"
-                maxLength={45}
-                style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontFamily: "monospace", outline: "none", boxSizing: "border-box" }}
-              />
-            </div>
-            <div style={{ width: 100 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Porta</div>
-              <input
-                value={porta}
-                onChange={e => setPorta(e.target.value)}
-                placeholder="9100"
-                maxLength={6}
-                style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontFamily: "monospace", outline: "none", boxSizing: "border-box" }}
-              />
-            </div>
-          </div>
-        )}
-
-        {tipo === "usb" && (
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Dispositivo USB</div>
-            {usbIds ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: `${C.green}10`, border: `1.5px solid ${C.green}44`, marginBottom: 8 }}>
-                <LuShieldCheck size={16} color={C.green} />
-                <div style={{ flex: 1, fontSize: sz.fontBase, fontWeight: 600, color: C.green }}>{usbNome || "Dispositivo USB"}</div>
-                <button
-                  onClick={() => { setUsbIds(null); setUsbNome(""); }}
-                  style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0 }}
-                >
-                  <LuX size={14} />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={buscarUsb}
-                disabled={buscandoUsb}
-                style={{ width: "100%", padding: "12px 16px", borderRadius: 10, border: `1.5px dashed ${C.border}`, background: C.surface, color: C.muted, cursor: "pointer", fontFamily: "inherit", fontSize: sz.fontBase, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-              >
-                {buscandoUsb ? <LuRefreshCw size={16} style={{ animation: "spin 1s linear infinite" }} /> : <LuUsb size={16} />}
-                {buscandoUsb ? "Aguardando seleção…" : "Detectar impressora USB"}
-              </button>
-            )}
-            {usbErro && (
-              <div style={{ fontSize: sz.fontSm, color: C.red, marginTop: 6 }}>{usbErro}</div>
-            )}
-            {!navigator?.usb && (
-              <div style={{ fontSize: sz.fontSm, color: "#f59e0b", marginTop: 6 }}>
-                ⚠ WebUSB requer Chrome ou Edge. Firefox não é suportado.
-              </div>
-            )}
-          </div>
-        )}
-
-        {tipo === "sistema" && (
-          <div style={{ padding: "12px 14px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}`, fontSize: sz.fontSm, color: C.muted, lineHeight: 1.6 }}>
-            Usa o diálogo de impressão padrão do Windows. A impressora padrão do sistema é usada automaticamente, ou você pode escolher outra no diálogo.
-          </div>
-        )}
-
-        {/* Teste de conexão */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {/* Lista de impressoras */}
+        <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+          {/* Opção "Nenhuma" */}
           <button
-            onClick={testar}
-            disabled={testando || !podeSlavar}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface, color: C.muted, cursor: podeSlavar && !testando ? "pointer" : "not-allowed", fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit", opacity: podeSlavar ? 1 : 0.5 }}
+            onClick={() => setSelecionada("")}
+            style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "12px 16px", borderRadius: 12, cursor: "pointer",
+              border: `1.5px solid ${selecionada === "" ? C.red + "66" : C.border}`,
+              background: selecionada === "" ? `${C.red}08` : C.surface,
+              textAlign: "left", fontFamily: "inherit",
+            }}
           >
-            {testando
-              ? <LuRefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} />
-              : <LuPlay size={14} />
-            }
-            {tipo === "sistema" ? "Abrir diálogo de teste" : "Testar conexão"}
+            <LuX size={18} color={selecionada === "" ? C.red : C.muted} />
+            <div style={{ fontWeight: 600, fontSize: sz.fontBase, color: selecionada === "" ? C.red : C.muted }}>
+              Nenhuma (não imprimir neste local)
+            </div>
           </button>
-          {testeStatus === "ok" && (
-            <span style={{ fontSize: sz.fontSm, color: C.green, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-              <LuShieldCheck size={14} /> Conexão OK
-            </span>
-          )}
-          {testeStatus === "erro" && (
-            <span style={{ fontSize: sz.fontSm, color: C.red, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-              <LuCircleAlert size={14} /> Sem resposta
-            </span>
-          )}
+
+          {impressoras.map(nome => {
+            const ativo = selecionada === nome;
+            return (
+              <button
+                key={nome}
+                onClick={() => setSelecionada(nome)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 16px", borderRadius: 12, cursor: "pointer",
+                  border: `1.5px solid ${ativo ? C.accent : C.border}`,
+                  background: ativo ? `${C.accent}10` : C.surface,
+                  textAlign: "left", fontFamily: "inherit",
+                  transition: "border-color 0.15s, background 0.15s",
+                }}
+              >
+                <LuPrinter size={18} color={ativo ? C.accent : C.muted} />
+                <div style={{ flex: 1, fontWeight: ativo ? 700 : 500, fontSize: sz.fontBase, color: ativo ? C.accent : C.text, textAlign: "left" }}>
+                  {nome}
+                </div>
+                {ativo && (
+                  <LuShieldCheck size={16} color={C.accent} />
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Ações */}
         <div style={{ display: "flex", gap: 10, paddingTop: 4, borderTop: `1px solid ${C.border}` }}>
-          {inicial.tipo && (
-            <button
-              onClick={remover}
-              style={{ padding: "12px 16px", borderRadius: 10, border: `1px solid ${C.red}44`, background: `${C.red}0f`, color: C.red, cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit" }}
-            >
-              Remover
-            </button>
-          )}
           <button
-            onClick={() => onClose(undefined)}
+            onClick={() => onClose(false)}
             style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
           >
             Cancelar
           </button>
           <button
             onClick={salvar}
-            disabled={!podeSlavar}
-            style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: podeSlavar ? C.accent : C.faint, color: "#fff", cursor: podeSlavar ? "pointer" : "not-allowed", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
+            style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
           >
-            Salvar
+            Confirmar
           </button>
         </div>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>,
     document.body
   );
@@ -307,6 +169,7 @@ function ModalConfig({ local, onClose, sz }) {
 // ── Tab principal ──────────────────────────────────────────────────
 
 export default function ImpressorasConfig({ sz }) {
+  const { status, impressoras, erroMsg, conectar, atualizar } = useQZTray();
   const [locais, setLocais]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [configs, setConfigs] = useState(lerConfig());
@@ -320,120 +183,208 @@ export default function ImpressorasConfig({ sz }) {
       .then(({ data }) => { setLocais(data ?? []); setLoading(false); });
   }, []);
 
-  const handleFechar = (localId, novaCfg) => {
+  const handleFecharModal = (salvou) => {
     setModal(null);
-    if (novaCfg === undefined) return; // cancelou
-    setConfigs(lerConfig()); // relê do LS
+    if (salvou) setConfigs(lerConfig());
   };
 
-  const tipoLabel = (cfg) => {
-    if (!cfg) return null;
-    const t = TIPOS.find(t => t.id === cfg.tipo);
-    return t?.label ?? cfg.tipo;
+  const removerConfig = (localId) => {
+    const cfg = lerConfig();
+    delete cfg[localId];
+    salvarConfig(cfg);
+    setConfigs(lerConfig());
   };
 
-  const tipoColor = (tipo) => {
-    if (tipo === "rede")    return C.blue;
-    if (tipo === "usb")     return "#a855f7";
-    return C.green;
+  // ── Banner de conexão QZ Tray ────────────────────────────────────
+
+  const renderBannerQZ = () => {
+    if (status === "idle") {
+      return (
+        <div style={{ padding: "16px 20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 14 }}>
+          <LuWifi size={22} color={C.muted} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Conectar ao QZ Tray</div>
+            <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2, lineHeight: 1.5 }}>
+              O QZ Tray lê as impressoras instaladas no Windows e as disponibiliza para o sistema. Certifique-se de que ele está em execução neste computador.
+            </div>
+          </div>
+          <button
+            onClick={conectar}
+            style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontWeight: 700, fontSize: sz.fontSm, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
+          >
+            Conectar
+          </button>
+        </div>
+      );
+    }
+
+    if (status === "conectando") {
+      return (
+        <div style={{ padding: "16px 20px", borderRadius: 14, background: `${C.accent}08`, border: `1px solid ${C.accent}33`, display: "flex", alignItems: "center", gap: 14 }}>
+          <LuLoader size={20} color={C.accent} style={{ animation: "spin 1s linear infinite" }} />
+          <div style={{ fontSize: sz.fontBase, color: C.accent, fontWeight: 600 }}>Conectando ao QZ Tray…</div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      );
+    }
+
+    if (status === "erro") {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ padding: "16px 20px", borderRadius: 14, background: `${C.red}08`, border: `1px solid ${C.red}33`, display: "flex", alignItems: "flex-start", gap: 14 }}>
+            <LuWifiOff size={22} color={C.red} style={{ flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: C.red }}>QZ Tray não encontrado</div>
+              <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 4, lineHeight: 1.6 }}>{erroMsg}</div>
+            </div>
+            <button
+              onClick={conectar}
+              style={{ padding: "8px 16px", borderRadius: 9, border: `1px solid ${C.red}44`, background: `${C.red}10`, color: C.red, fontWeight: 600, fontSize: sz.fontSm, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <LuRefreshCw size={13} /> Tentar novamente
+            </button>
+          </div>
+
+          {/* Instruções de instalação */}
+          <div style={{ padding: "16px 20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.border}`, fontSize: sz.fontSm, lineHeight: 1.7, color: C.muted }}>
+            <div style={{ fontWeight: 700, color: C.text, marginBottom: 8, fontSize: sz.fontBase }}>Como instalar o QZ Tray</div>
+            <ol style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4 }}>
+              <li>Acesse <strong style={{ color: C.accent }}>qz.io</strong> e baixe o instalador para Windows</li>
+              <li>Execute a instalação (não requer configuração)</li>
+              <li>O QZ Tray iniciará automaticamente na bandeja do sistema</li>
+              <li>Volte aqui e clique em <strong>Tentar novamente</strong></li>
+            </ol>
+          </div>
+        </div>
+      );
+    }
+
+    if (status === "conectado") {
+      return (
+        <div style={{ padding: "12px 20px", borderRadius: 14, background: `${C.green}08`, border: `1px solid ${C.green}33`, display: "flex", alignItems: "center", gap: 12 }}>
+          <LuWifi size={18} color={C.green} />
+          <div style={{ flex: 1, fontSize: sz.fontBase, color: C.green, fontWeight: 600 }}>
+            QZ Tray conectado · {impressoras.length} impressora{impressoras.length !== 1 ? "s" : ""} encontrada{impressoras.length !== 1 ? "s" : ""}
+          </div>
+          <button
+            onClick={atualizar}
+            title="Atualizar lista"
+            style={{ background: "none", border: `1px solid ${C.green}44`, borderRadius: 8, color: C.green, cursor: "pointer", padding: "6px 8px", lineHeight: 0 }}
+          >
+            <LuRefreshCw size={14} />
+          </button>
+        </div>
+      );
+    }
   };
 
   if (loading) {
     return <div style={{ color: C.muted, fontSize: sz.fontBase, padding: 40, textAlign: "center" }}>Carregando…</div>;
   }
 
-  if (locais.length === 0) {
-    return (
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "40px 24px", textAlign: "center", color: C.muted, maxWidth: 600 }}>
-        <LuPrinter size={32} style={{ opacity: 0.3, marginBottom: 12 }} />
-        <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Nenhum local de impressão cadastrado</div>
-        <div style={{ fontSize: sz.fontSm, marginTop: 4 }}>
-          Crie locais na aba <strong>Locais de Impressão</strong> primeiro.
-        </div>
-      </div>
-    );
-  }
+  const conectado = status === "conectado";
 
   return (
     <div style={{ maxWidth: 720, display: "flex", flexDirection: "column", gap: sz.pad }}>
 
-      {/* Banner informativo */}
-      <div style={{ padding: "12px 16px", borderRadius: 12, background: `${C.blue}0e`, border: `1px solid ${C.blue}33`, fontSize: sz.fontSm, color: C.muted, lineHeight: 1.6 }}>
-        <strong style={{ color: C.blue }}>ℹ Configuração por dispositivo</strong> — As impressoras são configuradas localmente neste computador e não sincronizam com outros dispositivos. Cada máquina precisa configurar sua própria impressora.
-      </div>
+      {/* Banner QZ Tray */}
+      {renderBannerQZ()}
 
-      {/* Lista de locais com configuração */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {locais.map(local => {
-          const cfg = configs[local.id] ?? null;
-          const labelTipo = tipoLabel(cfg);
-          const cor = cfg ? tipoColor(cfg.tipo) : null;
-          return (
-            <div
-              key={local.id}
-              style={{
-                background: C.card, border: `1px solid ${cfg ? C.border : C.border}`,
-                borderRadius: 14, padding: `${sz.padSm + 2}px ${sz.pad}px`,
-                display: "flex", alignItems: "center", gap: 14,
-                opacity: local.ativo ? 1 : 0.5,
-              }}
-            >
-              {/* Ícone local */}
-              <div style={{ width: 42, height: 42, borderRadius: 11, flexShrink: 0, background: cfg ? `${cor}18` : C.surface, border: `1px solid ${cfg ? cor + "44" : C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <LuPrinter size={19} color={cfg ? cor : C.muted} />
-              </div>
+      {/* Aviso de configuração por dispositivo */}
+      {conectado && (
+        <div style={{ padding: "10px 16px", borderRadius: 10, background: `${C.blue}0e`, border: `1px solid ${C.blue}22`, fontSize: sz.fontSm, color: C.muted }}>
+          <strong style={{ color: C.blue }}>ℹ Por dispositivo</strong> — Esta configuração é salva localmente neste computador. Cada máquina escolhe suas próprias impressoras.
+        </div>
+      )}
 
-              {/* Info */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>
-                  {local.nome}
-                  {!local.ativo && <span style={{ fontSize: sz.fontSm, color: C.muted, marginLeft: 8, fontWeight: 500 }}>· inativo</span>}
-                </div>
-                {cfg ? (
-                  <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>
-                    <span style={{ color: cor, fontWeight: 600 }}>{labelTipo}</span>
-                    {cfg.tipo === "rede" && cfg.ip && <span> · {cfg.ip}:{cfg.porta}</span>}
-                    {cfg.tipo === "usb"  && cfg.usbNome && <span> · {cfg.usbNome}</span>}
-                    {cfg.nome && <span> · "{cfg.nome}"</span>}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>Sem impressora configurada</div>
-                )}
-              </div>
-
-              {/* Status badge */}
-              {cfg ? (
-                <span style={{ fontSize: sz.fontSm - 1, fontWeight: 700, background: `${cor}18`, border: `1px solid ${cor}44`, color: cor, padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
-                  Configurada
-                </span>
-              ) : (
-                <span style={{ fontSize: sz.fontSm - 1, fontWeight: 700, background: `${C.faint}`, border: `1px solid ${C.border}`, color: C.muted, padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
-                  Pendente
-                </span>
-              )}
-
-              {/* Botão configurar */}
-              <button
-                onClick={() => setModal(local)}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit", flexShrink: 0, transition: "border-color 0.15s" }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = C.accent + "66"}
-                onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
+      {/* Locais sem QZ conectado — mostra config salva, sem interação */}
+      {locais.length === 0 ? (
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "40px 24px", textAlign: "center", color: C.muted }}>
+          <LuPrinter size={32} style={{ opacity: 0.3, marginBottom: 12 }} />
+          <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Nenhum local de impressão cadastrado</div>
+          <div style={{ fontSize: sz.fontSm, marginTop: 4 }}>Crie locais na aba <strong>Locais de Impressão</strong> primeiro.</div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {locais.map(local => {
+            const cfg = configs[local.id] ?? null;
+            return (
+              <div
+                key={local.id}
+                style={{
+                  background: C.card,
+                  border: `1px solid ${cfg ? C.border : C.border}`,
+                  borderRadius: 14,
+                  padding: `${sz.padSm + 2}px ${sz.pad}px`,
+                  display: "flex", alignItems: "center", gap: 14,
+                  opacity: local.ativo ? 1 : 0.5,
+                }}
               >
-                <LuSettings size={14} /> {cfg ? "Editar" : "Configurar"}
-              </button>
-            </div>
-          );
-        })}
-      </div>
+                {/* Ícone */}
+                <div style={{ width: 42, height: 42, borderRadius: 11, flexShrink: 0, background: cfg ? `${C.accent}18` : C.surface, border: `1px solid ${cfg ? C.accent + "44" : C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <LuPrinter size={19} color={cfg ? C.accent : C.muted} />
+                </div>
 
-      {/* Modal */}
-      {modal && (
-        <ModalConfig
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>
+                    {local.nome}
+                    {!local.ativo && <span style={{ fontSize: sz.fontSm, color: C.muted, marginLeft: 8, fontWeight: 400 }}>· inativo</span>}
+                  </div>
+                  <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {cfg
+                      ? <span style={{ color: C.accent, fontWeight: 600 }}>{cfg.nome}</span>
+                      : "Sem impressora configurada"
+                    }
+                  </div>
+                </div>
+
+                {/* Badge */}
+                {cfg ? (
+                  <span style={{ fontSize: sz.fontSm - 1, fontWeight: 700, background: `${C.green}15`, border: `1px solid ${C.green}44`, color: C.green, padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
+                    Configurada
+                  </span>
+                ) : (
+                  <span style={{ fontSize: sz.fontSm - 1, fontWeight: 700, background: C.surface, border: `1px solid ${C.border}`, color: C.muted, padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
+                    Pendente
+                  </span>
+                )}
+
+                {/* Botões */}
+                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  {cfg && (
+                    <button
+                      onClick={() => removerConfig(local.id)}
+                      title="Remover impressora"
+                      style={{ padding: "7px 9px", borderRadius: 8, border: `1px solid ${C.red}33`, background: `${C.red}0a`, color: C.red, cursor: "pointer", lineHeight: 0 }}
+                    >
+                      <LuX size={14} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => conectado ? setModal(local) : conectar()}
+                    disabled={status === "conectando"}
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: `1.5px solid ${conectado ? C.border : C.accent + "66"}`, background: conectado ? C.surface : `${C.accent}08`, color: conectado ? C.text : C.accent, cursor: status === "conectando" ? "not-allowed" : "pointer", fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit", transition: "border-color 0.15s" }}
+                    onMouseEnter={e => { if (conectado) e.currentTarget.style.borderColor = C.accent + "66"; }}
+                    onMouseLeave={e => { if (conectado) e.currentTarget.style.borderColor = C.border; }}
+                  >
+                    <LuSettings size={14} />
+                    {conectado ? (cfg ? "Trocar" : "Selecionar") : "Conectar QZ"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal de seleção */}
+      {modal && conectado && (
+        <ModalSelecionarImpressora
           local={modal}
+          impressoras={impressoras}
           sz={sz}
-          onClose={(novaCfg) => {
-            handleFechar(modal.id, novaCfg);
-          }}
+          onClose={handleFecharModal}
         />
       )}
     </div>
