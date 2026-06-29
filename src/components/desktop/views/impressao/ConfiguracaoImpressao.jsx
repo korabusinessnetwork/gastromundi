@@ -22,14 +22,13 @@ export default function ConfiguracaoImpressao({ sz }) {
             key={a.id}
             onClick={() => setAba(a.id)}
             style={{
-              padding: "7px 16px", borderRadius: 8, border: "none",
+              padding: "7px 16px", borderRadius: "8px 8px 0 0", border: "none",
               background: aba === a.id ? `${C.accent}18` : "transparent",
               color: aba === a.id ? C.accent : C.muted,
               cursor: "pointer", fontWeight: aba === a.id ? 700 : 500,
               fontSize: sz.fontSm + 1, fontFamily: "inherit",
               transition: "background 0.15s, color 0.15s",
               borderBottom: aba === a.id ? `2px solid ${C.accent}` : "2px solid transparent",
-              borderRadius: "8px 8px 0 0",
             }}
           >
             {a.label}
