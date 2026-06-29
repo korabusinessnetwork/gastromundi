@@ -1630,8 +1630,12 @@ export default function PDVView() {
 
 // ── Modal de Saldo do Dia ─────────────────────────────────────────
 function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending, metodosCustom }) {
+  const { width } = useResponsive();
+  const sz = getSizes(width);
+  const isNarrow = width < 540;
   const hoje = new Date().toDateString();
   const [logsComandaCancelada, setLogsComandaCancelada] = useState([]);
+  const [showCancelList, setShowCancelList] = useState(false);
 
   useEffect(() => {
     if (!autorizado) return;
@@ -1700,28 +1704,30 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
     >
       <div style={{
         background: C.card, borderRadius: 20,
-        width: "100%", maxWidth: autorizado ? 520 : 400,
+        width: "100%", maxWidth: autorizado ? 560 : 420,
         border: `1px solid ${C.border}`,
         boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
         color: C.text, overflow: "hidden",
+        maxHeight: "92vh", display: "flex", flexDirection: "column",
         transition: "max-width 0.3s",
       }}>
         {/* Header */}
         <div style={{
-          padding: "20px 24px", borderBottom: `1px solid ${C.border}`,
+          padding: `${sz.padSm + 4}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`,
           display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexShrink: 0,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
-              width: 42, height: 42, borderRadius: 12,
+              width: 40, height: 40, borderRadius: 12,
               background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
-              display: "flex", alignItems: "center", justifyContent: "center",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
             }}>
-              <LuChartBar size={20} color={C.accent} />
+              <LuChartBar size={18} color={C.accent} />
             </div>
             <div>
-              <div style={{ fontWeight: 900, fontSize: 17 }}>Saldo do Dia</div>
-              <div style={{ fontSize: 18, color: C.muted, marginTop: 1 }}>
+              <div style={{ fontWeight: 900, fontSize: sz.fontBase + 1 }}>Saldo do Dia</div>
+              <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 1 }}>
                 {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
               </div>
             </div>
@@ -1736,19 +1742,19 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
 
         {/* Corpo: senha ou dados */}
         {!autorizado ? (
-          <div style={{ padding: 28, display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ padding: sz.pad, display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{
               display: "flex", alignItems: "center", gap: 10,
               background: `${C.accent}10`, border: `1px solid ${C.accent}33`,
               borderRadius: 12, padding: "12px 16px",
-              fontSize: 16, color: C.muted,
+              fontSize: sz.fontSm + 1, color: C.muted,
             }}>
               <LuLock size={16} color={C.accent} style={{ flexShrink: 0 }} />
               Acesso restrito a administradores e gerentes.
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={{ fontSize: 18, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>
+              <label style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>
                 Senha
               </label>
               <div style={{ position: "relative" }}>
@@ -1760,11 +1766,11 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   onKeyDown={e => e.key === "Enter" && verificarSenha()}
                   placeholder="Digite a senha de acesso"
                   style={{
-                    width: "100%", padding: "13px 44px 13px 16px",
+                    width: "100%", padding: "12px 44px 12px 16px",
                     borderRadius: 10, border: `1.5px solid ${senhaErro ? C.red : C.border}`,
                     background: C.surface, color: C.text,
-                    fontSize: 18, fontFamily: "inherit", outline: "none",
-                    boxSizing: "border-box", transition: "border-color 0.15s",
+                    fontSize: sz.fontBase, fontFamily: "inherit", outline: "none",
+                    boxSizing: "border-box",
                   }}
                 />
                 <button
@@ -1775,100 +1781,83 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                 </button>
               </div>
               {senhaErro && (
-                <div style={{ fontSize: 18, color: C.red, fontWeight: 600 }}>
+                <div style={{ fontSize: sz.fontSm + 1, color: C.red, fontWeight: 600 }}>
                   Senha incorreta. Apenas administradores e gerentes têm acesso.
                 </div>
               )}
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={onClose}
-                style={{ flex: 1, padding: "12px 0", borderRadius: 11, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17 }}
-              >
+              <button onClick={onClose} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase }}>
                 Cancelar
               </button>
               <button
                 onClick={verificarSenha}
                 disabled={!senha.trim()}
-                style={{
-                  flex: 1, padding: "12px 0", borderRadius: 11, border: "none",
-                  background: senha.trim() ? C.accent : C.faint,
-                  color: "#fff", cursor: senha.trim() ? "pointer" : "not-allowed",
-                  fontWeight: 700, fontSize: 17,
-                }}
+                style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "none", background: senha.trim() ? C.accent : C.faint, color: "#fff", cursor: senha.trim() ? "pointer" : "not-allowed", fontWeight: 700, fontSize: sz.fontBase }}
               >
                 Acessar
               </button>
             </div>
           </div>
         ) : (
-          <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ padding: sz.pad, display: "flex", flexDirection: "column", gap: 16, overflowY: "auto", flex: 1 }}>
 
             {/* KPIs */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 10 }}>
               {[
-                { label: "Vendas Finalizadas", value: `R$ ${totalVendas.toFixed(2)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: C.green },
-                { label: "Em Aberto (estimado)", value: `R$ ${totalAberto.toFixed(2)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: C.accent },
+                { label: "Vendas Finalizadas",    value: `R$ ${totalVendas.toFixed(2)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: C.green },
+                { label: "Em Aberto (estimado)",  value: `R$ ${totalAberto.toFixed(2)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: C.accent },
               ].map(k => (
-                <div key={k.label} style={{
-                  background: C.surface, border: `1px solid ${C.border}`,
-                  borderRadius: 14, padding: "16px 18px",
-                }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>{k.label}</div>
-                  <div style={{ fontWeight: 900, fontSize: 22, color: k.color }}>{k.value}</div>
-                  <div style={{ fontSize: 18, color: C.muted, marginTop: 4 }}>{k.sub}</div>
+                <div key={k.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" }}>
+                  <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{k.label}</div>
+                  <div style={{ fontWeight: 900, fontSize: sz.fontLg, color: k.color }}>{k.value}</div>
+                  <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 3 }}>{k.sub}</div>
                 </div>
               ))}
             </div>
 
             {/* Card de Cancelamentos */}
-            <div style={{
-              background: `${C.red}0c`, border: `1.5px solid ${C.red}33`,
-              borderRadius: 14, padding: "16px 20px",
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-            }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
-                  Cancelamentos do Dia
+            <div style={{ background: `${C.red}0c`, border: `1.5px solid ${C.red}33`, borderRadius: 12, padding: "14px 16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: isNarrow ? "wrap" : "nowrap" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                    Cancelamentos do Dia
+                  </div>
+                  <div style={{ fontSize: sz.fontSm + 1, color: C.muted }}>
+                    {qtdCancelados} {qtdCancelados === 1 ? "item cancelado" : "itens cancelados"}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 4 }}>
+                    {canceladosAbertos.length > 0 && (
+                      <span style={{ fontSize: 12, color: C.muted, background: C.surface, borderRadius: 6, padding: "2px 8px" }}>
+                        {canceladosAbertos.reduce((s,i)=>s+(i.qty??1),0)} em aberto
+                      </span>
+                    )}
+                    {canceladosFechados.length > 0 && (
+                      <span style={{ fontSize: 12, color: C.muted, background: C.surface, borderRadius: 6, padding: "2px 8px" }}>
+                        {canceladosFechados.reduce((s,i)=>s+(i.qty??1),0)} em fechadas
+                      </span>
+                    )}
+                    {canceladosComanda.length > 0 && (
+                      <span style={{ fontSize: 12, color: C.red, background: `${C.red}12`, borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>
+                        {canceladosComanda.reduce((s,i)=>s+(i.qty??1),0)} de comanda{logsComandaCancelada.length !== 1 ? "s" : ""} cancelada{logsComandaCancelada.length !== 1 ? "s" : ""} ({logsComandaCancelada.length})
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div style={{ fontSize: 18, color: C.muted }}>
-                  {qtdCancelados} {qtdCancelados === 1 ? "item cancelado" : "itens cancelados"}
+                <div style={{ fontWeight: 900, fontSize: sz.fontLg, color: C.red, flexShrink: 0 }}>
+                  {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                  {canceladosAbertos.length > 0 && (
-                    <span style={{ fontSize: 13, color: C.muted, background: C.surface, borderRadius: 6, padding: "2px 8px" }}>
-                      {canceladosAbertos.reduce((s,i)=>s+(i.qty??1),0)} em aberto
-                    </span>
-                  )}
-                  {canceladosFechados.length > 0 && (
-                    <span style={{ fontSize: 13, color: C.muted, background: C.surface, borderRadius: 6, padding: "2px 8px" }}>
-                      {canceladosFechados.reduce((s,i)=>s+(i.qty??1),0)} em fechadas
-                    </span>
-                  )}
-                  {canceladosComanda.length > 0 && (
-                    <span style={{ fontSize: 13, color: C.red, background: `${C.red}12`, borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>
-                      {canceladosComanda.reduce((s,i)=>s+(i.qty??1),0)} de comanda{logsComandaCancelada.length !== 1 ? "s" : ""} cancelada{logsComandaCancelada.length !== 1 ? "s" : ""} ({logsComandaCancelada.length})
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div style={{ fontWeight: 900, fontSize: 24, color: C.red }}>
-                {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
               </div>
             </div>
 
             {/* Total geral */}
-            <div style={{
-              background: `${C.green}10`, border: `1.5px solid ${C.green}44`,
-              borderRadius: 14, padding: "16px 20px",
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-            }}>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 17, color: C.text }}>Total do Dia (projetado)</div>
-                <div style={{ fontSize: 18, color: C.muted, marginTop: 2 }}>Fechadas + em aberto · cancelamentos não incluídos</div>
+            <div style={{ background: `${C.green}10`, border: `1.5px solid ${C.green}44`, borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: isNarrow ? "wrap" : "nowrap" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: C.text }}>Total do Dia (projetado)</div>
+                <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 2 }}>Fechadas + em aberto · cancelamentos não incluídos</div>
               </div>
-              <div style={{ fontWeight: 900, fontSize: 26, color: C.green }}>
+              <div style={{ fontWeight: 900, fontSize: sz.fontLg + 2, color: C.green, flexShrink: 0 }}>
                 R$ {(totalVendas + totalAberto).toFixed(2)}
               </div>
             </div>
@@ -1876,26 +1865,16 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
             {/* Por método de pagamento */}
             {Object.keys(porMetodo).length > 0 && (
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
                   Vendas por Método
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                   {Object.entries(porMetodo).sort((a, b) => b[1] - a[1]).map(([metodo, val]) => (
-                    <div key={metodo} style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      background: C.surface, borderRadius: 10, padding: "10px 14px",
-                      border: `1px solid ${C.border}`,
-                    }}>
-                      <span style={{
-                        fontSize: 16, fontWeight: 700,
-                        color: METODOS_COLOR[metodo] ?? C.muted,
-                        background: `${METODOS_COLOR[metodo] ?? C.muted}18`,
-                        border: `1px solid ${METODOS_COLOR[metodo] ?? C.muted}44`,
-                        borderRadius: 8, padding: "3px 10px",
-                      }}>
+                    <div key={metodo} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: C.surface, borderRadius: 10, padding: "10px 14px", border: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: sz.fontSm + 1, fontWeight: 700, color: METODOS_COLOR[metodo] ?? C.muted, background: `${METODOS_COLOR[metodo] ?? C.muted}18`, border: `1px solid ${METODOS_COLOR[metodo] ?? C.muted}44`, borderRadius: 8, padding: "3px 10px" }}>
                         {METODOS_LABEL[metodo] ?? metodo}
                       </span>
-                      <span style={{ fontWeight: 800, fontSize: 18, color: C.text }}>
+                      <span style={{ fontWeight: 800, fontSize: sz.fontBase, color: C.text }}>
                         R$ {Number(val).toFixed(2)}
                       </span>
                     </div>
@@ -1904,51 +1883,105 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
               </div>
             )}
 
-            {/* Detalhe dos itens cancelados */}
+            {/* Detalhe dos itens cancelados — accordion */}
             {todosCancelados.length > 0 && (
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
-                  Itens Cancelados
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 200, overflowY: "auto" }}>
-                  {todosCancelados.map((item, idx) => (
-                    <div key={idx} style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      background: C.surface, borderRadius: 10, padding: "10px 14px",
-                      border: `1px solid ${item._comandaCancelada ? C.red + "55" : C.red + "22"}`,
+              <div style={{ border: `1.5px solid ${C.red}33`, borderRadius: 14 }}>
+                {/* Header clicável */}
+                <button
+                  type="button"
+                  onClick={() => setShowCancelList(v => !v)}
+                  style={{
+                    width: "100%", padding: "12px 16px", border: "none",
+                    borderRadius: showCancelList ? "14px 14px 0 0" : 14,
+                    background: showCancelList ? `${C.red}0e` : `${C.red}07`,
+                    cursor: "pointer", display: "flex", alignItems: "center",
+                    justifyContent: "space-between", fontFamily: "inherit",
+                    transition: "background 0.15s",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8,
+                      background: `${C.red}18`, border: `1px solid ${C.red}33`,
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                     }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                          <span style={{ fontWeight: 700, fontSize: 15, color: C.text, textDecoration: "line-through", opacity: 0.7 }}>
-                            {item.emoji ? `${item.emoji} ` : ""}{item.name}{(item.qty ?? 1) > 1 ? ` ×${item.qty}` : ""}
-                          </span>
-                          {item._comandaCancelada && (
-                            <span style={{ fontSize: 12, fontWeight: 700, color: C.red, background: `${C.red}14`, borderRadius: 5, padding: "1px 6px" }}>
-                              comanda cancelada
+                      <LuX size={13} color={C.red} />
+                    </div>
+                    <span style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                      Itens Cancelados
+                    </span>
+                    <span style={{
+                      fontSize: 11, fontWeight: 800, color: C.red,
+                      background: `${C.red}18`, border: `1px solid ${C.red}33`,
+                      borderRadius: 20, padding: "1px 8px",
+                    }}>
+                      {todosCancelados.reduce((s, i) => s + (i.qty ?? 1), 0)}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: sz.fontSm + 1, fontWeight: 800, color: C.red }}>
+                      {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
+                    </span>
+                    <svg
+                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke={C.red} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      style={{ transform: showCancelList ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", opacity: 0.7, flexShrink: 0 }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </div>
+                </button>
+
+                {/* Lista com scroll */}
+                {showCancelList && (
+                  <div style={{
+                    maxHeight: 240, overflowY: "auto",
+                    display: "flex", flexDirection: "column", gap: 0,
+                    borderTop: `1px solid ${C.red}22`,
+                  }}>
+                    {todosCancelados.map((item, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "10px 16px", gap: 10,
+                          borderBottom: idx < todosCancelados.length - 1 ? `1px solid ${C.red}14` : "none",
+                          background: idx % 2 === 0 ? `${C.red}04` : "transparent",
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                            <span style={{ fontWeight: 700, fontSize: sz.fontSm + 1, color: C.text, textDecoration: "line-through", opacity: 0.6 }}>
+                              {item.emoji ? `${item.emoji} ` : ""}{item.name}{(item.qty ?? 1) > 1 ? ` ×${item.qty}` : ""}
                             </span>
+                            {item._comandaCancelada && (
+                              <span style={{ fontSize: 10, fontWeight: 700, color: C.red, background: `${C.red}14`, borderRadius: 5, padding: "1px 6px", flexShrink: 0 }}>
+                                comanda cancelada
+                              </span>
+                            )}
+                          </div>
+                          {(item.motivoCancelamento || item.canceladoPor || item._comanda) && (
+                            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                              {item._comanda ? `${item._comanda} · ` : ""}
+                              {item.canceladoPor || ""}
+                              {item.motivoCancelamento && item.motivoCancelamento !== "—" ? ` — ${item.motivoCancelamento}` : ""}
+                            </div>
                           )}
                         </div>
-                        {(item.motivoCancelamento || item.canceladoPor || item._comanda) && (
-                          <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
-                            {item._comanda ? `${item._comanda} · ` : ""}
-                            {item.canceladoPor ? `${item.canceladoPor}` : ""}
-                            {item.motivoCancelamento && item.motivoCancelamento !== "—" ? ` — ${item.motivoCancelamento}` : ""}
-                          </div>
-                        )}
+                        <div style={{ fontWeight: 800, fontSize: sz.fontSm + 1, color: C.red, flexShrink: 0 }}>
+                          - R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}
+                        </div>
                       </div>
-                      <div style={{ fontWeight: 800, fontSize: 15, color: C.red, flexShrink: 0, marginLeft: 12 }}>
-                        - R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Comandas em aberto */}
             {abertas.length > 0 && (
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
                   Comandas em Aberto
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 180, overflowY: "auto" }}>
@@ -1956,20 +1989,16 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                     const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
                     const subtotal = ativos.reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0);
                     return (
-                      <div key={p.id} style={{
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        background: C.surface, borderRadius: 10, padding: "10px 14px",
-                        border: `1px solid ${C.border}`,
-                      }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 16 }}>{fmtComanda(p.comanda)}</div>
-                          {p.garcom && <div style={{ fontSize: 14, color: C.muted }}>{p.garcom}</div>}
+                      <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: C.surface, borderRadius: 10, padding: "9px 13px", border: `1px solid ${C.border}` }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: sz.fontSm + 1 }}>{fmtComanda(p.comanda)}</div>
+                          {p.garcom && <div style={{ fontSize: sz.fontSm, color: C.muted }}>{p.garcom}</div>}
                         </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontWeight: 800, fontSize: 17, color: subtotal > 0 ? C.accent : C.muted }}>
+                        <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
+                          <div style={{ fontWeight: 800, fontSize: sz.fontBase, color: subtotal > 0 ? C.accent : C.muted }}>
                             {subtotal > 0 ? `R$ ${subtotal.toFixed(2)}` : "Sem itens"}
                           </div>
-                          <div style={{ fontSize: 14, color: C.muted }}>
+                          <div style={{ fontSize: sz.fontSm, color: C.muted }}>
                             {ativos.reduce((s, i) => s + (i.qty ?? 1), 0)} item(ns)
                           </div>
                         </div>
@@ -1982,10 +2011,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
 
             <button
               onClick={onClose}
-              style={{
-                padding: "12px 0", borderRadius: 11, border: `1px solid ${C.border}`,
-                background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
-              }}
+              style={{ padding: "11px 0", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, flexShrink: 0 }}
             >
               Fechar
             </button>

@@ -8,8 +8,8 @@ import { getSizes } from "@/constants/sizes";
 import {
   LuPlus, LuPencil, LuTrash2, LuX, LuClipboardList,
   LuTruck, LuShoppingCart, LuCheck,
-  LuCalendar, LuArrowLeft, LuChevronRight, LuSearch,
-  LuLink, LuPackage, LuPercent, LuFileText,
+  LuCalendar, LuArrowLeft, LuChevronRight, LuChevronDown, LuSearch,
+  LuLink, LuPackage, LuPercent, LuFileText, LuSlidersHorizontal,
 } from "react-icons/lu";
 import NotasFiscaisTab from "@/components/desktop/views/NotasFiscaisTab";
 import {
@@ -87,11 +87,12 @@ function ModalBase({ title, onClose, onSave, saveLabel = "Salvar", saving, width
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
         display: "flex", alignItems: "center", justifyContent: "center",
         zIndex: 500, fontFamily: "'Inter',system-ui,sans-serif",
+        padding: "16px 12px",
       }}
     >
       <div style={{
         background: C.card, borderRadius: 20, padding: 28,
-        width, border: `1px solid ${C.border}`,
+        maxWidth: width, width: "100%", border: `1px solid ${C.border}`,
         display: "flex", flexDirection: "column", gap: 18,
         maxHeight: "94vh", overflowY: "auto", color: C.text,
         boxSizing: "border-box",
@@ -173,19 +174,26 @@ function AddBtn({ onClick, label }) {
 
 // ── Aba: Fichas Técnicas ──────────────────────────────────────────
 
-const FICHA_VAZIA = { id: "", nome: "", categoria: "", rendimento: "1", ingredientes: [], preparo: "" };
+const FICHA_VAZIA = { id: "", produtoId: null, nome: "", categoria: "", rendimento: "1", ingredientes: [], preparo: "" };
 const ING_VAZIO   = { produtoId: null, nome: "", emoji: "", qtd: "", unidade: "g", custoUnit: "" };
 
 function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) {
-  const [form,     setForm]     = useState(null);
-  const [saving,   setSaving]   = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
-  const [busca,    setBusca]    = useState("");
-  const buscaRef = useRef(null);
+  const { width: vw } = useResponsive();
+  const isNarrow = vw < 640;
+  const [form,        setForm]        = useState(null);
+  const [saving,      setSaving]      = useState(false);
+  const [deleteId,    setDeleteId]    = useState(null);
+  const [busca,          setBusca]          = useState("");
+  const [buscaPrato,     setBuscaPrato]     = useState("");
+  const [showPratoDD,    setShowPratoDD]    = useState(false);
+  const [catFiltroIng,   setCatFiltroIng]   = useState("Todos");
+  const [showFiltroIng,  setShowFiltroIng]  = useState(false);
+  const buscaRef     = useRef(null);
+  const buscaPratoRef = useRef(null);
 
-  const abrirNova   = () => { setForm({ ...FICHA_VAZIA, id: uid() }); setBusca(""); };
-  const abrirEditar = (f) => { setForm({ ...f }); setBusca(""); };
-  const fechar      = () => { setForm(null); setBusca(""); };
+  const abrirNova   = () => { setForm({ ...FICHA_VAZIA, id: uid() }); setBusca(""); setBuscaPrato(""); setShowPratoDD(false); setCatFiltroIng("Todos"); setShowFiltroIng(false); };
+  const abrirEditar = (f) => { setForm({ ...f }); setBusca(""); setBuscaPrato(""); setShowPratoDD(false); setCatFiltroIng("Todos"); setShowFiltroIng(false); };
+  const fechar      = () => { setForm(null); setBusca(""); setBuscaPrato(""); setShowPratoDD(false); setCatFiltroIng("Todos"); setShowFiltroIng(false); };
   const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   // Atualiza um campo de um ingrediente
@@ -218,21 +226,39 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
   // Produtos filtrados pela busca (excluindo os já adicionados por produtoId)
   const adicionados = useMemo(() => new Set((form?.ingredientes ?? []).map(i => i.produtoId).filter(Boolean)), [form?.ingredientes]);
 
+  const categoriasIng = useMemo(() => {
+    const cats = [...new Set(products.filter(p => p.active !== false).map(p => p.category).filter(Boolean))].sort();
+    return ["Todos", ...cats];
+  }, [products]);
+
   const produtosFiltrados = useMemo(() => {
-    const ativos = products.filter(p => p.active !== false);
+    let ativos = products.filter(p => p.active !== false);
+    if (catFiltroIng !== "Todos") ativos = ativos.filter(p => p.category === catFiltroIng);
     if (!busca.trim()) return ativos;
     const q = busca.toLowerCase();
     return ativos.filter(p => p.name.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q));
-  }, [products, busca]);
+  }, [products, busca, catFiltroIng]);
+
+  // Produtos elegíveis para ser o "prato" da ficha (excluindo Insumo)
+  const pratoElegiveis = useMemo(() => {
+    const ativos = products.filter(p => p.active !== false && p.category !== "Insumo");
+    if (!buscaPrato.trim()) return ativos;
+    const q = buscaPrato.toLowerCase();
+    return ativos.filter(p => p.name.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q));
+  }, [products, buscaPrato]);
+
+  const produtoVinculado = useMemo(() =>
+    form?.produtoId ? products.find(p => p.id === form.produtoId) ?? null : null
+  , [form?.produtoId, products]);
 
   // Custo total calculado
   const custoTotal  = (form?.ingredientes ?? []).reduce((s, ing) => s + (parseFloat(ing.qtd) || 0) * (parseFloat(ing.custoUnit) || 0), 0);
   const custoPorcao = custoTotal / (parseFloat(form?.rendimento) || 1);
 
   const salvar = async () => {
-    if (!form?.nome?.trim()) return;
+    if (!form?.produtoId) return;
     setSaving(true);
-    const nova = [...fichas.filter(f => f.id !== form.id), { ...form, nome: form.nome.trim() }];
+    const nova = [...fichas.filter(f => f.id !== form.id), { ...form }];
     await onSave("fichas_tecnicas", nova);
     setSaving(false);
     fechar();
@@ -257,17 +283,23 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
           {fichas.map(f => {
-            const ings = f.ingredientes ?? [];
-            const ct   = ings.reduce((s, ing) => s + (parseFloat(ing.qtd) || 0) * (parseFloat(ing.custoUnit) || 0), 0);
-            const cp   = ct / (parseFloat(f.rendimento) || 1);
+            const ings          = f.ingredientes ?? [];
+            const ct            = ings.reduce((s, ing) => s + (parseFloat(ing.qtd) || 0) * (parseFloat(ing.custoUnit) || 0), 0);
+            const cp            = ct / (parseFloat(f.rendimento) || 1);
+            const prodCard      = f.produtoId ? products.find(p => p.id === f.produtoId) : null;
+            const nomeCard      = prodCard?.name ?? f.nome ?? "Sem produto";
+            const emojiCard     = prodCard?.emoji;
             return (
               <div key={f.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
 
                 {/* Cabeçalho */}
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2 }}>{f.nome}</div>
-                    {f.categoria && <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 2 }}>{f.categoria}</div>}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    {emojiCard && <span style={{ fontSize: 22, flexShrink: 0 }}>{emojiCard}</span>}
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2 }}>{nomeCard}</div>
+                      {f.categoria && <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 2 }}>{f.categoria}</div>}
+                    </div>
                   </div>
                   <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                     <CardBtn onClick={() => abrirEditar(f)}><LuPencil size={12} /></CardBtn>
@@ -398,20 +430,70 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
           width={860}
         >
           {/* Cabeçalho da ficha */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px", gap: 12 }}>
-            <Field label="Nome do prato *">
-              <Inp value={form.nome} onChange={v => setF("nome", v)} placeholder="Ex: Frango ao molho" />
+          <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr 140px", gap: 12 }}>
+            <Field label="Produto vinculado *">
+              <div style={{ position: "relative" }}>
+                {produtoVinculado ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: `1.5px solid ${C.accent}`, background: `${C.accent}10`, minHeight: 40 }}>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>{produtoVinculado.emoji || "📦"}</span>
+                    <span style={{ flex: 1, fontWeight: 700, fontSize: 16, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{produtoVinculado.name}</span>
+                    <button type="button" onClick={() => { setF("produtoId", null); setF("nome", ""); setF("categoria", ""); setBuscaPrato(""); setShowPratoDD(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 2 }}><LuX size={13} /></button>
+                  </div>
+                ) : (
+                  <div style={{ position: "relative" }}>
+                    <LuSearch size={13} color={C.muted} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", zIndex: 1 }} />
+                    <input
+                      ref={buscaPratoRef}
+                      value={buscaPrato}
+                      onChange={e => { setBuscaPrato(e.target.value); setShowPratoDD(true); }}
+                      onFocus={() => setShowPratoDD(true)}
+                      onBlur={() => setTimeout(() => setShowPratoDD(false), 150)}
+                      placeholder="Buscar produto..."
+                      style={{ width: "100%", padding: "8px 10px 8px 30px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                    />
+                    {showPratoDD && (
+                      <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.3)", zIndex: 200, maxHeight: 200, overflowY: "auto" }}>
+                        {pratoElegiveis.length === 0 ? (
+                          <div style={{ padding: "14px 12px", color: C.muted, fontSize: 15, textAlign: "center" }}>Nenhum produto encontrado</div>
+                        ) : pratoElegiveis.map(p => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onMouseDown={() => { setF("produtoId", p.id); setF("nome", p.name); setF("categoria", p.category ?? ""); setBuscaPrato(""); setShowPratoDD(false); }}
+                            style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", width: "100%", border: "none", background: "none", cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
+                            onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                            onMouseLeave={e => e.currentTarget.style.background = "none"}
+                          >
+                            <span style={{ fontSize: 17, flexShrink: 0 }}>{p.emoji || "📦"}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: 15, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                              {p.category && <div style={{ fontSize: 13, color: C.muted }}>{p.category}</div>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </Field>
             <Field label="Categoria">
-              <Inp value={form.categoria} onChange={v => setF("categoria", v)} placeholder="Ex: Pratos quentes" />
+              <div style={{ padding: "8px 10px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.faint, color: form.categoria ? C.text : C.muted, fontSize: 16, minHeight: 40, display: "flex", alignItems: "center", userSelect: "none" }}>
+                {form.categoria || "Preenchida ao vincular produto"}
+              </div>
             </Field>
             <Field label="Rendimento">
-              <Inp type="number" value={form.rendimento} onChange={v => setF("rendimento", v)} placeholder="1" />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Inp type="number" value={form.rendimento} onChange={v => setF("rendimento", v)} placeholder="1" />
+                <span style={{ fontSize: 15, fontWeight: 700, color: produtoVinculado ? C.accent : C.muted, whiteSpace: "nowrap", flexShrink: 0 }}>
+                  {produtoVinculado ? (labelConsumo(produtoVinculado) || labelEstoque(produtoVinculado)) : "un"}
+                </span>
+              </div>
             </Field>
           </div>
 
           {/* Painel de ingredientes — 2 colunas */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 14, minHeight: 320 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 280px", gap: 14, alignItems: "start" }}>
 
             {/* Esquerda: lista de ingredientes adicionados */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -422,8 +504,8 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
                 {/* Cabeçalho das colunas */}
                 {form.ingredientes.length > 0 && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 64px 54px 80px 28px", gap: 6, paddingBottom: 4, borderBottom: `1px solid ${C.border}` }}>
-                    {["Ingrediente", "Qtd", "Un", "R$/un", ""].map((h, i) => (
+                  <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr 56px 44px 28px" : "1fr 64px 54px 80px 28px", gap: 6, paddingBottom: 4, borderBottom: `1px solid ${C.border}` }}>
+                    {(isNarrow ? ["Ingrediente", "Qtd", "Un", ""] : ["Ingrediente", "Qtd", "Un", "R$/un", ""]).map((h, i) => (
                       <div key={i} style={{ fontSize: 13, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
                     ))}
                   </div>
@@ -435,7 +517,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                   const nomeChip   = prodVinc?.name  ?? ing.nome;
                   const emojiChip  = prodVinc?.emoji ?? ing.emoji;
                   return (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 64px 54px 80px 28px", gap: 6, alignItems: "center" }}>
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr 56px 44px 28px" : "1fr 64px 54px 80px 28px", gap: 6, alignItems: "center" }}>
                     {/* Nome — chip se vinculado, input se manual */}
                     {prodVinc ? (
                       <div style={{
@@ -465,11 +547,13 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                       placeholder="un"
                       style={{ width: "100%", padding: "8px 6px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", textAlign: "center", boxSizing: "border-box" }}
                     />
-                    <input
-                      type="number" value={ing.custoUnit} onChange={e => setIng(i, "custoUnit", e.target.value)}
-                      placeholder="0,00"
-                      style={{ width: "100%", padding: "8px 6px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", textAlign: "right", boxSizing: "border-box" }}
-                    />
+                    {!isNarrow && (
+                      <input
+                        type="number" value={ing.custoUnit} onChange={e => setIng(i, "custoUnit", e.target.value)}
+                        placeholder="0,00"
+                        style={{ width: "100%", padding: "8px 6px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", textAlign: "right", boxSizing: "border-box" }}
+                      />
+                    )}
                     <button onClick={() => removeIng(i)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, cursor: "pointer", color: C.muted, padding: "5px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <LuX size={12} />
                     </button>
@@ -507,7 +591,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
             </div>
 
             {/* Direita: painel de busca no estoque */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, background: C.surface, borderRadius: 14, border: `1px solid ${C.border}`, padding: 12, height: isNarrow ? "auto" : 380, minHeight: isNarrow ? 200 : "unset" }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
                 Itens do Estoque
               </div>
@@ -534,8 +618,52 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                 )}
               </div>
 
+              {/* Filtro de categorias */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowFiltroIng(v => !v)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "6px 12px", borderRadius: 20,
+                    border: `1.5px solid ${catFiltroIng !== "Todos" ? C.accent : C.border}`,
+                    background: catFiltroIng !== "Todos" ? `${C.accent}12` : C.card,
+                    color: catFiltroIng !== "Todos" ? C.accent : C.muted,
+                    cursor: "pointer", fontWeight: 700, fontSize: 13,
+                    fontFamily: "inherit", transition: "all 0.15s",
+                  }}
+                >
+                  <LuSlidersHorizontal size={13} />
+                  Filtro{catFiltroIng !== "Todos" ? `: ${catFiltroIng}` : ""}
+                  <LuChevronDown size={13} style={{ transform: showFiltroIng ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+                </button>
+
+                {showFiltroIng && (
+                  <div style={{ marginTop: 8, display: "flex", gap: 5, flexWrap: "wrap", padding: "10px 12px", background: C.bg, borderRadius: 12, border: `1px solid ${C.border}` }}>
+                    {categoriasIng.map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => { setCatFiltroIng(cat); if (cat !== "Todos") setShowFiltroIng(false); }}
+                        style={{
+                          padding: "4px 12px", borderRadius: 20,
+                          border: `1.5px solid ${catFiltroIng === cat ? C.accent : C.border}`,
+                          background: catFiltroIng === cat ? C.accent : C.card,
+                          color: catFiltroIng === cat ? "#fff" : C.muted,
+                          cursor: "pointer", fontWeight: 600, fontSize: 12,
+                          fontFamily: "inherit", transition: "all 0.12s",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Lista de produtos */}
-              <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 3, maxHeight: 260 }}>
+              <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 3, minHeight: 0, maxHeight: isNarrow ? 200 : "unset" }}>
                 {produtosFiltrados.length === 0 ? (
                   <div style={{ fontSize: 18, color: C.muted, textAlign: "center", padding: "20px 0" }}>
                     Nenhum produto encontrado

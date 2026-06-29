@@ -122,9 +122,6 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
           GASTROMUNDI<br />
           <span style={{ color: C.muted, fontWeight: 400, fontSize: sz.fontSm }}>by Kora</span>
         </div>
-        <div style={{ background: C.alow, color: C.accent, fontSize: sz.fontSm - 1, fontWeight: 700, letterSpacing: 1, padding: "2px 8px", borderRadius: 20, display: "inline-block", marginTop: 6 }}>
-          PDV GESTÃO
-        </div>
       </div>
 
       {/* Fechar drawer (mobile) */}
@@ -138,10 +135,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
 
       {/* Usuário */}
       <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 34, height: 34, borderRadius: "50%", background: `${role.color}22`, border: `1px solid ${role.color}55`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: sz.fontBase, color: role.color, flexShrink: 0 }}>
-          {currentUser?.name?.[0]?.toUpperCase()}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+<div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: sz.fontBase, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {currentUser?.name}
           </div>

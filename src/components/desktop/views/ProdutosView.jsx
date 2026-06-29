@@ -41,11 +41,12 @@ export default function ProdutosView() {
 
 
   // ── Categorias ────────────────────────────────────────────────
-  const [showCatModal,  setShowCatModal]  = useState(false);
-  const [catExtra,      setCatExtra]      = useState([]);
-  const [catEditando,   setCatEditando]   = useState(null);
-  const [catNova,       setCatNova]       = useState("");
-  const [catOpLoading,  setCatOpLoading]  = useState(false);
+  const [showCatModal,    setShowCatModal]    = useState(false);
+  const [catExtra,        setCatExtra]        = useState([]);
+  const [catEditando,     setCatEditando]     = useState(null);
+  const [catNova,         setCatNova]         = useState("");
+  const [catOpLoading,    setCatOpLoading]    = useState(false);
+  const [catConfirmDelete, setCatConfirmDelete] = useState(null); // nome da categoria a excluir
 
   useEffect(() => {
     supabase.from("config").select("value").eq("key", "categorias_extra").single()
@@ -82,15 +83,17 @@ export default function ProdutosView() {
   };
 
   const excluirCategoria = async (nome) => {
-    if (catOpLoading || products.some(p => p.category === nome)) return;
+    if (catOpLoading) return;
     setCatOpLoading(true);
     await salvarCatExtra(catExtra.filter(c => c !== nome));
     setCatOpLoading(false);
   };
 
+  const CATS_FIXAS = ["Insumo"];
+
   const categorias = useMemo(() => {
     const fromProducts = products.map(p => p.category).filter(Boolean);
-    return [...new Set([...catExtra, ...fromProducts])].sort();
+    return [...new Set([...CATS_FIXAS, ...catExtra, ...fromProducts])].sort();
   }, [products, catExtra]);
 
   const produtosFiltrados = useMemo(() => {
@@ -559,7 +562,8 @@ export default function ProdutosView() {
               {categorias.map(cat => {
                 const qtdProdutos = products.filter(p => p.category === cat).length;
                 const emEdicao    = catEditando?.name === cat;
-                const podeExcluir = qtdProdutos === 0;
+                const eCatFixa    = CATS_FIXAS.includes(cat);
+                const podeExcluir = !eCatFixa;
                 return (
                   <div key={cat} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 12, background: emEdicao ? C.alow : C.surface, border: `1px solid ${emEdicao ? C.accent + "66" : C.border}`, transition: "all 0.15s" }}>
                     {emEdicao ? (
@@ -571,9 +575,10 @@ export default function ProdutosView() {
                     ) : (
                       <>
                         <span style={{ flex: 1, fontWeight: 700, fontSize: 17 }}>{cat}</span>
+                        {eCatFixa && <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: `${C.accent}15`, color: C.accent, border: `1px solid ${C.accent}33` }}>padrão</span>}
                         <span style={{ fontSize: 14, fontWeight: 700, padding: "2px 9px", borderRadius: 10, background: C.card, color: C.muted, border: `1px solid ${C.border}` }}>{qtdProdutos} {qtdProdutos === 1 ? "produto" : "produtos"}</span>
-                        <button onClick={() => setCatEditando({ name: cat, input: cat })} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: "pointer", padding: "6px 9px", lineHeight: 0 }}><LuPencil size={14} /></button>
-                        <button onClick={() => excluirCategoria(cat)} disabled={!podeExcluir || catOpLoading} style={{ background: "none", border: `1px solid ${podeExcluir ? C.red + "55" : C.border}`, borderRadius: 8, color: podeExcluir ? C.red : C.border, cursor: podeExcluir ? "pointer" : "not-allowed", padding: "6px 9px", lineHeight: 0, opacity: podeExcluir ? 1 : 0.4 }}><LuTrash2 size={14} /></button>
+                        {!eCatFixa && <button onClick={() => setCatEditando({ name: cat, input: cat })} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: "pointer", padding: "6px 9px", lineHeight: 0 }}><LuPencil size={14} /></button>}
+                        <button onClick={() => podeExcluir && setCatConfirmDelete(cat)} disabled={!podeExcluir || catOpLoading} style={{ background: "none", border: `1px solid ${podeExcluir ? C.red + "55" : C.border}`, borderRadius: 8, color: podeExcluir ? C.red : C.border, cursor: podeExcluir ? "pointer" : "not-allowed", padding: "6px 9px", lineHeight: 0, opacity: podeExcluir ? 1 : 0.4 }}><LuTrash2 size={14} /></button>
                       </>
                     )}
                   </div>
@@ -589,6 +594,37 @@ export default function ProdutosView() {
                 </button>
               </div>
               {catNova.trim() && categorias.includes(catNova.trim()) && <div style={{ fontSize: 18, color: C.muted, marginTop: 6 }}>Esta categoria já existe.</div>}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal Confirmar Exclusão de Categoria */}
+      {catConfirmDelete && createPortal(
+        <div onClick={e => { if (e.target === e.currentTarget) setCatConfirmDelete(null); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9100, padding: 24, fontFamily: "'Inter',system-ui,sans-serif" }}>
+          <div style={{ background: C.card, borderRadius: 20, padding: 28, width: "100%", maxWidth: 400, border: `1px solid ${C.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", color: C.text }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, flexShrink: 0, background: `${C.red}18`, border: `1.5px solid ${C.red}44`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <LuTrash2 size={22} color={C.red} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: 17 }}>Excluir categoria?</div>
+                <div style={{ fontSize: 15, color: C.muted, marginTop: 2 }}>Categoria: <strong style={{ color: C.text }}>{catConfirmDelete}</strong></div>
+              </div>
+            </div>
+            <div style={{ padding: "12px 16px", borderRadius: 10, marginBottom: 20, background: `${C.red}0d`, border: `1px solid ${C.red}33`, fontSize: 15, color: C.muted, lineHeight: 1.5 }}>
+              Esta ação <strong style={{ color: C.red }}>não pode ser desfeita</strong>. A categoria será removida permanentemente.
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setCatConfirmDelete(null)} style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 16, fontFamily: "inherit" }}>Cancelar</button>
+              <button
+                onClick={async () => { await excluirCategoria(catConfirmDelete); setCatConfirmDelete(null); }}
+                disabled={catOpLoading}
+                style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: "none", background: catOpLoading ? C.faint : C.red, color: "#fff", cursor: catOpLoading ? "not-allowed" : "pointer", fontWeight: 800, fontSize: 16, fontFamily: "inherit" }}
+              >
+                {catOpLoading ? "Excluindo..." : "Sim, excluir"}
+              </button>
             </div>
           </div>
         </div>,

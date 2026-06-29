@@ -31,8 +31,10 @@ export default function EstoqueView() {
   const [modoEntrada, setModoEntrada] = useState({});
   const [qtdEntrada,  setQtdEntrada]  = useState({});
 
+  const CATS_FIXAS = ["Insumo"];
+
   const categorias = useMemo(() => {
-    const cats = [...new Set(products.map(p => p.category).filter(Boolean))].sort();
+    const cats = [...new Set([...CATS_FIXAS, ...products.map(p => p.category).filter(Boolean)])].sort();
     return ["Todos", ...cats];
   }, [products]);
 

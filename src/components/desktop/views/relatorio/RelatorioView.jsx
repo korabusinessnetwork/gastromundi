@@ -608,8 +608,16 @@ export default function RelatorioView() {
 
           {periodo === "custom" && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <style>{`
+                .relatorio-date-input::-webkit-calendar-picker-indicator {
+                  filter: invert(1);
+                  cursor: pointer;
+                  opacity: 0.7;
+                }
+              `}</style>
               <input
                 type="date"
+                className="relatorio-date-input"
                 value={customInicio}
                 onChange={e => setCustomInicio(e.target.value)}
                 style={{
@@ -623,6 +631,7 @@ export default function RelatorioView() {
               <span style={{ color: C.muted, fontWeight: 600, fontSize: sz.fontSm + 1 }}>até</span>
               <input
                 type="date"
+                className="relatorio-date-input"
                 value={customFim}
                 min={customInicio || undefined}
                 onChange={e => setCustomFim(e.target.value)}
