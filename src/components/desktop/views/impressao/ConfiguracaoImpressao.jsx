@@ -2,10 +2,12 @@ import { useState } from "react";
 import C from "@/constants/colors";
 import LocaisImpressao from "./LocaisImpressao";
 import RoteamentoCategorias from "./RoteamentoCategorias";
+import ImpressorasConfig from "./ImpressorasConfig";
 
 const ABAS = [
-  { id: "locais",      label: "Locais de Impressão" },
-  { id: "roteamento",  label: "Roteamento por Categoria" },
+  { id: "locais",       label: "Locais de Impressão"      },
+  { id: "roteamento",   label: "Roteamento por Categoria" },
+  { id: "impressoras",  label: "Impressoras"              },
 ];
 
 export default function ConfiguracaoImpressao({ sz }) {
@@ -35,8 +37,9 @@ export default function ConfiguracaoImpressao({ sz }) {
         ))}
       </div>
 
-      {aba === "locais"     && <LocaisImpressao sz={sz} />}
-      {aba === "roteamento" && <RoteamentoCategorias sz={sz} />}
+      {aba === "locais"      && <LocaisImpressao sz={sz} />}
+      {aba === "roteamento"  && <RoteamentoCategorias sz={sz} />}
+      {aba === "impressoras" && <ImpressorasConfig sz={sz} />}
     </div>
   );
 }
