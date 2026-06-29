@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import C from "@/constants/colors";
-import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid } from "react-icons/lu";
+import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid, LuLogOut } from "react-icons/lu";
 
 const TOTAL_COMANDAS = 1000;
 const PAGE = 50;
@@ -18,6 +18,7 @@ export default function MobilePage() {
     pending, products, currentUser, estoque, caixaAberto,
     addPending, updatePending,
     lancadas, addLancada,
+    logout,
   } = useApp();
 
   const [mode,       setMode]       = useState("pedido"); // "pedido" | "grid"
@@ -274,9 +275,23 @@ export default function MobilePage() {
         padding: "14px 16px", borderBottom: `1px solid ${C.border}`,
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexShrink: 0,
       }}>
-        <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}>
-          <LuUtensils size={20} /> Palm
-          <span style={{ fontSize: 13, fontWeight: 500, color: C.muted }}>· {currentUser?.name?.split(" ")[0]}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            onClick={logout}
+            title="Sair"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "none", border: `1.5px solid ${C.border}`, borderRadius: 10,
+              color: C.muted, cursor: "pointer", padding: 7, lineHeight: 0,
+              WebkitTapHighlightColor: "transparent", flexShrink: 0,
+            }}
+          >
+            <LuLogOut size={16} />
+          </button>
+          <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}>
+            <LuUtensils size={20} /> Palm
+            <span style={{ fontSize: 13, fontWeight: 500, color: C.muted }}>· {currentUser?.name?.split(" ")[0]}</span>
+          </div>
         </div>
         <button
           onClick={() => setMode("grid")}
