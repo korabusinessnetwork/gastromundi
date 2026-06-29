@@ -8,6 +8,7 @@ import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { labelEstoque, getUnidadesCompra, fmtQtd } from "@/utils/conversaoUnidades";
 import { LuTriangleAlert, LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon, LuRuler } from "react-icons/lu";
+import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 
 const EMOJIS = ["🍺","🥤","💧","🍹","🍸","🥂","🍷","🍵","☕","🍔","🍟","🍕","🌭","🥪","🥗","🍝","🍣","🍜","🌮","🥩","🍗","🍖","🥚","🧀","🍰","🍦","🍫","🍿","🧂","🍱"];
 
@@ -360,11 +361,13 @@ export default function ProdutosView() {
               <Input value={form.name} onChange={v => setField("name", v)} placeholder="Ex: Cerveja 600ml" maxLength={60} />
             </div>
 
-            {/* Código de barras */}
-            <div>
-              <Label>Código de barras (EAN/QR)</Label>
-              <Input value={form.codigo_barras} onChange={v => setField("codigo_barras", v)} placeholder="Ex: 7891234567890" maxLength={64} />
-            </div>
+            {/* Código de barras — visível apenas quando FEATURE_BARCODE_SCANNER estiver ativo */}
+            {FEATURE_BARCODE_SCANNER && (
+              <div>
+                <Label>Código de barras (EAN/QR)</Label>
+                <Input value={form.codigo_barras} onChange={v => setField("codigo_barras", v)} placeholder="Ex: 7891234567890" maxLength={64} />
+              </div>
+            )}
 
             {/* Categoria — oculta para insumos */}
             {!isInsumo && (

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
@@ -6,7 +7,7 @@ import { parseNFe } from "@/utils/parseNFe";
 import {
   LuUpload, LuFileText, LuCheck, LuX, LuSearch,
   LuArrowLeft, LuChevronRight, LuPackage, LuTriangleAlert,
-  LuCalendar, LuBuilding2, LuHash, LuPlus,
+  LuCalendar, LuBuilding2, LuHash, LuPlus, LuTruck,
 } from "react-icons/lu";
 
 const fmtDt  = (d) => d ? new Date(d + "T12:00:00").toLocaleDateString("pt-BR") : "—";
@@ -224,7 +225,9 @@ function VinculaRow({ item, products, onChange }) {
 
 // ── Componente principal ──────────────────────────────────────────
 
-export default function NotasFiscaisTab({ sz }) {
+const ITEM_MANUAL_VAZIO = { descricaoXml: "", quantidade: "", unidadeXml: "", precoUnitario: "" };
+
+export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor }) {
   const { products, estoque, bulkSetEstoque } = useApp();
 
   const [view,        setView]       = useState("lista");
@@ -233,7 +236,7 @@ export default function NotasFiscaisTab({ sz }) {
   const [notaDetalhe, setNotaDetalhe] = useState(null);
   const [notaItens,   setNotaItens]  = useState([]);
 
-  // Wizard
+  // Wizard (XML)
   const [step,         setStep]        = useState(1);
   const [xmlString,    setXmlString]   = useState("");
   const [parsed,       setParsed]      = useState(null);
@@ -247,7 +250,40 @@ export default function NotasFiscaisTab({ sz }) {
   const [dragOver,     setDragOver]    = useState(false);
   const fileRef = useRef(null);
 
+  // Formulário manual
+  const [manualForm,  setManualForm]  = useState({
+    numero: "", serie: "",
+    dataEmissao: new Date().toISOString().split("T")[0],
+  });
+  const [manualItens, setManualItens] = useState([{ ...ITEM_MANUAL_VAZIO }]);
+  const [manualErro,  setManualErro]  = useState("");
+  const [fromManual,    setFromManual]    = useState(false);
+  const [pendingFornNome, setPendingFornNome] = useState(null);
+
+  // Fornecedor
+  const [showFornPopup,  setShowFornPopup]  = useState(false); // popup XML
+  const [fornSaving,     setFornSaving]     = useState(false);
+  const [manualFornId,   setManualFornId]   = useState("");    // id selecionado no formulário manual
+  const [manualFornBusca, setManualFornBusca] = useState("");
+  const [showFornDD,     setShowFornDD]     = useState(false);
+  const [showNovoForn,   setShowNovoForn]   = useState(false); // popup "cadastrar novo" no manual
+  const [novoFornForm,   setNovoFornForm]   = useState({ nome: "", cnpj: "" });
+  const [novoFornErro,   setNovoFornErro]   = useState("");
+  const fornDDRef = useRef(null);
+
   useEffect(() => { loadNotas(); }, []);
+
+  useEffect(() => {
+    if (!pendingFornNome) return;
+    const found = fornecedores.find(f => f.nome.trim().toLowerCase() === pendingFornNome.trim().toLowerCase());
+    if (found) { setManualFornId(found.id); setPendingFornNome(null); setShowNovoForn(false); }
+  }, [fornecedores, pendingFornNome]);
+
+  useEffect(() => {
+    const h = (e) => { if (fornDDRef.current && !fornDDRef.current.contains(e.target)) setShowFornDD(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
 
   const loadNotas = async () => {
     setLoadingList(true);
@@ -259,12 +295,89 @@ export default function NotasFiscaisTab({ sz }) {
     setLoadingList(false);
   };
 
+  // ── Fornecedor helpers ─────────────────────────────────────────
+
+  const normCnpj = (v) => String(v ?? "").replace(/\D/g, "");
+
+  const findFornecedor = (nome, cnpj) => {
+    const cnpjLimpo = normCnpj(cnpj);
+    if (cnpjLimpo) {
+      const byCnpj = fornecedores.find(f => normCnpj(f.cnpj) === cnpjLimpo);
+      if (byCnpj) return byCnpj;
+    }
+    return fornecedores.find(f => f.nome.trim().toLowerCase() === (nome ?? "").trim().toLowerCase());
+  };
+
+  const salvarNovoFornecedor = async (nome, cnpj) => {
+    if (!onAddFornecedor) return;
+    setFornSaving(true);
+    await onAddFornecedor({ nome: nome.trim(), cnpj: cnpj?.trim() || "" });
+    setFornSaving(false);
+  };
+
+  // Seletor manual: fornecedor selecionado pelo id
+  const fornecedorSelecionado = fornecedores.find(f => f.id === manualFornId) || null;
+
   // ── Wizard helpers ─────────────────────────────────────────────
 
   const startWizard = () => {
     setStep(1); setXmlString(""); setParsed(null); setXmlErro("");
     setDuplicadaEm(null); setItensVinc([]); setSaving(false);
-    setSaveErro(""); setImportOk(null);
+    setSaveErro(""); setImportOk(null); setFromManual(false);
+    setView("wizard");
+  };
+
+  const startManual = () => {
+    setManualForm({ numero: "", serie: "", dataEmissao: new Date().toISOString().split("T")[0] });
+    setManualItens([{ ...ITEM_MANUAL_VAZIO }]);
+    setManualErro("");
+    setManualFornId(""); setManualFornBusca(""); setShowFornDD(false);
+    setShowNovoForn(false); setNovoFornForm({ nome: "", cnpj: "" }); setNovoFornErro("");
+    setSaveErro(""); setSaving(false); setImportOk(null);
+    setView("manual");
+  };
+
+  const confirmarManual = () => {
+    if (!fornecedorSelecionado) { setManualErro("Selecione um fornecedor."); return; }
+    if (!manualForm.numero.trim()) { setManualErro("Informe o número da nota."); return; }
+    const itensValidos = manualItens.filter(i => i.descricaoXml.trim() && Number(i.quantidade) > 0);
+    if (itensValidos.length === 0) { setManualErro("Adicione ao menos um item com descrição e quantidade."); return; }
+    setManualErro("");
+    const valorTotal = itensValidos.reduce((s, i) => s + (Number(i.quantidade) || 0) * (parseFloat(String(i.precoUnitario).replace(",", ".")) || 0), 0);
+    setParsed({
+      cabecalho: {
+        chaveAcesso: null,
+        numero: manualForm.numero.trim(),
+        serie: manualForm.serie.trim() || null,
+        dataEmissao: manualForm.dataEmissao || null,
+        fornecedorNome: fornecedorSelecionado.nome,
+        fornecedorCnpj: fornecedorSelecionado.cnpj || null,
+        valorTotal,
+      },
+      itens: itensValidos.map((it, idx) => ({
+        numero: idx + 1,
+        descricaoXml: it.descricaoXml.trim(),
+        codigoXml: null,
+        unidadeXml: it.unidadeXml.trim() || "UN",
+        quantidade: Number(it.quantidade) || 0,
+        precoUnitario: parseFloat(String(it.precoUnitario).replace(",", ".")) || 0,
+        precoTotal: (Number(it.quantidade) || 0) * (parseFloat(String(it.precoUnitario).replace(",", ".")) || 0),
+      })),
+    });
+    setFromManual(true);
+    setXmlString("");
+    setItensVinc(itensValidos.map((it, idx) => ({
+      numero: idx + 1,
+      descricaoXml: it.descricaoXml.trim(),
+      codigoXml: null,
+      unidadeXml: it.unidadeXml.trim() || "UN",
+      quantidade: Number(it.quantidade) || 0,
+      precoUnitario: parseFloat(String(it.precoUnitario).replace(",", ".")) || 0,
+      precoTotal: (Number(it.quantidade) || 0) * (parseFloat(String(it.precoUnitario).replace(",", ".")) || 0),
+      produto: null, fator: 1, fatorAuto: false,
+      qtdEstoque: Number(it.quantidade) || 0,
+    })));
+    setStep(3);
     setView("wizard");
   };
 
@@ -284,6 +397,12 @@ export default function NotasFiscaisTab({ sz }) {
     setXmlErro("");
     setXmlString(text);
     setParsed(result);
+    const cab = result.cabecalho;
+    if (cab && !findFornecedor(cab.fornecedorNome, cab.fornecedorCnpj)) {
+      setShowFornPopup(true);
+    } else {
+      setShowFornPopup(false);
+    }
     setStep(2);
   };
 
@@ -405,6 +524,278 @@ export default function NotasFiscaisTab({ sz }) {
     setNotaItens(data || []);
     setView("detalhe");
   };
+
+  // ── Render: Manual ────────────────────────────────────────────
+
+  if (view === "manual") {
+    const setManualItem = (idx, patch) =>
+      setManualItens(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
+    const addItem = () => setManualItens(prev => [...prev, { ...ITEM_MANUAL_VAZIO }]);
+    const removeItem = (idx) => setManualItens(prev => prev.filter((_, i) => i !== idx));
+
+    const inpStyle = {
+      width: "100%", padding: "9px 12px", borderRadius: 10,
+      border: `1.5px solid ${C.border}`, background: C.surface,
+      color: C.text, fontSize: sz.fontBase, fontFamily: "inherit",
+      outline: "none", boxSizing: "border-box",
+    };
+    const label = (text) => (
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>{text}</div>
+    );
+
+    return (
+      <div style={{ maxWidth: 820, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+          <button
+            onClick={() => setView("lista")}
+            style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 14px", cursor: "pointer", color: C.text, display: "flex", alignItems: "center", gap: 6, fontSize: sz.fontSm + 1, fontWeight: 600, fontFamily: "inherit" }}
+          >
+            <LuArrowLeft size={14} /> Cancelar
+          </button>
+          <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Nova nota manual</div>
+        </div>
+
+        {/* Cabeçalho da nota */}
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, marginBottom: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: sz.fontBase + 1, marginBottom: 20 }}>Dados do fornecedor e nota</div>
+
+          {/* Seletor de fornecedor */}
+          <div style={{ marginBottom: 16 }}>
+            {label("Fornecedor *")}
+            {fornecedorSelecionado ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, background: `${C.green}10`, border: `1.5px solid ${C.green}44`, borderRadius: 10, padding: "10px 14px" }}>
+                <LuTruck size={16} color={C.green} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: C.green }}>{fornecedorSelecionado.nome}</div>
+                  {fornecedorSelecionado.cnpj && <div style={{ fontSize: 12, color: C.muted }}>{fmtCnpj(fornecedorSelecionado.cnpj)}</div>}
+                </div>
+                <button
+                  onClick={() => { setManualFornId(""); setManualFornBusca(""); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, padding: 4, display: "flex" }}
+                >
+                  <LuX size={14} />
+                </button>
+              </div>
+            ) : (
+              <div ref={fornDDRef} style={{ position: "relative" }}>
+                <div style={{ position: "relative" }}>
+                  <LuSearch size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+                  <input
+                    style={{ ...inpStyle, paddingLeft: 32 }}
+                    placeholder="Buscar fornecedor cadastrado..."
+                    value={manualFornBusca}
+                    onChange={e => { setManualFornBusca(e.target.value); setShowFornDD(true); }}
+                    onFocus={() => setShowFornDD(true)}
+                  />
+                </div>
+                {showFornDD && (
+                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, zIndex: 200, marginTop: 4, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+                    {fornecedores
+                      .filter(f => !manualFornBusca || f.nome.toLowerCase().includes(manualFornBusca.toLowerCase()))
+                      .slice(0, 8)
+                      .map(f => (
+                        <button
+                          key={f.id}
+                          onMouseDown={() => { setManualFornId(f.id); setManualFornBusca(""); setShowFornDD(false); }}
+                          style={{ width: "100%", padding: "10px 14px", border: "none", background: "none", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10, fontFamily: "inherit", color: C.text }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                          onMouseLeave={e => e.currentTarget.style.background = "none"}
+                        >
+                          <LuTruck size={14} color={C.muted} />
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600 }}>{f.nome}</div>
+                            {f.cnpj && <div style={{ fontSize: 11, color: C.muted }}>{fmtCnpj(f.cnpj)}</div>}
+                          </div>
+                        </button>
+                      ))
+                    }
+                    <button
+                      onMouseDown={() => { setShowFornDD(false); setShowNovoForn(true); setNovoFornForm({ nome: manualFornBusca, cnpj: "" }); setNovoFornErro(""); }}
+                      style={{ width: "100%", padding: "10px 14px", border: "none", borderTop: `1px solid ${C.border}`, background: "none", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8, fontFamily: "inherit", color: C.accent, fontWeight: 600, fontSize: 13 }}
+                      onMouseEnter={e => e.currentTarget.style.background = `${C.accent}08`}
+                      onMouseLeave={e => e.currentTarget.style.background = "none"}
+                    >
+                      <LuPlus size={14} /> Cadastrar novo fornecedor
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+            <div>
+              {label("Data de emissão")}
+              <input
+                type="date"
+                style={inpStyle}
+                value={manualForm.dataEmissao}
+                onChange={e => setManualForm(f => ({ ...f, dataEmissao: e.target.value }))}
+              />
+            </div>
+            <div>
+              {label("Número da nota *")}
+              <input
+                style={inpStyle}
+                placeholder="000000"
+                value={manualForm.numero}
+                onChange={e => setManualForm(f => ({ ...f, numero: e.target.value }))}
+              />
+            </div>
+            <div>
+              {label("Série")}
+              <input
+                style={inpStyle}
+                placeholder="1"
+                value={manualForm.serie}
+                onChange={e => setManualForm(f => ({ ...f, serie: e.target.value }))}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Popup: cadastrar novo fornecedor (manual) */}
+        {showNovoForn && createPortal(
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 440 }}>
+              <div style={{ fontWeight: 800, fontSize: sz.fontLg, marginBottom: 6 }}>Cadastrar fornecedor</div>
+              <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginBottom: 20 }}>O fornecedor será salvo no cadastro e vinculado à nota.</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+                <div>
+                  {label("Nome *")}
+                  <input style={inpStyle} placeholder="Nome do fornecedor" value={novoFornForm.nome} onChange={e => setNovoFornForm(f => ({ ...f, nome: e.target.value }))} />
+                </div>
+                <div>
+                  {label("CNPJ")}
+                  <input style={inpStyle} placeholder="00.000.000/0000-00" value={novoFornForm.cnpj} onChange={e => setNovoFornForm(f => ({ ...f, cnpj: e.target.value }))} />
+                </div>
+              </div>
+              {novoFornErro && <div style={{ color: C.red, fontSize: sz.fontSm + 1, marginBottom: 12, fontWeight: 600 }}>{novoFornErro}</div>}
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => { setShowNovoForn(false); setNovoFornErro(""); }}
+                  style={{ flex: 1, padding: "11px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  disabled={fornSaving}
+                  onClick={async () => {
+                    if (!novoFornForm.nome.trim()) { setNovoFornErro("Informe o nome do fornecedor."); return; }
+                    setPendingFornNome(novoFornForm.nome.trim());
+                    await salvarNovoFornecedor(novoFornForm.nome, novoFornForm.cnpj);
+                  }}
+                  style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", cursor: fornSaving ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", opacity: fornSaving ? 0.6 : 1 }}
+                >
+                  {fornSaving ? "Salvando..." : "Cadastrar"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {/* Itens */}
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 20 }}>
+          <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontWeight: 700, fontSize: sz.fontBase + 1 }}>Itens da nota</div>
+            <button
+              onClick={addItem}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1, fontFamily: "inherit" }}
+            >
+              <LuPlus size={13} /> Adicionar item
+            </button>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+                  {["#", "Descrição *", "Qtd *", "Unidade", "Preço Unit. (R$)", ""].map((h, i) => (
+                    <th key={i} style={{ padding: "10px 12px", textAlign: i >= 2 ? "center" : "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.7, whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {manualItens.map((it, idx) => (
+                  <tr key={idx} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: "8px 12px", fontSize: 13, color: C.muted, fontWeight: 600 }}>{idx + 1}</td>
+                    <td style={{ padding: "8px 12px" }}>
+                      <input
+                        style={{ ...inpStyle, padding: "7px 10px" }}
+                        placeholder="Ex: Farinha de trigo..."
+                        value={it.descricaoXml}
+                        onChange={e => setManualItem(idx, { descricaoXml: e.target.value })}
+                      />
+                    </td>
+                    <td style={{ padding: "8px 10px", width: 90 }}>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        style={{ ...inpStyle, padding: "7px 10px", textAlign: "center" }}
+                        placeholder="0"
+                        value={it.quantidade}
+                        onChange={e => setManualItem(idx, { quantidade: e.target.value })}
+                      />
+                    </td>
+                    <td style={{ padding: "8px 10px", width: 90 }}>
+                      <input
+                        style={{ ...inpStyle, padding: "7px 10px", textAlign: "center" }}
+                        placeholder="KG"
+                        value={it.unidadeXml}
+                        onChange={e => setManualItem(idx, { unidadeXml: e.target.value })}
+                      />
+                    </td>
+                    <td style={{ padding: "8px 10px", width: 130 }}>
+                      <input
+                        style={{ ...inpStyle, padding: "7px 10px", textAlign: "right" }}
+                        placeholder="0,00"
+                        value={it.precoUnitario}
+                        onChange={e => setManualItem(idx, { precoUnitario: e.target.value })}
+                      />
+                    </td>
+                    <td style={{ padding: "8px 12px", textAlign: "center" }}>
+                      {manualItens.length > 1 && (
+                        <button
+                          onClick={() => removeItem(idx)}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, padding: 4, display: "flex", alignItems: "center" }}
+                          onMouseEnter={e => e.currentTarget.style.color = C.red}
+                          onMouseLeave={e => e.currentTarget.style.color = C.muted}
+                        >
+                          <LuX size={15} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {manualErro && (
+          <div style={{ background: `${C.red}12`, border: `1.5px solid ${C.red}44`, borderRadius: 12, padding: "12px 18px", marginBottom: 16, color: C.red, fontWeight: 600, fontSize: sz.fontBase, display: "flex", alignItems: "center", gap: 10 }}>
+            <LuTriangleAlert size={16} /> {manualErro}
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 12 }}>
+          <button
+            onClick={() => setView("lista")}
+            style={{ padding: "12px 24px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={confirmarManual}
+            style={{ flex: 1, padding: "12px 24px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", boxShadow: `0 4px 14px ${C.accent}44` }}
+          >
+            Continuar → Vincular produtos
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ── Render: Detalhe ───────────────────────────────────────────
 
@@ -568,6 +959,40 @@ export default function NotasFiscaisTab({ sz }) {
               )}
             </div>
 
+            {showFornPopup && (
+              <div style={{ background: `${"#f59e0b"}12`, border: `1.5px solid ${"#f59e0b"}55`, borderRadius: 14, padding: "16px 20px", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <LuTriangleAlert size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: sz.fontBase, marginBottom: 4 }}>
+                      Fornecedor não cadastrado
+                    </div>
+                    <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginBottom: 12 }}>
+                      "<strong>{cab.fornecedorNome}</strong>" não foi encontrado no cadastro de fornecedores. Deseja cadastrá-lo automaticamente?
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        disabled={fornSaving}
+                        onClick={async () => {
+                          await salvarNovoFornecedor(cab.fornecedorNome, cab.fornecedorCnpj);
+                          setShowFornPopup(false);
+                        }}
+                        style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#f59e0b", color: "#fff", cursor: fornSaving ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontSm + 1, fontFamily: "inherit", opacity: fornSaving ? 0.6 : 1 }}
+                      >
+                        {fornSaving ? "Cadastrando..." : `Sim, cadastrar "${cab.fornecedorNome}"`}
+                      </button>
+                      <button
+                        onClick={() => setShowFornPopup(false)}
+                        style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1, fontFamily: "inherit" }}
+                      >
+                        Ignorar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {duplicadaEm && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, background: `${C.red}12`, border: `1.5px solid ${C.red}44`, borderRadius: 12, padding: "14px 18px", marginBottom: 16 }}>
                 <LuTriangleAlert size={20} color={C.red} />
@@ -626,7 +1051,10 @@ export default function NotasFiscaisTab({ sz }) {
             </div>
 
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setStep(2)} style={{ padding: "12px 24px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}>
+              <button
+                onClick={() => fromManual ? setView("manual") : setStep(2)}
+                style={{ padding: "12px 24px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
+              >
                 ← Voltar
               </button>
               <button
@@ -740,9 +1168,12 @@ export default function NotasFiscaisTab({ sz }) {
               <button onClick={() => setView("lista")} style={{ padding: "12px 24px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}>
                 Ver notas importadas
               </button>
-              <button onClick={startWizard} style={{ padding: "12px 24px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}>
+              <button
+                onClick={fromManual ? startManual : startWizard}
+                style={{ padding: "12px 24px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
+              >
                 <LuPlus size={14} style={{ marginRight: 6 }} />
-                Importar outra
+                {fromManual ? "Nova nota manual" : "Importar outra"}
               </button>
             </div>
           </div>
@@ -762,9 +1193,8 @@ export default function NotasFiscaisTab({ sz }) {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button
-            disabled
-            title="Em breve"
-            style={{ padding: "10px 18px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: "none", color: C.muted, cursor: "not-allowed", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit", opacity: 0.5 }}
+            onClick={startManual}
+            style={{ padding: "10px 18px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
           >
             Nova nota manual
           </button>

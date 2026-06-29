@@ -732,7 +732,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
 
 // ── Aba: Fornecedores ─────────────────────────────────────────────
 
-const FORN_VAZIO = { id: "", nome: "", categoria: "", contato: "", telefone: "", email: "", observacoes: "" };
+const FORN_VAZIO = { id: "", nome: "", cnpj: "", categoria: "", contato: "", telefone: "", email: "", observacoes: "" };
 
 function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
   const [form,     setForm]     = useState(null);
@@ -807,7 +807,10 @@ function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
             <Field label="Nome *"><Inp value={form.nome} onChange={v => setF("nome", v)} placeholder="Nome do fornecedor" /></Field>
             <Field label="Categoria"><Inp value={form.categoria} onChange={v => setF("categoria", v)} placeholder="Ex: Bebidas, Carnes..." /></Field>
           </div>
-          <Field label="Contato"><Inp value={form.contato} onChange={v => setF("contato", v)} placeholder="Nome do responsável" /></Field>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="CNPJ"><Inp value={form.cnpj ?? ""} onChange={v => setF("cnpj", v)} placeholder="00.000.000/0000-00" /></Field>
+            <Field label="Contato"><Inp value={form.contato} onChange={v => setF("contato", v)} placeholder="Nome do responsável" /></Field>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Telefone"><Inp value={form.telefone} onChange={v => setF("telefone", v)} placeholder="(00) 00000-0000" /></Field>
             <Field label="E-mail"><Inp type="email" value={form.email} onChange={v => setF("email", v)} placeholder="email@fornecedor.com" /></Field>
@@ -1295,7 +1298,16 @@ export default function AdminView() {
             {secao === "fornecedores" && <FornecedoresTab   sz={sz} fornecedores={fornecedores} onSave={handleSave} onDelete={handleSave} />}
             {secao === "compras"      && <ComprasTab        sz={sz} compras={compras}           fornecedores={fornecedores} onSave={handleSave} onDelete={handleSave} />}
             {secao === "impostos"     && <ImpostosTab       sz={sz} impostos={impostos}          onSave={handleSave} onDelete={handleSave} />}
-            {secao === "notas_fiscais" && <NotasFiscaisTab sz={sz} />}
+            {secao === "notas_fiscais" && (
+              <NotasFiscaisTab
+                sz={sz}
+                fornecedores={fornecedores}
+                onAddFornecedor={async (forn) => {
+                  const nova = [...fornecedores, { ...FORN_VAZIO, ...forn, id: uid() }];
+                  await handleSave("fornecedores", nova);
+                }}
+              />
+            )}
           </>
         )}
       </div>

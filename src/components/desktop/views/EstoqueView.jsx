@@ -1,4 +1,5 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -8,18 +9,23 @@ import {
   labelEstoque, labelConsumo,
   temConversaoConsumo, getUnidadesCompra, fmtQtd,
 } from "@/utils/conversaoUnidades";
-import { LuPackage, LuTriangleAlert, LuCircleAlert, LuMinus, LuPlus, LuShoppingCart, LuBox } from "react-icons/lu";
+import { hashPassword } from "@/utils/crypto";
+import {
+  LuPackage, LuTriangleAlert, LuCircleAlert,
+  LuMinus, LuPlus, LuShoppingCart, LuBox,
+  LuLock, LuLockOpen, LuEye, LuEyeOff, LuKeyRound,
+} from "react-icons/lu";
 
 const LIMITE_BAIXO = 10;
 
 function estoqueColor(qty) {
-  if (qty === 0)            return C.red;
-  if (qty <= LIMITE_BAIXO)  return "#f59e0b";
+  if (qty === 0)           return C.red;
+  if (qty <= LIMITE_BAIXO) return "#f59e0b";
   return C.green;
 }
 
 export default function EstoqueView() {
-  const { products, estoque, updateEstoque } = useApp();
+  const { products, estoque, updateEstoque, users } = useApp();
   const { width } = useResponsive();
   const sz = getSizes(width);
 
@@ -31,6 +37,14 @@ export default function EstoqueView() {
   const [modoEntrada, setModoEntrada] = useState({});
   const [qtdEntrada,  setQtdEntrada]  = useState({});
 
+  // Autorização de entrada
+  const [autorizado,    setAutorizado]    = useState(false);
+  const [showAuth,      setShowAuth]      = useState(false);
+  const [senha,         setSenha]         = useState("");
+  const [senhaErro,     setSenhaErro]     = useState(false);
+  const [senhaVis,      setSenhaVis]      = useState(false);
+  const [verificando,   setVerificando]   = useState(false);
+
   const CATS_FIXAS = ["Insumo"];
 
   const categorias = useMemo(() => {
@@ -40,7 +54,7 @@ export default function EstoqueView() {
 
   const lista = useMemo(() => {
     let l = products;
-    if (busca)               l = l.filter(p => p.name?.toLowerCase().includes(busca.toLowerCase()));
+    if (busca)                l = l.filter(p => p.name?.toLowerCase().includes(busca.toLowerCase()));
     if (categoria !== "Todos") l = l.filter(p => p.category === categoria);
     return l;
   }, [products, busca, categoria]);
@@ -49,7 +63,6 @@ export default function EstoqueView() {
   const semEstoque   = products.filter(p => (estoque[p.id] ?? 0) === 0).length;
   const estoqueBaixo = products.filter(p => { const q = estoque[p.id] ?? 0; return q > 0 && q <= LIMITE_BAIXO; }).length;
 
-  // Modo: "estoque" = entrada direta | número = índice em getUnidadesCompra(p)
   const getModo = (p) => {
     const stored = modoEntrada[p.id];
     if (stored !== undefined) return stored;
@@ -82,13 +95,77 @@ export default function EstoqueView() {
     setSalvando(prev => ({ ...prev, [p.id]: false }));
   };
 
+  const abrirAuth = () => {
+    setSenha(""); setSenhaErro(false); setSenhaVis(false);
+    setShowAuth(true);
+  };
+
+  const confirmarSenha = async () => {
+    if (!senha || verificando) return;
+    setVerificando(true);
+    const hashed = await hashPassword(senha);
+    const ok = (users ?? []).some(u =>
+      ["admin", "gerente"].includes(u.role) && u.password === hashed
+    );
+    setVerificando(false);
+    if (ok) {
+      setAutorizado(true);
+      setShowAuth(false);
+    } else {
+      setSenhaErro(true);
+    }
+  };
+
+  const bloquear = () => {
+    setAutorizado(false);
+    setModoEntrada({});
+    setQtdEntrada({});
+  };
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
 
       {/* Header */}
-      <div style={{ padding: `${sz.pad - 4}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-        <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Estoque</div>
-        <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 2 }}>Controle de quantidade dos produtos</div>
+      <div style={{ padding: `${sz.pad - 4}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Estoque</div>
+          <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 2 }}>Controle de quantidade dos produtos</div>
+        </div>
+
+        {/* Botão de liberar / bloquear entrada */}
+        {autorizado ? (
+          <button
+            onClick={bloquear}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 18px", borderRadius: 10,
+              border: `1.5px solid ${C.green}55`,
+              background: `${C.green}10`,
+              color: C.green, cursor: "pointer",
+              fontWeight: 700, fontSize: sz.fontBase,
+              fontFamily: "inherit", transition: "all 0.15s",
+            }}
+          >
+            <LuLockOpen size={15} /> Entrada liberada · Bloquear
+          </button>
+        ) : (
+          <button
+            onClick={abrirAuth}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 18px", borderRadius: 10,
+              border: `1.5px solid ${C.border}`,
+              background: C.surface,
+              color: C.muted, cursor: "pointer",
+              fontWeight: 700, fontSize: sz.fontBase,
+              fontFamily: "inherit", transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent + "88"; e.currentTarget.style.color = C.text; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; }}
+          >
+            <LuLock size={15} /> Liberar Entrada
+          </button>
+        )}
       </div>
 
       {/* KPIs */}
@@ -151,7 +228,6 @@ export default function EstoqueView() {
                   const rawInput = getQtd(p.id);
                   const rawNum   = parseFloat(String(rawInput).replace(",", ".")) || 0;
 
-                  // Preview de conversão para a unidade de compra selecionada
                   const unidadeAtual = modo !== "estoque" ? units[modo] : null;
                   const previewEst   = unidadeAtual && rawNum > 0
                     ? compraParaEstoque(rawNum, unidadeAtual) : null;
@@ -205,7 +281,27 @@ export default function EstoqueView() {
 
                       {/* Entrada */}
                       <td style={{ padding: "14px 16px" }}>
-                        {temP ? (
+                        {!autorizado ? (
+                          /* Bloqueado — mostra cadeado clicável */
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                            <button
+                              onClick={abrirAuth}
+                              title="Liberar entrada de estoque"
+                              style={{
+                                width: 40, height: 40, borderRadius: 10,
+                                border: `1px solid ${C.border}`,
+                                background: C.surface,
+                                color: C.muted, cursor: "pointer",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                transition: "all 0.15s",
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent + "66"; e.currentTarget.style.color = C.accent; e.currentTarget.style.background = `${C.accent}0c`; }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; e.currentTarget.style.background = C.surface; }}
+                            >
+                              <LuLock size={16} />
+                            </button>
+                          </div>
+                        ) : temP ? (
                           <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
                             {/* Tabs: uma por unidade de compra + estoque direto */}
                             <div style={{ display: "flex", borderRadius: 8, border: `1px solid ${C.border}`, overflow: "hidden", flexWrap: "wrap" }}>
@@ -288,6 +384,104 @@ export default function EstoqueView() {
           </div>
         )}
       </div>
+
+      {/* ── Modal de autenticação ─────────────────────────────────── */}
+      {showAuth && createPortal(
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowAuth(false); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9000,
+            background: "rgba(0,0,0,0.72)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
+          }}
+        >
+          <div style={{
+            background: C.card, borderRadius: 20, padding: 28,
+            width: "100%", maxWidth: 400,
+            border: `1px solid ${C.border}`,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+            color: C.text, display: "flex", flexDirection: "column", gap: 20,
+          }}>
+            {/* Título */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <LuKeyRound size={22} color={C.accent} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: 17 }}>Liberar Entrada de Estoque</div>
+                <div style={{ fontSize: 14, color: C.muted, marginTop: 2 }}>Requer senha de administrador ou gerente</div>
+              </div>
+            </div>
+
+            {/* Campo de senha */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label style={{ fontSize: 13, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>
+                <LuLock size={12} /> Senha
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  autoFocus
+                  type={senhaVis ? "text" : "password"}
+                  value={senha}
+                  onChange={e => { setSenha(e.target.value); setSenhaErro(false); }}
+                  onKeyDown={e => { if (e.key === "Enter") confirmarSenha(); }}
+                  placeholder="Digite a senha..."
+                  style={{
+                    width: "100%", padding: "12px 44px 12px 14px",
+                    borderRadius: 10, border: `1.5px solid ${senhaErro ? C.red : C.border}`,
+                    background: C.surface, color: C.text,
+                    fontSize: 16, fontFamily: "inherit", outline: "none",
+                    boxSizing: "border-box", transition: "border-color 0.15s",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setSenhaVis(v => !v)}
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 0, display: "flex" }}
+                >
+                  {senhaVis ? <LuEyeOff size={16} /> : <LuEye size={16} />}
+                </button>
+              </div>
+              {senhaErro && (
+                <div style={{ fontSize: 13, color: C.red, fontWeight: 600 }}>
+                  Senha incorreta. Apenas administrador ou gerente pode liberar.
+                </div>
+              )}
+            </div>
+
+            {/* Botões */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setShowAuth(false)}
+                style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 16, fontFamily: "inherit" }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarSenha}
+                disabled={!senha || verificando}
+                style={{
+                  flex: 1, padding: "13px 0", borderRadius: 12, border: "none",
+                  background: senha && !verificando ? C.accent : C.faint,
+                  color: "#fff",
+                  cursor: senha && !verificando ? "pointer" : "not-allowed",
+                  fontWeight: 800, fontSize: 16, fontFamily: "inherit",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                }}
+              >
+                <LuLockOpen size={15} />
+                {verificando ? "Verificando..." : "Liberar"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
