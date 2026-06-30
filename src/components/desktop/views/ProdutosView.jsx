@@ -9,6 +9,8 @@ import C from "@/constants/colors";
 import { labelEstoque, getUnidadesCompra, fmtQtd } from "@/utils/conversaoUnidades";
 import { LuTriangleAlert, LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon, LuRuler } from "react-icons/lu";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
+import SubprodutosView from "./SubprodutosView";
+import CombosView from "./CombosView";
 
 const EMOJIS = ["🍺","🥤","💧","🍹","🍸","🥂","🍷","🍵","☕","🍔","🍟","🍕","🌭","🥪","🥗","🍝","🍣","🍜","🌮","🥩","🍗","🍖","🥚","🧀","🍰","🍦","🍫","🍿","🧂","🍱"];
 
@@ -329,6 +331,14 @@ export default function ProdutosView() {
   const unidadesCompra  = unidadesMedida.filter(u => u.tipo === "compra");
   const unidadesConsumo = unidadesMedida.filter(u => u.tipo === "consumo");
 
+  const [abaAtiva, setAbaAtiva] = useState("produtos");
+
+  const ABAS = [
+    { id: "produtos",    label: "Produtos" },
+    { id: "subprodutos", label: "Subprodutos" },
+    { id: "combos",      label: "Combos" },
+  ];
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
 
@@ -339,7 +349,7 @@ export default function ProdutosView() {
           <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 2 }}>{products.length} cadastrado{products.length !== 1 ? "s" : ""}</div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          {isAdmin && (
+          {isAdmin && abaAtiva === "produtos" && (
             <>
               <button onClick={() => setShowCatModal(true)} style={{ padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
                 <LuTag size={15} /> Categorias
@@ -358,7 +368,31 @@ export default function ProdutosView() {
         </div>
       </div>
 
-      {/* Categorias + Busca */}
+      {/* Abas */}
+      <div style={{ display: "flex", gap: 2, padding: `0 ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        {ABAS.map(aba => {
+          const ativo = abaAtiva === aba.id;
+          return (
+            <button
+              key={aba.id}
+              onClick={() => setAbaAtiva(aba.id)}
+              style={{ padding: "10px 18px", border: "none", borderBottom: ativo ? `2px solid ${C.accent}` : "2px solid transparent", background: "none", color: ativo ? C.accent : C.muted, fontWeight: ativo ? 700 : 500, fontSize: sz.fontBase, cursor: "pointer", fontFamily: "inherit", marginBottom: -1, transition: "color 0.15s" }}
+            >
+              {aba.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Subprodutos */}
+      {abaAtiva === "subprodutos" && <SubprodutosView sz={sz} />}
+
+      {/* Combos */}
+      {abaAtiva === "combos" && <CombosView sz={sz} />}
+
+      {/* Produtos — Categorias + Busca + Tabela */}
+      {abaAtiva === "produtos" && <>
+
       <CategoriasComBusca
         categorias={categorias}
         catFiltro={catFiltro}
@@ -426,6 +460,7 @@ export default function ProdutosView() {
           </table>
         )}
       </div>
+      </>}
 
       {/* ── Modal Novo / Editar ── */}
       {modal && (
