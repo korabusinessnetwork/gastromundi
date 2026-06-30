@@ -9,7 +9,7 @@ import {
   labelEstoque, labelConsumo,
   temConversaoConsumo, getUnidadesCompra, fmtQtd,
 } from "@/utils/conversaoUnidades";
-import { hashPassword } from "@/utils/crypto";
+import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import {
   LuPackage, LuTriangleAlert, LuCircleAlert,
   LuMinus, LuPlus, LuShoppingCart, LuBox,
@@ -135,10 +135,7 @@ export default function EstoqueView() {
   const confirmarSenha = async () => {
     if (!senha || verificando) return;
     setVerificando(true);
-    const hashed = await hashPassword(senha);
-    const ok = (users ?? []).some(u =>
-      ["admin", "gerente"].includes(u.role) && u.password === hashed
-    );
+    const ok = await verificarSenhaAdmin(senha);
     setVerificando(false);
     if (ok) {
       setAutorizado(true);

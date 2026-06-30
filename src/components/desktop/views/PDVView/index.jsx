@@ -8,7 +8,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode } from "react-icons/lu";
-import { hashPassword } from "@/utils/crypto";
+import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import ComandaGrid   from "./ComandaGrid";
@@ -1056,9 +1056,7 @@ export default function PDVView() {
                       onChange={e => { setCancelarSenha(e.target.value); setCancelarSenhaErro(false); }}
                       onKeyDown={async e => {
                         if (e.key === "Enter") {
-                          const hashed = await hashPassword(cancelarSenha);
-                          const admins = (users ?? []).filter(u => u.role === "admin" || u.role === "gerente");
-                          const ok = admins.some(u => u.password === hashed);
+                          const ok = await verificarSenhaAdmin(cancelarSenha);
                           if (ok) { setCancelarAutorizado(true); setCancelarSenhaErro(false); }
                           else setCancelarSenhaErro(true);
                         }
@@ -1080,9 +1078,7 @@ export default function PDVView() {
                   {cancelarSenhaErro && <div style={{ fontSize: 15, color: C.red, fontWeight: 600 }}>Senha incorreta.</div>}
                   <button
                     onClick={async () => {
-                      const hashed = await hashPassword(cancelarSenha);
-                      const admins = (users ?? []).filter(u => u.role === "admin" || u.role === "gerente");
-                      const ok = admins.some(u => u.password === hashed);
+                      const ok = await verificarSenhaAdmin(cancelarSenha);
                       if (ok) { setCancelarAutorizado(true); setCancelarSenhaErro(false); }
                       else setCancelarSenhaErro(true);
                     }}
@@ -1784,9 +1780,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   const METODOS_COLOR = { dinheiro: "#10b981", credito: "#3b82f6", debito: "#8b5cf6", pix: "#f59e0b" };
 
   const verificarSenha = async () => {
-    const hashed = await hashPassword(senha);
-    const admins = (users ?? []).filter(u => u.role === "admin" || u.role === "gerente");
-    const match  = admins.some(u => u.password === hashed);
+    const match = await verificarSenhaAdmin(senha);
     if (match) { setAutorizado(true); setSenhaErro(false); }
     else        { setSenhaErro(true); }
   };

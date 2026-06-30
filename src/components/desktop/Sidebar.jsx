@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/constants/roles";
-import { hashPassword, isV2Hash } from "@/utils/crypto";
+import { verificarSenhaUsuario } from "@/lib/adminAuth";
 import C from "@/constants/colors";
 import { getSizes } from "@/constants/sizes";
 import { useResponsive } from "@/utils/hooks";
@@ -47,13 +47,10 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
   const handleAuthRelatorio = async () => {
     if (authLoading) return;
     const username = authUser.trim().toLowerCase();
-    const user = (users ?? []).find(u => u.username === username && (u.role === "admin" || u.role === "gerente"));
-    if (!user) { setAuthError("Usuário não encontrado ou sem permissão de acesso."); return; }
     setAuthLoading(true);
     try {
-      const hashed = await hashPassword(authPass);
-      const match  = isV2Hash(user.password) ? user.password === hashed : false;
-      if (!match) { setAuthError("Senha incorreta."); return; }
+      const ok = await verificarSenhaUsuario(username, authPass);
+      if (!ok) { setAuthError("Usuário, senha ou permissão incorretos."); return; }
       setShowAuthRel(false);
       navigate("/app/relatorio", { state: { ts: Date.now() } });
       onClose?.();

@@ -4,7 +4,7 @@ import C from "@/constants/colors";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { useApp } from "@/context/AppContext";
-import { hashPassword } from "@/utils/crypto";
+import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 
 const fmtComanda = (name) =>
@@ -73,10 +73,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
     if (!motivo.trim()) return;
     if (!itemSenhaOk) {
       if (!itemSenha) return;
-      const hashed = await hashPassword(itemSenha);
-      const autorizado = users.some(u =>
-        ["admin", "gerente"].includes(u.role) && u.password === hashed
-      );
+      const autorizado = await verificarSenhaAdmin(itemSenha);
       if (!autorizado) { setItemSenhaErro(true); return; }
       setItemSenhaOk(true);
       setItemSenhaErro(false);

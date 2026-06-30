@@ -3,7 +3,8 @@ import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { hashPassword, passwordStrength, sanitizeInput } from "@/utils";
+import { passwordStrength, sanitizeInput } from "@/utils";
+import { criarAuthUsuario, atualizarSenhaAuth, deletarAuthUsuario } from "@/lib/adminAuth";
 import { getPermissions } from "@/constants/roles";
 import C from "@/constants/colors";
 import { createPortal } from "react-dom";
@@ -208,12 +209,17 @@ function UsuariosTab({ sz }) {
         if (passwordStrength(form.password).level < 2) { setErro("Senha muito fraca."); setSalvando(false); return; }
 
         const plainPwd = sanitizeInput(form.password, 100);
-        const hashed   = await hashPassword(plainPwd);
+
+        // Cria na tabela users primeiro
         const { error } = await addUser({
-          name, username, role: form.role,
-          password: hashed, permissions, active: true,
+          name, username, role: form.role, permissions, active: true,
         });
         if (error) { setErro(traduzirErro(error)); setSalvando(false); return; }
+
+        // Cria conta no Supabase Auth via Edge Function
+        const { error: authErr } = await criarAuthUsuario({ username, password: plainPwd, name, role: form.role });
+        if (authErr) { setErro("Usuário criado, mas falha no Auth: " + authErr); setSalvando(false); return; }
+
         await saveCredential(username, plainPwd);
       } else {
         const changes = { name, username, role: form.role, permissions };
@@ -221,7 +227,12 @@ function UsuariosTab({ sz }) {
           if (form.password !== form.confirmPassword) { setErro("As senhas não coincidem."); setSalvando(false); return; }
           if (passwordStrength(form.password).level < 2) { setErro("Senha muito fraca."); setSalvando(false); return; }
           const plainPwd = sanitizeInput(form.password, 100);
-          changes.password = await hashPassword(plainPwd);
+          // Atualiza senha no Supabase Auth
+          const editUser = users.find(u => u.id === editId);
+          if (editUser?.auth_id) {
+            const { error: authErr } = await atualizarSenhaAuth(editUser.auth_id, plainPwd);
+            if (authErr) { setErro("Falha ao atualizar senha no Auth: " + authErr); setSalvando(false); return; }
+          }
           await saveCredential(username, plainPwd);
         }
         const { error } = await updateUser(editId, changes);
@@ -239,7 +250,11 @@ function UsuariosTab({ sz }) {
   const confirmarDelete = async () => {
     if (!deleteId || deletando) return;
     setDeletando(true);
+    const userDel = users.find(u => u.id === deleteId);
     await removeUser(deleteId);
+    if (userDel?.auth_id) {
+      await deletarAuthUsuario(userDel.auth_id);
+    }
     setDeletando(false);
     setDeleteId(null);
   };
