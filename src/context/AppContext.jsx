@@ -45,12 +45,17 @@ export function AppProvider({ children }) {
   // ── Restaura sessão do Supabase Auth ao carregar ─────────────
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session && !currentUser) {
+      if (session) {
         const userData = await buscarDadosUsuario(session.user.id);
         if (userData) {
           setCurrentUser(userData);
           saveSession(userData);
+          await bootstrap();
+        } else {
+          setLoading(false);
         }
+      } else {
+        setLoading(false);
       }
     });
 
@@ -69,7 +74,7 @@ export function AppProvider({ children }) {
   async function buscarDadosUsuario(authId) {
     const { data } = await supabase
       .from("users")
-      .select("id,name,username,role")
+      .select("id,name,username,role,auth_id")
       .eq("auth_id", authId)
       .eq("active", true)
       .single();
@@ -77,9 +82,8 @@ export function AppProvider({ children }) {
     return { ...data, permissions: getPermissions(data.role) };
   }
 
-  // ── Fetch inicial do Supabase ─────────────────────────────────
-  useEffect(() => {
-    async function bootstrap() {
+  // ── Fetch inicial do Supabase (só roda autenticado) ───────────
+  async function bootstrap() {
       const [
         { data: productsData, error: eProducts },
         { data: pendingData,  error: ePending  },
@@ -91,7 +95,7 @@ export function AppProvider({ children }) {
         supabase.from("products").select("*").eq("active", true).order("id"),
         supabase.from("pending").select("*").order("created_at", { ascending: false }),
         supabase.from("sales").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("users").select("id,name,username,role,active").eq("active", true),
+        supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
         supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","credentials","estoque","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
       ]);
@@ -132,9 +136,7 @@ export function AppProvider({ children }) {
       }
 
       setLoading(false);
-    }
-    bootstrap();
-  }, []);
+  }
 
   // ── Atualiza currentUser quando a lista de usuários muda ──────
   useEffect(() => {
@@ -202,6 +204,7 @@ export function AppProvider({ children }) {
     setCurrentUser(userData);
     saveSession(userData);
     logAction(userData.username, "auth:login", { msg: `Login realizado · ${userData.role}`, name: userData.name, role: userData.role });
+    await bootstrap();
     return { ok: true };
   };
 
