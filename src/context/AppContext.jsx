@@ -1,10 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { SEED_FLAG } from "@/constants/seed";
 import { getPermissions } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
 import { logAction } from "@/lib/logger";
-import { hashPassword, isV2Hash, sanitizeInput } from "@/utils/crypto";
+import { sanitizeInput } from "@/utils/crypto";
 import {
   saveSession, loadSession, clearSession,
   getAttempts, setAttempts, clearAttempts,
@@ -43,6 +42,41 @@ export function AppProvider({ children }) {
   }, [currentUser]);
   useIdleTimer(logoutCallback, IDLE_MS, !!currentUser);
 
+  // ── Restaura sessão do Supabase Auth ao carregar ─────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session && !currentUser) {
+        const userData = await buscarDadosUsuario(session.user.id);
+        if (userData) {
+          setCurrentUser(userData);
+          saveSession(userData);
+        }
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT") {
+        setCurrentUser(null);
+        setMobileChoice(null);
+        clearSession();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Busca nome, role e permissions do usuário pelo auth_id
+  async function buscarDadosUsuario(authId) {
+    const { data } = await supabase
+      .from("users")
+      .select("id,name,username,role")
+      .eq("auth_id", authId)
+      .eq("active", true)
+      .single();
+    if (!data) return null;
+    return { ...data, permissions: getPermissions(data.role) };
+  }
+
   // ── Fetch inicial do Supabase ─────────────────────────────────
   useEffect(() => {
     async function bootstrap() {
@@ -57,7 +91,7 @@ export function AppProvider({ children }) {
         supabase.from("products").select("*").eq("active", true).order("id"),
         supabase.from("pending").select("*").order("created_at", { ascending: false }),
         supabase.from("sales").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("users").select("id,name,username,password,role,active").eq("active", true),
+        supabase.from("users").select("id,name,username,role,active").eq("active", true),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
         supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","credentials","estoque","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
       ]);
@@ -68,16 +102,13 @@ export function AppProvider({ children }) {
       if (eSales)    console.error("[bootstrap] sales error:", eSales);
       if (eFech)     console.error("[bootstrap] fechamentos error:", eFech);
       if (eConfig)   console.error("[bootstrap] config error:", eConfig);
-      console.log("[bootstrap] users carregados:", usersData?.length ?? 0, usersData?.map(u => u.username));
 
       if (productsData?.length)    setProductsLocal(productsData);
       if (pendingData)             setPendingLocal(pendingData);
       if (salesData)               setSalesLocal(salesData.map(r => r.data));
-      // Garante que permissions existe (fallback pelo role para usuários sem a coluna preenchida)
       if (usersData?.length)       setUsersLocal(usersData.map(u => ({
         ...u,
-        // sempre funde os defaults do cargo com o que está salvo no banco
-        permissions: { ...getPermissions(u.role), ...(u.permissions || {}) },
+        permissions: getPermissions(u.role),
       })));
       if (fechamentosData)         setFechamentosLocal(fechamentosData.map(r => r.data));
 
@@ -104,28 +135,6 @@ export function AppProvider({ children }) {
     }
     bootstrap();
   }, []);
-
-  // ── Migra senhas SEED: → SHA-256 no banco ────────────────────
-  useEffect(() => {
-    if (loading || !users.length) return;
-    const needsMigration = users.some(u => !isV2Hash(u.password));
-    if (!needsMigration) return;
-
-    (async () => {
-      const migrated = await Promise.all(
-        users.map(async (u) => {
-          if (isV2Hash(u.password)) return u;
-          const plain = u.password?.startsWith(SEED_FLAG)
-            ? u.password.slice(SEED_FLAG.length)
-            : u.password;
-          const hashed = await hashPassword(plain);
-          await supabase.from("users").update({ password: hashed }).eq("id", u.id);
-          return { ...u, password: hashed };
-        })
-      );
-      setUsersLocal(migrated);
-    })();
-  }, [loading]);
 
   // ── Atualiza currentUser quando a lista de usuários muda ──────
   useEffect(() => {
@@ -168,24 +177,14 @@ export function AppProvider({ children }) {
       return { error: `Conta bloqueada. Aguarde ${secs}s.` };
     }
 
-    const user   = users.find(u => u.username === clean);
-    const hashed = await hashPassword(sanitizeInput(password, 100));
+    // Supabase Auth valida a senha no servidor — sem hash no cliente
+    const email = `${clean}@gastromundi.local`;
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password: sanitizeInput(password, 100),
+    });
 
-    let match = false;
-    if (user) {
-      if (isV2Hash(user.password)) {
-        match = user.password === hashed;
-      } else if (user.password?.startsWith(SEED_FLAG)) {
-        const seedHash = await hashPassword(user.password.slice(SEED_FLAG.length));
-        match = seedHash === hashed;
-        if (match) {
-          await supabase.from("users").update({ password: hashed }).eq("id", user.id);
-          setUsersLocal(prev => prev.map(u => u.id === user.id ? { ...u, password: hashed } : u));
-        }
-      }
-    }
-
-    if (!match) {
+    if (authError) {
       const count       = (att.count || 0) + 1;
       const lockedUntil = count >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_MS : null;
       setAttempts(clean, { count, lockedUntil });
@@ -193,19 +192,25 @@ export function AppProvider({ children }) {
       return { error: `Usuário ou senha incorretos. ${MAX_ATTEMPTS - count} tentativa(s) restante(s).` };
     }
 
+    const userData = await buscarDadosUsuario(authData.user.id);
+    if (!userData) {
+      await supabase.auth.signOut();
+      return { error: "Usuário não encontrado ou inativo." };
+    }
+
     clearAttempts(clean);
-    const fullUser = { ...user, permissions: getPermissions(user.role) };
-    setCurrentUser(fullUser);
-    saveSession(fullUser);
-    logAction(user.username, "auth:login", { msg: `Login realizado · ${user.role}`, name: user.name, role: user.role });
+    setCurrentUser(userData);
+    saveSession(userData);
+    logAction(userData.username, "auth:login", { msg: `Login realizado · ${userData.role}`, name: userData.name, role: userData.role });
     return { ok: true };
   };
 
-  const logout = () => {
+  const logout = async () => {
     if (currentUser) logAction(currentUser.username, "auth:logout", { msg: "Sessão encerrada", name: currentUser.name, role: currentUser.role });
     setCurrentUser(null);
     setMobileChoice(null);
     clearSession();
+    await supabase.auth.signOut();
   };
 
   // ── Actions: Pending ──────────────────────────────────────────
