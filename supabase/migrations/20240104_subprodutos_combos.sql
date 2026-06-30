@@ -6,9 +6,9 @@
 -- ── 1. subprodutos ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS subprodutos (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome             TEXT        NOT NULL,
+  nome             TEXT        NOT NULL CHECK (length(trim(nome)) > 0),
   categoria        TEXT,
-  preco            NUMERIC(10,2) NOT NULL DEFAULT 0,
+  preco            NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (preco >= 0),
   unidade_medida   TEXT,
   controla_estoque BOOLEAN     NOT NULL DEFAULT false,
   ativo            BOOLEAN     NOT NULL DEFAULT true,
@@ -29,10 +29,10 @@ END $$;
 -- ── 2. combos ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS combos (
   id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome              TEXT        NOT NULL,
+  nome              TEXT        NOT NULL CHECK (length(trim(nome)) > 0),
   item_principal_id BIGINT      NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   modo              TEXT        NOT NULL DEFAULT 'combo' CHECK (modo IN ('combo', 'substituir')),
-  preco_total       NUMERIC(10,2),
+  preco_total       NUMERIC(10,2) CHECK (preco_total IS NULL OR preco_total >= 0),
   ativo             BOOLEAN     NOT NULL DEFAULT true,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -54,10 +54,11 @@ END $$;
 CREATE TABLE IF NOT EXISTS combo_subprodutos (
   id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   combo_id          UUID        NOT NULL REFERENCES combos(id) ON DELETE CASCADE,
-  subproduto_id     UUID        NOT NULL REFERENCES subprodutos(id),
-  quantidade        INTEGER     NOT NULL DEFAULT 1,
-  preco_customizado NUMERIC(10,2),
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+  subproduto_id     UUID        NOT NULL REFERENCES subprodutos(id) ON DELETE RESTRICT,
+  quantidade        INTEGER     NOT NULL DEFAULT 1 CHECK (quantidade > 0),
+  preco_customizado NUMERIC(10,2) CHECK (preco_customizado IS NULL OR preco_customizado >= 0),
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (combo_id, subproduto_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_combo_subprodutos_combo     ON combo_subprodutos(combo_id);
