@@ -66,12 +66,13 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 400, fontFamily: "'Inter',system-ui,sans-serif",
+        zIndex: 400, fontFamily: "'Inter',system-ui,sans-serif", padding: 16,
       }}
     >
       <div style={{
         background: C.card, borderRadius: 20, padding: 28,
-        width: 520, border: `1px solid ${C.border}`,
+        width: "100%", maxWidth: 520, boxSizing: "border-box",
+        border: `1px solid ${C.border}`,
         display: "flex", flexDirection: "column", gap: 22,
         maxHeight: "92vh", overflowY: "auto",
       }}>
@@ -97,7 +98,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {/* Cabeçalho da tabela */}
           <div style={{
-            display: "grid", gridTemplateColumns: "1fr 110px 130px",
+            display: "grid", gridTemplateColumns: "1fr 90px 106px",
             gap: 8, paddingBottom: 8, marginBottom: 2,
             borderBottom: `1px solid ${C.border}`,
             fontSize: 11, fontWeight: 700, color: C.muted,
@@ -121,7 +122,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             return (
               <div key={metodo} style={{ borderBottom: `1px solid ${C.border}` }}>
                 <div style={{
-                  display: "grid", gridTemplateColumns: "1fr 110px 130px",
+                  display: "grid", gridTemplateColumns: "1fr 90px 106px",
                   gap: 8, alignItems: "center", padding: "11px 0",
                 }}>
                   {/* Nome do método */}

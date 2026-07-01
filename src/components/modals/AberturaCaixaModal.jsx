@@ -20,12 +20,13 @@ export default function AberturaCaixaModal({ onConfirm, onClose }) {
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 400,
+        zIndex: 400, padding: 16,
       }}
     >
       <div style={{
         background: C.card, borderRadius: 20, padding: 32,
-        width: 420, border: `1px solid ${C.border}`,
+        width: "100%", maxWidth: 420, boxSizing: "border-box",
+        border: `1px solid ${C.border}`,
         display: "flex", flexDirection: "column", gap: 20,
       }}>
         {/* Header */}

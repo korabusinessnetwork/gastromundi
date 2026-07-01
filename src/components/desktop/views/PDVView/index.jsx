@@ -29,8 +29,9 @@ export default function PDVView() {
   } = useApp();
 
   const { width } = useResponsive();
-  const isMob = width < 768;
   const sz = getSizes(width);
+  // isMob alinhado com CartPanel: mobile/tablet usam tabs (cartWidth===0)
+  const isMob = sz.cartWidth === 0;
   const location = useLocation();
 
   // Reset to grid whenever the sidebar navigates to this page
@@ -470,11 +471,11 @@ export default function PDVView() {
       {/* ── Header (oculto no checkout — ele tem o próprio) ─────── */}
       {mode !== "checkout" && (
         <div style={{
-          padding: "16px 24px", borderBottom: `1px solid ${C.border}`,
+          padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`,
           display: "grid",
           gridTemplateColumns: "1fr auto 1fr",
           alignItems: "center",
-          gap: 16,
+          gap: sz.gap,
           flexShrink: 0,
         }}>
           {/* Esquerda: título / voltar */}
@@ -487,10 +488,10 @@ export default function PDVView() {
                   border: `1.5px solid ${C.border}`,
                   borderRadius: 10, color: C.text,
                   cursor: "pointer",
-                  padding: "10px 18px",
-                  fontWeight: 700, fontSize: 18,
+                  padding: `${sz.padSm - 2}px ${sz.padSm + 2}px`,
+                  fontWeight: 700, fontSize: sz.fontBase,
                   display: "flex", alignItems: "center", gap: 8,
-                  transition: "background 0.15s, border-color 0.15s",
+                  transition: "background 0.15s, border-color 0.15s", whiteSpace: "nowrap",
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.background = C.accent;
@@ -508,10 +509,10 @@ export default function PDVView() {
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 18 }}>
+                <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2 }}>
                   {mode === "pedido" ? fmtComanda(selected?.comanda) : "Frente de Caixa"}
                 </div>
-                <div style={{ color: C.muted, fontSize: 16, marginTop: 2 }}>
+                <div style={{ color: C.muted, fontSize: sz.fontBase, marginTop: 2 }}>
                   {mode === "pedido"
                     ? <>
                         {selected?.mesa && <span style={{ marginRight: 6 }}>🪑 Mesa {selected.mesa}{selected?.apelido ? ` · ${selected.apelido}` : ""} ·</span>}
@@ -526,10 +527,10 @@ export default function PDVView() {
                   title="Saldo do dia"
                   style={{
                     display: "flex", alignItems: "center", gap: 7,
-                    padding: "8px 16px", borderRadius: 10,
+                    padding: `${sz.padSm - 2}px ${sz.pad - 4}px`, borderRadius: 10,
                     border: `1px solid ${C.border}`, background: C.surface,
-                    color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 16,
-                    transition: "background 0.15s, color 0.15s, border-color 0.15s",
+                    color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase,
+                    transition: "background 0.15s, color 0.15s, border-color 0.15s", whiteSpace: "nowrap",
                   }}
                   onMouseEnter={e => { e.currentTarget.style.background = C.card; e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.accent + "66"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border; }}
@@ -544,7 +545,7 @@ export default function PDVView() {
           <div />
 
           {/* Direita: ações */}
-          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: sz.gap, flexWrap: "wrap" }}>
           {/* Toast inline — visível no grid após lançar */}
           {mode === "grid" && (
             <div style={{
@@ -565,14 +566,14 @@ export default function PDVView() {
               onClick={() => { setShowNova(true); setNomeComanda(""); }}
               disabled={!caixaAberto}
               style={{
-                padding: "10px 20px", borderRadius: 10, border: "none",
+                padding: `${sz.padSm - 2}px ${sz.pad}px`, borderRadius: 10, border: "none",
                 background: caixaAberto ? C.accent : C.faint,
-                color: "#fff", fontWeight: 700, fontSize: 17,
+                color: "#fff", fontWeight: 700, fontSize: sz.fontBase,
                 cursor: caixaAberto ? "pointer" : "not-allowed",
-                display: "flex", alignItems: "center", gap: 6,
+                display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
               }}
             >
-              <LuPlus size={16} /> Nova Comanda
+              <LuPlus size={sz.fontBase} /> Nova Comanda
             </button>
           )}
 
@@ -659,18 +660,18 @@ export default function PDVView() {
                   onClick={abrirEditarMesa}
                   title="Editar mesa e apelido"
                   style={{
-                    padding: "10px 14px", borderRadius: 10,
+                    padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
                     border: `1px solid ${C.border}`,
                     background: C.surface,
-                    color: C.muted, fontWeight: 700, fontSize: 17,
+                    color: C.muted, fontWeight: 700, fontSize: sz.fontBase,
                     cursor: "pointer",
                     display: "flex", alignItems: "center", gap: 6,
-                    transition: "background 0.15s, color 0.15s",
+                    transition: "background 0.15s, color 0.15s", whiteSpace: "nowrap",
                   }}
                   onMouseEnter={e => { e.currentTarget.style.background = C.card; e.currentTarget.style.color = C.text; }}
                   onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.color = C.muted; }}
                 >
-                  <LuPencil size={14} />
+                  <LuPencil size={sz.fontBase - 2} />
                   {selected?.mesa ? `Mesa ${selected.mesa}` : "Mesa"}
                 </button>
 
@@ -679,47 +680,47 @@ export default function PDVView() {
                   <button
                     onClick={abrirTransferir}
                     style={{
-                      padding: "10px 18px", borderRadius: 10,
+                      padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
                       border: `1px solid ${C.border}`,
                       background: C.surface,
-                      color: C.muted, fontWeight: 700, fontSize: 17,
+                      color: C.muted, fontWeight: 700, fontSize: sz.fontBase,
                       cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: 7,
-                      transition: "background 0.15s, color 0.15s",
+                      display: "flex", alignItems: "center", gap: 6,
+                      transition: "background 0.15s, color 0.15s", whiteSpace: "nowrap",
                     }}
                     onMouseEnter={e => { e.currentTarget.style.background = C.card; e.currentTarget.style.color = C.text; }}
                     onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.color = C.muted; }}
                   >
-                    <LuArrowLeftRight size={15} /> Transferir
+                    <LuArrowLeftRight size={sz.fontBase - 1} /> Transferir
                   </button>
                   <button
                     onClick={() => { setShowCancelarComanda(true); setCancelarSenha(""); setCancelarSenhaErro(false); setCancelarAutorizado(false); setCancelarMotivo(""); }}
                     style={{
-                      padding: "10px 18px", borderRadius: 10,
+                      padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
                       border: `1px solid ${C.red}55`,
                       background: `${C.red}0f`,
-                      color: C.red, fontWeight: 700, fontSize: 17,
+                      color: C.red, fontWeight: 700, fontSize: sz.fontBase,
                       cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: 7,
-                      transition: "background 0.15s",
+                      display: "flex", alignItems: "center", gap: 6,
+                      transition: "background 0.15s", whiteSpace: "nowrap",
                     }}
                     onMouseEnter={e => { e.currentTarget.style.background = `${C.red}22`; }}
                     onMouseLeave={e => { e.currentTarget.style.background = `${C.red}0f`; }}
                   >
-                    <LuX size={15} /> Cancelar Comanda
+                    <LuX size={sz.fontBase - 1} /> Cancelar Comanda
                   </button>
                   </>
                 ) : (
                   <button
                     onClick={() => { setConfirmCancelar(true); setConfirmCancelarMotivo(""); }}
                     style={{
-                      padding: "10px 20px", borderRadius: 10,
+                      padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
                       border: `1px solid ${C.red}55`,
                       background: `${C.red}0f`,
-                      color: C.red, fontWeight: 700, fontSize: 17,
+                      color: C.red, fontWeight: 700, fontSize: sz.fontBase,
                       cursor: "pointer",
                       display: "flex", alignItems: "center", gap: 6,
-                      transition: "background 0.15s",
+                      transition: "background 0.15s", whiteSpace: "nowrap",
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = `${C.red}1e`}
                     onMouseLeave={e => e.currentTarget.style.background = `${C.red}0f`}

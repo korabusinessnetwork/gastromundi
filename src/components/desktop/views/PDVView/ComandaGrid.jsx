@@ -53,7 +53,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
             <div style={{ fontSize: sz.fontSm + 1 }}>"{busca}" não corresponde a nenhuma comanda em aberto</div>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 580, margin: "0 auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: Math.min(580, width - sz.pad * 2), margin: "0 auto" }}>
             {slotDisponivel && (
               <button
                 onClick={() => onOpenEmpty(String(slotDisponivel))}

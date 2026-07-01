@@ -208,10 +208,11 @@ function FechamentoDetalheModal({ f, onClose }) {
     >
       <div style={{
         background: C.card, borderRadius: 20, padding: 28,
-        width: 520, border: `1px solid ${C.border}`,
+        width: "100%", maxWidth: 520, border: `1px solid ${C.border}`,
         display: "flex", flexDirection: "column", gap: 20,
         maxHeight: "90vh", overflowY: "auto",
         color: C.text, fontFamily: "'Inter',system-ui,sans-serif",
+        boxSizing: "border-box",
       }}>
 
         {/* Header */}
@@ -667,6 +668,7 @@ export default function RelatorioView() {
       <div style={{
         display: "flex", padding: `0 ${sz.pad}px`,
         borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+        overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
       }}>
         {ABAS.map(a => (
           <button
@@ -695,7 +697,7 @@ export default function RelatorioView() {
 
             {/* KPIs */}
             <div style={{
-              display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+              display: "grid", gridTemplateColumns: width < 700 ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
               gap: sz.gap, padding: `${sz.pad}px ${sz.pad}px ${sz.padSm}px`,
               flexShrink: 0,
             }}>
@@ -754,7 +756,8 @@ export default function RelatorioView() {
                 {vendasFiltradas.length === 0 ? (
                   <Empty icon="🧾" msg="Nenhuma venda no período selecionado" sz={sz} />
                 ) : (
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                         <Th>Comanda</Th>
@@ -795,6 +798,7 @@ export default function RelatorioView() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 )}
               </div>
             )}
@@ -932,7 +936,7 @@ export default function RelatorioView() {
 
             {/* KPIs */}
             <div style={{
-              display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+              display: "grid", gridTemplateColumns: width < 700 ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
               gap: sz.gap, padding: `${sz.pad}px ${sz.pad}px ${sz.padSm}px`,
               flexShrink: 0,
             }}>
@@ -955,7 +959,8 @@ export default function RelatorioView() {
               {cancelamentos.length === 0 ? (
                 <Empty icon={LuCircleX} msg="Nenhum cancelamento no período selecionado" sz={sz} />
               ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                       <Th>Comanda</Th>
@@ -1048,6 +1053,7 @@ export default function RelatorioView() {
                     </tr>
                   </tfoot>
                 </table>
+                </div>
               )}
             </div>
           </div>
@@ -1063,7 +1069,8 @@ export default function RelatorioView() {
               {fechsFiltrados.length === 0 ? (
                 <Empty icon={LuLock} msg="Nenhum fechamento no período selecionado" sz={sz} />
               ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 540 }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                       <Th>Data / Hora</Th>
@@ -1136,6 +1143,7 @@ export default function RelatorioView() {
                     })}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </div>
@@ -1189,7 +1197,8 @@ export default function RelatorioView() {
               ) : logsFiltrados.length === 0 ? (
                 <Empty icon={LuClipboardList} msg="Nenhum evento no período selecionado" sz={sz} />
               ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                       <Th>Data / Hora</Th>
@@ -1240,6 +1249,7 @@ export default function RelatorioView() {
                     })}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </div>
@@ -1276,8 +1286,8 @@ export default function RelatorioView() {
               </button>
             </div>
 
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 400 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                     <Th>Usuário</Th>

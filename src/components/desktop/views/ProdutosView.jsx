@@ -109,7 +109,7 @@ function CategoriasComBusca({ categorias, catFiltro, setCatFiltro, busca, setBus
         value={busca}
         onChange={e => setBusca(e.target.value)}
         placeholder="Buscar produto..."
-        style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, outline: "none", fontFamily: "inherit", width: 260, flexShrink: 0 }}
+        style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, outline: "none", fontFamily: "inherit", flex: "0 1 220px", minWidth: 100 }}
       />
     </div>
   );
@@ -348,7 +348,7 @@ export default function ProdutosView() {
           <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Produtos</div>
           <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 2 }}>{products.length} cadastrado{products.length !== 1 ? "s" : ""}</div>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
           {isAdmin && abaAtiva === "produtos" && (
             <>
               <button onClick={() => setShowCatModal(true)} style={{ padding: `9px ${sz.pad - 8}px`, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
@@ -403,7 +403,7 @@ export default function ProdutosView() {
       />
 
       {/* Tabela */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         {produtosFiltrados.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: C.muted, padding: 60 }}>
             <div style={{ fontSize: 48, opacity: 0.3 }}>📦</div>
@@ -411,7 +411,7 @@ export default function ProdutosView() {
             {isAdmin && !busca && <div style={{ fontSize: sz.fontSm }}>Clique em "+ Novo Produto" para adicionar</div>}
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                 {["", "Nome", "Categoria", "Unidade", "Preço", ""].map((h, i) => (

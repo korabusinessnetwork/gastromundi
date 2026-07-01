@@ -198,7 +198,7 @@ export default function EstoqueView() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: sz.gap, padding: `${sz.pad}px ${sz.pad}px ${sz.padSm}px`, flexShrink: 0 }}>
+      <div style={{ display: "grid", gridTemplateColumns: width < 600 ? "1fr" : "repeat(3, 1fr)", gap: sz.gap, padding: `${sz.pad}px ${sz.pad}px ${sz.padSm}px`, flexShrink: 0 }}>
         {[
           { label: "Total em estoque", value: totalItens,   color: C.green,   Icon: LuPackage       },
           { label: "Sem estoque",       value: semEstoque,   color: C.red,     Icon: LuTriangleAlert },
@@ -216,7 +216,7 @@ export default function EstoqueView() {
 
       {/* Busca + categorias */}
       <div style={{ padding: `0 ${sz.pad}px ${sz.padSm}px`, display: "flex", gap: sz.gap, alignItems: "center", flexShrink: 0, flexWrap: "wrap" }}>
-        <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar produto..." style={{ padding: "9px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", width: 220 }} />
+        <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar produto..." style={{ padding: "9px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", width: Math.min(220, width - sz.pad * 2 - 32), minWidth: 120, boxSizing: "border-box" }} />
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {categorias.map(cat => (
             <button key={cat} onClick={() => setCategoria(cat)} style={{ padding: "7px 14px", borderRadius: 20, border: "none", background: categoria === cat ? C.accent : C.surface, color: categoria === cat ? "#fff" : C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1, transition: "background 0.15s, color 0.15s" }}>
@@ -235,7 +235,8 @@ export default function EstoqueView() {
           </div>
         ) : (
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${C.border}` }}>
                   {COLUNAS.map(col => {
@@ -440,6 +441,7 @@ export default function EstoqueView() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

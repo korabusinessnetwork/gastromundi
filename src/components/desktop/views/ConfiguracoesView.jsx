@@ -282,7 +282,7 @@ function UsuariosTab({ sz }) {
           }}>
             Cargos
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: sz.gap }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: sz.gap }}>
             {[
               { role: "admin",   icon: "👑",    desc: "Acesso total ao sistema: vendas, relatórios, usuários, produtos, abertura e fechamento de caixa." },
               { role: "gerente", icon: "🧑‍💼", desc: "Gerencia usuários e produtos, visualiza relatórios completos e opera o caixa." },
@@ -332,8 +332,8 @@ function UsuariosTab({ sz }) {
       </div>
 
       {/* Tabela */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${C.border}` }}>
               {["", "Nome", "Usuário", "Cargo", "Acesso", ""].map((h, i) => (
@@ -412,7 +412,8 @@ function UsuariosTab({ sz }) {
         >
           <div style={{
             background: C.card, borderRadius: 20, padding: sz.pad + 4,
-            width: 480, border: `1px solid ${C.border}`,
+            width: "100%", maxWidth: 480, boxSizing: "border-box",
+            border: `1px solid ${C.border}`,
             display: "flex", flexDirection: "column", gap: sz.padSm + 4,
             maxHeight: "90vh", overflowY: "auto",
           }}>
@@ -536,7 +537,8 @@ function UsuariosTab({ sz }) {
         >
           <div style={{
             background: C.card, borderRadius: 16, padding: sz.pad,
-            width: 380, border: `1px solid ${C.border}`,
+            width: "100%", maxWidth: 380, boxSizing: "border-box",
+            border: `1px solid ${C.border}`,
           }}>
             {(() => {
               const u = users.find(x => x.id === deleteId);
@@ -618,7 +620,7 @@ const cancelBtn = (sz) => ({
 const overlayStyle = {
   position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
   display: "flex", alignItems: "center", justifyContent: "center",
-  zIndex: 300,
+  zIndex: 300, padding: 16,
 };
 
 // ── Catálogo de métodos de pagamento ────────────────────────────────
@@ -762,7 +764,7 @@ function MeiosPagamentoTab({ sz }) {
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: sz.gap }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: sz.gap }}>
           {todosMetodos.map(m => {
             const ativo = ativos.includes(m.id);
             return (
