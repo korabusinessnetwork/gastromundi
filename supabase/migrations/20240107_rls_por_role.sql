@@ -190,14 +190,14 @@ CREATE POLICY "combo_subs_write_gerente_admin"
 
 -- ── itens_fiscal ───────────────────────────────────────────────────
 -- (tabela criada fora das migrations; habilita RLS se existir)
-DO $$ BEGIN
+DO $outer$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'itens_fiscal') THEN
     EXECUTE 'ALTER TABLE public.itens_fiscal ENABLE ROW LEVEL SECURITY';
-    EXECUTE $p$
+    EXECUTE $policy$
       CREATE POLICY "itens_fiscal_all_gerente_admin"
         ON public.itens_fiscal FOR ALL
-        USING ((auth.jwt() ->> ''role'') IN (''gerente'', ''admin''))
-        WITH CHECK ((auth.jwt() ->> ''role'') IN (''gerente'', ''admin''))
-    $p$;
+        USING ((auth.jwt() ->> 'role') IN ('gerente', 'admin'))
+        WITH CHECK ((auth.jwt() ->> 'role') IN ('gerente', 'admin'))
+    $policy$;
   END IF;
-END $$;
+END $outer$;
