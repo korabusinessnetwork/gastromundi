@@ -45,7 +45,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
     const vazio          = aberasFiltradas.length === 0 && !slotDisponivel;
 
     return (
-      <div style={{ height: "100%", overflowY: "auto", padding: `${sz.pad}px ${sz.pad + 4}px` }}>
+      <div style={{ height: "100%", overflowY: "auto", padding: `${sz.pad}px ${sz.pad + 4}px ${sz.pad}px ${sz.pad + 20}px` }}>
         {vazio ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: C.muted, paddingTop: 60 }}>
             <div style={{ fontSize: 44, opacity: 0.3 }}>🔍</div>
@@ -170,7 +170,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
         display: "grid",
         gridTemplateColumns: `repeat(auto-fill, minmax(${sz.comandaCardMin}px, 1fr))`,
         gap: sz.gap,
-        padding: `${sz.pad}px ${sz.pad + 4}px`,
+        padding: `${sz.pad}px ${sz.pad + 4}px ${sz.pad}px ${sz.pad + 20}px`,
         alignContent: "start",
       }}>
         {Array.from({ length: limite }, (_, i) => i + 1).map(num => {
