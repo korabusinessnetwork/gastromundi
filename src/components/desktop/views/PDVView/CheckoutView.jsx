@@ -231,7 +231,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   };
 
   const voltarParaUnico = () => {
-    setPagamentos([{ metodo: null, valor: 0, recebido: 0 }]);
+    setPagamentos(prev => [{ metodo: prev[0]?.metodo ?? null, valor: total, recebido: 0 }]);
     setShowDivisor(false);
   };
 
