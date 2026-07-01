@@ -239,46 +239,53 @@ export default function PDVView() {
   // ── Confirmar pagamento → grava venda e remove comanda ────────
   const handleConfirmPayment = async ({ pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste }) => {
     if (!selected) return;
-    const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
-    const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
-    const todosItens      = [...itensAcumulados, ...itensLocais];
-    const subtotal        = todosItens.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+    setSalvando(true);
+    try {
+      const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
+      const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
+      const todosItens      = [...itensAcumulados, ...itensLocais];
+      const subtotal        = todosItens.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
 
-    const sale = {
-      id:          crypto.randomUUID(),
-      comanda:     selected.comanda,
-      items:       todosItens,
-      subtotal,
-      taxaServico: taxaServico ?? false,
-      valorTaxa:   valorTaxa   ?? 0,
-      ajuste:      ajuste      ?? null,
-      valorAjuste: valorAjuste ?? 0,
-      total,
-      pagamentos,
-      cashier:     currentUser?.name || "",
-      at:          new Date().toISOString(),
-    };
+      const sale = {
+        id:          crypto.randomUUID(),
+        comanda:     selected.comanda,
+        items:       todosItens,
+        subtotal,
+        taxaServico: taxaServico ?? false,
+        valorTaxa:   valorTaxa   ?? 0,
+        ajuste:      ajuste      ?? null,
+        valorAjuste: valorAjuste ?? 0,
+        total,
+        pagamentos,
+        cashier:     currentUser?.name || "",
+        at:          new Date().toISOString(),
+      };
 
-    await addSale(sale);
-    await removePending(selected.id);
-    if (selected.mesa) {
-      supabase.rpc("limpar_reserva_mesa", { mesa_numero: selected.mesa })
-        .catch((err) => console.error("Falha ao limpar reserva da mesa:", err));
+      await addSale(sale);
+      await removePending(selected.id);
+      if (selected.mesa) {
+        supabase.rpc("limpar_reserva_mesa", { mesa_numero: selected.mesa })
+          .then(() => {}, (err) => console.error("Falha ao limpar reserva da mesa:", err));
+      }
+
+      // Desconta estoque dos itens vendidos (ignora cancelados; apenas itens com id de produto)
+      const itensAtivos = todosItens.filter(i => !i.cancelado && i.id);
+      const delta = {};
+      for (const item of itensAtivos) {
+        delta[item.id] = (delta[item.id] ?? 0) + (item.qty ?? 1);
+      }
+      for (const [prodId, qty] of Object.entries(delta)) {
+        const atual = estoque[prodId] ?? 0;
+        if (atual > 0) await updateEstoque(prodId, atual - qty);
+      }
+
+      logAction(currentUser?.username, "comanda:finalizar", { msg: `Comanda ${selected.comanda} finalizada · R$ ${total.toFixed(2)} · ${metodo}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, total, metodo });
+      handleBack();
+    } catch (err) {
+      console.error("handleConfirmPayment error:", JSON.stringify(err, null, 2));
+    } finally {
+      setSalvando(false);
     }
-
-    // Desconta estoque dos itens vendidos (ignora cancelados; apenas itens com id de produto)
-    const itensAtivos = todosItens.filter(i => !i.cancelado && i.id);
-    const delta = {};
-    for (const item of itensAtivos) {
-      delta[item.id] = (delta[item.id] ?? 0) + (item.qty ?? 1);
-    }
-    for (const [prodId, qty] of Object.entries(delta)) {
-      const atual = estoque[prodId] ?? 0;
-      if (atual > 0) await updateEstoque(prodId, atual - qty);
-    }
-
-    logAction(currentUser?.username, "comanda:finalizar", { msg: `Comanda ${selected.comanda} finalizada · R$ ${total.toFixed(2)} · ${metodo}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, total, metodo });
-    handleBack();
   };
 
   // ── Abrir slot vazio — cria comanda virtual (só persiste ao lançar) ──

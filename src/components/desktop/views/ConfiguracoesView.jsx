@@ -10,6 +10,7 @@ import C from "@/constants/colors";
 import { createPortal } from "react-dom";
 import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter } from "react-icons/lu";
 import ConfiguracaoImpressao from "./impressao/ConfiguracaoImpressao";
+import MesasAdmin from "./mesas/MesasAdmin";
 
 const ROLES = [
   { id: "admin",   label: "Administrador", color: C.accent },
@@ -1085,6 +1086,7 @@ const ABAS_CONFIG = [
   { id: "usuarios",         label: "Usuários",            adminOnly: false },
   { id: "meios_pagamento",  label: "Meios de Pagamento",  adminOnly: false },
   { id: "unidades_medida",  label: "Unidades de Medida",  adminOnly: false },
+  { id: "mesas",            label: "Mesas",               gerenteOnly: true },
   { id: "impressao",        label: "Impressão",           adminOnly: true  },
 ];
 
@@ -1143,9 +1145,10 @@ export default function ConfiguracoesView() {
   const sz = getSizes(width);
   const { currentUser } = useApp();
   const isAdmin = currentUser?.role === "admin";
+  const isGerente = isAdmin || currentUser?.role === "gerente";
   const [aba, setAba] = useState("geral");
 
-  const abasVisiveis = ABAS_CONFIG.filter(a => !a.adminOnly || isAdmin);
+  const abasVisiveis = ABAS_CONFIG.filter(a => (!a.adminOnly || isAdmin) && (!a.gerenteOnly || isGerente));
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
@@ -1190,6 +1193,7 @@ export default function ConfiguracoesView() {
         {aba === "usuarios"        && <UsuariosTab sz={sz} />}
         {aba === "meios_pagamento" && <MeiosPagamentoTab sz={sz} />}
         {aba === "unidades_medida" && <UnidadesMedidaTab sz={sz} />}
+        {aba === "mesas"     && isGerente && <MesasAdmin sz={sz} />}
         {aba === "impressao" && isAdmin && <ConfiguracaoImpressao sz={sz} />}
       </div>
     </div>

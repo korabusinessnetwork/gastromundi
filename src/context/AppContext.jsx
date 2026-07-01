@@ -225,7 +225,8 @@ export function AppProvider({ children }) {
 
   const removePending = async (id) => {
     setPendingLocal(prev => prev.filter(o => o.id !== id));
-    await supabase.from("pending").delete().eq("id", id);
+    const { error } = await supabase.from("pending").delete().eq("id", id);
+    if (error) console.error("removePending error:", JSON.stringify(error, null, 2));
   };
 
   const updatePending = async (id, changes) => {
@@ -257,7 +258,11 @@ export function AppProvider({ children }) {
   // ── Actions: Sales ────────────────────────────────────────────
   const addSale = async (sale) => {
     setSalesLocal(prev => [sale, ...prev]);
-    await supabase.from("sales").insert({ id: sale.id, data: sale });
+    const { error } = await supabase.from("sales").insert({ id: sale.id, data: sale });
+    if (error) {
+      console.error("addSale error:", JSON.stringify(error, null, 2));
+      throw error;
+    }
   };
 
   // ── Actions: Users ────────────────────────────────────────────
