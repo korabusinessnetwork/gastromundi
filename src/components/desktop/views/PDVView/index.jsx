@@ -237,9 +237,8 @@ export default function PDVView() {
   };
 
   // ── Confirmar pagamento → grava venda e remove comanda ────────
-  const handleConfirmPayment = async ({ metodo, recebido, troco, total, taxaServico, valorTaxa, ajuste, valorAjuste }) => {
+  const handleConfirmPayment = async ({ pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste }) => {
     if (!selected) return;
-    // Usa os itens já acumulados no pedido; cashier pode ter adicionado itens locais também
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
     const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
     const todosItens      = [...itensAcumulados, ...itensLocais];
@@ -255,7 +254,7 @@ export default function PDVView() {
       ajuste:      ajuste      ?? null,
       valorAjuste: valorAjuste ?? 0,
       total,
-      pagamentos:  [{ metodo, valor: total, recebido, troco }],
+      pagamentos,
       cashier:     currentUser?.name || "",
       at:          new Date().toISOString(),
     };

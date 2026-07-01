@@ -1,8 +1,8 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import C from "@/constants/colors";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuPrinter, LuWallet, LuPercent, LuX } from "react-icons/lu";
+import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuPrinter, LuWallet, LuPercent, LuX, LuUsers } from "react-icons/lu";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 
@@ -18,7 +18,7 @@ const METODOS_CATALOG = [
 
 const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
 
-function imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, ajusteAplicado, valorAjuste, total, metodo, valorRecebido, troco }) {
+function imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, ajusteAplicado, valorAjuste, total, pagamentos }) {
   const agora = new Date().toLocaleString("pt-BR");
   const nomeComanda = fmtComanda(comanda?.comanda);
 
@@ -54,10 +54,17 @@ function imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, ajusteAp
     </tr>
   `).join("");
 
-  const blocoTroco = metodo === "dinheiro" && valorRecebido > 0 ? `
-    <tr><td colspan="4" style="padding:4px 4px 0;font-size:12px;color:#555;">Recebido: R$ ${Number(valorRecebido).toFixed(2)}</td></tr>
-    <tr><td colspan="4" style="padding:0 4px 4px;font-size:12px;color:#555;">Troco: R$ ${Math.max(0, troco).toFixed(2)}</td></tr>
-  ` : "";
+  const blocoTroco = (pagamentos ?? [])
+    .filter(p => p.metodo === "dinheiro" && (p.recebido || 0) > 0)
+    .map(p => `
+      <tr><td colspan="4" style="padding:4px 4px 0;font-size:12px;color:#555;">${pagamentos.length > 1 ? "Recebido (Dinheiro)" : "Recebido"}: R$ ${Number(p.recebido).toFixed(2)}</td></tr>
+      <tr><td colspan="4" style="padding:0 4px 4px;font-size:12px;color:#555;">Troco: R$ ${Math.max(0, (p.recebido || 0) - p.valor).toFixed(2)}</td></tr>
+    `).join("");
+
+  const linhasPagamento = (pagamentos ?? [])
+    .filter(p => p.metodo)
+    .map(p => `<div class="metodo">${pagamentos.length > 1 ? `R$ ${Number(p.valor).toFixed(2)} · ` : ""}Pagamento: ${METODOS_LABEL[p.metodo] ?? p.metodo}</div>`)
+    .join("");
 
   const html = `<!DOCTYPE html>
 <html>
@@ -114,7 +121,7 @@ function imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, ajusteAp
     </tfoot>
   </table>
 
-  ${metodo ? `<div class="metodo">Pagamento: ${METODOS_LABEL[metodo] ?? metodo}</div>` : ""}
+  ${linhasPagamento}
 
   ${canceladosVisiveis.length > 0 ? `
   <hr/>
@@ -145,17 +152,18 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const ativos = meiosPagamento?.length ? meiosPagamento : METODOS_CATALOG.map(m => m.id);
   const METODOS = ativos.map(id => catalogCompleto.find(m => m.id === id)).filter(Boolean);
 
-  const [metodo,        setMetodo]        = useState(null);
-  const [recebido,      setRecebido]      = useState("");
+  const [pagamentos,    setPagamentos]    = useState([{ metodo: null, valor: 0, recebido: 0 }]);
+  const [showDivisor,   setShowDivisor]   = useState(false);
+  const [nPessoas,      setNPessoas]      = useState(2);
   const [confirmando,   setConfirmando]   = useState(false);
   const [aplicarTaxa,   setAplicarTaxa]   = useState(!!taxaServico);
 
   // Desconto / Acréscimo
   const [showAjuste,    setShowAjuste]    = useState(false);
-  const [ajusteTipo,    setAjusteTipo]    = useState("desconto"); // "desconto" | "acrescimo"
-  const [ajusteMode,    setAjusteMode]    = useState("percentual"); // "percentual" | "fixo"
+  const [ajusteTipo,    setAjusteTipo]    = useState("desconto");
+  const [ajusteMode,    setAjusteMode]    = useState("percentual");
   const [ajusteValor,   setAjusteValor]   = useState("");
-  const [ajusteAplicado, setAjusteAplicado] = useState(null); // { tipo, mode, valor } ou null
+  const [ajusteAplicado, setAjusteAplicado] = useState(null);
 
   // Agrupa itens ativos pelo mesmo produto (name + price), somando qty e unindo obs
   const itensAgrupados = items.filter(i => !i.cancelado).reduce((acc, item) => {
@@ -183,17 +191,77 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   };
   const valorAjuste   = calcAjuste(baseComTaxa, ajusteAplicado);
   const total         = Math.max(0, baseComTaxa + valorAjuste);
-  const valorRecebido = parseFloat(recebido.replace(",", ".")) || 0;
-  const troco         = metodo === "dinheiro" ? valorRecebido - total : 0;
-  const podeConfirmar = !!metodo;
+
+  const isSplit = pagamentos.length > 1;
+
+  // Single-mode helpers (pagamentos[0] with total auto-synced)
+  const singleMetodo   = pagamentos[0]?.metodo ?? null;
+  const singleRecebido = pagamentos[0]?.recebido ?? 0;
+  const singleTroco    = singleMetodo === "dinheiro" ? singleRecebido - total : 0;
+
+  // Aggregated sum for split mode
+  const somaValores = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
+  const faltaAlocar = total - somaValores;
+
+  const podeConfirmar = isSplit
+    ? pagamentos.every(p => !!p.metodo) && Math.abs(faltaAlocar) < 0.015
+    : !!singleMetodo;
+
+  const updatePagamento = (idx, patch) =>
+    setPagamentos(prev => prev.map((p, i) => i === idx ? { ...p, ...patch } : p));
+
+  const removePagamento = (idx) =>
+    setPagamentos(prev => prev.filter((_, i) => i !== idx));
+
+  const addPagamento = () => {
+    setPagamentos(prev => {
+      const soma = prev.reduce((s, p) => s + (p.valor || 0), 0);
+      const restante = parseFloat(Math.max(0, total - soma).toFixed(2));
+      return [...prev, { metodo: null, valor: restante, recebido: 0 }];
+    });
+  };
+
+  const dividirPagamento = (n) => {
+    const totalCents = Math.round(total * 100);
+    const base = Math.floor(totalCents / n);
+    const resto = totalCents - base * n;
+    const valores = Array.from({ length: n }, (_, i) => parseFloat(((i < resto ? base + 1 : base) / 100).toFixed(2)));
+    setPagamentos(valores.map(v => ({ metodo: null, valor: v, recebido: 0 })));
+    setShowDivisor(false);
+  };
+
+  const voltarParaUnico = () => {
+    setPagamentos([{ metodo: null, valor: 0, recebido: 0 }]);
+    setShowDivisor(false);
+  };
 
   const handleConfirm = async () => {
     if (!podeConfirmar || confirmando) return;
     setConfirmando(true);
-    await onConfirm({ metodo, recebido: valorRecebido, troco: Math.max(0, troco), total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste });
+    const payloadPagamentos = isSplit
+      ? pagamentos.map(p => ({
+          metodo:   p.metodo,
+          valor:    p.valor,
+          recebido: p.metodo === "dinheiro" ? (p.recebido || 0) : 0,
+          troco:    p.metodo === "dinheiro" ? Math.max(0, (p.recebido || 0) - p.valor) : 0,
+        }))
+      : [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: Math.max(0, singleTroco) }];
+    await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste });
   };
 
-  const handlePrint = () => imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, ajusteAplicado, valorAjuste, total, metodo, valorRecebido, troco });
+  const buildPrintPagamentos = () => {
+    if (isSplit) {
+      return pagamentos.map(p => ({
+        metodo:   p.metodo,
+        valor:    p.valor,
+        recebido: p.metodo === "dinheiro" ? (p.recebido || 0) : 0,
+        troco:    p.metodo === "dinheiro" ? Math.max(0, (p.recebido || 0) - p.valor) : 0,
+      }));
+    }
+    return [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: Math.max(0, singleTroco) }];
+  };
+
+  const handlePrint = () => imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, ajusteAplicado, valorAjuste, total, pagamentos: buildPrintPagamentos() });
 
   const isMob = sz.checkoutResumo === 0;
 
@@ -432,117 +500,345 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
             display: "flex", flexDirection: "column",
             overflow: "hidden",
           }}>
-            <div style={{ padding: "24px 32px 18px", borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 4 }}>
-                Forma de Pagamento
-              </div>
-              <div style={{ fontSize: 17, color: C.muted }}>
-                Selecione como o cliente vai pagar
-              </div>
-            </div>
-
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px 32px", gap: 20, overflow: "hidden" }}>
-              <div style={{
-                flex: 1,
-                display: "grid",
-                gridTemplateColumns: METODOS.length === 1 ? "1fr" : "1fr 1fr",
-                gridTemplateRows: `repeat(${Math.ceil(METODOS.length / 2)}, 1fr)`,
-                gap: 14,
-              }}>
-                {METODOS.map(m => {
-                  const ativo = metodo === m.id;
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => { setMetodo(m.id); setRecebido(""); }}
-                      style={{
-                        borderRadius: 16,
-                        border: `2px solid ${ativo ? C.accent : C.border}`,
-                        background: ativo ? C.alow : C.surface,
-                        color: ativo ? C.accent : C.text,
-                        cursor: "pointer",
-                        fontWeight: 700,
-                        fontSize: sz.fontLg,
-                        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
-                        transition: "border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s",
-                        boxShadow: ativo ? `0 0 0 4px ${C.accent}22` : "none",
-                      }}
-                    >
-                      <div style={{
-                        width: 52, height: 52, borderRadius: 14,
-                        background: ativo ? `${C.accent}22` : C.card,
-                        border: `1.5px solid ${ativo ? C.accent + "55" : C.border}`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        transition: "background 0.15s, border-color 0.15s",
-                      }}>
-                        <m.Icon size={24} />
-                      </div>
-                      {m.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {metodo === "dinheiro" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, flexShrink: 0 }}>
-                  <label style={{ fontSize: 16, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1.2 }}>
-                    Calcular Troco <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, fontSize: 14 }}>(opcional)</span>
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <span style={{
-                      position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)",
-                      color: C.muted, fontSize: 18, fontWeight: 700,
-                    }}>
-                      R$
-                    </span>
-                    <input
-                      autoFocus
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={recebido}
-                      onChange={e => setRecebido(e.target.value)}
-                      placeholder={total.toFixed(2)}
-                      style={{
-                        width: "100%", padding: "16px 18px 16px 56px",
-                        borderRadius: 12, border: `1.5px solid ${C.border}`,
-                        background: C.surface, color: C.text,
-                        fontSize: sz.fontXl - 2, fontWeight: 700,
-                        boxSizing: "border-box", fontFamily: "inherit", outline: "none",
-                        transition: "border-color 0.15s",
-                      }}
-                      onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
-                      onBlur={e => e.currentTarget.style.borderColor = C.border}
-                    />
+            {/* Header da sidebar */}
+            <div style={{ padding: "24px 32px 14px", borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 4 }}>
+                    Forma de Pagamento
                   </div>
+                  <div style={{ fontSize: 17, color: C.muted }}>
+                    {isSplit ? `${pagamentos.length} pagamentos · R$ ${total.toFixed(2)} total` : "Selecione como o cliente vai pagar"}
+                  </div>
+                </div>
+                {isSplit ? (
+                  <button
+                    onClick={voltarParaUnico}
+                    style={{
+                      background: "none", border: `1px solid ${C.border}`,
+                      borderRadius: 8, color: C.muted, cursor: "pointer",
+                      padding: "6px 12px", fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+                    }}
+                  >
+                    Pagamento único
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowDivisor(v => !v)}
+                    style={{
+                      background: showDivisor ? `${C.accent}18` : "none",
+                      border: `1.5px solid ${showDivisor ? C.accent + "66" : C.border}`,
+                      borderRadius: 8, color: showDivisor ? C.accent : C.muted,
+                      cursor: "pointer", padding: "6px 12px",
+                      fontSize: 13, fontWeight: 700, fontFamily: "inherit",
+                      display: "flex", alignItems: "center", gap: 6,
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <LuUsers size={14} /> Dividir pagamento
+                  </button>
+                )}
+              </div>
 
-                  {valorRecebido > 0 && (
-                    <div style={{
-                      padding: "16px 20px", borderRadius: 12,
-                      background: troco >= 0 ? `${C.green}14` : `${C.accent}14`,
-                      border: `1.5px solid ${troco >= 0 ? C.green : C.accent}55`,
-                      display: "flex", justifyContent: "space-between", alignItems: "center",
-                    }}>
-                      <span style={{ fontSize: sz.fontBase + 1, fontWeight: 700, color: C.muted }}>
-                        {troco >= 0 ? "Troco" : "Falta"}
-                      </span>
-                      <span style={{ fontSize: sz.fontXl - 2, fontWeight: 900, color: troco >= 0 ? C.green : C.accent }}>
-                        R$ {Math.abs(troco).toFixed(2)}
-                      </span>
-                    </div>
-                  )}
+              {/* Stepper inline */}
+              {showDivisor && !isSplit && (
+                <div style={{
+                  marginTop: 14, padding: "14px 16px", borderRadius: 12,
+                  background: C.surface, border: `1.5px solid ${C.accent}44`,
+                  display: "flex", alignItems: "center", gap: 14,
+                }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: C.muted, whiteSpace: "nowrap" }}>Dividir entre</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button
+                      onClick={() => setNPessoas(n => Math.max(2, n - 1))}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8, border: `1.5px solid ${C.border}`,
+                        background: C.card, color: C.text, fontSize: 18, fontWeight: 700,
+                        cursor: nPessoas <= 2 ? "not-allowed" : "pointer", opacity: nPessoas <= 2 ? 0.4 : 1,
+                        display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit",
+                      }}
+                    >−</button>
+                    <span style={{ fontSize: 20, fontWeight: 900, color: C.text, minWidth: 32, textAlign: "center" }}>{nPessoas}</span>
+                    <button
+                      onClick={() => setNPessoas(n => Math.min(10, n + 1))}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8, border: `1.5px solid ${C.border}`,
+                        background: C.card, color: C.text, fontSize: 18, fontWeight: 700,
+                        cursor: nPessoas >= 10 ? "not-allowed" : "pointer", opacity: nPessoas >= 10 ? 0.4 : 1,
+                        display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit",
+                      }}
+                    >+</button>
+                  </div>
+                  <span style={{ fontSize: 14, color: C.muted }}>pessoas</span>
+                  <span style={{ fontSize: 13, color: C.muted, flex: 1 }}>
+                    ≈ R$ {(total / nPessoas).toFixed(2)} cada
+                  </span>
+                  <button
+                    onClick={() => dividirPagamento(nPessoas)}
+                    style={{
+                      padding: "8px 16px", borderRadius: 8, border: "none",
+                      background: C.accent, color: "#fff", fontWeight: 700, fontSize: 14,
+                      cursor: "pointer", fontFamily: "inherit",
+                      boxShadow: `0 2px 8px ${C.accent}44`,
+                    }}
+                  >
+                    Dividir
+                  </button>
                 </div>
               )}
             </div>
+
+            {/* Conteúdo: lista (split) ou grid (single) */}
+            {isSplit ? (
+              /* ── Modo split: lista de entradas ── */
+              <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
+                {pagamentos.map((p, idx) => {
+                  const trocoP = p.metodo === "dinheiro" ? (p.recebido || 0) - p.valor : 0;
+                  return (
+                    <div key={idx} style={{
+                      background: C.surface, borderRadius: 14,
+                      border: `1.5px solid ${p.metodo ? C.accent + "44" : C.border}`,
+                      padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10,
+                    }}>
+                      {/* Linha 1: método + valor + remover */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ flex: 1, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {METODOS.map(m => (
+                            <button
+                              key={m.id}
+                              onClick={() => updatePagamento(idx, { metodo: m.id })}
+                              style={{
+                                padding: "5px 12px", borderRadius: 8,
+                                border: `1.5px solid ${p.metodo === m.id ? C.accent : C.border}`,
+                                background: p.metodo === m.id ? C.alow : "transparent",
+                                color: p.metodo === m.id ? C.accent : C.muted,
+                                fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit",
+                                transition: "all 0.12s",
+                              }}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{ position: "relative", width: 120, flexShrink: 0 }}>
+                          <span style={{
+                            position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
+                            fontSize: 13, color: C.muted, fontWeight: 700, pointerEvents: "none",
+                          }}>R$</span>
+                          <input
+                            type="number" min="0" step="0.01"
+                            value={p.valor === 0 ? "" : p.valor}
+                            onChange={e => updatePagamento(idx, { valor: parseFloat(e.target.value) || 0 })}
+                            style={{
+                              width: "100%", padding: "8px 8px 8px 34px",
+                              borderRadius: 8, border: `1.5px solid ${C.border}`,
+                              background: C.card, color: C.text,
+                              fontSize: 14, fontWeight: 700, fontFamily: "inherit",
+                              outline: "none", boxSizing: "border-box",
+                            }}
+                            onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
+                            onBlur={e => e.currentTarget.style.borderColor = C.border}
+                          />
+                        </div>
+                        <button
+                          onClick={() => removePagamento(idx)}
+                          style={{
+                            background: "none", border: "none", color: C.muted,
+                            cursor: "pointer", padding: 4, flexShrink: 0,
+                            display: "flex", alignItems: "center", borderRadius: 6,
+                            transition: "color 0.12s",
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.color = C.red}
+                          onMouseLeave={e => e.currentTarget.style.color = C.muted}
+                        >
+                          <LuX size={16} />
+                        </button>
+                      </div>
+
+                      {/* Linha 2: dinheiro → recebido + troco */}
+                      {p.metodo === "dinheiro" && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 13, color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>Recebido:</span>
+                          <div style={{ position: "relative", flex: 1 }}>
+                            <span style={{
+                              position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
+                              fontSize: 13, color: C.muted, fontWeight: 700, pointerEvents: "none",
+                            }}>R$</span>
+                            <input
+                              type="number" min="0" step="0.01"
+                              value={p.recebido || ""}
+                              onChange={e => updatePagamento(idx, { recebido: parseFloat(e.target.value) || 0 })}
+                              placeholder={p.valor.toFixed(2)}
+                              style={{
+                                width: "100%", padding: "6px 8px 6px 34px",
+                                borderRadius: 8, border: `1.5px solid ${C.border}`,
+                                background: C.card, color: C.text,
+                                fontSize: 13, fontFamily: "inherit",
+                                outline: "none", boxSizing: "border-box",
+                              }}
+                              onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
+                              onBlur={e => e.currentTarget.style.borderColor = C.border}
+                            />
+                          </div>
+                          {(p.recebido || 0) > 0 && (
+                            <span style={{
+                              fontSize: 13, fontWeight: 700,
+                              color: trocoP >= 0 ? C.green : C.accent,
+                              minWidth: 90, textAlign: "right", whiteSpace: "nowrap",
+                            }}>
+                              {trocoP >= 0 ? "Troco" : "Falta"}: R$ {Math.abs(trocoP).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Falta alocar */}
+                {Math.abs(faltaAlocar) >= 0.005 && (
+                  <div style={{
+                    padding: "10px 14px", borderRadius: 10,
+                    background: faltaAlocar > 0 ? `${C.accent}14` : `${C.red}14`,
+                    border: `1.5px solid ${faltaAlocar > 0 ? C.accent : C.red}55`,
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                  }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: faltaAlocar > 0 ? C.accent : C.red }}>
+                      {faltaAlocar > 0 ? "Falta alocar" : "Valor excede o total"}
+                    </span>
+                    <span style={{ fontSize: 15, fontWeight: 900, color: faltaAlocar > 0 ? C.accent : C.red }}>
+                      R$ {Math.abs(faltaAlocar).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+
+                {/* + Adicionar outro */}
+                {pagamentos.length < 10 && (
+                  <button
+                    onClick={addPagamento}
+                    style={{
+                      padding: "11px", borderRadius: 10,
+                      border: `1.5px dashed ${C.border}`,
+                      background: "none", color: C.muted,
+                      cursor: "pointer", fontWeight: 600, fontSize: 14, fontFamily: "inherit",
+                      transition: "border-color 0.12s, color 0.12s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; }}
+                  >
+                    + Adicionar outro
+                  </button>
+                )}
+              </div>
+            ) : (
+              /* ── Modo single: grid original ── */
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px 32px", gap: 20, overflow: "hidden" }}>
+                <div style={{
+                  flex: 1,
+                  display: "grid",
+                  gridTemplateColumns: METODOS.length === 1 ? "1fr" : "1fr 1fr",
+                  gridTemplateRows: `repeat(${Math.ceil(METODOS.length / 2)}, 1fr)`,
+                  gap: 14,
+                }}>
+                  {METODOS.map(m => {
+                    const ativo = singleMetodo === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => updatePagamento(0, { metodo: m.id, recebido: 0 })}
+                        style={{
+                          borderRadius: 16,
+                          border: `2px solid ${ativo ? C.accent : C.border}`,
+                          background: ativo ? C.alow : C.surface,
+                          color: ativo ? C.accent : C.text,
+                          cursor: "pointer",
+                          fontWeight: 700,
+                          fontSize: sz.fontLg,
+                          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
+                          transition: "border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s",
+                          boxShadow: ativo ? `0 0 0 4px ${C.accent}22` : "none",
+                        }}
+                      >
+                        <div style={{
+                          width: 52, height: 52, borderRadius: 14,
+                          background: ativo ? `${C.accent}22` : C.card,
+                          border: `1.5px solid ${ativo ? C.accent + "55" : C.border}`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "background 0.15s, border-color 0.15s",
+                        }}>
+                          <m.Icon size={24} />
+                        </div>
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {singleMetodo === "dinheiro" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12, flexShrink: 0 }}>
+                    <label style={{ fontSize: 16, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1.2 }}>
+                      Calcular Troco <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, fontSize: 14 }}>(opcional)</span>
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <span style={{
+                        position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)",
+                        color: C.muted, fontSize: 18, fontWeight: 700,
+                      }}>
+                        R$
+                      </span>
+                      <input
+                        autoFocus
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={singleRecebido || ""}
+                        onChange={e => updatePagamento(0, { recebido: parseFloat(e.target.value) || 0 })}
+                        placeholder={total.toFixed(2)}
+                        style={{
+                          width: "100%", padding: "16px 18px 16px 56px",
+                          borderRadius: 12, border: `1.5px solid ${C.border}`,
+                          background: C.surface, color: C.text,
+                          fontSize: sz.fontXl - 2, fontWeight: 700,
+                          boxSizing: "border-box", fontFamily: "inherit", outline: "none",
+                          transition: "border-color 0.15s",
+                        }}
+                        onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
+                        onBlur={e => e.currentTarget.style.borderColor = C.border}
+                      />
+                    </div>
+
+                    {singleRecebido > 0 && (
+                      <div style={{
+                        padding: "16px 20px", borderRadius: 12,
+                        background: singleTroco >= 0 ? `${C.green}14` : `${C.accent}14`,
+                        border: `1.5px solid ${singleTroco >= 0 ? C.green : C.accent}55`,
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                      }}>
+                        <span style={{ fontSize: sz.fontBase + 1, fontWeight: 700, color: C.muted }}>
+                          {singleTroco >= 0 ? "Troco" : "Falta"}
+                        </span>
+                        <span style={{ fontSize: sz.fontXl - 2, fontWeight: 900, color: singleTroco >= 0 ? C.green : C.accent }}>
+                          R$ {Math.abs(singleTroco).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{
               padding: "20px 32px 28px",
               borderTop: `1px solid ${C.border}`,
               display: "flex", flexDirection: "column", gap: 10,
             }}>
-              {!metodo && (
+              {!podeConfirmar && (
                 <div style={{ fontSize: 16, color: C.muted, textAlign: "center", marginBottom: 4 }}>
-                  Selecione a forma de pagamento acima
+                  {isSplit
+                    ? Math.abs(faltaAlocar) >= 0.015
+                      ? `Distribua os R$ ${Math.abs(faltaAlocar).toFixed(2)} restantes`
+                      : "Selecione a forma de cada pagamento"
+                    : "Selecione a forma de pagamento acima"}
                 </div>
               )}
               <button
