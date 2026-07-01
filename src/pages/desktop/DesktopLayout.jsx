@@ -9,6 +9,7 @@ import Notification, { useNotification } from "@/components/shared/Notification"
 import FechamentoModal from "@/components/modals/FechamentoModal";
 import AberturaCaixaModal from "@/components/modals/AberturaCaixaModal";
 import C from "@/constants/colors";
+import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 
 export default function DesktopLayout() {
   const { currentUser, isMobile, mobileChoice, setMobileChoice, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales } = useApp();
@@ -22,6 +23,7 @@ export default function DesktopLayout() {
   const [menuAberto,     setMenuAberto]     = useState(false);
 
   const isMob = width < 768;
+  const [sidebarRecolhida, setSidebarRecolhida] = useState(false);
   // Largura do drawer: mínimo 200, máximo 260, nunca mais de 85% da tela
   const drawerWidth = Math.min(260, Math.max(200, Math.floor(width * 0.85)));
 
@@ -37,16 +39,50 @@ export default function DesktopLayout() {
     }}>
       <Notification notif={notif} />
 
-      {/* ── Sidebar desktop (sempre visível) ─────────────────────── */}
+      {/* ── Sidebar desktop (recolhível) ──────────────────────────── */}
       {!isMob && (
-        <div style={{ width: sz.sidebarWidth, flexShrink: 0, overflow: "hidden" }}>
-          <Sidebar
-            caixaAberto={caixaAberto}
-            onFechamento={() => setShowFechamento(true)}
-            onAbertura={() => setShowAbertura(true)}
-            onLogout={logout}
-            onBackToChoice={handleBackToChoice}
-          />
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          {/* Painel da sidebar com transição de largura */}
+          <div style={{
+            width: sidebarRecolhida ? 0 : sz.sidebarWidth,
+            overflow: "hidden",
+            transition: "width 0.22s cubic-bezier(0.4,0,0.2,1)",
+          }}>
+            <Sidebar
+              caixaAberto={caixaAberto}
+              onFechamento={() => setShowFechamento(true)}
+              onAbertura={() => setShowAbertura(true)}
+              onLogout={logout}
+              onBackToChoice={handleBackToChoice}
+            />
+          </div>
+
+          {/* Botão de recolher/expandir */}
+          <button
+            onClick={() => setSidebarRecolhida(v => !v)}
+            title={sidebarRecolhida ? "Expandir sidebar" : "Recolher sidebar"}
+            style={{
+              position: "absolute", right: -13, top: "50%",
+              transform: "translateY(-50%)",
+              width: 26, height: 44,
+              borderRadius: "0 8px 8px 0",
+              background: C.card,
+              border: `1px solid ${C.border}`,
+              borderLeft: "none",
+              color: C.muted,
+              cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              zIndex: 20,
+              transition: "background 0.15s, color 0.15s",
+              padding: 0,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.color = C.text; }}
+            onMouseLeave={e => { e.currentTarget.style.background = C.card; e.currentTarget.style.color = C.muted; }}
+          >
+            {sidebarRecolhida
+              ? <LuChevronRight size={14} />
+              : <LuChevronLeft size={14} />}
+          </button>
         </div>
       )}
 
