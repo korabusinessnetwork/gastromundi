@@ -7,6 +7,7 @@ import { verificarSenhaUsuario } from "@/lib/adminAuth";
 import C from "@/constants/colors";
 import { getSizes } from "@/constants/sizes";
 import { useResponsive } from "@/utils/hooks";
+import { normalizarPagamentos, totalTroco } from "@/utils/pagamentos";
 import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
@@ -383,17 +384,17 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                         <LuUser size={13} /> {fechadaDetalhe.cashier}
                       </div>
                     )}
-                    {fechadaDetalhe.metodo && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 16, color: C.muted }}>
+                    {normalizarPagamentos(fechadaDetalhe).map((p, i) => p.metodo ? (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 16, color: C.muted }}>
                         <LuReceipt size={13} />
                         Pagamento: <strong style={{ color: C.text }}>
-                          {{ dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" }[fechadaDetalhe.metodo] ?? fechadaDetalhe.metodo}
+                          {{ dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" }[p.metodo] ?? p.metodo}
                         </strong>
                       </div>
-                    )}
-                    {fechadaDetalhe.troco > 0 && (
+                    ) : null)}
+                    {totalTroco(fechadaDetalhe) > 0 && (
                       <div style={{ fontSize: 16, color: C.muted }}>
-                        Troco: <strong style={{ color: C.text }}>R$ {Number(fechadaDetalhe.troco).toFixed(2)}</strong>
+                        Troco: <strong style={{ color: C.text }}>R$ {Number(totalTroco(fechadaDetalhe)).toFixed(2)}</strong>
                       </div>
                     )}
                   </div>

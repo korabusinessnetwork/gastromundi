@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
+import { totalPorMetodo } from "@/utils/pagamentos";
 import C from "@/constants/colors";
-import { LuLock, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPencil } from "react-icons/lu";
+import { LuLock, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPencil, LuTriangleAlert } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 
 const METODOS_CATALOG = {
@@ -19,10 +20,17 @@ function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios) {
     : new Date(new Date().toDateString()).getTime();
   const hoje = (sales ?? []).filter(s => s && new Date(s.at).getTime() >= inicio);
   const m = {};
+  const naoMapeados = {};
   meios.forEach(k => { m[k] = 0; });
-  hoje.forEach(v => { if (m[v.metodo] !== undefined) m[v.metodo] += v.total ?? 0; });
+  hoje.forEach(v => { Object.entries(totalPorMetodo(v)).forEach(([metodo, valor]) => {
+    if (m[metodo] !== undefined) {
+      m[metodo] += valor;
+    } else {
+      naoMapeados[metodo] = (naoMapeados[metodo] ?? 0) + valor;
+    }
+  }); });
   if (m.dinheiro !== undefined) m.dinheiro += fundoAtual;
-  return { hoje, m };
+  return { hoje, m, naoMapeados };
 }
 
 export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onConfirm, onClose }) {
@@ -32,7 +40,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
   const [salvando,    setSalvando]    = useState(false);
   const [observacao,  setObservacao]  = useState("");
 
-  const { hoje, m: sistema } = useMemo(
+  const { hoje, m: sistema, naoMapeados } = useMemo(
     () => buildSistema(sales, fundoAtual, sessaoAbertaEm, meios),
     [sales, fundoAtual, sessaoAbertaEm, meios]
   );
@@ -174,6 +182,25 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             );
           })}
         </div>
+
+        {/* Banner de métodos não mapeados */}
+        {Object.keys(naoMapeados).length > 0 && (
+          <div style={{
+            display: "flex", alignItems: "flex-start", gap: 10,
+            padding: "12px 14px", borderRadius: 12,
+            background: "#f59e0b14", border: "1.5px solid #f59e0b55",
+          }}>
+            <LuTriangleAlert size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div style={{ fontSize: 13, color: "#f59e0b", lineHeight: 1.5 }}>
+              <strong>
+                R$ {Object.values(naoMapeados).reduce((s, v) => s + v, 0).toFixed(2)} em métodos não configurados:
+              </strong>{" "}
+              {Object.entries(naoMapeados).map(([metodo, valor], i, arr) =>
+                `${metodo} (R$ ${valor.toFixed(2)})${i < arr.length - 1 ? ", " : ""}`
+              ).join("")}
+            </div>
+          </div>
+        )}
 
         {/* Resumo */}
         <div style={{

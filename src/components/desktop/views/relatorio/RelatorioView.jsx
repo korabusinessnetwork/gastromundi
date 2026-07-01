@@ -1,4 +1,5 @@
 ﻿import { useState, useMemo, useEffect, Fragment } from "react";
+import { normalizarPagamentos, totalPorMetodo } from "@/utils/pagamentos";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
@@ -400,7 +401,7 @@ export default function RelatorioView() {
   // ── Vendas ────────────────────────────────────────────────────
   const vendasFiltradas = useMemo(() => {
     let l = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim);
-    if (metodoFilt !== "todos") l = l.filter(s => s.metodo === metodoFilt);
+    if (metodoFilt !== "todos") l = l.filter(s => Object.keys(totalPorMetodo(s)).includes(metodoFilt));
     return l;
   }, [sales, periodo, metodoFilt, customInicio, customFim]);
 
@@ -409,7 +410,7 @@ export default function RelatorioView() {
     const count  = vendasFiltradas.length;
     const ticket = count > 0 ? total / count : 0;
     const porMetodo = {};
-    vendasFiltradas.forEach(v => { porMetodo[v.metodo] = (porMetodo[v.metodo] ?? 0) + (v.total ?? 0); });
+    vendasFiltradas.forEach(v => { Object.entries(totalPorMetodo(v)).forEach(([m, val]) => { porMetodo[m] = (porMetodo[m] ?? 0) + val; }); });
     const top = Object.entries(porMetodo).sort((a, b) => b[1] - a[1])[0];
     return { total, count, ticket, top };
   }, [vendasFiltradas]);
@@ -490,7 +491,7 @@ export default function RelatorioView() {
       const headers = ["Comanda", "Caixa", "Itens", "Método", "Total (R$)", "Data/Hora"];
       const rows = vendasFiltradas.map(v => [
         v.comanda ?? "—", v.cashier ?? "—", totalItens(v),
-        METODOS_LABEL[v.metodo] ?? v.metodo ?? "—",
+        normalizarPagamentos(v).map(p => METODOS_LABEL[p.metodo] ?? p.metodo ?? "—").join(" + "),
         Number(v.total ?? 0).toFixed(2), fmtData(v.at),
       ]);
       const totais = `Total: R$ ${kpis.total.toFixed(2)} · ${kpis.count} venda(s)`;
@@ -501,7 +502,7 @@ export default function RelatorioView() {
       const rows = vendasFiltradas.flatMap(v =>
         (Array.isArray(v.items) && v.items.length > 0 ? v.items : [{ name: "—", qty: 0, price: 0 }]).map(it => [
           v.comanda ?? "—", v.cashier ?? "—",
-          METODOS_LABEL[v.metodo] ?? v.metodo ?? "—",
+          normalizarPagamentos(v).map(p => METODOS_LABEL[p.metodo] ?? p.metodo ?? "—").join(" + "),
           (it.emoji ? `${it.emoji} ` : "") + (it.name ?? "—"),
           it.qty ?? 1, Number(it.price ?? 0).toFixed(2),
           Number((it.price ?? 0) * (it.qty ?? 1)).toFixed(2),
@@ -787,7 +788,16 @@ export default function RelatorioView() {
                               background: C.surface, padding: "3px 10px",
                               borderRadius: 20, color: C.muted, whiteSpace: "nowrap",
                             }}>
-                              {(() => { const MI = METODOS_ICON[v.metodo]; return <>{MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}{METODOS_LABEL[v.metodo] ?? v.metodo ?? "—"}</>; })()}
+                              {normalizarPagamentos(v).map((p, pi) => {
+                                const MI = METODOS_ICON[p.metodo];
+                                return (
+                                  <Fragment key={pi}>
+                                    {pi > 0 && <span style={{ color: C.muted, margin: "0 4px" }}>+</span>}
+                                    {MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}
+                                    {METODOS_LABEL[p.metodo] ?? p.metodo ?? "—"}
+                                  </Fragment>
+                                );
+                              })}
                             </span>
                           </Td>
                           <Td sz={sz} right color={C.green}>
@@ -851,7 +861,16 @@ export default function RelatorioView() {
                                 background: C.surface, padding: "5px 14px",
                                 borderRadius: 20, color: C.muted,
                               }}>
-                                {(() => { const MI = METODOS_ICON[v.metodo]; return <>{MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}{METODOS_LABEL[v.metodo] ?? v.metodo ?? "—"}</>; })()}
+                                {normalizarPagamentos(v).map((p, pi) => {
+                                const MI = METODOS_ICON[p.metodo];
+                                return (
+                                  <Fragment key={pi}>
+                                    {pi > 0 && <span style={{ color: C.muted, margin: "0 4px" }}>+</span>}
+                                    {MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}
+                                    {METODOS_LABEL[p.metodo] ?? p.metodo ?? "—"}
+                                  </Fragment>
+                                );
+                              })}
                               </span>
                               <div style={{ textAlign: "right" }}>
                                 <div style={{ fontWeight: 900, fontSize: sz.fontXl - 2, color: C.green }}>

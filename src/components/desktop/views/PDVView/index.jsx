@@ -5,6 +5,7 @@ import { useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { useResponsive, useMesas } from "@/utils/hooks";
+import { totalPorMetodo } from "@/utils/pagamentos";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList } from "react-icons/lu";
@@ -236,24 +237,27 @@ export default function PDVView() {
   };
 
   // ── Confirmar pagamento → grava venda e remove comanda ────────
-  const handleConfirmPayment = async ({ metodo, recebido, troco }) => {
+  const handleConfirmPayment = async ({ metodo, recebido, troco, total, taxaServico, valorTaxa, ajuste, valorAjuste }) => {
     if (!selected) return;
     // Usa os itens já acumulados no pedido; cashier pode ter adicionado itens locais também
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
     const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
     const todosItens      = [...itensAcumulados, ...itensLocais];
-    const total           = todosItens.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+    const subtotal        = todosItens.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
 
     const sale = {
-      id:      crypto.randomUUID(),
-      comanda: selected.comanda,
-      items:   todosItens,
+      id:          crypto.randomUUID(),
+      comanda:     selected.comanda,
+      items:       todosItens,
+      subtotal,
+      taxaServico: taxaServico ?? false,
+      valorTaxa:   valorTaxa   ?? 0,
+      ajuste:      ajuste      ?? null,
+      valorAjuste: valorAjuste ?? 0,
       total,
-      metodo,
-      recebido,
-      troco,
-      cashier: currentUser?.name || "",
-      at:      new Date().toISOString(),
+      pagamentos:  [{ metodo, valor: total, recebido, troco }],
+      cashier:     currentUser?.name || "",
+      at:          new Date().toISOString(),
     };
 
     await addSale(sale);
@@ -1824,7 +1828,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   const qtdCancelados   = todosCancelados.reduce((s, i) => s + (i.qty ?? 1), 0);
 
   const porMetodo = {};
-  vendasHoje.forEach(v => { porMetodo[v.metodo] = (porMetodo[v.metodo] ?? 0) + (v.total ?? 0); });
+  vendasHoje.forEach(v => { Object.entries(totalPorMetodo(v)).forEach(([m, val]) => { porMetodo[m] = (porMetodo[m] ?? 0) + val; }); });
 
   const customLabels = Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label]));
   const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix", ...customLabels };
