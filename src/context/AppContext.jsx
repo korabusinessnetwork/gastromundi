@@ -219,8 +219,8 @@ export function AppProvider({ children }) {
   // ── Actions: Pending ──────────────────────────────────────────
   const addPending = async (order) => {
     setPendingLocal(prev => [order, ...prev]);
-    const { id, comanda, items, status, note, total, garcom, created_by } = order;
-    await supabase.from("pending").insert({ id, comanda, items, status, note, total, garcom, created_by });
+    const { id, comanda, mesa, apelido, items, status, note, total, garcom, created_by } = order;
+    await supabase.from("pending").insert({ id, comanda, mesa, apelido, items, status, note, total, garcom, created_by });
   };
 
   const removePending = async (id) => {

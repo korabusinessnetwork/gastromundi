@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 /**
  * useLS — localStorage com fallback e sincronização
@@ -84,4 +85,25 @@ export function useIdleTimer(callback, delay, enabled = true) {
       events.forEach((e) => window.removeEventListener(e, reset));
     };
   }, [callback, delay, enabled]);
+}
+
+/**
+ * useMesas — busca a tabela de mesas (sem realtime)
+ */
+export function useMesas() {
+  const [mesas,   setMesas]   = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("mesas")
+      .select("numero,capacidade,posicao_x,posicao_y,status_manual")
+      .order("numero")
+      .then(({ data }) => {
+        setMesas(data ?? []);
+        setLoading(false);
+      });
+  }, []);
+
+  return { mesas, loading };
 }

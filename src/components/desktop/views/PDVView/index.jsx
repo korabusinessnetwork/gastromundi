@@ -4,10 +4,10 @@ import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
-import { useResponsive } from "@/utils/hooks";
+import { useResponsive, useMesas } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
-import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode } from "react-icons/lu";
+import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
@@ -15,6 +15,7 @@ import ComandaGrid   from "./ComandaGrid";
 import ProductGrid   from "./ProductGrid";
 import CartPanel     from "./CartPanel";
 import CheckoutView  from "./CheckoutView";
+import MesaMapView   from "./MesaMapView";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -32,17 +33,18 @@ export default function PDVView() {
   const sz = getSizes(width);
   // isMob alinhado com CartPanel: mobile/tablet usam tabs (cartWidth===0)
   const isMob = sz.cartWidth === 0;
+  const { mesas, loading: mesasLoading } = useMesas();
   const location = useLocation();
 
-  // Reset to grid whenever the sidebar navigates to this page
+  // Reset to mapa whenever the sidebar navigates to this page
   useEffect(() => {
-    setMode("grid");
+    setMode("mapa");
     setSelected(null);
     setCartItems([]);
   }, [location.key]);
 
-  // "grid" | "pedido" | "checkout"
-  const [mode,        setMode]        = useState("grid");
+  // "mapa" | "grid" | "pedido" | "checkout"
+  const [mode,        setMode]        = useState("mapa");
   const [selected,    setSelected]    = useState(null);
   const [cartItems,   setCartItems]   = useState([]);
   const [salvando,    setSalvando]    = useState(false);
@@ -145,7 +147,7 @@ export default function PDVView() {
 
   const handleBack = () => {
     setBuscaComanda("");
-    setMode("grid");
+    setMode("mapa");
     setSelected(null);
     setCartItems([]);
   };
@@ -256,6 +258,10 @@ export default function PDVView() {
 
     await addSale(sale);
     await removePending(selected.id);
+    if (selected.mesa) {
+      supabase.rpc("limpar_reserva_mesa", { mesa_numero: selected.mesa })
+        .catch((err) => console.error("Falha ao limpar reserva da mesa:", err));
+    }
 
     // Desconta estoque dos itens vendidos (ignora cancelados; apenas itens com id de produto)
     const itensAtivos = todosItens.filter(i => !i.cancelado && i.id);
@@ -273,7 +279,7 @@ export default function PDVView() {
   };
 
   // ── Abrir slot vazio — cria comanda virtual (só persiste ao lançar) ──
-  const handleOpenEmpty = (nome) => {
+  const handleOpenEmpty = (nome, { mesa } = {}) => {
     if (!caixaAberto) return;
     const order = {
       id:         crypto.randomUUID(),
@@ -290,7 +296,7 @@ export default function PDVView() {
       _virtual:   true, // não persistida ainda
     };
     setBuscaComanda("");
-    setMesaInput("");
+    setMesaInput(mesa ?? "");
     setApelidoInput("");
     setMesaPendingOrder(order);
     setShowMesa(true);
@@ -408,7 +414,7 @@ export default function PDVView() {
       if (itensAtivosRestantes.length === 0) {
         await removePending(selected.id);
         setSelected(null);
-        setMode("comandas");
+        setMode("mapa");
       } else {
         setSelected(prev => ({ ...prev, items: novosOrigem, total: totalOrigem }));
       }
@@ -521,7 +527,7 @@ export default function PDVView() {
                     : `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} em aberto`}
                 </div>
               </div>
-              {mode === "grid" && (
+              {(mode === "mapa" || mode === "grid") && (
                 <button
                   onClick={() => { setShowSaldo(true); setSaldoSenha(""); setSaldoSenhaErro(false); setSaldoAutorizado(false); setSaldoSenhaVis(false); }}
                   title="Saldo do dia"
@@ -546,8 +552,8 @@ export default function PDVView() {
 
           {/* Direita: ações */}
           <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: sz.gap, flexWrap: "wrap" }}>
-          {/* Toast inline — visível no grid após lançar */}
-          {mode === "grid" && (
+          {/* Toast inline — visível no mapa/lista após lançar */}
+          {(mode === "mapa" || mode === "grid") && (
             <div style={{
               display: "flex", alignItems: "center", gap: 8,
               background: `${C.green}18`, border: `1px solid ${C.green}44`,
@@ -561,7 +567,7 @@ export default function PDVView() {
               ✓ Pedido lançado!
             </div>
           )}
-          {mode === "grid" && (
+          {(mode === "mapa" || mode === "grid") && (
             <button
               onClick={() => { setShowNova(true); setNomeComanda(""); }}
               disabled={!caixaAberto}
@@ -735,8 +741,8 @@ export default function PDVView() {
         </div>
       )}
 
-      {/* ── Alerta de estoque (só no grid) ──────────────────────── */}
-      {mode === "grid" && (() => {
+      {/* ── Alerta de estoque (mapa + lista) ───────────────────── */}
+      {(mode === "mapa" || mode === "grid") && (() => {
         const criticos = products.filter(p => {
           const q = estoque[p.id] ?? 0;
           return q === 0;
@@ -804,7 +810,41 @@ export default function PDVView() {
         );
       })()}
 
-      {/* ── Busca de comandas (apenas no grid) ──────────────────── */}
+      {/* ── Tab Mapa / Lista ─────────────────────────────────────── */}
+      {(mode === "mapa" || mode === "grid") && (
+        <div style={{
+          flexShrink: 0,
+          display: "flex",
+          borderBottom: `1px solid ${C.border}`,
+          padding: `0 ${sz.pad}px`,
+        }}>
+          {[
+            { key: "mapa", label: "Mapa",  Icon: LuLayoutGrid },
+            { key: "grid", label: "Lista", Icon: LuList },
+          ].map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              onClick={() => setMode(key)}
+              style={{
+                padding: `10px 18px`,
+                background: "none", border: "none",
+                borderBottom: `2px solid ${mode === key ? C.accent : "transparent"}`,
+                color: mode === key ? C.accent : C.muted,
+                fontWeight: 700, fontSize: sz.fontBase,
+                cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6,
+                transition: "color 0.15s, border-color 0.15s",
+                marginBottom: -1,
+                fontFamily: "inherit",
+              }}
+            >
+              <Icon size={14} />{label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Busca de comandas (apenas na lista) ──────────────────── */}
       {mode === "grid" && (
         <div style={{
           flexShrink: 0,
@@ -851,6 +891,16 @@ export default function PDVView() {
 
       {/* ── Body ────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
+
+        {mode === "mapa" && (
+          <MesaMapView
+            mesas={mesas}
+            loading={mesasLoading}
+            abertas={abertas}
+            onSelectComanda={handleSelectComanda}
+            onOpenEmpty={handleOpenEmpty}
+          />
+        )}
 
         {mode === "grid" && (
           <div style={{ flex: 1, overflowY: "auto" }}>
