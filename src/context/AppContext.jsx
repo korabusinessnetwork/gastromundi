@@ -94,7 +94,7 @@ export function AppProvider({ children }) {
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
         supabase.from("pending").select("*").order("created_at", { ascending: false }),
-        supabase.from("sales").select("id,data,created_at").order("created_at", { ascending: false }),
+        supabase.from("sales").select("id,data,at").order("at", { ascending: false }),
         supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
         supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","credentials","estoque","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
