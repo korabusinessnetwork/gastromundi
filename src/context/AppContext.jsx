@@ -258,9 +258,27 @@ export function AppProvider({ children }) {
   // ── Actions: Sales ────────────────────────────────────────────
   const addSale = async (sale) => {
     setSalesLocal(prev => [sale, ...prev]);
+    // TODO: remove diag logs
+    const { data: { session: _diagSession } } = await supabase.auth.getSession();
+    console.log("[addSale:pre-request]", {
+      hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+      hasSession:     !!_diagSession,
+      tokenExpiresAt: _diagSession?.expires_at
+        ? new Date(_diagSession.expires_at * 1000).toISOString()
+        : null,
+      timestamp: new Date().toISOString(),
+    });
     const { error } = await supabase.from("sales").insert({ id: sale.id, data: sale });
     if (error) {
       console.error("addSale error:", JSON.stringify(error, null, 2));
+      // TODO: remove diag logs
+      console.error("[addSale:error-detail]", {
+        message: error?.message,
+        status:  error?.status,
+        code:    error?.code,
+        details: error?.details,
+        hint:    error?.hint,
+      });
       throw error;
     }
   };
