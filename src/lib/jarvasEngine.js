@@ -11,6 +11,11 @@ import { registrarInsight, buscarInsights } from "./jarvas";
  *   2. Divergência de caixa             → alerta (estratégico)
  *   3. Produto em alta/queda (7d vs 7d) → insight (estratégico)
  *   4. Cancelamentos recorrentes (7d)   → alerta (estratégico)
+ *   5. Previsão de ruptura (consumo médio 14d vs estoque)  → sugestão
+ *   6. Previsão de faturamento semanal (média das 4 últimas semanas) → insight (estratégico)
+ *
+ * Previsões são estimativas determinísticas calculadas dos dados-fonte
+ * (médias móveis) e sempre se declaram como estimativa na descrição.
  *
  * Princípios:
  * - Roda apenas para gerente/admin (RLS bloqueia insert para os demais).
@@ -49,6 +54,8 @@ export async function executarAnaliseJarvas({ products, estoque, sales, fechamen
       regraDivergenciaCaixa({ fechamentos, jaExiste }),
       regraTendenciaVendas({ sales, jaExiste }),
       regraCancelamentos({ jaExiste }),
+      regraPrevisaoRuptura({ products, estoque, sales, jaExiste }),
+      regraPrevisaoFaturamento({ sales, jaExiste }),
     ]);
   } catch {
     // intencionalmente silencioso — falha do Jarvas nunca afeta a operação

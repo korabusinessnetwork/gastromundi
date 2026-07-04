@@ -6,6 +6,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import Sidebar from "@/components/desktop/Sidebar";
 import Notification, { useNotification } from "@/components/shared/Notification";
+import JarvasPanel from "@/components/shared/JarvasPanel";
 import FechamentoModal from "@/components/modals/FechamentoModal";
 import AberturaCaixaModal from "@/components/modals/AberturaCaixaModal";
 import C from "@/constants/colors";
@@ -38,6 +39,7 @@ export default function DesktopLayout() {
       overflow: "hidden",
     }}>
       <Notification notif={notif} />
+      <JarvasPanel />
 
       {/* ── Sidebar desktop (recolhível) ──────────────────────────── */}
       {!isMob && (
