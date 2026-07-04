@@ -24,7 +24,7 @@ import { registrarInsight, buscarInsights } from "./jarvas";
  * - Deduplicação por `origem.chave` contra insights abertos recentes.
  */
 
-const LIMITE_ESTOQUE_BAIXO = 10;      // mesmo limite da EstoqueView
+const MINIMO_ESTOQUE_FALLBACK = 10;   // usado quando o produto não tem mínimo cadastrado (mesmo fallback da EstoqueView)
 const TOLERANCIA_CAIXA = 1;           // R$ — divergência acima disso gera alerta
 const VARIACAO_RELEVANTE = 0.3;       // ±30% em vendas 7d vs 7d anteriores
 const MIN_UNIDADES_TENDENCIA = 10;    // volume mínimo para tendência ser relevante
@@ -35,7 +35,7 @@ const THROTTLE_KEY = "jarvas_ultima_analise";
 const dias = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 
 /** Executa todas as regras. Chamar como fire-and-forget: `void executarAnaliseJarvas(ctx)`. */
-export async function executarAnaliseJarvas({ products, estoque, sales, fechamentos, currentUser }) {
+export async function executarAnaliseJarvas({ products, estoque, estoqueMinimos, sales, fechamentos, currentUser }) {
   try {
     if (!currentUser || !["admin", "gerente"].includes(currentUser.role)) return;
 
@@ -50,7 +50,7 @@ export async function executarAnaliseJarvas({ products, estoque, sales, fechamen
     const jaExiste = (chave) => chavesAbertas.has(chave);
 
     await Promise.all([
-      regraEstoque({ products, estoque, jaExiste }),
+      regraEstoque({ products, estoque, estoqueMinimos, jaExiste }),
       regraDivergenciaCaixa({ fechamentos, jaExiste }),
       regraTendenciaVendas({ sales, jaExiste }),
       regraCancelamentos({ jaExiste }),
@@ -63,12 +63,13 @@ export async function executarAnaliseJarvas({ products, estoque, sales, fechamen
 }
 
 // ── 1. Ruptura / estoque baixo ─────────────────────────────────────
-async function regraEstoque({ products, estoque, jaExiste }) {
+async function regraEstoque({ products, estoque, estoqueMinimos, jaExiste }) {
   const ativos = (products ?? []).filter((p) => p.active !== false);
   const zerados = ativos.filter((p) => (estoque?.[p.id] ?? 0) === 0 && p.id in (estoque ?? {}));
   const baixos = ativos.filter((p) => {
     const q = estoque?.[p.id] ?? 0;
-    return q > 0 && q <= LIMITE_ESTOQUE_BAIXO;
+    const min = estoqueMinimos?.[p.id] ?? MINIMO_ESTOQUE_FALLBACK;
+    return q > 0 && q <= min;
   });
 
   const hoje = new Date().toISOString().slice(0, 10);
@@ -88,16 +89,16 @@ async function regraEstoque({ products, estoque, jaExiste }) {
   }
 
   if (baixos.length > 0 && !jaExiste(`estoque:baixo:${hoje}`)) {
-    const lista = baixos.slice(0, 10).map((p) => `${p.name} (${estoque[p.id]})`);
+    const lista = baixos.slice(0, 10).map((p) => `${p.name} (${estoque[p.id]}/${estoqueMinimos?.[p.id] ?? MINIMO_ESTOQUE_FALLBACK})`);
     await registrarInsight({
       tipo: "sugestao",
       severidade: "warning",
       visibilidade: "operacional",
       modulo: "estoque",
       titulo: `Estoque baixo em ${baixos.length} produto(s)`,
-      descricao: `Abaixo do limite de ${LIMITE_ESTOQUE_BAIXO} unidades: ${lista.join(", ")}${baixos.length > 10 ? "…" : ""}.`,
+      descricao: `Abaixo do mínimo cadastrado: ${lista.join(", ")}${baixos.length > 10 ? "…" : ""}.`,
       acao: { label: "Planejar reposição", tipo: "abrir_estoque", params: { produto_ids: baixos.map((p) => p.id) } },
-      origem: { chave: `estoque:baixo:${hoje}`, dados: { limite: LIMITE_ESTOQUE_BAIXO, produtos: baixos.map((p) => ({ id: p.id, nome: p.name, qtd: estoque[p.id] })) } },
+      origem: { chave: `estoque:baixo:${hoje}`, dados: { produtos: baixos.map((p) => ({ id: p.id, nome: p.name, qtd: estoque[p.id], minimo: estoqueMinimos?.[p.id] ?? MINIMO_ESTOQUE_FALLBACK })) } },
     });
   }
 }

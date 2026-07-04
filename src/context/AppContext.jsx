@@ -27,7 +27,8 @@ export function AppProvider({ children }) {
   const [meiosPagamento,  setMeiosPagamentoLocal] = useState(["dinheiro", "credito", "debito", "pix"]);
   const [metodosCustom,   setMetodosCustomLocal]  = useState([]);
   const [taxaServico,     setTaxaServicoLocal]    = useState(false);
-  const [estoque,       setEstoqueLocal]     = useState({});
+  const [estoque,         setEstoqueLocal]        = useState({});
+  const [estoqueMinimos,  setEstoqueMinimosLocal] = useState({});
   const [loading,       setLoading]          = useState(true);
   // IDs de comandas com pedido lançado na sessão atual (sobrevive troca de aba)
   const [lancadas,    setLancadas]         = useState(new Set());
@@ -92,6 +93,7 @@ export function AppProvider({ children }) {
         { data: usersData,    error: eUsers    },
         { data: fechamentosData, error: eFech  },
         { data: configData,   error: eConfig   },
+        { data: estoqueData,  error: eEstoque  },
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
         supabase.from("pending").select("*").order("created_at", { ascending: false }),
@@ -99,7 +101,8 @@ export function AppProvider({ children }) {
         supabase.from("sales").select("id,data,at").gte("at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()).order("at", { ascending: false }),
         supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","estoque","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
+        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
+        supabase.from("estoque").select("produto_id,quantidade,minimo"),
       ]);
 
       if (eUsers)    console.error("[bootstrap] users error:", eUsers);
@@ -108,6 +111,7 @@ export function AppProvider({ children }) {
       if (eSales)    console.error("[bootstrap] sales error:", eSales);
       if (eFech)     console.error("[bootstrap] fechamentos error:", eFech);
       if (eConfig)   console.error("[bootstrap] config error:", eConfig);
+      if (eEstoque)  console.error("[bootstrap] estoque error:", eEstoque);
 
       if (productsData?.length)    setProductsLocal(productsData);
       if (pendingData)             setPendingLocal(pendingData);
@@ -118,15 +122,23 @@ export function AppProvider({ children }) {
       })));
       if (fechamentosData)         setFechamentosLocal(fechamentosData.map(r => r.data));
 
+      if (estoqueData) {
+        const qtds = {}, minimos = {};
+        for (const row of estoqueData) {
+          qtds[row.produto_id]    = Number(row.quantidade);
+          minimos[row.produto_id] = Number(row.minimo);
+        }
+        setEstoqueLocal(qtds);
+        setEstoqueMinimosLocal(minimos);
+      }
+
       if (configData) {
         const fundo  = configData.find(c => c.key === "fundo_atual");
         const caixa  = configData.find(c => c.key === "caixa_aberto");
-        const estq    = configData.find(c => c.key === "estoque");
         const sessao = configData.find(c => c.key === "sessao_aberta_em");
         if (fundo)   setFundoAtualLocal(Number(fundo.value));
         if (caixa)   setCaixaAbertoLocal(caixa.value === true || caixa.value === "true");
         if (sessao?.value) setSessaoAbertaEmLocal(sessao.value);
-        if (estq)    setEstoqueLocal(typeof estq.value === "object" ? estq.value : {});
         const meios = configData.find(c => c.key === "meios_pagamento");
         if (meios?.value && Array.isArray(meios.value) && meios.value.length > 0) setMeiosPagamentoLocal(meios.value);
         const taxa = configData.find(c => c.key === "taxa_servico");
@@ -153,7 +165,7 @@ export function AppProvider({ children }) {
   //    roda para gerente/admin e tem throttle interno de 6h) ──────
   useEffect(() => {
     if (loading || !currentUser) return;
-    void executarAnaliseJarvas({ products, estoque, sales, fechamentos, currentUser });
+    void executarAnaliseJarvas({ products, estoque, estoqueMinimos, sales, fechamentos, currentUser });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, currentUser?.id]);
 
@@ -171,6 +183,26 @@ export function AppProvider({ children }) {
         } else if (payload.eventType === "DELETE") {
           setPendingLocal(prev => prev.filter(p => p.id !== payload.old.id));
         }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  // ── Realtime: estoque (sincroniza saldo/mínimo entre dispositivos) ──
+  // Requer Realtime habilitado na tabela `estoque` (Database → Replication).
+  useEffect(() => {
+    const channel = supabase
+      .channel("estoque-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "estoque" }, (payload) => {
+        const produtoId = payload.new?.produto_id ?? payload.old?.produto_id;
+        if (payload.eventType === "DELETE") {
+          setEstoqueLocal(prev => { const { [produtoId]: _omit, ...rest } = prev; return rest; });
+          setEstoqueMinimosLocal(prev => { const { [produtoId]: _omit, ...rest } = prev; return rest; });
+          return;
+        }
+        setEstoqueLocal(prev => ({ ...prev, [produtoId]: Number(payload.new.quantidade) }));
+        setEstoqueMinimosLocal(prev => ({ ...prev, [produtoId]: Number(payload.new.minimo) }));
       })
       .subscribe();
 
@@ -323,20 +355,45 @@ export function AppProvider({ children }) {
     }, currentUser?.username);
   };
 
-  // ── Config: Caixa ─────────────────────────────────────────────
+  // ── Actions: Estoque ──────────────────────────────────────────
   const updateEstoque = async (productId, qty) => {
     const novaQtd = Math.max(0, qty);
-    const updated = { ...estoque, [productId]: novaQtd };
-    setEstoqueLocal(updated);
-    await supabase.from("config").upsert({ key: "estoque", value: updated });
+    setEstoqueLocal(prev => ({ ...prev, [productId]: novaQtd }));
+    await supabase.from("estoque").upsert(
+      { produto_id: productId, quantidade: novaQtd, updated_at: new Date().toISOString() },
+      { onConflict: "produto_id" },
+    );
     emitirEvento("estoque.ajustado", "estoque", { produto_id: productId, quantidade: novaQtd }, currentUser?.username);
   };
 
   // Atualiza múltiplos produtos de uma vez (evita race condition em imports em lote)
   const bulkSetEstoque = async (newEstoque) => {
     setEstoqueLocal(newEstoque);
-    await supabase.from("config").upsert({ key: "estoque", value: newEstoque });
+    const rows = Object.entries(newEstoque ?? {}).map(([produto_id, quantidade]) => ({
+      produto_id,
+      quantidade: Math.max(0, Number(quantidade) || 0),
+      updated_at: new Date().toISOString(),
+    }));
+    if (rows.length > 0) {
+      await supabase.from("estoque").upsert(rows, { onConflict: "produto_id" });
+    }
     emitirEvento("estoque.ajuste_em_lote", "estoque", { itens: Object.keys(newEstoque ?? {}).length }, currentUser?.username);
+  };
+
+  // Baixa atômica no servidor (evita race condition entre dispositivos descontando ao mesmo tempo)
+  const baixarEstoque = async (productId, qty) => {
+    setEstoqueLocal(prev => ({ ...prev, [productId]: Math.max(0, (prev[productId] ?? 0) - qty) }));
+    await supabase.rpc("baixar_estoque", { p_produto_id: productId, p_qtd: qty });
+    emitirEvento("estoque.baixa", "estoque", { produto_id: productId, quantidade: qty }, currentUser?.username);
+  };
+
+  const setMinimoEstoque = async (productId, minimo) => {
+    const novoMinimo = Math.max(0, Number(minimo) || 0);
+    setEstoqueMinimosLocal(prev => ({ ...prev, [productId]: novoMinimo }));
+    await supabase.from("estoque").upsert(
+      { produto_id: productId, minimo: novoMinimo, updated_at: new Date().toISOString() },
+      { onConflict: "produto_id" },
+    );
   };
 
   const setFundoAtual = async (val) => {
@@ -376,7 +433,7 @@ export function AppProvider({ children }) {
   const value = {
     loading,
     // dados
-    products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, estoque,
+    products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, estoque, estoqueMinimos,
     currentUser, isMobile, mobileChoice,
     lancadas, addLancada,
     // setter simples (sem persistência)
@@ -393,7 +450,7 @@ export function AppProvider({ children }) {
     addUser, updateUser, removeUser,
     // outros
     addFechamento,
-    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque,
+    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque, baixarEstoque, setMinimoEstoque,
     taxaServico, setTaxaServico,
     metodosCustom, setMetodosCustom,
   };

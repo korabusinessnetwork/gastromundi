@@ -70,7 +70,7 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 | TD001 | Senhas legíveis em `config.credentials` acessíveis a qualquer usuário logado | 🔒 Segurança | Alto | Médio | 🔴 Critical | Resolvido (2026-07-04) |
 | TD002 | Logs de diagnóstico com dados de sessão/token no console (`TODO: remove diag`) | 🔒 Segurança | Médio | Baixo | 🟠 High | Resolvido (2026-07-04) |
 | TD003 | Bootstrap carrega TODAS as vendas sem limite (`sales` sem filtro de data) | ⚡ Performance | Alto (cresce com o tempo) | Baixo | 🟠 High | Resolvido (2026-07-04) |
-| TD004 | Estoque como JSONB único em `config` (race conditions, sem histórico, limite global 10 hardcoded) | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Identificado |
+| TD004 | Estoque como JSONB único em `config` (race conditions, sem histórico, limite global 10 hardcoded) | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Resolvido (2026-07-04) |
 | TD005 | Zero testes automatizados; sem script `test`/`lint` no package.json | 🧪 Testes | Alto | Alto | 🟠 High | Identificado |
 | TD006 | `supabase/schema.sql` defasado vs migrações (policies `acesso_total` já substituídas) | 🧹 Code Quality | Médio (onboarding perigoso) | Baixo | 🟡 Medium | Identificado |
 | TD007 | `dist/` commitado no repositório | 🧹 Code Quality | Baixo | Baixo | 🟢 Low | Identificado |
@@ -107,6 +107,18 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 **Solução proposta:** filtrar por janela (ex.: 90 dias) no bootstrap; relatórios de período maior consultam sob demanda.
 
 **Resolução:** query de bootstrap agora filtra `.gte("at", <90 dias atrás>)`, com comentário explicando que relatórios de período maior devem consultar sob demanda.
+
+### [TD004] Estoque como JSONB único em `config`
+
+**Categoria:** Arquitetura · **Impacto:** Médio · **Esforço:** Alto · **Prioridade:** 🟡 Medium · **Status:** Resolvido (2026-07-04)
+
+**Descrição:** o saldo de estoque vivia inteiro em `config.key='estoque'` como um objeto `{ [produtoId]: quantidade }`, atualizado via read-modify-write do objeto completo — sujeito a race condition entre dispositivos. Não havia mínimo por produto: UI e Jarvas usavam um limite "baixo" global hardcoded (10 unidades).
+
+**Solução proposta:** tabela própria `estoque` (uma linha por produto, com mínimo próprio) e decremento atômico via RPC para a baixa por venda.
+
+**Resolução:** criada `supabase/migrations/20260705_estoque_tabela.sql` — tabela `public.estoque` (`produto_id`, `quantidade`, `minimo`, `updated_at`) com RLS (leitura para authenticated; insert/update para caixa/gerente/admin; delete para gerente/admin) e RPC `baixar_estoque` (decremento atômico, `SECURITY DEFINER`, mesmo padrão de `limpar_reserva_mesa`). Backfill migra os dados do JSONB antigo e remove a key `estoque` de `config`. `AppContext.jsx` passou a ler/escrever na nova tabela (bootstrap, `updateEstoque`, `bulkSetEstoque`, novo `estoqueMinimos` e `setMinimoEstoque`, novo canal Realtime), mantendo o mesmo shape `{ [produtoId]: quantidade }` no state `estoque` para não quebrar os consumidores existentes. `PDVView` passou a descontar estoque na baixa de venda via nova função `baixarEstoque` (RPC atômica) em vez do loop `updateEstoque(prodId, atual - qty)`. `EstoqueView.jsx` e `jarvasEngine.js` trocaram o limite global de 10 pelo mínimo por produto (`estoqueMinimos`, fallback 10 quando não cadastrado), com edição do mínimo inline na tabela de estoque.
+
+**Nota:** `supabase/schema.sql` declara `products.id` como `uuid`, mas a produção real usa `bigint` (já registrado em TD006) — a nova tabela `estoque.produto_id` usa `bigint` para bater com o banco real.
 
 ---
 

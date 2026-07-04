@@ -17,7 +17,7 @@ import {
   LuChevronUp, LuChevronDown, LuChevronsUpDown,
 } from "react-icons/lu";
 
-const LIMITE_BAIXO = 10;
+const MINIMO_FALLBACK = 10; // usado quando o produto ainda não tem mínimo cadastrado
 
 const COLUNAS = [
   { key: "name",     label: "Produto",   align: "left"   },
@@ -27,14 +27,14 @@ const COLUNAS = [
   { key: "entrada",  label: "Entrada",   align: "center", sortable: false },
 ];
 
-function estoqueColor(qty) {
-  if (qty === 0)           return C.red;
-  if (qty <= LIMITE_BAIXO) return "#f59e0b";
+function estoqueColor(qty, minimo) {
+  if (qty === 0)      return C.red;
+  if (qty <= minimo)  return "#f59e0b";
   return C.green;
 }
 
 export default function EstoqueView() {
-  const { products, estoque, updateEstoque, users } = useApp();
+  const { products, estoque, estoqueMinimos, updateEstoque, setMinimoEstoque, users } = useApp();
   const { width } = useResponsive();
   const sz = getSizes(width);
 
@@ -93,7 +93,11 @@ export default function EstoqueView() {
 
   const totalItens   = products.reduce((s, p) => s + (estoque[p.id] ?? 0), 0);
   const semEstoque   = products.filter(p => (estoque[p.id] ?? 0) === 0).length;
-  const estoqueBaixo = products.filter(p => { const q = estoque[p.id] ?? 0; return q > 0 && q <= LIMITE_BAIXO; }).length;
+  const estoqueBaixo = products.filter(p => {
+    const q   = estoque[p.id] ?? 0;
+    const min = estoqueMinimos[p.id] ?? MINIMO_FALLBACK;
+    return q > 0 && q <= min;
+  }).length;
 
   const getModo = (p) => {
     const stored = modoEntrada[p.id];
@@ -277,7 +281,8 @@ export default function EstoqueView() {
               <tbody>
                 {lista.map(p => {
                   const qty    = estoque[p.id] ?? 0;
-                  const cor    = estoqueColor(qty);
+                  const minimo = estoqueMinimos[p.id] ?? MINIMO_FALLBACK;
+                  const cor    = estoqueColor(qty, minimo);
                   const busy   = !!salvando[p.id];
                   const ue     = labelEstoque(p);
                   const uc     = labelConsumo(p);
@@ -334,7 +339,17 @@ export default function EstoqueView() {
                             </div>
                           )}
                           <div style={{ fontSize: 13, color: cor, marginTop: 2, fontWeight: 600 }}>
-                            {qty === 0 ? "Sem estoque" : qty <= LIMITE_BAIXO ? "Baixo" : "OK"}
+                            {qty === 0 ? "Sem estoque" : qty <= minimo ? "Baixo" : "OK"}
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+                            <span style={{ fontSize: 12, color: C.muted }}>mín:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={minimo}
+                              onChange={e => setMinimoEstoque(p.id, e.target.value)}
+                              style={{ width: 42, padding: "2px 4px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 12, fontFamily: "inherit", textAlign: "center", MozAppearance: "textfield", appearance: "textfield" }}
+                            />
                           </div>
                         </div>
                       </td>
