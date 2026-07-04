@@ -4,6 +4,7 @@ import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
+import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
 import { sanitizeInput } from "@/utils/crypto";
 import {
   saveSession, loadSession, clearSession,
@@ -149,6 +150,14 @@ export function AppProvider({ children }) {
       saveSession(refreshed);
     }
   }, [users]);
+
+  // ── Jarvas: análise pós-carregamento (fire-and-forget; motor só
+  //    roda para gerente/admin e tem throttle interno de 6h) ──────
+  useEffect(() => {
+    if (loading || !currentUser) return;
+    void executarAnaliseJarvas({ products, estoque, sales, fechamentos, currentUser });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, currentUser?.id]);
 
   // ── Realtime: pedidos pendentes (palm ↔ caixa) ───────────────
   useEffect(() => {

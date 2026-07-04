@@ -63,6 +63,6 @@ Jarvas é uma **camada transversal de IA** (decisão 010), não um módulo isola
 |------|-----------|--------|
 | 1 | Infraestrutura: tabelas `jarvas_eventos` + `jarvas_insights` (`supabase/migrations/20260703_jarvas.sql`) e serviço `src/lib/jarvas.js` (emitirEvento fire-and-forget, registrarInsight, buscarInsights, atualizarStatusInsight). RLS: eventos por qualquer logado; insights estratégicos só gerente/admin | ✅ 2026-07-03 |
 | 2 | Instrumentar módulos com `emitirEvento`: `pedido.aberto` e `pedido.cancelado` (pedidos), `venda.finalizada` (pdv), `caixa.aberto` e `caixa.fechado` (caixa), `estoque.ajustado` e `estoque.ajuste_em_lote` (estoque) — centralizado no `AppContext.jsx` + cancelamentos no `PDVView` | ✅ 2026-07-03 |
-| 3 | Motor de regras (primeiras análises: ruptura de estoque, divergência de caixa, produto em alta/queda) | Pendente |
+| 3 | Motor de regras (`src/lib/jarvasEngine.js`): ruptura/estoque baixo, divergência de caixa, produto em alta/queda (7d vs 7d), cancelamentos recorrentes por operador. Dedupe por `origem.chave`, throttle 6h, roda pós-login de gerente/admin (fire-and-forget no `AppContext`) | ✅ 2026-07-03 |
 | 4 | UI: painel/central de insights com ação de um toque | Pendente |
 | 5 | Previsões e assistente conversacional | Roadmap |
