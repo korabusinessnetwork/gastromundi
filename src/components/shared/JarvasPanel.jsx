@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { buscarInsights, atualizarStatusInsight } from "@/lib/jarvas";
+import { perguntarAoJarvas } from "@/lib/jarvasAssistente";
 import C from "@/constants/colors";
-import { LuSparkles, LuX, LuCheck, LuTrash2, LuArrowRight } from "react-icons/lu";
+import { LuSparkles, LuX, LuCheck, LuTrash2, LuArrowRight, LuSend } from "react-icons/lu";
 
 /**
  * Jarvas — central de insights (fase 4 da spec JARVAS.md).
@@ -36,6 +37,30 @@ export default function JarvasPanel() {
   const [aberto, setAberto] = useState(false);
   const [insights, setInsights] = useState([]);
   const [carregando, setCarregando] = useState(false);
+
+  // ── Assistente conversacional (fase 5 — só admin/gerente) ──
+  const [aba, setAba] = useState("insights");
+  const [mensagens, setMensagens] = useState([]);
+  const [texto, setTexto] = useState("");
+  const [perguntando, setPerguntando] = useState(false);
+  const fimChatRef = useRef(null);
+  const podeConversar = ["admin", "gerente"].includes(currentUser?.role);
+
+  useEffect(() => {
+    fimChatRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [mensagens, perguntando]);
+
+  const enviarPergunta = async () => {
+    const pergunta = texto.trim();
+    if (!pergunta || perguntando) return;
+    setTexto("");
+    const historico = mensagens.slice(-6);
+    setMensagens((prev) => [...prev, { papel: "usuario", texto: pergunta }]);
+    setPerguntando(true);
+    const { resposta, error } = await perguntarAoJarvas(pergunta, historico);
+    setMensagens((prev) => [...prev, { papel: "jarvas", texto: resposta ?? error ?? "Não consegui responder agora." }]);
+    setPerguntando(false);
+  };
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -137,7 +162,90 @@ export default function JarvasPanel() {
               </button>
             </div>
 
+            {/* Abas (assistente só para gerência) */}
+            {podeConversar && (
+              <div style={{ display: "flex", gap: 6, padding: "10px 14px 0", flexShrink: 0 }}>
+                {[["insights", "Insights"], ["chat", "Perguntar ao Jarvas"]].map(([id, label]) => (
+                  <button
+                    key={id}
+                    onClick={() => setAba(id)}
+                    style={{
+                      flex: 1, padding: "8px 10px", borderRadius: 8, cursor: "pointer",
+                      fontSize: 12.5, fontWeight: 700,
+                      background: aba === id ? C.alow : "none",
+                      border: `1px solid ${aba === id ? `${C.accent}55` : C.border}`,
+                      color: aba === id ? C.accent : C.muted,
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* ── Aba: conversa ─────────────────────────────────── */}
+            {podeConversar && aba === "chat" && (
+              <>
+                <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+                  {mensagens.length === 0 && (
+                    <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: 24, lineHeight: 1.6 }}>
+                      Pergunte sobre o negócio — vendas, estoque, caixa.<br />
+                      Ex.: “Como foram as vendas esta semana?”<br />
+                      <span style={{ fontSize: 11.5 }}>O Jarvas responde só com base nos seus dados reais.</span>
+                    </div>
+                  )}
+                  {mensagens.map((m, idx) => (
+                    <div key={idx} style={{ display: "flex", justifyContent: m.papel === "usuario" ? "flex-end" : "flex-start", marginBottom: 10 }}>
+                      <div style={{
+                        maxWidth: "85%", padding: "9px 12px", borderRadius: 12,
+                        fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap",
+                        background: m.papel === "usuario" ? C.accent : C.surface,
+                        border: m.papel === "usuario" ? "none" : `1px solid ${C.border}`,
+                        color: m.papel === "usuario" ? "#fff" : C.text,
+                      }}>
+                        {m.texto}
+                      </div>
+                    </div>
+                  ))}
+                  {perguntando && (
+                    <div style={{ color: C.muted, fontSize: 12.5, padding: "4px 2px" }}>Jarvas está analisando…</div>
+                  )}
+                  <div ref={fimChatRef} />
+                </div>
+                <div style={{
+                  display: "flex", gap: 8, padding: 12,
+                  borderTop: `1px solid ${C.border}`, flexShrink: 0,
+                }}>
+                  <input
+                    value={texto}
+                    onChange={(e) => setTexto(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") enviarPergunta(); }}
+                    placeholder="Pergunte ao Jarvas…"
+                    maxLength={1000}
+                    style={{
+                      flex: 1, background: C.surface, border: `1px solid ${C.border}`,
+                      borderRadius: 10, padding: "10px 12px", color: C.text,
+                      fontSize: 13, outline: "none", fontFamily: "inherit",
+                    }}
+                  />
+                  <button
+                    onClick={enviarPergunta}
+                    disabled={perguntando || !texto.trim()}
+                    style={{
+                      background: texto.trim() && !perguntando ? C.accent : C.faint,
+                      border: "none", borderRadius: 10, color: "#fff",
+                      padding: "0 14px", cursor: texto.trim() && !perguntando ? "pointer" : "default",
+                      display: "flex", alignItems: "center",
+                    }}
+                  >
+                    <LuSend size={16} />
+                  </button>
+                </div>
+              </>
+            )}
+
             {/* Lista */}
+            {(aba === "insights" || !podeConversar) && (
             <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
               {carregando && insights.length === 0 && (
                 <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: 24 }}>Carregando…</div>
@@ -206,6 +314,7 @@ export default function JarvasPanel() {
                 );
               })}
             </div>
+            )}
           </div>
         </>
       )}
