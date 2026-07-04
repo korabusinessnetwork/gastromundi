@@ -9,7 +9,7 @@ import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
-  LuLock, LuTriangleAlert, LuPackage, LuClipboardList, LuShieldAlert, LuEye, LuEyeOff,
+  LuLock, LuTriangleAlert, LuPackage, LuClipboardList, LuShieldAlert,
   LuPrinter, LuDownload, LuX, LuCircleX,
 } from "react-icons/lu";
 
@@ -366,7 +366,7 @@ function FechamentoDetalheModal({ f, onClose }) {
 // ── View principal ────────────────────────────────────────────────
 
 export default function RelatorioView() {
-  const { sales, fechamentos, pending, users, credentials, currentUser } = useApp();
+  const { sales, fechamentos, pending, users, currentUser } = useApp();
   const { width } = useResponsive();
   const sz = getSizes(width);
 
@@ -378,7 +378,6 @@ export default function RelatorioView() {
   const [metodoFilt,  setMetodoFilt]  = useState("todos");
   const [logTipo,    setLogTipo]    = useState("todos");
   const [subVendas,  setSubVendas]  = useState("resumido");
-  const [senhasVisiveis, setSenhasVisiveis] = useState({});
   const [opLogs,     setOpLogs]     = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
@@ -531,13 +530,11 @@ export default function RelatorioView() {
   };
 
   const exportCredenciais = () => {
-    // Senhas mascaradas no PDF — documento impresso pode ser visto por terceiros
-    const headers = ["Usuário", "Login", "Cargo", "Senha cadastrada"];
+    const headers = ["Usuário", "Login", "Cargo"];
     const rows = users.map(u => [
       u.name ?? "—",
       `@${u.username}`,
       u.role ?? "—",
-      credentials[u.username] ? "••••••••" : "não registrada",
     ]);
     exportToPDF("Credenciais de Acesso", headers, rows, "");
   };
@@ -1312,14 +1309,11 @@ export default function RelatorioView() {
                     <Th>Usuário</Th>
                     <Th>Login</Th>
                     <Th>Cargo</Th>
-                    <Th>Senha</Th>
                     <Th></Th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map(u => {
-                    const pwd     = credentials[u.username];
-                    const visivel = senhasVisiveis[u.id];
                     return (
                       <tr
                         key={u.id}
@@ -1350,35 +1344,10 @@ export default function RelatorioView() {
                             {u.role}
                           </span>
                         </Td>
-                        <Td sz={sz}>
-                          {pwd ? (
-                            <span style={{
-                              fontFamily: "monospace", fontSize: sz.fontBase,
-                              letterSpacing: visivel ? 0 : 2,
-                              color: visivel ? C.text : C.muted,
-                            }}>
-                              {visivel ? pwd : "••••••••"}
-                            </span>
-                          ) : (
-                            <span style={{ color: C.muted, fontSize: sz.fontSm + 1, fontStyle: "italic" }}>
-                              não registrada
-                            </span>
-                          )}
-                        </Td>
                         <Td sz={sz} right>
-                          {pwd && (
-                            <button
-                              onClick={() => setSenhasVisiveis(prev => ({ ...prev, [u.id]: !prev[u.id] }))}
-                              style={{
-                                background: "none", border: `1px solid ${C.border}`,
-                                borderRadius: 8, padding: "5px 12px",
-                                color: C.muted, cursor: "pointer",
-                                fontSize: sz.fontSm + 1, fontWeight: 600,
-                              }}
-                            >
-                              {visivel ? <><LuEyeOff size={13} style={{ marginRight: 4 }} />Ocultar</> : <><LuEye size={13} style={{ marginRight: 4 }} />Ver</>}
-                            </button>
-                          )}
+                          <span style={{ color: C.muted, fontSize: sz.fontSm + 1, fontStyle: "italic" }}>
+                            redefinir em Configurações
+                          </span>
                         </Td>
                       </tr>
                     );

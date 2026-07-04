@@ -27,7 +27,6 @@ export function AppProvider({ children }) {
   const [meiosPagamento,  setMeiosPagamentoLocal] = useState(["dinheiro", "credito", "debito", "pix"]);
   const [metodosCustom,   setMetodosCustomLocal]  = useState([]);
   const [taxaServico,     setTaxaServicoLocal]    = useState(false);
-  const [credentials,     setCredentialsLocal]   = useState({});
   const [estoque,       setEstoqueLocal]     = useState({});
   const [loading,       setLoading]          = useState(true);
   // IDs de comandas com pedido lançado na sessão atual (sobrevive troca de aba)
@@ -96,10 +95,11 @@ export function AppProvider({ children }) {
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
         supabase.from("pending").select("*").order("created_at", { ascending: false }),
-        supabase.from("sales").select("id,data,at").order("at", { ascending: false }),
+        // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
+        supabase.from("sales").select("id,data,at").gte("at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()).order("at", { ascending: false }),
         supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","credentials","estoque","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
+        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","estoque","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
       ]);
 
       if (eUsers)    console.error("[bootstrap] users error:", eUsers);
@@ -121,13 +121,11 @@ export function AppProvider({ children }) {
       if (configData) {
         const fundo  = configData.find(c => c.key === "fundo_atual");
         const caixa  = configData.find(c => c.key === "caixa_aberto");
-        const creds   = configData.find(c => c.key === "credentials");
         const estq    = configData.find(c => c.key === "estoque");
         const sessao = configData.find(c => c.key === "sessao_aberta_em");
         if (fundo)   setFundoAtualLocal(Number(fundo.value));
         if (caixa)   setCaixaAbertoLocal(caixa.value === true || caixa.value === "true");
         if (sessao?.value) setSessaoAbertaEmLocal(sessao.value);
-        if (creds)   setCredentialsLocal(typeof creds.value === "object" ? creds.value : {});
         if (estq)    setEstoqueLocal(typeof estq.value === "object" ? estq.value : {});
         const meios = configData.find(c => c.key === "meios_pagamento");
         if (meios?.value && Array.isArray(meios.value) && meios.value.length > 0) setMeiosPagamentoLocal(meios.value);
@@ -269,27 +267,9 @@ export function AppProvider({ children }) {
   // ── Actions: Sales ────────────────────────────────────────────
   const addSale = async (sale) => {
     setSalesLocal(prev => [sale, ...prev]);
-    // TODO: remove diag logs
-    const { data: { session: _diagSession } } = await supabase.auth.getSession();
-    console.log("[addSale:pre-request]", {
-      hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
-      hasSession:     !!_diagSession,
-      tokenExpiresAt: _diagSession?.expires_at
-        ? new Date(_diagSession.expires_at * 1000).toISOString()
-        : null,
-      timestamp: new Date().toISOString(),
-    });
     const { error } = await supabase.from("sales").insert({ id: sale.id, data: sale });
     if (error) {
       console.error("addSale error:", JSON.stringify(error, null, 2));
-      // TODO: remove diag logs
-      console.error("[addSale:error-detail]", {
-        message: error?.message,
-        status:  error?.status,
-        code:    error?.code,
-        details: error?.details,
-        hint:    error?.hint,
-      });
       throw error;
     }
     emitirEvento("venda.finalizada", "pdv", {
@@ -359,16 +339,6 @@ export function AppProvider({ children }) {
     emitirEvento("estoque.ajuste_em_lote", "estoque", { itens: Object.keys(newEstoque ?? {}).length }, currentUser?.username);
   };
 
-  // AVISO: credentials armazena senhas legíveis para fins de recuperação
-  // administrativa. Não armazena a senha de autenticação SHA-256.
-  // Acesso restrito a role admin/gerente via permissão "configuracoes".
-  const saveCredential = async (username, plainPassword) => {
-    if (!plainPassword) return;
-    const updated = { ...credentials, [username]: plainPassword };
-    setCredentialsLocal(updated);
-    await supabase.from("config").upsert({ key: "credentials", value: updated });
-  };
-
   const setFundoAtual = async (val) => {
     setFundoAtualLocal(val);
     await supabase.from("config").upsert({ key: "fundo_atual", value: val });
@@ -406,7 +376,7 @@ export function AppProvider({ children }) {
   const value = {
     loading,
     // dados
-    products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, credentials, estoque,
+    products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, estoque,
     currentUser, isMobile, mobileChoice,
     lancadas, addLancada,
     // setter simples (sem persistência)
@@ -423,7 +393,7 @@ export function AppProvider({ children }) {
     addUser, updateUser, removeUser,
     // outros
     addFechamento,
-    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, saveCredential, updateEstoque, bulkSetEstoque,
+    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque,
     taxaServico, setTaxaServico,
     metodosCustom, setMetodosCustom,
   };

@@ -153,7 +153,7 @@ function traduzirErro(error) {
 // ── Aba Usuários ──────────────────────────────────────────────────
 
 function UsuariosTab({ sz }) {
-  const { users, currentUser, addUser, updateUser, removeUser, saveCredential } = useApp();
+  const { users, currentUser, addUser, updateUser, removeUser } = useApp();
 
   const [modal,    setModal]    = useState(null); // null | "novo" | "editar" | "resetpw"
   const [editId,   setEditId]   = useState(null);
@@ -220,8 +220,6 @@ function UsuariosTab({ sz }) {
         // Cria conta no Supabase Auth via Edge Function
         const { error: authErr } = await criarAuthUsuario({ username, password: plainPwd, name, role: form.role });
         if (authErr) { setErro("Usuário criado, mas falha no Auth: " + authErr); setSalvando(false); return; }
-
-        await saveCredential(username, plainPwd);
       } else {
         const changes = { name, username, role: form.role, permissions };
         if (form.password) {
@@ -234,7 +232,6 @@ function UsuariosTab({ sz }) {
             const { error: authErr } = await atualizarSenhaAuth(editUser.auth_id, plainPwd);
             if (authErr) { setErro("Falha ao atualizar senha no Auth: " + authErr); setSalvando(false); return; }
           }
-          await saveCredential(username, plainPwd);
         }
         const { error } = await updateUser(editId, changes);
         if (error) { setErro(traduzirErro(error)); setSalvando(false); return; }

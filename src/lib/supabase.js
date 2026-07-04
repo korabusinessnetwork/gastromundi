@@ -8,12 +8,3 @@ if (!url || !key) {
 }
 
 export const supabase = createClient(url, key);
-
-// TODO: remove diag logs
-console.log("[supabase:init]", {
-  urlPresent:  !!url,
-  keyPresent:  !!key,
-  urlPrefix:   url ? url.slice(0, 20) : "MISSING",
-  keyLength:   key ? key.length : 0,
-  mode:        import.meta.env.MODE,
-});

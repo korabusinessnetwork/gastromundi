@@ -63,9 +63,50 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 
 ## Débito Técnico Ativo
 
+> Auditoria de 2026-07-04 (análise completa do código em produção).
+
 | # | Título | Categoria | Impacto | Esforço | Prioridade | Status |
 |---|--------|-----------|---------|---------|-----------|--------|
-| — | Nenhum débito técnico registrado ainda | — | — | — | — | — |
+| TD001 | Senhas legíveis em `config.credentials` acessíveis a qualquer usuário logado | 🔒 Segurança | Alto | Médio | 🔴 Critical | Resolvido (2026-07-04) |
+| TD002 | Logs de diagnóstico com dados de sessão/token no console (`TODO: remove diag`) | 🔒 Segurança | Médio | Baixo | 🟠 High | Resolvido (2026-07-04) |
+| TD003 | Bootstrap carrega TODAS as vendas sem limite (`sales` sem filtro de data) | ⚡ Performance | Alto (cresce com o tempo) | Baixo | 🟠 High | Resolvido (2026-07-04) |
+| TD004 | Estoque como JSONB único em `config` (race conditions, sem histórico, limite global 10 hardcoded) | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Identificado |
+| TD005 | Zero testes automatizados; sem script `test`/`lint` no package.json | 🧪 Testes | Alto | Alto | 🟠 High | Identificado |
+| TD006 | `supabase/schema.sql` defasado vs migrações (policies `acesso_total` já substituídas) | 🧹 Code Quality | Médio (onboarding perigoso) | Baixo | 🟡 Medium | Identificado |
+| TD007 | `dist/` commitado no repositório | 🧹 Code Quality | Baixo | Baixo | 🟢 Low | Identificado |
+| TD008 | Rate limiting de login só no cliente (sessionStorage, contornável) | 🔒 Segurança | Baixo (Supabase Auth tem proteção própria) | Baixo | 🟢 Low | Identificado |
+| TD009 | `sales`/`fechamentos` como blobs JSONB — relatórios/consultas SQL limitados | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Identificado (alinhado ao modelo-alvo docs/04) |
+| TD010 | Realtime só em `pending` — estoque/config/insights não sincronizam entre dispositivos | 🏗️ Arquitetura | Médio | Médio | 🟡 Medium | Identificado |
+
+### [TD001] Senhas legíveis em `config.credentials`
+
+**Categoria:** Segurança · **Impacto:** Alto · **Esforço:** Médio · **Prioridade:** 🔴 Critical · **Status:** Resolvido (2026-07-04)
+
+**Descrição:** `AppContext.saveCredential` grava senhas em texto puro na key `credentials` da tabela `config` ("para recuperação administrativa"). A policy `config_select_auth` (migração 20240107) permite que **qualquer usuário autenticado** (inclusive garçom) leia a tabela `config` inteira via REST — incluindo todas as senhas. O bootstrap ainda baixa `credentials` para todos os clientes.
+
+**Solução proposta:** eliminar o armazenamento de senha legível (usar reset de senha via Edge Function `manage-user`, que já existe). Se a recuperação administrativa for indispensável, mover para tabela própria com RLS `admin`-only — nunca na `config` de leitura geral. Remover `credentials` do bootstrap.
+
+**Resolução:** removidos `credentials`/`saveCredential` de `AppContext.jsx` (state, bootstrap, action e context value), das duas chamadas em `ConfiguracoesView.jsx` (criação e edição de usuário — o reset de senha já é coberto por `criarAuthUsuario`/`atualizarSenhaAuth`) e da coluna "Senha" em `RelatorioView.jsx` (thead, células, state `senhasVisiveis` e export em PDF). Migração `supabase/migrations/20260704_remove_credentials.sql` apaga as senhas já gravadas em produção (`DELETE FROM config WHERE key = 'credentials'`).
+
+### [TD002] Logs de diagnóstico sensíveis
+
+**Status:** Resolvido (2026-07-04)
+
+**Descrição:** `src/lib/supabase.js`, `AppContext.addSale` e `PDVView.handleConfirmPayment` logam presença/expiração de token e metadados de sessão no console (marcados `TODO: remove diag`). Viola a regra do CLAUDE.md.
+
+**Solução proposta:** remover os blocos de diag (ou condicionar a `import.meta.env.DEV`).
+
+**Resolução:** removidos os blocos `[supabase:init]`, `[addSale:pre-request]`, `[addSale:error-detail]`, `[handleConfirmPayment:pre-request]` e `[handleConfirmPayment:error-detail]` (e os `getSession` usados só para diagnóstico). Os `console.error` de erro simples que já existiam foram mantidos.
+
+### [TD003] Bootstrap sem limite em `sales`
+
+**Status:** Resolvido (2026-07-04)
+
+**Descrição:** `supabase.from("sales").select("id,data,at")` sem filtro — baixa o histórico completo a cada login. Com meses de operação, o boot fica lento e caro.
+
+**Solução proposta:** filtrar por janela (ex.: 90 dias) no bootstrap; relatórios de período maior consultam sob demanda.
+
+**Resolução:** query de bootstrap agora filtra `.gte("at", <90 dias atrás>)`, com comentário explicando que relatórios de período maior devem consultar sob demanda.
 
 ---
 

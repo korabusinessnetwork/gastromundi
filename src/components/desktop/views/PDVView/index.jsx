@@ -262,16 +262,6 @@ export default function PDVView() {
         at:          new Date().toISOString(),
       };
 
-      // TODO: remove diag logs
-      const { data: { session: _diagSess } } = await supabase.auth.getSession();
-      console.log("[handleConfirmPayment:pre-request]", {
-        hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
-        hasSession:     !!_diagSess,
-        tokenExpiresAt: _diagSess?.expires_at
-          ? new Date(_diagSess.expires_at * 1000).toISOString()
-          : null,
-        timestamp: new Date().toISOString(),
-      });
       await addSale(sale);
       await removePending(selected.id);
       if (selected.mesa) {
@@ -294,14 +284,6 @@ export default function PDVView() {
       handleBack();
     } catch (err) {
       console.error("handleConfirmPayment error:", JSON.stringify(err, null, 2));
-      // TODO: remove diag logs
-      console.error("[handleConfirmPayment:error-detail]", {
-        message: err?.message,
-        status:  err?.status,
-        code:    err?.code,
-        details: err?.details,
-        hint:    err?.hint,
-      });
     } finally {
       setSalvando(false);
     }
