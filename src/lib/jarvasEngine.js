@@ -178,6 +178,83 @@ async function regraTendenciaVendas({ sales, jaExiste }) {
   }
 }
 
+// ── 5. Previsão de ruptura (consumo médio 14d vs estoque atual) ────
+async function regraPrevisaoRuptura({ products, estoque, sales, jaExiste }) {
+  const corte14 = dias(14);
+  const consumo = {}; // produtoId → unidades vendidas em 14d
+
+  for (const s of sales ?? []) {
+    const venda = s?.data ?? s;
+    if (new Date(venda?.at ?? s?.at ?? 0) < corte14) continue;
+    for (const it of venda?.items ?? []) {
+      if (it?.cancelado || !it?.id) continue;
+      consumo[it.id] = (consumo[it.id] ?? 0) + (it.qty ?? 1);
+    }
+  }
+
+  const emRisco = [];
+  for (const p of products ?? []) {
+    if (p.active === false) continue;
+    const qtd = estoque?.[p.id] ?? 0;
+    const porDia = (consumo[p.id] ?? 0) / 14;
+    if (qtd <= 0 || porDia <= 0) continue; // zerados já são cobertos pela regra 1
+    const diasRestantes = qtd / porDia;
+    if (diasRestantes <= 3) emRisco.push({ id: p.id, nome: p.name, qtd, porDia: +porDia.toFixed(2), diasRestantes: +diasRestantes.toFixed(1) });
+  }
+  if (emRisco.length === 0) return;
+
+  emRisco.sort((a, b) => a.diasRestantes - b.diasRestantes);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const chave = `estoque:previsao_ruptura:${hoje}`;
+  if (jaExiste(chave)) return;
+
+  const lista = emRisco.slice(0, 5).map((p) => `${p.nome} (~${p.diasRestantes}d)`);
+  await registrarInsight({
+    tipo: "sugestao",
+    severidade: "warning",
+    visibilidade: "operacional",
+    modulo: "estoque",
+    titulo: `Ruptura prevista em até 3 dias: ${emRisco.length} produto(s)`,
+    descricao: `Estimativa pelo consumo médio dos últimos 14 dias: ${lista.join(", ")}${emRisco.length > 5 ? "…" : ""}. Reponha antes de esgotar.`,
+    acao: { label: "Planejar reposição", tipo: "abrir_estoque", params: { produto_ids: emRisco.map((p) => p.id) } },
+    origem: { chave, dados: { metodo: "consumo médio 14d", produtos: emRisco } },
+  });
+}
+
+// ── 6. Previsão de faturamento semanal (média das 4 últimas) ───────
+async function regraPrevisaoFaturamento({ sales, jaExiste }) {
+  const somaSemana = [0, 0, 0, 0]; // 0 = semana passada … 3 = 4 semanas atrás
+  for (const s of sales ?? []) {
+    const venda = s?.data ?? s;
+    const em = new Date(venda?.at ?? s?.at ?? 0).getTime();
+    const idade = Date.now() - em;
+    const semana = Math.floor(idade / (7 * 24 * 60 * 60 * 1000)) - 1; // ignora a semana corrente (parcial)
+    if (semana < 0 || semana > 3) continue;
+    somaSemana[semana] += Number(venda?.total ?? 0);
+  }
+
+  const semanasComVenda = somaSemana.filter((v) => v > 0).length;
+  if (semanasComVenda < 2) return; // histórico insuficiente para estimar
+
+  const media = somaSemana.reduce((a, b) => a + b, 0) / semanasComVenda;
+  const chaveSemana = new Date().toISOString().slice(0, 10);
+  const chave = `financeiro:previsao_semana:${chaveSemana}`;
+  if (jaExiste(chave)) return;
+
+  const ultima = somaSemana[0];
+  const tendencia = ultima > 0 && media > 0 ? ((ultima - media) / media) * 100 : 0;
+  await registrarInsight({
+    tipo: "insight",
+    severidade: "info",
+    visibilidade: "estrategico",
+    modulo: "financeiro",
+    titulo: `Faturamento previsto para a semana: R$ ${media.toFixed(2)}`,
+    descricao: `Estimativa pela média das últimas ${semanasComVenda} semana(s) com venda. Semana passada: R$ ${ultima.toFixed(2)} (${tendencia >= 0 ? "+" : ""}${tendencia.toFixed(0)}% vs média).`,
+    acao: { label: "Ver relatório de vendas", tipo: "abrir_relatorio", params: {} },
+    origem: { chave, dados: { metodo: "média móvel 4 semanas (sem a corrente)", somaSemana, media: +media.toFixed(2) } },
+  });
+}
+
 // ── 4. Cancelamentos recorrentes por operador (7 dias) ─────────────
 async function regraCancelamentos({ jaExiste }) {
   const { data: eventos, error } = await supabase
