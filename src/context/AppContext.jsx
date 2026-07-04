@@ -3,6 +3,7 @@ import { getPermissions } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
 import { logAction } from "@/lib/logger";
+import { emitirEvento } from "@/lib/jarvas";
 import { sanitizeInput } from "@/utils/crypto";
 import {
   saveSession, loadSession, clearSession,
@@ -221,6 +222,7 @@ export function AppProvider({ children }) {
     setPendingLocal(prev => [order, ...prev]);
     const { id, comanda, mesa, apelido, items, status, note, total, garcom, created_by } = order;
     await supabase.from("pending").insert({ id, comanda, mesa, apelido, items, status, note, total, garcom, created_by });
+    emitirEvento("pedido.aberto", "pedidos", { pedido_id: id, comanda, mesa: mesa ?? null, total: total ?? null, garcom: garcom ?? null }, created_by ?? currentUser?.username);
   };
 
   const removePending = async (id) => {
@@ -281,6 +283,12 @@ export function AppProvider({ children }) {
       });
       throw error;
     }
+    emitirEvento("venda.finalizada", "pdv", {
+      venda_id: sale.id,
+      total: sale.total ?? null,
+      metodo: sale.metodo ?? sale.payment ?? null,
+      itens: Array.isArray(sale.items) ? sale.items.length : null,
+    }, currentUser?.username);
   };
 
   // ── Actions: Users ────────────────────────────────────────────
@@ -320,19 +328,26 @@ export function AppProvider({ children }) {
   const addFechamento = async (f) => {
     setFechamentosLocal(prev => [f, ...prev]);
     await supabase.from("fechamentos").insert({ data: f });
+    emitirEvento("caixa.fechado", "caixa", {
+      total_vendas: f?.totalVendas ?? null,
+      total_conferido: f?.totalConferido ?? null,
+    }, currentUser?.username);
   };
 
   // ── Config: Caixa ─────────────────────────────────────────────
   const updateEstoque = async (productId, qty) => {
-    const updated = { ...estoque, [productId]: Math.max(0, qty) };
+    const novaQtd = Math.max(0, qty);
+    const updated = { ...estoque, [productId]: novaQtd };
     setEstoqueLocal(updated);
     await supabase.from("config").upsert({ key: "estoque", value: updated });
+    emitirEvento("estoque.ajustado", "estoque", { produto_id: productId, quantidade: novaQtd }, currentUser?.username);
   };
 
   // Atualiza múltiplos produtos de uma vez (evita race condition em imports em lote)
   const bulkSetEstoque = async (newEstoque) => {
     setEstoqueLocal(newEstoque);
     await supabase.from("config").upsert({ key: "estoque", value: newEstoque });
+    emitirEvento("estoque.ajuste_em_lote", "estoque", { itens: Object.keys(newEstoque ?? {}).length }, currentUser?.username);
   };
 
   // AVISO: credentials armazena senhas legíveis para fins de recuperação
@@ -353,6 +368,7 @@ export function AppProvider({ children }) {
   const setCaixaAberto = async (val) => {
     setCaixaAbertoLocal(val);
     await supabase.from("config").upsert({ key: "caixa_aberto", value: val });
+    if (val) emitirEvento("caixa.aberto", "caixa", {}, currentUser?.username);
   };
 
   const setSessaoAbertaEm = async (val) => {

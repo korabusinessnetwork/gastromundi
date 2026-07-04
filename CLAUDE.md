@@ -1,4 +1,13 @@
-# Diretrizes de Desenvolvimento — GASTROMUNDI by Kora
+# Diretrizes de Desenvolvimento — GastroMundi
+
+## Fonte de verdade (leia antes de qualquer mudança relevante)
+
+- **`memory/`** — identidade, decisões, padrões, aprendizados e restrições do projeto. Consultar antes de decisões de produto/arquitetura.
+- **`docs/`** — regras de negócio por módulo (`03_REGRAS_DE_NEGOCIO/`), design system (`02_DESIGN_SYSTEM/`), fluxos, modelagem e ADRs (`08_DECISOES/`).
+- **ADR-004** define o estado atual: a stack real (Supabase direto) prevalece; API própria + Drizzle + Clerk (ADR-002) é roadmap. Partes de `01_ARQUITETURA/`, `04_MODELAGEM/` e `07_APIS/` descrevem o modelo-alvo, não o estado atual.
+- Schema do banco em produção: `supabase/schema.sql` + `supabase/migrations/`.
+- Se doc e código conflitarem, a documentação prevalece — e deve ser corrigida quando estiver errada.
+- **Jarvas** (IA transversal): spec em `docs/03_REGRAS_DE_NEGOCIO/JARVAS.md` — insight/alerta/sugestão orientados a eventos, nunca executa ações sem confirmação humana.
 
 ## Segurança (obrigatório em todo código novo)
 

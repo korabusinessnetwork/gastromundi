@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
+import { emitirEvento } from "@/lib/jarvas";
 import { useResponsive, useMesas } from "@/utils/hooks";
 import { totalPorMetodo } from "@/utils/pagamentos";
 import { getSizes } from "@/constants/sizes";
@@ -1208,6 +1209,7 @@ export default function PDVView() {
                         setSelected(null);
                         setMode("grid");
                         logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda ${fmtComanda(selected.comanda)} cancelada por ${quemCancelou}`, name: quemCancelou, role: currentUser?.role, comanda: selected.comanda, motivo, items: novosItens });
+                        emitirEvento("pedido.cancelado", "pedidos", { pedido_id: selected.id, comanda: selected.comanda, motivo, itens: novosItens.length }, currentUser?.username);
                       } finally {
                         setCancelandoComanda(false);
                       }
@@ -1627,6 +1629,7 @@ export default function PDVView() {
                   setConfirmCancelar(false);
                   const itensComanda = Array.isArray(selected?.items) ? selected.items : [];
                   logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda cancelada: ${fmtComanda(selected.comanda)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), items: itensComanda });
+                  emitirEvento("pedido.cancelado", "pedidos", { pedido_id: selected.id, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), itens: itensComanda.length }, currentUser?.username);
                   await removePending(selected.id);
                   handleBack();
                 }}
