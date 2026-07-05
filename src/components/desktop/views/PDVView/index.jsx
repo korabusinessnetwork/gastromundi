@@ -284,7 +284,8 @@ export default function PDVView() {
       logAction(currentUser?.username, "comanda:finalizar", { msg: `Comanda ${selected.comanda} finalizada · R$ ${total.toFixed(2)} · ${metodoResumo}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, total, metodo: metodoResumo });
       handleBack();
     } catch (err) {
-      console.error("handleConfirmPayment error:", JSON.stringify(err, null, 2));
+      // não usar JSON.stringify: mascara Error como "{}"
+      console.error("handleConfirmPayment error:", err?.message ?? err, err);
     } finally {
       setSalvando(false);
     }
