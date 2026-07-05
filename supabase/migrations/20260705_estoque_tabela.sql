@@ -61,6 +61,11 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
+  -- SECURITY DEFINER contorna a RLS; checagem de role explícita aqui
+  IF (auth.jwt() ->> 'role') NOT IN ('caixa', 'gerente', 'admin') THEN
+    RAISE EXCEPTION 'Sem permissão para baixar estoque.';
+  END IF;
+
   UPDATE public.estoque
      SET quantidade = GREATEST(0, quantidade - p_qtd),
          updated_at = now()

@@ -63,7 +63,7 @@ export async function executarAnaliseJarvas({ products, estoque, estoqueMinimos,
 }
 
 // ── 1. Ruptura / estoque baixo ─────────────────────────────────────
-async function regraEstoque({ products, estoque, estoqueMinimos, jaExiste }) {
+export async function regraEstoque({ products, estoque, estoqueMinimos, jaExiste }) {
   const ativos = (products ?? []).filter((p) => p.active !== false);
   const zerados = ativos.filter((p) => (estoque?.[p.id] ?? 0) === 0 && p.id in (estoque ?? {}));
   const baixos = ativos.filter((p) => {
@@ -104,7 +104,7 @@ async function regraEstoque({ products, estoque, estoqueMinimos, jaExiste }) {
 }
 
 // ── 2. Divergência de caixa ────────────────────────────────────────
-async function regraDivergenciaCaixa({ fechamentos, jaExiste }) {
+export async function regraDivergenciaCaixa({ fechamentos, jaExiste }) {
   const ultimo = (fechamentos ?? [])[0];
   const d = ultimo?.data ?? ultimo;
   if (!d || typeof d.totalVendas !== "number" || typeof d.totalConferido !== "number") return;
@@ -126,7 +126,7 @@ async function regraDivergenciaCaixa({ fechamentos, jaExiste }) {
 }
 
 // ── 3. Produto em alta / queda (7d vs 7d anteriores) ───────────────
-async function regraTendenciaVendas({ sales, jaExiste }) {
+export async function regraTendenciaVendas({ sales, jaExiste }) {
   const corte7 = dias(7);
   const corte14 = dias(14);
   const porProduto = {}; // nome → { rec, ant }
@@ -180,7 +180,7 @@ async function regraTendenciaVendas({ sales, jaExiste }) {
 }
 
 // ── 5. Previsão de ruptura (consumo médio 14d vs estoque atual) ────
-async function regraPrevisaoRuptura({ products, estoque, sales, jaExiste }) {
+export async function regraPrevisaoRuptura({ products, estoque, sales, jaExiste }) {
   const corte14 = dias(14);
   const consumo = {}; // produtoId → unidades vendidas em 14d
 
@@ -223,7 +223,7 @@ async function regraPrevisaoRuptura({ products, estoque, sales, jaExiste }) {
 }
 
 // ── 6. Previsão de faturamento semanal (média das 4 últimas) ───────
-async function regraPrevisaoFaturamento({ sales, jaExiste }) {
+export async function regraPrevisaoFaturamento({ sales, jaExiste }) {
   const somaSemana = [0, 0, 0, 0]; // 0 = semana passada … 3 = 4 semanas atrás
   for (const s of sales ?? []) {
     const venda = s?.data ?? s;

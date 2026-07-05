@@ -71,9 +71,9 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 | TD002 | Logs de diagnóstico com dados de sessão/token no console (`TODO: remove diag`) | 🔒 Segurança | Médio | Baixo | 🟠 High | Resolvido (2026-07-04) |
 | TD003 | Bootstrap carrega TODAS as vendas sem limite (`sales` sem filtro de data) | ⚡ Performance | Alto (cresce com o tempo) | Baixo | 🟠 High | Resolvido (2026-07-04) |
 | TD004 | Estoque como JSONB único em `config` (race conditions, sem histórico, limite global 10 hardcoded) | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Resolvido (2026-07-04) |
-| TD005 | Zero testes automatizados; sem script `test`/`lint` no package.json | 🧪 Testes | Alto | Alto | 🟠 High | Identificado |
-| TD006 | `supabase/schema.sql` defasado vs migrações (policies `acesso_total` já substituídas) | 🧹 Code Quality | Médio (onboarding perigoso) | Baixo | 🟡 Medium | Identificado |
-| TD007 | `dist/` commitado no repositório | 🧹 Code Quality | Baixo | Baixo | 🟢 Low | Identificado |
+| TD005 | Zero testes automatizados; sem script `test`/`lint` no package.json | 🧪 Testes | Alto | Alto | 🟠 High | Resolvido (2026-07-04) |
+| TD006 | `supabase/schema.sql` defasado vs migrações (policies `acesso_total` já substituídas) | 🧹 Code Quality | Médio (onboarding perigoso) | Baixo | 🟡 Medium | Resolvido (2026-07-04) |
+| TD007 | `dist/` commitado no repositório | 🧹 Code Quality | Baixo | Baixo | 🟢 Low | Resolvido (2026-07-04) |
 | TD008 | Rate limiting de login só no cliente (sessionStorage, contornável) | 🔒 Segurança | Baixo (Supabase Auth tem proteção própria) | Baixo | 🟢 Low | Identificado |
 | TD009 | `sales`/`fechamentos` como blobs JSONB — relatórios/consultas SQL limitados | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Identificado (alinhado ao modelo-alvo docs/04) |
 | TD010 | Realtime só em `pending` — estoque/config/insights não sincronizam entre dispositivos | 🏗️ Arquitetura | Médio | Médio | 🟡 Medium | Identificado |
@@ -119,6 +119,44 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 **Resolução:** criada `supabase/migrations/20260705_estoque_tabela.sql` — tabela `public.estoque` (`produto_id`, `quantidade`, `minimo`, `updated_at`) com RLS (leitura para authenticated; insert/update para caixa/gerente/admin; delete para gerente/admin) e RPC `baixar_estoque` (decremento atômico, `SECURITY DEFINER`, mesmo padrão de `limpar_reserva_mesa`). Backfill migra os dados do JSONB antigo e remove a key `estoque` de `config`. `AppContext.jsx` passou a ler/escrever na nova tabela (bootstrap, `updateEstoque`, `bulkSetEstoque`, novo `estoqueMinimos` e `setMinimoEstoque`, novo canal Realtime), mantendo o mesmo shape `{ [produtoId]: quantidade }` no state `estoque` para não quebrar os consumidores existentes. `PDVView` passou a descontar estoque na baixa de venda via nova função `baixarEstoque` (RPC atômica) em vez do loop `updateEstoque(prodId, atual - qty)`. `EstoqueView.jsx` e `jarvasEngine.js` trocaram o limite global de 10 pelo mínimo por produto (`estoqueMinimos`, fallback 10 quando não cadastrado), com edição do mínimo inline na tabela de estoque.
 
 **Nota:** `supabase/schema.sql` declara `products.id` como `uuid`, mas a produção real usa `bigint` (já registrado em TD006) — a nova tabela `estoque.produto_id` usa `bigint` para bater com o banco real.
+
+### [TD005] Zero testes automatizados
+
+**Categoria:** Testes · **Impacto:** Alto · **Esforço:** Alto · **Prioridade:** 🟠 High · **Status:** Resolvido (2026-07-04)
+
+**Descrição:** o projeto não tinha nenhum teste automatizado nem script `test`/`lint` no `package.json` — toda regressão em lógica pura (cálculo de pagamento, conversão de unidades, força de senha, regras do Jarvas) só era pega manualmente.
+
+**Solução proposta:** criar a base de testes com Vitest, cobrindo primeiro as funções puras que carregam dinheiro e regra de negócio.
+
+**Resolução:** instalado `vitest` (dev dependency) com `vitest.config.js` na raiz (`environment: "node"`, alias `@` igual ao do `vite.config.js`, `include: ["src/**/*.test.js"]`). Scripts `npm test` (`vitest run`) e `npm run test:watch` (`vitest`) adicionados ao `package.json`. Suítes criadas ao lado de cada arquivo testado:
+- `src/utils/pagamentos.test.js` — `normalizarPagamentos`, `totalPorMetodo`, `totalTroco` (split de pagamento, precisão de centavos, método desconhecido, venda sem pagamentos).
+- `src/utils/conversaoUnidades.test.js` — conversões de compra/consumo/estoque ida e volta, fator 1 e fracionário, unidade desconhecida, `fmtQtd`.
+- `src/utils/crypto.test.js` — `passwordStrength` (todos os níveis) e `sanitizeInput` (remoção de caracteres perigosos, trim, limite de tamanho padrão e customizado).
+- `src/lib/jarvasEngine.test.js` — motor de regras do Jarvas, com `@/lib/jarvas` e `@/lib/supabase` mockados via `vi.mock`. As funções de regra (`regraEstoque`, `regraDivergenciaCaixa`, `regraTendenciaVendas`, `regraPrevisaoRuptura`, `regraPrevisaoFaturamento`) foram exportadas de `jarvasEngine.js` (sem alterar lógica) para serem testáveis isoladamente. Cobre: alerta de ruptura vs sugestão de estoque baixo (mínimo por produto) vs nenhum insight; dedupe via `jaExiste`; divergência de caixa nas três faixas de severidade; tendência de vendas (alta/queda/volume insuficiente/itens cancelados ignorados); previsão de ruptura (risco/estoque folgado/sem vendas); previsão de faturamento (média correta ignorando a semana corrente parcial, histórico insuficiente).
+
+**Resultado:** `npm test` — 55 testes, 4 arquivos, todos verdes (~3s). `npm run build` sem erros.
+
+### [TD006] `supabase/schema.sql` defasado vs migrações
+
+**Categoria:** Code Quality · **Impacto:** Médio (onboarding perigoso) · **Esforço:** Baixo · **Prioridade:** 🟡 Medium · **Status:** Resolvido (2026-07-04)
+
+**Descrição:** `schema.sql` era escrito/editado à mão e ficou defasado: declarava `products.id` como `uuid` quando a produção usa `bigint` (quase causou um bug na migração do estoque, TD004), mantinha as policies antigas `"acesso_total"` (substituídas por policies por role na migração 20240107) e não continha tabelas criadas depois (`mesas`, `jarvas_eventos`, `jarvas_insights`, `estoque`, `operator_logs`, notas fiscais etc.).
+
+**Solução proposta:** parar de editar `schema.sql` à mão; gerar/regenerar via `supabase db dump --schema public`, que reflete o banco real.
+
+**Resolução (2026-07-04):** como o `supabase db dump` está bloqueado por falta de Docker, o schema foi extraído do banco de produção via SQL Editor (`information_schema.columns`, `pg_constraint`, `pg_policies`, `pg_proc`) e o `schema.sql` foi reconstruído fielmente a partir desse estado real: 22 tabelas com tipos/defaults corretos (`products.id` = **bigint**), constraints (PK/FK/UNIQUE/CHECK), índices, funções (referenciando as migrações com as definições) e o mapa completo de policies por role. Descobertas registradas no arquivo: `products` não tem mais as colunas legadas de compra; a tabela `logs` está **sem policies** (RLS nega tudo — legada, candidata a remoção); Realtime habilitado em `pending` e `estoque`.
+
+**Regra daqui em diante:** `schema.sql` não é editado à mão — toda mudança nasce em `supabase/migrations/` e o arquivo é atualizado junto (ou regenerado via `supabase db dump -f supabase/schema.sql --schema public` quando houver Docker).
+
+### [TD007] `dist/` commitado no repositório
+
+**Categoria:** Code Quality · **Impacto:** Baixo · **Esforço:** Baixo · **Prioridade:** 🟢 Low · **Status:** Resolvido (2026-07-04)
+
+**Descrição:** a pasta `dist/` (build gerado pelo Vite) estava commitada no repositório, apesar de já constar em `.gitignore` — arquivos gerados versionados junto com o código-fonte.
+
+**Solução proposta:** remover `dist/` do índice do git, mantendo-o no disco e ignorado.
+
+**Resolução:** `git rm -r --cached dist` — `dist/` segue no `.gitignore` (já estava lá) e agora aparece como untracked/ignorado após `npm run build`.
 
 ---
 
