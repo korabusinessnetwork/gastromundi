@@ -25,6 +25,7 @@
 - Sempre tratar erros de chamadas ao Supabase com `try/catch` ou checagem de `.error`
 - Logs de atividade (`activity_log`) devem ser fire-and-forget — nunca bloquear a operação principal
 - Rodar `npm test` antes de commitar; novas funções puras (dinheiro, conversões, regras do Jarvas) devem nascer com teste
+- Fluxos críticos do PDV têm testes de componente em `src/**/*.test.jsx` — rode-os antes de mexer no PDV
 
 ## Stack
 

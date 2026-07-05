@@ -77,6 +77,7 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 | TD008 | Rate limiting de login só no cliente (sessionStorage, contornável) | 🔒 Segurança | Baixo (Supabase Auth tem proteção própria) | Baixo | 🟢 Low | Identificado |
 | TD009 | `sales`/`fechamentos` como blobs JSONB — relatórios/consultas SQL limitados | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Em andamento — etapa 2 concluída (2026-07-04) |
 | TD010 | Realtime só em `pending` — estoque/config/insights não sincronizam entre dispositivos | 🏗️ Arquitetura | Médio | Médio | 🟡 Medium | Resolvido (2026-07-04) |
+| TD011 | Fluxos críticos do PDV sem testes de componente (só funções puras são testadas) | 🧪 Testes | Alto | Médio | 🟠 High | Resolvido (2026-07-05) |
 
 ### [TD001] Senhas legíveis em `config.credentials`
 
@@ -193,6 +194,30 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 **Efeito colateral (fora do escopo original, mas relacionado):** durante esta task, a tabela legada `public.logs` foi removida — estava sem nenhuma policy em produção (RLS negava tudo, inacessível via API) e já substituída por `operator_logs`. Confirmado via grep que nada em `src/` referenciava `from("logs")` antes do drop. Migração `supabase/migrations/20260706_drop_logs.sql` (`DROP TABLE IF EXISTS public.logs`); `supabase/schema.sql` atualizado (bloco da tabela, linha no mapa de RLS, e nota de Realtime agora lista `pending, estoque, jarvas_insights, mesas`).
 
 **Pendente (ação manual):** rodar `20260706_drop_logs.sql` no SQL Editor do Supabase e habilitar Realtime nas tabelas `jarvas_insights` e `mesas` (Database → Replication).
+
+### [TD011] Fluxos críticos do PDV sem testes de componente
+
+**Categoria:** Testes · **Impacto:** Alto · **Esforço:** Médio · **Prioridade:** 🟠 High · **Status:** Resolvido (2026-07-05)
+
+**Descrição:** o TD005 cobriu as funções puras (dinheiro, conversões, motor do Jarvas), mas os componentes React ficaram sem teste. Um incidente em produção provou o risco: um `ReferenceError` (variável `metodo` órfã de refactor) no `handleConfirmPayment` do `PDVView` quebrava a finalização de pagamento **depois** de gravar a venda — a tela travava, o caixa não voltava para as mesas e retentativas podiam duplicar vendas. Nenhum teste existente exercitava esse caminho.
+
+**Impacto atual:** regressões em fluxos que movimentam dinheiro (finalizar, cancelar, transferir comanda, abrir/fechar caixa) só são descobertas em produção, no horário de operação.
+
+**Solução proposta:** testes de componente com Vitest + @testing-library/react (ambiente jsdom) mockando o supabase client, priorizando nesta ordem: (1) finalizar pagamento — grava venda, remove pending, baixa estoque, volta para a grade; (2) cancelar comanda com motivo; (3) transferir itens entre comandas; (4) abrir/fechar caixa. Critério mínimo: o fluxo feliz de cada um renderiza, executa e chega ao estado final esperado sem exceção.
+
+**Referências:** incidente de 2026-07-04 (fix em `PDVView/index.jsx`: `metodoResumo` + log de erro sem `JSON.stringify`); `docs/03_REGRAS_DE_NEGOCIO/PDV.md`.
+
+**Resolução:** ambiente de teste de componente configurado (`@testing-library/react` + `@testing-library/user-event` + `@testing-library/jest-dom` + `jsdom`). `vitest.config.js` roda `*.test.js` em `node` (funções puras) e `*.test.jsx` em `jsdom` via comentário mágico `// @vitest-environment jsdom` por arquivo — o Vitest 4 removeu `environmentMatchGlobs`, que não existe mais na versão instalada. Helpers reutilizáveis em `src/test/`: `mockSupabase.js` (fábrica de client Supabase encadeável/thenable, com `setTableResult`/`setTableError`/`setRpcResult`/`setRpcError`) e `mockApp.jsx` (contexto **fake** de `useApp()` em vez do `AppProvider` real — decisão documentada no próprio arquivo: o provider real dispara sessão do Supabase Auth, 3 canais Realtime e o bootstrap completo no mount, o que tornaria a suíte lenta e instável para testes que só precisam do *shape* de `useApp()`).
+
+Fluxos cobertos:
+1. **Finalizar pagamento** — `handleConfirmPayment` foi extraído para `PDVView/useFinalizarPagamento.js` (mesma lógica, sem mudança de comportamento) e testado em `useFinalizarPagamento.test.jsx`: grava a venda, remove a pending, libera a reserva da mesa, desconta estoque (ignorando cancelados e itens sem produto, e produtos já zerados) e registra o log — sem lançar exceção (a regressão do incidente original). Também cobre itens do carrinho local ainda não lançados.
+2. **Cancelar comanda com motivo** — extraído para `PDVView/useCancelarComanda.js`, testado em `useCancelarComanda.test.jsx`: remove a pending, registra `logAction("comanda:cancelar")`, emite `pedido.cancelado` com o motivo, e marca os itens ativos como cancelados preservando os que já estavam.
+3. **Smoke test do PDVView** (`PDVView.smoke.test.jsx`) — a árvore inteira monta sem exceção com caixa aberto (tela de mapa) e com caixa fechado.
+4. **Abrir/fechar caixa** (`DesktopLayout.test.jsx`) — dirigido pela UI real (`Sidebar` → `AberturaCaixaModal`/`FechamentoModal`, sem mock desses componentes): abrir define fundo, sessão e `caixa_aberto=true`; fechar grava o fechamento com `totalVendas`/`totalConferido` calculados a partir das vendas do dia e define `caixa_aberto=false`.
+
+**Não coberto (fica pendente):** transferir itens entre comandas (`handleTransferir`) — a lógica está entrelaçada com ~10 states locais do `PDVView` (modo lista/número/nova comanda, quantidades por item); extrair sem risco de regressão exigiria um esforço à parte, maior que o orçado nesta rodada. Registrado aqui para uma iteração futura.
+
+**Resultado:** `npm test` — 9 arquivos, 74 testes, todos verdes. `npm run build` sem erros.
 
 ---
 
