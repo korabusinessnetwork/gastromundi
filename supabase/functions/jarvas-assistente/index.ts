@@ -71,11 +71,14 @@ Deno.serve(async (req) => {
 
     // Resumo de vendas 30d: agregado no Postgres (vendas/venda_itens),
     // não mais baixando sales JSONB inteira para somar em JS (TD009 etapa 2).
-    const [resumoVendasRes, fechRes, configRes, produtosRes, insightsRes] = await Promise.all([
+    const [resumoVendasRes, fechRes, configRes, produtosRes, estoqueRes, insightsRes] = await Promise.all([
       supabaseClient.rpc("jarvas_resumo_vendas", { p_desde: corte30, p_limite_produtos: 15 }),
       supabaseClient.from("fechamentos").select("data, created_at").order("created_at", { ascending: false }).limit(5),
-      supabaseClient.from("config").select("key, value").in("key", ["estoque", "caixa_aberto"]),
+      supabaseClient.from("config").select("key, value").eq("key", "caixa_aberto"),
       supabaseClient.from("products").select("id, name, price, category, active").eq("active", true),
+      // estoque vive em tabela própria desde a migração 20260705 (TD004) —
+      // a key "estoque" da config foi removida
+      supabaseClient.from("estoque").select("produto_id, quantidade, minimo"),
       supabaseClient.from("jarvas_insights").select("tipo, severidade, modulo, titulo, descricao, status, created_at").in("status", ["novo", "lido"]).order("created_at", { ascending: false }).limit(20),
     ]);
 
@@ -89,12 +92,14 @@ Deno.serve(async (req) => {
     const porDia = resumoVendas.por_dia ?? {};
     const topProdutos = resumoVendas.top_produtos ?? [];
 
-    const estoque = (configRes.data ?? []).find((c) => c.key === "estoque")?.value ?? {};
     const caixaAberto = (configRes.data ?? []).find((c) => c.key === "caixa_aberto")?.value ?? null;
     const nomesPorId: Record<string, string> = {};
     for (const p of produtosRes.data ?? []) nomesPorId[String(p.id)] = String(p.name);
     const estoqueLegivel = Object.fromEntries(
-      Object.entries(estoque as Record<string, number>).map(([id, q]) => [nomesPorId[id] ?? id, q]),
+      (estoqueRes.data ?? []).map((e) => [
+        nomesPorId[String(e.produto_id)] ?? String(e.produto_id),
+        { quantidade: Number(e.quantidade), minimo: Number(e.minimo) },
+      ]),
     );
 
     const contexto = {
