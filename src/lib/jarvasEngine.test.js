@@ -5,8 +5,21 @@ const { registrarInsight, buscarInsights } = vi.hoisted(() => ({
   buscarInsights: vi.fn(),
 }));
 
+const { supabaseMock, setLancamentosResult } = vi.hoisted(() => {
+  let resultado = { data: [], error: null };
+  const builder = {
+    select: () => builder,
+    eq: () => builder,
+    limit: () => Promise.resolve(resultado),
+  };
+  return {
+    supabaseMock: { from: () => builder },
+    setLancamentosResult: (r) => { resultado = r; },
+  };
+});
+
 vi.mock("./jarvas", () => ({ registrarInsight, buscarInsights }));
-vi.mock("./supabase", () => ({ supabase: {} }));
+vi.mock("./supabase", () => ({ supabase: supabaseMock }));
 
 import {
   regraEstoque,
@@ -14,12 +27,14 @@ import {
   regraTendenciaVendas,
   regraPrevisaoRuptura,
   regraPrevisaoFaturamento,
+  regraContasVencidas,
 } from "./jarvasEngine";
 
 const dias = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
 
 beforeEach(() => {
   vi.clearAllMocks();
+  setLancamentosResult({ data: [], error: null });
 });
 
 describe("regraEstoque", () => {
@@ -230,6 +245,48 @@ describe("regraPrevisaoFaturamento", () => {
     const sales = [{ at: dias(8), total: 100 }];
     await regraPrevisaoFaturamento({ sales, jaExiste: () => false });
 
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+});
+
+describe("regraContasVencidas (Financeiro fase 1)", () => {
+  it("gera alerta agregado com a quantidade e o total das contas vencidas", async () => {
+    setLancamentosResult({ data: [{ id: "a", valor: 100 }, { id: "b", valor: 50.5 }], error: null });
+
+    await regraContasVencidas({ jaExiste: () => false });
+
+    expect(registrarInsight).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tipo: "alerta",
+        severidade: "warning",
+        modulo: "financeiro",
+        titulo: expect.stringContaining("2 conta(s) vencida(s)"),
+        acao: expect.objectContaining({ label: "Ver financeiro", tipo: "abrir_financeiro" }),
+      }),
+    );
+    expect(registrarInsight.mock.calls[0][0].titulo).toContain("150.50");
+  });
+
+  it("nenhuma conta vencida não gera insight", async () => {
+    setLancamentosResult({ data: [], error: null });
+
+    await regraContasVencidas({ jaExiste: () => false });
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("dedupe via jaExiste retorna sem registrar", async () => {
+    setLancamentosResult({ data: [{ id: "a", valor: 100 }], error: null });
+
+    await regraContasVencidas({ jaExiste: () => true });
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("erro na consulta não gera insight (nunca lança)", async () => {
+    setLancamentosResult({ data: null, error: { message: "falha" } });
+
+    await expect(regraContasVencidas({ jaExiste: () => false })).resolves.toBeUndefined();
     expect(registrarInsight).not.toHaveBeenCalled();
   });
 });

@@ -9,6 +9,7 @@ export const ROLES = {
     permissions: {
       pdv: false, produtos: false, relatorio: false,
       configuracoes: false, transferir: false, palm: true, estoque: false,
+      financeiro: false,
     },
   },
   caixa: {
@@ -19,6 +20,7 @@ export const ROLES = {
     permissions: {
       pdv: true, produtos: false, relatorio: false,
       configuracoes: false, transferir: true, palm: true, estoque: false,
+      financeiro: false,
     },
   },
   gerente: {
@@ -29,6 +31,7 @@ export const ROLES = {
     permissions: {
       pdv: true, produtos: true, relatorio: true,
       configuracoes: false, transferir: true, palm: true, estoque: true,
+      financeiro: true,
     },
   },
   admin: {
@@ -39,6 +42,7 @@ export const ROLES = {
     permissions: {
       pdv: true, produtos: true, relatorio: true,
       configuracoes: true, transferir: true, palm: true, estoque: true,
+      financeiro: true,
     },
   },
 };
@@ -46,8 +50,8 @@ export const ROLES = {
 export const ROLE_FEATURES = {
   garcom:  ["Palm — tirar pedidos"],
   caixa:   ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas"],
-  gerente: ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos"],
-  admin:   ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Configurações"],
+  gerente: ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Financeiro"],
+  admin:   ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Configurações", "Financeiro"],
 };
 
 export const getPermissions = (role) =>

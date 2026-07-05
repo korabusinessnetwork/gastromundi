@@ -13,6 +13,7 @@ import { registrarInsight, buscarInsights } from "./jarvas";
  *   4. Cancelamentos recorrentes (7d)   → alerta (estratégico)
  *   5. Previsão de ruptura (consumo médio 14d vs estoque)  → sugestão
  *   6. Previsão de faturamento semanal (média das 4 últimas semanas) → insight (estratégico)
+ *   7. Contas vencidas (financeiro fase 1)  → alerta agregado (estratégico)
  *
  * Previsões são estimativas determinísticas calculadas dos dados-fonte
  * (médias móveis) e sempre se declaram como estimativa na descrição.
@@ -56,6 +57,7 @@ export async function executarAnaliseJarvas({ products, estoque, estoqueMinimos,
       regraCancelamentos({ jaExiste }),
       regraPrevisaoRuptura({ products, estoque, sales, jaExiste }),
       regraPrevisaoFaturamento({ sales, jaExiste }),
+      regraContasVencidas({ jaExiste }),
     ]);
   } catch {
     // intencionalmente silencioso — falha do Jarvas nunca afeta a operação
@@ -253,6 +255,32 @@ export async function regraPrevisaoFaturamento({ sales, jaExiste }) {
     descricao: `Estimativa pela média das últimas ${semanasComVenda} semana(s) com venda. Semana passada: R$ ${ultima.toFixed(2)} (${tendencia >= 0 ? "+" : ""}${tendencia.toFixed(0)}% vs média).`,
     acao: { label: "Ver relatório de vendas", tipo: "abrir_relatorio", params: {} },
     origem: { chave, dados: { metodo: "média móvel 4 semanas (sem a corrente)", somaSemana, media: +media.toFixed(2) } },
+  });
+}
+
+// ── 7. Contas vencidas (financeiro fase 1) ─────────────────────────
+export async function regraContasVencidas({ jaExiste }) {
+  const { data: vencidas, error } = await supabase
+    .from("lancamentos")
+    .select("id, valor")
+    .eq("status", "vencido")
+    .limit(500);
+  if (error || !vencidas?.length) return;
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const chave = `financeiro:vencidas:${hoje}`;
+  if (jaExiste(chave)) return;
+
+  const total = vencidas.reduce((s, l) => s + (Number(l.valor) || 0), 0);
+  await registrarInsight({
+    tipo: "alerta",
+    severidade: "warning",
+    visibilidade: "estrategico",
+    modulo: "financeiro",
+    titulo: `${vencidas.length} conta(s) vencida(s) somando R$ ${total.toFixed(2)}`,
+    descricao: `Há ${vencidas.length} lançamento(s) vencido(s) no financeiro, totalizando R$ ${total.toFixed(2)}. Regularize para manter o fluxo de caixa em dia.`,
+    acao: { label: "Ver financeiro", tipo: "abrir_financeiro", params: {} },
+    origem: { chave, dados: { quantidade: vencidas.length, total: +total.toFixed(2), lancamento_ids: vencidas.map((l) => l.id) } },
   });
 }
 

@@ -11,7 +11,7 @@ import { normalizarPagamentos, totalTroco } from "@/utils/pagamentos";
 import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
-  LuHistory, LuX, LuUser, LuArrowLeft, LuShieldAlert,
+  LuHistory, LuX, LuUser, LuArrowLeft, LuShieldAlert, LuWallet,
 } from "react-icons/lu";
 
 const NAV_ICONS = {
@@ -19,6 +19,7 @@ const NAV_ICONS = {
   "/app/produtos":      LuPackage,
   "/app/relatorio":     LuChartBar,
   "/app/estoque":       LuArchive,
+  "/app/financeiro":    LuWallet,
   "/app/configuracoes": LuSettings,
   "/app/admin":         LuBriefcase,
 };
@@ -71,6 +72,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
 
   const bottomItems = [
     { to: "/app/estoque",       label: "Estoque",        perm: "estoque"       },
+    { to: "/app/financeiro",    label: "Financeiro",     perm: "financeiro"    },
     { to: "/app/admin",         label: "Área Admin",     perm: "configuracoes" },
     { to: "/app/configuracoes", label: "Configurações",  perm: "configuracoes" },
   ].filter(item => currentUser?.permissions?.[item.perm]);

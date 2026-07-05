@@ -21,6 +21,7 @@ const ROTA_ACAO = {
   abrir_relatorio: "/app/relatorio",
   abrir_fechamentos: "/app/relatorio",
   abrir_logs: "/app/admin",
+  abrir_financeiro: "/app/financeiro",
 };
 
 const tempoRelativo = (iso) => {

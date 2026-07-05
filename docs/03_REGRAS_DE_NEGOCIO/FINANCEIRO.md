@@ -51,7 +51,16 @@ O Financeiro é alimentado automaticamente pela venda (decisão 009): cada pagam
 - Controlar uma venda fiado até o cliente quitar.
 
 ## Critérios de Aceite
-- [ ] `pagamento.aprovado` gera lançamento de receita
-- [ ] Venda fiado cria conta a receber
-- [ ] Estorno gera reversão
-- [ ] Fluxo de caixa (previsto vs. realizado) calculado por período
+- [x] `pagamento.aprovado` gera lançamento de receita
+- [x] Venda fiado cria conta a receber
+- [ ] Estorno gera reversão (fase futura)
+- [x] Fluxo de caixa (previsto vs. realizado) calculado por período
+
+## Estado da Implementação
+
+| Fase | Descrição | Status |
+|------|-----------|--------|
+| 1 | Infraestrutura: tabela `lancamentos` (`supabase/migrations/20260710_financeiro.sql`) e serviço `src/lib/financeiro.js` (`criarLancamento`, `baixarConta`, `listarLancamentos`, `calcularFluxoCaixa`, `marcarVencidos`, `processarVencidos`). RLS: gerente/admin têm acesso total; caixa só insere receita automática (`origem='venda'`). Receita automática por pagamento em `useFinalizarPagamento` — pagamento normal vira receita `recebido`; pagamento `fiado` vira conta a receber `previsto` (30 dias). Tela `/app/financeiro` (gerente/admin): cards de fluxo de caixa do período, lista com filtros (tipo/status/período), baixa de conta, modal de novo lançamento (despesa/conta manual). Contas vencidas são recalculadas ao carregar a tela (`processarVencidos`) e viram alerta agregado no Jarvas (`regraContasVencidas` → ação "Ver financeiro"). | ✅ 2026-07-05 |
+| 2 | Estorno/reversão de venda (`venda.estornada` → lançamento de reversão) | Pendente |
+| 3 | Margem por custo de estoque (integração com `ESTOQUE.md`) | Pendente |
+| 4 | Conciliação bancária, DRE gerencial, centros de custo, despesa automática por compra de estoque | Roadmap |

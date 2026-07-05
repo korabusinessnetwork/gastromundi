@@ -12,6 +12,7 @@ import ProdutosPage     from "@/pages/desktop/ProdutosPage";
 import RelatorioPage    from "@/pages/desktop/RelatorioPage";
 import ConfiguracoesPage from "@/pages/desktop/ConfiguracoesPage";
 import EstoquePage        from "@/pages/desktop/EstoquePage";
+import FinanceiroPage     from "@/pages/desktop/FinanceiroPage";
 import AdminPage          from "@/pages/desktop/AdminPage";
 
 const router = createBrowserRouter([
@@ -90,6 +91,14 @@ const router = createBrowserRouter([
         element: (
           <PrivateRoute requiredPermission="estoque">
             <EstoquePage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "financeiro",
+        element: (
+          <PrivateRoute requiredPermission="financeiro">
+            <FinanceiroPage />
           </PrivateRoute>
         ),
       },

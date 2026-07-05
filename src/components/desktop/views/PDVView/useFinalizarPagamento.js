@@ -1,6 +1,12 @@
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
+import { criarLancamento } from "@/lib/financeiro";
+
+// Normalizado por nome: "fiado" ainda não existe como meio de pagamento
+// cadastrado hoje, mas a checagem já fica pronta para quando existir
+// (via meiosPagamento/metodosCustom em ConfiguracoesView).
+const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado";
 
 /**
  * TD011 — extraído de PDVView.handleConfirmPayment para ser testável
@@ -8,6 +14,11 @@ import { logAction } from "@/lib/logger";
  * antes, sem mudança de comportamento: grava a venda, remove a
  * pending, libera a reserva da mesa, desconta estoque dos itens
  * vendidos e registra o log de auditoria.
+ *
+ * Módulo Financeiro (fase 1): depois da venda gravada, cria a receita
+ * automática por pagamento — fire-and-forget, nunca bloqueia a venda.
+ * Pagamentos normais viram receita 'recebido'; pagamentos 'fiado'
+ * viram conta a receber ('previsto', vencimento em 30 dias).
  *
  * O chamador (PDVView) continua responsável por setSalvando/try-catch
  * e por voltar para a grade de comandas (handleBack) após concluir.
@@ -37,6 +48,37 @@ export function useFinalizarPagamento() {
     };
 
     await addSale(sale);
+
+    // Financeiro (fase 1): receita automática por pagamento — nunca bloqueia a venda.
+    void (async () => {
+      try {
+        const hoje = new Date().toISOString().slice(0, 10);
+        for (const p of pagamentos ?? []) {
+          const valorPagamento = Number(p?.valor) || 0;
+          if (!p?.metodo || valorPagamento <= 0) continue;
+
+          if (isFiado(p.metodo)) {
+            const vencimento = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+            await criarLancamento({
+              tipo: "receita", categoria: "vendas",
+              descricao: `Fiado — comanda ${selected.comanda}`,
+              valor: valorPagamento, competencia: hoje, vencimento, status: "previsto",
+              origem: "venda", venda_id: sale.id,
+            }, currentUser?.username);
+          } else {
+            await criarLancamento({
+              tipo: "receita", categoria: "vendas",
+              descricao: `Venda — comanda ${selected.comanda}`,
+              valor: valorPagamento, competencia: hoje, status: "recebido",
+              origem: "venda", venda_id: sale.id,
+            }, currentUser?.username);
+          }
+        }
+      } catch (err) {
+        console.error("financeiro (receita por venda):", err);
+      }
+    })();
+
     await removePending(selected.id);
     if (selected.mesa) {
       supabase.rpc("limpar_reserva_mesa", { mesa_numero: selected.mesa })

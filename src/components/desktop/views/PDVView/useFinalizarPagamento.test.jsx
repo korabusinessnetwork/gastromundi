@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 
 /**
  * REGRESSÃO DO INCIDENTE (TD011): um ReferenceError em
@@ -24,6 +24,9 @@ vi.mock("@/lib/supabase", () => ({
 
 const logActionMock = vi.fn();
 vi.mock("@/lib/logger", () => ({ logAction: (...args) => logActionMock(...args) }));
+
+const criarLancamentoMock = vi.fn(() => Promise.resolve({ data: { id: "lanc-1" }, error: null }));
+vi.mock("@/lib/financeiro", () => ({ criarLancamento: (...args) => criarLancamentoMock(...args) }));
 
 import { setAppMock } from "@/test/mockApp";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
@@ -142,5 +145,67 @@ describe("useFinalizarPagamento (regressão do incidente)", () => {
     await finalizarPagamento(semMesa, [], payload);
 
     expect(rpcMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("useFinalizarPagamento — receita automática (Financeiro fase 1)", () => {
+  it("pagamento normal vira receita 'recebido', categoria vendas, origem venda", async () => {
+    const { finalizarPagamento } = setup();
+
+    await finalizarPagamento(selectedComanda, [], payload);
+
+    await waitFor(() => expect(criarLancamentoMock).toHaveBeenCalledTimes(1));
+    expect(criarLancamentoMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tipo: "receita",
+        categoria: "vendas",
+        valor: 30,
+        status: "recebido",
+        origem: "venda",
+      }),
+      "maria",
+    );
+    // receita já recebida não deve levar vencimento
+    expect(criarLancamentoMock.mock.calls[0][0].vencimento).toBeUndefined();
+  });
+
+  it("pagamento 'fiado' vira conta a receber (previsto) com vencimento em 30 dias", async () => {
+    const { finalizarPagamento } = setup();
+
+    await finalizarPagamento(selectedComanda, [], {
+      ...payload,
+      pagamentos: [{ metodo: "fiado", valor: 30 }],
+    });
+
+    await waitFor(() => expect(criarLancamentoMock).toHaveBeenCalledTimes(1));
+    const chamada = criarLancamentoMock.mock.calls[0][0];
+    expect(chamada).toMatchObject({ tipo: "receita", categoria: "vendas", valor: 30, status: "previsto", origem: "venda" });
+
+    const hoje = new Date();
+    const esperado = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    expect(chamada.vencimento).toBe(esperado);
+  });
+
+  it("split de pagamento gera um lançamento por método (um normal, um fiado)", async () => {
+    const { finalizarPagamento } = setup();
+
+    await finalizarPagamento(selectedComanda, [], {
+      ...payload,
+      pagamentos: [
+        { metodo: "dinheiro", valor: 10 },
+        { metodo: "fiado", valor: 20 },
+      ],
+    });
+
+    await waitFor(() => expect(criarLancamentoMock).toHaveBeenCalledTimes(2));
+    expect(criarLancamentoMock).toHaveBeenCalledWith(expect.objectContaining({ status: "recebido", valor: 10 }), "maria");
+    expect(criarLancamentoMock).toHaveBeenCalledWith(expect.objectContaining({ status: "previsto", valor: 20 }), "maria");
+  });
+
+  it("falha ao criar o lançamento nunca quebra a finalização da venda", async () => {
+    criarLancamentoMock.mockRejectedValueOnce(new Error("falha de rede"));
+    const { finalizarPagamento } = setup();
+
+    await expect(finalizarPagamento(selectedComanda, [], payload)).resolves.toBeDefined();
   });
 });
