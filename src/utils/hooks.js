@@ -88,7 +88,8 @@ export function useIdleTimer(callback, delay, enabled = true) {
 }
 
 /**
- * useMesas — busca a tabela de mesas (sem realtime)
+ * useMesas — busca a tabela de mesas e sincroniza via realtime
+ * (mudanças de status manual/layout aparecem em outros dispositivos sem recarregar)
  */
 export function useMesas() {
   const [mesas,   setMesas]   = useState([]);
@@ -103,6 +104,28 @@ export function useMesas() {
         setMesas(data ?? []);
         setLoading(false);
       });
+  }, []);
+
+  // Requer Realtime habilitado na tabela `mesas` (Database → Replication).
+  useEffect(() => {
+    const channel = supabase
+      .channel("mesas-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "mesas" }, (payload) => {
+        if (payload.eventType === "INSERT") {
+          setMesas(prev =>
+            prev.find(m => m.numero === payload.new.numero)
+              ? prev
+              : [...prev, payload.new].sort((a, b) => a.numero.localeCompare(b.numero)),
+          );
+        } else if (payload.eventType === "UPDATE") {
+          setMesas(prev => prev.map(m => m.numero === payload.new.numero ? payload.new : m));
+        } else if (payload.eventType === "DELETE") {
+          setMesas(prev => prev.filter(m => m.numero !== payload.old.numero));
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   return { mesas, loading };

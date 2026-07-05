@@ -75,8 +75,8 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 | TD006 | `supabase/schema.sql` defasado vs migrações (policies `acesso_total` já substituídas) | 🧹 Code Quality | Médio (onboarding perigoso) | Baixo | 🟡 Medium | Resolvido (2026-07-04) |
 | TD007 | `dist/` commitado no repositório | 🧹 Code Quality | Baixo | Baixo | 🟢 Low | Resolvido (2026-07-04) |
 | TD008 | Rate limiting de login só no cliente (sessionStorage, contornável) | 🔒 Segurança | Baixo (Supabase Auth tem proteção própria) | Baixo | 🟢 Low | Identificado |
-| TD009 | `sales`/`fechamentos` como blobs JSONB — relatórios/consultas SQL limitados | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Identificado (alinhado ao modelo-alvo docs/04) |
-| TD010 | Realtime só em `pending` — estoque/config/insights não sincronizam entre dispositivos | 🏗️ Arquitetura | Médio | Médio | 🟡 Medium | Identificado |
+| TD009 | `sales`/`fechamentos` como blobs JSONB — relatórios/consultas SQL limitados | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Em andamento — etapa 2 concluída (2026-07-04) |
+| TD010 | Realtime só em `pending` — estoque/config/insights não sincronizam entre dispositivos | 🏗️ Arquitetura | Médio | Médio | 🟡 Medium | Resolvido (2026-07-04) |
 
 ### [TD001] Senhas legíveis em `config.credentials`
 
@@ -157,6 +157,42 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 **Solução proposta:** remover `dist/` do índice do git, mantendo-o no disco e ignorado.
 
 **Resolução:** `git rm -r --cached dist` — `dist/` segue no `.gitignore` (já estava lá) e agora aparece como untracked/ignorado após `npm run build`.
+
+### [TD009] `sales`/`fechamentos` como blobs JSONB
+
+**Categoria:** Arquitetura · **Impacto:** Médio · **Esforço:** Alto · **Prioridade:** 🟡 Medium · **Status:** Em andamento — etapa 2 concluída (2026-07-04)
+
+**Descrição:** `sales` grava a venda inteira como um blob `data jsonb` — relatórios (top produtos, faturamento por método de pagamento) e o Jarvas processam tudo no cliente, sem poder usar SQL/índices. Alinhado ao modelo-alvo (`docs/04_MODELAGEM`).
+
+**Solução proposta:** normalizar em tabelas relacionais, migrando em etapas para não arriscar a operação: (1) criar as tabelas e gravar nos dois formatos; (2) fazer backfill do histórico e migrar as leituras; (3) aposentar o blob.
+
+**Etapa 1 (concluída):** migração `supabase/migrations/20260707_vendas_normalizadas.sql` cria `vendas` (cabeçalho da venda), `venda_itens` (um item por linha, com snapshot do nome e motivo/responsável do cancelamento) e `venda_pagamentos` (um pagamento por linha, suporta split) — RLS idêntica à de `sales` (`*_all_caixa_up`, caixa/gerente/admin). `src/lib/vendas.js` exporta o mapper puro `mapearVendaParaLinhas(sale)` — não ignora nenhum item, cancelados também viram linha (`cancelado=true`). `AppContext.addSale` grava nas tabelas novas logo após o insert em `sales`, num bloco fire-and-forget (mesmo padrão do `emitirEvento`): qualquer erro na gravação nova só loga e nunca propaga.
+
+**Etapa 2 (concluída):** migração `supabase/migrations/20260708_backfill_vendas.sql` faz o backfill do histórico (idempotente — `ON CONFLICT DO NOTHING` no cabeçalho, `NOT EXISTS` por linha filha para itens/pagamentos; inclui query de conferência comentada, contagem/soma por mês entre `sales` e `vendas`). `src/lib/vendas.js` ganhou a inversa `montarVendaLegada({ venda, itens, pagamentos })`, remontando o shape legado (camelCase) a partir das tabelas novas — testada com ida-e-volta (`mapearVendaParaLinhas` → `montarVendaLegada`) para venda completa, sem pagamentos e item cancelado (`vendas.test.js`). **As leituras inverteram:** o bootstrap do `AppContext` agora busca em `vendas`/`venda_itens`/`venda_pagamentos` (90 dias, em lote via `.in()`) e remonta o state `sales` no mesmo shape de sempre — nenhum consumidor (`RelatorioView`, `jarvasEngine`, etc.) precisou mudar. Se a leitura nova falhar por qualquer motivo, cai automaticamente para a query antiga em `sales` (`console.error` + fallback). O assistente do Jarvas (`supabase/functions/jarvas-assistente`) trocou a agregação de vendas 30d/top produtos de JS (baixava `sales` inteira) para uma única RPC SQL (`jarvas_resumo_vendas`, migração `20260709_jarvas_resumo_vendas.sql`) que agrega direto em `vendas`/`venda_itens` — formato do contexto enviado ao modelo inalterado. `sales` continua recebendo a gravação dupla como backup.
+
+**Observação (fora do escopo desta etapa):** `jarvas-assistente` ainda lê estoque via `config.key='estoque'`, que foi removida no TD004 — `estoque_atual` no contexto do assistente está sempre vazio. Não corrigido aqui para não misturar escopo; vale um ajuste rápido (trocar para a tabela `estoque`) numa próxima iteração.
+
+**Falta (etapa 3):** após um período de confiança rodando em produção, parar de gravar em `sales` (mantendo-a só como arquivo histórico, ou removê-la).
+
+**Pendente (ação manual) — ordem de deploy:**
+1. Rodar `20260708_backfill_vendas.sql` no SQL Editor do Supabase (a migração `20260707` já deveria estar aplicada da etapa 1; `20260709_jarvas_resumo_vendas.sql` também precisa rodar).
+2. Validar com a query de conferência (comentada no final de `20260708_backfill_vendas.sql`) — contagem e soma de totais por mês, `sales` vs `vendas`.
+3. Deployar o frontend.
+4. Redeployar a edge function: `supabase functions deploy jarvas-assistente --no-verify-jwt`.
+
+### [TD010] Realtime só em `pending`
+
+**Categoria:** Arquitetura · **Impacto:** Médio · **Esforço:** Médio · **Prioridade:** 🟡 Medium · **Status:** Resolvido (2026-07-04)
+
+**Descrição:** só a tabela `pending` tinha Realtime — mudanças em `estoque`, `jarvas_insights` e `mesas` só apareciam em outros dispositivos após reload. `estoque` já havia sido resolvido no TD004; faltavam `jarvas_insights` (sino do Jarvas) e `mesas` (mapa de mesas).
+
+**Solução proposta:** adicionar canais `postgres_changes` nas tabelas restantes, no mesmo padrão dos canais existentes (`pending-realtime`, `estoque-realtime`).
+
+**Resolução:** `src/components/shared/JarvasPanel.jsx` ganhou um canal `jarvas-insights-realtime` — `INSERT` adiciona o insight ao início da lista (com dedupe por `id`); `UPDATE` remove da lista se o status virou `descartado`/`executado`, senão atualiza o item. O `postgres_changes` respeita RLS, então cada operador só recebe os insights que já poderia ver (ex.: estratégico só chega para gerente/admin). `useMesas` (`src/utils/hooks.js`) ganhou um canal `mesas-realtime` cobrindo `INSERT`/`UPDATE`/`DELETE` por `numero` (chave primária da tabela). Ambos com cleanup via `supabase.removeChannel` no unmount.
+
+**Efeito colateral (fora do escopo original, mas relacionado):** durante esta task, a tabela legada `public.logs` foi removida — estava sem nenhuma policy em produção (RLS negava tudo, inacessível via API) e já substituída por `operator_logs`. Confirmado via grep que nada em `src/` referenciava `from("logs")` antes do drop. Migração `supabase/migrations/20260706_drop_logs.sql` (`DROP TABLE IF EXISTS public.logs`); `supabase/schema.sql` atualizado (bloco da tabela, linha no mapa de RLS, e nota de Realtime agora lista `pending, estoque, jarvas_insights, mesas`).
+
+**Pendente (ação manual):** rodar `20260706_drop_logs.sql` no SQL Editor do Supabase e habilitar Realtime nas tabelas `jarvas_insights` e `mesas` (Database → Replication).
 
 ---
 

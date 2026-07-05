@@ -69,36 +69,25 @@ Deno.serve(async (req) => {
     // ── 2. Agrega contexto do negócio (server-side, campos mínimos) ─
     const corte30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [vendasRes, fechRes, configRes, produtosRes, insightsRes] = await Promise.all([
-      supabaseClient.from("sales").select("data, at").gte("at", corte30).order("at", { ascending: false }).limit(2000),
+    // Resumo de vendas 30d: agregado no Postgres (vendas/venda_itens),
+    // não mais baixando sales JSONB inteira para somar em JS (TD009 etapa 2).
+    const [resumoVendasRes, fechRes, configRes, produtosRes, insightsRes] = await Promise.all([
+      supabaseClient.rpc("jarvas_resumo_vendas", { p_desde: corte30, p_limite_produtos: 15 }),
       supabaseClient.from("fechamentos").select("data, created_at").order("created_at", { ascending: false }).limit(5),
       supabaseClient.from("config").select("key, value").in("key", ["estoque", "caixa_aberto"]),
       supabaseClient.from("products").select("id, name, price, category, active").eq("active", true),
       supabaseClient.from("jarvas_insights").select("tipo, severidade, modulo, titulo, descricao, status, created_at").in("status", ["novo", "lido"]).order("created_at", { ascending: false }).limit(20),
     ]);
 
-    // Resumo de vendas: total, por dia, top produtos (unidades e receita)
-    const porDia: Record<string, number> = {};
-    const porProduto: Record<string, { unidades: number; receita: number }> = {};
-    let totalVendas = 0;
-    for (const row of vendasRes.data ?? []) {
-      const venda = (row as { data?: Record<string, unknown> }).data ?? row;
-      const total = Number((venda as { total?: number }).total ?? 0);
-      totalVendas += total;
-      const dia = String((venda as { at?: string }).at ?? (row as { at?: string }).at ?? "").slice(0, 10);
-      porDia[dia] = (porDia[dia] ?? 0) + total;
-      for (const it of ((venda as { items?: Array<Record<string, unknown>> }).items ?? [])) {
-        if (it.cancelado || !it.name) continue;
-        const nome = String(it.name);
-        porProduto[nome] = porProduto[nome] ?? { unidades: 0, receita: 0 };
-        porProduto[nome].unidades += Number(it.qty ?? 1);
-        porProduto[nome].receita += Number(it.price ?? 0) * Number(it.qty ?? 1);
-      }
-    }
-    const topProdutos = Object.entries(porProduto)
-      .sort((a, b) => b[1].receita - a[1].receita)
-      .slice(0, 15)
-      .map(([nome, v]) => ({ nome, ...v, receita: +v.receita.toFixed(2) }));
+    const resumoVendas = (resumoVendasRes.data ?? {}) as {
+      total?: number;
+      numero_de_vendas?: number;
+      por_dia?: Record<string, number>;
+      top_produtos?: Array<{ nome: string; unidades: number; receita: number }>;
+    };
+    const totalVendas = Number(resumoVendas.total ?? 0);
+    const porDia = resumoVendas.por_dia ?? {};
+    const topProdutos = resumoVendas.top_produtos ?? [];
 
     const estoque = (configRes.data ?? []).find((c) => c.key === "estoque")?.value ?? {};
     const caixaAberto = (configRes.data ?? []).find((c) => c.key === "caixa_aberto")?.value ?? null;
@@ -113,7 +102,7 @@ Deno.serve(async (req) => {
       caixa_aberto: caixaAberto,
       vendas_30_dias: {
         total: +totalVendas.toFixed(2),
-        numero_de_vendas: (vendasRes.data ?? []).length,
+        numero_de_vendas: Number(resumoVendas.numero_de_vendas ?? 0),
         por_dia: porDia,
         top_produtos: topProdutos,
       },

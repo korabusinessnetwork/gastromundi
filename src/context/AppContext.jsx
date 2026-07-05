@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
+import { mapearVendaParaLinhas } from "@/lib/vendas";
 import { sanitizeInput } from "@/utils/crypto";
 import {
   saveSession, loadSession, clearSession,
@@ -84,12 +85,67 @@ export function AppProvider({ children }) {
     return { ...data, permissions: getPermissions(data.role) };
   }
 
+  // TD009 (etapa 2) — leituras agora vêm de vendas/venda_itens/venda_pagamentos
+  // (remontadas no shape legado via montarVendaLegada); sales segue recebendo
+  // a gravação dupla como backup. Se a leitura nova falhar por qualquer
+  // motivo, cai para a query antiga em sales (resiliência na transição).
+  async function buscarSalesData() {
+    const desde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    try {
+      const { data: vendasData, error: eVendas } = await supabase
+        .from("vendas")
+        .select("id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at")
+        .gte("at", desde)
+        .order("at", { ascending: false });
+      if (eVendas) throw eVendas;
+
+      const ids = (vendasData ?? []).map(v => v.id);
+      let itensData = [], pagamentosData = [];
+      if (ids.length > 0) {
+        const [itensRes, pagamentosRes] = await Promise.all([
+          supabase.from("venda_itens").select("venda_id,product_id,nome,preco,qtd,cancelado,motivo_cancelamento,cancelado_por").in("venda_id", ids),
+          supabase.from("venda_pagamentos").select("venda_id,metodo,valor").in("venda_id", ids),
+        ]);
+        if (itensRes.error) throw itensRes.error;
+        if (pagamentosRes.error) throw pagamentosRes.error;
+        itensData = itensRes.data ?? [];
+        pagamentosData = pagamentosRes.data ?? [];
+      }
+
+      const itensPorVenda = {};
+      for (const item of itensData) {
+        if (!itensPorVenda[item.venda_id]) itensPorVenda[item.venda_id] = [];
+        itensPorVenda[item.venda_id].push(item);
+      }
+      const pagamentosPorVenda = {};
+      for (const pag of pagamentosData) {
+        if (!pagamentosPorVenda[pag.venda_id]) pagamentosPorVenda[pag.venda_id] = [];
+        pagamentosPorVenda[pag.venda_id].push(pag);
+      }
+
+      return (vendasData ?? []).map(venda => montarVendaLegada({
+        venda,
+        itens: itensPorVenda[venda.id] ?? [],
+        pagamentos: pagamentosPorVenda[venda.id] ?? [],
+      }));
+    } catch (err) {
+      console.error("[bootstrap] falha ao ler vendas normalizadas, usando fallback em sales:", err);
+      const { data: salesData, error: eSales } = await supabase
+        .from("sales").select("id,data,at").gte("at", desde).order("at", { ascending: false });
+      if (eSales) {
+        console.error("[bootstrap] sales fallback error:", eSales);
+        return [];
+      }
+      return (salesData ?? []).map(r => r.data);
+    }
+  }
+
   // ── Fetch inicial do Supabase (só roda autenticado) ───────────
   async function bootstrap() {
       const [
         { data: productsData, error: eProducts },
         { data: pendingData,  error: ePending  },
-        { data: salesData,    error: eSales    },
+        salesData,
         { data: usersData,    error: eUsers    },
         { data: fechamentosData, error: eFech  },
         { data: configData,   error: eConfig   },
@@ -98,7 +154,7 @@ export function AppProvider({ children }) {
         supabase.from("products").select("*").eq("active", true).order("id"),
         supabase.from("pending").select("*").order("created_at", { ascending: false }),
         // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
-        supabase.from("sales").select("id,data,at").gte("at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()).order("at", { ascending: false }),
+        buscarSalesData(),
         supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
         supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
@@ -108,14 +164,13 @@ export function AppProvider({ children }) {
       if (eUsers)    console.error("[bootstrap] users error:", eUsers);
       if (eProducts) console.error("[bootstrap] products error:", eProducts);
       if (ePending)  console.error("[bootstrap] pending error:", ePending);
-      if (eSales)    console.error("[bootstrap] sales error:", eSales);
       if (eFech)     console.error("[bootstrap] fechamentos error:", eFech);
       if (eConfig)   console.error("[bootstrap] config error:", eConfig);
       if (eEstoque)  console.error("[bootstrap] estoque error:", eEstoque);
 
       if (productsData?.length)    setProductsLocal(productsData);
       if (pendingData)             setPendingLocal(pendingData);
-      if (salesData)               setSalesLocal(salesData.map(r => r.data));
+      if (salesData)               setSalesLocal(salesData);
       if (usersData?.length)       setUsersLocal(usersData.map(u => ({
         ...u,
         permissions: getPermissions(u.role),
@@ -310,6 +365,19 @@ export function AppProvider({ children }) {
       metodo: sale.metodo ?? sale.payment ?? null,
       itens: Array.isArray(sale.items) ? sale.items.length : null,
     }, currentUser?.username);
+
+    // TD009 (etapa 1) — gravação dupla nas tabelas relacionais novas.
+    // sales continua a fonte de verdade: falha aqui nunca pode quebrar a venda.
+    void (async () => {
+      try {
+        const { venda, itens, pagamentos } = mapearVendaParaLinhas(sale);
+        await supabase.from("vendas").insert(venda);
+        if (itens.length > 0) await supabase.from("venda_itens").insert(itens);
+        if (pagamentos.length > 0) await supabase.from("venda_pagamentos").insert(pagamentos);
+      } catch (err) {
+        console.error("dual-write vendas:", err);
+      }
+    })();
   };
 
   // ── Actions: Users ────────────────────────────────────────────
