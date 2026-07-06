@@ -11,10 +11,12 @@ import JarvasPanel from "@/components/shared/JarvasPanel";
 import FechamentoModal from "@/components/modals/FechamentoModal";
 import AberturaCaixaModal from "@/components/modals/AberturaCaixaModal";
 import C from "@/constants/colors";
+import { nomeExibicaoTenant } from "@/lib/tema";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 
 export default function DesktopLayout() {
-  const { currentUser, isMobile, mobileChoice, setMobileChoice, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales } = useApp();
+  const { currentUser, isMobile, mobileChoice, setMobileChoice, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant } = useApp();
+  const nomeEstabelecimento = nomeExibicaoTenant(tenant?.tema);
   const { width } = useResponsive();
   const sz = getSizes(width);
   const { notif, notify } = useNotification();
@@ -138,8 +140,9 @@ export default function DesktopLayout() {
             >
               ☰
             </button>
-            <div style={{ flex: 1, fontWeight: 900, fontSize: 14, letterSpacing: "-0.3px" }}>
-              GASTROMUNDI <span style={{ color: C.muted, fontWeight: 400 }}>by Kora</span>
+            <div style={{ flex: 1, fontWeight: 900, fontSize: 14, letterSpacing: "-0.3px", overflowWrap: "break-word" }}>
+              {nomeEstabelecimento.toUpperCase()}
+              {nomeEstabelecimento === "GastroMundi" && <span style={{ color: C.muted, fontWeight: 400 }}> by Kora</span>}
             </div>
             <span style={{
               fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 10,

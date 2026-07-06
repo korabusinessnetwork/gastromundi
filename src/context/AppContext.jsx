@@ -4,6 +4,7 @@ import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
 import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
 import { sincronizarStatusAssinatura } from "@/lib/assinatura";
+import { gerarVariaveisTema, aplicarVariaveisTema } from "@/lib/tema";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
@@ -236,6 +237,15 @@ export function AppProvider({ children }) {
       saveSession(refreshed);
     }
   }, [users]);
+
+  // ── Fase 6 — camada de comercialização (ADR-007): aplica o tema do
+  //    tenant (--gm-*) assim que `tenant.tema` é conhecido. Sem tema
+  //    custom (tenant atual, GastroMundi), `gerarVariaveisTema` retorna
+  //    {} e os defaults de src/styles/tema.css continuam valendo —
+  //    nada muda visualmente.
+  useEffect(() => {
+    aplicarVariaveisTema(gerarVariaveisTema(tenant?.tema));
+  }, [tenant?.tema]);
 
   // ── Jarvas: análise pós-carregamento (fire-and-forget; motor só
   //    roda para gerente/admin e tem throttle interno de 6h) ──────

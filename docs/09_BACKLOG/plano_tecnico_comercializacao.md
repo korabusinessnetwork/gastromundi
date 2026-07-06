@@ -8,7 +8,7 @@ Traduzir [ADR-005](../08_DECISOES/adr-005.md), [ADR-006](../08_DECISOES/adr-006.
 
 Cada fase lista: migrations, RPCs, arquivos de app a criar/alterar, e o que fica **fora** da fase (adiado). As fases são sequenciais — cada uma pressupõe a anterior pronta e testada. Implementa-se **uma fase por vez**, com revisão do founder entre uma e outra.
 
-**Status atual: Fases 1-5 implementadas (billing fechado). Fase 6 (theming/white-label) ainda não iniciada — aguardando revisão do founder.**
+**Status atual: Fases 1-6 implementadas. Camada de comercialização completa — aguardando revisão do founder.**
 
 ---
 
@@ -130,17 +130,24 @@ Pré-requisito de tudo: hoje não existe `tenant_id` em lugar nenhum (ADR-004: s
 
 ---
 
-## Fase 6 — Theming/white-label (ADR-007)
+## Fase 6 — Theming/white-label (ADR-007) — CONCLUÍDA
 
-**Migration:** já coberta pela coluna `tenants.tema jsonb` da Fase 1 — nenhuma migration nova aqui, a menos que se decida por armazenamento de logo via Supabase Storage (então precisa de bucket + política de acesso).
+**Migration:** nenhuma — já coberta pela coluna `tenants.tema jsonb` da Fase 1. Upload de logo via Supabase Storage fica fora desta fase (ver "Fora desta fase").
 
 **App:**
-- `src/styles/tema.css` (novo) com os custom properties default.
-- Efeito de boot (`AppContext` ou `main.jsx`) que injeta `<style id="gm-tenant-theme">` com os overrides de `tenant.tema`.
-- Início da migração de `src/constants/colors.js` para apontar para os mesmos valores dos custom properties (fonte única), sem quebrar os consumidores atuais de `C.accent` etc.
-- Nenhuma tela existente é migrada para `.css` externo nesta fase — isso é o trabalho de F018, que tem seu próprio backlog/critérios e pode ser feito incrementalmente, tela por tela, depois que o padrão estiver validado em pelo menos um componente novo (já há um precedente: `DesempenhoReport.css`, F011).
+- `src/styles/tema.css` (novo) — os 11 tokens `--gm-*` (cores) com os defaults da marca GastroMundi, importado uma vez em `main.jsx`. Valores idênticos aos hex de `src/constants/colors.js` (documentado como duas fontes que precisam ser mantidas manualmente em sincronia — sem passo de build para gerar uma a partir da outra, ver ADR-007).
+- `src/lib/tema.js` (novo) — `gerarVariaveisTema(tema)` (pura; mapeia só os campos de uma lista fechada — `accent`, `bg`, `card`, `surface`, `border`, `green`, `red`, `blue`, `text`, `muted`, `faint` — para os tokens `--gm-*`; ignora qualquer chave desconhecida, nunca vira CSS arbitrário), `nomeExibicaoTenant(tema)`/`logoUrlTenant(tema)` (fallback explícito para "GastroMundi"/sem logo), `aplicarVariaveisTema(variaveis, root)` (aplica via `element.style.setProperty` — CSSOM valida o valor, mais seguro que concatenar texto CSS).
+- `AppContext.jsx`: novo `useEffect` que chama `aplicarVariaveisTema(gerarVariaveisTema(tenant?.tema))` sempre que `tenant.tema` muda. Sem tema custom (tenant atual), `gerarVariaveisTema` retorna `{}` — nenhuma variável é sobrescrita, os defaults do `:root` continuam valendo.
+- `src/components/desktop/SidebarBranding.jsx` + `.css` (novo) — primeiro pedaço da Sidebar a sair do 100% inline style (adoção incremental da decisão 018, não big-bang): lê `tenant.tema` para nome/logo, cai no fallback "GASTROMUNDI · by Kora" sem tema custom. Fonte do nome em `clamp()` (responsivo a nomes de tamanhos variados, sem depender do token `sz` do componente pai).
+- `src/pages/desktop/DesktopLayout.jsx`: a barra superior mobile também usa `nomeExibicaoTenant` em vez do texto fixo "GASTROMUNDI" (mesma lógica de fallback).
+- `src/constants/colors.js` **não foi alterado** nesta fase — continua a fonte para consumidores JS (`C.accent` etc.); migrá-lo para ler dos custom properties é possível depois, mas não é bloqueante e foi deixado de fora para não arriscar quebrar os ~30 componentes que já importam `C` diretamente.
+- Nenhuma tela existente (além da Sidebar/DesktopLayout tocadas aqui) é migrada para `.css` externo nesta fase — isso é o trabalho de F018, incremental, tela por tela (precedentes: `DesempenhoReport.css` do F011, e agora `SidebarBranding.css`).
 
-**Fora desta fase:** paleta completa customizável, upload de logo pela própria UI (fica manual/admin nesta fase, se necessário).
+**Testes:** `tema.test.js` (novo, 15 casos — geração de variáveis com tema vazio/parcial/campo desconhecido/valor inválido, fallback de nome/logo, aplicação via CSSOM); `SidebarBranding.test.jsx` (novo, 4 casos — default, nome customizado, logo customizado, tenant ainda não carregado). Suite completa: 253 testes verdes.
+
+**Fora desta fase:** paleta completa customizável (só os 11 tokens de cor + nome + logo, não cada nuance); upload de logo pela própria UI (segue manual/admin — igual à decisão já tomada para add-ons e billing); favicon dinâmico por tenant (mencionado no ADR-007 como campo futuro, não implementado); migração de `colors.js` para os custom properties como fonte única real (documentado, não bloqueante).
+
+**Critério de pronto:** ✅ sem tema custom no tenant atual, a Sidebar/topbar mostram exatamente "GASTROMUNDI"/"by Kora" como antes (testado); trocar `tenants.tema` manualmente (ex.: `{"accent": "#0ea5e9"}`) muda a cor de destaque em runtime, sem rebuild — `npm test`/`npm run build` verdes.
 
 **Critério de pronto:** trocar `tenants.tema.accent` manualmente via SQL e ver a cor de destaque mudar no app sem rebuild.
 

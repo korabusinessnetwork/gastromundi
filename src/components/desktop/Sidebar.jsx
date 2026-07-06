@@ -9,6 +9,7 @@ import { getSizes } from "@/constants/sizes";
 import { useResponsive } from "@/utils/hooks";
 import { normalizarPagamentos, totalTroco } from "@/utils/pagamentos";
 import MODULOS from "@/constants/modulos";
+import SidebarBranding from "./SidebarBranding";
 import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
@@ -144,13 +145,8 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
   return (
     <aside style={{ background: C.card, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100dvh", width: "100%", overflowX: "hidden" }}>
 
-      {/* Logo */}
-      <div style={{ padding: "20px 20px 14px", borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ fontWeight: 900, fontSize: sz.fontBase + 1, letterSpacing: "-0.3px", lineHeight: 1.2 }}>
-          GASTROMUNDI<br />
-          <span style={{ color: C.muted, fontWeight: 400, fontSize: sz.fontSm }}>by Kora</span>
-        </div>
-      </div>
+      {/* Logo/marca — lê tenant.tema (Fase 6, ADR-007); fallback "GastroMundi" */}
+      <SidebarBranding />
 
       {/* Fechar drawer (mobile) */}
       {onClose && (

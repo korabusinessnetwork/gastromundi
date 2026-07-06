@@ -1,0 +1,29 @@
+/**
+ * Tema — Fase 6 da camada de comercialização (ADR-007, decisões 017/018).
+ *
+ * Tokens de marca como CSS Custom Properties. Valores default = a
+ * marca GastroMundi (os mesmos hex de src/constants/colors.js — as
+ * duas fontes precisam ser mantidas em sincronia manualmente, já que
+ * não há passo de build para gerar uma a partir da outra; ver ADR-007
+ * "Consequências"). Um tenant com identidade própria sobrescreve só
+ * os tokens que quiser, em runtime, via `src/lib/tema.js`
+ * (aplicarVariaveisTema) — nenhum rebuild, nenhum fork de código.
+ *
+ * Se um token não for sobrescrito, o default abaixo continua valendo
+ * (é assim que o GastroMundi de hoje, sem tema custom, permanece
+ * visualmente idêntico).
+ */
+
+:root {
+  --gm-bg: #070b14;
+  --gm-card: #0e1220;
+  --gm-surface: #161b2c;
+  --gm-border: #28324d;
+  --gm-accent: #7c3aed;
+  --gm-green: #10b981;
+  --gm-red: #ef4444;
+  --gm-blue: #3b82f6;
+  --gm-text: #eef2f7;
+  --gm-muted: #9aa8c4;
+  --gm-faint: #323d58;
+}
