@@ -85,5 +85,12 @@ export function createMockSupabase() {
     setTableError: (table, error) => { tableErrors[table] = error; },
     setRpcResult: (name, result) => { rpcResults[name] = result; },
     setRpcError: (name, error) => { rpcErrors[name] = error; },
+    reset: () => {
+      for (const k of Object.keys(tableResults)) delete tableResults[k];
+      for (const k of Object.keys(tableErrors)) delete tableErrors[k];
+      for (const k of Object.keys(rpcResults)) delete rpcResults[k];
+      for (const k of Object.keys(rpcErrors)) delete rpcErrors[k];
+      calls.length = 0;
+    },
   };
 }

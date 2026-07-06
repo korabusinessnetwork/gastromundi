@@ -45,7 +45,22 @@ Relatórios consolidam os eventos de todos os módulos (decisão 009): vendas, p
 - Exportar o relatório de vendas do mês.
 
 ## Critérios de Aceite
-- [ ] Métricas reconciliam com os módulos-fonte
-- [ ] Filtros de período/fuso aplicados corretamente
-- [ ] Estados vazios tratados explicitamente
-- [ ] Acesso a relatórios financeiros restrito por papel
+- [x] Métricas reconciliam com os módulos-fonte (agregação via RPC direto em `vendas`/`venda_itens`/`venda_pagamentos`, sem recálculo em separado)
+- [x] Filtros de período aplicados corretamente (dia/7 dias/30 dias/intervalo customizado) — fuso não tratado nesta fase (single-tenant, fuso único do estabelecimento)
+- [x] Estados vazios tratados explicitamente (vazio, carregando e erro diferenciados na tela)
+- [x] Acesso a relatórios financeiros/margem restrito por papel (aba "Desempenho" só para gerente/admin, mesmo padrão de Logs/Credenciais)
+
+## Estado da Implementação (F011, 2026-07-06)
+
+Implementado:
+- RPC `public.relatorio_vendas(p_inicio, p_fim, p_limite_produtos)` (`supabase/migrations/20260714_relatorio_vendas.sql`): agrega faturamento, número de vendas, série diária, total por método de pagamento e top produtos por receita — tudo no Postgres, direto nas tabelas normalizadas (TD009), sem baixar o blob `sales`.
+- `src/lib/relatorios.js` (+testes): `calcularPeriodo`/`calcularPeriodoAnterior` (dia/semana/mês + comparação com o período anterior), `calcularVariacaoPercentual`, `calcularMargemProdutos` (cruza o top de produtos com a ficha técnica cadastrada em `public.config`/`fichas_tecnicas`; sem ficha, sinaliza `semCusto: true` em vez de inventar número), `buscarRelatorioVendas`/`buscarFichasTecnicas`.
+- Nova aba "Desempenho" em `RelatorioView.jsx` (`src/components/desktop/views/relatorio/DesempenhoReport.jsx` + `.css` co-localizado, decisão 018): KPIs (faturamento, vendas, ticket médio) com variação % vs. período anterior opcional, gráfico de vendas por dia, faturamento por forma de pagamento e tabela de produtos mais vendidos com margem (ou aviso "sem custo cadastrado").
+- Gráficos implementados em CSS/SVG simples (barras), sem nova dependência — não havia biblioteca de gráficos no projeto e o bundle já é grande (~1.7 MB); as visualizações pedidas (barras por dia, por método, por produto) não justificam o custo de uma lib nova (regra de Custo do CLAUDE.md).
+- Restrição de acesso: aba "Desempenho" (que inclui margem) restrita a gerente/admin, mesmo padrão já usado nas abas Logs/Credenciais.
+
+Não implementado nesta fase:
+- Margem por categoria agregada (curva ABC completa); hoje é por produto individual.
+- Relatório de Caixa (aberturas/divergências) dedicado — já existe parcialmente na aba "Fechamentos" existente, não recriado aqui.
+- Exportação (PDF/Excel) do novo relatório de Desempenho — as abas antigas (Vendas/Cancelamentos/Fechamentos/Logs) já exportam; a nova aba ainda não tem os botões de exportar.
+- Evento `relatorio.exportado` e fuso horário configurável por estabelecimento (não existe conceito de fuso configurável no app real hoje).

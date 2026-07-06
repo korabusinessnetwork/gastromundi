@@ -7,13 +7,14 @@ import { exportToPDF, exportToXLSX } from "@/lib/exportReport";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
+import DesempenhoReport from "./DesempenhoReport";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
   LuLock, LuTriangleAlert, LuPackage, LuClipboardList, LuShieldAlert,
   LuPrinter, LuDownload, LuX, LuCircleX,
 } from "react-icons/lu";
 
-const ABAS = ["Vendas", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
+const ABAS = ["Vendas", "Desempenho", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
 
 const PERIODOS = [
   { id: "hoje",    label: "Hoje"    },
@@ -945,6 +946,12 @@ export default function RelatorioView() {
             )}
           </div>
         )}
+
+        {/* ══ DESEMPENHO (vendas, margem — F011) ══ */}
+        {aba === "Desempenho" && !isAdmin && (
+          <Empty icon={LuLock} msg="Acesso restrito a administradores e gerentes" sz={sz} />
+        )}
+        {aba === "Desempenho" && isAdmin && <DesempenhoReport />}
 
         {/* ══ CANCELAMENTOS ══ */}
         {aba === "Cancelamentos" && (

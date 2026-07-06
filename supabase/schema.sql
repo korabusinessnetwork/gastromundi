@@ -377,6 +377,8 @@ CREATE INDEX jarvas_insights_created_at_idx ON public.jarvas_insights (created_a
 --   RETURNS TABLE (quantidade numeric, minimo numeric) desde 20260712 — antes RETURNS void (F008)
 -- jarvas_resumo_vendas(p_desde timestamptz, p_limite_produtos int) → 20260709_jarvas_resumo_vendas.sql
 --   (agregação SQL de vendas 30d/top produtos para o assistente do Jarvas — TD009 etapa 2)
+-- relatorio_vendas(p_inicio timestamptz, p_fim timestamptz, p_limite_produtos int) → 20260714_relatorio_vendas.sql
+--   (faturamento/nº vendas/série diária/por método/top produtos por período — F011, Relatórios)
 
 -- =============================================================
 -- ROW LEVEL SECURITY (estado real — nomes verificados em produção)
