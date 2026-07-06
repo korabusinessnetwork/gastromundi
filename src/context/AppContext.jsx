@@ -6,6 +6,7 @@ import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
 import { mapearVendaParaLinhas } from "@/lib/vendas";
+import { processarBaixaEstoque } from "@/lib/estoque";
 import { sanitizeInput } from "@/utils/crypto";
 import {
   saveSession, loadSession, clearSession,
@@ -448,10 +449,25 @@ export function AppProvider({ children }) {
     emitirEvento("estoque.ajuste_em_lote", "estoque", { itens: Object.keys(newEstoque ?? {}).length }, currentUser?.username);
   };
 
-  // Baixa atômica no servidor (evita race condition entre dispositivos descontando ao mesmo tempo)
+  // Baixa atômica no servidor (evita race condition entre dispositivos descontando ao mesmo tempo).
+  // Decisão de alerta de mínimo delegada a processarBaixaEstoque (src/lib/estoque.js) — testável isoladamente.
   const baixarEstoque = async (productId, qty) => {
-    setEstoqueLocal(prev => ({ ...prev, [productId]: Math.max(0, (prev[productId] ?? 0) - qty) }));
-    await supabase.rpc("baixar_estoque", { p_produto_id: productId, p_qtd: qty });
+    const anterior = Number(estoque[productId] ?? 0);
+    setEstoqueLocal(prev => ({ ...prev, [productId]: Math.max(0, anterior - qty) })); // otimista
+
+    const produto = products.find(p => String(p.id) === String(productId));
+    const { quantidade, error } = await processarBaixaEstoque({
+      produtoId: productId,
+      qty,
+      quantidadeAnterior: anterior,
+      nomeProduto: produto?.name ?? `Produto ${productId}`,
+      minimoFallback: estoqueMinimos[productId] ?? 10,
+      usuario: currentUser?.username,
+      chamarRpc: (id, q) => supabase.rpc("baixar_estoque", { p_produto_id: id, p_qtd: q }),
+    });
+    if (error) return;
+
+    setEstoqueLocal(prev => ({ ...prev, [productId]: quantidade }));
     emitirEvento("estoque.baixa", "estoque", { produto_id: productId, quantidade: qty }, currentUser?.username);
   };
 

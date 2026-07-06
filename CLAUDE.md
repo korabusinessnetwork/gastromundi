@@ -1,5 +1,20 @@
 # Diretrizes de Desenvolvimento — GastroMundi
 
+## Princípio nº 1 — INTUITIVIDADE (inegociável)
+
+O foco principal do sistema é ser **totalmente intuitivo**. Todo o front-end deve ser
+imediatamente compreensível, sem necessidade de treinamento ou manual. Em qualquer
+decisão de UI/UX, priorize a intuitividade acima de densidade de informação ou de
+elegância técnica. Regras práticas:
+
+- Fluxos óbvios: a próxima ação deve ser sempre a mais visível; caminho feliz em poucos cliques.
+- Rótulos claros em português do dia a dia do restaurante/varejo — nada de jargão técnico na tela.
+- Estados sempre visíveis: carregando, erro, vazio e sucesso com feedback imediato e humano.
+- Prevenção de erro > mensagem de erro: desabilitar/guiar antes de deixar o usuário errar; confirmar ações destrutivas.
+- Consistência total com o design system (`docs/02_DESIGN_SYSTEM/`) — mesmos padrões, ícones e posições entre telas.
+- Acessível ao toque (PDV): alvos grandes, legível a distância, funciona no ritmo de operação.
+- Ao entregar qualquer tela nova, justifique brevemente por que ela é intuitiva (ou o que a torna).
+
 ## Fonte de verdade (leia antes de qualquer mudança relevante)
 
 - **`memory/`** — identidade, decisões, padrões, aprendizados e restrições do projeto. Consultar antes de decisões de produto/arquitetura.

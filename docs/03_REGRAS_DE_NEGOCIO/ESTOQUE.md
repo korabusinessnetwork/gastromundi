@@ -49,7 +49,16 @@ O Estoque é alimentado automaticamente pela venda (decisão 009): ao finalizar 
 - Ser alertado quando um insumo atinge o mínimo.
 
 ## Critérios de Aceite
-- [ ] `venda.finalizada` baixa produtos e insumos (ficha técnica)
-- [ ] Estorno devolve itens ao saldo
-- [ ] Alertas de baixo/ruptura disparados nos limites corretos
-- [ ] Venda não é bloqueada por falta de estoque (salvo config)
+- [x] `venda.finalizada` baixa produtos vendidos (ficha técnica/subprodutos: roadmap — ver Estado da Implementação)
+- [ ] Estorno devolve itens ao saldo (roadmap — TD009/venda.estornada ainda não implementados)
+- [x] Alertas de baixo/ruptura disparados nos limites corretos
+- [x] Venda não é bloqueada por falta de estoque (salvo config)
+
+## Estado da Implementação
+
+| Fase | Descrição | Status |
+|------|-----------|--------|
+| 1 | Baixa automática por venda: cada item vendido desconta o próprio `product_id` via RPC atômica `baixar_estoque` (`supabase/migrations/20260705_estoque_tabela.sql`, reforçada em `20260712_estoque_alerta_minimo.sql` para devolver quantidade/mínimo já atualizados na mesma transação). | ✅ 2026-06-?? |
+| 2 | F008 — Alertas de mínimo: `baixar_estoque` agora devolve `{quantidade, minimo}`; `src/lib/estoque.js` decide se a baixa **cruzou** o mínimo (`verificarEstoqueMinimo`, estava OK e ficou baixo) e, se sim, registra um alerta imediato e específico do produto no Jarvas (`gerarAlertaEstoque`), com dedupe por produto contra alertas abertos (`estoque:minimo:produto:<id>`) — nunca duplica enquanto o alerta anterior não for lido/descartado. O Jarvas **nunca** repõe/ajusta estoque sozinho, só alerta (decisão 010). Complementar à regra periódica em lote já existente (`jarvasEngine.regraEstoque`, roda a cada 6h e agrega vários produtos num só insight). `EstoqueView` destaca visualmente (borda + fundo) linhas no ou abaixo do mínimo. | ✅ 2026-07-06 |
+| 3 | Ficha técnica/subprodutos e combos com baixa composta (baixar insumos, não só o produto final); devolução de estoque em estorno de venda | Pendente |
+| 4 | Controle por lote/validade, múltiplos depósitos, transferência entre lojas, custo médio para margem | Roadmap |

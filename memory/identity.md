@@ -70,6 +70,7 @@ Os perfis detalhados estão descritos na seção **Personas**.
 - **A operação em primeiro lugar.** O balcão não pode parar; cada decisão de produto respeita a velocidade do dia a dia.
 - **Dado único, verdade única.** Uma informação é registrada uma vez e flui para todos os módulos.
 - **Confiabilidade inegociável.** Dinheiro e estoque não admitem erro nem ambiguidade.
+- **Intuitividade acima de tudo (princípio nº 1 de UX).** O foco principal do sistema é ser totalmente intuitivo: todo o front-end deve ser imediatamente compreensível, sem treinamento nem manual. Em qualquer decisão de UI/UX, a intuitividade tem prioridade sobre densidade de informação ou elegância técnica. Diretrizes práticas em `CLAUDE.md` (Princípio nº 1).
 - **Simplicidade radical.** Qualquer pessoa da equipe aprende a operar em um dia.
 - **Inteligência acionável.** A IA (Jarvas) não enche de gráficos — ela sugere o próximo passo.
 - **Segurança e privacidade.** Os dados do negócio são do cliente; isolamento entre estabelecimentos é absoluto.

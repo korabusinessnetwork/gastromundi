@@ -297,8 +297,20 @@ export default function EstoqueView() {
                   const previewEst   = unidadeAtual && rawNum > 0
                     ? compraParaEstoque(rawNum, unidadeAtual) : null;
 
+                  const abaixoDoMinimo = qty <= minimo; // inclui zerado — mesmo critério de "Baixo"/"Sem estoque" acima
+
                   return (
-                    <tr key={p.id} onMouseEnter={e => e.currentTarget.style.background = C.surface} onMouseLeave={e => e.currentTarget.style.background = "transparent"} style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}>
+                    <tr
+                      key={p.id}
+                      onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                      onMouseLeave={e => e.currentTarget.style.background = abaixoDoMinimo ? `${cor}0c` : "transparent"}
+                      style={{
+                        borderBottom: `1px solid ${C.border}`,
+                        borderLeft: abaixoDoMinimo ? `3px solid ${cor}` : "3px solid transparent",
+                        background: abaixoDoMinimo ? `${cor}0c` : "transparent",
+                        transition: "background 0.1s",
+                      }}
+                    >
 
                       {/* Produto */}
                       <td style={{ padding: "14px 16px" }}>
