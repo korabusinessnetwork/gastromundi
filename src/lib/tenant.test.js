@@ -10,8 +10,10 @@ vi.mock("./supabase", async () => {
 import {
   buscarTenantAtual,
   buscarModulosDoPlano,
+  buscarAddonsAtivos,
   buscarBootstrapTenant,
   moduloHabilitado,
+  addonHabilitado,
 } from "./tenant";
 
 beforeEach(() => {
@@ -98,8 +100,44 @@ describe("buscarModulosDoPlano", () => {
   });
 });
 
+describe("buscarAddonsAtivos", () => {
+  it("retorna os códigos de add-on ativos do tenant", async () => {
+    mockSupabase.current.setTableResult("tenant_addons", {
+      data: [{ addon_codigo: "nfe" }],
+      error: null,
+    });
+
+    const { data, error } = await buscarAddonsAtivos("t1");
+
+    expect(error).toBeNull();
+    expect(data).toEqual(["nfe"]);
+    const eq = mockSupabase.current.calls.filter((c) => c.table === "tenant_addons" && c.method === "eq");
+    expect(eq).toEqual(expect.arrayContaining([
+      expect.objectContaining({ args: ["tenant_id", "t1"] }),
+      expect.objectContaining({ args: ["ativo", true] }),
+    ]));
+  });
+
+  it("retorna lista vazia sem consultar o Supabase quando não há tenant", async () => {
+    const { data, error } = await buscarAddonsAtivos(null);
+
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
+    expect(mockSupabase.current.calls).toHaveLength(0);
+  });
+
+  it("propaga erro do Supabase sem lançar exceção", async () => {
+    mockSupabase.current.setTableError("tenant_addons", { message: "falha de rede" });
+
+    const { data, error } = await buscarAddonsAtivos("t1");
+
+    expect(data).toEqual([]);
+    expect(error.message).toBe("falha de rede");
+  });
+});
+
 describe("buscarBootstrapTenant", () => {
-  it("combina tenant + módulos do plano num único objeto", async () => {
+  it("combina tenant + módulos do plano + add-ons ativos + assinatura calculada num único objeto", async () => {
     mockSupabase.current.setTableResult("tenants", {
       data: { id: "t1", nome: "GastroMundi", tema: {}, plano_codigo: "medio", created_at: "2026-07-16T00:00:00.000Z" },
       error: null,
@@ -108,20 +146,63 @@ describe("buscarBootstrapTenant", () => {
       data: [{ modulo_codigo: "cozinha" }, { modulo_codigo: "estoque" }],
       error: null,
     });
+    mockSupabase.current.setTableResult("tenant_addons", {
+      data: [{ addon_codigo: "tef" }],
+      error: null,
+    });
+    mockSupabase.current.setTableResult("assinaturas", {
+      data: { data_vencimento: "2026-08-05", carencia_dias: 3, valor_mensal: 199, status: "ativo" },
+      error: null,
+    });
 
     const { data, error } = await buscarBootstrapTenant();
 
     expect(error).toBeNull();
-    expect(data).toEqual({
-      id: "t1",
-      nome: "GastroMundi",
-      tema: {},
-      planoCodigo: "medio",
-      modulosDisponiveis: ["cozinha", "estoque"],
+    expect(data.id).toBe("t1");
+    expect(data.nome).toBe("GastroMundi");
+    expect(data.planoCodigo).toBe("medio");
+    expect(data.modulosDisponiveis).toEqual(["cozinha", "estoque"]);
+    expect(data.addonsAtivos).toEqual(["tef"]);
+    expect(data.assinatura).toEqual({
+      status: "ativo",
+      diasParaVencer: expect.any(Number),
+      carenciaDias: 3,
+      valorMensal: 199,
+      dataVencimento: "2026-08-05",
     });
   });
 
-  it("retorna módulos vazios (nunca inventados) se a busca do tenant falhar", async () => {
+  it("nenhum add-on ativo por padrão (caso normal, não erro)", async () => {
+    mockSupabase.current.setTableResult("tenants", {
+      data: { id: "t1", nome: "GastroMundi", tema: {}, plano_codigo: "avancado", created_at: "2026-07-16T00:00:00.000Z" },
+      error: null,
+    });
+    mockSupabase.current.setTableResult("planos_modulos", { data: [], error: null });
+    mockSupabase.current.setTableResult("tenant_addons", { data: [], error: null });
+    mockSupabase.current.setTableResult("assinaturas", { data: null, error: null });
+
+    const { data, error } = await buscarBootstrapTenant();
+
+    expect(error).toBeNull();
+    expect(data.addonsAtivos).toEqual([]);
+  });
+
+  it("assinatura vem null (sem inventar dado) quando o tenant não tem linha em assinaturas", async () => {
+    mockSupabase.current.setTableResult("tenants", {
+      data: { id: "t1", nome: "GastroMundi", tema: {}, plano_codigo: "avancado", created_at: "2026-07-16T00:00:00.000Z" },
+      error: null,
+    });
+    mockSupabase.current.setTableResult("planos_modulos", { data: [], error: null });
+    mockSupabase.current.setTableResult("tenant_addons", { data: [], error: null });
+    mockSupabase.current.setTableResult("assinaturas", { data: null, error: null });
+
+    const { data, error } = await buscarBootstrapTenant();
+
+    expect(error).toBeNull();
+    expect(data.assinatura).toBeNull();
+  });
+
+  it("retorna módulos/add-ons vazios (nunca inventados) se a busca do tenant falhar", async () => {
     mockSupabase.current.setTableError("tenants", { message: "falha de rede" });
 
     const { data, error } = await buscarBootstrapTenant();
@@ -143,5 +224,26 @@ describe("moduloHabilitado (fonte única de gating no front)", () => {
   it("false com segurança quando a lista ainda não carregou (undefined/null)", () => {
     expect(moduloHabilitado(undefined, "pdv")).toBe(false);
     expect(moduloHabilitado(null, "pdv")).toBe(false);
+  });
+});
+
+describe("addonHabilitado (fonte única de gating de add-on no front)", () => {
+  it("true quando o add-on está ativo", () => {
+    expect(addonHabilitado(["nfe"], "nfe")).toBe(true);
+  });
+
+  it("false quando o add-on não está na lista (caso padrão — nenhum add-on ativo)", () => {
+    expect(addonHabilitado([], "nfe")).toBe(false);
+    expect(addonHabilitado(["tef"], "nfe")).toBe(false);
+  });
+
+  it("false com segurança quando a lista ainda não carregou (undefined/null)", () => {
+    expect(addonHabilitado(undefined, "nfe")).toBe(false);
+    expect(addonHabilitado(null, "tef")).toBe(false);
+  });
+
+  it("add-on não depende de plano — não existe checagem de tier aqui", () => {
+    // mesma função serve pra qualquer tenant, independente do plano_codigo
+    expect(addonHabilitado(["nfe", "tef"], "tef")).toBe(true);
   });
 });

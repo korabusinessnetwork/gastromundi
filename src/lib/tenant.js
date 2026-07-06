@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { buscarAssinaturaAtual, calcularStatusAssinatura, calcularDiasParaVencimento } from "./assinatura";
 
 /**
  * Tenant — Fases 1 e 2 da camada de comercialização
@@ -14,6 +15,16 @@ import { supabase } from "./supabase";
  * o plano do tenant e o registro central plano→módulos. `moduloHabilitado`
  * é a ÚNICA fonte de verdade no front para "esse módulo está no plano
  * atual?" — nenhum componente deve comparar `plano_codigo` diretamente.
+ *
+ * Fase 3 (`supabase/migrations/20260718_addons.sql`, decisão 019)
+ * acrescenta os add-ons pagos (NF-e, TEF) — eixo ORTOGONAL ao plano:
+ * disponíveis em qualquer tier, ligados/desligados por tenant.
+ * `addonHabilitado` é a única fonte de verdade equivalente para
+ * add-ons; nenhum componente deve ler `tenant_addons` diretamente.
+ *
+ * Fase 4 (`supabase/migrations/20260719_assinaturas.sql`, ADR-006)
+ * acrescenta a assinatura/mensalidade — SEM enforcement ainda (Fase 5).
+ * O status exposto aqui é só para exibição (banner informativo).
  */
 
 /**
@@ -60,20 +71,66 @@ export async function buscarModulosDoPlano(planoCodigo) {
 }
 
 /**
- * Busca tenant + módulos do plano num único ponto de entrada — é o
- * que o bootstrap do app deve chamar (não os dois separadamente).
- * Nunca lança: erro em qualquer uma das duas buscas resulta em
- * `modulosDisponiveis: []` (nada liberado), nunca em módulos
- * inventados.
+ * Busca os códigos de add-on ATIVOS de um tenant, direto do registro
+ * central (`public.tenant_addons`). Nenhum tenant tem add-on ativo por
+ * padrão — lista vazia é o caso normal, não um erro.
  *
- * @returns {Promise<{data: {id: string, nome: string, tema: object, planoCodigo: string, modulosDisponiveis: string[]}|null, error: object|null}>}
+ * @param {string} tenantId
+ * @returns {Promise<{data: string[], error: object|null}>}
+ */
+export async function buscarAddonsAtivos(tenantId) {
+  if (!tenantId) return { data: [], error: null };
+  try {
+    const { data, error } = await supabase
+      .from("tenant_addons")
+      .select("addon_codigo")
+      .eq("tenant_id", tenantId)
+      .eq("ativo", true);
+    if (error) return { data: [], error };
+    return { data: (data ?? []).map((r) => r.addon_codigo), error: null };
+  } catch (err) {
+    return { data: [], error: { message: err?.message ?? "Falha ao buscar os add-ons do tenant." } };
+  }
+}
+
+/**
+ * Busca tenant + módulos do plano + add-ons ativos + assinatura num
+ * único ponto de entrada — é o que o bootstrap do app deve chamar (não
+ * as buscas separadamente). Nunca lança: erro em qualquer uma das
+ * buscas resulta em lista vazia/assinatura nula, nunca em módulo/
+ * add-on/status inventado.
+ *
+ * `assinatura.status` já vem CALCULADO (não é o cache do banco) —
+ * Fase 4 é só exibição; nenhuma escrita é bloqueada aqui (Fase 5).
+ *
+ * @returns {Promise<{data: {id: string, nome: string, tema: object, planoCodigo: string, modulosDisponiveis: string[], addonsAtivos: string[], assinatura: {status: string, diasParaVencer: number, valorMensal: number, dataVencimento: string}|null}|null, error: object|null}>}
  */
 export async function buscarBootstrapTenant() {
   const { data: tenantData, error: eTenant } = await buscarTenantAtual();
   if (eTenant || !tenantData) return { data: null, error: eTenant };
 
-  const { data: modulos, error: eModulos } = await buscarModulosDoPlano(tenantData.plano_codigo);
+  const [
+    { data: modulos, error: eModulos },
+    { data: addons, error: eAddons },
+    { data: assinaturaData, error: eAssinatura },
+  ] = await Promise.all([
+    buscarModulosDoPlano(tenantData.plano_codigo),
+    buscarAddonsAtivos(tenantData.id),
+    buscarAssinaturaAtual(tenantData.id),
+  ]);
   if (eModulos) return { data: null, error: eModulos };
+  if (eAddons) return { data: null, error: eAddons };
+  if (eAssinatura) return { data: null, error: eAssinatura };
+
+  const assinatura = assinaturaData
+    ? {
+        status: calcularStatusAssinatura(assinaturaData.dataVencimento, assinaturaData.carenciaDias),
+        diasParaVencer: calcularDiasParaVencimento(assinaturaData.dataVencimento),
+        carenciaDias: assinaturaData.carenciaDias,
+        valorMensal: assinaturaData.valorMensal,
+        dataVencimento: assinaturaData.dataVencimento,
+      }
+    : null;
 
   return {
     data: {
@@ -82,6 +139,8 @@ export async function buscarBootstrapTenant() {
       tema: tenantData.tema,
       planoCodigo: tenantData.plano_codigo,
       modulosDisponiveis: modulos,
+      addonsAtivos: addons,
+      assinatura,
     },
     error: null,
   };
@@ -100,4 +159,21 @@ export async function buscarBootstrapTenant() {
 export function moduloHabilitado(modulosDisponiveis, moduloCodigo) {
   if (!Array.isArray(modulosDisponiveis)) return false;
   return modulosDisponiveis.includes(moduloCodigo);
+}
+
+/**
+ * Função pura — equivalente a `moduloHabilitado`, para add-ons.
+ * Add-ons NÃO dependem de plano/tier (decisão 019, ADR-005 §3): um
+ * tenant no plano Básico pode ter o add-on `nfe` ativo, por exemplo.
+ * Único lugar do front que decide "esse add-on está ativo?" — hooks
+ * de NF-e/TEF devem checar por aqui (via `useApp().addonHabilitado`),
+ * nunca ler `tenant_addons`/`addonsAtivos` diretamente.
+ *
+ * @param {string[]|undefined|null} addonsAtivos
+ * @param {string} addonCodigo
+ * @returns {boolean}
+ */
+export function addonHabilitado(addonsAtivos, addonCodigo) {
+  if (!Array.isArray(addonsAtivos)) return false;
+  return addonsAtivos.includes(addonCodigo);
 }

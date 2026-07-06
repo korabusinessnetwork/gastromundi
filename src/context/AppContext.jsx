@@ -2,7 +2,8 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import { getPermissions } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
-import { buscarBootstrapTenant, moduloHabilitado } from "@/lib/tenant";
+import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
+import { sincronizarStatusAssinatura } from "@/lib/assinatura";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
@@ -209,7 +210,18 @@ export function AppProvider({ children }) {
         if (custom?.value && Array.isArray(custom.value)) setMetodosCustomLocal(custom.value);
       }
 
-      if (tenantData) setTenantLocal(tenantData);
+      if (tenantData) {
+        setTenantLocal(tenantData);
+        // Fase 4 — camada de comercialização (ADR-006): sincroniza o CACHE
+        // de status no banco (telas administrativas). Fire-and-forget —
+        // nunca bloqueia o bootstrap; o status exibido já foi calculado
+        // localmente em buscarBootstrapTenant, não depende desta chamada.
+        if (tenantData.id) {
+          sincronizarStatusAssinatura(tenantData.id).catch((err) => {
+            console.error("[bootstrap] falha ao sincronizar status da assinatura:", err);
+          });
+        }
+      }
 
       setLoading(false);
   }
@@ -526,12 +538,19 @@ export function AppProvider({ children }) {
   // plano no front. Sidebar/rotas/telas novas devem checar por aqui, nunca
   // comparar tenant.planoCodigo diretamente.
   const moduloHabilitadoNoPlano = (modulo) => moduloHabilitado(tenant?.modulosDisponiveis, modulo);
+  // Fase 3 — add-ons pagos (decisão 019): equivalente para NF-e/TEF, que não
+  // dependem de plano. Hooks de add-on devem checar por aqui, nunca ler
+  // tenant.addonsAtivos diretamente.
+  const addonHabilitadoNoTenant = (addon) => addonHabilitado(tenant?.addonsAtivos, addon);
 
   const value = {
     loading,
     // dados
     products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, estoque, estoqueMinimos,
-    tenant, moduloHabilitado: moduloHabilitadoNoPlano,
+    tenant, moduloHabilitado: moduloHabilitadoNoPlano, addonHabilitado: addonHabilitadoNoTenant,
+    // Fase 4 — camada de comercialização (ADR-006): status calculado, só
+    // exibição nesta fase — nenhuma escrita é bloqueada por causa disso.
+    assinatura: tenant?.assinatura ?? null,
     currentUser, isMobile, mobileChoice,
     lancadas, addLancada,
     // setter simples (sem persistência)

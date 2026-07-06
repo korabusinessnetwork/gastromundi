@@ -5,6 +5,7 @@ import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import Sidebar from "@/components/desktop/Sidebar";
+import AssinaturaBanner from "@/components/desktop/AssinaturaBanner";
 import Notification, { useNotification } from "@/components/shared/Notification";
 import JarvasPanel from "@/components/shared/JarvasPanel";
 import FechamentoModal from "@/components/modals/FechamentoModal";
@@ -149,6 +150,8 @@ export default function DesktopLayout() {
             </span>
           </div>
         )}
+
+        <AssinaturaBanner />
 
         <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <Outlet context={{ notify }} />

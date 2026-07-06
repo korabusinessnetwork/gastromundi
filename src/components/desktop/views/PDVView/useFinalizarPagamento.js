@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { criarLancamento } from "@/lib/financeiro";
+import { emitirDocumentoFiscal } from "@/lib/fiscal";
+import { processarPagamentoTef, isPagamentoCartao } from "@/lib/tef";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
 // cadastrado hoje, mas a checagem já fica pronta para quando existir
@@ -20,11 +22,19 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
  * Pagamentos normais viram receita 'recebido'; pagamentos 'fiado'
  * viram conta a receber ('previsto', vencimento em 30 dias).
  *
+ * Add-ons pagos (Fase 3 da camada de comercialização, decisão 019):
+ * NF-e (`@/lib/fiscal`) e TEF (`@/lib/tef`) são chamados aqui, também
+ * fire-and-forget, só quando `addonHabilitado('nfe'|'tef')` — sem o
+ * add-on ativo, nenhum dos dois módulos roda e o pagamento é idêntico
+ * a antes desta fase existir. Hoje ambos são STUBS (nenhum provedor
+ * fiscal/TEF pago integrado); o provedor real entra trocando o corpo
+ * de `emitirDocumentoFiscal`/`processarPagamentoTef`, sem mexer aqui.
+ *
  * O chamador (PDVView) continua responsável por setSalvando/try-catch
  * e por voltar para a grade de comandas (handleBack) após concluir.
  */
 export function useFinalizarPagamento() {
-  const { addSale, removePending, estoque, baixarEstoque, currentUser } = useApp();
+  const { addSale, removePending, estoque, baixarEstoque, currentUser, addonHabilitado } = useApp();
 
   const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId }) => {
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
@@ -79,6 +89,23 @@ export function useFinalizarPagamento() {
         console.error("financeiro (receita por venda):", err);
       }
     })();
+
+    // Add-ons pagos (Fase 3, decisão 019): fire-and-forget — nunca bloqueiam
+    // nem quebram a venda. Só disparam quando o tenant tem o add-on ativo;
+    // sem o add-on, o pagamento segue idêntico a hoje (nenhum código extra roda).
+    if (addonHabilitado?.("nfe")) {
+      void emitirDocumentoFiscal(sale, { usuario: currentUser?.username }).catch((err) => {
+        console.error("fiscal (nf-e):", err);
+      });
+    }
+    if (addonHabilitado?.("tef")) {
+      for (const p of pagamentos ?? []) {
+        if (!isPagamentoCartao(p?.metodo)) continue;
+        void processarPagamentoTef(p, { usuario: currentUser?.username, comanda: selected.comanda }).catch((err) => {
+          console.error("tef:", err);
+        });
+      }
+    }
 
     await removePending(selected.id);
     if (selected.mesa) {

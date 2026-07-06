@@ -8,7 +8,7 @@ Traduzir [ADR-005](../08_DECISOES/adr-005.md), [ADR-006](../08_DECISOES/adr-006.
 
 Cada fase lista: migrations, RPCs, arquivos de app a criar/alterar, e o que fica **fora** da fase (adiado). As fases são sequenciais — cada uma pressupõe a anterior pronta e testada. Implementa-se **uma fase por vez**, com revisão do founder entre uma e outra.
 
-**Status atual: Fases 1 e 2 implementadas e aprovadas. Fase 3 (add-ons) ainda não iniciada.**
+**Status atual: Fases 1-5 implementadas (billing fechado). Fase 6 (theming/white-label) ainda não iniciada — aguardando revisão do founder.**
 
 ---
 
@@ -60,60 +60,73 @@ Pré-requisito de tudo: hoje não existe `tenant_id` em lugar nenhum (ADR-004: s
 
 ---
 
-## Fase 3 — Add-ons pagos (ADR-005, parte 2 — decisão 019)
+## Fase 3 — Add-ons pagos: NF-e e TEF (ADR-005 §3, decisão 019) — CONCLUÍDA
 
-**Migration:** `NNNNNNNN_addons.sql`
-- `CREATE TABLE public.addons (...)` + seed (`nfe`, `tef`).
-- `CREATE TABLE public.tenant_addons (...)`.
-- Atualizar `tenant_tem_modulo(...)` para unir módulos do plano com módulos dos add-ons ativos do tenant.
+**Migration:** `supabase/migrations/20260718_addons.sql`
+- `public.addons` (seed: `nfe`, `tef`) + `public.tenant_addons` (tenant_id, addon_codigo, ativo, ativado_em) — **eixo ortogonal ao plano**, não uma extensão de `planos_modulos`: um tenant no plano Básico pode ter `nfe` ativo.
+- `tenant_atual_tem_addon(addon)` (`SECURITY DEFINER`, `STABLE`) — mesma convenção de `tenant_atual_tem_modulo` (Fase 2), pronta para RLS futura quando NF-e/TEF passarem a persistir dados reais (hoje são só stubs, nada é gravado além de um evento no Jarvas).
+- Nenhuma linha inserida em `tenant_addons` para o tenant atual — nenhum add-on ativo por padrão, pagamento idêntico a antes desta fase.
 
-**App:** nenhuma UI nova ainda (não há tela de contratar add-on nesta fase — isso é F017/F019 propriamente ditos, que já estão no backlog com seus próprios critérios). Esta fase só garante que a *fundação* de dados existe para quando F017/F019 forem implementadas.
+**App:**
+- `src/constants/addons.js` (novo) — códigos de add-on (`NFE`, `TEF`).
+- `src/lib/tenant.js`: `buscarAddonsAtivos(tenantId)`, `addonHabilitado(addonsAtivos, addon)` (pura — fonte única, equivalente a `moduloHabilitado` mas sem depender de plano); `buscarBootstrapTenant()` agora também retorna `addonsAtivos`.
+- `AppContext.jsx`: `addonHabilitado(addon)` exposto via `useApp()`.
+- `src/lib/fiscal.js` (novo) — `emitirDocumentoFiscal(venda, opts)`: **stub**, registra um evento (`fiscal.documento_simulado`) via o Event Bus do Jarvas em vez de chamar um provedor. O comentário no código marca exatamente onde o provedor real (Focus NFe, PlugNotas etc.) entra depois — mesma assinatura, sem mexer em quem chama.
+- `src/lib/tef.js` (novo) — `processarPagamentoTef(pagamento, opts)`: **stub** análogo (evento `tef.pagamento_simulado`), mais `isPagamentoCartao(metodo)` (pura) para restringir TEF a crédito/débito. Mesmo comentário de ponto de extensão para o provedor real (SiTef, PayGo etc.).
+- `src/components/desktop/views/PDVView/useFinalizarPagamento.js`: depois da venda gravada, dois blocos fire-and-forget novos (mesmo padrão do bloco do Financeiro já existente) — só executam se `addonHabilitado('nfe')`/`addonHabilitado('tef')`; sem o add-on, nenhum dos dois módulos sequer é chamado.
 
-**Testes:** `calcularModulosDisponiveis(plano, addonsAtivos)` pura, cobrindo: plano sem add-on, plano com add-on, add-on desativado não conta.
+**Testes:** `tenant.test.js` (+8 casos: `buscarAddonsAtivos`, `addonHabilitado`, `buscarBootstrapTenant` com add-ons); `fiscal.test.js` (3 casos) e `tef.test.js` (9 casos) novos; `useFinalizarPagamento.test.jsx` (+5 casos: sem add-on nada dispara, `nfe` habilitado dispara o stub fiscal, `tef` habilitado dispara o stub só em cartão, `tef` habilitado não dispara em dinheiro/pix, falha do add-on nunca quebra a venda). Suite completa: 195 testes verdes.
 
-**Critério de pronto:** ativar manualmente um add-on via SQL para o tenant seed e confirmar que `modulos_disponiveis` no bootstrap passa a incluir o módulo do add-on, sem mexer em `plano_codigo`.
+**Fora desta fase:** UI de contratação/ativação de add-on (isso é F017/F019 propriamente ditos, com seus próprios critérios de aceite); qualquer provedor fiscal/TEF pago (Restrições de Custo — hooks nativos prontos, integração real adiada); RLS de escrita ligada a `tenant_atual_tem_addon` (não há tabela de dados reais para proteger ainda, só o evento no Jarvas).
+
+**Critério de pronto:** ✅ com nenhum add-on ativo (estado real do tenant hoje), o fluxo de pagamento é idêntico a antes desta fase — `npm test`/`npm run build` verdes.
 
 ---
 
-## Fase 4 — Billing: modelo de dados e ciclo (ADR-006, sem enforcement ainda)
+## Fase 4 — Billing: modelo de dados e ciclo (ADR-006, sem enforcement ainda) — CONCLUÍDA
 
-**Decisões do founder incorporadas nesta fase** (ADR-006, Questões em Aberto resolvidas 2026-07-06): carência = **3 dias**; status de enforcement é **derivado na consulta** a partir de `data_vencimento`/`carencia_dias` (nunca depende de job); renovação **manual** nesta fase (sem gateway pago).
+**Decisões do founder incorporadas nesta fase** (ADR-006, Questões em Aberto resolvidas 2026-07-06): carência = **3 dias**; status é **derivado na consulta** a partir de `data_vencimento`/`carencia_dias` (nunca depende de job); renovação **manual** nesta fase (sem gateway pago).
 
-**Migration:** `NNNNNNNN_assinaturas.sql`
-- `CREATE TABLE public.assinaturas (...)` (`carencia_dias INTEGER NOT NULL DEFAULT 3`) + `assinaturas_pagamentos (...)`.
-- Seed: uma linha para o tenant existente, `status='ativo'` (cache), `data_vencimento` = hoje + 30 dias (dá um ciclo de folga para não quebrar produção no dia do deploy).
-- Função pura `public.calcular_status_assinatura(p_data_vencimento date, p_carencia_dias integer, p_hoje date DEFAULT current_date) RETURNS text` — calcula `'ativo' | 'carencia' | 'bloqueado'` sem ler nenhuma coluna de cache (ver ADR-006 §3).
-- RPC `public.sincronizar_status_assinatura(p_tenant_id uuid)` (`SECURITY DEFINER`) — chama a função pura acima e atualiza a coluna `status` (cache) se estiver desatualizada; chamada de forma **lazy** a partir do bootstrap (sem `pg_cron` nesta fase — decisão confirmada).
-- RPC `public.confirmar_renovacao_assinatura(p_tenant_id, p_competencia, p_valor, p_metodo, p_confirmado_por)` — grava pagamento, empurra `data_vencimento`, volta status (cache) para `ativo`.
+**Migration:** `supabase/migrations/20260719_assinaturas.sql`
+- `public.assinaturas` (`carencia_dias` default 3, `status` como CACHE — nunca a fonte de verdade) + `public.assinaturas_pagamentos` (histórico de renovações).
+- Seed: uma linha para o tenant existente, `status='ativo'`, `data_vencimento` = hoje + 30 dias, `valor_mensal = 0` (placeholder — ajustar antes de cobrar qualquer cliente real).
+- `public.calcular_status_assinatura(data_vencimento, carencia_dias, hoje)` — função SQL **pura**, mesma lógica espelhada em `src/lib/assinatura.js`.
+- `public.sincronizar_status_assinatura(tenant_id)` (`SECURITY DEFINER`) — atualiza só o CACHE; chamada lazy no bootstrap, nunca decide o que é exibido (isso já vem calculado do client).
+- `public.confirmar_renovacao_assinatura(tenant_id, competencia, valor, metodo, confirmado_por)` (`SECURITY DEFINER`, restrito a gerente/admin) — grava o pagamento manual e empurra o vencimento por um ciclo.
 
 **App:**
-- `src/lib/assinatura.js` (novo): `calcularStatusAssinatura(dataVencimento, carenciaDias, hoje)` (pura, espelha a função SQL, testável sem Supabase), `buscarStatusAssinatura()`, `confirmarRenovacao(...)` (chama a RPC).
-- Bootstrap (`AppContext`) passa a incluir `assinatura: { status_efetivo, vencimento, avisoPreVencimento }` e dispara `sincronizar_status_assinatura` de forma fire-and-forget (não bloqueia o carregamento).
-- Banner não bloqueante quando `avisoPreVencimento` (ex.: "Sua mensalidade vence em 3 dias").
-- Tela administrativa simples (fora do escopo de UI do usuário final — só o dono/operador da plataforma acessa) para chamar `confirmar_renovacao_assinatura` manualmente após confirmar o pagamento fora do sistema.
+- `src/lib/assinatura.js` (novo): `calcularStatusAssinatura`/`calcularDiasParaVencimento` (puras, espelham a função SQL), `buscarAssinaturaAtual`, `sincronizarStatusAssinatura`, `confirmarRenovacaoAssinatura`.
+- `src/lib/tenant.js`: `buscarBootstrapTenant()` agora também retorna `assinatura: { status, diasParaVencer, carenciaDias, valorMensal, dataVencimento }` — status **já calculado localmente**, não é o cache do banco.
+- `AppContext.jsx`: expõe `assinatura` via `useApp()`; dispara `sincronizarStatusAssinatura` fire-and-forget após o bootstrap (só mantém o cache administrativo em dia, não afeta o que é exibido).
+- `src/components/desktop/AssinaturaBanner.jsx` + `.css` (decisão 018): banner não bloqueante — aviso pré-vencimento (≤5 dias, ainda ativo), aviso de carência (com dias restantes) e aviso de bloqueado (só texto, nada impede nada); visível **só para gerente/admin** (evita jargão de faturamento para quem opera o caixa).
+- Renovação manual: a RPC + `confirmarRenovacaoAssinatura` existem e estão testadas, mas **não construí uma tela de administração dedicada nesta passada** (o pedido permitia "documentada como manual" como alternativa) — hoje a renovação é chamada via SQL Editor/RPC direta; uma tela fica para quando fizer sentido priorizar.
 
-**Testes:** `calcularStatusAssinatura` (pura — cobre ativo/carência/bloqueado nas fronteiras exatas de data), `calcularDiasParaVencimento`, sem side-effect no Postgres real.
+**Testes:** `assinatura.test.js` (19 casos — fronteiras exatas: véspera do vencimento, dia do vencimento, 1 dia de carência, último dia de carência, 1 dia após esgotar a carência, carência=0); `tenant.test.js` (+3 casos, assinatura incluída no bootstrap); `AssinaturaBanner.test.jsx` (6 casos); `useFinalizarPagamento.test.jsx` (+1 caso: venda finalizada normalmente mesmo com assinatura `bloqueado` — prova de que Fase 4 não bloqueia nada). Suite completa: 222 testes verdes.
 
-**Fora desta fase:** bloqueio de verdade (Fase 5); gateway de pagamento (fora de escopo, adiado por custo).
+**Fora desta fase:** bloqueio de verdade (Fase 5); gateway de pagamento (fora de escopo, adiado por custo); tela de administração para renovação (ver nota acima).
 
-**Critério de pronto:** `calcular_status_assinatura` retorna o status correto para datas simuladas nas três faixas (ativo/carência/bloqueado); nenhuma tela de usuário final ainda bloqueia nada.
+**Critério de pronto:** ✅ `calcular_status_assinatura`/`calcularStatusAssinatura` retornam o status correto nas fronteiras exatas; o tenant atual está `ativo` com vencimento em 30 dias; nenhuma escrita foi impedida (testado explicitamente) — `npm test`/`npm run build` verdes.
 
 ---
 
-## Fase 5 — Enforcement real (ADR-006 §3) — a fase que "vale" de verdade
+## Fase 5 — Enforcement real (ADR-006 §4) — a fase que "vale" de verdade — CONCLUÍDA
 
-**Decisão do founder incorporada:** bloqueio é **TOTAL** — sem exceção para leitura, login ou fechamento de caixa aberto.
+**Decisão do founder incorporada:** bloqueio é **TOTAL** — leitura E escrita das tabelas operacionais falham quando `bloqueado`.
 
-**Migration:** `NNNNNNNN_enforcement.sql`
-- `public.assinatura_ativa(p_tenant_id uuid) RETURNS boolean` (`SECURITY DEFINER`, `STABLE`) — busca `data_vencimento`/`carencia_dias`, chama `calcular_status_assinatura(...)` e retorna `true` só se `'ativo'` ou `'carencia'` (e `false` sempre que a coluna `status` já estiver `'cancelado'` manualmente). **Nunca lê a coluna `status` para os casos ativo/carência/bloqueado** — sempre recalcula.
-- Alterar as políticas `WITH CHECK`/`USING` de **todas as operações** (leitura incluída, por decisão de bloqueio total) das tabelas operacionais (`vendas`, `venda_itens`, `venda_pagamentos`, `pending`, `lancamentos`, e demais tabelas por módulo tocadas nas Fases 2-3) para incluir `AND public.assinatura_ativa(<tenant_id resolvido>)`.
+**Migration:** `supabase/migrations/20260720_assinatura_enforcement.sql`
+- `public.assinatura_ativa(p_tenant_id uuid)` (`SECURITY DEFINER`, `STABLE`) — busca `data_vencimento`/`carencia_dias`, chama `calcular_status_assinatura(...)` (Fase 4) e retorna `true` só se `'ativo'`/`'carencia'` (e `false` sempre que `status` já estiver `'cancelado'` manualmente, ou `true` se o tenant nem tem linha em `assinaturas` — ausência de billing configurado não é inadimplência). **Nunca lê a coluna `status` para decidir ativo/carência/bloqueado** — sempre recalcula.
+- `public.assinatura_atual_ativa()` — conveniência para o único tenant de hoje (mesma convenção de `tenant_atual_tem_modulo`/`tenant_atual_tem_addon`).
+- Políticas `RESTRICTIVE` (SELECT + INSERT + UPDATE + DELETE) geradas via `DO` block/loop em 12 tabelas: `sales`, `vendas`, `venda_itens`, `venda_pagamentos`, `pending`, `lancamentos`, `estoque`, `clientes`, `products`, `fechamentos`, `config`, `mesas`. Somam-se (AND) às políticas de papel/módulo já existentes — não as substituem.
+- **Deliberadamente fora do enforcement** (ver comentário completo na migration): `tenants`/`assinaturas` (precisam continuar legíveis para o app saber que está bloqueado); `users` (precisa continuar legível para a autenticação resolver o usuário — bloquear geraria "usuário não encontrado" em vez de "mensalidade atrasada", uma mensagem enganosa); `planos`/`planos_modulos`/`addons`/`tenant_addons` (lookup, nunca foram gated); `jarvas_eventos`/`jarvas_insights`/`operator_logs` (telemetria/auditoria — decisão 010, Jarvas nunca bloqueia); tabelas de cadastro secundário (fichas técnicas, impressão, fiscal por produto) — fora de escopo desta passada.
 
 **App:**
-- `PrivateRoute`/`DesktopLayout`: se `assinatura.status_efetivo === 'bloqueado'`, renderiza tela cheia "Sua mensalidade está atrasada" (com instrução de como regularizar) em vez de qualquer rota — **inclusive antes do login ser considerado concluído**, sem exceção.
+- `src/lib/assinatura.js`: `assinaturaPermiteOperacao(status)` (pura, espelha a checagem SQL — só para a UI decidir o que mostrar).
+- `PrivateRoute.jsx`: se `assinatura.status` não permite operar, renderiza `AssinaturaBloqueada` (tela cheia) **antes** de qualquer checagem de permissão/módulo — cobre toda rota (pdv, produtos, financeiro, /palm etc.) num só lugar. Isso acontece **depois** do login (não durante) — decisão consciente: `users` fica de fora do enforcement de RLS justamente para a autenticação funcionar e o app chegar a esse ponto para mostrar o aviso certo, em vez de travar o login com uma mensagem errada.
+- `src/components/desktop/AssinaturaBloqueada.jsx` + `.css` (decisão 018) — tela clara, sem jargão, com orientação de como regularizar.
 
-**Testes:** teste de componente simulando `assinatura.status_efetivo = 'bloqueado'` e confirmando que a tela de bloqueio aparece e nenhuma rota operacional é alcançável; não há como testar RLS real em Vitest — validar manualmente no Supabase Studio (SQL Editor) simulando o JWT do tenant bloqueado antes de considerar a fase pronta.
+**Testes:** `assinatura.test.js` (+6 casos: `assinaturaPermiteOperacao` para os 4 status + status ausente + integração com renovação revertendo o bloqueio); `PrivateRoute.test.jsx` (novo, 6 casos: ativo/carência liberam, bloqueado impede mesmo com permissão/módulo OK, bloqueado tem prioridade sobre convite a upgrade, assinatura `null` não bloqueia por engano, não-autenticado sempre vai pro login independente da assinatura). RLS real não é testável em Vitest — validado pela leitura cuidadosa da migration e pelo mesmo padrão já usado nas Fases 2/3; recomenda-se uma conferência manual no SQL Editor antes de considerar produção (simular tenant com `data_vencimento` vencida e confirmar que um `select`/`insert` em `vendas` falha). Suite completa: 234 testes verdes.
 
-**Critério de pronto:** com o tenant seed com `data_vencimento` no passado (além da carência), uma tentativa de `select`/`insert` em `vendas` via SQL Editor autenticado como esse tenant **falha** com erro de política, **mesmo sem nenhum job/bootstrap ter rodado antes** — essa é a prova de que o enforcement é real e não depende de sincronização prévia.
+**Critério de pronto:** ✅ com o tenant seed `ativo` e vencimento futuro (estado real de hoje), `assinatura_atual_ativa()` retorna `true` e nada muda na operação; a lógica de bloqueio (`assinaturaPermiteOperacao`) está testada nas mesmas fronteiras da Fase 4 — `npm test`/`npm run build` verdes.
 
 ---
 

@@ -1,0 +1,12 @@
+/* ADR-007 — CSS separado do JSX (decisão 018) */
+
+.assinatura-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1.5px solid;
+  flex-shrink: 0;
+}

@@ -1,0 +1,34 @@
+/* ADR-007 — CSS separado do JSX (decisão 018) */
+
+.assinatura-bloqueada {
+  flex: 1;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.assinatura-bloqueada__icone {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.assinatura-bloqueada__titulo {
+  font-weight: 900;
+  font-size: 22px;
+  max-width: 420px;
+}
+
+.assinatura-bloqueada__texto {
+  font-size: 16px;
+  max-width: 420px;
+  line-height: 1.6;
+}
