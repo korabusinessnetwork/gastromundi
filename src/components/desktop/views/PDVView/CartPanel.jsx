@@ -1,6 +1,7 @@
 ﻿import { useState } from "react";
 import { createPortal } from "react-dom";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { useApp } from "@/context/AppContext";
@@ -129,7 +130,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                 const cancelado = !!item.cancelado;
                 return (
                   <div key={idx} className="cart-panel__item cart-panel__item--transicao" style={{
-                    background: cancelado ? `${C.red}08` : C.surface,
+                    background: cancelado ? alfa(C.red, "08") : C.surface,
                     opacity: cancelado ? 0.7 : 1,
                   }}>
                     <div className="cart-panel__item-linha">
@@ -153,7 +154,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                         {cancelado && item.motivoCancelamento && (
                           <div style={{
                             fontSize: 14, color: C.red, marginTop: 4,
-                            background: `${C.red}14`, borderRadius: 6,
+                            background: alfa(C.red, "14"), borderRadius: 6,
                             padding: "3px 8px", display: "inline-block", fontWeight: 600,
                           }}>
                             Motivo: {item.motivoCancelamento}
@@ -173,9 +174,9 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                             onClick={() => abrirExcluir("lancado", idx, item)}
                             title="Cancelar item"
                             className="cart-panel__btn-remover"
-                            style={{ border: `1px solid ${C.red}44`, background: `${C.red}10`, color: C.red }}
-                            onMouseEnter={e => e.currentTarget.style.background = `${C.red}22`}
-                            onMouseLeave={e => e.currentTarget.style.background = `${C.red}10`}
+                            style={{ border: `1px solid ${alfa(C.red, "44")}`, background: alfa(C.red, "10"), color: C.red }}
+                            onMouseEnter={e => e.currentTarget.style.background = alfa(C.red, "22")}
+                            onMouseLeave={e => e.currentTarget.style.background = alfa(C.red, "10")}
                           >
                             <LuTrash2 size={15} />
                           </button>
@@ -183,7 +184,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                         {cancelado && (
                           <div style={{
                             fontSize: 13, fontWeight: 800, color: C.red,
-                            background: `${C.red}14`, border: `1px solid ${C.red}33`,
+                            background: alfa(C.red, "14"), border: `1px solid ${alfa(C.red, "33")}`,
                             borderRadius: 6, padding: "3px 8px", textTransform: "uppercase", letterSpacing: 0.5,
                           }}>
                             Cancelado
@@ -234,9 +235,9 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                       onClick={() => abrirExcluir("carrinho", i, item)}
                       title="Remover item"
                       className="cart-panel__btn-remover"
-                      style={{ border: `1px solid ${C.red}44`, background: `${C.red}10`, color: C.red }}
-                      onMouseEnter={e => e.currentTarget.style.background = `${C.red}22`}
-                      onMouseLeave={e => e.currentTarget.style.background = `${C.red}10`}
+                      style={{ border: `1px solid ${alfa(C.red, "44")}`, background: alfa(C.red, "10"), color: C.red }}
+                      onMouseEnter={e => e.currentTarget.style.background = alfa(C.red, "22")}
+                      onMouseLeave={e => e.currentTarget.style.background = alfa(C.red, "10")}
                     >
                       <LuTrash2 size={15} />
                     </button>
@@ -255,7 +256,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
                 {/* Observações confirmadas */}
                 {obsArr.map((obs, j) => (
-                  <div key={j} className="cart-panel__obs-chip" style={{ background: C.alow, border: `1px solid ${C.accent}44` }}>
+                  <div key={j} className="cart-panel__obs-chip" style={{ background: "var(--gm-alow)", border: `1px solid ${alfa(C.accent, "44")}` }}>
                     <span style={{ flex: 1, fontSize: sz.fontSm + 1, color: C.accent, fontWeight: 600, lineHeight: 1.4 }}>
                       {obs}
                     </span>
@@ -317,8 +318,8 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
           disabled={!temItens}
           className="cart-panel__btn-finalizar"
           style={{
-            border: `1px solid ${temItens ? C.green + "55" : C.border}`,
-            background: temItens ? `${C.green}0f` : C.surface,
+            border: `1px solid ${temItens ? alfa(C.green, "55") : C.border}`,
+            background: temItens ? alfa(C.green, "0f") : C.surface,
             color: temItens ? C.green : C.muted,
             cursor: temItens ? "pointer" : "not-allowed",
             fontSize: sz.fontBase + 1,
@@ -339,7 +340,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
           <div className="cart-panel__modal">
             {/* Título */}
             <div className="cart-panel__modal-topo">
-              <div className="cart-panel__modal-icone" style={{ background: `${C.red}18`, border: `1.5px solid ${C.red}44` }}>
+              <div className="cart-panel__modal-icone" style={{ background: alfa(C.red, "18"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
                 <LuTrash2 size={20} color={C.red} />
               </div>
               <div>
@@ -423,11 +424,11 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   rows={3}
                   className="cart-panel__textarea"
                   style={{
-                    border: `1.5px solid ${confirmExcluir.motivo ? C.accent + "88" : C.border}`,
+                    border: `1.5px solid ${confirmExcluir.motivo ? alfa(C.accent, "88") : C.border}`,
                     background: C.surface, color: C.text, fontSize: 17,
                   }}
-                  onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
-                  onBlur={e => e.currentTarget.style.borderColor = confirmExcluir.motivo ? C.accent + "88" : C.border}
+                  onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
+                  onBlur={e => e.currentTarget.style.borderColor = confirmExcluir.motivo ? alfa(C.accent, "88") : C.border}
                 />
                 <div style={{ fontSize: 14, color: C.muted, textAlign: "right" }}>
                   {confirmExcluir.motivo.length}/200

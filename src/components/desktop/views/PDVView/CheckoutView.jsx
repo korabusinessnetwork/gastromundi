@@ -1,5 +1,6 @@
 import { useState } from "react";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuWallet, LuPercent, LuX, LuUsers } from "react-icons/lu";
@@ -192,8 +193,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
             onClick={() => { setShowAjuste(true); setAjusteValor(ajusteAplicado?.valor ?? ""); setAjusteTipo(ajusteAplicado?.tipo ?? "desconto"); setAjusteMode(ajusteAplicado?.mode ?? "percentual"); }}
             className="checkout-view__btn-ajuste"
             style={{
-              background: ajusteAplicado ? `${ajusteAplicado.tipo === "desconto" ? C.red : C.green}18` : C.surface,
-              border: `1.5px solid ${ajusteAplicado ? (ajusteAplicado.tipo === "desconto" ? C.red : C.green) + "66" : C.border}`,
+              background: ajusteAplicado ? alfa(ajusteAplicado.tipo === "desconto" ? C.red : C.green, "18") : C.surface,
+              border: `1.5px solid ${ajusteAplicado ? alfa(ajusteAplicado.tipo === "desconto" ? C.red : C.green, "66") : C.border}`,
               color: ajusteAplicado ? (ajusteAplicado.tipo === "desconto" ? C.red : C.green) : C.text,
             }}
           >
@@ -226,7 +227,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
               return (
                 <div key={i} className="checkout-view__item" style={{ borderBottom: `1px solid ${C.border}` }}>
                   <div className="checkout-view__item-icone" style={{
-                    background: C.alow, border: `1.5px solid ${C.accent}44`,
+                    background: "var(--gm-alow)", border: `1.5px solid ${alfa(C.accent, "44")}`,
                   }}>
                     {item.emoji
                       ? <span style={{ fontSize: 20, lineHeight: 1 }}>{item.emoji}</span>
@@ -243,7 +244,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                     </div>
                     {obsArr.map((obs, j) => (
                       <div key={j} className="checkout-view__item-obs" style={{
-                        fontSize: 18, color: C.accent, background: C.alow,
+                        fontSize: 18, color: C.accent, background: "var(--gm-alow)",
                       }}>
                         📝 {obs}
                       </div>
@@ -270,8 +271,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                     onClick={() => setAplicarTaxa(v => !v)}
                     style={{
                       fontSize: sz.fontSm - 1, fontWeight: 700, padding: "3px 10px",
-                      borderRadius: 8, border: `1.5px solid ${aplicarTaxa ? C.red + "88" : C.green + "88"}`,
-                      background: aplicarTaxa ? `${C.red}15` : `${C.green}15`,
+                      borderRadius: 8, border: `1.5px solid ${aplicarTaxa ? alfa(C.red, "88") : alfa(C.green, "88")}`,
+                      background: aplicarTaxa ? alfa(C.red, "15") : alfa(C.green, "15"),
                       color: aplicarTaxa ? C.red : C.green,
                       cursor: "pointer", fontFamily: "inherit",
                     }}
@@ -351,8 +352,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                     onClick={() => setShowDivisor(v => !v)}
                     className="checkout-view__btn-divisor"
                     style={{
-                      background: showDivisor ? `${C.accent}18` : "none",
-                      border: `1.5px solid ${showDivisor ? C.accent + "66" : C.border}`,
+                      background: showDivisor ? alfa(C.accent, "18") : "none",
+                      border: `1.5px solid ${showDivisor ? alfa(C.accent, "66") : C.border}`,
                       color: showDivisor ? C.accent : C.muted,
                     }}
                   >
@@ -364,7 +365,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
               {/* Stepper inline */}
               {showDivisor && !isSplit && (
                 <div className="checkout-view__stepper" style={{
-                  background: C.surface, border: `1.5px solid ${C.accent}44`,
+                  background: C.surface, border: `1.5px solid ${alfa(C.accent, "44")}`,
                 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: C.muted, whiteSpace: "nowrap" }}>Dividir entre</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -398,7 +399,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                       padding: "8px 16px", borderRadius: 8, border: "none",
                       background: C.accent, color: "#fff", fontWeight: 700, fontSize: 14,
                       cursor: "pointer", fontFamily: "inherit",
-                      boxShadow: `0 2px 8px ${C.accent}44`,
+                      boxShadow: `0 2px 8px ${alfa(C.accent, "44")}`,
                     }}
                   >
                     Dividir
@@ -416,7 +417,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                   return (
                     <div key={idx} className="checkout-view__split-item" style={{
                       background: C.surface,
-                      border: `1.5px solid ${p.metodo ? C.accent + "44" : C.border}`,
+                      border: `1.5px solid ${p.metodo ? alfa(C.accent, "44") : C.border}`,
                     }}>
                       {/* Linha 1: método + valor + remover */}
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -428,7 +429,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                               className="checkout-view__chip-metodo"
                               style={{
                                 border: `1.5px solid ${p.metodo === m.id ? C.accent : C.border}`,
-                                background: p.metodo === m.id ? C.alow : "transparent",
+                                background: p.metodo === m.id ? "var(--gm-alow)" : "transparent",
                                 color: p.metodo === m.id ? C.accent : C.muted,
                               }}
                             >
@@ -447,7 +448,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                               border: `1.5px solid ${C.border}`,
                               background: C.card, color: C.text,
                             }}
-                            onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
+                            onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
                             onBlur={e => e.currentTarget.style.borderColor = C.border}
                           />
                         </div>
@@ -478,7 +479,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                                 border: `1.5px solid ${C.border}`,
                                 background: C.card, color: C.text,
                               }}
-                              onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
+                              onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
                               onBlur={e => e.currentTarget.style.borderColor = C.border}
                             />
                           </div>
@@ -500,8 +501,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                 {/* Falta alocar */}
                 {Math.abs(faltaAlocar) >= 0.005 && (
                   <div className="checkout-view__falta-alocar" style={{
-                    background: faltaAlocar > 0 ? `${C.accent}14` : `${C.red}14`,
-                    border: `1.5px solid ${faltaAlocar > 0 ? C.accent : C.red}55`,
+                    background: faltaAlocar > 0 ? alfa(C.accent, "14") : alfa(C.red, "14"),
+                    border: `1.5px solid ${alfa(faltaAlocar > 0 ? C.accent : C.red, "55")}`,
                   }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: faltaAlocar > 0 ? C.accent : C.red }}>
                       {faltaAlocar > 0 ? "Falta alocar" : "Valor excede o total"}
@@ -544,15 +545,15 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                         className="checkout-view__metodo-card"
                         style={{
                           border: `2px solid ${ativo ? C.accent : C.border}`,
-                          background: ativo ? C.alow : C.surface,
+                          background: ativo ? "var(--gm-alow)" : C.surface,
                           color: ativo ? C.accent : C.text,
                           fontSize: sz.fontLg,
-                          boxShadow: ativo ? `0 0 0 4px ${C.accent}22` : "none",
+                          boxShadow: ativo ? `0 0 0 4px ${alfa(C.accent, "22")}` : "none",
                         }}
                       >
                         <div className="checkout-view__metodo-icone" style={{
-                          background: ativo ? `${C.accent}22` : C.card,
-                          border: `1.5px solid ${ativo ? C.accent + "55" : C.border}`,
+                          background: ativo ? alfa(C.accent, "22") : C.card,
+                          border: `1.5px solid ${ativo ? alfa(C.accent, "55") : C.border}`,
                         }}>
                           <m.Icon size={24} />
                         </div>
@@ -585,15 +586,15 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                           background: C.surface, color: C.text,
                           fontSize: sz.fontXl - 2,
                         }}
-                        onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
+                        onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
                         onBlur={e => e.currentTarget.style.borderColor = C.border}
                       />
                     </div>
 
                     {singleRecebido > 0 && (
                       <div className="checkout-view__troco-resultado" style={{
-                        background: singleTroco >= 0 ? `${C.green}14` : `${C.accent}14`,
-                        border: `1.5px solid ${singleTroco >= 0 ? C.green : C.accent}55`,
+                        background: singleTroco >= 0 ? alfa(C.green, "14") : alfa(C.accent, "14"),
+                        border: `1.5px solid ${alfa(singleTroco >= 0 ? C.green : C.accent, "55")}`,
                       }}>
                         <span style={{ fontSize: sz.fontBase + 1, fontWeight: 700, color: C.muted }}>
                           {singleTroco >= 0 ? "Troco" : "Falta"}
@@ -639,7 +640,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                 style={{
                   background: podeConfirmar ? C.green : C.faint,
                   cursor: podeConfirmar ? "pointer" : "not-allowed",
-                  boxShadow: podeConfirmar ? `0 4px 20px ${C.green}44` : "none",
+                  boxShadow: podeConfirmar ? `0 4px 20px ${alfa(C.green, "44")}` : "none",
                 }}
               >
                 {confirmando ? "Processando..." : "✓ Confirmar Pagamento"}
@@ -679,10 +680,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                   <button key={t.id} onClick={() => setAjusteTipo(t.id)} className="checkout-view__modal-tipo-card" style={{
                     padding: `${sz.padSm}px 12px`,
                     border: `2px solid ${ajusteTipo === t.id ? t.color : C.border}`,
-                    background: ajusteTipo === t.id ? `${t.color}18` : C.surface,
+                    background: ajusteTipo === t.id ? alfa(t.color, "18") : C.surface,
                   }}>
                     <div style={{ fontWeight: 800, fontSize: sz.fontLg, color: ajusteTipo === t.id ? t.color : C.text }}>{t.label}</div>
-                    <div style={{ fontSize: sz.fontSm, color: ajusteTipo === t.id ? t.color + "bb" : C.muted, marginTop: 4 }}>{t.sub}</div>
+                    <div style={{ fontSize: sz.fontSm, color: ajusteTipo === t.id ? alfa(t.color, "bb") : C.muted, marginTop: 4 }}>{t.sub}</div>
                   </button>
                 ))}
               </div>
@@ -733,7 +734,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                       border: `2px solid ${C.border}`, background: C.surface, color: C.text,
                       fontSize: sz.fontXl + 4,
                     }}
-                    onFocus={e => e.currentTarget.style.borderColor = C.accent + "99"}
+                    onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "99")}
                     onBlur={e => e.currentTarget.style.borderColor = C.border}
                   />
                 </div>
@@ -746,12 +747,12 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                 const novoTotal = Math.max(0, ajusteTipo === "desconto" ? baseComTaxa - val : baseComTaxa + val);
                 const cor = ajusteTipo === "desconto" ? C.red : C.green;
                 return (
-                  <div className="checkout-view__preview" style={{ border: `1.5px solid ${cor}55`, background: `${cor}0c` }}>
-                    <div className="checkout-view__preview-linha" style={{ padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${cor}22` }}>
+                  <div className="checkout-view__preview" style={{ border: `1.5px solid ${alfa(cor, "55")}`, background: alfa(cor, "0c") }}>
+                    <div className="checkout-view__preview-linha" style={{ padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${alfa(cor, "22")}` }}>
                       <span style={{ fontSize: sz.fontBase, color: C.muted }}>Total atual</span>
                       <span style={{ fontSize: sz.fontBase, fontWeight: 700, color: C.muted }}>R$ {baseComTaxa.toFixed(2)}</span>
                     </div>
-                    <div className="checkout-view__preview-linha" style={{ padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${cor}22` }}>
+                    <div className="checkout-view__preview-linha" style={{ padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${alfa(cor, "22")}` }}>
                       <span style={{ fontSize: sz.fontBase, color: cor, fontWeight: 600 }}>{ajusteTipo === "desconto" ? "− Desconto" : "+ Acréscimo"}</span>
                       <span style={{ fontSize: sz.fontBase, fontWeight: 700, color: cor }}>{ajusteTipo === "desconto" ? "−" : "+"}R$ {val.toFixed(2)}</span>
                     </div>
@@ -791,7 +792,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                     background: parseFloat(ajusteValor) > 0 ? C.accent : C.faint,
                     fontSize: sz.fontLg,
                     cursor: parseFloat(ajusteValor) > 0 ? "pointer" : "not-allowed",
-                    boxShadow: parseFloat(ajusteValor) > 0 ? `0 4px 20px ${C.accent}44` : "none",
+                    boxShadow: parseFloat(ajusteValor) > 0 ? `0 4px 20px ${alfa(C.accent, "44")}` : "none",
                   }}
                 >
                   Aplicar
