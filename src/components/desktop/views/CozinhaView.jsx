@@ -3,8 +3,10 @@ import { useApp } from "@/context/AppContext";
 import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado } from "@/lib/cozinha";
+import { montarViaProducao } from "@/lib/impressao";
+import { renderizarViaProducao, abrirJanelaImpressao } from "@/lib/impressao/renderizar";
 import C from "@/constants/colors";
-import { LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck } from "react-icons/lu";
+import { LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -59,6 +61,15 @@ export default function CozinhaView() {
     }
   };
 
+  // F015 — via de produção: 1 clique, sem preço/jargão, só o que a
+  // cozinha precisa. Nunca lança: pop-up bloqueado vira um alerta simples.
+  const handleImprimirVia = (pedido) => {
+    const dados = montarViaProducao({ pedido });
+    const html = renderizarViaProducao(dados);
+    const { error } = abrirJanelaImpressao(html);
+    if (error) window.alert(error.message);
+  };
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
       {/* Header */}
@@ -101,6 +112,7 @@ export default function CozinhaView() {
                       processando={!!processando[pedido.id]}
                       onIniciarPreparo={() => handleIniciarPreparo(pedido)}
                       onMarcarPronto={() => handleMarcarPronto(pedido)}
+                      onImprimirVia={() => handleImprimirVia(pedido)}
                     />
                   ))
                 )}
@@ -113,7 +125,7 @@ export default function CozinhaView() {
   );
 }
 
-function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto }) {
+function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto, onImprimirVia }) {
   const referencia = pedido.status_cozinha === "em_preparo" ? pedido.em_preparo_em : pedido.created_at;
   const minutos = tempoDecorridoMin(referencia);
   const atrasado = estaAtrasado(pedido);
@@ -130,13 +142,26 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto 
         <span style={{ fontWeight: 800, fontSize: sz.fontBase }}>{fmtComanda(pedido.comanda)}</span>
         {pedido.mesa && <span style={{ fontSize: sz.fontSm, color: C.muted }}>🪑 {pedido.mesa}</span>}
         <span style={{
-          marginLeft: "auto", display: "flex", alignItems: "center", gap: 4,
+          display: "flex", alignItems: "center", gap: 4,
           fontSize: sz.fontSm - 1, fontWeight: 700,
           color: atrasado ? C.red : C.muted,
+          marginLeft: "auto",
         }}>
           {atrasado ? <LuTriangleAlert size={12} /> : <LuClock size={12} />}
           {minutos} min
         </span>
+        {/* F015 — via de produção, 1 clique */}
+        <button
+          onClick={onImprimirVia}
+          title="Imprimir via de produção"
+          style={{
+            background: "none", border: `1px solid ${C.border}`, borderRadius: 6,
+            color: C.muted, cursor: "pointer", padding: "4px 6px",
+            display: "flex", alignItems: "center", flexShrink: 0,
+          }}
+        >
+          <LuPrinter size={13} />
+        </button>
       </div>
 
       {/* Itens */}

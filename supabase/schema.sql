@@ -42,7 +42,8 @@ CREATE TABLE public.products (
   unidades_compra       jsonb   NOT NULL DEFAULT '[]',
   unidade_estoque       text    NOT NULL DEFAULT 'un',
   unidade_consumo       text,
-  fator_consumo_estoque numeric DEFAULT 1
+  fator_consumo_estoque numeric DEFAULT 1,
+  produzivel            boolean NOT NULL DEFAULT true -- F015, 20260721_produtos_produzivel.sql
 );
 
 -- ── pending (pedidos em aberto — Realtime habilitado) ─────────

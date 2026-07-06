@@ -1,0 +1,24 @@
+/**
+ * Layout térmico (58/80mm) — via de produção (cozinha). F015 · decisão
+ * 018. Enxuto de propósito: fonte maior, sem preço, sem jargão — o
+ * cozinheiro precisa ler rápido, de longe, no meio da correria.
+ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: "Courier New", monospace;
+  font-size: 15px;
+  color: #111;
+  width: 300px;
+  margin: 0 auto;
+  padding: 16px 8px;
+}
+.cabecalho { text-align: center; margin-bottom: 10px; }
+.cabecalho__titulo { font-size: 20px; font-weight: bold; }
+.cabecalho__linha { font-size: 14px; color: #333; margin-top: 4px; }
+hr { border: none; border-top: 1px dashed #aaa; margin: 8px 0; }
+.item { padding: 8px 2px; border-bottom: 1px dashed #ccc; }
+.item__linha { font-size: 17px; font-weight: bold; }
+.item__obs { font-size: 14px; color: #333; padding-left: 18px; margin-top: 2px; }
+.rodape { text-align: center; font-size: 12px; color: #666; margin-top: 14px; }
+@media print { body { width: 100%; } }
