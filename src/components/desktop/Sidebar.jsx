@@ -8,10 +8,12 @@ import C from "@/constants/colors";
 import { getSizes } from "@/constants/sizes";
 import { useResponsive } from "@/utils/hooks";
 import { normalizarPagamentos, totalTroco } from "@/utils/pagamentos";
+import MODULOS from "@/constants/modulos";
 import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
   LuHistory, LuX, LuUser, LuArrowLeft, LuShieldAlert, LuWallet, LuChefHat, LuUsers,
+  LuSparkles,
 } from "react-icons/lu";
 
 const NAV_ICONS = {
@@ -27,7 +29,8 @@ const NAV_ICONS = {
 };
 
 export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogout, onBackToChoice, onClose }) {
-  const { currentUser, pending, sales, sessaoAbertaEm, users } = useApp();
+  const { currentUser, pending, sales, sessaoAbertaEm, users, moduloHabilitado } = useApp();
+  const [upgradeInfo, setUpgradeInfo] = useState(null); // { label } — módulo bloqueado pelo plano atual
   const { width } = useResponsive();
   const sz = getSizes(width);
   const role    = ROLES[currentUser?.role] || ROLES.garcom;
@@ -67,19 +70,24 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
   const relatorioVisivel = temRelatorio || !!currentUser?.permissions?.pdv;
 
   const allItems = [
-    { to: "/app/pdv",       label: "Frente de Caixa",  perm: "pdv",      badge: pending.length || null },
-    { to: "/app/cozinha",   label: "Cozinha",          perm: "cozinha"   },
-    { to: "/app/clientes",  label: "Clientes",          perm: "clientes"  },
-    { to: "/app/produtos",  label: "Cadastro Produtos", perm: "produtos"  },
-    { to: "/app/relatorio", label: "Relatório",         perm: "relatorio", extra: relatorioVisivel },
+    { to: "/app/pdv",       label: "Frente de Caixa",  perm: "pdv",      badge: pending.length || null, modulo: MODULOS.PDV },
+    { to: "/app/cozinha",   label: "Cozinha",          perm: "cozinha",  modulo: MODULOS.COZINHA },
+    { to: "/app/clientes",  label: "Clientes",          perm: "clientes", modulo: MODULOS.CLIENTES },
+    { to: "/app/produtos",  label: "Cadastro Produtos", perm: "produtos", modulo: MODULOS.CARDAPIO },
+    { to: "/app/relatorio", label: "Relatório",         perm: "relatorio", extra: relatorioVisivel, modulo: MODULOS.RELATORIOS },
   ].filter(item => currentUser?.permissions?.[item.perm] || item.extra);
 
   const bottomItems = [
-    { to: "/app/estoque",       label: "Estoque",        perm: "estoque"       },
-    { to: "/app/financeiro",    label: "Financeiro",     perm: "financeiro"    },
+    { to: "/app/estoque",       label: "Estoque",        perm: "estoque",       modulo: MODULOS.ESTOQUE    },
+    { to: "/app/financeiro",    label: "Financeiro",     perm: "financeiro",    modulo: MODULOS.FINANCEIRO },
     { to: "/app/admin",         label: "Área Admin",     perm: "configuracoes" },
     { to: "/app/configuracoes", label: "Configurações",  perm: "configuracoes" },
   ].filter(item => currentUser?.permissions?.[item.perm]);
+
+  // Fase 2 (ADR-005) — gating por plano: item com permissão de papel OK mas
+  // módulo fora do plano do tenant aparece bloqueado (convite a upgrade),
+  // nunca escondido nem quebrado (princípio nº 1 — intuitividade).
+  const bloqueadoPorPlano = (item) => !!item.modulo && !moduloHabilitado(item.modulo);
 
   const linkStyle = (isActive) => ({
     width: "100%", padding: "12px 20px", background: isActive ? C.alow : "none",
@@ -114,6 +122,22 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
           </span>
         ) : null}
       </NavLink>
+    );
+  };
+
+  // Item fora do plano atual: visível, mas bloqueado com convite a upgrade
+  // (nunca escondido, nunca leva a tela quebrada — princípio nº 1).
+  const LockedByPlanoItem = ({ item }) => {
+    const Icon = NAV_ICONS[item.to] ?? LuReceipt;
+    return (
+      <button
+        onClick={() => setUpgradeInfo({ label: item.label })}
+        style={{ ...linkStyle(false), opacity: 0.55, cursor: "pointer" }}
+      >
+        <Icon size={sz.fontBase} />
+        <span style={{ flex: 1 }}>{item.label}</span>
+        <LuSparkles size={13} style={{ opacity: 0.8 }} />
+      </button>
     );
   };
 
@@ -178,6 +202,8 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                 <span style={{ flex: 1 }}>{item.label}</span>
                 <LuLock size={13} style={{ opacity: 0.6 }} />
               </button>
+            ) : bloqueadoPorPlano(item) ? (
+              <LockedByPlanoItem item={item} />
             ) : (
               <NavItem item={item} />
             )}
@@ -487,8 +513,58 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
       {/* Estoque + Configurações */}
       {bottomItems.length > 0 && (
         <div style={{ borderTop: `1px solid ${C.border}`, padding: "8px 0" }}>
-          {bottomItems.map(item => <NavItem key={item.to} item={item} />)}
+          {bottomItems.map(item => bloqueadoPorPlano(item)
+            ? <LockedByPlanoItem key={item.to} item={item} />
+            : <NavItem key={item.to} item={item} />
+          )}
         </div>
+      )}
+
+      {/* Modal — módulo fora do plano atual (convite a upgrade, princípio nº 1) */}
+      {upgradeInfo && createPortal(
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setUpgradeInfo(null); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9100,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
+          }}
+        >
+          <div style={{
+            background: C.card, borderRadius: 20, padding: 28,
+            width: "100%", maxWidth: 400, border: `1px solid ${C.border}`,
+            display: "flex", flexDirection: "column", gap: 16,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <LuSparkles size={22} color={C.accent} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 17 }}>{upgradeInfo.label} não está no seu plano</div>
+                <div style={{ fontSize: 16, color: C.muted, marginTop: 2 }}>
+                  Fale com o suporte para habilitar esse recurso no seu plano.
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setUpgradeInfo(null)}
+              style={{
+                padding: 12, borderRadius: 10, border: "none",
+                background: C.accent, color: "#fff", cursor: "pointer",
+                fontWeight: 700, fontSize: 16, fontFamily: "inherit",
+              }}
+            >
+              Entendi
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Fechar/Abrir Caixa */}

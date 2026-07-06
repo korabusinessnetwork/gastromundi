@@ -27,7 +27,7 @@ export function createMockSupabase() {
     calls.push(record);
 
     const builder = {};
-    const chainable = ["select", "eq", "neq", "order", "limit", "gte", "lte", "in", "match", "or", "single"];
+    const chainable = ["select", "eq", "neq", "order", "limit", "gte", "lte", "in", "match", "or", "single", "maybeSingle"];
     for (const m of chainable) {
       builder[m] = vi.fn((...a) => {
         calls.push({ table, method: m, args: a });

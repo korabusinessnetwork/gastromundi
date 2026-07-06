@@ -51,6 +51,11 @@ export function createAppMockValue(overrides = {}) {
     caixaAberto: true,
     sessaoAbertaEm: null,
     meiosPagamento: ["dinheiro", "credito", "debito", "pix"],
+    // Fase 2 — camada de comercialização: por padrão nos testes, todos os
+    // módulos habilitados (equivalente ao tenant real hoje, plano avançado)
+    // — sobrescreva `tenant`/`moduloHabilitado` nos testes de gating.
+    tenant: { id: "t1", nome: "GastroMundi", tema: {}, planoCodigo: "avancado", modulosDisponiveis: null },
+    moduloHabilitado: () => true,
     estoque: {},
     estoqueMinimos: {},
     currentUser: { id: 1, name: "Operador Teste", username: "teste", role: "admin", permissions: {} },

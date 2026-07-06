@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import { getPermissions } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
+import { buscarBootstrapTenant, moduloHabilitado } from "@/lib/tenant";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
@@ -31,6 +32,7 @@ export function AppProvider({ children }) {
   const [taxaServico,     setTaxaServicoLocal]    = useState(false);
   const [estoque,         setEstoqueLocal]        = useState({});
   const [estoqueMinimos,  setEstoqueMinimosLocal] = useState({});
+  const [tenant,          setTenantLocal]         = useState(null); // Fase 1 — camada de comercialização (ADR-005)
   const [loading,       setLoading]          = useState(true);
   // IDs de comandas com pedido lançado na sessão atual (sobrevive troca de aba)
   const [lancadas,    setLancadas]         = useState(new Set());
@@ -151,6 +153,7 @@ export function AppProvider({ children }) {
         { data: fechamentosData, error: eFech  },
         { data: configData,   error: eConfig   },
         { data: estoqueData,  error: eEstoque  },
+        { data: tenantData,   error: eTenant   },
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
         supabase.from("pending").select("*").order("created_at", { ascending: false }),
@@ -160,6 +163,8 @@ export function AppProvider({ children }) {
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
         supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
+        // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
+        buscarBootstrapTenant(),
       ]);
 
       if (eUsers)    console.error("[bootstrap] users error:", eUsers);
@@ -168,6 +173,7 @@ export function AppProvider({ children }) {
       if (eFech)     console.error("[bootstrap] fechamentos error:", eFech);
       if (eConfig)   console.error("[bootstrap] config error:", eConfig);
       if (eEstoque)  console.error("[bootstrap] estoque error:", eEstoque);
+      if (eTenant)   console.error("[bootstrap] tenant error:", eTenant);
 
       if (productsData?.length)    setProductsLocal(productsData);
       if (pendingData)             setPendingLocal(pendingData);
@@ -202,6 +208,8 @@ export function AppProvider({ children }) {
         const custom = configData.find(c => c.key === "metodos_custom");
         if (custom?.value && Array.isArray(custom.value)) setMetodosCustomLocal(custom.value);
       }
+
+      if (tenantData) setTenantLocal(tenantData);
 
       setLoading(false);
   }
@@ -514,10 +522,16 @@ export function AppProvider({ children }) {
   // ── Context value ─────────────────────────────────────────────
   const addLancada = (id) => setLancadas(prev => new Set([...prev, id]));
 
+  // Fase 2 — camada de comercialização (ADR-005): única fonte de gating por
+  // plano no front. Sidebar/rotas/telas novas devem checar por aqui, nunca
+  // comparar tenant.planoCodigo diretamente.
+  const moduloHabilitadoNoPlano = (modulo) => moduloHabilitado(tenant?.modulosDisponiveis, modulo);
+
   const value = {
     loading,
     // dados
     products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, estoque, estoqueMinimos,
+    tenant, moduloHabilitado: moduloHabilitadoNoPlano,
     currentUser, isMobile, mobileChoice,
     lancadas, addLancada,
     // setter simples (sem persistência)
