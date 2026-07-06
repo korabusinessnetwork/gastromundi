@@ -47,7 +47,15 @@ A Cozinha consome os pedidos criados no fluxo de venda (decisão 009): assim que
 - Comanda que passou do tempo é destacada para priorização.
 
 ## Critérios de Aceite
-- [ ] `pedido.criado` exibe comanda no KDS em tempo real
-- [ ] Avanço de preparo atualiza o Pedido e emite eventos
-- [ ] Tempo decorrido visível e atraso destacado
-- [ ] Tema escuro legível em ambiente de cozinha (ver Design System)
+- [x] `pedido.criado` exibe comanda no KDS em tempo real
+- [x] Avanço de preparo atualiza o Pedido e emite eventos
+- [x] Tempo decorrido visível e atraso destacado
+- [x] Tema escuro legível em ambiente de cozinha (ver Design System)
+
+## Estado da Implementação
+
+| Fase | Descrição | Status |
+|------|-----------|--------|
+| 1 | KDS (`src/components/desktop/views/CozinhaView.jsx`) com 3 colunas por status (`aguardando`/`em_preparo`/`pronto`) — cada card mostra comanda/mesa, itens, observações e tempo decorrido, com destaque visual para atrasados (SLA fixo de 15min nesta fase, `SLA_MINUTOS_PADRAO` em `src/lib/cozinha.js`). Ações `iniciarPreparo`/`marcarPronto` (`src/lib/cozinha.js`) fazem a transição com guard otimista (evita duas estações avançarem a mesma comanda) e emitem `pedido.em_preparo`/`pedido.pronto` + log de auditoria. Realtime via `usePedidosCozinha` (`src/utils/hooks.js`, mesmo padrão de `useMesas`). **Nota de modelagem:** o "pedido" aqui é a própria comanda em `public.pending` (colunas `status_cozinha`/`em_preparo_em`/`pronto_em`, migração `20260711_cozinha_kds.sql`) — não existe tabela `pedidos`/`pedido_itens` separada como `docs/09_BACKLOG/mvp_operacional.md` descreve (modelo-alvo, não o estado atual; ver ADR-004). | ✅ 2026-07-06 |
+| 2 | Múltiplas estações de produção, roteamento de itens por estação, SLA configurável por produto/estabelecimento | Pendente |
+| 3 | Métricas de tempo médio por item, fallback de impressão, itens não produzíveis configuráveis para não entrar no KDS | Roadmap |

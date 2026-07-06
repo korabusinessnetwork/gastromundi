@@ -9,7 +9,7 @@ export const ROLES = {
     permissions: {
       pdv: false, produtos: false, relatorio: false,
       configuracoes: false, transferir: false, palm: true, estoque: false,
-      financeiro: false,
+      financeiro: false, cozinha: true,
     },
   },
   caixa: {
@@ -20,7 +20,7 @@ export const ROLES = {
     permissions: {
       pdv: true, produtos: false, relatorio: false,
       configuracoes: false, transferir: true, palm: true, estoque: false,
-      financeiro: false,
+      financeiro: false, cozinha: true,
     },
   },
   gerente: {
@@ -31,7 +31,7 @@ export const ROLES = {
     permissions: {
       pdv: true, produtos: true, relatorio: true,
       configuracoes: false, transferir: true, palm: true, estoque: true,
-      financeiro: true,
+      financeiro: true, cozinha: true,
     },
   },
   admin: {
@@ -42,16 +42,16 @@ export const ROLES = {
     permissions: {
       pdv: true, produtos: true, relatorio: true,
       configuracoes: true, transferir: true, palm: true, estoque: true,
-      financeiro: true,
+      financeiro: true, cozinha: true,
     },
   },
 };
 
 export const ROLE_FEATURES = {
-  garcom:  ["Palm — tirar pedidos"],
-  caixa:   ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas"],
-  gerente: ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Financeiro"],
-  admin:   ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Configurações", "Financeiro"],
+  garcom:  ["Palm — tirar pedidos", "Cozinha (KDS)"],
+  caixa:   ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Cozinha (KDS)"],
+  gerente: ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Financeiro", "Cozinha (KDS)"],
+  admin:   ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Configurações", "Financeiro", "Cozinha (KDS)"],
 };
 
 export const getPermissions = (role) =>

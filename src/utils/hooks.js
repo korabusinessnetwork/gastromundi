@@ -130,3 +130,58 @@ export function useMesas() {
 
   return { mesas, loading };
 }
+
+/**
+ * usePedidosCozinha — busca as comandas com itens lançados (o "pedido"
+ * desta base, ver src/lib/cozinha.js) e sincroniza via realtime.
+ * Usado pelo KDS (F007 — docs/03_REGRAS_DE_NEGOCIO/COZINHA.md).
+ */
+export function usePedidosCozinha() {
+  const [pedidos, setPedidos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const CAMPOS = "id,comanda,mesa,apelido,items,status,status_cozinha,garcom,created_at,em_preparo_em,pronto_em";
+
+  useEffect(() => {
+    supabase
+      .from("pending")
+      .select(CAMPOS)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        setPedidos((data ?? []).filter(p => Array.isArray(p.items) && p.items.length > 0));
+        setLoading(false);
+      });
+  }, []);
+
+  // Requer Realtime habilitado na tabela `pending` (Database → Replication).
+  useEffect(() => {
+    const channel = supabase
+      .channel("cozinha-pedidos-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pending" }, (payload) => {
+        if (payload.eventType === "INSERT") {
+          const novo = payload.new;
+          if (!Array.isArray(novo.items) || novo.items.length === 0) return;
+          setPedidos(prev => prev.find(p => p.id === novo.id) ? prev : [...prev, novo]);
+        } else if (payload.eventType === "UPDATE") {
+          const atualizado = payload.new;
+          setPedidos(prev => {
+            if (!Array.isArray(atualizado.items) || atualizado.items.length === 0) {
+              return prev.filter(p => p.id !== atualizado.id);
+            }
+            const existe = prev.find(p => p.id === atualizado.id);
+            return existe
+              ? prev.map(p => (p.id === atualizado.id ? atualizado : p))
+              : [...prev, atualizado];
+          });
+        } else if (payload.eventType === "DELETE") {
+          // Comanda finalizada/cancelada — sai do painel (mesma regra de COZINHA.md).
+          setPedidos(prev => prev.filter(p => p.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  return { pedidos, loading };
+}
