@@ -1,0 +1,180 @@
+/**
+ * F018 — leva 1 (núcleo do PDV). Decisão 018 + tokens --gm-* (ADR-007).
+ *
+ * ComandaGrid tem muita cor CONDICIONAL (selecionada × visitada × com
+ * itens × hover, ao mesmo tempo) — mover cada combinação pra classe
+ * CSS puro exigiria uma explosão de seletores e um risco real de
+ * regressão visual num fluxo crítico de toque. Nesta leva: o que é
+ * FIXO (padding não responsivo, layout, cursor, transições, bordas
+ * arredondadas) virou classe; as cores condicionais continuam
+ * calculadas em JS, mas usando `var(--gm-*)` em vez de hex cru — já
+ * ficam corretas se o tenant sobrescrever o tema (Fase 6), e uma
+ * extração mais profunda por classes fica para uma leva futura,
+ * dedicada só a isso (evita rushed change no fluxo de pagamento).
+ */
+
+.comanda-grid__vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 60px;
+  color: var(--gm-muted);
+}
+
+.comanda-grid__vazio-icone {
+  font-size: 44px;
+  opacity: 0.3;
+}
+
+.comanda-grid__lista-busca {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 auto;
+}
+
+.comanda-grid__slot-disponivel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--gm-text);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.comanda-grid__slot-icone {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  font-weight: 900;
+}
+
+.comanda-grid__item-busca {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--gm-text);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.comanda-grid__badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.comanda-grid__tag-mesa {
+  font-weight: 700;
+  border-radius: 5px;
+  padding: 1px 6px;
+}
+
+.comanda-grid__garcom {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.comanda-grid__paginacao {
+  display: flex;
+  justify-content: center;
+}
+
+.comanda-grid__ver-mais {
+  padding: 10px 36px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.comanda-grid__ver-mais:hover {
+  background: var(--gm-surface);
+}
+
+/* ── ComandaCard ── */
+
+.comanda-card {
+  border-radius: 16px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.2s, opacity 0.15s, border-style 0.1s;
+  /* alvo de toque generoso (princípio nº 1 — PDV é tela de toque) */
+  min-height: 110px;
+}
+
+.comanda-card__topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.comanda-card__numero {
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.comanda-card__tempo {
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.comanda-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+
+.comanda-card__rodape {
+  border-top: 1px solid var(--gm-border);
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.comanda-card__rodape-tag {
+  border-radius: 6px;
+}
+
+.comanda-card__rodape-total {
+  font-weight: 800;
+}

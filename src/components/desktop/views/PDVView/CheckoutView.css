@@ -1,0 +1,553 @@
+/**
+ * F018 — leva 1 (núcleo do PDV). Decisão 018 — extração estrutural
+ * (layout/cursor/transições/bordas fixas) para .css. Cores continuam
+ * em `C` (muitas usam hex+alfa condicional — ver nota em
+ * ComandaGrid.jsx sobre por que isso não é tokenizado nesta leva).
+ */
+
+@keyframes checkout-slide-in {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.checkout-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: checkout-slide-in 0.22s ease;
+}
+
+.checkout-view__header {
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--gm-border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+  /* telas estreitas: quebra em vez de espremer os botões do header (responsividade) */
+  flex-wrap: wrap;
+}
+
+.checkout-view__btn-voltar {
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 700;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.checkout-view__titulo {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.checkout-view__subtitulo {
+  color: var(--gm-muted);
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.checkout-view__btn-ajuste {
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 10px 18px;
+  font-weight: 700;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.checkout-view__body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.checkout-view__resumo {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.checkout-view__resumo-lista {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.checkout-view__resumo-titulo {
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 20px;
+}
+
+.checkout-view__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.checkout-view__item-icone {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.checkout-view__item-nome {
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.checkout-view__item-obs {
+  margin-top: 5px;
+  border-radius: 6px;
+  padding: 3px 8px;
+  display: inline-block;
+}
+
+.checkout-view__item-total {
+  font-weight: 800;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.checkout-view__resumo-rodape {
+  flex-shrink: 0;
+  border-top: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.checkout-view__linha-ajuste {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+}
+
+.checkout-view__total-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  margin-top: 8px;
+  border-top: 2px solid var(--gm-border);
+}
+
+.checkout-view__pagamento {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.checkout-view__pagamento-header {
+  padding: 24px 32px 14px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.checkout-view__pagamento-titulo {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 4px;
+}
+
+.checkout-view__btn-divisor {
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.checkout-view__stepper {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  /* telas estreitas: divisor de pagamento não deve estourar a largura (responsividade) */
+  flex-wrap: wrap;
+}
+
+.checkout-view__stepper-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+
+/* ── Modo split ── */
+
+.checkout-view__split-lista {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkout-view__split-item {
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkout-view__split-metodos {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.checkout-view__chip-metodo {
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.12s;
+}
+
+.checkout-view__split-valor-wrap {
+  position: relative;
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.checkout-view__input-prefixo {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.checkout-view__split-input {
+  width: 100%;
+  padding: 8px 8px 8px 34px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.checkout-view__btn-remover-split {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  transition: color 0.12s;
+}
+
+.checkout-view__split-recebido {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkout-view__recebido-input {
+  width: 100%;
+  padding: 6px 8px 6px 34px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.checkout-view__falta-alocar {
+  padding: 10px 14px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checkout-view__btn-adicionar-outro {
+  padding: 11px;
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+/* ── Modo single ── */
+
+.checkout-view__single {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 32px;
+  gap: 20px;
+  overflow: hidden;
+}
+
+.checkout-view__metodos-grid {
+  flex: 1;
+  display: grid;
+  gap: 14px;
+}
+
+.checkout-view__metodo-card {
+  border-radius: 16px;
+  cursor: pointer;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  /* alvo de toque generoso (princípio nº 1 — PDV é tela de toque) */
+  min-height: 110px;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.checkout-view__metodo-icone {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.checkout-view__troco {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.checkout-view__troco-label {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+}
+
+.checkout-view__troco-input-wrap {
+  position: relative;
+}
+
+.checkout-view__troco-prefixo {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 700;
+}
+
+.checkout-view__troco-input {
+  width: 100%;
+  padding: 16px 18px 16px 56px;
+  border-radius: 12px;
+  font-weight: 700;
+  box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.checkout-view__troco-resultado {
+  padding: 16px 20px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checkout-view__rodape-confirmar {
+  padding: 20px 32px 28px;
+  border-top: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkout-view__aviso-confirmar {
+  font-size: 16px;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.checkout-view__btn-confirmar {
+  width: 100%;
+  padding: 18px;
+  border-radius: 14px;
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.3px;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+/* ── Popup Desconto/Acréscimo ── */
+
+.checkout-view__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9300;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.checkout-view__modal {
+  border-radius: 20px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+.checkout-view__modal-header {
+  border-bottom: 1px solid var(--gm-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checkout-view__modal-fechar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.checkout-view__modal-tipo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.checkout-view__modal-tipo-card {
+  border-radius: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.checkout-view__modal-modo {
+  display: flex;
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.checkout-view__modal-modo-btn {
+  flex: 1;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.checkout-view__modal-input-wrap {
+  position: relative;
+}
+
+.checkout-view__modal-input-prefixo {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 700;
+  pointer-events: none;
+  user-select: none;
+}
+
+.checkout-view__modal-input {
+  width: 100%;
+  border-radius: 12px;
+  box-sizing: border-box;
+  font-weight: 800;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.checkout-view__preview {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.checkout-view__preview-linha {
+  display: flex;
+  justify-content: space-between;
+}
+
+.checkout-view__modal-acoes {
+  display: flex;
+}
+
+.checkout-view__modal-btn-remover {
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.checkout-view__modal-btn-aplicar {
+  border-radius: 10px;
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  font-family: inherit;
+  transition: background 0.15s, box-shadow 0.15s;
+}

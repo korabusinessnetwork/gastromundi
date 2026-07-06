@@ -1,0 +1,377 @@
+/**
+ * F018 — leva 1 (núcleo do PDV). Decisão 018 — extração estrutural
+ * (layout/cursor/transições/bordas fixas) para .css. Cores continuam
+ * em `C` (src/constants/colors.js): a maior parte usa hex+alfa
+ * (`${C.red}14` etc.) para transparência condicional — ver nota em
+ * ComandaGrid.jsx sobre por que isso não é tokenizado nesta leva
+ * (CSS Custom Properties não suportam sufixo de alfa em hex; um
+ * color-mix() mudaria a opacidade exata renderizada).
+ */
+
+.cart-panel {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cart-panel__header {
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.cart-panel__garcom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cart-panel__lista {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.cart-panel__vazio {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.cart-panel__secao-titulo {
+  padding: 10px 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.cart-panel__item {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cart-panel__item--transicao {
+  transition: opacity 0.2s;
+}
+
+.cart-panel__item-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cart-panel__item-nome {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cart-panel__item-nome-texto {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.cart-panel__btn-obs {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px 3px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.cart-panel__qty-controles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cart-panel__qty-valor {
+  width: 28px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.cart-panel__qty-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cart-panel__btn-remover {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.cart-panel__preco-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cart-panel__obs-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 5px 8px;
+}
+
+.cart-panel__obs-remover {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 1px 2px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+}
+
+.cart-panel__obs-draft {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.cart-panel__obs-input {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 8px;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.cart-panel__obs-confirmar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-panel__rodape {
+  border-top: 1px solid var(--gm-border);
+}
+
+.cart-panel__total-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cart-panel__btn-lancar {
+  width: 100%;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: 8px;
+  transition: background 0.2s;
+}
+
+.cart-panel__btn-finalizar {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Popups (exclusão / finalização) — mesma casca ── */
+
+.cart-panel__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.cart-panel__modal {
+  background: var(--gm-card);
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  color: var(--gm-text);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cart-panel__modal-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cart-panel__modal-icone {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-panel__modal-nome-item {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cart-panel__stepper {
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+
+.cart-panel__stepper-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+
+.cart-panel__stepper-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-panel__stepper-input {
+  width: 64px;
+  text-align: center;
+  font-weight: 900;
+  border-radius: 9px;
+  padding: 4px 6px;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.cart-panel__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cart-panel__label {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cart-panel__textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  outline: none;
+  resize: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+  line-height: 1.5;
+  font-family: inherit;
+}
+
+.cart-panel__senha-wrap {
+  position: relative;
+}
+
+.cart-panel__senha-input {
+  width: 100%;
+  padding: 11px 42px 11px 14px;
+  border-radius: 10px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.cart-panel__senha-olho {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+}
+
+.cart-panel__modal-botoes {
+  display: flex;
+  gap: 10px;
+}
+
+.cart-panel__modal-botao {
+  flex: 1;
+  padding: 13px 0;
+  border-radius: 12px;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.cart-panel__modal-botao--primario {
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.cart-panel__resumo-finalizar {
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}

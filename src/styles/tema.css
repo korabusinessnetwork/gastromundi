@@ -26,4 +26,6 @@
   --gm-text: #eef2f7;
   --gm-muted: #9aa8c4;
   --gm-faint: #323d58;
+  /* Overlay translúcido do accent (estados ativo/pressionado) — F018 */
+  --gm-alow: rgba(124, 58, 237, 0.13);
 }

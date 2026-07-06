@@ -6,6 +6,7 @@ import { getSizes } from "@/constants/sizes";
 import { useApp } from "@/context/AppContext";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
+import "./CartPanel.css";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -85,31 +86,28 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
   const isMob = sz.cartWidth === 0;
 
   return (
-    <div style={{
+    <div className="cart-panel" style={{
       width: isMob ? "100%" : sz.cartWidth,
       flex: isMob ? 1 : undefined,
-      flexShrink: 0,
       borderLeft: isMob ? "none" : `1px solid ${C.border}`,
       borderTop: isMob ? `1px solid ${C.border}` : "none",
       background: C.card,
-      display: "flex", flexDirection: "column",
-      overflow: "hidden",
     }}>
 
       {/* Header */}
-      <div style={{ padding: `${sz.padSm + 4}px ${sz.pad - 4}px`, borderBottom: `1px solid ${C.border}` }}>
+      <div className="cart-panel__header" style={{ padding: `${sz.padSm + 4}px ${sz.pad - 4}px` }}>
         <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>{fmtComanda(comanda?.comanda)}</div>
         {comanda?.garcom && (
-          <div style={{ fontSize: sz.fontBase - 1, color: C.muted, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+          <div className="cart-panel__garcom" style={{ fontSize: sz.fontBase - 1, color: C.muted, marginTop: 4 }}>
             <LuUser size={12} /> {comanda.garcom}
           </div>
         )}
       </div>
 
       {/* Lista de itens */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div className="cart-panel__lista">
         {!temItens ? (
-          <div style={{ color: C.muted, fontSize: sz.fontBase, textAlign: "center", padding: "32px 16px" }}>
+          <div className="cart-panel__vazio" style={{ color: C.muted, fontSize: sz.fontBase }}>
             Clique nos produtos para adicionar
           </div>
         ) : (
@@ -117,13 +115,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
           {/* Itens já lançados */}
           {itensAcumulados.length > 0 && (
             <>
-              <div style={{
-                padding: "10px 18px",
-                fontSize: 18, fontWeight: 700, color: C.muted,
-                textTransform: "uppercase", letterSpacing: 1,
-                borderBottom: `1px solid ${C.border}`,
-                background: C.bg,
-              }}>
+              <div className="cart-panel__secao-titulo" style={{ fontSize: 18, color: C.muted, background: C.bg }}>
                 Lançados ({itensAtivos.reduce((s, i) => s + (i.qty ?? 1), 0)})
                 {itensAcumulados.some(i => i.cancelado) && (
                   <span style={{ color: C.red, marginLeft: 8 }}>
@@ -136,24 +128,19 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                 const obsArr   = Array.isArray(item.obs) ? item.obs : (item.obs ? [item.obs] : []);
                 const cancelado = !!item.cancelado;
                 return (
-                  <div key={idx} style={{
-                    padding: "14px 18px",
-                    borderBottom: `1px solid ${C.border}`,
-                    display: "flex", flexDirection: "column", gap: 8,
+                  <div key={idx} className="cart-panel__item cart-panel__item--transicao" style={{
                     background: cancelado ? `${C.red}08` : C.surface,
                     opacity: cancelado ? 0.7 : 1,
-                    transition: "opacity 0.2s",
                   }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div className="cart-panel__item-linha">
                       {item.emoji && (
                         <span style={{ fontSize: 22, flexShrink: 0, filter: cancelado ? "grayscale(1)" : "none" }}>
                           {item.emoji}
                         </span>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          fontSize: sz.fontBase + 2, fontWeight: 700,
-                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                        <div className="cart-panel__item-nome-texto" style={{
+                          fontSize: sz.fontBase + 2,
                           textDecoration: cancelado ? "line-through" : "none",
                           color: cancelado ? C.muted : C.text,
                         }}>
@@ -185,14 +172,8 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                           <button
                             onClick={() => abrirExcluir("lancado", idx, item)}
                             title="Cancelar item"
-                            style={{
-                              width: 34, height: 34, borderRadius: 8,
-                              border: `1px solid ${C.red}44`,
-                              background: `${C.red}10`,
-                              color: C.red, cursor: "pointer",
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              transition: "background 0.15s",
-                            }}
+                            className="cart-panel__btn-remover"
+                            style={{ border: `1px solid ${C.red}44`, background: `${C.red}10`, color: C.red }}
                             onMouseEnter={e => e.currentTarget.style.background = `${C.red}22`}
                             onMouseLeave={e => e.currentTarget.style.background = `${C.red}10`}
                           >
@@ -218,13 +199,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
           {/* Itens no carrinho (novos) */}
           {items.length > 0 && (
-            <div style={{
-              padding: "10px 18px",
-              fontSize: 18, fontWeight: 700, color: C.muted,
-              textTransform: "uppercase", letterSpacing: 1,
-              borderBottom: `1px solid ${C.border}`,
-              background: C.bg,
-            }}>
+            <div className="cart-panel__secao-titulo" style={{ fontSize: 18, color: C.muted, background: C.bg }}>
               Adicionando ({items.reduce((s, i) => s + i.qty, 0)})
             </div>
           )}
@@ -233,53 +208,33 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
             const hasDraft = drafts[i] !== undefined;
             const hasObs   = obsArr.length > 0 || hasDraft;
             return (
-              <div key={item._key ?? i} style={{
-                padding: "14px 18px",
-                borderBottom: `1px solid ${C.border}`,
-                display: "flex", flexDirection: "column", gap: 10,
-              }}>
+              <div key={item._key ?? i} className="cart-panel__item" style={{ gap: 10 }}>
                 {/* Linha 1: nome + obs icon + qty + excluir */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{
-                      fontSize: sz.fontBase + 2, fontWeight: 700,
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                      minWidth: 0,
-                    }}>
+                <div className="cart-panel__item-linha">
+                  <div className="cart-panel__item-nome">
+                    <div className="cart-panel__item-nome-texto" style={{ fontSize: sz.fontBase + 2, minWidth: 0 }}>
                       {item.name}
                     </div>
                     <button
                       onClick={() => addObsDraft(i)}
                       title="Adicionar observação"
-                      style={{
-                        background: "none", border: "none",
-                        color: hasObs ? C.accent : C.muted,
-                        cursor: "pointer", padding: "3px 3px",
-                        borderRadius: 6, flexShrink: 0,
-                        display: "flex", alignItems: "center",
-                      }}
+                      className="cart-panel__btn-obs"
+                      style={{ color: hasObs ? C.accent : C.muted }}
                     >
                       <LuFileText size={16} />
                     </button>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <div className="cart-panel__qty-controles">
                     <QtyBtn onClick={() => onChangeQty(i, item.qty - 1)} label="−" />
-                    <span style={{ width: 28, textAlign: "center", fontWeight: 800, fontSize: sz.fontBase + 2 }}>
+                    <span className="cart-panel__qty-valor" style={{ fontSize: sz.fontBase + 2 }}>
                       {item.qty}
                     </span>
                     <QtyBtn onClick={() => onChangeQty(i, item.qty + 1)} label="+" />
                     <button
                       onClick={() => abrirExcluir("carrinho", i, item)}
                       title="Remover item"
-                      style={{
-                        width: 34, height: 34, borderRadius: 8,
-                        border: `1px solid ${C.red}44`,
-                        background: `${C.red}10`,
-                        color: C.red, cursor: "pointer",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        flexShrink: 0,
-                        transition: "background 0.15s",
-                      }}
+                      className="cart-panel__btn-remover"
+                      style={{ border: `1px solid ${C.red}44`, background: `${C.red}10`, color: C.red }}
                       onMouseEnter={e => e.currentTarget.style.background = `${C.red}22`}
                       onMouseLeave={e => e.currentTarget.style.background = `${C.red}10`}
                     >
@@ -289,7 +244,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                 </div>
 
                 {/* Linha 2: preço · subtotal */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div className="cart-panel__preco-linha">
                   <span style={{ fontSize: sz.fontSm + 2, color: C.muted, flex: 1 }}>
                     R$ {Number(item.price).toFixed(2)} cada
                   </span>
@@ -300,22 +255,11 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
                 {/* Observações confirmadas */}
                 {obsArr.map((obs, j) => (
-                  <div key={j} style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    background: C.alow, border: `1px solid ${C.accent}44`,
-                    borderRadius: 8, padding: "5px 8px",
-                  }}>
+                  <div key={j} className="cart-panel__obs-chip" style={{ background: C.alow, border: `1px solid ${C.accent}44` }}>
                     <span style={{ flex: 1, fontSize: sz.fontSm + 1, color: C.accent, fontWeight: 600, lineHeight: 1.4 }}>
                       {obs}
                     </span>
-                    <button
-                      onClick={() => removeObs(i, j)}
-                      style={{
-                        background: "none", border: "none", color: C.muted,
-                        cursor: "pointer", padding: "1px 2px", flexShrink: 0,
-                        display: "flex", alignItems: "center", borderRadius: 4,
-                      }}
-                    >
+                    <button onClick={() => removeObs(i, j)} className="cart-panel__obs-remover" style={{ color: C.muted }}>
                       <LuX size={12} />
                     </button>
                   </div>
@@ -323,7 +267,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
                 {/* Campo de nova obs (draft) */}
                 {hasDraft && (
-                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <div className="cart-panel__obs-draft">
                     <input
                       autoFocus
                       value={drafts[i]}
@@ -331,23 +275,10 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                       onKeyDown={e => { if (e.key === "Enter") confirmDraft(i); if (e.key === "Escape") setDrafts(prev => { const n = { ...prev }; delete n[i]; return n; }); }}
                       placeholder="Observação do item..."
                       maxLength={120}
-                      style={{
-                        flex: 1, padding: "7px 10px",
-                        borderRadius: 8, border: `1px solid ${C.border}`,
-                        background: C.surface, color: C.text,
-                        fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none",
-                        boxSizing: "border-box",
-                      }}
+                      className="cart-panel__obs-input"
+                      style={{ border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontSm + 1 }}
                     />
-                    <button
-                      onClick={() => confirmDraft(i)}
-                      style={{
-                        width: 32, height: 32, borderRadius: 8, border: "none",
-                        background: C.green, color: "#fff",
-                        cursor: "pointer", flexShrink: 0,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}
-                    >
+                    <button onClick={() => confirmDraft(i)} className="cart-panel__obs-confirmar" style={{ background: C.green, color: "#fff" }}>
                       <LuCheck size={15} />
                     </button>
                   </div>
@@ -360,8 +291,8 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
       </div>
 
       {/* Rodapé */}
-      <div style={{ padding: `${sz.padSm + 2}px ${sz.pad - 4}px`, borderTop: `1px solid ${C.border}` }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: sz.padSm }}>
+      <div className="cart-panel__rodape" style={{ padding: `${sz.padSm + 2}px ${sz.pad - 4}px` }}>
+        <div className="cart-panel__total-linha" style={{ marginBottom: sz.padSm }}>
           <span style={{ fontSize: sz.fontBase + 1, fontWeight: 800 }}>Total</span>
           <span style={{ fontSize: sz.fontLg, fontWeight: 900, color: C.green }}>
             R$ {total.toFixed(2)}
@@ -371,12 +302,11 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
         <button
           onClick={onLancar}
           disabled={!temItensNovos || salvando}
+          className="cart-panel__btn-lancar"
           style={{
-            width: "100%", padding: 13, borderRadius: 10, border: "none",
             background: temItensNovos ? C.accent : C.faint,
-            color: "#fff", cursor: temItensNovos ? "pointer" : "not-allowed",
-            fontWeight: 700, fontSize: sz.fontBase + 1, marginBottom: 8,
-            transition: "background 0.2s",
+            cursor: temItensNovos ? "pointer" : "not-allowed",
+            fontSize: sz.fontBase + 1,
           }}
         >
           {salvando ? "Salvando..." : <><LuCheck size={15} style={{ marginRight: 6 }} />Lançar Pedido</>}
@@ -385,13 +315,13 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
         <button
           onClick={() => setConfirmando(true)}
           disabled={!temItens}
+          className="cart-panel__btn-finalizar"
           style={{
-            width: "100%", padding: 12, borderRadius: 10,
             border: `1px solid ${temItens ? C.green + "55" : C.border}`,
             background: temItens ? `${C.green}0f` : C.surface,
             color: temItens ? C.green : C.muted,
             cursor: temItens ? "pointer" : "not-allowed",
-            fontSize: sz.fontBase + 1, fontWeight: 700,
+            fontSize: sz.fontBase + 1,
           }}
         >
           <LuWallet size={15} style={{ marginRight: 6 }} />
@@ -403,35 +333,20 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
       {confirmExcluir && createPortal(
         <div
           onClick={e => { if (e.target === e.currentTarget) { setConfirmExcluir(null); setItemSenha(""); setItemSenhaErro(false); setItemSenhaOk(false); } }}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9100,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
-          }}
+          className="cart-panel__overlay"
+          style={{ zIndex: 9100 }}
         >
-          <div style={{
-            background: C.card, borderRadius: 20, padding: 28,
-            width: "100%", maxWidth: 400,
-            border: `1px solid ${C.border}`,
-            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-            color: C.text,
-            display: "flex", flexDirection: "column", gap: 20,
-          }}>
+          <div className="cart-panel__modal">
             {/* Título */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                background: `${C.red}18`, border: `1.5px solid ${C.red}44`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
+            <div className="cart-panel__modal-topo">
+              <div className="cart-panel__modal-icone" style={{ background: `${C.red}18`, border: `1.5px solid ${C.red}44` }}>
                 <LuTrash2 size={20} color={C.red} />
               </div>
               <div>
                 <div style={{ fontWeight: 900, fontSize: 16 }}>
                   {confirmExcluir.tipo === "lancado" ? "Cancelar item?" : "Remover item?"}
                 </div>
-                <div style={{ fontSize: 16, color: C.muted, marginTop: 2, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div className="cart-panel__modal-nome-item" style={{ fontSize: 16, color: C.muted, marginTop: 2 }}>
                   {confirmExcluir.item.emoji} {confirmExcluir.item.name}
                 </div>
               </div>
@@ -439,18 +354,16 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
             {/* Seletor de quantidade (só se qty > 1) */}
             {confirmExcluir.qtyMax > 1 && (
-              <div style={{
-                background: C.surface, border: `1px solid ${C.border}`,
-                borderRadius: 12, padding: "14px 18px",
-              }}>
+              <div className="cart-panel__stepper" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
                 <div style={{ fontSize: 18, color: C.muted, marginBottom: 10, fontWeight: 600 }}>
                   Quantos deseja {confirmExcluir.tipo === "lancado" ? "cancelar" : "remover"}? (total: {confirmExcluir.qtyMax})
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center" }}>
+                <div className="cart-panel__stepper-linha">
                   <button
                     onClick={() => { setConfirmExcluir(prev => { const n = Math.max(1, prev.qtySel - 1); setQtyInputStr(String(n)); return { ...prev, qtySel: n }; }); }}
                     disabled={confirmExcluir.qtySel <= 1}
-                    style={{ width: 36, height: 36, borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.text, cursor: confirmExcluir.qtySel > 1 ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", opacity: confirmExcluir.qtySel <= 1 ? 0.4 : 1 }}
+                    className="cart-panel__stepper-btn"
+                    style={{ border: `1px solid ${C.border}`, background: C.card, color: C.text, cursor: confirmExcluir.qtySel > 1 ? "pointer" : "not-allowed", opacity: confirmExcluir.qtySel <= 1 ? 0.4 : 1 }}
                   >
                     <LuMinus size={15} />
                   </button>
@@ -474,12 +387,14 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                       setConfirmExcluir(prev => ({ ...prev, qtySel: clamped }));
                       setQtyInputStr(String(clamped));
                     }}
-                    style={{ width: 64, textAlign: "center", fontWeight: 900, fontSize: 22, color: C.text, background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 9, padding: "4px 6px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+                    className="cart-panel__stepper-input"
+                    style={{ fontSize: 22, color: C.text, background: C.card, border: `1.5px solid ${C.border}` }}
                   />
                   <button
                     onClick={() => { setConfirmExcluir(prev => { const n = Math.min(prev.qtyMax, prev.qtySel + 1); setQtyInputStr(String(n)); return { ...prev, qtySel: n }; }); }}
                     disabled={confirmExcluir.qtySel >= confirmExcluir.qtyMax}
-                    style={{ width: 36, height: 36, borderRadius: 9, border: `1px solid ${C.border}`, background: C.card, color: C.text, cursor: confirmExcluir.qtySel < confirmExcluir.qtyMax ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", opacity: confirmExcluir.qtySel >= confirmExcluir.qtyMax ? 0.4 : 1 }}
+                    className="cart-panel__stepper-btn"
+                    style={{ border: `1px solid ${C.border}`, background: C.card, color: C.text, cursor: confirmExcluir.qtySel < confirmExcluir.qtyMax ? "pointer" : "not-allowed", opacity: confirmExcluir.qtySel >= confirmExcluir.qtyMax ? 0.4 : 1 }}
                   >
                     <LuPlus size={15} />
                   </button>
@@ -494,8 +409,8 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
             {/* Motivo — apenas para itens lançados */}
             {confirmExcluir.tipo === "lancado" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <label style={{ fontSize: 18, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 4 }}>
+              <div className="cart-panel__campo">
+                <label className="cart-panel__label" style={{ fontSize: 18, color: C.muted }}>
                   Motivo do cancelamento
                   <span style={{ color: C.red }}>*</span>
                 </label>
@@ -506,14 +421,10 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   placeholder="Ex: cliente desistiu, pedido errado..."
                   maxLength={200}
                   rows={3}
+                  className="cart-panel__textarea"
                   style={{
-                    width: "100%", padding: "10px 14px",
-                    borderRadius: 10, border: `1.5px solid ${confirmExcluir.motivo ? C.accent + "88" : C.border}`,
-                    background: C.surface, color: C.text,
-                    fontSize: 17, fontFamily: "inherit", outline: "none",
-                    resize: "none", boxSizing: "border-box",
-                    transition: "border-color 0.15s",
-                    lineHeight: 1.5,
+                    border: `1.5px solid ${confirmExcluir.motivo ? C.accent + "88" : C.border}`,
+                    background: C.surface, color: C.text, fontSize: 17,
                   }}
                   onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
                   onBlur={e => e.currentTarget.style.borderColor = confirmExcluir.motivo ? C.accent + "88" : C.border}
@@ -526,29 +437,24 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
             {/* Senha admin/gerente — apenas para itens lançados */}
             {confirmExcluir.tipo === "lancado" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>
+              <div className="cart-panel__campo">
+                <label className="cart-panel__label" style={{ fontSize: 14, color: C.muted }}>
                   <LuLock size={13} /> Senha do administrador / gerente
                 </label>
-                <div style={{ position: "relative" }}>
+                <div className="cart-panel__senha-wrap">
                   <input
                     type={itemSenhaVis ? "text" : "password"}
                     value={itemSenha}
                     onChange={e => { setItemSenha(e.target.value); setItemSenhaErro(false); setItemSenhaOk(false); }}
                     onKeyDown={e => { if (e.key === "Enter") confirmarExclusao(); }}
                     placeholder="Digite a senha..."
+                    className="cart-panel__senha-input"
                     style={{
-                      width: "100%", padding: "11px 42px 11px 14px",
-                      borderRadius: 10, border: `1.5px solid ${itemSenhaErro ? C.red : itemSenhaOk ? C.green : C.border}`,
-                      background: C.surface, color: C.text,
-                      fontSize: 16, fontFamily: "inherit", outline: "none",
-                      boxSizing: "border-box", transition: "border-color 0.15s",
+                      border: `1.5px solid ${itemSenhaErro ? C.red : itemSenhaOk ? C.green : C.border}`,
+                      background: C.surface, color: C.text, fontSize: 16,
                     }}
                   />
-                  <button
-                    onClick={() => setItemSenhaVis(v => !v)}
-                    style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 0, display: "flex" }}
-                  >
+                  <button onClick={() => setItemSenhaVis(v => !v)} className="cart-panel__senha-olho" style={{ color: C.muted }}>
                     {itemSenhaVis ? <LuEyeOff size={16} /> : <LuEye size={16} />}
                   </button>
                 </div>
@@ -562,27 +468,24 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
             )}
 
             {/* Botões */}
-            <div style={{ display: "flex", gap: 10 }}>
+            <div className="cart-panel__modal-botoes">
               <button
                 onClick={() => setConfirmExcluir(null)}
-                style={{
-                  flex: 1, padding: "13px 0", borderRadius: 12,
-                  border: `1px solid ${C.border}`, background: "none",
-                  color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
-                }}
+                className="cart-panel__modal-botao"
+                style={{ border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontSize: 17 }}
               >
                 Cancelar
               </button>
               <button
                 onClick={confirmarExclusao}
                 disabled={confirmExcluir.tipo === "lancado" && (!confirmExcluir.motivo.trim() || !itemSenha)}
+                className="cart-panel__modal-botao cart-panel__modal-botao--primario"
                 style={{
-                  flex: 1, padding: "13px 0", borderRadius: 12, border: "none",
+                  border: "none",
                   background: (confirmExcluir.tipo === "lancado" && (!confirmExcluir.motivo.trim() || !itemSenha)) ? C.faint : C.red,
                   color: "#fff",
                   cursor: (confirmExcluir.tipo === "lancado" && (!confirmExcluir.motivo.trim() || !itemSenha)) ? "not-allowed" : "pointer",
-                  fontWeight: 800, fontSize: 17,
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                  fontSize: 17,
                 }}
               >
                 <LuTrash2 size={15} />
@@ -600,28 +503,14 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
       {confirmando && createPortal(
         <div
           onClick={e => { if (e.target === e.currentTarget) setConfirmando(false); }}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9000,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
-          }}
+          className="cart-panel__overlay"
+          style={{ zIndex: 9000 }}
         >
-          <div style={{
-            background: C.card, borderRadius: 20, padding: 28,
-            width: "100%", maxWidth: 400,
-            border: `1px solid ${C.border}`,
-            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-            color: C.text,
-          }}>
+          <div className="cart-panel__modal" style={{ gap: 0 }}>
             <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 4 }}>Finalizar Comanda?</div>
             <div style={{ fontSize: 16, color: C.muted, marginBottom: 20 }}>{fmtComanda(comanda?.comanda)}</div>
 
-            <div style={{
-              background: C.surface, border: `1px solid ${C.border}`,
-              borderRadius: 14, padding: "18px 20px", marginBottom: 20,
-              display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
-            }}>
+            <div className="cart-panel__resumo-finalizar" style={{ background: C.surface, border: `1px solid ${C.border}`, marginBottom: 20 }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 4 }}>
                   {qtdGeral} {qtdGeral === 1 ? "item" : "itens"} consumidos
@@ -634,16 +523,18 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10 }}>
+            <div className="cart-panel__modal-botoes">
               <button
                 onClick={() => setConfirmando(false)}
-                style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17 }}
+                className="cart-panel__modal-botao"
+                style={{ border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontSize: 17 }}
               >
                 Cancelar
               </button>
               <button
                 onClick={() => { setConfirmando(false); onFinalizar(); }}
-                style={{ flex: 1, padding: "13px 0", borderRadius: 12, border: "none", background: C.green, color: "#fff", cursor: "pointer", fontWeight: 800, fontSize: 18 }}
+                className="cart-panel__modal-botao"
+                style={{ border: "none", background: C.green, color: "#fff", cursor: "pointer", fontWeight: 800, fontSize: 18 }}
               >
                 Sim, finalizar
               </button>
@@ -660,13 +551,8 @@ function QtyBtn({ onClick, label }) {
   return (
     <button
       onClick={onClick}
-      style={{
-        width: 32, height: 32, borderRadius: 8,
-        border: `1px solid ${C.border}`, background: C.surface,
-        color: C.text, cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        flexShrink: 0,
-      }}
+      className="cart-panel__qty-btn"
+      style={{ border: `1px solid ${C.border}`, background: C.surface, color: C.text }}
     >
       {label === "−" ? <LuMinus size={15} /> : <LuPlus size={15} />}
     </button>
