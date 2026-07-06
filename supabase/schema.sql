@@ -86,6 +86,7 @@ CREATE TABLE public.vendas (
   valor_ajuste numeric     NOT NULL DEFAULT 0,
   total        numeric     NOT NULL,
   cashier      text,
+  cliente_id   uuid        REFERENCES public.clientes(id) ON DELETE SET NULL, -- F010, 20260713_clientes.sql
   at           timestamptz NOT NULL DEFAULT now()
 );
 
@@ -128,6 +129,7 @@ CREATE TABLE public.lancamentos (
   status      text        NOT NULL DEFAULT 'previsto' CHECK (status IN ('previsto', 'pago', 'recebido', 'vencido')),
   origem      text        NOT NULL DEFAULT 'manual' CHECK (origem IN ('venda', 'manual', 'estoque')),
   venda_id    text        REFERENCES public.vendas(id) ON DELETE SET NULL,
+  cliente_id  uuid        REFERENCES public.clientes(id) ON DELETE SET NULL, -- F010, 20260713_clientes.sql
   retroativo  boolean     NOT NULL DEFAULT false,
   criado_por  text,
   baixado_por text,
@@ -138,6 +140,25 @@ CREATE INDEX lancamentos_competencia_idx ON public.lancamentos (competencia);
 CREATE INDEX lancamentos_status_idx      ON public.lancamentos (status);
 CREATE INDEX lancamentos_tipo_idx         ON public.lancamentos (tipo);
 CREATE INDEX lancamentos_venda_id_idx     ON public.lancamentos (venda_id);
+CREATE INDEX lancamentos_cliente_id_idx   ON public.lancamentos (cliente_id);
+
+-- ── clientes (F010 — docs/03_REGRAS_DE_NEGOCIO/CLIENTES.md) ───
+-- Cadastro, histórico de compras (via vendas.cliente_id) e fiado
+-- (via lancamentos.cliente_id — o fiado em si já existe como conta a
+-- receber no Financeiro; esta tabela só acrescenta o vínculo).
+CREATE TABLE public.clientes (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome         text        NOT NULL,
+  telefone     text,
+  endereco     text,
+  observacoes  text,
+  anonimizado  boolean     NOT NULL DEFAULT false,
+  criado_por   text,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX clientes_nome_idx     ON public.clientes (nome);
+CREATE INDEX clientes_telefone_idx ON public.clientes (telefone);
 
 -- ── fechamentos ───────────────────────────────────────────────
 CREATE TABLE public.fechamentos (
@@ -387,6 +408,7 @@ CREATE INDEX jarvas_insights_created_at_idx ON public.jarvas_insights (created_a
 -- jarvas_eventos        → jarvas_eventos_insert_auth ; jarvas_eventos_{select,update}_gerencia
 -- jarvas_insights       → jarvas_insights_select_{operacional,estrategico} ; jarvas_insights_{insert,update}_gerencia
 -- lancamentos           → lancamentos_all_gerencia ; lancamentos_insert_venda_caixa (Financeiro fase 1)
+-- clientes              → clientes_select_auth ; clientes_insert_update_operacional (garcom/caixa/gerente/admin) ; clientes_delete_gerencia (F010, 20260713_clientes.sql)
 
 -- ── Realtime ──────────────────────────────────────────────────
 -- Habilitado no dashboard para: pending, estoque, jarvas_insights, mesas

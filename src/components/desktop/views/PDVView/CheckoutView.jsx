@@ -5,6 +5,7 @@ import { getSizes } from "@/constants/sizes";
 import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuPrinter, LuWallet, LuPercent, LuX, LuUsers } from "react-icons/lu";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
+import ClienteFiadoSelector from "./ClienteFiadoSelector";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -144,7 +145,7 @@ function imprimirComanda({ comanda, itensVisiveis, subtotal, valorTaxa, ajusteAp
 export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const { meiosPagamento, metodosCustom, taxaServico } = useApp();
+  const { meiosPagamento, metodosCustom, taxaServico, currentUser } = useApp();
   const catalogCompleto = [
     ...METODOS_CATALOG,
     ...(metodosCustom ?? []).map(m => ({ ...m, Icon: LuWallet })),
@@ -164,6 +165,9 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const [ajusteMode,    setAjusteMode]    = useState("percentual");
   const [ajusteValor,   setAjusteValor]   = useState("");
   const [ajusteAplicado, setAjusteAplicado] = useState(null);
+
+  // F010 — cliente do fiado (fiado exige cliente identificado)
+  const [clienteFiado, setClienteFiado] = useState(null);
 
   // Agrupa itens ativos pelo mesmo produto (name + price), somando qty e unindo obs
   const itensAgrupados = items.filter(i => !i.cancelado).reduce((acc, item) => {
@@ -203,9 +207,11 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const somaValores = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
   const faltaAlocar = total - somaValores;
 
-  const podeConfirmar = isSplit
+  const usaFiado = pagamentos.some(p => p.metodo === "fiado");
+
+  const podeConfirmar = (isSplit
     ? pagamentos.every(p => !!p.metodo) && Math.abs(faltaAlocar) < 0.015
-    : !!singleMetodo;
+    : !!singleMetodo) && (!usaFiado || !!clienteFiado);
 
   const updatePagamento = (idx, patch) =>
     setPagamentos(prev => prev.map((p, i) => i === idx ? { ...p, ...patch } : p));
@@ -246,7 +252,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
           troco:    p.metodo === "dinheiro" ? Math.max(0, (p.recebido || 0) - p.valor) : 0,
         }))
       : [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: Math.max(0, singleTroco) }];
-    await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste });
+    await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste, clienteId: clienteFiado?.id ?? null });
   };
 
   const buildPrintPagamentos = () => {
@@ -832,9 +838,23 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
               borderTop: `1px solid ${C.border}`,
               display: "flex", flexDirection: "column", gap: 10,
             }}>
+              {usaFiado && (
+                <div style={{ marginBottom: 4 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, marginBottom: 6 }}>
+                    Cliente do fiado
+                  </div>
+                  <ClienteFiadoSelector
+                    cliente={clienteFiado}
+                    onSelecionar={setClienteFiado}
+                    usuario={currentUser?.username}
+                  />
+                </div>
+              )}
               {!podeConfirmar && (
                 <div style={{ fontSize: 16, color: C.muted, textAlign: "center", marginBottom: 4 }}>
-                  {isSplit
+                  {usaFiado && !clienteFiado
+                    ? "Busque ou cadastre o cliente do fiado acima"
+                    : isSplit
                     ? Math.abs(faltaAlocar) >= 0.015
                       ? `Distribua os R$ ${Math.abs(faltaAlocar).toFixed(2)} restantes`
                       : "Selecione a forma de cada pagamento"

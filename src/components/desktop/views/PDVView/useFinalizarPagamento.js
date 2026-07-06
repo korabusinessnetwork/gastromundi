@@ -26,7 +26,7 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
 export function useFinalizarPagamento() {
   const { addSale, removePending, estoque, baixarEstoque, currentUser } = useApp();
 
-  const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste }) => {
+  const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId }) => {
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
     const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
     const todosItens      = [...itensAcumulados, ...itensLocais];
@@ -44,6 +44,7 @@ export function useFinalizarPagamento() {
       total,
       pagamentos,
       cashier:     currentUser?.name || "",
+      clienteId:   clienteId ?? null, // F010 — vínculo opcional ao cliente
       at:          new Date().toISOString(),
     };
 
@@ -63,14 +64,14 @@ export function useFinalizarPagamento() {
               tipo: "receita", categoria: "vendas",
               descricao: `Fiado — comanda ${selected.comanda}`,
               valor: valorPagamento, competencia: hoje, vencimento, status: "previsto",
-              origem: "venda", venda_id: sale.id,
+              origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
             }, currentUser?.username);
           } else {
             await criarLancamento({
               tipo: "receita", categoria: "vendas",
               descricao: `Venda — comanda ${selected.comanda}`,
               valor: valorPagamento, competencia: hoje, status: "recebido",
-              origem: "venda", venda_id: sale.id,
+              origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
             }, currentUser?.username);
           }
         }

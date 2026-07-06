@@ -27,6 +27,7 @@ import { emitirEvento } from "./jarvas";
  * @param {"previsto"|"pago"|"recebido"} [dados.status] - default "previsto"
  * @param {"venda"|"manual"|"estoque"} [dados.origem] - default "manual"
  * @param {string} [dados.venda_id]
+ * @param {string} [dados.cliente_id] - F010: vínculo do fiado ao cliente
  * @param {boolean} [dados.retroativo]
  * @param {string} usuario - username de quem lançou
  * @returns {Promise<{data: object|null, error: object|null}>}
@@ -54,6 +55,7 @@ export async function criarLancamento(dados, usuario) {
     status,
     origem: dados.origem ?? "manual",
     venda_id: dados.venda_id ?? null,
+    cliente_id: dados.cliente_id ?? null,
     retroativo: !!dados.retroativo,
     criado_por: usuario ?? null,
   };

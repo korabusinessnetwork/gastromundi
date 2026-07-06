@@ -186,6 +186,22 @@ describe("useFinalizarPagamento — receita automática (Financeiro fase 1)", ()
     expect(chamada.vencimento).toBe(esperado);
   });
 
+  it("F010: propaga o clienteId selecionado para a venda e para o lançamento de fiado", async () => {
+    const { appMock, finalizarPagamento } = setup();
+
+    await finalizarPagamento(selectedComanda, [], {
+      ...payload,
+      clienteId: "cli-42",
+      pagamentos: [{ metodo: "fiado", valor: 30 }],
+    });
+
+    const saleGravada = appMock.addSale.mock.calls[0][0];
+    expect(saleGravada.clienteId).toBe("cli-42");
+
+    await waitFor(() => expect(criarLancamentoMock).toHaveBeenCalledTimes(1));
+    expect(criarLancamentoMock.mock.calls[0][0].cliente_id).toBe("cli-42");
+  });
+
   it("split de pagamento gera um lançamento por método (um normal, um fiado)", async () => {
     const { finalizarPagamento } = setup();
 

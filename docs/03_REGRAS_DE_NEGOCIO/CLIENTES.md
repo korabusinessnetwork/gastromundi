@@ -48,8 +48,25 @@ O cliente é opcionalmente vinculado a uma venda no PDV. Seu histórico é const
 - Controlar venda fiado de um cliente identificado.
 
 ## Critérios de Aceite
-- [ ] Venda pode ser anônima ou vinculada a cliente
-- [ ] Fiado exige cliente identificado
-- [ ] Histórico e ticket médio atualizados por venda
-- [ ] Exclusão preserva integridade via anonimização
-- [ ] Isolamento multi-tenant garantido (RLS)
+- [x] Venda pode ser anônima ou vinculada a cliente
+- [x] Fiado exige cliente identificado
+- [ ] Histórico e ticket médio atualizados por venda (histórico de compras implementado; ticket médio/frequência agregados ainda não)
+- [ ] Exclusão preserva integridade via anonimização (não implementado nesta fase — ver Estado da Implementação)
+- [ ] Isolamento multi-tenant garantido (RLS) (não implementado — app real é single-tenant hoje, ver ADR-004)
+
+## Estado da Implementação (F010, 2026-07-06)
+
+Implementado:
+- Tabela `public.clientes` (`supabase/migrations/20260713_clientes.sql`): nome, telefone, endereço, observações, `anonimizado`. RLS: leitura para qualquer autenticado; inserção/edição para garçom/caixa/gerente/admin; exclusão restrita a gerente/admin.
+- Vínculo opcional `cliente_id` em `public.vendas` e `public.lancamentos` (mesma migração) — reaproveita o fiado já existente como conta a receber no Financeiro (decisão 016); **não** foi criado um segundo sistema de fiado.
+- `src/lib/clientes.js`: `cadastrarCliente`, `atualizarCliente`, `listarClientes` (busca por nome/telefone), `buscarHistoricoCliente` (vendas + lançamentos de fiado do cliente), `registrarPagamentoFiado` (delega para `baixarConta` do Financeiro), `calcularSaldoDevedor` (função pura, testada).
+- Cadastro rápido de cliente embutido no checkout do PDV (`ClienteFiadoSelector.jsx`): aparece quando o pagamento usa "fiado", busca por nome/telefone com um clique para cadastrar se não encontrar, e bloqueia a confirmação da venda até um cliente ser selecionado/cadastrado.
+- `ClientesView.jsx`: lista com busca, cadastro rápido (modal), e detalhe do cliente com saldo de fiado em destaque ("quem deve, quanto"), lista de contas em aberto com ação "Registrar pagamento" (com confirmação inline) e histórico de vendas.
+- Rota `/app/clientes`, permissão `clientes` (todos os papéis operacionais podem ver/criar/editar; exclusão/anonimização ficariam restritas a gerente/admin quando implementadas), entrada no Sidebar.
+
+Não implementado nesta fase (ficam para uma iteração futura, se necessário):
+- Documento do cliente, e-mail, mesclagem de cadastros duplicados.
+- Exclusão/anonimização (LGPD) e os eventos `cliente.mesclado`/`cliente.anonimizado`.
+- Ticket médio, frequência e itens preferidos agregados no histórico.
+- Isolamento multi-tenant (não existe em nenhuma tabela do app real hoje — ver ADR-004).
+- Evento `cliente.criado`/`cliente.atualizado` já são emitidos via Jarvas; os demais eventos do módulo ainda não.
