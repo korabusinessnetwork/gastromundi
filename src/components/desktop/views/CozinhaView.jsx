@@ -3,8 +3,8 @@ import { useApp } from "@/context/AppContext";
 import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado } from "@/lib/cozinha";
-import { montarViaProducao } from "@/lib/impressao";
-import { renderizarViaProducao, abrirJanelaImpressao } from "@/lib/impressao/renderizar";
+import { montarViaProducao, buscarConfigImpressao } from "@/lib/impressao";
+import { imprimirDocumento } from "@/lib/impressao/drivers";
 import C from "@/constants/colors";
 import { LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
 
@@ -61,12 +61,14 @@ export default function CozinhaView() {
     }
   };
 
-  // F015 — via de produção: 1 clique, sem preço/jargão, só o que a
-  // cozinha precisa. Nunca lança: pop-up bloqueado vira um alerta simples.
-  const handleImprimirVia = (pedido) => {
+  // F015/F020 — via de produção: 1 clique, sem preço/jargão, só o que
+  // a cozinha precisa. O driver (browser-raster/QZ Tray) e o perfil de
+  // papel (58/80mm) vêm da config de impressão do estabelecimento.
+  // Nunca lança: pop-up bloqueado/falha de driver vira um alerta simples.
+  const handleImprimirVia = async (pedido) => {
     const dados = montarViaProducao({ pedido });
-    const html = renderizarViaProducao(dados);
-    const { error } = abrirJanelaImpressao(html);
+    const { data: configImpressao } = await buscarConfigImpressao();
+    const { error } = await imprimirDocumento(dados, configImpressao?.perfilImpressora);
     if (error) window.alert(error.message);
   };
 

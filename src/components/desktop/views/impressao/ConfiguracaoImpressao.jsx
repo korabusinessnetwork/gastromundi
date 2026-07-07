@@ -3,11 +3,13 @@ import C from "@/constants/colors";
 import LocaisImpressao from "./LocaisImpressao";
 import RoteamentoCategorias from "./RoteamentoCategorias";
 import ImpressorasConfig from "./ImpressorasConfig";
+import PerfilImpressora from "./PerfilImpressora";
 
 const ABAS = [
   { id: "locais",       label: "Locais de Impressão"      },
   { id: "roteamento",   label: "Roteamento por Categoria" },
   { id: "impressoras",  label: "Impressoras"              },
+  { id: "perfil",       label: "Perfil de Impressão"      },
 ];
 
 export default function ConfiguracaoImpressao({ sz }) {
@@ -39,6 +41,7 @@ export default function ConfiguracaoImpressao({ sz }) {
       {aba === "locais"      && <LocaisImpressao sz={sz} />}
       {aba === "roteamento"  && <RoteamentoCategorias sz={sz} />}
       {aba === "impressoras" && <ImpressorasConfig sz={sz} />}
+      {aba === "perfil"      && <PerfilImpressora sz={sz} />}
     </div>
   );
 }

@@ -1,24 +1,30 @@
 /**
- * Layout térmico (58/80mm) — via de produção (cozinha). F015 · decisão
- * 018. Enxuto de propósito: fonte maior, sem preço, sem jargão — o
- * cozinheiro precisa ler rápido, de longe, no meio da correria.
+ * Layout térmico ADAPTÁVEL (58/80mm) — via de produção (cozinha).
+ * F015/F020 · decisão 018. Enxuto de propósito: fonte maior, sem
+ * preço, sem jargão — o cozinheiro precisa ler rápido, de longe, no
+ * meio da correria.
+ *
+ * Largura/margem/fonte vêm do PERFIL DE IMPRESSORA (F020, decisão
+ * 025) via `--print-*` (ver nota em comprovante.css) — defaults abaixo
+ * reproduzem o F015 (300px = 80mm, 15px de fonte) quando não há
+ * perfil configurado.
  */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: "Courier New", monospace;
-  font-size: 15px;
+  font-size: var(--print-font-base, 15px);
   color: #111;
-  width: 300px;
+  width: var(--print-width, 300px);
   margin: 0 auto;
-  padding: 16px 8px;
+  padding: 16px var(--print-padding-h, 8px);
 }
 .cabecalho { text-align: center; margin-bottom: 10px; }
-.cabecalho__titulo { font-size: 20px; font-weight: bold; }
-.cabecalho__linha { font-size: 14px; color: #333; margin-top: 4px; }
+.cabecalho__titulo { font-size: 1.33em; font-weight: bold; }
+.cabecalho__linha { font-size: 0.93em; color: #333; margin-top: 4px; }
 hr { border: none; border-top: 1px dashed #aaa; margin: 8px 0; }
 .item { padding: 8px 2px; border-bottom: 1px dashed #ccc; }
-.item__linha { font-size: 17px; font-weight: bold; }
-.item__obs { font-size: 14px; color: #333; padding-left: 18px; margin-top: 2px; }
-.rodape { text-align: center; font-size: 12px; color: #666; margin-top: 14px; }
+.item__linha { font-size: 1.13em; font-weight: bold; }
+.item__obs { font-size: 0.93em; color: #333; padding-left: 18px; margin-top: 2px; }
+.rodape { text-align: center; font-size: 0.8em; color: #666; margin-top: 14px; }
 @media print { body { width: 100%; } }

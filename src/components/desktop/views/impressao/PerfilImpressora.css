@@ -1,0 +1,213 @@
+/**
+ * F020 — perfil de impressora (largura/margem/corte/fonte/driver).
+ * Decisão 018 (CSS separado do JSX) + tokens --gm-* (ADR-007).
+ */
+
+.perfil-impressora__carregando {
+  padding: 40px;
+  text-align: center;
+}
+
+.perfil-impressora {
+  display: flex;
+  max-width: 920px;
+}
+
+.perfil-impressora__form {
+  flex: 1;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.perfil-impressora__label {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.perfil-impressora__ajuda {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.perfil-impressora__opcoes-largura,
+.perfil-impressora__opcoes-driver {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.perfil-impressora__opcao-larga {
+  padding: 10px 22px;
+  border-radius: 10px;
+  border-width: 1.5px;
+  border-style: solid;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.perfil-impressora__opcao-driver {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border-width: 1.5px;
+  border-style: solid;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.perfil-impressora__linha-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.perfil-impressora__toggle {
+  width: 48px;
+  height: 26px;
+  border-radius: 13px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.perfil-impressora__toggle-bolinha {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  display: block;
+  transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.perfil-impressora__slider {
+  width: 100%;
+}
+
+.perfil-impressora__link-reset {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 4px 0;
+}
+
+.perfil-impressora__qz {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border-width: 1px;
+  border-style: solid;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.perfil-impressora__btn-detectar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-style: solid;
+  background: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.perfil-impressora__lista-qz {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.perfil-impressora__opcao-qz {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-width: 1.5px;
+  border-style: solid;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.perfil-impressora__acoes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.perfil-impressora__btn-salvar {
+  padding: 11px 24px;
+  border-radius: 10px;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.perfil-impressora__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.perfil-impressora__status--sucesso { color: var(--gm-green); }
+.perfil-impressora__status--erro { color: var(--gm-red); }
+
+.perfil-impressora__spin { animation: perfil-impressora-spin 1s linear infinite; }
+@keyframes perfil-impressora-spin { to { transform: rotate(360deg); } }
+
+.perfil-impressora__preview-coluna {
+  flex-shrink: 0;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+}
+
+.perfil-impressora__preview-moldura {
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  max-height: 560px;
+}
+
+.perfil-impressora__preview-iframe {
+  width: 320px;
+  height: 520px;
+  border: none;
+  background: #fff;
+}

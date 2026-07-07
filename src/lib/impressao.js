@@ -18,12 +18,30 @@ import { nomeExibicaoTenant, logoUrlTenant } from "./tema";
  * não identidade — identidade e tema continuam em `tenants.tema`.
  */
 
+// F020 — perfil de impressora: driver trocável (decisão 025) + papel
+// físico (largura/margem/corte/fonte). `driver: "browser-raster"` é o
+// default gratuito (window.print); `"escpos-qztray"` é substituível,
+// nunca obrigatório (QZ Tray exige certificado pago pra imprimir sem
+// aviso — Restrições de Custo). `fonteBase: null` = usa o tamanho
+// default de cada template (comprovante 13px, via de produção 15px);
+// só é sobrescrito se o estabelecimento pedir letra maior (impressora
+// que "corta" texto pequeno).
+export const PERFIL_IMPRESSORA_PADRAO = {
+  larguraMm: 80,
+  margemMm: 2,
+  cortaPapel: true,
+  fonteBase: null,
+  driver: "browser-raster",
+  impressoraQz: null,
+};
+
 export const CONFIG_IMPRESSAO_PADRAO = {
   mostrarLogo: true,
   mostrarEnderecoCnpj: false,
   endereco: "",
   cnpj: "",
   rodapePersonalizado: "Obrigado pela preferência!",
+  perfilImpressora: PERFIL_IMPRESSORA_PADRAO,
 };
 
 /**
@@ -41,7 +59,17 @@ export async function buscarConfigImpressao() {
       .eq("key", "config_impressao")
       .maybeSingle();
     if (error) return { data: CONFIG_IMPRESSAO_PADRAO, error };
-    return { data: { ...CONFIG_IMPRESSAO_PADRAO, ...(data?.value ?? {}) }, error: null };
+    const valor = data?.value ?? {};
+    return {
+      data: {
+        ...CONFIG_IMPRESSAO_PADRAO,
+        ...valor,
+        // Merge próprio pro perfil (aninhado) — senão salvar só 1 campo
+        // do perfil apagaria os demais defaults (largura, driver etc.).
+        perfilImpressora: { ...PERFIL_IMPRESSORA_PADRAO, ...(valor.perfilImpressora ?? {}) },
+      },
+      error: null,
+    };
   } catch (err) {
     return { data: CONFIG_IMPRESSAO_PADRAO, error: { message: err?.message ?? "Falha ao buscar configuração de impressão." } };
   }

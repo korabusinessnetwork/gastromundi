@@ -2,7 +2,7 @@ import { useState } from "react";
 import { LuPrinter, LuReceipt, LuCircleCheck, LuCircleAlert } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import { montarComprovantePagamento, montarCupomPreNota, buscarConfigImpressao } from "@/lib/impressao";
-import { renderizarRecibo, abrirJanelaImpressao } from "@/lib/impressao/renderizar";
+import { imprimirDocumento } from "@/lib/impressao/drivers";
 import "./ImpressaoAcoes.css";
 
 /**
@@ -31,8 +31,7 @@ export default function ImpressaoAcoes({ montarVenda }) {
       const dados = tipo === "cupom"
         ? montarCupomPreNota({ venda, tenant, configImpressao })
         : montarComprovantePagamento({ venda, tenant, configImpressao });
-      const html = renderizarRecibo(dados);
-      const { error } = abrirJanelaImpressao(html);
+      const { error } = await imprimirDocumento(dados, configImpressao?.perfilImpressora);
       if (error) {
         setMensagemErro(error.message);
         setStatus("erro");
