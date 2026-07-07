@@ -1,5 +1,7 @@
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
 import { LuCheck } from "react-icons/lu";
+import "./LancamentosList.css";
 
 const STATUS_COLOR = { recebido: C.green, pago: C.green, previsto: C.blue, vencido: C.red };
 const STATUS_LABEL = { recebido: "Recebido", pago: "Pago", previsto: "Previsto", vencido: "Vencido" };
@@ -9,10 +11,6 @@ function fmtR(v) {
   return "R$ " + Number(v ?? 0).toFixed(2);
 }
 
-const selectStyle = { padding: "8px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontFamily: "inherit", fontSize: 14 };
-const thStyle = { padding: "10px 14px", textAlign: "left", fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "nowrap" };
-const tdStyle = { padding: "10px 14px", fontSize: 14, color: C.text };
-
 export default function LancamentosList({
   lancamentos, loading,
   filtroTipo, setFiltroTipo,
@@ -20,15 +18,15 @@ export default function LancamentosList({
   onBaixar, sz,
 }) {
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
+    <div className="lancamentos-list" style={{ padding: `0 ${sz.pad}px ${sz.pad}px` }}>
       {/* Filtros */}
-      <div style={{ display: "flex", gap: 8, marginBottom: sz.gap, flexWrap: "wrap" }}>
-        <select aria-label="Filtrar por tipo" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} style={selectStyle}>
+      <div className="lancamentos-list__filtros" style={{ marginBottom: sz.gap }}>
+        <select aria-label="Filtrar por tipo" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="lancamentos-list__select">
           <option value="todos">Todos os tipos</option>
           <option value="receita">Receita</option>
           <option value="despesa">Despesa</option>
         </select>
-        <select aria-label="Filtrar por status" value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={selectStyle}>
+        <select aria-label="Filtrar por status" value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="lancamentos-list__select">
           <option value="todos">Todos os status</option>
           <option value="previsto">Previsto</option>
           <option value="pago">Pago</option>
@@ -38,47 +36,45 @@ export default function LancamentosList({
       </div>
 
       {loading ? (
-        <div style={{ color: C.muted, textAlign: "center", padding: 40 }}>Carregando…</div>
+        <div className="lancamentos-list__estado">Carregando…</div>
       ) : lancamentos.length === 0 ? (
-        <div style={{ color: C.muted, textAlign: "center", padding: 40 }}>Nenhum lançamento no período.</div>
+        <div className="lancamentos-list__estado">Nenhum lançamento no período.</div>
       ) : (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
+        <div className="lancamentos-list__moldura">
+          <div className="lancamentos-list__scroll">
+          <table className="lancamentos-list__tabela">
             <thead>
               <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                <th style={thStyle}>Competência</th>
-                <th style={thStyle}>Tipo</th>
-                <th style={thStyle}>Categoria</th>
-                <th style={thStyle}>Descrição</th>
-                <th style={{ ...thStyle, textAlign: "right" }}>Valor</th>
-                <th style={thStyle}>Status</th>
-                <th style={thStyle}></th>
+                <th className="lancamentos-list__th">Competência</th>
+                <th className="lancamentos-list__th">Tipo</th>
+                <th className="lancamentos-list__th">Categoria</th>
+                <th className="lancamentos-list__th">Descrição</th>
+                <th className="lancamentos-list__th" style={{ textAlign: "right" }}>Valor</th>
+                <th className="lancamentos-list__th">Status</th>
+                <th className="lancamentos-list__th"></th>
               </tr>
             </thead>
             <tbody>
               {lancamentos.map((l) => (
                 <tr key={l.id} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <td style={tdStyle}>{l.competencia}</td>
-                  <td style={tdStyle}>{TIPO_LABEL[l.tipo] ?? l.tipo}</td>
-                  <td style={tdStyle}>{l.categoria}</td>
-                  <td style={tdStyle}>{l.descricao ?? "—"}</td>
-                  <td style={{ ...tdStyle, textAlign: "right", fontWeight: 700 }}>{fmtR(l.valor)}</td>
-                  <td style={tdStyle}>
-                    <span style={{
-                      fontSize: 11, fontWeight: 800, textTransform: "uppercase",
+                  <td className="lancamentos-list__td">{l.competencia}</td>
+                  <td className="lancamentos-list__td">{TIPO_LABEL[l.tipo] ?? l.tipo}</td>
+                  <td className="lancamentos-list__td">{l.categoria}</td>
+                  <td className="lancamentos-list__td">{l.descricao ?? "—"}</td>
+                  <td className="lancamentos-list__td" style={{ textAlign: "right", fontWeight: 700 }}>{fmtR(l.valor)}</td>
+                  <td className="lancamentos-list__td">
+                    <span className="lancamentos-list__badge-status" style={{
                       color: STATUS_COLOR[l.status] ?? C.muted,
-                      background: `${STATUS_COLOR[l.status] ?? C.muted}22`,
-                      padding: "2px 8px", borderRadius: 8,
+                      background: alfa(STATUS_COLOR[l.status] ?? C.muted, "22"),
                     }}>
                       {STATUS_LABEL[l.status] ?? l.status}
                     </span>
                   </td>
-                  <td style={tdStyle}>
+                  <td className="lancamentos-list__td">
                     {l.status === "previsto" && (
                       <button
                         onClick={() => onBaixar(l.id)}
-                        style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "5px 10px", color: C.muted, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap" }}
+                        className="lancamentos-list__btn-baixar"
                       >
                         <LuCheck size={13} /> Baixar
                       </button>

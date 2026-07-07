@@ -1,0 +1,27 @@
+/**
+ * F018 — leva 3, sub-lote 3A. Decisão 018 + tokens --gm-* (ADR-007).
+ */
+
+.resumo-cards {
+  display: grid;
+  flex-shrink: 0;
+}
+
+.resumo-cards__card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.resumo-cards__valor {
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.resumo-cards__label {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}

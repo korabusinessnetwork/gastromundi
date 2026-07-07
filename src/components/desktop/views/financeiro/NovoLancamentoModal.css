@@ -1,0 +1,116 @@
+/**
+ * F018 — leva 3, sub-lote 3A. Decisão 018 + tokens --gm-* (ADR-007).
+ */
+
+.novo-lancamento__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+  padding: 16px;
+}
+
+.novo-lancamento__modal {
+  background: var(--gm-card);
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 440px;
+  box-sizing: border-box;
+  border: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.novo-lancamento__titulo {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.novo-lancamento__tipos {
+  display: flex;
+  gap: 8px;
+}
+
+.novo-lancamento__tipo-btn {
+  flex: 1;
+  /* alvo de toque generoso (princípio nº 1) */
+  padding: 13px 0;
+  border-radius: 10px;
+  border-width: 1.5px;
+  border-style: solid;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.novo-lancamento__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.novo-lancamento__input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 14px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.novo-lancamento__linha-dupla {
+  display: flex;
+  gap: 12px;
+}
+
+.novo-lancamento__erro {
+  color: var(--gm-red);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.novo-lancamento__botoes {
+  display: flex;
+  gap: 10px;
+}
+
+.novo-lancamento__btn-cancelar {
+  flex: 1;
+  /* alvo de toque generoso */
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.novo-lancamento__btn-salvar {
+  flex: 2;
+  padding: 15px;
+  border-radius: 10px;
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: 14px;
+}
