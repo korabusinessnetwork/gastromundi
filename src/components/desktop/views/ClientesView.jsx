@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
 import { useApp } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -12,6 +13,7 @@ import {
   listarClientes, cadastrarCliente, buscarHistoricoCliente,
   registrarPagamentoFiado, calcularSaldoDevedor,
 } from "@/lib/clientes";
+import "./ClientesView.css";
 
 /**
  * F010 — Clientes (docs/03_REGRAS_DE_NEGOCIO/CLIENTES.md).
@@ -78,59 +80,51 @@ export default function ClientesView() {
   };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
+    <div className="clientes-view" style={{ background: C.bg }}>
 
       {/* Header */}
-      <div style={{ padding: `${sz.pad - 4}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+      <div className="clientes-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Clientes</div>
-          <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 2 }}>Cadastro, histórico de compras e fiado</div>
+          <div className="clientes-view__subtitulo" style={{ color: C.muted, fontSize: sz.fontSm }}>Cadastro, histórico de compras e fiado</div>
         </div>
         <button
           onClick={abrirCadastro}
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "10px 18px", borderRadius: 10, border: "none",
-            background: C.accent, color: "#fff", cursor: "pointer",
-            fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit",
-            boxShadow: `0 4px 16px ${C.accent}44`,
-          }}
+          className="clientes-view__btn-novo"
+          style={{ background: C.accent, fontSize: sz.fontBase, boxShadow: `0 4px 16px ${alfa(C.accent, "44")}` }}
         >
           <LuPlus size={16} /> Novo Cliente
         </button>
       </div>
 
       {/* Busca */}
-      <div style={{ padding: `${sz.padSm}px ${sz.pad}px`, flexShrink: 0 }}>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8,
-          border: `1px solid ${C.border}`, borderRadius: 10, padding: "9px 14px",
-          background: C.surface, maxWidth: 380,
-        }}>
+      <div className="clientes-view__busca-wrap" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
+        <div className="clientes-view__busca">
           <LuSearch size={15} color={C.muted} />
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por nome ou telefone..."
-            style={{ flex: 1, border: "none", background: "none", outline: "none", color: C.text, fontSize: sz.fontBase, fontFamily: "inherit" }}
+            className="clientes-view__busca-input"
+            style={{ fontSize: sz.fontBase }}
           />
         </div>
       </div>
 
       {/* Lista */}
-      <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
+      <div className="clientes-view__lista-area" style={{ padding: `0 ${sz.pad}px ${sz.pad}px` }}>
         {erro && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 16, borderRadius: 12, background: `${C.red}12`, border: `1.5px solid ${C.red}44`, color: C.red, marginBottom: 12 }}>
+          <div className="clientes-view__alerta" style={{ background: alfa(C.red, "12") }}>
             <LuCircleAlert size={18} /> {erro}
           </div>
         )}
 
         {carregando ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: C.muted, padding: 60 }}>
+          <div className="clientes-view__estado">
             <div style={{ fontSize: sz.fontBase }}>Carregando clientes...</div>
           </div>
         ) : clientes.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: C.muted, padding: 60 }}>
+          <div className="clientes-view__estado">
             <LuUsers size={44} style={{ opacity: 0.3 }} />
             <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>
               {busca.trim() ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado ainda"}
@@ -140,26 +134,21 @@ export default function ClientesView() {
             )}
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(260px, 1fr))`, gap: sz.gap }}>
+          <div className="clientes-view__grid" style={{ gap: sz.gap }}>
             {clientes.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setClienteAberto(c)}
-                style={{
-                  textAlign: "left", padding: "16px 18px", borderRadius: 14,
-                  border: `1px solid ${C.border}`, background: C.card,
-                  cursor: "pointer", fontFamily: "inherit",
-                  display: "flex", flexDirection: "column", gap: 6,
-                }}
+                className="clientes-view__card"
               >
-                <div style={{ fontWeight: 700, fontSize: sz.fontBase + 1, color: C.text }}>{c.nome}</div>
+                <div className="clientes-view__card-nome" style={{ fontSize: sz.fontBase + 1 }}>{c.nome}</div>
                 {c.telefone && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: sz.fontSm, color: C.muted }}>
+                  <div className="clientes-view__card-linha" style={{ fontSize: sz.fontSm }}>
                     <LuPhone size={13} /> {c.telefone}
                   </div>
                 )}
                 {c.endereco && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: sz.fontSm, color: C.muted }}>
+                  <div className="clientes-view__card-linha" style={{ fontSize: sz.fontSm }}>
                     <LuMapPin size={13} /> {c.endereco}
                   </div>
                 )}
@@ -173,72 +162,71 @@ export default function ClientesView() {
       {showCadastro && createPortal(
         <div
           onClick={(e) => { if (e.target === e.currentTarget) setShowCadastro(false); }}
-          style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(0,0,0,0.72)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          className="clientes-view__overlay"
         >
-          <div style={{ background: C.card, borderRadius: 20, padding: 28, width: "100%", maxWidth: 420, border: `1px solid ${C.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 900, fontSize: 18, color: C.text }}>Novo Cliente</div>
-              <button onClick={() => setShowCadastro(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }}>
+          <div className="clientes-view__modal">
+            <div className="clientes-view__modal-topo">
+              <div className="clientes-view__modal-titulo">Novo Cliente</div>
+              <button onClick={() => setShowCadastro(false)} className="clientes-view__modal-fechar">
                 <LuX size={18} />
               </button>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="clientes-view__campos">
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6 }}>Nome</label>
+                <label className="clientes-view__label">Nome</label>
                 <input
                   autoFocus
                   value={novoNome}
                   onChange={(e) => setNovoNome(e.target.value)}
                   placeholder="Nome do cliente"
-                  style={{ width: "100%", marginTop: 6, padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  className="clientes-view__input"
                 />
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6 }}>Telefone</label>
+                <label className="clientes-view__label">Telefone</label>
                 <input
                   value={novoTelefone}
                   onChange={(e) => setNovoTelefone(e.target.value)}
                   placeholder="(00) 00000-0000"
-                  style={{ width: "100%", marginTop: 6, padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  className="clientes-view__input"
                 />
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6 }}>Endereço <span style={{ fontWeight: 400, textTransform: "none" }}>(para delivery, opcional)</span></label>
+                <label className="clientes-view__label">Endereço <span style={{ fontWeight: 400, textTransform: "none" }}>(para delivery, opcional)</span></label>
                 <input
                   value={novoEndereco}
                   onChange={(e) => setNovoEndereco(e.target.value)}
                   placeholder="Rua, número, bairro..."
-                  style={{ width: "100%", marginTop: 6, padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  className="clientes-view__input"
                 />
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6 }}>Observações <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span></label>
+                <label className="clientes-view__label">Observações <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span></label>
                 <input
                   value={novoObs}
                   onChange={(e) => setNovoObs(e.target.value)}
                   placeholder="Ex: sem cebola, apto 302..."
-                  style={{ width: "100%", marginTop: 6, padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  className="clientes-view__input"
                 />
               </div>
             </div>
 
             {erroCadastro && (
-              <div style={{ fontSize: 13, color: C.red, fontWeight: 600 }}>{erroCadastro}</div>
+              <div className="clientes-view__erro-form">{erroCadastro}</div>
             )}
 
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setShowCadastro(false)} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 15, fontFamily: "inherit" }}>
+            <div className="clientes-view__modal-botoes">
+              <button onClick={() => setShowCadastro(false)} className="clientes-view__btn-cancelar">
                 Cancelar
               </button>
               <button
                 onClick={handleCadastrar}
                 disabled={salvando || !novoNome.trim() || !novoTelefone.trim()}
+                className="clientes-view__btn-confirmar"
                 style={{
-                  flex: 2, padding: "12px 0", borderRadius: 12, border: "none",
                   background: (salvando || !novoNome.trim() || !novoTelefone.trim()) ? C.faint : C.accent,
-                  color: "#fff", cursor: (salvando || !novoNome.trim() || !novoTelefone.trim()) ? "not-allowed" : "pointer",
-                  fontWeight: 800, fontSize: 15, fontFamily: "inherit",
+                  cursor: (salvando || !novoNome.trim() || !novoTelefone.trim()) ? "not-allowed" : "pointer",
                 }}
               >
                 {salvando ? "Salvando..." : "Cadastrar"}
@@ -301,36 +289,36 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
   return (
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(0,0,0,0.72)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+      className="clientes-view__overlay"
     >
-      <div style={{ background: C.card, borderRadius: 20, width: "100%", maxWidth: 560, maxHeight: "85vh", border: `1px solid ${C.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="cliente-detalhe__modal">
 
         {/* Header */}
-        <div style={{ padding: "18px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, display: "flex" }}>
+        <div className="cliente-detalhe__header">
+          <button onClick={onClose} className="cliente-detalhe__btn-icone">
             <LuArrowLeft size={18} />
           </button>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 900, fontSize: 17, color: C.text }}>{cliente.nome}</div>
-            <div style={{ fontSize: 13, color: C.muted, marginTop: 2, display: "flex", gap: 12 }}>
+            <div className="cliente-detalhe__nome">{cliente.nome}</div>
+            <div className="cliente-detalhe__contato">
               {cliente.telefone && <span><LuPhone size={12} style={{ verticalAlign: -1 }} /> {cliente.telefone}</span>}
               {cliente.endereco && <span><LuMapPin size={12} style={{ verticalAlign: -1 }} /> {cliente.endereco}</span>}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, display: "flex" }}>
+          <button onClick={onClose} className="cliente-detalhe__btn-icone">
             <LuX size={18} />
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+        <div className="cliente-detalhe__corpo">
 
           {erro && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 14, borderRadius: 10, background: `${C.red}12`, border: `1.5px solid ${C.red}44`, color: C.red }}>
+            <div className="clientes-view__alerta" style={{ padding: 14, borderRadius: 10, background: alfa(C.red, "12") }}>
               <LuCircleAlert size={16} /> {erro}
             </div>
           )}
           {erroBaixa && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 14, borderRadius: 10, background: `${C.red}12`, border: `1.5px solid ${C.red}44`, color: C.red }}>
+            <div className="clientes-view__alerta" style={{ padding: 14, borderRadius: 10, background: alfa(C.red, "12") }}>
               <LuCircleAlert size={16} /> {erroBaixa}
             </div>
           )}
@@ -340,15 +328,13 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
           ) : (
             <>
               {/* Saldo devedor — destaque claro: quem deve, quanto */}
-              <div style={{
-                padding: "16px 18px", borderRadius: 14,
-                background: saldoDevedor > 0 ? `${C.red}12` : `${C.green}12`,
-                border: `1.5px solid ${saldoDevedor > 0 ? C.red : C.green}44`,
-                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+              <div className="cliente-detalhe__saldo" style={{
+                background: saldoDevedor > 0 ? alfa(C.red, "12") : alfa(C.green, "12"),
+                border: `1.5px solid ${alfa(saldoDevedor > 0 ? C.red : C.green, "44")}`,
               }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6 }}>Saldo de fiado</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: saldoDevedor > 0 ? C.red : C.green, marginTop: 4 }}>
+                  <div className="cliente-detalhe__saldo-rotulo">Saldo de fiado</div>
+                  <div className="cliente-detalhe__saldo-valor" style={{ color: saldoDevedor > 0 ? C.red : C.green }}>
                     {saldoDevedor > 0 ? `${cliente.nome} deve R$ ${saldoDevedor.toFixed(2)}` : "Sem pendências"}
                   </div>
                 </div>
@@ -358,30 +344,30 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
               {/* Contas de fiado em aberto */}
               {contasEmAberto.length > 0 && (
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, marginBottom: 8 }}>Contas em aberto</div>
+                  <div className="cliente-detalhe__secao-titulo">Contas em aberto</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {contasEmAberto.map((l) => (
-                      <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface }}>
+                      <div key={l.id} className="cliente-detalhe__conta">
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{l.descricao ?? "Fiado"}</div>
-                          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                          <div className="cliente-detalhe__conta-descricao">{l.descricao ?? "Fiado"}</div>
+                          <div className="cliente-detalhe__conta-venc">
                             Venc. {l.vencimento ? new Date(l.vencimento).toLocaleDateString("pt-BR") : "—"}
                             {l.status === "vencido" && <span style={{ color: C.red, fontWeight: 700 }}> · Vencido</span>}
                           </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ fontWeight: 800, fontSize: 15, color: C.text }}>R$ {Number(l.valor).toFixed(2)}</div>
+                        <div className="cliente-detalhe__conta-acoes">
+                          <div className="cliente-detalhe__conta-valor">R$ {Number(l.valor).toFixed(2)}</div>
                           {confirmandoId === l.id ? (
                             <div style={{ display: "flex", gap: 6 }}>
-                              <button onClick={() => setConfirmandoId(null)} style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>
+                              <button onClick={() => setConfirmandoId(null)} className="cliente-detalhe__btn-pequeno">
                                 Cancelar
                               </button>
-                              <button onClick={() => handleConfirmarPagamento(l.id)} disabled={baixando} style={{ padding: "6px 10px", borderRadius: 8, border: "none", background: C.green, color: "#fff", cursor: baixando ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 12, fontFamily: "inherit" }}>
+                              <button onClick={() => handleConfirmarPagamento(l.id)} disabled={baixando} className="cliente-detalhe__btn-confirmar-pagamento" style={{ background: C.green, cursor: baixando ? "not-allowed" : "pointer" }}>
                                 {baixando ? "..." : "Confirmar"}
                               </button>
                             </div>
                           ) : (
-                            <button onClick={() => setConfirmandoId(l.id)} style={{ padding: "6px 12px", borderRadius: 8, border: `1.5px solid ${C.green}66`, background: `${C.green}12`, color: C.green, cursor: "pointer", fontWeight: 700, fontSize: 12, fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                            <button onClick={() => setConfirmandoId(l.id)} className="cliente-detalhe__btn-registrar" style={{ borderColor: alfa(C.green, "66"), background: alfa(C.green, "12"), color: C.green }}>
                               Registrar pagamento
                             </button>
                           )}
@@ -394,13 +380,13 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
 
               {/* Histórico de compras */}
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, marginBottom: 8 }}>Histórico de compras</div>
+                <div className="cliente-detalhe__secao-titulo">Histórico de compras</div>
                 {vendas.length === 0 ? (
                   <div style={{ fontSize: 13, color: C.muted, padding: "10px 0" }}>Nenhuma venda registrada para este cliente ainda.</div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {vendas.map((v) => (
-                      <div key={v.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface }}>
+                      <div key={v.id} className="cliente-detalhe__venda">
                         <div style={{ fontSize: 13, color: C.muted }}>
                           {v.comanda ? `Comanda ${v.comanda}` : "Venda"} · {new Date(v.at).toLocaleDateString("pt-BR")}
                         </div>
