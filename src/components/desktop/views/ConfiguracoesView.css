@@ -1,0 +1,820 @@
+/**
+ * F018 — leva 3, sub-lote 3C. Decisão 018 (CSS separado do JSX) +
+ * tokens --gm-* (ADR-007). Cores sólidas viram var(--gm-*); blends com
+ * transparência usam alfa() (src/constants/colorAlfa.js). O laranja de
+ * "garçom"/"consumo" (#f59e0b) é cor semântica fixa, não de marca —
+ * segue literal, como AMBER em ComandaGrid.jsx.
+ */
+
+/* ── View principal ── */
+
+.configuracoes-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.configuracoes-view__header {
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}
+
+.configuracoes-view__subtitulo {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+
+.configuracoes-view__abas {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.configuracoes-view__aba {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.configuracoes-view__conteudo {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ── Helpers compartilhados ── */
+
+.cfg__badge-role {
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.cfg__avatar {
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+  background: var(--gm-accent);
+}
+
+.cfg__label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 8px;
+}
+
+.cfg__input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
+}
+
+.cfg__input--disabled {
+  background: var(--gm-bg);
+  color: var(--gm-muted);
+  opacity: 0.6;
+}
+
+.cfg__erro-box {
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: var(--gm-red);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cfg__ok-box {
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: var(--gm-green);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cfg__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 16px;
+}
+
+.cfg__cancel-btn {
+  flex: 1;
+  /* alvo de toque generoso (princípio nº 1) */
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+/* ── Aba Usuários ── */
+
+.usuarios-tab__guia {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.usuarios-tab__guia-titulo {
+  font-weight: 800;
+}
+
+.usuarios-tab__cargos-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+}
+
+.usuarios-tab__cargos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.usuarios-tab__cargo-card {
+  background: var(--gm-surface);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.usuarios-tab__cargo-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.usuarios-tab__cargo-desc {
+  color: var(--gm-muted);
+  line-height: 1.5;
+}
+
+.usuarios-tab__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* telas estreitas: header não deve espremer o botão de novo usuário */
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.usuarios-tab__contagem {
+  color: var(--gm-muted);
+}
+
+.usuarios-tab__btn-novo {
+  /* alvo de toque generoso */
+  padding: 12px 20px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.usuarios-tab__tabela-moldura {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.usuarios-tab__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+.usuarios-tab__th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.usuarios-tab__tr {
+  border-bottom: 1px solid var(--gm-border);
+  transition: background 0.1s;
+}
+
+.usuarios-tab__td {
+  padding: 12px 16px;
+}
+
+.usuarios-tab__nome {
+  font-weight: 700;
+}
+
+.usuarios-tab__voce {
+  font-size: 14px;
+  color: var(--gm-accent);
+  margin-left: 8px;
+  font-weight: 600;
+}
+
+.usuarios-tab__perm-chips {
+  display: flex;
+  gap: 6px;
+}
+
+.usuarios-tab__perm-chip {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.usuarios-tab__acoes {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.usuarios-tab__action-btn {
+  /* alvo de toque generoso */
+  padding: 9px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  font-family: inherit;
+}
+
+.usuarios-tab__modal {
+  background: var(--gm-card);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box;
+  border: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.usuarios-tab__modal-titulo {
+  font-weight: 800;
+}
+
+.usuarios-tab__ajuda {
+  font-size: 14px;
+  color: var(--gm-muted);
+  margin-top: 4px;
+}
+
+.usuarios-tab__cargo-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.usuarios-tab__cargo-chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border-width: 1.5px;
+  border-style: solid;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.usuarios-tab__senha-secao {
+  border-top: 1px solid var(--gm-border);
+}
+
+.usuarios-tab__senha-titulo {
+  font-weight: 700;
+}
+
+.usuarios-tab__senha-wrap {
+  position: relative;
+}
+
+.usuarios-tab__senha-olho {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--gm-muted);
+  padding: 4px;
+  line-height: 1;
+}
+
+.usuarios-tab__strength-barras {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.usuarios-tab__strength-barra {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+.usuarios-tab__btn-salvar {
+  flex: 2;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+.usuarios-tab__confirm-modal {
+  background: var(--gm-card);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 380px;
+  box-sizing: border-box;
+  border: 1px solid var(--gm-border);
+}
+
+.usuarios-tab__confirm-titulo {
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.usuarios-tab__confirm-sub {
+  margin-bottom: 6px;
+}
+
+.usuarios-tab__confirm-ajuda {
+  color: var(--gm-muted);
+  margin-bottom: 24px;
+}
+
+.usuarios-tab__btn-excluir {
+  flex: 1;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+/* ── Aba Meios de Pagamento ── */
+
+.meios-pagamento-tab__card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+}
+
+.meios-pagamento-tab__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.meios-pagamento-tab__titulo {
+  font-weight: 800;
+}
+
+.meios-pagamento-tab__btn-adicionar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* alvo de toque generoso */
+  padding: 10px 16px;
+  border-radius: 8px;
+  border-width: 1.5px;
+  border-style: solid;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+
+.meios-pagamento-tab__ajuda {
+  color: var(--gm-muted);
+}
+
+.meios-pagamento-tab__form-novo {
+  background: var(--gm-surface);
+  border-radius: 12px;
+  border-width: 1.5px;
+  border-style: solid;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.meios-pagamento-tab__input-novo {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+}
+
+.meios-pagamento-tab__btn-confirmar {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+.meios-pagamento-tab__btn-cancelar-form {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.meios-pagamento-tab__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.meios-pagamento-tab__metodo-card {
+  width: 100%;
+  border-radius: 14px;
+  border-width: 2px;
+  border-style: solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  font-family: inherit;
+  /* alvo de toque generoso */
+  min-height: 100px;
+}
+
+.meios-pagamento-tab__metodo-nome {
+  font-weight: 700;
+}
+
+.meios-pagamento-tab__status-tag {
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin-top: 2px;
+}
+
+.meios-pagamento-tab__btn-remover-custom {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+}
+
+.meios-pagamento-tab__aviso-vazio {
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: var(--gm-red);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.meios-pagamento-tab__rodape {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+}
+
+.meios-pagamento-tab__ok-msg {
+  font-size: 16px;
+  color: var(--gm-green);
+  font-weight: 600;
+}
+
+.meios-pagamento-tab__btn-salvar {
+  padding: 12px 24px;
+  border-radius: 10px;
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+/* ── Aba Unidades de Medida ── */
+
+.unidades-medida-tab__grupo {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.unidades-medida-tab__grupo-header {
+  border-bottom: 1px solid var(--gm-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.unidades-medida-tab__bolinha {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.unidades-medida-tab__grupo-titulo {
+  font-weight: 800;
+}
+
+.unidades-medida-tab__grupo-contagem {
+  color: var(--gm-muted);
+  margin-left: 4px;
+}
+
+.unidades-medida-tab__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.unidades-medida-tab__vazio {
+  color: var(--gm-muted);
+  padding: 8px 0;
+}
+
+.unidades-medida-tab__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+}
+
+.unidades-medida-tab__item-abbr {
+  font-family: monospace;
+  font-weight: 800;
+  min-width: 44px;
+}
+
+.unidades-medida-tab__item-nome {
+  flex: 1;
+  color: var(--gm-text);
+}
+
+.unidades-medida-tab__btn-remover {
+  background: none;
+  border: 1px solid var(--gm-border);
+  border-radius: 7px;
+  color: var(--gm-muted);
+  cursor: pointer;
+  /* alvo de toque generoso */
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  line-height: 0;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.unidades-medida-tab__form-add {
+  display: flex;
+  gap: 8px;
+}
+
+.unidades-medida-tab__input-abbr {
+  width: 80px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border-width: 1.5px;
+  border-style: solid;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-family: monospace;
+  font-weight: 700;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.unidades-medida-tab__input-nome {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border-width: 1.5px;
+  border-style: solid;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.unidades-medida-tab__btn-add {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.unidades-medida-tab__delete-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.unidades-medida-tab__delete-modal {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.unidades-medida-tab__delete-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.unidades-medida-tab__delete-icone {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.unidades-medida-tab__delete-titulo {
+  font-weight: 800;
+}
+
+.unidades-medida-tab__delete-ajuda {
+  color: var(--gm-muted);
+}
+
+.unidades-medida-tab__delete-info {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.unidades-medida-tab__delete-nome {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.unidades-medida-tab__delete-aviso {
+  color: var(--gm-red);
+  font-weight: 600;
+}
+
+.unidades-medida-tab__delete-sem-uso {
+  color: var(--gm-muted);
+}
+
+.unidades-medida-tab__delete-botoes {
+  display: flex;
+  gap: 10px;
+}
+
+.unidades-medida-tab__delete-cancelar {
+  flex: 1;
+  padding: 11px;
+  border-radius: 10px;
+  border-width: 1.5px;
+  border-style: solid;
+  background: none;
+  color: var(--gm-text);
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.unidades-medida-tab__delete-confirmar {
+  flex: 1;
+  padding: 11px;
+  border-radius: 10px;
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+/* ── Aba Geral ── */
+
+.geral-tab {
+  max-width: 600px;
+}
+
+.geral-tab__card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.geral-tab__titulo {
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.geral-tab__ajuda {
+  color: var(--gm-muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.geral-tab__toggle {
+  width: 56px;
+  height: 30px;
+  border-radius: 15px;
+  border: none;
+  padding: 0;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  outline: none;
+}
+
+.geral-tab__toggle-bolinha {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s;
+  display: block;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
