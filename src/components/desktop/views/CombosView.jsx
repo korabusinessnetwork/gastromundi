@@ -3,10 +3,12 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
 import {
   LuPlus, LuPencil, LuX, LuMinus, LuSearch, LuPackage,
   LuLayers, LuToggleLeft, LuToggleRight,
 } from "react-icons/lu";
+import "./CombosView.css";
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -15,18 +17,10 @@ function Toggle({ value, onChange }) {
     <button
       type="button"
       onClick={() => onChange(!value)}
-      style={{
-        width: 44, height: 24, borderRadius: 12, border: "none", padding: 0,
-        background: value ? C.green : C.faint, cursor: "pointer",
-        position: "relative", transition: "background 0.2s", flexShrink: 0,
-      }}
+      className="combos-view__toggle"
+      style={{ background: value ? C.green : C.faint }}
     >
-      <span style={{
-        position: "absolute", top: "50%", transform: "translateY(-50%)",
-        left: value ? 22 : 2, width: 20, height: 20, borderRadius: "50%",
-        background: "#fff", transition: "left 0.2s", display: "block",
-        boxShadow: "0 1px 3px #0004",
-      }} />
+      <span className="combos-view__toggle-bolinha" style={{ left: value ? 22 : 2 }} />
     </button>
   );
 }
@@ -166,67 +160,69 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
   return createPortal(
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: "fixed", inset: 0, zIndex: 9100, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter',system-ui,sans-serif" }}
+      className="combos-view__modal-overlay"
     >
-      <div style={{ background: C.card, borderRadius: 20, width: "100%", maxWidth: 580, maxHeight: "92vh", overflowY: "auto", border: `1px solid ${C.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.55)", display: "flex", flexDirection: "column", gap: 20, padding: 28 }}>
+      <div className="combos-view__modal">
 
         {/* Título */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="combos-view__modal-topo">
           <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2 }}>{isEdit ? "Editar Combo" : "Criar Combo"}</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0 }}><LuX size={20} /></button>
+          <button onClick={onClose} className="combos-view__modal-fechar"><LuX size={20} /></button>
         </div>
 
         {/* Nome */}
         <div>
-          <div style={lbl}>Nome do combo *</div>
+          <div className="combos-view__label">Nome do combo *</div>
           <input
             autoFocus
             value={nome}
             onChange={e => setNome(e.target.value)}
             placeholder="Ex: Combo X-Burguer Clássico"
             maxLength={100}
-            style={inp(sz)}
+            className="combos-view__input"
+            style={{ fontSize: sz.fontBase }}
           />
         </div>
 
         {/* Produto principal */}
-        <div style={{ position: "relative" }}>
-          <div style={lbl}>Produto principal *</div>
+        <div className="combos-view__principal-wrap">
+          <div className="combos-view__label">Produto principal *</div>
           {principal ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: `${C.accent}10`, border: `1.5px solid ${C.accent}44` }}>
-              <span style={{ fontSize: 22 }}>{principal.emoji ?? "📦"}</span>
+            <div className="combos-view__principal-selecionado" style={{ background: alfa(C.accent, "10"), border: `1.5px solid ${alfa(C.accent, "44")}` }}>
+              <span className="combos-view__principal-emoji">{principal.emoji ?? "📦"}</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>{principal.name}</div>
-                <div style={{ fontSize: sz.fontSm, color: C.muted }}>R$ {Number(principal.price).toFixed(2)}</div>
+                <div className="combos-view__principal-nome" style={{ fontSize: sz.fontBase }}>{principal.name}</div>
+                <div className="combos-view__principal-preco" style={{ fontSize: sz.fontSm }}>R$ {Number(principal.price).toFixed(2)}</div>
               </div>
-              <button onClick={() => setPrincipal(null)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0 }}><LuX size={16} /></button>
+              <button onClick={() => setPrincipal(null)} className="combos-view__principal-remover"><LuX size={16} /></button>
             </div>
           ) : (
             <div>
-              <div style={{ position: "relative" }}>
-                <LuSearch size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+              <div className="combos-view__busca-wrap">
+                <LuSearch size={15} className="combos-view__busca-icone" />
                 <input
                   value={buscaProd}
                   onChange={e => { setBuscaProd(e.target.value); setShowProd(true); }}
                   onFocus={() => setShowProd(true)}
                   placeholder="Buscar produto..."
-                  style={{ ...inp(sz), paddingLeft: 36 }}
+                  className="combos-view__input"
+                  style={{ fontSize: sz.fontBase, paddingLeft: 36 }}
                 />
               </div>
               {showProd && prodsFiltrados.length > 0 && (
-                <div style={{ position: "absolute", left: 0, right: 0, top: "100%", zIndex: 10, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, maxHeight: 200, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.25)", marginTop: 4 }}>
+                <div className="combos-view__dropdown">
                   {prodsFiltrados.slice(0, 20).map(p => (
                     <button
                       key={p.id}
                       onClick={() => { setPrincipal(p); setBuscaProd(""); setShowProd(false); }}
-                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", borderBottom: `1px solid ${C.border}` }}
+                      className="combos-view__dropdown-item"
                       onMouseEnter={e => e.currentTarget.style.background = C.surface}
                       onMouseLeave={e => e.currentTarget.style.background = "none"}
                     >
                       <span style={{ fontSize: 18 }}>{p.emoji ?? "📦"}</span>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: sz.fontBase, color: C.text }}>{p.name}</div>
-                        <div style={{ fontSize: sz.fontSm, color: C.muted }}>R$ {Number(p.price).toFixed(2)}</div>
+                        <div className="combos-view__dropdown-item-nome" style={{ fontSize: sz.fontBase }}>{p.name}</div>
+                        <div className="combos-view__dropdown-item-preco" style={{ fontSize: sz.fontSm }}>R$ {Number(p.price).toFixed(2)}</div>
                       </div>
                     </button>
                   ))}
@@ -238,8 +234,8 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
 
         {/* Modo */}
         <div>
-          <div style={lbl}>Comportamento do combo</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="combos-view__label">Comportamento do combo</div>
+          <div className="combos-view__modo-grid">
             {[
               { id: "combo",      icon: LuLayers,      title: "Exibir como combo",           desc: "Aparece como opção adicional ao lado do produto" },
               { id: "substituir", icon: LuToggleRight,  title: "Substituir produto",          desc: "Enquanto ativo, substitui o produto principal" },
@@ -249,11 +245,12 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                 <button
                   key={m.id}
                   onClick={() => setModo(m.id)}
-                  style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", borderRadius: 12, border: `2px solid ${ativo ? C.accent : C.border}`, background: ativo ? `${C.accent}10` : C.surface, cursor: "pointer", fontFamily: "inherit", textAlign: "left", transition: "border-color 0.15s, background 0.15s" }}
+                  className="combos-view__modo-card"
+                  style={{ borderColor: ativo ? C.accent : C.border, background: ativo ? alfa(C.accent, "10") : C.surface }}
                 >
                   <m.icon size={20} color={ativo ? C.accent : C.muted} />
-                  <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: ativo ? C.accent : C.text }}>{m.title}</div>
-                  <div style={{ fontSize: sz.fontSm, color: C.muted, lineHeight: 1.4 }}>{m.desc}</div>
+                  <div className="combos-view__modo-titulo" style={{ fontSize: sz.fontBase, color: ativo ? C.accent : C.text }}>{m.title}</div>
+                  <div className="combos-view__modo-desc" style={{ fontSize: sz.fontSm }}>{m.desc}</div>
                 </button>
               );
             })}
@@ -262,31 +259,31 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
 
         {/* Subprodutos */}
         <div>
-          <div style={lbl}>Subprodutos *</div>
+          <div className="combos-view__label">Subprodutos *</div>
 
           {itens.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+            <div className="combos-view__itens-lista">
               {itens.map((it, idx) => (
-                <div key={idx} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 14px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: it.usarCustom ? 8 : 0 }}>
+                <div key={idx} className="combos-view__item-card">
+                  <div className="combos-view__item-linha" style={{ marginBottom: it.usarCustom ? 8 : 0 }}>
                     {/* Nome */}
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>{it.subproduto.nome}</div>
-                      <div style={{ fontSize: sz.fontSm, color: C.muted }}>{it.subproduto.categoria} · {!it.usarCustom ? fmtBRL(it.subproduto.preco) : "preço custom"}</div>
+                      <div className="combos-view__item-nome" style={{ fontSize: sz.fontBase }}>{it.subproduto.nome}</div>
+                      <div className="combos-view__item-info" style={{ fontSize: sz.fontSm }}>{it.subproduto.categoria} · {!it.usarCustom ? fmtBRL(it.subproduto.preco) : "preço custom"}</div>
                     </div>
                     {/* Quantidade */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <button onClick={() => setQtd(idx, it.quantidade - 1)} style={qBtn}><LuMinus size={11} /></button>
-                      <span style={{ fontWeight: 700, fontSize: sz.fontBase, minWidth: 20, textAlign: "center" }}>{it.quantidade}</span>
-                      <button onClick={() => setQtd(idx, it.quantidade + 1)} style={qBtn}><LuPlus size={11} /></button>
+                    <div className="combos-view__item-qtd-controles">
+                      <button onClick={() => setQtd(idx, it.quantidade - 1)} className="combos-view__qtd-btn"><LuMinus size={11} /></button>
+                      <span className="combos-view__item-qtd-valor" style={{ fontSize: sz.fontBase }}>{it.quantidade}</span>
+                      <button onClick={() => setQtd(idx, it.quantidade + 1)} className="combos-view__qtd-btn"><LuPlus size={11} /></button>
                     </div>
                     {/* Toggle custom */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: sz.fontSm, color: C.muted }}>Custom</span>
+                    <div className="combos-view__item-custom-toggle">
+                      <span className="combos-view__item-custom-label" style={{ fontSize: sz.fontSm }}>Custom</span>
                       <Toggle value={it.usarCustom} onChange={() => toggleCustom(idx)} />
                     </div>
                     {/* Remover */}
-                    <button onClick={() => removeItem(idx)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 4 }}><LuX size={15} /></button>
+                    <button onClick={() => removeItem(idx)} className="combos-view__item-remover"><LuX size={15} /></button>
                   </div>
                   {/* Campo preço custom */}
                   {it.usarCustom && (
@@ -297,7 +294,8 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                       value={it.precoCustom}
                       onChange={e => setCustom(idx, e.target.value)}
                       placeholder="Preço para este combo (R$)"
-                      style={{ ...inp(sz), marginTop: 4 }}
+                      className="combos-view__input"
+                      style={{ fontSize: sz.fontBase, marginTop: 4 }}
                     />
                   )}
                 </div>
@@ -306,28 +304,29 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
           )}
 
           {/* Busca subproduto */}
-          <div style={{ position: "relative" }}>
-            <LuSearch size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+          <div className="combos-view__busca-wrap">
+            <LuSearch size={15} className="combos-view__busca-icone" />
             <input
               value={buscaSub}
               onChange={e => { setBuscaSub(e.target.value); setShowSub(true); }}
               onFocus={() => setShowSub(true)}
               placeholder="Buscar e adicionar subproduto..."
-              style={{ ...inp(sz), paddingLeft: 36 }}
+              className="combos-view__input"
+              style={{ fontSize: sz.fontBase, paddingLeft: 36 }}
             />
             {showSub && subsFiltrados.length > 0 && (
-              <div style={{ position: "absolute", left: 0, right: 0, top: "100%", zIndex: 10, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, maxHeight: 200, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.25)", marginTop: 4 }}>
+              <div className="combos-view__dropdown">
                 {subsFiltrados.slice(0, 20).map(s => (
                   <button
                     key={s.id}
                     onClick={() => addSubproduto(s)}
-                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left", borderBottom: `1px solid ${C.border}` }}
+                    className="combos-view__dropdown-item"
                     onMouseEnter={e => e.currentTarget.style.background = C.surface}
                     onMouseLeave={e => e.currentTarget.style.background = "none"}
                   >
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: sz.fontBase, color: C.text }}>{s.nome}</div>
-                      <div style={{ fontSize: sz.fontSm, color: C.muted }}>{s.categoria} · {fmtBRL(s.preco)}</div>
+                      <div className="combos-view__dropdown-item-nome" style={{ fontSize: sz.fontBase }}>{s.nome}</div>
+                      <div className="combos-view__dropdown-item-preco" style={{ fontSize: sz.fontSm }}>{s.categoria} · {fmtBRL(s.preco)}</div>
                     </div>
                     <LuPlus size={14} color={C.accent} />
                   </button>
@@ -338,16 +337,16 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
         </div>
 
         {/* Preço total */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 12, background: `${C.green}0c`, border: `1px solid ${C.green}33` }}>
-          <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Preço total calculado</div>
-          <div style={{ fontWeight: 900, fontSize: sz.fontLg, color: C.green }}>{fmtBRL(precoTotal)}</div>
+        <div className="combos-view__preco-total" style={{ background: alfa(C.green, "0c"), border: `1px solid ${alfa(C.green, "33")}` }}>
+          <div className="combos-view__preco-total-label" style={{ fontSize: sz.fontBase }}>Preço total calculado</div>
+          <div className="combos-view__preco-total-valor" style={{ fontSize: sz.fontLg }}>{fmtBRL(precoTotal)}</div>
         </div>
 
-        {erro && <div style={{ fontSize: sz.fontSm, color: C.red, fontWeight: 600 }}>⚠ {erro}</div>}
+        {erro && <div className="combos-view__erro" style={{ fontSize: sz.fontSm }}>⚠ {erro}</div>}
 
-        <div style={{ display: "flex", gap: 10, paddingTop: 4, borderTop: `1px solid ${C.border}` }}>
-          <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}>Cancelar</button>
-          <button onClick={salvar} disabled={salvando} style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: salvando ? C.faint : C.accent, color: "#fff", cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}>
+        <div className="combos-view__modal-botoes">
+          <button onClick={onClose} className="combos-view__btn-cancelar" style={{ fontSize: sz.fontBase }}>Cancelar</button>
+          <button onClick={salvar} disabled={salvando} className="combos-view__btn-salvar" style={{ background: salvando ? C.faint : C.accent, cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
             {salvando ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar combo"}
           </button>
         </div>
@@ -398,73 +397,77 @@ export default function CombosView({ sz }) {
   const prodMap = useMemo(() => Object.fromEntries(products.map(p => [p.id, p])), [products]);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="combos-view">
 
       {/* Header */}
-      <div style={{ padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ color: C.muted, fontSize: sz.fontSm + 1 }}>{combos.length} combo{combos.length !== 1 ? "s" : ""}</div>
+      <div className="combos-view__header" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
+        <div className="combos-view__header-esquerda">
+          <div className="combos-view__contagem" style={{ fontSize: sz.fontSm + 1 }}>{combos.length} combo{combos.length !== 1 ? "s" : ""}</div>
           <input
             value={busca}
             onChange={e => setBusca(e.target.value)}
             placeholder="Buscar combo..."
-            style={{ padding: "7px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, outline: "none", fontFamily: "inherit", width: 220 }}
+            className="combos-view__busca"
+            style={{ fontSize: sz.fontBase }}
           />
         </div>
         <button
           onClick={abrirNovo}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer", fontFamily: "inherit" }}
+          className="combos-view__btn-criar"
+          style={{ fontSize: sz.fontBase }}
         >
           <LuPlus size={15} /> Criar Combo
         </button>
       </div>
 
       {/* Lista */}
-      <div style={{ flex: 1, overflowY: "auto", padding: `${sz.padSm}px ${sz.pad}px` }}>
+      <div className="combos-view__lista-area" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
         {loading ? (
-          <div style={{ color: C.muted, padding: 40, textAlign: "center" }}>Carregando…</div>
+          <div className="combos-view__estado">Carregando…</div>
         ) : listafiltrada.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: C.muted, padding: 60 }}>
+          <div className="combos-view__vazio">
             <LuPackage size={40} style={{ opacity: 0.2 }} />
             <div style={{ fontWeight: 600, fontSize: sz.fontBase }}>{busca ? "Nenhum resultado" : "Nenhum combo criado"}</div>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="combos-view__lista">
             {listafiltrada.map(c => {
               const prod = prodMap[c.item_principal_id];
               const qtdSubs = c.combo_subprodutos?.length ?? 0;
               return (
                 <div
                   key={c.id}
-                  style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: `${sz.padSm}px ${sz.pad}px`, display: "flex", alignItems: "center", gap: 14, opacity: c.ativo ? 1 : 0.55 }}
+                  className="combos-view__card"
+                  style={{ padding: `${sz.padSm}px ${sz.pad}px`, opacity: c.ativo ? 1 : 0.55 }}
                 >
                   {/* Ícone */}
-                  <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: `${C.accent}15`, border: `1px solid ${C.accent}33`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
+                  <div className="combos-view__card-icone" style={{ background: alfa(C.accent, "15"), border: `1px solid ${alfa(C.accent, "33")}` }}>
                     {prod?.emoji ?? "🍽️"}
                   </div>
 
                   {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>{c.nome}</div>
-                    <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>
+                    <div className="combos-view__card-nome" style={{ fontSize: sz.fontBase }}>{c.nome}</div>
+                    <div className="combos-view__card-info" style={{ fontSize: sz.fontSm }}>
                       {prod?.name ?? "Produto removido"} · {qtdSubs} subproduto{qtdSubs !== 1 ? "s" : ""}
                     </div>
                   </div>
 
                   {/* Preço */}
-                  <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, whiteSpace: "nowrap" }}>
+                  <div className="combos-view__card-preco" style={{ fontSize: sz.fontBase + 1 }}>
                     {fmtBRL(c.preco_total)}
                   </div>
 
                   {/* Modo badge */}
-                  <span style={{ fontSize: sz.fontSm - 1, fontWeight: 700, padding: "3px 10px", borderRadius: 20, border: "none", whiteSpace: "nowrap", background: c.modo === "substituir" ? `${C.blue}18` : `${C.accent}18`, color: c.modo === "substituir" ? C.blue : C.accent }}>
+                  <span className="combos-view__badge" style={{ fontSize: sz.fontSm - 1, background: c.modo === "substituir" ? alfa(C.blue, "18") : alfa(C.accent, "18"), color: c.modo === "substituir" ? C.blue : C.accent }}>
                     {c.modo === "substituir" ? "Substitui" : "Combo"}
                   </span>
 
                   {/* Status */}
                   <button
                     onClick={() => toggleAtivo(c)}
-                    style={{ fontSize: sz.fontSm - 1, fontWeight: 700, padding: "3px 10px", borderRadius: 20, border: "none", cursor: "pointer", fontFamily: "inherit", background: c.ativo ? `${C.green}18` : C.surface, color: c.ativo ? C.green : C.muted }}
+                    className="combos-view__badge-status"
+                    style={{ fontSize: sz.fontSm - 1, background: c.ativo ? alfa(C.green, "18") : C.surface, color: c.ativo ? C.green : C.muted }}
                   >
                     {c.ativo ? "Ativo" : "Inativo"}
                   </button>
@@ -472,7 +475,7 @@ export default function CombosView({ sz }) {
                   {/* Editar */}
                   <button
                     onClick={() => abrirEditar(c)}
-                    style={{ padding: "7px 9px", borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface, color: C.muted, cursor: "pointer", lineHeight: 0 }}
+                    className="combos-view__btn-editar"
                   >
                     <LuPencil size={15} />
                   </button>
@@ -496,8 +499,3 @@ export default function CombosView({ sz }) {
     </div>
   );
 }
-
-// ── Estilos utilitários ────────────────────────────────────────────
-const lbl = { fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 };
-const inp = (sz) => ({ width: "100%", padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, boxSizing: "border-box", fontFamily: "inherit", outline: "none" });
-const qBtn = { width: 26, height: 26, borderRadius: 7, border: `1px solid ${C.border}`, background: C.surface, color: C.text, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };

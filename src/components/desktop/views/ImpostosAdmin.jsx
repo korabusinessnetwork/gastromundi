@@ -3,7 +3,9 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
 import { LuSearch, LuX, LuCheck, LuTriangleAlert, LuReceiptText } from "react-icons/lu";
+import "./ImpostosAdmin.css";
 
 const CATS_EXCLUIDAS = ["Produção", "Insumo"];
 
@@ -72,11 +74,7 @@ const CST_PIS_COFINS = [
 // ── helpers UI ───────────────────────────────────────────────────────
 
 function FLabel({ children }) {
-  return (
-    <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 5 }}>
-      {children}
-    </div>
-  );
+  return <div className="impostos-admin__label">{children}</div>;
 }
 
 function FInp({ value, onChange, placeholder, maxLength, disabled, type = "text" }) {
@@ -88,12 +86,7 @@ function FInp({ value, onChange, placeholder, maxLength, disabled, type = "text"
       placeholder={placeholder}
       maxLength={maxLength}
       disabled={disabled}
-      style={{
-        width: "100%", padding: "9px 12px", borderRadius: 9,
-        border: `1.5px solid ${C.border}`, background: disabled ? C.faint : C.surface,
-        color: disabled ? C.muted : C.text, fontSize: 15, fontFamily: "inherit",
-        outline: "none", boxSizing: "border-box", opacity: disabled ? 0.7 : 1,
-      }}
+      className={`impostos-admin__input${disabled ? " impostos-admin__input--disabled" : ""}`}
     />
   );
 }
@@ -103,15 +96,8 @@ function FSel({ value, onChange, opts, placeholder }) {
     <select
       value={value ?? ""}
       onChange={e => onChange(e.target.value)}
-      style={{
-        width: "100%", padding: "9px 12px", borderRadius: 9,
-        border: `1.5px solid ${C.border}`, background: C.surface,
-        color: value ? C.text : C.muted, fontSize: 15, fontFamily: "inherit",
-        outline: "none", boxSizing: "border-box", cursor: "pointer",
-        appearance: "none",
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-        backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center", paddingRight: 32,
-      }}
+      className="impostos-admin__select"
+      style={{ color: value ? C.text : C.muted }}
     >
       {placeholder && <option value="">{placeholder}</option>}
       {opts.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
@@ -121,7 +107,7 @@ function FSel({ value, onChange, opts, placeholder }) {
 
 function FPct({ value, onChange, placeholder = "0,00" }) {
   return (
-    <div style={{ position: "relative" }}>
+    <div className="impostos-admin__pct-wrap">
       <input
         type="number"
         min="0"
@@ -130,28 +116,23 @@ function FPct({ value, onChange, placeholder = "0,00" }) {
         value={value ?? ""}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        style={{
-          width: "100%", padding: "9px 36px 9px 12px", borderRadius: 9,
-          border: `1.5px solid ${C.border}`, background: C.surface,
-          color: C.text, fontSize: 15, fontFamily: "inherit",
-          outline: "none", boxSizing: "border-box",
-        }}
+        className="impostos-admin__pct-input"
       />
-      <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: 13, fontWeight: 700, pointerEvents: "none" }}>%</span>
+      <span className="impostos-admin__pct-simbolo">%</span>
     </div>
   );
 }
 
 function Grid2({ children }) {
-  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>{children}</div>;
+  return <div className="impostos-admin__grid2">{children}</div>;
 }
 
 function Divider({ label }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0" }}>
-      <div style={{ flex: 1, height: 1, background: C.border }} />
-      <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap" }}>{label}</span>
-      <div style={{ flex: 1, height: 1, background: C.border }} />
+    <div className="impostos-admin__divider">
+      <div className="impostos-admin__divider-linha" />
+      <span className="impostos-admin__divider-label">{label}</span>
+      <div className="impostos-admin__divider-linha" />
     </div>
   );
 }
@@ -217,35 +198,33 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
   return createPortal(
     <div
       onClick={e => { if (e.target === e.currentTarget && !salvando) onClose(); }}
-      style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter',system-ui,sans-serif" }}
+      className="impostos-admin__modal-overlay"
     >
-      <div style={{ background: C.card, borderRadius: 20, width: "100%", maxWidth: 620, maxHeight: "92vh", border: `1px solid ${C.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="impostos-admin__modal">
         {/* Header */}
-        <div style={{ padding: "20px 24px 0", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
+        <div className="impostos-admin__modal-header">
+          <div className="impostos-admin__modal-topo">
             <div>
-              <div style={{ fontWeight: 900, fontSize: sz.fontLg, color: C.text }}>{item.name}</div>
-              <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>
+              <div className="impostos-admin__modal-titulo" style={{ fontSize: sz.fontLg }}>{item.name}</div>
+              <div className="impostos-admin__modal-sub" style={{ fontSize: sz.fontSm }}>
                 {item.category} · Configuração Fiscal
               </div>
             </div>
-            <button onClick={onClose} disabled={salvando} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, lineHeight: 0 }}>
+            <button onClick={onClose} disabled={salvando} className="impostos-admin__modal-fechar">
               <LuX size={20} />
             </button>
           </div>
           {/* Sub-tabs */}
-          <div style={{ display: "flex", gap: 2 }}>
+          <div className="impostos-admin__abas">
             {ABAS_MODAL.map(a => (
               <button
                 key={a.id}
                 onClick={() => setAba(a.id)}
+                className="impostos-admin__aba"
                 style={{
-                  padding: "8px 14px", border: "none", background: "transparent",
                   color: aba === a.id ? C.accent : C.muted,
                   fontWeight: aba === a.id ? 700 : 500, fontSize: sz.fontSm + 1,
-                  cursor: "pointer", fontFamily: "inherit",
                   borderBottom: aba === a.id ? `2px solid ${C.accent}` : "2px solid transparent",
-                  borderRadius: "8px 8px 0 0",
                 }}
               >
                 {a.label}
@@ -255,7 +234,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
         </div>
 
         {/* Conteúdo da aba */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="impostos-admin__modal-corpo">
 
           {/* ── Aba 1: Identificação ── */}
           {aba === "identificacao" && (
@@ -305,7 +284,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
                   onChange={e => set("observacao_fiscal", e.target.value)}
                   placeholder="Observações adicionais para NF-e..."
                   rows={3}
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 15, fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box", lineHeight: 1.5 }}
+                  className="impostos-admin__textarea"
                 />
               </div>
             </>
@@ -337,7 +316,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
                 </div>
               </Grid2>
 
-              <div style={{ padding: "10px 14px", borderRadius: 10, background: `${C.accent}0d`, border: `1px solid ${C.accent}22`, fontSize: sz.fontSm, color: C.muted, lineHeight: 1.5 }}>
+              <div className="impostos-admin__aviso" style={{ background: alfa(C.accent, "0d"), border: `1px solid ${alfa(C.accent, "22")}`, fontSize: sz.fontSm }}>
                 {isSimples
                   ? "Empresas do Simples Nacional utilizam CSOSN. ICMS é recolhido pelo DAS — preencha a alíquota se houver ST."
                   : "Empresas de Lucro Presumido/Real utilizam CST. Preencha alíquota conforme tabela do estado."}
@@ -389,7 +368,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
           {/* ── Aba 4: Reforma 2026 ── */}
           {aba === "reforma" && (
             <>
-              <div style={{ padding: "10px 14px", borderRadius: 10, background: `${C.blue}0d`, border: `1px solid ${C.blue}33`, fontSize: sz.fontSm, color: C.muted, lineHeight: 1.5, display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <div className="impostos-admin__aviso impostos-admin__aviso--com-icone" style={{ background: alfa(C.blue, "0d"), border: `1px solid ${alfa(C.blue, "33")}`, fontSize: sz.fontSm }}>
                 <LuReceiptText size={15} color={C.blue} style={{ flexShrink: 0, marginTop: 1 }} />
                 Campos obrigatórios desde jan/2026 no layout NFC-e conforme Reforma Tributária. IBS substitui ICMS, CBS substitui PIS/COFINS.
               </div>
@@ -405,24 +384,24 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
               <div>
                 <FLabel>Alíquota IS — Imposto Seletivo</FLabel>
                 <FPct value={form.aliquota_is} onChange={v => set("aliquota_is", v)} />
-                <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>Aplicável a bebidas alcoólicas, cigarros e similares.</div>
+                <div className="impostos-admin__aviso-ajuda" style={{ fontSize: 12 }}>Aplicável a bebidas alcoólicas, cigarros e similares.</div>
               </div>
             </>
           )}
         </div>
 
         {/* Footer */}
-        <div style={{ padding: "14px 24px", paddingBottom: "calc(14px + env(safe-area-inset-bottom))", borderTop: `1px solid ${C.border}`, flexShrink: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="impostos-admin__modal-footer">
           {erro && (
-            <div style={{ padding: "8px 12px", borderRadius: 8, background: `${C.red}12`, border: `1px solid ${C.red}33`, color: C.red, fontSize: sz.fontSm, display: "flex", gap: 6, alignItems: "center" }}>
+            <div className="impostos-admin__erro" style={{ background: alfa(C.red, "12"), border: `1px solid ${alfa(C.red, "33")}`, fontSize: sz.fontSm }}>
               <LuTriangleAlert size={14} style={{ flexShrink: 0 }} /> {erro}
             </div>
           )}
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={onClose} disabled={salvando} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}>
+          <div className="impostos-admin__modal-botoes">
+            <button onClick={onClose} disabled={salvando} className="impostos-admin__btn-cancelar" style={{ fontSize: sz.fontBase }}>
               Cancelar
             </button>
-            <button onClick={salvar} disabled={salvando} style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: salvando ? C.faint : C.accent, color: "#fff", cursor: salvando ? "not-allowed" : "pointer", fontWeight: 800, fontSize: sz.fontBase, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <button onClick={salvar} disabled={salvando} className="impostos-admin__btn-salvar" style={{ background: salvando ? C.faint : C.accent, cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
               {salvando ? "Salvando..." : <><LuCheck size={15} /> Salvar configuração</>}
             </button>
           </div>
@@ -508,38 +487,39 @@ export default function ImpostosAdmin({ sz }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {/* Cabeçalho */}
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 800, fontSize: sz.fontLg, color: C.text }}>Configuração Fiscal dos Itens</div>
-        <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 3 }}>
+        <div className="impostos-admin__cabecalho-titulo" style={{ fontSize: sz.fontLg }}>Configuração Fiscal dos Itens</div>
+        <div className="impostos-admin__cabecalho-sub" style={{ fontSize: sz.fontSm }}>
           Sincronizado com Cadastros · Produção e Insumos excluídos automaticamente
         </div>
       </div>
 
       {/* Badges contador */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+      <div className="impostos-admin__badges">
         {[
           { label: `${itens.length} ite${itens.length !== 1 ? "ns" : "m"}`, color: C.text },
           { label: `${totalConf} configurado${totalConf !== 1 ? "s" : ""}`, color: C.green },
           { label: `${totalPend} pendente${totalPend !== 1 ? "s" : ""}`, color: "#f59e0b" },
         ].map((b, i) => (
-          <span key={i} style={{ fontSize: sz.fontSm, fontWeight: 700, padding: "4px 12px", borderRadius: 20, background: `${b.color}18`, color: b.color, border: `1px solid ${b.color}33` }}>
+          <span key={i} className="impostos-admin__badge" style={{ fontSize: sz.fontSm, background: alfa(b.color, "18"), color: b.color, border: `1px solid ${alfa(b.color, "33")}` }}>
             {b.label}
           </span>
         ))}
       </div>
 
       {/* Filtros */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
+      <div className="impostos-admin__filtros">
         {/* Busca */}
-        <div style={{ position: "relative", flex: "1 1 200px", minWidth: 180 }}>
-          <LuSearch size={15} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+        <div className="impostos-admin__busca-wrap">
+          <LuSearch size={15} className="impostos-admin__busca-icone" />
           <input
             value={busca}
             onChange={e => setBusca(e.target.value)}
             placeholder="Buscar item..."
-            style={{ width: "100%", padding: "9px 32px 9px 34px", borderRadius: 10, border: `1.5px solid ${busca ? C.accent : C.border}`, background: C.surface, color: C.text, fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+            className="impostos-admin__busca-input"
+            style={{ borderColor: busca ? C.accent : C.border, fontSize: sz.fontSm + 1 }}
           />
           {busca && (
-            <button onClick={() => setBusca("")} style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 2 }}>
+            <button onClick={() => setBusca("")} className="impostos-admin__busca-limpar">
               <LuX size={14} />
             </button>
           )}
@@ -549,7 +529,8 @@ export default function ImpostosAdmin({ sz }) {
         <select
           value={catFiltro}
           onChange={e => setCatFiltro(e.target.value)}
-          style={{ padding: "9px 32px 9px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none", cursor: "pointer", appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
+          className="impostos-admin__filtro-select"
+          style={{ fontSize: sz.fontSm + 1 }}
         >
           <option value="Todos">Todas as categorias</option>
           {categorias.map(c => <option key={c} value={c}>{c}</option>)}
@@ -559,7 +540,8 @@ export default function ImpostosAdmin({ sz }) {
         <select
           value={statusFiltro}
           onChange={e => setStatusFiltro(e.target.value)}
-          style={{ padding: "9px 32px 9px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none", cursor: "pointer", appearance: "none", backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" }}
+          className="impostos-admin__filtro-select"
+          style={{ fontSize: sz.fontSm + 1 }}
         >
           <option value="Todos">Todos os status</option>
           <option value="Configurados">Configurados</option>
@@ -569,61 +551,56 @@ export default function ImpostosAdmin({ sz }) {
 
       {/* Lista agrupada */}
       {grupos.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 60, color: C.muted }}>
+        <div className="impostos-admin__vazio">
           <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.3 }}>📋</div>
           <div style={{ fontWeight: 600, fontSize: sz.fontBase }}>
             {itens.length === 0 ? "Nenhum item cadastrado (excluindo Produção e Insumos)" : "Nenhum item encontrado para os filtros selecionados"}
           </div>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div className="impostos-admin__grupos">
           {grupos.map(([cat, itensCat]) => (
             <div key={cat}>
               {/* Header do grupo */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <span style={{ fontWeight: 800, fontSize: sz.fontBase, color: C.text }}>{cat}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, padding: "2px 9px", borderRadius: 20, background: C.surface, color: C.muted, border: `1px solid ${C.border}` }}>
+              <div className="impostos-admin__grupo-header">
+                <span className="impostos-admin__grupo-titulo" style={{ fontSize: sz.fontBase }}>{cat}</span>
+                <span className="impostos-admin__grupo-contador">
                   {itensCat.length} {itensCat.length === 1 ? "item" : "itens"}
                 </span>
-                <div style={{ flex: 1, height: 1, background: C.border }} />
+                <div className="impostos-admin__grupo-linha" />
               </div>
 
               {/* Itens da categoria */}
-              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: "hidden" }}>
+              <div className="impostos-admin__grupo-lista">
                 {itensCat.map((item, i) => {
                   const fiscal   = fiscalMap[item.id];
                   const conf     = !!fiscal;
                   return (
                     <div
                       key={item.id}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 14,
-                        padding: "13px 18px",
-                        borderBottom: i < itensCat.length - 1 ? `1px solid ${C.border}` : "none",
-                      }}
+                      className="impostos-admin__item"
+                      style={{ borderBottom: i < itensCat.length - 1 ? `1px solid ${C.border}` : "none" }}
                     >
                       {/* Emoji / ícone */}
-                      <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                      <div className="impostos-admin__item-icone">
                         {item.emoji || "📦"}
                       </div>
 
                       {/* Nome */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <div className="impostos-admin__item-nome" style={{ fontSize: sz.fontBase }}>
                           {item.name}
                         </div>
                         {fiscal?.ncm && (
-                          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>NCM {fiscal.ncm}</div>
+                          <div className="impostos-admin__item-ncm">NCM {fiscal.ncm}</div>
                         )}
                       </div>
 
                       {/* Badge status */}
-                      <span style={{
-                        fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-                        background: conf ? `${C.green}15` : `#f59e0b15`,
+                      <span className="impostos-admin__item-badge" style={{
+                        background: conf ? alfa(C.green, "15") : alfa("#f59e0b", "15"),
                         color: conf ? C.green : "#f59e0b",
-                        border: `1px solid ${conf ? C.green : "#f59e0b"}44`,
-                        whiteSpace: "nowrap", flexShrink: 0,
+                        border: `1px solid ${alfa(conf ? C.green : "#f59e0b", "44")}`,
                       }}>
                         {conf ? "✓ Configurado" : "Pendente"}
                       </span>
@@ -631,14 +608,12 @@ export default function ImpostosAdmin({ sz }) {
                       {/* Botão */}
                       <button
                         onClick={() => setModalItem(item)}
+                        className="impostos-admin__btn-configurar"
                         style={{
-                          padding: "7px 16px", borderRadius: 9,
                           border: conf ? `1px solid ${C.border}` : `1.5px solid ${C.accent}`,
-                          background: conf ? "none" : `${C.accent}12`,
+                          background: conf ? "none" : alfa(C.accent, "12"),
                           color: conf ? C.muted : C.accent,
-                          cursor: "pointer", fontWeight: 700,
-                          fontSize: sz.fontSm + 1, fontFamily: "inherit",
-                          flexShrink: 0,
+                          fontSize: sz.fontSm + 1,
                         }}
                       >
                         {conf ? "Editar" : "Configurar"}
