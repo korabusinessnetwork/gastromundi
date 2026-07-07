@@ -8,10 +8,14 @@
 -- `supabase db dump -f supabase/schema.sql --schema public`,
 -- que requer Docker).
 --
--- Convenções de RLS (migração 20240107_rls_por_role.sql):
---   auth.role() = 'authenticated'        → qualquer usuário logado
---   (auth.jwt() ->> 'role')              → 'admin' | 'gerente' | 'caixa' | 'garcom'
---   O claim `role` é injetado pelo custom_access_token_hook
+-- Convenções de RLS (migração 20240107_rls_por_role.sql, claim
+-- corrigido em 20260722_fix_jwt_role_claim_v2.sql):
+--   auth.role() = 'authenticated'                          → qualquer usuário logado
+--   (auth.jwt() -> 'app_metadata' ->> 'gastro_role')        → 'admin' | 'gerente' | 'caixa' | 'garcom'
+--   NUNCA usar (auth.jwt() ->> 'role') para o papel do app — a raiz
+--   `role` do JWT é reservada pelo PostgREST pro role do banco
+--   (sempre 'authenticated'); o papel de negócio só existe em
+--   app_metadata.gastro_role, injetado pelo custom_access_token_hook
 --   (20240105/20240108) a partir de public.users.
 -- =============================================================
 
