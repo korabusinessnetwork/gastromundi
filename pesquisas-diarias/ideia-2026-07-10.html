@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ideia do Dia — GastroMundi — 10/07/2026</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --line:#262b36; --txt:#e8ebf0;
+    --muted:#9aa4b2; --accent:#ff7a29; --accent2:#28c76f; --code:#0b0d12;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.55}
+  .wrap{max-width:820px;margin:0 auto;padding:32px 20px 60px}
+  .kicker{color:var(--accent);font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-size:13px}
+  h1{font-size:28px;margin:6px 0 4px}
+  .date{color:var(--muted);font-size:14px;margin-bottom:20px}
+  .resumo{background:linear-gradient(135deg,#1d2129,#171a21);border:1px solid var(--line);
+    border-left:4px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:17px}
+  h2{font-size:18px;margin:28px 0 8px;display:flex;align-items:center;gap:8px}
+  h2 .n{background:var(--accent);color:#111;border-radius:6px;font-size:13px;
+    width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-top:6px}
+  ol,ul{margin:6px 0;padding-left:20px}
+  li{margin:4px 0}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:10px;padding:14px;
+    overflow-x:auto;font-size:13px;line-height:1.5}
+  code{font-family:"SF Mono",Consolas,Menlo,monospace}
+  .badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .badge{background:#1d2129;border:1px solid var(--line);border-radius:20px;padding:5px 12px;font-size:13px}
+  .badge b{color:var(--accent2)}
+  .grade-baixo{color:var(--accent2);font-weight:700}
+  .grade-medio{color:#ffce4a;font-weight:700}
+  a{color:var(--accent)}
+  .src a{display:block;margin:4px 0;font-size:14px}
+  .free{color:var(--accent2);font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Ideia do Dia — GastroMundi</div>
+  <h1>PDV que não trava quando cai a internet (Offline-First)</h1>
+  <div class="date">Sexta-feira, 10 de julho de 2026</div>
+
+  <div class="resumo">
+    Transformar o PDV numa <b>PWA offline-first</b>: as vendas continuam sendo lançadas
+    normalmente mesmo sem Wi-Fi, gravando localmente e sincronizando com o Supabase
+    automaticamente quando a conexão volta. Custo <span class="free">zero</span>,
+    impacto enorme no dia de pico.
+  </div>
+
+  <h2><span class="n">1</span> Problema / Oportunidade</h2>
+  <div class="card">
+    Em restaurante, a internet cai — roteador, operadora ou o provedor. Num PDV puramente
+    online, isso significa <b>não conseguir lançar pedido nem fechar comanda no meio do rush</b>,
+    ou seja, venda perdida e fila parada. Relatórios de mercado de 2026 apontam que operação
+    offline confiável costuma ficar travada atrás de planos caros dos concorrentes. Entregar
+    isso de graça é diferencial competitivo direto para o nosso SaaS white-label.
+  </div>
+
+  <h2><span class="n">2</span> Como implementar (nossa stack)</h2>
+  <div class="card">
+    <ol>
+      <li><b>Virar PWA:</b> adicionar <code>vite-plugin-pwa</code> (Workbox) — service worker com
+        <i>cache-first</i> para assets e <i>network-first</i> para dados.</li>
+      <li><b>Fonte de verdade local:</b> usar <b>Dexie.js</b> (wrapper de IndexedDB) para guardar
+        pedidos/itens localmente. A tela sempre lê do local → resposta instantânea.</li>
+      <li><b>Fila de sincronização:</b> toda escrita (novo pedido, item, fechamento) entra numa
+        tabela <code>outbox</code> local com status <code>pendente</code>.</li>
+      <li><b>Replay ao reconectar:</b> ao voltar online, um worker envia a fila ao Supabase em ordem,
+        marcando <code>sincronizado</code>. Usar <code>upsert</code> com <b>ID gerado no cliente (uuid)</b>
+        para ser idempotente e evitar duplicidade.</li>
+      <li><b>Feedback humano (Princípio nº1):</b> badge visível no topo — 🟢 Online / 🟡 Offline
+        (N pendentes) / 🔵 Sincronizando. Nada de erro assustador; o operador só continua vendendo.</li>
+    </ol>
+<pre><code>// db.js — Dexie
+import Dexie from 'dexie';
+export const db = new Dexie('gm_pdv');
+db.version(1).stores({
+  pedidos: 'id, status, criadoEm',
+  outbox:  '++seq, tabela, op, payloadId, status'
+});
+
+// registrar venda: grava local + enfileira (nunca bloqueia a UI)
+export async function registrarPedido(pedido) {
+  const id = crypto.randomUUID();
+  await db.pedidos.put({ ...pedido, id, status: 'local', criadoEm: Date.now() });
+  await db.outbox.add({ tabela: 'pedidos', op: 'upsert', payloadId: id, status: 'pendente' });
+  return id;
+}
+
+// sincroniza ao voltar conexão
+window.addEventListener('online', sincronizarOutbox);
+async function sincronizarOutbox() {
+  const pend = await db.outbox.where('status').equals('pendente').toArray();
+  for (const item of pend) {
+    const p = await db.pedidos.get(item.payloadId);
+    const { error } = await supabase.from('pedidos').upsert(p); // idempotente pelo id
+    if (!error) await db.outbox.update(item.seq, { status: 'sincronizado' });
+  }
+}</code></pre>
+    <p style="color:var(--muted);font-size:13px;margin:4px 0 0">
+      Nota: Background Sync API só existe em navegadores Chromium (Chrome/Edge). Para cobrir todos,
+      dispare a sincronização no evento <code>online</code> + um <code>setInterval</code> leve como fallback.
+      Lembrar de configurar <b>RLS por tenant</b> na tabela do Supabase.
+    </p>
+  </div>
+
+  <h2><span class="n">3</span> Custo</h2>
+  <div class="card">
+    <span class="free">100% gratuito.</span> Dexie.js, vite-plugin-pwa e Workbox são open-source (MIT).
+    IndexedDB é nativo do navegador. Nada muda no plano do Supabase — só reduz chamadas em rede.
+    Sem alternativa paga necessária.
+  </div>
+
+  <h2><span class="n">4</span> Benefício esperado</h2>
+  <div class="card">
+    Zero venda perdida por queda de internet no horário de pico. PDV abre e responde
+    <b>instantaneamente</b> (lê do local, ~95% mais rápido em recargas). Funciona em food truck,
+    evento e loja com Wi-Fi ruim — casos reais do nosso público. Vira argumento de venda do SaaS.
+  </div>
+
+  <h2><span class="n">5</span> Esforço &amp; Intuitividade</h2>
+  <div class="card">
+    <div class="badges">
+      <span class="badge">Esforço: <b class="grade-medio">Médio</b> (PWA fácil; a fila de sync exige cuidado com idempotência)</span>
+      <span class="badge">Intuitividade p/ o operador: <b>Alta</b> — nada muda na tela, só um badge de status</span>
+    </div>
+  </div>
+
+  <h2><span class="n">6</span> Fontes</h2>
+  <div class="card src">
+    <a href="https://timelinedigi.com/blog/cheapest-pos-system-for-restaurant-complete-cost-guide-usa-2026" target="_blank">Cheapest POS System for Restaurant — Cost Guide 2026 (timelinedigi)</a>
+    <a href="https://www.squirrelsystems.com/posts/technology/top-pos-features-for-2026-what-modern-operators-expect-from-a-cloud-first-restaurant-platform/" target="_blank">Top POS Features for 2026 — Squirrel Systems</a>
+    <a href="https://medium.com/@11.sahil.kmr/offline-first-by-design-pwa-indexed-db-and-a-reliable-queue-775605b3d76c" target="_blank">Offline-First by Design: PWA, IndexedDB e fila confiável (Medium)</a>
+    <a href="https://oluwadaprof.medium.com/building-an-offline-first-pwa-notes-app-with-next-js-indexeddb-and-supabase-f861aa3a06f9" target="_blank">Offline-First PWA com IndexedDB e Supabase (Medium)</a>
+    <a href="https://rohitraj.tech/en/notes/pwa-offline-sync" target="_blank">Offline-First PWA Patterns — Service Workers, IndexedDB, Background Sync</a>
+  </div>
+</div>
+</body>
+</html>
