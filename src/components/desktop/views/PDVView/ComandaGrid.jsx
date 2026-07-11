@@ -1,8 +1,11 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
+import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { LuUser, LuClock } from "react-icons/lu";
+import "./ComandaGrid.css";
 
 const TOTAL = 1000;
 const PAGE  = 50;
@@ -12,12 +15,20 @@ function fmtComanda(name) {
   return /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 }
 
+// Nota (F018, leva 1 fechamento): os blends com transparência abaixo
+// usam `alfa(cor, "HH")` (src/constants/colorAlfa.js) — color-mix()
+// sobre `var(--gm-*)` quando `cor` é um token de marca (segue o tema
+// do tenant, decisão 017), preservando a opacidade do antigo sufixo
+// hex (ADR-007). `AMBER` e o vermelho literal de tempo esgotado em
+// `getElapsed` são cores semânticas fixas (alerta de tempo), não de
+// marca — `alfa()` cai para a cor literal nesses casos, o que é
+// esperado (não fazem parte do tema do tenant).
 function getElapsed(dateStr) {
-  if (!dateStr) return { label: "", color: C.muted, warn: false };
+  if (!dateStr) return { label: "", color: varColor(C.muted), warn: false };
   const diff = Date.now() - new Date(dateStr).getTime();
   const m    = Math.floor(diff / 60000);
-  if (m < 1)  return { label: "agora",             color: C.green, warn: false };
-  if (m < 30) return { label: `${m}min`,            color: C.muted, warn: false };
+  if (m < 1)  return { label: "agora",             color: varColor(C.green), warn: false };
+  if (m < 30) return { label: `${m}min`,            color: varColor(C.muted), warn: false };
   if (m < 60) return { label: `${m}min`,            color: AMBER,   warn: true  };
   const h = Math.floor(m / 60);
   const r = m % 60;
@@ -47,36 +58,25 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
     return (
       <div style={{ height: "100%", overflowY: "auto", padding: `${sz.pad}px ${sz.pad + 4}px ${sz.pad}px ${sz.pad + 20}px` }}>
         {vazio ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, color: C.muted, paddingTop: 60 }}>
-            <div style={{ fontSize: 44, opacity: 0.3 }}>🔍</div>
+          <div className="comanda-grid__vazio" style={{ color: varColor(C.muted) }}>
+            <div className="comanda-grid__vazio-icone">🔍</div>
             <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Nenhuma comanda encontrada</div>
             <div style={{ fontSize: sz.fontSm + 1 }}>"{busca}" não corresponde a nenhuma comanda em aberto</div>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: Math.min(580, width - sz.pad * 2), margin: "0 auto" }}>
+          <div className="comanda-grid__lista-busca" style={{ maxWidth: Math.min(580, width - sz.pad * 2) }}>
             {slotDisponivel && (
               <button
                 onClick={() => onOpenEmpty(String(slotDisponivel))}
-                style={{
-                  display: "flex", alignItems: "center", gap: 14,
-                  padding: "16px 20px", borderRadius: 14,
-                  border: `1.5px dashed ${C.accent}66`,
-                  background: `${C.accent}08`,
-                  color: C.text, cursor: "pointer", textAlign: "left",
-                  fontFamily: "inherit", transition: "background 0.15s, border-color 0.15s",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = `${C.accent}14`; e.currentTarget.style.borderColor = C.accent; }}
-                onMouseLeave={e => { e.currentTarget.style.background = `${C.accent}08`; e.currentTarget.style.borderColor = `${C.accent}66`; }}
+                className="comanda-grid__slot-disponivel"
+                style={{ border: `1.5px dashed ${alfa(C.accent, "66")}`, background: alfa(C.accent, "08"), color: varColor(C.text) }}
+                onMouseEnter={e => { e.currentTarget.style.background = alfa(C.accent, "14"); e.currentTarget.style.borderColor = varColor(C.accent); }}
+                onMouseLeave={e => { e.currentTarget.style.background = alfa(C.accent, "08"); e.currentTarget.style.borderColor = alfa(C.accent, "66"); }}
               >
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 22, flexShrink: 0, color: C.accent, fontWeight: 900,
-                }}>+</div>
+                <div className="comanda-grid__slot-icone" style={{ background: alfa(C.accent, "18"), border: `1.5px solid ${alfa(C.accent, "44")}`, color: varColor(C.accent) }}>+</div>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2, color: C.accent }}>Abrir Comanda {slotDisponivel}</div>
-                  <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 2 }}>Disponível · clique para abrir</div>
+                  <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2, color: varColor(C.accent) }}>Abrir Comanda {slotDisponivel}</div>
+                  <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted), marginTop: 2 }}>Disponível · clique para abrir</div>
                 </div>
               </button>
             )}
@@ -91,34 +91,28 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
               const isSelected = selected?.id === order.id;
               const elapsed    = getElapsed(order.created_at);
 
-              const borderColor = isSelected ? C.accent : isVisitada ? AMBER : hasItems ? `${C.blue}55` : C.border;
-              const bgColor     = isSelected ? `${C.accent}0d` : isVisitada ? `${AMBER}10` : C.card;
+              const borderColor = isSelected ? varColor(C.accent) : isVisitada ? AMBER : hasItems ? alfa(C.blue, "55") : varColor(C.border);
+              const bgColor     = isSelected ? alfa(C.accent, "0d") : isVisitada ? alfa(AMBER, "10") : varColor(C.card);
 
               return (
                 <button
                   key={order.id}
                   onClick={() => onSelect(order)}
+                  className="comanda-grid__item-busca"
                   style={{
-                    display: "flex", alignItems: "center", gap: 14,
-                    padding: "14px 18px", borderRadius: 14,
                     border: `1.5px solid ${borderColor}`,
                     background: bgColor,
-                    color: C.text, cursor: "pointer", textAlign: "left",
-                    fontFamily: "inherit",
-                    boxShadow: isSelected ? `0 4px 20px ${C.accent}22` : isVisitada ? `0 2px 12px ${AMBER}18` : "none",
-                    transition: "border-color 0.15s, background 0.15s, box-shadow 0.15s",
+                    color: varColor(C.text),
+                    boxShadow: isSelected ? `0 4px 20px ${alfa(C.accent, "22")}` : isVisitada ? `0 2px 12px ${alfa(AMBER, "18")}` : "none",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 16px rgba(0,0,0,0.15)`; e.currentTarget.style.borderColor = isSelected ? C.accent : C.accent + "66"; }}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow = isSelected ? `0 4px 20px ${C.accent}22` : isVisitada ? `0 2px 12px ${AMBER}18` : "none"; e.currentTarget.style.borderColor = borderColor; }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 16px rgba(0,0,0,0.15)`; e.currentTarget.style.borderColor = isSelected ? varColor(C.accent) : alfa(C.accent, "66"); }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = isSelected ? `0 4px 20px ${alfa(C.accent, "22")}` : isVisitada ? `0 2px 12px ${alfa(AMBER, "18")}` : "none"; e.currentTarget.style.borderColor = borderColor; }}
                 >
                   {/* Badge número */}
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 11, flexShrink: 0,
-                    background: isSelected ? C.accent : isVisitada ? AMBER : hasItems ? `${C.blue}18` : C.surface,
-                    border: `1.5px solid ${isSelected ? C.accent : isVisitada ? AMBER : hasItems ? `${C.blue}44` : C.border}`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontWeight: 900, fontSize: 18,
-                    color: isSelected ? "#fff" : isVisitada ? "#fff" : hasItems ? C.blue : C.muted,
+                  <div className="comanda-grid__badge" style={{
+                    background: isSelected ? varColor(C.accent) : isVisitada ? AMBER : hasItems ? alfa(C.blue, "18") : varColor(C.surface),
+                    border: `1.5px solid ${isSelected ? varColor(C.accent) : isVisitada ? AMBER : hasItems ? alfa(C.blue, "44") : varColor(C.border)}`,
+                    color: isSelected ? "#fff" : isVisitada ? "#fff" : hasItems ? varColor(C.blue) : varColor(C.muted),
                   }}>
                     {/^\d+$/.test(String(order.comanda ?? "").trim()) ? order.comanda : "C"}
                   </div>
@@ -127,19 +121,19 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
                     <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, marginBottom: 2 }}>
                       {fmtComanda(order.comanda) || `#${String(order.id).slice(-4).toUpperCase()}`}
                     </div>
-                    <div style={{ fontSize: sz.fontSm + 1, color: C.muted, display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+                    <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted), display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
                       {order.mesa && (
-                        <span style={{ background: `${C.accent}14`, color: C.accent, fontWeight: 700, borderRadius: 5, padding: "1px 6px", fontSize: sz.fontSm }}>
+                        <span className="comanda-grid__tag-mesa" style={{ background: alfa(C.accent, "14"), color: varColor(C.accent), fontSize: sz.fontSm }}>
                           🪑 {order.mesa}{order.apelido ? ` · ${order.apelido}` : ""}
                         </span>
                       )}
                       {!order.mesa && order.apelido && (
-                        <span style={{ background: `${C.accent}14`, color: C.accent, fontWeight: 700, borderRadius: 5, padding: "1px 6px", fontSize: sz.fontSm }}>
+                        <span className="comanda-grid__tag-mesa" style={{ background: alfa(C.accent, "14"), color: varColor(C.accent), fontSize: sz.fontSm }}>
                           {order.apelido}
                         </span>
                       )}
                       {order.garcom && (
-                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                        <span className="comanda-grid__garcom">
                           <LuUser size={10} /> {order.garcom}
                         </span>
                       )}
@@ -147,7 +141,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
                   </div>
 
                   <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
-                    <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: hasItems ? C.green : C.muted }}>
+                    <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>
                       {hasItems ? `R$ ${total.toFixed(2)}` : "Vazio"}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: sz.fontSm, color: elapsed.color }}>
@@ -190,17 +184,13 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
       </div>
 
       {limite < TOTAL && (
-        <div style={{ display: "flex", justifyContent: "center", padding: `4px 0 ${sz.pad}px` }}>
+        <div className="comanda-grid__paginacao" style={{ padding: `4px 0 ${sz.pad}px` }}>
           <button
             onClick={() => setLimite(l => Math.min(l + PAGE, TOTAL))}
-            style={{
-              padding: "10px 36px", borderRadius: 10,
-              border: `1px solid ${C.border}`, background: C.card,
-              color: C.muted, cursor: "pointer", fontWeight: 600,
-              fontSize: sz.fontBase, transition: "background 0.15s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = C.surface}
-            onMouseLeave={e => e.currentTarget.style.background = C.card}
+            className="comanda-grid__ver-mais"
+            style={{ fontSize: sz.fontBase }}
+            onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
+            onMouseLeave={e => e.currentTarget.style.background = varColor(C.card)}
           >
             Ver mais · {limite}/{TOTAL}
           </button>
@@ -219,47 +209,39 @@ function ComandaCard({ num, order, isSelected, isVisitada, onClick, sz }) {
         onClick={onClick}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        className="comanda-card"
         style={{
-          background: hovered ? `${C.accent}0a` : C.card,
-          border: `1.5px ${hovered ? "solid" : "dashed"} ${hovered ? C.accent + "88" : C.border}`,
-          borderRadius: 16,
+          background: hovered ? alfa(C.accent, "0a") : varColor(C.card),
+          border: `1.5px ${hovered ? "solid" : "dashed"} ${hovered ? alfa(C.accent, "88") : varColor(C.border)}`,
           padding: `${sz.pad}px ${sz.padSm + 4}px`,
-          cursor: "pointer", textAlign: "left",
-          color: hovered ? C.text : C.muted,
-          width: "100%",
-          display: "flex", flexDirection: "column", gap: sz.gap - 2,
+          color: hovered ? varColor(C.text) : varColor(C.muted),
+          gap: sz.gap - 2,
           opacity: hovered ? 1 : 0.45,
-          transition: "opacity 0.15s, border-color 0.15s, background 0.15s, border-style 0.1s",
         }}
       >
         {/* Header: número + tempo placeholder */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-          <div style={{ fontWeight: 900, fontSize: sz.fontLg - 1, lineHeight: 1.1, color: hovered ? C.accent : C.muted }}>
+        <div className="comanda-card__topo">
+          <div className="comanda-card__numero" style={{ fontSize: sz.fontLg - 1, color: hovered ? varColor(C.accent) : varColor(C.muted) }}>
             {num}
           </div>
-          <span style={{
-            fontSize: sz.fontSm - 1, fontWeight: 700, color: C.faint,
-            background: C.surface, border: `1px solid ${C.border}`,
-            padding: "3px 8px", borderRadius: 8,
-            whiteSpace: "nowrap", flexShrink: 0,
-            display: "flex", alignItems: "center", gap: 3, opacity: 0,
+          <span className="comanda-card__tempo" style={{
+            fontSize: sz.fontSm - 1, color: varColor(C.faint),
+            background: varColor(C.surface), border: `1px solid var(${C.border})`,
+            opacity: 0,
           }}>
             <LuClock size={10} /> —
           </span>
         </div>
 
         {/* Mesa/garçom placeholder — ocupa mesmo espaço */}
-        <div style={{ fontSize: sz.fontSm, color: C.faint, minHeight: sz.fontSm + 4 }}>
+        <div style={{ fontSize: sz.fontSm, color: varColor(C.faint), minHeight: sz.fontSm + 4 }}>
           {hovered ? "Clique para abrir" : "Disponível"}
         </div>
 
         {/* Rodapé placeholder */}
-        <div style={{
-          borderTop: `1px solid ${C.border}`, paddingTop: sz.padSm - 2, marginTop: "auto",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-        }}>
-          <span style={{ fontSize: sz.fontSm, color: C.faint }}>—</span>
-          <span style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: C.faint }}>—</span>
+        <div className="comanda-card__rodape" style={{ paddingTop: sz.padSm - 2 }}>
+          <span style={{ fontSize: sz.fontSm, color: varColor(C.faint) }}>—</span>
+          <span className="comanda-card__rodape-total" style={{ fontSize: sz.fontBase + 1, color: varColor(C.faint) }}>—</span>
         </div>
       </button>
     );
@@ -272,15 +254,15 @@ function ComandaCard({ num, order, isSelected, isVisitada, onClick, sz }) {
   const hasItems = qtdTotal > 0;
   const elapsed  = getElapsed(order.created_at);
 
-  const borderColor = isSelected ? C.accent
+  const borderColor = isSelected ? varColor(C.accent)
                     : isVisitada ? AMBER
-                    : hasItems   ? `${C.blue}55`
-                    : C.border;
-  const bgColor     = isSelected ? `${C.accent}0d`
-                    : isVisitada ? `${AMBER}10`
-                    : C.card;
-  const shadow      = isSelected ? `0 4px 24px ${C.accent}28`
-                    : isVisitada ? `0 2px 12px ${AMBER}20`
+                    : hasItems   ? alfa(C.blue, "55")
+                    : varColor(C.border);
+  const bgColor     = isSelected ? alfa(C.accent, "0d")
+                    : isVisitada ? alfa(AMBER, "10")
+                    : varColor(C.card);
+  const shadow      = isSelected ? `0 4px 24px ${alfa(C.accent, "28")}`
+                    : isVisitada ? `0 2px 12px ${alfa(AMBER, "20")}`
                     : hovered    ? "0 4px 16px rgba(0,0,0,0.14)"
                     : "none";
 
@@ -289,30 +271,25 @@ function ComandaCard({ num, order, isSelected, isVisitada, onClick, sz }) {
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className="comanda-card"
       style={{
         background: bgColor,
-        border: `1.5px solid ${hovered && !isSelected ? C.accent + "55" : borderColor}`,
-        borderRadius: 16,
+        border: `1.5px solid ${hovered && !isSelected ? alfa(C.accent, "55") : borderColor}`,
         padding: `${sz.pad}px ${sz.padSm + 4}px`,
-        cursor: "pointer", textAlign: "left",
-        color: C.text, width: "100%",
-        display: "flex", flexDirection: "column", gap: sz.gap - 2,
+        color: varColor(C.text),
+        gap: sz.gap - 2,
         boxShadow: shadow,
-        transition: "border-color 0.15s, background 0.15s, box-shadow 0.2s",
       }}
     >
       {/* Header: número + tempo */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 6 }}>
-        <div style={{ fontWeight: 900, fontSize: sz.fontLg - 1, lineHeight: 1.1, color: isSelected ? C.accent : C.text }}>
+      <div className="comanda-card__topo">
+        <div className="comanda-card__numero" style={{ fontSize: sz.fontLg - 1, color: isSelected ? varColor(C.accent) : varColor(C.text) }}>
           {num}
         </div>
-        <span style={{
-          fontSize: sz.fontSm - 1, fontWeight: 700, color: elapsed.color,
-          background: elapsed.warn ? `${elapsed.color}14` : C.surface,
-          border: elapsed.warn ? `1px solid ${elapsed.color}33` : `1px solid ${C.border}`,
-          padding: "3px 8px", borderRadius: 8,
-          whiteSpace: "nowrap", flexShrink: 0,
-          display: "flex", alignItems: "center", gap: 3,
+        <span className="comanda-card__tempo" style={{
+          fontSize: sz.fontSm - 1, color: elapsed.color,
+          background: elapsed.warn ? alfa(elapsed.color, "14") : varColor(C.surface),
+          border: elapsed.warn ? `1px solid ${alfa(elapsed.color, "33")}` : `1px solid var(${C.border})`,
         }}>
           <LuClock size={10} /> {elapsed.label}
         </span>
@@ -320,7 +297,7 @@ function ComandaCard({ num, order, isSelected, isVisitada, onClick, sz }) {
 
       {/* Nome da comanda (se diferente do número) */}
       {!/^\d+$/.test(String(order.comanda ?? "").trim()) && (
-        <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: C.text, marginTop: -4 }}>
+        <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.text), marginTop: -4 }}>
           {order.comanda}
         </div>
       )}
@@ -330,22 +307,22 @@ function ComandaCard({ num, order, isSelected, isVisitada, onClick, sz }) {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
           {order.mesa && (
             <span style={{
-              fontSize: sz.fontSm, fontWeight: 700, color: C.accent,
-              background: `${C.accent}14`, borderRadius: 6, padding: "2px 7px",
+              fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.accent),
+              background: alfa(C.accent, "14"), borderRadius: 6, padding: "2px 7px",
             }}>
               🪑 {order.mesa}{order.apelido ? ` · ${order.apelido}` : ""}
             </span>
           )}
           {!order.mesa && order.apelido && (
             <span style={{
-              fontSize: sz.fontSm, fontWeight: 700, color: C.accent,
-              background: `${C.accent}14`, borderRadius: 6, padding: "2px 7px",
+              fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.accent),
+              background: alfa(C.accent, "14"), borderRadius: 6, padding: "2px 7px",
             }}>
               {order.apelido}
             </span>
           )}
           {order.garcom && (
-            <span style={{ fontSize: sz.fontSm, color: C.muted, display: "flex", alignItems: "center", gap: 3 }}>
+            <span style={{ fontSize: sz.fontSm, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 3 }}>
               <LuUser size={10} /> {order.garcom}
             </span>
           )}
@@ -353,20 +330,17 @@ function ComandaCard({ num, order, isSelected, isVisitada, onClick, sz }) {
       )}
 
       {/* Rodapé: itens + total */}
-      <div style={{
-        borderTop: `1px solid ${C.border}`, paddingTop: sz.padSm - 2, marginTop: "auto",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-      }}>
-        <span style={{
-          fontSize: sz.fontSm, color: hasItems ? C.muted : C.faint,
-          background: hasItems ? C.surface : "transparent",
-          borderRadius: 6, padding: hasItems ? "2px 7px" : "0",
+      <div className="comanda-card__rodape" style={{ paddingTop: sz.padSm - 2 }}>
+        <span className="comanda-card__rodape-tag" style={{
+          fontSize: sz.fontSm, color: hasItems ? varColor(C.muted) : varColor(C.faint),
+          background: hasItems ? varColor(C.surface) : "transparent",
+          padding: hasItems ? "2px 7px" : "0",
         }}>
           {hasItems ? `${qtdTotal} ${qtdTotal === 1 ? "item" : "itens"}` : "Vazio"}
         </span>
-        <span style={{
-          fontWeight: 800, fontSize: sz.fontBase + 1,
-          color: hasItems ? C.green : C.faint,
+        <span className="comanda-card__rodape-total" style={{
+          fontSize: sz.fontBase + 1,
+          color: hasItems ? varColor(C.green) : varColor(C.faint),
         }}>
           {hasItems ? `R$ ${total.toFixed(2)}` : "—"}
         </span>

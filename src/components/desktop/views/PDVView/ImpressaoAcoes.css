@@ -1,0 +1,67 @@
+/* F015 — ações de impressão do checkout. Decisão 018 (CSS separado do
+   JSX) + tokens --gm-* (Fase 6) — este componente vive na árvore React
+   do app, então herda o :root normalmente (diferente dos templates de
+   impressão em src/lib/impressao/, que rodam numa janela à parte). */
+
+.impressao-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.impressao-acoes__botao {
+  background: var(--gm-surface);
+  border: 1.5px solid var(--gm-border);
+  border-radius: 10px;
+  color: var(--gm-text);
+  cursor: pointer;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 15px;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.impressao-acoes__botao:hover:not(:disabled) {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
+.impressao-acoes__botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.impressao-acoes__status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.impressao-acoes__status--erro {
+  color: var(--gm-red);
+}
+
+.impressao-acoes__status--sucesso {
+  color: var(--gm-green);
+}
+
+/* Telas estreitas (tablet/PDV touch menor): botões continuam grandes
+   o bastante pro toque, mas quebram linha em vez de espremer. */
+@media (max-width: 520px) {
+  .impressao-acoes {
+    width: 100%;
+  }
+  .impressao-acoes__botao {
+    flex: 1;
+    justify-content: center;
+  }
+}

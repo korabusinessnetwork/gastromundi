@@ -5,15 +5,20 @@ import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import Sidebar from "@/components/desktop/Sidebar";
+import AssinaturaBanner from "@/components/desktop/AssinaturaBanner";
 import Notification, { useNotification } from "@/components/shared/Notification";
 import JarvasPanel from "@/components/shared/JarvasPanel";
 import FechamentoModal from "@/components/modals/FechamentoModal";
 import AberturaCaixaModal from "@/components/modals/AberturaCaixaModal";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
+import { nomeExibicaoTenant } from "@/lib/tema";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 
 export default function DesktopLayout() {
-  const { currentUser, isMobile, mobileChoice, setMobileChoice, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales } = useApp();
+  const { currentUser, isMobile, mobileChoice, setMobileChoice, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant } = useApp();
+  const nomeEstabelecimento = nomeExibicaoTenant(tenant?.tema);
   const { width } = useResponsive();
   const sz = getSizes(width);
   const { notif, notify } = useNotification();
@@ -35,7 +40,7 @@ export default function DesktopLayout() {
   return (
     <div style={{
       display: "flex", height: "100dvh",
-      background: "#070b14", fontFamily: "'Inter',system-ui,sans-serif", color: "#eef2f7",
+      background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text),
       overflow: "hidden",
     }}>
       <Notification notif={notif} />
@@ -68,18 +73,18 @@ export default function DesktopLayout() {
               transform: "translateY(-50%)",
               width: 26, height: 44,
               borderRadius: "0 8px 8px 0",
-              background: C.card,
-              border: `1px solid ${C.border}`,
+              background: varColor(C.card),
+              border: `1px solid var(${C.border})`,
               borderLeft: "none",
-              color: C.muted,
+              color: varColor(C.muted),
               cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               zIndex: 20,
               transition: "background 0.15s, color 0.15s",
               padding: 0,
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.color = C.text; }}
-            onMouseLeave={e => { e.currentTarget.style.background = C.card; e.currentTarget.style.color = C.muted; }}
+            onMouseEnter={e => { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.color = varColor(C.text); }}
+            onMouseLeave={e => { e.currentTarget.style.background = varColor(C.card); e.currentTarget.style.color = varColor(C.muted); }}
           >
             {sidebarRecolhida
               ? <LuChevronRight size={14} />
@@ -124,31 +129,34 @@ export default function DesktopLayout() {
             display: "flex", alignItems: "center", gap: 12,
             padding: `env(safe-area-inset-top, 0px) 16px 0`,
             minHeight: 52, flexShrink: 0,
-            background: C.card, borderBottom: `1px solid ${C.border}`,
+            background: varColor(C.card), borderBottom: `1px solid var(${C.border})`,
           }}>
             <button
               onClick={() => setMenuAberto(true)}
               style={{
-                background: "none", border: `1px solid ${C.border}`,
-                borderRadius: 8, color: C.text, cursor: "pointer",
+                background: "none", border: `1px solid var(${C.border})`,
+                borderRadius: 8, color: varColor(C.text), cursor: "pointer",
                 padding: "6px 10px", fontWeight: 700, fontSize: 17,
                 lineHeight: 1,
               }}
             >
               ☰
             </button>
-            <div style={{ flex: 1, fontWeight: 900, fontSize: 14, letterSpacing: "-0.3px" }}>
-              GASTROMUNDI <span style={{ color: C.muted, fontWeight: 400 }}>by Kora</span>
+            <div style={{ flex: 1, fontWeight: 900, fontSize: 14, letterSpacing: "-0.3px", overflowWrap: "break-word" }}>
+              {nomeEstabelecimento.toUpperCase()}
+              {nomeEstabelecimento === "GastroMundi" && <span style={{ color: varColor(C.muted), fontWeight: 400 }}> by Kora</span>}
             </div>
             <span style={{
               fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 10,
-              background: caixaAberto ? `${C.green}22` : `${C.red}22`,
-              color: caixaAberto ? C.green : C.red,
+              background: caixaAberto ? `${alfa(C.green, "22")}` : `${alfa(C.red, "22")}`,
+              color: caixaAberto ? varColor(C.green) : varColor(C.red),
             }}>
               {caixaAberto ? "● Aberto" : "● Fechado"}
             </span>
           </div>
         )}
+
+        <AssinaturaBanner />
 
         <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <Outlet context={{ notify }} />

@@ -28,6 +28,15 @@ vi.mock("@/lib/logger", () => ({ logAction: (...args) => logActionMock(...args) 
 const criarLancamentoMock = vi.fn(() => Promise.resolve({ data: { id: "lanc-1" }, error: null }));
 vi.mock("@/lib/financeiro", () => ({ criarLancamento: (...args) => criarLancamentoMock(...args) }));
 
+const emitirDocumentoFiscalMock = vi.fn(() => Promise.resolve({ status: "stub", vendaId: "v1" }));
+vi.mock("@/lib/fiscal", () => ({ emitirDocumentoFiscal: (...args) => emitirDocumentoFiscalMock(...args) }));
+
+const processarPagamentoTefMock = vi.fn(() => Promise.resolve({ status: "stub", metodo: "credito" }));
+vi.mock("@/lib/tef", async () => {
+  const actual = await vi.importActual("@/lib/tef");
+  return { ...actual, processarPagamentoTef: (...args) => processarPagamentoTefMock(...args) };
+});
+
 import { setAppMock } from "@/test/mockApp";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
 
@@ -186,6 +195,22 @@ describe("useFinalizarPagamento — receita automática (Financeiro fase 1)", ()
     expect(chamada.vencimento).toBe(esperado);
   });
 
+  it("F010: propaga o clienteId selecionado para a venda e para o lançamento de fiado", async () => {
+    const { appMock, finalizarPagamento } = setup();
+
+    await finalizarPagamento(selectedComanda, [], {
+      ...payload,
+      clienteId: "cli-42",
+      pagamentos: [{ metodo: "fiado", valor: 30 }],
+    });
+
+    const saleGravada = appMock.addSale.mock.calls[0][0];
+    expect(saleGravada.clienteId).toBe("cli-42");
+
+    await waitFor(() => expect(criarLancamentoMock).toHaveBeenCalledTimes(1));
+    expect(criarLancamentoMock.mock.calls[0][0].cliente_id).toBe("cli-42");
+  });
+
   it("split de pagamento gera um lançamento por método (um normal, um fiado)", async () => {
     const { finalizarPagamento } = setup();
 
@@ -207,5 +232,83 @@ describe("useFinalizarPagamento — receita automática (Financeiro fase 1)", ()
     const { finalizarPagamento } = setup();
 
     await expect(finalizarPagamento(selectedComanda, [], payload)).resolves.toBeDefined();
+  });
+});
+
+describe("useFinalizarPagamento — add-ons pagos (Fase 3, decisão 019)", () => {
+  it("SEM add-on habilitado (padrão hoje): não dispara nem NF-e nem TEF, pagamento segue idêntico", async () => {
+    const { finalizarPagamento } = setup({ addonHabilitado: () => false });
+
+    await finalizarPagamento(selectedComanda, [], { ...payload, pagamentos: [{ metodo: "credito", valor: 30 }] });
+
+    // dá tempo pra qualquer fire-and-forget rodar, se fosse rodar
+    await waitFor(() => expect(criarLancamentoMock).toHaveBeenCalled());
+    expect(emitirDocumentoFiscalMock).not.toHaveBeenCalled();
+    expect(processarPagamentoTefMock).not.toHaveBeenCalled();
+  });
+
+  it("com o add-on 'nfe' habilitado, emite o documento fiscal (stub) para a venda", async () => {
+    const { finalizarPagamento } = setup({ addonHabilitado: (a) => a === "nfe" });
+
+    await finalizarPagamento(selectedComanda, [], payload);
+
+    await waitFor(() => expect(emitirDocumentoFiscalMock).toHaveBeenCalledTimes(1));
+    expect(emitirDocumentoFiscalMock).toHaveBeenCalledWith(
+      expect.objectContaining({ comanda: "5", total: 30 }),
+      { usuario: "maria" },
+    );
+  });
+
+  it("com o add-on 'tef' habilitado, processa pagamentos em cartão (crédito/débito)", async () => {
+    const { finalizarPagamento } = setup({ addonHabilitado: (a) => a === "tef" });
+
+    await finalizarPagamento(selectedComanda, [], {
+      ...payload,
+      pagamentos: [
+        { metodo: "credito", valor: 20 },
+        { metodo: "debito", valor: 10 },
+      ],
+    });
+
+    await waitFor(() => expect(processarPagamentoTefMock).toHaveBeenCalledTimes(2));
+    expect(processarPagamentoTefMock).toHaveBeenCalledWith(
+      { metodo: "credito", valor: 20 },
+      { usuario: "maria", comanda: "5" },
+    );
+    expect(processarPagamentoTefMock).toHaveBeenCalledWith(
+      { metodo: "debito", valor: 10 },
+      { usuario: "maria", comanda: "5" },
+    );
+  });
+
+  it("com 'tef' habilitado, NÃO processa pagamentos em dinheiro/pix/fiado (só cartão)", async () => {
+    const { finalizarPagamento } = setup({ addonHabilitado: (a) => a === "tef" });
+
+    await finalizarPagamento(selectedComanda, [], {
+      ...payload,
+      pagamentos: [{ metodo: "dinheiro", valor: 15 }, { metodo: "pix", valor: 15 }],
+    });
+
+    await waitFor(() => expect(criarLancamentoMock).toHaveBeenCalledTimes(2));
+    expect(processarPagamentoTefMock).not.toHaveBeenCalled();
+  });
+
+  it("falha do add-on (fiscal ou TEF) nunca quebra a finalização da venda", async () => {
+    emitirDocumentoFiscalMock.mockRejectedValueOnce(new Error("falha simulada"));
+    const { finalizarPagamento } = setup({ addonHabilitado: (a) => a === "nfe" });
+
+    await expect(finalizarPagamento(selectedComanda, [], payload)).resolves.toBeDefined();
+  });
+});
+
+describe("useFinalizarPagamento — Fase 4 (billing) NÃO bloqueia nenhuma escrita", () => {
+  it("finaliza a venda normalmente mesmo com a assinatura 'bloqueada' (enforcement é só na Fase 5)", async () => {
+    const { appMock, finalizarPagamento } = setup({
+      assinatura: { status: "bloqueado", diasParaVencer: -10, carenciaDias: 3 },
+    });
+
+    await expect(finalizarPagamento(selectedComanda, [], payload)).resolves.toBeDefined();
+    expect(appMock.addSale).toHaveBeenCalledTimes(1);
+    expect(appMock.removePending).toHaveBeenCalledWith("pend-1");
   });
 });

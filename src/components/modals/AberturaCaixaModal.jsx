@@ -1,5 +1,7 @@
 import { useState } from "react";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
 
 export default function AberturaCaixaModal({ onConfirm, onClose }) {
   const [fundo,     setFundo]     = useState("");
@@ -24,16 +26,16 @@ export default function AberturaCaixaModal({ onConfirm, onClose }) {
       }}
     >
       <div style={{
-        background: C.card, borderRadius: 20, padding: 32,
+        background: varColor(C.card), borderRadius: 20, padding: 32,
         width: "100%", maxWidth: 420, boxSizing: "border-box",
-        border: `1px solid ${C.border}`,
+        border: `1px solid var(${C.border})`,
         display: "flex", flexDirection: "column", gap: 20,
       }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 14,
-            background: `${C.green}18`, border: `1.5px solid ${C.green}44`,
+            background: `${alfa(C.green, "18")}`, border: `1.5px solid ${alfa(C.green, "44")}`,
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 22, flexShrink: 0,
           }}>
@@ -41,7 +43,7 @@ export default function AberturaCaixaModal({ onConfirm, onClose }) {
           </div>
           <div>
             <div style={{ fontWeight: 800, fontSize: 18 }}>Abrir Caixa</div>
-            <div style={{ color: C.muted, fontSize: 13, marginTop: 2 }}>
+            <div style={{ color: varColor(C.muted), fontSize: 13, marginTop: 2 }}>
               Informe o fundo de caixa inicial
             </div>
           </div>
@@ -50,7 +52,7 @@ export default function AberturaCaixaModal({ onConfirm, onClose }) {
         {/* Campo fundo */}
         <div>
           <div style={{
-            fontSize: 11, fontWeight: 700, color: C.muted,
+            fontSize: 11, fontWeight: 700, color: varColor(C.muted),
             textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8,
           }}>
             Fundo de Caixa (R$)
@@ -59,7 +61,7 @@ export default function AberturaCaixaModal({ onConfirm, onClose }) {
             <span style={{
               position: "absolute", left: 16, top: "50%",
               transform: "translateY(-50%)",
-              color: C.muted, fontSize: 16, fontWeight: 600,
+              color: varColor(C.muted), fontSize: 16, fontWeight: 600,
             }}>
               R$
             </span>
@@ -74,14 +76,14 @@ export default function AberturaCaixaModal({ onConfirm, onClose }) {
               placeholder="0,00"
               style={{
                 width: "100%", padding: "14px 16px 14px 48px",
-                borderRadius: 12, border: `1.5px solid ${C.border}`,
-                background: C.surface, color: C.text,
+                borderRadius: 12, border: `1.5px solid var(${C.border})`,
+                background: varColor(C.surface), color: varColor(C.text),
                 fontSize: 20, fontWeight: 700,
                 boxSizing: "border-box", fontFamily: "inherit", outline: "none",
               }}
             />
           </div>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>
+          <div style={{ fontSize: 12, color: varColor(C.muted), marginTop: 6 }}>
             Digite 0 se não houver fundo inicial.
           </div>
         </div>
@@ -92,8 +94,8 @@ export default function AberturaCaixaModal({ onConfirm, onClose }) {
             onClick={onClose}
             style={{
               flex: 1, padding: 13, borderRadius: 10,
-              border: `1px solid ${C.border}`, background: "none",
-              color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 14,
+              border: `1px solid var(${C.border})`, background: "none",
+              color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 14,
             }}
           >
             Cancelar
@@ -103,7 +105,7 @@ export default function AberturaCaixaModal({ onConfirm, onClose }) {
             disabled={!pode || salvando}
             style={{
               flex: 2, padding: 13, borderRadius: 10, border: "none",
-              background: pode ? C.green : C.faint,
+              background: pode ? varColor(C.green) : varColor(C.faint),
               color: "#fff", cursor: pode ? "pointer" : "not-allowed",
               fontWeight: 700, fontSize: 15, transition: "background 0.2s",
             }}

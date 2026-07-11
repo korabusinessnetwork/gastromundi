@@ -4,10 +4,12 @@ import { listarLancamentos, baixarConta, processarVencidos, calcularFluxoCaixa }
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { LuPlus } from "react-icons/lu";
 import ResumoCards from "./financeiro/ResumoCards";
 import LancamentosList from "./financeiro/LancamentosList";
 import NovoLancamentoModal from "./financeiro/NovoLancamentoModal";
+import "./FinanceiroView.css";
 
 /**
  * Módulo Financeiro — fase 1 (docs/03_REGRAS_DE_NEGOCIO/FINANCEIRO.md).
@@ -80,24 +82,26 @@ export default function FinanceiroView() {
   };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
+    <div className="financeiro-view" style={{ background: varColor(C.bg) }}>
       {/* Header */}
-      <div style={{ padding: `${sz.pad - 4}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+      <div className="financeiro-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Financeiro</div>
-          <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 2 }}>Lançamentos, contas e fluxo de caixa</div>
+          <div className="financeiro-view__subtitulo" style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>Lançamentos, contas e fluxo de caixa</div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="financeiro-view__acoes">
           <input
             type="month"
             aria-label="Período"
             value={periodo.de.slice(0, 7)}
             onChange={handleMesChange}
-            style={{ padding: "8px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontFamily: "inherit", fontSize: 14 }}
+            className="financeiro-view__mes"
+            style={{ fontSize: 14 }}
           />
           <button
             onClick={() => setShowNovo(true)}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 14, whiteSpace: "nowrap" }}
+            className="financeiro-view__btn-novo"
+            style={{ fontSize: 14 }}
           >
             <LuPlus size={16} /> Novo lançamento
           </button>

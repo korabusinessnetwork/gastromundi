@@ -1,0 +1,338 @@
+/**
+ * F018 — leva 3, sub-lote 3C (última tela). Decisão 018 (CSS separado
+ * do JSX) + tokens --gm-* (ADR-007). Cores sólidas viram var(--gm-*);
+ * blends com transparência usam alfa() (src/constants/colorAlfa.js).
+ * O laranja de aviso (#f59e0b, "não vinculado"/"fornecedor não
+ * cadastrado") é cor semântica fixa, não de marca — segue literal.
+ */
+
+.nf-tab__voltar-btn {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  /* alvo de toque generoso (princípio nº 1) */
+  padding: 10px 16px;
+  cursor: pointer;
+  color: var(--gm-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.nf-tab__card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+}
+
+.nf-tab__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.nf-tab__input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.nf-tab__tabela-moldura {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.nf-tab__tabela-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nf-tab__tabela {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.nf-tab__th {
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+
+.nf-tab__tr {
+  border-bottom: 1px solid var(--gm-border);
+  transition: background 0.1s;
+}
+
+.nf-tab__td {
+  padding: 10px 12px;
+}
+
+.nf-tab__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  z-index: 200;
+  margin-top: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.nf-tab__dropdown-item {
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: inherit;
+  color: var(--gm-text);
+}
+
+.nf-tab__erro-box {
+  border-radius: 12px;
+  padding: 12px 18px;
+  color: var(--gm-red);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nf-tab__btn-primario {
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+.nf-tab__btn-secundario {
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 1.5px solid var(--gm-border);
+  background: none;
+  color: var(--gm-text);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+/* ── Stepper ── */
+
+.nf-tab__stepper {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.nf-tab__stepper-item {
+  display: flex;
+  align-items: flex-start;
+}
+
+.nf-tab__stepper-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.nf-tab__stepper-bola {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.nf-tab__stepper-label {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.nf-tab__stepper-linha {
+  flex: 1;
+  height: 2px;
+  margin: 16px 8px 0;
+  transition: background 0.2s;
+}
+
+/* ── VinculaRow ── */
+
+.nf-tab__vinculado-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.nf-tab__vinculado-nome {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Upload / dropzone ── */
+
+.nf-tab__dropzone {
+  width: 100%;
+  max-width: 560px;
+  border-width: 2px;
+  border-style: dashed;
+  border-radius: 20px;
+  padding: 60px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.nf-tab__dropzone-icone {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  border: 1.5px solid var(--gm-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nf-tab__dropzone-titulo {
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.nf-tab__dropzone-ajuda {
+  color: var(--gm-muted);
+  text-align: center;
+}
+
+/* ── Aviso (fornecedor não cadastrado / duplicada) ── */
+
+.nf-tab__aviso {
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.nf-tab__aviso-linha {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.nf-tab__aviso-titulo {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.nf-tab__aviso-desc {
+  color: var(--gm-muted);
+  margin-bottom: 12px;
+}
+
+/* ── Preview (step 4) ── */
+
+.nf-tab__kpi-card {
+  background: var(--gm-surface);
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.nf-tab__kpi-valor {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.nf-tab__kpi-label {
+  font-size: 12px;
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+
+.nf-tab__entrada-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+/* ── Sucesso (step 5) ── */
+
+.nf-tab__sucesso-icone {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border-width: 2px;
+  border-style: solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Lista (view padrão) ── */
+
+.nf-tab__lista-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.nf-tab__badge-status {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.nf-tab__vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 60px;
+  color: var(--gm-muted);
+}

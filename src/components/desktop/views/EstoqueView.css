@@ -1,0 +1,479 @@
+/**
+ * F018 — leva 2. Decisão 018 (CSS separado do JSX) + tokens --gm-*
+ * (ADR-007). Cores sólidas viram var(--gm-*); blends com transparência
+ * usam alfa() (src/constants/colorAlfa.js). `estoqueColor()` pode
+ * devolver uma cor semântica fixa (laranja de "baixo", não é token de
+ * marca) — alfa() cai pra cor literal nesse caso, como em outras telas.
+ */
+
+.estoque-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.estoque-view__header {
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  /* telas estreitas: header não deve espremer o botão de liberar entrada */
+  flex-wrap: wrap;
+}
+
+.estoque-view__subtitulo {
+  margin-top: 2px;
+}
+
+.estoque-view__btn-liberar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* alvo de toque generoso (princípio nº 1) */
+  padding: 12px 18px;
+  border-radius: 10px;
+  border-width: 1.5px;
+  border-style: solid;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.estoque-view__kpis {
+  display: grid;
+  flex-shrink: 0;
+}
+
+.estoque-view__kpi {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.estoque-view__kpi-valor {
+  font-weight: 900;
+}
+
+.estoque-view__kpi-label {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+
+.estoque-view__filtros {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.estoque-view__busca {
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.estoque-view__categorias {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.estoque-view__categoria {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+
+.estoque-view__tabela-area {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.estoque-view__vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--gm-muted);
+  padding: 60px;
+}
+
+.estoque-view__tabela-moldura {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.estoque-view__tabela-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.estoque-view__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+
+.estoque-view__th {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.estoque-view__th-conteudo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.estoque-view__tr {
+  transition: background 0.1s;
+}
+
+.estoque-view__td {
+  padding: 14px 16px;
+}
+
+.estoque-view__produto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.estoque-view__produto-nome {
+  font-weight: 700;
+}
+
+.estoque-view__produto-conversoes {
+  color: var(--gm-muted);
+  margin-top: 2px;
+  display: flex;
+  gap: 8px;
+}
+
+.estoque-view__categoria-tag {
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.estoque-view__saldo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.estoque-view__saldo-valor {
+  font-weight: 800;
+}
+
+.estoque-view__saldo-unidade {
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.estoque-view__saldo-consumo {
+  color: var(--gm-muted);
+  margin-top: 1px;
+}
+
+.estoque-view__saldo-status {
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.estoque-view__minimo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.estoque-view__minimo-label {
+  color: var(--gm-muted);
+}
+
+.estoque-view__minimo-input {
+  width: 42px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-family: inherit;
+  text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.estoque-view__btn-cadeado {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.estoque-view__entrada-tabs {
+  display: flex;
+  border-radius: 8px;
+  border: 1px solid var(--gm-border);
+  overflow: hidden;
+  flex-wrap: wrap;
+}
+
+.estoque-view__entrada-tab {
+  padding: 5px 10px;
+  border: none;
+  border-right: 1px solid var(--gm-border);
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.estoque-view__entrada-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.estoque-view__entrada-input {
+  width: 68px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-weight: 700;
+  font-family: inherit;
+  outline: none;
+  text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.estoque-view__entrada-unidade {
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+
+.estoque-view__entrada-preview {
+  color: var(--gm-blue);
+}
+
+.estoque-view__btn-adicionar {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.estoque-view__direto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.estoque-view__direto-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.estoque-view__direto-input {
+  width: 60px;
+  text-align: center;
+  padding: 6px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-family: inherit;
+  outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.estoque-view__direto-unidade {
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+
+/* ── Modal de autenticação ── */
+
+.estoque-view__auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.estoque-view__auth-modal {
+  background: var(--gm-card);
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  color: var(--gm-text);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.estoque-view__auth-topo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.estoque-view__auth-icone {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.estoque-view__auth-titulo {
+  font-weight: 900;
+  font-size: 17px;
+}
+
+.estoque-view__auth-ajuda {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+
+.estoque-view__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.estoque-view__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.estoque-view__senha-wrap {
+  position: relative;
+}
+
+.estoque-view__senha-input {
+  width: 100%;
+  padding: 12px 44px 12px 14px;
+  border-radius: 10px;
+  border-width: 1.5px;
+  border-style: solid;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.estoque-view__senha-olho {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+}
+
+.estoque-view__auth-erro {
+  font-size: 13px;
+  color: var(--gm-red);
+  font-weight: 600;
+}
+
+.estoque-view__auth-botoes {
+  display: flex;
+  gap: 10px;
+}
+
+.estoque-view__auth-cancelar {
+  flex: 1;
+  padding: 13px 0;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.estoque-view__auth-confirmar {
+  flex: 1;
+  padding: 13px 0;
+  border-radius: 12px;
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}

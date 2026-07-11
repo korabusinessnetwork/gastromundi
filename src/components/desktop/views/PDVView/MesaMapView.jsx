@@ -1,4 +1,6 @@
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 
@@ -15,10 +17,10 @@ function statusMesa(mesa, abertas) {
 }
 
 const STATUS = {
-  livre:      { label: "Livre",      bg: `${C.green}14`,  border: `${C.green}44`,  cor: C.green   },
+  livre:      { label: "Livre",      bg: `${alfa(C.green, "14")}`,  border: `${alfa(C.green, "44")}`,  cor: varColor(C.green)   },
   aberta:     { label: "Aberta",     bg: "#eab30814",     border: "#eab30855",     cor: "#eab308" },
   reservada:  { label: "Reservada",  bg: "#f59e0b14",     border: "#f59e0b55",     cor: "#f59e0b" },
-  manutencao: { label: "Manutenção", bg: `${C.red}10`,    border: `${C.red}44`,    cor: C.red     },
+  manutencao: { label: "Manutenção", bg: `${alfa(C.red, "10")}`,    border: `${alfa(C.red, "44")}`,    cor: varColor(C.red)     },
 };
 
 export default function MesaMapView({ mesas, loading, abertas, onSelectComanda, onOpenEmpty }) {
@@ -27,7 +29,7 @@ export default function MesaMapView({ mesas, loading, abertas, onSelectComanda, 
 
   if (loading) {
     return (
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: C.muted, fontSize: sz.fontBase }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.muted), fontSize: sz.fontBase }}>
         Carregando mesas...
       </div>
     );
@@ -38,10 +40,10 @@ export default function MesaMapView({ mesas, loading, abertas, onSelectComanda, 
       <div style={{
         flex: 1, display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
-        gap: 14, color: C.muted, padding: 40, textAlign: "center",
+        gap: 14, color: varColor(C.muted), padding: 40, textAlign: "center",
       }}>
         <div style={{ fontSize: 52 }}>🪑</div>
-        <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2, color: C.text }}>
+        <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2, color: varColor(C.text) }}>
           Nenhuma mesa cadastrada
         </div>
         <div style={{ fontSize: sz.fontBase, maxWidth: 340, lineHeight: 1.6 }}>

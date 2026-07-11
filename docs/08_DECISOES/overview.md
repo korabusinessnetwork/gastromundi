@@ -57,6 +57,9 @@ ADRs capturam o "porquê" por trás de decisões técnicas e de produto signific
 | [ADR-002](./adr-002.md) | Revisão da stack: API Express (contract-first) + Drizzle + Clerk; Supabase como Postgres gerenciado | Supersedido pelo ADR-004 (mantido como roadmap) | 2026-06-16 |
 | [ADR-003](./adr-003.md) | Rebrand do produto: Kora → GastroMundi | Aceito | 2026-07-03 |
 | [ADR-004](./adr-004.md) | Junção da fundação com o app em produção: stack real (Supabase direto) prevalece; ADR-002 vira roadmap | Aceito | 2026-07-03 |
+| [ADR-005](./adr-005.md) | Planos, gating por módulo e add-ons pagos (F013) — registro central `planos`/`planos_modulos`, gating em 3 camadas, tabela `tenants` mínima | Proposto (documentação — implementação não iniciada) | 2026-07-06 |
+| [ADR-006](./adr-006.md) | Billing e enforcement de assinatura (F016) — vigência, carência, bloqueio real via RLS/RPC | Proposto (documentação — implementação não iniciada) | 2026-07-06 |
+| [ADR-007](./adr-007.md) | Theming e white-label por estabelecimento — CSS Custom Properties + padrão `.css` co-localizado | Proposto (documentação — implementação não iniciada) | 2026-07-06 |
 
 ---
 

@@ -8,10 +8,14 @@
 -- `supabase db dump -f supabase/schema.sql --schema public`,
 -- que requer Docker).
 --
--- Convenções de RLS (migração 20240107_rls_por_role.sql):
---   auth.role() = 'authenticated'        → qualquer usuário logado
---   (auth.jwt() ->> 'role')              → 'admin' | 'gerente' | 'caixa' | 'garcom'
---   O claim `role` é injetado pelo custom_access_token_hook
+-- Convenções de RLS (migração 20240107_rls_por_role.sql, claim
+-- corrigido em 20260722_fix_jwt_role_claim_v2.sql):
+--   auth.role() = 'authenticated'                          → qualquer usuário logado
+--   (auth.jwt() -> 'app_metadata' ->> 'gastro_role')        → 'admin' | 'gerente' | 'caixa' | 'garcom'
+--   NUNCA usar (auth.jwt() ->> 'role') para o papel do app — a raiz
+--   `role` do JWT é reservada pelo PostgREST pro role do banco
+--   (sempre 'authenticated'); o papel de negócio só existe em
+--   app_metadata.gastro_role, injetado pelo custom_access_token_hook
 --   (20240105/20240108) a partir de public.users.
 -- =============================================================
 
@@ -42,7 +46,8 @@ CREATE TABLE public.products (
   unidades_compra       jsonb   NOT NULL DEFAULT '[]',
   unidade_estoque       text    NOT NULL DEFAULT 'un',
   unidade_consumo       text,
-  fator_consumo_estoque numeric DEFAULT 1
+  fator_consumo_estoque numeric DEFAULT 1,
+  produzivel            boolean NOT NULL DEFAULT true -- F015, 20260721_produtos_produzivel.sql
 );
 
 -- ── pending (pedidos em aberto — Realtime habilitado) ─────────
@@ -86,6 +91,7 @@ CREATE TABLE public.vendas (
   valor_ajuste numeric     NOT NULL DEFAULT 0,
   total        numeric     NOT NULL,
   cashier      text,
+  cliente_id   uuid        REFERENCES public.clientes(id) ON DELETE SET NULL, -- F010, 20260713_clientes.sql
   at           timestamptz NOT NULL DEFAULT now()
 );
 
@@ -128,6 +134,7 @@ CREATE TABLE public.lancamentos (
   status      text        NOT NULL DEFAULT 'previsto' CHECK (status IN ('previsto', 'pago', 'recebido', 'vencido')),
   origem      text        NOT NULL DEFAULT 'manual' CHECK (origem IN ('venda', 'manual', 'estoque')),
   venda_id    text        REFERENCES public.vendas(id) ON DELETE SET NULL,
+  cliente_id  uuid        REFERENCES public.clientes(id) ON DELETE SET NULL, -- F010, 20260713_clientes.sql
   retroativo  boolean     NOT NULL DEFAULT false,
   criado_por  text,
   baixado_por text,
@@ -138,6 +145,25 @@ CREATE INDEX lancamentos_competencia_idx ON public.lancamentos (competencia);
 CREATE INDEX lancamentos_status_idx      ON public.lancamentos (status);
 CREATE INDEX lancamentos_tipo_idx         ON public.lancamentos (tipo);
 CREATE INDEX lancamentos_venda_id_idx     ON public.lancamentos (venda_id);
+CREATE INDEX lancamentos_cliente_id_idx   ON public.lancamentos (cliente_id);
+
+-- ── clientes (F010 — docs/03_REGRAS_DE_NEGOCIO/CLIENTES.md) ───
+-- Cadastro, histórico de compras (via vendas.cliente_id) e fiado
+-- (via lancamentos.cliente_id — o fiado em si já existe como conta a
+-- receber no Financeiro; esta tabela só acrescenta o vínculo).
+CREATE TABLE public.clientes (
+  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome         text        NOT NULL,
+  telefone     text,
+  endereco     text,
+  observacoes  text,
+  anonimizado  boolean     NOT NULL DEFAULT false,
+  criado_por   text,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX clientes_nome_idx     ON public.clientes (nome);
+CREATE INDEX clientes_telefone_idx ON public.clientes (telefone);
 
 -- ── fechamentos ───────────────────────────────────────────────
 CREATE TABLE public.fechamentos (
@@ -356,6 +382,8 @@ CREATE INDEX jarvas_insights_created_at_idx ON public.jarvas_insights (created_a
 --   RETURNS TABLE (quantidade numeric, minimo numeric) desde 20260712 — antes RETURNS void (F008)
 -- jarvas_resumo_vendas(p_desde timestamptz, p_limite_produtos int) → 20260709_jarvas_resumo_vendas.sql
 --   (agregação SQL de vendas 30d/top produtos para o assistente do Jarvas — TD009 etapa 2)
+-- relatorio_vendas(p_inicio timestamptz, p_fim timestamptz, p_limite_produtos int) → 20260714_relatorio_vendas.sql
+--   (faturamento/nº vendas/série diária/por método/top produtos por período — F011, Relatórios)
 
 -- =============================================================
 -- ROW LEVEL SECURITY (estado real — nomes verificados em produção)
@@ -387,6 +415,7 @@ CREATE INDEX jarvas_insights_created_at_idx ON public.jarvas_insights (created_a
 -- jarvas_eventos        → jarvas_eventos_insert_auth ; jarvas_eventos_{select,update}_gerencia
 -- jarvas_insights       → jarvas_insights_select_{operacional,estrategico} ; jarvas_insights_{insert,update}_gerencia
 -- lancamentos           → lancamentos_all_gerencia ; lancamentos_insert_venda_caixa (Financeiro fase 1)
+-- clientes              → clientes_select_auth ; clientes_insert_update_operacional (garcom/caixa/gerente/admin) ; clientes_delete_gerencia (F010, 20260713_clientes.sql)
 
 -- ── Realtime ──────────────────────────────────────────────────
 -- Habilitado no dashboard para: pending, estoque, jarvas_insights, mesas

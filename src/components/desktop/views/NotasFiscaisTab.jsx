@@ -3,7 +3,10 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
+import { alfa } from "@/constants/colorAlfa";
 import { parseNFe } from "@/utils/parseNFe";
+import "./NotasFiscaisTab.css";
 import {
   LuUpload, LuFileText, LuCheck, LuX, LuSearch,
   LuArrowLeft, LuChevronRight, LuPackage, LuTriangleAlert,
@@ -23,31 +26,28 @@ const fmtCnpj = (v) => {
 function Stepper({ step }) {
   const steps = ["Upload", "Cabeçalho", "Vínculos", "Confirmar"];
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 32 }}>
+    <div className="nf-tab__stepper">
       {steps.map((label, i) => {
         const n = i + 1;
         const done   = n < step;
         const active = n === step;
-        const color  = done ? C.green : active ? C.accent : C.border;
+        const color  = done ? varColor(C.green) : active ? varColor(C.accent) : varColor(C.border);
         return (
-          <div key={n} style={{ display: "flex", alignItems: "flex-start", flex: i < steps.length - 1 ? 1 : 0 }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-              <div style={{
-                width: 34, height: 34, borderRadius: "50%",
-                background: done ? C.green : active ? C.accent : C.surface,
+          <div key={n} className="nf-tab__stepper-item" style={{ flex: i < steps.length - 1 ? 1 : 0 }}>
+            <div className="nf-tab__stepper-col">
+              <div className="nf-tab__stepper-bola" style={{
+                background: done ? varColor(C.green) : active ? varColor(C.accent) : varColor(C.surface),
                 border: `2px solid ${color}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                color: done || active ? "#fff" : C.muted,
-                fontWeight: 800, fontSize: 14, transition: "all 0.2s",
+                color: done || active ? "#fff" : varColor(C.muted),
               }}>
                 {done ? <LuCheck size={14} /> : n}
               </div>
-              <div style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? C.text : C.muted, whiteSpace: "nowrap" }}>
+              <div className="nf-tab__stepper-label" style={{ fontWeight: active ? 700 : 500, color: active ? varColor(C.text) : varColor(C.muted) }}>
                 {label}
               </div>
             </div>
             {i < steps.length - 1 && (
-              <div style={{ flex: 1, height: 2, background: done ? C.green : C.border, margin: "16px 8px 0", transition: "background 0.2s" }} />
+              <div className="nf-tab__stepper-linha" style={{ background: done ? varColor(C.green) : varColor(C.border) }} />
             )}
           </div>
         );
@@ -96,50 +96,47 @@ function VinculaRow({ item, products, onChange }) {
 
   return (
     <tr
-      style={{ background: !linked ? `${"#f59e0b"}0a` : "transparent", borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
-      onMouseEnter={e => e.currentTarget.style.background = C.surface}
-      onMouseLeave={e => e.currentTarget.style.background = !linked ? `${"#f59e0b"}0a` : "transparent"}
+      className="nf-tab__tr"
+      style={{ background: !linked ? alfa("#f59e0b", "0a") : "transparent" }}
+      onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
+      onMouseLeave={e => e.currentTarget.style.background = !linked ? alfa("#f59e0b", "0a") : "transparent"}
     >
       {/* # */}
-      <td style={{ padding: "10px 10px", fontSize: 12, color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>{item.numero}</td>
+      <td className="nf-tab__td" style={{ fontSize: 12, color: varColor(C.muted), fontWeight: 600, whiteSpace: "nowrap" }}>{item.numero}</td>
 
       {/* Descrição */}
-      <td style={{ padding: "10px 10px", maxWidth: 180 }}>
+      <td className="nf-tab__td" style={{ maxWidth: 180 }}>
         <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.descricaoXml}</div>
-        <div style={{ fontSize: 11, color: C.muted }}>{item.codigoXml}</div>
+        <div style={{ fontSize: 11, color: varColor(C.muted) }}>{item.codigoXml}</div>
       </td>
 
       {/* Qtd + Unid XML */}
-      <td style={{ padding: "10px 10px", fontSize: 13, textAlign: "center", whiteSpace: "nowrap" }}>
-        {item.quantidade} <span style={{ color: C.muted, fontSize: 11 }}>{item.unidadeXml}</span>
+      <td className="nf-tab__td" style={{ fontSize: 13, textAlign: "center", whiteSpace: "nowrap" }}>
+        {item.quantidade} <span style={{ color: varColor(C.muted), fontSize: 11 }}>{item.unidadeXml}</span>
       </td>
 
       {/* Preço unit */}
-      <td style={{ padding: "10px 10px", fontSize: 12, textAlign: "right", color: C.muted, whiteSpace: "nowrap" }}>
+      <td className="nf-tab__td" style={{ fontSize: 12, textAlign: "right", color: varColor(C.muted), whiteSpace: "nowrap" }}>
         {fmtR(item.precoUnitario)}
       </td>
 
       {/* Produto vinculado */}
-      <td style={{ padding: "10px 10px", minWidth: 180 }}>
+      <td className="nf-tab__td" style={{ minWidth: 180 }}>
         <div ref={ref} style={{ position: "relative" }}>
           {linked ? (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 6,
-              background: `${C.green}12`, border: `1.5px solid ${C.green}44`,
-              borderRadius: 8, padding: "6px 10px",
-            }}>
+            <div className="nf-tab__vinculado-chip" style={{ background: alfa(C.green, "12"), border: `1.5px solid ${alfa(C.green, "44")}` }}>
               <span style={{ fontSize: 16 }}>{item.produto.emoji || "📦"}</span>
-              <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: C.green, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span className="nf-tab__vinculado-nome" style={{ color: varColor(C.green) }}>
                 {item.produto.name}
               </span>
-              <button onClick={clearProduto} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, padding: 0, lineHeight: 1, display: "flex" }}>
+              <button onClick={clearProduto} style={{ background: "none", border: "none", cursor: "pointer", color: varColor(C.muted), padding: 0, lineHeight: 1, display: "flex" }}>
                 <LuX size={12} />
               </button>
             </div>
           ) : (
             <>
               <div style={{ position: "relative" }}>
-                <LuSearch size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+                <LuSearch size={12} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }} />
                 <input
                   value={busca}
                   onChange={e => { setBusca(e.target.value); setAberto(true); }}
@@ -147,36 +144,27 @@ function VinculaRow({ item, products, onChange }) {
                   placeholder="Buscar produto..."
                   style={{
                     width: "100%", padding: "7px 8px 7px 26px", borderRadius: 8,
-                    border: `1.5px solid ${C.border}`, background: C.surface,
-                    color: C.text, fontSize: 13, fontFamily: "inherit",
+                    border: `1.5px solid var(${C.border})`, background: varColor(C.surface),
+                    color: varColor(C.text), fontSize: 13, fontFamily: "inherit",
                     outline: "none", boxSizing: "border-box",
                   }}
                 />
               </div>
               {aberto && filtrados.length > 0 && (
-                <div style={{
-                  position: "absolute", top: "100%", left: 0, right: 0,
-                  background: C.card, border: `1px solid ${C.border}`,
-                  borderRadius: 10, zIndex: 200, marginTop: 2,
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.35)", overflow: "hidden",
-                }}>
+                <div className="nf-tab__dropdown" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.35)" }}>
                   {filtrados.map(p => (
                     <button
                       key={p.id}
                       onMouseDown={() => selectProduto(p)}
-                      style={{
-                        width: "100%", padding: "8px 12px", border: "none",
-                        background: "none", cursor: "pointer", textAlign: "left",
-                        display: "flex", alignItems: "center", gap: 8,
-                        fontFamily: "inherit", color: C.text,
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                      className="nf-tab__dropdown-item"
+                      style={{ padding: "8px 12px" }}
+                      onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                       onMouseLeave={e => e.currentTarget.style.background = "none"}
                     >
                       <span style={{ fontSize: 15 }}>{p.emoji || "📦"}</span>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div>
-                        <div style={{ fontSize: 11, color: C.muted }}>{p.unidade_estoque}</div>
+                        <div style={{ fontSize: 11, color: varColor(C.muted) }}>{p.unidade_estoque}</div>
                       </div>
                     </button>
                   ))}
@@ -188,15 +176,15 @@ function VinculaRow({ item, products, onChange }) {
       </td>
 
       {/* Unid estoque */}
-      <td style={{ padding: "10px 10px", fontSize: 12, textAlign: "center", color: C.muted }}>
+      <td className="nf-tab__td" style={{ fontSize: 12, textAlign: "center", color: varColor(C.muted) }}>
         {item.produto?.unidade_estoque || "—"}
       </td>
 
       {/* Fator */}
-      <td style={{ padding: "10px 10px", textAlign: "center" }}>
+      <td className="nf-tab__td" style={{ textAlign: "center" }}>
         {item.produto ? (
           item.fatorAuto ? (
-            <span style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>1 (auto)</span>
+            <span style={{ fontSize: 12, color: varColor(C.muted), fontStyle: "italic" }}>1 (auto)</span>
           ) : (
             <input
               type="number"
@@ -206,8 +194,8 @@ function VinculaRow({ item, products, onChange }) {
               onChange={e => setFator(e.target.value)}
               style={{
                 width: 64, padding: "5px 6px", borderRadius: 7,
-                border: `1.5px solid ${C.border}`, background: C.surface,
-                color: C.text, fontSize: 13, fontFamily: "inherit",
+                border: `1.5px solid var(${C.border})`, background: varColor(C.surface),
+                color: varColor(C.text), fontSize: 13, fontFamily: "inherit",
                 outline: "none", textAlign: "center",
               }}
             />
@@ -216,7 +204,7 @@ function VinculaRow({ item, products, onChange }) {
       </td>
 
       {/* Qtd convertida */}
-      <td style={{ padding: "10px 10px", fontSize: 14, fontWeight: 800, textAlign: "center", color: linked ? C.green : C.muted }}>
+      <td className="nf-tab__td" style={{ fontSize: 14, fontWeight: 800, textAlign: "center", color: linked ? varColor(C.green) : varColor(C.muted) }}>
         {linked ? item.qtdEstoque.toFixed(3) : "—"}
       </td>
     </tr>
@@ -535,12 +523,12 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
     const inpStyle = {
       width: "100%", padding: "9px 12px", borderRadius: 10,
-      border: `1.5px solid ${C.border}`, background: C.surface,
-      color: C.text, fontSize: sz.fontBase, fontFamily: "inherit",
+      border: `1.5px solid var(${C.border})`, background: varColor(C.surface),
+      color: varColor(C.text), fontSize: sz.fontBase, fontFamily: "inherit",
       outline: "none", boxSizing: "border-box",
     };
     const label = (text) => (
-      <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>{text}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>{text}</div>
     );
 
     return (
@@ -548,7 +536,8 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
           <button
             onClick={() => setView("lista")}
-            style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 14px", cursor: "pointer", color: C.text, display: "flex", alignItems: "center", gap: 6, fontSize: sz.fontSm + 1, fontWeight: 600, fontFamily: "inherit" }}
+            className="nf-tab__voltar-btn"
+            style={{ fontSize: sz.fontSm + 1 }}
           >
             <LuArrowLeft size={14} /> Cancelar
           </button>
@@ -556,22 +545,22 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
         </div>
 
         {/* Cabeçalho da nota */}
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, marginBottom: 20 }}>
+        <div className="nf-tab__card" style={{ padding: 24, marginBottom: 20 }}>
           <div style={{ fontWeight: 700, fontSize: sz.fontBase + 1, marginBottom: 20 }}>Dados do fornecedor e nota</div>
 
           {/* Seletor de fornecedor */}
           <div style={{ marginBottom: 16 }}>
             {label("Fornecedor *")}
             {fornecedorSelecionado ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, background: `${C.green}10`, border: `1.5px solid ${C.green}44`, borderRadius: 10, padding: "10px 14px" }}>
-                <LuTruck size={16} color={C.green} />
+              <div style={{ display: "flex", alignItems: "center", gap: 10, background: alfa(C.green, "10"), border: `1.5px solid ${alfa(C.green, "44")}`, borderRadius: 10, padding: "10px 14px" }}>
+                <LuTruck size={16} color={varColor(C.green)} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: C.green }}>{fornecedorSelecionado.nome}</div>
-                  {fornecedorSelecionado.cnpj && <div style={{ fontSize: 12, color: C.muted }}>{fmtCnpj(fornecedorSelecionado.cnpj)}</div>}
+                  <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.green) }}>{fornecedorSelecionado.nome}</div>
+                  {fornecedorSelecionado.cnpj && <div style={{ fontSize: 12, color: varColor(C.muted) }}>{fmtCnpj(fornecedorSelecionado.cnpj)}</div>}
                 </div>
                 <button
                   onClick={() => { setManualFornId(""); setManualFornBusca(""); }}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, padding: 4, display: "flex" }}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: varColor(C.muted), padding: 4, display: "flex" }}
                 >
                   <LuX size={14} />
                 </button>
@@ -579,7 +568,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             ) : (
               <div ref={fornDDRef} style={{ position: "relative" }}>
                 <div style={{ position: "relative" }}>
-                  <LuSearch size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+                  <LuSearch size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }} />
                   <input
                     style={{ ...inpStyle, paddingLeft: 32 }}
                     placeholder="Buscar fornecedor cadastrado..."
@@ -589,7 +578,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                   />
                 </div>
                 {showFornDD && (
-                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, zIndex: 200, marginTop: 4, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+                  <div className="nf-tab__dropdown" style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}>
                     {fornecedores
                       .filter(f => !manualFornBusca || f.nome.toLowerCase().includes(manualFornBusca.toLowerCase()))
                       .slice(0, 8)
@@ -597,22 +586,22 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                         <button
                           key={f.id}
                           onMouseDown={() => { setManualFornId(f.id); setManualFornBusca(""); setShowFornDD(false); }}
-                          style={{ width: "100%", padding: "10px 14px", border: "none", background: "none", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10, fontFamily: "inherit", color: C.text }}
-                          onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                          className="nf-tab__dropdown-item"
+                          onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                           onMouseLeave={e => e.currentTarget.style.background = "none"}
                         >
-                          <LuTruck size={14} color={C.muted} />
+                          <LuTruck size={14} color={varColor(C.muted)} />
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 600 }}>{f.nome}</div>
-                            {f.cnpj && <div style={{ fontSize: 11, color: C.muted }}>{fmtCnpj(f.cnpj)}</div>}
+                            {f.cnpj && <div style={{ fontSize: 11, color: varColor(C.muted) }}>{fmtCnpj(f.cnpj)}</div>}
                           </div>
                         </button>
                       ))
                     }
                     <button
                       onMouseDown={() => { setShowFornDD(false); setShowNovoForn(true); setNovoFornForm({ nome: manualFornBusca, cnpj: "" }); setNovoFornErro(""); }}
-                      style={{ width: "100%", padding: "10px 14px", border: "none", borderTop: `1px solid ${C.border}`, background: "none", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8, fontFamily: "inherit", color: C.accent, fontWeight: 600, fontSize: 13 }}
-                      onMouseEnter={e => e.currentTarget.style.background = `${C.accent}08`}
+                      style={{ width: "100%", padding: "10px 14px", border: "none", borderTop: `1px solid var(${C.border})`, background: "none", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8, fontFamily: "inherit", color: varColor(C.accent), fontWeight: 600, fontSize: 13 }}
+                      onMouseEnter={e => e.currentTarget.style.background = alfa(C.accent, "08")}
                       onMouseLeave={e => e.currentTarget.style.background = "none"}
                     >
                       <LuPlus size={14} /> Cadastrar novo fornecedor
@@ -657,9 +646,9 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
         {/* Popup: cadastrar novo fornecedor (manual) */}
         {showNovoForn && createPortal(
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 440 }}>
+            <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 440 }}>
               <div style={{ fontWeight: 800, fontSize: sz.fontLg, marginBottom: 6 }}>Cadastrar fornecedor</div>
-              <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginBottom: 20 }}>O fornecedor será salvo no cadastro e vinculado à nota.</div>
+              <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted), marginBottom: 20 }}>O fornecedor será salvo no cadastro e vinculado à nota.</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
                 <div>
                   {label("Nome *")}
@@ -670,11 +659,11 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                   <input style={inpStyle} placeholder="00.000.000/0000-00" value={novoFornForm.cnpj} onChange={e => setNovoFornForm(f => ({ ...f, cnpj: e.target.value }))} />
                 </div>
               </div>
-              {novoFornErro && <div style={{ color: C.red, fontSize: sz.fontSm + 1, marginBottom: 12, fontWeight: 600 }}>{novoFornErro}</div>}
+              {novoFornErro && <div style={{ color: varColor(C.red), fontSize: sz.fontSm + 1, marginBottom: 12, fontWeight: 600 }}>{novoFornErro}</div>}
               <div style={{ display: "flex", gap: 10 }}>
                 <button
                   onClick={() => { setShowNovoForn(false); setNovoFornErro(""); }}
-                  style={{ flex: 1, padding: "11px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
+                  style={{ flex: 1, padding: "11px", borderRadius: 10, border: `1.5px solid var(${C.border})`, background: "none", color: varColor(C.text), cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
                 >
                   Cancelar
                 </button>
@@ -685,7 +674,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                     setPendingFornNome(novoFornForm.nome.trim());
                     await salvarNovoFornecedor(novoFornForm.nome, novoFornForm.cnpj);
                   }}
-                  style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", cursor: fornSaving ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", opacity: fornSaving ? 0.6 : 1 }}
+                  style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", cursor: fornSaving ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", opacity: fornSaving ? 0.6 : 1 }}
                 >
                   {fornSaving ? "Salvando..." : "Cadastrar"}
                 </button>
@@ -696,29 +685,29 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
         )}
 
         {/* Itens */}
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 20 }}>
-          <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="nf-tab__card" style={{ overflow: "hidden", marginBottom: 20 }}>
+          <div style={{ padding: "16px 20px", borderBottom: `1px solid var(${C.border})`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ fontWeight: 700, fontSize: sz.fontBase + 1 }}>Itens da nota</div>
             <button
               onClick={addItem}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1, fontFamily: "inherit" }}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "none", background: varColor(C.accent), color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1, fontFamily: "inherit" }}
             >
               <LuPlus size={13} /> Adicionar item
             </button>
           </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
+          <div className="nf-tab__tabela-scroll">
+            <table className="nf-tab__tabela" style={{ minWidth: 680 }}>
               <thead>
-                <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+                <tr style={{ borderBottom: `1px solid var(${C.border})`, background: varColor(C.surface) }}>
                   {["#", "Descrição *", "Qtd *", "Unidade", "Preço Unit. (R$)", ""].map((h, i) => (
-                    <th key={i} style={{ padding: "10px 12px", textAlign: i >= 2 ? "center" : "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.7, whiteSpace: "nowrap" }}>{h}</th>
+                    <th key={i} className="nf-tab__th" style={{ textAlign: i >= 2 ? "center" : "left" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {manualItens.map((it, idx) => (
-                  <tr key={idx} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: "8px 12px", fontSize: 13, color: C.muted, fontWeight: 600 }}>{idx + 1}</td>
+                  <tr key={idx} style={{ borderBottom: `1px solid var(${C.border})` }}>
+                    <td style={{ padding: "8px 12px", fontSize: 13, color: varColor(C.muted), fontWeight: 600 }}>{idx + 1}</td>
                     <td style={{ padding: "8px 12px" }}>
                       <input
                         style={{ ...inpStyle, padding: "7px 10px" }}
@@ -758,9 +747,9 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                       {manualItens.length > 1 && (
                         <button
                           onClick={() => removeItem(idx)}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, padding: 4, display: "flex", alignItems: "center" }}
-                          onMouseEnter={e => e.currentTarget.style.color = C.red}
-                          onMouseLeave={e => e.currentTarget.style.color = C.muted}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: varColor(C.muted), padding: 4, display: "flex", alignItems: "center" }}
+                          onMouseEnter={e => e.currentTarget.style.color = varColor(C.red)}
+                          onMouseLeave={e => e.currentTarget.style.color = varColor(C.muted)}
                         >
                           <LuX size={15} />
                         </button>
@@ -774,7 +763,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
         </div>
 
         {manualErro && (
-          <div style={{ background: `${C.red}12`, border: `1.5px solid ${C.red}44`, borderRadius: 12, padding: "12px 18px", marginBottom: 16, color: C.red, fontWeight: 600, fontSize: sz.fontBase, display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="nf-tab__erro-box" style={{ background: alfa(C.red, "12"), border: `1.5px solid ${alfa(C.red, "44")}`, fontSize: sz.fontBase }}>
             <LuTriangleAlert size={16} /> {manualErro}
           </div>
         )}
@@ -782,13 +771,15 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
         <div style={{ display: "flex", gap: 12 }}>
           <button
             onClick={() => setView("lista")}
-            style={{ padding: "12px 24px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
+            className="nf-tab__btn-secundario"
+            style={{ fontSize: sz.fontBase }}
           >
             Cancelar
           </button>
           <button
             onClick={confirmarManual}
-            style={{ flex: 1, padding: "12px 24px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", boxShadow: `0 4px 14px ${C.accent}44` }}
+            className="nf-tab__btn-primario"
+            style={{ flex: 1, background: varColor(C.accent), fontSize: sz.fontBase, boxShadow: `0 4px 14px ${alfa(C.accent, "44")}` }}
           >
             Continuar → Vincular produtos
           </button>
@@ -805,12 +796,13 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
       <div>
         <button
           onClick={() => setView("lista")}
-          style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 14px", cursor: "pointer", color: C.text, display: "flex", alignItems: "center", gap: 6, fontSize: sz.fontSm + 1, fontWeight: 600, fontFamily: "inherit", marginBottom: 20 }}
+          className="nf-tab__voltar-btn"
+          style={{ fontSize: sz.fontSm + 1, marginBottom: 20 }}
         >
           <LuArrowLeft size={14} /> Voltar
         </button>
 
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, marginBottom: 20 }}>
+        <div className="nf-tab__card" style={{ padding: 24, marginBottom: 20 }}>
           <div style={{ fontWeight: 800, fontSize: sz.fontLg, marginBottom: 16 }}>
             Nota nº {cab.numero} — {cab.fornecedor_nome}
           </div>
@@ -824,53 +816,55 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
               { label: "Importada em",  value: fmtDt(cab.created_at?.split("T")[0]) },
             ].map(f => (
               <div key={f.label}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4 }}>{f.label}</div>
+                <div className="nf-tab__label" style={{ marginBottom: 4 }}>{f.label}</div>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{f.value}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
+        <div className="nf-tab__tabela-moldura">
+          <div className="nf-tab__tabela-scroll">
+          <table className="nf-tab__tabela" style={{ minWidth: 680 }}>
             <thead>
-              <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+              <tr style={{ borderBottom: `1px solid var(${C.border})`, background: varColor(C.surface) }}>
                 {["#", "Descrição XML", "Cód.", "Qtd", "Unid.", "Preço Unit.", "Produto", "Qtd Estoque"].map((h, i) => (
-                  <th key={i} style={{ padding: "10px 12px", textAlign: i >= 3 ? "center" : "left", fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, whiteSpace: "nowrap" }}>{h}</th>
+                  <th key={i} className="nf-tab__th" style={{ textAlign: i >= 3 ? "center" : "left" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {notaItens.map((it, i) => (
-                <tr key={it.id} style={{ borderBottom: `1px solid ${C.border}` }}
-                  onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                <tr key={it.id} className="nf-tab__tr"
+                  onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  <td style={{ padding: "10px 12px", fontSize: 12, color: C.muted }}>{i + 1}</td>
-                  <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 600, maxWidth: 200 }}>
+                  <td className="nf-tab__td" style={{ fontSize: 12, color: varColor(C.muted) }}>{i + 1}</td>
+                  <td className="nf-tab__td" style={{ fontSize: 13, fontWeight: 600, maxWidth: 200 }}>
                     <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.descricao_xml}</div>
                   </td>
-                  <td style={{ padding: "10px 12px", fontSize: 12, color: C.muted }}>{it.codigo_xml}</td>
-                  <td style={{ padding: "10px 12px", fontSize: 13, textAlign: "center" }}>{it.quantidade}</td>
-                  <td style={{ padding: "10px 12px", fontSize: 12, textAlign: "center", color: C.muted }}>{it.unidade_xml}</td>
-                  <td style={{ padding: "10px 12px", fontSize: 12, textAlign: "center", color: C.muted }}>{fmtR(it.preco_unitario)}</td>
-                  <td style={{ padding: "10px 12px", fontSize: 13 }}>
+                  <td className="nf-tab__td" style={{ fontSize: 12, color: varColor(C.muted) }}>{it.codigo_xml}</td>
+                  <td className="nf-tab__td" style={{ fontSize: 13, textAlign: "center" }}>{it.quantidade}</td>
+                  <td className="nf-tab__td" style={{ fontSize: 12, textAlign: "center", color: varColor(C.muted) }}>{it.unidade_xml}</td>
+                  <td className="nf-tab__td" style={{ fontSize: 12, textAlign: "center", color: varColor(C.muted) }}>{fmtR(it.preco_unitario)}</td>
+                  <td className="nf-tab__td" style={{ fontSize: 13 }}>
                     {it.products ? (
                       <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span>{it.products.emoji || "📦"}</span>
-                        <span style={{ fontWeight: 600, color: C.green }}>{it.products.name}</span>
+                        <span style={{ fontWeight: 600, color: varColor(C.green) }}>{it.products.name}</span>
                       </span>
                     ) : (
-                      <span style={{ color: C.muted, fontSize: 12, fontStyle: "italic" }}>Não vinculado</span>
+                      <span style={{ color: varColor(C.muted), fontSize: 12, fontStyle: "italic" }}>Não vinculado</span>
                     )}
                   </td>
-                  <td style={{ padding: "10px 12px", fontSize: 13, fontWeight: 700, textAlign: "center", color: it.quantidade_estoque ? C.green : C.muted }}>
+                  <td className="nf-tab__td" style={{ fontSize: 13, fontWeight: 700, textAlign: "center", color: it.quantidade_estoque ? varColor(C.green) : varColor(C.muted) }}>
                     {it.quantidade_estoque != null ? `${Number(it.quantidade_estoque).toFixed(3)} ${it.products?.unidade_estoque || ""}` : "—"}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     );
@@ -886,7 +880,8 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
           <button
             onClick={() => setView("lista")}
-            style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 14px", cursor: "pointer", color: C.text, display: "flex", alignItems: "center", gap: 6, fontSize: sz.fontSm + 1, fontWeight: 600, fontFamily: "inherit" }}
+            className="nf-tab__voltar-btn"
+            style={{ fontSize: sz.fontSm + 1 }}
           >
             <LuArrowLeft size={14} /> Cancelar
           </button>
@@ -903,30 +898,27 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onClick={() => fileRef.current?.click()}
+              className="nf-tab__dropzone"
               style={{
-                width: "100%", maxWidth: 560,
-                border: `2px dashed ${dragOver ? C.accent : xmlErro ? C.red : C.border}`,
-                borderRadius: 20, padding: "60px 40px",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
-                cursor: "pointer", transition: "border-color 0.2s, background 0.2s",
-                background: dragOver ? `${C.accent}08` : xmlErro ? `${C.red}08` : C.card,
+                borderColor: dragOver ? varColor(C.accent) : xmlErro ? varColor(C.red) : varColor(C.border),
+                background: dragOver ? alfa(C.accent, "08") : xmlErro ? alfa(C.red, "08") : varColor(C.card),
               }}
             >
-              <div style={{ width: 64, height: 64, borderRadius: 16, background: dragOver ? `${C.accent}18` : C.surface, border: `1.5px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <LuUpload size={28} color={dragOver ? C.accent : C.muted} />
+              <div className="nf-tab__dropzone-icone" style={{ background: dragOver ? alfa(C.accent, "18") : varColor(C.surface) }}>
+                <LuUpload size={28} color={dragOver ? varColor(C.accent) : varColor(C.muted)} />
               </div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontWeight: 700, fontSize: sz.fontLg - 1, marginBottom: 6 }}>
+              <div>
+                <div className="nf-tab__dropzone-titulo" style={{ fontSize: sz.fontLg - 1 }}>
                   {dragOver ? "Solte o arquivo aqui" : "Arraste o XML ou clique para selecionar"}
                 </div>
-                <div style={{ fontSize: sz.fontSm + 1, color: C.muted }}>Apenas arquivos .xml de NF-e</div>
+                <div className="nf-tab__dropzone-ajuda" style={{ fontSize: sz.fontSm + 1 }}>Apenas arquivos .xml de NF-e</div>
               </div>
             </div>
             <input ref={fileRef} type="file" accept=".xml" style={{ display: "none" }} onChange={e => processFile(e.target.files[0])} />
             {xmlErro && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, background: `${C.red}12`, border: `1.5px solid ${C.red}44`, borderRadius: 12, padding: "12px 18px", maxWidth: 560, width: "100%" }}>
-                <LuTriangleAlert size={18} color={C.red} />
-                <span style={{ fontSize: sz.fontBase, color: C.red, fontWeight: 600 }}>{xmlErro}</span>
+              <div className="nf-tab__erro-box" style={{ background: alfa(C.red, "12"), border: `1.5px solid ${alfa(C.red, "44")}`, maxWidth: 560, width: "100%" }}>
+                <LuTriangleAlert size={18} color={varColor(C.red)} />
+                <span style={{ fontSize: sz.fontBase, color: varColor(C.red), fontWeight: 600 }}>{xmlErro}</span>
               </div>
             )}
           </div>
@@ -935,7 +927,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
         {/* ── Step 2: Cabeçalho ── */}
         {step === 2 && cab && (
           <div style={{ maxWidth: 640 }}>
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 28, marginBottom: 20 }}>
+            <div className="nf-tab__card" style={{ padding: 28, marginBottom: 20 }}>
               <div style={{ fontWeight: 800, fontSize: sz.fontLg, marginBottom: 20 }}>Informações da nota</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                 {[
@@ -947,27 +939,27 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                   { label: "Valor Total",   value: fmtR(cab.valorTotal), icon: LuPackage },
                 ].map(f => (
                   <div key={f.label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>{f.label}</div>
+                    <div className="nf-tab__label">{f.label}</div>
                     <div style={{ fontSize: sz.fontBase, fontWeight: 700 }}>{f.value}</div>
                   </div>
                 ))}
               </div>
               {cab.chaveAcesso && (
-                <div style={{ marginTop: 16, padding: "10px 14px", background: C.surface, borderRadius: 10, fontSize: 12, color: C.muted, wordBreak: "break-all", fontFamily: "monospace" }}>
+                <div style={{ marginTop: 16, padding: "10px 14px", background: varColor(C.surface), borderRadius: 10, fontSize: 12, color: varColor(C.muted), wordBreak: "break-all", fontFamily: "monospace" }}>
                   Chave: {cab.chaveAcesso}
                 </div>
               )}
             </div>
 
             {showFornPopup && (
-              <div style={{ background: `${"#f59e0b"}12`, border: `1.5px solid ${"#f59e0b"}55`, borderRadius: 14, padding: "16px 20px", marginBottom: 16 }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <div className="nf-tab__aviso" style={{ background: alfa("#f59e0b", "12"), border: `1.5px solid ${alfa("#f59e0b", "55")}` }}>
+                <div className="nf-tab__aviso-linha">
                   <LuTriangleAlert size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: sz.fontBase, marginBottom: 4 }}>
+                    <div className="nf-tab__aviso-titulo" style={{ fontSize: sz.fontBase }}>
                       Fornecedor não cadastrado
                     </div>
-                    <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginBottom: 12 }}>
+                    <div className="nf-tab__aviso-desc" style={{ fontSize: sz.fontSm + 1 }}>
                       "<strong>{cab.fornecedorNome}</strong>" não foi encontrado no cadastro de fornecedores. Deseja cadastrá-lo automaticamente?
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
@@ -983,7 +975,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                       </button>
                       <button
                         onClick={() => setShowFornPopup(false)}
-                        style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1, fontFamily: "inherit" }}
+                        style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid var(${C.border})`, background: "none", color: varColor(C.text), cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1, fontFamily: "inherit" }}
                       >
                         Ignorar
                       </button>
@@ -994,23 +986,24 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             )}
 
             {duplicadaEm && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, background: `${C.red}12`, border: `1.5px solid ${C.red}44`, borderRadius: 12, padding: "14px 18px", marginBottom: 16 }}>
-                <LuTriangleAlert size={20} color={C.red} />
+              <div className="nf-tab__aviso" style={{ background: alfa(C.red, "12"), border: `1.5px solid ${alfa(C.red, "44")}`, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10 }}>
+                <LuTriangleAlert size={20} color={varColor(C.red)} />
                 <div>
-                  <div style={{ fontWeight: 700, color: C.red }}>Nota já importada</div>
-                  <div style={{ fontSize: sz.fontSm + 1, color: C.muted }}>Esta nota foi importada em {duplicadaEm}. Não é possível importar novamente.</div>
+                  <div style={{ fontWeight: 700, color: varColor(C.red) }}>Nota já importada</div>
+                  <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted) }}>Esta nota foi importada em {duplicadaEm}. Não é possível importar novamente.</div>
                 </div>
               </div>
             )}
 
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setStep(1)} style={{ padding: "12px 24px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}>
+              <button onClick={() => setStep(1)} className="nf-tab__btn-secundario" style={{ fontSize: sz.fontBase }}>
                 ← Voltar
               </button>
               <button
                 onClick={avancarStep2}
                 disabled={!!duplicadaEm || checkingDup}
-                style={{ flex: 1, padding: "12px 24px", borderRadius: 12, border: "none", background: duplicadaEm ? C.faint : C.accent, color: "#fff", cursor: duplicadaEm ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
+                className="nf-tab__btn-primario"
+                style={{ flex: 1, background: duplicadaEm ? varColor(C.faint) : varColor(C.accent), cursor: duplicadaEm ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
               >
                 {checkingDup ? "Verificando..." : "Continuar →"}
               </button>
@@ -1024,20 +1017,20 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div>
                 <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Vincular itens a produtos</div>
-                <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 2 }}>
+                <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted), marginTop: 2 }}>
                   {vinculados.length} de {itensVinc.length} itens vinculados
                   {naoVinculados.length > 0 && <span style={{ color: "#f59e0b", marginLeft: 8 }}>· {naoVinculados.length} sem vínculo serão ignorados</span>}
                 </div>
               </div>
             </div>
 
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 20 }}>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+            <div className="nf-tab__card" style={{ overflow: "hidden", marginBottom: 20 }}>
+              <div className="nf-tab__tabela-scroll">
+                <table className="nf-tab__tabela" style={{ minWidth: 760 }}>
                   <thead>
-                    <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+                    <tr style={{ borderBottom: `1px solid var(${C.border})`, background: varColor(C.surface) }}>
                       {["#", "Descrição XML", "Qtd / Unid", "Preço Unit.", "Produto", "Unid. Estoque", "Fator", "Qtd Convertida"].map((h, i) => (
-                        <th key={i} style={{ padding: "10px 10px", textAlign: i >= 2 ? "center" : "left", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, whiteSpace: "nowrap" }}>{h}</th>
+                        <th key={i} className="nf-tab__th" style={{ textAlign: i >= 2 ? "center" : "left" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -1053,13 +1046,15 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             <div style={{ display: "flex", gap: 12 }}>
               <button
                 onClick={() => fromManual ? setView("manual") : setStep(2)}
-                style={{ padding: "12px 24px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
+                className="nf-tab__btn-secundario"
+                style={{ fontSize: sz.fontBase }}
               >
                 ← Voltar
               </button>
               <button
                 onClick={() => setStep(4)}
-                style={{ flex: 1, padding: "12px 24px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
+                className="nf-tab__btn-primario"
+                style={{ flex: 1, background: varColor(C.accent), fontSize: sz.fontBase }}
               >
                 Ver Preview →
               </button>
@@ -1070,43 +1065,43 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
         {/* ── Step 4: Preview ── */}
         {step === 4 && cab && (
           <div style={{ maxWidth: 640 }}>
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, marginBottom: 20 }}>
+            <div className="nf-tab__card" style={{ padding: 24, marginBottom: 20 }}>
               <div style={{ fontWeight: 800, fontSize: sz.fontLg, marginBottom: 4 }}>
                 Nota nº {cab.numero} — {cab.fornecedorNome}
               </div>
-              <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginBottom: 20 }}>
+              <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted), marginBottom: 20 }}>
                 Emitida em {fmtDt(cab.dataEmissao)} · {fmtR(cab.valorTotal)}
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
                 {[
-                  { label: "Total de itens", value: itensVinc.length, color: C.text },
-                  { label: "Vinculados",     value: vinculados.length, color: C.green },
-                  { label: "Ignorados",      value: naoVinculados.length, color: naoVinculados.length > 0 ? "#f59e0b" : C.muted },
+                  { label: "Total de itens", value: itensVinc.length, color: varColor(C.text) },
+                  { label: "Vinculados",     value: vinculados.length, color: varColor(C.green) },
+                  { label: "Ignorados",      value: naoVinculados.length, color: naoVinculados.length > 0 ? "#f59e0b" : varColor(C.muted) },
                 ].map(k => (
-                  <div key={k.label} style={{ background: C.surface, borderRadius: 12, padding: "14px 16px", textAlign: "center" }}>
-                    <div style={{ fontSize: 24, fontWeight: 900, color: k.color }}>{k.value}</div>
-                    <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{k.label}</div>
+                  <div key={k.label} className="nf-tab__kpi-card">
+                    <div className="nf-tab__kpi-valor" style={{ color: k.color }}>{k.value}</div>
+                    <div className="nf-tab__kpi-label">{k.label}</div>
                   </div>
                 ))}
               </div>
 
               {vinculados.length > 0 && (
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>Entradas que serão criadas</div>
+                  <div className="nf-tab__label" style={{ marginBottom: 10 }}>Entradas que serão criadas</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {vinculados.map((item, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: `${C.green}0c`, border: `1px solid ${C.green}22`, borderRadius: 10 }}>
+                      <div key={i} className="nf-tab__entrada-linha" style={{ background: alfa(C.green, "0c"), border: `1px solid ${alfa(C.green, "22")}` }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span style={{ fontSize: 18 }}>{item.produto.emoji || "📦"}</span>
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 700 }}>{item.produto.name}</div>
-                            <div style={{ fontSize: 11, color: C.muted }}>{item.descricaoXml}</div>
+                            <div style={{ fontSize: 11, color: varColor(C.muted) }}>{item.descricaoXml}</div>
                           </div>
                         </div>
                         <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: C.green }}>+{item.qtdEstoque.toFixed(3)}</div>
-                          <div style={{ fontSize: 11, color: C.muted }}>{item.produto.unidade_estoque}</div>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: varColor(C.green) }}>+{item.qtdEstoque.toFixed(3)}</div>
+                          <div style={{ fontSize: 11, color: varColor(C.muted) }}>{item.produto.unidade_estoque}</div>
                         </div>
                       </div>
                     ))}
@@ -1116,10 +1111,10 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
               {naoVinculados.length > 0 && (
                 <div style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>Itens ignorados</div>
+                  <div className="nf-tab__label" style={{ marginBottom: 8 }}>Itens ignorados</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     {naoVinculados.map((item, i) => (
-                      <div key={i} style={{ fontSize: 13, color: C.muted, padding: "6px 0", borderBottom: `1px solid ${C.border}` }}>
+                      <div key={i} style={{ fontSize: 13, color: varColor(C.muted), padding: "6px 0", borderBottom: `1px solid var(${C.border})` }}>
                         {item.descricaoXml} <span style={{ fontSize: 11 }}>({item.quantidade} {item.unidadeXml})</span>
                       </div>
                     ))}
@@ -1129,19 +1124,20 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             </div>
 
             {saveErro && (
-              <div style={{ background: `${C.red}12`, border: `1.5px solid ${C.red}44`, borderRadius: 12, padding: "12px 18px", marginBottom: 16, color: C.red, fontWeight: 600, fontSize: sz.fontBase }}>
+              <div className="nf-tab__erro-box" style={{ background: alfa(C.red, "12"), border: `1.5px solid ${alfa(C.red, "44")}`, fontSize: sz.fontBase }}>
                 {saveErro}
               </div>
             )}
 
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setStep(3)} disabled={saving} style={{ padding: "14px 24px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: saving ? "not-allowed" : "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit", opacity: saving ? 0.5 : 1 }}>
+              <button onClick={() => setStep(3)} disabled={saving} className="nf-tab__btn-secundario" style={{ fontSize: sz.fontBase, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.5 : 1 }}>
                 ← Voltar
               </button>
               <button
                 onClick={handleConfirmar}
                 disabled={saving}
-                style={{ flex: 1, padding: "14px 24px", borderRadius: 12, border: "none", background: saving ? C.faint : C.green, color: "#fff", cursor: saving ? "not-allowed" : "pointer", fontWeight: 800, fontSize: sz.fontBase, fontFamily: "inherit", boxShadow: saving ? "none" : `0 4px 16px ${C.green}44`, transition: "background 0.15s" }}
+                className="nf-tab__btn-primario"
+                style={{ flex: 1, background: saving ? varColor(C.faint) : varColor(C.green), cursor: saving ? "not-allowed" : "pointer", fontSize: sz.fontBase, boxShadow: saving ? "none" : `0 4px 16px ${alfa(C.green, "44")}`, transition: "background 0.15s" }}
               >
                 {saving ? "Salvando..." : "✓ Confirmar Importação"}
               </button>
@@ -1152,25 +1148,26 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
         {/* ── Step 5: Sucesso ── */}
         {step === 5 && importOk && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, paddingTop: 20 }}>
-            <div style={{ width: 72, height: 72, borderRadius: "50%", background: `${C.green}18`, border: `2px solid ${C.green}44`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <LuCheck size={32} color={C.green} />
+            <div className="nf-tab__sucesso-icone" style={{ background: alfa(C.green, "18"), borderColor: alfa(C.green, "44") }}>
+              <LuCheck size={32} color={varColor(C.green)} />
             </div>
             <div style={{ textAlign: "center" }}>
               <div style={{ fontWeight: 800, fontSize: sz.fontXl, marginBottom: 6 }}>Nota importada com sucesso!</div>
-              <div style={{ fontSize: sz.fontBase, color: C.muted }}>
+              <div style={{ fontSize: sz.fontBase, color: varColor(C.muted) }}>
                 Nota nº {importOk.numero} · {importOk.fornecedor}
               </div>
-              <div style={{ fontSize: sz.fontBase, color: C.green, fontWeight: 700, marginTop: 4 }}>
+              <div style={{ fontSize: sz.fontBase, color: varColor(C.green), fontWeight: 700, marginTop: 4 }}>
                 {importOk.count} {importOk.count === 1 ? "produto atualizado" : "produtos atualizados"} no estoque
               </div>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setView("lista")} style={{ padding: "12px 24px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}>
+              <button onClick={() => setView("lista")} className="nf-tab__btn-secundario" style={{ fontSize: sz.fontBase }}>
                 Ver notas importadas
               </button>
               <button
                 onClick={fromManual ? startManual : startWizard}
-                style={{ padding: "12px 24px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
+                className="nf-tab__btn-primario"
+                style={{ background: varColor(C.accent), fontSize: sz.fontBase }}
               >
                 <LuPlus size={14} style={{ marginRight: 6 }} />
                 {fromManual ? "Nova nota manual" : "Importar outra"}
@@ -1187,20 +1184,21 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
-        <div style={{ fontSize: sz.fontSm + 1, color: C.muted }}>
+      <div className="nf-tab__lista-header">
+        <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted) }}>
           {loadingList ? "Carregando..." : `${notas.length} ${notas.length === 1 ? "nota importada" : "notas importadas"}`}
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button
             onClick={startManual}
-            style={{ padding: "10px 18px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
+            className="nf-tab__btn-secundario"
+            style={{ padding: "10px 18px", borderRadius: 10, fontSize: sz.fontBase }}
           >
             Nova nota manual
           </button>
           <button
             onClick={startWizard}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", boxShadow: `0 4px 14px ${C.accent}44` }}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", boxShadow: `0 4px 14px ${alfa(C.accent, "44")}` }}
           >
             <LuUpload size={15} /> Importar XML
           </button>
@@ -1208,20 +1206,21 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
       </div>
 
       {loadingList ? (
-        <div style={{ textAlign: "center", padding: 60, color: C.muted }}>Carregando...</div>
+        <div style={{ textAlign: "center", padding: 60, color: varColor(C.muted) }}>Carregando...</div>
       ) : notas.length === 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 60, color: C.muted }}>
+        <div className="nf-tab__vazio">
           <LuFileText size={48} style={{ opacity: 0.2 }} />
           <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Nenhuma nota importada</div>
           <div style={{ fontSize: sz.fontSm + 1 }}>Clique em "Importar XML" para começar</div>
         </div>
       ) : (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
+        <div className="nf-tab__tabela-moldura">
+          <div className="nf-tab__tabela-scroll">
+          <table className="nf-tab__tabela" style={{ minWidth: 640 }}>
             <thead>
-              <tr style={{ borderBottom: `1px solid ${C.border}`, background: C.surface }}>
+              <tr style={{ borderBottom: `1px solid var(${C.border})`, background: varColor(C.surface) }}>
                 {["Data", "Fornecedor", "Nº Nota", "Série", "Valor Total", "Itens", "Status", ""].map((h, i) => (
-                  <th key={i} style={{ padding: "12px 16px", textAlign: i >= 4 ? "center" : "left", fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, whiteSpace: "nowrap" }}>{h}</th>
+                  <th key={i} className="nf-tab__th" style={{ textAlign: i >= 4 ? "center" : "left" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1229,34 +1228,36 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
               {notas.map(nota => (
                 <tr
                   key={nota.id}
-                  style={{ borderBottom: `1px solid ${C.border}`, cursor: "pointer", transition: "background 0.1s" }}
+                  className="nf-tab__tr"
+                  style={{ cursor: "pointer" }}
                   onClick={() => openDetalhe(nota)}
-                  onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                  onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
-                  <td style={{ padding: "14px 16px", fontSize: 13, color: C.muted }}>{fmtDt(nota.data_emissao)}</td>
-                  <td style={{ padding: "14px 16px", fontWeight: 700, fontSize: 14, maxWidth: 200 }}>
+                  <td className="nf-tab__td" style={{ fontSize: 13, color: varColor(C.muted) }}>{fmtDt(nota.data_emissao)}</td>
+                  <td className="nf-tab__td" style={{ fontWeight: 700, fontSize: 14, maxWidth: 200 }}>
                     <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nota.fornecedor_nome}</div>
-                    <div style={{ fontSize: 11, color: C.muted }}>{fmtCnpj(nota.fornecedor_cnpj)}</div>
+                    <div style={{ fontSize: 11, color: varColor(C.muted) }}>{fmtCnpj(nota.fornecedor_cnpj)}</div>
                   </td>
-                  <td style={{ padding: "14px 16px", fontSize: 13, fontWeight: 600 }}>{nota.numero}</td>
-                  <td style={{ padding: "14px 16px", fontSize: 13, color: C.muted }}>{nota.serie || "—"}</td>
-                  <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 700, textAlign: "center" }}>{fmtR(nota.valor_total)}</td>
-                  <td style={{ padding: "14px 16px", fontSize: 13, textAlign: "center", color: C.muted }}>
+                  <td className="nf-tab__td" style={{ fontSize: 13, fontWeight: 600 }}>{nota.numero}</td>
+                  <td className="nf-tab__td" style={{ fontSize: 13, color: varColor(C.muted) }}>{nota.serie || "—"}</td>
+                  <td className="nf-tab__td" style={{ fontSize: 14, fontWeight: 700, textAlign: "center" }}>{fmtR(nota.valor_total)}</td>
+                  <td className="nf-tab__td" style={{ fontSize: 13, textAlign: "center", color: varColor(C.muted) }}>
                     {nota.notas_fiscais_itens?.length ?? 0}
                   </td>
-                  <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: `${C.green}18`, color: C.green, border: `1px solid ${C.green}44` }}>
+                  <td className="nf-tab__td" style={{ textAlign: "center" }}>
+                    <span className="nf-tab__badge-status" style={{ background: alfa(C.green, "18"), color: varColor(C.green), border: `1px solid ${alfa(C.green, "44")}` }}>
                       {nota.status || "importada"}
                     </span>
                   </td>
-                  <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                    <LuChevronRight size={16} color={C.muted} />
+                  <td className="nf-tab__td" style={{ textAlign: "center" }}>
+                    <LuChevronRight size={16} color={varColor(C.muted)} />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

@@ -1,0 +1,86 @@
+/**
+ * F018 — leva 1 (núcleo do PDV). Decisão 018 (CSS separado do JSX) +
+ * tokens --gm-* (ADR-007). Só o que é FIXO/cosmético sai pra cá —
+ * tamanhos que variam por breakpoint (sz.* em ProductGrid.jsx, tokens
+ * responsivos já existentes em `src/constants/sizes.js`) continuam
+ * inline de propósito: são um sistema de responsividade próprio do
+ * app (computado em JS por largura de tela), não CSS media query, e
+ * misturar os dois aqui geraria duplicação de fonte de verdade. Cores/
+ * transições/cursor/layout fixo é que vira classe.
+ */
+
+.produto-grid {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.produto-grid__filtro {
+  display: flex;
+  overflow-x: auto;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.produto-grid__chip {
+  border: none;
+  border-radius: 20px;
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.produto-grid__chip--ativo {
+  background: var(--gm-accent);
+  color: #fff;
+}
+
+.produto-grid__lista {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+}
+
+.produto-grid__vazio {
+  grid-column: 1 / -1;
+  color: var(--gm-muted);
+  text-align: center;
+  padding: 32px;
+}
+
+.produto-card {
+  background: var(--gm-card);
+  border: 1.5px solid var(--gm-border);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--gm-text);
+  transition: border-color 0.1s, background 0.1s;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* alvo de toque generoso (princípio nº 1 — PDV é tela de toque) */
+  min-height: 96px;
+}
+
+.produto-card--pressed {
+  background: var(--gm-alow, rgba(124, 58, 237, 0.13));
+  border-color: var(--gm-accent);
+}
+
+.produto-card__nome {
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.produto-card__preco {
+  color: var(--gm-green);
+  font-weight: 800;
+  margin-top: auto;
+}

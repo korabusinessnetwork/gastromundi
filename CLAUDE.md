@@ -23,6 +23,18 @@ elegância técnica. Regras práticas:
 - Schema do banco em produção: `supabase/schema.sql` + `supabase/migrations/`.
 - Se doc e código conflitarem, a documentação prevalece — e deve ser corrigida quando estiver errada.
 - **Jarvas** (IA transversal): spec em `docs/03_REGRAS_DE_NEGOCIO/JARVAS.md` — insight/alerta/sugestão orientados a eventos, nunca executa ações sem confirmação humana.
+- **Produto = SaaS multi-estabelecimento white-label** (decisão 017). Hoje atende o estabelecimento GastroMundi, mas o alvo é vender em escala para vários estabelecimentos. Todo código novo deve assumir **múltiplos tenants** e ser **adaptável por estabelecimento**: nada de marca, nome, cor, logo ou regra específica de um cliente hardcodada — identidade e configurações vêm do tenant. Combina com o sistema de planos (F013) e o multi-tenancy por RLS (decisão 002).
+
+## Custo — priorizar o gratuito (fase de bootstrap)
+
+Enquanto o projeto está em construção/pré-receita, **use sempre meios gratuitos**. Toda
+implementação que exija investimento financeiro para rodar é **adiada por padrão** (jogada
+pra frente), salvo decisão explícita do dono. Ao esbarrar em algo pago (gateway de
+pagamento, TEF, emissão fiscal com provedor pago, SMS/e-mail pago, monitoramento pago,
+uso de IA que gere custo relevante etc.), **não decida sozinho**: apresente o custo
+aproximado, se há alternativa gratuita, a importância/impacto da implementação, e uma
+recomendação de investir **agora** ou **mais pra frente** — o dono decide. Detalhes em
+`memory/restrictions.md` (Restrições de Custo).
 
 ## Segurança (obrigatório em todo código novo)
 
@@ -41,6 +53,7 @@ elegância técnica. Regras práticas:
 - Logs de atividade (`activity_log`) devem ser fire-and-forget — nunca bloquear a operação principal
 - Rodar `npm test` antes de commitar; novas funções puras (dinheiro, conversões, regras do Jarvas) devem nascer com teste
 - Fluxos críticos do PDV têm testes de componente em `src/**/*.test.jsx` — rode-os antes de mexer no PDV
+- **Separar CSS do JSX** (decisão 018): estilo não deve ficar acoplado à marcação. Em telas novas e ao refatorar, extrair os estilos do JSX (CSS Modules ou `.css` co-localizado, mantendo o Tailwind já em uso) para permitir edição de layout a longo prazo e customização visual por estabelecimento (white-label, decisão 017). Padrão definitivo a ser fixado em ADR de theming/CSS.
 
 ## Stack
 

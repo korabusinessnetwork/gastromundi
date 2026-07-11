@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { sanitizeInput } from "@/utils/crypto";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
 import { LuPlus, LuPencil, LuTrash2, LuX, LuPrinter, LuTriangleAlert } from "react-icons/lu";
 
 const EMPTY_FORM = { nome: "", descricao: "", ativo: true };
@@ -14,7 +16,7 @@ function Toggle({ value, onChange, disabled }) {
       disabled={disabled}
       style={{
         width: 48, height: 26, borderRadius: 13, border: "none", padding: 0,
-        background: value ? C.green : C.faint,
+        background: value ? varColor(C.green) : varColor(C.faint),
         cursor: disabled ? "not-allowed" : "pointer",
         position: "relative", transition: "background 0.2s", flexShrink: 0,
         opacity: disabled ? 0.6 : 1,
@@ -165,7 +167,7 @@ export default function LocaisImpressao({ sz }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: sz.pad }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Locais de Impressão</div>
-          <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>
+          <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2 }}>
             Cadastre os destinos de impressão (Cozinha, Bar, Caixa…)
           </div>
         </div>
@@ -173,7 +175,7 @@ export default function LocaisImpressao({ sz }) {
           onClick={abrirNovo}
           style={{
             display: "flex", alignItems: "center", gap: 6,
-            background: C.accent, border: "none", borderRadius: 10,
+            background: varColor(C.accent), border: "none", borderRadius: 10,
             color: "#fff", cursor: "pointer", fontWeight: 700,
             fontSize: sz.fontSm, padding: "10px 16px", fontFamily: "inherit",
           }}
@@ -183,15 +185,15 @@ export default function LocaisImpressao({ sz }) {
       </div>
 
       {erro && (
-        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: `${C.red}12`, border: `1px solid ${C.red}33`, color: C.red, fontSize: sz.fontSm, display: "flex", gap: 8 }}>
+        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "33")}`, color: varColor(C.red), fontSize: sz.fontSm, display: "flex", gap: 8 }}>
           <LuTriangleAlert size={15} style={{ flexShrink: 0, marginTop: 1 }} /> {erro}
         </div>
       )}
 
       {loading ? (
-        <div style={{ color: C.muted, fontSize: sz.fontSm, padding: "40px 0", textAlign: "center" }}>Carregando…</div>
+        <div style={{ color: varColor(C.muted), fontSize: sz.fontSm, padding: "40px 0", textAlign: "center" }}>Carregando…</div>
       ) : locais.length === 0 ? (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "40px 24px", textAlign: "center", color: C.muted }}>
+        <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 12, padding: "40px 24px", textAlign: "center", color: varColor(C.muted) }}>
           <LuPrinter size={32} style={{ opacity: 0.3, marginBottom: 12 }} />
           <div style={{ fontWeight: 600, fontSize: sz.fontBase }}>Nenhum local cadastrado</div>
           <div style={{ fontSize: sz.fontSm, marginTop: 4 }}>Crie o primeiro local de impressão clicando em "Novo Local"</div>
@@ -202,7 +204,7 @@ export default function LocaisImpressao({ sz }) {
             <div
               key={local.id}
               style={{
-                background: C.card, border: `1px solid ${local.ativo ? C.border : C.faint}`,
+                background: varColor(C.card), border: `1px solid ${local.ativo ? varColor(C.border) : varColor(C.faint)}`,
                 borderRadius: 12, padding: `${sz.padSm}px ${sz.pad}px`,
                 display: "flex", alignItems: "center", gap: 14,
                 opacity: local.ativo ? 1 : 0.55, transition: "opacity 0.2s",
@@ -211,17 +213,17 @@ export default function LocaisImpressao({ sz }) {
               {/* Ícone */}
               <div style={{
                 width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                background: `${C.accent}18`, border: `1px solid ${C.accent}33`,
+                background: `${alfa(C.accent, "18")}`, border: `1px solid ${alfa(C.accent, "33")}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <LuPrinter size={18} color={C.accent} />
+                <LuPrinter size={18} color={varColor(C.accent)} />
               </div>
 
               {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>{local.nome}</div>
                 {local.descricao && (
-                  <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {local.descricao}
                   </div>
                 )}
@@ -234,14 +236,14 @@ export default function LocaisImpressao({ sz }) {
               <button
                 onClick={() => abrirEditar(local)}
                 title="Editar"
-                style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: "pointer", padding: "7px 9px", display: "flex", lineHeight: 0 }}
+                style={{ background: varColor(C.surface), border: `1px solid var(${C.border})`, borderRadius: 8, color: varColor(C.muted), cursor: "pointer", padding: "7px 9px", display: "flex", lineHeight: 0 }}
               >
                 <LuPencil size={15} />
               </button>
               <button
                 onClick={() => setConfirmDelete(local)}
                 title="Remover"
-                style={{ background: `${C.red}12`, border: `1px solid ${C.red}33`, borderRadius: 8, color: C.red, cursor: "pointer", padding: "7px 9px", display: "flex", lineHeight: 0 }}
+                style={{ background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "33")}`, borderRadius: 8, color: varColor(C.red), cursor: "pointer", padding: "7px 9px", display: "flex", lineHeight: 0 }}
               >
                 <LuTrash2 size={15} />
               </button>
@@ -256,19 +258,19 @@ export default function LocaisImpressao({ sz }) {
           onClick={e => { if (e.target === e.currentTarget && !salvando) fecharModal(); }}
           style={{ position: "fixed", inset: 0, zIndex: 9100, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter',system-ui,sans-serif" }}
         >
-          <div style={{ background: C.card, borderRadius: 20, width: "100%", maxWidth: 440, border: `1px solid ${C.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", gap: 20, padding: 28 }}>
+          <div style={{ background: varColor(C.card), borderRadius: 20, width: "100%", maxWidth: 440, border: `1px solid var(${C.border})`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", gap: 20, padding: 28 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: C.text }}>
+              <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: varColor(C.text) }}>
                 {editando ? "Editar Local" : "Novo Local de Impressão"}
               </div>
-              <button onClick={fecharModal} disabled={salvando} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, lineHeight: 0 }}>
+              <button onClick={fecharModal} disabled={salvando} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0 }}>
                 <LuX size={20} />
               </button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Nome *</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Nome *</div>
                 <input
                   autoFocus
                   value={form.nome}
@@ -276,41 +278,41 @@ export default function LocaisImpressao({ sz }) {
                   onKeyDown={e => e.key === "Enter" && salvar()}
                   placeholder="Ex: Cozinha, Bar, Caixa…"
                   maxLength={80}
-                  style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${formErro ? C.red + "88" : C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${formErro ? varColor(C.red) + "88" : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
                 />
               </div>
 
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Descrição <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span></div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Descrição <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span></div>
                 <input
                   value={form.descricao}
                   onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))}
                   placeholder="Ex: Impressora na cozinha do restaurante"
                   maxLength={200}
-                  style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
                 />
               </div>
 
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: sz.fontBase }}>Ativo</div>
-                  <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>Local disponível para roteamento</div>
+                  <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2 }}>Local disponível para roteamento</div>
                 </div>
                 <Toggle value={form.ativo} onChange={v => setForm(f => ({ ...f, ativo: v }))} />
               </div>
 
               {formErro && (
-                <div style={{ padding: "8px 12px", borderRadius: 8, background: `${C.red}12`, border: `1px solid ${C.red}33`, color: C.red, fontSize: sz.fontSm }}>
+                <div style={{ padding: "8px 12px", borderRadius: 8, background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "33")}`, color: varColor(C.red), fontSize: sz.fontSm }}>
                   {formErro}
                 </div>
               )}
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={fecharModal} disabled={salvando} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}>
+              <button onClick={fecharModal} disabled={salvando} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}>
                 Cancelar
               </button>
-              <button onClick={salvar} disabled={!form.nome.trim() || salvando} style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: form.nome.trim() && !salvando ? C.accent : C.surface, color: form.nome.trim() && !salvando ? "#fff" : C.muted, cursor: form.nome.trim() && !salvando ? "pointer" : "not-allowed", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", transition: "background 0.15s" }}>
+              <button onClick={salvar} disabled={!form.nome.trim() || salvando} style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: form.nome.trim() && !salvando ? varColor(C.accent) : varColor(C.surface), color: form.nome.trim() && !salvando ? "#fff" : varColor(C.muted), cursor: form.nome.trim() && !salvando ? "pointer" : "not-allowed", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", transition: "background 0.15s" }}>
                 {salvando ? "Salvando…" : editando ? "Salvar alterações" : "Criar local"}
               </button>
             </div>
@@ -325,23 +327,23 @@ export default function LocaisImpressao({ sz }) {
           onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null); }}
           style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter',system-ui,sans-serif" }}
         >
-          <div style={{ background: C.card, borderRadius: 20, width: "100%", maxWidth: 400, border: `1px solid ${C.border}`, padding: 28, display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ background: varColor(C.card), borderRadius: 20, width: "100%", maxWidth: 400, border: `1px solid var(${C.border})`, padding: 28, display: "flex", flexDirection: "column", gap: 20 }}>
             <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: `${C.red}18`, border: `1px solid ${C.red}33`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <LuTrash2 size={20} color={C.red} />
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: `${alfa(C.red, "18")}`, border: `1px solid ${alfa(C.red, "33")}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <LuTrash2 size={20} color={varColor(C.red)} />
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: sz.fontBase, color: C.text }}>Remover "{confirmDelete.nome}"?</div>
-                <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 800, fontSize: sz.fontBase, color: varColor(C.text) }}>Remover "{confirmDelete.nome}"?</div>
+                <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4, lineHeight: 1.5 }}>
                   Se houver categorias roteadas para este local, ele será apenas desativado. Caso contrário, será excluído permanentemente.
                 </div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setConfirmDelete(null)} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}>
+              <button onClick={() => setConfirmDelete(null)} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}>
                 Cancelar
               </button>
-              <button onClick={confirmarDelete} style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: C.red, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}>
+              <button onClick={confirmarDelete} style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: varColor(C.red), color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}>
                 Confirmar remoção
               </button>
             </div>

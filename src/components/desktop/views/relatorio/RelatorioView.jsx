@@ -7,13 +7,16 @@ import { exportToPDF, exportToXLSX } from "@/lib/exportReport";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
+import DesempenhoReport from "./DesempenhoReport";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
   LuLock, LuTriangleAlert, LuPackage, LuClipboardList, LuShieldAlert,
   LuPrinter, LuDownload, LuX, LuCircleX,
 } from "react-icons/lu";
 
-const ABAS = ["Vendas", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
+const ABAS = ["Vendas", "Desempenho", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
 
 const PERIODOS = [
   { id: "hoje",    label: "Hoje"    },
@@ -26,16 +29,16 @@ const PERIODOS = [
 const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
 const METODOS_ICON  = { dinheiro: LuBanknote, credito: LuCreditCard, debito: LuSmartphone, pix: LuZap };
 const ACTION_TYPE_META = {
-  auth:    { label: "Auth",    color: C.blue      },
+  auth:    { label: "Auth",    color: varColor(C.blue)      },
   caixa:   { label: "Caixa",  color: "#f59e0b"   },
-  comanda: { label: "Comanda", color: C.green     },
-  itens:   { label: "Itens",  color: C.green     },
-  produto: { label: "Produto", color: C.accent    },
+  comanda: { label: "Comanda", color: varColor(C.green)     },
+  itens:   { label: "Itens",  color: varColor(C.green)     },
+  produto: { label: "Produto", color: varColor(C.accent)    },
 };
 
 function tipoLog(actionType) {
   const prefix = (actionType ?? "").split(":")[0];
-  return ACTION_TYPE_META[prefix] ?? { label: actionType ?? "—", color: C.muted };
+  return ACTION_TYPE_META[prefix] ?? { label: actionType ?? "—", color: varColor(C.muted) };
 }
 
 const SALE_PREFIXES = new Set(["comanda", "itens", "produto"]);
@@ -74,13 +77,13 @@ const fmtR = (v) => "R$ " + Number(v ?? 0).toFixed(2);
 function KpiCard({ label, value, color, Icon, sz }) {
   return (
     <div style={{
-      background: C.card, border: `1px solid ${C.border}`,
+      background: varColor(C.card), border: `1px solid var(${C.border})`,
       borderRadius: 16, padding: `${sz.padSm + 4}px ${sz.pad - 4}px`,
       display: "flex", flexDirection: "column", gap: 10,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {Icon && <Icon size={sz.fontLg} color={color} />}
-        <span style={{ fontSize: sz.fontSm + 1, color: C.muted, fontWeight: 600 }}>{label}</span>
+        <span style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted), fontWeight: 600 }}>{label}</span>
       </div>
       <div style={{ fontWeight: 900, fontSize: sz.fontXl, color }}>{value}</div>
     </div>
@@ -91,7 +94,7 @@ function Th({ children, right }) {
   return (
     <th style={{
       padding: "12px 16px", textAlign: right ? "right" : "left",
-      fontSize: 14, fontWeight: 700, color: C.muted,
+      fontSize: 14, fontWeight: 700, color: varColor(C.muted),
       textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap",
     }}>
       {children}
@@ -104,7 +107,7 @@ function Td({ children, right, muted, sz, nowrap, color }) {
     <td style={{
       padding: "14px 16px", fontSize: sz.fontBase,
       textAlign: right ? "right" : "left",
-      color: color ?? (muted ? C.muted : C.text),
+      color: color ?? (muted ? varColor(C.muted) : varColor(C.text)),
       whiteSpace: nowrap ? "nowrap" : undefined,
       verticalAlign: "middle",
     }}>
@@ -121,7 +124,7 @@ function Empty({ icon: Icon, msg, sz }) {
     <div style={{
       flex: 1, display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center",
-      gap: 10, color: C.muted, padding: 60,
+      gap: 10, color: varColor(C.muted), padding: 60,
     }}>
       <div style={{ opacity: 0.3 }}>{inner}</div>
       <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>{msg}</div>
@@ -135,8 +138,8 @@ function ChipBtn({ active, onClick, children, sz }) {
       onClick={onClick}
       style={{
         padding: "6px 14px", borderRadius: 20, border: "none",
-        background: active ? C.accent : C.surface,
-        color: active ? "#fff" : C.muted,
+        background: active ? varColor(C.accent) : varColor(C.surface),
+        color: active ? "#fff" : varColor(C.muted),
         cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
         transition: "background 0.15s, color 0.15s",
         whiteSpace: "nowrap",
@@ -158,8 +161,8 @@ function ExportBar({ onPDF, onXLSX, sz }) {
         style={{
           display: "flex", alignItems: "center", gap: 5,
           padding: "6px 13px", borderRadius: 8,
-          border: `1px solid ${C.border}`, background: "none",
-          color: C.muted, cursor: "pointer",
+          border: `1px solid var(${C.border})`, background: "none",
+          color: varColor(C.muted), cursor: "pointer",
           fontSize: sz.fontSm + 1, fontWeight: 600, whiteSpace: "nowrap",
         }}
       >
@@ -171,8 +174,8 @@ function ExportBar({ onPDF, onXLSX, sz }) {
         style={{
           display: "flex", alignItems: "center", gap: 5,
           padding: "6px 13px", borderRadius: 8,
-          border: `1px solid ${C.border}`, background: "none",
-          color: C.muted, cursor: "pointer",
+          border: `1px solid var(${C.border})`, background: "none",
+          color: varColor(C.muted), cursor: "pointer",
           fontSize: sz.fontSm + 1, fontWeight: 600, whiteSpace: "nowrap",
         }}
       >
@@ -208,11 +211,11 @@ function FechamentoDetalheModal({ f, onClose }) {
       }}
     >
       <div style={{
-        background: C.card, borderRadius: 20, padding: 28,
-        width: "100%", maxWidth: 520, border: `1px solid ${C.border}`,
+        background: varColor(C.card), borderRadius: 20, padding: 28,
+        width: "100%", maxWidth: 520, border: `1px solid var(${C.border})`,
         display: "flex", flexDirection: "column", gap: 20,
         maxHeight: "90vh", overflowY: "auto",
-        color: C.text, fontFamily: "'Inter',system-ui,sans-serif",
+        color: varColor(C.text), fontFamily: "'Inter',system-ui,sans-serif",
         boxSizing: "border-box",
       }}>
 
@@ -221,17 +224,17 @@ function FechamentoDetalheModal({ f, onClose }) {
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{
               width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-              background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+              background: `${alfa(C.accent, "18")}`, border: `1.5px solid ${alfa(C.accent, "44")}`,
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <LuLock size={22} color={C.accent} />
+              <LuLock size={22} color={varColor(C.accent)} />
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: 18 }}>Fechamento de Caixa</div>
-              <div style={{ color: C.muted, fontSize: 16, marginTop: 2 }}>
+              <div style={{ color: varColor(C.muted), fontSize: 16, marginTop: 2 }}>
                 {fmtData(f.at)}
               </div>
-              <div style={{ color: C.muted, fontSize: 18, marginTop: 1 }}>
+              <div style={{ color: varColor(C.muted), fontSize: 18, marginTop: 1 }}>
                 {f.user ?? "—"}{f.role ? ` · ${f.role}` : ""}
               </div>
             </div>
@@ -239,9 +242,9 @@ function FechamentoDetalheModal({ f, onClose }) {
           <button
             onClick={onClose}
             style={{
-              background: "none", border: `1px solid ${C.border}`,
+              background: "none", border: `1px solid var(${C.border})`,
               borderRadius: 8, padding: "6px 8px", cursor: "pointer",
-              color: C.muted, display: "flex", alignItems: "center",
+              color: varColor(C.muted), display: "flex", alignItems: "center",
             }}
           >
             <LuX size={16} />
@@ -254,8 +257,8 @@ function FechamentoDetalheModal({ f, onClose }) {
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 110px",
               gap: 8, paddingBottom: 8, marginBottom: 2,
-              borderBottom: `1px solid ${C.border}`,
-              fontSize: 14, fontWeight: 700, color: C.muted,
+              borderBottom: `1px solid var(${C.border})`,
+              fontSize: 14, fontWeight: 700, color: varColor(C.muted),
               textTransform: "uppercase", letterSpacing: 1,
             }}>
               <span>Método</span>
@@ -270,13 +273,13 @@ function FechamentoDetalheModal({ f, onClose }) {
                 <div key={id} style={{
                   display: "grid", gridTemplateColumns: "1fr 110px",
                   gap: 8, alignItems: "center", padding: "11px 0",
-                  borderBottom: `1px solid ${C.border}`,
+                  borderBottom: `1px solid var(${C.border})`,
                 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 17, fontWeight: 600 }}>
-                    <Icon size={15} color={C.muted} />
+                    <Icon size={15} color={varColor(C.muted)} />
                     {label}
                     {id === "dinheiro" && f.fundo > 0 && (
-                      <span style={{ fontSize: 14, color: C.muted, fontWeight: 400 }}>
+                      <span style={{ fontSize: 14, color: varColor(C.muted), fontWeight: 400 }}>
                         (inclui fundo {fmtR(f.fundo)})
                       </span>
                     )}
@@ -293,14 +296,14 @@ function FechamentoDetalheModal({ f, onClose }) {
         {/* Observação */}
         {f.observacao && (
           <div style={{
-            background: `${C.accent}0c`, border: `1px solid ${C.accent}33`,
+            background: `${alfa(C.accent, "0c")}`, border: `1px solid ${alfa(C.accent, "33")}`,
             borderRadius: 12, padding: "12px 14px",
             display: "flex", flexDirection: "column", gap: 4,
           }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: C.accent, textTransform: "uppercase", letterSpacing: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.accent), textTransform: "uppercase", letterSpacing: 1 }}>
               Observação
             </div>
-            <div style={{ fontSize: 16, color: C.text, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 16, color: varColor(C.text), lineHeight: 1.6 }}>
               {f.observacao}
             </div>
           </div>
@@ -308,8 +311,8 @@ function FechamentoDetalheModal({ f, onClose }) {
 
         {/* Resumo */}
         <div style={{
-          background: C.surface, borderRadius: 14,
-          border: `1px solid ${C.border}`, padding: 16,
+          background: varColor(C.surface), borderRadius: 14,
+          border: `1px solid var(${C.border})`, padding: 16,
           display: "flex", flexDirection: "column", gap: 9,
         }}>
           {[
@@ -317,30 +320,30 @@ function FechamentoDetalheModal({ f, onClose }) {
             { label: "Fundo de Caixa",            value: fmtR(f.fundo)       },
           ].map(r => (
             <div key={r.label} style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 16, color: C.muted }}>{r.label}</span>
-              <span style={{ fontSize: 16, fontWeight: 600, color: C.muted }}>{r.value}</span>
+              <span style={{ fontSize: 16, color: varColor(C.muted) }}>{r.label}</span>
+              <span style={{ fontSize: 16, fontWeight: 600, color: varColor(C.muted) }}>{r.value}</span>
             </div>
           ))}
 
-          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 9, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ borderTop: `1px solid var(${C.border})`, paddingTop: 9, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 700, fontSize: 17 }}>Total Esperado em Caixa</span>
-            <span style={{ fontWeight: 800, fontSize: 18, color: C.muted }}>{fmtR(totalEsperado)}</span>
+            <span style={{ fontWeight: 800, fontSize: 18, color: varColor(C.muted) }}>{fmtR(totalEsperado)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 800, fontSize: 18 }}>Total Conferido</span>
-            <span style={{ fontWeight: 900, fontSize: 17, color: C.green }}>{fmtR(f.totalConferido)}</span>
+            <span style={{ fontWeight: 900, fontSize: 17, color: varColor(C.green) }}>{fmtR(f.totalConferido)}</span>
           </div>
 
           <div style={{
             padding: "12px 16px", borderRadius: 10, marginTop: 4,
-            background: diferenca >= 0 ? `${C.green}14` : `${C.red}14`,
-            border: `1.5px solid ${(diferenca >= 0 ? C.green : C.red)}55`,
+            background: diferenca >= 0 ? `${alfa(C.green, "14")}` : `${alfa(C.red, "14")}`,
+            border: `1.5px solid ${(diferenca >= 0 ? varColor(C.green) : varColor(C.red))}55`,
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
-            <span style={{ fontWeight: 600, fontSize: 16, color: C.muted }}>
+            <span style={{ fontWeight: 600, fontSize: 16, color: varColor(C.muted) }}>
               {diferenca >= 0 ? "Sobra no Caixa" : "Falta no Caixa"}
             </span>
-            <span style={{ fontWeight: 900, fontSize: 18, color: diferenca >= 0 ? C.green : C.red }}>
+            <span style={{ fontWeight: 900, fontSize: 18, color: diferenca >= 0 ? varColor(C.green) : varColor(C.red) }}>
               {diferenca >= 0 ? "+" : ""}{fmtR(diferenca)}
             </span>
           </div>
@@ -350,8 +353,8 @@ function FechamentoDetalheModal({ f, onClose }) {
           onClick={onClose}
           style={{
             padding: "11px", borderRadius: 10,
-            border: `1px solid ${C.border}`, background: "none",
-            color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
+            border: `1px solid var(${C.border})`, background: "none",
+            color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 17,
             fontFamily: "inherit",
           }}
         >
@@ -571,18 +574,18 @@ export default function RelatorioView() {
   };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: varColor(C.bg), overflow: "hidden" }}>
 
       {/* ── Header ── */}
       <div style={{
         padding: `${sz.pad - 4}px ${sz.pad}px`,
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: `1px solid var(${C.border})`,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         flexShrink: 0, gap: 16, flexWrap: "wrap",
       }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Relatórios</div>
-          <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 2 }}>
+          <div style={{ color: varColor(C.muted), fontSize: sz.fontSm, marginTop: 2 }}>
             Visão geral do movimento do estabelecimento
           </div>
         </div>
@@ -595,8 +598,8 @@ export default function RelatorioView() {
                 onClick={() => setPeriodo(p.id)}
                 style={{
                   padding: "8px 16px", borderRadius: 10, border: "none",
-                  background: periodo === p.id ? C.accent : C.surface,
-                  color: periodo === p.id ? "#fff" : C.muted,
+                  background: periodo === p.id ? varColor(C.accent) : varColor(C.surface),
+                  color: periodo === p.id ? "#fff" : varColor(C.muted),
                   cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
                   transition: "background 0.15s, color 0.15s",
                 }}
@@ -622,13 +625,13 @@ export default function RelatorioView() {
                 onChange={e => setCustomInicio(e.target.value)}
                 style={{
                   padding: "7px 12px", borderRadius: 9,
-                  border: `1.5px solid ${customInicio ? C.accent : C.border}`,
-                  background: C.surface, color: C.text,
+                  border: `1.5px solid ${customInicio ? varColor(C.accent) : varColor(C.border)}`,
+                  background: varColor(C.surface), color: varColor(C.text),
                   fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none",
                   cursor: "pointer", transition: "border-color 0.15s",
                 }}
               />
-              <span style={{ color: C.muted, fontWeight: 600, fontSize: sz.fontSm + 1 }}>até</span>
+              <span style={{ color: varColor(C.muted), fontWeight: 600, fontSize: sz.fontSm + 1 }}>até</span>
               <input
                 type="date"
                 className="relatorio-date-input"
@@ -637,8 +640,8 @@ export default function RelatorioView() {
                 onChange={e => setCustomFim(e.target.value)}
                 style={{
                   padding: "7px 12px", borderRadius: 9,
-                  border: `1.5px solid ${customFim ? C.accent : C.border}`,
-                  background: C.surface, color: C.text,
+                  border: `1.5px solid ${customFim ? varColor(C.accent) : varColor(C.border)}`,
+                  background: varColor(C.surface), color: varColor(C.text),
                   fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none",
                   cursor: "pointer", transition: "border-color 0.15s",
                 }}
@@ -647,9 +650,9 @@ export default function RelatorioView() {
                 <button
                   onClick={() => { setCustomInicio(""); setCustomFim(""); }}
                   style={{
-                    background: "none", border: `1px solid ${C.border}`,
+                    background: "none", border: `1px solid var(${C.border})`,
                     borderRadius: 8, padding: "6px 8px", cursor: "pointer",
-                    color: C.muted, display: "flex", alignItems: "center",
+                    color: varColor(C.muted), display: "flex", alignItems: "center",
                     transition: "border-color 0.15s",
                   }}
                   title="Limpar datas"
@@ -665,7 +668,7 @@ export default function RelatorioView() {
       {/* ── Abas ── */}
       <div style={{
         display: "flex", padding: `0 ${sz.pad}px`,
-        borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+        borderBottom: `1px solid var(${C.border})`, flexShrink: 0,
         overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
       }}>
         {ABAS.map(a => (
@@ -674,10 +677,10 @@ export default function RelatorioView() {
             onClick={() => setAba(a)}
             style={{
               padding: "14px 22px", border: "none", background: "none",
-              color: aba === a ? C.accent : C.muted,
+              color: aba === a ? varColor(C.accent) : varColor(C.muted),
               fontWeight: aba === a ? 700 : 500,
               fontSize: sz.fontBase, cursor: "pointer",
-              borderBottom: `2px solid ${aba === a ? C.accent : "transparent"}`,
+              borderBottom: `2px solid ${aba === a ? varColor(C.accent) : "transparent"}`,
               marginBottom: -1, transition: "color 0.15s",
             }}
           >
@@ -699,13 +702,13 @@ export default function RelatorioView() {
               gap: sz.gap, padding: `${sz.pad}px ${sz.pad}px ${sz.padSm}px`,
               flexShrink: 0,
             }}>
-              <KpiCard label="Total Arrecadado"  value={fmtR(kpis.total)}  color={C.green}  Icon={LuBanknote}  sz={sz} />
-              <KpiCard label="Vendas Realizadas" value={kpis.count}         color={C.blue}   Icon={LuReceipt}   sz={sz} />
-              <KpiCard label="Ticket Médio"      value={fmtR(kpis.ticket)} color={C.accent} Icon={LuChartBar}  sz={sz} />
+              <KpiCard label="Total Arrecadado"  value={fmtR(kpis.total)}  color={varColor(C.green)}  Icon={LuBanknote}  sz={sz} />
+              <KpiCard label="Vendas Realizadas" value={kpis.count}         color={varColor(C.blue)}   Icon={LuReceipt}   sz={sz} />
+              <KpiCard label="Ticket Médio"      value={fmtR(kpis.ticket)} color={varColor(C.accent)} Icon={LuChartBar}  sz={sz} />
               <KpiCard
                 label="Método Mais Usado"
                 value={kpis.top ? METODOS_LABEL[kpis.top[0]] ?? kpis.top[0] : "—"}
-                color={C.muted} Icon={kpis.top ? METODOS_ICON[kpis.top[0]] : LuCreditCard} sz={sz}
+                color={varColor(C.muted)} Icon={kpis.top ? METODOS_ICON[kpis.top[0]] : LuCreditCard} sz={sz}
               />
             </div>
 
@@ -716,7 +719,7 @@ export default function RelatorioView() {
             }}>
               {/* Toggle Resumido / Detalhado */}
               <div style={{
-                display: "flex", background: C.surface,
+                display: "flex", background: varColor(C.surface),
                 borderRadius: 10, padding: 3, gap: 2, flexShrink: 0,
               }}>
                 {[["resumido","Resumido"],["detalhado","Detalhado"]].map(([id, label]) => (
@@ -725,8 +728,8 @@ export default function RelatorioView() {
                     onClick={() => setSubVendas(id)}
                     style={{
                       padding: "6px 18px", borderRadius: 8, border: "none",
-                      background: subVendas === id ? C.accent : "transparent",
-                      color: subVendas === id ? "#fff" : C.muted,
+                      background: subVendas === id ? varColor(C.accent) : "transparent",
+                      color: subVendas === id ? "#fff" : varColor(C.muted),
                       cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
                       transition: "background 0.15s, color 0.15s",
                     }}
@@ -757,7 +760,7 @@ export default function RelatorioView() {
                   <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
                     <thead>
-                      <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                         <Th>Comanda</Th>
                         <Th>Caixa</Th>
                         <Th right>Itens</Th>
@@ -770,9 +773,9 @@ export default function RelatorioView() {
                       {vendasFiltradas.map((v, i) => (
                         <tr
                           key={v.id ?? i}
-                          onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                          onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                          style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
+                          style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
                         >
                           <Td sz={sz}><span style={{ fontWeight: 700 }}>{v.comanda ?? "—"}</span></Td>
                           <Td sz={sz}>{v.cashier ?? "—"}</Td>
@@ -782,14 +785,14 @@ export default function RelatorioView() {
                           <Td sz={sz} right>
                             <span style={{
                               fontSize: sz.fontSm + 1, fontWeight: 600,
-                              background: C.surface, padding: "3px 10px",
-                              borderRadius: 20, color: C.muted, whiteSpace: "nowrap",
+                              background: varColor(C.surface), padding: "3px 10px",
+                              borderRadius: 20, color: varColor(C.muted), whiteSpace: "nowrap",
                             }}>
                               {normalizarPagamentos(v).map((p, pi) => {
                                 const MI = METODOS_ICON[p.metodo];
                                 return (
                                   <Fragment key={pi}>
-                                    {pi > 0 && <span style={{ color: C.muted, margin: "0 4px" }}>+</span>}
+                                    {pi > 0 && <span style={{ color: varColor(C.muted), margin: "0 4px" }}>+</span>}
                                     {MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}
                                     {METODOS_LABEL[p.metodo] ?? p.metodo ?? "—"}
                                   </Fragment>
@@ -797,7 +800,7 @@ export default function RelatorioView() {
                               })}
                             </span>
                           </Td>
-                          <Td sz={sz} right color={C.green}>
+                          <Td sz={sz} right color={varColor(C.green)}>
                             <span style={{ fontWeight: 800 }}>{fmtR(v.total)}</span>
                           </Td>
                           <Td sz={sz} right muted nowrap>{fmtData(v.at)}</Td>
@@ -824,20 +827,20 @@ export default function RelatorioView() {
                         <div
                           key={v.id ?? i}
                           style={{
-                            background: C.card, border: `1px solid ${C.border}`,
+                            background: varColor(C.card), border: `1px solid var(${C.border})`,
                             borderRadius: 16, overflow: "hidden",
                           }}
                         >
                           {/* Cabeçalho da comanda */}
                           <div style={{
                             display: "flex", alignItems: "center", justifyContent: "space-between",
-                            padding: "16px 20px", borderBottom: `1px solid ${C.border}`,
+                            padding: "16px 20px", borderBottom: `1px solid var(${C.border})`,
                             gap: 12, flexWrap: "wrap",
                           }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                               <div style={{
                                 width: 44, height: 44, borderRadius: 12,
-                                background: C.alow, border: `1.5px solid ${C.accent}44`,
+                                background: varColor(C.alow), border: `1.5px solid ${alfa(C.accent, "44")}`,
                                 display: "flex", alignItems: "center", justifyContent: "center",
                                 fontSize: 20, flexShrink: 0,
                               }}>
@@ -847,7 +850,7 @@ export default function RelatorioView() {
                                 <div style={{ fontWeight: 800, fontSize: sz.fontLg - 1 }}>
                                   {v.comanda ?? "—"}
                                 </div>
-                                <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>
+                                <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2 }}>
                                   {fmtData(v.at)} · {v.cashier ?? "—"}
                                 </div>
                               </div>
@@ -855,14 +858,14 @@ export default function RelatorioView() {
                             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                               <span style={{
                                 fontSize: sz.fontSm + 1, fontWeight: 600,
-                                background: C.surface, padding: "5px 14px",
-                                borderRadius: 20, color: C.muted,
+                                background: varColor(C.surface), padding: "5px 14px",
+                                borderRadius: 20, color: varColor(C.muted),
                               }}>
                                 {normalizarPagamentos(v).map((p, pi) => {
                                 const MI = METODOS_ICON[p.metodo];
                                 return (
                                   <Fragment key={pi}>
-                                    {pi > 0 && <span style={{ color: C.muted, margin: "0 4px" }}>+</span>}
+                                    {pi > 0 && <span style={{ color: varColor(C.muted), margin: "0 4px" }}>+</span>}
                                     {MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}
                                     {METODOS_LABEL[p.metodo] ?? p.metodo ?? "—"}
                                   </Fragment>
@@ -870,10 +873,10 @@ export default function RelatorioView() {
                               })}
                               </span>
                               <div style={{ textAlign: "right" }}>
-                                <div style={{ fontWeight: 900, fontSize: sz.fontXl - 2, color: C.green }}>
+                                <div style={{ fontWeight: 900, fontSize: sz.fontXl - 2, color: varColor(C.green) }}>
                                   {fmtR(v.total)}
                                 </div>
-                                <div style={{ fontSize: sz.fontSm, color: C.muted }}>
+                                <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
                                   {qtdTotal} {qtdTotal === 1 ? "item" : "itens"}
                                 </div>
                               </div>
@@ -882,23 +885,23 @@ export default function RelatorioView() {
 
                           {/* Itens da comanda */}
                           {itens.length === 0 ? (
-                            <div style={{ padding: "14px 20px", color: C.muted, fontSize: sz.fontSm + 1 }}>
+                            <div style={{ padding: "14px 20px", color: varColor(C.muted), fontSize: sz.fontSm + 1 }}>
                               Sem itens registrados
                             </div>
                           ) : (
                             <table style={{ width: "100%", borderCollapse: "collapse" }}>
                               <thead>
-                                <tr style={{ background: C.surface }}>
-                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textAlign: "left", textTransform: "uppercase", letterSpacing: 1 }}>
+                                <tr style={{ background: varColor(C.surface) }}>
+                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textAlign: "left", textTransform: "uppercase", letterSpacing: 1 }}>
                                     Produto
                                   </th>
-                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textAlign: "center", textTransform: "uppercase", letterSpacing: 1 }}>
+                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textAlign: "center", textTransform: "uppercase", letterSpacing: 1 }}>
                                     Qtd
                                   </th>
-                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textAlign: "right", textTransform: "uppercase", letterSpacing: 1 }}>
+                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textAlign: "right", textTransform: "uppercase", letterSpacing: 1 }}>
                                     Unit.
                                   </th>
-                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textAlign: "right", textTransform: "uppercase", letterSpacing: 1 }}>
+                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textAlign: "right", textTransform: "uppercase", letterSpacing: 1 }}>
                                     Subtotal
                                   </th>
                                 </tr>
@@ -907,28 +910,28 @@ export default function RelatorioView() {
                                 {itens.map((it, j) => (
                                   <tr
                                     key={j}
-                                    style={{ borderTop: `1px solid ${C.border}` }}
+                                    style={{ borderTop: `1px solid var(${C.border})` }}
                                   >
-                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, color: C.text }}>
+                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, color: varColor(C.text) }}>
                                       <div style={{ fontWeight: 600 }}>
                                         {it.emoji ? `${it.emoji} ` : ""}{it.name ?? "—"}
                                       </div>
                                       {it.obs && (
                                         <div style={{
                                           marginTop: 4, fontSize: sz.fontSm,
-                                          color: C.accent, fontStyle: "italic",
+                                          color: varColor(C.accent), fontStyle: "italic",
                                         }}>
                                           📝 {it.obs}
                                         </div>
                                       )}
                                     </td>
-                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, textAlign: "center", fontWeight: 700, color: C.text }}>
+                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, textAlign: "center", fontWeight: 700, color: varColor(C.text) }}>
                                       {it.qty ?? 1}
                                     </td>
-                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, textAlign: "right", color: C.muted }}>
+                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, textAlign: "right", color: varColor(C.muted) }}>
                                       {fmtR(it.price)}
                                     </td>
-                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, textAlign: "right", fontWeight: 800, color: C.text }}>
+                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, textAlign: "right", fontWeight: 800, color: varColor(C.text) }}>
                                       {fmtR((it.price ?? 0) * (it.qty ?? 1))}
                                     </td>
                                   </tr>
@@ -946,6 +949,12 @@ export default function RelatorioView() {
           </div>
         )}
 
+        {/* ══ DESEMPENHO (vendas, margem — F011) ══ */}
+        {aba === "Desempenho" && !isAdmin && (
+          <Empty icon={LuLock} msg="Acesso restrito a administradores e gerentes" sz={sz} />
+        )}
+        {aba === "Desempenho" && isAdmin && <DesempenhoReport />}
+
         {/* ══ CANCELAMENTOS ══ */}
         {aba === "Cancelamentos" && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -956,10 +965,10 @@ export default function RelatorioView() {
               gap: sz.gap, padding: `${sz.pad}px ${sz.pad}px ${sz.padSm}px`,
               flexShrink: 0,
             }}>
-              <KpiCard label="Ocorrências"       value={kpisCancelamentos.total}                        color={C.red}    Icon={LuCircleX}       sz={sz} />
+              <KpiCard label="Ocorrências"       value={kpisCancelamentos.total}                        color={varColor(C.red)}    Icon={LuCircleX}       sz={sz} />
               <KpiCard label="Itens Cancelados"  value={kpisCancelamentos.qtd}                          color="#f97316"  Icon={LuPackage}       sz={sz} />
-              <KpiCard label="Valor Perdido"     value={fmtR(kpisCancelamentos.valor)}                  color={C.red}    Icon={LuBanknote}      sz={sz} />
-              <KpiCard label="Motivo Mais Comum" value={kpisCancelamentos.topMotivo}                    color={C.muted}  Icon={LuTriangleAlert} sz={sz} />
+              <KpiCard label="Valor Perdido"     value={fmtR(kpisCancelamentos.valor)}                  color={varColor(C.red)}    Icon={LuBanknote}      sz={sz} />
+              <KpiCard label="Motivo Mais Comum" value={kpisCancelamentos.topMotivo}                    color={varColor(C.muted)}  Icon={LuTriangleAlert} sz={sz} />
             </div>
 
             {/* Toolbar */}
@@ -978,7 +987,7 @@ export default function RelatorioView() {
                 <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
                   <thead>
-                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                       <Th>Comanda</Th>
                       <Th>Produto</Th>
                       <Th right>Qtd</Th>
@@ -994,9 +1003,9 @@ export default function RelatorioView() {
                     {cancelamentos.map((c, i) => (
                       <tr
                         key={i}
-                        onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                        onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                        style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
+                        style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
                       >
                         <Td sz={sz}>
                           <span style={{ fontWeight: 700 }}>{/^\d+$/.test(String(c.comanda ?? "").trim()) ? `Comanda ${c.comanda}` : c.comanda}</span>
@@ -1008,21 +1017,21 @@ export default function RelatorioView() {
                         </Td>
                         <Td sz={sz} right>
                           <span style={{
-                            fontWeight: 800, color: C.red,
-                            background: `${C.red}14`, border: `1px solid ${C.red}33`,
+                            fontWeight: 800, color: varColor(C.red),
+                            background: `${alfa(C.red, "14")}`, border: `1px solid ${alfa(C.red, "33")}`,
                             borderRadius: 8, padding: "2px 10px", fontSize: sz.fontSm + 1,
                           }}>
                             ×{c.qty}
                           </span>
                         </Td>
-                        <Td sz={sz} right color={C.red}>
+                        <Td sz={sz} right color={varColor(C.red)}>
                           <span style={{ fontWeight: 800 }}>- {fmtR(c.price * c.qty)}</span>
                         </Td>
                         <Td sz={sz}>
                           {c.motivo !== "—" ? (
                             <span style={{
-                              fontSize: sz.fontSm + 1, color: C.muted,
-                              background: C.surface, borderRadius: 8,
+                              fontSize: sz.fontSm + 1, color: varColor(C.muted),
+                              background: varColor(C.surface), borderRadius: 8,
                               padding: "3px 10px", display: "inline-block",
                               maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                             }}
@@ -1030,25 +1039,25 @@ export default function RelatorioView() {
                             >
                               {c.motivo}
                             </span>
-                          ) : <span style={{ color: C.muted }}>—</span>}
+                          ) : <span style={{ color: varColor(C.muted) }}>—</span>}
                         </Td>
                         <Td sz={sz}>
                           {c.canceladoPor && c.canceladoPor !== "—"
-                            ? <span style={{ fontWeight: 600, color: C.red }}>{c.canceladoPor}</span>
-                            : <span style={{ color: C.muted }}>—</span>}
+                            ? <span style={{ fontWeight: 600, color: varColor(C.red) }}>{c.canceladoPor}</span>
+                            : <span style={{ color: varColor(C.muted) }}>—</span>}
                         </Td>
                         <Td sz={sz}>
                           {c.cashier && c.cashier !== "—"
-                            ? <span style={{ fontWeight: 600, color: C.text }}>{c.cashier}</span>
-                            : <span style={{ color: C.muted }}>—</span>}
+                            ? <span style={{ fontWeight: 600, color: varColor(C.text) }}>{c.cashier}</span>
+                            : <span style={{ color: varColor(C.muted) }}>—</span>}
                         </Td>
                         <Td sz={sz}>
                           <span style={{
                             fontSize: sz.fontSm, fontWeight: 700,
                             padding: "3px 10px", borderRadius: 20,
-                            background: c.origem === "Em aberto" ? `${C.accent}14` : `${C.green}14`,
-                            border: `1px solid ${c.origem === "Em aberto" ? C.accent : C.green}44`,
-                            color: c.origem === "Em aberto" ? C.accent : C.green,
+                            background: c.origem === "Em aberto" ? `${alfa(C.accent, "14")}` : `${alfa(C.green, "14")}`,
+                            border: `1px solid ${c.origem === "Em aberto" ? varColor(C.accent) : varColor(C.green)}44`,
+                            color: c.origem === "Em aberto" ? varColor(C.accent) : varColor(C.green),
                           }}>
                             {c.origem}
                           </span>
@@ -1058,11 +1067,11 @@ export default function RelatorioView() {
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr style={{ borderTop: `2px solid ${C.border}` }}>
-                      <td colSpan={3} style={{ padding: "12px 16px", fontWeight: 700, fontSize: sz.fontBase, color: C.muted }}>
+                    <tr style={{ borderTop: `2px solid var(${C.border})` }}>
+                      <td colSpan={3} style={{ padding: "12px 16px", fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.muted) }}>
                         {kpisCancelamentos.qtd} item(ns) cancelado(s)
                       </td>
-                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, fontSize: sz.fontLg, color: C.red }}>
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, fontSize: sz.fontLg, color: varColor(C.red) }}>
                         - {fmtR(kpisCancelamentos.valor)}
                       </td>
                       <td colSpan={5} />
@@ -1088,7 +1097,7 @@ export default function RelatorioView() {
                 <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 540 }}>
                   <thead>
-                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                       <Th>Data / Hora</Th>
                       <Th>Usuário</Th>
                       <Th right>Fundo de Caixa</Th>
@@ -1106,10 +1115,10 @@ export default function RelatorioView() {
                         <Fragment key={f.id ?? i}>
                           <tr
                             onClick={() => setFechDetalhe(f)}
-                            onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                            onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                             onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                             style={{
-                              borderBottom: hasObs ? "none" : `1px solid ${C.border}`,
+                              borderBottom: hasObs ? "none" : `1px solid var(${C.border})`,
                               transition: "background 0.1s", cursor: "pointer",
                             }}
                           >
@@ -1117,15 +1126,15 @@ export default function RelatorioView() {
                             <Td sz={sz}>{f.user ?? "—"}</Td>
                             <Td sz={sz} right>{fmtR(f.fundo)}</Td>
                             <Td sz={sz} right><span style={{ fontWeight: 700 }}>{fmtR(f.totalVendas)}</span></Td>
-                            <Td sz={sz} right color={C.green}><span style={{ fontWeight: 700 }}>{fmtR(f.totalConferido)}</span></Td>
-                            <Td sz={sz} right color={dif >= 0 ? C.green : C.red}>
+                            <Td sz={sz} right color={varColor(C.green)}><span style={{ fontWeight: 700 }}>{fmtR(f.totalConferido)}</span></Td>
+                            <Td sz={sz} right color={dif >= 0 ? varColor(C.green) : varColor(C.red)}>
                               <span style={{ fontWeight: 800 }}>{dif >= 0 ? "+" : ""}{fmtR(dif)}</span>
                             </Td>
                             <Td sz={sz} right>
                               <span style={{
-                                fontSize: sz.fontSm, fontWeight: 600, color: C.accent,
+                                fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.accent),
                                 padding: "3px 10px", borderRadius: 20,
-                                background: `${C.accent}10`, border: `1px solid ${C.accent}33`,
+                                background: `${alfa(C.accent, "10")}`, border: `1px solid ${alfa(C.accent, "33")}`,
                                 whiteSpace: "nowrap",
                               }}>
                                 Ver detalhes
@@ -1135,16 +1144,16 @@ export default function RelatorioView() {
                           {hasObs && (
                             <tr
                               onClick={() => setFechDetalhe(f)}
-                              style={{ borderBottom: `1px solid ${C.border}`, cursor: "pointer" }}
+                              style={{ borderBottom: `1px solid var(${C.border})`, cursor: "pointer" }}
                             >
                               <td colSpan={7} style={{ padding: "0 16px 10px" }}>
                                 <div style={{
-                                  fontSize: sz.fontSm + 1, color: C.muted,
+                                  fontSize: sz.fontSm + 1, color: varColor(C.muted),
                                   lineHeight: 1.5, fontStyle: "italic",
                                 }}>
                                   <span style={{
                                     fontStyle: "normal", fontWeight: 700,
-                                    color: C.accent, marginRight: 6, fontSize: sz.fontSm,
+                                    color: varColor(C.accent), marginRight: 6, fontSize: sz.fontSm,
                                     textTransform: "uppercase", letterSpacing: 0.5,
                                   }}>
                                     Obs.:
@@ -1196,8 +1205,8 @@ export default function RelatorioView() {
                   }}
                   style={{
                     padding: "6px 14px", borderRadius: 8,
-                    border: `1px solid ${C.border}`, background: "none",
-                    color: C.muted, cursor: "pointer", fontSize: sz.fontSm + 1, fontWeight: 600,
+                    border: `1px solid var(${C.border})`, background: "none",
+                    color: varColor(C.muted), cursor: "pointer", fontSize: sz.fontSm + 1, fontWeight: 600,
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -1209,14 +1218,14 @@ export default function RelatorioView() {
 
             <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
               {loadingLogs ? (
-                <div style={{ color: C.muted, textAlign: "center", padding: 40 }}>Carregando logs…</div>
+                <div style={{ color: varColor(C.muted), textAlign: "center", padding: 40 }}>Carregando logs…</div>
               ) : logsFiltrados.length === 0 ? (
                 <Empty icon={LuClipboardList} msg="Nenhum evento no período selecionado" sz={sz} />
               ) : (
                 <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
                   <thead>
-                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                       <Th>Data / Hora</Th>
                       <Th>Ação</Th>
                       <Th>Operador</Th>
@@ -1230,9 +1239,9 @@ export default function RelatorioView() {
                       return (
                         <tr
                           key={l.id ?? i}
-                          onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                          onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                          style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
+                          style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
                         >
                           <Td sz={sz} muted nowrap>{fmtData(l.created_at)}</Td>
                           <Td sz={sz}>
@@ -1252,12 +1261,12 @@ export default function RelatorioView() {
                             {l.payload?.role ? (
                               <span style={{
                                 fontSize: sz.fontSm, fontWeight: 600,
-                                background: C.surface, padding: "2px 8px",
-                                borderRadius: 10, color: C.muted,
+                                background: varColor(C.surface), padding: "2px 8px",
+                                borderRadius: 10, color: varColor(C.muted),
                               }}>
                                 {l.payload.role}
                               </span>
-                            ) : <span style={{ color: C.muted }}>—</span>}
+                            ) : <span style={{ color: varColor(C.muted) }}>—</span>}
                           </Td>
                           <Td sz={sz} muted>{l.payload?.msg ?? l.action_type ?? "—"}</Td>
                         </tr>
@@ -1280,9 +1289,9 @@ export default function RelatorioView() {
           <div style={{ flex: 1, overflowY: "auto", padding: sz.pad }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: sz.pad }}>
               <div style={{
-                flex: 1, background: `${C.red}10`, border: `1px solid ${C.red}33`,
+                flex: 1, background: `${alfa(C.red, "10")}`, border: `1px solid ${alfa(C.red, "33")}`,
                 borderRadius: 12, padding: "12px 16px",
-                fontSize: sz.fontSm + 1, color: C.red, fontWeight: 600,
+                fontSize: sz.fontSm + 1, color: varColor(C.red), fontWeight: 600,
               }}>
                 <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
                 Área restrita — estas informações são confidenciais. Não compartilhe com terceiros.
@@ -1293,8 +1302,8 @@ export default function RelatorioView() {
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
                   padding: "10px 16px", borderRadius: 10, flexShrink: 0,
-                  border: `1px solid ${C.border}`, background: "none",
-                  color: C.muted, cursor: "pointer",
+                  border: `1px solid var(${C.border})`, background: "none",
+                  color: varColor(C.muted), cursor: "pointer",
                   fontSize: sz.fontSm + 1, fontWeight: 600, whiteSpace: "nowrap",
                 }}
               >
@@ -1302,10 +1311,10 @@ export default function RelatorioView() {
               </button>
             </div>
 
-            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 16, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 400 }}>
                 <thead>
-                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                     <Th>Usuário</Th>
                     <Th>Login</Th>
                     <Th>Cargo</Th>
@@ -1317,15 +1326,15 @@ export default function RelatorioView() {
                     return (
                       <tr
                         key={u.id}
-                        onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                        onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                        style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
+                        style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
                       >
                         <Td sz={sz}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                             <div style={{
                               width: 32, height: 32, borderRadius: 16,
-                              background: C.accent, color: "#fff",
+                              background: varColor(C.accent), color: "#fff",
                               display: "flex", alignItems: "center", justifyContent: "center",
                               fontWeight: 800, fontSize: 18, flexShrink: 0,
                             }}>
@@ -1338,14 +1347,14 @@ export default function RelatorioView() {
                         <Td sz={sz}>
                           <span style={{
                             fontSize: sz.fontSm, fontWeight: 700,
-                            background: C.surface, padding: "3px 10px",
-                            borderRadius: 20, color: C.muted,
+                            background: varColor(C.surface), padding: "3px 10px",
+                            borderRadius: 20, color: varColor(C.muted),
                           }}>
                             {u.role}
                           </span>
                         </Td>
                         <Td sz={sz} right>
-                          <span style={{ color: C.muted, fontSize: sz.fontSm + 1, fontStyle: "italic" }}>
+                          <span style={{ color: varColor(C.muted), fontSize: sz.fontSm + 1, fontStyle: "italic" }}>
                             redefinir em Configurações
                           </span>
                         </Td>
@@ -1356,7 +1365,7 @@ export default function RelatorioView() {
               </table>
             </div>
 
-            <div style={{ marginTop: 12, fontSize: sz.fontSm + 1, color: C.muted }}>
+            <div style={{ marginTop: 12, fontSize: sz.fontSm + 1, color: varColor(C.muted) }}>
               * Senhas marcadas como "não registrada" foram definidas antes desta funcionalidade. Redefina-as nas Configurações para que apareçam aqui.
             </div>
           </div>

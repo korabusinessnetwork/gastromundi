@@ -78,6 +78,7 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 | TD009 | `sales`/`fechamentos` como blobs JSONB — relatórios/consultas SQL limitados | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Em andamento — etapa 2 concluída (2026-07-04) |
 | TD010 | Realtime só em `pending` — estoque/config/insights não sincronizam entre dispositivos | 🏗️ Arquitetura | Médio | Médio | 🟡 Medium | Resolvido (2026-07-04) |
 | TD011 | Fluxos críticos do PDV sem testes de componente (só funções puras são testadas) | 🧪 Testes | Alto | Médio | 🟠 High | Resolvido (2026-07-05) |
+| TD012 | `estoque.js` engole exceção da baixa e mostra estimativa local como se fosse sucesso — mascarou o bug de RLS (`baixar_estoque`) por semanas. Falha de baixa precisa ser visível (alerta/log), não silenciosa | 🔒 Confiabilidade | Alto (quando estoque for real) | Baixo | 🟠 High | Identificado (2026-07-06) |
 
 ### [TD001] Senhas legíveis em `config.credentials`
 

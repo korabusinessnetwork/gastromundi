@@ -7,15 +7,18 @@ import { passwordStrength, sanitizeInput } from "@/utils";
 import { criarAuthUsuario, atualizarSenhaAuth, deletarAuthUsuario } from "@/lib/adminAuth";
 import { getPermissions } from "@/constants/roles";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
+import { alfa } from "@/constants/colorAlfa";
 import { createPortal } from "react-dom";
 import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter } from "react-icons/lu";
 import ConfiguracaoImpressao from "./impressao/ConfiguracaoImpressao";
 import MesasAdmin from "./mesas/MesasAdmin";
+import "./ConfiguracoesView.css";
 
 const ROLES = [
-  { id: "admin",   label: "Administrador", color: C.accent },
-  { id: "gerente", label: "Gerente",       color: C.blue   },
-  { id: "caixa",   label: "Caixa",         color: C.green  },
+  { id: "admin",   label: "Administrador", color: varColor(C.accent) },
+  { id: "gerente", label: "Gerente",       color: varColor(C.blue)   },
+  { id: "caixa",   label: "Caixa",         color: varColor(C.green)  },
   { id: "garcom",  label: "Garçom",        color: "#f59e0b"},
 ];
 
@@ -27,12 +30,12 @@ const EMPTY_USER_FORM = { name: "", username: "", role: "caixa", password: "", c
 // ── Helpers ───────────────────────────────────────────────────────
 
 function RoleBadge({ role, sz }) {
-  const r = ROLE_MAP[role] ?? { label: role, color: C.muted };
+  const r = ROLE_MAP[role] ?? { label: role, color: varColor(C.muted) };
   return (
-    <span style={{
-      fontSize: (sz?.fontSm ?? 12), fontWeight: 700,
-      background: `${r.color}18`, border: `1px solid ${r.color}44`,
-      color: r.color, padding: "3px 10px", borderRadius: 20,
+    <span className="cfg__badge-role" style={{
+      fontSize: (sz?.fontSm ?? 12),
+      background: alfa(r.color, "18"), border: `1px solid ${alfa(r.color, "44")}`,
+      color: r.color,
     }}>
       {r.label}
     </span>
@@ -42,26 +45,14 @@ function RoleBadge({ role, sz }) {
 function Avatar({ name, size = 40 }) {
   const initials = (name ?? "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
   return (
-    <div style={{
-      width: size, height: size, borderRadius: size / 2,
-      background: C.accent, color: "#fff",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontWeight: 800, fontSize: size * 0.4, flexShrink: 0,
-    }}>
+    <div className="cfg__avatar" style={{ width: size, height: size, borderRadius: size / 2, fontSize: size * 0.4 }}>
       {initials}
     </div>
   );
 }
 
 function Label({ children }) {
-  return (
-    <div style={{
-      fontSize: 14, fontWeight: 700, color: C.muted,
-      textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8,
-    }}>
-      {children}
-    </div>
-  );
+  return <div className="cfg__label">{children}</div>;
 }
 
 function Field({ label, children }) {
@@ -83,13 +74,8 @@ function TextInput({ value, onChange, placeholder, type = "text", maxLength, dis
       placeholder={placeholder}
       maxLength={maxLength}
       disabled={disabled}
-      style={{
-        width: "100%", padding: "11px 14px", borderRadius: 10,
-        border: `1px solid ${C.border}`, background: disabled ? C.bg : C.surface,
-        color: disabled ? C.muted : C.text, fontSize: sz?.fontBase ?? 14,
-        boxSizing: "border-box", fontFamily: "inherit", outline: "none",
-        opacity: disabled ? 0.6 : 1,
-      }}
+      className={`cfg__input${disabled ? " cfg__input--disabled" : ""}`}
+      style={{ fontSize: sz?.fontBase ?? 14 }}
     />
   );
 }
@@ -99,13 +85,9 @@ function StrengthBar({ pwd }) {
   const s = passwordStrength(pwd);
   return (
     <div style={{ marginTop: 8 }}>
-      <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+      <div className="usuarios-tab__strength-barras">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} style={{
-            flex: 1, height: 3, borderRadius: 2,
-            background: i <= s.level ? s.color : C.border,
-            transition: "background 0.2s",
-          }} />
+          <div key={i} className="usuarios-tab__strength-barra" style={{ background: i <= s.level ? s.color : varColor(C.border) }} />
         ))}
       </div>
       <div style={{ fontSize: 14, color: s.color, fontWeight: 600 }}>{s.label}</div>
@@ -116,11 +98,7 @@ function StrengthBar({ pwd }) {
 function ErrBox({ msg }) {
   if (!msg) return null;
   return (
-    <div style={{
-      padding: "10px 14px", borderRadius: 8,
-      background: `${C.red}15`, border: `1px solid ${C.red}44`,
-      color: C.red, fontSize: 16, fontWeight: 600,
-    }}>
+    <div className="cfg__erro-box" style={{ background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}` }}>
       ⚠️ {msg}
     </div>
   );
@@ -129,11 +107,7 @@ function ErrBox({ msg }) {
 function OkBox({ msg }) {
   if (!msg) return null;
   return (
-    <div style={{
-      padding: "10px 14px", borderRadius: 8,
-      background: `${C.green}15`, border: `1px solid ${C.green}44`,
-      color: C.green, fontSize: 16, fontWeight: 600,
-    }}>
+    <div className="cfg__ok-box" style={{ background: alfa(C.green, "15"), border: `1px solid ${alfa(C.green, "44")}` }}>
       ✓ {msg}
     </div>
   );
@@ -263,24 +237,17 @@ function UsuariosTab({ sz }) {
     <div style={{ display: "flex", flexDirection: "column", gap: sz.padSm }}>
 
       {/* Card de explicação de cargos e permissões */}
-      <div style={{
-        background: C.card, border: `1px solid ${C.border}`,
-        borderRadius: 16, padding: sz.pad,
-        display: "flex", flexDirection: "column", gap: sz.pad - 4,
-      }}>
-        <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>
+      <div className="usuarios-tab__guia" style={{ padding: sz.pad, gap: sz.pad - 4 }}>
+        <div className="usuarios-tab__guia-titulo" style={{ fontSize: sz.fontBase + 1 }}>
           Guia de Cargos e Permissões
         </div>
 
         {/* Cargos */}
         <div>
-          <div style={{
-            fontSize: 14, fontWeight: 700, color: C.muted,
-            textTransform: "uppercase", letterSpacing: 1.2, marginBottom: sz.padSm,
-          }}>
+          <div className="usuarios-tab__cargos-label" style={{ marginBottom: sz.padSm }}>
             Cargos
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: sz.gap }}>
+          <div className="usuarios-tab__cargos-grid" style={{ gap: sz.gap }}>
             {[
               { role: "admin",   icon: "👑",    desc: "Acesso total ao sistema: vendas, relatórios, usuários, produtos, abertura e fechamento de caixa." },
               { role: "gerente", icon: "🧑‍💼", desc: "Gerencia usuários e produtos, visualiza relatórios completos e opera o caixa." },
@@ -289,17 +256,15 @@ function UsuariosTab({ sz }) {
             ].map(item => {
               const r = ROLE_MAP[item.role];
               return (
-                <div key={item.role} style={{
-                  background: C.surface, borderRadius: 12,
-                  border: `1px solid ${r.color}33`,
+                <div key={item.role} className="usuarios-tab__cargo-card" style={{
+                  border: `1px solid ${alfa(r.color, "33")}`,
                   padding: `${sz.padSm}px ${sz.padSm + 4}px`,
-                  display: "flex", flexDirection: "column", gap: 8,
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div className="usuarios-tab__cargo-topo">
                     <span style={{ fontSize: sz.fontLg }}>{item.icon}</span>
                     <RoleBadge role={item.role} sz={sz} />
                   </div>
-                  <div style={{ fontSize: sz.fontSm + 1, color: C.muted, lineHeight: 1.5 }}>
+                  <div className="usuarios-tab__cargo-desc" style={{ fontSize: sz.fontSm + 1 }}>
                     {item.desc}
                   </div>
                 </div>
@@ -311,18 +276,15 @@ function UsuariosTab({ sz }) {
       </div>
 
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ color: C.muted, fontSize: sz.fontSm + 1 }}>
+      <div className="usuarios-tab__header">
+        <div className="usuarios-tab__contagem" style={{ fontSize: sz.fontSm + 1 }}>
           {users.length} usuário{users.length !== 1 ? "s" : ""} ativo{users.length !== 1 ? "s" : ""}
         </div>
         {isAdmin && (
           <button
             onClick={abrirNovo}
-            style={{
-              padding: "9px 20px", borderRadius: 10, border: "none",
-              background: C.accent, color: "#fff",
-              fontWeight: 700, fontSize: sz.fontBase, cursor: "pointer",
-            }}
+            className="usuarios-tab__btn-novo"
+            style={{ fontSize: sz.fontBase }}
           >
             + Novo Usuário
           </button>
@@ -330,16 +292,12 @@ function UsuariosTab({ sz }) {
       </div>
 
       {/* Tabela */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
+      <div className="usuarios-tab__tabela-moldura">
+        <table className="usuarios-tab__tabela">
           <thead>
-            <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+            <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
               {["", "Nome", "Usuário", "Cargo", "Acesso", ""].map((h, i) => (
-                <th key={i} style={{
-                  padding: "12px 16px", textAlign: "left",
-                  fontSize: 14, fontWeight: 700, color: C.muted,
-                  textTransform: "uppercase", letterSpacing: 1,
-                }}>
+                <th key={i} className="usuarios-tab__th">
                   {h}
                 </th>
               ))}
@@ -349,46 +307,48 @@ function UsuariosTab({ sz }) {
             {users.map(u => (
               <tr
                 key={u.id}
-                onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                className="usuarios-tab__tr"
+                onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                style={{ borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
               >
-                <td style={{ padding: "12px 16px", width: 48 }}>
+                <td className="usuarios-tab__td" style={{ width: 48 }}>
                   <Avatar name={u.name} size={36} />
                 </td>
-                <td style={{ padding: "12px 16px" }}>
-                  <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>
+                <td className="usuarios-tab__td">
+                  <div className="usuarios-tab__nome" style={{ fontSize: sz.fontBase }}>
                     {u.name}
                     {u.id === currentUser?.id && (
-                      <span style={{ fontSize: 14, color: C.accent, marginLeft: 8, fontWeight: 600 }}>você</span>
+                      <span className="usuarios-tab__voce">você</span>
                     )}
                   </div>
                 </td>
-                <td style={{ padding: "12px 16px", color: C.muted, fontSize: sz.fontBase }}>
+                <td className="usuarios-tab__td" style={{ color: varColor(C.muted), fontSize: sz.fontBase }}>
                   @{u.username}
                 </td>
-                <td style={{ padding: "12px 16px" }}>
+                <td className="usuarios-tab__td">
                   <RoleBadge role={u.role} sz={sz} />
                 </td>
-                <td style={{ padding: "12px 16px" }}>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {u.permissions?.pdv  && <span style={permChip(C.green)}>PDV</span>}
-                    {u.permissions?.palm && <span style={permChip(C.blue)}>Palm</span>}
+                <td className="usuarios-tab__td">
+                  <div className="usuarios-tab__perm-chips">
+                    {u.permissions?.pdv  && <span className="usuarios-tab__perm-chip" style={{ background: alfa(C.green, "15"), border: `1px solid ${alfa(C.green, "33")}`, color: varColor(C.green) }}>PDV</span>}
+                    {u.permissions?.palm && <span className="usuarios-tab__perm-chip" style={{ background: alfa(C.blue, "15"), border: `1px solid ${alfa(C.blue, "33")}`, color: varColor(C.blue) }}>Palm</span>}
                   </div>
                 </td>
-                <td style={{ padding: "12px 16px", textAlign: "right", whiteSpace: "nowrap" }}>
+                <td className="usuarios-tab__td" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                   {isAdmin && (
-                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <div className="usuarios-tab__acoes">
                       <button
                         onClick={() => abrirEditar(u)}
-                        style={actionBtn()}
+                        className="usuarios-tab__action-btn"
+                        style={{ border: `1px solid var(${C.border})`, background: "none", color: varColor(C.text) }}
                       >
                         Editar
                       </button>
                       {u.id !== currentUser?.id && (
                         <button
                           onClick={() => setDeleteId(u.id)}
-                          style={actionBtn(C.red)}
+                          className="usuarios-tab__action-btn"
+                          style={{ border: `1px solid ${alfa(C.red, "44")}`, background: alfa(C.red, "0f"), color: varColor(C.red) }}
                         >
                           Excluir
                         </button>
@@ -406,16 +366,10 @@ function UsuariosTab({ sz }) {
       {modal && (
         <div
           onClick={e => { if (e.target === e.currentTarget) fechar(); }}
-          style={overlayStyle}
+          className="cfg__overlay"
         >
-          <div style={{
-            background: C.card, borderRadius: 20, padding: sz.pad + 4,
-            width: "100%", maxWidth: 480, boxSizing: "border-box",
-            border: `1px solid ${C.border}`,
-            display: "flex", flexDirection: "column", gap: sz.padSm + 4,
-            maxHeight: "90vh", overflowY: "auto",
-          }}>
-            <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>
+          <div className="usuarios-tab__modal" style={{ padding: sz.pad + 4, gap: sz.padSm + 4 }}>
+            <div className="usuarios-tab__modal-titulo" style={{ fontSize: sz.fontLg }}>
               {modal === "novo" ? "Novo Usuário" : "Editar Usuário"}
             </div>
 
@@ -425,21 +379,21 @@ function UsuariosTab({ sz }) {
 
             <Field label="Usuário (login) *">
               <TextInput value={form.username} onChange={v => setF("username", v.toLowerCase())} placeholder="Ex: joao" maxLength={30} sz={sz} />
-              <div style={{ fontSize: 14, color: C.muted, marginTop: 4 }}>Apenas letras, números e _ (sem espaços)</div>
+              <div className="usuarios-tab__ajuda">Apenas letras, números e _ (sem espaços)</div>
             </Field>
 
             <Field label="Cargo *">
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="usuarios-tab__cargo-chips">
                 {ROLES.map(r => (
                   <button
                     key={r.id}
                     onClick={() => setF("role", r.id)}
+                    className="usuarios-tab__cargo-chip"
                     style={{
-                      padding: "7px 14px", borderRadius: 20,
-                      border: `1.5px solid ${form.role === r.id ? r.color : C.border}`,
-                      background: form.role === r.id ? `${r.color}18` : C.surface,
-                      color: form.role === r.id ? r.color : C.muted,
-                      cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
+                      borderColor: form.role === r.id ? r.color : varColor(C.border),
+                      background: form.role === r.id ? alfa(r.color, "18") : varColor(C.surface),
+                      color: form.role === r.id ? r.color : varColor(C.muted),
+                      fontSize: sz.fontSm + 1,
                     }}
                   >
                     {r.label}
@@ -448,14 +402,14 @@ function UsuariosTab({ sz }) {
               </div>
             </Field>
 
-            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: sz.padSm }}>
-              <div style={{ fontWeight: 700, fontSize: sz.fontBase, marginBottom: sz.padSm }}>
+            <div className="usuarios-tab__senha-secao" style={{ paddingTop: sz.padSm }}>
+              <div className="usuarios-tab__senha-titulo" style={{ fontSize: sz.fontBase, marginBottom: sz.padSm }}>
                 {modal === "novo" ? "Senha inicial *" : "Redefinir senha (deixe em branco para manter)"}
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: sz.padSm - 4 }}>
                 <Field label="Senha">
-                  <div style={{ position: "relative" }}>
+                  <div className="usuarios-tab__senha-wrap">
                     <TextInput
                       type={verSenha ? "text" : "password"}
                       value={form.password}
@@ -466,13 +420,7 @@ function UsuariosTab({ sz }) {
                     <button
                       type="button"
                       onClick={() => setVerSenha(v => !v)}
-                      style={{
-                        position: "absolute", right: 12, top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none", border: "none",
-                        cursor: "pointer", fontSize: 16,
-                        color: C.muted, padding: 4, lineHeight: 1,
-                      }}
+                      className="usuarios-tab__senha-olho"
                     >
                       {verSenha ? <LuEyeOff size={16} /> : <LuEye size={16} />}
                     </button>
@@ -480,7 +428,7 @@ function UsuariosTab({ sz }) {
                   <StrengthBar pwd={form.password} />
                 </Field>
                 <Field label="Confirmar Senha">
-                  <div style={{ position: "relative" }}>
+                  <div className="usuarios-tab__senha-wrap">
                     <TextInput
                       type={verSenha ? "text" : "password"}
                       value={form.confirmPassword}
@@ -491,13 +439,7 @@ function UsuariosTab({ sz }) {
                     <button
                       type="button"
                       onClick={() => setVerSenha(v => !v)}
-                      style={{
-                        position: "absolute", right: 12, top: "50%",
-                        transform: "translateY(-50%)",
-                        background: "none", border: "none",
-                        cursor: "pointer", fontSize: 16,
-                        color: C.muted, padding: 4, lineHeight: 1,
-                      }}
+                      className="usuarios-tab__senha-olho"
                     >
                       {verSenha ? <LuEyeOff size={16} /> : <LuEye size={16} />}
                     </button>
@@ -509,16 +451,12 @@ function UsuariosTab({ sz }) {
             <ErrBox msg={erro} />
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={fechar} style={cancelBtn(sz)}>Cancelar</button>
+              <button onClick={fechar} className="cfg__cancel-btn" style={{ fontSize: sz?.fontBase ?? 14 }}>Cancelar</button>
               <button
                 onClick={salvar}
                 disabled={salvando}
-                style={{
-                  flex: 2, padding: 13, borderRadius: 10, border: "none",
-                  background: salvando ? C.faint : C.accent,
-                  color: "#fff", cursor: salvando ? "not-allowed" : "pointer",
-                  fontWeight: 700, fontSize: sz.fontBase,
-                }}
+                className="usuarios-tab__btn-salvar"
+                style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
               >
                 {salvando ? "Salvando..." : modal === "novo" ? "Criar Usuário" : "Salvar Alterações"}
               </button>
@@ -531,35 +469,27 @@ function UsuariosTab({ sz }) {
       {deleteId && (
         <div
           onClick={e => { if (e.target === e.currentTarget) setDeleteId(null); }}
-          style={overlayStyle}
+          className="cfg__overlay"
         >
-          <div style={{
-            background: C.card, borderRadius: 16, padding: sz.pad,
-            width: "100%", maxWidth: 380, boxSizing: "border-box",
-            border: `1px solid ${C.border}`,
-          }}>
+          <div className="usuarios-tab__confirm-modal" style={{ padding: sz.pad }}>
             {(() => {
               const u = users.find(x => x.id === deleteId);
               return (
                 <>
-                  <div style={{ fontWeight: 800, fontSize: sz.fontLg, marginBottom: 8 }}>Excluir usuário?</div>
-                  <div style={{ fontSize: sz.fontBase, marginBottom: 6 }}>
+                  <div className="usuarios-tab__confirm-titulo" style={{ fontSize: sz.fontLg }}>Excluir usuário?</div>
+                  <div className="usuarios-tab__confirm-sub" style={{ fontSize: sz.fontBase }}>
                     <strong>{u?.name}</strong> · @{u?.username}
                   </div>
-                  <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginBottom: 24 }}>
+                  <div className="usuarios-tab__confirm-ajuda" style={{ fontSize: sz.fontSm + 1 }}>
                     O usuário será removido permanentemente do banco de dados. Esta ação não pode ser desfeita.
                   </div>
                   <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={() => setDeleteId(null)} style={cancelBtn(sz)}>Cancelar</button>
+                    <button onClick={() => setDeleteId(null)} className="cfg__cancel-btn" style={{ fontSize: sz?.fontBase ?? 14 }}>Cancelar</button>
                     <button
                       onClick={confirmarDelete}
                       disabled={deletando}
-                      style={{
-                        flex: 1, padding: 12, borderRadius: 10, border: "none",
-                        background: deletando ? C.faint : C.red,
-                        color: "#fff", cursor: deletando ? "not-allowed" : "pointer",
-                        fontWeight: 700, fontSize: sz.fontBase,
-                      }}
+                      className="usuarios-tab__btn-excluir"
+                      style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
                     >
                       {deletando ? "Excluindo..." : "Sim, excluir"}
                     </button>
@@ -580,9 +510,9 @@ function ToggleChip({ active, onClick, color, children, sz }) {
       onClick={onClick}
       style={{
         padding: "8px 16px", borderRadius: 10,
-        border: `1.5px solid ${active ? color : C.border}`,
-        background: active ? `${color}18` : C.surface,
-        color: active ? color : C.muted,
+        border: `1.5px solid ${active ? color : varColor(C.border)}`,
+        background: active ? `${color}18` : varColor(C.surface),
+        color: active ? color : varColor(C.muted),
         cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase,
         transition: "border-color 0.15s, background 0.15s, color 0.15s",
       }}
@@ -591,35 +521,6 @@ function ToggleChip({ active, onClick, color, children, sz }) {
     </button>
   );
 }
-
-// ── Estilos utilitários ───────────────────────────────────────────
-
-const permChip = (color) => ({
-  fontSize: 14, fontWeight: 700,
-  background: `${color}15`, border: `1px solid ${color}33`,
-  color, padding: "2px 8px", borderRadius: 20,
-});
-
-const actionBtn = (color) => ({
-  padding: "6px 14px", borderRadius: 8,
-  border: `1px solid ${color ? `${color}44` : C.border}`,
-  background: color ? `${color}0f` : "none",
-  color: color ?? C.text,
-  cursor: "pointer", fontWeight: 600, fontSize: 16,
-});
-
-const cancelBtn = (sz) => ({
-  flex: 1, padding: 12, borderRadius: 10,
-  border: `1px solid ${C.border}`, background: "none",
-  color: C.muted, cursor: "pointer",
-  fontWeight: 600, fontSize: sz?.fontBase ?? 14,
-});
-
-const overlayStyle = {
-  position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
-  display: "flex", alignItems: "center", justifyContent: "center",
-  zIndex: 300, padding: 16,
-};
 
 // ── Catálogo de métodos de pagamento ────────────────────────────────
 
@@ -692,36 +593,31 @@ function MeiosPagamentoTab({ sz }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: sz.pad }}>
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: sz.pad }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>Meios de Pagamento</div>
+      <div className="meios-pagamento-tab__card" style={{ padding: sz.pad }}>
+        <div className="meios-pagamento-tab__topo">
+          <div className="meios-pagamento-tab__titulo" style={{ fontSize: sz.fontBase + 1 }}>Meios de Pagamento</div>
           {isAdmin && (
             <button
               onClick={() => { setShowForm(v => !v); setNovoNome(""); }}
+              className="meios-pagamento-tab__btn-adicionar"
               style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "7px 14px", borderRadius: 8, border: `1.5px solid ${C.accent}`,
-                background: showForm ? C.accent : "transparent",
-                color: showForm ? "#fff" : C.accent,
-                cursor: "pointer", fontWeight: 700, fontSize: sz.fontSm,
-                fontFamily: "inherit", transition: "background 0.15s, color 0.15s",
+                borderColor: varColor(C.accent),
+                background: showForm ? varColor(C.accent) : "transparent",
+                color: showForm ? "#fff" : varColor(C.accent),
+                fontSize: sz.fontSm,
               }}
             >
               <LuPlus size={15} /> Adicionar
             </button>
           )}
         </div>
-        <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginBottom: sz.pad }}>
+        <div className="meios-pagamento-tab__ajuda" style={{ fontSize: sz.fontSm + 1, marginBottom: sz.pad }}>
           Ative ou desative as formas de pagamento disponíveis no checkout e no fechamento de caixa.
         </div>
 
         {/* Formulário inline para novo método */}
         {showForm && isAdmin && (
-          <div style={{
-            marginBottom: sz.pad, padding: sz.padSm,
-            background: C.surface, borderRadius: 12, border: `1.5px solid ${C.accent}44`,
-            display: "flex", gap: 10, alignItems: "center",
-          }}>
+          <div className="meios-pagamento-tab__form-novo" style={{ marginBottom: sz.pad, padding: sz.padSm, borderColor: alfa(C.accent, "44") }}>
             <input
               autoFocus
               value={novoNome}
@@ -729,40 +625,30 @@ function MeiosPagamentoTab({ sz }) {
               onKeyDown={e => { if (e.key === "Enter") adicionarCustom(); if (e.key === "Escape") setShowForm(false); }}
               placeholder="Nome da forma de pagamento..."
               maxLength={40}
-              style={{
-                flex: 1, padding: "10px 14px", borderRadius: 8,
-                border: `1.5px solid ${C.border}`, background: C.card,
-                color: C.text, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none",
-              }}
-              onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
-              onBlur={e => e.currentTarget.style.borderColor = C.border}
+              className="meios-pagamento-tab__input-novo"
+              style={{ fontSize: sz.fontBase }}
+              onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
+              onBlur={e => e.currentTarget.style.borderColor = varColor(C.border)}
             />
             <button
               onClick={adicionarCustom}
               disabled={!novoNome.trim() || adicionando}
-              style={{
-                padding: "10px 18px", borderRadius: 8, border: "none",
-                background: novoNome.trim() ? C.accent : C.faint,
-                color: "#fff", fontWeight: 700, fontSize: sz.fontSm,
-                cursor: novoNome.trim() ? "pointer" : "not-allowed", fontFamily: "inherit",
-              }}
+              className="meios-pagamento-tab__btn-confirmar"
+              style={{ background: novoNome.trim() ? varColor(C.accent) : varColor(C.faint), fontSize: sz.fontSm, cursor: novoNome.trim() ? "pointer" : "not-allowed" }}
             >
               {adicionando ? "..." : "Confirmar"}
             </button>
             <button
               onClick={() => setShowForm(false)}
-              style={{
-                padding: "10px 14px", borderRadius: 8, border: `1px solid ${C.border}`,
-                background: "transparent", color: C.muted,
-                cursor: "pointer", fontFamily: "inherit", fontSize: sz.fontSm,
-              }}
+              className="meios-pagamento-tab__btn-cancelar-form"
+              style={{ fontSize: sz.fontSm }}
             >
               Cancelar
             </button>
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: sz.gap }}>
+        <div className="meios-pagamento-tab__grid" style={{ gap: sz.gap }}>
           {todosMetodos.map(m => {
             const ativo = ativos.includes(m.id);
             return (
@@ -770,29 +656,24 @@ function MeiosPagamentoTab({ sz }) {
                 <button
                   onClick={() => toggle(m.id)}
                   disabled={!isAdmin}
+                  className="meios-pagamento-tab__metodo-card"
                   style={{
-                    width: "100%",
                     padding: `${sz.pad}px ${sz.padSm}px`,
-                    borderRadius: 14,
-                    border: `2px solid ${ativo ? C.accent : C.border}`,
-                    background: ativo ? `${C.accent}10` : C.surface,
-                    color: ativo ? C.accent : C.muted,
+                    borderColor: ativo ? varColor(C.accent) : varColor(C.border),
+                    background: ativo ? alfa(C.accent, "10") : varColor(C.surface),
+                    color: ativo ? varColor(C.accent) : varColor(C.muted),
                     cursor: isAdmin ? "pointer" : "default",
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-                    transition: "border-color 0.15s, background 0.15s, color 0.15s",
                     opacity: !isAdmin ? 0.7 : 1,
-                    fontFamily: "inherit",
                   }}
                 >
                   <m.Icon size={26} />
-                  <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>{m.label}</div>
-                  <div style={{ fontSize: sz.fontSm, color: ativo ? `${C.accent}bb` : C.muted }}>{m.desc}</div>
-                  <div style={{
-                    fontSize: 14, fontWeight: 700,
-                    background: ativo ? `${C.green}18` : `${C.faint}`,
-                    color: ativo ? C.green : C.muted,
-                    border: `1px solid ${ativo ? C.green : C.border}44`,
-                    padding: "2px 10px", borderRadius: 20, marginTop: 2,
+                  <div className="meios-pagamento-tab__metodo-nome" style={{ fontSize: sz.fontBase }}>{m.label}</div>
+                  <div style={{ fontSize: sz.fontSm, color: ativo ? alfa(C.accent, "bb") : varColor(C.muted) }}>{m.desc}</div>
+                  <div className="meios-pagamento-tab__status-tag" style={{
+                    fontSize: 14,
+                    background: ativo ? alfa(C.green, "18") : varColor(C.faint),
+                    color: ativo ? varColor(C.green) : varColor(C.muted),
+                    border: `1px solid ${alfa(ativo ? varColor(C.green) : varColor(C.border), "44")}`,
                   }}>
                     {ativo ? "Ativo" : "Desabilitado"}
                   </div>
@@ -801,12 +682,8 @@ function MeiosPagamentoTab({ sz }) {
                   <button
                     onClick={() => removerCustom(m.id)}
                     title="Remover"
-                    style={{
-                      position: "absolute", top: 8, right: 8,
-                      background: `${C.red}20`, border: `1px solid ${C.red}44`,
-                      borderRadius: 6, color: C.red, cursor: "pointer",
-                      padding: "4px 6px", display: "flex", alignItems: "center",
-                    }}
+                    className="meios-pagamento-tab__btn-remover-custom"
+                    style={{ background: alfa(C.red, "20"), border: `1px solid ${alfa(C.red, "44")}`, color: varColor(C.red) }}
                   >
                     <LuTrash2 size={13} />
                   </button>
@@ -817,30 +694,25 @@ function MeiosPagamentoTab({ sz }) {
         </div>
 
         {ativos.length === 0 && (
-          <div style={{
-            marginTop: sz.padSm, padding: "10px 14px", borderRadius: 8,
-            background: `${C.red}15`, border: `1px solid ${C.red}44`,
-            color: C.red, fontSize: 16, fontWeight: 600,
-          }}>
+          <div className="meios-pagamento-tab__aviso-vazio" style={{ marginTop: sz.padSm, background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}` }}>
             ⚠️ É necessário pelo menos um meio de pagamento ativo.
           </div>
         )}
       </div>
 
       {isAdmin && (
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 14 }}>
+        <div className="meios-pagamento-tab__rodape">
           {okMsg && (
-            <span style={{ fontSize: 16, color: C.green, fontWeight: 600 }}>✓ Configurações salvas</span>
+            <span className="meios-pagamento-tab__ok-msg">✓ Configurações salvas</span>
           )}
           <button
             onClick={salvar}
             disabled={salvando || ativos.length === 0}
+            className="meios-pagamento-tab__btn-salvar"
             style={{
-              padding: "10px 24px", borderRadius: 10, border: "none",
-              background: (salvando || ativos.length === 0) ? C.faint : C.accent,
-              color: "#fff", fontWeight: 700, fontSize: sz.fontBase,
+              background: (salvando || ativos.length === 0) ? varColor(C.faint) : varColor(C.accent),
+              fontSize: sz.fontBase,
               cursor: (salvando || ativos.length === 0) ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
             }}
           >
             {salvando ? "Salvando..." : "Salvar Configurações"}
@@ -854,8 +726,8 @@ function MeiosPagamentoTab({ sz }) {
 // ── Aba Unidades de Medida ────────────────────────────────────────
 
 const TIPOS_UNIDADE = [
-  { tipo: "estoque", label: "Unidade de estoque", color: C.blue   },
-  { tipo: "compra",  label: "Unidade de compra",  color: C.green  },
+  { tipo: "estoque", label: "Unidade de estoque", color: varColor(C.blue)   },
+  { tipo: "compra",  label: "Unidade de compra",  color: varColor(C.green)  },
   { tipo: "consumo", label: "Unidade de consumo", color: "#f59e0b" },
 ];
 
@@ -943,7 +815,7 @@ function UnidadesMedidaTab({ sz }) {
   };
 
   if (loading) {
-    return <div style={{ color: C.muted, fontSize: sz.fontBase, padding: sz.pad }}>Carregando...</div>;
+    return <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: sz.pad }}>Carregando...</div>;
   }
 
   return (
@@ -954,34 +826,34 @@ function UnidadesMedidaTab({ sz }) {
         const form    = addForms[tipo];
         const salvandoEste = salvando[tipo];
         return (
-          <div key={tipo} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>
+          <div key={tipo} className="unidades-medida-tab__grupo">
             {/* Cabeçalho */}
-            <div style={{ padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
-              <span style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: C.text }}>{label}</span>
-              <span style={{ fontSize: sz.fontSm, color: C.muted, marginLeft: 4 }}>{lista.length} cadastrada{lista.length !== 1 ? "s" : ""}</span>
+            <div className="unidades-medida-tab__grupo-header" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
+              <div className="unidades-medida-tab__bolinha" style={{ background: color }} />
+              <span className="unidades-medida-tab__grupo-titulo" style={{ fontSize: sz.fontBase + 1 }}>{label}</span>
+              <span className="unidades-medida-tab__grupo-contagem" style={{ fontSize: sz.fontSm }}>{lista.length} cadastrada{lista.length !== 1 ? "s" : ""}</span>
             </div>
 
             {/* Lista */}
-            <div style={{ padding: `${sz.padSm}px ${sz.pad}px`, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="unidades-medida-tab__lista" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
               {lista.length === 0 && (
-                <div style={{ fontSize: sz.fontSm + 1, color: C.muted, padding: "8px 0" }}>
+                <div className="unidades-medida-tab__vazio" style={{ fontSize: sz.fontSm + 1 }}>
                   Nenhuma unidade cadastrada.
                 </div>
               )}
               {lista.map(u => (
-                <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", borderRadius: 10, background: C.surface, border: `1px solid ${C.border}` }}>
-                  <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: sz.fontBase, color, minWidth: 44 }}>
+                <div key={u.id} className="unidades-medida-tab__item">
+                  <span className="unidades-medida-tab__item-abbr" style={{ fontSize: sz.fontBase, color }}>
                     {u.abreviacao}
                   </span>
-                  <span style={{ flex: 1, fontSize: sz.fontBase, color: C.text }}>{u.nome}</span>
+                  <span className="unidades-medida-tab__item-nome" style={{ fontSize: sz.fontBase }}>{u.nome}</span>
                   {isAdmin && (
                     <button
                       onClick={() => iniciarRemover(u)}
                       title="Remover"
-                      style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 7, color: C.muted, cursor: "pointer", padding: "4px 7px", display: "flex", alignItems: "center", lineHeight: 0, transition: "border-color 0.12s, color 0.12s" }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = C.red + "66"; e.currentTarget.style.color = C.red; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; }}
+                      className="unidades-medida-tab__btn-remover"
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = alfa(C.red, "66"); e.currentTarget.style.color = varColor(C.red); }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = varColor(C.border); e.currentTarget.style.color = varColor(C.muted); }}
                     >
                       <LuX size={13} />
                     </button>
@@ -992,14 +864,15 @@ function UnidadesMedidaTab({ sz }) {
 
             {/* Formulário inline de adição */}
             {isAdmin && (
-              <div style={{ padding: `0 ${sz.pad}px ${sz.padSm}px`, display: "flex", gap: 8 }}>
+              <div className="unidades-medida-tab__form-add" style={{ padding: `0 ${sz.pad}px ${sz.padSm}px` }}>
                 <input
                   value={form.abbr}
                   onChange={e => setAddField(tipo, "abbr", e.target.value)}
                   onKeyDown={e => e.key === "Enter" && adicionar(tipo)}
                   placeholder="abrev."
                   maxLength={10}
-                  style={{ width: 80, padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${form.abbr ? color + "88" : C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontFamily: "monospace", fontWeight: 700, outline: "none", boxSizing: "border-box" }}
+                  className="unidades-medida-tab__input-abbr"
+                  style={{ borderColor: form.abbr ? alfa(color, "88") : varColor(C.border), fontSize: sz.fontBase }}
                 />
                 <input
                   value={form.nome}
@@ -1007,12 +880,14 @@ function UnidadesMedidaTab({ sz }) {
                   onKeyDown={e => e.key === "Enter" && adicionar(tipo)}
                   placeholder="Nome completo"
                   maxLength={40}
-                  style={{ flex: 1, padding: "9px 12px", borderRadius: 8, border: `1.5px solid ${form.nome ? color + "88" : C.border}`, background: C.surface, color: C.text, fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  className="unidades-medida-tab__input-nome"
+                  style={{ borderColor: form.nome ? alfa(color, "88") : varColor(C.border), fontSize: sz.fontBase }}
                 />
                 <button
                   onClick={() => adicionar(tipo)}
                   disabled={!form.abbr.trim() || !form.nome.trim() || salvandoEste}
-                  style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: form.abbr.trim() && form.nome.trim() ? color : C.faint, color: "#fff", fontWeight: 700, fontSize: sz.fontBase, cursor: form.abbr.trim() && form.nome.trim() ? "pointer" : "not-allowed", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}
+                  className="unidades-medida-tab__btn-add"
+                  style={{ background: form.abbr.trim() && form.nome.trim() ? color : varColor(C.faint), fontSize: sz.fontBase, cursor: form.abbr.trim() && form.nome.trim() ? "pointer" : "not-allowed" }}
                 >
                   <LuPlus size={14} />
                   {salvandoEste ? "..." : "Adicionar"}
@@ -1025,45 +900,47 @@ function UnidadesMedidaTab({ sz }) {
     </div>
 
     {deleteInfo && createPortal(
-      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: 28, width: "100%", maxWidth: 420 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: `${C.red}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <LuTriangleAlert size={22} color={C.red} />
+      <div className="unidades-medida-tab__delete-overlay">
+        <div className="unidades-medida-tab__delete-modal">
+          <div className="unidades-medida-tab__delete-topo">
+            <div className="unidades-medida-tab__delete-icone" style={{ background: alfa(C.red, "15") }}>
+              <LuTriangleAlert size={22} color={varColor(C.red)} />
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2 }}>Excluir unidade</div>
-              <div style={{ fontSize: sz.fontSm + 1, color: C.muted }}>Esta ação não pode ser desfeita.</div>
+              <div className="unidades-medida-tab__delete-titulo" style={{ fontSize: sz.fontBase + 2 }}>Excluir unidade</div>
+              <div className="unidades-medida-tab__delete-ajuda" style={{ fontSize: sz.fontSm + 1 }}>Esta ação não pode ser desfeita.</div>
             </div>
           </div>
 
-          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: sz.fontBase, marginBottom: 4 }}>
+          <div className="unidades-medida-tab__delete-info">
+            <div className="unidades-medida-tab__delete-nome" style={{ fontSize: sz.fontBase }}>
               "{deleteInfo.nome}" ({deleteInfo.abbr})
             </div>
             {deleteInfo.afetados > 0 ? (
-              <div style={{ fontSize: sz.fontSm + 1, color: C.red, fontWeight: 600 }}>
+              <div className="unidades-medida-tab__delete-aviso" style={{ fontSize: sz.fontSm + 1 }}>
                 ⚠ {deleteInfo.afetados} {deleteInfo.afetados === 1 ? "produto ficará" : "produtos ficarão"} sem essa unidade configurada após a exclusão.
               </div>
             ) : (
-              <div style={{ fontSize: sz.fontSm + 1, color: C.muted }}>
+              <div className="unidades-medida-tab__delete-sem-uso" style={{ fontSize: sz.fontSm + 1 }}>
                 Nenhum produto utiliza essa unidade.
               </div>
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 10 }}>
+          <div className="unidades-medida-tab__delete-botoes">
             <button
               onClick={() => setDeleteInfo(null)}
               disabled={deletando}
-              style={{ flex: 1, padding: "11px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: "none", color: C.text, cursor: deletando ? "not-allowed" : "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit", opacity: deletando ? 0.5 : 1 }}
+              className="unidades-medida-tab__delete-cancelar"
+              style={{ borderColor: varColor(C.border), cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase, opacity: deletando ? 0.5 : 1 }}
             >
               Cancelar
             </button>
             <button
               onClick={confirmarRemover}
               disabled={deletando}
-              style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: deletando ? C.faint : C.red, color: "#fff", cursor: deletando ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
+              className="unidades-medida-tab__delete-confirmar"
+              style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
             >
               {deletando ? "Excluindo..." : "Sim, excluir"}
             </button>
@@ -1098,39 +975,25 @@ function GeralTab({ sz }) {
   };
 
   return (
-    <div style={{ maxWidth: 600 }}>
-      <div style={{
-        background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
-        padding: sz.pad, display: "flex", flexDirection: "row",
-        alignItems: "center", gap: sz.pad,
-      }}>
+    <div className="geral-tab">
+      <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: sz.fontBase, lineHeight: 1.3 }}>Taxa de Serviço</div>
-          <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 4, lineHeight: 1.4 }}>
+          <div className="geral-tab__titulo" style={{ fontSize: sz.fontBase }}>Taxa de Serviço</div>
+          <div className="geral-tab__ajuda" style={{ fontSize: sz.fontSm }}>
             Cobra automaticamente 10% de taxa de serviço no fechamento
           </div>
         </div>
         <button
           onClick={handleToggle}
           disabled={saving}
+          className="geral-tab__toggle"
           style={{
-            width: 56, height: 30, borderRadius: 15, border: "none", padding: 0,
-            background: taxaServico ? C.green : C.faint,
+            background: taxaServico ? varColor(C.green) : varColor(C.faint),
             cursor: saving ? "not-allowed" : "pointer",
-            position: "relative", transition: "background 0.2s", flexShrink: 0,
-            opacity: saving ? 0.7 : 1, outline: "none",
+            opacity: saving ? 0.7 : 1,
           }}
         >
-          <span style={{
-            position: "absolute",
-            top: "50%", transform: "translateY(-50%)",
-            left: taxaServico ? 29 : 3,
-            width: 24, height: 24, borderRadius: "50%",
-            background: "#fff",
-            transition: "left 0.2s",
-            display: "block",
-            boxShadow: "0 1px 4px #0006",
-          }} />
+          <span className="geral-tab__toggle-bolinha" style={{ left: taxaServico ? 29 : 3 }} />
         </button>
       </div>
     </div>
@@ -1148,33 +1011,26 @@ export default function ConfiguracoesView() {
   const abasVisiveis = ABAS_CONFIG.filter(a => (!a.adminOnly || isAdmin) && (!a.gerenteOnly || isGerente));
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
+    <div className="configuracoes-view" style={{ background: varColor(C.bg) }}>
 
       {/* Header */}
-      <div style={{
-        padding: `${sz.pad - 4}px ${sz.pad}px`,
-        borderBottom: `1px solid ${C.border}`,
-        flexShrink: 0,
-      }}>
+      <div className="configuracoes-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Configurações</div>
-        <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 2 }}>
+        <div className="configuracoes-view__subtitulo" style={{ fontSize: sz.fontSm }}>
           Gerencie os usuários e configurações do sistema
         </div>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 4, marginTop: sz.padSm, flexWrap: "wrap" }}>
+        <div className="configuracoes-view__abas" style={{ marginTop: sz.padSm }}>
           {abasVisiveis.map(a => (
             <button
               key={a.id}
               onClick={() => setAba(a.id)}
+              className="configuracoes-view__aba"
               style={{
-                padding: "7px 16px", borderRadius: 8, border: "none",
-                background: aba === a.id ? C.accent : "transparent",
-                color: aba === a.id ? "#fff" : C.muted,
-                cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
-                transition: "background 0.15s, color 0.15s",
-                fontFamily: "inherit",
-                display: "flex", alignItems: "center", gap: 6,
+                background: aba === a.id ? varColor(C.accent) : "transparent",
+                color: aba === a.id ? "#fff" : varColor(C.muted),
+                fontSize: sz.fontSm + 1,
               }}
             >
               {a.id === "impressao" && <LuPrinter size={13} />}
@@ -1185,7 +1041,7 @@ export default function ConfiguracoesView() {
       </div>
 
       {/* Conteúdo */}
-      <div style={{ flex: 1, overflowY: "auto", padding: sz.pad }}>
+      <div className="configuracoes-view__conteudo" style={{ padding: sz.pad }}>
         {aba === "geral"           && <GeralTab sz={sz} />}
         {aba === "usuarios"        && <UsuariosTab sz={sz} />}
         {aba === "meios_pagamento" && <MeiosPagamentoTab sz={sz} />}

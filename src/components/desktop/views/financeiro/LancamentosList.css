@@ -1,0 +1,91 @@
+/**
+ * F018 — leva 3, sub-lote 3A. Decisão 018 + tokens --gm-* (ADR-007).
+ * Blend com transparência do badge de status usa alfa() no JSX
+ * (cor varia por status, resolvida em runtime).
+ */
+
+.lancamentos-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.lancamentos-list__filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lancamentos-list__select {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.lancamentos-list__estado {
+  color: var(--gm-muted);
+  text-align: center;
+  padding: 40px;
+}
+
+.lancamentos-list__moldura {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.lancamentos-list__scroll {
+  overflow-x: auto;
+}
+
+.lancamentos-list__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.lancamentos-list__th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.lancamentos-list__td {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--gm-text);
+}
+
+.lancamentos-list__badge-status {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+.lancamentos-list__btn-baixar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  /* alvo de toque generoso (princípio nº 1) */
+  padding: 8px 12px;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  white-space: nowrap;
+}

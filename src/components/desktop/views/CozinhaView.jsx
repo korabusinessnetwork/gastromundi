@@ -3,16 +3,24 @@ import { useApp } from "@/context/AppContext";
 import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado } from "@/lib/cozinha";
+import { montarViaProducao, buscarConfigImpressao } from "@/lib/impressao";
+import { imprimirDocumento } from "@/lib/impressao/drivers";
 import C from "@/constants/colors";
-import { LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck } from "react-icons/lu";
+import { varColor } from "@/lib/tema";
+import { alfa } from "@/constants/colorAlfa";
+import { LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
+import "./CozinhaView.css";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
+// AMBER ("em preparo") é uma cor semântica de status, não de marca —
+// segue fixa, como AMBER em ComandaGrid.jsx (não faz parte do tema do tenant).
+const AMBER = "#f59e0b";
 const COLUNAS = [
-  { status: "aguardando", titulo: "Aguardando", cor: C.blue },
-  { status: "em_preparo", titulo: "Em Preparo", cor: "#f59e0b" },
-  { status: "pronto",     titulo: "Pronto",      cor: C.green },
+  { status: "aguardando", titulo: "Aguardando", cor: "var(--gm-blue)" },
+  { status: "em_preparo", titulo: "Em Preparo", cor: AMBER },
+  { status: "pronto",     titulo: "Pronto",      cor: "var(--gm-green)" },
 ];
 
 /**
@@ -59,39 +67,50 @@ export default function CozinhaView() {
     }
   };
 
+  // F015/F020 — via de produção: 1 clique, sem preço/jargão, só o que
+  // a cozinha precisa. O driver (browser-raster/QZ Tray) e o perfil de
+  // papel (58/80mm) vêm da config de impressão do estabelecimento.
+  // Nunca lança: pop-up bloqueado/falha de driver vira um alerta simples.
+  const handleImprimirVia = async (pedido) => {
+    const dados = montarViaProducao({ pedido });
+    const { data: configImpressao } = await buscarConfigImpressao();
+    const { error } = await imprimirDocumento(dados, configImpressao?.perfilImpressora);
+    if (error) window.alert(error.message);
+  };
+
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: C.bg, overflow: "hidden" }}>
+    <div className="cozinha-view" style={{ background: varColor(C.bg) }}>
       {/* Header */}
-      <div style={{ padding: `${sz.pad - 4}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`, flexShrink: 0, display: "flex", alignItems: "center", gap: 12 }}>
-        <LuChefHat size={sz.fontLg} color={C.accent} />
+      <div className="cozinha-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
+        <LuChefHat size={sz.fontLg} color={varColor(C.accent)} />
         <div>
           <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Cozinha</div>
-          <div style={{ color: C.muted, fontSize: sz.fontSm, marginTop: 2 }}>Painel de preparo em tempo real</div>
+          <div className="cozinha-view__subtitulo" style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>Painel de preparo em tempo real</div>
         </div>
       </div>
 
       {/* Colunas */}
-      <div style={{ flex: 1, overflow: "hidden", display: "flex", gap: sz.gap, padding: sz.pad, minHeight: 0 }}>
+      <div className="cozinha-view__colunas" style={{ gap: sz.gap, padding: sz.pad }}>
         {COLUNAS.map((coluna) => {
           const pedidosColuna = pedidos
             .filter((p) => (p.status_cozinha ?? "aguardando") === coluna.status)
             .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
           return (
-            <div key={coluna.status} style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden" }}>
+            <div key={coluna.status} className="cozinha-view__coluna">
               {/* Cabeçalho da coluna */}
-              <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: coluna.cor, flexShrink: 0 }} />
+              <div className="cozinha-view__coluna-header">
+                <span className="cozinha-view__coluna-bolinha" style={{ background: coluna.cor }} />
                 <span style={{ fontWeight: 800, fontSize: sz.fontBase }}>{coluna.titulo}</span>
-                <span style={{ marginLeft: "auto", fontSize: sz.fontSm, color: C.muted, fontWeight: 700 }}>{pedidosColuna.length}</span>
+                <span className="cozinha-view__coluna-contador" style={{ fontSize: sz.fontSm }}>{pedidosColuna.length}</span>
               </div>
 
               {/* Cards */}
-              <div style={{ flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div className="cozinha-view__cards">
                 {loading ? (
-                  <div style={{ color: C.muted, textAlign: "center", padding: 24, fontSize: sz.fontSm }}>Carregando…</div>
+                  <div className="cozinha-view__vazio" style={{ fontSize: sz.fontSm }}>Carregando…</div>
                 ) : pedidosColuna.length === 0 ? (
-                  <div style={{ color: C.muted, textAlign: "center", padding: 24, fontSize: sz.fontSm }}>Nenhum pedido aqui.</div>
+                  <div className="cozinha-view__vazio" style={{ fontSize: sz.fontSm }}>Nenhum pedido aqui.</div>
                 ) : (
                   pedidosColuna.map((pedido) => (
                     <PedidoCard
@@ -101,6 +120,7 @@ export default function CozinhaView() {
                       processando={!!processando[pedido.id]}
                       onIniciarPreparo={() => handleIniciarPreparo(pedido)}
                       onMarcarPronto={() => handleMarcarPronto(pedido)}
+                      onImprimirVia={() => handleImprimirVia(pedido)}
                     />
                   ))
                 )}
@@ -113,39 +133,42 @@ export default function CozinhaView() {
   );
 }
 
-function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto }) {
+function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto, onImprimirVia }) {
   const referencia = pedido.status_cozinha === "em_preparo" ? pedido.em_preparo_em : pedido.created_at;
   const minutos = tempoDecorridoMin(referencia);
   const atrasado = estaAtrasado(pedido);
   const itensAtivos = (Array.isArray(pedido.items) ? pedido.items : []).filter((i) => !i.cancelado);
 
   return (
-    <div style={{
-      background: C.surface, borderRadius: 12, padding: 14,
-      border: `1.5px solid ${atrasado ? C.red : C.border}`,
-      boxShadow: atrasado ? `0 0 0 1px ${C.red}33` : "none",
+    <div className="pedido-card" style={{
+      border: `1.5px solid ${atrasado ? varColor(C.red) : varColor(C.border)}`,
+      boxShadow: atrasado ? `0 0 0 1px ${alfa(C.red, "33")}` : "none",
     }}>
       {/* Cabeçalho do card */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+      <div className="pedido-card__topo">
         <span style={{ fontWeight: 800, fontSize: sz.fontBase }}>{fmtComanda(pedido.comanda)}</span>
-        {pedido.mesa && <span style={{ fontSize: sz.fontSm, color: C.muted }}>🪑 {pedido.mesa}</span>}
-        <span style={{
-          marginLeft: "auto", display: "flex", alignItems: "center", gap: 4,
-          fontSize: sz.fontSm - 1, fontWeight: 700,
-          color: atrasado ? C.red : C.muted,
-        }}>
+        {pedido.mesa && <span className="pedido-card__mesa" style={{ fontSize: sz.fontSm }}>🪑 {pedido.mesa}</span>}
+        <span className="pedido-card__tempo" style={{ fontSize: sz.fontSm - 1, color: atrasado ? varColor(C.red) : varColor(C.muted) }}>
           {atrasado ? <LuTriangleAlert size={12} /> : <LuClock size={12} />}
           {minutos} min
         </span>
+        {/* F015 — via de produção, 1 clique */}
+        <button
+          onClick={onImprimirVia}
+          title="Imprimir via de produção"
+          className="pedido-card__btn-imprimir"
+        >
+          <LuPrinter size={13} />
+        </button>
       </div>
 
       {/* Itens */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10 }}>
+      <div className="pedido-card__itens">
         {itensAtivos.map((item, idx) => (
-          <div key={idx} style={{ fontSize: sz.fontSm, color: C.text }}>
+          <div key={idx} className="pedido-card__item" style={{ fontSize: sz.fontSm }}>
             <span style={{ fontWeight: 700 }}>{item.qty ?? 1}x</span> {item.name}
             {Array.isArray(item.obs) && item.obs.length > 0 && (
-              <div style={{ fontSize: sz.fontSm - 1, color: C.muted, paddingLeft: 16 }}>
+              <div className="pedido-card__item-obs" style={{ fontSize: sz.fontSm - 1 }}>
                 {item.obs.join(" · ")}
               </div>
             )}
@@ -158,12 +181,10 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto 
         <button
           onClick={onIniciarPreparo}
           disabled={processando}
+          className="pedido-card__btn-acao"
           style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            padding: "9px 0", borderRadius: 8, border: "none",
-            background: processando ? C.faint : C.accent, color: "#fff",
-            fontWeight: 700, fontSize: sz.fontSm + 1, cursor: processando ? "not-allowed" : "pointer",
-            fontFamily: "inherit",
+            background: processando ? varColor(C.faint) : varColor(C.accent),
+            fontSize: sz.fontSm + 1, cursor: processando ? "not-allowed" : "pointer",
           }}
         >
           <LuPlay size={13} /> {processando ? "Iniciando..." : "Iniciar Preparo"}
@@ -173,12 +194,10 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto 
         <button
           onClick={onMarcarPronto}
           disabled={processando}
+          className="pedido-card__btn-acao"
           style={{
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            padding: "9px 0", borderRadius: 8, border: "none",
-            background: processando ? C.faint : C.green, color: "#fff",
-            fontWeight: 700, fontSize: sz.fontSm + 1, cursor: processando ? "not-allowed" : "pointer",
-            fontFamily: "inherit",
+            background: processando ? varColor(C.faint) : varColor(C.green),
+            fontSize: sz.fontSm + 1, cursor: processando ? "not-allowed" : "pointer",
           }}
         >
           <LuCheck size={13} /> {processando ? "Salvando..." : "Marcar Pronto"}

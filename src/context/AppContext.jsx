@@ -2,6 +2,9 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import { getPermissions } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
+import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
+import { sincronizarStatusAssinatura } from "@/lib/assinatura";
+import { gerarVariaveisTema, aplicarVariaveisTema } from "@/lib/tema";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
@@ -31,6 +34,7 @@ export function AppProvider({ children }) {
   const [taxaServico,     setTaxaServicoLocal]    = useState(false);
   const [estoque,         setEstoqueLocal]        = useState({});
   const [estoqueMinimos,  setEstoqueMinimosLocal] = useState({});
+  const [tenant,          setTenantLocal]         = useState(null); // Fase 1 — camada de comercialização (ADR-005)
   const [loading,       setLoading]          = useState(true);
   // IDs de comandas com pedido lançado na sessão atual (sobrevive troca de aba)
   const [lancadas,    setLancadas]         = useState(new Set());
@@ -151,6 +155,7 @@ export function AppProvider({ children }) {
         { data: fechamentosData, error: eFech  },
         { data: configData,   error: eConfig   },
         { data: estoqueData,  error: eEstoque  },
+        { data: tenantData,   error: eTenant   },
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
         supabase.from("pending").select("*").order("created_at", { ascending: false }),
@@ -160,6 +165,8 @@ export function AppProvider({ children }) {
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
         supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
+        // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
+        buscarBootstrapTenant(),
       ]);
 
       if (eUsers)    console.error("[bootstrap] users error:", eUsers);
@@ -168,6 +175,7 @@ export function AppProvider({ children }) {
       if (eFech)     console.error("[bootstrap] fechamentos error:", eFech);
       if (eConfig)   console.error("[bootstrap] config error:", eConfig);
       if (eEstoque)  console.error("[bootstrap] estoque error:", eEstoque);
+      if (eTenant)   console.error("[bootstrap] tenant error:", eTenant);
 
       if (productsData?.length)    setProductsLocal(productsData);
       if (pendingData)             setPendingLocal(pendingData);
@@ -203,6 +211,19 @@ export function AppProvider({ children }) {
         if (custom?.value && Array.isArray(custom.value)) setMetodosCustomLocal(custom.value);
       }
 
+      if (tenantData) {
+        setTenantLocal(tenantData);
+        // Fase 4 — camada de comercialização (ADR-006): sincroniza o CACHE
+        // de status no banco (telas administrativas). Fire-and-forget —
+        // nunca bloqueia o bootstrap; o status exibido já foi calculado
+        // localmente em buscarBootstrapTenant, não depende desta chamada.
+        if (tenantData.id) {
+          sincronizarStatusAssinatura(tenantData.id).catch((err) => {
+            console.error("[bootstrap] falha ao sincronizar status da assinatura:", err);
+          });
+        }
+      }
+
       setLoading(false);
   }
 
@@ -216,6 +237,15 @@ export function AppProvider({ children }) {
       saveSession(refreshed);
     }
   }, [users]);
+
+  // ── Fase 6 — camada de comercialização (ADR-007): aplica o tema do
+  //    tenant (--gm-*) assim que `tenant.tema` é conhecido. Sem tema
+  //    custom (tenant atual, GastroMundi), `gerarVariaveisTema` retorna
+  //    {} e os defaults de src/styles/tema.css continuam valendo —
+  //    nada muda visualmente.
+  useEffect(() => {
+    aplicarVariaveisTema(gerarVariaveisTema(tenant?.tema));
+  }, [tenant?.tema]);
 
   // ── Jarvas: análise pós-carregamento (fire-and-forget; motor só
   //    roda para gerente/admin e tem throttle interno de 6h) ──────
@@ -514,10 +544,23 @@ export function AppProvider({ children }) {
   // ── Context value ─────────────────────────────────────────────
   const addLancada = (id) => setLancadas(prev => new Set([...prev, id]));
 
+  // Fase 2 — camada de comercialização (ADR-005): única fonte de gating por
+  // plano no front. Sidebar/rotas/telas novas devem checar por aqui, nunca
+  // comparar tenant.planoCodigo diretamente.
+  const moduloHabilitadoNoPlano = (modulo) => moduloHabilitado(tenant?.modulosDisponiveis, modulo);
+  // Fase 3 — add-ons pagos (decisão 019): equivalente para NF-e/TEF, que não
+  // dependem de plano. Hooks de add-on devem checar por aqui, nunca ler
+  // tenant.addonsAtivos diretamente.
+  const addonHabilitadoNoTenant = (addon) => addonHabilitado(tenant?.addonsAtivos, addon);
+
   const value = {
     loading,
     // dados
     products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, estoque, estoqueMinimos,
+    tenant, moduloHabilitado: moduloHabilitadoNoPlano, addonHabilitado: addonHabilitadoNoTenant,
+    // Fase 4 — camada de comercialização (ADR-006): status calculado, só
+    // exibição nesta fase — nenhuma escrita é bloqueada por causa disso.
+    assinatura: tenant?.assinatura ?? null,
     currentUser, isMobile, mobileChoice,
     lancadas, addLancada,
     // setter simples (sem persistência)

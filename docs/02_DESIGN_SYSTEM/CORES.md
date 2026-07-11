@@ -32,7 +32,7 @@ A cor é a expressão visual mais imediata da identidade. A GastroMundi busca um
 
 ## Configurações Futuras
 - Exportar tokens para Figma Variables e CSS custom properties.
-- Temas por estabelecimento (white-label) reaproveitando a estrutura de tokens.
+- Temas por estabelecimento (white-label) reaproveitando a estrutura de tokens — padrão fixado em [ADR-007](../08_DECISOES/adr-007.md): CSS Custom Properties (`--gm-*`) sobrescritas por tenant, valores hoje hardcoded em `src/constants/colors.js`.
 
 ## Critérios de Aceite
 - [x] Cor de marca definida com escala completa

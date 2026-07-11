@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
 import {
   LuPrinter, LuRefreshCw, LuCircleAlert, LuX,
   LuSettings, LuWifi, LuWifiOff, LuShieldCheck, LuLoader,
@@ -85,17 +87,17 @@ function ModalSelecionarImpressora({ local, impressoras, onClose, sz }) {
       onClick={e => { if (e.target === e.currentTarget) onClose(false); }}
       style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(0,0,0,0.72)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter',system-ui,sans-serif" }}
     >
-      <div style={{ background: C.card, borderRadius: 20, width: "100%", maxWidth: 480, border: `1px solid ${C.border}`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", gap: 20, padding: 28, maxHeight: "85vh" }}>
+      <div style={{ background: varColor(C.card), borderRadius: 20, width: "100%", maxWidth: 480, border: `1px solid var(${C.border})`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", gap: 20, padding: 28, maxHeight: "85vh" }}>
 
         {/* Título */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>Selecionar Impressora</div>
-            <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>
+            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2 }}>
               Local: <strong>{local.nome}</strong>
             </div>
           </div>
-          <button onClick={() => onClose(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 4 }}>
+          <button onClick={() => onClose(false)} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", lineHeight: 0, padding: 4 }}>
             <LuX size={20} />
           </button>
         </div>
@@ -108,13 +110,13 @@ function ModalSelecionarImpressora({ local, impressoras, onClose, sz }) {
             style={{
               display: "flex", alignItems: "center", gap: 12,
               padding: "12px 16px", borderRadius: 12, cursor: "pointer",
-              border: `1.5px solid ${selecionada === "" ? C.red + "66" : C.border}`,
-              background: selecionada === "" ? `${C.red}08` : C.surface,
+              border: `1.5px solid ${selecionada === "" ? varColor(C.red) + "66" : varColor(C.border)}`,
+              background: selecionada === "" ? `${alfa(C.red, "08")}` : varColor(C.surface),
               textAlign: "left", fontFamily: "inherit",
             }}
           >
-            <LuX size={18} color={selecionada === "" ? C.red : C.muted} />
-            <div style={{ fontWeight: 600, fontSize: sz.fontBase, color: selecionada === "" ? C.red : C.muted }}>
+            <LuX size={18} color={selecionada === "" ? varColor(C.red) : varColor(C.muted)} />
+            <div style={{ fontWeight: 600, fontSize: sz.fontBase, color: selecionada === "" ? varColor(C.red) : varColor(C.muted) }}>
               Nenhuma (não imprimir neste local)
             </div>
           </button>
@@ -128,18 +130,18 @@ function ModalSelecionarImpressora({ local, impressoras, onClose, sz }) {
                 style={{
                   display: "flex", alignItems: "center", gap: 12,
                   padding: "12px 16px", borderRadius: 12, cursor: "pointer",
-                  border: `1.5px solid ${ativo ? C.accent : C.border}`,
-                  background: ativo ? `${C.accent}10` : C.surface,
+                  border: `1.5px solid ${ativo ? varColor(C.accent) : varColor(C.border)}`,
+                  background: ativo ? `${alfa(C.accent, "10")}` : varColor(C.surface),
                   textAlign: "left", fontFamily: "inherit",
                   transition: "border-color 0.15s, background 0.15s",
                 }}
               >
-                <LuPrinter size={18} color={ativo ? C.accent : C.muted} />
-                <div style={{ flex: 1, fontWeight: ativo ? 700 : 500, fontSize: sz.fontBase, color: ativo ? C.accent : C.text, textAlign: "left" }}>
+                <LuPrinter size={18} color={ativo ? varColor(C.accent) : varColor(C.muted)} />
+                <div style={{ flex: 1, fontWeight: ativo ? 700 : 500, fontSize: sz.fontBase, color: ativo ? varColor(C.accent) : varColor(C.text), textAlign: "left" }}>
                   {nome}
                 </div>
                 {ativo && (
-                  <LuShieldCheck size={16} color={C.accent} />
+                  <LuShieldCheck size={16} color={varColor(C.accent)} />
                 )}
               </button>
             );
@@ -147,16 +149,16 @@ function ModalSelecionarImpressora({ local, impressoras, onClose, sz }) {
         </div>
 
         {/* Ações */}
-        <div style={{ display: "flex", gap: 10, paddingTop: 4, borderTop: `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", gap: 10, paddingTop: 4, borderTop: `1px solid var(${C.border})` }}>
           <button
             onClick={() => onClose(false)}
-            style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
+            style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
           >
             Cancelar
           </button>
           <button
             onClick={salvar}
-            style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: C.accent, color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
+            style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
           >
             Confirmar
           </button>
@@ -243,17 +245,17 @@ export default function ImpressorasConfig({ sz }) {
   const renderBannerQZ = () => {
     if (status === "idle") {
       return (
-        <div style={{ padding: "16px 20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 14 }}>
-          <LuWifi size={22} color={C.muted} />
+        <div style={{ padding: "16px 20px", borderRadius: 14, background: varColor(C.surface), border: `1px solid var(${C.border})`, display: "flex", alignItems: "center", gap: 14 }}>
+          <LuWifi size={22} color={varColor(C.muted)} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Conectar ao QZ Tray</div>
-            <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2, lineHeight: 1.5 }}>
+            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2, lineHeight: 1.5 }}>
               O QZ Tray lê as impressoras instaladas no Windows e as disponibiliza para o sistema. Certifique-se de que ele está em execução neste computador.
             </div>
           </div>
           <button
             onClick={conectar}
-            style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontWeight: 700, fontSize: sz.fontSm, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
+            style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", fontWeight: 700, fontSize: sz.fontSm, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
           >
             Conectar
           </button>
@@ -263,9 +265,9 @@ export default function ImpressorasConfig({ sz }) {
 
     if (status === "conectando") {
       return (
-        <div style={{ padding: "16px 20px", borderRadius: 14, background: `${C.accent}08`, border: `1px solid ${C.accent}33`, display: "flex", alignItems: "center", gap: 14 }}>
-          <LuLoader size={20} color={C.accent} style={{ animation: "spin 1s linear infinite" }} />
-          <div style={{ fontSize: sz.fontBase, color: C.accent, fontWeight: 600 }}>Conectando ao QZ Tray…</div>
+        <div style={{ padding: "16px 20px", borderRadius: 14, background: `${alfa(C.accent, "08")}`, border: `1px solid ${alfa(C.accent, "33")}`, display: "flex", alignItems: "center", gap: 14 }}>
+          <LuLoader size={20} color={varColor(C.accent)} style={{ animation: "spin 1s linear infinite" }} />
+          <div style={{ fontSize: sz.fontBase, color: varColor(C.accent), fontWeight: 600 }}>Conectando ao QZ Tray…</div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       );
@@ -274,25 +276,25 @@ export default function ImpressorasConfig({ sz }) {
     if (status === "erro") {
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ padding: "16px 20px", borderRadius: 14, background: `${C.red}08`, border: `1px solid ${C.red}33`, display: "flex", alignItems: "flex-start", gap: 14 }}>
-            <LuWifiOff size={22} color={C.red} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ padding: "16px 20px", borderRadius: 14, background: `${alfa(C.red, "08")}`, border: `1px solid ${alfa(C.red, "33")}`, display: "flex", alignItems: "flex-start", gap: 14 }}>
+            <LuWifiOff size={22} color={varColor(C.red)} style={{ flexShrink: 0, marginTop: 2 }} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: C.red }}>QZ Tray não encontrado</div>
-              <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 4, lineHeight: 1.6 }}>{erroMsg}</div>
+              <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.red) }}>QZ Tray não encontrado</div>
+              <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4, lineHeight: 1.6 }}>{erroMsg}</div>
             </div>
             <button
               onClick={conectar}
-              style={{ padding: "8px 16px", borderRadius: 9, border: `1px solid ${C.red}44`, background: `${C.red}10`, color: C.red, fontWeight: 600, fontSize: sz.fontSm, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}
+              style={{ padding: "8px 16px", borderRadius: 9, border: `1px solid ${alfa(C.red, "44")}`, background: `${alfa(C.red, "10")}`, color: varColor(C.red), fontWeight: 600, fontSize: sz.fontSm, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}
             >
               <LuRefreshCw size={13} /> Tentar novamente
             </button>
           </div>
 
           {/* Instruções de instalação */}
-          <div style={{ padding: "16px 20px", borderRadius: 14, background: C.surface, border: `1px solid ${C.border}`, fontSize: sz.fontSm, lineHeight: 1.7, color: C.muted }}>
-            <div style={{ fontWeight: 700, color: C.text, marginBottom: 8, fontSize: sz.fontBase }}>Como instalar o QZ Tray</div>
+          <div style={{ padding: "16px 20px", borderRadius: 14, background: varColor(C.surface), border: `1px solid var(${C.border})`, fontSize: sz.fontSm, lineHeight: 1.7, color: varColor(C.muted) }}>
+            <div style={{ fontWeight: 700, color: varColor(C.text), marginBottom: 8, fontSize: sz.fontBase }}>Como instalar o QZ Tray</div>
             <ol style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4 }}>
-              <li>Acesse <strong style={{ color: C.accent }}>qz.io</strong> e baixe o instalador para Windows</li>
+              <li>Acesse <strong style={{ color: varColor(C.accent) }}>qz.io</strong> e baixe o instalador para Windows</li>
               <li>Execute a instalação (não requer configuração)</li>
               <li>O QZ Tray iniciará automaticamente na bandeja do sistema</li>
               <li>Volte aqui e clique em <strong>Tentar novamente</strong></li>
@@ -304,15 +306,15 @@ export default function ImpressorasConfig({ sz }) {
 
     if (status === "conectado") {
       return (
-        <div style={{ padding: "12px 20px", borderRadius: 14, background: `${C.green}08`, border: `1px solid ${C.green}33`, display: "flex", alignItems: "center", gap: 12 }}>
-          <LuWifi size={18} color={C.green} />
-          <div style={{ flex: 1, fontSize: sz.fontBase, color: C.green, fontWeight: 600 }}>
+        <div style={{ padding: "12px 20px", borderRadius: 14, background: `${alfa(C.green, "08")}`, border: `1px solid ${alfa(C.green, "33")}`, display: "flex", alignItems: "center", gap: 12 }}>
+          <LuWifi size={18} color={varColor(C.green)} />
+          <div style={{ flex: 1, fontSize: sz.fontBase, color: varColor(C.green), fontWeight: 600 }}>
             QZ Tray conectado · {impressoras.length} impressora{impressoras.length !== 1 ? "s" : ""} encontrada{impressoras.length !== 1 ? "s" : ""}
           </div>
           <button
             onClick={atualizar}
             title="Atualizar lista"
-            style={{ background: "none", border: `1px solid ${C.green}44`, borderRadius: 8, color: C.green, cursor: "pointer", padding: "6px 8px", lineHeight: 0 }}
+            style={{ background: "none", border: `1px solid ${alfa(C.green, "44")}`, borderRadius: 8, color: varColor(C.green), cursor: "pointer", padding: "6px 8px", lineHeight: 0 }}
           >
             <LuRefreshCw size={14} />
           </button>
@@ -322,7 +324,7 @@ export default function ImpressorasConfig({ sz }) {
   };
 
   if (loading) {
-    return <div style={{ color: C.muted, fontSize: sz.fontBase, padding: 40, textAlign: "center" }}>Carregando…</div>;
+    return <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: 40, textAlign: "center" }}>Carregando…</div>;
   }
 
   const conectado = status === "conectado";
@@ -335,14 +337,14 @@ export default function ImpressorasConfig({ sz }) {
 
       {/* Aviso de configuração por dispositivo */}
       {conectado && (
-        <div style={{ padding: "10px 16px", borderRadius: 10, background: `${C.blue}0e`, border: `1px solid ${C.blue}22`, fontSize: sz.fontSm, color: C.muted }}>
-          <strong style={{ color: C.blue }}>ℹ Por dispositivo</strong> — Esta configuração é salva localmente neste computador. Cada máquina escolhe suas próprias impressoras.
+        <div style={{ padding: "10px 16px", borderRadius: 10, background: `${alfa(C.blue, "0e")}`, border: `1px solid ${alfa(C.blue, "22")}`, fontSize: sz.fontSm, color: varColor(C.muted) }}>
+          <strong style={{ color: varColor(C.blue) }}>ℹ Por dispositivo</strong> — Esta configuração é salva localmente neste computador. Cada máquina escolhe suas próprias impressoras.
         </div>
       )}
 
       {/* Locais sem QZ conectado — mostra config salva, sem interação */}
       {locais.length === 0 ? (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: "40px 24px", textAlign: "center", color: C.muted }}>
+        <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 14, padding: "40px 24px", textAlign: "center", color: varColor(C.muted) }}>
           <LuPrinter size={32} style={{ opacity: 0.3, marginBottom: 12 }} />
           <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Nenhum local de impressão cadastrado</div>
           <div style={{ fontSize: sz.fontSm, marginTop: 4 }}>Crie locais na aba <strong>Locais de Impressão</strong> primeiro.</div>
@@ -355,8 +357,8 @@ export default function ImpressorasConfig({ sz }) {
               <div
                 key={local.id}
                 style={{
-                  background: C.card,
-                  border: `1px solid ${cfg ? C.border : C.border}`,
+                  background: varColor(C.card),
+                  border: `1px solid ${cfg ? varColor(C.border) : varColor(C.border)}`,
                   borderRadius: 14,
                   padding: `${sz.padSm + 2}px ${sz.pad}px`,
                   display: "flex", alignItems: "center", gap: 14,
@@ -364,19 +366,19 @@ export default function ImpressorasConfig({ sz }) {
                 }}
               >
                 {/* Ícone */}
-                <div style={{ width: 42, height: 42, borderRadius: 11, flexShrink: 0, background: cfg ? `${C.accent}18` : C.surface, border: `1px solid ${cfg ? C.accent + "44" : C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <LuPrinter size={19} color={cfg ? C.accent : C.muted} />
+                <div style={{ width: 42, height: 42, borderRadius: 11, flexShrink: 0, background: cfg ? `${alfa(C.accent, "18")}` : varColor(C.surface), border: `1px solid ${cfg ? varColor(C.accent) + "44" : varColor(C.border)}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <LuPrinter size={19} color={cfg ? varColor(C.accent) : varColor(C.muted)} />
                 </div>
 
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>
                     {local.nome}
-                    {!local.ativo && <span style={{ fontSize: sz.fontSm, color: C.muted, marginLeft: 8, fontWeight: 400 }}>· inativo</span>}
+                    {!local.ativo && <span style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginLeft: 8, fontWeight: 400 }}>· inativo</span>}
                   </div>
-                  <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {cfg
-                      ? <span style={{ color: C.accent, fontWeight: 600 }}>{cfg.nome}</span>
+                      ? <span style={{ color: varColor(C.accent), fontWeight: 600 }}>{cfg.nome}</span>
                       : "Sem impressora configurada"
                     }
                   </div>
@@ -384,11 +386,11 @@ export default function ImpressorasConfig({ sz }) {
 
                 {/* Badge */}
                 {cfg ? (
-                  <span style={{ fontSize: sz.fontSm - 1, fontWeight: 700, background: `${C.green}15`, border: `1px solid ${C.green}44`, color: C.green, padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: sz.fontSm - 1, fontWeight: 700, background: `${alfa(C.green, "15")}`, border: `1px solid ${alfa(C.green, "44")}`, color: varColor(C.green), padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
                     Configurada
                   </span>
                 ) : (
-                  <span style={{ fontSize: sz.fontSm - 1, fontWeight: 700, background: C.surface, border: `1px solid ${C.border}`, color: C.muted, padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: sz.fontSm - 1, fontWeight: 700, background: varColor(C.surface), border: `1px solid var(${C.border})`, color: varColor(C.muted), padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
                     Pendente
                   </span>
                 )}
@@ -407,9 +409,9 @@ export default function ImpressorasConfig({ sz }) {
                         style={{
                           display: "flex", alignItems: "center", gap: 6,
                           padding: "8px 13px", borderRadius: 9,
-                          border: `1.5px solid ${st === "ok" ? C.green + "66" : st === "erro" ? C.red + "66" : C.border}`,
-                          background: st === "ok" ? `${C.green}0f` : st === "erro" ? `${C.red}0f` : C.surface,
-                          color: st === "ok" ? C.green : st === "erro" ? C.red : C.muted,
+                          border: `1.5px solid ${st === "ok" ? varColor(C.green) + "66" : st === "erro" ? varColor(C.red) + "66" : varColor(C.border)}`,
+                          background: st === "ok" ? `${alfa(C.green, "0f")}` : st === "erro" ? `${alfa(C.red, "0f")}` : varColor(C.surface),
+                          color: st === "ok" ? varColor(C.green) : st === "erro" ? varColor(C.red) : varColor(C.muted),
                           cursor: ocupado ? "not-allowed" : "pointer",
                           fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit",
                           transition: "border-color 0.15s, background 0.15s",
@@ -432,7 +434,7 @@ export default function ImpressorasConfig({ sz }) {
                     <button
                       onClick={() => removerConfig(local.id)}
                       title="Remover impressora"
-                      style={{ padding: "7px 9px", borderRadius: 8, border: `1px solid ${C.red}33`, background: `${C.red}0a`, color: C.red, cursor: "pointer", lineHeight: 0 }}
+                      style={{ padding: "7px 9px", borderRadius: 8, border: `1px solid ${alfa(C.red, "33")}`, background: `${alfa(C.red, "0a")}`, color: varColor(C.red), cursor: "pointer", lineHeight: 0 }}
                     >
                       <LuX size={14} />
                     </button>
@@ -440,9 +442,9 @@ export default function ImpressorasConfig({ sz }) {
                   <button
                     onClick={() => conectado ? setModal(local) : conectar()}
                     disabled={status === "conectando"}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: `1.5px solid ${conectado ? C.border : C.accent + "66"}`, background: conectado ? C.surface : `${C.accent}08`, color: conectado ? C.text : C.accent, cursor: status === "conectando" ? "not-allowed" : "pointer", fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit", transition: "border-color 0.15s" }}
-                    onMouseEnter={e => { if (conectado) e.currentTarget.style.borderColor = C.accent + "66"; }}
-                    onMouseLeave={e => { if (conectado) e.currentTarget.style.borderColor = C.border; }}
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: `1.5px solid ${conectado ? varColor(C.border) : varColor(C.accent) + "66"}`, background: conectado ? varColor(C.surface) : `${alfa(C.accent, "08")}`, color: conectado ? varColor(C.text) : varColor(C.accent), cursor: status === "conectando" ? "not-allowed" : "pointer", fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit", transition: "border-color 0.15s" }}
+                    onMouseEnter={e => { if (conectado) e.currentTarget.style.borderColor = varColor(C.accent) + "66"; }}
+                    onMouseLeave={e => { if (conectado) e.currentTarget.style.borderColor = varColor(C.border); }}
                   >
                     <LuSettings size={14} />
                     {conectado ? (cfg ? "Trocar" : "Selecionar") : "Conectar QZ"}

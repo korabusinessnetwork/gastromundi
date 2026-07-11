@@ -35,6 +35,7 @@ describe("mapearVendaParaLinhas", () => {
       valor_ajuste: -2,
       total: 53,
       cashier: "Maria",
+      cliente_id: null,
       at: "2026-07-04T12:00:00.000Z",
     });
 
@@ -109,6 +110,7 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       valorAjuste: -2,
       total: 53,
       cashier: "Maria",
+      clienteId: null,
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 1, name: "Hambúrguer", price: 30, qty: 1, cancelado: false, motivoCancelamento: null, canceladoPor: null },
@@ -136,6 +138,7 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       valorAjuste: 0,
       total: 10,
       cashier: null,
+      clienteId: null,
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 1, name: "Água", price: 5, qty: 2, cancelado: false, motivoCancelamento: null, canceladoPor: null },
@@ -159,11 +162,36 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       valorAjuste: 0,
       total: 0,
       cashier: "joao",
+      clienteId: null,
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 4, name: "Pizza", price: 40, qty: 1, cancelado: true, motivoCancelamento: "Pedido errado", canceladoPor: "joao" },
       ],
       pagamentos: [],
+    };
+
+    const reconstruida = montarVendaLegada(mapearVendaParaLinhas(original));
+
+    expect(reconstruida).toEqual(original);
+  });
+
+  it("preserva o vínculo com o cliente (F010) na ida e volta", () => {
+    const original = {
+      id: "vr4",
+      comanda: "9",
+      mesa: null,
+      subtotal: 30,
+      taxaServico: false,
+      valorTaxa: 0,
+      valorAjuste: 0,
+      total: 30,
+      cashier: "joao",
+      clienteId: "cli-123",
+      at: "2026-07-04T12:00:00.000Z",
+      items: [
+        { id: 1, name: "Suco", price: 30, qty: 1, cancelado: false, motivoCancelamento: null, canceladoPor: null },
+      ],
+      pagamentos: [{ metodo: "fiado", valor: 30 }],
     };
 
     const reconstruida = montarVendaLegada(mapearVendaParaLinhas(original));

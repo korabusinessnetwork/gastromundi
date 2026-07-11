@@ -11,7 +11,7 @@ A Cozinha consome os pedidos criados no fluxo de venda (decisão 009): assim que
 - Cada comanda (`OrderTicket`) mostra itens, observações, horário e **tempo decorrido**.
 - A cozinha avança o status: iniciar preparo (`em preparo`) e concluir (`pronto`); isso atualiza o Pedido (ver `PEDIDOS.md`).
 - **Priorização** por ordem de chegada (FIFO) por padrão; atraso (SLA estourado) destaca a comanda.
-- Itens não produzíveis (ex.: refrigerante) podem ser configurados para não entrar no KDS.
+- Itens não produzíveis (ex.: refrigerante) podem ser configurados para não entrar no KDS — `products.produzivel` (F015, `20260721_produtos_produzivel.sql`) já existe e é respeitado pela **via de produção impressa**; o KDS em tela ainda mostra todos os itens ativos (filtro visual no painel fica para a Fase 3/roadmap).
 
 ## Validações
 - Só exibe pedidos em estados de produção (`criado`/`em preparo`); pedidos `entregue`/`cancelado` saem do painel.
@@ -26,7 +26,7 @@ A Cozinha consome os pedidos criados no fluxo de venda (decisão 009): assim que
 
 ## Exceções
 - Comanda atrasada (acima do SLA) recebe destaque visual e alerta ao gerente/Jarvas.
-- Falha de exibição (tela offline) não pode impedir a produção — fallback de impressão é roadmap.
+- Falha de exibição (tela offline) não pode impedir a produção — via de produção impressa (F015) cobre esse caso: botão "Imprimir via de produção" por comanda no próprio KDS.
 
 ## Auditoria
 - Registrar: horários de início e conclusão de preparo por pedido/item e quem executou.
@@ -58,4 +58,5 @@ A Cozinha consome os pedidos criados no fluxo de venda (decisão 009): assim que
 |------|-----------|--------|
 | 1 | KDS (`src/components/desktop/views/CozinhaView.jsx`) com 3 colunas por status (`aguardando`/`em_preparo`/`pronto`) — cada card mostra comanda/mesa, itens, observações e tempo decorrido, com destaque visual para atrasados (SLA fixo de 15min nesta fase, `SLA_MINUTOS_PADRAO` em `src/lib/cozinha.js`). Ações `iniciarPreparo`/`marcarPronto` (`src/lib/cozinha.js`) fazem a transição com guard otimista (evita duas estações avançarem a mesma comanda) e emitem `pedido.em_preparo`/`pedido.pronto` + log de auditoria. Realtime via `usePedidosCozinha` (`src/utils/hooks.js`, mesmo padrão de `useMesas`). **Nota de modelagem:** o "pedido" aqui é a própria comanda em `public.pending` (colunas `status_cozinha`/`em_preparo_em`/`pronto_em`, migração `20260711_cozinha_kds.sql`) — não existe tabela `pedidos`/`pedido_itens` separada como `docs/09_BACKLOG/mvp_operacional.md` descreve (modelo-alvo, não o estado atual; ver ADR-004). | ✅ 2026-07-06 |
 | 2 | Múltiplas estações de produção, roteamento de itens por estação, SLA configurável por produto/estabelecimento | Pendente |
-| 3 | Métricas de tempo médio por item, fallback de impressão, itens não produzíveis configuráveis para não entrar no KDS | Roadmap |
+| 3 | Métricas de tempo médio por item, itens não produzíveis configuráveis para não entrar no KDS **em tela** (o dado já existe via `products.produzivel`, só falta o filtro visual no painel) | Roadmap |
+| F015 | Via de produção impressa (`src/lib/impressao.js` → `montarViaProducao`, botão por comanda no KDS) — enxuta, sem preço, só itens produzíveis; fallback de impressão para quando a tela está indisponível | ✅ 2026-07-06 |

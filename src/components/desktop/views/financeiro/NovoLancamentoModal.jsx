@@ -1,11 +1,10 @@
 import { useState } from "react";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { criarLancamento } from "@/lib/financeiro";
+import "./NovoLancamentoModal.css";
 
 const CATEGORIAS = ["aluguel", "insumos", "salarios", "outros"];
-
-const labelStyle = { display: "block", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 };
-const inputStyle = { width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontFamily: "inherit", fontSize: 14, boxSizing: "border-box", outline: "none" };
 
 export default function NovoLancamentoModal({ usuario, onCreated, onClose }) {
   const [tipo,        setTipo]        = useState("despesa");
@@ -50,23 +49,22 @@ export default function NovoLancamentoModal({ usuario, onCreated, onClose }) {
   return (
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 400, padding: 16 }}
+      className="novo-lancamento__overlay"
     >
-      <div style={{ background: C.card, borderRadius: 20, padding: 28, width: "100%", maxWidth: 440, boxSizing: "border-box", border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 16, maxHeight: "92vh", overflowY: "auto" }}>
-        <div style={{ fontWeight: 800, fontSize: 18 }}>Novo Lançamento</div>
+      <div className="novo-lancamento__modal">
+        <div className="novo-lancamento__titulo">Novo Lançamento</div>
 
         {/* Tipo */}
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="novo-lancamento__tipos">
           {[["despesa", "Despesa"], ["receita", "Receita"]].map(([id, label]) => (
             <button
               key={id}
               onClick={() => handleTipo(id)}
+              className="novo-lancamento__tipo-btn"
               style={{
-                flex: 1, padding: "10px 0", borderRadius: 10,
-                border: `1.5px solid ${tipo === id ? C.accent : C.border}`,
-                background: tipo === id ? C.alow : "none",
-                color: tipo === id ? C.accent : C.muted,
-                fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 14,
+                borderColor: tipo === id ? varColor(C.accent) : varColor(C.border),
+                background: tipo === id ? "var(--gm-alow)" : "none",
+                color: tipo === id ? varColor(C.accent) : varColor(C.muted),
               }}
             >
               {label}
@@ -75,50 +73,51 @@ export default function NovoLancamentoModal({ usuario, onCreated, onClose }) {
         </div>
 
         <div>
-          <label htmlFor="fin-categoria" style={labelStyle}>Categoria</label>
-          <select id="fin-categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} style={inputStyle}>
+          <label htmlFor="fin-categoria" className="novo-lancamento__label">Categoria</label>
+          <select id="fin-categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} className="novo-lancamento__input">
             {CATEGORIAS.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
         <div>
-          <label htmlFor="fin-descricao" style={labelStyle}>Descrição (opcional)</label>
-          <input id="fin-descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} maxLength={200} style={inputStyle} />
+          <label htmlFor="fin-descricao" className="novo-lancamento__label">Descrição (opcional)</label>
+          <input id="fin-descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} maxLength={200} className="novo-lancamento__input" />
         </div>
 
         <div>
-          <label htmlFor="fin-valor" style={labelStyle}>Valor (R$)</label>
-          <input id="fin-valor" type="number" min="0" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} style={inputStyle} />
+          <label htmlFor="fin-valor" className="novo-lancamento__label">Valor (R$)</label>
+          <input id="fin-valor" type="number" min="0" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} className="novo-lancamento__input" />
         </div>
 
-        <div style={{ display: "flex", gap: 12 }}>
+        <div className="novo-lancamento__linha-dupla">
           <div style={{ flex: 1 }}>
-            <label htmlFor="fin-competencia" style={labelStyle}>Competência</label>
-            <input id="fin-competencia" type="date" value={competencia} onChange={(e) => setCompetencia(e.target.value)} style={inputStyle} />
+            <label htmlFor="fin-competencia" className="novo-lancamento__label">Competência</label>
+            <input id="fin-competencia" type="date" value={competencia} onChange={(e) => setCompetencia(e.target.value)} className="novo-lancamento__input" />
           </div>
           <div style={{ flex: 1 }}>
-            <label htmlFor="fin-vencimento" style={labelStyle}>Vencimento</label>
-            <input id="fin-vencimento" type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} style={inputStyle} />
+            <label htmlFor="fin-vencimento" className="novo-lancamento__label">Vencimento</label>
+            <input id="fin-vencimento" type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} className="novo-lancamento__input" />
           </div>
         </div>
 
         <div>
-          <label htmlFor="fin-status" style={labelStyle}>Status</label>
-          <select id="fin-status" value={status} onChange={(e) => setStatus(e.target.value)} style={inputStyle}>
+          <label htmlFor="fin-status" className="novo-lancamento__label">Status</label>
+          <select id="fin-status" value={status} onChange={(e) => setStatus(e.target.value)} className="novo-lancamento__input">
             {statusOptions.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
           </select>
         </div>
 
-        {erro && <div style={{ color: C.red, fontSize: 13, fontWeight: 600 }}>{erro}</div>}
+        {erro && <div className="novo-lancamento__erro">{erro}</div>}
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: 13, borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontFamily: "inherit", fontSize: 14 }}>
+        <div className="novo-lancamento__botoes">
+          <button onClick={onClose} className="novo-lancamento__btn-cancelar">
             Cancelar
           </button>
           <button
             onClick={handleSalvar}
             disabled={salvando}
-            style={{ flex: 2, padding: 13, borderRadius: 10, border: "none", background: salvando ? C.faint : C.accent, color: "#fff", cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700, fontFamily: "inherit", fontSize: 14 }}
+            className="novo-lancamento__btn-salvar"
+            style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}
           >
             {salvando ? "Salvando..." : "Salvar Lançamento"}
           </button>

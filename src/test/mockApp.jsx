@@ -51,6 +51,17 @@ export function createAppMockValue(overrides = {}) {
     caixaAberto: true,
     sessaoAbertaEm: null,
     meiosPagamento: ["dinheiro", "credito", "debito", "pix"],
+    // Fase 2 — camada de comercialização: por padrão nos testes, todos os
+    // módulos habilitados (equivalente ao tenant real hoje, plano avançado)
+    // — sobrescreva `tenant`/`moduloHabilitado` nos testes de gating.
+    tenant: { id: "t1", nome: "GastroMundi", tema: {}, planoCodigo: "avancado", modulosDisponiveis: null, addonsAtivos: [] },
+    moduloHabilitado: () => true,
+    // Fase 3 — add-ons: por padrão nos testes, nenhum ativo (igual ao tenant
+    // real hoje) — sobrescreva `addonHabilitado` nos testes de NF-e/TEF.
+    addonHabilitado: () => false,
+    // Fase 4 — billing: por padrão nos testes, assinatura ativa e em dia
+    // (igual ao tenant real hoje) — sobrescreva `assinatura` nos testes de banner.
+    assinatura: { status: "ativo", diasParaVencer: 30, carenciaDias: 3, valorMensal: 0, dataVencimento: null },
     estoque: {},
     estoqueMinimos: {},
     currentUser: { id: 1, name: "Operador Teste", username: "teste", role: "admin", permissions: {} },

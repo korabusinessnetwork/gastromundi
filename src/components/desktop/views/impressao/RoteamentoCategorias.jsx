@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
 import { LuCheck, LuTriangleAlert, LuLayoutGrid } from "react-icons/lu";
 
 export default function RoteamentoCategorias({ sz }) {
@@ -71,42 +73,42 @@ export default function RoteamentoCategorias({ sz }) {
   }
 
   if (loading) {
-    return <div style={{ color: C.muted, fontSize: sz.fontSm, padding: "40px 0", textAlign: "center" }}>Carregando…</div>;
+    return <div style={{ color: varColor(C.muted), fontSize: sz.fontSm, padding: "40px 0", textAlign: "center" }}>Carregando…</div>;
   }
 
   return (
     <div style={{ maxWidth: 720 }}>
       <div style={{ marginBottom: sz.pad }}>
         <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Roteamento por Categoria</div>
-        <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>
+        <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2 }}>
           Defina para onde cada categoria de produto deve ser impressa. A alteração é salva automaticamente.
         </div>
       </div>
 
       {erro && (
-        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: `${C.red}12`, border: `1px solid ${C.red}33`, color: C.red, fontSize: sz.fontSm, display: "flex", gap: 8 }}>
+        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "33")}`, color: varColor(C.red), fontSize: sz.fontSm, display: "flex", gap: 8 }}>
           <LuTriangleAlert size={15} style={{ flexShrink: 0, marginTop: 1 }} /> {erro}
         </div>
       )}
 
       {locais.length === 0 && (
-        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: `${C.accent}10`, border: `1px solid ${C.accent}33`, color: C.accent, fontSize: sz.fontSm }}>
+        <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 8, background: `${alfa(C.accent, "10")}`, border: `1px solid ${alfa(C.accent, "33")}`, color: varColor(C.accent), fontSize: sz.fontSm }}>
           Nenhum local de impressão ativo cadastrado. Crie locais na aba "Locais de Impressão" primeiro.
         </div>
       )}
 
       {categorias.length === 0 ? (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "40px 24px", textAlign: "center", color: C.muted }}>
+        <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 12, padding: "40px 24px", textAlign: "center", color: varColor(C.muted) }}>
           <LuLayoutGrid size={32} style={{ opacity: 0.3, marginBottom: 12 }} />
           <div style={{ fontWeight: 600, fontSize: sz.fontBase }}>Nenhuma categoria encontrada</div>
           <div style={{ fontSize: sz.fontSm, marginTop: 4 }}>Cadastre produtos com categoria para configurar o roteamento.</div>
         </div>
       ) : (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 12, overflow: "hidden" }}>
           {/* Cabeçalho da tabela */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 220px 32px", gap: 0, padding: "10px 20px", borderBottom: `1px solid ${C.border}`, background: C.surface }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>Categoria</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>Destino de impressão</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 220px 32px", gap: 0, padding: "10px 20px", borderBottom: `1px solid var(${C.border})`, background: varColor(C.surface) }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1 }}>Categoria</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1 }}>Destino de impressão</div>
             <div />
           </div>
 
@@ -117,13 +119,13 @@ export default function RoteamentoCategorias({ sz }) {
                 display: "grid", gridTemplateColumns: "1fr 220px 32px",
                 alignItems: "center", gap: 12,
                 padding: "12px 20px",
-                borderBottom: i < categorias.length - 1 ? `1px solid ${C.border}` : "none",
-                background: salvando[cat] ? `${C.accent}05` : "transparent",
+                borderBottom: i < categorias.length - 1 ? `1px solid var(${C.border})` : "none",
+                background: salvando[cat] ? `${alfa(C.accent, "05")}` : "transparent",
                 transition: "background 0.2s",
               }}
             >
               {/* Nome da categoria */}
-              <div style={{ fontWeight: 600, fontSize: sz.fontBase, color: C.text }}>
+              <div style={{ fontWeight: 600, fontSize: sz.fontBase, color: varColor(C.text) }}>
                 {cat}
               </div>
 
@@ -134,8 +136,8 @@ export default function RoteamentoCategorias({ sz }) {
                 disabled={salvando[cat] || locais.length === 0}
                 style={{
                   width: "100%", padding: "8px 12px", borderRadius: 8,
-                  border: `1.5px solid ${C.border}`,
-                  background: C.surface, color: C.text,
+                  border: `1.5px solid var(${C.border})`,
+                  background: varColor(C.surface), color: varColor(C.text),
                   fontSize: sz.fontSm, fontFamily: "inherit",
                   cursor: locais.length === 0 ? "not-allowed" : "pointer",
                   outline: "none", appearance: "none",
@@ -154,7 +156,7 @@ export default function RoteamentoCategorias({ sz }) {
               {/* Feedback salvo */}
               <div style={{ display: "flex", justifyContent: "center" }}>
                 {salvo[cat] && (
-                  <LuCheck size={16} color={C.green} />
+                  <LuCheck size={16} color={varColor(C.green)} />
                 )}
               </div>
             </div>

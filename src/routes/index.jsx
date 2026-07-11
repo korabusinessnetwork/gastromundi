@@ -15,6 +15,8 @@ import EstoquePage        from "@/pages/desktop/EstoquePage";
 import FinanceiroPage     from "@/pages/desktop/FinanceiroPage";
 import CozinhaPage        from "@/pages/desktop/CozinhaPage";
 import AdminPage          from "@/pages/desktop/AdminPage";
+import ClientesPage       from "@/pages/desktop/ClientesPage";
+import MODULOS from "@/constants/modulos";
 
 const router = createBrowserRouter([
   // Raiz → redireciona baseado no estado de auth (tratado no LoginPage)
@@ -66,7 +68,7 @@ const router = createBrowserRouter([
       {
         path: "produtos",
         element: (
-          <PrivateRoute requiredPermission="produtos">
+          <PrivateRoute requiredPermission="produtos" requiredModulo={MODULOS.CARDAPIO} moduloLabel="Cadastro de Produtos">
             <ProdutosPage />
           </PrivateRoute>
         ),
@@ -74,7 +76,7 @@ const router = createBrowserRouter([
       {
         path: "relatorio",
         element: (
-          <PrivateRoute requiredPermission="relatorio">
+          <PrivateRoute requiredPermission="relatorio" requiredModulo={MODULOS.RELATORIOS} moduloLabel="Relatórios">
             <RelatorioPage />
           </PrivateRoute>
         ),
@@ -90,7 +92,7 @@ const router = createBrowserRouter([
       {
         path: "estoque",
         element: (
-          <PrivateRoute requiredPermission="estoque">
+          <PrivateRoute requiredPermission="estoque" requiredModulo={MODULOS.ESTOQUE} moduloLabel="Estoque">
             <EstoquePage />
           </PrivateRoute>
         ),
@@ -98,7 +100,7 @@ const router = createBrowserRouter([
       {
         path: "financeiro",
         element: (
-          <PrivateRoute requiredPermission="financeiro">
+          <PrivateRoute requiredPermission="financeiro" requiredModulo={MODULOS.FINANCEIRO} moduloLabel="Financeiro">
             <FinanceiroPage />
           </PrivateRoute>
         ),
@@ -106,8 +108,16 @@ const router = createBrowserRouter([
       {
         path: "cozinha",
         element: (
-          <PrivateRoute requiredPermission="cozinha">
+          <PrivateRoute requiredPermission="cozinha" requiredModulo={MODULOS.COZINHA} moduloLabel="Cozinha">
             <CozinhaPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "clientes",
+        element: (
+          <PrivateRoute requiredPermission="clientes" requiredModulo={MODULOS.CLIENTES} moduloLabel="Clientes">
+            <ClientesPage />
           </PrivateRoute>
         ),
       },

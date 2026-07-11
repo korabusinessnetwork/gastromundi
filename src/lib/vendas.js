@@ -23,6 +23,7 @@ export function mapearVendaParaLinhas(sale) {
     valor_ajuste: sale.valorAjuste ?? 0,
     total: sale.total ?? 0,
     cashier: sale.cashier ?? null,
+    cliente_id: sale.clienteId ?? null, // F010 — vínculo opcional ao cliente
     ...(sale.at ? { at: sale.at } : {}),
   };
 
@@ -73,6 +74,7 @@ export function montarVendaLegada({ venda, itens, pagamentos }) {
     valorAjuste: venda.valor_ajuste ?? 0,
     total: venda.total ?? 0,
     cashier: venda.cashier ?? null,
+    clienteId: venda.cliente_id ?? null,
     at: venda.at,
     items: (itens ?? []).map((item) => ({
       id: item.product_id ?? null,

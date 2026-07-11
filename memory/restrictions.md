@@ -64,6 +64,13 @@ Restrições existem para proteger o produto, os usuários e o negócio. Ignorá
 - Dados de clientes de um tenant **nunca** podem vazar para outro tenant (isolamento multi-tenant é requisito legal e de confiança).
 - Logs e auditoria **não** devem conter dados pessoais sensíveis em texto claro.
 
+## Restrições de Custo (fase atual — bootstrap)
+
+- **Prioridade a meios gratuitos.** Enquanto o projeto está em fase de construção/pré-receita, toda implementação deve usar ferramentas, serviços e tiers **gratuitos**. Nada que exija investimento financeiro para rodar entra agora **por padrão**.
+- **Toda implementação com custo é adiada (jogada pra frente)** salvo decisão explícita do dono. Exemplos de itens pagos a adiar: gateways de pagamento, TEF/maquininha (F017), emissão fiscal (NF-e/NFC-e com provedor pago), SMS/e-mail transacional pago, monitoramento pago (Sentry etc.), APIs de IA que gerem custo acima do necessário.
+- **Avaliar importância antes de adiar cegamente.** Ao encontrar um item que exige gasto, o assistente deve apresentar: (1) o que custa e quanto (aprox.), (2) se existe alternativa gratuita viável, (3) a importância/impacto no produto e nas vendas, e (4) recomendação de investir **agora** ou **mais pra frente** — para o dono decidir. Não é bloqueio automático; é decisão informada.
+- Antes de propor qualquer dependência/serviço novo, verificar se há opção gratuita ou self-hosted (ex.: Supabase free tier, Vercel free tier, libs open-source) que atenda o momento.
+
 ## Restrições de Produto
 
 - GastroMundi **não** é um PDV isolado nem um ERP complexo, e o Jarvas **não** é um chatbot genérico — propostas que desviem do foco em gestão integrada de restaurante-varejo (a partir da venda) exigem ADR.

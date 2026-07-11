@@ -8,6 +8,8 @@ import { useResponsive, useMesas } from "@/utils/hooks";
 import { totalPorMetodo } from "@/utils/pagamentos";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
 import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
@@ -431,15 +433,15 @@ export default function PDVView() {
     return (
       <div style={{
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        height: "100vh", background: C.bg, gap: 16, fontFamily: "'Inter',system-ui,sans-serif",
-        color: C.text, userSelect: "none",
+        height: "100vh", background: varColor(C.bg), gap: 16, fontFamily: "'Inter',system-ui,sans-serif",
+        color: varColor(C.text), userSelect: "none",
       }}>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 24, padding: "48px 56px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, maxWidth: 420, textAlign: "center" }}>
-          <div style={{ background: `${C.accent}1a`, borderRadius: "50%", width: 80, height: 80, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <LuLock size={36} color={C.accent} />
+        <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 24, padding: "48px 56px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, maxWidth: 420, textAlign: "center" }}>
+          <div style={{ background: `${alfa(C.accent, "1a")}`, borderRadius: "50%", width: 80, height: 80, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <LuLock size={36} color={varColor(C.accent)} />
           </div>
           <div style={{ fontWeight: 900, fontSize: sz.fontLg + 4 }}>Caixa Fechado</div>
-          <div style={{ fontSize: sz.fontBase, color: C.muted, lineHeight: 1.6 }}>
+          <div style={{ fontSize: sz.fontBase, color: varColor(C.muted), lineHeight: 1.6 }}>
             O caixa está fechado. Para realizar operações na frente de caixa, solicite ao responsável que abra o caixa.
           </div>
         </div>
@@ -448,12 +450,12 @@ export default function PDVView() {
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: C.bg, flexDirection: "column" }}>
+    <div style={{ display: "flex", height: "100vh", background: varColor(C.bg), flexDirection: "column" }}>
 
       {/* ── Header (oculto no checkout — ele tem o próprio) ─────── */}
       {mode !== "checkout" && (
         <div style={{
-          padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`,
+          padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})`,
           display: "grid",
           gridTemplateColumns: "1fr auto 1fr",
           alignItems: "center",
@@ -466,9 +468,9 @@ export default function PDVView() {
               <button
                 onClick={handleBack}
                 style={{
-                  background: C.surface,
-                  border: `1.5px solid ${C.border}`,
-                  borderRadius: 10, color: C.text,
+                  background: varColor(C.surface),
+                  border: `1.5px solid var(${C.border})`,
+                  borderRadius: 10, color: varColor(C.text),
                   cursor: "pointer",
                   padding: `${sz.padSm - 2}px ${sz.padSm + 2}px`,
                   fontWeight: 700, fontSize: sz.fontBase,
@@ -476,14 +478,14 @@ export default function PDVView() {
                   transition: "background 0.15s, border-color 0.15s", whiteSpace: "nowrap",
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = C.accent;
-                  e.currentTarget.style.borderColor = C.accent;
+                  e.currentTarget.style.background = varColor(C.accent);
+                  e.currentTarget.style.borderColor = varColor(C.accent);
                   e.currentTarget.style.color = "#fff";
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = C.surface;
-                  e.currentTarget.style.borderColor = C.border;
-                  e.currentTarget.style.color = C.text;
+                  e.currentTarget.style.background = varColor(C.surface);
+                  e.currentTarget.style.borderColor = varColor(C.border);
+                  e.currentTarget.style.color = varColor(C.text);
                 }}
               >
                 <LuArrowLeft size={16} /> Voltar
@@ -494,7 +496,7 @@ export default function PDVView() {
                 <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2 }}>
                   {mode === "pedido" ? fmtComanda(selected?.comanda) : "Frente de Caixa"}
                 </div>
-                <div style={{ color: C.muted, fontSize: sz.fontBase, marginTop: 2 }}>
+                <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, marginTop: 2 }}>
                   {mode === "pedido"
                     ? <>
                         {selected?.mesa && <span style={{ marginRight: 6 }}>🪑 Mesa {selected.mesa}{selected?.apelido ? ` · ${selected.apelido}` : ""} ·</span>}
@@ -510,12 +512,12 @@ export default function PDVView() {
                   style={{
                     display: "flex", alignItems: "center", gap: 7,
                     padding: `${sz.padSm - 2}px ${sz.pad - 4}px`, borderRadius: 10,
-                    border: `1px solid ${C.border}`, background: C.surface,
-                    color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase,
+                    border: `1px solid var(${C.border})`, background: varColor(C.surface),
+                    color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase,
                     transition: "background 0.15s, color 0.15s, border-color 0.15s", whiteSpace: "nowrap",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = C.card; e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.accent + "66"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.color = C.muted; e.currentTarget.style.borderColor = C.border; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = varColor(C.card); e.currentTarget.style.color = varColor(C.text); e.currentTarget.style.borderColor = varColor(C.accent) + "66"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.color = varColor(C.muted); e.currentTarget.style.borderColor = varColor(C.border); }}
                 >
                   <LuChartBar size={15} /> Saldo do Dia
                 </button>
@@ -532,8 +534,8 @@ export default function PDVView() {
           {(mode === "mapa" || mode === "grid") && (
             <div style={{
               display: "flex", alignItems: "center", gap: 8,
-              background: `${C.green}18`, border: `1px solid ${C.green}44`,
-              color: C.green, borderRadius: 10, padding: "9px 16px",
+              background: `${alfa(C.green, "18")}`, border: `1px solid ${alfa(C.green, "44")}`,
+              color: varColor(C.green), borderRadius: 10, padding: "9px 16px",
               fontWeight: 700, fontSize: 17,
               pointerEvents: "none",
               transition: "opacity 0.3s, transform 0.3s",
@@ -549,7 +551,7 @@ export default function PDVView() {
               disabled={!caixaAberto}
               style={{
                 padding: `${sz.padSm - 2}px ${sz.pad}px`, borderRadius: 10, border: "none",
-                background: caixaAberto ? C.accent : C.faint,
+                background: caixaAberto ? varColor(C.accent) : varColor(C.faint),
                 color: "#fff", fontWeight: 700, fontSize: sz.fontBase,
                 cursor: caixaAberto ? "pointer" : "not-allowed",
                 display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
@@ -572,9 +574,9 @@ export default function PDVView() {
                       {barcodeFeedback && (
                         <span style={{
                           fontSize: 13, fontWeight: 700, padding: "4px 10px", borderRadius: 8,
-                          background: barcodeFeedback === "ok" ? `${C.green}18` : `${C.red}18`,
-                          color: barcodeFeedback === "ok" ? C.green : C.red,
-                          border: `1px solid ${barcodeFeedback === "ok" ? C.green : C.red}44`,
+                          background: barcodeFeedback === "ok" ? `${alfa(C.green, "18")}` : `${alfa(C.red, "18")}`,
+                          color: barcodeFeedback === "ok" ? varColor(C.green) : varColor(C.red),
+                          border: `1px solid ${barcodeFeedback === "ok" ? varColor(C.green) : varColor(C.red)}44`,
                           whiteSpace: "nowrap",
                         }}>
                           {barcodeFeedback === "ok" ? "✓ Item adicionado" : "Código não encontrado"}
@@ -587,9 +589,9 @@ export default function PDVView() {
                         title="Scanner de código de barras"
                         style={{
                           padding: "10px 14px", borderRadius: 10,
-                          border: `1.5px solid ${barcodeInputOpen ? C.accent : C.border}`,
-                          background: barcodeInputOpen ? `${C.accent}12` : C.surface,
-                          color: barcodeInputOpen ? C.accent : C.muted,
+                          border: `1.5px solid ${barcodeInputOpen ? varColor(C.accent) : varColor(C.border)}`,
+                          background: barcodeInputOpen ? `${alfa(C.accent, "12")}` : varColor(C.surface),
+                          color: barcodeInputOpen ? varColor(C.accent) : varColor(C.muted),
                           cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
                           fontWeight: 700, fontSize: 15, fontFamily: "inherit",
                           transition: "all 0.15s",
@@ -612,20 +614,20 @@ export default function PDVView() {
                           maxLength={64}
                           style={{
                             width: 220, padding: "8px 12px",
-                            borderRadius: 9, border: `1.5px solid ${C.border}`,
-                            background: C.surface, color: C.text,
+                            borderRadius: 9, border: `1.5px solid var(${C.border})`,
+                            background: varColor(C.surface), color: varColor(C.text),
                             fontSize: 14, fontFamily: "inherit", outline: "none",
                             boxSizing: "border-box",
                           }}
-                          onFocus={e => { e.currentTarget.style.borderColor = C.accent; }}
-                          onBlur={e => { e.currentTarget.style.borderColor = C.border; }}
+                          onFocus={e => { e.currentTarget.style.borderColor = varColor(C.accent); }}
+                          onBlur={e => { e.currentTarget.style.borderColor = varColor(C.border); }}
                         />
                         <button
                           type="button"
                           onClick={() => handleBarcodeScan(barcodeValue.trim())}
                           style={{
                             padding: "8px 14px", borderRadius: 9, border: "none",
-                            background: barcodeValue.trim() ? C.accent : C.faint,
+                            background: barcodeValue.trim() ? varColor(C.accent) : varColor(C.faint),
                             color: "#fff", cursor: barcodeValue.trim() ? "pointer" : "not-allowed",
                             fontWeight: 700, fontSize: 14, fontFamily: "inherit",
                           }}
@@ -643,15 +645,15 @@ export default function PDVView() {
                   title="Editar mesa e apelido"
                   style={{
                     padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
-                    border: `1px solid ${C.border}`,
-                    background: C.surface,
-                    color: C.muted, fontWeight: 700, fontSize: sz.fontBase,
+                    border: `1px solid var(${C.border})`,
+                    background: varColor(C.surface),
+                    color: varColor(C.muted), fontWeight: 700, fontSize: sz.fontBase,
                     cursor: "pointer",
                     display: "flex", alignItems: "center", gap: 6,
                     transition: "background 0.15s, color 0.15s", whiteSpace: "nowrap",
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = C.card; e.currentTarget.style.color = C.text; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.color = C.muted; }}
+                  onMouseEnter={e => { e.currentTarget.style.background = varColor(C.card); e.currentTarget.style.color = varColor(C.text); }}
+                  onMouseLeave={e => { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.color = varColor(C.muted); }}
                 >
                   <LuPencil size={sz.fontBase - 2} />
                   {selected?.mesa ? `Mesa ${selected.mesa}` : "Mesa"}
@@ -663,15 +665,15 @@ export default function PDVView() {
                     onClick={abrirTransferir}
                     style={{
                       padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
-                      border: `1px solid ${C.border}`,
-                      background: C.surface,
-                      color: C.muted, fontWeight: 700, fontSize: sz.fontBase,
+                      border: `1px solid var(${C.border})`,
+                      background: varColor(C.surface),
+                      color: varColor(C.muted), fontWeight: 700, fontSize: sz.fontBase,
                       cursor: "pointer",
                       display: "flex", alignItems: "center", gap: 6,
                       transition: "background 0.15s, color 0.15s", whiteSpace: "nowrap",
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = C.card; e.currentTarget.style.color = C.text; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = C.surface; e.currentTarget.style.color = C.muted; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = varColor(C.card); e.currentTarget.style.color = varColor(C.text); }}
+                    onMouseLeave={e => { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.color = varColor(C.muted); }}
                   >
                     <LuArrowLeftRight size={sz.fontBase - 1} /> Transferir
                   </button>
@@ -679,15 +681,15 @@ export default function PDVView() {
                     onClick={() => { setShowCancelarComanda(true); setCancelarSenha(""); setCancelarSenhaErro(false); setCancelarAutorizado(false); setCancelarMotivo(""); }}
                     style={{
                       padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
-                      border: `1px solid ${C.red}55`,
-                      background: `${C.red}0f`,
-                      color: C.red, fontWeight: 700, fontSize: sz.fontBase,
+                      border: `1px solid ${alfa(C.red, "55")}`,
+                      background: `${alfa(C.red, "0f")}`,
+                      color: varColor(C.red), fontWeight: 700, fontSize: sz.fontBase,
                       cursor: "pointer",
                       display: "flex", alignItems: "center", gap: 6,
                       transition: "background 0.15s", whiteSpace: "nowrap",
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = `${C.red}22`; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = `${C.red}0f`; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = `${alfa(C.red, "22")}`; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = `${alfa(C.red, "0f")}`; }}
                   >
                     <LuX size={sz.fontBase - 1} /> Cancelar Comanda
                   </button>
@@ -697,15 +699,15 @@ export default function PDVView() {
                     onClick={() => { setConfirmCancelar(true); setConfirmCancelarMotivo(""); }}
                     style={{
                       padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
-                      border: `1px solid ${C.red}55`,
-                      background: `${C.red}0f`,
-                      color: C.red, fontWeight: 700, fontSize: sz.fontBase,
+                      border: `1px solid ${alfa(C.red, "55")}`,
+                      background: `${alfa(C.red, "0f")}`,
+                      color: varColor(C.red), fontWeight: 700, fontSize: sz.fontBase,
                       cursor: "pointer",
                       display: "flex", alignItems: "center", gap: 6,
                       transition: "background 0.15s", whiteSpace: "nowrap",
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = `${C.red}1e`}
-                    onMouseLeave={e => e.currentTarget.style.background = `${C.red}0f`}
+                    onMouseEnter={e => e.currentTarget.style.background = `${alfa(C.red, "1e")}`}
+                    onMouseLeave={e => e.currentTarget.style.background = `${alfa(C.red, "0f")}`}
                   >
                     Cancelar Pedido
                   </button>
@@ -766,7 +768,7 @@ export default function PDVView() {
                   <span key={p.id} style={{
                     display: "flex", alignItems: "center", gap: 6,
                     padding: "4px 12px", borderRadius: 20, fontSize: 18, fontWeight: 700,
-                    background: `${C.red}18`, border: `1px solid ${C.red}44`, color: C.red,
+                    background: `${alfa(C.red, "18")}`, border: `1px solid ${alfa(C.red, "44")}`, color: varColor(C.red),
                   }}>
                     {p.emoji} {p.name} · <span style={{ fontWeight: 900 }}>0</span>
                   </span>
@@ -791,7 +793,7 @@ export default function PDVView() {
         <div style={{
           flexShrink: 0,
           display: "flex",
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid var(${C.border})`,
           padding: `0 ${sz.pad}px`,
         }}>
           {[
@@ -804,8 +806,8 @@ export default function PDVView() {
               style={{
                 padding: `10px 18px`,
                 background: "none", border: "none",
-                borderBottom: `2px solid ${mode === key ? C.accent : "transparent"}`,
-                color: mode === key ? C.accent : C.muted,
+                borderBottom: `2px solid ${mode === key ? varColor(C.accent) : "transparent"}`,
+                color: mode === key ? varColor(C.accent) : varColor(C.muted),
                 fontWeight: 700, fontSize: sz.fontBase,
                 cursor: "pointer",
                 display: "flex", alignItems: "center", gap: 6,
@@ -825,13 +827,13 @@ export default function PDVView() {
         <div style={{
           flexShrink: 0,
           padding: "16px 24px",
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid var(${C.border})`,
           display: "flex", justifyContent: "center",
         }}>
           <div style={{ position: "relative", width: "100%", maxWidth: 760 }}>
             <LuSearch
               size={20}
-              color={buscaComanda ? C.accent : C.muted}
+              color={buscaComanda ? varColor(C.accent) : varColor(C.muted)}
               style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", transition: "color 0.15s" }}
             />
             <input
@@ -843,9 +845,9 @@ export default function PDVView() {
                 width: "100%",
                 padding: "16px 52px",
                 borderRadius: 14,
-                border: `1.5px solid ${buscaComanda ? C.accent + "88" : C.border}`,
-                background: C.surface,
-                color: C.text,
+                border: `1.5px solid ${buscaComanda ? varColor(C.accent) + "88" : varColor(C.border)}`,
+                background: varColor(C.surface),
+                color: varColor(C.text),
                 fontSize: 18,
                 fontFamily: "inherit",
                 outline: "none",
@@ -856,7 +858,7 @@ export default function PDVView() {
             {buscaComanda && (
               <button
                 onClick={() => setBuscaComanda("")}
-                style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 2 }}
+                style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: varColor(C.muted), display: "flex", padding: 2 }}
               >
                 <LuX size={16} />
               </button>
@@ -897,7 +899,7 @@ export default function PDVView() {
             {isMob && (
               <div style={{
                 display: "flex", flexShrink: 0,
-                borderBottom: `1px solid ${C.border}`,
+                borderBottom: `1px solid var(${C.border})`,
               }}>
                 {[
                   { key: "produtos",  label: "Produtos",  Icon: LuShoppingBag },
@@ -908,10 +910,10 @@ export default function PDVView() {
                     onClick={() => setAbaAtiva(key)}
                     style={{
                       flex: 1, padding: "13px 0",
-                      background: abaAtiva === key ? C.alow : "none",
+                      background: abaAtiva === key ? varColor(C.alow) : "none",
                       border: "none",
-                      borderBottom: `2px solid ${abaAtiva === key ? C.accent : "transparent"}`,
-                      color: abaAtiva === key ? C.accent : C.muted,
+                      borderBottom: `2px solid ${abaAtiva === key ? varColor(C.accent) : "transparent"}`,
+                      color: abaAtiva === key ? varColor(C.accent) : varColor(C.muted),
                       fontWeight: 700, fontSize: 17, cursor: "pointer",
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                     }}
@@ -985,15 +987,15 @@ export default function PDVView() {
           }}
         >
           <div style={{
-            background: C.card, borderRadius: 16, padding: 28,
-            width: 340, border: `1px solid ${C.border}`,
+            background: varColor(C.card), borderRadius: 16, padding: 28,
+            width: 340, border: `1px solid var(${C.border})`,
           }}>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>Nova Comanda</div>
-            <div style={{ fontSize: 16, color: C.muted, marginBottom: 20 }}>
+            <div style={{ fontSize: 16, color: varColor(C.muted), marginBottom: 20 }}>
               Informe o nome ou número da mesa
             </div>
 
-            <label style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
+            <label style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1 }}>
               Nome / Número
             </label>
             <input
@@ -1006,8 +1008,8 @@ export default function PDVView() {
               style={{
                 display: "block", width: "100%", marginTop: 8,
                 padding: "12px 14px", borderRadius: 10,
-                border: `1px solid ${C.border}`,
-                background: C.surface, color: C.text, fontSize: 18,
+                border: `1px solid var(${C.border})`,
+                background: varColor(C.surface), color: varColor(C.text), fontSize: 18,
                 boxSizing: "border-box", fontFamily: "inherit", outline: "none",
               }}
             />
@@ -1017,8 +1019,8 @@ export default function PDVView() {
                 onClick={() => setShowNova(false)}
                 style={{
                   flex: 1, padding: 12, borderRadius: 10,
-                  border: `1px solid ${C.border}`, background: "none",
-                  color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
+                  border: `1px solid var(${C.border})`, background: "none",
+                  color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 17,
                 }}
               >
                 Cancelar
@@ -1028,7 +1030,7 @@ export default function PDVView() {
                 disabled={!nomeComanda.trim() || criando}
                 style={{
                   flex: 1, padding: 12, borderRadius: 10, border: "none",
-                  background: nomeComanda.trim() ? C.accent : C.faint,
+                  background: nomeComanda.trim() ? varColor(C.accent) : varColor(C.faint),
                   color: "#fff",
                   cursor: nomeComanda.trim() ? "pointer" : "not-allowed",
                   fontWeight: 700, fontSize: 17,
@@ -1053,18 +1055,18 @@ export default function PDVView() {
           }}
         >
           <div style={{
-            background: C.card, borderRadius: 20, border: `1px solid ${C.border}`,
+            background: varColor(C.card), borderRadius: 20, border: `1px solid var(${C.border})`,
             width: "100%", maxWidth: 420,
             display: "flex", flexDirection: "column",
             boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
           }}>
             {/* Header */}
-            <div style={{ padding: "22px 28px 18px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ padding: "22px 28px 18px", borderBottom: `1px solid var(${C.border})`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 20, color: C.red }}>Cancelar Comanda</div>
-                <div style={{ fontSize: 15, color: C.muted, marginTop: 3 }}>{fmtComanda(selected?.comanda)}</div>
+                <div style={{ fontWeight: 800, fontSize: 20, color: varColor(C.red) }}>Cancelar Comanda</div>
+                <div style={{ fontSize: 15, color: varColor(C.muted), marginTop: 3 }}>{fmtComanda(selected?.comanda)}</div>
               </div>
-              <button onClick={() => setShowCancelarComanda(false)} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 6 }}>
+              <button onClick={() => setShowCancelarComanda(false)} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 6 }}>
                 <LuX size={20} />
               </button>
             </div>
@@ -1072,8 +1074,8 @@ export default function PDVView() {
             <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 18 }}>
               {!cancelarAutorizado ? (
                 <>
-                  <div style={{ fontSize: 16, color: C.muted, lineHeight: 1.5 }}>
-                    Esta ação cancelará <strong style={{ color: C.text }}>todos os itens</strong> da comanda. Digite a senha de administrador ou gerente para continuar.
+                  <div style={{ fontSize: 16, color: varColor(C.muted), lineHeight: 1.5 }}>
+                    Esta ação cancelará <strong style={{ color: varColor(C.text) }}>todos os itens</strong> da comanda. Digite a senha de administrador ou gerente para continuar.
                   </div>
                   <div style={{ position: "relative" }}>
                     <input
@@ -1091,18 +1093,18 @@ export default function PDVView() {
                       placeholder="Senha de admin ou gerente"
                       style={{
                         width: "100%", padding: "13px 44px 13px 16px", borderRadius: 10, boxSizing: "border-box",
-                        border: `1.5px solid ${cancelarSenhaErro ? C.red : C.border}`,
-                        background: C.surface, color: C.text, fontSize: 17, fontFamily: "inherit", outline: "none",
+                        border: `1.5px solid ${cancelarSenhaErro ? varColor(C.red) : varColor(C.border)}`,
+                        background: varColor(C.surface), color: varColor(C.text), fontSize: 17, fontFamily: "inherit", outline: "none",
                       }}
                     />
                     <button
                       onClick={() => setCancelarSenhaVis(v => !v)}
-                      style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }}
+                      style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4 }}
                     >
                       {cancelarSenhaVis ? <LuEyeOff size={18} /> : <LuEye size={18} />}
                     </button>
                   </div>
-                  {cancelarSenhaErro && <div style={{ fontSize: 15, color: C.red, fontWeight: 600 }}>Senha incorreta.</div>}
+                  {cancelarSenhaErro && <div style={{ fontSize: 15, color: varColor(C.red), fontWeight: 600 }}>Senha incorreta.</div>}
                   <button
                     onClick={async () => {
                       const ok = await verificarSenhaAdmin(cancelarSenha);
@@ -1112,7 +1114,7 @@ export default function PDVView() {
                     disabled={!cancelarSenha}
                     style={{
                       padding: "13px", borderRadius: 10, border: "none",
-                      background: cancelarSenha ? C.accent : C.faint,
+                      background: cancelarSenha ? varColor(C.accent) : varColor(C.faint),
                       color: "#fff", fontWeight: 700, fontSize: 17,
                       cursor: cancelarSenha ? "pointer" : "not-allowed", fontFamily: "inherit",
                     }}
@@ -1122,8 +1124,8 @@ export default function PDVView() {
                 </>
               ) : (
                 <>
-                  <div style={{ fontSize: 16, color: C.muted, lineHeight: 1.5 }}>
-                    Motivo do cancelamento <span style={{ color: C.red }}>*</span>
+                  <div style={{ fontSize: 16, color: varColor(C.muted), lineHeight: 1.5 }}>
+                    Motivo do cancelamento <span style={{ color: varColor(C.red) }}>*</span>
                   </div>
                   <input
                     autoFocus
@@ -1134,11 +1136,11 @@ export default function PDVView() {
                     maxLength={120}
                     style={{
                       width: "100%", padding: "13px 16px", borderRadius: 10, boxSizing: "border-box",
-                      border: `1.5px solid ${cancelarMotivo.trim() ? C.accent + "88" : C.border}`,
-                      background: C.surface, color: C.text, fontSize: 17, fontFamily: "inherit", outline: "none",
+                      border: `1.5px solid ${cancelarMotivo.trim() ? varColor(C.accent) + "88" : varColor(C.border)}`,
+                      background: varColor(C.surface), color: varColor(C.text), fontSize: 17, fontFamily: "inherit", outline: "none",
                     }}
                   />
-                  <div style={{ padding: "14px 16px", borderRadius: 10, background: `${C.red}12`, border: `1px solid ${C.red}44`, fontSize: 15, color: C.red, fontWeight: 600 }}>
+                  <div style={{ padding: "14px 16px", borderRadius: 10, background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "44")}`, fontSize: 15, color: varColor(C.red), fontWeight: 600 }}>
                     ⚠️ {(selected?.items ?? []).filter(i => !i.cancelado).length} item(ns) serão cancelados e enviados para o relatório.
                   </div>
                   <button
@@ -1157,10 +1159,10 @@ export default function PDVView() {
                     disabled={cancelandoComanda || !cancelarMotivo.trim()}
                     style={{
                       padding: "13px", borderRadius: 10, border: "none",
-                      background: (cancelandoComanda || !cancelarMotivo.trim()) ? C.faint : C.red,
+                      background: (cancelandoComanda || !cancelarMotivo.trim()) ? varColor(C.faint) : varColor(C.red),
                       color: "#fff", fontWeight: 800, fontSize: 17,
                       cursor: (cancelandoComanda || !cancelarMotivo.trim()) ? "not-allowed" : "pointer", fontFamily: "inherit",
-                      boxShadow: cancelarMotivo.trim() ? `0 4px 16px ${C.red}44` : "none",
+                      boxShadow: cancelarMotivo.trim() ? `0 4px 16px ${alfa(C.red, "44")}` : "none",
                     }}
                   >
                     {cancelandoComanda ? "Cancelando..." : "✕ Confirmar Cancelamento"}
@@ -1185,16 +1187,16 @@ export default function PDVView() {
           }}
         >
           <div style={{
-            background: C.card, borderRadius: 20,
+            background: varColor(C.card), borderRadius: 20,
             width: "100%", maxWidth: 520,
             maxHeight: "85vh", display: "flex", flexDirection: "column",
-            border: `1px solid ${C.border}`,
+            border: `1px solid var(${C.border})`,
             boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-            color: C.text, overflow: "hidden",
+            color: varColor(C.text), overflow: "hidden",
           }}>
             {/* Header */}
             <div style={{
-              padding: "20px 24px", borderBottom: `1px solid ${C.border}`,
+              padding: "20px 24px", borderBottom: `1px solid var(${C.border})`,
               display: "flex", alignItems: "center", justifyContent: "space-between",
               flexShrink: 0,
             }}>
@@ -1202,13 +1204,13 @@ export default function PDVView() {
                 <div style={{ fontWeight: 900, fontSize: 17, display: "flex", alignItems: "center", gap: 8 }}>
                   <LuArrowLeftRight size={18} /> Transferir itens
                 </div>
-                <div style={{ fontSize: 18, color: C.muted, marginTop: 2 }}>
+                <div style={{ fontSize: 18, color: varColor(C.muted), marginTop: 2 }}>
                   De: {/^\d+$/.test(String(selected?.comanda ?? "").trim()) ? `Comanda ${selected?.comanda}` : selected?.comanda}
                 </div>
               </div>
               <button
                 onClick={() => setShowTransferir(false)}
-                style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, fontSize: 18, fontWeight: 400 }}
+                style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, fontSize: 18, fontWeight: 400 }}
               >
                 ✕
               </button>
@@ -1217,7 +1219,7 @@ export default function PDVView() {
             <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
               {/* Seção: itens a transferir */}
               <div style={{ padding: "16px 24px 8px", flexShrink: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
                   Selecione os itens e quantidades
                 </div>
                 {(Array.isArray(selected?.items) ? selected.items : []).map((item, idx) => {
@@ -1228,8 +1230,8 @@ export default function PDVView() {
                     <div key={idx} style={{
                       display: "flex", alignItems: "center", gap: 10,
                       padding: "10px 14px", borderRadius: 12, marginBottom: 6,
-                      border: `1.5px solid ${ativo ? C.accent + "66" : C.border}`,
-                      background: ativo ? `${C.accent}08` : C.surface,
+                      border: `1.5px solid ${ativo ? varColor(C.accent) + "66" : varColor(C.border)}`,
+                      background: ativo ? `${alfa(C.accent, "08")}` : varColor(C.surface),
                       transition: "border-color 0.15s, background 0.15s",
                     }}>
                       {item.emoji && <span style={{ fontSize: 18 }}>{item.emoji}</span>}
@@ -1237,22 +1239,22 @@ export default function PDVView() {
                         <div style={{ fontWeight: 600, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {item.name}
                         </div>
-                        <div style={{ fontSize: 14, color: C.muted }}>Disponível: {qty}</div>
+                        <div style={{ fontSize: 14, color: varColor(C.muted) }}>Disponível: {qty}</div>
                       </div>
                       {/* Qty selector */}
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                         <button
                           onClick={() => setTransQtds(prev => ({ ...prev, [idx]: Math.max(0, (prev[idx] ?? 0) - 1) }))}
-                          style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${C.border}`, background: C.card, color: C.text, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid var(${C.border})`, background: varColor(C.card), color: varColor(C.text), cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                         >
                           <span style={{ fontSize: 16, lineHeight: 1 }}>−</span>
                         </button>
-                        <span style={{ minWidth: 22, textAlign: "center", fontWeight: 800, fontSize: 17, color: ativo ? C.accent : C.muted }}>
+                        <span style={{ minWidth: 22, textAlign: "center", fontWeight: 800, fontSize: 17, color: ativo ? varColor(C.accent) : varColor(C.muted) }}>
                           {qSel}
                         </span>
                         <button
                           onClick={() => setTransQtds(prev => ({ ...prev, [idx]: Math.min(qty, (prev[idx] ?? 0) + 1) }))}
-                          style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${C.border}`, background: C.card, color: C.text, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid var(${C.border})`, background: varColor(C.card), color: varColor(C.text), cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                         >
                           <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
                         </button>
@@ -1260,8 +1262,8 @@ export default function PDVView() {
                           onClick={() => setTransQtds(prev => ({ ...prev, [idx]: prev[idx] === qty ? 0 : qty }))}
                           style={{
                             padding: "4px 10px", borderRadius: 7, border: "none",
-                            background: ativo ? `${C.accent}22` : C.surface,
-                            color: ativo ? C.accent : C.muted,
+                            background: ativo ? `${alfa(C.accent, "22")}` : varColor(C.surface),
+                            color: ativo ? varColor(C.accent) : varColor(C.muted),
                             cursor: "pointer", fontSize: 14, fontWeight: 700,
                           }}
                         >
@@ -1275,7 +1277,7 @@ export default function PDVView() {
 
               {/* Seção: comanda destino */}
               <div style={{ padding: "8px 24px 16px", flexShrink: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
                   Transferir para
                 </div>
 
@@ -1291,9 +1293,9 @@ export default function PDVView() {
                       onClick={() => { setTransMode(tab.id); setTransDestino(null); setTransNumeroErro(""); }}
                       style={{
                         padding: "6px 12px", borderRadius: 8, fontSize: 18, fontWeight: 700,
-                        border: `1.5px solid ${transMode === tab.id ? C.accent : C.border}`,
-                        background: transMode === tab.id ? `${C.accent}14` : C.surface,
-                        color: transMode === tab.id ? C.accent : C.muted,
+                        border: `1.5px solid ${transMode === tab.id ? varColor(C.accent) : varColor(C.border)}`,
+                        background: transMode === tab.id ? `${alfa(C.accent, "14")}` : varColor(C.surface),
+                        color: transMode === tab.id ? varColor(C.accent) : varColor(C.muted),
                         cursor: "pointer",
                       }}
                     >
@@ -1305,7 +1307,7 @@ export default function PDVView() {
                 {/* Modo: lista de comandas abertas */}
                 {transMode === "lista" && (
                   abertas.filter(o => o.id !== selected?.id).length === 0 ? (
-                    <div style={{ fontSize: 16, color: C.muted, padding: "12px 0" }}>
+                    <div style={{ fontSize: 16, color: varColor(C.muted), padding: "12px 0" }}>
                       Nenhuma outra comanda aberta.
                     </div>
                   ) : (
@@ -1320,27 +1322,27 @@ export default function PDVView() {
                             style={{
                               display: "flex", alignItems: "center", gap: 12,
                               padding: "10px 14px", borderRadius: 12,
-                              border: `1.5px solid ${sel ? C.green + "88" : C.border}`,
-                              background: sel ? `${C.green}0f` : C.surface,
-                              cursor: "pointer", textAlign: "left", color: C.text,
+                              border: `1.5px solid ${sel ? varColor(C.green) + "88" : varColor(C.border)}`,
+                              background: sel ? `${alfa(C.green, "0f")}` : varColor(C.surface),
+                              cursor: "pointer", textAlign: "left", color: varColor(C.text),
                               transition: "border-color 0.15s, background 0.15s",
                             }}
                           >
                             <div style={{
                               width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                              background: sel ? `${C.green}22` : C.card,
-                              border: `1px solid ${sel ? C.green + "55" : C.border}`,
+                              background: sel ? `${alfa(C.green, "22")}` : varColor(C.card),
+                              border: `1px solid ${sel ? varColor(C.green) + "55" : varColor(C.border)}`,
                               display: "flex", alignItems: "center", justifyContent: "center",
-                              fontSize: 17, fontWeight: 800, color: sel ? C.green : C.muted,
+                              fontSize: 17, fontWeight: 800, color: sel ? varColor(C.green) : varColor(C.muted),
                             }}>
                               {sel ? "✓" : "#"}
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontWeight: 700, fontSize: 16 }}>{nome}</div>
-                              {o.garcom && <div style={{ fontSize: 14, color: C.muted }}>{o.garcom}</div>}
+                              {o.garcom && <div style={{ fontSize: 14, color: varColor(C.muted) }}>{o.garcom}</div>}
                             </div>
                             {o.total > 0 && (
-                              <div style={{ fontWeight: 700, fontSize: 16, color: C.green, flexShrink: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: 16, color: varColor(C.green), flexShrink: 0 }}>
                                 R$ {Number(o.total).toFixed(2)}
                               </div>
                             )}
@@ -1364,37 +1366,37 @@ export default function PDVView() {
                         placeholder="Ex: 42"
                         style={{
                           width: "100%", padding: "12px 16px", borderRadius: 10,
-                          border: `1.5px solid ${transNumeroErro ? C.red : C.border}`,
-                          background: C.surface, color: C.text,
+                          border: `1.5px solid ${transNumeroErro ? varColor(C.red) : varColor(C.border)}`,
+                          background: varColor(C.surface), color: varColor(C.text),
                           fontSize: 18, fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                         }}
                       />
                     </div>
                     {transNumeroErro && (
-                      <div style={{ fontSize: 18, color: C.red, fontWeight: 600 }}>{transNumeroErro}</div>
+                      <div style={{ fontSize: 18, color: varColor(C.red), fontWeight: 600 }}>{transNumeroErro}</div>
                     )}
                     {/* Preview da comanda encontrada */}
                     {(() => {
                       if (!transNumero.trim()) return null;
                       const encontrada = abertas.find(o => String(o.comanda).trim() === transNumero.trim() && o.id !== selected?.id);
                       if (!encontrada) return (
-                        <div style={{ fontSize: 18, color: C.muted, padding: "6px 0" }}>
+                        <div style={{ fontSize: 18, color: varColor(C.muted), padding: "6px 0" }}>
                           Nenhuma comanda aberta com esse número.
                         </div>
                       );
                       return (
                         <div style={{
                           display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-                          borderRadius: 12, border: `1.5px solid ${C.green}66`,
-                          background: `${C.green}0a`,
+                          borderRadius: 12, border: `1.5px solid ${alfa(C.green, "66")}`,
+                          background: `${alfa(C.green, "0a")}`,
                         }}>
                           <div style={{ fontSize: 18 }}>✓</div>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: 16, color: C.green }}>{fmtComanda(encontrada.comanda)}</div>
-                            {encontrada.garcom && <div style={{ fontSize: 14, color: C.muted }}>{encontrada.garcom}</div>}
+                            <div style={{ fontWeight: 700, fontSize: 16, color: varColor(C.green) }}>{fmtComanda(encontrada.comanda)}</div>
+                            {encontrada.garcom && <div style={{ fontSize: 14, color: varColor(C.muted) }}>{encontrada.garcom}</div>}
                           </div>
                           {encontrada.total > 0 && (
-                            <div style={{ marginLeft: "auto", fontWeight: 700, fontSize: 16, color: C.green }}>
+                            <div style={{ marginLeft: "auto", fontWeight: 700, fontSize: 16, color: varColor(C.green) }}>
                               R$ {Number(encontrada.total).toFixed(2)}
                             </div>
                           )}
@@ -1407,7 +1409,7 @@ export default function PDVView() {
                 {/* Modo: nova comanda */}
                 {transMode === "nova" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <div style={{ fontSize: 18, color: C.muted, marginBottom: 2 }}>
+                    <div style={{ fontSize: 18, color: varColor(C.muted), marginBottom: 2 }}>
                       Uma nova comanda será criada com os itens selecionados.
                     </div>
                     <input
@@ -1418,13 +1420,13 @@ export default function PDVView() {
                       placeholder="Nome ou número da nova comanda (ex: 99)"
                       style={{
                         width: "100%", padding: "12px 16px", borderRadius: 10,
-                        border: `1.5px solid ${transNumeroErro ? C.red : C.border}`,
-                        background: C.surface, color: C.text,
+                        border: `1.5px solid ${transNumeroErro ? varColor(C.red) : varColor(C.border)}`,
+                        background: varColor(C.surface), color: varColor(C.text),
                         fontSize: 17, fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                       }}
                     />
                     {transNumeroErro && (
-                      <div style={{ fontSize: 18, color: C.red, fontWeight: 600 }}>{transNumeroErro}</div>
+                      <div style={{ fontSize: 18, color: varColor(C.red), fontWeight: 600 }}>{transNumeroErro}</div>
                     )}
                   </div>
                 )}
@@ -1452,13 +1454,13 @@ export default function PDVView() {
               }
 
               return (
-                <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, flexShrink: 0, display: "flex", gap: 10 }}>
+                <div style={{ padding: "16px 24px", borderTop: `1px solid var(${C.border})`, flexShrink: 0, display: "flex", gap: 10 }}>
                   <button
                     onClick={() => setShowTransferir(false)}
                     style={{
                       flex: 1, padding: "12px 0", borderRadius: 12,
-                      border: `1px solid ${C.border}`, background: "none",
-                      color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
+                      border: `1px solid var(${C.border})`, background: "none",
+                      color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 17,
                     }}
                   >
                     Cancelar
@@ -1468,12 +1470,12 @@ export default function PDVView() {
                     disabled={!pode || transferindo}
                     style={{
                       flex: 2, padding: "12px 16px", borderRadius: 12, border: "none",
-                      background: pode ? C.green : C.faint,
+                      background: pode ? varColor(C.green) : varColor(C.faint),
                       color: "#fff", cursor: pode ? "pointer" : "not-allowed",
                       fontWeight: 800, fontSize: 17, fontFamily: "inherit",
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                      boxShadow: pode ? `0 4px 16px ${C.green}44` : "none",
+                      boxShadow: pode ? `0 4px 16px ${alfa(C.green, "44")}` : "none",
                       transition: "background 0.2s, box-shadow 0.2s",
                     }}
                   >
@@ -1503,16 +1505,16 @@ export default function PDVView() {
           }}
         >
           <div style={{
-            background: C.card, borderRadius: 20, padding: 28,
+            background: varColor(C.card), borderRadius: 20, padding: 28,
             width: "100%", maxWidth: 400,
-            border: `1px solid ${C.border}`,
+            border: `1px solid var(${C.border})`,
             boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-            color: C.text,
+            color: varColor(C.text),
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
               <div style={{
                 width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-                background: `${C.red}18`, border: `1.5px solid ${C.red}44`,
+                background: `${alfa(C.red, "18")}`, border: `1.5px solid ${alfa(C.red, "44")}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 22,
               }}>
@@ -1520,7 +1522,7 @@ export default function PDVView() {
               </div>
               <div>
                 <div style={{ fontWeight: 900, fontSize: 17 }}>Cancelar pedido?</div>
-                <div style={{ fontSize: 16, color: C.muted, marginTop: 2 }}>
+                <div style={{ fontSize: 16, color: varColor(C.muted), marginTop: 2 }}>
                   {/^\d+$/.test(String(selected?.comanda ?? "").trim()) ? `Comanda ${selected?.comanda}` : selected?.comanda}
                 </div>
               </div>
@@ -1528,15 +1530,15 @@ export default function PDVView() {
 
             <div style={{
               padding: "12px 16px", borderRadius: 10, marginBottom: 16,
-              background: `${C.red}0d`, border: `1px solid ${C.red}33`,
-              fontSize: 16, color: C.muted, lineHeight: 1.5,
+              background: `${alfa(C.red, "0d")}`, border: `1px solid ${alfa(C.red, "33")}`,
+              fontSize: 16, color: varColor(C.muted), lineHeight: 1.5,
             }}>
-              A comanda será <strong style={{ color: C.red }}>removida permanentemente</strong>. Esta ação não pode ser desfeita.
+              A comanda será <strong style={{ color: varColor(C.red) }}>removida permanentemente</strong>. Esta ação não pode ser desfeita.
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>
-                Motivo do cancelamento <span style={{ color: C.red }}>*</span>
+              <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 0.8 }}>
+                Motivo do cancelamento <span style={{ color: varColor(C.red) }}>*</span>
               </div>
               <input
                 autoFocus
@@ -1547,8 +1549,8 @@ export default function PDVView() {
                 maxLength={120}
                 style={{
                   width: "100%", padding: "11px 14px", borderRadius: 10, boxSizing: "border-box",
-                  border: `1.5px solid ${confirmCancelarMotivo.trim() ? C.accent + "88" : C.border}`,
-                  background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none",
+                  border: `1.5px solid ${confirmCancelarMotivo.trim() ? varColor(C.accent) + "88" : varColor(C.border)}`,
+                  background: varColor(C.surface), color: varColor(C.text), fontSize: 16, fontFamily: "inherit", outline: "none",
                 }}
               />
             </div>
@@ -1558,8 +1560,8 @@ export default function PDVView() {
                 onClick={() => setConfirmCancelar(false)}
                 style={{
                   flex: 1, padding: "13px 0", borderRadius: 12,
-                  border: `1px solid ${C.border}`, background: "none",
-                  color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
+                  border: `1px solid var(${C.border})`, background: "none",
+                  color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 17,
                 }}
               >
                 Voltar
@@ -1576,7 +1578,7 @@ export default function PDVView() {
                 disabled={!confirmCancelarMotivo.trim()}
                 style={{
                   flex: 1, padding: "13px 0", borderRadius: 12, border: "none",
-                  background: confirmCancelarMotivo.trim() ? C.red : C.faint,
+                  background: confirmCancelarMotivo.trim() ? varColor(C.red) : varColor(C.faint),
                   color: "#fff",
                   cursor: confirmCancelarMotivo.trim() ? "pointer" : "not-allowed",
                   fontWeight: 800, fontSize: 18,
@@ -1602,20 +1604,20 @@ export default function PDVView() {
           }}
         >
           <div style={{
-            background: C.card, borderRadius: 20,
+            background: varColor(C.card), borderRadius: 20,
             width: "100%", maxWidth: 380,
-            border: `1px solid ${C.border}`,
+            border: `1px solid var(${C.border})`,
             boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-            color: C.text, overflow: "hidden",
+            color: varColor(C.text), overflow: "hidden",
           }}>
             {/* Header */}
             <div style={{
-              padding: "20px 24px", borderBottom: `1px solid ${C.border}`,
+              padding: "20px 24px", borderBottom: `1px solid var(${C.border})`,
               display: "flex", alignItems: "center", gap: 12,
             }}>
               <div style={{
                 width: 42, height: 42, borderRadius: 12,
-                background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+                background: `${alfa(C.accent, "18")}`, border: `1.5px solid ${alfa(C.accent, "44")}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 20,
               }}>
@@ -1625,7 +1627,7 @@ export default function PDVView() {
                 <div style={{ fontWeight: 900, fontSize: 17 }}>
                   {fmtComanda(mesaPendingOrder.comanda)}
                 </div>
-                <div style={{ fontSize: 18, color: C.muted, marginTop: 1 }}>
+                <div style={{ fontSize: 18, color: varColor(C.muted), marginTop: 1 }}>
                   {mesaPendingOrder.mesa ? "Editar mesa e apelido" : "Informe a mesa antes de continuar"}
                 </div>
               </div>
@@ -1636,8 +1638,8 @@ export default function PDVView() {
 
               {/* Mesa */}
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontSize: 18, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>
-                  Número ou nome da mesa <span style={{ color: C.red }}>*</span>
+                <label style={{ fontSize: 18, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 0.8 }}>
+                  Número ou nome da mesa <span style={{ color: varColor(C.red) }}>*</span>
                 </label>
                 <input
                   autoFocus
@@ -1649,22 +1651,22 @@ export default function PDVView() {
                   maxLength={40}
                   style={{
                     width: "100%", padding: "13px 16px", borderRadius: 10,
-                    border: `1.5px solid ${!mesaInput.trim() ? C.red + "88" : C.border}`,
-                    background: C.surface,
-                    color: C.text, fontSize: 18, fontFamily: "inherit",
+                    border: `1.5px solid ${!mesaInput.trim() ? varColor(C.red) + "88" : varColor(C.border)}`,
+                    background: varColor(C.surface),
+                    color: varColor(C.text), fontSize: 18, fontFamily: "inherit",
                     outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
                   }}
-                  onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
-                  onBlur={e => e.currentTarget.style.borderColor = !mesaInput.trim() ? C.red + "88" : C.border}
+                  onFocus={e => e.currentTarget.style.borderColor = varColor(C.accent) + "88"}
+                  onBlur={e => e.currentTarget.style.borderColor = !mesaInput.trim() ? varColor(C.red) + "88" : varColor(C.border)}
                 />
                 {!mesaInput.trim() && (
-                  <div style={{ fontSize: 14, color: C.red, fontWeight: 600 }}>Campo obrigatório.</div>
+                  <div style={{ fontSize: 14, color: varColor(C.red), fontWeight: 600 }}>Campo obrigatório.</div>
                 )}
               </div>
 
               {/* Apelido */}
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontSize: 18, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                <label style={{ fontSize: 18, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 0.8 }}>
                   Apelido do cliente <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span>
                 </label>
                 <input
@@ -1676,16 +1678,16 @@ export default function PDVView() {
                   maxLength={40}
                   style={{
                     width: "100%", padding: "13px 16px", borderRadius: 10,
-                    border: `1.5px solid ${C.border}`, background: C.surface,
-                    color: C.text, fontSize: 18, fontFamily: "inherit",
+                    border: `1.5px solid var(${C.border})`, background: varColor(C.surface),
+                    color: varColor(C.text), fontSize: 18, fontFamily: "inherit",
                     outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
                   }}
-                  onFocus={e => e.currentTarget.style.borderColor = C.accent + "88"}
-                  onBlur={e => e.currentTarget.style.borderColor = C.border}
+                  onFocus={e => e.currentTarget.style.borderColor = varColor(C.accent) + "88"}
+                  onBlur={e => e.currentTarget.style.borderColor = varColor(C.border)}
                 />
               </div>
 
-              <div style={{ fontSize: 14, color: C.muted }}>
+              <div style={{ fontSize: 14, color: varColor(C.muted) }}>
                 Apelido é opcional. Pressione Enter ou clique em Entrar para continuar.
               </div>
 
@@ -1694,8 +1696,8 @@ export default function PDVView() {
                   onClick={() => { setShowMesa(false); setMesaPendingOrder(null); }}
                   style={{
                     flex: 1, padding: "12px 0", borderRadius: 11,
-                    border: `1px solid ${C.border}`, background: "none",
-                    color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 17,
+                    border: `1px solid var(${C.border})`, background: "none",
+                    color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 17,
                   }}
                 >
                   Cancelar
@@ -1705,7 +1707,7 @@ export default function PDVView() {
                   disabled={salvandoMesa || !mesaInput.trim()}
                   style={{
                     flex: 2, padding: "12px 0", borderRadius: 11, border: "none",
-                    background: mesaInput.trim() ? C.accent : C.faint,
+                    background: mesaInput.trim() ? varColor(C.accent) : varColor(C.faint),
                     color: "#fff",
                     cursor: (salvandoMesa || !mesaInput.trim()) ? "not-allowed" : "pointer",
                     fontWeight: 800, fontSize: 17,
@@ -1818,38 +1820,38 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
       }}
     >
       <div style={{
-        background: C.card, borderRadius: 20,
+        background: varColor(C.card), borderRadius: 20,
         width: "100%", maxWidth: autorizado ? 560 : 420,
-        border: `1px solid ${C.border}`,
+        border: `1px solid var(${C.border})`,
         boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-        color: C.text, overflow: "hidden",
+        color: varColor(C.text), overflow: "hidden",
         maxHeight: "92vh", display: "flex", flexDirection: "column",
         transition: "max-width 0.3s",
       }}>
         {/* Header */}
         <div style={{
-          padding: `${sz.padSm + 4}px ${sz.pad}px`, borderBottom: `1px solid ${C.border}`,
+          padding: `${sz.padSm + 4}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})`,
           display: "flex", alignItems: "center", justifyContent: "space-between",
           flexShrink: 0,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12,
-              background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+              background: `${alfa(C.accent, "18")}`, border: `1.5px solid ${alfa(C.accent, "44")}`,
               display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
             }}>
-              <LuChartBar size={18} color={C.accent} />
+              <LuChartBar size={18} color={varColor(C.accent)} />
             </div>
             <div>
               <div style={{ fontWeight: 900, fontSize: sz.fontBase + 1 }}>Saldo do Dia</div>
-              <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 1 }}>
+              <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted), marginTop: 1 }}>
                 {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
               </div>
             </div>
           </div>
           <button
             onClick={onClose}
-            style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, display: "flex", alignItems: "center" }}
+            style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, display: "flex", alignItems: "center" }}
           >
             <LuX size={18} />
           </button>
@@ -1860,16 +1862,16 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
           <div style={{ padding: sz.pad, display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{
               display: "flex", alignItems: "center", gap: 10,
-              background: `${C.accent}10`, border: `1px solid ${C.accent}33`,
+              background: `${alfa(C.accent, "10")}`, border: `1px solid ${alfa(C.accent, "33")}`,
               borderRadius: 12, padding: "12px 16px",
-              fontSize: sz.fontSm + 1, color: C.muted,
+              fontSize: sz.fontSm + 1, color: varColor(C.muted),
             }}>
-              <LuLock size={16} color={C.accent} style={{ flexShrink: 0 }} />
+              <LuLock size={16} color={varColor(C.accent)} style={{ flexShrink: 0 }} />
               Acesso restrito a administradores e gerentes.
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8 }}>
+              <label style={{ fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 0.8 }}>
                 Senha
               </label>
               <div style={{ position: "relative" }}>
@@ -1882,34 +1884,34 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   placeholder="Digite a senha de acesso"
                   style={{
                     width: "100%", padding: "12px 44px 12px 16px",
-                    borderRadius: 10, border: `1.5px solid ${senhaErro ? C.red : C.border}`,
-                    background: C.surface, color: C.text,
+                    borderRadius: 10, border: `1.5px solid ${senhaErro ? varColor(C.red) : varColor(C.border)}`,
+                    background: varColor(C.surface), color: varColor(C.text),
                     fontSize: sz.fontBase, fontFamily: "inherit", outline: "none",
                     boxSizing: "border-box",
                   }}
                 />
                 <button
                   onClick={() => setSenhaVis(v => !v)}
-                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", display: "flex", padding: 2 }}
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", display: "flex", padding: 2 }}
                 >
                   {senhaVis ? <LuEyeOff size={16} /> : <LuEye size={16} />}
                 </button>
               </div>
               {senhaErro && (
-                <div style={{ fontSize: sz.fontSm + 1, color: C.red, fontWeight: 600 }}>
+                <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.red), fontWeight: 600 }}>
                   Senha incorreta. Apenas administradores e gerentes têm acesso.
                 </div>
               )}
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={onClose} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase }}>
+              <button onClick={onClose} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase }}>
                 Cancelar
               </button>
               <button
                 onClick={verificarSenha}
                 disabled={!senha.trim()}
-                style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "none", background: senha.trim() ? C.accent : C.faint, color: "#fff", cursor: senha.trim() ? "pointer" : "not-allowed", fontWeight: 700, fontSize: sz.fontBase }}
+                style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "none", background: senha.trim() ? varColor(C.accent) : varColor(C.faint), color: "#fff", cursor: senha.trim() ? "pointer" : "not-allowed", fontWeight: 700, fontSize: sz.fontBase }}
               >
                 Acessar
               </button>
@@ -1921,58 +1923,58 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
             {/* KPIs */}
             <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 10 }}>
               {[
-                { label: "Vendas Finalizadas",    value: `R$ ${totalVendas.toFixed(2)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: C.green },
-                { label: "Em Aberto (estimado)",  value: `R$ ${totalAberto.toFixed(2)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: C.accent },
+                { label: "Vendas Finalizadas",    value: `R$ ${totalVendas.toFixed(2)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: varColor(C.green) },
+                { label: "Em Aberto (estimado)",  value: `R$ ${totalAberto.toFixed(2)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: varColor(C.accent) },
               ].map(k => (
-                <div key={k.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px" }}>
-                  <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{k.label}</div>
+                <div key={k.label} style={{ background: varColor(C.surface), border: `1px solid var(${C.border})`, borderRadius: 12, padding: "14px 16px" }}>
+                  <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{k.label}</div>
                   <div style={{ fontWeight: 900, fontSize: sz.fontLg, color: k.color }}>{k.value}</div>
-                  <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 3 }}>{k.sub}</div>
+                  <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted), marginTop: 3 }}>{k.sub}</div>
                 </div>
               ))}
             </div>
 
             {/* Card de Cancelamentos */}
-            <div style={{ background: `${C.red}0c`, border: `1.5px solid ${C.red}33`, borderRadius: 12, padding: "14px 16px" }}>
+            <div style={{ background: `${alfa(C.red, "0c")}`, border: `1.5px solid ${alfa(C.red, "33")}`, borderRadius: 12, padding: "14px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: isNarrow ? "wrap" : "nowrap" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                  <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.red), textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
                     Cancelamentos do Dia
                   </div>
-                  <div style={{ fontSize: sz.fontSm + 1, color: C.muted }}>
+                  <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted) }}>
                     {qtdCancelados} {qtdCancelados === 1 ? "item cancelado" : "itens cancelados"}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 4 }}>
                     {canceladosAbertos.length > 0 && (
-                      <span style={{ fontSize: 12, color: C.muted, background: C.surface, borderRadius: 6, padding: "2px 8px" }}>
+                      <span style={{ fontSize: 12, color: varColor(C.muted), background: varColor(C.surface), borderRadius: 6, padding: "2px 8px" }}>
                         {canceladosAbertos.reduce((s,i)=>s+(i.qty??1),0)} em aberto
                       </span>
                     )}
                     {canceladosFechados.length > 0 && (
-                      <span style={{ fontSize: 12, color: C.muted, background: C.surface, borderRadius: 6, padding: "2px 8px" }}>
+                      <span style={{ fontSize: 12, color: varColor(C.muted), background: varColor(C.surface), borderRadius: 6, padding: "2px 8px" }}>
                         {canceladosFechados.reduce((s,i)=>s+(i.qty??1),0)} em fechadas
                       </span>
                     )}
                     {canceladosComanda.length > 0 && (
-                      <span style={{ fontSize: 12, color: C.red, background: `${C.red}12`, borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>
+                      <span style={{ fontSize: 12, color: varColor(C.red), background: `${alfa(C.red, "12")}`, borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>
                         {canceladosComanda.reduce((s,i)=>s+(i.qty??1),0)} de comanda{logsComandaCancelada.length !== 1 ? "s" : ""} cancelada{logsComandaCancelada.length !== 1 ? "s" : ""} ({logsComandaCancelada.length})
                       </span>
                     )}
                   </div>
                 </div>
-                <div style={{ fontWeight: 900, fontSize: sz.fontLg, color: C.red, flexShrink: 0 }}>
+                <div style={{ fontWeight: 900, fontSize: sz.fontLg, color: varColor(C.red), flexShrink: 0 }}>
                   {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
                 </div>
               </div>
             </div>
 
             {/* Total geral */}
-            <div style={{ background: `${C.green}10`, border: `1.5px solid ${C.green}44`, borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: isNarrow ? "wrap" : "nowrap" }}>
+            <div style={{ background: `${alfa(C.green, "10")}`, border: `1.5px solid ${alfa(C.green, "44")}`, borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: isNarrow ? "wrap" : "nowrap" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: C.text }}>Total do Dia (projetado)</div>
-                <div style={{ fontSize: sz.fontSm + 1, color: C.muted, marginTop: 2 }}>Fechadas + em aberto · cancelamentos não incluídos</div>
+                <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.text) }}>Total do Dia (projetado)</div>
+                <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted), marginTop: 2 }}>Fechadas + em aberto · cancelamentos não incluídos</div>
               </div>
-              <div style={{ fontWeight: 900, fontSize: sz.fontLg + 2, color: C.green, flexShrink: 0 }}>
+              <div style={{ fontWeight: 900, fontSize: sz.fontLg + 2, color: varColor(C.green), flexShrink: 0 }}>
                 R$ {(totalVendas + totalAberto).toFixed(2)}
               </div>
             </div>
@@ -1980,16 +1982,16 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
             {/* Por método de pagamento */}
             {Object.keys(porMetodo).length > 0 && (
               <div>
-                <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
+                <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
                   Vendas por Método
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                   {Object.entries(porMetodo).sort((a, b) => b[1] - a[1]).map(([metodo, val]) => (
-                    <div key={metodo} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: C.surface, borderRadius: 10, padding: "10px 14px", border: `1px solid ${C.border}` }}>
-                      <span style={{ fontSize: sz.fontSm + 1, fontWeight: 700, color: METODOS_COLOR[metodo] ?? C.muted, background: `${METODOS_COLOR[metodo] ?? C.muted}18`, border: `1px solid ${METODOS_COLOR[metodo] ?? C.muted}44`, borderRadius: 8, padding: "3px 10px" }}>
+                    <div key={metodo} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: varColor(C.surface), borderRadius: 10, padding: "10px 14px", border: `1px solid var(${C.border})` }}>
+                      <span style={{ fontSize: sz.fontSm + 1, fontWeight: 700, color: METODOS_COLOR[metodo] ?? varColor(C.muted), background: `${METODOS_COLOR[metodo] ?? varColor(C.muted)}18`, border: `1px solid ${METODOS_COLOR[metodo] ?? varColor(C.muted)}44`, borderRadius: 8, padding: "3px 10px" }}>
                         {METODOS_LABEL[metodo] ?? metodo}
                       </span>
-                      <span style={{ fontWeight: 800, fontSize: sz.fontBase, color: C.text }}>
+                      <span style={{ fontWeight: 800, fontSize: sz.fontBase, color: varColor(C.text) }}>
                         R$ {Number(val).toFixed(2)}
                       </span>
                     </div>
@@ -2000,7 +2002,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
 
             {/* Detalhe dos itens cancelados — accordion */}
             {todosCancelados.length > 0 && (
-              <div style={{ border: `1.5px solid ${C.red}33`, borderRadius: 14 }}>
+              <div style={{ border: `1.5px solid ${alfa(C.red, "33")}`, borderRadius: 14 }}>
                 {/* Header clicável */}
                 <button
                   type="button"
@@ -2008,7 +2010,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   style={{
                     width: "100%", padding: "12px 16px", border: "none",
                     borderRadius: showCancelList ? "14px 14px 0 0" : 14,
-                    background: showCancelList ? `${C.red}0e` : `${C.red}07`,
+                    background: showCancelList ? `${alfa(C.red, "0e")}` : `${alfa(C.red, "07")}`,
                     cursor: "pointer", display: "flex", alignItems: "center",
                     justifyContent: "space-between", fontFamily: "inherit",
                     transition: "background 0.15s",
@@ -2017,29 +2019,29 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{
                       width: 28, height: 28, borderRadius: 8,
-                      background: `${C.red}18`, border: `1px solid ${C.red}33`,
+                      background: `${alfa(C.red, "18")}`, border: `1px solid ${alfa(C.red, "33")}`,
                       display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                     }}>
-                      <LuX size={13} color={C.red} />
+                      <LuX size={13} color={varColor(C.red)} />
                     </div>
-                    <span style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                    <span style={{ fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.red), textTransform: "uppercase", letterSpacing: 0.8 }}>
                       Itens Cancelados
                     </span>
                     <span style={{
-                      fontSize: 11, fontWeight: 800, color: C.red,
-                      background: `${C.red}18`, border: `1px solid ${C.red}33`,
+                      fontSize: 11, fontWeight: 800, color: varColor(C.red),
+                      background: `${alfa(C.red, "18")}`, border: `1px solid ${alfa(C.red, "33")}`,
                       borderRadius: 20, padding: "1px 8px",
                     }}>
                       {todosCancelados.reduce((s, i) => s + (i.qty ?? 1), 0)}
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: sz.fontSm + 1, fontWeight: 800, color: C.red }}>
+                    <span style={{ fontSize: sz.fontSm + 1, fontWeight: 800, color: varColor(C.red) }}>
                       {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
                     </span>
                     <svg
                       width="14" height="14" viewBox="0 0 24 24" fill="none"
-                      stroke={C.red} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      stroke={varColor(C.red)} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                       style={{ transform: showCancelList ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", opacity: 0.7, flexShrink: 0 }}
                     >
                       <polyline points="6 9 12 15 18 9" />
@@ -2052,7 +2054,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   <div style={{
                     maxHeight: 240, overflowY: "auto",
                     display: "flex", flexDirection: "column", gap: 0,
-                    borderTop: `1px solid ${C.red}22`,
+                    borderTop: `1px solid ${alfa(C.red, "22")}`,
                   }}>
                     {todosCancelados.map((item, idx) => (
                       <div
@@ -2060,30 +2062,30 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                         style={{
                           display: "flex", alignItems: "center", justifyContent: "space-between",
                           padding: "10px 16px", gap: 10,
-                          borderBottom: idx < todosCancelados.length - 1 ? `1px solid ${C.red}14` : "none",
-                          background: idx % 2 === 0 ? `${C.red}04` : "transparent",
+                          borderBottom: idx < todosCancelados.length - 1 ? `1px solid ${alfa(C.red, "14")}` : "none",
+                          background: idx % 2 === 0 ? `${alfa(C.red, "04")}` : "transparent",
                         }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                            <span style={{ fontWeight: 700, fontSize: sz.fontSm + 1, color: C.text, textDecoration: "line-through", opacity: 0.6 }}>
+                            <span style={{ fontWeight: 700, fontSize: sz.fontSm + 1, color: varColor(C.text), textDecoration: "line-through", opacity: 0.6 }}>
                               {item.emoji ? `${item.emoji} ` : ""}{item.name}{(item.qty ?? 1) > 1 ? ` ×${item.qty}` : ""}
                             </span>
                             {item._comandaCancelada && (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: C.red, background: `${C.red}14`, borderRadius: 5, padding: "1px 6px", flexShrink: 0 }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: varColor(C.red), background: `${alfa(C.red, "14")}`, borderRadius: 5, padding: "1px 6px", flexShrink: 0 }}>
                                 comanda cancelada
                               </span>
                             )}
                           </div>
                           {(item.motivoCancelamento || item.canceladoPor || item._comanda) && (
-                            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                            <div style={{ fontSize: 11, color: varColor(C.muted), marginTop: 2 }}>
                               {item._comanda ? `${item._comanda} · ` : ""}
                               {item.canceladoPor || ""}
                               {item.motivoCancelamento && item.motivoCancelamento !== "—" ? ` — ${item.motivoCancelamento}` : ""}
                             </div>
                           )}
                         </div>
-                        <div style={{ fontWeight: 800, fontSize: sz.fontSm + 1, color: C.red, flexShrink: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: sz.fontSm + 1, color: varColor(C.red), flexShrink: 0 }}>
                           - R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}
                         </div>
                       </div>
@@ -2096,7 +2098,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
             {/* Comandas em aberto */}
             {abertas.length > 0 && (
               <div>
-                <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
+                <div style={{ fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
                   Comandas em Aberto
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 180, overflowY: "auto" }}>
@@ -2104,16 +2106,16 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                     const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
                     const subtotal = ativos.reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0);
                     return (
-                      <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: C.surface, borderRadius: 10, padding: "9px 13px", border: `1px solid ${C.border}` }}>
+                      <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: varColor(C.surface), borderRadius: 10, padding: "9px 13px", border: `1px solid var(${C.border})` }}>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: sz.fontSm + 1 }}>{fmtComanda(p.comanda)}</div>
-                          {p.garcom && <div style={{ fontSize: sz.fontSm, color: C.muted }}>{p.garcom}</div>}
+                          {p.garcom && <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>{p.garcom}</div>}
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
-                          <div style={{ fontWeight: 800, fontSize: sz.fontBase, color: subtotal > 0 ? C.accent : C.muted }}>
+                          <div style={{ fontWeight: 800, fontSize: sz.fontBase, color: subtotal > 0 ? varColor(C.accent) : varColor(C.muted) }}>
                             {subtotal > 0 ? `R$ ${subtotal.toFixed(2)}` : "Sem itens"}
                           </div>
-                          <div style={{ fontSize: sz.fontSm, color: C.muted }}>
+                          <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
                             {ativos.reduce((s, i) => s + (i.qty ?? 1), 0)} item(ns)
                           </div>
                         </div>
@@ -2126,7 +2128,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
 
             <button
               onClick={onClose}
-              style={{ padding: "11px 0", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, flexShrink: 0 }}
+              style={{ padding: "11px 0", borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, flexShrink: 0 }}
             >
               Fechar
             </button>
