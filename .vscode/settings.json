@@ -1,0 +1,8 @@
+{
+  "git.postCommitCommand": "push",
+  "git.branchProtection": [],
+  "git.branchProtectionPrompt": "none",
+  "git.confirmSync": false,
+  "git.defaultCloneDirectory": "c:/Users/bonas/OneDrive/Documentos/Projetos",
+  "git.autofetch": true
+}
