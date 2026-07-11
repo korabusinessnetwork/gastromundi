@@ -1,9 +1,10 @@
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { LuCheck } from "react-icons/lu";
 import "./LancamentosList.css";
 
-const STATUS_COLOR = { recebido: C.green, pago: C.green, previsto: C.blue, vencido: C.red };
+const STATUS_COLOR = { recebido: varColor(C.green), pago: varColor(C.green), previsto: varColor(C.blue), vencido: varColor(C.red) };
 const STATUS_LABEL = { recebido: "Recebido", pago: "Pago", previsto: "Previsto", vencido: "Vencido" };
 const TIPO_LABEL = { receita: "Receita", despesa: "Despesa" };
 
@@ -44,7 +45,7 @@ export default function LancamentosList({
           <div className="lancamentos-list__scroll">
           <table className="lancamentos-list__tabela">
             <thead>
-              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+              <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                 <th className="lancamentos-list__th">Competência</th>
                 <th className="lancamentos-list__th">Tipo</th>
                 <th className="lancamentos-list__th">Categoria</th>
@@ -56,7 +57,7 @@ export default function LancamentosList({
             </thead>
             <tbody>
               {lancamentos.map((l) => (
-                <tr key={l.id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                <tr key={l.id} style={{ borderBottom: `1px solid var(${C.border})` }}>
                   <td className="lancamentos-list__td">{l.competencia}</td>
                   <td className="lancamentos-list__td">{TIPO_LABEL[l.tipo] ?? l.tipo}</td>
                   <td className="lancamentos-list__td">{l.categoria}</td>
@@ -64,8 +65,8 @@ export default function LancamentosList({
                   <td className="lancamentos-list__td" style={{ textAlign: "right", fontWeight: 700 }}>{fmtR(l.valor)}</td>
                   <td className="lancamentos-list__td">
                     <span className="lancamentos-list__badge-status" style={{
-                      color: STATUS_COLOR[l.status] ?? C.muted,
-                      background: alfa(STATUS_COLOR[l.status] ?? C.muted, "22"),
+                      color: STATUS_COLOR[l.status] ?? varColor(C.muted),
+                      background: alfa(STATUS_COLOR[l.status] ?? varColor(C.muted), "22"),
                     }}>
                       {STATUS_LABEL[l.status] ?? l.status}
                     </span>

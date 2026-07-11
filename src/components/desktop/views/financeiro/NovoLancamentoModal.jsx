@@ -1,5 +1,6 @@
 import { useState } from "react";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { criarLancamento } from "@/lib/financeiro";
 import "./NovoLancamentoModal.css";
 
@@ -61,9 +62,9 @@ export default function NovoLancamentoModal({ usuario, onCreated, onClose }) {
               onClick={() => handleTipo(id)}
               className="novo-lancamento__tipo-btn"
               style={{
-                borderColor: tipo === id ? C.accent : C.border,
+                borderColor: tipo === id ? varColor(C.accent) : varColor(C.border),
                 background: tipo === id ? "var(--gm-alow)" : "none",
-                color: tipo === id ? C.accent : C.muted,
+                color: tipo === id ? varColor(C.accent) : varColor(C.muted),
               }}
             >
               {label}
@@ -116,7 +117,7 @@ export default function NovoLancamentoModal({ usuario, onCreated, onClose }) {
             onClick={handleSalvar}
             disabled={salvando}
             className="novo-lancamento__btn-salvar"
-            style={{ background: salvando ? C.faint : C.accent, cursor: salvando ? "not-allowed" : "pointer" }}
+            style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}
           >
             {salvando ? "Salvando..." : "Salvar Lançamento"}
           </button>

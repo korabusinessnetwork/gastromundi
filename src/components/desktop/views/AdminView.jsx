@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -29,8 +30,8 @@ const fmtDt = (d) => d ? new Date(d).toLocaleDateString("pt-BR", { day: "2-digit
 
 const STATUS_COMPRA = {
   pendente:  { label: "Pendente",  color: "#f59e0b" },
-  pago:      { label: "Pago",      color: C.green   },
-  cancelado: { label: "Cancelado", color: C.muted   },
+  pago:      { label: "Pago",      color: varColor(C.green)   },
+  cancelado: { label: "Cancelado", color: varColor(C.muted)   },
 };
 
 // ── Shared UI ─────────────────────────────────────────────────────
@@ -96,7 +97,7 @@ function ModalBase({ title, onClose, onSave, saveLabel = "Salvar", saving, width
             onClick={onSave}
             disabled={saving}
             className="admin__modal-salvar"
-            style={{ background: saving ? C.faint : C.accent, cursor: saving ? "not-allowed" : "pointer" }}
+            style={{ background: saving ? varColor(C.faint) : varColor(C.accent), cursor: saving ? "not-allowed" : "pointer" }}
           >
             {saving ? "Salvando..." : <><LuCheck size={14} />{saveLabel}</>}
           </button>
@@ -291,7 +292,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                   </div>
                   <div className="fichas-tab__kpi fichas-tab__kpi--custo" style={{ background: alfa(C.green, "10"), borderColor: alfa(C.green, "33") }}>
                     <div className="fichas-tab__kpi-label">Custo/porção</div>
-                    <div className="fichas-tab__kpi-valor" style={{ fontSize: sz.fontBase + 1, color: C.green }}>{fmtR(cp)}</div>
+                    <div className="fichas-tab__kpi-valor" style={{ fontSize: sz.fontBase + 1, color: varColor(C.green) }}>{fmtR(cp)}</div>
                   </div>
                 </div>
 
@@ -315,7 +316,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                       const qtdNecEst  = produto ? consumoParaEstoque(qtdNec, produto) : qtdNec;
                       const qtdEstq    = produto ? (estoque[produto.id] ?? 0) : null;
                       const suficiente = qtdEstq === null ? null : qtdEstq >= qtdNecEst;
-                      const corEstq    = qtdEstq === null ? C.muted : qtdEstq === 0 ? C.red : suficiente ? C.green : "#f59e0b";
+                      const corEstq    = qtdEstq === null ? varColor(C.muted) : qtdEstq === 0 ? varColor(C.red) : suficiente ? varColor(C.green) : "#f59e0b";
                       const ueLabel    = produto ? labelEstoque(produto) : "";
                       const ucLabel    = produto ? labelConsumo(produto) : (ing.unidade || "");
                       const temConv    = produto ? temConversaoConsumo(produto) : false;
@@ -323,39 +324,39 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                         <div
                           key={i}
                           className="fichas-tab__ing-linha"
-                          style={{ borderBottom: i < ings.length - 1 ? `1px solid ${C.border}` : "none" }}
+                          style={{ borderBottom: i < ings.length - 1 ? `1px solid var(${C.border})` : "none" }}
                         >
                           {/* Nome */}
                           <div className="fichas-tab__ing-nome">
                             {emojiShow
                               ? <span style={{ fontSize: 18, flexShrink: 0 }}>{emojiShow}</span>
-                              : <LuPackage size={13} color={C.muted} style={{ flexShrink: 0 }} />}
+                              : <LuPackage size={13} color={varColor(C.muted)} style={{ flexShrink: 0 }} />}
                             <span className="fichas-tab__ing-nome-texto">
-                              {nomeShow || <span style={{ color: C.muted, fontStyle: "italic" }}>sem nome</span>}
+                              {nomeShow || <span style={{ color: varColor(C.muted), fontStyle: "italic" }}>sem nome</span>}
                             </span>
                             {produto && (
-                              <LuLink size={10} color={C.accent} style={{ flexShrink: 0 }} title="Vinculado ao estoque" />
+                              <LuLink size={10} color={varColor(C.accent)} style={{ flexShrink: 0 }} title="Vinculado ao estoque" />
                             )}
                           </div>
 
                           {/* Qtd necessária */}
-                          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, textAlign: "center" }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.text), textAlign: "center" }}>
                             {qtdNec > 0 ? (
                               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
                                 <span>{fmtQtd(qtdNec)} {ucLabel}</span>
                                 {temConv && (
-                                  <span style={{ fontSize: 13, color: C.muted, fontWeight: 500 }}>
+                                  <span style={{ fontSize: 13, color: varColor(C.muted), fontWeight: 500 }}>
                                     ={fmtQtd(qtdNecEst)} {ueLabel}
                                   </span>
                                 )}
                               </div>
-                            ) : <span style={{ color: C.muted }}>—</span>}
+                            ) : <span style={{ color: varColor(C.muted) }}>—</span>}
                           </div>
 
                           {/* Qtd em estoque */}
                           <div style={{ textAlign: "right" }}>
                             {qtdEstq === null ? (
-                              <span style={{ fontSize: 14, color: C.muted }}>—</span>
+                              <span style={{ fontSize: 14, color: varColor(C.muted) }}>—</span>
                             ) : (
                               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
                                 <span className="fichas-tab__ing-estoque-valor" style={{
@@ -382,7 +383,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                 {/* Custo total */}
                 {ct > 0 && (
                   <div className="fichas-tab__custo-total">
-                    Custo total dos ingredientes: <strong style={{ color: C.text }}>{fmtR(ct)}</strong>
+                    Custo total dos ingredientes: <strong style={{ color: varColor(C.text) }}>{fmtR(ct)}</strong>
                   </div>
                 )}
               </div>
@@ -407,12 +408,12 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                 {produtoVinculado ? (
                   <div className="fichas-tab__produto-vinculado" style={{ background: alfa(C.accent, "10") }}>
                     <span style={{ fontSize: 18, flexShrink: 0 }}>{produtoVinculado.emoji || "📦"}</span>
-                    <span style={{ flex: 1, fontWeight: 700, fontSize: 16, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{produtoVinculado.name}</span>
-                    <button type="button" onClick={() => { setF("produtoId", null); setF("nome", ""); setF("categoria", ""); setBuscaPrato(""); setShowPratoDD(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 2 }}><LuX size={13} /></button>
+                    <span style={{ flex: 1, fontWeight: 700, fontSize: 16, color: varColor(C.text), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{produtoVinculado.name}</span>
+                    <button type="button" onClick={() => { setF("produtoId", null); setF("nome", ""); setF("categoria", ""); setBuscaPrato(""); setShowPratoDD(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: varColor(C.muted), display: "flex", padding: 2 }}><LuX size={13} /></button>
                   </div>
                 ) : (
                   <div style={{ position: "relative" }}>
-                    <LuSearch size={13} color={C.muted} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", zIndex: 1 }} />
+                    <LuSearch size={13} color={varColor(C.muted)} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", zIndex: 1 }} />
                     <input
                       ref={buscaPratoRef}
                       value={buscaPrato}
@@ -420,25 +421,25 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                       onFocus={() => setShowPratoDD(true)}
                       onBlur={() => setTimeout(() => setShowPratoDD(false), 150)}
                       placeholder="Buscar produto..."
-                      style={{ width: "100%", padding: "8px 10px 8px 30px", borderRadius: 9, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                      style={{ width: "100%", padding: "8px 10px 8px 30px", borderRadius: 9, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
                     />
                     {showPratoDD && (
                       <div className="fichas-tab__dropdown">
                         {pratoElegiveis.length === 0 ? (
-                          <div style={{ padding: "14px 12px", color: C.muted, fontSize: 15, textAlign: "center" }}>Nenhum produto encontrado</div>
+                          <div style={{ padding: "14px 12px", color: varColor(C.muted), fontSize: 15, textAlign: "center" }}>Nenhum produto encontrado</div>
                         ) : pratoElegiveis.map(p => (
                           <button
                             key={p.id}
                             type="button"
                             onMouseDown={() => { setF("produtoId", p.id); setF("nome", p.name); setF("categoria", p.category ?? ""); setBuscaPrato(""); setShowPratoDD(false); }}
                             className="fichas-tab__dropdown-item"
-                            onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                            onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                             onMouseLeave={e => e.currentTarget.style.background = "none"}
                           >
                             <span style={{ fontSize: 17, flexShrink: 0 }}>{p.emoji || "📦"}</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: 600, fontSize: 15, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-                              {p.category && <div style={{ fontSize: 13, color: C.muted }}>{p.category}</div>}
+                              <div style={{ fontWeight: 600, fontSize: 15, color: varColor(C.text), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                              {p.category && <div style={{ fontSize: 13, color: varColor(C.muted) }}>{p.category}</div>}
                             </div>
                           </button>
                         ))}
@@ -449,14 +450,14 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
               </div>
             </Field>
             <Field label="Categoria">
-              <div className="fichas-tab__categoria-preenchida" style={{ color: form.categoria ? C.text : C.muted }}>
+              <div className="fichas-tab__categoria-preenchida" style={{ color: form.categoria ? varColor(C.text) : varColor(C.muted) }}>
                 {form.categoria || "Preenchida ao vincular produto"}
               </div>
             </Field>
             <Field label="Rendimento">
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Inp type="number" value={form.rendimento} onChange={v => setF("rendimento", v)} placeholder="1" />
-                <span style={{ fontSize: 15, fontWeight: 700, color: produtoVinculado ? C.accent : C.muted, whiteSpace: "nowrap", flexShrink: 0 }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: produtoVinculado ? varColor(C.accent) : varColor(C.muted), whiteSpace: "nowrap", flexShrink: 0 }}>
                   {produtoVinculado ? (labelConsumo(produtoVinculado) || labelEstoque(produtoVinculado)) : "un"}
                 </span>
               </div>
@@ -468,16 +469,16 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
 
             {/* Esquerda: lista de ingredientes adicionados */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1 }}>
                 Ingredientes da receita
               </div>
 
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
                 {/* Cabeçalho das colunas */}
                 {form.ingredientes.length > 0 && (
-                  <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr 56px 44px 28px" : "1fr 64px 54px 80px 28px", gap: 6, paddingBottom: 4, borderBottom: `1px solid ${C.border}` }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr 56px 44px 28px" : "1fr 64px 54px 80px 28px", gap: 6, paddingBottom: 4, borderBottom: `1px solid var(${C.border})` }}>
                     {(isNarrow ? ["Ingrediente", "Qtd", "Un", ""] : ["Ingrediente", "Qtd", "Un", "R$/un", ""]).map((h, i) => (
-                      <div key={i} style={{ fontSize: 13, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
+                      <div key={i} style={{ fontSize: 13, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 0.8, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
                     ))}
                   </div>
                 )}
@@ -493,8 +494,8 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                     {prodVinc ? (
                       <div className="fichas-tab__ing-chip" style={{ background: alfa(C.accent, "12"), border: `1px solid ${alfa(C.accent, "33")}` }}>
                         {emojiChip && <span style={{ fontSize: 18, flexShrink: 0 }}>{emojiChip}</span>}
-                        <span style={{ fontWeight: 600, fontSize: 16, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{nomeChip}</span>
-                        <LuLink size={11} color={C.accent} style={{ flexShrink: 0 }} />
+                        <span style={{ fontWeight: 600, fontSize: 16, color: varColor(C.text), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{nomeChip}</span>
+                        <LuLink size={11} color={varColor(C.accent)} style={{ flexShrink: 0 }} />
                       </div>
                     ) : (
                       <input
@@ -532,7 +533,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                 })}
 
                 {form.ingredientes.length === 0 && (
-                  <div style={{ fontSize: 16, color: C.muted, padding: "24px 0", textAlign: "center", border: `1.5px dashed ${C.border}`, borderRadius: 10 }}>
+                  <div style={{ fontSize: 16, color: varColor(C.muted), padding: "24px 0", textAlign: "center", border: `1.5px dashed var(${C.border})`, borderRadius: 10 }}>
                     Selecione itens do estoque ao lado<br />
                     <span style={{ fontSize: 18 }}>ou adicione manualmente</span>
                   </div>
@@ -550,11 +551,11 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
               {/* Resumo de custo */}
               {form.ingredientes.length > 0 && (
                 <div className="fichas-tab__resumo-custo">
-                  <div style={{ fontSize: 18, color: C.muted }}>
-                    Custo total: <strong style={{ color: C.text }}>{fmtR(custoTotal)}</strong>
+                  <div style={{ fontSize: 18, color: varColor(C.muted) }}>
+                    Custo total: <strong style={{ color: varColor(C.text) }}>{fmtR(custoTotal)}</strong>
                   </div>
-                  <div style={{ fontSize: 18, color: C.muted }}>
-                    Por porção: <strong style={{ color: C.green }}>{fmtR(custoPorcao)}</strong>
+                  <div style={{ fontSize: 18, color: varColor(C.muted) }}>
+                    Por porção: <strong style={{ color: varColor(C.green) }}>{fmtR(custoPorcao)}</strong>
                   </div>
                 </div>
               )}
@@ -562,13 +563,13 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
 
             {/* Direita: painel de busca no estoque */}
             <div className="fichas-tab__painel-estoque" style={{ height: isNarrow ? "auto" : 380, minHeight: isNarrow ? 200 : "unset" }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1 }}>
                 Itens do Estoque
               </div>
 
               {/* Campo de busca */}
               <div style={{ position: "relative" }}>
-                <LuSearch size={13} color={C.muted} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                <LuSearch size={13} color={varColor(C.muted)} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
                 <input
                   ref={buscaRef}
                   value={busca}
@@ -576,13 +577,13 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                   placeholder="Buscar produto..."
                   style={{
                     width: "100%", padding: "8px 10px 8px 30px",
-                    borderRadius: 9, border: `1.5px solid ${C.border}`,
-                    background: C.card, color: C.text, fontSize: 16,
+                    borderRadius: 9, border: `1.5px solid var(${C.border})`,
+                    background: varColor(C.card), color: varColor(C.text), fontSize: 16,
                     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                   }}
                 />
                 {busca && (
-                  <button onClick={() => setBusca("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex", padding: 2 }}>
+                  <button onClick={() => setBusca("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: varColor(C.muted), display: "flex", padding: 2 }}>
                     <LuX size={12} />
                   </button>
                 )}
@@ -595,9 +596,9 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                   onClick={() => setShowFiltroIng(v => !v)}
                   className="fichas-tab__filtro-toggle"
                   style={{
-                    borderColor: catFiltroIng !== "Todos" ? C.accent : C.border,
-                    background: catFiltroIng !== "Todos" ? alfa(C.accent, "12") : C.card,
-                    color: catFiltroIng !== "Todos" ? C.accent : C.muted,
+                    borderColor: catFiltroIng !== "Todos" ? varColor(C.accent) : varColor(C.border),
+                    background: catFiltroIng !== "Todos" ? alfa(C.accent, "12") : varColor(C.card),
+                    color: catFiltroIng !== "Todos" ? varColor(C.accent) : varColor(C.muted),
                   }}
                 >
                   <LuSlidersHorizontal size={13} />
@@ -614,9 +615,9 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                         onClick={() => { setCatFiltroIng(cat); if (cat !== "Todos") setShowFiltroIng(false); }}
                         className="fichas-tab__filtro-chip"
                         style={{
-                          borderColor: catFiltroIng === cat ? C.accent : C.border,
-                          background: catFiltroIng === cat ? C.accent : C.card,
-                          color: catFiltroIng === cat ? "#fff" : C.muted,
+                          borderColor: catFiltroIng === cat ? varColor(C.accent) : varColor(C.border),
+                          background: catFiltroIng === cat ? varColor(C.accent) : varColor(C.card),
+                          color: catFiltroIng === cat ? "#fff" : varColor(C.muted),
                         }}
                       >
                         {cat}
@@ -629,7 +630,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
               {/* Lista de produtos */}
               <div className="fichas-tab__lista-produtos" style={{ maxHeight: isNarrow ? 200 : "unset" }}>
                 {produtosFiltrados.length === 0 ? (
-                  <div style={{ fontSize: 18, color: C.muted, textAlign: "center", padding: "20px 0" }}>
+                  <div style={{ fontSize: 18, color: varColor(C.muted), textAlign: "center", padding: "20px 0" }}>
                     Nenhum produto encontrado
                   </div>
                 ) : (
@@ -645,18 +646,18 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                           background: jaAdicionado ? alfa(C.accent, "0c") : "none",
                           cursor: jaAdicionado ? "default" : "pointer",
                         }}
-                        onMouseEnter={e => { if (!jaAdicionado) e.currentTarget.style.background = C.faint; }}
+                        onMouseEnter={e => { if (!jaAdicionado) e.currentTarget.style.background = varColor(C.faint); }}
                         onMouseLeave={e => { if (!jaAdicionado) e.currentTarget.style.background = "none"; }}
                       >
                         <span style={{ fontSize: 17, flexShrink: 0 }}>{p.emoji || "📦"}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="fichas-tab__produto-item-nome" style={{ color: jaAdicionado ? C.accent : C.text }}>{p.name}</div>
+                          <div className="fichas-tab__produto-item-nome" style={{ color: jaAdicionado ? varColor(C.accent) : varColor(C.text) }}>{p.name}</div>
                           <div className="fichas-tab__produto-item-categoria">{p.category}</div>
                         </div>
                         {jaAdicionado ? (
-                          <LuCheck size={13} color={C.accent} style={{ flexShrink: 0 }} />
+                          <LuCheck size={13} color={varColor(C.accent)} style={{ flexShrink: 0 }} />
                         ) : (
-                          <LuPlus size={13} color={C.muted} style={{ flexShrink: 0 }} />
+                          <LuPlus size={13} color={varColor(C.muted)} style={{ flexShrink: 0 }} />
                         )}
                       </button>
                     );
@@ -731,7 +732,7 @@ function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
         <div className="admin__tabela-moldura">
           <table className="admin__tabela">
             <thead>
-              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+              <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                 {["Nome", "Categoria", "Contato", "Telefone", ""].map((h, i) => (
                   <th key={i} className="admin__th">{h}</th>
                 ))}
@@ -739,15 +740,15 @@ function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
             </thead>
             <tbody>
               {fornecedores.map(f => (
-                <tr key={f.id} className="admin__tr" onMouseEnter={e => e.currentTarget.style.background = C.surface} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <tr key={f.id} className="admin__tr" onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                   <td className="admin__td" style={{ fontWeight: 700, fontSize: sz.fontBase }}>{f.nome}</td>
                   <td className="admin__td">
                     {f.categoria
                       ? <span className="admin__tag" style={{ fontSize: sz.fontSm + 1 }}>{f.categoria}</span>
-                      : <span style={{ color: C.muted }}>—</span>}
+                      : <span style={{ color: varColor(C.muted) }}>—</span>}
                   </td>
-                  <td className="admin__td" style={{ fontSize: sz.fontBase, color: C.muted }}>{f.contato || "—"}</td>
-                  <td className="admin__td" style={{ fontSize: sz.fontBase, color: C.muted }}>{f.telefone || "—"}</td>
+                  <td className="admin__td" style={{ fontSize: sz.fontBase, color: varColor(C.muted) }}>{f.contato || "—"}</td>
+                  <td className="admin__td" style={{ fontSize: sz.fontBase, color: varColor(C.muted) }}>{f.telefone || "—"}</td>
                   <td className="admin__td" style={{ textAlign: "right" }}>
                     <div className="admin__acoes-linha">
                       <CardBtn onClick={() => abrirEditar(f)}><LuPencil size={12} /> Editar</CardBtn>
@@ -840,7 +841,7 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
         <div className="admin__tabela-moldura">
           <table className="admin__tabela">
             <thead>
-              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+              <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                 {["Data", "Fornecedor", "Itens", "Total", "Status", ""].map((h, i) => (
                   <th key={i} className="admin__th" style={{ textAlign: i >= 2 ? "right" : "left" }}>{h}</th>
                 ))}
@@ -850,13 +851,13 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
               {compras.map(c => {
                 const st = STATUS_COMPRA[c.status] ?? STATUS_COMPRA.pendente;
                 return (
-                  <tr key={c.id} className="admin__tr" onMouseEnter={e => e.currentTarget.style.background = C.surface} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    <td className="admin__td" style={{ fontSize: sz.fontBase, color: C.muted, whiteSpace: "nowrap" }}>
+                  <tr key={c.id} className="admin__tr" onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <td className="admin__td" style={{ fontSize: sz.fontBase, color: varColor(C.muted), whiteSpace: "nowrap" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}><LuCalendar size={13} /> {fmtDt(c.data)}</div>
                     </td>
                     <td className="admin__td" style={{ fontWeight: 700, fontSize: sz.fontBase }}>{c.fornecedor}</td>
-                    <td className="admin__td" style={{ textAlign: "right", fontSize: sz.fontBase, color: C.muted }}>{c.itens?.length ?? 0} {(c.itens?.length ?? 0) === 1 ? "item" : "itens"}</td>
-                    <td className="admin__td" style={{ textAlign: "right", fontWeight: 800, fontSize: sz.fontBase, color: C.green }}>{fmtR(c.total)}</td>
+                    <td className="admin__td" style={{ textAlign: "right", fontSize: sz.fontBase, color: varColor(C.muted) }}>{c.itens?.length ?? 0} {(c.itens?.length ?? 0) === 1 ? "item" : "itens"}</td>
+                    <td className="admin__td" style={{ textAlign: "right", fontWeight: 800, fontSize: sz.fontBase, color: varColor(C.green) }}>{fmtR(c.total)}</td>
                     <td className="admin__td" style={{ textAlign: "right" }}>
                       <span className="admin__tag" style={{ fontSize: sz.fontSm + 1, background: alfa(st.color, "18"), border: `1px solid ${alfa(st.color, "44")}`, color: st.color }}>{st.label}</span>
                     </td>
@@ -879,7 +880,7 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Fornecedor *">
               {fns.length > 0 ? (
-                <select value={form.fornecedor} onChange={e => setF("fornecedor", e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: form.fornecedor ? C.text : C.muted, fontSize: 17, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+                <select value={form.fornecedor} onChange={e => setF("fornecedor", e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: form.fornecedor ? varColor(C.text) : varColor(C.muted), fontSize: 17, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
                   <option value="">Selecionar...</option>
                   {fns.map(n => <option key={n} value={n}>{n}</option>)}
                   <option value="__outro">Outro (digitar)</option>
@@ -898,8 +899,8 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
 
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1 }}>Itens</div>
-              <button onClick={addItem} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: C.accent, fontSize: 18, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1 }}>Itens</div>
+              <button onClick={addItem} style={{ background: "none", border: `1px solid var(${C.border})`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: varColor(C.accent), fontSize: 18, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
                 <LuPlus size={12} /> Adicionar item
               </button>
             </div>
@@ -910,16 +911,16 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
                   <Inp type="number" value={it.qtd} onChange={v => setItem(i, "qtd", v)} placeholder="Qtd" />
                   <Inp value={it.unidade} onChange={v => setItem(i, "unidade", v)} placeholder="Un" />
                   <Inp type="number" value={it.valorUnit} onChange={v => setItem(i, "valorUnit", v)} placeholder="R$/un" />
-                  <button onClick={() => removeItem(i)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, cursor: "pointer", color: C.muted, padding: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <button onClick={() => removeItem(i)} style={{ background: "none", border: `1px solid var(${C.border})`, borderRadius: 8, cursor: "pointer", color: varColor(C.muted), padding: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <LuX size={13} />
                   </button>
                 </div>
               ))}
-              {form.itens.length === 0 && <div style={{ fontSize: 16, color: C.muted, textAlign: "center", padding: "12px 0" }}>Nenhum item adicionado</div>}
+              {form.itens.length === 0 && <div style={{ fontSize: 16, color: varColor(C.muted), textAlign: "center", padding: "12px 0" }}>Nenhum item adicionado</div>}
             </div>
             {form.itens.length > 0 && (
-              <div style={{ marginTop: 10, textAlign: "right", fontSize: 16, color: C.muted }}>
-                Total: <strong style={{ color: C.green, fontSize: 18 }}>{fmtR(totalForm)}</strong>
+              <div style={{ marginTop: 10, textAlign: "right", fontSize: 16, color: varColor(C.muted) }}>
+                Total: <strong style={{ color: varColor(C.green), fontSize: 18 }}>{fmtR(totalForm)}</strong>
               </div>
             )}
           </div>
@@ -927,7 +928,7 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
           <Field label="Status">
             <div style={{ display: "flex", gap: 8 }}>
               {Object.entries(STATUS_COMPRA).map(([id, s]) => (
-                <button key={id} onClick={() => setF("status", id)} className="compras-tab__status-chip" style={{ borderColor: form.status === id ? s.color : C.border, background: form.status === id ? alfa(s.color, "18") : "none", color: form.status === id ? s.color : C.muted, fontSize: sz.fontSm + 1 }}>
+                <button key={id} onClick={() => setF("status", id)} className="compras-tab__status-chip" style={{ borderColor: form.status === id ? s.color : varColor(C.border), background: form.status === id ? alfa(s.color, "18") : "none", color: form.status === id ? s.color : varColor(C.muted), fontSize: sz.fontSm + 1 }}>
                   {s.label}
                 </button>
               ))}
@@ -1028,7 +1029,7 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {impostos.map(imp => {
-            const cor = COR_TIPO[imp.tipo] ?? C.muted;
+            const cor = COR_TIPO[imp.tipo] ?? varColor(C.muted);
             return (
               <div key={imp.id} className="impostos-tab__card">
                 {/* Alíquota */}
@@ -1090,7 +1091,7 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
                     key={tipo}
                     onClick={() => setF("tipo", tipo)}
                     className="impostos-tab__tipo-chip"
-                    style={{ borderColor: form.tipo === tipo ? cor : C.border, background: form.tipo === tipo ? alfa(cor, "18") : "none", color: form.tipo === tipo ? cor : C.muted, fontSize: sz.fontSm + 1 }}
+                    style={{ borderColor: form.tipo === tipo ? cor : varColor(C.border), background: form.tipo === tipo ? alfa(cor, "18") : "none", color: form.tipo === tipo ? cor : varColor(C.muted), fontSize: sz.fontSm + 1 }}
                   >
                     {tipo}
                   </button>
@@ -1109,13 +1110,13 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
                 value={form.aliquota}
                 onChange={e => setF("aliquota", e.target.value)}
                 placeholder="0,00"
-                style={{ width: "100%", padding: "10px 36px 10px 12px", borderRadius: 10, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 18, fontWeight: 700, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                style={{ width: "100%", padding: "10px 36px 10px 12px", borderRadius: 10, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontSize: 18, fontWeight: 700, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
               />
-              <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, fontWeight: 700, fontSize: 17 }}>%</span>
+              <span style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), fontWeight: 700, fontSize: 17 }}>%</span>
             </div>
             {form.aliquota && (
-              <div style={{ fontSize: 18, color: C.muted, marginTop: 6 }}>
-                Sobre R$ 1.000,00 → <strong style={{ color: C.text }}>R$ {(parseFloat(form.aliquota) * 10).toFixed(2)}</strong> de imposto
+              <div style={{ fontSize: 18, color: varColor(C.muted), marginTop: 6 }}>
+                Sobre R$ 1.000,00 → <strong style={{ color: varColor(C.text) }}>R$ {(parseFloat(form.aliquota) * 10).toFixed(2)}</strong> de imposto
               </div>
             )}
           </Field>
@@ -1144,11 +1145,11 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
 // ── Grade inicial ─────────────────────────────────────────────────
 
 const SECOES = [
-  { id: "fichas",       label: "Ficha Técnica", desc: "Receitas, ingredientes e custo por porção", Icon: LuClipboardList, color: C.accent  },
-  { id: "fornecedores", label: "Fornecedores",  desc: "Contatos e cadastro de fornecedores",       Icon: LuTruck,        color: C.blue    },
-  { id: "compras",      label: "Compras",       desc: "Registro de compras e pedidos",             Icon: LuShoppingCart, color: C.green   },
+  { id: "fichas",       label: "Ficha Técnica", desc: "Receitas, ingredientes e custo por porção", Icon: LuClipboardList, color: varColor(C.accent)  },
+  { id: "fornecedores", label: "Fornecedores",  desc: "Contatos e cadastro de fornecedores",       Icon: LuTruck,        color: varColor(C.blue)    },
+  { id: "compras",      label: "Compras",       desc: "Registro de compras e pedidos",             Icon: LuShoppingCart, color: varColor(C.green)   },
   { id: "impostos",     label: "Impostos",      desc: "Alíquotas e configuração fiscal",           Icon: LuPercent,      color: "#f97316" },
-  { id: "notas_fiscais", label: "Notas Fiscais", desc: "Importação de NF-e via XML e controle de entradas", Icon: LuFileText, color: C.blue },
+  { id: "notas_fiscais", label: "Notas Fiscais", desc: "Importação de NF-e via XML e controle de entradas", Icon: LuFileText, color: varColor(C.blue) },
 ];
 
 function GradeInicial({ sz, onSelecionar, fichas, fornecedores, compras, impostos, notasFiscaisCount }) {
@@ -1161,9 +1162,9 @@ function GradeInicial({ sz, onSelecionar, fichas, fornecedores, compras, imposto
             key={s.id}
             onClick={() => onSelecionar(s.id)}
             className="grade-inicial__card"
-            style={{ borderColor: C.border }}
+            style={{ borderColor: varColor(C.border) }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = alfa(s.color, "66"); e.currentTarget.style.background = alfa(s.color, "08"); }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.card; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = varColor(C.border); e.currentTarget.style.background = varColor(C.card); }}
           >
             <div className="grade-inicial__icone" style={{ background: alfa(s.color, "18"), borderColor: alfa(s.color, "44") }}>
               <s.Icon size={24} color={s.color} />
@@ -1176,7 +1177,7 @@ function GradeInicial({ sz, onSelecionar, fichas, fornecedores, compras, imposto
               <span className="grade-inicial__contador" style={{ fontSize: 18 }}>
                 {contadores[s.id]} {contadores[s.id] === 1 ? "registro" : "registros"}
               </span>
-              <LuChevronRight size={16} color={C.muted} />
+              <LuChevronRight size={16} color={varColor(C.muted)} />
             </div>
           </button>
         ))}
@@ -1229,7 +1230,7 @@ export default function AdminView() {
   const secaoAtual = SECOES.find(s => s.id === secao);
 
   return (
-    <div className="admin-view" style={{ background: C.bg }}>
+    <div className="admin-view" style={{ background: varColor(C.bg) }}>
       <div className="admin-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div className="admin-view__header-topo">
           {secao && (

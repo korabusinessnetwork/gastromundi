@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { buscarConfigImpressao, salvarConfigImpressao, PERFIL_IMPRESSORA_PADRAO } from "@/lib/impressao";
 import { gerarHtmlComPerfil } from "@/lib/impressao/drivers/browserRaster";
 import { OPCOES_DRIVER } from "@/lib/impressao/drivers";
@@ -76,7 +77,7 @@ export default function PerfilImpressora({ sz }) {
   const htmlPreview = useMemo(() => gerarHtmlComPerfil(DOCUMENTO_EXEMPLO, perfil), [perfil]);
 
   if (carregando) {
-    return <div className="perfil-impressora__carregando" style={{ color: C.muted }}>Carregando…</div>;
+    return <div className="perfil-impressora__carregando" style={{ color: varColor(C.muted) }}>Carregando…</div>;
   }
 
   return (
@@ -85,7 +86,7 @@ export default function PerfilImpressora({ sz }) {
 
         {/* Largura do papel */}
         <div>
-          <div className="perfil-impressora__label" style={{ color: C.muted }}>Largura do papel</div>
+          <div className="perfil-impressora__label" style={{ color: varColor(C.muted) }}>Largura do papel</div>
           <div className="perfil-impressora__opcoes-largura">
             {[58, 80].map((mm) => (
               <button
@@ -94,9 +95,9 @@ export default function PerfilImpressora({ sz }) {
                 onClick={() => atualizarCampo("larguraMm", mm)}
                 className={`perfil-impressora__opcao-larga${perfil.larguraMm === mm ? " perfil-impressora__opcao-larga--ativa" : ""}`}
                 style={{
-                  borderColor: perfil.larguraMm === mm ? C.accent : C.border,
-                  background: perfil.larguraMm === mm ? "var(--gm-alow)" : C.surface,
-                  color: perfil.larguraMm === mm ? C.accent : C.text,
+                  borderColor: perfil.larguraMm === mm ? varColor(C.accent) : varColor(C.border),
+                  background: perfil.larguraMm === mm ? "var(--gm-alow)" : varColor(C.surface),
+                  color: perfil.larguraMm === mm ? varColor(C.accent) : varColor(C.text),
                 }}
               >
                 {mm}mm
@@ -108,14 +109,14 @@ export default function PerfilImpressora({ sz }) {
         {/* Corte de papel */}
         <div className="perfil-impressora__linha-toggle">
           <div>
-            <div className="perfil-impressora__label" style={{ color: C.muted, marginBottom: 0 }}>Corta o papel automaticamente</div>
-            <div className="perfil-impressora__ajuda" style={{ color: C.muted }}>Impressoras com guilhotina — dá um avanço de linha extra no fim para o corte não pegar o texto.</div>
+            <div className="perfil-impressora__label" style={{ color: varColor(C.muted), marginBottom: 0 }}>Corta o papel automaticamente</div>
+            <div className="perfil-impressora__ajuda" style={{ color: varColor(C.muted) }}>Impressoras com guilhotina — dá um avanço de linha extra no fim para o corte não pegar o texto.</div>
           </div>
           <button
             type="button"
             onClick={() => atualizarCampo("cortaPapel", !perfil.cortaPapel)}
             className="perfil-impressora__toggle"
-            style={{ background: perfil.cortaPapel ? C.green : C.faint }}
+            style={{ background: perfil.cortaPapel ? varColor(C.green) : varColor(C.faint) }}
           >
             <span className="perfil-impressora__toggle-bolinha" style={{ left: perfil.cortaPapel ? 25 : 3 }} />
           </button>
@@ -123,10 +124,10 @@ export default function PerfilImpressora({ sz }) {
 
         {/* Tamanho da fonte */}
         <div>
-          <div className="perfil-impressora__label" style={{ color: C.muted }}>
+          <div className="perfil-impressora__label" style={{ color: varColor(C.muted) }}>
             Tamanho da letra {perfil.fonteBase ? `(${perfil.fonteBase}px)` : "(padrão do modelo)"}
           </div>
-          <div className="perfil-impressora__ajuda" style={{ color: C.muted, marginBottom: 8 }}>
+          <div className="perfil-impressora__ajuda" style={{ color: varColor(C.muted), marginBottom: 8 }}>
             Se a impressora corta ou borra letra pequena, aumente aqui.
           </div>
           <input
@@ -142,7 +143,7 @@ export default function PerfilImpressora({ sz }) {
               type="button"
               onClick={() => atualizarCampo("fonteBase", null)}
               className="perfil-impressora__link-reset"
-              style={{ color: C.accent }}
+              style={{ color: varColor(C.accent) }}
             >
               Voltar ao padrão do modelo
             </button>
@@ -151,7 +152,7 @@ export default function PerfilImpressora({ sz }) {
 
         {/* Driver de impressão */}
         <div>
-          <div className="perfil-impressora__label" style={{ color: C.muted }}>Como imprimir</div>
+          <div className="perfil-impressora__label" style={{ color: varColor(C.muted) }}>Como imprimir</div>
           <div className="perfil-impressora__opcoes-driver">
             {OPCOES_DRIVER.map((opcao) => (
               <button
@@ -160,9 +161,9 @@ export default function PerfilImpressora({ sz }) {
                 onClick={() => atualizarCampo("driver", opcao.id)}
                 className={`perfil-impressora__opcao-driver${perfil.driver === opcao.id ? " perfil-impressora__opcao-driver--ativa" : ""}`}
                 style={{
-                  borderColor: perfil.driver === opcao.id ? C.accent : C.border,
-                  background: perfil.driver === opcao.id ? "var(--gm-alow)" : C.surface,
-                  color: perfil.driver === opcao.id ? C.accent : C.text,
+                  borderColor: perfil.driver === opcao.id ? varColor(C.accent) : varColor(C.border),
+                  background: perfil.driver === opcao.id ? "var(--gm-alow)" : varColor(C.surface),
+                  color: perfil.driver === opcao.id ? varColor(C.accent) : varColor(C.text),
                 }}
               >
                 {opcao.label}
@@ -170,11 +171,11 @@ export default function PerfilImpressora({ sz }) {
             ))}
           </div>
           {perfil.driver === "escpos-qztray" && (
-            <div className="perfil-impressora__qz" style={{ borderColor: C.border, background: C.surface }}>
-              <div className="perfil-impressora__ajuda" style={{ color: C.muted }}>
+            <div className="perfil-impressora__qz" style={{ borderColor: varColor(C.border), background: varColor(C.surface) }}>
+              <div className="perfil-impressora__ajuda" style={{ color: varColor(C.muted) }}>
                 Exige o app <strong>QZ Tray</strong> instalado e em execução neste computador. Sem certificado pago, aparece um aviso de segurança a cada impressão — isso é esperado e fica assim até uma assinatura ser contratada.
               </div>
-              <button type="button" onClick={buscarImpressorasQz} className="perfil-impressora__btn-detectar" style={{ borderColor: C.border, color: C.text }}>
+              <button type="button" onClick={buscarImpressorasQz} className="perfil-impressora__btn-detectar" style={{ borderColor: varColor(C.border), color: varColor(C.text) }}>
                 {statusQz === "buscando" ? <LuLoader size={14} className="perfil-impressora__spin" /> : <LuRefreshCw size={14} />}
                 Detectar impressoras do QZ Tray
               </button>
@@ -185,7 +186,7 @@ export default function PerfilImpressora({ sz }) {
               )}
               {statusQz === "ok" && (
                 <div className="perfil-impressora__lista-qz">
-                  {impressorasQz.length === 0 && <div style={{ color: C.muted }}>Nenhuma impressora encontrada.</div>}
+                  {impressorasQz.length === 0 && <div style={{ color: varColor(C.muted) }}>Nenhuma impressora encontrada.</div>}
                   {impressorasQz.map((nome) => (
                     <button
                       key={nome}
@@ -193,8 +194,8 @@ export default function PerfilImpressora({ sz }) {
                       onClick={() => atualizarCampo("impressoraQz", nome)}
                       className={`perfil-impressora__opcao-qz${perfil.impressoraQz === nome ? " perfil-impressora__opcao-qz--ativa" : ""}`}
                       style={{
-                        borderColor: perfil.impressoraQz === nome ? C.accent : C.border,
-                        color: perfil.impressoraQz === nome ? C.accent : C.text,
+                        borderColor: perfil.impressoraQz === nome ? varColor(C.accent) : varColor(C.border),
+                        color: perfil.impressoraQz === nome ? varColor(C.accent) : varColor(C.text),
                       }}
                     >
                       {nome}
@@ -213,7 +214,7 @@ export default function PerfilImpressora({ sz }) {
 
         {/* Salvar */}
         <div className="perfil-impressora__acoes">
-          <button type="button" onClick={salvar} disabled={salvando} className="perfil-impressora__btn-salvar" style={{ background: C.accent }}>
+          <button type="button" onClick={salvar} disabled={salvando} className="perfil-impressora__btn-salvar" style={{ background: varColor(C.accent) }}>
             {salvando ? "Salvando…" : "Salvar perfil"}
           </button>
           {status === "sucesso" && (
@@ -227,8 +228,8 @@ export default function PerfilImpressora({ sz }) {
 
       {/* Preview */}
       <div className="perfil-impressora__preview-coluna">
-        <div className="perfil-impressora__label" style={{ color: C.muted }}>Pré-visualização ({perfil.larguraMm}mm)</div>
-        <div className="perfil-impressora__preview-moldura" style={{ borderColor: C.border, background: C.surface }}>
+        <div className="perfil-impressora__label" style={{ color: varColor(C.muted) }}>Pré-visualização ({perfil.larguraMm}mm)</div>
+        <div className="perfil-impressora__preview-moldura" style={{ borderColor: varColor(C.border), background: varColor(C.surface) }}>
           <iframe title="Pré-visualização de impressão" srcDoc={htmlPreview} className="perfil-impressora__preview-iframe" />
         </div>
       </div>

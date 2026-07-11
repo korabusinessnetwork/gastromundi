@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { buscarInsights, atualizarStatusInsight } from "@/lib/jarvas";
 import { perguntarAoJarvas } from "@/lib/jarvasAssistente";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
 import { LuSparkles, LuX, LuCheck, LuTrash2, LuArrowRight, LuSend } from "react-icons/lu";
 
 /**
@@ -14,7 +16,7 @@ import { LuSparkles, LuX, LuCheck, LuTrash2, LuArrowRight, LuSend } from "react-
  * info → azul · warning → âmbar · danger → vermelho.
  */
 
-const COR_SEVERIDADE = { info: C.blue, warning: "#f59e0b", danger: C.red };
+const COR_SEVERIDADE = { info: varColor(C.blue), warning: "#f59e0b", danger: varColor(C.red) };
 const LABEL_TIPO = { insight: "Insight", alerta: "Alerta", sugestao: "Sugestão" };
 const ROTA_ACAO = {
   abrir_estoque: "/app/estoque",
@@ -132,9 +134,9 @@ export default function JarvasPanel() {
         style={{
           position: "fixed", right: 18, bottom: 18, zIndex: 400,
           width: 52, height: 52, borderRadius: "50%",
-          background: naoLidos > 0 ? C.accent : C.card,
-          border: `1px solid ${naoLidos > 0 ? C.accent : C.border}`,
-          color: naoLidos > 0 ? "#fff" : C.muted,
+          background: naoLidos > 0 ? varColor(C.accent) : varColor(C.card),
+          border: `1px solid ${naoLidos > 0 ? varColor(C.accent) : varColor(C.border)}`,
+          color: naoLidos > 0 ? "#fff" : varColor(C.muted),
           cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
           boxShadow: "0 4px 18px rgba(0,0,0,0.45)",
           transition: "background 0.15s, color 0.15s",
@@ -145,7 +147,7 @@ export default function JarvasPanel() {
           <span style={{
             position: "absolute", top: -4, right: -4,
             minWidth: 20, height: 20, padding: "0 5px",
-            borderRadius: 10, background: C.red, color: "#fff",
+            borderRadius: 10, background: varColor(C.red), color: "#fff",
             fontSize: 11, fontWeight: 800,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
@@ -164,25 +166,25 @@ export default function JarvasPanel() {
           <div style={{
             position: "fixed", right: 0, top: 0, zIndex: 402,
             width: "min(400px, 92vw)", height: "100dvh",
-            background: C.card, borderLeft: `1px solid ${C.border}`,
+            background: varColor(C.card), borderLeft: `1px solid var(${C.border})`,
             display: "flex", flexDirection: "column",
-            fontFamily: "'Inter',system-ui,sans-serif", color: C.text,
+            fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text),
           }}>
             {/* Cabeçalho */}
             <div style={{
               display: "flex", alignItems: "center", gap: 10,
-              padding: "16px 18px", borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+              padding: "16px 18px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0,
             }}>
-              <LuSparkles size={18} color={C.accent} />
+              <LuSparkles size={18} color={varColor(C.accent)} />
               <div style={{ flex: 1, fontWeight: 900, fontSize: 15, letterSpacing: "-0.3px" }}>
                 Jarvas
-                <span style={{ color: C.muted, fontWeight: 400, fontSize: 12, marginLeft: 8 }}>
+                <span style={{ color: varColor(C.muted), fontWeight: 400, fontSize: 12, marginLeft: 8 }}>
                   insights · alertas · sugestões
                 </span>
               </div>
               <button
                 onClick={() => setAberto(false)}
-                style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4 }}
+                style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4 }}
               >
                 <LuX size={18} />
               </button>
@@ -198,9 +200,9 @@ export default function JarvasPanel() {
                     style={{
                       flex: 1, padding: "8px 10px", borderRadius: 8, cursor: "pointer",
                       fontSize: 12.5, fontWeight: 700,
-                      background: aba === id ? C.alow : "none",
-                      border: `1px solid ${aba === id ? `${C.accent}55` : C.border}`,
-                      color: aba === id ? C.accent : C.muted,
+                      background: aba === id ? varColor(C.alow) : "none",
+                      border: `1px solid ${aba === id ? `${alfa(C.accent, "55")}` : varColor(C.border)}`,
+                      color: aba === id ? varColor(C.accent) : varColor(C.muted),
                     }}
                   >
                     {label}
@@ -214,7 +216,7 @@ export default function JarvasPanel() {
               <>
                 <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
                   {mensagens.length === 0 && (
-                    <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: 24, lineHeight: 1.6 }}>
+                    <div style={{ color: varColor(C.muted), fontSize: 13, textAlign: "center", padding: 24, lineHeight: 1.6 }}>
                       Pergunte sobre o negócio — vendas, estoque, caixa.<br />
                       Ex.: “Como foram as vendas esta semana?”<br />
                       <span style={{ fontSize: 11.5 }}>O Jarvas responde só com base nos seus dados reais.</span>
@@ -225,22 +227,22 @@ export default function JarvasPanel() {
                       <div style={{
                         maxWidth: "85%", padding: "9px 12px", borderRadius: 12,
                         fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap",
-                        background: m.papel === "usuario" ? C.accent : C.surface,
-                        border: m.papel === "usuario" ? "none" : `1px solid ${C.border}`,
-                        color: m.papel === "usuario" ? "#fff" : C.text,
+                        background: m.papel === "usuario" ? varColor(C.accent) : varColor(C.surface),
+                        border: m.papel === "usuario" ? "none" : `1px solid var(${C.border})`,
+                        color: m.papel === "usuario" ? "#fff" : varColor(C.text),
                       }}>
                         {m.texto}
                       </div>
                     </div>
                   ))}
                   {perguntando && (
-                    <div style={{ color: C.muted, fontSize: 12.5, padding: "4px 2px" }}>Jarvas está analisando…</div>
+                    <div style={{ color: varColor(C.muted), fontSize: 12.5, padding: "4px 2px" }}>Jarvas está analisando…</div>
                   )}
                   <div ref={fimChatRef} />
                 </div>
                 <div style={{
                   display: "flex", gap: 8, padding: 12,
-                  borderTop: `1px solid ${C.border}`, flexShrink: 0,
+                  borderTop: `1px solid var(${C.border})`, flexShrink: 0,
                 }}>
                   <input
                     value={texto}
@@ -249,8 +251,8 @@ export default function JarvasPanel() {
                     placeholder="Pergunte ao Jarvas…"
                     maxLength={1000}
                     style={{
-                      flex: 1, background: C.surface, border: `1px solid ${C.border}`,
-                      borderRadius: 10, padding: "10px 12px", color: C.text,
+                      flex: 1, background: varColor(C.surface), border: `1px solid var(${C.border})`,
+                      borderRadius: 10, padding: "10px 12px", color: varColor(C.text),
                       fontSize: 13, outline: "none", fontFamily: "inherit",
                     }}
                   />
@@ -258,7 +260,7 @@ export default function JarvasPanel() {
                     onClick={enviarPergunta}
                     disabled={perguntando || !texto.trim()}
                     style={{
-                      background: texto.trim() && !perguntando ? C.accent : C.faint,
+                      background: texto.trim() && !perguntando ? varColor(C.accent) : varColor(C.faint),
                       border: "none", borderRadius: 10, color: "#fff",
                       padding: "0 14px", cursor: texto.trim() && !perguntando ? "pointer" : "default",
                       display: "flex", alignItems: "center",
@@ -274,18 +276,18 @@ export default function JarvasPanel() {
             {(aba === "insights" || !podeConversar) && (
             <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
               {carregando && insights.length === 0 && (
-                <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: 24 }}>Carregando…</div>
+                <div style={{ color: varColor(C.muted), fontSize: 13, textAlign: "center", padding: 24 }}>Carregando…</div>
               )}
               {!carregando && insights.length === 0 && (
-                <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: 24 }}>
+                <div style={{ color: varColor(C.muted), fontSize: 13, textAlign: "center", padding: 24 }}>
                   Tudo em ordem por aqui. O Jarvas avisa quando algo merecer atenção.
                 </div>
               )}
               {insights.map((i) => {
-                const cor = COR_SEVERIDADE[i.severidade] ?? C.blue;
+                const cor = COR_SEVERIDADE[i.severidade] ?? varColor(C.blue);
                 return (
                   <div key={i.id} style={{
-                    background: C.surface, border: `1px solid ${C.border}`,
+                    background: varColor(C.surface), border: `1px solid var(${C.border})`,
                     borderLeft: `3px solid ${cor}`, borderRadius: 10,
                     padding: "12px 14px", marginBottom: 10,
                     opacity: i.status === "lido" ? 0.75 : 1,
@@ -298,20 +300,20 @@ export default function JarvasPanel() {
                       }}>
                         {LABEL_TIPO[i.tipo] ?? i.tipo}
                       </span>
-                      <span style={{ fontSize: 11, color: C.muted }}>{i.modulo}</span>
+                      <span style={{ fontSize: 11, color: varColor(C.muted) }}>{i.modulo}</span>
                       <span style={{ flex: 1 }} />
-                      <span style={{ fontSize: 11, color: C.muted }}>{tempoRelativo(i.created_at)}</span>
+                      <span style={{ fontSize: 11, color: varColor(C.muted) }}>{tempoRelativo(i.created_at)}</span>
                     </div>
                     <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 4 }}>{i.titulo}</div>
-                    <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.45, marginBottom: 10 }}>{i.descricao}</div>
+                    <div style={{ fontSize: 12.5, color: varColor(C.muted), lineHeight: 1.45, marginBottom: 10 }}>{i.descricao}</div>
                     <div style={{ display: "flex", gap: 8 }}>
                       {i.acao?.label && (
                         <button
                           onClick={() => executarAcao(i)}
                           style={{
                             display: "flex", alignItems: "center", gap: 6,
-                            background: C.alow, border: `1px solid ${C.accent}55`,
-                            color: C.accent, borderRadius: 8, padding: "6px 10px",
+                            background: varColor(C.alow), border: `1px solid ${alfa(C.accent, "55")}`,
+                            color: varColor(C.accent), borderRadius: 8, padding: "6px 10px",
                             fontSize: 12, fontWeight: 700, cursor: "pointer",
                           }}
                         >
@@ -323,7 +325,7 @@ export default function JarvasPanel() {
                         <button
                           onClick={() => mudarStatus(i.id, "lido")}
                           title="Marcar como lido"
-                          style={{ background: "none", border: `1px solid ${C.border}`, color: C.muted, borderRadius: 8, padding: "6px 8px", cursor: "pointer" }}
+                          style={{ background: "none", border: `1px solid var(${C.border})`, color: varColor(C.muted), borderRadius: 8, padding: "6px 8px", cursor: "pointer" }}
                         >
                           <LuCheck size={14} />
                         </button>
@@ -331,7 +333,7 @@ export default function JarvasPanel() {
                       <button
                         onClick={() => mudarStatus(i.id, "descartado")}
                         title="Descartar"
-                        style={{ background: "none", border: `1px solid ${C.border}`, color: C.muted, borderRadius: 8, padding: "6px 8px", cursor: "pointer" }}
+                        style={{ background: "none", border: `1px solid var(${C.border})`, color: varColor(C.muted), borderRadius: 8, padding: "6px 8px", cursor: "pointer" }}
                       >
                         <LuTrash2 size={14} />
                       </button>

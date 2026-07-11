@@ -6,6 +6,7 @@ import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { labelEstoque, getUnidadesCompra, fmtQtd } from "@/utils/conversaoUnidades";
 import { LuTriangleAlert, LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon, LuRuler } from "react-icons/lu";
@@ -54,8 +55,8 @@ function CategoriasComBusca({ categorias, catFiltro, setCatFiltro, busca, setBus
         className="categorias-busca__cat"
         style={{
           padding: small ? "6px 14px" : "7px 18px",
-          background: ativo ? C.accent : C.surface,
-          color: ativo ? "#fff" : C.muted,
+          background: ativo ? varColor(C.accent) : varColor(C.surface),
+          color: ativo ? "#fff" : varColor(C.muted),
           fontSize: sz.fontBase,
           width: small ? "100%" : undefined,
         }}
@@ -79,8 +80,8 @@ function CategoriasComBusca({ categorias, catFiltro, setCatFiltro, busca, setBus
               className="categorias-busca__cat"
               style={{
                 padding: "7px 18px",
-                background: (aberto || extras.includes(catFiltro)) ? C.accent : C.surface,
-                color: (aberto || extras.includes(catFiltro)) ? "#fff" : C.muted,
+                background: (aberto || extras.includes(catFiltro)) ? varColor(C.accent) : varColor(C.surface),
+                color: (aberto || extras.includes(catFiltro)) ? "#fff" : varColor(C.muted),
                 fontSize: sz.fontBase,
               }}
             >
@@ -333,7 +334,7 @@ export default function ProdutosView() {
   ];
 
   return (
-    <div className="produtos-view" style={{ background: C.bg }}>
+    <div className="produtos-view" style={{ background: varColor(C.bg) }}>
 
       {/* Header */}
       <div className="produtos-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
@@ -347,10 +348,10 @@ export default function ProdutosView() {
               <button onClick={() => setShowCatModal(true)} className="produtos-view__btn-categorias" style={{ padding: `9px ${sz.pad - 8}px`, fontSize: sz.fontBase }}>
                 <LuTag size={15} /> Categorias
               </button>
-              <button onClick={() => abrirNovo(true)} className="produtos-view__btn-insumo" style={{ padding: `9px ${sz.pad - 8}px`, borderColor: C.green, background: alfa(C.green, "12"), color: C.green, fontSize: sz.fontBase }}>
+              <button onClick={() => abrirNovo(true)} className="produtos-view__btn-insumo" style={{ padding: `9px ${sz.pad - 8}px`, borderColor: varColor(C.green), background: alfa(C.green, "12"), color: varColor(C.green), fontSize: sz.fontBase }}>
                 + Novo Insumo
               </button>
-              <button onClick={() => abrirNovo(false, true)} className="produtos-view__btn-producao" style={{ padding: `9px ${sz.pad - 8}px`, borderColor: C.blue, background: alfa(C.blue, "12"), color: C.blue, fontSize: sz.fontBase }}>
+              <button onClick={() => abrirNovo(false, true)} className="produtos-view__btn-producao" style={{ padding: `9px ${sz.pad - 8}px`, borderColor: varColor(C.blue), background: alfa(C.blue, "12"), color: varColor(C.blue), fontSize: sz.fontBase }}>
                 + Item de Produção
               </button>
               <button onClick={() => abrirNovo(false)} className="produtos-view__btn-novo" style={{ padding: `9px ${sz.pad - 8}px`, fontSize: sz.fontBase }}>
@@ -370,7 +371,7 @@ export default function ProdutosView() {
               key={aba.id}
               onClick={() => setAbaAtiva(aba.id)}
               className="produtos-view__aba"
-              style={{ borderBottom: ativo ? `2px solid ${C.accent}` : "2px solid transparent", color: ativo ? C.accent : C.muted, fontWeight: ativo ? 700 : 500, fontSize: sz.fontBase }}
+              style={{ borderBottom: ativo ? `2px solid var(${C.accent})` : "2px solid transparent", color: ativo ? varColor(C.accent) : varColor(C.muted), fontWeight: ativo ? 700 : 500, fontSize: sz.fontBase }}
             >
               {aba.label}
             </button>
@@ -407,7 +408,7 @@ export default function ProdutosView() {
         ) : (
           <table className="produtos-view__tabela">
             <thead>
-              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+              <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                 {["", "Nome", "Categoria", "Unidade", "Preço", ""].map((h, i) => (
                   <th key={i} className="produtos-view__th" style={{ padding: `12px ${i === 0 ? sz.pad : 16}px`, textAlign: i >= 4 ? "right" : "left" }}>{h}</th>
                 ))}
@@ -417,7 +418,7 @@ export default function ProdutosView() {
               {produtosFiltrados.map(p => {
                 const units = getUnidadesCompra(p);
                 return (
-                  <tr key={p.id} className="produtos-view__tr" onMouseEnter={e => e.currentTarget.style.background = C.surface} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <tr key={p.id} className="produtos-view__tr" onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <td className="produtos-view__td-emoji" style={{ padding: `14px ${sz.pad}px` }}>
                       <div className="produtos-view__emoji-box">{p.emoji || "📦"}</div>
                     </td>
@@ -443,7 +444,7 @@ export default function ProdutosView() {
                       {isAdmin && (
                         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                           <button onClick={() => abrirEditar(p)} className="produtos-view__btn-editar" style={{ fontSize: sz.fontSm + 1 }}>Editar</button>
-                          <button onClick={() => setDeleteId(p.id)} className="produtos-view__btn-excluir" style={{ borderColor: alfa(C.red, "44"), background: alfa(C.red, "0f"), color: C.red, fontSize: sz.fontSm + 1 }}>Excluir</button>
+                          <button onClick={() => setDeleteId(p.id)} className="produtos-view__btn-excluir" style={{ borderColor: alfa(C.red, "44"), background: alfa(C.red, "0f"), color: varColor(C.red), fontSize: sz.fontSm + 1 }}>Excluir</button>
                         </div>
                       )}
                     </td>
@@ -473,7 +474,7 @@ export default function ProdutosView() {
             <div>
               <Label>Emoji</Label>
               <div className="produtos-view__emoji-linha">
-                <button onClick={() => setShowEmojiPicker(v => !v)} className="produtos-view__emoji-btn" style={{ borderColor: showEmojiPicker ? C.accent : C.border }}>
+                <button onClick={() => setShowEmojiPicker(v => !v)} className="produtos-view__emoji-btn" style={{ borderColor: showEmojiPicker ? varColor(C.accent) : varColor(C.border) }}>
                   {form.emoji || "📦"}
                 </button>
                 <span className="produtos-view__emoji-ajuda" style={{ fontSize: sz.fontSm }}>Clique para escolher um emoji</span>
@@ -482,7 +483,7 @@ export default function ProdutosView() {
               {showEmojiPicker && (
                 <div className="produtos-view__emoji-picker">
                   {EMOJIS.map(e => (
-                    <button key={e} onClick={() => { setField("emoji", e); setShowEmojiPicker(false); }} className="produtos-view__emoji-opcao" style={{ background: form.emoji === e ? "var(--gm-alow)" : "transparent", outline: form.emoji === e ? `2px solid ${C.accent}` : "none" }}>{e}</button>
+                    <button key={e} onClick={() => { setField("emoji", e); setShowEmojiPicker(false); }} className="produtos-view__emoji-opcao" style={{ background: form.emoji === e ? "var(--gm-alow)" : "transparent", outline: form.emoji === e ? `2px solid var(${C.accent})` : "none" }}>{e}</button>
                   ))}
                 </div>
               )}
@@ -508,7 +509,7 @@ export default function ProdutosView() {
                 <Label>Categoria *</Label>
                 <div className="produtos-view__categorias-form">
                   {categorias.map(cat => (
-                    <button key={cat} onClick={() => setField("category", cat)} className="produtos-view__categoria-chip" style={{ borderColor: form.category === cat ? C.accent : C.border, background: form.category === cat ? "var(--gm-alow)" : C.surface, color: form.category === cat ? C.accent : C.muted, fontSize: sz.fontSm + 1 }}>
+                    <button key={cat} onClick={() => setField("category", cat)} className="produtos-view__categoria-chip" style={{ borderColor: form.category === cat ? varColor(C.accent) : varColor(C.border), background: form.category === cat ? "var(--gm-alow)" : varColor(C.surface), color: form.category === cat ? varColor(C.accent) : varColor(C.muted), fontSize: sz.fontSm + 1 }}>
                       {cat}
                     </button>
                   ))}
@@ -531,7 +532,7 @@ export default function ProdutosView() {
             {/* ── Seção: Unidades de medida ── */}
             <div className="produtos-view__secao-unidades">
               <div className="produtos-view__secao-titulo" style={{ fontSize: sz.fontBase }}>
-                <LuRuler size={15} color={C.accent} />
+                <LuRuler size={15} color={varColor(C.accent)} />
                 <span>Unidades de medida</span>
               </div>
 
@@ -547,7 +548,7 @@ export default function ProdutosView() {
                     {unidadesEstoque.map(u => {
                       const sel = form.unidade_estoque === u.abreviacao;
                       return (
-                        <button key={u.id} onClick={() => setField("unidade_estoque", u.abreviacao)} className="produtos-view__unidade-btn" style={{ borderColor: sel ? C.accent : C.border, background: sel ? "var(--gm-alow)" : C.card, color: sel ? C.accent : C.muted, fontSize: sz.fontBase }}>
+                        <button key={u.id} onClick={() => setField("unidade_estoque", u.abreviacao)} className="produtos-view__unidade-btn" style={{ borderColor: sel ? varColor(C.accent) : varColor(C.border), background: sel ? "var(--gm-alow)" : varColor(C.card), color: sel ? varColor(C.accent) : varColor(C.muted), fontSize: sz.fontBase }}>
                           {u.abreviacao}
                           <span className="produtos-view__unidade-nome">{u.nome !== u.abreviacao ? u.nome : ""}</span>
                         </button>
@@ -586,14 +587,14 @@ export default function ProdutosView() {
                             style={{ borderColor: alfa(C.blue, "66"), fontSize: sz.fontBase }}
                           />
                         ) : (
-                          <span className="produtos-view__fornecedor-nome" style={{ fontSize: sz.fontBase, color: c.nome ? C.text : C.muted }}>
+                          <span className="produtos-view__fornecedor-nome" style={{ fontSize: sz.fontBase, color: c.nome ? varColor(C.text) : varColor(C.muted) }}>
                             {c.nome || "Fornecedor"}
                           </span>
                         )}
-                        <button onClick={() => setEditingCompra(isEditing ? null : idx)} title="Renomear" className="produtos-view__fornecedor-btn-icone" style={{ color: isEditing ? C.blue : C.muted }}>
+                        <button onClick={() => setEditingCompra(isEditing ? null : idx)} title="Renomear" className="produtos-view__fornecedor-btn-icone" style={{ color: isEditing ? varColor(C.blue) : varColor(C.muted) }}>
                           <LuPencil size={12} />
                         </button>
-                        <button onClick={() => removeCompra(idx)} className="produtos-view__fornecedor-btn-icone" style={{ color: C.muted }}>
+                        <button onClick={() => removeCompra(idx)} className="produtos-view__fornecedor-btn-icone" style={{ color: varColor(C.muted) }}>
                           <LuXIcon size={13} />
                         </button>
                       </div>
@@ -601,7 +602,7 @@ export default function ProdutosView() {
                       {/* Frase de conversão */}
                       <div className="produtos-view__conversao-frase" style={{ fontSize: sz.fontBase }}>
                         Uma{" "}
-                        <span style={{ color: C.blue, fontWeight: 800 }}>{c.unidade || "…"}</span>
+                        <span style={{ color: varColor(C.blue), fontWeight: 800 }}>{c.unidade || "…"}</span>
                         {" "}equivale a{" "}
                         <input
                           type="number"
@@ -611,9 +612,9 @@ export default function ProdutosView() {
                           onChange={e => setCompra(idx, "fator", e.target.value)}
                           placeholder="0"
                           className="produtos-view__conversao-fator"
-                          style={{ borderColor: c.fator ? alfa(C.blue, "88") : C.border, fontSize: sz.fontBase }}
+                          style={{ borderColor: c.fator ? alfa(C.blue, "88") : varColor(C.border), fontSize: sz.fontBase }}
                         />
-                        {" "}<span style={{ color: C.accent, fontWeight: 800 }}>{form.unidade_estoque || "…"}</span>{" "}de estoque
+                        {" "}<span style={{ color: varColor(C.accent), fontWeight: 800 }}>{form.unidade_estoque || "…"}</span>{" "}de estoque
                       </div>
 
                       {/* Botões de unidade */}
@@ -624,7 +625,7 @@ export default function ProdutosView() {
                           {unidadesCompra.map(u => {
                             const sel = c.unidade === u.abreviacao;
                             return (
-                              <button key={u.id} onClick={() => setCompra(idx, "unidade", sel ? "" : u.abreviacao)} className="produtos-view__unidade-btn" style={{ padding: "6px 14px", borderRadius: 9, borderColor: sel ? C.blue : C.border, background: sel ? alfa(C.blue, "15") : C.surface, color: sel ? C.blue : C.muted, fontSize: sz.fontBase }}>
+                              <button key={u.id} onClick={() => setCompra(idx, "unidade", sel ? "" : u.abreviacao)} className="produtos-view__unidade-btn" style={{ padding: "6px 14px", borderRadius: 9, borderColor: sel ? varColor(C.blue) : varColor(C.border), background: sel ? alfa(C.blue, "15") : varColor(C.surface), color: sel ? varColor(C.blue) : varColor(C.muted), fontSize: sz.fontBase }}>
                                 {u.abreviacao}
                               </button>
                             );
@@ -645,7 +646,7 @@ export default function ProdutosView() {
                 <button
                   onClick={addCompra}
                   className="produtos-view__btn-add-fornecedor"
-                  style={{ borderColor: alfa(C.blue, "55"), background: alfa(C.blue, "07"), color: C.blue, fontSize: sz.fontBase }}
+                  style={{ borderColor: alfa(C.blue, "55"), background: alfa(C.blue, "07"), color: varColor(C.blue), fontSize: sz.fontBase }}
                 >
                   <LuPencil size={13} /> + Adicionar fornecedor
                 </button>
@@ -665,7 +666,7 @@ export default function ProdutosView() {
                     {unidadesConsumo.map(u => {
                       const sel = form.unidade_consumo === u.abreviacao;
                       return (
-                        <button key={u.id} onClick={() => setField("unidade_consumo", sel ? "" : u.abreviacao)} className="produtos-view__unidade-btn" style={{ borderColor: sel ? C.green : C.border, background: sel ? alfa(C.green, "15") : C.card, color: sel ? C.green : C.muted, fontSize: sz.fontBase }}>
+                        <button key={u.id} onClick={() => setField("unidade_consumo", sel ? "" : u.abreviacao)} className="produtos-view__unidade-btn" style={{ borderColor: sel ? varColor(C.green) : varColor(C.border), background: sel ? alfa(C.green, "15") : varColor(C.card), color: sel ? varColor(C.green) : varColor(C.muted), fontSize: sz.fontBase }}>
                           {u.abreviacao}
                           <span className="produtos-view__unidade-nome">{u.nome !== u.abreviacao ? u.nome : ""}</span>
                         </button>
@@ -686,7 +687,7 @@ export default function ProdutosView() {
             {/* Botões */}
             <div className="produtos-view__modal-botoes">
               <button onClick={fecharModal} className="produtos-view__btn-cancelar" style={{ fontSize: sz.fontBase }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando} className="produtos-view__btn-salvar" style={{ background: salvando ? C.faint : C.accent, cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
+              <button onClick={salvar} disabled={salvando} className="produtos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
                 {salvando ? "Salvando..." : modal === "novo"
                   ? isInsumo ? "Cadastrar Insumo" : isProducao ? "Cadastrar Item" : "Cadastrar Produto"
                   : "Salvar Alterações"}
@@ -702,20 +703,20 @@ export default function ProdutosView() {
           <div className="produtos-view__cat-modal">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}><LuTag size={18} color={C.accent} /> Categorias</div>
-                <div style={{ fontSize: 16, color: C.muted, marginTop: 2 }}>{categorias.length} categoria{categorias.length !== 1 ? "s" : ""}</div>
+                <div style={{ fontWeight: 800, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}><LuTag size={18} color={varColor(C.accent)} /> Categorias</div>
+                <div style={{ fontSize: 16, color: varColor(C.muted), marginTop: 2 }}>{categorias.length} categoria{categorias.length !== 1 ? "s" : ""}</div>
               </div>
-              <button onClick={() => { setShowCatModal(false); setCatEditando(null); setCatNova(""); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 4 }}><LuXIcon size={20} /></button>
+              <button onClick={() => { setShowCatModal(false); setCatEditando(null); setCatNova(""); }} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", lineHeight: 0, padding: 4 }}><LuXIcon size={20} /></button>
             </div>
             <div className="produtos-view__cat-lista">
-              {categorias.length === 0 && <div style={{ color: C.muted, fontSize: 17, textAlign: "center", padding: 24 }}>Nenhuma categoria ainda.</div>}
+              {categorias.length === 0 && <div style={{ color: varColor(C.muted), fontSize: 17, textAlign: "center", padding: 24 }}>Nenhuma categoria ainda.</div>}
               {categorias.map(cat => {
                 const qtdProdutos = products.filter(p => p.category === cat).length;
                 const emEdicao    = catEditando?.name === cat;
                 const eCatFixa    = CATS_FIXAS.includes(cat);
                 const podeExcluir = !eCatFixa;
                 return (
-                  <div key={cat} className="produtos-view__cat-item" style={{ background: emEdicao ? "var(--gm-alow)" : C.surface, borderColor: emEdicao ? alfa(C.accent, "66") : C.border }}>
+                  <div key={cat} className="produtos-view__cat-item" style={{ background: emEdicao ? "var(--gm-alow)" : varColor(C.surface), borderColor: emEdicao ? alfa(C.accent, "66") : varColor(C.border) }}>
                     {emEdicao ? (
                       <>
                         <input autoFocus value={catEditando.input} onChange={e => setCatEditando(v => ({ ...v, input: e.target.value }))} onKeyDown={e => { if (e.key === "Enter") renomearCategoria(); if (e.key === "Escape") setCatEditando(null); }} className="produtos-view__cat-input-edicao" style={{ fontSize: 17 }} />
@@ -727,8 +728,8 @@ export default function ProdutosView() {
                         <span className="produtos-view__cat-nome" style={{ fontSize: 17 }}>{cat}</span>
                         {eCatFixa && <span className="produtos-view__cat-badge-padrao" style={{ fontSize: 12, background: alfa(C.accent, "15"), border: `1px solid ${alfa(C.accent, "33")}` }}>padrão</span>}
                         <span className="produtos-view__cat-badge-qtd" style={{ fontSize: 14 }}>{qtdProdutos} {qtdProdutos === 1 ? "produto" : "produtos"}</span>
-                        {!eCatFixa && <button onClick={() => setCatEditando({ name: cat, input: cat })} className="produtos-view__cat-btn-editar" style={{ borderColor: C.border, color: C.muted }}><LuPencil size={14} /></button>}
-                        <button onClick={() => podeExcluir && setCatConfirmDelete(cat)} disabled={!podeExcluir || catOpLoading} className="produtos-view__cat-btn-excluir" style={{ borderColor: podeExcluir ? alfa(C.red, "55") : C.border, color: podeExcluir ? C.red : C.border, cursor: podeExcluir ? "pointer" : "not-allowed", opacity: podeExcluir ? 1 : 0.4 }}><LuTrash2 size={14} /></button>
+                        {!eCatFixa && <button onClick={() => setCatEditando({ name: cat, input: cat })} className="produtos-view__cat-btn-editar" style={{ borderColor: varColor(C.border), color: varColor(C.muted) }}><LuPencil size={14} /></button>}
+                        <button onClick={() => podeExcluir && setCatConfirmDelete(cat)} disabled={!podeExcluir || catOpLoading} className="produtos-view__cat-btn-excluir" style={{ borderColor: podeExcluir ? alfa(C.red, "55") : varColor(C.border), color: podeExcluir ? varColor(C.red) : varColor(C.border), cursor: podeExcluir ? "pointer" : "not-allowed", opacity: podeExcluir ? 1 : 0.4 }}><LuTrash2 size={14} /></button>
                       </>
                     )}
                   </div>
@@ -738,8 +739,8 @@ export default function ProdutosView() {
             <div className="produtos-view__cat-nova-secao">
               <div className="produtos-view__cat-nova-titulo" style={{ fontSize: 14 }}>Nova Categoria</div>
               <div className="produtos-view__cat-nova-linha">
-                <input value={catNova} onChange={e => setCatNova(e.target.value)} onKeyDown={e => e.key === "Enter" && criarCategoria()} placeholder="Ex: Bebidas, Lanches..." maxLength={40} className="produtos-view__cat-nova-input" style={{ borderColor: catNova.trim() ? C.accent : C.border, fontSize: 17 }} />
-                <button onClick={criarCategoria} disabled={!catNova.trim() || catOpLoading || categorias.includes(catNova.trim())} className="produtos-view__cat-nova-btn" style={{ background: catNova.trim() && !categorias.includes(catNova.trim()) ? C.accent : C.surface, color: catNova.trim() && !categorias.includes(catNova.trim()) ? "#fff" : C.muted, fontSize: 17, cursor: catNova.trim() && !categorias.includes(catNova.trim()) ? "pointer" : "not-allowed" }}>
+                <input value={catNova} onChange={e => setCatNova(e.target.value)} onKeyDown={e => e.key === "Enter" && criarCategoria()} placeholder="Ex: Bebidas, Lanches..." maxLength={40} className="produtos-view__cat-nova-input" style={{ borderColor: catNova.trim() ? varColor(C.accent) : varColor(C.border), fontSize: 17 }} />
+                <button onClick={criarCategoria} disabled={!catNova.trim() || catOpLoading || categorias.includes(catNova.trim())} className="produtos-view__cat-nova-btn" style={{ background: catNova.trim() && !categorias.includes(catNova.trim()) ? varColor(C.accent) : varColor(C.surface), color: catNova.trim() && !categorias.includes(catNova.trim()) ? "#fff" : varColor(C.muted), fontSize: 17, cursor: catNova.trim() && !categorias.includes(catNova.trim()) ? "pointer" : "not-allowed" }}>
                   {catOpLoading ? "..." : "Adicionar"}
                 </button>
               </div>
@@ -756,15 +757,15 @@ export default function ProdutosView() {
           <div className="produtos-view__confirm-modal">
             <div className="produtos-view__confirm-topo">
               <div className="produtos-view__confirm-icone" style={{ background: alfa(C.red, "18"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
-                <LuTrash2 size={22} color={C.red} />
+                <LuTrash2 size={22} color={varColor(C.red)} />
               </div>
               <div>
                 <div className="produtos-view__confirm-titulo">Excluir categoria?</div>
-                <div className="produtos-view__confirm-sub" style={{ fontSize: 15 }}>Categoria: <strong style={{ color: C.text }}>{catConfirmDelete}</strong></div>
+                <div className="produtos-view__confirm-sub" style={{ fontSize: 15 }}>Categoria: <strong style={{ color: varColor(C.text) }}>{catConfirmDelete}</strong></div>
               </div>
             </div>
             <div className="produtos-view__confirm-aviso" style={{ background: alfa(C.red, "0d"), border: `1px solid ${alfa(C.red, "33")}`, fontSize: 15 }}>
-              Esta ação <strong style={{ color: C.red }}>não pode ser desfeita</strong>. A categoria será removida permanentemente.
+              Esta ação <strong style={{ color: varColor(C.red) }}>não pode ser desfeita</strong>. A categoria será removida permanentemente.
             </div>
             <div className="produtos-view__confirm-botoes">
               <button onClick={() => setCatConfirmDelete(null)} className="produtos-view__confirm-btn-cancelar" style={{ fontSize: 16 }}>Cancelar</button>
@@ -772,7 +773,7 @@ export default function ProdutosView() {
                 onClick={async () => { await excluirCategoria(catConfirmDelete); setCatConfirmDelete(null); }}
                 disabled={catOpLoading}
                 className="produtos-view__confirm-btn-excluir"
-                style={{ background: catOpLoading ? C.faint : C.red, cursor: catOpLoading ? "not-allowed" : "pointer", fontSize: 16 }}
+                style={{ background: catOpLoading ? varColor(C.faint) : varColor(C.red), cursor: catOpLoading ? "not-allowed" : "pointer", fontSize: 16 }}
               >
                 {catOpLoading ? "Excluindo..." : "Sim, excluir"}
               </button>
@@ -791,19 +792,19 @@ export default function ProdutosView() {
               <div className="produtos-view__confirm-modal">
                 <div className="produtos-view__confirm-topo">
                   <div className="produtos-view__confirm-icone" style={{ background: alfa(C.red, "18"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
-                    <LuTriangleAlert size={22} color={C.red} />
+                    <LuTriangleAlert size={22} color={varColor(C.red)} />
                   </div>
                   <div>
                     <div className="produtos-view__confirm-titulo">Excluir produto?</div>
-                    <div className="produtos-view__confirm-sub" style={{ fontSize: 16 }}>{p?.emoji} <strong style={{ color: C.text }}>{p?.name}</strong></div>
+                    <div className="produtos-view__confirm-sub" style={{ fontSize: 16 }}>{p?.emoji} <strong style={{ color: varColor(C.text) }}>{p?.name}</strong></div>
                   </div>
                 </div>
                 <div className="produtos-view__confirm-aviso" style={{ background: alfa(C.red, "0d"), border: `1px solid ${alfa(C.red, "33")}`, fontSize: 16 }}>
-                  Esta ação <strong style={{ color: C.red }}>não pode ser desfeita</strong>. O produto será removido permanentemente.
+                  Esta ação <strong style={{ color: varColor(C.red) }}>não pode ser desfeita</strong>. O produto será removido permanentemente.
                 </div>
                 <div className="produtos-view__confirm-botoes">
                   <button onClick={() => setDeleteId(null)} className="produtos-view__confirm-btn-cancelar" style={{ fontSize: 17 }}>Cancelar</button>
-                  <button onClick={confirmarDelete} disabled={deletando} className="produtos-view__confirm-btn-excluir" style={{ background: deletando ? C.faint : C.red, cursor: deletando ? "not-allowed" : "pointer", fontSize: 18 }}>{deletando ? "Excluindo..." : "Sim, excluir"}</button>
+                  <button onClick={confirmarDelete} disabled={deletando} className="produtos-view__confirm-btn-excluir" style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer", fontSize: 18 }}>{deletando ? "Excluindo..." : "Sim, excluir"}</button>
                 </div>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { passwordStrength, sanitizeInput } from "@/utils";
 import { criarAuthUsuario, atualizarSenhaAuth, deletarAuthUsuario } from "@/lib/adminAuth";
 import { getPermissions } from "@/constants/roles";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { createPortal } from "react-dom";
 import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter } from "react-icons/lu";
@@ -15,9 +16,9 @@ import MesasAdmin from "./mesas/MesasAdmin";
 import "./ConfiguracoesView.css";
 
 const ROLES = [
-  { id: "admin",   label: "Administrador", color: C.accent },
-  { id: "gerente", label: "Gerente",       color: C.blue   },
-  { id: "caixa",   label: "Caixa",         color: C.green  },
+  { id: "admin",   label: "Administrador", color: varColor(C.accent) },
+  { id: "gerente", label: "Gerente",       color: varColor(C.blue)   },
+  { id: "caixa",   label: "Caixa",         color: varColor(C.green)  },
   { id: "garcom",  label: "Garçom",        color: "#f59e0b"},
 ];
 
@@ -29,7 +30,7 @@ const EMPTY_USER_FORM = { name: "", username: "", role: "caixa", password: "", c
 // ── Helpers ───────────────────────────────────────────────────────
 
 function RoleBadge({ role, sz }) {
-  const r = ROLE_MAP[role] ?? { label: role, color: C.muted };
+  const r = ROLE_MAP[role] ?? { label: role, color: varColor(C.muted) };
   return (
     <span className="cfg__badge-role" style={{
       fontSize: (sz?.fontSm ?? 12),
@@ -86,7 +87,7 @@ function StrengthBar({ pwd }) {
     <div style={{ marginTop: 8 }}>
       <div className="usuarios-tab__strength-barras">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="usuarios-tab__strength-barra" style={{ background: i <= s.level ? s.color : C.border }} />
+          <div key={i} className="usuarios-tab__strength-barra" style={{ background: i <= s.level ? s.color : varColor(C.border) }} />
         ))}
       </div>
       <div style={{ fontSize: 14, color: s.color, fontWeight: 600 }}>{s.label}</div>
@@ -294,7 +295,7 @@ function UsuariosTab({ sz }) {
       <div className="usuarios-tab__tabela-moldura">
         <table className="usuarios-tab__tabela">
           <thead>
-            <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+            <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
               {["", "Nome", "Usuário", "Cargo", "Acesso", ""].map((h, i) => (
                 <th key={i} className="usuarios-tab__th">
                   {h}
@@ -307,7 +308,7 @@ function UsuariosTab({ sz }) {
               <tr
                 key={u.id}
                 className="usuarios-tab__tr"
-                onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}
               >
                 <td className="usuarios-tab__td" style={{ width: 48 }}>
@@ -321,7 +322,7 @@ function UsuariosTab({ sz }) {
                     )}
                   </div>
                 </td>
-                <td className="usuarios-tab__td" style={{ color: C.muted, fontSize: sz.fontBase }}>
+                <td className="usuarios-tab__td" style={{ color: varColor(C.muted), fontSize: sz.fontBase }}>
                   @{u.username}
                 </td>
                 <td className="usuarios-tab__td">
@@ -329,8 +330,8 @@ function UsuariosTab({ sz }) {
                 </td>
                 <td className="usuarios-tab__td">
                   <div className="usuarios-tab__perm-chips">
-                    {u.permissions?.pdv  && <span className="usuarios-tab__perm-chip" style={{ background: alfa(C.green, "15"), border: `1px solid ${alfa(C.green, "33")}`, color: C.green }}>PDV</span>}
-                    {u.permissions?.palm && <span className="usuarios-tab__perm-chip" style={{ background: alfa(C.blue, "15"), border: `1px solid ${alfa(C.blue, "33")}`, color: C.blue }}>Palm</span>}
+                    {u.permissions?.pdv  && <span className="usuarios-tab__perm-chip" style={{ background: alfa(C.green, "15"), border: `1px solid ${alfa(C.green, "33")}`, color: varColor(C.green) }}>PDV</span>}
+                    {u.permissions?.palm && <span className="usuarios-tab__perm-chip" style={{ background: alfa(C.blue, "15"), border: `1px solid ${alfa(C.blue, "33")}`, color: varColor(C.blue) }}>Palm</span>}
                   </div>
                 </td>
                 <td className="usuarios-tab__td" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
@@ -339,7 +340,7 @@ function UsuariosTab({ sz }) {
                       <button
                         onClick={() => abrirEditar(u)}
                         className="usuarios-tab__action-btn"
-                        style={{ border: `1px solid ${C.border}`, background: "none", color: C.text }}
+                        style={{ border: `1px solid var(${C.border})`, background: "none", color: varColor(C.text) }}
                       >
                         Editar
                       </button>
@@ -347,7 +348,7 @@ function UsuariosTab({ sz }) {
                         <button
                           onClick={() => setDeleteId(u.id)}
                           className="usuarios-tab__action-btn"
-                          style={{ border: `1px solid ${alfa(C.red, "44")}`, background: alfa(C.red, "0f"), color: C.red }}
+                          style={{ border: `1px solid ${alfa(C.red, "44")}`, background: alfa(C.red, "0f"), color: varColor(C.red) }}
                         >
                           Excluir
                         </button>
@@ -389,9 +390,9 @@ function UsuariosTab({ sz }) {
                     onClick={() => setF("role", r.id)}
                     className="usuarios-tab__cargo-chip"
                     style={{
-                      borderColor: form.role === r.id ? r.color : C.border,
-                      background: form.role === r.id ? alfa(r.color, "18") : C.surface,
-                      color: form.role === r.id ? r.color : C.muted,
+                      borderColor: form.role === r.id ? r.color : varColor(C.border),
+                      background: form.role === r.id ? alfa(r.color, "18") : varColor(C.surface),
+                      color: form.role === r.id ? r.color : varColor(C.muted),
                       fontSize: sz.fontSm + 1,
                     }}
                   >
@@ -455,7 +456,7 @@ function UsuariosTab({ sz }) {
                 onClick={salvar}
                 disabled={salvando}
                 className="usuarios-tab__btn-salvar"
-                style={{ background: salvando ? C.faint : C.accent, cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
+                style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
               >
                 {salvando ? "Salvando..." : modal === "novo" ? "Criar Usuário" : "Salvar Alterações"}
               </button>
@@ -488,7 +489,7 @@ function UsuariosTab({ sz }) {
                       onClick={confirmarDelete}
                       disabled={deletando}
                       className="usuarios-tab__btn-excluir"
-                      style={{ background: deletando ? C.faint : C.red, cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
+                      style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
                     >
                       {deletando ? "Excluindo..." : "Sim, excluir"}
                     </button>
@@ -509,9 +510,9 @@ function ToggleChip({ active, onClick, color, children, sz }) {
       onClick={onClick}
       style={{
         padding: "8px 16px", borderRadius: 10,
-        border: `1.5px solid ${active ? color : C.border}`,
-        background: active ? `${color}18` : C.surface,
-        color: active ? color : C.muted,
+        border: `1.5px solid ${active ? color : varColor(C.border)}`,
+        background: active ? `${color}18` : varColor(C.surface),
+        color: active ? color : varColor(C.muted),
         cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase,
         transition: "border-color 0.15s, background 0.15s, color 0.15s",
       }}
@@ -600,9 +601,9 @@ function MeiosPagamentoTab({ sz }) {
               onClick={() => { setShowForm(v => !v); setNovoNome(""); }}
               className="meios-pagamento-tab__btn-adicionar"
               style={{
-                borderColor: C.accent,
-                background: showForm ? C.accent : "transparent",
-                color: showForm ? "#fff" : C.accent,
+                borderColor: varColor(C.accent),
+                background: showForm ? varColor(C.accent) : "transparent",
+                color: showForm ? "#fff" : varColor(C.accent),
                 fontSize: sz.fontSm,
               }}
             >
@@ -627,13 +628,13 @@ function MeiosPagamentoTab({ sz }) {
               className="meios-pagamento-tab__input-novo"
               style={{ fontSize: sz.fontBase }}
               onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
-              onBlur={e => e.currentTarget.style.borderColor = C.border}
+              onBlur={e => e.currentTarget.style.borderColor = varColor(C.border)}
             />
             <button
               onClick={adicionarCustom}
               disabled={!novoNome.trim() || adicionando}
               className="meios-pagamento-tab__btn-confirmar"
-              style={{ background: novoNome.trim() ? C.accent : C.faint, fontSize: sz.fontSm, cursor: novoNome.trim() ? "pointer" : "not-allowed" }}
+              style={{ background: novoNome.trim() ? varColor(C.accent) : varColor(C.faint), fontSize: sz.fontSm, cursor: novoNome.trim() ? "pointer" : "not-allowed" }}
             >
               {adicionando ? "..." : "Confirmar"}
             </button>
@@ -658,21 +659,21 @@ function MeiosPagamentoTab({ sz }) {
                   className="meios-pagamento-tab__metodo-card"
                   style={{
                     padding: `${sz.pad}px ${sz.padSm}px`,
-                    borderColor: ativo ? C.accent : C.border,
-                    background: ativo ? alfa(C.accent, "10") : C.surface,
-                    color: ativo ? C.accent : C.muted,
+                    borderColor: ativo ? varColor(C.accent) : varColor(C.border),
+                    background: ativo ? alfa(C.accent, "10") : varColor(C.surface),
+                    color: ativo ? varColor(C.accent) : varColor(C.muted),
                     cursor: isAdmin ? "pointer" : "default",
                     opacity: !isAdmin ? 0.7 : 1,
                   }}
                 >
                   <m.Icon size={26} />
                   <div className="meios-pagamento-tab__metodo-nome" style={{ fontSize: sz.fontBase }}>{m.label}</div>
-                  <div style={{ fontSize: sz.fontSm, color: ativo ? alfa(C.accent, "bb") : C.muted }}>{m.desc}</div>
+                  <div style={{ fontSize: sz.fontSm, color: ativo ? alfa(C.accent, "bb") : varColor(C.muted) }}>{m.desc}</div>
                   <div className="meios-pagamento-tab__status-tag" style={{
                     fontSize: 14,
-                    background: ativo ? alfa(C.green, "18") : C.faint,
-                    color: ativo ? C.green : C.muted,
-                    border: `1px solid ${alfa(ativo ? C.green : C.border, "44")}`,
+                    background: ativo ? alfa(C.green, "18") : varColor(C.faint),
+                    color: ativo ? varColor(C.green) : varColor(C.muted),
+                    border: `1px solid ${alfa(ativo ? varColor(C.green) : varColor(C.border), "44")}`,
                   }}>
                     {ativo ? "Ativo" : "Desabilitado"}
                   </div>
@@ -682,7 +683,7 @@ function MeiosPagamentoTab({ sz }) {
                     onClick={() => removerCustom(m.id)}
                     title="Remover"
                     className="meios-pagamento-tab__btn-remover-custom"
-                    style={{ background: alfa(C.red, "20"), border: `1px solid ${alfa(C.red, "44")}`, color: C.red }}
+                    style={{ background: alfa(C.red, "20"), border: `1px solid ${alfa(C.red, "44")}`, color: varColor(C.red) }}
                   >
                     <LuTrash2 size={13} />
                   </button>
@@ -709,7 +710,7 @@ function MeiosPagamentoTab({ sz }) {
             disabled={salvando || ativos.length === 0}
             className="meios-pagamento-tab__btn-salvar"
             style={{
-              background: (salvando || ativos.length === 0) ? C.faint : C.accent,
+              background: (salvando || ativos.length === 0) ? varColor(C.faint) : varColor(C.accent),
               fontSize: sz.fontBase,
               cursor: (salvando || ativos.length === 0) ? "not-allowed" : "pointer",
             }}
@@ -725,8 +726,8 @@ function MeiosPagamentoTab({ sz }) {
 // ── Aba Unidades de Medida ────────────────────────────────────────
 
 const TIPOS_UNIDADE = [
-  { tipo: "estoque", label: "Unidade de estoque", color: C.blue   },
-  { tipo: "compra",  label: "Unidade de compra",  color: C.green  },
+  { tipo: "estoque", label: "Unidade de estoque", color: varColor(C.blue)   },
+  { tipo: "compra",  label: "Unidade de compra",  color: varColor(C.green)  },
   { tipo: "consumo", label: "Unidade de consumo", color: "#f59e0b" },
 ];
 
@@ -814,7 +815,7 @@ function UnidadesMedidaTab({ sz }) {
   };
 
   if (loading) {
-    return <div style={{ color: C.muted, fontSize: sz.fontBase, padding: sz.pad }}>Carregando...</div>;
+    return <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: sz.pad }}>Carregando...</div>;
   }
 
   return (
@@ -851,8 +852,8 @@ function UnidadesMedidaTab({ sz }) {
                       onClick={() => iniciarRemover(u)}
                       title="Remover"
                       className="unidades-medida-tab__btn-remover"
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = alfa(C.red, "66"); e.currentTarget.style.color = C.red; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.muted; }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = alfa(C.red, "66"); e.currentTarget.style.color = varColor(C.red); }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = varColor(C.border); e.currentTarget.style.color = varColor(C.muted); }}
                     >
                       <LuX size={13} />
                     </button>
@@ -871,7 +872,7 @@ function UnidadesMedidaTab({ sz }) {
                   placeholder="abrev."
                   maxLength={10}
                   className="unidades-medida-tab__input-abbr"
-                  style={{ borderColor: form.abbr ? alfa(color, "88") : C.border, fontSize: sz.fontBase }}
+                  style={{ borderColor: form.abbr ? alfa(color, "88") : varColor(C.border), fontSize: sz.fontBase }}
                 />
                 <input
                   value={form.nome}
@@ -880,13 +881,13 @@ function UnidadesMedidaTab({ sz }) {
                   placeholder="Nome completo"
                   maxLength={40}
                   className="unidades-medida-tab__input-nome"
-                  style={{ borderColor: form.nome ? alfa(color, "88") : C.border, fontSize: sz.fontBase }}
+                  style={{ borderColor: form.nome ? alfa(color, "88") : varColor(C.border), fontSize: sz.fontBase }}
                 />
                 <button
                   onClick={() => adicionar(tipo)}
                   disabled={!form.abbr.trim() || !form.nome.trim() || salvandoEste}
                   className="unidades-medida-tab__btn-add"
-                  style={{ background: form.abbr.trim() && form.nome.trim() ? color : C.faint, fontSize: sz.fontBase, cursor: form.abbr.trim() && form.nome.trim() ? "pointer" : "not-allowed" }}
+                  style={{ background: form.abbr.trim() && form.nome.trim() ? color : varColor(C.faint), fontSize: sz.fontBase, cursor: form.abbr.trim() && form.nome.trim() ? "pointer" : "not-allowed" }}
                 >
                   <LuPlus size={14} />
                   {salvandoEste ? "..." : "Adicionar"}
@@ -903,7 +904,7 @@ function UnidadesMedidaTab({ sz }) {
         <div className="unidades-medida-tab__delete-modal">
           <div className="unidades-medida-tab__delete-topo">
             <div className="unidades-medida-tab__delete-icone" style={{ background: alfa(C.red, "15") }}>
-              <LuTriangleAlert size={22} color={C.red} />
+              <LuTriangleAlert size={22} color={varColor(C.red)} />
             </div>
             <div>
               <div className="unidades-medida-tab__delete-titulo" style={{ fontSize: sz.fontBase + 2 }}>Excluir unidade</div>
@@ -931,7 +932,7 @@ function UnidadesMedidaTab({ sz }) {
               onClick={() => setDeleteInfo(null)}
               disabled={deletando}
               className="unidades-medida-tab__delete-cancelar"
-              style={{ borderColor: C.border, cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase, opacity: deletando ? 0.5 : 1 }}
+              style={{ borderColor: varColor(C.border), cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase, opacity: deletando ? 0.5 : 1 }}
             >
               Cancelar
             </button>
@@ -939,7 +940,7 @@ function UnidadesMedidaTab({ sz }) {
               onClick={confirmarRemover}
               disabled={deletando}
               className="unidades-medida-tab__delete-confirmar"
-              style={{ background: deletando ? C.faint : C.red, cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
+              style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
             >
               {deletando ? "Excluindo..." : "Sim, excluir"}
             </button>
@@ -987,7 +988,7 @@ function GeralTab({ sz }) {
           disabled={saving}
           className="geral-tab__toggle"
           style={{
-            background: taxaServico ? C.green : C.faint,
+            background: taxaServico ? varColor(C.green) : varColor(C.faint),
             cursor: saving ? "not-allowed" : "pointer",
             opacity: saving ? 0.7 : 1,
           }}
@@ -1010,7 +1011,7 @@ export default function ConfiguracoesView() {
   const abasVisiveis = ABAS_CONFIG.filter(a => (!a.adminOnly || isAdmin) && (!a.gerenteOnly || isGerente));
 
   return (
-    <div className="configuracoes-view" style={{ background: C.bg }}>
+    <div className="configuracoes-view" style={{ background: varColor(C.bg) }}>
 
       {/* Header */}
       <div className="configuracoes-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
@@ -1027,8 +1028,8 @@ export default function ConfiguracoesView() {
               onClick={() => setAba(a.id)}
               className="configuracoes-view__aba"
               style={{
-                background: aba === a.id ? C.accent : "transparent",
-                color: aba === a.id ? "#fff" : C.muted,
+                background: aba === a.id ? varColor(C.accent) : "transparent",
+                color: aba === a.id ? "#fff" : varColor(C.muted),
                 fontSize: sz.fontSm + 1,
               }}
             >

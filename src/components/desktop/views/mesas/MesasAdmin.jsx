@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
 import { LuPlus, LuPencil, LuTrash2, LuX, LuSave, LuTriangleAlert } from "react-icons/lu";
 
 const CARD_W   = 110;
@@ -209,7 +211,7 @@ export default function MesasAdmin({ sz }) {
 
   if (loading) {
     return (
-      <div style={{ color: C.muted, fontSize: sz.fontBase, padding: "40px 0", textAlign: "center" }}>
+      <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: "40px 0", textAlign: "center" }}>
         Carregando…
       </div>
     );
@@ -222,7 +224,7 @@ export default function MesasAdmin({ sz }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Mesas</div>
-          <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 2 }}>
+          <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2 }}>
             {mesas.length} mesa{mesas.length !== 1 ? "s" : ""} cadastrada{mesas.length !== 1 ? "s" : ""}
             {mesas.length > 0 && " · arraste os cards para reposicionar"}
           </div>
@@ -235,10 +237,10 @@ export default function MesasAdmin({ sz }) {
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "9px 18px", borderRadius: 10, border: "none",
-                background: salvandoLayout ? C.faint : C.green,
+                background: salvandoLayout ? varColor(C.faint) : varColor(C.green),
                 color: "#fff", cursor: salvandoLayout ? "not-allowed" : "pointer",
                 fontWeight: 700, fontSize: sz.fontSm, fontFamily: "inherit",
-                boxShadow: salvandoLayout ? "none" : `0 2px 10px ${C.green}44`,
+                boxShadow: salvandoLayout ? "none" : `0 2px 10px ${alfa(C.green, "44")}`,
                 transition: "background 0.15s",
               }}
             >
@@ -249,10 +251,10 @@ export default function MesasAdmin({ sz }) {
             onClick={abrirNovo}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              background: C.accent, border: "none", borderRadius: 10,
+              background: varColor(C.accent), border: "none", borderRadius: 10,
               color: "#fff", cursor: "pointer", fontWeight: 700,
               fontSize: sz.fontSm, padding: "10px 16px", fontFamily: "inherit",
-              boxShadow: `0 2px 10px ${C.accent}44`,
+              boxShadow: `0 2px 10px ${alfa(C.accent, "44")}`,
             }}
           >
             <LuPlus size={15} /> Nova Mesa
@@ -264,8 +266,8 @@ export default function MesasAdmin({ sz }) {
       {erro && (
         <div style={{
           padding: "10px 14px", borderRadius: 8,
-          background: `${C.red}12`, border: `1px solid ${C.red}33`,
-          color: C.red, fontSize: sz.fontSm,
+          background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "33")}`,
+          color: varColor(C.red), fontSize: sz.fontSm,
           display: "flex", gap: 8, alignItems: "center",
         }}>
           <LuTriangleAlert size={15} style={{ flexShrink: 0 }} /> {erro}
@@ -274,15 +276,15 @@ export default function MesasAdmin({ sz }) {
 
       {/* Mapa de mesas */}
       <div style={{
-        background: C.card, border: `1px solid ${C.border}`,
+        background: varColor(C.card), border: `1px solid var(${C.border})`,
         borderRadius: 16, padding: sz.pad,
         overflowX: "auto", overflowY: "auto",
         maxHeight: "calc(100vh - 280px)",
       }}>
         {mesas.length === 0 ? (
-          <div style={{ padding: "60px 24px", textAlign: "center", color: C.muted }}>
+          <div style={{ padding: "60px 24px", textAlign: "center", color: varColor(C.muted) }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🪑</div>
-            <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: C.text, marginBottom: 4 }}>
+            <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.text), marginBottom: 4 }}>
               Nenhuma mesa cadastrada
             </div>
             <div style={{ fontSize: sz.fontSm }}>
@@ -299,7 +301,7 @@ export default function MesasAdmin({ sz }) {
               width: containerW,
               height: containerH,
               // Grade visual pontilhada alinhada com as células
-              backgroundImage: `radial-gradient(circle, ${C.border} 1.5px, transparent 1.5px)`,
+              backgroundImage: `radial-gradient(circle, var(${C.border}) 1.5px, transparent 1.5px)`,
               backgroundSize: `${CARD_W + CARD_GAP}px ${CARD_H + CARD_GAP}px`,
               backgroundPosition: `${Math.round((CARD_W + CARD_GAP) / 2)}px ${Math.round((CARD_H + CARD_GAP) / 2)}px`,
               borderRadius: 8,
@@ -344,20 +346,20 @@ export default function MesasAdmin({ sz }) {
           }}
         >
           <div style={{
-            background: C.card, borderRadius: 20, width: "100%", maxWidth: 420,
-            border: `1px solid ${C.border}`,
+            background: varColor(C.card), borderRadius: 20, width: "100%", maxWidth: 420,
+            border: `1px solid var(${C.border})`,
             boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
             display: "flex", flexDirection: "column", gap: 20, padding: 28,
           }}>
             {/* Título */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: C.text }}>
+              <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: varColor(C.text) }}>
                 {editando ? "Editar Mesa" : "Nova Mesa"}
               </div>
               <button
                 onClick={fecharModal}
                 disabled={salvando}
-                style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, lineHeight: 0 }}
+                style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0 }}
               >
                 <LuX size={20} />
               </button>
@@ -366,7 +368,7 @@ export default function MesasAdmin({ sz }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {/* Número / Nome */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
                   Número / Nome *
                 </div>
                 <input
@@ -379,14 +381,14 @@ export default function MesasAdmin({ sz }) {
                   maxLength={20}
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
-                    border: `1.5px solid ${formErro && !form.numero.trim() && !editando ? C.red + "88" : C.border}`,
-                    background: editando ? C.bg : C.surface, color: C.text,
+                    border: `1.5px solid ${formErro && !form.numero.trim() && !editando ? varColor(C.red) + "88" : varColor(C.border)}`,
+                    background: editando ? varColor(C.bg) : varColor(C.surface), color: varColor(C.text),
                     fontSize: sz.fontBase, fontFamily: "inherit", outline: "none",
                     boxSizing: "border-box", opacity: editando ? 0.55 : 1,
                   }}
                 />
                 {editando && (
-                  <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 4 }}>
+                  <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4 }}>
                     O número é chave primária e não pode ser alterado.
                   </div>
                 )}
@@ -394,7 +396,7 @@ export default function MesasAdmin({ sz }) {
 
               {/* Capacidade */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
                   Capacidade (pessoas)
                 </div>
                 <input
@@ -407,8 +409,8 @@ export default function MesasAdmin({ sz }) {
                   onKeyDown={e => e.key === "Enter" && salvar()}
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
-                    border: `1.5px solid ${C.border}`,
-                    background: C.surface, color: C.text,
+                    border: `1.5px solid var(${C.border})`,
+                    background: varColor(C.surface), color: varColor(C.text),
                     fontSize: sz.fontBase, fontFamily: "inherit", outline: "none",
                     boxSizing: "border-box",
                   }}
@@ -418,8 +420,8 @@ export default function MesasAdmin({ sz }) {
               {formErro && (
                 <div style={{
                   padding: "8px 12px", borderRadius: 8,
-                  background: `${C.red}12`, border: `1px solid ${C.red}33`,
-                  color: C.red, fontSize: sz.fontSm,
+                  background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "33")}`,
+                  color: varColor(C.red), fontSize: sz.fontSm,
                 }}>
                   {formErro}
                 </div>
@@ -433,8 +435,8 @@ export default function MesasAdmin({ sz }) {
                 disabled={salvando}
                 style={{
                   flex: 1, padding: 12, borderRadius: 10,
-                  border: `1px solid ${C.border}`, background: "none",
-                  color: C.muted, cursor: salvando ? "not-allowed" : "pointer",
+                  border: `1px solid var(${C.border})`, background: "none",
+                  color: varColor(C.muted), cursor: salvando ? "not-allowed" : "pointer",
                   fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit",
                 }}
               >
@@ -445,8 +447,8 @@ export default function MesasAdmin({ sz }) {
                 disabled={((!form.numero.trim() && !editando)) || salvando}
                 style={{
                   flex: 2, padding: 12, borderRadius: 10, border: "none",
-                  background: (form.numero.trim() || editando) && !salvando ? C.accent : C.surface,
-                  color: (form.numero.trim() || editando) && !salvando ? "#fff" : C.muted,
+                  background: (form.numero.trim() || editando) && !salvando ? varColor(C.accent) : varColor(C.surface),
+                  color: (form.numero.trim() || editando) && !salvando ? "#fff" : varColor(C.muted),
                   cursor: (form.numero.trim() || editando) && !salvando ? "pointer" : "not-allowed",
                   fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit",
                   transition: "background 0.15s",
@@ -472,23 +474,23 @@ export default function MesasAdmin({ sz }) {
           }}
         >
           <div style={{
-            background: C.card, borderRadius: 20, width: "100%", maxWidth: 400,
-            border: `1px solid ${C.border}`, padding: 28,
+            background: varColor(C.card), borderRadius: 20, width: "100%", maxWidth: 400,
+            border: `1px solid var(${C.border})`, padding: 28,
             display: "flex", flexDirection: "column", gap: 20,
           }}>
             <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
               <div style={{
                 width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                background: `${C.red}18`, border: `1px solid ${C.red}33`,
+                background: `${alfa(C.red, "18")}`, border: `1px solid ${alfa(C.red, "33")}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <LuTrash2 size={20} color={C.red} />
+                <LuTrash2 size={20} color={varColor(C.red)} />
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: sz.fontBase, color: C.text }}>
+                <div style={{ fontWeight: 800, fontSize: sz.fontBase, color: varColor(C.text) }}>
                   Remover Mesa {confirmDelete.numero}?
                 </div>
-                <div style={{ fontSize: sz.fontSm, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
+                <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4, lineHeight: 1.5 }}>
                   Esta ação não pode ser desfeita. Pedidos e vendas anteriores vinculados à mesa não serão afetados.
                 </div>
               </div>
@@ -498,8 +500,8 @@ export default function MesasAdmin({ sz }) {
                 onClick={() => setConfirmDelete(null)}
                 style={{
                   flex: 1, padding: 12, borderRadius: 10,
-                  border: `1px solid ${C.border}`, background: "none",
-                  color: C.muted, cursor: "pointer",
+                  border: `1px solid var(${C.border})`, background: "none",
+                  color: varColor(C.muted), cursor: "pointer",
                   fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit",
                 }}
               >
@@ -510,7 +512,7 @@ export default function MesasAdmin({ sz }) {
                 disabled={deletando}
                 style={{
                   flex: 2, padding: 12, borderRadius: 10, border: "none",
-                  background: deletando ? C.faint : C.red,
+                  background: deletando ? varColor(C.faint) : varColor(C.red),
                   color: "#fff", cursor: deletando ? "not-allowed" : "pointer",
                   fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit",
                 }}
@@ -540,8 +542,8 @@ function CardMesaAdmin({ mesa, w, h, sz, onEdit, onDelete, onDragStart, onDragEn
       onMouseLeave={() => setHover(false)}
       style={{
         width: w, height: h, borderRadius: 14, boxSizing: "border-box",
-        background: hover ? `${C.accent}10` : C.surface,
-        border: `2px solid ${hover ? C.accent + "66" : C.border}`,
+        background: hover ? `${alfa(C.accent, "10")}` : varColor(C.surface),
+        border: `2px solid ${hover ? varColor(C.accent) + "66" : varColor(C.border)}`,
         display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
         gap: 3, padding: "6px 4px", userSelect: "none",
@@ -549,11 +551,11 @@ function CardMesaAdmin({ mesa, w, h, sz, onEdit, onDelete, onDragStart, onDragEn
         transition: "border-color 0.12s, background 0.12s",
       }}
     >
-      <div style={{ fontSize: sz.fontBase + 2, fontWeight: 900, color: C.text, lineHeight: 1 }}>
+      <div style={{ fontSize: sz.fontBase + 2, fontWeight: 900, color: varColor(C.text), lineHeight: 1 }}>
         {mesa.numero}
       </div>
       {mesa.capacidade != null && (
-        <div style={{ fontSize: 11, color: C.muted, fontWeight: 600 }}>
+        <div style={{ fontSize: 11, color: varColor(C.muted), fontWeight: 600 }}>
           {mesa.capacidade}p
         </div>
       )}
@@ -567,8 +569,8 @@ function CardMesaAdmin({ mesa, w, h, sz, onEdit, onDelete, onDragStart, onDragEn
             onMouseDown={e => e.stopPropagation()}
             style={{
               width: 22, height: 22, borderRadius: 6,
-              background: C.card, border: `1px solid ${C.border}`,
-              color: C.muted, cursor: "pointer",
+              background: varColor(C.card), border: `1px solid var(${C.border})`,
+              color: varColor(C.muted), cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               padding: 0, lineHeight: 0,
             }}
@@ -581,8 +583,8 @@ function CardMesaAdmin({ mesa, w, h, sz, onEdit, onDelete, onDragStart, onDragEn
             onMouseDown={e => e.stopPropagation()}
             style={{
               width: 22, height: 22, borderRadius: 6,
-              background: `${C.red}18`, border: `1px solid ${C.red}33`,
-              color: C.red, cursor: "pointer",
+              background: `${alfa(C.red, "18")}`, border: `1px solid ${alfa(C.red, "33")}`,
+              color: varColor(C.red), cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               padding: 0, lineHeight: 0,
             }}

@@ -1,9 +1,10 @@
 import C from "./colors";
+import { varColor } from "@/lib/tema";
 
 export const ROLES = {
   garcom: {
     label: "Garçom",
-    color: C.blue,
+    color: varColor(C.blue),
     description: "Tira pedidos via Palm",
     icon: "🛎️",
     permissions: {
@@ -14,7 +15,7 @@ export const ROLES = {
   },
   caixa: {
     label: "Caixa",
-    color: C.green,
+    color: varColor(C.green),
     description: "Tira pedidos e opera a frente de caixa",
     icon: "🧾",
     permissions: {
@@ -36,7 +37,7 @@ export const ROLES = {
   },
   admin: {
     label: "Administrador",
-    color: C.accent,
+    color: varColor(C.accent),
     description: "Acesso completo ao sistema",
     icon: "⚙️",
     permissions: {

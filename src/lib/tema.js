@@ -11,6 +11,14 @@
  * Sem tema custom (tenant atual, GastroMundi): `gerarVariaveisTema`
  * retorna `{}`, nada é sobrescrito, e os defaults de `src/styles/tema.css`
  * continuam valendo — aparência idêntica a antes desta fase.
+ *
+ * NOTA (Ajuste 2 — F018): `useCor()` é um hook reativo que resolve
+ * CSS Custom Properties para seus valores hex em runtime. Usado por
+ * props que precisam de valor real (ícones lucide-react, libs de
+ * gráfico, canvas). Resolve DEPOIS de `aplicarVariaveisTema()` e
+ * re-resolve quando `tenant.tema` muda — nunca chame `resolverCor()`
+ * direto no corpo do componente (pega cor default no 1º paint,
+ * não segue troca de tenant).
  */
 
 // Mapeia campo do tema (jsonb) → token CSS. Lista fechada: só estes
@@ -27,6 +35,23 @@ const TOKENS_PERMITIDOS = {
   text: "--gm-text",
   muted: "--gm-muted",
   faint: "--gm-faint",
+};
+
+// Fallback: valores default quando uma CSS var não está definida ou
+// getComputedStyle falha. Derivado de tema.css defaults, mínimo e
+// documentado — NUNCA reintroduz a tabela hex inteira do colors.js antigo.
+const FALLBACK_DEFAULTS = {
+  "--gm-bg": "#070b14",
+  "--gm-card": "#0e1220",
+  "--gm-surface": "#161b2c",
+  "--gm-border": "#28324d",
+  "--gm-accent": "#7c3aed",
+  "--gm-green": "#10b981",
+  "--gm-red": "#ef4444",
+  "--gm-blue": "#3b82f6",
+  "--gm-text": "#eef2f7",
+  "--gm-muted": "#9aa8c4",
+  "--gm-faint": "#323d58",
 };
 
 /**
@@ -92,3 +117,51 @@ export function aplicarVariaveisTema(variaveis, root = document.documentElement)
     root.style.setProperty(token, valor);
   }
 }
+
+/**
+ * Resolve uma CSS Custom Property para seu valor hexadecimal em runtime.
+ * Usado por props que precisam de valor hex real (ícones lucide-react,
+ * recharts, canvas, etc.) — não chamado direto em componentes, sempre
+ * através do hook `useCor()` que o torna reativo.
+ *
+ * Retorna o valor resolvido ou um fallback default se a var não
+ * estiver definida ou getComputedStyle falhar.
+ *
+ * @param {string} tokenName - nome da CSS var, ex.: '--gm-accent' (com --)
+ * @returns {string} hex, ex.: '#7c3aed'
+ */
+export function resolverCor(tokenName) {
+  if (typeof document === "undefined") return FALLBACK_DEFAULTS[tokenName] || "#000000";
+  try {
+    const valor = getComputedStyle(document.documentElement).getPropertyValue(tokenName).trim();
+    return valor || FALLBACK_DEFAULTS[tokenName] || "#000000";
+  } catch {
+    return FALLBACK_DEFAULTS[tokenName] || "#000000";
+  }
+}
+
+/**
+ * Helper para facilitar inline styles com CSS Custom Properties.
+ * Converte um nome de token para `var(token)`.
+ *
+ * Uso:
+ *   style={{ color: varColor(C.accent) }}
+ *   // equivalente a:
+ *   style={{ color: `var(${C.accent})` }}
+ *
+ * @param {string} tokenName - token name, ex.: '--gm-accent'
+ * @returns {string} var(token)
+ */
+export function varColor(tokenName) {
+  return `var(${tokenName})`;
+}
+
+/**
+ * ⚠️ Para o hook reativo useCor(), importe de '@/lib/useCorHook' em vez deste arquivo.
+ * Motivo: evitar dependência circular durante testes (AppContext depende de supabase).
+ *
+ * Uso em componentes React:
+ *   import { useCor } from '@/lib/useCorHook';
+ *   const corAccent = useCor('--gm-accent');
+ *   <Icon color={corAccent} />
+ */

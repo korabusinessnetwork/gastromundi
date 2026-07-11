@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrendingDown } from "react-icons/lu";
@@ -22,8 +24,8 @@ const fmtR = (v) => "R$ " + Number(v ?? 0).toFixed(2);
 
 function KpiCard({ label, value, color, Icon, variacao }) {
   return (
-    <div className="kpi-card" style={{ background: C.card, border: `1px solid ${C.border}` }}>
-      <div className="kpi-card__label" style={{ color: C.muted, display: "flex", alignItems: "center", gap: 8 }}>
+    <div className="kpi-card" style={{ background: varColor(C.card), border: `1px solid var(${C.border})` }}>
+      <div className="kpi-card__label" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 8 }}>
         {Icon && <Icon size={15} color={color} />} {label}
       </div>
       <div className="kpi-card__value" style={{ color }}>{value}</div>
@@ -31,8 +33,8 @@ function KpiCard({ label, value, color, Icon, variacao }) {
         <span
           className="kpi-card__variacao"
           style={{
-            color: variacao >= 0 ? C.green : C.red,
-            background: variacao >= 0 ? `${C.green}18` : `${C.red}18`,
+            color: variacao >= 0 ? varColor(C.green) : varColor(C.red),
+            background: variacao >= 0 ? `${alfa(C.green, "18")}` : `${alfa(C.red, "18")}`,
             display: "inline-flex", alignItems: "center", gap: 4,
           }}
         >
@@ -53,8 +55,8 @@ function GraficoDias({ porDia }) {
         const dia = new Date(d.dia + "T00:00:00");
         return (
           <div key={d.dia} className="grafico-dias__coluna" title={`${fmtR(d.total)} em ${dia.toLocaleDateString("pt-BR")}`}>
-            <div className="grafico-dias__barra" style={{ height: `${alturaPct}%`, background: C.accent }} />
-            <span className="grafico-dias__label" style={{ color: C.muted }}>
+            <div className="grafico-dias__barra" style={{ height: `${alturaPct}%`, background: varColor(C.accent) }} />
+            <span className="grafico-dias__label" style={{ color: varColor(C.muted) }}>
               {dia.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
             </span>
           </div>
@@ -68,11 +70,11 @@ function BarraHorizontal({ label, valor, max, cor }) {
   const pct = max > 0 ? Math.max(2, (valor / max) * 100) : 0;
   return (
     <div className="barra-horizontal-linha">
-      <span className="barra-horizontal-linha__label" style={{ color: C.text }}>{label}</span>
-      <div className="barra-horizontal-linha__trilho" style={{ background: C.surface }}>
+      <span className="barra-horizontal-linha__label" style={{ color: varColor(C.text) }}>{label}</span>
+      <div className="barra-horizontal-linha__trilho" style={{ background: varColor(C.surface) }}>
         <div className="barra-horizontal-linha__preenchido" style={{ width: `${pct}%`, background: cor }} />
       </div>
-      <span className="barra-horizontal-linha__valor" style={{ color: C.text }}>{fmtR(valor)}</span>
+      <span className="barra-horizontal-linha__valor" style={{ color: varColor(C.text) }}>{fmtR(valor)}</span>
     </div>
   );
 }
@@ -81,7 +83,7 @@ function Estado({ icon, msg }) {
   return (
     <div className="desempenho__estado">
       <div className="desempenho__estado-icone">{icon}</div>
-      <div className="desempenho__estado-msg" style={{ color: C.muted }}>{msg}</div>
+      <div className="desempenho__estado-msg" style={{ color: varColor(C.muted) }}>{msg}</div>
     </div>
   );
 }
@@ -184,8 +186,8 @@ export default function DesempenhoReport() {
               className="desempenho__chip"
               onClick={() => setTipoPeriodo(p.id)}
               style={{
-                background: tipoPeriodo === p.id ? C.accent : C.surface,
-                color: tipoPeriodo === p.id ? "#fff" : C.muted,
+                background: tipoPeriodo === p.id ? varColor(C.accent) : varColor(C.surface),
+                color: tipoPeriodo === p.id ? "#fff" : varColor(C.muted),
                 fontSize: sz.fontSm + 1,
               }}
             >
@@ -201,21 +203,21 @@ export default function DesempenhoReport() {
               className="desempenho__date-input"
               value={customInicio}
               onChange={(e) => setCustomInicio(e.target.value)}
-              style={{ border: `1.5px solid ${customInicio ? C.accent : C.border}`, background: C.surface, color: C.text, fontSize: sz.fontSm + 1 }}
+              style={{ border: `1.5px solid ${customInicio ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontSize: sz.fontSm + 1 }}
             />
-            <span style={{ color: C.muted, fontWeight: 600, fontSize: sz.fontSm + 1 }}>até</span>
+            <span style={{ color: varColor(C.muted), fontWeight: 600, fontSize: sz.fontSm + 1 }}>até</span>
             <input
               type="date"
               className="desempenho__date-input"
               value={customFim}
               min={customInicio || undefined}
               onChange={(e) => setCustomFim(e.target.value)}
-              style={{ border: `1.5px solid ${customFim ? C.accent : C.border}`, background: C.surface, color: C.text, fontSize: sz.fontSm + 1 }}
+              style={{ border: `1.5px solid ${customFim ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontSize: sz.fontSm + 1 }}
             />
           </div>
         )}
 
-        <label className="desempenho__comparar" style={{ color: C.muted, fontSize: sz.fontSm + 1 }}>
+        <label className="desempenho__comparar" style={{ color: varColor(C.muted), fontSize: sz.fontSm + 1 }}>
           <input type="checkbox" checked={comparar} onChange={(e) => setComparar(e.target.checked)} />
           Comparar com período anterior
         </label>
@@ -226,7 +228,7 @@ export default function DesempenhoReport() {
         <Estado icon="📅" msg="Selecione as duas datas do período" />
       ) : erro ? (
         <div className="desempenho__body">
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 16, borderRadius: 12, background: `${C.red}12`, border: `1.5px solid ${C.red}44`, color: C.red }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 16, borderRadius: 12, background: `${alfa(C.red, "12")}`, border: `1.5px solid ${alfa(C.red, "44")}`, color: varColor(C.red) }}>
             <LuCircleAlert size={18} /> {erro}
           </div>
         </div>
@@ -238,16 +240,16 @@ export default function DesempenhoReport() {
         <div className="desempenho__body">
           {/* KPIs */}
           <div className="desempenho__kpis">
-            <KpiCard label="Faturamento" value={fmtR(faturamento)} color={C.green} Icon={LuBanknote} variacao={varFaturamento} />
-            <KpiCard label="Vendas Realizadas" value={numeroVendas} color={C.blue} Icon={LuReceipt} variacao={varVendas} />
-            <KpiCard label="Ticket Médio" value={fmtR(ticketMedio)} color={C.accent} Icon={LuChartBar} variacao={varTicket} />
+            <KpiCard label="Faturamento" value={fmtR(faturamento)} color={varColor(C.green)} Icon={LuBanknote} variacao={varFaturamento} />
+            <KpiCard label="Vendas Realizadas" value={numeroVendas} color={varColor(C.blue)} Icon={LuReceipt} variacao={varVendas} />
+            <KpiCard label="Ticket Médio" value={fmtR(ticketMedio)} color={varColor(C.accent)} Icon={LuChartBar} variacao={varTicket} />
           </div>
 
           {/* Vendas por dia */}
-          <div className="desempenho__secao" style={{ background: C.card, border: `1px solid ${C.border}` }}>
-            <div className="desempenho__secao-titulo" style={{ color: C.muted }}>Vendas por dia</div>
+          <div className="desempenho__secao" style={{ background: varColor(C.card), border: `1px solid var(${C.border})` }}>
+            <div className="desempenho__secao-titulo" style={{ color: varColor(C.muted) }}>Vendas por dia</div>
             {porDia.length === 0 ? (
-              <div style={{ color: C.muted, fontSize: sz.fontSm + 1 }}>Sem dados diários no período.</div>
+              <div style={{ color: varColor(C.muted), fontSize: sz.fontSm + 1 }}>Sem dados diários no período.</div>
             ) : (
               <GraficoDias porDia={porDia} />
             )}
@@ -255,10 +257,10 @@ export default function DesempenhoReport() {
 
           <div style={{ display: "grid", gridTemplateColumns: width < 900 ? "1fr" : "1fr 1fr", gap: 22 }}>
             {/* Por método de pagamento */}
-            <div className="desempenho__secao" style={{ background: C.card, border: `1px solid ${C.border}` }}>
-              <div className="desempenho__secao-titulo" style={{ color: C.muted }}>Faturamento por forma de pagamento</div>
+            <div className="desempenho__secao" style={{ background: varColor(C.card), border: `1px solid var(${C.border})` }}>
+              <div className="desempenho__secao-titulo" style={{ color: varColor(C.muted) }}>Faturamento por forma de pagamento</div>
               {porMetodo.length === 0 ? (
-                <div style={{ color: C.muted, fontSize: sz.fontSm + 1 }}>Sem pagamentos registrados no período.</div>
+                <div style={{ color: varColor(C.muted), fontSize: sz.fontSm + 1 }}>Sem pagamentos registrados no período.</div>
               ) : (
                 porMetodo.map((m) => (
                   <BarraHorizontal
@@ -266,41 +268,41 @@ export default function DesempenhoReport() {
                     label={METODOS_LABEL[m.metodo] ?? m.metodo}
                     valor={Number(m.total) || 0}
                     max={maxMetodo}
-                    cor={C.accent}
+                    cor={varColor(C.accent)}
                   />
                 ))
               )}
             </div>
 
             {/* Top produtos + margem */}
-            <div className="desempenho__secao" style={{ background: C.card, border: `1px solid ${C.border}` }}>
-              <div className="desempenho__secao-titulo" style={{ color: C.muted }}>Produtos mais vendidos</div>
+            <div className="desempenho__secao" style={{ background: varColor(C.card), border: `1px solid var(${C.border})` }}>
+              <div className="desempenho__secao-titulo" style={{ color: varColor(C.muted) }}>Produtos mais vendidos</div>
               {produtosComMargem.length === 0 ? (
-                <div style={{ color: C.muted, fontSize: sz.fontSm + 1 }}>Sem produtos vendidos no período.</div>
+                <div style={{ color: varColor(C.muted), fontSize: sz.fontSm + 1 }}>Sem produtos vendidos no período.</div>
               ) : (
                 <div style={{ overflowX: "auto" }}>
                   <table className="tabela-produtos">
                     <thead>
-                      <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                        <th style={{ color: C.muted }}>Produto</th>
-                        <th className="right" style={{ color: C.muted }}>Unid.</th>
-                        <th className="right" style={{ color: C.muted }}>Receita</th>
-                        <th className="right" style={{ color: C.muted }}>Margem</th>
+                      <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+                        <th style={{ color: varColor(C.muted) }}>Produto</th>
+                        <th className="right" style={{ color: varColor(C.muted) }}>Unid.</th>
+                        <th className="right" style={{ color: varColor(C.muted) }}>Receita</th>
+                        <th className="right" style={{ color: varColor(C.muted) }}>Margem</th>
                       </tr>
                     </thead>
                     <tbody>
                       {produtosComMargem.map((p, i) => (
-                        <tr key={p.produto_id ?? i} style={{ borderBottom: `1px solid ${C.border}` }}>
-                          <td style={{ color: C.text, fontWeight: 600 }}>{p.nome}</td>
-                          <td className="right" style={{ color: C.muted }}>{p.unidades}</td>
-                          <td className="right" style={{ color: C.text, fontWeight: 700 }}>{fmtR(p.receita)}</td>
+                        <tr key={p.produto_id ?? i} style={{ borderBottom: `1px solid var(${C.border})` }}>
+                          <td style={{ color: varColor(C.text), fontWeight: 600 }}>{p.nome}</td>
+                          <td className="right" style={{ color: varColor(C.muted) }}>{p.unidades}</td>
+                          <td className="right" style={{ color: varColor(C.text), fontWeight: 700 }}>{fmtR(p.receita)}</td>
                           <td className="right">
                             {p.semCusto ? (
-                              <span className="badge-sem-custo" style={{ color: C.muted, background: C.surface }}>
+                              <span className="badge-sem-custo" style={{ color: varColor(C.muted), background: varColor(C.surface) }}>
                                 sem custo cadastrado
                               </span>
                             ) : (
-                              <span style={{ fontWeight: 800, color: p.margemValor >= 0 ? C.green : C.red }}>
+                              <span style={{ fontWeight: 800, color: p.margemValor >= 0 ? varColor(C.green) : varColor(C.red) }}>
                                 {fmtR(p.margemValor)} ({p.margemPercentual.toFixed(0)}%)
                               </span>
                             )}

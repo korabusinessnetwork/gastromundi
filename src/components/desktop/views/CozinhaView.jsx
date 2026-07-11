@@ -6,6 +6,7 @@ import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado } from "@
 import { montarViaProducao, buscarConfigImpressao } from "@/lib/impressao";
 import { imprimirDocumento } from "@/lib/impressao/drivers";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
 import "./CozinhaView.css";
@@ -78,13 +79,13 @@ export default function CozinhaView() {
   };
 
   return (
-    <div className="cozinha-view" style={{ background: C.bg }}>
+    <div className="cozinha-view" style={{ background: varColor(C.bg) }}>
       {/* Header */}
       <div className="cozinha-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
-        <LuChefHat size={sz.fontLg} color={C.accent} />
+        <LuChefHat size={sz.fontLg} color={varColor(C.accent)} />
         <div>
           <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Cozinha</div>
-          <div className="cozinha-view__subtitulo" style={{ color: C.muted, fontSize: sz.fontSm }}>Painel de preparo em tempo real</div>
+          <div className="cozinha-view__subtitulo" style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>Painel de preparo em tempo real</div>
         </div>
       </div>
 
@@ -140,14 +141,14 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto,
 
   return (
     <div className="pedido-card" style={{
-      border: `1.5px solid ${atrasado ? C.red : C.border}`,
+      border: `1.5px solid ${atrasado ? varColor(C.red) : varColor(C.border)}`,
       boxShadow: atrasado ? `0 0 0 1px ${alfa(C.red, "33")}` : "none",
     }}>
       {/* Cabeçalho do card */}
       <div className="pedido-card__topo">
         <span style={{ fontWeight: 800, fontSize: sz.fontBase }}>{fmtComanda(pedido.comanda)}</span>
         {pedido.mesa && <span className="pedido-card__mesa" style={{ fontSize: sz.fontSm }}>🪑 {pedido.mesa}</span>}
-        <span className="pedido-card__tempo" style={{ fontSize: sz.fontSm - 1, color: atrasado ? C.red : C.muted }}>
+        <span className="pedido-card__tempo" style={{ fontSize: sz.fontSm - 1, color: atrasado ? varColor(C.red) : varColor(C.muted) }}>
           {atrasado ? <LuTriangleAlert size={12} /> : <LuClock size={12} />}
           {minutos} min
         </span>
@@ -182,7 +183,7 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto,
           disabled={processando}
           className="pedido-card__btn-acao"
           style={{
-            background: processando ? C.faint : C.accent,
+            background: processando ? varColor(C.faint) : varColor(C.accent),
             fontSize: sz.fontSm + 1, cursor: processando ? "not-allowed" : "pointer",
           }}
         >
@@ -195,7 +196,7 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto,
           disabled={processando}
           className="pedido-card__btn-acao"
           style={{
-            background: processando ? C.faint : C.green,
+            background: processando ? varColor(C.faint) : varColor(C.green),
             fontSize: sz.fontSm + 1, cursor: processando ? "not-allowed" : "pointer",
           }}
         >

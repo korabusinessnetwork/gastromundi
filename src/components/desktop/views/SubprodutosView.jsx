@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import {
   LuPlus, LuPencil, LuX, LuTriangleAlert, LuPackage,
@@ -22,7 +23,7 @@ function Toggle({ value, onChange }) {
       type="button"
       onClick={() => onChange(!value)}
       className="subprodutos-view__toggle"
-      style={{ background: value ? C.green : C.faint }}
+      style={{ background: value ? varColor(C.green) : varColor(C.faint) }}
     >
       <span className="subprodutos-view__toggle-bolinha" style={{ left: value ? 22 : 2 }} />
     </button>
@@ -152,7 +153,7 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
 
         <div className="subprodutos-view__modal-botoes">
           <button onClick={onClose} className="subprodutos-view__btn-cancelar" style={{ fontSize: sz.fontBase }}>Cancelar</button>
-          <button onClick={salvar} disabled={salvando} className="subprodutos-view__btn-salvar" style={{ background: salvando ? C.faint : C.accent, cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
+          <button onClick={salvar} disabled={salvando} className="subprodutos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
             {salvando ? "Salvando…" : item ? "Salvar alterações" : "Criar subproduto"}
           </button>
         </div>
@@ -222,7 +223,7 @@ export default function SubprodutosView({ sz }) {
               key={cat}
               onClick={() => setCatFiltro(cat)}
               className="subprodutos-view__categoria-btn"
-              style={{ background: catFiltro === cat ? C.accent : C.surface, color: catFiltro === cat ? "#fff" : C.muted, fontSize: sz.fontSm + 1 }}
+              style={{ background: catFiltro === cat ? varColor(C.accent) : varColor(C.surface), color: catFiltro === cat ? "#fff" : varColor(C.muted), fontSize: sz.fontSm + 1 }}
             >
               {cat}
             </button>
@@ -250,7 +251,7 @@ export default function SubprodutosView({ sz }) {
           <div className="subprodutos-view__tabela-moldura">
             <table className="subprodutos-view__tabela">
               <thead>
-                <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                   {["Nome", "Categoria", "Unidade", "Preço", "Estoque", "Status", ""].map((h, i) => (
                     <th key={i} className="subprodutos-view__th" style={{ textAlign: i >= 3 ? "center" : "left" }}>{h}</th>
                   ))}
@@ -261,24 +262,24 @@ export default function SubprodutosView({ sz }) {
                   <tr
                     key={s.id}
                     className="subprodutos-view__tr"
-                    onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                    onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     style={{ opacity: s.ativo ? 1 : 0.5 }}
                   >
                     <td className="subprodutos-view__td subprodutos-view__nome" style={{ fontSize: sz.fontBase }}>{s.nome}</td>
                     <td className="subprodutos-view__td">
-                      <span className="subprodutos-view__tag-categoria" style={{ fontSize: sz.fontSm, background: alfa(C.accent, "15"), color: C.accent }}>{s.categoria}</span>
+                      <span className="subprodutos-view__tag-categoria" style={{ fontSize: sz.fontSm, background: alfa(C.accent, "15"), color: varColor(C.accent) }}>{s.categoria}</span>
                     </td>
                     <td className="subprodutos-view__td subprodutos-view__unidade" style={{ fontSize: sz.fontBase }}>{s.unidade_medida}</td>
                     <td className="subprodutos-view__td" style={{ textAlign: "center", fontWeight: 700, fontSize: sz.fontBase }}>R$ {Number(s.preco).toFixed(2)}</td>
                     <td className="subprodutos-view__td" style={{ textAlign: "center" }}>
-                      <span style={{ fontSize: sz.fontSm, fontWeight: 600, color: s.controla_estoque ? C.green : C.muted }}>{s.controla_estoque ? "Sim" : "Não"}</span>
+                      <span style={{ fontSize: sz.fontSm, fontWeight: 600, color: s.controla_estoque ? varColor(C.green) : varColor(C.muted) }}>{s.controla_estoque ? "Sim" : "Não"}</span>
                     </td>
                     <td className="subprodutos-view__td" style={{ textAlign: "center" }}>
                       <button
                         onClick={() => toggleAtivo(s)}
                         className="subprodutos-view__badge-status"
-                        style={{ fontSize: sz.fontSm - 1, padding: "3px 10px", background: s.ativo ? alfa(C.green, "18") : C.surface, color: s.ativo ? C.green : C.muted }}
+                        style={{ fontSize: sz.fontSm - 1, padding: "3px 10px", background: s.ativo ? alfa(C.green, "18") : varColor(C.surface), color: s.ativo ? varColor(C.green) : varColor(C.muted) }}
                       >
                         {s.ativo ? "Ativo" : "Inativo"}
                       </button>

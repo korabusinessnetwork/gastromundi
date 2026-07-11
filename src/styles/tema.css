@@ -1,17 +1,28 @@
 /**
  * Tema — Fase 6 da camada de comercialização (ADR-007, decisões 017/018).
  *
- * Tokens de marca como CSS Custom Properties. Valores default = a
- * marca GastroMundi (os mesmos hex de src/constants/colors.js — as
- * duas fontes precisam ser mantidas em sincronia manualmente, já que
- * não há passo de build para gerar uma a partir da outra; ver ADR-007
- * "Consequências"). Um tenant com identidade própria sobrescreve só
- * os tokens que quiser, em runtime, via `src/lib/tema.js`
- * (aplicarVariaveisTema) — nenhum rebuild, nenhum fork de código.
+ * >>> FONTE ÚNICA DE VERDADE das cores de marca (F018 fechado). <<<
  *
- * Se um token não for sobrescrito, o default abaixo continua valendo
- * (é assim que o GastroMundi de hoje, sem tema custom, permanece
- * visualmente idêntico).
+ * Os valores hex vivem SÓ aqui. `src/constants/colors.js` NÃO guarda mais
+ * hex: guarda apenas os NOMES dos tokens (`C.accent === "--gm-accent"`),
+ * de modo que todo uso em JS/inline style emite `var(--gm-*)` — resolvido
+ * pelo browser em runtime, por tenant. Não há mais duas listas de cores
+ * para manter em sincronia (era o débito que o F018 eliminou).
+ *
+ * Editar uma cor da marca = editar aqui, um lugar só. O invariante
+ * "colors.js referencia estes tokens" e "estes defaults = a marca
+ * GastroMundi" é travado por src/constants/colors.test.js.
+ *
+ * Um tenant com identidade própria sobrescreve só os tokens que quiser,
+ * em runtime, via `src/lib/tema.js` (aplicarVariaveisTema) — nenhum
+ * rebuild, nenhum fork de código. Se um token não for sobrescrito, o
+ * default abaixo continua valendo (é assim que o GastroMundi de hoje,
+ * sem tema custom, permanece visualmente idêntico).
+ *
+ * Casos que precisam do valor hex real em JS (canvas, libs de gráfico
+ * por prop, <meta theme-color>) NÃO leem colors.js: usam o hook reativo
+ * `useCor("--gm-*")` de src/lib/useCorHook.js, que resolve via
+ * getComputedStyle e re-resolve quando o tema do tenant muda.
  */
 
 :root {

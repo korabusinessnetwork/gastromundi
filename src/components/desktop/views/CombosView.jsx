@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import {
   LuPlus, LuPencil, LuX, LuMinus, LuSearch, LuPackage,
@@ -18,7 +19,7 @@ function Toggle({ value, onChange }) {
       type="button"
       onClick={() => onChange(!value)}
       className="combos-view__toggle"
-      style={{ background: value ? C.green : C.faint }}
+      style={{ background: value ? varColor(C.green) : varColor(C.faint) }}
     >
       <span className="combos-view__toggle-bolinha" style={{ left: value ? 22 : 2 }} />
     </button>
@@ -216,7 +217,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                       key={p.id}
                       onClick={() => { setPrincipal(p); setBuscaProd(""); setShowProd(false); }}
                       className="combos-view__dropdown-item"
-                      onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                      onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                       onMouseLeave={e => e.currentTarget.style.background = "none"}
                     >
                       <span style={{ fontSize: 18 }}>{p.emoji ?? "📦"}</span>
@@ -246,10 +247,10 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                   key={m.id}
                   onClick={() => setModo(m.id)}
                   className="combos-view__modo-card"
-                  style={{ borderColor: ativo ? C.accent : C.border, background: ativo ? alfa(C.accent, "10") : C.surface }}
+                  style={{ borderColor: ativo ? varColor(C.accent) : varColor(C.border), background: ativo ? alfa(C.accent, "10") : varColor(C.surface) }}
                 >
-                  <m.icon size={20} color={ativo ? C.accent : C.muted} />
-                  <div className="combos-view__modo-titulo" style={{ fontSize: sz.fontBase, color: ativo ? C.accent : C.text }}>{m.title}</div>
+                  <m.icon size={20} color={ativo ? varColor(C.accent) : varColor(C.muted)} />
+                  <div className="combos-view__modo-titulo" style={{ fontSize: sz.fontBase, color: ativo ? varColor(C.accent) : varColor(C.text) }}>{m.title}</div>
                   <div className="combos-view__modo-desc" style={{ fontSize: sz.fontSm }}>{m.desc}</div>
                 </button>
               );
@@ -321,14 +322,14 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                     key={s.id}
                     onClick={() => addSubproduto(s)}
                     className="combos-view__dropdown-item"
-                    onMouseEnter={e => e.currentTarget.style.background = C.surface}
+                    onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                     onMouseLeave={e => e.currentTarget.style.background = "none"}
                   >
                     <div style={{ flex: 1 }}>
                       <div className="combos-view__dropdown-item-nome" style={{ fontSize: sz.fontBase }}>{s.nome}</div>
                       <div className="combos-view__dropdown-item-preco" style={{ fontSize: sz.fontSm }}>{s.categoria} · {fmtBRL(s.preco)}</div>
                     </div>
-                    <LuPlus size={14} color={C.accent} />
+                    <LuPlus size={14} color={varColor(C.accent)} />
                   </button>
                 ))}
               </div>
@@ -346,7 +347,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
 
         <div className="combos-view__modal-botoes">
           <button onClick={onClose} className="combos-view__btn-cancelar" style={{ fontSize: sz.fontBase }}>Cancelar</button>
-          <button onClick={salvar} disabled={salvando} className="combos-view__btn-salvar" style={{ background: salvando ? C.faint : C.accent, cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
+          <button onClick={salvar} disabled={salvando} className="combos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
             {salvando ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar combo"}
           </button>
         </div>
@@ -459,7 +460,7 @@ export default function CombosView({ sz }) {
                   </div>
 
                   {/* Modo badge */}
-                  <span className="combos-view__badge" style={{ fontSize: sz.fontSm - 1, background: c.modo === "substituir" ? alfa(C.blue, "18") : alfa(C.accent, "18"), color: c.modo === "substituir" ? C.blue : C.accent }}>
+                  <span className="combos-view__badge" style={{ fontSize: sz.fontSm - 1, background: c.modo === "substituir" ? alfa(C.blue, "18") : alfa(C.accent, "18"), color: c.modo === "substituir" ? varColor(C.blue) : varColor(C.accent) }}>
                     {c.modo === "substituir" ? "Substitui" : "Combo"}
                   </span>
 
@@ -467,7 +468,7 @@ export default function CombosView({ sz }) {
                   <button
                     onClick={() => toggleAtivo(c)}
                     className="combos-view__badge-status"
-                    style={{ fontSize: sz.fontSm - 1, background: c.ativo ? alfa(C.green, "18") : C.surface, color: c.ativo ? C.green : C.muted }}
+                    style={{ fontSize: sz.fontSm - 1, background: c.ativo ? alfa(C.green, "18") : varColor(C.surface), color: c.ativo ? varColor(C.green) : varColor(C.muted) }}
                   >
                     {c.ativo ? "Ativo" : "Inativo"}
                   </button>

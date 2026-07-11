@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
 import { getSizes } from "@/constants/sizes";
 import { useResponsive } from "@/utils/hooks";
 import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid, LuLogOut, LuClock } from "react-icons/lu";
@@ -166,15 +168,15 @@ export default function MobilePage() {
     return (
       <div style={{
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        height: "100dvh", background: C.bg, fontFamily: "'Inter',system-ui,sans-serif", color: C.text,
+        height: "100dvh", background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text),
         padding: 24, gap: 16,
       }}>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 20, padding: "40px 28px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, width: "100%", maxWidth: 340, textAlign: "center", boxSizing: "border-box" }}>
-          <div style={{ background: `${C.accent}1a`, borderRadius: "50%", width: 72, height: 72, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <LuLock size={32} color={C.accent} />
+        <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 20, padding: "40px 28px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, width: "100%", maxWidth: 340, textAlign: "center", boxSizing: "border-box" }}>
+          <div style={{ background: `${alfa(C.accent, "1a")}`, borderRadius: "50%", width: 72, height: 72, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <LuLock size={32} color={varColor(C.accent)} />
           </div>
           <div style={{ fontWeight: 900, fontSize: 22 }}>Caixa Fechado</div>
-          <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.65 }}>
+          <div style={{ fontSize: 14, color: varColor(C.muted), lineHeight: 1.65 }}>
             O caixa está fechado. Para lançar pedidos, solicite ao responsável que abra o caixa.
           </div>
         </div>
@@ -195,32 +197,32 @@ export default function MobilePage() {
     <>
     {/* ── GRID de comandas ── */}
     {mode === "grid" && (
-      <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: C.bg, fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
+      <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text) }}>
         {/* Header */}
-        <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid ${C.border}`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div>
             <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}><LuLayoutGrid size={20} /> Comandas</div>
-            <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>
+            <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 2 }}>
               {abertas.length} comanda{abertas.length !== 1 ? "s" : ""} em aberto
             </div>
           </div>
-          <button onClick={() => { setMode("pedido"); setLancComanda(""); setLancMesa(""); }} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: C.accent, border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, fontSize: 14, WebkitTapHighlightColor: "transparent" }}>
+          <button onClick={() => { setMode("pedido"); setLancComanda(""); setLancMesa(""); }} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: varColor(C.accent), border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, fontSize: 14, WebkitTapHighlightColor: "transparent" }}>
             <LuArrowLeft size={16} /> Voltar
           </button>
         </div>
         {/* Busca */}
-        <div style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <div style={{ padding: "10px 16px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0 }}>
           <div style={{ position: "relative" }}>
-            <LuSearch size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
-            <input value={buscaGrid} onChange={e => setBuscaGrid(e.target.value)} placeholder="Buscar comanda por nome ou número..." style={{ width: "100%", padding: "11px 36px 11px 36px", borderRadius: 12, border: `1.5px solid ${buscaGrid ? C.accent : C.border}`, background: C.surface, color: C.text, fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }} />
-            {buscaGrid && <button onClick={() => setBuscaGrid("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 2 }}><LuX size={16} /></button>}
+            <LuSearch size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }} />
+            <input value={buscaGrid} onChange={e => setBuscaGrid(e.target.value)} placeholder="Buscar comanda por nome ou número..." style={{ width: "100%", padding: "11px 36px 11px 36px", borderRadius: 12, border: `1.5px solid ${buscaGrid ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }} />
+            {buscaGrid && <button onClick={() => setBuscaGrid("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", lineHeight: 0, padding: 2 }}><LuX size={16} /></button>}
           </div>
         </div>
         {/* Grid */}
         <div style={{ flex: 1, overflowY: "auto" }}>
           {resultadosGrid !== null ? (
             resultadosGrid.length === 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, gap: 10, color: C.muted }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, gap: 10, color: varColor(C.muted) }}>
                 <LuSearch size={40} style={{ opacity: 0.3 }} />
                 <div style={{ fontWeight: 600, fontSize: 15 }}>Nenhuma comanda encontrada</div>
               </div>
@@ -230,14 +232,14 @@ export default function MobilePage() {
                   const isLancada = lancadas.has(order.id);
                   const items     = Array.isArray(order.items) ? order.items : [];
                   const hasItems  = items.reduce((s, it) => s + (it.qty || 1), 0) > 0;
-                  const borderColor = isLancada ? AMBER : hasItems ? `${C.blue}66` : C.border;
-                  const bgColor     = isLancada ? `${AMBER}14` : hasItems ? `${C.blue}0a` : C.card;
+                  const borderColor = isLancada ? AMBER : hasItems ? `${alfa(C.blue, "66")}` : varColor(C.border);
+                  const bgColor     = isLancada ? `${AMBER}14` : hasItems ? `${alfa(C.blue, "0a")}` : varColor(C.card);
                   return (
-                    <div key={order.id} onClick={() => selecionarComanda(order.comanda, order.mesa)} style={{ background: bgColor, border: `1.5px solid ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: C.text, display: "flex", flexDirection: "column", gap: 6, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                    <div key={order.id} onClick={() => selecionarComanda(order.comanda, order.mesa)} style={{ background: bgColor, border: `1.5px solid ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: varColor(C.text), display: "flex", flexDirection: "column", gap: 6, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                       <div style={{ fontWeight: 800, fontSize: 16 }}>{fmtComanda(order.comanda)}</div>
-                      {order.mesa && <div style={{ fontSize: 12, color: C.muted }}>Mesa {order.mesa}</div>}
-                      {order.garcom && <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
-                      <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? C.green : C.muted }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
+                      {order.mesa && <div style={{ fontSize: 12, color: varColor(C.muted) }}>Mesa {order.mesa}</div>}
+                      {order.garcom && <div style={{ fontSize: 12, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
+                      <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
                     </div>
                   );
                 })}
@@ -251,19 +253,19 @@ export default function MobilePage() {
                   const isLancada = order ? lancadas.has(order.id) : false;
                   const items     = order ? (Array.isArray(order.items) ? order.items : []) : [];
                   const hasItems  = items.reduce((s, it) => s + (it.qty || 1), 0) > 0;
-                  const borderColor = isLancada ? AMBER : hasItems ? `${C.blue}66` : C.border;
-                  const bgColor     = isLancada ? `${AMBER}14` : hasItems ? `${C.blue}0a` : C.card;
+                  const borderColor = isLancada ? AMBER : hasItems ? `${alfa(C.blue, "66")}` : varColor(C.border);
+                  const bgColor     = isLancada ? `${AMBER}14` : hasItems ? `${alfa(C.blue, "0a")}` : varColor(C.card);
                   return (
-                    <div key={num} onClick={() => selecionarComanda(num, order?.mesa)} style={{ background: bgColor, border: `1.5px ${order ? "solid" : "dashed"} ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: C.text, display: "flex", flexDirection: "column", gap: 6, opacity: !order ? 0.45 : 1, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+                    <div key={num} onClick={() => selecionarComanda(num, order?.mesa)} style={{ background: bgColor, border: `1.5px ${order ? "solid" : "dashed"} ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: varColor(C.text), display: "flex", flexDirection: "column", gap: 6, opacity: !order ? 0.45 : 1, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                       <div style={{ fontWeight: 800, fontSize: 16 }}>Comanda {num}</div>
                       {order ? (
                         <>
-                          {order.mesa && <div style={{ fontSize: 12, color: C.muted }}>Mesa {order.mesa}</div>}
-                          {order.garcom && <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
-                          <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? C.green : C.muted }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
+                          {order.mesa && <div style={{ fontSize: 12, color: varColor(C.muted) }}>Mesa {order.mesa}</div>}
+                          {order.garcom && <div style={{ fontSize: 12, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
+                          <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
                         </>
                       ) : (
-                        <div style={{ fontSize: 12, color: C.muted }}>Disponível</div>
+                        <div style={{ fontSize: 12, color: varColor(C.muted) }}>Disponível</div>
                       )}
                     </div>
                   );
@@ -271,7 +273,7 @@ export default function MobilePage() {
               </div>
               {limite < TOTAL_COMANDAS && (
                 <div style={{ padding: "0 16px 24px", display: "flex", justifyContent: "center" }}>
-                  <button onClick={() => setLimite(l => Math.min(l + PAGE, TOTAL_COMANDAS))} style={{ padding: "12px 32px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.card, color: C.muted, fontWeight: 600, fontSize: 14, cursor: "pointer", width: "100%" }}>
+                  <button onClick={() => setLimite(l => Math.min(l + PAGE, TOTAL_COMANDAS))} style={{ padding: "12px 32px", borderRadius: 12, border: `1px solid var(${C.border})`, background: varColor(C.card), color: varColor(C.muted), fontWeight: 600, fontSize: 14, cursor: "pointer", width: "100%" }}>
                     Ver mais · {limite}/{TOTAL_COMANDAS}
                   </button>
                 </div>
@@ -283,11 +285,11 @@ export default function MobilePage() {
     )}
 
     {/* ── PEDIDO ── */}
-    {mode === "pedido" && <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: C.bg, fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
+    {mode === "pedido" && <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text) }}>
 
       {/* Header */}
       <div style={{
-        padding: "14px 16px", borderBottom: `1px solid ${C.border}`,
+        padding: "14px 16px", borderBottom: `1px solid var(${C.border})`,
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexShrink: 0,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -296,8 +298,8 @@ export default function MobilePage() {
             title="Sair"
             style={{
               display: "flex", alignItems: "center", justifyContent: "center",
-              background: "none", border: `1.5px solid ${C.border}`, borderRadius: 10,
-              color: C.muted, cursor: "pointer", padding: 7, lineHeight: 0,
+              background: "none", border: `1.5px solid var(${C.border})`, borderRadius: 10,
+              color: varColor(C.muted), cursor: "pointer", padding: 7, lineHeight: 0,
               WebkitTapHighlightColor: "transparent", flexShrink: 0,
             }}
           >
@@ -305,41 +307,41 @@ export default function MobilePage() {
           </button>
           <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}>
             <LuUtensils size={20} /> Palm
-            <span style={{ fontSize: 13, fontWeight: 500, color: C.muted }}>· {currentUser?.name?.split(" ")[0]}</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: varColor(C.muted) }}>· {currentUser?.name?.split(" ")[0]}</span>
           </div>
         </div>
         <button
           onClick={() => { setMode("grid"); setLancComanda(""); setLancMesa(""); }}
           style={{
             display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
-            background: C.surface, border: `1.5px solid ${C.border}`, borderRadius: 12,
-            color: C.muted, cursor: "pointer",
+            background: varColor(C.surface), border: `1.5px solid var(${C.border})`, borderRadius: 12,
+            color: varColor(C.muted), cursor: "pointer",
             padding: "8px 14px", fontWeight: 600, fontSize: 13,
             WebkitTapHighlightColor: "transparent",
           }}
         >
-          <LuLayoutGrid size={14} /> Comandas {abertas.length > 0 && <span style={{ background: C.accent, color: "#fff", borderRadius: 8, padding: "1px 6px", fontSize: 11, fontWeight: 800 }}>{abertas.length}</span>}
+          <LuLayoutGrid size={14} /> Comandas {abertas.length > 0 && <span style={{ background: varColor(C.accent), color: "#fff", borderRadius: 8, padding: "1px 6px", fontSize: 11, fontWeight: 800 }}>{abertas.length}</span>}
         </button>
       </div>
 
       {/* Busca de item */}
       <div style={{ padding: "10px 16px 0", flexShrink: 0 }}>
         <div style={{ position: "relative" }}>
-          <LuSearch size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.muted, pointerEvents: "none" }} />
+          <LuSearch size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }} />
           <input
             value={buscaItens}
             onChange={e => setBuscaItens(e.target.value)}
             placeholder="Buscar item..."
             style={{
               width: "100%", padding: "11px 36px 11px 36px",
-              borderRadius: 12, border: `1.5px solid ${buscaItens ? C.accent : C.border}`,
-              background: C.surface, color: C.text,
+              borderRadius: 12, border: `1.5px solid ${buscaItens ? varColor(C.accent) : varColor(C.border)}`,
+              background: varColor(C.surface), color: varColor(C.text),
               fontSize: 15, fontFamily: "inherit", outline: "none",
               boxSizing: "border-box", transition: "border-color 0.15s",
             }}
           />
           {buscaItens && (
-            <button onClick={() => setBuscaItens("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: C.muted, cursor: "pointer", lineHeight: 0, padding: 2 }}>
+            <button onClick={() => setBuscaItens("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", lineHeight: 0, padding: 2 }}>
               <LuX size={16} />
             </button>
           )}
@@ -347,12 +349,12 @@ export default function MobilePage() {
       </div>
 
       {/* Filtro categorias */}
-      <div style={{ display: "flex", gap: 8, padding: "10px 16px", overflowX: "auto", flexShrink: 0, borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ display: "flex", gap: 8, padding: "10px 16px", overflowX: "auto", flexShrink: 0, borderBottom: `1px solid var(${C.border})` }}>
         {categorias.map(cat => (
           <button key={cat} onClick={() => setCatAtiva(cat)} style={{
             padding: "8px 16px", borderRadius: 20, border: "none",
-            background: catAtiva === cat ? C.accent : C.surface,
-            color: catAtiva === cat ? "#fff" : C.muted,
+            background: catAtiva === cat ? varColor(C.accent) : varColor(C.surface),
+            color: catAtiva === cat ? "#fff" : varColor(C.muted),
             cursor: "pointer", fontWeight: 600, fontSize: 13,
             whiteSpace: "nowrap", flexShrink: 0,
             WebkitTapHighlightColor: "transparent",
@@ -369,7 +371,7 @@ export default function MobilePage() {
         return (
           <div style={{ flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: sz.gridCols, gap: 10, padding: 14, alignContent: "start", paddingBottom: "calc(120px + env(safe-area-inset-bottom))" }}>
             {visiveis.length === 0 ? (
-              <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, gap: 10, color: C.muted }}>
+              <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, gap: 10, color: varColor(C.muted) }}>
                 <LuSearch size={40} style={{ opacity: 0.3 }} />
                 <div style={{ fontWeight: 600, fontSize: 15 }}>Nenhum item encontrado</div>
               </div>
@@ -377,21 +379,21 @@ export default function MobilePage() {
               const qty = cartItems.find(i => i.id === product.id)?.qty ?? 0;
               return (
                 <button key={product.id} onClick={() => handleAddProduct(product)} style={{
-                  background: qty > 0 ? C.alow : C.card,
-                  border: `1.5px solid ${qty > 0 ? C.accent : C.border}`,
+                  background: qty > 0 ? varColor(C.alow) : varColor(C.card),
+                  border: `1.5px solid ${qty > 0 ? varColor(C.accent) : varColor(C.border)}`,
                   borderRadius: 14, padding: "16px 12px",
-                  cursor: "pointer", textAlign: "left", color: C.text,
+                  cursor: "pointer", textAlign: "left", color: varColor(C.text),
                   display: "flex", flexDirection: "column", gap: 6,
                   position: "relative", WebkitTapHighlightColor: "transparent",
                 }}>
                   {qty > 0 && (
-                    <span style={{ position: "absolute", top: 8, right: 8, background: C.accent, color: "#fff", borderRadius: 10, padding: "2px 7px", fontSize: 11, fontWeight: 800 }}>
+                    <span style={{ position: "absolute", top: 8, right: 8, background: varColor(C.accent), color: "#fff", borderRadius: 10, padding: "2px 7px", fontSize: 11, fontWeight: 800 }}>
                       {qty}
                     </span>
                   )}
                   {product.emoji && <span style={{ fontSize: 26 }}>{product.emoji}</span>}
                   <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>{product.name}</div>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: C.green }}>R$ {Number(product.price).toFixed(2)}</div>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: varColor(C.green) }}>R$ {Number(product.price).toFixed(2)}</div>
                 </button>
               );
             })}
@@ -402,7 +404,7 @@ export default function MobilePage() {
       {/* Bottom bar fixa */}
       <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
-        background: C.card, borderTop: `1px solid ${C.border}`,
+        background: varColor(C.card), borderTop: `1px solid var(${C.border})`,
         padding: "12px 16px",
         paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
         display: "flex", flexDirection: "column", gap: 8, zIndex: 100,
@@ -411,38 +413,38 @@ export default function MobilePage() {
           <button
             onClick={() => setCartAberto(v => !v)}
             style={{
-              background: C.surface, border: `1px solid ${C.border}`,
+              background: varColor(C.surface), border: `1px solid var(${C.border})`,
               borderRadius: 10, padding: "10px 16px",
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              cursor: "pointer", color: C.text, WebkitTapHighlightColor: "transparent",
+              cursor: "pointer", color: varColor(C.text), WebkitTapHighlightColor: "transparent",
             }}
           >
             <span style={{ fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
               <LuShoppingCart size={16} /> {qtdTotal} {qtdTotal === 1 ? "item" : "itens"}
             </span>
-            <span style={{ fontWeight: 900, fontSize: 15, color: C.green, display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ fontWeight: 900, fontSize: 15, color: varColor(C.green), display: "flex", alignItems: "center", gap: 4 }}>
               R$ {total.toFixed(2)} {cartAberto ? <LuChevronDown size={14}/> : <LuChevronUp size={14}/>}
             </span>
           </button>
         )}
 
         {cartAberto && cartItems.length > 0 && (
-          <div style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, maxHeight: 200, overflowY: "auto", padding: "8px 0" }}>
-            <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 14px 6px", borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ background: varColor(C.surface), borderRadius: 12, border: `1px solid var(${C.border})`, maxHeight: 200, overflowY: "auto", padding: "8px 0" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 14px 6px", borderBottom: `1px solid var(${C.border})` }}>
               <button
                 onClick={() => { setCartItems([]); setCartAberto(false); setLancComanda(""); setLancMesa(""); }}
-                style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 12, fontWeight: 700, padding: "4px 0", display: "flex", alignItems: "center", gap: 4, WebkitTapHighlightColor: "transparent" }}
+                style={{ background: "none", border: "none", color: varColor(C.red), cursor: "pointer", fontSize: 12, fontWeight: 700, padding: "4px 0", display: "flex", alignItems: "center", gap: 4, WebkitTapHighlightColor: "transparent" }}
               >
                 <LuX size={13} /> Limpar carrinho
               </button>
             </div>
             {cartItems.map((item, i) => (
-              <div key={item._key ?? i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", borderBottom: i < cartItems.length - 1 ? `1px solid ${C.border}` : "none" }}>
+              <div key={item._key ?? i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", borderBottom: i < cartItems.length - 1 ? `1px solid var(${C.border})` : "none" }}>
                 <span style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>{item.name}</span>
-                <button onClick={() => handleChangeQty(i, item.qty - 1)} style={{ background: `${C.red}15`, border: `1px solid ${C.red}44`, borderRadius: 6, width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: C.red }}><LuMinus size={13}/></button>
+                <button onClick={() => handleChangeQty(i, item.qty - 1)} style={{ background: `${alfa(C.red, "15")}`, border: `1px solid ${alfa(C.red, "44")}`, borderRadius: 6, width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.red) }}><LuMinus size={13}/></button>
                 <span style={{ fontWeight: 800, fontSize: 14, minWidth: 20, textAlign: "center" }}>{item.qty}</span>
-                <button onClick={() => handleChangeQty(i, item.qty + 1)} style={{ background: `${C.green}15`, border: `1px solid ${C.green}44`, borderRadius: 6, width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: C.green }}><LuPlus size={13}/></button>
-                <span style={{ fontWeight: 700, fontSize: 13, color: C.green, minWidth: 60, textAlign: "right" }}>R$ {(item.price * item.qty).toFixed(2)}</span>
+                <button onClick={() => handleChangeQty(i, item.qty + 1)} style={{ background: `${alfa(C.green, "15")}`, border: `1px solid ${alfa(C.green, "44")}`, borderRadius: 6, width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.green) }}><LuPlus size={13}/></button>
+                <span style={{ fontWeight: 700, fontSize: 13, color: varColor(C.green), minWidth: 60, textAlign: "right" }}>R$ {(item.price * item.qty).toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -453,7 +455,7 @@ export default function MobilePage() {
           disabled={cartItems.length === 0}
           style={{
             padding: "16px", borderRadius: 12, border: "none",
-            background: cartItems.length > 0 ? C.accent : C.faint,
+            background: cartItems.length > 0 ? varColor(C.accent) : varColor(C.faint),
             color: "#fff", fontWeight: 800, fontSize: 16,
             cursor: cartItems.length > 0 ? "pointer" : "not-allowed",
             WebkitTapHighlightColor: "transparent",
@@ -474,28 +476,28 @@ export default function MobilePage() {
         onClick={e => { if (e.target === e.currentTarget && !salvando) setShowLancar(false); }}
         style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif" }}
       >
-        <div style={{ background: C.card, borderRadius: "20px 20px 0 0", padding: 24, width: "100%", border: `1px solid ${C.border}`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", padding: 24, width: "100%", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 18, color: C.text }}>Lançar Pedido</div>
-              <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{qtdTotal} {qtdTotal === 1 ? "item" : "itens"} · R$ {total.toFixed(2)}</div>
+              <div style={{ fontWeight: 800, fontSize: 18, color: varColor(C.text) }}>Lançar Pedido</div>
+              <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 2 }}>{qtdTotal} {qtdTotal === 1 ? "item" : "itens"} · R$ {total.toFixed(2)}</div>
             </div>
-            <button onClick={() => { if (!salvando) setShowLancar(false); }} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, lineHeight: 0 }}><LuX size={22} /></button>
+            <button onClick={() => { if (!salvando) setShowLancar(false); }} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0 }}><LuX size={22} /></button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Número da Comanda *</div>
-              <input autoFocus value={lancComanda} onChange={e => { setLancComanda(e.target.value); setLancErro(""); }} onKeyDown={e => e.key === "Enter" && document.getElementById("palm-mesa")?.focus()} placeholder="Ex: 42 ou Mesa VIP" maxLength={40} style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${lancErro ? C.red + "88" : C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+              <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Número da Comanda *</div>
+              <input autoFocus value={lancComanda} onChange={e => { setLancComanda(e.target.value); setLancErro(""); }} onKeyDown={e => e.key === "Enter" && document.getElementById("palm-mesa")?.focus()} placeholder="Ex: 42 ou Mesa VIP" maxLength={40} style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${lancErro ? varColor(C.red) + "88" : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
             </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Mesa <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span></div>
-              <input id="palm-mesa" value={lancMesa} onChange={e => setLancMesa(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLancar()} placeholder="Ex: 5" maxLength={20} style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+              <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Mesa <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span></div>
+              <input id="palm-mesa" value={lancMesa} onChange={e => setLancMesa(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLancar()} placeholder="Ex: 5" maxLength={20} style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
             </div>
-            {lancErro && <div style={{ fontSize: 14, color: C.red, fontWeight: 600, padding: "8px 12px", background: `${C.red}12`, borderRadius: 8, border: `1px solid ${C.red}33` }}>{lancErro}</div>}
+            {lancErro && <div style={{ fontSize: 14, color: varColor(C.red), fontWeight: 600, padding: "8px 12px", background: `${alfa(C.red, "12")}`, borderRadius: 8, border: `1px solid ${alfa(C.red, "33")}` }}>{lancErro}</div>}
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => { if (!salvando) setShowLancar(false); }} style={{ flex: 1, padding: 14, borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.muted, cursor: "pointer", fontWeight: 600, fontSize: 15, fontFamily: "inherit" }}>Cancelar</button>
-            <button onClick={handleLancar} disabled={!lancComanda.trim() || salvando} style={{ flex: 2, padding: 14, borderRadius: 12, border: "none", background: lancComanda.trim() && !salvando ? C.accent : C.surface, color: lancComanda.trim() && !salvando ? "#fff" : C.muted, cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 15, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}>
+            <button onClick={() => { if (!salvando) setShowLancar(false); }} style={{ flex: 1, padding: 14, borderRadius: 12, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 15, fontFamily: "inherit" }}>Cancelar</button>
+            <button onClick={handleLancar} disabled={!lancComanda.trim() || salvando} style={{ flex: 2, padding: 14, borderRadius: 12, border: "none", background: lancComanda.trim() && !salvando ? varColor(C.accent) : varColor(C.surface), color: lancComanda.trim() && !salvando ? "#fff" : varColor(C.muted), cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 15, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}>
               {salvando ? "Enviando..." : mapa[lancComanda.trim()] ? "✓ Adicionar à Comanda" : "✓ Criar e Lançar"}
             </button>
           </div>
@@ -507,7 +509,7 @@ export default function MobilePage() {
     {/* Bottom sheet — detalhe da comanda */}
     {createPortal(
       <div onClick={e => { if (e.target === e.currentTarget) fecharDetalhe(); }} style={{ position: "fixed", inset: 0, zIndex: 9100, background: detalheVisible ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif", pointerEvents: detalheComanda ? "auto" : "none", transition: "background 0.3s" }}>
-        <div style={{ background: C.card, borderRadius: "20px 20px 0 0", width: "100%", maxHeight: "80dvh", border: `1px solid ${C.border}`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", transform: detalheVisible ? "translateY(0)" : "translateY(100%)", transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)" }}>
+        <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", width: "100%", maxHeight: "80dvh", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", transform: detalheVisible ? "translateY(0)" : "translateY(100%)", transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)" }}>
           {detalheComanda && (() => {
             // sempre usa dados frescos do pending; fallback para o snapshot local (ex: logo após lançamento)
             const order = mapa[String(detalheComanda.comanda)] ?? detalheComanda;
@@ -520,18 +522,18 @@ export default function MobilePage() {
             return (
               <>
                 <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
-                  <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border }} />
+                  <div style={{ width: 40, height: 4, borderRadius: 2, background: varColor(C.border) }} />
                 </div>
-                <div style={{ padding: "8px 20px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ padding: "8px 20px 14px", borderBottom: `1px solid var(${C.border})`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                   <div>
-                    <div style={{ fontWeight: 900, fontSize: 20, color: C.text }}>{fmtComanda(order.comanda)}</div>
+                    <div style={{ fontWeight: 900, fontSize: 20, color: varColor(C.text) }}>{fmtComanda(order.comanda)}</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 4 }}>
-                      {order.mesa && <span style={{ fontSize: 13, color: C.muted }}>Mesa {order.mesa}</span>}
-                      {order.garcom && <span style={{ fontSize: 13, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><LuUser size={12} /> {order.garcom}</span>}
-                      {hora && <span style={{ fontSize: 13, color: C.accent, display: "flex", alignItems: "center", gap: 4 }}><LuClock size={12} /> {data} às {hora}</span>}
+                      {order.mesa && <span style={{ fontSize: 13, color: varColor(C.muted) }}>Mesa {order.mesa}</span>}
+                      {order.garcom && <span style={{ fontSize: 13, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={12} /> {order.garcom}</span>}
+                      {hora && <span style={{ fontSize: 13, color: varColor(C.accent), display: "flex", alignItems: "center", gap: 4 }}><LuClock size={12} /> {data} às {hora}</span>}
                     </div>
                   </div>
-                  <button onClick={fecharDetalhe} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", padding: 4, lineHeight: 0, flexShrink: 0 }}><LuX size={22} /></button>
+                  <button onClick={fecharDetalhe} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0, flexShrink: 0 }}><LuX size={22} /></button>
                 </div>
                 <div style={{ flex: 1, overflowY: "auto" }}>
                   {items.map((item, i) => {
@@ -540,35 +542,35 @@ export default function MobilePage() {
                       ? new Date(item.launched_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
                       : null;
                     return (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: i < items.length - 1 ? `1px solid var(${C.border})` : "none" }}>
                         {/* Badge de quantidade — destaque visual */}
                         <div style={{
                           width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                          background: `${C.accent}18`, border: `1.5px solid ${C.accent}44`,
+                          background: `${alfa(C.accent, "18")}`, border: `1.5px solid ${alfa(C.accent, "44")}`,
                           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                           lineHeight: 1,
                         }}>
-                          <span style={{ fontWeight: 900, fontSize: 18, color: C.accent }}>{qty}</span>
-                          <span style={{ fontSize: 9, color: C.accent, opacity: 0.7, fontWeight: 700, letterSpacing: 0.3 }}>un</span>
+                          <span style={{ fontWeight: 900, fontSize: 18, color: varColor(C.accent) }}>{qty}</span>
+                          <span style={{ fontSize: 9, color: varColor(C.accent), opacity: 0.7, fontWeight: 700, letterSpacing: 0.3 }}>un</span>
                         </div>
                         {/* Nome + horário */}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 15, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <div style={{ fontWeight: 700, fontSize: 15, color: varColor(C.text), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {item.emoji ? `${item.emoji} ${item.name}` : item.name}
                           </div>
                           {lancHora && (
-                            <div style={{ fontSize: 11, color: C.muted, display: "flex", alignItems: "center", gap: 3, marginTop: 3 }}>
+                            <div style={{ fontSize: 11, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 3, marginTop: 3 }}>
                               <LuClock size={10} /> {lancHora}
                             </div>
                           )}
                         </div>
                         {/* Preço */}
                         <div style={{ flexShrink: 0, textAlign: "right" }}>
-                          <div style={{ fontWeight: 800, fontSize: 15, color: C.green }}>
+                          <div style={{ fontWeight: 800, fontSize: 15, color: varColor(C.green) }}>
                             R$ {((item.price ?? 0) * qty).toFixed(2)}
                           </div>
                           {qty > 1 && (
-                            <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
+                            <div style={{ fontSize: 10, color: varColor(C.muted), marginTop: 1 }}>
                               {qty}× R$ {Number(item.price ?? 0).toFixed(2)}
                             </div>
                           )}
@@ -577,10 +579,10 @@ export default function MobilePage() {
                     );
                   })}
                 </div>
-                <div style={{ padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", borderTop: `1px solid ${C.border}`, display: "flex", gap: 10, alignItems: "center" }}>
+                <div style={{ padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", borderTop: `1px solid var(${C.border})`, display: "flex", gap: 10, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>Total</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: C.green }}>R$ {totalOrder.toFixed(2)}</div>
+                    <div style={{ fontSize: 12, color: varColor(C.muted), fontWeight: 600 }}>Total</div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: varColor(C.green) }}>R$ {totalOrder.toFixed(2)}</div>
                   </div>
                   <button onClick={() => {
                     fecharDetalhe();
@@ -591,7 +593,7 @@ export default function MobilePage() {
                       setMode("pedido");
                       // não abre o modal — usuário seleciona produtos primeiro
                     }, 320);
-                  }} style={{ display: "flex", alignItems: "center", gap: 8, background: C.accent, border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "14px 20px", fontWeight: 800, fontSize: 15, WebkitTapHighlightColor: "transparent" }}>
+                  }} style={{ display: "flex", alignItems: "center", gap: 8, background: varColor(C.accent), border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "14px 20px", fontWeight: 800, fontSize: 15, WebkitTapHighlightColor: "transparent" }}>
                     <LuPlus size={16} /> Adicionar itens
                   </button>
                 </div>
@@ -611,7 +613,7 @@ function ToastMsg({ visible }) {
     <div style={{
       position: "fixed", top: 20, left: "50%",
       transform: `translateX(-50%) translateY(${visible ? 0 : -16}px)`,
-      background: C.green, color: "#fff",
+      background: varColor(C.green), color: "#fff",
       padding: "12px 20px", borderRadius: 12,
       fontWeight: 700, fontSize: 14,
       boxShadow: "0 4px 20px rgba(0,0,0,0.25)",

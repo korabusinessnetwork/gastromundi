@@ -4,6 +4,7 @@ import { listarLancamentos, baixarConta, processarVencidos, calcularFluxoCaixa }
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { LuPlus } from "react-icons/lu";
 import ResumoCards from "./financeiro/ResumoCards";
 import LancamentosList from "./financeiro/LancamentosList";
@@ -81,12 +82,12 @@ export default function FinanceiroView() {
   };
 
   return (
-    <div className="financeiro-view" style={{ background: C.bg }}>
+    <div className="financeiro-view" style={{ background: varColor(C.bg) }}>
       {/* Header */}
       <div className="financeiro-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Financeiro</div>
-          <div className="financeiro-view__subtitulo" style={{ color: C.muted, fontSize: sz.fontSm }}>Lançamentos, contas e fluxo de caixa</div>
+          <div className="financeiro-view__subtitulo" style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>Lançamentos, contas e fluxo de caixa</div>
         </div>
         <div className="financeiro-view__acoes">
           <input

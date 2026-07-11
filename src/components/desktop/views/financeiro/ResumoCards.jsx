@@ -1,4 +1,5 @@
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { LuTrendingUp, LuTrendingDown, LuWallet, LuClock } from "react-icons/lu";
 import "./ResumoCards.css";
 
@@ -8,10 +9,10 @@ function fmtR(v) {
 
 export default function ResumoCards({ fluxo, width, sz }) {
   const cards = [
-    { label: "Entradas realizadas", value: fmtR(fluxo.realizado.entradas), color: C.green, Icon: LuTrendingUp },
-    { label: "Saídas realizadas",   value: fmtR(fluxo.realizado.saidas),   color: C.red,   Icon: LuTrendingDown },
-    { label: "Saldo",               value: fmtR(fluxo.realizado.saldo),    color: fluxo.realizado.saldo >= 0 ? C.green : C.red, Icon: LuWallet },
-    { label: "Previsto (a receber / a pagar)", value: `${fmtR(fluxo.previsto.entradas)} / ${fmtR(fluxo.previsto.saidas)}`, color: C.blue, Icon: LuClock },
+    { label: "Entradas realizadas", value: fmtR(fluxo.realizado.entradas), color: varColor(C.green), Icon: LuTrendingUp },
+    { label: "Saídas realizadas",   value: fmtR(fluxo.realizado.saidas),   color: varColor(C.red),   Icon: LuTrendingDown },
+    { label: "Saldo",               value: fmtR(fluxo.realizado.saldo),    color: fluxo.realizado.saldo >= 0 ? varColor(C.green) : varColor(C.red), Icon: LuWallet },
+    { label: "Previsto (a receber / a pagar)", value: `${fmtR(fluxo.previsto.entradas)} / ${fmtR(fluxo.previsto.saidas)}`, color: varColor(C.blue), Icon: LuClock },
   ];
 
   return (

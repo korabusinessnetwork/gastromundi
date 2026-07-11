@@ -1,5 +1,7 @@
 import { LuTriangleAlert } from "react-icons/lu";
 import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tema";
 import "./AssinaturaBloqueada.css";
 
 /**
@@ -15,14 +17,14 @@ import "./AssinaturaBloqueada.css";
  */
 export default function AssinaturaBloqueada() {
   return (
-    <div className="assinatura-bloqueada" style={{ background: C.bg }}>
-      <div className="assinatura-bloqueada__icone" style={{ background: `${C.red}18`, border: `1.5px solid ${C.red}44` }}>
-        <LuTriangleAlert size={32} color={C.red} />
+    <div className="assinatura-bloqueada" style={{ background: varColor(C.bg) }}>
+      <div className="assinatura-bloqueada__icone" style={{ background: `${alfa(C.red, "18")}`, border: `1.5px solid ${alfa(C.red, "44")}` }}>
+        <LuTriangleAlert size={32} color={varColor(C.red)} />
       </div>
-      <div className="assinatura-bloqueada__titulo" style={{ color: C.text }}>
+      <div className="assinatura-bloqueada__titulo" style={{ color: varColor(C.text) }}>
         Sua mensalidade está atrasada
       </div>
-      <div className="assinatura-bloqueada__texto" style={{ color: C.muted }}>
+      <div className="assinatura-bloqueada__texto" style={{ color: varColor(C.muted) }}>
         O acesso ao GastroMundi fica suspenso até a renovação ser confirmada.
         Regularize o pagamento com o suporte para voltar a usar o sistema normalmente.
       </div>

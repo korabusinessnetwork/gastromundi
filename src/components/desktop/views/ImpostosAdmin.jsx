@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { LuSearch, LuX, LuCheck, LuTriangleAlert, LuReceiptText } from "react-icons/lu";
 import "./ImpostosAdmin.css";
@@ -97,7 +98,7 @@ function FSel({ value, onChange, opts, placeholder }) {
       value={value ?? ""}
       onChange={e => onChange(e.target.value)}
       className="impostos-admin__select"
-      style={{ color: value ? C.text : C.muted }}
+      style={{ color: value ? varColor(C.text) : varColor(C.muted) }}
     >
       {placeholder && <option value="">{placeholder}</option>}
       {opts.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
@@ -222,9 +223,9 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
                 onClick={() => setAba(a.id)}
                 className="impostos-admin__aba"
                 style={{
-                  color: aba === a.id ? C.accent : C.muted,
+                  color: aba === a.id ? varColor(C.accent) : varColor(C.muted),
                   fontWeight: aba === a.id ? 700 : 500, fontSize: sz.fontSm + 1,
-                  borderBottom: aba === a.id ? `2px solid ${C.accent}` : "2px solid transparent",
+                  borderBottom: aba === a.id ? `2px solid var(${C.accent})` : "2px solid transparent",
                 }}
               >
                 {a.label}
@@ -369,7 +370,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
           {aba === "reforma" && (
             <>
               <div className="impostos-admin__aviso impostos-admin__aviso--com-icone" style={{ background: alfa(C.blue, "0d"), border: `1px solid ${alfa(C.blue, "33")}`, fontSize: sz.fontSm }}>
-                <LuReceiptText size={15} color={C.blue} style={{ flexShrink: 0, marginTop: 1 }} />
+                <LuReceiptText size={15} color={varColor(C.blue)} style={{ flexShrink: 0, marginTop: 1 }} />
                 Campos obrigatórios desde jan/2026 no layout NFC-e conforme Reforma Tributária. IBS substitui ICMS, CBS substitui PIS/COFINS.
               </div>
 
@@ -401,7 +402,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
             <button onClick={onClose} disabled={salvando} className="impostos-admin__btn-cancelar" style={{ fontSize: sz.fontBase }}>
               Cancelar
             </button>
-            <button onClick={salvar} disabled={salvando} className="impostos-admin__btn-salvar" style={{ background: salvando ? C.faint : C.accent, cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
+            <button onClick={salvar} disabled={salvando} className="impostos-admin__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
               {salvando ? "Salvando..." : <><LuCheck size={15} /> Salvar configuração</>}
             </button>
           </div>
@@ -480,7 +481,7 @@ export default function ImpostosAdmin({ sz }) {
   const totalPend    = itens.length - totalConf;
 
   if (loading) {
-    return <div style={{ color: C.muted, textAlign: "center", padding: 60, fontSize: sz.fontBase }}>Carregando configurações fiscais...</div>;
+    return <div style={{ color: varColor(C.muted), textAlign: "center", padding: 60, fontSize: sz.fontBase }}>Carregando configurações fiscais...</div>;
   }
 
   return (
@@ -496,8 +497,8 @@ export default function ImpostosAdmin({ sz }) {
       {/* Badges contador */}
       <div className="impostos-admin__badges">
         {[
-          { label: `${itens.length} ite${itens.length !== 1 ? "ns" : "m"}`, color: C.text },
-          { label: `${totalConf} configurado${totalConf !== 1 ? "s" : ""}`, color: C.green },
+          { label: `${itens.length} ite${itens.length !== 1 ? "ns" : "m"}`, color: varColor(C.text) },
+          { label: `${totalConf} configurado${totalConf !== 1 ? "s" : ""}`, color: varColor(C.green) },
           { label: `${totalPend} pendente${totalPend !== 1 ? "s" : ""}`, color: "#f59e0b" },
         ].map((b, i) => (
           <span key={i} className="impostos-admin__badge" style={{ fontSize: sz.fontSm, background: alfa(b.color, "18"), color: b.color, border: `1px solid ${alfa(b.color, "33")}` }}>
@@ -516,7 +517,7 @@ export default function ImpostosAdmin({ sz }) {
             onChange={e => setBusca(e.target.value)}
             placeholder="Buscar item..."
             className="impostos-admin__busca-input"
-            style={{ borderColor: busca ? C.accent : C.border, fontSize: sz.fontSm + 1 }}
+            style={{ borderColor: busca ? varColor(C.accent) : varColor(C.border), fontSize: sz.fontSm + 1 }}
           />
           {busca && (
             <button onClick={() => setBusca("")} className="impostos-admin__busca-limpar">
@@ -579,7 +580,7 @@ export default function ImpostosAdmin({ sz }) {
                     <div
                       key={item.id}
                       className="impostos-admin__item"
-                      style={{ borderBottom: i < itensCat.length - 1 ? `1px solid ${C.border}` : "none" }}
+                      style={{ borderBottom: i < itensCat.length - 1 ? `1px solid var(${C.border})` : "none" }}
                     >
                       {/* Emoji / ícone */}
                       <div className="impostos-admin__item-icone">
@@ -599,8 +600,8 @@ export default function ImpostosAdmin({ sz }) {
                       {/* Badge status */}
                       <span className="impostos-admin__item-badge" style={{
                         background: conf ? alfa(C.green, "15") : alfa("#f59e0b", "15"),
-                        color: conf ? C.green : "#f59e0b",
-                        border: `1px solid ${alfa(conf ? C.green : "#f59e0b", "44")}`,
+                        color: conf ? varColor(C.green) : "#f59e0b",
+                        border: `1px solid ${alfa(conf ? varColor(C.green) : "#f59e0b", "44")}`,
                       }}>
                         {conf ? "✓ Configurado" : "Pendente"}
                       </span>
@@ -610,9 +611,9 @@ export default function ImpostosAdmin({ sz }) {
                         onClick={() => setModalItem(item)}
                         className="impostos-admin__btn-configurar"
                         style={{
-                          border: conf ? `1px solid ${C.border}` : `1.5px solid ${C.accent}`,
+                          border: conf ? `1px solid var(${C.border})` : `1.5px solid var(${C.accent})`,
                           background: conf ? "none" : alfa(C.accent, "12"),
-                          color: conf ? C.muted : C.accent,
+                          color: conf ? varColor(C.muted) : varColor(C.accent),
                           fontSize: sz.fontSm + 1,
                         }}
                       >

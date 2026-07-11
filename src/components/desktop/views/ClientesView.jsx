@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { useApp } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
@@ -80,18 +81,18 @@ export default function ClientesView() {
   };
 
   return (
-    <div className="clientes-view" style={{ background: C.bg }}>
+    <div className="clientes-view" style={{ background: varColor(C.bg) }}>
 
       {/* Header */}
       <div className="clientes-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Clientes</div>
-          <div className="clientes-view__subtitulo" style={{ color: C.muted, fontSize: sz.fontSm }}>Cadastro, histórico de compras e fiado</div>
+          <div className="clientes-view__subtitulo" style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>Cadastro, histórico de compras e fiado</div>
         </div>
         <button
           onClick={abrirCadastro}
           className="clientes-view__btn-novo"
-          style={{ background: C.accent, fontSize: sz.fontBase, boxShadow: `0 4px 16px ${alfa(C.accent, "44")}` }}
+          style={{ background: varColor(C.accent), fontSize: sz.fontBase, boxShadow: `0 4px 16px ${alfa(C.accent, "44")}` }}
         >
           <LuPlus size={16} /> Novo Cliente
         </button>
@@ -100,7 +101,7 @@ export default function ClientesView() {
       {/* Busca */}
       <div className="clientes-view__busca-wrap" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
         <div className="clientes-view__busca">
-          <LuSearch size={15} color={C.muted} />
+          <LuSearch size={15} color={varColor(C.muted)} />
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
@@ -225,7 +226,7 @@ export default function ClientesView() {
                 disabled={salvando || !novoNome.trim() || !novoTelefone.trim()}
                 className="clientes-view__btn-confirmar"
                 style={{
-                  background: (salvando || !novoNome.trim() || !novoTelefone.trim()) ? C.faint : C.accent,
+                  background: (salvando || !novoNome.trim() || !novoTelefone.trim()) ? varColor(C.faint) : varColor(C.accent),
                   cursor: (salvando || !novoNome.trim() || !novoTelefone.trim()) ? "not-allowed" : "pointer",
                 }}
               >
@@ -324,21 +325,21 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
           )}
 
           {carregando ? (
-            <div style={{ color: C.muted, fontSize: 14, textAlign: "center", padding: 30 }}>Carregando histórico...</div>
+            <div style={{ color: varColor(C.muted), fontSize: 14, textAlign: "center", padding: 30 }}>Carregando histórico...</div>
           ) : (
             <>
               {/* Saldo devedor — destaque claro: quem deve, quanto */}
               <div className="cliente-detalhe__saldo" style={{
                 background: saldoDevedor > 0 ? alfa(C.red, "12") : alfa(C.green, "12"),
-                border: `1.5px solid ${alfa(saldoDevedor > 0 ? C.red : C.green, "44")}`,
+                border: `1.5px solid ${alfa(saldoDevedor > 0 ? varColor(C.red) : varColor(C.green), "44")}`,
               }}>
                 <div>
                   <div className="cliente-detalhe__saldo-rotulo">Saldo de fiado</div>
-                  <div className="cliente-detalhe__saldo-valor" style={{ color: saldoDevedor > 0 ? C.red : C.green }}>
+                  <div className="cliente-detalhe__saldo-valor" style={{ color: saldoDevedor > 0 ? varColor(C.red) : varColor(C.green) }}>
                     {saldoDevedor > 0 ? `${cliente.nome} deve R$ ${saldoDevedor.toFixed(2)}` : "Sem pendências"}
                   </div>
                 </div>
-                {saldoDevedor === 0 && <LuBadgeCheck size={26} color={C.green} />}
+                {saldoDevedor === 0 && <LuBadgeCheck size={26} color={varColor(C.green)} />}
               </div>
 
               {/* Contas de fiado em aberto */}
@@ -352,7 +353,7 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
                           <div className="cliente-detalhe__conta-descricao">{l.descricao ?? "Fiado"}</div>
                           <div className="cliente-detalhe__conta-venc">
                             Venc. {l.vencimento ? new Date(l.vencimento).toLocaleDateString("pt-BR") : "—"}
-                            {l.status === "vencido" && <span style={{ color: C.red, fontWeight: 700 }}> · Vencido</span>}
+                            {l.status === "vencido" && <span style={{ color: varColor(C.red), fontWeight: 700 }}> · Vencido</span>}
                           </div>
                         </div>
                         <div className="cliente-detalhe__conta-acoes">
@@ -362,12 +363,12 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
                               <button onClick={() => setConfirmandoId(null)} className="cliente-detalhe__btn-pequeno">
                                 Cancelar
                               </button>
-                              <button onClick={() => handleConfirmarPagamento(l.id)} disabled={baixando} className="cliente-detalhe__btn-confirmar-pagamento" style={{ background: C.green, cursor: baixando ? "not-allowed" : "pointer" }}>
+                              <button onClick={() => handleConfirmarPagamento(l.id)} disabled={baixando} className="cliente-detalhe__btn-confirmar-pagamento" style={{ background: varColor(C.green), cursor: baixando ? "not-allowed" : "pointer" }}>
                                 {baixando ? "..." : "Confirmar"}
                               </button>
                             </div>
                           ) : (
-                            <button onClick={() => setConfirmandoId(l.id)} className="cliente-detalhe__btn-registrar" style={{ borderColor: alfa(C.green, "66"), background: alfa(C.green, "12"), color: C.green }}>
+                            <button onClick={() => setConfirmandoId(l.id)} className="cliente-detalhe__btn-registrar" style={{ borderColor: alfa(C.green, "66"), background: alfa(C.green, "12"), color: varColor(C.green) }}>
                               Registrar pagamento
                             </button>
                           )}
@@ -382,15 +383,15 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
               <div>
                 <div className="cliente-detalhe__secao-titulo">Histórico de compras</div>
                 {vendas.length === 0 ? (
-                  <div style={{ fontSize: 13, color: C.muted, padding: "10px 0" }}>Nenhuma venda registrada para este cliente ainda.</div>
+                  <div style={{ fontSize: 13, color: varColor(C.muted), padding: "10px 0" }}>Nenhuma venda registrada para este cliente ainda.</div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {vendas.map((v) => (
                       <div key={v.id} className="cliente-detalhe__venda">
-                        <div style={{ fontSize: 13, color: C.muted }}>
+                        <div style={{ fontSize: 13, color: varColor(C.muted) }}>
                           {v.comanda ? `Comanda ${v.comanda}` : "Venda"} · {new Date(v.at).toLocaleDateString("pt-BR")}
                         </div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>R$ {Number(v.total).toFixed(2)}</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: varColor(C.text) }}>R$ {Number(v.total).toFixed(2)}</div>
                       </div>
                     ))}
                   </div>

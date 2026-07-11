@@ -1,17 +1,29 @@
-/** Design tokens centralizados — altere aqui para mudar o tema inteiro */
+/**
+ * Design tokens — F018: fonte única de verdade é agora tema.css (CSS Custom Properties).
+ * Este objeto contém apenas os NOMES dos tokens (sem hex), usados como índice para
+ * acessar as vars em var(${C.key}). Valores default (idênticos aos hex legados)
+ * vivem em src/styles/tema.css.
+ *
+ * Razão: ao usar var(${C.accent}) em qualquer inline style ou helper, a cor
+ * é resolvida em runtime via CSS, permitindo que tenant.tema (via aplicarVariaveisTema)
+ * recolora tudo sem código JS. Props que precisam de valor hex real
+ * (ícones, charts) usam o hook useCor(C.accent) em vez de C.accent direto.
+ *
+ * ADR-007, Decisão 018, Plano F018.
+ */
 const C = {
-  bg:      "#070b14",
-  card:    "#0e1220",
-  surface: "#161b2c",
-  border:  "#28324d",   // era #1c2236 — mais visível
-  accent:  "#7c3aed",
-  alow:    "rgba(124,58,237,0.13)",
-  green:   "#10b981",
-  red:     "#ef4444",
-  blue:    "#3b82f6",
-  text:    "#eef2f7",
-  muted:   "#9aa8c4",   // era #5a6a88 — muito mais legível
-  faint:   "#323d58",   // era #2a3350 — ligeiramente mais claro
+  bg:      "--gm-bg",
+  card:    "--gm-card",
+  surface: "--gm-surface",
+  border:  "--gm-border",
+  accent:  "--gm-accent",
+  alow:    "--gm-alow",
+  green:   "--gm-green",
+  red:     "--gm-red",
+  blue:    "--gm-blue",
+  text:    "--gm-text",
+  muted:   "--gm-muted",
+  faint:   "--gm-faint",
 };
 
 export default C;

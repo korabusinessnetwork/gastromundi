@@ -5,6 +5,7 @@ import {
   nomeExibicaoTenant,
   logoUrlTenant,
   aplicarVariaveisTema,
+  resolverCor,
 } from "./tema";
 
 describe("gerarVariaveisTema (Fase 6 — sem tema custom, sem overrides)", () => {
@@ -92,5 +93,48 @@ describe("aplicarVariaveisTema (efeito no DOM)", () => {
 
   it("não lança quando o elemento raiz não existe", () => {
     expect(() => aplicarVariaveisTema({ "--gm-accent": "#fff" }, null)).not.toThrow();
+  });
+});
+
+describe("resolverCor (resolve CSS Custom Properties em runtime)", () => {
+  let root;
+
+  beforeEach(() => {
+    // Cria um elemento raiz limpo para cada teste
+    root = document.documentElement;
+    // Reseta qualquer propriedade que tenha sido definida
+    root.style.removeProperty("--gm-accent");
+    root.style.removeProperty("--gm-green");
+  });
+
+  it("retorna fallback quando a CSS var não está definida no documento", () => {
+    const cor = resolverCor("--gm-accent");
+    // Deve retornar o fallback default para accent
+    expect(cor).toBe("#7c3aed");
+  });
+
+  it("retorna o valor da CSS var quando ela está definida no :root", () => {
+    document.documentElement.style.setProperty("--gm-accent", "#0ea5e9");
+    const cor = resolverCor("--gm-accent");
+    expect(cor).toBe("#0ea5e9");
+  });
+
+  it("retorna o valor correto para diferentes tokens", () => {
+    document.documentElement.style.setProperty("--gm-green", "#22c55e");
+    document.documentElement.style.setProperty("--gm-red", "#ff0000");
+
+    expect(resolverCor("--gm-green")).toBe("#22c55e");
+    expect(resolverCor("--gm-red")).toBe("#ff0000");
+  });
+
+  it("trata whitespace na propriedade (trim)", () => {
+    document.documentElement.style.setProperty("--gm-accent", "  #0ea5e9  ");
+    const cor = resolverCor("--gm-accent");
+    expect(cor).toBe("#0ea5e9");
+  });
+
+  it("retorna fallback seguro quando o token é desconhecido", () => {
+    const cor = resolverCor("--gm-unknown");
+    expect(cor).toBe("#000000"); // fallback genérico para token desconhecido
   });
 });
