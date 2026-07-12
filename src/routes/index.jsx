@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import PrivateRoute   from "./PrivateRoute";
+import ConsoleRoute   from "./ConsoleRoute";
 import MobileRoute    from "./MobileRoute";
 
 // Pages
@@ -16,6 +17,7 @@ import FinanceiroPage     from "@/pages/desktop/FinanceiroPage";
 import CozinhaPage        from "@/pages/desktop/CozinhaPage";
 import AdminPage          from "@/pages/desktop/AdminPage";
 import ClientesPage       from "@/pages/desktop/ClientesPage";
+import ConsolePage        from "@/pages/console/ConsolePage";
 import MODULOS from "@/constants/modulos";
 
 const router = createBrowserRouter([
@@ -24,6 +26,17 @@ const router = createBrowserRouter([
 
   // Autenticação
   { path: "/login", element: <LoginPage /> },
+
+  // Console da Plataforma (S1-2) — só o super-admin `plataforma`.
+  // Rota à parte de /app: a plataforma não opera o estabelecimento.
+  {
+    path: "/console",
+    element: (
+      <ConsoleRoute>
+        <ConsolePage />
+      </ConsoleRoute>
+    ),
+  },
 
   // Tela de escolha de modo (admin no mobile)
   {

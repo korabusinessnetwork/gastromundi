@@ -26,6 +26,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!currentUser) return;
+    // Super-admin da plataforma não opera estabelecimento — vai ao Console.
+    if (currentUser.role === "plataforma") { navigate("/console", { replace: true }); return; }
     const p = currentUser.permissions;
     if (isMobile && p.palm && !p.pdv) { navigate("/palm",    { replace: true }); return; }
     if (isMobile && p.pdv  && p.palm) { navigate("/escolha", { replace: true }); return; }
@@ -41,7 +43,8 @@ export default function LoginPage() {
     const result = await login(u, p);
     setLoading(false);
     if (result?.error) { setError(result.error); setAttempts((a) => a + 1); setPassword(""); return; }
-    navigate(from, { replace: true });
+    // A rota final (Console p/ plataforma, app/palm/escolha p/ demais) é
+    // decidida pelo efeito acima quando currentUser muda — evita bounce.
   };
 
   return (
