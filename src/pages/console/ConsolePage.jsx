@@ -5,6 +5,7 @@ import {
 import { useApp } from "@/context/AppContext";
 import { listarEstabelecimentos, listarPlanos } from "@/lib/console";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
+import AlterarPlanoModal from "@/components/console/AlterarPlanoModal";
 import "./ConsolePage.css";
 
 /**
@@ -30,6 +31,7 @@ export default function ConsolePage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [modalAberto, setModalAberto] = useState(false);
+  const [tenantSelecionado, setTenantSelecionado] = useState(null);
   const [sucesso, setSucesso] = useState(null);
 
   const carregar = useCallback(async () => {
@@ -54,6 +56,20 @@ export default function ConsolePage() {
   const aoCriar = (data) => {
     setModalAberto(false);
     setSucesso(data);
+    carregar();
+  };
+
+  const aoAlterarPlano = (tenant) => {
+    setSucesso(null);
+    setTenantSelecionado(tenant);
+  };
+
+  const aoPlanoAlterado = (tenant) => {
+    setTenantSelecionado(null);
+    setSucesso({
+      nome: tenant.nome,
+      planoAlterado: rotularPlano(planos, tenant.plano_codigo),
+    });
     carregar();
   };
 
@@ -96,8 +112,12 @@ export default function ConsolePage() {
           <div className="console__sucesso" role="status">
             <LuCircleCheck size={18} aria-hidden />
             <span>
-              <strong>{sucesso.nome}</strong> criado. O responsável já pode entrar com o
-              usuário <strong>{sucesso.admin?.username}</strong>.
+              {sucesso.planoAlterado ? (
+                <>Plano de <strong>{sucesso.nome}</strong> atualizado para <strong>{sucesso.planoAlterado}</strong>.</>
+              ) : (
+                <><strong>{sucesso.nome}</strong> criado. O responsável já pode entrar com o
+                usuário <strong>{sucesso.admin?.username}</strong>.</>
+              )}
             </span>
             <button className="console__sucesso-fechar" onClick={() => setSucesso(null)} aria-label="Dispensar">×</button>
           </div>
@@ -126,17 +146,24 @@ export default function ConsolePage() {
         ) : (
           <ul className="console__lista">
             {tenants.map((t) => (
-              <li key={t.id} className="console__card">
-                <div className="console__card-icone" aria-hidden><LuBuilding2 size={20} /></div>
-                <div className="console__card-info">
-                  <span className="console__card-nome">{t.nome}</span>
-                  <span className="console__card-data">
-                    Criado em {formatarData(t.created_at)}
+              <li key={t.id}>
+                <button
+                  type="button"
+                  className="console__card console__card--clicavel"
+                  onClick={() => aoAlterarPlano(t)}
+                  title="Trocar o plano deste estabelecimento"
+                >
+                  <span className="console__card-icone" aria-hidden><LuBuilding2 size={20} /></span>
+                  <span className="console__card-info">
+                    <span className="console__card-nome">{t.nome}</span>
+                    <span className="console__card-data">
+                      Criado em {formatarData(t.created_at)}
+                    </span>
                   </span>
-                </div>
-                {t.plano_codigo && (
-                  <span className="console__plano">{rotularPlano(planos, t.plano_codigo)}</span>
-                )}
+                  {t.plano_codigo && (
+                    <span className="console__plano">{rotularPlano(planos, t.plano_codigo)}</span>
+                  )}
+                </button>
               </li>
             ))}
           </ul>
@@ -148,6 +175,15 @@ export default function ConsolePage() {
           planos={planos}
           onFechar={() => setModalAberto(false)}
           onCriado={aoCriar}
+        />
+      )}
+
+      {tenantSelecionado && (
+        <AlterarPlanoModal
+          tenant={tenantSelecionado}
+          planos={planos}
+          onFechar={() => setTenantSelecionado(null)}
+          onAlterado={aoPlanoAlterado}
         />
       )}
     </div>

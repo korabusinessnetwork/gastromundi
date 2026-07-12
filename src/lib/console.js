@@ -160,3 +160,31 @@ export async function provisionarEstabelecimento(payload) {
     return { error: err?.message ?? "Falha de rede ao criar o estabelecimento." };
   }
 }
+
+/**
+ * Troca o plano de um estabelecimento já existente (upgrade/downgrade)
+ * via RPC `alterar_plano_tenant` (20260729). A autorização REAL vive no
+ * banco: a RPC é SECURITY DEFINER com guarda `is_super_admin()`, então
+ * mesmo que alguém chame daqui sem ser plataforma, o banco recusa. Trocar
+ * o `plano_codigo` do tenant muda na hora os módulos que ele enxerga
+ * (planos_modulos). Campos explícitos; nenhuma decisão de acesso no front.
+ *
+ * Nunca lança: falha de rede/RLS volta como { data: null, error } para a
+ * UI tratar.
+ *
+ * @param {string} tenantId    id do estabelecimento
+ * @param {string} planoCodigo código do novo plano (catálogo public.planos)
+ * @returns {Promise<{data: object|null, error: object|null}>}
+ */
+export async function alterarPlano(tenantId, planoCodigo) {
+  try {
+    const { data, error } = await supabase.rpc("alterar_plano_tenant", {
+      p_tenant_id: tenantId,
+      p_plano_codigo: planoCodigo,
+    });
+    if (error) return { data: null, error };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao alterar o plano." } };
+  }
+}

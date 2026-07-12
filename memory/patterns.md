@@ -112,3 +112,35 @@ Padrões surgem de decisões repetidas. Quando a mesma solução é adotada trê
 - Mínimo de **1 revisor** para mudanças comuns; **2 revisores** para segurança, dados ou arquitetura.
 - Revisão verifica aderência aos padrões deste arquivo e às restrições em `memory/restrictions.md`.
 - Feedback é sobre o código, nunca sobre a pessoa (ver cultura em `memory/learnings.md`).
+
+### Fluxo de entrega com dois Claudes (implementa-aqui → aplica-no-VS-Code)
+*Adotado em 2026-07-12. Método de trabalho entre o Claude do ambiente remoto (Cowork/web) e o Claude Code do VS Code local.*
+
+Divisão de trabalho que evita o vaivém de copiar arquivo à mão e mantém o
+Git como fonte única de verdade:
+
+1. **Claude remoto (aqui) implementa e versiona.** Escreve o código
+   (front, RPC/migrations, Edge Functions), roda `npm test`, **commita e
+   dá push** na branch de trabalho designada. O código nasce completo e
+   testado no Git — não em texto colado no chat.
+2. **Claude do VS Code aplica o que exige a máquina/painel do dono.** Puxa
+   a branch (`git pull`) e executa só o que o Claude remoto **não** tem
+   acesso para fazer: aplicar migrations no Supabase (SQL Editor),
+   deployar Edge Functions, subir `npm run dev` para validar local, mexer
+   em variáveis de ambiente/Vercel.
+3. **O handoff é um prompt curto e explícito**, não o código: qual branch
+   puxar, qual migration aplicar (e onde), o que testar. O código já está
+   no Git; o prompt só diz o que fazer com ele.
+
+Regras do fluxo:
+- **Git é a ponte, nunca o copiar-e-colar.** Nada de mandar arquivo inteiro
+  no chat para o dono colar — isso diverge e perde histórico. Push primeiro.
+- **Cada Claude faz só o que pode fazer com segurança.** O remoto não tem a
+  service_role nem o painel; o do VS Code tem a máquina do dono. Respeitar a
+  fronteira evita segredo vazado e passo cego.
+- **Toda migration nova avisa que precisa ser aplicada** no Supabase antes de
+  o front que depende dela funcionar (senão vira erro `function ... does not
+  exist`). O aviso vai explícito no handoff.
+- **Destino final é sempre a `main`** (workflow "tudo direto na main",
+  decisão do dono em 2026-07-12): valida local → merge na `main` → Vercel
+  publica sozinha.
