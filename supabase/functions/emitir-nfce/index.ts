@@ -37,10 +37,15 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// node-forge: PKCS#12 (.pfx) + RSA-SHA1 — pura, roda no Deno. É a ÚNICA
+// peça que toca no segredo (chave privada), e vive só aqui na Edge.
+import forge from "https://esm.sh/node-forge@1.3.1";
 // Núcleo PURO e testado, reaproveitado do front (mesma verdade fiscal):
 import { montarXmlNfce } from "../../../src/lib/nfceXml.js";
-import { montarQrCodeNfce } from "../../../src/lib/nfceQrCode.js";
+import { montarQrCodeNfce, montarQrCodeNfceContingencia } from "../../../src/lib/nfceQrCode.js";
 import { montarItemFiscal } from "../../../src/lib/nfceItemFiscal.js";
+import { digestInfNfe, assinarInfNfe } from "../../../src/lib/nfceAssinatura.js";
+import { montarEnvelopeEnviNfe, interpretarRetornoSefaz } from "../../../src/lib/nfceSoap.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -197,92 +202,186 @@ Deno.serve(async (req: Request) => {
       montarEntradaXml({ config, venda: vendaFiscal, numero, codigoNumerico, tpAmb, tpEmis }),
     );
 
-    // ── 8. Monta o QR Code (Leva 3 — puro). CSC (segredo) como parâmetro. ──
-    // ⚠️ CONTINGÊNCIA (tpEmis=9): o QR offline tem forma diferente (insere
-    //    dhEmi/vNF/vICMS/digVal antes do idCSC). O `digVal` vem do
-    //    DigestValue da ASSINATURA (PLUG A CHAVE, passo 9) — por isso a
-    //    forma de contingência do QR só fica completa junto com o
-    //    certificado. montarQrCodeNfce cobre a forma ONLINE; a offline é o
-    //    encaixe marcado para quando a chave chegar.
-    const urlQr = await montarQrCodeNfce({
-      chave,
-      tpAmb,
-      idCsc: cscId,
-      csc: cscValor!, // segredo, injetado — nunca logar
-      urlConsulta: config.url_qrcode,
-    });
+    // ── 8. DigestValue do infNFe (Leva 6 — puro). Insumo do QR offline. ──
+    // Em CONTINGÊNCIA (tpEmis=9) o QR precisa do `digVal` = DigestValue da
+    // assinatura. Como a assinatura cobre só o <infNFe> (enveloped) e o QR
+    // vai no <infNFeSupl> (irmão NÃO assinado), calculamos o digest do
+    // infNFe ANTES — ele é idêntico ao que a assinatura produz. Por isso, em
+    // contingência, o digest vem antes do QR (comentário explica a ordem).
+    const { digestValue } = await digestInfNfe(xml);
 
-    // ── 9. ASSINA o XML (XML-DSig com o certificado A1) ───────────────
-    // ⟵ PLUG A CHAVE AQUI — precisa do certificado para rodar de ponta a
-    //    ponta. Assina o elemento <infNFe> (Id="NFe<chave>") e insere o
-    //    QR Code em <infNFeSupl><qrCode>. Ver assinarXmlDSig() abaixo.
-    //    (É deste passo que sai o DigestValue = digVal do QR de contingência.)
-    const xmlAssinado = await assinarXmlDSig(xml, urlQr, config.url_qrcode, {
+    // ── 8b. QR Code (Leva 3/6 — puro). CSC (segredo) como parâmetro. ──
+    // Online (tpEmis 1): forma com hash do CSC. Contingência (tpEmis 9):
+    // forma offline com dhEmi/vNF/vICMS/digVal antes do idCSC.
+    let urlQr: string;
+    if (tpEmis === 9) {
+      const { dhEmi, vNF, vICMS } = extrairCamposContingencia(xml);
+      urlQr = await montarQrCodeNfceContingencia({
+        chave, tpAmb, idCsc: cscId, csc: cscValor!, urlConsulta: config.url_qrcode,
+        dhEmi, vNF, vICMS, digVal: digestValue,
+      });
+    } else {
+      urlQr = await montarQrCodeNfce({
+        chave, tpAmb, idCsc: cscId, csc: cscValor!, urlConsulta: config.url_qrcode,
+      });
+    }
+
+    // ── 8c. <infNFeSupl> (qrCode + urlChave) — NÃO é assinado. ──
+    const infNFeSupl =
+      `<infNFeSupl><qrCode>${escaparXmlTexto(urlQr)}</qrCode>` +
+      `<urlChave>${escaparXmlTexto(config.url_qrcode)}</urlChave></infNFeSupl>`;
+
+    // ── 9. ASSINA o XML (XML-DSig, RSA-SHA1 com o certificado A1) ──────
+    // O núcleo (Leva 6, puro) canoniza/monta a Signature; o RSA-sign com a
+    // chave privada acontece SÓ aqui dentro (secret boundary). Insere o
+    // infNFeSupl e a <Signature> na ordem correta.
+    const { xmlAssinado } = await assinarXmlDSig(xml, {
       certBase64: certBase64!,
       certSenha: certSenha!,
+      infNFeSupl,
     });
 
-    // ── 10. TRANSMITE à SEFAZ-RS e trata o retorno ────────────────────
-    // ⟵ PLUG A CHAVE AQUI — SOAP autenticado por TLS mútuo com o mesmo
-    //    certificado A1. Ver transmitirSefazRS() abaixo.
+    // ── 10. TRANSMITE à SEFAZ-RS (SOAP + TLS mútuo com o A1) e trata ───
     const retorno = await transmitirSefazRS(xmlAssinado, {
-      urlAutorizacao: config.url_autorizacao,
-      tpAmb,
+      urlAutorizacao: config.url_autorizacao as string,
       certBase64: certBase64!,
       certSenha: certSenha!,
     });
 
-    return json({ status: retorno.autorizada ? "autorizada" : "rejeitada", chave, ...retorno }, 200);
+    return json(
+      {
+        status: retorno.autorizada ? "autorizada" : "rejeitada",
+        chave,
+        protocolo: retorno.protocolo,
+        cStat: retorno.cStat,
+        xMotivo: retorno.xMotivo,
+      },
+      200,
+    );
   } catch (e) {
     // Nunca vaza segredo na mensagem de erro.
     return json({ error: "Falha ao emitir NFC-e.", detalhe: String((e as Error)?.message ?? e) }, 500);
   }
 });
 
-/**
- * PLACEHOLDER — assinatura XML-DSig do <infNFe> com o certificado A1.
- *
- * ⟵ PLUG A CHAVE: implementar quando o certificado chegar. Passos:
- *   1. Decodificar o .pfx (base64) e abrir com a senha (ex.: node-forge
- *      via esm.sh, ou a Web Crypto quando suportar PKCS#12).
- *   2. Calcular o DigestValue (SHA-1) do <infNFe> canonicalizado (C14N).
- *   3. Montar <SignedInfo>, assinar (RSA-SHA1) → <SignatureValue>.
- *   4. Anexar <Signature> após </infNFe> e o <infNFeSupl><qrCode> + <urlChave>.
- *   5. Envelopar em <NFe>…</NFe> (e depois em <enviNFe> no passo 8).
- * Até lá, lança de forma explícita — o passo 6 já barra a execução sem
- * segredo, então isto só roda quando a chave existir.
- */
-async function assinarXmlDSig(
-  _xml: string,
-  _urlQr: string,
-  _urlChave: string,
-  _cert: { certBase64: string; certSenha: string },
-): Promise<string> {
-  throw new Error(
-    "assinarXmlDSig: pendente do certificado A1 (Leva 3, por a chave). " +
-      "Pipeline pronto; falta só a assinatura real.",
-  );
+/** Escapa texto para dentro de uma tag XML (& < > " '). */
+function escaparXmlTexto(v: unknown): string {
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/** Extrai dhEmi/vNF/vICMS do XML gerado — insumos do QR de contingência. */
+function extrairCamposContingencia(xml: string): { dhEmi: string; vNF: string; vICMS: string } {
+  const dhEmi = xml.match(/<dhEmi>([^<]+)<\/dhEmi>/)?.[1] ?? "";
+  const totais = xml.match(/<ICMSTot>[\s\S]*?<\/ICMSTot>/)?.[0] ?? "";
+  const vNF = totais.match(/<vNF>([^<]+)<\/vNF>/)?.[1] ?? "";
+  const vICMS = totais.match(/<vICMS>([^<]+)<\/vICMS>/)?.[1] ?? "";
+  return { dhEmi, vNF, vICMS };
 }
 
 /**
- * PLACEHOLDER — transmissão SOAP à SEFAZ-RS (NFeAutorizacao4) + consulta.
+ * Abre o PKCS#12 (.pfx base64) com a senha e extrai a chave privada e o
+ * certificado X509. É a ÚNICA função que toca no SEGREDO (chave privada);
+ * o resultado NUNCA sai da Edge nem vai para log.
+ */
+function abrirCertificadoA1(certBase64: string, certSenha: string) {
+  const der = forge.util.decode64(certBase64);
+  const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(der), certSenha);
+  let privateKey: unknown = null;
+  let certificate: unknown = null;
+  for (const sc of p12.safeContents) {
+    for (const bag of sc.safeBags) {
+      if (bag.key) privateKey = bag.key;
+      if (bag.cert) certificate = bag.cert;
+    }
+  }
+  if (!privateKey || !certificate) {
+    throw new Error("Certificado A1 inválido: PKCS#12 sem chave privada ou sem certificado.");
+  }
+  return { privateKey, certificate };
+}
+
+/**
+ * Assina o <infNFe> (XML-DSig enveloped, RSA-SHA1) com o certificado A1 e
+ * insere o <infNFeSupl> (QR) + a <Signature>. O núcleo puro (nfceAssinatura)
+ * canoniza e monta a estrutura; o RSA-sign com a chave privada acontece SÓ
+ * aqui, no callback — a chave nunca entra em src/lib.
  *
- * ⟵ PLUG A CHAVE: SEFAZ-RS usa TLS mútuo com o certificado A1. Passos:
- *   1. Envelopar <enviNFe versao="4.00"><idLote>…<indSinc>1</…><NFe…/>.
- *   2. POST SOAP no url_autorizacao com o certificado no handshake TLS.
- *   3. Ler o retorno (cStat 100 = autorizado; 110/301/302 etc.), extrair
- *      o protocolo (nProt) e anexar ao XML → nfeProc (guardar).
- * Em homologação (tpAmb=2) a nota não tem valor fiscal — é o ambiente de
- * teste correto para "por a chave e testar".
+ * ⟵ PLUG A CHAVE: roda quando NFCE_CERT_A1_BASE64/SENHA existirem (passo 4
+ *    já barra a execução sem segredo). Com o certificado de TESTE o fluxo é
+ *    idêntico; com o A1 real, valida em homologação.
+ */
+async function assinarXmlDSig(
+  xml: string,
+  { certBase64, certSenha, infNFeSupl }: { certBase64: string; certSenha: string; infNFeSupl: string },
+): Promise<{ xmlAssinado: string; digestValue: string }> {
+  const { privateKey, certificate } = abrirCertificadoA1(certBase64, certSenha);
+  const certX509Base64 = forge.util.encode64(
+    forge.asn1.toDer(forge.pki.certificateToAsn1(certificate)).getBytes(),
+  );
+  // Callback injetado: RSA-SHA1 do SignedInfo canonizado. Não loga nada.
+  const assinarSignedInfo = (signedInfoC14n: string) => {
+    const md = forge.md.sha1.create();
+    md.update(signedInfoC14n, "utf8");
+    return {
+      signatureValue: forge.util.encode64((privateKey as { sign: (m: unknown) => string }).sign(md)),
+      certificadoX509Base64: certX509Base64,
+    };
+  };
+  return await assinarInfNfe(xml, { assinarSignedInfo, infNFeSupl });
+}
+
+/**
+ * Transmite o XML assinado à SEFAZ-RS (NFeAutorizacao4, síncrono) por SOAP
+ * sobre TLS MÚTUO com o mesmo certificado A1, e interpreta o retorno.
+ *
+ * ⟵ PLUG A CHAVE: o handshake TLS com o A1 real só roda em homologação. O
+ *    envelope e a leitura do retorno (nfceSoap) já são puros e testados;
+ *    aqui é só a rede autenticada pelo certificado.
  */
 async function transmitirSefazRS(
-  _xmlAssinado: string,
-  _opts: { urlAutorizacao: string; tpAmb: number; certBase64: string; certSenha: string },
-): Promise<{ autorizada: boolean; cStat?: string; xMotivo?: string; protocolo?: string }> {
-  throw new Error(
-    "transmitirSefazRS: pendente do certificado A1 (Leva 3, por a chave). " +
-      "Envelope e fluxo prontos; falta só o handshake TLS com o certificado.",
-  );
+  xmlAssinado: string,
+  { urlAutorizacao, certBase64, certSenha }: { urlAutorizacao: string; certBase64: string; certSenha: string },
+): Promise<{ autorizada: boolean; cStat: string | null; xMotivo: string | null; protocolo: string | null; nfeProc: string | null }> {
+  if (!urlAutorizacao) throw new Error("URL de autorização da SEFAZ ausente na configuração do tenant.");
+
+  const envelope = montarEnvelopeEnviNfe({
+    xmlAssinado,
+    idLote: Date.now().toString().slice(-15), // lote numérico único
+    indSinc: 1,
+  });
+
+  // TLS mútuo: o A1 (em PEM) autentica o cliente no handshake com a SEFAZ.
+  const { privateKey, certificate } = abrirCertificadoA1(certBase64, certSenha);
+  const keyPem = forge.pki.privateKeyToPem(privateKey);
+  const certPem = forge.pki.certificateToPem(certificate);
+
+  // Deno.createHttpClient({ cert, key }) faz o TLS mútuo (API do runtime da
+  // Edge). Casteado porque o tipo é do Deno, não do TS do editor.
+  const client = (globalThis as { Deno?: { createHttpClient: (o: unknown) => unknown } })
+    .Deno!.createHttpClient({ cert: certPem, key: keyPem });
+
+  const resp = await fetch(urlAutorizacao, {
+    method: "POST",
+    // @ts-ignore client é opção específica do Deno fetch
+    client,
+    headers: { "Content-Type": "application/soap+xml; charset=utf-8" },
+    body: envelope,
+  });
+  const textoResposta = await resp.text();
+
+  const retorno = interpretarRetornoSefaz(textoResposta, { xmlAssinado });
+  return {
+    autorizada: retorno.autorizada,
+    cStat: retorno.cStat,
+    xMotivo: retorno.xMotivo,
+    protocolo: retorno.protocolo,
+    nfeProc: retorno.nfeProc, // documento final autorizado (persistência = próxima leva)
+  };
 }
 
 /**
