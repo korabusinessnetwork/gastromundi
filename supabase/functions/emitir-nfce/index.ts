@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
     const { data: config, error: cfgError } = await supabase
       .from("tenant_fiscal_config")
       .select(
-        "ativo, ambiente, cnpj, ie, crt, uf, codigo_municipio, municipio, " +
+        "tenant_id, ativo, ambiente, cnpj, ie, crt, uf, codigo_municipio, municipio, " +
           "logradouro, numero_end, bairro, cep, fone, razao_social, nome_fantasia, " +
           "serie, proximo_numero, csc_id, url_qrcode, url_autorizacao",
       )
@@ -82,17 +82,18 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Emissão fiscal não está ativa para este estabelecimento." }, 412);
     }
 
-    // ── 3. Lê os dados da venda do corpo da requisição ────────────────
+    // ── 3. Lê a venda e o tipo de emissão do corpo da requisição ──────
     const body = await req.json().catch(() => null);
     if (!body?.venda) return json({ error: "Venda ausente no corpo." }, 400);
     const { venda } = body;
 
-    // nNF vem da config (proximo_numero); cNF é aleatório de 8 dígitos.
-    // NOTA (Leva 4): o incremento de proximo_numero precisa ser ATÔMICO —
-    // uma RPC (SECURITY DEFINER) que faz UPDATE ... RETURNING para não
-    // repetir número em emissões concorrentes. Aqui ainda é leitura simples.
-    const numero = config.proximo_numero ?? 1;
-    const codigoNumerico = String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
+    // tpEmis parametrizável (Leva 4): 1 = emissão normal (online), 9 =
+    // CONTINGÊNCIA offline (cupom sai na hora, transmite depois). Só 1 ou 9
+    // são válidos — qualquer outro é erro de entrada (prevenção de erro).
+    const tpEmis = Number(body.tpEmis ?? 1);
+    if (tpEmis !== 1 && tpEmis !== 9) {
+      return json({ error: "tpEmis inválido (só 1 = normal ou 9 = contingência)." }, 400);
+    }
 
     // ── 4. Resolve os SEGREDOS do tenant (certificado A1 + CSC) ───────
     // "Pronto pra por a chave": hoje lê do env global; quando houver mais
@@ -105,48 +106,37 @@ Deno.serve(async (req: Request) => {
     const segredosProntos = Boolean(certBase64 && certSenha && cscValor && cscId);
 
     const tpAmb = Number(config.ambiente) === 1 ? 1 : 2; // 2 = homologação (seguro)
+    const codigoNumerico = String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
 
-    // ── 5. Monta o XML NÃO-ASSINADO (Leva 2 — puro, já testado) ───────
-    const { xml, chave } = montarXmlNfce({
-      ide: {
-        serie: config.serie ?? 1,
-        numero,
-        dataEmissao: new Date(),
-        codigoNumerico,
-        tpAmb,
-      },
-      emit: {
-        cnpj: config.cnpj,
-        xNome: config.razao_social,
-        xFant: config.nome_fantasia,
-        ie: config.ie,
-        crt: config.crt,
-        uf: config.uf,
-        cMun: config.codigo_municipio,
-        xMun: config.municipio,
-        xLgr: config.logradouro,
-        nro: config.numero_end,
-        xBairro: config.bairro,
-        cep: config.cep,
-        fone: config.fone,
-      },
-      dest: venda.dest, // opcional (CPF na nota) — NFC-e anônima se ausente
-      itens: venda.itens,
-      pagamentos: venda.pagamentos,
-    });
-
-    // ── 6. Monta o QR Code (Leva 3 — puro, já testado) ────────────────
-    // O CSC (segredo) entra como PARÂMETRO; o builder nunca o guarda.
-    // Sem o segredo ainda, devolvemos o XML montado para inspeção — é o
-    // "material pronto" antes de por a chave.
+    // ── 5. "Sem chave": material para conferência, SEM consumir número ──
+    // Sem certificado/CSC não há emissão real — então NÃO gastamos um nNF
+    // (o incremento atômico do passo 6 só roda quando a nota vai de fato à
+    // SEFAZ). Usamos o proximo_numero atual só para montar um XML de
+    // inspeção. Item sem dados fiscais (NCM/CFOP do produto) não derruba
+    // este estado: devolvemos sem_chave com o detalhe do que falta. É o
+    // "material pronto" antes de por a chave — a Leva 4 roda inteira aqui.
     if (!segredosProntos) {
+      let chave: string | null = null;
+      let xml: string | null = null;
+      let detalheItens: string | null = null;
+      try {
+        const previa = montarXmlNfce(
+          montarEntradaXml({ config, venda, numero: config.proximo_numero ?? 1, codigoNumerico, tpAmb, tpEmis }),
+        );
+        chave = previa.chave;
+        xml = previa.xml;
+      } catch (e) {
+        detalheItens = String((e as Error)?.message ?? e);
+      }
       return json(
         {
           status: "sem_chave",
           detalhe:
-            "XML montado com sucesso. Faltam os segredos (certificado A1 + CSC) " +
-            "para assinar, gerar o QR e transmitir. Injete-os via secret e teste " +
-            "em homologação.",
+            "Faltam os segredos (certificado A1 + CSC) para assinar, gerar o QR e " +
+            "transmitir. Injete-os via secret e teste em homologação." +
+            (detalheItens ? ` (dados fiscais do item pendentes: ${detalheItens})` : ""),
+          tpEmis,
+          contingencia: tpEmis === 9,
           chave,
           xml, // não-assinado; para conferência em homologação
         },
@@ -154,6 +144,30 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // ── 6. Emissão real: reserva o número de forma ATÔMICA (Leva 4) ───
+    // RPC proximo_numero_nfce faz UPDATE ... RETURNING (20260732): dois
+    // caixas concorrentes nunca pegam o mesmo nNF (evita rejeição por
+    // duplicidade). Só aqui, no caminho de emissão de verdade, o contador
+    // avança — o passo 5 (sem chave) nunca consome número.
+    const { data: numero, error: numError } = await supabase.rpc("proximo_numero_nfce", {
+      p_tenant_id: config.tenant_id,
+    });
+    if (numError || numero == null) {
+      return json({ error: "Falha ao numerar a NFC-e.", detalhe: numError?.message }, 500);
+    }
+
+    // ── 7. Monta o XML NÃO-ASSINADO (Leva 2 — puro, já testado) ───────
+    const { xml, chave } = montarXmlNfce(
+      montarEntradaXml({ config, venda, numero, codigoNumerico, tpAmb, tpEmis }),
+    );
+
+    // ── 8. Monta o QR Code (Leva 3 — puro). CSC (segredo) como parâmetro. ──
+    // ⚠️ CONTINGÊNCIA (tpEmis=9): o QR offline tem forma diferente (insere
+    //    dhEmi/vNF/vICMS/digVal antes do idCSC). O `digVal` vem do
+    //    DigestValue da ASSINATURA (PLUG A CHAVE, passo 9) — por isso a
+    //    forma de contingência do QR só fica completa junto com o
+    //    certificado. montarQrCodeNfce cobre a forma ONLINE; a offline é o
+    //    encaixe marcado para quando a chave chegar.
     const urlQr = await montarQrCodeNfce({
       chave,
       tpAmb,
@@ -162,16 +176,17 @@ Deno.serve(async (req: Request) => {
       urlConsulta: config.url_qrcode,
     });
 
-    // ── 7. ASSINA o XML (XML-DSig com o certificado A1) ───────────────
+    // ── 9. ASSINA o XML (XML-DSig com o certificado A1) ───────────────
     // ⟵ PLUG A CHAVE AQUI — precisa do certificado para rodar de ponta a
     //    ponta. Assina o elemento <infNFe> (Id="NFe<chave>") e insere o
     //    QR Code em <infNFeSupl><qrCode>. Ver assinarXmlDSig() abaixo.
+    //    (É deste passo que sai o DigestValue = digVal do QR de contingência.)
     const xmlAssinado = await assinarXmlDSig(xml, urlQr, config.url_qrcode, {
       certBase64: certBase64!,
       certSenha: certSenha!,
     });
 
-    // ── 8. TRANSMITE à SEFAZ-RS e trata o retorno ─────────────────────
+    // ── 10. TRANSMITE à SEFAZ-RS e trata o retorno ────────────────────
     // ⟵ PLUG A CHAVE AQUI — SOAP autenticado por TLS mútuo com o mesmo
     //    certificado A1. Ver transmitirSefazRS() abaixo.
     const retorno = await transmitirSefazRS(xmlAssinado, {
@@ -232,6 +247,52 @@ async function transmitirSefazRS(
     "transmitirSefazRS: pendente do certificado A1 (Leva 3, por a chave). " +
       "Envelope e fluxo prontos; falta só o handshake TLS com o certificado.",
   );
+}
+
+/**
+ * Monta o objeto de entrada de montarXmlNfce a partir da config do tenant
+ * e da venda. Extraído para não duplicar entre o caminho "sem chave"
+ * (prévia) e o de emissão real — a MESMA verdade fiscal nos dois. O tpEmis
+ * (1 normal / 9 contingência) entra no `ide` e vai parar na chave de acesso.
+ */
+function montarEntradaXml(
+  { config, venda, numero, codigoNumerico, tpAmb, tpEmis }: {
+    config: Record<string, unknown>;
+    venda: Record<string, unknown>;
+    numero: number;
+    codigoNumerico: string;
+    tpAmb: number;
+    tpEmis: number;
+  },
+) {
+  return {
+    ide: {
+      serie: (config.serie as number) ?? 1,
+      numero,
+      dataEmissao: new Date(),
+      codigoNumerico,
+      tpAmb,
+      tpEmis,
+    },
+    emit: {
+      cnpj: config.cnpj,
+      xNome: config.razao_social,
+      xFant: config.nome_fantasia,
+      ie: config.ie,
+      crt: config.crt,
+      uf: config.uf,
+      cMun: config.codigo_municipio,
+      xMun: config.municipio,
+      xLgr: config.logradouro,
+      nro: config.numero_end,
+      xBairro: config.bairro,
+      cep: config.cep,
+      fone: config.fone,
+    },
+    dest: (venda as { dest?: unknown }).dest, // opcional (CPF na nota) — anônima se ausente
+    itens: (venda as { itens?: unknown }).itens,
+    pagamentos: (venda as { pagamentos?: unknown }).pagamentos,
+  };
 }
 
 function json(body: unknown, status = 200) {

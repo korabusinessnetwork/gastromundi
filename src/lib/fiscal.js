@@ -1,38 +1,102 @@
+import { supabase } from "./supabase";
 import { emitirEvento } from "./jarvas";
+import { montarVendaFiscal } from "./nfceVenda";
 
 /**
- * Fiscal (NF-e/NFC-e) — add-on pago transversal (decisão 019, F019).
+ * Fiscal (NFC-e modelo 65) — add-on pago transversal (decisão 019, F019).
  *
- * Fase 3 da camada de comercialização: só a ABSTRAÇÃO + um stub. Nenhum
- * provedor fiscal pago está integrado (Restrições de Custo) — quando
- * entrar, troca-se `emitirDocumentoFiscal` por uma implementação real
- * com a MESMA assinatura; quem chama (useFinalizarPagamento.js) não muda.
+ * Leva 4: o fluxo agora está FECHADO — `emitirDocumentoFiscal` chama a Edge
+ * Function `emitir-nfce` (integração DIRETA com a SEFAZ, caminho gratuito,
+ * sem provedor pago — Restrições de Custo). A função de borda é o servidor
+ * do fluxo fiscal: monta o XML (Leva 2), assina, gera o QR (Leva 3) e
+ * transmite. Enquanto o certificado A1 + CSC não estiverem injetados, ela
+ * responde `status: "sem_chave"` — e este módulo mapeia isso para um
+ * resultado, não uma exceção.
  *
- * Só é chamado quando `addonHabilitado('nfe')` é verdadeiro — sem o
- * add-on, o fluxo de pagamento nem invoca este módulo.
+ * INVARIANTE (não muda desde o stub): nunca lança. Falha de emissão é um
+ * RESULTADO (`status: "erro"|"sem_chave"|"rejeitada"`), nunca uma exceção —
+ * a venda já foi concluída e não pode ser desfeita por causa da nota. Quem
+ * chama (useFinalizarPagamento, fire-and-forget) já conta com isso.
+ *
+ * Só é chamado quando `addonHabilitado('nfe')` é verdadeiro — sem o add-on,
+ * o fluxo de pagamento nem invoca este módulo.
+ *
+ * FRONTEIRA DE SEGREDO intacta: o front só manda a venda e o token do
+ * caixa. O certificado e o CSC vivem no servidor (Edge Function/Vault); o
+ * app nunca os toca.
  */
 
+const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/emitir-nfce`;
+
 /**
- * Emite o documento fiscal de uma venda.
+ * Emite o documento fiscal (NFC-e) de uma venda via Edge Function.
  *
- * PONTO DE EXTENSÃO — o provedor real (ex.: Focus NFe, PlugNotas, NFe.io)
- * entra AQUI: troque o corpo desta função por uma chamada HTTP ao
- * provedor, preservando a assinatura (venda, opts) => Promise<resultado>.
- * Nunca deve lançar: falha de emissão é um resultado (`status: "erro"`),
- * não uma exceção — a venda já foi concluída e não pode ser desfeita
- * por causa de uma nota fiscal.
- *
- * @param {{id: string, total: number, comanda?: string}} venda
- * @param {{usuario?: string}} [opts]
- * @returns {Promise<{status: "stub"|"emitido"|"erro", vendaId: string|null, detalhe?: string}>}
+ * @param {{id?: string, total?: number, comanda?: string, items?: Array, pagamentos?: Array, dest?: object}} venda
+ * @param {{usuario?: string, tpEmis?: 1|9}} [opts] tpEmis 9 = contingência offline
+ * @returns {Promise<{status: "autorizada"|"rejeitada"|"sem_chave"|"erro",
+ *   vendaId: string|null, chave?: string|null, protocolo?: string|null, detalhe?: string}>}
  */
-export async function emitirDocumentoFiscal(venda, { usuario } = {}) {
-  // STUB — registra a intenção de emitir, sem contatar nenhum provedor.
-  const resultado = { status: "stub", vendaId: venda?.id ?? null };
+export async function emitirDocumentoFiscal(venda, { usuario, tpEmis = 1 } = {}) {
+  const vendaId = venda?.id ?? null;
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      return finalizar({ status: "erro", vendaId, detalhe: "Sessão expirada." }, venda, usuario);
+    }
+
+    // Mapeia a venda do PDV para o contrato de emissão (itens/pagamentos/dest).
+    const { itens, pagamentos, dest } = montarVendaFiscal(venda);
+
+    const res = await fetch(EDGE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ tpEmis, venda: { itens, pagamentos, dest } }),
+    });
+
+    const json = await res.json().catch(() => ({}));
+
+    // A Edge Function devolve status "sem_chave" | "autorizada" | "rejeitada".
+    // Erros HTTP (config ausente, sessão inválida) viram status "erro" — nunca
+    // exceção. O status desconhecido também cai em "erro" (fail-safe).
+    const status = res.ok && json?.status ? json.status : "erro";
+    const resultado = {
+      status: ["autorizada", "rejeitada", "sem_chave"].includes(status) ? status : "erro",
+      vendaId,
+      chave: json?.chave ?? null,
+      protocolo: json?.protocolo ?? null,
+      detalhe: json?.detalhe ?? json?.error ?? null,
+    };
+    return finalizar(resultado, venda, usuario);
+  } catch (err) {
+    // Falha de rede/inesperada: resultado "erro", nunca lança.
+    return finalizar(
+      { status: "erro", vendaId, detalhe: err?.message ?? "Falha ao emitir NFC-e." },
+      venda,
+      usuario,
+    );
+  }
+}
+
+/**
+ * Registra o desfecho como evento (Jarvas/Event Bus) — fire-and-forget,
+ * observabilidade sem bloquear — e devolve o resultado inalterado.
+ */
+function finalizar(resultado, venda, usuario) {
   emitirEvento(
-    "fiscal.documento_simulado",
+    "fiscal.nfce_emissao",
     "fiscal",
-    { venda_id: venda?.id ?? null, total: venda?.total ?? null, comanda: venda?.comanda ?? null },
+    {
+      venda_id: resultado.vendaId,
+      status: resultado.status,
+      total: venda?.total ?? null,
+      comanda: venda?.comanda ?? null,
+      chave: resultado.chave ?? null,
+    },
     usuario,
   );
   return resultado;
