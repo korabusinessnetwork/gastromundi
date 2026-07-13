@@ -57,7 +57,9 @@ export async function emitirDocumentoFiscal(venda, { usuario, tpEmis = 1 } = {})
         "Authorization": `Bearer ${session.access_token}`,
         "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ tpEmis, venda: { itens, pagamentos, dest } }),
+      // vendaId (uuid não-sensível): liga a nota emitida à venda do PDV para
+      // reimpressão (Leva 8). A Edge grava em nfce_emitidas.venda_id.
+      body: JSON.stringify({ tpEmis, vendaId, venda: { itens, pagamentos, dest } }),
     });
 
     const json = await res.json().catch(() => ({}));

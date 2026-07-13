@@ -46,6 +46,8 @@ import { montarQrCodeNfce, montarQrCodeNfceContingencia } from "../../../src/lib
 import { montarItemFiscal } from "../../../src/lib/nfceItemFiscal.js";
 import { digestInfNfe, assinarInfNfe } from "../../../src/lib/nfceAssinatura.js";
 import { montarEnvelopeEnviNfe, interpretarRetornoSefaz } from "../../../src/lib/nfceSoap.js";
+import { montarRegistroNfceEmitida } from "../../../src/lib/nfceRegistro.js";
+import { montarNotaPendenteTransmissao } from "../../../src/lib/nfceContingencia.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -92,6 +94,9 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => null);
     if (!body?.venda) return json({ error: "Venda ausente no corpo." }, 400);
     const { venda } = body;
+    // vendaId (uuid da venda do PDV) — dado NÃO-sensível, liga a nota emitida
+    // à venda para reimpressão (Leva 8). Ausente em reenvios avulsos.
+    const vendaId = typeof body.vendaId === "string" ? body.vendaId : null;
 
     // tpEmis parametrizável (Leva 4): 1 = emissão normal (online), 9 =
     // CONTINGÊNCIA offline (cupom sai na hora, transmite depois). Só 1 ou 9
@@ -254,22 +259,63 @@ Deno.serve(async (req: Request) => {
     });
 
     // ── 10. TRANSMITE à SEFAZ-RS (SOAP + TLS mútuo com o A1) e trata ───
-    const retorno = await transmitirSefazRS(xmlAssinado, {
-      urlAutorizacao: config.url_autorizacao as string,
-      certBase64: certBase64!,
-      certSenha: certSenha!,
+    // A transmissão pode FALHAR (SEFAZ fora, TLS): não é erro fatal — a nota
+    // vai para a fila de contingência (pendente) e o cupom já saiu. Por isso
+    // capturamos a exceção aqui, em vez de deixar cair no catch geral (500).
+    let retorno: {
+      autorizada: boolean; cStat: string | null; xMotivo: string | null;
+      protocolo: string | null; nfeProc: string | null;
+    } | null = null;
+    let erroTransmissao: string | null = null;
+    try {
+      retorno = await transmitirSefazRS(xmlAssinado, {
+        urlAutorizacao: config.url_autorizacao as string,
+        certBase64: certBase64!,
+        certSenha: certSenha!,
+      });
+    } catch (e) {
+      erroTransmissao = String((e as Error)?.message ?? e);
+    }
+
+    // ── 10b. Desfecho: autorizada · rejeitada · pendente (fila Leva 9) ──
+    // Falha de transmissão OU contingência (tpEmis=9) não-autorizada → fila.
+    const desfecho: "autorizada" | "rejeitada" | "pendente" =
+      erroTransmissao ? "pendente"
+        : retorno!.autorizada ? "autorizada"
+        : tpEmis === 9 ? "pendente"
+        : "rejeitada";
+
+    // ── 11. Persiste o desfecho em nfce_emitidas (Leva 8) — DURÁVEL, por
+    // tenant, para reimpressão (nfeProc) e reenvio (fila). Nunca bloqueia:
+    // try/catch dentro do helper; se a gravação falhar, o cupom já foi ao
+    // PDV e devolvemos o resultado mesmo assim (durabilidade < a venda). ──
+    const { vNF } = extrairCamposContingencia(xml);
+    await persistirDesfecho(supabase, {
+      desfecho,
+      tenantId: config.tenant_id as string,
+      vendaId,
+      chave,
+      numero,
+      serie: (config.serie as number) ?? null,
+      tpAmb,
+      tpEmis,
+      dhEmi: dataEmissao,
+      urlQrCode: urlQr,
+      vNF,
+      xmlAssinado,
+      retorno,
+      erroTransmissao,
     });
 
     return json(
       {
-        status: retorno.autorizada ? "autorizada" : "rejeitada",
+        status: desfecho,
         chave,
-        protocolo: retorno.protocolo,
-        cStat: retorno.cStat,
-        xMotivo: retorno.xMotivo,
+        protocolo: retorno?.protocolo ?? null,
+        cStat: retorno?.cStat ?? null,
+        xMotivo: retorno?.xMotivo ?? (erroTransmissao ? "Falha ao transmitir; nota na fila de contingência." : null),
         // Bloco NÃO-secreto do cupom (Leva 7). O urlQr já vem hasheado do
-        // servidor — expõe a URL de consulta, nunca o CSC. Vai também na
-        // rejeitada para o cupom mostrar o motivo com o layout correto.
+        // servidor — expõe a URL de consulta, nunca o CSC.
         emit: emitCupom,
         tpAmb,
         tpEmis,
@@ -402,6 +448,104 @@ async function transmitirSefazRS(
     protocolo: retorno.protocolo,
     nfeProc: retorno.nfeProc, // documento final autorizado (persistência = próxima leva)
   };
+}
+
+/**
+ * Persiste o desfecho da emissão em public.nfce_emitidas (Leva 8). NUNCA
+ * bloqueia nem lança: toda a gravação vai em try/catch; se falhar, loga no
+ * servidor (SEM segredo) e retorna — o cupom já foi ao PDV, a durabilidade é
+ * secundária à venda. Usa upsert ON CONFLICT (tenant_id, chave) para não
+ * duplicar num reenvio (idempotência).
+ *
+ * Núcleos PUROS reusados: montarRegistroNfceEmitida (autorizada/rejeitada) e
+ * montarNotaPendenteTransmissao (fila pendente). A tabela guarda só documento
+ * PÚBLICO (nfeProc/xmlAssinado, chave, protocolo, urlQrCode) — nunca segredo.
+ */
+async function persistirDesfecho(
+  supabase: ReturnType<typeof createClient>,
+  p: {
+    desfecho: "autorizada" | "rejeitada" | "pendente";
+    tenantId: string;
+    vendaId: string | null;
+    chave: string;
+    numero: number;
+    serie: number | null;
+    tpAmb: number;
+    tpEmis: number;
+    dhEmi: Date;
+    urlQrCode: string;
+    vNF: string;
+    xmlAssinado: string;
+    retorno: { cStat: string | null; xMotivo: string | null; protocolo: string | null; nfeProc: string | null } | null;
+    erroTransmissao: string | null;
+  },
+): Promise<void> {
+  try {
+    let row: Record<string, unknown>;
+
+    if (p.desfecho === "pendente") {
+      // Fila de contingência/reenvio (Leva 9): guarda o XML ASSINADO para
+      // retransmitir. Núcleo puro valida chave/tpEmis/tpAmb/vNF.
+      const motivo = p.erroTransmissao
+        ? `falha_transmissao: ${p.erroTransmissao}`
+        : (p.tpEmis === 9 ? "contingencia_offline" : "aguardando_retransmissao");
+      const pend = montarNotaPendenteTransmissao({
+        chave: p.chave, tpEmis: p.tpEmis, tpAmb: p.tpAmb, vNF: Number(p.vNF) || 0,
+        xml: p.xmlAssinado, dataEmissao: p.dhEmi, motivo,
+      });
+      row = {
+        tenant_id: p.tenantId,
+        venda_id: p.vendaId,
+        chave: pend.chave,
+        numero: p.numero,
+        serie: p.serie,
+        status: pend.status, // "pendente"
+        tp_amb: pend.tpAmb,
+        tp_emis: pend.tpEmis,
+        protocolo: null,
+        c_stat: p.retorno?.cStat ?? null,
+        x_motivo: p.retorno?.xMotivo ?? null,
+        v_nf: pend.vNF,
+        dh_emi: pend.criadoEm,
+        url_qrcode: p.urlQrCode,
+        xml: pend.xml,
+        xml_tipo: "assinado",
+        tentativas: pend.tentativas,
+        motivo: pend.motivo,
+        transmitida_em: null,
+      };
+    } else {
+      // Desfecho terminal: autorizada (guarda o nfeProc) ou rejeitada
+      // (trilha de auditoria, sem reenvio). Núcleo puro normaliza/valida.
+      row = montarRegistroNfceEmitida({
+        tenantId: p.tenantId,
+        vendaId: p.vendaId,
+        chave: p.chave,
+        numero: p.numero,
+        serie: p.serie,
+        status: p.desfecho,
+        tpAmb: p.tpAmb,
+        tpEmis: p.tpEmis,
+        protocolo: p.retorno?.protocolo ?? null,
+        cStat: p.retorno?.cStat ?? null,
+        xMotivo: p.retorno?.xMotivo ?? null,
+        vNF: p.vNF,
+        dhEmi: p.dhEmi,
+        urlQrCode: p.urlQrCode,
+        xmlProc: p.desfecho === "autorizada" ? (p.retorno?.nfeProc ?? null) : null,
+      }) as unknown as Record<string, unknown>;
+    }
+
+    const { error } = await supabase
+      .from("nfce_emitidas")
+      .upsert(row, { onConflict: "tenant_id,chave" });
+    if (error) {
+      // Sem segredo na mensagem — só a chave (pública) e o texto do erro.
+      console.error(`nfce_emitidas upsert falhou (chave ${p.chave}): ${error.message}`);
+    }
+  } catch (e) {
+    console.error(`nfce_emitidas: falha ao persistir desfecho (chave ${p.chave}): ${String((e as Error)?.message ?? e)}`);
+  }
 }
 
 /**

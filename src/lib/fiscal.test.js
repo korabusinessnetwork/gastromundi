@@ -76,6 +76,23 @@ describe("emitirDocumentoFiscal — fluxo NFC-e (Edge Function)", () => {
     expect(corpo.venda.itens[0].xProd).toBe("X-Salada");
   });
 
+  it("envia o vendaId (uuid da venda) no corpo do POST (Leva 8)", async () => {
+    const fetchSpy = mockFetch(200, { status: "autorizada", chave: "CHAVE44" });
+    vi.stubGlobal("fetch", fetchSpy);
+    await emitirDocumentoFiscal(VENDA, { usuario: "maria" });
+    const corpo = JSON.parse(fetchSpy.mock.calls[0][1].body);
+    expect(corpo.vendaId).toBe("v1");
+  });
+
+  it("vendaId é null quando a venda não tem id — sem quebrar a invariante", async () => {
+    const fetchSpy = mockFetch(200, { status: "autorizada" });
+    vi.stubGlobal("fetch", fetchSpy);
+    const r = await emitirDocumentoFiscal({ ...VENDA, id: undefined });
+    const corpo = JSON.parse(fetchSpy.mock.calls[0][1].body);
+    expect(corpo.vendaId).toBeNull();
+    expect(r.status).toBe("autorizada");
+  });
+
   it("nunca lança — falha de rede vira status 'erro'", async () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("network down"))));
     await expect(emitirDocumentoFiscal(VENDA)).resolves.toMatchObject({ status: "erro" });
