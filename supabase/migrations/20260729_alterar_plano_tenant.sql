@@ -41,7 +41,13 @@ DECLARE
   v_tenant public.tenants;
 BEGIN
   -- ── Autorização: só a plataforma troca plano de tenant ───────────
-  IF NOT public.is_super_admin() THEN
+  -- `IS NOT TRUE` (e não `NOT ...`): is_super_admin() pode devolver NULL
+  -- para um token sem o claim gastro_role (ex.: anon key). `NOT NULL` é
+  -- NULL, e `IF NULL THEN` NÃO entra no bloco → a exceção seria pulada e
+  -- a escrita prosseguiria. `IS NOT TRUE` trata NULL e false igual: barra.
+  -- (Além disso, is_super_admin() agora COALESCE→false em 20260730, e o
+  -- GRANT abaixo é só para authenticated, com REVOKE de PUBLIC/anon.)
+  IF public.is_super_admin() IS NOT TRUE THEN
     RAISE EXCEPTION 'Apenas a plataforma pode alterar o plano de um estabelecimento.'
       USING ERRCODE = 'insufficient_privilege';
   END IF;
@@ -72,4 +78,9 @@ BEGIN
 END;
 $$;
 
+-- EXECUTE só para authenticated. REVOKE explícito de PUBLIC/anon porque o
+-- CREATE FUNCTION do Postgres concede EXECUTE a PUBLIC por padrão — sem o
+-- REVOKE, a anon key (role `anon`) alcançaria a RPC (defesa em profundidade
+-- além da guarda is_super_admin).
+REVOKE EXECUTE ON FUNCTION public.alterar_plano_tenant(uuid, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.alterar_plano_tenant(uuid, text) TO authenticated;
