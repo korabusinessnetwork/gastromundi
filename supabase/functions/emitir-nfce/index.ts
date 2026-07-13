@@ -40,6 +40,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Núcleo PURO e testado, reaproveitado do front (mesma verdade fiscal):
 import { montarXmlNfce } from "../../../src/lib/nfceXml.js";
 import { montarQrCodeNfce } from "../../../src/lib/nfceQrCode.js";
+import { montarItemFiscal } from "../../../src/lib/nfceItemFiscal.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -108,6 +109,20 @@ Deno.serve(async (req: Request) => {
     const tpAmb = Number(config.ambiente) === 1 ? 1 : 2; // 2 = homologação (seguro)
     const codigoNumerico = String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
 
+    // ── 4b. Enriquece os itens com o CADASTRO FISCAL do produto (Leva 5) ──
+    // Carrega itens_fiscal (uma linha por produto) e liga NCM/CFOP/ICMS a
+    // cada item da venda. O client está escopado ao tenant (Authorization do
+    // caixa) — a RLS de itens_fiscal cuida do isolamento; ainda assim, nunca
+    // select * numa tabela fiscal: só as colunas que o montador precisa.
+    // Se algum produto não tiver cadastro fiscal completo, NÃO seguimos —
+    // devolvemos QUAIS produtos precisam de cadastro (prevenção de erro).
+    const { itens: itensEnriquecidos, faltando } = await enriquecerItensFiscais(
+      supabase,
+      Number(config.crt),
+      venda,
+    );
+    const vendaFiscal = { ...venda, itens: itensEnriquecidos };
+
     // ── 5. "Sem chave": material para conferência, SEM consumir número ──
     // Sem certificado/CSC não há emissão real — então NÃO gastamos um nNF
     // (o incremento atômico do passo 6 só roda quando a nota vai de fato à
@@ -119,14 +134,18 @@ Deno.serve(async (req: Request) => {
       let chave: string | null = null;
       let xml: string | null = null;
       let detalheItens: string | null = null;
-      try {
-        const previa = montarXmlNfce(
-          montarEntradaXml({ config, venda, numero: config.proximo_numero ?? 1, codigoNumerico, tpAmb, tpEmis }),
-        );
-        chave = previa.chave;
-        xml = previa.xml;
-      } catch (e) {
-        detalheItens = String((e as Error)?.message ?? e);
+      // Só monta a prévia quando o cadastro fiscal está completo; caso
+      // contrário o detalhe abaixo já diz quais produtos faltam cadastrar.
+      if (faltando.length === 0) {
+        try {
+          const previa = montarXmlNfce(
+            montarEntradaXml({ config, venda: vendaFiscal, numero: config.proximo_numero ?? 1, codigoNumerico, tpAmb, tpEmis }),
+          );
+          chave = previa.chave;
+          xml = previa.xml;
+        } catch (e) {
+          detalheItens = String((e as Error)?.message ?? e);
+        }
       }
       return json(
         {
@@ -134,13 +153,30 @@ Deno.serve(async (req: Request) => {
           detalhe:
             "Faltam os segredos (certificado A1 + CSC) para assinar, gerar o QR e " +
             "transmitir. Injete-os via secret e teste em homologação." +
+            (faltando.length ? ` Cadastro fiscal pendente: ${descreverFaltando(faltando)}.` : "") +
             (detalheItens ? ` (dados fiscais do item pendentes: ${detalheItens})` : ""),
           tpEmis,
           contingencia: tpEmis === 9,
+          cadastroFiscalPendente: faltando,
           chave,
           xml, // não-assinado; para conferência em homologação
         },
         200,
+      );
+    }
+
+    // ── 5b. Completude fiscal é PRÉ-REQUISITO da emissão real ─────────
+    // Prevenção de erro > erro: se algum produto não tem cadastro fiscal
+    // completo, não numeramos (não chamamos a RPC) nem vamos à SEFAZ —
+    // devolvemos exatamente quais produtos o operador precisa cadastrar.
+    if (faltando.length > 0) {
+      return json(
+        {
+          status: "erro",
+          detalhe: `Cadastro fiscal pendente: ${descreverFaltando(faltando)}.`,
+          cadastroFiscalPendente: faltando,
+        },
+        422,
       );
     }
 
@@ -158,7 +194,7 @@ Deno.serve(async (req: Request) => {
 
     // ── 7. Monta o XML NÃO-ASSINADO (Leva 2 — puro, já testado) ───────
     const { xml, chave } = montarXmlNfce(
-      montarEntradaXml({ config, venda, numero, codigoNumerico, tpAmb, tpEmis }),
+      montarEntradaXml({ config, venda: vendaFiscal, numero, codigoNumerico, tpAmb, tpEmis }),
     );
 
     // ── 8. Monta o QR Code (Leva 3 — puro). CSC (segredo) como parâmetro. ──
@@ -293,6 +329,69 @@ function montarEntradaXml(
     itens: (venda as { itens?: unknown }).itens,
     pagamentos: (venda as { pagamentos?: unknown }).pagamentos,
   };
+}
+
+/**
+ * Enriquece cada item da venda com o cadastro fiscal do produto (itens_fiscal)
+ * e o transforma nos campos que montarXmlNfce espera (NCM/CFOP/icms/pis/cofins).
+ *
+ * Carrega numa só consulta (item_id IN cProds) — nunca select *; só as
+ * colunas fiscais necessárias. Item sem cadastro completo NÃO derruba a
+ * função: vira uma entrada em `faltando` para quem chama tratar. Devolve
+ * `itens` já mesclados (dados da venda + fiscais) e `faltando` = produtos a
+ * cadastrar. Se `faltando` estiver vazio, `itens` está pronto pro XML.
+ */
+async function enriquecerItensFiscais(
+  supabase: ReturnType<typeof createClient>,
+  crt: number,
+  venda: { itens?: Array<Record<string, unknown>> },
+): Promise<{ itens: Array<Record<string, unknown>>; faltando: Array<{ cProd: string; xProd: string; motivo: string }> }> {
+  const itensVenda = Array.isArray(venda?.itens) ? venda.itens : [];
+  const ids = [...new Set(
+    itensVenda.map((it) => Number(it.cProd)).filter((n) => Number.isFinite(n)),
+  )];
+
+  const fiscalPorId = new Map<number, Record<string, unknown>>();
+  if (ids.length > 0) {
+    const { data, error } = await supabase
+      .from("itens_fiscal")
+      .select(
+        "item_id, ncm, cest, cfop, origem_mercadoria, csosn, cst_icms, " +
+          "aliquota_icms, reducao_base_icms, cst_pis, aliquota_pis, cst_cofins, aliquota_cofins",
+      )
+      .in("item_id", ids);
+    if (error) throw new Error(`Falha ao ler o cadastro fiscal dos produtos: ${error.message}`);
+    for (const linha of data ?? []) fiscalPorId.set(Number(linha.item_id), linha);
+  }
+
+  const itens: Array<Record<string, unknown>> = [];
+  const faltando: Array<{ cProd: string; xProd: string; motivo: string }> = [];
+  for (const it of itensVenda) {
+    const cProd = String(it.cProd ?? "");
+    const xProd = String(it.xProd ?? cProd);
+    const fiscal = fiscalPorId.get(Number(it.cProd));
+    if (!fiscal) {
+      faltando.push({ cProd, xProd, motivo: "sem cadastro fiscal" });
+      continue;
+    }
+    try {
+      const campos = montarItemFiscal(fiscal, {
+        crt,
+        qCom: Number(it.qCom),
+        vUnCom: Number(it.vUnCom),
+        vProd: it.vProd != null ? Number(it.vProd) : undefined,
+      });
+      itens.push({ ...it, ...campos });
+    } catch (e) {
+      faltando.push({ cProd, xProd, motivo: String((e as Error)?.message ?? e) });
+    }
+  }
+  return { itens, faltando };
+}
+
+/** Texto curto e humano listando os produtos com cadastro fiscal pendente. */
+function descreverFaltando(faltando: Array<{ xProd: string; motivo: string }>): string {
+  return faltando.map((f) => `${f.xProd} (${f.motivo})`).join("; ");
 }
 
 function json(body: unknown, status = 200) {
