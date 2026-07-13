@@ -1,0 +1,33 @@
+-- ══════════════════════════════════════════════════════════════════
+-- Correção — users.tenant_id ganha DEFAULT dinâmico (adendo da Leva 1)
+-- docs/08_DECISOES/adr-008.md §1 · decisão 028
+--
+-- A Leva 1 (20260723) adicionou a constraint users_tenant_por_papel:
+-- todo usuário operacional (admin/gerente/caixa/garçom) precisa de
+-- tenant_id NOT NULL. Mas a tela "Usuários" do app cria/edita usuário
+-- SEM mandar tenant_id (o front ainda não conhece a coluna) — então
+-- criar um usuário novo passou a violar a constraint (tenant_id nulo +
+-- papel operacional). Sintoma: cadastro de usuário quebrado.
+--
+-- Correção mínima, coerente com a Leva 2: dar à coluna o mesmo DEFAULT
+-- dinâmico das tabelas operacionais — public.tenant_atual_id(). Quando
+-- um admin logado cria um usuário, a linha nova herda automaticamente
+-- o tenant DELE (lido do JWT), sem o app precisar mudar. Assim a tela
+-- volta a funcionar e o novo usuário já nasce no estabelecimento certo.
+--
+-- Por que é seguro para o super-admin `plataforma` (Leva 4): o Console
+-- criará usuários de OUTRO tenant informando tenant_id EXPLICITAMENTE
+-- (o default só age quando a coluna é omitida). E um criador `plataforma`
+-- tem tenant_atual_id() nulo → default nulo → satisfaz a constraint
+-- (plataforma ⇒ tenant_id NULL). Nenhum caminho fica inconsistente.
+--
+-- NÃO é o "default fixo" rejeitado no ADR-008 (aquele era LIMIT 1,
+-- single-tenant disfarçado); este resolve o tenant por requisição a
+-- partir do JWT. Idempotente (SET DEFAULT).
+--
+-- Pré-requisito: Leva 1 aplicada (coluna users.tenant_id e a função
+-- public.tenant_atual_id() já existem).
+-- ══════════════════════════════════════════════════════════════════
+
+ALTER TABLE public.users
+  ALTER COLUMN tenant_id SET DEFAULT public.tenant_atual_id();

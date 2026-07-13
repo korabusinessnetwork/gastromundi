@@ -1,0 +1,187 @@
+/**
+ * Console da Plataforma (S1-2) — formulário "Criar estabelecimento".
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ */
+
+.nem-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 6, 12, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.nem-modal {
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Cabeçalho ─────────────────────────────────────────────────── */
+.nem-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.nem-header__titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--gm-accent);
+}
+
+.nem-header__titulo h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--gm-text);
+}
+
+.nem-fechar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+.nem-fechar:hover:not(:disabled) { background: var(--gm-surface); color: var(--gm-text); }
+.nem-fechar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Corpo (rolável) ───────────────────────────────────────────── */
+.nem-corpo {
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.nem-secao {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nem-secao__titulo {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--gm-muted);
+}
+
+.nem-secao__ajuda {
+  margin: -8px 0 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+  line-height: 1.5;
+}
+
+/* ── Campo ─────────────────────────────────────────────────────── */
+.nem-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nem-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gm-text);
+}
+
+.nem-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-size: 15px;
+  font-family: inherit;
+  box-sizing: border-box;
+  outline: none;
+}
+.nem-input:focus { border-color: var(--gm-accent); }
+.nem-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.nem-input--erro { border-color: var(--gm-red); }
+
+.nem-dica { font-size: 12px; color: var(--gm-muted); }
+.nem-erro-campo { font-size: 12px; font-weight: 600; color: var(--gm-red); }
+
+/* ── Erro de servidor ──────────────────────────────────────────── */
+.nem-erro-servidor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: var(--gm-red);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── Rodapé ────────────────────────────────────────────────────── */
+.nem-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--gm-border);
+}
+
+.nem-btn {
+  flex: 1;
+  padding: 13px 16px;
+  border-radius: 11px;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.nem-btn:disabled { cursor: not-allowed; }
+
+.nem-btn--secundario {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  flex: 0 0 auto;
+  padding-left: 22px;
+  padding-right: 22px;
+}
+.nem-btn--secundario:hover:not(:disabled) { border-color: var(--gm-muted); }
+
+.nem-btn--primario {
+  background: var(--gm-accent);
+  color: #fff;
+}
+.nem-btn--primario:disabled { background: var(--gm-faint); }
+
+/* ── Spinner ───────────────────────────────────────────────────── */
+.nem-spin { animation: nem-rodar 0.8s linear infinite; }
+@keyframes nem-rodar { to { transform: rotate(360deg); } }

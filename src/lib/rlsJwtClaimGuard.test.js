@@ -59,11 +59,19 @@ function nomesAfetados(conteudo) {
 
 describe("RLS — guard do claim de JWT (auth.jwt() ->> 'role')", () => {
   const arquivosMigracoes = readdirSync(MIGRATIONS_DIR).filter(n => n.endsWith(".sql"));
-  const arquivosComBug = arquivosMigracoes.filter(
-    n => !ARQUIVOS_HISTORICOS_IGNORADOS.includes(n) && n !== MIGRACAO_CORRETIVA
-  );
 
-  it("a migração corretiva existe e é a mais recente (roda depois de todas as que introduziram o bug)", () => {
+  // Só interessam as migrações que EFETIVAMENTE introduziram o bug (têm o
+  // padrão errado em código ativo). Migrações posteriores corretas
+  // (20260725+, que já usam app_metadata->>'gastro_role') não entram na
+  // comparação de ordem — o guard é sobre "a corretiva roda depois das
+  // BUGADAS" (§(a) do cabeçalho), não "é o arquivo mais recente do disco".
+  const arquivosComBug = arquivosMigracoes.filter((n) => {
+    if (ARQUIVOS_HISTORICOS_IGNORADOS.includes(n) || n === MIGRACAO_CORRETIVA) return false;
+    const conteudo = readFileSync(join(MIGRATIONS_DIR, n), "utf8");
+    return linhasDeCodigoComPadraoErrado(conteudo).length > 0;
+  });
+
+  it("a migração corretiva existe e roda depois de todas as que introduziram o bug", () => {
     expect(arquivosMigracoes).toContain(MIGRACAO_CORRETIVA);
     for (const arquivo of arquivosComBug) {
       expect(MIGRACAO_CORRETIVA >= arquivo).toBe(true);
