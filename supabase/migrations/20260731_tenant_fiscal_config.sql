@@ -58,6 +58,15 @@ CREATE TABLE IF NOT EXISTS public.tenant_fiscal_config (
   -- secret e vive fora daqui (Leva 3).
   csc_id           text,
 
+  -- Endpoints da SEFAZ (públicos, por UF e por ambiente). Não são
+  -- segredo — são infraestrutura da UF. Ficam por-tenant para o
+  -- white-label multi-UF (cada estabelecimento aponta pra sua SEFAZ):
+  --   url_qrcode      → URL de consulta impressa no QR do cupom
+  --   url_autorizacao → webservice NFeAutorizacao4 (transmissão)
+  -- Preenchidos ao configurar o fiscal, junto com o certificado (Leva 3).
+  url_qrcode       text,
+  url_autorizacao  text,
+
   -- Só emite de verdade quando configurado e ligado de propósito.
   ativo            boolean  NOT NULL DEFAULT false,
 
