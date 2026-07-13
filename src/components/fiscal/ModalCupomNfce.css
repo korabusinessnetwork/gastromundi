@@ -1,0 +1,168 @@
+/**
+ * ModalCupomNfce — a nota do consumidor logo após a venda (Leva 7). CSS
+ * separado do JSX (decisão 018). Overlay escuro centralizado; o cupom
+ * (<CupomNfce>) rola dentro do corpo quando é longo. Botões grandes,
+ * legíveis a distância no PDV (Princípio nº1).
+ *
+ * Impressão: segue o padrão dos comprovantes — ao imprimir, esconde TUDO
+ * (chrome do app + moldura da modal) e deixa só o `.cupom-nfce`, para sair
+ * apenas o cupom na impressora térmica, sem cabeçalho/rodapé da tela.
+ */
+
+.modal-cupom-nfce__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9200;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal-cupom-nfce {
+  background: var(--gm-card, #fff);
+  color: var(--gm-text, #111);
+  border-radius: 18px;
+  border: 1px solid var(--gm-border, #e5e7eb);
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.modal-cupom-nfce__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--gm-border, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.modal-cupom-nfce__titulo {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.modal-cupom-nfce__fechar {
+  background: none;
+  border: none;
+  color: var(--gm-muted, #6b7280);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  border-radius: 8px;
+}
+
+.modal-cupom-nfce__fechar:hover {
+  background: var(--gm-surface, #f3f4f6);
+  color: var(--gm-text, #111);
+}
+
+.modal-cupom-nfce__corpo {
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  background: var(--gm-surface, #f3f4f6);
+}
+
+/* ── Estados (emitindo / aviso) ── */
+.modal-cupom-nfce__estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 40px 16px;
+  color: var(--gm-text, #111);
+}
+
+.modal-cupom-nfce__estado--aviso {
+  color: #b45309;
+}
+
+.modal-cupom-nfce__estado-texto {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.modal-cupom-nfce__estado-sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--gm-muted, #6b7280);
+  line-height: 1.5;
+  max-width: 300px;
+}
+
+.modal-cupom-nfce__estado--aviso .modal-cupom-nfce__estado-sub {
+  color: #92400e;
+}
+
+.modal-cupom-nfce__spinner {
+  animation: modal-cupom-nfce-girar 0.9s linear infinite;
+  color: var(--gm-accent, #2563eb);
+}
+
+@keyframes modal-cupom-nfce-girar {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Rodapé (ações) ── */
+.modal-cupom-nfce__rodape {
+  display: flex;
+  gap: 10px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--gm-border, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.modal-cupom-nfce__botao {
+  flex: 1;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border, #e5e7eb);
+  background: var(--gm-surface, #f3f4f6);
+  color: var(--gm-text, #111);
+  font-weight: 700;
+  font-size: 16px;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.modal-cupom-nfce__botao:hover {
+  filter: brightness(0.97);
+}
+
+.modal-cupom-nfce__botao--primario {
+  background: var(--gm-accent, #2563eb);
+  border-color: var(--gm-accent, #2563eb);
+  color: #fff;
+}
+
+/* ── Impressão: só o cupom, nada do chrome/modal ── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .cupom-nfce,
+  .cupom-nfce * {
+    visibility: visible;
+  }
+  .cupom-nfce {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+  }
+}

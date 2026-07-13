@@ -21,6 +21,7 @@ import ProductGrid   from "./ProductGrid";
 import CartPanel     from "./CartPanel";
 import CheckoutView  from "./CheckoutView";
 import MesaMapView   from "./MesaMapView";
+import ModalCupomNfce from "@/components/fiscal/ModalCupomNfce";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -58,6 +59,9 @@ export default function PDVView() {
 
   const [toast,         setToast]         = useState(false);
   const [alertaAberto,  setAlertaAberto]  = useState(false);
+  // Modal do cupom NFC-e (Leva 7): abre em 'emitindo' ao finalizar com o
+  // add-on nfe ativo e se atualiza para 'concluido' quando a emissão resolve.
+  const [cupomNfce,     setCupomNfce]     = useState({ aberta: false, estado: "emitindo", resultado: null, venda: null });
   const [buscaComanda,  setBuscaComanda]  = useState("");
 
   // modal nova comanda
@@ -246,7 +250,12 @@ export default function PDVView() {
     if (!selected) return;
     setSalvando(true);
     try {
-      await finalizarPagamento(selected, cartItems, payload);
+      await finalizarPagamento(selected, cartItems, payload, {
+        // A modal abre já em 'emitindo' e se atualiza sozinha ao concluir —
+        // nunca bloqueia a venda nem a volta à grade de comandas.
+        onNfce: ({ estado, resultado, venda }) =>
+          setCupomNfce({ aberta: true, estado, resultado, venda }),
+      });
       handleBack();
     } catch (err) {
       // não usar JSON.stringify: mascara Error como "{}"
@@ -975,6 +984,17 @@ export default function PDVView() {
           />
         )}
       </div>
+
+      {/* ── Modal: Cupom NFC-e (Leva 7) ──────────────────────────── */}
+      {cupomNfce.aberta && createPortal(
+        <ModalCupomNfce
+          estadoEmissao={cupomNfce.estado}
+          resultado={cupomNfce.resultado}
+          venda={cupomNfce.venda}
+          onFechar={() => setCupomNfce((c) => ({ ...c, aberta: false }))}
+        />,
+        document.body,
+      )}
 
       {/* ── Modal: Nova Comanda ──────────────────────────────────── */}
       {showNova && (

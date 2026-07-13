@@ -90,6 +90,31 @@ describe("emitirDocumentoFiscal — fluxo NFC-e (Edge Function)", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("repassa os campos do cupom (emit/tpAmb/tpEmis/dhEmi/urlQrCode) no resultado (Leva 7)", async () => {
+    const emit = { xNome: "Zé Lanches LTDA", xFant: "Zé Lanches", cnpj: "12345678000195" };
+    vi.stubGlobal("fetch", mockFetch(200, {
+      status: "autorizada", chave: "CHAVE44", protocolo: "135260000123456",
+      emit, tpAmb: 1, tpEmis: 1, dhEmi: "2026-07-13T14:00:00Z",
+      urlQrCode: "https://sefaz.rs.gov.br/nfce?p=CHAVE44|2|1|1|HASH",
+    }));
+    const r = await emitirDocumentoFiscal(VENDA, { usuario: "maria" });
+    expect(r.emit).toEqual(emit);
+    expect(r.tpAmb).toBe(1);
+    expect(r.tpEmis).toBe(1);
+    expect(r.dhEmi).toBe("2026-07-13T14:00:00Z");
+    expect(r.urlQrCode).toContain("nfce?p=");
+  });
+
+  it("em 'sem_chave' repassa emit/tpAmb/tpEmis mas urlQrCode fica null (sem QR)", async () => {
+    const emit = { xNome: "Zé Lanches LTDA", cnpj: "12345678000195" };
+    vi.stubGlobal("fetch", mockFetch(200, { status: "sem_chave", emit, tpAmb: 2, tpEmis: 9 }));
+    const r = await emitirDocumentoFiscal(VENDA, { tpEmis: 9 });
+    expect(r.emit).toEqual(emit);
+    expect(r.tpAmb).toBe(2);
+    expect(r.tpEmis).toBe(9);
+    expect(r.urlQrCode).toBeNull();
+  });
+
   it("registra o desfecho como evento Jarvas (fire-and-forget)", async () => {
     vi.stubGlobal("fetch", mockFetch(200, { status: "autorizada", chave: "CHAVE44" }));
     await emitirDocumentoFiscal(VENDA, { usuario: "maria" });

@@ -113,6 +113,13 @@ Deno.serve(async (req: Request) => {
 
     const tpAmb = Number(config.ambiente) === 1 ? 1 : 2; // 2 = homologação (seguro)
     const codigoNumerico = String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
+    // Data de emissão ÚNICA para toda a requisição — o mesmo dhEmi vai no XML
+    // e volta no JSON, para o cupom (DANFE) bater com a nota. (Leva 7)
+    const dataEmissao = new Date();
+
+    // Identidade NÃO-secreta do emitente para o cupom (Leva 7). Só campos já
+    // selecionados de tenant_fiscal_config — nada de certificado/CSC aqui.
+    const emitCupom = montarEmitCupom(config);
 
     // ── 4b. Enriquece os itens com o CADASTRO FISCAL do produto (Leva 5) ──
     // Carrega itens_fiscal (uma linha por produto) e liga NCM/CFOP/ICMS a
@@ -144,7 +151,7 @@ Deno.serve(async (req: Request) => {
       if (faltando.length === 0) {
         try {
           const previa = montarXmlNfce(
-            montarEntradaXml({ config, venda: vendaFiscal, numero: config.proximo_numero ?? 1, codigoNumerico, tpAmb, tpEmis }),
+            montarEntradaXml({ config, venda: vendaFiscal, numero: config.proximo_numero ?? 1, codigoNumerico, tpAmb, tpEmis, dataEmissao }),
           );
           chave = previa.chave;
           xml = previa.xml;
@@ -165,6 +172,11 @@ Deno.serve(async (req: Request) => {
           cadastroFiscalPendente: faltando,
           chave,
           xml, // não-assinado; para conferência em homologação
+          // Bloco NÃO-secreto do cupom: permite a PRÉVIA do layout (tarja
+          // "SEM VALOR FISCAL") antes do certificado chegar. Sem QR (sem CSC).
+          emit: emitCupom,
+          tpAmb,
+          dhEmi: dataEmissao.toISOString(),
         },
         200,
       );
@@ -199,7 +211,7 @@ Deno.serve(async (req: Request) => {
 
     // ── 7. Monta o XML NÃO-ASSINADO (Leva 2 — puro, já testado) ───────
     const { xml, chave } = montarXmlNfce(
-      montarEntradaXml({ config, venda: vendaFiscal, numero, codigoNumerico, tpAmb, tpEmis }),
+      montarEntradaXml({ config, venda: vendaFiscal, numero, codigoNumerico, tpAmb, tpEmis, dataEmissao }),
     );
 
     // ── 8. DigestValue do infNFe (Leva 6 — puro). Insumo do QR offline. ──
@@ -255,6 +267,14 @@ Deno.serve(async (req: Request) => {
         protocolo: retorno.protocolo,
         cStat: retorno.cStat,
         xMotivo: retorno.xMotivo,
+        // Bloco NÃO-secreto do cupom (Leva 7). O urlQr já vem hasheado do
+        // servidor — expõe a URL de consulta, nunca o CSC. Vai também na
+        // rejeitada para o cupom mostrar o motivo com o layout correto.
+        emit: emitCupom,
+        tpAmb,
+        tpEmis,
+        dhEmi: dataEmissao.toISOString(),
+        urlQrCode: urlQr,
       },
       200,
     );
@@ -391,20 +411,21 @@ async function transmitirSefazRS(
  * (1 normal / 9 contingência) entra no `ide` e vai parar na chave de acesso.
  */
 function montarEntradaXml(
-  { config, venda, numero, codigoNumerico, tpAmb, tpEmis }: {
+  { config, venda, numero, codigoNumerico, tpAmb, tpEmis, dataEmissao }: {
     config: Record<string, unknown>;
     venda: Record<string, unknown>;
     numero: number;
     codigoNumerico: string;
     tpAmb: number;
     tpEmis: number;
+    dataEmissao?: Date;
   },
 ) {
   return {
     ide: {
       serie: (config.serie as number) ?? 1,
       numero,
-      dataEmissao: new Date(),
+      dataEmissao: dataEmissao ?? new Date(),
       codigoNumerico,
       tpAmb,
       tpEmis,
@@ -486,6 +507,26 @@ async function enriquecerItensFiscais(
     }
   }
   return { itens, faltando };
+}
+
+/**
+ * Bloco NÃO-secreto do emitente para montar a DANFE (cupom) no front (Leva 7).
+ * Só a identidade pública do estabelecimento (razão/fantasia, CNPJ, IE,
+ * endereço) — nada de certificado nem CSC. Mapeia as colunas de
+ * tenant_fiscal_config para os campos que montarDanfeNfce espera.
+ */
+function montarEmitCupom(config: Record<string, unknown>) {
+  return {
+    xNome: config.razao_social,
+    xFant: config.nome_fantasia,
+    cnpj: config.cnpj,
+    ie: config.ie,
+    xLgr: config.logradouro,
+    nro: config.numero_end,
+    xBairro: config.bairro,
+    xMun: config.municipio,
+    uf: config.uf,
+  };
 }
 
 /** Texto curto e humano listando os produtos com cadastro fiscal pendente. */

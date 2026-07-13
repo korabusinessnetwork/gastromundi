@@ -36,7 +36,7 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
 export function useFinalizarPagamento() {
   const { addSale, removePending, estoque, baixarEstoque, currentUser, addonHabilitado } = useApp();
 
-  const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId }) => {
+  const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId }, { onNfce } = {}) => {
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
     const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
     const todosItens      = [...itensAcumulados, ...itensLocais];
@@ -94,9 +94,23 @@ export function useFinalizarPagamento() {
     // nem quebram a venda. Só disparam quando o tenant tem o add-on ativo;
     // sem o add-on, o pagamento segue idêntico a hoje (nenhum código extra roda).
     if (addonHabilitado?.("nfe")) {
-      void emitirDocumentoFiscal(sale, { usuario: currentUser?.username }).catch((err) => {
-        console.error("fiscal (nf-e):", err);
-      });
+      // Leva 7: a modal do cupom abre JÁ em 'emitindo' (logo aqui, antes do
+      // round-trip) e se atualiza para 'concluido' quando a promise resolve —
+      // sem NUNCA dar await (a venda não pode esperar a SEFAZ). Sem callback
+      // (ex.: chamador sem UI de cupom) o comportamento é idêntico a antes.
+      onNfce?.({ estado: "emitindo", resultado: null, venda: sale });
+      emitirDocumentoFiscal(sale, { usuario: currentUser?.username })
+        .then((resultado) => onNfce?.({ estado: "concluido", resultado, venda: sale }))
+        .catch((err) => {
+          // emitirDocumentoFiscal já é "nunca lança"; o catch é rede de
+          // segurança e ainda assim conclui a modal (nunca a deixa girando).
+          console.error("fiscal (nf-e):", err);
+          onNfce?.({
+            estado: "concluido",
+            resultado: { status: "erro", vendaId: sale.id, detalhe: err?.message ?? "Falha ao emitir NFC-e." },
+            venda: sale,
+          });
+        });
     }
     if (addonHabilitado?.("tef")) {
       for (const p of pagamentos ?? []) {

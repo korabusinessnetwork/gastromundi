@@ -34,7 +34,9 @@ const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/emitir-nfce`
  * @param {{id?: string, total?: number, comanda?: string, items?: Array, pagamentos?: Array, dest?: object}} venda
  * @param {{usuario?: string, tpEmis?: 1|9}} [opts] tpEmis 9 = contingência offline
  * @returns {Promise<{status: "autorizada"|"rejeitada"|"sem_chave"|"erro",
- *   vendaId: string|null, chave?: string|null, protocolo?: string|null, detalhe?: string}>}
+ *   vendaId: string|null, chave?: string|null, protocolo?: string|null, detalhe?: string,
+ *   emit?: object|null, tpAmb?: number|null, tpEmis?: number|null,
+ *   dhEmi?: string|null, urlQrCode?: string|null}>}
  */
 export async function emitirDocumentoFiscal(venda, { usuario, tpEmis = 1 } = {}) {
   const vendaId = venda?.id ?? null;
@@ -70,6 +72,14 @@ export async function emitirDocumentoFiscal(venda, { usuario, tpEmis = 1 } = {})
       chave: json?.chave ?? null,
       protocolo: json?.protocolo ?? null,
       detalhe: json?.detalhe ?? json?.error ?? null,
+      // Bloco NÃO-secreto do cupom (Leva 7) — a modal do PDV monta a DANFE
+      // com isto. `emit`/`tpAmb`/`tpEmis`/`dhEmi` vêm em todos os status menos
+      // "erro"; `urlQrCode` só quando há chave/QR (ausente em sem_chave).
+      emit: json?.emit ?? null,
+      tpAmb: json?.tpAmb ?? null,
+      tpEmis: json?.tpEmis ?? tpEmis ?? null,
+      dhEmi: json?.dhEmi ?? null,
+      urlQrCode: json?.urlQrCode ?? null,
     };
     return finalizar(resultado, venda, usuario);
   } catch (err) {
