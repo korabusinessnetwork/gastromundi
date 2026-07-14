@@ -25,8 +25,10 @@ import {
   montarSignedInfo,
   montarAssinatura,
   assinarInfNfe,
+  assinarInfEvento,
 } from "./nfceAssinatura";
 import { montarXmlNfce } from "./nfceXml";
+import { montarXmlEventoCancelamento } from "./nfceEventoCancelamento";
 
 const dir = fileURLToPath(new URL("./__fixtures__/", import.meta.url));
 const certPem = readFileSync(dir + "nfce-teste.cert.pem", "utf8");
@@ -154,5 +156,42 @@ describe("nfceAssinatura — assinarInfNfe (fluxo completo com cert de teste)", 
 
   it("exige o callback assinarSignedInfo (a chave nunca vem do módulo)", async () => {
     await expect(assinarInfNfe(xmlDeTeste().xml, {})).rejects.toThrow(/assinarSignedInfo/);
+  });
+});
+
+describe("nfceAssinatura — assinarInfEvento (cancelamento, Leva 10)", () => {
+  const chave = "43260712345678000195650010000000011000000017";
+
+  it("assina o <infEvento> (#ID110111…), com a Signature DENTRO do <evento>", async () => {
+    const { xml } = montarXmlEventoCancelamento({
+      chave, protocolo: "143260000123456", cnpj: "12345678000195", tpAmb: 2,
+      justificativa: "Cliente desistiu da compra e pediu o cancelamento.",
+    });
+
+    let signedInfoAssinado;
+    const { xmlAssinado } = await assinarInfEvento(xml, {
+      assinarSignedInfo: (si) => { signedInfoAssinado = si; return assinarComForge(si); },
+    });
+
+    // Reference aponta para o Id do infEvento; Signature após </infEvento>,
+    // ainda dentro de </evento>.
+    expect(xmlAssinado).toContain(`URI="#ID110111${chave}01"`);
+    expect(xmlAssinado.indexOf("</infEvento>")).toBeLessThan(xmlAssinado.indexOf("<Signature"));
+    expect(xmlAssinado.endsWith("</Signature></evento>")).toBe(true);
+
+    // Corretude criptográfica: RSA-SHA1(SignedInfo) valida com a pública do cert.
+    const signatureValue = xmlAssinado.match(/<SignatureValue>([^<]+)<\/SignatureValue>/)[1];
+    const md = forge.md.sha1.create();
+    md.update(signedInfoAssinado, "utf8");
+    const ok = certificado.publicKey.verify(md.digest().bytes(), forge.util.decode64(signatureValue));
+    expect(ok).toBe(true);
+  });
+
+  it("exige o callback assinarSignedInfo", async () => {
+    const { xml } = montarXmlEventoCancelamento({
+      chave, protocolo: "143260000123456", cnpj: "12345678000195", tpAmb: 2,
+      justificativa: "Cliente desistiu da compra e pediu o cancelamento.",
+    });
+    await expect(assinarInfEvento(xml, {})).rejects.toThrow(/assinarSignedInfo/);
   });
 });

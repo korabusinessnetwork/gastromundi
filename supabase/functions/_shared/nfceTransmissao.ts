@@ -20,8 +20,13 @@
 
 // node-forge: PKCS#12 (.pfx) + RSA-SHA1 — pura, roda no Deno.
 import forge from "https://esm.sh/node-forge@1.3.1";
-import { montarEnvelopeEnviNfe, interpretarRetornoSefaz } from "../../../src/lib/nfceSoap.js";
-import { assinarInfNfe } from "../../../src/lib/nfceAssinatura.js";
+import {
+  montarEnvelopeEnviNfe,
+  interpretarRetornoSefaz,
+  montarEnvelopeEvento,
+  interpretarRetornoEvento,
+} from "../../../src/lib/nfceSoap.js";
+import { assinarInfNfe, assinarInfEvento } from "../../../src/lib/nfceAssinatura.js";
 
 /**
  * Abre o PKCS#12 (.pfx base64) com a senha e extrai a chave privada e o
@@ -54,11 +59,34 @@ export async function assinarXmlDSig(
   xml: string,
   { certBase64, certSenha, infNFeSupl }: { certBase64: string; certSenha: string; infNFeSupl: string },
 ): Promise<{ xmlAssinado: string; digestValue: string }> {
+  const assinarSignedInfo = criarCallbackRsaSha1(certBase64, certSenha);
+  return await assinarInfNfe(xml, { assinarSignedInfo, infNFeSupl });
+}
+
+/**
+ * Assina o <infEvento> do evento de CANCELAMENTO (Leva 10) com o A1, reusando
+ * o MESMO callback RSA-SHA1 da NFe (a chave privada só entra no callback,
+ * aqui na Edge). Sem duplicar a lógica de assinatura.
+ */
+export async function assinarEventoDSig(
+  xml: string,
+  { certBase64, certSenha }: { certBase64: string; certSenha: string },
+): Promise<{ xmlAssinado: string; digestValue: string }> {
+  const assinarSignedInfo = criarCallbackRsaSha1(certBase64, certSenha);
+  return await assinarInfEvento(xml, { assinarSignedInfo });
+}
+
+/**
+ * Cria o callback RSA-SHA1 que o núcleo puro (nfceAssinatura) injeta para
+ * assinar o <SignedInfo>. A chave privada do A1 vive SÓ dentro deste closure,
+ * na Edge — nunca sai para src/lib nem para log/retorno.
+ */
+function criarCallbackRsaSha1(certBase64: string, certSenha: string) {
   const { privateKey, certificate } = abrirCertificadoA1(certBase64, certSenha);
   const certX509Base64 = forge.util.encode64(
     forge.asn1.toDer(forge.pki.certificateToAsn1(certificate)).getBytes(),
   );
-  const assinarSignedInfo = (signedInfoC14n: string) => {
+  return (signedInfoC14n: string) => {
     const md = forge.md.sha1.create();
     md.update(signedInfoC14n, "utf8");
     return {
@@ -66,7 +94,6 @@ export async function assinarXmlDSig(
       certificadoX509Base64: certX509Base64,
     };
   };
-  return await assinarInfNfe(xml, { assinarSignedInfo, infNFeSupl });
 }
 
 /**
@@ -120,4 +147,48 @@ export async function transmitirSefazRS(
     nfeProc: retorno.nfeProc, // documento final autorizado (para reimpressão)
     dhRecbto,
   };
+}
+
+/**
+ * Transmite o EVENTO de cancelamento assinado à SEFAZ-RS (NFeRecepcaoEvento4)
+ * por SOAP sobre TLS MÚTUO com o mesmo A1, e interpreta o retorno. Devolve o
+ * procEventoNFe (documento durável do cancelamento) quando registrado.
+ *
+ * SECRET BOUNDARY: certBase64/certSenha entram como parâmetro e nunca saem.
+ */
+export async function transmitirEventoSefazRS(
+  xmlEventoAssinado: string,
+  { urlRecepcaoEvento, certBase64, certSenha }:
+    { urlRecepcaoEvento: string; certBase64: string; certSenha: string },
+): Promise<{
+  registrado: boolean; cStat: string | null; xMotivo: string | null;
+  protocoloEvento: string | null; procEventoNFe: string | null;
+}> {
+  if (!urlRecepcaoEvento) {
+    throw new Error("URL de recepção de evento da SEFAZ ausente na configuração do tenant.");
+  }
+
+  const envelope = montarEnvelopeEvento({
+    xmlEventoAssinado,
+    idLote: Date.now().toString().slice(-15),
+  });
+
+  // TLS mútuo: o A1 (em PEM) autentica o cliente no handshake com a SEFAZ.
+  const { privateKey, certificate } = abrirCertificadoA1(certBase64, certSenha);
+  const keyPem = forge.pki.privateKeyToPem(privateKey);
+  const certPem = forge.pki.certificateToPem(certificate);
+
+  const client = (globalThis as { Deno?: { createHttpClient: (o: unknown) => unknown } })
+    .Deno!.createHttpClient({ cert: certPem, key: keyPem });
+
+  const resp = await fetch(urlRecepcaoEvento, {
+    method: "POST",
+    // @ts-ignore client é opção específica do Deno fetch
+    client,
+    headers: { "Content-Type": "application/soap+xml; charset=utf-8" },
+    body: envelope,
+  });
+  const textoResposta = await resp.text();
+
+  return interpretarRetornoEvento(textoResposta, { xmlEventoAssinado });
 }

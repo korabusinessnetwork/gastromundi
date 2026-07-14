@@ -15,6 +15,9 @@
 const NFE_NS = "http://www.portalfiscal.inf.br/nfe";
 const SOAP_NS = "http://www.w3.org/2003/05/soap-envelope";
 const WSDL_NS = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeAutorizacao4";
+// Serviço de EVENTOS (cancelamento — Leva 10). Serviço distinto do de
+// autorização: recepção de evento tem seu próprio WSDL/namespace.
+const WSDL_EVENTO_NS = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeRecepcaoEvento4";
 
 /**
  * Monta o envelope SOAP 1.2 do NFeAutorizacao4 com o <enviNFe> síncrono.
@@ -104,4 +107,78 @@ export function interpretarRetornoSefaz(xmlResposta, { xmlAssinado, versao = "4.
   }
 
   return { autorizada, cStat, xMotivo, protocolo: nProt, nProt, chNFe, nfeProc };
+}
+
+// ── Evento de cancelamento (Leva 10) ───────────────────────────────────
+
+/**
+ * Monta o envelope SOAP 1.2 do NFeRecepcaoEvento4 com o <envEvento> (leiaute
+ * de evento 1.00). Recebe o <evento> JÁ ASSINADO (assinarInfEvento).
+ *
+ * @param {{ xmlEventoAssinado:string, idLote:string|number, versao?:string }} p
+ * @returns {string} envelope SOAP pronto para POST no webservice de eventos
+ */
+export function montarEnvelopeEvento({ xmlEventoAssinado, idLote, versao = "1.00" }) {
+  const evento = String(xmlEventoAssinado ?? "").trim();
+  if (!/^<evento[\s>]/.test(evento)) {
+    throw new Error("Envelope envEvento exige o XML do evento assinado (<evento>…</evento>).");
+  }
+  const lote = String(idLote ?? "").replace(/\D/g, "");
+  if (!lote) throw new Error("Envelope envEvento exige um idLote numérico.");
+
+  const envEvento =
+    `<envEvento versao="${versao}" xmlns="${NFE_NS}">` +
+    `<idLote>${lote}</idLote>` +
+    evento +
+    `</envEvento>`;
+
+  return (
+    `<?xml version="1.0" encoding="UTF-8"?>` +
+    `<soap12:Envelope xmlns:soap12="${SOAP_NS}">` +
+    `<soap12:Body>` +
+    `<nfeDadosMsg xmlns="${WSDL_EVENTO_NS}">` +
+    envEvento +
+    `</nfeDadosMsg>` +
+    `</soap12:Body>` +
+    `</soap12:Envelope>`
+  );
+}
+
+// cStat de SUCESSO do evento: 135 (registrado) e 155 (registrado fora de prazo).
+const CSTAT_EVENTO_REGISTRADO = new Set(["135", "155"]);
+
+/**
+ * Interpreta o retorno do NFeRecepcaoEvento4 (cancelamento). O status do
+ * evento mora no <retEvento><infEvento> (cStat/xMotivo/nProt); na ausência,
+ * cai no cStat/xMotivo do <retEnvEvento> (rejeição de lote).
+ *
+ * Quando registrado e o evento assinado é fornecido, monta o <procEventoNFe>
+ * (evento assinado + retEvento) — o documento DURÁVEL do cancelamento.
+ *
+ * @param {string} xmlResposta corpo da resposta da SEFAZ
+ * @param {{ xmlEventoAssinado?:string, versao?:string }} [opts]
+ * @returns {{ registrado:boolean, cStat:string|null, xMotivo:string|null,
+ *   protocoloEvento:string|null, procEventoNFe:string|null }}
+ */
+export function interpretarRetornoEvento(xmlResposta, { xmlEventoAssinado, versao = "1.00" } = {}) {
+  const retEvento = tagBloco(xmlResposta, "retEvento");
+  const escopo = retEvento ?? xmlResposta;
+
+  const cStat = tagTexto(escopo, "cStat") ?? tagTexto(xmlResposta, "cStat");
+  const xMotivo = tagTexto(escopo, "xMotivo") ?? tagTexto(xmlResposta, "xMotivo");
+  const nProt = retEvento ? tagTexto(retEvento, "nProt") : null;
+  const registrado = cStat != null && CSTAT_EVENTO_REGISTRADO.has(cStat);
+
+  let procEventoNFe = null;
+  if (registrado && xmlEventoAssinado && retEvento) {
+    // procEventoNFe = evento assinado + retEvento (documento final do evento).
+    procEventoNFe =
+      `<?xml version="1.0" encoding="UTF-8"?>` +
+      `<procEventoNFe versao="${versao}" xmlns="${NFE_NS}">` +
+      String(xmlEventoAssinado).trim() +
+      retEvento +
+      `</procEventoNFe>`;
+  }
+
+  return { registrado, cStat, xMotivo, protocoloEvento: nProt, procEventoNFe };
 }

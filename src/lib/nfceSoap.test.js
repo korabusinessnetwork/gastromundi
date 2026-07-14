@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { montarEnvelopeEnviNfe, interpretarRetornoSefaz } from "./nfceSoap";
+import {
+  montarEnvelopeEnviNfe,
+  interpretarRetornoSefaz,
+  montarEnvelopeEvento,
+  interpretarRetornoEvento,
+} from "./nfceSoap";
 
 const NFE = '<NFe xmlns="http://www.portalfiscal.inf.br/nfe"><infNFe Id="NFe43260712345678000195650010000000011000000017"></infNFe><Signature></Signature></NFe>';
 
@@ -78,5 +83,65 @@ describe("nfceSoap — interpretarRetornoSefaz (rejeitada/denegada)", () => {
     expect(r.cStat).toBe("302");
     expect(r.xMotivo).toContain("Denegado");
     expect(r.nfeProc).toBeNull();
+  });
+});
+
+describe("nfceSoap — evento de cancelamento (Leva 10)", () => {
+  const EVENTO =
+    '<evento versao="1.00" xmlns="http://www.portalfiscal.inf.br/nfe">' +
+    '<infEvento Id="ID11011143260712345678000195650010000000011000000017 01">' +
+    "</infEvento><Signature></Signature></evento>";
+
+  it("montarEnvelopeEvento monta o SOAP do NFeRecepcaoEvento4 com o envEvento", () => {
+    const env = montarEnvelopeEvento({ xmlEventoAssinado: EVENTO, idLote: "1" });
+    expect(env).toContain("soap12:Envelope");
+    expect(env).toContain('xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeRecepcaoEvento4"');
+    expect(env).toContain('<envEvento versao="1.00"');
+    expect(env).toContain("<idLote>1</idLote>");
+    expect(env).toContain(EVENTO);
+  });
+
+  it("exige o evento assinado e um idLote numérico", () => {
+    expect(() => montarEnvelopeEvento({ xmlEventoAssinado: "<foo/>", idLote: "1" })).toThrow(/evento assinado/);
+    expect(() => montarEnvelopeEvento({ xmlEventoAssinado: EVENTO, idLote: "" })).toThrow(/idLote/);
+  });
+
+  const RETORNO_OK =
+    '<retEnvEvento versao="1.00" xmlns="http://www.portalfiscal.inf.br/nfe">' +
+    "<cStat>128</cStat><xMotivo>Lote de Evento Processado</xMotivo>" +
+    "<retEvento versao=\"1.00\"><infEvento>" +
+    "<cStat>135</cStat><xMotivo>Evento registrado e vinculado a NF-e</xMotivo>" +
+    "<nProt>143260000999999</nProt>" +
+    "</infEvento></retEvento></retEnvEvento>";
+
+  it("lê cStat/xMotivo/nProt de dentro do retEvento (não o do lote)", () => {
+    const r = interpretarRetornoEvento(RETORNO_OK);
+    expect(r.registrado).toBe(true);
+    expect(r.cStat).toBe("135");
+    expect(r.xMotivo).toContain("registrado");
+    expect(r.protocoloEvento).toBe("143260000999999");
+  });
+
+  it("monta o procEventoNFe (evento + retEvento) quando registrado", () => {
+    const r = interpretarRetornoEvento(RETORNO_OK, { xmlEventoAssinado: EVENTO });
+    expect(r.procEventoNFe).toContain("<procEventoNFe");
+    expect(r.procEventoNFe).toContain(EVENTO);
+    expect(r.procEventoNFe).toContain("<retEvento");
+  });
+
+  it("reconhece 155 (registrado fora de prazo) como registrado", () => {
+    const r = interpretarRetornoEvento(RETORNO_OK.replace("<cStat>135</cStat>", "<cStat>155</cStat>"));
+    expect(r.registrado).toBe(true);
+    expect(r.cStat).toBe("155");
+  });
+
+  it("rejeição de evento (ex.: 573): registrado=false, sem procEventoNFe", () => {
+    const rej =
+      '<retEnvEvento versao="1.00" xmlns="http://www.portalfiscal.inf.br/nfe"><cStat>128</cStat>' +
+      "<retEvento><infEvento><cStat>573</cStat><xMotivo>Duplicidade de evento</xMotivo></infEvento></retEvento></retEnvEvento>";
+    const r = interpretarRetornoEvento(rej, { xmlEventoAssinado: EVENTO });
+    expect(r.registrado).toBe(false);
+    expect(r.cStat).toBe("573");
+    expect(r.procEventoNFe).toBeNull();
   });
 });

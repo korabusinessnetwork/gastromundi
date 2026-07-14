@@ -153,22 +153,33 @@ function serializarC14n(no, nsAplicavel, nsDefaultRenderizada) {
   return out;
 }
 
-/** Recorta a substring do único elemento <infNFe>…</infNFe> do XML da NFe. */
-function extrairInfNfe(xml) {
-  const m = String(xml ?? "").match(/<infNFe\b[\s\S]*?<\/infNFe>/);
-  if (!m) throw new Error("Assinatura: <infNFe> não encontrado no XML da NFC-e.");
+/**
+ * Recorta a substring do único elemento <tag>…</tag> do XML. Agnóstico ao
+ * elemento (Leva 10): serve tanto ao <infNFe> da NFe quanto ao <infEvento> do
+ * evento de cancelamento — a C14N do subconjunto é a mesma.
+ */
+function extrairElemento(xml, tag) {
+  const m = String(xml ?? "").match(new RegExp(`<${tag}\\b[\\s\\S]*?</${tag}>`));
+  if (!m) throw new Error(`Assinatura: <${tag}> não encontrado no XML.`);
   return m[0];
 }
 
 /**
- * Canonicaliza (C14N 1.0) o elemento <infNFe> do XML da NFC-e. O default
- * namespace da NFe (`NFE_NS`), herdado do <NFe> pai, é declarado no ápice.
- * @param {string} xml XML completo <NFe>…</NFe> (não-assinado)
- * @returns {string} C14N do <infNFe>
+ * Canonicaliza (C14N 1.0) o elemento <tag> do XML. O default namespace da NFe
+ * (`NFE_NS`), herdado do elemento pai (<NFe> ou <evento>), é declarado no
+ * ápice do subárvore canonizado.
+ * @param {string} xml XML completo (não-assinado)
+ * @param {string} [tag] elemento a canonizar (default: infNFe)
+ * @returns {string} C14N do elemento
  */
-export function canonicalizarInfNfe(xml) {
-  const { no } = parseElemento(extrairInfNfe(xml), 0);
+export function canonicalizarElemento(xml, tag = "infNFe") {
+  const { no } = parseElemento(extrairElemento(xml, tag), 0);
   return serializarC14n(no, NFE_NS, null);
+}
+
+/** Compat: canonicaliza o <infNFe> (mesma saída de sempre — testes verdes). */
+export function canonicalizarInfNfe(xml) {
+  return canonicalizarElemento(xml, "infNFe");
 }
 
 // ── Digest ─────────────────────────────────────────────────────────────
@@ -180,15 +191,26 @@ function bytesParaBase64(bytes) {
 }
 
 /**
- * DigestValue (SHA-1, Base64) do <infNFe> canonizado. O `digestValue` é
- * também o insumo do `digVal` do QR de contingência (nfceQrCode).
+ * DigestValue (SHA-1, Base64) de um elemento canonizado (C14N 1.0). Genérico
+ * (Leva 10): <infNFe> (NFe) ou <infEvento> (cancelamento).
+ * @param {string} xml XML completo (não-assinado)
+ * @param {string} [tag] elemento a digerir (default: infNFe)
+ * @returns {Promise<{digestValue:string, c14n:string}>}
+ */
+export async function digestElemento(xml, tag = "infNFe") {
+  const c14n = canonicalizarElemento(xml, tag);
+  const buffer = await globalThis.crypto.subtle.digest("SHA-1", new TextEncoder().encode(c14n));
+  return { digestValue: bytesParaBase64(new Uint8Array(buffer)), c14n };
+}
+
+/**
+ * DigestValue do <infNFe>. O `digestValue` é também o insumo do `digVal` do QR
+ * de contingência (nfceQrCode). Mantido para compat (mesma saída de sempre).
  * @param {string} xml XML completo da NFC-e (não-assinado)
  * @returns {Promise<{digestValue:string, c14n:string}>}
  */
 export async function digestInfNfe(xml) {
-  const c14n = canonicalizarInfNfe(xml);
-  const buffer = await globalThis.crypto.subtle.digest("SHA-1", new TextEncoder().encode(c14n));
-  return { digestValue: bytesParaBase64(new Uint8Array(buffer)), c14n };
+  return digestElemento(xml, "infNFe");
 }
 
 // ── SignedInfo e Signature ─────────────────────────────────────────────
@@ -205,6 +227,16 @@ export function montarSignedInfo({ referenceUri, digestValue }) {
     throw new Error('SignedInfo exige referenceUri no formato "#NFe<44 dígitos>".');
   }
   if (!digestValue) throw new Error("SignedInfo exige o DigestValue do infNFe.");
+  return construirSignedInfo({ referenceUri, digestValue });
+}
+
+/**
+ * Monta o <SignedInfo> canonizado para QUALQUER Reference URI (Leva 10) — os
+ * algoritmos (C14N 1.0, RSA-SHA1, enveloped, SHA1) são os mesmos da NFe e do
+ * evento de cancelamento. Sem a validação estrita do formato #NFe (essa fica
+ * em montarSignedInfo, que delega aqui): o evento usa #ID110111….
+ */
+function construirSignedInfo({ referenceUri, digestValue }) {
   return (
     `<SignedInfo xmlns="${DSIG_NS}">` +
     `<CanonicalizationMethod Algorithm="${ALG_C14N}"></CanonicalizationMethod>` +
@@ -248,6 +280,48 @@ function lerChave(xml) {
   return m[1];
 }
 
+/** Lê o valor do atributo Id="…" de um elemento (ex.: infEvento → ID110111…). */
+function lerId(xml, tag) {
+  const m = String(xml ?? "").match(new RegExp(`<${tag}\\b[^>]*\\bId="([^"]+)"`));
+  if (!m) throw new Error(`Assinatura: Id ausente no <${tag}>.`);
+  return m[1];
+}
+
+/**
+ * Assinador GENÉRICO enveloped (Leva 10). Canoniza/digere/assina o elemento
+ * `tagAlvo` e insere a <Signature> pelo `inserirAssinatura`. O RSA-sign é
+ * injetado pelo callback `assinarSignedInfo` (quem tem o certificado, na
+ * Edge) — este módulo NUNCA toca na chave privada. `assinarInfNfe` e
+ * `assinarInfEvento` são casos particulares deste.
+ *
+ * @param {string} xml XML não-assinado
+ * @param {{
+ *   tagAlvo: string,          // "infNFe" | "infEvento"
+ *   referenceUri: string,     // "#NFe<44>" | "#ID110111…"
+ *   assinarSignedInfo: (signedInfoC14n:string) => Promise<{signatureValue:string, certificadoX509Base64:string}>,
+ *   inserirAssinatura: (xml:string, signature:string) => string,
+ * }} deps
+ * @returns {Promise<{xmlAssinado:string, digestValue:string}>}
+ */
+export async function assinarElemento(xml, { tagAlvo, referenceUri, assinarSignedInfo, inserirAssinatura } = {}) {
+  if (typeof assinarSignedInfo !== "function") {
+    throw new Error("assinarElemento exige o callback assinarSignedInfo (injeta o RSA-sign com a chave).");
+  }
+  const { digestValue } = await digestElemento(xml, tagAlvo);
+  const signedInfo = construirSignedInfo({ referenceUri, digestValue });
+
+  const assinado = await assinarSignedInfo(signedInfo);
+  if (!assinado?.signatureValue || !assinado?.certificadoX509Base64) {
+    throw new Error("assinarSignedInfo deve devolver { signatureValue, certificadoX509Base64 }.");
+  }
+  const signature = montarAssinatura({
+    signedInfo,
+    signatureValue: assinado.signatureValue,
+    certificadoX509Base64: assinado.certificadoX509Base64,
+  });
+  return { xmlAssinado: inserirAssinatura(xml, signature), digestValue };
+}
+
 /**
  * Orquestra a assinatura enveloped do <infNFe>. O RSA-sign é injetado pelo
  * callback `assinarSignedInfo` (implementado por quem tem o certificado, na
@@ -264,22 +338,35 @@ export async function assinarInfNfe(xml, { assinarSignedInfo, infNFeSupl = "" } 
   if (typeof assinarSignedInfo !== "function") {
     throw new Error("assinarInfNfe exige o callback assinarSignedInfo (injeta o RSA-sign com a chave).");
   }
-  const { digestValue } = await digestInfNfe(xml);
   const referenceUri = `#NFe${lerChave(xml)}`;
-  const signedInfo = montarSignedInfo({ referenceUri, digestValue });
-
-  const assinado = await assinarSignedInfo(signedInfo);
-  if (!assinado?.signatureValue || !assinado?.certificadoX509Base64) {
-    throw new Error("assinarSignedInfo deve devolver { signatureValue, certificadoX509Base64 }.");
-  }
-  const signature = montarAssinatura({
-    signedInfo,
-    signatureValue: assinado.signatureValue,
-    certificadoX509Base64: assinado.certificadoX509Base64,
+  return assinarElemento(xml, {
+    tagAlvo: "infNFe",
+    referenceUri,
+    assinarSignedInfo,
+    // Ordem NFe: <NFe> infNFe · infNFeSupl · Signature </NFe>. A assinatura
+    // cobre só o infNFe (enveloped); infNFeSupl é irmão não-assinado.
+    inserirAssinatura: (x, signature) => String(x).replace("</NFe>", `${infNFeSupl}${signature}</NFe>`),
   });
+}
 
-  // Ordem NFe: <NFe> infNFe · infNFeSupl · Signature </NFe>. A assinatura
-  // cobre só o infNFe (enveloped); infNFeSupl é irmão não-assinado.
-  const xmlAssinado = String(xml).replace("</NFe>", `${infNFeSupl}${signature}</NFe>`);
-  return { xmlAssinado, digestValue };
+/**
+ * Assina o <infEvento> do evento de cancelamento (Leva 10). Mesma C14N 1.0 /
+ * RSA-SHA1 da NFe; a Reference é o Id do infEvento (#ID110111…). A <Signature>
+ * entra DENTRO do <evento>, após o </infEvento>.
+ *
+ * @param {string} xml XML <evento>…</evento> não-assinado (montarXmlEventoCancelamento)
+ * @param {{ assinarSignedInfo: (signedInfoC14n:string) => Promise<{signatureValue:string, certificadoX509Base64:string}> }} deps
+ * @returns {Promise<{xmlAssinado:string, digestValue:string}>}
+ */
+export async function assinarInfEvento(xml, { assinarSignedInfo } = {}) {
+  if (typeof assinarSignedInfo !== "function") {
+    throw new Error("assinarInfEvento exige o callback assinarSignedInfo (injeta o RSA-sign com a chave).");
+  }
+  const referenceUri = `#${lerId(xml, "infEvento")}`;
+  return assinarElemento(xml, {
+    tagAlvo: "infEvento",
+    referenceUri,
+    assinarSignedInfo,
+    inserirAssinatura: (x, signature) => String(x).replace("</evento>", `${signature}</evento>`),
+  });
 }

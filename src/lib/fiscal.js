@@ -27,6 +27,7 @@ import { montarVendaFiscal } from "./nfceVenda";
  */
 
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/emitir-nfce`;
+const EDGE_URL_CANCELAR = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cancelar-nfce`;
 
 /**
  * Emite o documento fiscal (NFC-e) de uma venda via Edge Function.
@@ -91,6 +92,50 @@ export async function emitirDocumentoFiscal(venda, { usuario, tpEmis = 1 } = {})
       venda,
       usuario,
     );
+  }
+}
+
+/**
+ * Cancela uma NFC-e autorizada (evento 110111) via Edge Function `cancelar-nfce`.
+ *
+ * Diferente da emissão (fire-and-forget), o cancelamento é INICIADO pelo
+ * operador e ele AGUARDA o desfecho (a UI mostra spinner + resultado). Trata
+ * erro sem vazar nada. Não lança: falha vira um RESULTADO.
+ *
+ * @param {{ chave: string, justificativa: string, nSeqEvento?: number }} p
+ * @returns {Promise<{status: "cancelada"|"autorizada"|"sem_chave"|"erro",
+ *   cStat?: string|null, xMotivo?: string|null, detalhe?: string|null}>}
+ */
+export async function cancelarDocumentoFiscal({ chave, justificativa, nSeqEvento } = {}) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      return { status: "erro", detalhe: "Sessão expirada." };
+    }
+
+    const res = await fetch(EDGE_URL_CANCELAR, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ chave, justificativa, nSeqEvento }),
+    });
+
+    const json = await res.json().catch(() => ({}));
+    // "cancelada" = sucesso; "autorizada" = evento rejeitado (nota segue
+    // valendo); "sem_chave" = falta certificado; senão "erro".
+    const status = json?.status;
+    const conhecido = ["cancelada", "autorizada", "sem_chave"].includes(status);
+    return {
+      status: res.ok && conhecido ? status : "erro",
+      cStat: json?.cStat ?? null,
+      xMotivo: json?.xMotivo ?? null,
+      detalhe: json?.detalhe ?? json?.error ?? null,
+    };
+  } catch (err) {
+    return { status: "erro", detalhe: err?.message ?? "Falha ao cancelar NFC-e." };
   }
 }
 
