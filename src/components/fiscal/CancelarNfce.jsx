@@ -22,20 +22,31 @@ const JUST_MAX = 255;
  * vive na Edge; o front só manda chave + justificativa e aguarda o desfecho.
  *
  * Entregue como unidade reutilizável (como o BotaoReimprimirNfce): monta na
- * futura tela de histórico/detalhe da venda — não forçada numa tela inadequada.
+ * tela de histórico/detalhe da venda — não forçada numa tela inadequada.
  *
- * @param {{ venda: { id?: string }, className?: string, onCancelada?: () => void }} props
+ * Numa LISTA (histórico, Leva 12), passe `registroInicial` (a linha que a lista
+ * já tem) para EVITAR N+1 — pula o fetch da nota por venda. Sem a prop, mantém
+ * o comportamento original (busca por `venda.id`).
+ *
+ * @param {{ venda: { id?: string }, className?: string, onCancelada?: () => void, registroInicial?: object }} props
  */
-export default function CancelarNfce({ venda, className = "", onCancelada }) {
+export default function CancelarNfce({ venda, className = "", onCancelada, registroInicial }) {
   const vendaId = venda?.id ?? null;
-  const [carregando, setCarregando] = useState(true);
-  const [registro, setRegistro] = useState(null);
+  const temRegistroInicial = registroInicial !== undefined;
+  const [carregando, setCarregando] = useState(!temRegistroInicial);
+  const [registro, setRegistro] = useState(registroInicial ?? null);
   const [abrirForm, setAbrirForm] = useState(false);
   const [justificativa, setJustificativa] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
 
   useEffect(() => {
+    // Registro veio pronto da lista (Leva 12) — não busca (evita N+1).
+    if (temRegistroInicial) {
+      setRegistro(registroInicial ?? null);
+      setCarregando(false);
+      return;
+    }
     let ativo = true;
     setCarregando(true);
     buscarNfcePorVenda(vendaId).then(({ data }) => {
@@ -44,7 +55,7 @@ export default function CancelarNfce({ venda, className = "", onCancelada }) {
       setCarregando(false);
     });
     return () => { ativo = false; };
-  }, [vendaId]);
+  }, [vendaId, temRegistroInicial, registroInicial]);
 
   if (carregando) {
     return (

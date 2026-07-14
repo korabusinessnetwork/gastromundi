@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { LuPrinter, LuClock, LuCircleX, LuLoaderCircle } from "react-icons/lu";
 import { buscarNfcePorVenda } from "@/lib/nfceEmitidasRepo";
+import { buscarVendaCompleta } from "@/lib/vendasRepo";
 import { podeReimprimir, montarResultadoReimpressao, descreverEstadoReimpressao } from "@/lib/nfceReimpressao";
 import ModalCupomNfce from "./ModalCupomNfce";
 import "./BotaoReimprimirNfce.css";
@@ -21,22 +22,40 @@ import "./BotaoReimprimirNfce.css";
  * Reuso: monta o `resultado` da nota guardada (montarResultadoReimpressao) e
  * entrega a <ModalCupomNfce> em 'concluido' — o mesmo componente da Leva 7.
  *
+ * Numa LISTA (histórico, Leva 12), passe `registroInicial` (a linha que a lista
+ * já tem) para EVITAR N+1 — o componente pula o fetch da nota por venda. Sem a
+ * prop, mantém o comportamento original (busca por `venda.id`). E como a lista
+ * não traz os itens da venda, os itens/pagamentos para remontar a DANFE são
+ * carregados SOB DEMANDA (ao clicar em "Reimprimir"), nunca eager por linha.
+ *
  * FRONTEIRA DE SEGREDO intacta: só campos públicos (chave, protocolo,
  * urlQrCode já hasheada). Nunca toca em certificado/CSC.
  *
  * @param {{
  *   venda: { id?: string, items?: Array, pagamentos?: Array, dest?: object },
- *   emit?: object|null,   // identidade do emitente (config do tenant)
+ *   emit?: object|null,          // identidade do emitente (config do tenant)
+ *   registroInicial?: object,    // linha de nfce_emitidas já carregada (evita N+1)
  *   className?: string,
  * }} props
  */
-export default function BotaoReimprimirNfce({ venda, emit = null, className = "" }) {
+export default function BotaoReimprimirNfce({ venda, emit = null, registroInicial, className = "" }) {
   const vendaId = venda?.id ?? null;
-  const [carregando, setCarregando] = useState(true);
-  const [registro, setRegistro] = useState(null);
+  const temRegistroInicial = registroInicial !== undefined;
+  const [carregando, setCarregando] = useState(!temRegistroInicial);
+  const [registro, setRegistro] = useState(registroInicial ?? null);
   const [modalAberta, setModalAberta] = useState(false);
+  const [abrindo, setAbrindo] = useState(false);
+  // Venda completa (itens/pagamentos) usada no cupom — pode ser a prop `venda`
+  // (quando já vem com itens) ou a carregada sob demanda a partir do venda_id.
+  const [vendaCupom, setVendaCupom] = useState(null);
 
   useEffect(() => {
+    // Registro veio pronto da lista (Leva 12) — não busca (evita N+1).
+    if (temRegistroInicial) {
+      setRegistro(registroInicial ?? null);
+      setCarregando(false);
+      return;
+    }
     let ativo = true;
     setCarregando(true);
     buscarNfcePorVenda(vendaId).then(({ data }) => {
@@ -45,7 +64,7 @@ export default function BotaoReimprimirNfce({ venda, emit = null, className = ""
       setCarregando(false);
     });
     return () => { ativo = false; };
-  }, [vendaId]);
+  }, [vendaId, temRegistroInicial, registroInicial]);
 
   if (carregando) {
     return (
@@ -73,21 +92,44 @@ export default function BotaoReimprimirNfce({ venda, emit = null, className = ""
 
   const resultado = montarResultadoReimpressao(registro, { emit });
 
+  // A venda já tem itens? usa direto. Senão, carrega SOB DEMANDA (ao clicar)
+  // a partir do venda_id — evita N buscas de venda ao abrir a lista.
+  const temItens = Array.isArray(venda?.items) && venda.items.length > 0;
+  const idVendaCupom = venda?.id ?? registro?.venda_id ?? null;
+
+  const abrirCupom = async () => {
+    if (temItens || !idVendaCupom) {
+      setVendaCupom(venda ?? null);
+      setModalAberta(true);
+      return;
+    }
+    setAbrindo(true);
+    const { data } = await buscarVendaCompleta(idVendaCupom);
+    setAbrindo(false);
+    // Sem a venda (apagada/sem itens): abre mesmo assim — a modal mostra o
+    // estado humano em vez de quebrar.
+    setVendaCupom(data ?? venda ?? null);
+    setModalAberta(true);
+  };
+
   return (
     <>
       <button
         type="button"
         className={`reimprimir-nfce reimprimir-nfce__botao ${className}`}
-        onClick={() => setModalAberta(true)}
+        onClick={abrirCupom}
+        disabled={abrindo}
       >
-        <LuPrinter size={16} /> Reimprimir cupom
+        {abrindo
+          ? (<><LuLoaderCircle size={16} className="reimprimir-nfce__spinner" /> Abrindo…</>)
+          : (<><LuPrinter size={16} /> Reimprimir cupom</>)}
       </button>
 
       {modalAberta && createPortal(
         <ModalCupomNfce
           estadoEmissao="concluido"
           resultado={resultado}
-          venda={venda}
+          venda={vendaCupom ?? venda}
           onFechar={() => setModalAberta(false)}
         />,
         document.body,

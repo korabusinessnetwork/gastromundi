@@ -17,6 +17,7 @@ import FinanceiroPage     from "@/pages/desktop/FinanceiroPage";
 import CozinhaPage        from "@/pages/desktop/CozinhaPage";
 import AdminPage          from "@/pages/desktop/AdminPage";
 import ClientesPage       from "@/pages/desktop/ClientesPage";
+import HistoricoNfcePage  from "@/pages/desktop/HistoricoNfcePage";
 import ConsolePage        from "@/pages/console/ConsolePage";
 import MODULOS from "@/constants/modulos";
 
@@ -139,6 +140,16 @@ const router = createBrowserRouter([
         element: (
           <PrivateRoute requiredPermission="configuracoes">
             <AdminPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        // Histórico fiscal — consulta do gestor (reimpressão/cancelamento),
+        // fora do fluxo do caixa (Leva 12).
+        path: "notas-fiscais",
+        element: (
+          <PrivateRoute requiredPermission="relatorio">
+            <HistoricoNfcePage />
           </PrivateRoute>
         ),
       },

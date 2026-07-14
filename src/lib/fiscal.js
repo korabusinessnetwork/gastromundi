@@ -140,6 +140,39 @@ export async function cancelarDocumentoFiscal({ chave, justificativa, nSeqEvento
 }
 
 /**
+ * Lê a identidade do EMITENTE (config fiscal do tenant) para o cabeçalho do
+ * cupom na reimpressão do histórico (Leva 12). A RLS (20260731) isola o tenant.
+ *
+ * FRONTEIRA DE SEGREDO: seleciona SÓ colunas públicas (razão social, CNPJ,
+ * endereço). Nunca lê certificado nem CSC — o valor do CSC nem existe nesta
+ * tabela (vive no Vault/Deno.env). Nunca lança: falha vira `null`.
+ *
+ * @returns {Promise<object|null>} emit no shape que <ModalCupomNfce> consome
+ */
+export async function buscarEmitenteFiscal() {
+  try {
+    const { data, error } = await supabase
+      .from("tenant_fiscal_config")
+      .select("cnpj, ie, razao_social, nome_fantasia, logradouro, numero_end, bairro, municipio, uf")
+      .maybeSingle();
+    if (error || !data) return null;
+    return {
+      xNome: data.razao_social ?? "",
+      xFant: data.nome_fantasia ?? "",
+      cnpj: data.cnpj ?? "",
+      ie: data.ie ?? "",
+      xLgr: data.logradouro ?? "",
+      nro: data.numero_end ?? "",
+      xBairro: data.bairro ?? "",
+      xMun: data.municipio ?? "",
+      uf: data.uf ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Registra o desfecho como evento (Jarvas/Event Bus) — fire-and-forget,
  * observabilidade sem bloquear — e devolve o resultado inalterado.
  */

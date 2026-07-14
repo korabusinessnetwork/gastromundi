@@ -16,7 +16,7 @@ import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
   LuHistory, LuX, LuUser, LuArrowLeft, LuShieldAlert, LuWallet, LuChefHat, LuUsers,
-  LuSparkles,
+  LuSparkles, LuFileText,
 } from "react-icons/lu";
 
 const NAV_ICONS = {
@@ -27,6 +27,7 @@ const NAV_ICONS = {
   "/app/financeiro":    LuWallet,
   "/app/cozinha":       LuChefHat,
   "/app/clientes":      LuUsers,
+  "/app/notas-fiscais": LuFileText,
   "/app/configuracoes": LuSettings,
   "/app/admin":         LuBriefcase,
 };
@@ -81,10 +82,11 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
   ].filter(item => currentUser?.permissions?.[item.perm] || item.extra);
 
   const bottomItems = [
-    { to: "/app/estoque",       label: "Estoque",        perm: "estoque",       modulo: MODULOS.ESTOQUE    },
-    { to: "/app/financeiro",    label: "Financeiro",     perm: "financeiro",    modulo: MODULOS.FINANCEIRO },
-    { to: "/app/admin",         label: "Área Admin",     perm: "configuracoes" },
-    { to: "/app/configuracoes", label: "Configurações",  perm: "configuracoes" },
+    { to: "/app/estoque",       label: "Estoque",         perm: "estoque",       modulo: MODULOS.ESTOQUE    },
+    { to: "/app/financeiro",    label: "Financeiro",      perm: "financeiro",    modulo: MODULOS.FINANCEIRO },
+    { to: "/app/notas-fiscais", label: "Notas Fiscais",   perm: "relatorio" },
+    { to: "/app/admin",         label: "Área Admin",      perm: "configuracoes" },
+    { to: "/app/configuracoes", label: "Configurações",   perm: "configuracoes" },
   ].filter(item => currentUser?.permissions?.[item.perm]);
 
   // Fase 2 (ADR-005) — gating por plano: item com permissão de papel OK mas
