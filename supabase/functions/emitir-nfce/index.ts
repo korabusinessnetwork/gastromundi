@@ -37,17 +37,16 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-// node-forge: PKCS#12 (.pfx) + RSA-SHA1 — pura, roda no Deno. É a ÚNICA
-// peça que toca no segredo (chave privada), e vive só aqui na Edge.
-import forge from "https://esm.sh/node-forge@1.3.1";
 // Núcleo PURO e testado, reaproveitado do front (mesma verdade fiscal):
 import { montarXmlNfce } from "../../../src/lib/nfceXml.js";
 import { montarQrCodeNfce, montarQrCodeNfceContingencia } from "../../../src/lib/nfceQrCode.js";
 import { montarItemFiscal } from "../../../src/lib/nfceItemFiscal.js";
-import { digestInfNfe, assinarInfNfe } from "../../../src/lib/nfceAssinatura.js";
-import { montarEnvelopeEnviNfe, interpretarRetornoSefaz } from "../../../src/lib/nfceSoap.js";
+import { digestInfNfe } from "../../../src/lib/nfceAssinatura.js";
 import { montarRegistroNfceEmitida } from "../../../src/lib/nfceRegistro.js";
 import { montarNotaPendenteTransmissao } from "../../../src/lib/nfceContingencia.js";
+// Transmissão à SEFAZ (assina + TLS mútuo com o A1) — compartilhada com o
+// worker de reenvio (reenviar-nfce). As ÚNICAS funções que tocam no segredo.
+import { assinarXmlDSig, transmitirSefazRS } from "../_shared/nfceTransmissao.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -347,107 +346,6 @@ function extrairCamposContingencia(xml: string): { dhEmi: string; vNF: string; v
   const vNF = totais.match(/<vNF>([^<]+)<\/vNF>/)?.[1] ?? "";
   const vICMS = totais.match(/<vICMS>([^<]+)<\/vICMS>/)?.[1] ?? "";
   return { dhEmi, vNF, vICMS };
-}
-
-/**
- * Abre o PKCS#12 (.pfx base64) com a senha e extrai a chave privada e o
- * certificado X509. É a ÚNICA função que toca no SEGREDO (chave privada);
- * o resultado NUNCA sai da Edge nem vai para log.
- */
-function abrirCertificadoA1(certBase64: string, certSenha: string) {
-  const der = forge.util.decode64(certBase64);
-  const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(der), certSenha);
-  let privateKey: unknown = null;
-  let certificate: unknown = null;
-  for (const sc of p12.safeContents) {
-    for (const bag of sc.safeBags) {
-      if (bag.key) privateKey = bag.key;
-      if (bag.cert) certificate = bag.cert;
-    }
-  }
-  if (!privateKey || !certificate) {
-    throw new Error("Certificado A1 inválido: PKCS#12 sem chave privada ou sem certificado.");
-  }
-  return { privateKey, certificate };
-}
-
-/**
- * Assina o <infNFe> (XML-DSig enveloped, RSA-SHA1) com o certificado A1 e
- * insere o <infNFeSupl> (QR) + a <Signature>. O núcleo puro (nfceAssinatura)
- * canoniza e monta a estrutura; o RSA-sign com a chave privada acontece SÓ
- * aqui, no callback — a chave nunca entra em src/lib.
- *
- * ⟵ PLUG A CHAVE: roda quando NFCE_CERT_A1_BASE64/SENHA existirem (passo 4
- *    já barra a execução sem segredo). Com o certificado de TESTE o fluxo é
- *    idêntico; com o A1 real, valida em homologação.
- */
-async function assinarXmlDSig(
-  xml: string,
-  { certBase64, certSenha, infNFeSupl }: { certBase64: string; certSenha: string; infNFeSupl: string },
-): Promise<{ xmlAssinado: string; digestValue: string }> {
-  const { privateKey, certificate } = abrirCertificadoA1(certBase64, certSenha);
-  const certX509Base64 = forge.util.encode64(
-    forge.asn1.toDer(forge.pki.certificateToAsn1(certificate)).getBytes(),
-  );
-  // Callback injetado: RSA-SHA1 do SignedInfo canonizado. Não loga nada.
-  const assinarSignedInfo = (signedInfoC14n: string) => {
-    const md = forge.md.sha1.create();
-    md.update(signedInfoC14n, "utf8");
-    return {
-      signatureValue: forge.util.encode64((privateKey as { sign: (m: unknown) => string }).sign(md)),
-      certificadoX509Base64: certX509Base64,
-    };
-  };
-  return await assinarInfNfe(xml, { assinarSignedInfo, infNFeSupl });
-}
-
-/**
- * Transmite o XML assinado à SEFAZ-RS (NFeAutorizacao4, síncrono) por SOAP
- * sobre TLS MÚTUO com o mesmo certificado A1, e interpreta o retorno.
- *
- * ⟵ PLUG A CHAVE: o handshake TLS com o A1 real só roda em homologação. O
- *    envelope e a leitura do retorno (nfceSoap) já são puros e testados;
- *    aqui é só a rede autenticada pelo certificado.
- */
-async function transmitirSefazRS(
-  xmlAssinado: string,
-  { urlAutorizacao, certBase64, certSenha }: { urlAutorizacao: string; certBase64: string; certSenha: string },
-): Promise<{ autorizada: boolean; cStat: string | null; xMotivo: string | null; protocolo: string | null; nfeProc: string | null }> {
-  if (!urlAutorizacao) throw new Error("URL de autorização da SEFAZ ausente na configuração do tenant.");
-
-  const envelope = montarEnvelopeEnviNfe({
-    xmlAssinado,
-    idLote: Date.now().toString().slice(-15), // lote numérico único
-    indSinc: 1,
-  });
-
-  // TLS mútuo: o A1 (em PEM) autentica o cliente no handshake com a SEFAZ.
-  const { privateKey, certificate } = abrirCertificadoA1(certBase64, certSenha);
-  const keyPem = forge.pki.privateKeyToPem(privateKey);
-  const certPem = forge.pki.certificateToPem(certificate);
-
-  // Deno.createHttpClient({ cert, key }) faz o TLS mútuo (API do runtime da
-  // Edge). Casteado porque o tipo é do Deno, não do TS do editor.
-  const client = (globalThis as { Deno?: { createHttpClient: (o: unknown) => unknown } })
-    .Deno!.createHttpClient({ cert: certPem, key: keyPem });
-
-  const resp = await fetch(urlAutorizacao, {
-    method: "POST",
-    // @ts-ignore client é opção específica do Deno fetch
-    client,
-    headers: { "Content-Type": "application/soap+xml; charset=utf-8" },
-    body: envelope,
-  });
-  const textoResposta = await resp.text();
-
-  const retorno = interpretarRetornoSefaz(textoResposta, { xmlAssinado });
-  return {
-    autorizada: retorno.autorizada,
-    cStat: retorno.cStat,
-    xMotivo: retorno.xMotivo,
-    protocolo: retorno.protocolo,
-    nfeProc: retorno.nfeProc, // documento final autorizado (persistência = próxima leva)
-  };
 }
 
 /**

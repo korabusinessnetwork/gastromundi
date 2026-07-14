@@ -1,0 +1,50 @@
+/* Reimpressão do cupom NFC-e (Leva 9). Estilos separados do JSX (decisão 018). */
+
+.reimprimir-nfce {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Botão ativo — ação principal quando há nota autorizada. */
+.reimprimir-nfce__botao {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gm-border, #d0d3d9);
+  background: var(--gm-surface, #fff);
+  color: var(--gm-text, #1a1a1a);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.reimprimir-nfce__botao:hover {
+  border-color: var(--gm-accent, #2f6fed);
+  color: var(--gm-accent, #2f6fed);
+  background: var(--gm-alow, rgba(47, 111, 237, 0.08));
+}
+
+/* Estados humanos (não-clicáveis) — informam, não frustram. */
+.reimprimir-nfce--estado,
+.reimprimir-nfce--carregando {
+  color: var(--gm-muted, #6b7280);
+  font-weight: 500;
+}
+
+.reimprimir-nfce--pendente {
+  color: var(--gm-amber, #b8860b);
+}
+
+.reimprimir-nfce--rejeitada {
+  color: var(--gm-red, #d02e2e);
+}
+
+.reimprimir-nfce__spinner {
+  animation: reimprimir-nfce-girar 0.9s linear infinite;
+}
+
+@keyframes reimprimir-nfce-girar {
+  to { transform: rotate(360deg); }
+}
