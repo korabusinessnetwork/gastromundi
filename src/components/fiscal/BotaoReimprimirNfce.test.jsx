@@ -7,6 +7,13 @@ vi.mock("@/lib/nfceEmitidasRepo", () => ({
   buscarNfcePorVenda: (...a) => buscarNfcePorVenda(...a),
 }));
 
+// vendasRepo puxa o supabase.js real (que exige .env.local no import) — mockar
+// para a suíte rodar sem ambiente. Só é chamado na carga sob demanda da venda.
+const buscarVendaCompleta = vi.fn().mockResolvedValue({ data: null, error: null });
+vi.mock("@/lib/vendasRepo", () => ({
+  buscarVendaCompleta: (...a) => buscarVendaCompleta(...a),
+}));
+
 import BotaoReimprimirNfce from "./BotaoReimprimirNfce";
 
 const CHAVE = "43260712345678000195650010000000011000000017";

@@ -19,9 +19,11 @@ const COLUNAS_REIMPRESSAO =
 
 // Colunas da LISTA do histórico (Leva 12). Sem `xml` (documento pesado) e sem
 // `select *`: só o que a tela mostra por linha. `numero`/`serie` identificam a
-// nota; `v_nf` é o valor total; `dh_emi` a data fiscal.
+// nota; `v_nf` é o valor total; `dh_emi` a data fiscal. `tp_emis`/`url_qrcode`
+// são necessários para a reimpressão via `registroInicial` remontar o cupom
+// COM o QR Code (obrigatório no DANFE) — mesmo conjunto de COLUNAS_REIMPRESSAO.
 const COLUNAS_LISTA =
-  "id, venda_id, chave, numero, serie, status, tp_amb, protocolo, v_nf, dh_emi, created_at";
+  "id, venda_id, chave, numero, serie, status, tp_amb, tp_emis, protocolo, v_nf, dh_emi, url_qrcode, created_at";
 
 // Página padrão do histórico — pequena para caber no balcão sem rolar demais.
 const TAMANHO_PAGINA_PADRAO = 20;
