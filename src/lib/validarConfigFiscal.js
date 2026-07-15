@@ -109,7 +109,7 @@ export function validarConfigFiscal(campos = {}) {
 
   // ── Endpoints da SEFAZ ───────────────────────────────────────────
   const ligada = c.ativo === true || c.ativo === "true";
-  for (const campo of ["url_autorizacao", "url_qrcode", "url_recepcao_evento"]) {
+  for (const campo of ["url_autorizacao", "url_qrcode", "url_recepcao_evento", "url_inutilizacao"]) {
     const v = texto(c[campo]);
     if (!v) {
       if (ligada) erros[campo] = "Necessário para ativar a emissão fiscal.";

@@ -6,6 +6,7 @@ import {
 } from "react-icons/lu";
 import { buscarConfigFiscal, salvarConfigFiscal } from "@/lib/fiscalConfigRepo";
 import { validarConfigFiscal } from "@/lib/validarConfigFiscal";
+import InutilizarNumeracao from "./InutilizarNumeracao";
 import "./PainelFiscal.css";
 
 /**
@@ -53,6 +54,7 @@ const CAMPOS_ENDPOINTS = [
   { chave: "url_autorizacao", label: "URL de autorização (NFeAutorizacao4)" },
   { chave: "url_qrcode", label: "URL de consulta do QR Code" },
   { chave: "url_recepcao_evento", label: "URL de recepção de evento (cancelamento)" },
+  { chave: "url_inutilizacao", label: "URL de inutilização de numeração" },
 ];
 
 const REGIMES = [
@@ -151,6 +153,7 @@ export default function PainelFiscal() {
   }
 
   return (
+    <>
     <form className="painel-fiscal" onSubmit={handleSalvar} noValidate>
       <header className="painel-fiscal__cabecalho">
         <h1 className="painel-fiscal__titulo">
@@ -328,6 +331,13 @@ export default function PainelFiscal() {
         document.body,
       )}
     </form>
+
+    {/* Inutilização de numeração — ação fiscal rara e deliberada de gestor,
+        que usa a mesma série já configurada acima. Seção separada e com tom de
+        aviso: é sobre números NÃO emitidos, não pertence ao histórico de notas
+        nem ao fluxo do caixa. */}
+    <InutilizarNumeracao serieAtual={campos.serie} />
+    </>
   );
 }
 
@@ -397,5 +407,6 @@ function montarPayload(c) {
     url_qrcode: ouNull(c.url_qrcode),
     url_autorizacao: ouNull(c.url_autorizacao),
     url_recepcao_evento: ouNull(c.url_recepcao_evento),
+    url_inutilizacao: ouNull(c.url_inutilizacao),
   };
 }

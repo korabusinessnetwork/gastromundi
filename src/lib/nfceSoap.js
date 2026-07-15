@@ -18,6 +18,9 @@ const WSDL_NS = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeAutorizacao4";
 // Serviço de EVENTOS (cancelamento — Leva 10). Serviço distinto do de
 // autorização: recepção de evento tem seu próprio WSDL/namespace.
 const WSDL_EVENTO_NS = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeRecepcaoEvento4";
+// Serviço de INUTILIZAÇÃO de numeração (Leva 11). Também distinto: tem seu
+// próprio WSDL/namespace e a mensagem é o próprio <inutNFe> (sem wrapper).
+export const WSDL_INUT_NS = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeInutilizacao4";
 
 /**
  * Monta o envelope SOAP 1.2 do NFeAutorizacao4 com o <enviNFe> síncrono.
@@ -181,4 +184,73 @@ export function interpretarRetornoEvento(xmlResposta, { xmlEventoAssinado, versa
   }
 
   return { registrado, cStat, xMotivo, protocoloEvento: nProt, procEventoNFe };
+}
+
+// ── Inutilização de numeração (Leva 11) ────────────────────────────────
+
+/**
+ * Monta o envelope SOAP 1.2 do NFeInutilizacao4. Diferente do enviNFe/envEvento,
+ * a inutilização NÃO tem wrapper (tipo enviNFe/envEvento): a mensagem é o
+ * PRÓPRIO <inutNFe> assinado, direto dentro do nfeDadosMsg.
+ *
+ * @param {{ xmlInutAssinado:string, versao?:string }} p
+ * @returns {string} envelope SOAP pronto para POST no webservice de inutilização
+ */
+export function montarEnvelopeInutilizacao({ xmlInutAssinado, versao = "4.00" }) {
+  const inut = String(xmlInutAssinado ?? "").trim();
+  if (!/^<inutNFe[\s>]/.test(inut)) {
+    throw new Error("Envelope inutNFe exige o XML da inutilização assinada (<inutNFe>…</inutNFe>).");
+  }
+  // `versao` documenta o leiaute (4.00) — o número já vive dentro do <inutNFe>.
+  void versao;
+
+  return (
+    `<?xml version="1.0" encoding="UTF-8"?>` +
+    `<soap12:Envelope xmlns:soap12="${SOAP_NS}">` +
+    `<soap12:Body>` +
+    `<nfeDadosMsg xmlns="${WSDL_INUT_NS}">` +
+    inut +
+    `</nfeDadosMsg>` +
+    `</soap12:Body>` +
+    `</soap12:Envelope>`
+  );
+}
+
+// cStat de SUCESSO da inutilização: 102 (Inutilização de número homologada).
+const CSTAT_INUT_HOMOLOGADA = new Set(["102"]);
+
+/**
+ * Interpreta o retorno do NFeInutilizacao4. O status mora no
+ * <retInutNFe><infInut> (cStat/xMotivo/nProt); na ausência dele, cai no
+ * cStat/xMotivo do próprio corpo.
+ *
+ * Quando homologada e o inutNFe assinado é fornecido, monta o <procInutNFe>
+ * (inutNFe assinado + retInutNFe) — o documento DURÁVEL da inutilização.
+ *
+ * @param {string} xmlResposta corpo da resposta da SEFAZ
+ * @param {{ xmlInutAssinado?:string, versao?:string }} [opts]
+ * @returns {{ homologada:boolean, cStat:string|null, xMotivo:string|null,
+ *   protocolo:string|null, procInutNFe:string|null }}
+ */
+export function interpretarRetornoInutilizacao(xmlResposta, { xmlInutAssinado, versao = "4.00" } = {}) {
+  const retInut = tagBloco(xmlResposta, "retInutNFe");
+  const escopo = retInut ?? xmlResposta;
+
+  const cStat = tagTexto(escopo, "cStat") ?? tagTexto(xmlResposta, "cStat");
+  const xMotivo = tagTexto(escopo, "xMotivo") ?? tagTexto(xmlResposta, "xMotivo");
+  const nProt = retInut ? tagTexto(retInut, "nProt") : null;
+  const homologada = cStat != null && CSTAT_INUT_HOMOLOGADA.has(cStat);
+
+  let procInutNFe = null;
+  if (homologada && xmlInutAssinado && retInut) {
+    // procInutNFe = inutNFe assinado + retInutNFe (documento final).
+    procInutNFe =
+      `<?xml version="1.0" encoding="UTF-8"?>` +
+      `<procInutNFe versao="${versao}" xmlns="${NFE_NS}">` +
+      String(xmlInutAssinado).trim() +
+      retInut +
+      `</procInutNFe>`;
+  }
+
+  return { homologada, cStat, xMotivo, protocolo: nProt, procInutNFe };
 }

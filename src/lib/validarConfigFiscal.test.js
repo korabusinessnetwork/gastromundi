@@ -88,6 +88,7 @@ describe("validarConfigFiscal — obrigatórios e formatos", () => {
     expect(ligadoSemUrls.erros.url_autorizacao).toBeTruthy();
     expect(ligadoSemUrls.erros.url_qrcode).toBeTruthy();
     expect(ligadoSemUrls.erros.url_recepcao_evento).toBeTruthy();
+    expect(ligadoSemUrls.erros.url_inutilizacao).toBeTruthy();
 
     // Ligado com endpoints https válidos → ok.
     const ligadoOk = validarConfigFiscal({
@@ -95,6 +96,7 @@ describe("validarConfigFiscal — obrigatórios e formatos", () => {
       url_autorizacao: "https://nfce.sefazrs.rs.gov.br/ws/NFeAutorizacao/NFeAutorizacao4.asmx",
       url_qrcode: "https://www.sefaz.rs.gov.br/NFCE/NFCE-COM.aspx",
       url_recepcao_evento: "https://nfce.sefazrs.rs.gov.br/ws/recepcaoevento/recepcaoevento4.asmx",
+      url_inutilizacao: "https://nfce.sefazrs.rs.gov.br/ws/nfeinutilizacao/nfeinutilizacao4.asmx",
     });
     expect(ligadoOk.ok).toBe(true);
   });

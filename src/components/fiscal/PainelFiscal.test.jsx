@@ -10,6 +10,11 @@ vi.mock("@/lib/fiscalConfigRepo", () => ({
   buscarConfigFiscal: (...a) => buscarConfigFiscal(...a),
   salvarConfigFiscal: (...a) => salvarConfigFiscal(...a),
 }));
+// PainelFiscal embute <InutilizarNumeracao>, que importa @/lib/fiscal (→ supabase).
+// Mockamos para a suíte seguir hermética (sem .env.local).
+vi.mock("@/lib/fiscal", () => ({
+  inutilizarNumeracao: vi.fn().mockResolvedValue({ status: "inutilizada" }),
+}));
 
 import PainelFiscal from "./PainelFiscal";
 

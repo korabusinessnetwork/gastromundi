@@ -370,3 +370,25 @@ export async function assinarInfEvento(xml, { assinarSignedInfo } = {}) {
     inserirAssinatura: (x, signature) => String(x).replace("</evento>", `${signature}</evento>`),
   });
 }
+
+/**
+ * Assina o <infInut> da INUTILIZAÇÃO de numeração (Leva 11). Espelho exato de
+ * assinarInfEvento: mesma C14N 1.0 / RSA-SHA1; a Reference é o Id do infInut
+ * (#ID<41 dígitos>). A <Signature> entra DENTRO do <inutNFe>, após o </infInut>.
+ *
+ * @param {string} xml XML <inutNFe>…</inutNFe> não-assinado (montarXmlInutilizacao)
+ * @param {{ assinarSignedInfo: (signedInfoC14n:string) => Promise<{signatureValue:string, certificadoX509Base64:string}> }} deps
+ * @returns {Promise<{xmlAssinado:string, digestValue:string}>}
+ */
+export async function assinarInfInut(xml, { assinarSignedInfo } = {}) {
+  if (typeof assinarSignedInfo !== "function") {
+    throw new Error("assinarInfInut exige o callback assinarSignedInfo (injeta o RSA-sign com a chave).");
+  }
+  const referenceUri = `#${lerId(xml, "infInut")}`;
+  return assinarElemento(xml, {
+    tagAlvo: "infInut",
+    referenceUri,
+    assinarSignedInfo,
+    inserirAssinatura: (x, signature) => String(x).replace("</inutNFe>", `${signature}</inutNFe>`),
+  });
+}

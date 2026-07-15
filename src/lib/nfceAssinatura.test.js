@@ -26,9 +26,11 @@ import {
   montarAssinatura,
   assinarInfNfe,
   assinarInfEvento,
+  assinarInfInut,
 } from "./nfceAssinatura";
 import { montarXmlNfce } from "./nfceXml";
 import { montarXmlEventoCancelamento } from "./nfceEventoCancelamento";
+import { montarXmlInutilizacao } from "./nfceInutilizacao";
 
 const dir = fileURLToPath(new URL("./__fixtures__/", import.meta.url));
 const certPem = readFileSync(dir + "nfce-teste.cert.pem", "utf8");
@@ -193,5 +195,40 @@ describe("nfceAssinatura — assinarInfEvento (cancelamento, Leva 10)", () => {
       justificativa: "Cliente desistiu da compra e pediu o cancelamento.",
     });
     await expect(assinarInfEvento(xml, {})).rejects.toThrow(/assinarSignedInfo/);
+  });
+});
+
+describe("nfceAssinatura — assinarInfInut (inutilização, Leva 11)", () => {
+  it("assina o <infInut> (#ID…), com a Signature DENTRO do <inutNFe>", async () => {
+    const { xml, id } = montarXmlInutilizacao({
+      cnpj: "12345678000195", tpAmb: 2, serie: 1, nNFIni: 45, nNFFin: 48,
+      ano: 26, cUF: 43, justificativa: "Falha técnica pulou a numeração; faixa nunca emitida.",
+    });
+
+    let signedInfoAssinado;
+    const { xmlAssinado } = await assinarInfInut(xml, {
+      assinarSignedInfo: (si) => { signedInfoAssinado = si; return assinarComForge(si); },
+    });
+
+    // Reference aponta para o Id do infInut; Signature após </infInut>,
+    // ainda dentro de </inutNFe>.
+    expect(xmlAssinado).toContain(`URI="#${id}"`);
+    expect(xmlAssinado.indexOf("</infInut>")).toBeLessThan(xmlAssinado.indexOf("<Signature"));
+    expect(xmlAssinado.endsWith("</Signature></inutNFe>")).toBe(true);
+
+    // Corretude criptográfica: RSA-SHA1(SignedInfo) valida com a pública do cert.
+    const signatureValue = xmlAssinado.match(/<SignatureValue>([^<]+)<\/SignatureValue>/)[1];
+    const md = forge.md.sha1.create();
+    md.update(signedInfoAssinado, "utf8");
+    const ok = certificado.publicKey.verify(md.digest().bytes(), forge.util.decode64(signatureValue));
+    expect(ok).toBe(true);
+  });
+
+  it("exige o callback assinarSignedInfo", async () => {
+    const { xml } = montarXmlInutilizacao({
+      cnpj: "12345678000195", tpAmb: 2, serie: 1, nNFIni: 45, nNFFin: 48,
+      ano: 26, cUF: 43, justificativa: "Falha técnica pulou a numeração; faixa nunca emitida.",
+    });
+    await expect(assinarInfInut(xml, {})).rejects.toThrow(/assinarSignedInfo/);
   });
 });

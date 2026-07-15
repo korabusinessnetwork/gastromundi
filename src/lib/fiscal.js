@@ -28,6 +28,7 @@ import { montarVendaFiscal } from "./nfceVenda";
 
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/emitir-nfce`;
 const EDGE_URL_CANCELAR = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cancelar-nfce`;
+const EDGE_URL_INUTILIZAR = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/inutilizar-nfce`;
 
 /**
  * Emite o documento fiscal (NFC-e) de uma venda via Edge Function.
@@ -136,6 +137,49 @@ export async function cancelarDocumentoFiscal({ chave, justificativa, nSeqEvento
     };
   } catch (err) {
     return { status: "erro", detalhe: err?.message ?? "Falha ao cancelar NFC-e." };
+  }
+}
+
+/**
+ * Inutiliza uma FAIXA de numeração NFC-e (NFeInutilizacao4) via Edge Function
+ * `inutilizar-nfce`. Espelho de cancelarDocumentoFiscal: o gestor inicia e
+ * AGUARDA o desfecho (a UI mostra spinner + resultado). Não lança: falha vira
+ * um RESULTADO.
+ *
+ * @param {{ serie: number, nNFIni: number, nNFFin: number, justificativa: string, ano?: number }} p
+ * @returns {Promise<{status: "inutilizada"|"rejeitada"|"sem_chave"|"erro",
+ *   cStat?: string|null, xMotivo?: string|null, detalhe?: string|null}>}
+ */
+export async function inutilizarNumeracao({ serie, nNFIni, nNFFin, justificativa, ano } = {}) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      return { status: "erro", detalhe: "Sessão expirada." };
+    }
+
+    const res = await fetch(EDGE_URL_INUTILIZAR, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.access_token}`,
+        "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ serie, nNFIni, nNFFin, justificativa, ano }),
+    });
+
+    const json = await res.json().catch(() => ({}));
+    // "inutilizada" = sucesso; "rejeitada" = SEFAZ recusou; "sem_chave" = falta
+    // certificado; senão "erro".
+    const status = json?.status;
+    const conhecido = ["inutilizada", "rejeitada", "sem_chave"].includes(status);
+    return {
+      status: res.ok && conhecido ? status : "erro",
+      cStat: json?.cStat ?? null,
+      xMotivo: json?.xMotivo ?? null,
+      detalhe: json?.detalhe ?? json?.error ?? null,
+    };
+  } catch (err) {
+    return { status: "erro", detalhe: err?.message ?? "Falha ao inutilizar numeração." };
   }
 }
 

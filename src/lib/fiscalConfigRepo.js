@@ -29,7 +29,7 @@ const COLUNAS =
   "cnpj, ie, im, razao_social, nome_fantasia, crt, " +
   "uf, codigo_municipio, municipio, logradouro, numero_end, complemento, bairro, cep, fone, " +
   "ambiente, serie, csc_id, ativo, " +
-  "url_qrcode, url_autorizacao, url_recepcao_evento";
+  "url_qrcode, url_autorizacao, url_recepcao_evento, url_inutilizacao";
 
 // Allow-list explícito de escrita: SÓ estas chaves chegam ao banco. Qualquer
 // outra (inclusive tentativa de gravar certificado/CSC-valor/tenant_id) é
@@ -39,7 +39,7 @@ const CAMPOS_PERMITIDOS = [
   "uf", "codigo_municipio", "municipio", "logradouro", "numero_end",
   "complemento", "bairro", "cep", "fone",
   "ambiente", "serie", "csc_id", "ativo",
-  "url_qrcode", "url_autorizacao", "url_recepcao_evento",
+  "url_qrcode", "url_autorizacao", "url_recepcao_evento", "url_inutilizacao",
 ];
 
 /**

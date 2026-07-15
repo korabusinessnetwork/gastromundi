@@ -25,8 +25,10 @@ import {
   interpretarRetornoSefaz,
   montarEnvelopeEvento,
   interpretarRetornoEvento,
+  montarEnvelopeInutilizacao,
+  interpretarRetornoInutilizacao,
 } from "../../../src/lib/nfceSoap.js";
-import { assinarInfNfe, assinarInfEvento } from "../../../src/lib/nfceAssinatura.js";
+import { assinarInfNfe, assinarInfEvento, assinarInfInut } from "../../../src/lib/nfceAssinatura.js";
 
 /**
  * Abre o PKCS#12 (.pfx base64) com a senha e extrai a chave privada e o
@@ -74,6 +76,19 @@ export async function assinarEventoDSig(
 ): Promise<{ xmlAssinado: string; digestValue: string }> {
   const assinarSignedInfo = criarCallbackRsaSha1(certBase64, certSenha);
   return await assinarInfEvento(xml, { assinarSignedInfo });
+}
+
+/**
+ * Assina o <infInut> da INUTILIZAÇÃO de numeração (Leva 11) com o A1, reusando
+ * o MESMO callback RSA-SHA1 da NFe (a chave privada só entra no callback, aqui
+ * na Edge). Sem duplicar a lógica de assinatura.
+ */
+export async function assinarInutDSig(
+  xmlInut: string,
+  { certBase64, certSenha }: { certBase64: string; certSenha: string },
+): Promise<{ xmlAssinado: string; digestValue: string }> {
+  const assinarSignedInfo = criarCallbackRsaSha1(certBase64, certSenha);
+  return await assinarInfInut(xmlInut, { assinarSignedInfo });
 }
 
 /**
@@ -191,4 +206,45 @@ export async function transmitirEventoSefazRS(
   const textoResposta = await resp.text();
 
   return interpretarRetornoEvento(textoResposta, { xmlEventoAssinado });
+}
+
+/**
+ * Transmite a INUTILIZAÇÃO assinada à SEFAZ-RS (NFeInutilizacao4, síncrono) por
+ * SOAP sobre TLS MÚTUO com o mesmo A1, e interpreta o retorno. Devolve o
+ * procInutNFe (documento durável) quando homologada.
+ *
+ * SECRET BOUNDARY: certBase64/certSenha entram como parâmetro e nunca saem.
+ */
+export async function transmitirInutSefazRS(
+  xmlAssinado: string,
+  { urlInutilizacao, certBase64, certSenha }:
+    { urlInutilizacao: string; certBase64: string; certSenha: string },
+): Promise<{
+  homologada: boolean; cStat: string | null; xMotivo: string | null;
+  protocolo: string | null; procInutNFe: string | null;
+}> {
+  if (!urlInutilizacao) {
+    throw new Error("URL de inutilização da SEFAZ ausente na configuração do tenant.");
+  }
+
+  const envelope = montarEnvelopeInutilizacao({ xmlInutAssinado: xmlAssinado });
+
+  // TLS mútuo: o A1 (em PEM) autentica o cliente no handshake com a SEFAZ.
+  const { privateKey, certificate } = abrirCertificadoA1(certBase64, certSenha);
+  const keyPem = forge.pki.privateKeyToPem(privateKey);
+  const certPem = forge.pki.certificateToPem(certificate);
+
+  const client = (globalThis as { Deno?: { createHttpClient: (o: unknown) => unknown } })
+    .Deno!.createHttpClient({ cert: certPem, key: keyPem });
+
+  const resp = await fetch(urlInutilizacao, {
+    method: "POST",
+    // @ts-ignore client é opção específica do Deno fetch
+    client,
+    headers: { "Content-Type": "application/soap+xml; charset=utf-8" },
+    body: envelope,
+  });
+  const textoResposta = await resp.text();
+
+  return interpretarRetornoInutilizacao(textoResposta, { xmlInutAssinado: xmlAssinado });
 }

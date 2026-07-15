@@ -4,6 +4,8 @@ import {
   interpretarRetornoSefaz,
   montarEnvelopeEvento,
   interpretarRetornoEvento,
+  montarEnvelopeInutilizacao,
+  interpretarRetornoInutilizacao,
 } from "./nfceSoap";
 
 const NFE = '<NFe xmlns="http://www.portalfiscal.inf.br/nfe"><infNFe Id="NFe43260712345678000195650010000000011000000017"></infNFe><Signature></Signature></NFe>';
@@ -143,5 +145,57 @@ describe("nfceSoap — evento de cancelamento (Leva 10)", () => {
     expect(r.registrado).toBe(false);
     expect(r.cStat).toBe("573");
     expect(r.procEventoNFe).toBeNull();
+  });
+});
+
+describe("nfceSoap — inutilização de numeração (Leva 11)", () => {
+  const INUT =
+    '<inutNFe versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">' +
+    '<infInut Id="ID43261234567800019565001000000045000000048"></infInut>' +
+    "<Signature></Signature></inutNFe>";
+
+  it("montarEnvelopeInutilizacao monta o SOAP do NFeInutilizacao4 com o inutNFe direto (sem wrapper)", () => {
+    const env = montarEnvelopeInutilizacao({ xmlInutAssinado: INUT });
+    expect(env).toContain("soap12:Envelope");
+    expect(env).toContain('xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeInutilizacao4"');
+    expect(env).toContain(INUT);
+    // Sem wrapper: o inutNFe vem direto dentro do nfeDadosMsg (nada de enviNFe/envEvento).
+    expect(env).not.toContain("<enviNFe");
+    expect(env).not.toContain("<envEvento");
+  });
+
+  it("exige o inutNFe assinado", () => {
+    expect(() => montarEnvelopeInutilizacao({ xmlInutAssinado: "<foo/>" })).toThrow(/inutilização assinada/);
+  });
+
+  const RETORNO_OK =
+    '<retInutNFe versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe"><infInut>' +
+    "<cStat>102</cStat><xMotivo>Inutilização de número homologada</xMotivo>" +
+    "<nProt>143260000999999</nProt>" +
+    "</infInut></retInutNFe>";
+
+  it("lê cStat/xMotivo/nProt de dentro do retInutNFe", () => {
+    const r = interpretarRetornoInutilizacao(RETORNO_OK);
+    expect(r.homologada).toBe(true);
+    expect(r.cStat).toBe("102");
+    expect(r.xMotivo).toContain("homologada");
+    expect(r.protocolo).toBe("143260000999999");
+  });
+
+  it("monta o procInutNFe (inutNFe + retInutNFe) quando homologada", () => {
+    const r = interpretarRetornoInutilizacao(RETORNO_OK, { xmlInutAssinado: INUT });
+    expect(r.procInutNFe).toContain("<procInutNFe");
+    expect(r.procInutNFe).toContain(INUT);
+    expect(r.procInutNFe).toContain("<retInutNFe");
+  });
+
+  it("rejeição (ex.: 241): homologada=false, sem procInutNFe", () => {
+    const rej =
+      '<retInutNFe versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe"><infInut>' +
+      "<cStat>241</cStat><xMotivo>Um número da faixa já foi inutilizado</xMotivo></infInut></retInutNFe>";
+    const r = interpretarRetornoInutilizacao(rej, { xmlInutAssinado: INUT });
+    expect(r.homologada).toBe(false);
+    expect(r.cStat).toBe("241");
+    expect(r.procInutNFe).toBeNull();
   });
 });
