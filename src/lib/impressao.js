@@ -197,7 +197,29 @@ export function montarViaProducao({ pedido } = {}) {
     comanda: pedido?.comanda ?? null,
     mesa: pedido?.mesa ?? null,
     garcom: pedido?.garcom ?? null,
-    horario: pedido?.created_at ?? new Date().toISOString(),
+    // Horário de LANÇAMENTO (B1): mais recente launched_at entre os itens
+    // (última rodada enviada à produção). Fallback para created_at em
+    // comandas antigas cujos itens não têm launched_at.
+    horario: horarioLancamentoPedido(pedido),
     itens,
   };
+}
+
+/**
+ * Resolve o horário de lançamento de um pedido para a via de produção:
+ * o launched_at mais recente entre os itens (a última rodada enviada à
+ * cozinha). Cai para pedido.launched_at e depois created_at quando os
+ * itens não carregam o marco (comandas anteriores ao B1). Pura.
+ *
+ * @param {object} pedido
+ * @returns {string} timestamp ISO8601
+ */
+export function horarioLancamentoPedido(pedido) {
+  const marcos = (Array.isArray(pedido?.items) ? pedido.items : [])
+    .map((i) => i?.launched_at)
+    .filter(Boolean);
+  if (marcos.length > 0) {
+    return marcos.reduce((maisRecente, m) => (m > maisRecente ? m : maisRecente));
+  }
+  return pedido?.launched_at ?? pedido?.created_at ?? new Date().toISOString();
 }

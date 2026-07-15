@@ -205,7 +205,10 @@ export default function PDVView() {
         setSelected(ordem);
       }
       const anteriores = Array.isArray(ordem.items) ? ordem.items : [];
-      const novos      = cartItems.map(({ _key, ...rest }) => rest);
+      // launched_at por item — mesmo padrão do Palm (MobilePage handleLancar):
+      // é a fonte do horário de lançamento na via de produção (B1/F015).
+      const agora      = new Date().toISOString();
+      const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
       const acumulados = [...anteriores, ...novos];
       const total      = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
       await updatePending(ordem.id, { items: acumulados, total });
