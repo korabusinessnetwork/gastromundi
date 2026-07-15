@@ -8,7 +8,7 @@ import { gerarVariaveisTema, aplicarVariaveisTema } from "@/lib/tema";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
-import { mapearVendaParaLinhas } from "@/lib/vendas";
+import { mapearVendaParaLinhas, montarVendaLegada } from "@/lib/vendas";
 import { processarBaixaEstoque } from "@/lib/estoque";
 import { sanitizeInput } from "@/utils/crypto";
 import {
