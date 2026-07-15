@@ -34,7 +34,7 @@ um `METODOS_LABEL` fixo sem os métodos personalizados do estabelecimento.
 → deriva do id custom → fallback), aplicada em RelatorioView e DesempenhoReport,
 com teste.
 
-### 🔧 nº7 [MÉDIO/Financeiro] Conta que vence HOJE é marcada "vencida" no próprio dia
+### ✅ nº7 [MÉDIO/Financeiro] Conta que vence HOJE é marcada "vencida" no próprio dia
 `src/lib/financeiro.js` → `marcarVencidos`: compara `new Date(l.vencimento)`
 (string date-only → **meia-noite UTC**) com `hoje = new Date()` (agora local, com
 hora). Em BRT (UTC−3), uma conta com `vencimento` de hoje é lida como ontem
@@ -43,9 +43,10 @@ disparando o evento Jarvas `financeiro.conta.vencida` e um `UPDATE status='venci
 prematuro no banco. O teste `financeiro.test.js:82` ("não marca o que vence
 exatamente hoje") passa **só porque** injeta `hoje` como string date-only
 (meia-noite UTC), mascarando o caso real com `new Date()`.
-**Correção proposta:** comparar por **data de calendário** (YYYY-MM-DD), tratando
-`hoje` pela data local quando for `Date`, e adicionar um teste com `hoje = new Date(...)`
-com hora do dia para travar a regressão. Escopo pequeno, função pura.
+**Corrigido** (commit `87b6ca4`): novo helper `dataCalendario` compara por
+**data de calendário** (YYYY-MM-DD), usando os componentes **locais** quando `hoje`
+é `Date` (produção). Teste de regressão com `hoje = new Date(2026,6,15,14,30)`
+(hora do dia) trava o caso real que o teste antigo mascarava.
 
 ---
 
