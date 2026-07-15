@@ -106,5 +106,4 @@ Estes exigem exercitar o app logado — ficam com o dono:
 
 ---
 
-_Correções nº1/nº2/nº4 já estão na branch `claude/cowork-handoff-prompt-iidj49`.
-nº7 aguarda sinal verde pra corrigir._
+_Correções nº1/nº2/nº4/nº7 já estão na branch `claude/cowork-handoff-prompt-iidj49`._
