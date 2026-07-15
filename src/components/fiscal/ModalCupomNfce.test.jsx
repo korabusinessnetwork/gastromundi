@@ -54,6 +54,24 @@ describe("<ModalCupomNfce>", () => {
     expect(screen.getAllByText(/SEM VALOR FISCAL|PENDENTE DE AUTORIZAÇÃO/).length).toBeGreaterThan(0);
   });
 
+  it("status 'pendente' em contingência: renderiza o cupom + banner de aviso (Leva 14)", () => {
+    render(
+      <ModalCupomNfce
+        estadoEmissao="concluido"
+        resultado={resultado({
+          status: "pendente", contingencia: true, tpEmis: 9, chave: CHAVE, protocolo: null,
+          urlQrCode: `https://x/nfce?p=${CHAVE}|2|1|9|H`,
+        })}
+        venda={venda}
+        onFechar={() => {}}
+      />,
+    );
+    // Cupom válido (itens visíveis) + banner de contingência (aviso, não erro).
+    expect(screen.getByText("X-Salada")).toBeInTheDocument();
+    expect(screen.getByText(/Emitida em contingência/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Imprimir/i })).toBeInTheDocument();
+  });
+
   it("status 'erro': mensagem humana, sem tratar como falha da venda e sem Imprimir", () => {
     render(
       <ModalCupomNfce

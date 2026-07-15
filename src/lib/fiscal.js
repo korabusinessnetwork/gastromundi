@@ -71,8 +71,14 @@ export async function emitirDocumentoFiscal(venda, { usuario, tpEmis = 1 } = {})
     // exceção. O status desconhecido também cai em "erro" (fail-safe).
     const status = res.ok && json?.status ? json.status : "erro";
     const resultado = {
-      status: ["autorizada", "rejeitada", "sem_chave"].includes(status) ? status : "erro",
+      // "pendente" = emitida em contingência (cupom válido, transmite depois,
+      // Leva 14) — é um desfecho legítimo, NÃO um erro. Sem ele no whitelist a
+      // nota em contingência apareceria como "erro" (bug corrigido).
+      status: ["autorizada", "rejeitada", "sem_chave", "pendente"].includes(status) ? status : "erro",
       vendaId,
+      // Emitida em contingência offline: o cupom é válido e será transmitido
+      // quando a SEFAZ voltar. A modal usa isto para o banner de aviso.
+      contingencia: json?.contingencia ?? false,
       chave: json?.chave ?? null,
       protocolo: json?.protocolo ?? null,
       detalhe: json?.detalhe ?? json?.error ?? null,

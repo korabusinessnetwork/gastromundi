@@ -50,6 +50,21 @@
 .painel-fiscal__aviso strong { display: block; font-size: 14px; margin-bottom: 3px; }
 .painel-fiscal__aviso span { font-size: 13px; color: var(--gm-muted, #6b7280); }
 
+/* ── Estado de contingência (Leva 14) — só leitura, tom de aviso âmbar ── */
+.painel-fiscal__contingencia {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #f0c060;
+  background: rgba(240, 192, 96, 0.14);
+}
+
+.painel-fiscal__contingencia-icone { color: #b8860b; flex-shrink: 0; margin-top: 2px; }
+
+.painel-fiscal__contingencia strong { display: block; font-size: 14px; margin-bottom: 3px; color: #8a6608; }
+.painel-fiscal__contingencia span { font-size: 13px; color: var(--gm-muted, #6b7280); }
+
 /* ── Seções ──────────────────────────────────────────────────────── */
 .painel-fiscal__secao {
   border: 1px solid var(--gm-border, #d0d3d9);

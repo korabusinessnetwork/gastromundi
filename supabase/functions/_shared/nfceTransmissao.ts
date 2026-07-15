@@ -30,6 +30,50 @@ import {
 } from "../../../src/lib/nfceSoap.js";
 import { assinarInfNfe, assinarInfEvento, assinarInfInut } from "../../../src/lib/nfceAssinatura.js";
 
+// Timeout curto da chamada à SEFAZ (Leva 14). Parametrizável: em produção a
+// SEFAZ-RS costuma responder em poucos segundos; passar disso é sinal de
+// indisponibilidade — melhor ABORTAR e cair na contingência (o cupom sai na
+// hora) do que travar a venda esperando um serviço que caiu. ⟵ ajustar se a
+// latência real pedir.
+const TIMEOUT_SEFAZ_MS = 12000;
+
+/**
+ * POST SOAP à SEFAZ com TLS mútuo e TIMEOUT (AbortController). No estouro,
+ * abort() → o fetch rejeita e a exceção sobe ao try/catch do CHAMADOR como
+ * erro de transmissão → caminho de contingência (Leva 14). Centraliza o
+ * padrão dos três serviços (autorização/evento/inutilização) sem mudar a
+ * assinatura pública de nenhum deles.
+ */
+async function postSoapSefaz(
+  url: string,
+  envelope: string,
+  { certBase64, certSenha }: { certBase64: string; certSenha: string },
+): Promise<string> {
+  // TLS mútuo: o A1 (em PEM) autentica o cliente no handshake com a SEFAZ.
+  const { privateKey, certificate } = abrirCertificadoA1(certBase64, certSenha);
+  const keyPem = forge.pki.privateKeyToPem(privateKey);
+  const certPem = forge.pki.certificateToPem(certificate);
+
+  const client = (globalThis as { Deno?: { createHttpClient: (o: unknown) => unknown } })
+    .Deno!.createHttpClient({ cert: certPem, key: keyPem });
+
+  const controle = new AbortController();
+  const timer = setTimeout(() => controle.abort(), TIMEOUT_SEFAZ_MS);
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      // @ts-ignore client é opção específica do Deno fetch
+      client,
+      headers: { "Content-Type": "application/soap+xml; charset=utf-8" },
+      body: envelope,
+      signal: controle.signal,
+    });
+    return await resp.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Abre o PKCS#12 (.pfx base64) com a senha e extrai a chave privada e o
  * certificado X509. É a ÚNICA função que toca no SEGREDO (chave privada);
@@ -134,22 +178,7 @@ export async function transmitirSefazRS(
     indSinc: 1,
   });
 
-  // TLS mútuo: o A1 (em PEM) autentica o cliente no handshake com a SEFAZ.
-  const { privateKey, certificate } = abrirCertificadoA1(certBase64, certSenha);
-  const keyPem = forge.pki.privateKeyToPem(privateKey);
-  const certPem = forge.pki.certificateToPem(certificate);
-
-  const client = (globalThis as { Deno?: { createHttpClient: (o: unknown) => unknown } })
-    .Deno!.createHttpClient({ cert: certPem, key: keyPem });
-
-  const resp = await fetch(urlAutorizacao, {
-    method: "POST",
-    // @ts-ignore client é opção específica do Deno fetch
-    client,
-    headers: { "Content-Type": "application/soap+xml; charset=utf-8" },
-    body: envelope,
-  });
-  const textoResposta = await resp.text();
+  const textoResposta = await postSoapSefaz(urlAutorizacao, envelope, { certBase64, certSenha });
 
   const retorno = interpretarRetornoSefaz(textoResposta, { xmlAssinado });
   // dhRecbto vem do <infProt> do protocolo — carimbo real da SEFAZ.
@@ -188,22 +217,7 @@ export async function transmitirEventoSefazRS(
     idLote: Date.now().toString().slice(-15),
   });
 
-  // TLS mútuo: o A1 (em PEM) autentica o cliente no handshake com a SEFAZ.
-  const { privateKey, certificate } = abrirCertificadoA1(certBase64, certSenha);
-  const keyPem = forge.pki.privateKeyToPem(privateKey);
-  const certPem = forge.pki.certificateToPem(certificate);
-
-  const client = (globalThis as { Deno?: { createHttpClient: (o: unknown) => unknown } })
-    .Deno!.createHttpClient({ cert: certPem, key: keyPem });
-
-  const resp = await fetch(urlRecepcaoEvento, {
-    method: "POST",
-    // @ts-ignore client é opção específica do Deno fetch
-    client,
-    headers: { "Content-Type": "application/soap+xml; charset=utf-8" },
-    body: envelope,
-  });
-  const textoResposta = await resp.text();
+  const textoResposta = await postSoapSefaz(urlRecepcaoEvento, envelope, { certBase64, certSenha });
 
   return interpretarRetornoEvento(textoResposta, { xmlEventoAssinado });
 }
@@ -229,22 +243,7 @@ export async function transmitirInutSefazRS(
 
   const envelope = montarEnvelopeInutilizacao({ xmlInutAssinado: xmlAssinado });
 
-  // TLS mútuo: o A1 (em PEM) autentica o cliente no handshake com a SEFAZ.
-  const { privateKey, certificate } = abrirCertificadoA1(certBase64, certSenha);
-  const keyPem = forge.pki.privateKeyToPem(privateKey);
-  const certPem = forge.pki.certificateToPem(certificate);
-
-  const client = (globalThis as { Deno?: { createHttpClient: (o: unknown) => unknown } })
-    .Deno!.createHttpClient({ cert: certPem, key: keyPem });
-
-  const resp = await fetch(urlInutilizacao, {
-    method: "POST",
-    // @ts-ignore client é opção específica do Deno fetch
-    client,
-    headers: { "Content-Type": "application/soap+xml; charset=utf-8" },
-    body: envelope,
-  });
-  const textoResposta = await resp.text();
+  const textoResposta = await postSoapSefaz(urlInutilizacao, envelope, { certBase64, certSenha });
 
   return interpretarRetornoInutilizacao(textoResposta, { xmlInutAssinado: xmlAssinado });
 }

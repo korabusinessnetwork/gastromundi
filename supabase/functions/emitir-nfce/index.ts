@@ -44,6 +44,12 @@ import { montarItemFiscal } from "../../../src/lib/nfceItemFiscal.js";
 import { digestInfNfe } from "../../../src/lib/nfceAssinatura.js";
 import { montarRegistroNfceEmitida } from "../../../src/lib/nfceRegistro.js";
 import { montarNotaPendenteTransmissao } from "../../../src/lib/nfceContingencia.js";
+import {
+  decidirTpEmisInicial,
+  deveEntrarContingencia,
+  deveSairContingencia,
+  decidirDesfechoEmissao,
+} from "../../../src/lib/nfceContingenciaDecisao.js";
 // Transmissão à SEFAZ (assina + TLS mútuo com o A1) — compartilhada com o
 // worker de reenvio (reenviar-nfce). As ÚNICAS funções que tocam no segredo.
 import { assinarXmlDSig, transmitirSefazRS } from "../_shared/nfceTransmissao.ts";
@@ -79,7 +85,7 @@ Deno.serve(async (req: Request) => {
       .select(
         "tenant_id, ativo, ambiente, cnpj, ie, crt, uf, codigo_municipio, municipio, " +
           "logradouro, numero_end, bairro, cep, fone, razao_social, nome_fantasia, " +
-          "serie, proximo_numero, csc_id, url_qrcode, url_autorizacao",
+          "serie, proximo_numero, csc_id, url_qrcode, url_autorizacao, contingencia_ativa",
       )
       .single();
     if (cfgError || !config) {
@@ -97,11 +103,20 @@ Deno.serve(async (req: Request) => {
     // à venda para reimpressão (Leva 8). Ausente em reenvios avulsos.
     const vendaId = typeof body.vendaId === "string" ? body.vendaId : null;
 
-    // tpEmis parametrizável (Leva 4): 1 = emissão normal (online), 9 =
-    // CONTINGÊNCIA offline (cupom sai na hora, transmite depois). Só 1 ou 9
-    // são válidos — qualquer outro é erro de entrada (prevenção de erro).
-    const tpEmis = Number(body.tpEmis ?? 1);
-    if (tpEmis !== 1 && tpEmis !== 9) {
+    // tpEmis INICIAL (Leva 4/14): 1 = emissão normal (online), 9 =
+    // CONTINGÊNCIA offline (cupom sai na hora, transmite depois). A DECISÃO
+    // mora no servidor (núcleo puro): se o tenant já está em contingência (a
+    // SEFAZ caiu antes), sai direto em 9 — pula a tentativa online lenta a
+    // cada venda; senão normaliza o solicitado. Valor inválido → 400
+    // (prevenção de erro). `tpEmis` é `let` porque o auto-fallback (passo 10c)
+    // pode trocá-lo para 9 numa mesma emissão.
+    let tpEmis: 1 | 9;
+    try {
+      tpEmis = decidirTpEmisInicial({
+        contingenciaAtiva: Boolean(config.contingencia_ativa),
+        tpEmisSolicitado: body.tpEmis,
+      });
+    } catch {
       return json({ error: "tpEmis inválido (só 1 = normal ou 9 = contingência)." }, 400);
     }
 
@@ -213,113 +228,132 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Falha ao numerar a NFC-e.", detalhe: numError?.message }, 500);
     }
 
-    // ── 7. Monta o XML NÃO-ASSINADO (Leva 2 — puro, já testado) ───────
-    const { xml, chave } = montarXmlNfce(
-      montarEntradaXml({ config, venda: vendaFiscal, numero, codigoNumerico, tpAmb, tpEmis, dataEmissao }),
-    );
+    // ── 7–9. Monta (mesmo numero/dataEmissao/codigoNumerico) → digest → QR
+    // → assina. Extraído numa closure para ser REUSADO no auto-fallback
+    // (Leva 14): trocar tpEmis reconstrói XML/chave (o dígito tpEmis está na
+    // posição 35 da chave), mas o NÚMERO é reservado UMA vez (passo 6) e
+    // reaproveitado — nunca queima nNF nem cria nota duplicada.
+    const prepararDocumento = async (tpEmisAtual: 1 | 9) => {
+      const { xml, chave } = montarXmlNfce(
+        montarEntradaXml({ config, venda: vendaFiscal, numero, codigoNumerico, tpAmb, tpEmis: tpEmisAtual, dataEmissao }),
+      );
+      // DigestValue do infNFe (puro). Em contingência é o `digVal` do QR
+      // offline; por isso vem ANTES do QR (a assinatura cobre só o infNFe).
+      const { digestValue } = await digestInfNfe(xml);
 
-    // ── 8. DigestValue do infNFe (Leva 6 — puro). Insumo do QR offline. ──
-    // Em CONTINGÊNCIA (tpEmis=9) o QR precisa do `digVal` = DigestValue da
-    // assinatura. Como a assinatura cobre só o <infNFe> (enveloped) e o QR
-    // vai no <infNFeSupl> (irmão NÃO assinado), calculamos o digest do
-    // infNFe ANTES — ele é idêntico ao que a assinatura produz. Por isso, em
-    // contingência, o digest vem antes do QR (comentário explica a ordem).
-    const { digestValue } = await digestInfNfe(xml);
+      let urlQr: string;
+      if (tpEmisAtual === 9) {
+        const { dhEmi, vNF, vICMS } = extrairCamposContingencia(xml);
+        urlQr = await montarQrCodeNfceContingencia({
+          chave, tpAmb, idCsc: cscId, csc: cscValor!, urlConsulta: config.url_qrcode,
+          dhEmi, vNF, vICMS, digVal: digestValue,
+        });
+      } else {
+        urlQr = await montarQrCodeNfce({
+          chave, tpAmb, idCsc: cscId, csc: cscValor!, urlConsulta: config.url_qrcode,
+        });
+      }
 
-    // ── 8b. QR Code (Leva 3/6 — puro). CSC (segredo) como parâmetro. ──
-    // Online (tpEmis 1): forma com hash do CSC. Contingência (tpEmis 9):
-    // forma offline com dhEmi/vNF/vICMS/digVal antes do idCSC.
-    let urlQr: string;
-    if (tpEmis === 9) {
-      const { dhEmi, vNF, vICMS } = extrairCamposContingencia(xml);
-      urlQr = await montarQrCodeNfceContingencia({
-        chave, tpAmb, idCsc: cscId, csc: cscValor!, urlConsulta: config.url_qrcode,
-        dhEmi, vNF, vICMS, digVal: digestValue,
-      });
-    } else {
-      urlQr = await montarQrCodeNfce({
-        chave, tpAmb, idCsc: cscId, csc: cscValor!, urlConsulta: config.url_qrcode,
-      });
-    }
+      const infNFeSupl =
+        `<infNFeSupl><qrCode>${escaparXmlTexto(urlQr)}</qrCode>` +
+        `<urlChave>${escaparXmlTexto(config.url_qrcode)}</urlChave></infNFeSupl>`;
 
-    // ── 8c. <infNFeSupl> (qrCode + urlChave) — NÃO é assinado. ──
-    const infNFeSupl =
-      `<infNFeSupl><qrCode>${escaparXmlTexto(urlQr)}</qrCode>` +
-      `<urlChave>${escaparXmlTexto(config.url_qrcode)}</urlChave></infNFeSupl>`;
+      // ASSINA (XML-DSig, RSA-SHA1 com o A1). O RSA-sign com a chave privada
+      // acontece SÓ aqui dentro (secret boundary).
+      const { xmlAssinado } = await assinarXmlDSig(xml, { certBase64: certBase64!, certSenha: certSenha!, infNFeSupl });
+      const { vNF } = extrairCamposContingencia(xml);
+      return { xml, chave, urlQr, xmlAssinado, vNF };
+    };
 
-    // ── 9. ASSINA o XML (XML-DSig, RSA-SHA1 com o certificado A1) ──────
-    // O núcleo (Leva 6, puro) canoniza/monta a Signature; o RSA-sign com a
-    // chave privada acontece SÓ aqui dentro (secret boundary). Insere o
-    // infNFeSupl e a <Signature> na ordem correta.
-    const { xmlAssinado } = await assinarXmlDSig(xml, {
-      certBase64: certBase64!,
-      certSenha: certSenha!,
-      infNFeSupl,
+    // ── 10. TRANSMITE à SEFAZ-RS (SOAP + TLS mútuo, agora com timeout). ───
+    // Falha (SEFAZ fora/TLS/timeout) NÃO é erro fatal: a nota vai para a fila
+    // de contingência (pendente) e o cupom já saiu — capturamos a exceção
+    // aqui em vez de deixá-la cair no catch geral (500).
+    const transmitir = async (xmlAssinado: string) => {
+      try {
+        const retorno = await transmitirSefazRS(xmlAssinado, {
+          urlAutorizacao: config.url_autorizacao as string,
+          certBase64: certBase64!,
+          certSenha: certSenha!,
+        });
+        return { retorno, erroTransmissao: null as string | null };
+      } catch (e) {
+        return { retorno: null as Awaited<ReturnType<typeof transmitirSefazRS>> | null, erroTransmissao: String((e as Error)?.message ?? e) };
+      }
+    };
+
+    let doc = await prepararDocumento(tpEmis);
+    let { retorno, erroTransmissao } = await transmitir(doc.xmlAssinado);
+
+    // ── 10b. Desfecho (núcleo puro): autorizada · rejeitada · pendente. ──
+    let d = decidirDesfechoEmissao({
+      tpEmis, erroTransmissao,
+      autorizada: retorno?.autorizada ?? false,
+      cStat: retorno?.cStat ?? null,
     });
 
-    // ── 10. TRANSMITE à SEFAZ-RS (SOAP + TLS mútuo com o A1) e trata ───
-    // A transmissão pode FALHAR (SEFAZ fora, TLS): não é erro fatal — a nota
-    // vai para a fila de contingência (pendente) e o cupom já saiu. Por isso
-    // capturamos a exceção aqui, em vez de deixar cair no catch geral (500).
-    let retorno: {
-      autorizada: boolean; cStat: string | null; xMotivo: string | null;
-      protocolo: string | null; nfeProc: string | null;
-    } | null = null;
-    let erroTransmissao: string | null = null;
-    try {
-      retorno = await transmitirSefazRS(xmlAssinado, {
-        urlAutorizacao: config.url_autorizacao as string,
-        certBase64: certBase64!,
-        certSenha: certSenha!,
+    // ── 10c. Auto-fallback (Leva 14): se estávamos ONLINE e a SEFAZ está
+    // indisponível (erro de transmissão ou cStat 108/109), reconstrói o MESMO
+    // número como contingência (tpEmis=9), assina o QR offline e tenta
+    // transmitir de novo (provável nova falha → pendente). Reusa o número —
+    // não chama a RPC de numeração outra vez. ──
+    let ligouContingencia = false;
+    if (tpEmis === 1 && deveEntrarContingencia({ erroTransmissao, cStat: retorno?.cStat ?? null })) {
+      tpEmis = 9;
+      doc = await prepararDocumento(tpEmis);
+      ({ retorno, erroTransmissao } = await transmitir(doc.xmlAssinado));
+      d = decidirDesfechoEmissao({
+        tpEmis, erroTransmissao,
+        autorizada: retorno?.autorizada ?? false,
+        cStat: retorno?.cStat ?? null,
       });
-    } catch (e) {
-      erroTransmissao = String((e as Error)?.message ?? e);
+      ligouContingencia = true;
     }
 
-    // ── 10b. Desfecho: autorizada · rejeitada · pendente (fila Leva 9) ──
-    // Falha de transmissão OU contingência (tpEmis=9) não-autorizada → fila.
-    const desfecho: "autorizada" | "rejeitada" | "pendente" =
-      erroTransmissao ? "pendente"
-        : retorno!.autorizada ? "autorizada"
-        : tpEmis === 9 ? "pendente"
-        : "rejeitada";
+    // ── 10d. Liga/desliga o ESTADO de contingência do tenant (fire-and-forget,
+    // via RPC restrita — nunca derruba a emissão; o cupom já saiu). ──
+    if (ligouContingencia && !config.contingencia_ativa) {
+      await alternarContingencia(supabase, true);
+    } else if (config.contingencia_ativa && deveSairContingencia({ autorizada: d.status === "autorizada" })) {
+      // Auto-recovery: uma emissão online autorizada prova que a SEFAZ voltou.
+      await alternarContingencia(supabase, false);
+    }
 
     // ── 11. Persiste o desfecho em nfce_emitidas (Leva 8) — DURÁVEL, por
-    // tenant, para reimpressão (nfeProc) e reenvio (fila). Nunca bloqueia:
-    // try/catch dentro do helper; se a gravação falhar, o cupom já foi ao
-    // PDV e devolvemos o resultado mesmo assim (durabilidade < a venda). ──
-    const { vNF } = extrairCamposContingencia(xml);
+    // tenant, para reimpressão (nfeProc) e reenvio (fila). Nunca bloqueia. ──
     await persistirDesfecho(supabase, {
-      desfecho,
+      desfecho: d.status,
       tenantId: config.tenant_id as string,
       vendaId,
-      chave,
+      chave: doc.chave,
       numero,
       serie: (config.serie as number) ?? null,
       tpAmb,
       tpEmis,
       dhEmi: dataEmissao,
-      urlQrCode: urlQr,
-      vNF,
-      xmlAssinado,
+      urlQrCode: doc.urlQr,
+      vNF: doc.vNF,
+      xmlAssinado: doc.xmlAssinado,
       retorno,
       erroTransmissao,
     });
 
     return json(
       {
-        status: desfecho,
-        chave,
+        status: d.status,
+        contingencia: d.contingencia,
+        chave: doc.chave,
         protocolo: retorno?.protocolo ?? null,
         cStat: retorno?.cStat ?? null,
-        xMotivo: retorno?.xMotivo ?? (erroTransmissao ? "Falha ao transmitir; nota na fila de contingência." : null),
+        xMotivo: retorno?.xMotivo ?? (d.status === "pendente"
+          ? "Emitida em contingência; será transmitida quando a SEFAZ voltar." : null),
         // Bloco NÃO-secreto do cupom (Leva 7). O urlQr já vem hasheado do
         // servidor — expõe a URL de consulta, nunca o CSC.
         emit: emitCupom,
         tpAmb,
         tpEmis,
         dhEmi: dataEmissao.toISOString(),
-        urlQrCode: urlQr,
+        urlQrCode: doc.urlQr,
       },
       200,
     );
@@ -328,6 +362,26 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Falha ao emitir NFC-e.", detalhe: String((e as Error)?.message ?? e) }, 500);
   }
 });
+
+/**
+ * Liga/desliga o ESTADO de contingência do tenant (Leva 14) via a RPC restrita
+ * set_contingencia_fiscal (20260737). FIRE-AND-FORGET: nunca lança nem bloqueia
+ * — a venda já aconteceu e o cupom já saiu; se o toggle falhar, a próxima
+ * emissão reavalia o estado de qualquer forma. A RPC é SECURITY DEFINER e só
+ * mexe em contingencia_ativa/desde da linha do tenant do chamador (o caixa
+ * pode não ser admin) — a fronteira de segredo permanece intacta.
+ */
+async function alternarContingencia(
+  supabase: ReturnType<typeof createClient>,
+  ativa: boolean,
+): Promise<void> {
+  try {
+    const { error } = await supabase.rpc("set_contingencia_fiscal", { p_ativa: ativa });
+    if (error) console.error(`set_contingencia_fiscal(${ativa}) falhou: ${error.message}`);
+  } catch (e) {
+    console.error(`set_contingencia_fiscal(${ativa}) exceção: ${String((e as Error)?.message ?? e)}`);
+  }
+}
 
 /** Escapa texto para dentro de uma tag XML (& < > " '). */
 function escaparXmlTexto(v: unknown): string {

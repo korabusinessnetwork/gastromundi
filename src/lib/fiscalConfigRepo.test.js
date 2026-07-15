@@ -94,6 +94,18 @@ describe("salvarConfigFiscal — allow-list e fronteira de segredo (Leva 13)", (
     expect(payload).toHaveProperty("updated_at");
   });
 
+  it("estado de contingência é só LEITURA: não entra no upsert (Leva 14)", async () => {
+    await salvarConfigFiscal({
+      cnpj: "11222333000181",
+      contingencia_ativa: true,       // gerido pelo sistema, não editável à mão
+      contingencia_desde: "2026-07-14T10:00:00Z",
+    });
+    const [payload] = h.state.upsertArgs;
+    expect(payload).not.toHaveProperty("contingencia_ativa");
+    expect(payload).not.toHaveProperty("contingencia_desde");
+    expect(payload.cnpj).toBe("11222333000181");
+  });
+
   it("retorna a linha salva; nunca faz select *", async () => {
     h.state.resposta = { data: { cnpj: "11222333000181", ambiente: 1 }, error: null };
     const { data, error } = await salvarConfigFiscal({ cnpj: "11222333000181" });

@@ -36,7 +36,12 @@ import "./ModalCupomNfce.css";
  */
 export default function ModalCupomNfce({ estadoEmissao, resultado, venda, onFechar }) {
   const status = resultado?.status ?? null;
-  const temCupom = estadoEmissao === "concluido" && (status === "autorizada" || status === "sem_chave");
+  const emContingencia = status === "pendente" && resultado?.contingencia === true;
+  // "pendente" em contingência (Leva 14) TEM cupom: a nota saiu (emit +
+  // urlQrCode), o cupom é válido e a transmissão acontece depois. Renderiza
+  // como os demais que têm cupom.
+  const temCupom = estadoEmissao === "concluido" &&
+    (status === "autorizada" || status === "sem_chave" || status === "pendente");
 
   // Monta a DANFE só quando há cupom a mostrar (autorizada/sem_chave). Reusa
   // montarVendaFiscal (mesmo mapeador da emissão) para itens/pagamentos.
@@ -98,7 +103,28 @@ export default function ModalCupomNfce({ estadoEmissao, resultado, venda, onFech
           )}
 
           {estadoEmissao === "concluido" && danfe && (
-            <CupomNfce danfe={danfe} />
+            <div className="modal-cupom-nfce__conteudo">
+              {/* Banner de contingência (tom de AVISO, não de erro): o cupom é
+                  válido; a nota vai à SEFAZ sozinha quando o serviço voltar. */}
+              {emContingencia && (
+                <div className="modal-cupom-nfce__banner" role="status">
+                  <LuTriangleAlert size={18} />
+                  <span>
+                    <strong>Emitida em contingência — cupom válido.</strong> Será
+                    transmitida à SEFAZ automaticamente quando o serviço voltar.
+                  </span>
+                </div>
+              )}
+              {/* Pendente SEM contingência não deve ocorrer no fluxo de tpEmis,
+                  mas guardamos com uma mensagem neutra (nunca "erro"). */}
+              {status === "pendente" && !emContingencia && (
+                <div className="modal-cupom-nfce__banner" role="status">
+                  <LuTriangleAlert size={18} />
+                  <span>Aguardando transmissão à SEFAZ.</span>
+                </div>
+              )}
+              <CupomNfce danfe={danfe} />
+            </div>
           )}
 
           {/* Concluído sem cupom: rejeitada/erro (ou venda sem itens fiscais).

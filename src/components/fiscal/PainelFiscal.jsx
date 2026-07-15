@@ -165,6 +165,24 @@ export default function PainelFiscal() {
         </p>
       </header>
 
+      {/* Estado de contingência (Leva 14) — só LEITURA, gerido pelo sistema.
+          Quando a SEFAZ cai, o sistema passa a emitir offline e liga este
+          estado; some sozinho quando a SEFAZ volta. Reforça a intuitividade:
+          o gestor entende na hora por que as notas estão "pendentes". */}
+      {campos.contingencia_ativa && (
+        <div className="painel-fiscal__contingencia" role="status">
+          <LuTriangleAlert size={20} className="painel-fiscal__contingencia-icone" />
+          <div>
+            <strong>SEFAZ em contingência{formatarDesde(campos.contingencia_desde)}.</strong>
+            <span>
+              As vendas continuam saindo normalmente em contingência offline — os
+              cupons são válidos e as notas estão sendo enfileiradas para
+              transmissão automática assim que o serviço da SEFAZ voltar.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Aviso de segurança permanente: o certificado e o VALOR do CSC ficam
           à parte. Evita que o gestor procure onde colar o certificado. */}
       <div className="painel-fiscal__aviso" role="note">
@@ -368,6 +386,16 @@ function Campo({ campo, valor, erro, onChange }) {
       {erro && <span className="painel-fiscal__erro-campo">{erro}</span>}
     </div>
   );
+}
+
+/** " desde HH:MM" a partir do timestamp de início da contingência (ou ""). */
+function formatarDesde(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return ` desde ${hh}:${mm}`;
 }
 
 /** Converte null → "" nos campos vindos do banco (inputs controlados). */

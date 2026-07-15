@@ -132,6 +132,23 @@ describe("emitirDocumentoFiscal — fluxo NFC-e (Edge Function)", () => {
     expect(r.urlQrCode).toBeNull();
   });
 
+  it("mapeia 'pendente' (contingência) SEM virar 'erro' e propaga contingencia (Leva 14)", async () => {
+    vi.stubGlobal("fetch", mockFetch(200, {
+      status: "pendente", contingencia: true, chave: "CHAVE44",
+      xMotivo: "Emitida em contingência; será transmitida quando a SEFAZ voltar.",
+    }));
+    const r = await emitirDocumentoFiscal(VENDA, { usuario: "maria" });
+    expect(r.status).toBe("pendente");
+    expect(r.contingencia).toBe(true);
+    expect(r.chave).toBe("CHAVE44");
+  });
+
+  it("contingencia é false por padrão quando a Edge não a envia", async () => {
+    vi.stubGlobal("fetch", mockFetch(200, { status: "autorizada", chave: "CHAVE44" }));
+    const r = await emitirDocumentoFiscal(VENDA);
+    expect(r.contingencia).toBe(false);
+  });
+
   it("registra o desfecho como evento Jarvas (fire-and-forget)", async () => {
     vi.stubGlobal("fetch", mockFetch(200, { status: "autorizada", chave: "CHAVE44" }));
     await emitirDocumentoFiscal(VENDA, { usuario: "maria" });

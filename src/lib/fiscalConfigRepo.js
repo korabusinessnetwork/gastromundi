@@ -29,7 +29,10 @@ const COLUNAS =
   "cnpj, ie, im, razao_social, nome_fantasia, crt, " +
   "uf, codigo_municipio, municipio, logradouro, numero_end, complemento, bairro, cep, fone, " +
   "ambiente, serie, csc_id, ativo, " +
-  "url_qrcode, url_autorizacao, url_recepcao_evento, url_inutilizacao";
+  "url_qrcode, url_autorizacao, url_recepcao_evento, url_inutilizacao, " +
+  // Estado de contingência (Leva 14) — só LEITURA (o painel exibe o badge).
+  // Gerido pelo sistema; NÃO entra no CAMPOS_PERMITIDOS (não editável à mão).
+  "contingencia_ativa, contingencia_desde";
 
 // Allow-list explícito de escrita: SÓ estas chaves chegam ao banco. Qualquer
 // outra (inclusive tentativa de gravar certificado/CSC-valor/tenant_id) é
