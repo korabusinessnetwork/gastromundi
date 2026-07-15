@@ -1,5 +1,6 @@
 ﻿import { useState, useMemo, useEffect, Fragment } from "react";
 import { normalizarPagamentos, totalPorMetodo } from "@/utils/pagamentos";
+import { agruparVendasPorDia, rotuloDiaBR } from "@/utils/datas";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
@@ -417,6 +418,14 @@ export default function RelatorioView() {
     return { total, count, ticket, top };
   }, [vendasFiltradas]);
 
+  // ── Vendas por dia (B2) — agrupadas pelo dia LOCAL (America/Sao_Paulo)
+  //    para não jogar vendas após ~21h no dia seguinte. Método via
+  //    totalPorMetodo (nunca .metodo direto), por compatibilidade com split.
+  const vendasPorDia = useMemo(
+    () => agruparVendasPorDia(vendasFiltradas, { totalPorMetodo }),
+    [vendasFiltradas],
+  );
+
   // ── Fechamentos ───────────────────────────────────────────────
   const fechsFiltrados = useMemo(() =>
     filtrarPorPeriodo(fechamentos, "at", periodo, customInicio, customFim),
@@ -489,6 +498,24 @@ export default function RelatorioView() {
   const totalItens = (v) => Array.isArray(v.items) ? v.items.reduce((s, it) => s + (it.qty ?? 1), 0) : 0;
 
   const exportVendas = (fmt) => {
+    if (subVendas === "por-dia") {
+      const headers = ["Dia", "Comandas", "Dinheiro (R$)", "Crédito (R$)", "Débito (R$)", "Pix (R$)", "Total (R$)", "Ticket Médio (R$)"];
+      const rows = vendasPorDia.map(d => [
+        rotuloDiaBR(d.dia), d.comandas,
+        Number(d.metodos.dinheiro ?? 0).toFixed(2),
+        Number(d.metodos.credito ?? 0).toFixed(2),
+        Number(d.metodos.debito ?? 0).toFixed(2),
+        Number(d.metodos.pix ?? 0).toFixed(2),
+        Number(d.total ?? 0).toFixed(2),
+        Number(d.ticket ?? 0).toFixed(2),
+      ]);
+      const totalGeral = vendasPorDia.reduce((s, d) => s + d.total, 0);
+      const comandasGeral = vendasPorDia.reduce((s, d) => s + d.comandas, 0);
+      const totais = `Total: R$ ${totalGeral.toFixed(2)} · ${comandasGeral} venda(s) · ${vendasPorDia.length} dia(s)`;
+      if (fmt === "pdf") exportToPDF("Vendas por Dia", headers, rows, periodo, { totais });
+      else               exportToXLSX("Vendas por Dia", headers, rows, periodo);
+      return;
+    }
     if (subVendas === "resumido") {
       const headers = ["Comanda", "Caixa", "Itens", "Método", "Total (R$)", "Data/Hora"];
       const rows = vendasFiltradas.map(v => [
@@ -722,10 +749,15 @@ export default function RelatorioView() {
                 display: "flex", background: varColor(C.surface),
                 borderRadius: 10, padding: 3, gap: 2, flexShrink: 0,
               }}>
-                {[["resumido","Resumido"],["detalhado","Detalhado"]].map(([id, label]) => (
+                {[["resumido","Resumido"],["detalhado","Detalhado"],["por-dia","Por dia"]].map(([id, label]) => (
                   <button
                     key={id}
-                    onClick={() => setSubVendas(id)}
+                    onClick={() => {
+                      setSubVendas(id);
+                      // "Por dia" só faz sentido com mais de um dia — se estiver
+                      // em "Hoje", muda para os últimos 7 dias (default do B2).
+                      if (id === "por-dia" && periodo === "hoje") setPeriodo("semana");
+                    }}
                     style={{
                       padding: "6px 18px", borderRadius: 8, border: "none",
                       background: subVendas === id ? varColor(C.accent) : "transparent",
@@ -942,6 +974,66 @@ export default function RelatorioView() {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── POR DIA (B2) ── */}
+            {subVendas === "por-dia" && (
+              <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
+                {vendasPorDia.length === 0 ? (
+                  <Empty icon="📅" msg="Nenhuma venda no período selecionado" sz={sz} />
+                ) : (
+                  <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+                        <Th>Dia</Th>
+                        <Th right>Comandas</Th>
+                        <Th right>Dinheiro</Th>
+                        <Th right>Crédito</Th>
+                        <Th right>Débito</Th>
+                        <Th right>Pix</Th>
+                        <Th right>Total</Th>
+                        <Th right>Ticket Médio</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {vendasPorDia.map((d) => (
+                        <tr
+                          key={d.dia}
+                          onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
+                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                          style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
+                        >
+                          <Td sz={sz} nowrap><span style={{ fontWeight: 700 }}>{rotuloDiaBR(d.dia)}</span></Td>
+                          <Td sz={sz} right>{d.comandas}</Td>
+                          <Td sz={sz} right muted>{fmtR(d.metodos.dinheiro ?? 0)}</Td>
+                          <Td sz={sz} right muted>{fmtR(d.metodos.credito ?? 0)}</Td>
+                          <Td sz={sz} right muted>{fmtR(d.metodos.debito ?? 0)}</Td>
+                          <Td sz={sz} right muted>{fmtR(d.metodos.pix ?? 0)}</Td>
+                          <Td sz={sz} right color={varColor(C.green)}><span style={{ fontWeight: 800 }}>{fmtR(d.total)}</span></Td>
+                          <Td sz={sz} right color={varColor(C.accent)}><span style={{ fontWeight: 700 }}>{fmtR(d.ticket)}</span></Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ borderTop: `2px solid var(${C.border})` }}>
+                        <td style={{ padding: "12px 16px", fontWeight: 800, fontSize: sz.fontBase }}>
+                          {vendasPorDia.length} dia(s)
+                        </td>
+                        <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800, fontSize: sz.fontBase }}>
+                          {vendasPorDia.reduce((s, d) => s + d.comandas, 0)}
+                        </td>
+                        <td colSpan={4} />
+                        <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, fontSize: sz.fontLg, color: varColor(C.green) }}>
+                          {fmtR(vendasPorDia.reduce((s, d) => s + d.total, 0))}
+                        </td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  </table>
                   </div>
                 )}
               </div>
