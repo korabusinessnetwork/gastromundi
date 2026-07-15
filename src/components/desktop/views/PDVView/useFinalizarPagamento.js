@@ -54,6 +54,10 @@ export function useFinalizarPagamento() {
       total,
       pagamentos,
       cashier:     currentUser?.name || "",
+      // C3 — preserva quem lançou a comanda (garçom), não só quem cobrou
+      // (cashier). Permite atribuir a venda finalizada ao garçom no painel.
+      garcom:      selected.garcom     ?? null,
+      created_by:  selected.created_by ?? null,
       clienteId:   clienteId ?? null, // F010 — vínculo opcional ao cliente
       at:          new Date().toISOString(),
     };

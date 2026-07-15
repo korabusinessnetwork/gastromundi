@@ -963,6 +963,7 @@ const ABAS_CONFIG = [
   { id: "meios_pagamento",  label: "Meios de Pagamento",  adminOnly: false },
   { id: "unidades_medida",  label: "Unidades de Medida",  adminOnly: false },
   { id: "mesas",            label: "Mesas",               gerenteOnly: true },
+  { id: "categorias",       label: "Grupos de Categoria", gerenteOnly: true },
   { id: "impressao",        label: "Impressão",           adminOnly: true  },
 ];
 
@@ -1055,6 +1056,73 @@ function GeralTab({ sz }) {
   );
 }
 
+// ── Aba Grupos de Categoria (C3) ──────────────────────────────────
+// Mapeia cada categoria de produto (texto livre) a um grupo (comida/bebida/
+// cafe…). O Palm usa isso no Radar de Oportunidades. Padrão das outras tabs.
+function CategoriasGrupoTab({ sz }) {
+  const { products, gruposCategoria, categoriaGrupos, setCategoriaGrupo } = useApp();
+  const [salvandoCat, setSalvandoCat] = useState(null);
+
+  // categorias existentes nos produtos (texto livre), únicas e ordenadas
+  const categorias = useMemo(
+    () => [...new Set(products.map(p => p.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [products],
+  );
+  const grupoPorCategoria = useMemo(() => {
+    const m = {};
+    for (const r of categoriaGrupos) m[r.category] = r.grupo_id;
+    return m;
+  }, [categoriaGrupos]);
+
+  const handleChange = async (category, grupoId) => {
+    setSalvandoCat(category);
+    await setCategoriaGrupo(category, grupoId === "" ? null : Number(grupoId));
+    setSalvandoCat(null);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: sz.padSm }}>
+      <div className="geral-tab__card" style={{ padding: sz.pad, flexDirection: "column", alignItems: "stretch", gap: 4 }}>
+        <div className="geral-tab__titulo" style={{ fontSize: sz.fontBase }}>Grupos de Categoria</div>
+        <div className="geral-tab__ajuda" style={{ fontSize: sz.fontSm }}>
+          Associe cada categoria a um grupo. O Palm usa esses grupos para sugerir vendas
+          (ex.: comanda com comida e sem bebida).
+        </div>
+      </div>
+
+      {categorias.length === 0 ? (
+        <div style={{ padding: sz.pad, color: varColor(C.muted), fontSize: sz.fontBase }}>
+          Nenhuma categoria de produto cadastrada ainda.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {categorias.map(cat => (
+            <div key={cat} className="geral-tab__card" style={{ padding: sz.padSm + 4, gap: sz.padSm }}>
+              <div style={{ flex: 1, fontWeight: 700, fontSize: sz.fontBase }}>{cat}</div>
+              <select
+                value={grupoPorCategoria[cat] ?? ""}
+                onChange={e => handleChange(cat, e.target.value)}
+                disabled={salvandoCat === cat}
+                style={{
+                  padding: "9px 12px", borderRadius: 10,
+                  border: `1.5px solid ${grupoPorCategoria[cat] ? varColor(C.accent) : varColor(C.border)}`,
+                  background: varColor(C.surface), color: varColor(C.text),
+                  fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none", cursor: "pointer",
+                }}
+              >
+                <option value="">— sem grupo —</option>
+                {gruposCategoria.map(g => (
+                  <option key={g.id} value={g.id}>{g.nome}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ConfiguracoesView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
@@ -1102,6 +1170,7 @@ export default function ConfiguracoesView() {
         {aba === "meios_pagamento" && <MeiosPagamentoTab sz={sz} />}
         {aba === "unidades_medida" && <UnidadesMedidaTab sz={sz} />}
         {aba === "mesas"     && isGerente && <MesasAdmin sz={sz} />}
+        {aba === "categorias" && isGerente && <CategoriasGrupoTab sz={sz} />}
         {aba === "impressao" && isAdmin && <ConfiguracaoImpressao sz={sz} />}
       </div>
     </div>

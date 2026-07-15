@@ -36,6 +36,8 @@ export function AppProvider({ children }) {
   const [estoque,         setEstoqueLocal]        = useState({});
   const [estoqueMinimos,  setEstoqueMinimosLocal] = useState({});
   const [tenant,          setTenantLocal]         = useState(null); // Fase 1 — camada de comercialização (ADR-005)
+  const [gruposCategoria, setGruposCategoriaLocal] = useState([]); // C3 — grupos (comida/bebida/cafe)
+  const [categoriaGrupos, setCategoriaGruposLocal] = useState([]); // C3 — mapa categoria→grupo_id (linhas cruas)
   const [loading,       setLoading]          = useState(true);
   // IDs de comandas com pedido lançado na sessão atual (sobrevive troca de aba)
   const [lancadas,    setLancadas]         = useState(new Set());
@@ -157,6 +159,8 @@ export function AppProvider({ children }) {
         { data: configData,   error: eConfig   },
         { data: estoqueData,  error: eEstoque  },
         { data: tenantData,   error: eTenant   },
+        { data: gruposData,   error: eGrupos   },
+        { data: catGrupoData, error: eCatGrupo },
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
         supabase.from("pending").select("*").order("created_at", { ascending: false }),
@@ -168,6 +172,9 @@ export function AppProvider({ children }) {
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
         // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
         buscarBootstrapTenant(),
+        // C3 — grupos de categoria (Radar de Oportunidades no Palm)
+        supabase.from("grupos_categoria").select("id,nome").order("id"),
+        supabase.from("categoria_grupo").select("category,grupo_id"),
       ]);
 
       if (eUsers)    console.error("[bootstrap] users error:", eUsers);
@@ -177,6 +184,11 @@ export function AppProvider({ children }) {
       if (eConfig)   console.error("[bootstrap] config error:", eConfig);
       if (eEstoque)  console.error("[bootstrap] estoque error:", eEstoque);
       if (eTenant)   console.error("[bootstrap] tenant error:", eTenant);
+      if (eGrupos)   console.error("[bootstrap] grupos_categoria error:", eGrupos);
+      if (eCatGrupo) console.error("[bootstrap] categoria_grupo error:", eCatGrupo);
+
+      if (gruposData)   setGruposCategoriaLocal(gruposData);
+      if (catGrupoData) setCategoriaGruposLocal(catGrupoData);
 
       if (productsData?.length)    setProductsLocal(productsData);
       if (pendingData)             setPendingLocal(pendingData);
@@ -568,6 +580,28 @@ export function AppProvider({ children }) {
     await supabase.from("config").upsert({ key: "dias_alerta_validade", value: n });
   };
 
+  // ── Actions: Grupos de categoria (C3) ─────────────────────────
+  // Mapeia uma categoria (texto livre de products.category) a um grupo.
+  // grupoId null/"" remove o mapeamento.
+  const setCategoriaGrupo = async (category, grupoId) => {
+    const cat = String(category ?? "").trim();
+    if (!cat) return { error: { message: "Categoria inválida." } };
+    if (grupoId == null || grupoId === "") {
+      setCategoriaGruposLocal(prev => prev.filter(r => r.category !== cat));
+      const { error } = await supabase.from("categoria_grupo").delete().eq("category", cat);
+      return { error };
+    }
+    const gid = Number(grupoId);
+    setCategoriaGruposLocal(prev => {
+      const outros = prev.filter(r => r.category !== cat);
+      return [...outros, { category: cat, grupo_id: gid }];
+    });
+    const { error } = await supabase
+      .from("categoria_grupo")
+      .upsert({ category: cat, grupo_id: gid, updated_at: new Date().toISOString() }, { onConflict: "category" });
+    return { error };
+  };
+
   // ── Context value ─────────────────────────────────────────────
   const addLancada = (id) => setLancadas(prev => new Set([...prev, id]));
 
@@ -579,6 +613,15 @@ export function AppProvider({ children }) {
   // dependem de plano. Hooks de add-on devem checar por aqui, nunca ler
   // tenant.addonsAtivos diretamente.
   const addonHabilitadoNoTenant = (addon) => addonHabilitado(tenant?.addonsAtivos, addon);
+
+  // C3 — mapa derivado categoria(texto) → nome do grupo, para o radar do Palm.
+  const categoriaGrupoMap = (() => {
+    const porId = {};
+    for (const g of gruposCategoria) porId[g.id] = g.nome;
+    const mapa = {};
+    for (const r of categoriaGrupos) { const nome = porId[r.grupo_id]; if (nome) mapa[r.category] = nome; }
+    return mapa;
+  })();
 
   const value = {
     loading,
@@ -607,6 +650,8 @@ export function AppProvider({ children }) {
     setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque, baixarEstoque, setMinimoEstoque,
     taxaServico, setTaxaServico,
     diasAlertaValidade, setDiasAlertaValidade,
+    // C3 — grupos de categoria (radar do Palm + mapeamento em Configurações)
+    gruposCategoria, categoriaGrupos, categoriaGrupoMap, setCategoriaGrupo,
     metodosCustom, setMetodosCustom,
   };
 
