@@ -7,7 +7,8 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { getSizes } from "@/constants/sizes";
 import { useResponsive } from "@/utils/hooks";
-import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid, LuLogOut, LuClock } from "react-icons/lu";
+import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid, LuLogOut, LuClock, LuChartBar, LuLightbulb } from "react-icons/lu";
+import { totalLancamentosGarcom, radarOportunidades } from "@/lib/painelGarcom";
 
 const TOTAL_COMANDAS = 1000;
 const PAGE = 50;
@@ -23,12 +24,13 @@ export default function MobilePage() {
     addPending, updatePending,
     lancadas, addLancada,
     logout,
+    sales, sessaoAbertaEm, categoriaGrupoMap,
   } = useApp();
 
   const { width } = useResponsive();
   const sz = getSizes(width);
 
-  const [mode,       setMode]       = useState("pedido"); // "pedido" | "grid"
+  const [mode,       setMode]       = useState("pedido"); // "pedido" | "grid" | "painel"
   const [cartItems,  setCartItems]  = useState([]);
   const [salvando,   setSalvando]   = useState(false);
   const [limite,     setLimite]     = useState(PAGE);
@@ -284,6 +286,93 @@ export default function MobilePage() {
       </div>
     )}
 
+    {/* ── PAINEL DO GARÇOM (C3) ── */}
+    {mode === "painel" && (() => {
+      const comandasEVendas = [...abertas, ...(Array.isArray(sales) ? sales : [])];
+      const meu = totalLancamentosGarcom(comandasEVendas, {
+        nome: currentUser?.name,
+        username: currentUser?.username,
+        desde: sessaoAbertaEm,
+      });
+      const cards = radarOportunidades(abertas, categoriaGrupoMap, products);
+      return (
+        <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text) }}>
+          {/* Header */}
+          <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}><LuChartBar size={20} /> Meu Painel</div>
+              <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 2 }}>{currentUser?.name?.split(" ")[0]} · caixa atual</div>
+            </div>
+            <button onClick={() => setMode("pedido")} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: varColor(C.accent), border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, fontSize: 14, WebkitTapHighlightColor: "transparent" }}>
+              <LuArrowLeft size={16} /> Voltar
+            </button>
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 16, paddingBottom: "calc(24px + env(safe-area-inset-bottom))" }}>
+            {/* Bloco 1 — Minhas vendas no caixa atual */}
+            <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 16, padding: 20 }}>
+              <div style={{ fontSize: 13, color: varColor(C.muted), fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Meus lançamentos no caixa</div>
+              <div style={{ fontSize: 34, fontWeight: 900, color: varColor(C.green), marginTop: 8 }}>R$ {meu.total.toFixed(2)}</div>
+              <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+                <div style={{ fontSize: 14, color: varColor(C.muted) }}><b style={{ color: varColor(C.text) }}>{meu.comandas}</b> comanda{meu.comandas !== 1 ? "s" : ""}</div>
+                <div style={{ fontSize: 14, color: varColor(C.muted) }}><b style={{ color: varColor(C.text) }}>{meu.itens}</b> {meu.itens === 1 ? "item" : "itens"}</div>
+              </div>
+              {!sessaoAbertaEm && (
+                <div style={{ marginTop: 10, fontSize: 12, color: varColor(C.muted) }}>
+                  Total desde a abertura do caixa. Conta comandas abertas e vendas atribuídas a você.
+                </div>
+              )}
+            </div>
+
+            {/* Bloco 2 — Radar de oportunidades */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <LuLightbulb size={18} color={AMBER} />
+                <span style={{ fontWeight: 800, fontSize: 16 }}>Oportunidades</span>
+                {cards.length > 0 && <span style={{ background: `${AMBER}22`, color: AMBER, borderRadius: 8, padding: "1px 8px", fontSize: 12, fontWeight: 800 }}>{cards.length}</span>}
+              </div>
+              {cards.length === 0 ? (
+                <div style={{ background: varColor(C.card), border: `1px dashed var(${C.border})`, borderRadius: 14, padding: 24, textAlign: "center", color: varColor(C.muted), fontSize: 14 }}>
+                  {Object.keys(categoriaGrupoMap ?? {}).length === 0
+                    ? "Configure os grupos de categoria (Configurações → Grupos de Categoria) para ver sugestões."
+                    : "Nenhuma oportunidade agora. Tudo em dia! 🎉"}
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {cards.map((card, i) => {
+                    const order = mapa[String(card.comanda)];
+                    return (
+                      <button
+                        key={`${card.comandaId}-${card.regraId}-${i}`}
+                        onClick={() => order && abrirDetalhe(order)}
+                        style={{
+                          textAlign: "left", background: `${AMBER}0f`, border: `1.5px solid ${AMBER}44`,
+                          borderRadius: 14, padding: "14px 16px", cursor: order ? "pointer" : "default",
+                          display: "flex", alignItems: "center", gap: 12, color: varColor(C.text),
+                          WebkitTapHighlightColor: "transparent",
+                        }}
+                      >
+                        <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: `${AMBER}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <LuLightbulb size={20} color={AMBER} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: 15 }}>
+                            {fmtComanda(card.comanda)}{card.mesa ? ` · Mesa ${card.mesa}` : ""}
+                          </div>
+                          <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 2 }}>{card.rotulo}</div>
+                        </div>
+                        {order && <LuPlus size={18} color={AMBER} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    })()}
+
     {/* ── PEDIDO ── */}
     {mode === "pedido" && <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text) }}>
 
@@ -310,18 +399,33 @@ export default function MobilePage() {
             <span style={{ fontSize: 13, fontWeight: 500, color: varColor(C.muted) }}>· {currentUser?.name?.split(" ")[0]}</span>
           </div>
         </div>
-        <button
-          onClick={() => { setMode("grid"); setLancComanda(""); setLancMesa(""); }}
-          style={{
-            display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
-            background: varColor(C.surface), border: `1.5px solid var(${C.border})`, borderRadius: 12,
-            color: varColor(C.muted), cursor: "pointer",
-            padding: "8px 14px", fontWeight: 600, fontSize: 13,
-            WebkitTapHighlightColor: "transparent",
-          }}
-        >
-          <LuLayoutGrid size={14} /> Comandas {abertas.length > 0 && <span style={{ background: varColor(C.accent), color: "#fff", borderRadius: 8, padding: "1px 6px", fontSize: 11, fontWeight: 800 }}>{abertas.length}</span>}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <button
+            onClick={() => setMode("painel")}
+            title="Meu painel"
+            style={{
+              display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
+              background: varColor(C.surface), border: `1.5px solid var(${C.border})`, borderRadius: 12,
+              color: varColor(C.muted), cursor: "pointer",
+              padding: "8px 12px", fontWeight: 600, fontSize: 13,
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            <LuChartBar size={14} /> Painel
+          </button>
+          <button
+            onClick={() => { setMode("grid"); setLancComanda(""); setLancMesa(""); }}
+            style={{
+              display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
+              background: varColor(C.surface), border: `1.5px solid var(${C.border})`, borderRadius: 12,
+              color: varColor(C.muted), cursor: "pointer",
+              padding: "8px 14px", fontWeight: 600, fontSize: 13,
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            <LuLayoutGrid size={14} /> Comandas {abertas.length > 0 && <span style={{ background: varColor(C.accent), color: "#fff", borderRadius: 8, padding: "1px 6px", fontSize: 11, fontWeight: 800 }}>{abertas.length}</span>}
+          </button>
+        </div>
       </div>
 
       {/* Busca de item */}

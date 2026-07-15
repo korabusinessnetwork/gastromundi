@@ -32,9 +32,12 @@ export function AppProvider({ children }) {
   const [meiosPagamento,  setMeiosPagamentoLocal] = useState(["dinheiro", "credito", "debito", "pix"]);
   const [metodosCustom,   setMetodosCustomLocal]  = useState([]);
   const [taxaServico,     setTaxaServicoLocal]    = useState(false);
+  const [diasAlertaValidade, setDiasAlertaValidadeLocal] = useState(7); // C1 — janela de alerta de validade
   const [estoque,         setEstoqueLocal]        = useState({});
   const [estoqueMinimos,  setEstoqueMinimosLocal] = useState({});
   const [tenant,          setTenantLocal]         = useState(null); // Fase 1 — camada de comercialização (ADR-005)
+  const [gruposCategoria, setGruposCategoriaLocal] = useState([]); // C3 — grupos (comida/bebida/cafe)
+  const [categoriaGrupos, setCategoriaGruposLocal] = useState([]); // C3 — mapa categoria→grupo_id (linhas cruas)
   const [loading,       setLoading]          = useState(true);
   // IDs de comandas com pedido lançado na sessão atual (sobrevive troca de aba)
   const [lancadas,    setLancadas]         = useState(new Set());
@@ -156,6 +159,8 @@ export function AppProvider({ children }) {
         { data: configData,   error: eConfig   },
         { data: estoqueData,  error: eEstoque  },
         { data: tenantData,   error: eTenant   },
+        { data: gruposData,   error: eGrupos   },
+        { data: catGrupoData, error: eCatGrupo },
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
         supabase.from("pending").select("*").order("created_at", { ascending: false }),
@@ -163,10 +168,13 @@ export function AppProvider({ children }) {
         buscarSalesData(),
         supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
+        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","dias_alerta_validade"]),
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
         // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
         buscarBootstrapTenant(),
+        // C3 — grupos de categoria (Radar de Oportunidades no Palm)
+        supabase.from("grupos_categoria").select("id,nome").order("id"),
+        supabase.from("categoria_grupo").select("category,grupo_id"),
       ]);
 
       if (eUsers)    console.error("[bootstrap] users error:", eUsers);
@@ -176,6 +184,11 @@ export function AppProvider({ children }) {
       if (eConfig)   console.error("[bootstrap] config error:", eConfig);
       if (eEstoque)  console.error("[bootstrap] estoque error:", eEstoque);
       if (eTenant)   console.error("[bootstrap] tenant error:", eTenant);
+      if (eGrupos)   console.error("[bootstrap] grupos_categoria error:", eGrupos);
+      if (eCatGrupo) console.error("[bootstrap] categoria_grupo error:", eCatGrupo);
+
+      if (gruposData)   setGruposCategoriaLocal(gruposData);
+      if (catGrupoData) setCategoriaGruposLocal(catGrupoData);
 
       if (productsData?.length)    setProductsLocal(productsData);
       if (pendingData)             setPendingLocal(pendingData);
@@ -209,6 +222,8 @@ export function AppProvider({ children }) {
         if (taxa?.value !== undefined) setTaxaServicoLocal(!!taxa.value);
         const custom = configData.find(c => c.key === "metodos_custom");
         if (custom?.value && Array.isArray(custom.value)) setMetodosCustomLocal(custom.value);
+        const diasValidade = configData.find(c => c.key === "dias_alerta_validade");
+        if (diasValidade?.value != null && !isNaN(Number(diasValidade.value))) setDiasAlertaValidadeLocal(Number(diasValidade.value));
       }
 
       if (tenantData) {
@@ -426,8 +441,26 @@ export function AppProvider({ children }) {
   const updateUser = async (id, changes) => {
     // permissions não existe no banco — remove antes de enviar
     const { permissions: _perms, ...payload } = changes;
-    const { error } = await supabase.from("users").update(payload).eq("id", id);
-    if (!error) setUsersLocal(prev => prev.map(u => {
+    // .select() após o update: PostgREST retorna sucesso HTTP com 0 linhas
+    // quando a RLS filtra tudo (ex.: editor aberto para gerente, mas a
+    // policy users_update exige admin) OU quando o id não bate. Sem checar
+    // as linhas retornadas, a UI "atualizava" o estado local e fingia
+    // sucesso sem nada persistir no banco.
+    const { data, error } = await supabase
+      .from("users")
+      .update(payload)
+      .eq("id", id)
+      .select();
+    if (error) return { error };
+    if (!data || data.length === 0) {
+      return {
+        error: {
+          code: "no_rows_updated",
+          message: "Nenhuma linha atualizada — sem permissão (apenas admin edita usuários) ou usuário inexistente.",
+        },
+      };
+    }
+    setUsersLocal(prev => prev.map(u => {
       if (u.id !== id) return u;
       const merged = { ...u, ...changes };
       return {
@@ -435,7 +468,7 @@ export function AppProvider({ children }) {
         permissions: { ...getPermissions(merged.role), ...(merged.permissions || {}) },
       };
     }));
-    return { error };
+    return { error: null, data };
   };
 
   const removeUser = async (id) => {
@@ -541,6 +574,34 @@ export function AppProvider({ children }) {
     await supabase.from("config").upsert({ key: "taxa_servico", value: !!val });
   };
 
+  const setDiasAlertaValidade = async (val) => {
+    const n = Math.max(1, Math.min(365, Number(val) || 7));
+    setDiasAlertaValidadeLocal(n);
+    await supabase.from("config").upsert({ key: "dias_alerta_validade", value: n });
+  };
+
+  // ── Actions: Grupos de categoria (C3) ─────────────────────────
+  // Mapeia uma categoria (texto livre de products.category) a um grupo.
+  // grupoId null/"" remove o mapeamento.
+  const setCategoriaGrupo = async (category, grupoId) => {
+    const cat = String(category ?? "").trim();
+    if (!cat) return { error: { message: "Categoria inválida." } };
+    if (grupoId == null || grupoId === "") {
+      setCategoriaGruposLocal(prev => prev.filter(r => r.category !== cat));
+      const { error } = await supabase.from("categoria_grupo").delete().eq("category", cat);
+      return { error };
+    }
+    const gid = Number(grupoId);
+    setCategoriaGruposLocal(prev => {
+      const outros = prev.filter(r => r.category !== cat);
+      return [...outros, { category: cat, grupo_id: gid }];
+    });
+    const { error } = await supabase
+      .from("categoria_grupo")
+      .upsert({ category: cat, grupo_id: gid, updated_at: new Date().toISOString() }, { onConflict: "category" });
+    return { error };
+  };
+
   // ── Context value ─────────────────────────────────────────────
   const addLancada = (id) => setLancadas(prev => new Set([...prev, id]));
 
@@ -552,6 +613,15 @@ export function AppProvider({ children }) {
   // dependem de plano. Hooks de add-on devem checar por aqui, nunca ler
   // tenant.addonsAtivos diretamente.
   const addonHabilitadoNoTenant = (addon) => addonHabilitado(tenant?.addonsAtivos, addon);
+
+  // C3 — mapa derivado categoria(texto) → nome do grupo, para o radar do Palm.
+  const categoriaGrupoMap = (() => {
+    const porId = {};
+    for (const g of gruposCategoria) porId[g.id] = g.nome;
+    const mapa = {};
+    for (const r of categoriaGrupos) { const nome = porId[r.grupo_id]; if (nome) mapa[r.category] = nome; }
+    return mapa;
+  })();
 
   const value = {
     loading,
@@ -579,6 +649,9 @@ export function AppProvider({ children }) {
     addFechamento,
     setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque, baixarEstoque, setMinimoEstoque,
     taxaServico, setTaxaServico,
+    diasAlertaValidade, setDiasAlertaValidade,
+    // C3 — grupos de categoria (radar do Palm + mapeamento em Configurações)
+    gruposCategoria, categoriaGrupos, categoriaGrupoMap, setCategoriaGrupo,
     metodosCustom, setMetodosCustom,
   };
 

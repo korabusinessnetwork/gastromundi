@@ -119,6 +119,8 @@ function traduzirErro(error) {
     return "Esse nome de usuário já está em uso (pode ser um usuário desativado).";
   if (msg.includes("not-null") || msg.includes("null value"))
     return "Campo obrigatório não preenchido.";
+  if (error?.code === "no_rows_updated")
+    return "Não foi possível salvar: só um administrador pode editar usuários.";
   if (msg.includes("permission denied") || msg.includes("policy"))
     return "Sem permissão para realizar esta ação.";
   return "Erro ao salvar: " + msg;
@@ -961,18 +963,33 @@ const ABAS_CONFIG = [
   { id: "meios_pagamento",  label: "Meios de Pagamento",  adminOnly: false },
   { id: "unidades_medida",  label: "Unidades de Medida",  adminOnly: false },
   { id: "mesas",            label: "Mesas",               gerenteOnly: true },
+  { id: "categorias",       label: "Grupos de Categoria", gerenteOnly: true },
   { id: "impressao",        label: "Impressão",           adminOnly: true  },
 ];
 
 function GeralTab({ sz }) {
-  const { taxaServico, setTaxaServico } = useApp();
+  const { taxaServico, setTaxaServico, diasAlertaValidade, setDiasAlertaValidade } = useApp();
   const [saving, setSaving] = useState(false);
+  const [dias, setDias] = useState(String(diasAlertaValidade ?? 7));
+  const [savingDias, setSavingDias] = useState(false);
+
+  useEffect(() => { setDias(String(diasAlertaValidade ?? 7)); }, [diasAlertaValidade]);
 
   const handleToggle = async () => {
     setSaving(true);
     await setTaxaServico(!taxaServico);
     setSaving(false);
   };
+
+  const handleSalvarDias = async () => {
+    setSavingDias(true);
+    await setDiasAlertaValidade(dias);
+    setSavingDias(false);
+  };
+
+  const diasNum = Number(dias);
+  const diasValido = Number.isFinite(diasNum) && diasNum >= 1 && diasNum <= 365;
+  const diasAlterado = String(diasAlertaValidade ?? 7) !== String(dias).trim();
 
   return (
     <div className="geral-tab">
@@ -996,6 +1013,112 @@ function GeralTab({ sz }) {
           <span className="geral-tab__toggle-bolinha" style={{ left: taxaServico ? 29 : 3 }} />
         </button>
       </div>
+
+      {/* C1 — janela de alerta de validade */}
+      <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
+        <div style={{ flex: 1 }}>
+          <div className="geral-tab__titulo" style={{ fontSize: sz.fontBase }}>Alerta de Validade</div>
+          <div className="geral-tab__ajuda" style={{ fontSize: sz.fontSm }}>
+            Avisa no PDV quando um produto está a até esta quantidade de dias de vencer
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="number"
+            min="1"
+            max="365"
+            value={dias}
+            onChange={e => setDias(e.target.value)}
+            style={{
+              width: 72, padding: "9px 12px", borderRadius: 10,
+              border: `1.5px solid ${diasValido ? varColor(C.border) : varColor(C.red)}`,
+              background: varColor(C.surface), color: varColor(C.text),
+              fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", textAlign: "center",
+            }}
+          />
+          <span style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>dias</span>
+          <button
+            onClick={handleSalvarDias}
+            disabled={savingDias || !diasValido || !diasAlterado}
+            style={{
+              padding: "9px 16px", borderRadius: 10, border: "none",
+              background: (diasValido && diasAlterado && !savingDias) ? varColor(C.accent) : varColor(C.faint),
+              color: (diasValido && diasAlterado && !savingDias) ? "#fff" : varColor(C.muted),
+              cursor: (diasValido && diasAlterado && !savingDias) ? "pointer" : "not-allowed",
+              fontWeight: 700, fontSize: sz.fontSm + 1, fontFamily: "inherit",
+            }}
+          >
+            {savingDias ? "Salvando…" : "Salvar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Aba Grupos de Categoria (C3) ──────────────────────────────────
+// Mapeia cada categoria de produto (texto livre) a um grupo (comida/bebida/
+// cafe…). O Palm usa isso no Radar de Oportunidades. Padrão das outras tabs.
+function CategoriasGrupoTab({ sz }) {
+  const { products, gruposCategoria, categoriaGrupos, setCategoriaGrupo } = useApp();
+  const [salvandoCat, setSalvandoCat] = useState(null);
+
+  // categorias existentes nos produtos (texto livre), únicas e ordenadas
+  const categorias = useMemo(
+    () => [...new Set(products.map(p => p.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [products],
+  );
+  const grupoPorCategoria = useMemo(() => {
+    const m = {};
+    for (const r of categoriaGrupos) m[r.category] = r.grupo_id;
+    return m;
+  }, [categoriaGrupos]);
+
+  const handleChange = async (category, grupoId) => {
+    setSalvandoCat(category);
+    await setCategoriaGrupo(category, grupoId === "" ? null : Number(grupoId));
+    setSalvandoCat(null);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: sz.padSm }}>
+      <div className="geral-tab__card" style={{ padding: sz.pad, flexDirection: "column", alignItems: "stretch", gap: 4 }}>
+        <div className="geral-tab__titulo" style={{ fontSize: sz.fontBase }}>Grupos de Categoria</div>
+        <div className="geral-tab__ajuda" style={{ fontSize: sz.fontSm }}>
+          Associe cada categoria a um grupo. O Palm usa esses grupos para sugerir vendas
+          (ex.: comanda com comida e sem bebida).
+        </div>
+      </div>
+
+      {categorias.length === 0 ? (
+        <div style={{ padding: sz.pad, color: varColor(C.muted), fontSize: sz.fontBase }}>
+          Nenhuma categoria de produto cadastrada ainda.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {categorias.map(cat => (
+            <div key={cat} className="geral-tab__card" style={{ padding: sz.padSm + 4, gap: sz.padSm }}>
+              <div style={{ flex: 1, fontWeight: 700, fontSize: sz.fontBase }}>{cat}</div>
+              <select
+                value={grupoPorCategoria[cat] ?? ""}
+                onChange={e => handleChange(cat, e.target.value)}
+                disabled={salvandoCat === cat}
+                style={{
+                  padding: "9px 12px", borderRadius: 10,
+                  border: `1.5px solid ${grupoPorCategoria[cat] ? varColor(C.accent) : varColor(C.border)}`,
+                  background: varColor(C.surface), color: varColor(C.text),
+                  fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none", cursor: "pointer",
+                }}
+              >
+                <option value="">— sem grupo —</option>
+                {gruposCategoria.map(g => (
+                  <option key={g.id} value={g.id}>{g.nome}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1047,6 +1170,7 @@ export default function ConfiguracoesView() {
         {aba === "meios_pagamento" && <MeiosPagamentoTab sz={sz} />}
         {aba === "unidades_medida" && <UnidadesMedidaTab sz={sz} />}
         {aba === "mesas"     && isGerente && <MesasAdmin sz={sz} />}
+        {aba === "categorias" && isGerente && <CategoriasGrupoTab sz={sz} />}
         {aba === "impressao" && isAdmin && <ConfiguracaoImpressao sz={sz} />}
       </div>
     </div>

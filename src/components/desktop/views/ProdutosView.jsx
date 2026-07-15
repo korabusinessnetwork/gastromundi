@@ -25,6 +25,8 @@ const EMPTY_FORM = {
   compras: [],
   unidade_consumo: "",
   codigo_barras: "",
+  validade_dias: "",       // C1 — shelf life típico (dias); vazio = sem controle
+  proxima_validade: "",    // C1 — próxima data a acompanhar (YYYY-MM-DD)
 };
 
 const CATS_VISIVEIS = 6; // quantas categorias mostrar antes do "Mais"
@@ -226,6 +228,8 @@ export default function ProdutosView() {
       compras,
       unidade_consumo: p.unidade_consumo ?? "",
       codigo_barras:   p.codigo_barras ?? "",
+      validade_dias:    p.validade_dias != null ? String(p.validade_dias) : "",
+      proxima_validade: p.proxima_validade ?? "",
     });
     setErro("");
     setEditId(p.id);
@@ -291,6 +295,9 @@ export default function ProdutosView() {
         .filter(c => c.unidade && c.fator)
         .map(c => ({ nome: c.nome.trim() || null, unidade: c.unidade, fator: parseFloat(c.fator), unidade_destino: ue })),
       ...(FEATURE_BARCODE_SCANNER ? { codigo_barras: form.codigo_barras.trim() || null } : {}),
+      // C1 — validade (ambos nullable). validade_dias: shelf life; proxima_validade: data a acompanhar
+      validade_dias:    form.validade_dias !== "" && !isNaN(Number(form.validade_dias)) ? Math.max(0, parseInt(form.validade_dias, 10)) : null,
+      proxima_validade: form.proxima_validade || null,
     };
     let dbError = null;
     if (modal === "novo") {
@@ -528,6 +535,36 @@ export default function ProdutosView() {
                 </div>
               </div>
             )}
+
+            {/* ── Validade (C1) — opcional ── */}
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 140px" }}>
+                <Label>Próxima validade</Label>
+                <input
+                  type="date"
+                  value={form.proxima_validade}
+                  onChange={e => setField("proxima_validade", e.target.value)}
+                  style={{
+                    width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 10,
+                    border: `1.5px solid ${form.proxima_validade ? varColor(C.accent) : varColor(C.border)}`,
+                    background: varColor(C.surface), color: varColor(C.text),
+                    fontSize: sz.fontBase, fontFamily: "inherit", outline: "none",
+                  }}
+                />
+              </div>
+              <div style={{ flex: "1 1 120px" }}>
+                <Label>Validade (dias)</Label>
+                <Input
+                  type="number"
+                  value={form.validade_dias}
+                  onChange={v => setField("validade_dias", v)}
+                  placeholder="Ex: 30"
+                />
+              </div>
+            </div>
+            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: -4 }}>
+              Opcional. A próxima validade aparece como alerta no PDV quando estiver perto de vencer.
+            </div>
 
             {/* ── Seção: Unidades de medida ── */}
             <div className="produtos-view__secao-unidades">
@@ -820,9 +857,9 @@ function Label({ children }) {
   return <div className="produtos-view__label">{children}</div>;
 }
 
-function Input({ value, onChange, placeholder, maxLength, style }) {
+function Input({ value, onChange, placeholder, maxLength, style, type }) {
   return (
-    <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} className="produtos-view__input" style={style} />
+    <input type={type ?? "text"} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} className="produtos-view__input" style={style} />
   );
 }
 

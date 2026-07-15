@@ -15,6 +15,7 @@ import {
   montarComprovantePagamento,
   montarCupomPreNota,
   montarViaProducao,
+  horarioLancamentoPedido,
 } from "./impressao";
 
 beforeEach(() => {
@@ -206,6 +207,46 @@ describe("montarViaProducao (só itens produzíveis, sem preço/pagamento)", () 
   it("pedido sem itens não lança e retorna lista vazia", () => {
     expect(() => montarViaProducao({ pedido: {} })).not.toThrow();
     expect(montarViaProducao({ pedido: {} }).itens).toEqual([]);
+  });
+
+  it("horário = launched_at mais recente entre os itens (B1)", () => {
+    const pedido = {
+      comanda: "9",
+      created_at: "2026-07-21T12:00:00.000Z",
+      items: [
+        { name: "X-Burguer", qty: 1, launched_at: "2026-07-21T12:05:00.000Z" },
+        { name: "Suco", qty: 1, launched_at: "2026-07-21T12:20:00.000Z" },
+      ],
+    };
+    // usa o lançamento mais recente, não o created_at da comanda
+    expect(montarViaProducao({ pedido }).horario).toBe("2026-07-21T12:20:00.000Z");
+  });
+});
+
+describe("horarioLancamentoPedido", () => {
+  it("pega o launched_at mais recente dos itens", () => {
+    const pedido = {
+      created_at: "2026-07-21T12:00:00.000Z",
+      items: [
+        { launched_at: "2026-07-21T12:05:00.000Z" },
+        { launched_at: "2026-07-21T12:20:00.000Z" },
+        { launched_at: "2026-07-21T12:10:00.000Z" },
+      ],
+    };
+    expect(horarioLancamentoPedido(pedido)).toBe("2026-07-21T12:20:00.000Z");
+  });
+
+  it("cai para created_at quando nenhum item tem launched_at (comanda antiga)", () => {
+    const pedido = { created_at: "2026-07-21T12:00:00.000Z", items: [{ name: "X" }] };
+    expect(horarioLancamentoPedido(pedido)).toBe("2026-07-21T12:00:00.000Z");
+  });
+
+  it("ignora itens sem launched_at ao calcular o mais recente", () => {
+    const pedido = {
+      created_at: "2026-07-21T12:00:00.000Z",
+      items: [{ name: "sem marco" }, { launched_at: "2026-07-21T13:00:00.000Z" }],
+    };
+    expect(horarioLancamentoPedido(pedido)).toBe("2026-07-21T13:00:00.000Z");
   });
 });
 
