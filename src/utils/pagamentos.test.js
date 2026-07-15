@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizarPagamentos, totalPorMetodo, totalTroco } from "./pagamentos";
+import { normalizarPagamentos, totalPorMetodo, totalTroco, rotuloMetodo } from "./pagamentos";
 
 describe("normalizarPagamentos", () => {
   it("retorna o array de pagamentos quando a venda já usa split", () => {
@@ -55,6 +55,39 @@ describe("totalPorMetodo", () => {
   it("ignora pagamento sem metodo", () => {
     const sale = { pagamentos: [{ valor: 10 }] };
     expect(totalPorMetodo(sale)).toEqual({});
+  });
+});
+
+describe("rotuloMetodo", () => {
+  it("traduz os métodos nativos para rótulos amigáveis", () => {
+    expect(rotuloMetodo("dinheiro")).toBe("Dinheiro");
+    expect(rotuloMetodo("credito")).toBe("Crédito");
+    expect(rotuloMetodo("debito")).toBe("Débito");
+    expect(rotuloMetodo("pix")).toBe("Pix");
+    expect(rotuloMetodo("fiado")).toBe("Fiado");
+  });
+
+  it("deriva o nome de um método personalizado (custom_<nome>_<timestamp>)", () => {
+    // antes exibido cru: "custom_crédito_cielo_1783529650712"
+    expect(rotuloMetodo("custom_crédito_cielo_1783529650712")).toBe("Crédito Cielo");
+    expect(rotuloMetodo("custom_vale_refeicao_1700000000000")).toBe("Vale Refeicao");
+  });
+
+  it("prioriza um rótulo configurado pelo estabelecimento quando fornecido", () => {
+    const rotulos = { custom_crédito_cielo_1783529650712: "Crédito Cielo (maq. 2)" };
+    expect(rotuloMetodo("custom_crédito_cielo_1783529650712", rotulos)).toBe("Crédito Cielo (maq. 2)");
+    expect(rotuloMetodo("pix", { pix: "PIX Loja" })).toBe("PIX Loja");
+  });
+
+  it("cai no próprio id quando não é nativo nem custom parseável", () => {
+    expect(rotuloMetodo("boleto")).toBe("boleto");
+    expect(rotuloMetodo("custom_")).toBe("custom_");
+  });
+
+  it("retorna travessão para vazio/nulo (nunca 'undefined' na tela)", () => {
+    expect(rotuloMetodo(null)).toBe("—");
+    expect(rotuloMetodo(undefined)).toBe("—");
+    expect(rotuloMetodo("")).toBe("—");
   });
 });
 
