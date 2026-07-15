@@ -4,7 +4,7 @@ vi.mock("./supabase", () => ({ supabase: {} }));
 vi.mock("./logger", () => ({ logAction: vi.fn() }));
 vi.mock("./jarvas", () => ({ emitirEvento: vi.fn() }));
 
-import { tempoDecorridoMin, estaAtrasado, SLA_MINUTOS_PADRAO } from "./cozinha";
+import { tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido, SLA_MINUTOS_PADRAO } from "./cozinha";
 
 describe("tempoDecorridoMin", () => {
   it("calcula minutos decorridos entre duas datas", () => {
@@ -22,6 +22,31 @@ describe("tempoDecorridoMin", () => {
     const desde = "2026-07-06T10:00:00.000Z";
     const agora = "2026-07-06T09:00:00.000Z";
     expect(tempoDecorridoMin(desde, agora)).toBe(0);
+  });
+});
+
+describe("formatarTempoDecorrido", () => {
+  it("mostra minutos crus abaixo de 1 hora", () => {
+    expect(formatarTempoDecorrido(0)).toBe("0 min");
+    expect(formatarTempoDecorrido(8)).toBe("8 min");
+    expect(formatarTempoDecorrido(59)).toBe("59 min");
+  });
+
+  it("mostra horas (e minutos) de 1h a 1 dia", () => {
+    expect(formatarTempoDecorrido(60)).toBe("1h");
+    expect(formatarTempoDecorrido(85)).toBe("1h 25min");
+    expect(formatarTempoDecorrido(1439)).toBe("23h 59min");
+  });
+
+  it("mostra dias (e horas) a partir de 1 dia — o caso 8510 min vira legível", () => {
+    expect(formatarTempoDecorrido(1440)).toBe("1d");
+    expect(formatarTempoDecorrido(8510)).toBe("5d 21h"); // era "8510 min" na tela
+  });
+
+  it("nunca quebra com entrada inválida (trata como 0)", () => {
+    expect(formatarTempoDecorrido(-5)).toBe("0 min");
+    expect(formatarTempoDecorrido(NaN)).toBe("0 min");
+    expect(formatarTempoDecorrido(undefined)).toBe("0 min");
   });
 });
 
