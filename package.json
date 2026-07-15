@@ -13,6 +13,7 @@
     "@supabase/supabase-js": "^2.108.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "qrcode": "^1.5.4",
     "qz-tray": "^2.2.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -26,6 +27,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.3.1",
     "jsdom": "^29.1.1",
+    "node-forge": "^1.4.0",
     "vite": "^5.3.1",
     "vitest": "^4.1.9"
   },

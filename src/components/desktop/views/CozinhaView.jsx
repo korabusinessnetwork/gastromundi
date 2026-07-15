@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado } from "@/lib/cozinha";
+import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido } from "@/lib/cozinha";
 import { montarViaProducao, buscarConfigImpressao } from "@/lib/impressao";
 import { imprimirDocumento } from "@/lib/impressao/drivers";
 import C from "@/constants/colors";
@@ -150,7 +150,7 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto,
         {pedido.mesa && <span className="pedido-card__mesa" style={{ fontSize: sz.fontSm }}>🪑 {pedido.mesa}</span>}
         <span className="pedido-card__tempo" style={{ fontSize: sz.fontSm - 1, color: atrasado ? varColor(C.red) : varColor(C.muted) }}>
           {atrasado ? <LuTriangleAlert size={12} /> : <LuClock size={12} />}
-          {minutos} min
+          {formatarTempoDecorrido(minutos)}
         </span>
         {/* F015 — via de produção, 1 clique */}
         <button

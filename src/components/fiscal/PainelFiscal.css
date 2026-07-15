@@ -1,0 +1,293 @@
+/* Painel de Configuração Fiscal (Leva 13). CSS separado do JSX (decisão 018);
+   usa os tokens do design system (--gm-*) com fallback, como as telas fiscais
+   irmãs (HistoricoNfce). */
+
+.painel-fiscal {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+  height: 100%;
+  overflow-y: auto;
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--gm-text, #1a1a1a);
+  background: var(--gm-bg, #f6f7f9);
+}
+
+/* ── Cabeçalho ───────────────────────────────────────────────────── */
+.painel-fiscal__cabecalho { display: flex; flex-direction: column; gap: 4px; }
+
+.painel-fiscal__titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.painel-fiscal__subtitulo {
+  margin: 0;
+  font-size: 14px;
+  color: var(--gm-muted, #6b7280);
+}
+
+/* ── Aviso de segurança (permanente) ─────────────────────────────── */
+.painel-fiscal__aviso {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border, #d0d3d9);
+  background: rgba(47, 111, 237, 0.06);
+}
+
+.painel-fiscal__aviso-icone { color: var(--gm-accent, #2f6fed); flex-shrink: 0; margin-top: 2px; }
+
+.painel-fiscal__aviso strong { display: block; font-size: 14px; margin-bottom: 3px; }
+.painel-fiscal__aviso span { font-size: 13px; color: var(--gm-muted, #6b7280); }
+
+/* ── Estado de contingência (Leva 14) — só leitura, tom de aviso âmbar ── */
+.painel-fiscal__contingencia {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #f0c060;
+  background: rgba(240, 192, 96, 0.14);
+}
+
+.painel-fiscal__contingencia-icone { color: #b8860b; flex-shrink: 0; margin-top: 2px; }
+
+.painel-fiscal__contingencia strong { display: block; font-size: 14px; margin-bottom: 3px; color: #8a6608; }
+.painel-fiscal__contingencia span { font-size: 13px; color: var(--gm-muted, #6b7280); }
+
+/* ── Seções ──────────────────────────────────────────────────────── */
+.painel-fiscal__secao {
+  border: 1px solid var(--gm-border, #d0d3d9);
+  border-radius: 14px;
+  background: var(--gm-card, #fff);
+  padding: 16px 18px 18px;
+  margin: 0;
+}
+
+.painel-fiscal__legenda {
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--gm-muted, #6b7280);
+}
+
+.painel-fiscal__ajuda-secao {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--gm-muted, #6b7280);
+}
+
+.painel-fiscal__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.painel-fiscal__grade--largo {
+  grid-template-columns: 1fr;
+}
+
+/* ── Campo ───────────────────────────────────────────────────────── */
+.painel-fiscal__campo { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.painel-fiscal__campo--estreito { max-width: 220px; }
+.painel-fiscal__campo--larga { grid-column: 1 / -1; }
+
+.painel-fiscal__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gm-text, #1a1a1a);
+}
+
+.painel-fiscal__opcional { font-weight: 500; color: var(--gm-muted, #6b7280); }
+
+.painel-fiscal__input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1.5px solid var(--gm-border, #d0d3d9);
+  background: var(--gm-surface, #fff);
+  color: var(--gm-text, #1a1a1a);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.painel-fiscal__input:focus { border-color: var(--gm-accent, #2f6fed); }
+.painel-fiscal__input--erro { border-color: var(--gm-red, #d02e2e); }
+
+.painel-fiscal__hint { font-size: 12px; color: var(--gm-muted, #6b7280); }
+
+.painel-fiscal__erro-campo {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gm-red, #d02e2e);
+}
+
+/* Switch "emissão ativa" */
+.painel-fiscal__campo--switch { justify-content: center; }
+.painel-fiscal__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.painel-fiscal__switch input { width: 18px; height: 18px; accent-color: var(--gm-green, #128a3a); cursor: pointer; }
+
+/* ── Rodapé ──────────────────────────────────────────────────────── */
+.painel-fiscal__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 4px 0 24px;
+}
+
+.painel-fiscal__sucesso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gm-green, #128a3a);
+}
+
+.painel-fiscal__erro-salvar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gm-red, #d02e2e);
+}
+
+.painel-fiscal__salvar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-accent, #2f6fed);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.painel-fiscal__salvar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Estados de tela cheia ───────────────────────────────────────── */
+.painel-fiscal__estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--gm-muted, #6b7280);
+}
+.painel-fiscal__estado p { margin: 0; font-size: 15px; font-weight: 600; }
+.painel-fiscal__estado--erro { color: var(--gm-red, #d02e2e); }
+
+.painel-fiscal__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gm-border, #d0d3d9);
+  background: var(--gm-card, #fff);
+  color: var(--gm-text, #1a1a1a);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.painel-fiscal__spinner { animation: painel-fiscal-girar 0.9s linear infinite; }
+@keyframes painel-fiscal-girar { to { transform: rotate(360deg); } }
+
+/* ── Modal de confirmação (Produção) ─────────────────────────────── */
+.painel-fiscal__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9200;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.painel-fiscal__modal {
+  background: var(--gm-card, #fff);
+  color: var(--gm-text, #1a1a1a);
+  border: 1px solid var(--gm-border, #d0d3d9);
+  border-radius: 18px;
+  padding: 26px;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+
+.painel-fiscal__modal-icone {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gm-amber, #b8860b);
+  background: rgba(184, 134, 11, 0.14);
+}
+
+.painel-fiscal__modal-titulo { margin: 0; font-size: 18px; font-weight: 800; }
+.painel-fiscal__modal-texto { margin: 0; font-size: 14px; color: var(--gm-muted, #6b7280); }
+
+.painel-fiscal__modal-acoes { display: flex; gap: 10px; margin-top: 6px; }
+
+.painel-fiscal__modal-cancelar {
+  flex: 1;
+  padding: 11px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border, #d0d3d9);
+  background: var(--gm-surface, #fff);
+  color: var(--gm-text, #1a1a1a);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.painel-fiscal__modal-confirmar {
+  flex: 1;
+  padding: 11px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-amber, #b8860b);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}

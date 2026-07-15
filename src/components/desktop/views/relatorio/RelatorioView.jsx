@@ -1,5 +1,5 @@
 ﻿import { useState, useMemo, useEffect, Fragment } from "react";
-import { normalizarPagamentos, totalPorMetodo } from "@/utils/pagamentos";
+import { normalizarPagamentos, totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
@@ -493,7 +493,7 @@ export default function RelatorioView() {
       const headers = ["Comanda", "Caixa", "Itens", "Método", "Total (R$)", "Data/Hora"];
       const rows = vendasFiltradas.map(v => [
         v.comanda ?? "—", v.cashier ?? "—", totalItens(v),
-        normalizarPagamentos(v).map(p => METODOS_LABEL[p.metodo] ?? p.metodo ?? "—").join(" + "),
+        normalizarPagamentos(v).map(p => rotuloMetodo(p.metodo)).join(" + "),
         Number(v.total ?? 0).toFixed(2), fmtData(v.at),
       ]);
       const totais = `Total: R$ ${kpis.total.toFixed(2)} · ${kpis.count} venda(s)`;
@@ -504,7 +504,7 @@ export default function RelatorioView() {
       const rows = vendasFiltradas.flatMap(v =>
         (Array.isArray(v.items) && v.items.length > 0 ? v.items : [{ name: "—", qty: 0, price: 0 }]).map(it => [
           v.comanda ?? "—", v.cashier ?? "—",
-          normalizarPagamentos(v).map(p => METODOS_LABEL[p.metodo] ?? p.metodo ?? "—").join(" + "),
+          normalizarPagamentos(v).map(p => rotuloMetodo(p.metodo)).join(" + "),
           (it.emoji ? `${it.emoji} ` : "") + (it.name ?? "—"),
           it.qty ?? 1, Number(it.price ?? 0).toFixed(2),
           Number((it.price ?? 0) * (it.qty ?? 1)).toFixed(2),
@@ -707,7 +707,7 @@ export default function RelatorioView() {
               <KpiCard label="Ticket Médio"      value={fmtR(kpis.ticket)} color={varColor(C.accent)} Icon={LuChartBar}  sz={sz} />
               <KpiCard
                 label="Método Mais Usado"
-                value={kpis.top ? METODOS_LABEL[kpis.top[0]] ?? kpis.top[0] : "—"}
+                value={kpis.top ? rotuloMetodo(kpis.top[0]) : "—"}
                 color={varColor(C.muted)} Icon={kpis.top ? METODOS_ICON[kpis.top[0]] : LuCreditCard} sz={sz}
               />
             </div>
@@ -794,7 +794,7 @@ export default function RelatorioView() {
                                   <Fragment key={pi}>
                                     {pi > 0 && <span style={{ color: varColor(C.muted), margin: "0 4px" }}>+</span>}
                                     {MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}
-                                    {METODOS_LABEL[p.metodo] ?? p.metodo ?? "—"}
+                                    {rotuloMetodo(p.metodo)}
                                   </Fragment>
                                 );
                               })}
@@ -867,7 +867,7 @@ export default function RelatorioView() {
                                   <Fragment key={pi}>
                                     {pi > 0 && <span style={{ color: varColor(C.muted), margin: "0 4px" }}>+</span>}
                                     {MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}
-                                    {METODOS_LABEL[p.metodo] ?? p.metodo ?? "—"}
+                                    {rotuloMetodo(p.metodo)}
                                   </Fragment>
                                 );
                               })}

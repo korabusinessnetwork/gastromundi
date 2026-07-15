@@ -80,6 +80,28 @@ export function tempoDecorridoMin(desde, agora = new Date()) {
 }
 
 /**
+ * Formata minutos decorridos em texto humano (prevenção de "8510 min"):
+ * abaixo de 1h mostra minutos; de 1h a 1 dia mostra "Xh Ymin"; de 1 dia em
+ * diante mostra "Xd Yh". Mantém o número curto e legível a distância no KDS
+ * (Princípio nº1) — o operador entende "5d 21h" na hora, não "8510 min".
+ *
+ * @param {number} minutos
+ * @returns {string}
+ */
+export function formatarTempoDecorrido(minutos) {
+  const min = Math.max(0, Math.floor(Number(minutos) || 0));
+  if (min < 60) return `${min} min`;
+  if (min < 1440) {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return m === 0 ? `${h}h` : `${h}h ${m}min`;
+  }
+  const d = Math.floor(min / 1440);
+  const h = Math.floor((min % 1440) / 60);
+  return h === 0 ? `${d}d` : `${d}d ${h}h`;
+}
+
+/**
  * Um pedido está atrasado quando o tempo decorrido na etapa atual
  * (aguardando: desde a criação; em_preparo: desde o início do
  * preparo) ultrapassa o SLA. Pedidos prontos nunca são "atrasados".

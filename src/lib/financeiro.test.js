@@ -83,4 +83,16 @@ describe("marcarVencidos", () => {
     const lancamentos = [{ id: "y", status: "previsto", vencimento: "2026-07-15" }];
     expect(marcarVencidos(lancamentos, hoje)).toEqual([]);
   });
+
+  it("não marca a conta que vence hoje quando 'hoje' é um Date com hora do dia (regressão de fuso — produção usa new Date())", () => {
+    // Produção chama processarVencidos sem hoje → new Date() = agora local COM hora.
+    // Antes, new Date("2026-07-15") (meia-noite UTC) era < esse Date da tarde,
+    // marcando a conta de hoje como vencida no próprio dia. Compara-se por data.
+    const agoraTarde = new Date(2026, 6, 15, 14, 30, 0); // 15/07/2026 14:30 local
+    const lancamentos = [
+      { id: "hoje",   status: "previsto", vencimento: "2026-07-15" }, // vence hoje → NÃO vencido
+      { id: "ontem",  status: "previsto", vencimento: "2026-07-14" }, // venceu ontem → vencido
+    ];
+    expect(marcarVencidos(lancamentos, agoraTarde)).toEqual(["ontem"]);
+  });
 });

@@ -1,0 +1,287 @@
+/* Histórico de NFC-e (Leva 12). CSS separado do JSX (decisão 018); usa os
+   tokens do design system (--gm-*) com fallback, como as telas irmãs fiscais. */
+
+.historico-nfce {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--gm-text, #1a1a1a);
+  background: var(--gm-bg, #f6f7f9);
+}
+
+/* ── Cabeçalho + filtros ─────────────────────────────────────────── */
+.historico-nfce__cabecalho {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.historico-nfce__titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.historico-nfce__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.historico-nfce__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.historico-nfce__chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--gm-border, #d0d3d9);
+  background: var(--gm-card, #fff);
+  color: var(--gm-muted, #6b7280);
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.historico-nfce__chip:hover {
+  border-color: var(--gm-accent, #2f6fed);
+  color: var(--gm-accent, #2f6fed);
+}
+
+.historico-nfce__chip--ativo {
+  border-color: var(--gm-accent, #2f6fed);
+  background: var(--gm-accent, #2f6fed);
+  color: #fff;
+}
+
+.historico-nfce__busca {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gm-border, #d0d3d9);
+  background: var(--gm-card, #fff);
+  min-width: 240px;
+  flex: 1 1 240px;
+}
+
+.historico-nfce__busca-icone {
+  color: var(--gm-muted, #6b7280);
+  flex-shrink: 0;
+}
+
+.historico-nfce__busca-input {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  background: transparent;
+  color: var(--gm-text, #1a1a1a);
+  font: inherit;
+  outline: none;
+}
+
+.historico-nfce__datas {
+  display: flex;
+  gap: 8px;
+}
+
+.historico-nfce__data {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gm-muted, #6b7280);
+}
+
+.historico-nfce__data input {
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gm-border, #d0d3d9);
+  background: var(--gm-card, #fff);
+  color: var(--gm-text, #1a1a1a);
+  font: inherit;
+}
+
+/* ── Estados (carregando / vazio / erro) ─────────────────────────── */
+.historico-nfce__estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--gm-muted, #6b7280);
+}
+
+.historico-nfce__estado p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.historico-nfce__estado--erro {
+  color: var(--gm-red, #d02e2e);
+}
+
+.historico-nfce__dica {
+  max-width: 420px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.historico-nfce__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gm-border, #d0d3d9);
+  background: var(--gm-card, #fff);
+  color: var(--gm-text, #1a1a1a);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ── Lista ───────────────────────────────────────────────────────── */
+.historico-nfce__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.historico-nfce__linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border, #d0d3d9);
+  background: var(--gm-card, #fff);
+}
+
+.historico-nfce__ident {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.historico-nfce__numero {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.historico-nfce__meta {
+  font-size: 12px;
+  color: var(--gm-muted, #6b7280);
+}
+
+.historico-nfce__homolog {
+  color: var(--gm-amber, #b8860b);
+  font-weight: 600;
+}
+
+.historico-nfce__valor {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gm-green, #128a3a);
+  min-width: 90px;
+  text-align: right;
+}
+
+/* Badge de estado — colorido e legível a distância. */
+.historico-nfce__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.historico-nfce__badge--ok {
+  color: var(--gm-green, #128a3a);
+  background: rgba(18, 138, 58, 0.12);
+}
+
+.historico-nfce__badge--pendente {
+  color: var(--gm-amber, #b8860b);
+  background: rgba(184, 134, 11, 0.14);
+}
+
+.historico-nfce__badge--rejeitada {
+  color: var(--gm-red, #d02e2e);
+  background: rgba(208, 46, 46, 0.12);
+}
+
+.historico-nfce__badge--cancelada,
+.historico-nfce__badge--neutro {
+  color: var(--gm-muted, #6b7280);
+  background: rgba(107, 114, 128, 0.14);
+}
+
+.historico-nfce__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+/* ── Rodapé / paginação ──────────────────────────────────────────── */
+.historico-nfce__rodape {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 16px;
+}
+
+.historico-nfce__mais {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border, #d0d3d9);
+  background: var(--gm-card, #fff);
+  color: var(--gm-text, #1a1a1a);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.historico-nfce__mais:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.historico-nfce__spinner {
+  animation: historico-nfce-girar 0.9s linear infinite;
+}
+
+@keyframes historico-nfce-girar {
+  to { transform: rotate(360deg); }
+}

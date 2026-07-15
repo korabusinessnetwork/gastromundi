@@ -1,0 +1,129 @@
+/* Cancelamento da NFC-e (evento 110111, Leva 10). CSS separado do JSX (decisão 018). */
+
+.cancelar-nfce {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Estados humanos (não-clicáveis) — informam, não frustram. */
+.cancelar-nfce--info {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  color: var(--gm-muted, #6b7280);
+  font-weight: 500;
+}
+
+.cancelar-nfce--ok {
+  color: var(--gm-green, #128a3a);
+}
+
+.cancelar-nfce--pendente {
+  color: var(--gm-amber, #b8860b);
+}
+
+.cancelar-nfce--rejeitada {
+  color: var(--gm-red, #d02e2e);
+}
+
+/* Botão base. */
+.cancelar-nfce__botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gm-border, #d0d3d9);
+  background: var(--gm-surface, #fff);
+  color: var(--gm-text, #1a1a1a);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.cancelar-nfce__botao:hover:not(:disabled) {
+  border-color: var(--gm-red, #d02e2e);
+  color: var(--gm-red, #d02e2e);
+}
+
+.cancelar-nfce__botao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Ação destrutiva confirmada. */
+.cancelar-nfce__botao--perigo {
+  border-color: var(--gm-red, #d02e2e);
+  background: var(--gm-red, #d02e2e);
+  color: #fff;
+}
+
+.cancelar-nfce__botao--perigo:hover:not(:disabled) {
+  background: var(--gm-red-dark, #b02525);
+  color: #fff;
+}
+
+/* Formulário de confirmação. */
+.cancelar-nfce__form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 260px;
+  padding: 12px;
+  border: 1.5px solid var(--gm-border, #d0d3d9);
+  border-radius: 10px;
+  background: var(--gm-surface, #fff);
+}
+
+.cancelar-nfce__aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--gm-amber, #b8860b);
+  font-weight: 600;
+}
+
+.cancelar-nfce__textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--gm-border, #d0d3d9);
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.cancelar-nfce__contador {
+  align-self: flex-end;
+  color: var(--gm-muted, #6b7280);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cancelar-nfce__erro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--gm-red, #d02e2e);
+  font-weight: 500;
+}
+
+.cancelar-nfce__acoes {
+  display: flex;
+  gap: 8px;
+}
+
+.cancelar-nfce__spinner {
+  animation: cancelar-nfce-girar 0.9s linear infinite;
+}
+
+@keyframes cancelar-nfce-girar {
+  to { transform: rotate(360deg); }
+}

@@ -186,15 +186,37 @@ export function calcularFluxoCaixa(lancamentos, de, ate) {
 }
 
 /**
+ * Data de CALENDÁRIO (YYYY-MM-DD) de um valor. Para `Date` usa os componentes
+ * LOCAIS (não UTC): é assim que o operador enxerga "hoje". Para string
+ * date-only devolve os 10 primeiros caracteres como estão. Evita o bug de
+ * comparar `new Date("2026-07-15")` (meia-noite UTC) com `new Date()` (agora
+ * local): em BRT a conta que vence hoje era lida como já vencida no próprio dia.
+ *
+ * @param {Date|string} valor
+ * @returns {string} YYYY-MM-DD
+ */
+function dataCalendario(valor) {
+  if (valor instanceof Date) {
+    const ano = valor.getFullYear();
+    const mes = String(valor.getMonth() + 1).padStart(2, "0");
+    const dia = String(valor.getDate()).padStart(2, "0");
+    return `${ano}-${mes}-${dia}`;
+  }
+  return String(valor).slice(0, 10);
+}
+
+/**
  * Retorna os ids dos lançamentos previstos cujo vencimento já passou.
+ * Compara por DATA de calendário: o que vence hoje NÃO conta como vencido —
+ * só o que venceu em dias anteriores.
  *
  * @param {object[]} lancamentos
  * @param {Date|string} [hoje]
  * @returns {string[]}
  */
 export function marcarVencidos(lancamentos, hoje = new Date()) {
-  const hojeTime = new Date(hoje).getTime();
+  const hojeStr = dataCalendario(hoje);
   return (lancamentos ?? [])
-    .filter((l) => l.status === "previsto" && l.vencimento && new Date(l.vencimento).getTime() < hojeTime)
+    .filter((l) => l.status === "previsto" && l.vencimento && dataCalendario(l.vencimento) < hojeStr)
     .map((l) => l.id);
 }

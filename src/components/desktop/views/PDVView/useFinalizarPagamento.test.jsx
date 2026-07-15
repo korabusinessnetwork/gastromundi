@@ -293,6 +293,36 @@ describe("useFinalizarPagamento — add-ons pagos (Fase 3, decisão 019)", () =>
     expect(processarPagamentoTefMock).not.toHaveBeenCalled();
   });
 
+  it("Leva 7: chama onNfce com 'emitindo' na hora e depois 'concluido' com o resultado, sem bloquear a venda", async () => {
+    emitirDocumentoFiscalMock.mockResolvedValueOnce({ status: "autorizada", vendaId: "v1", chave: "CHAVE44" });
+    const { appMock, finalizarPagamento } = setup({ addonHabilitado: (a) => a === "nfe" });
+    const onNfce = vi.fn();
+
+    // A venda conclui e retorna na hora — NÃO espera a emissão (não-bloqueio).
+    await expect(finalizarPagamento(selectedComanda, [], payload, { onNfce })).resolves.toBeDefined();
+    expect(appMock.addSale).toHaveBeenCalledTimes(1);
+
+    // Já foi chamado com 'emitindo' (antes do round-trip resolver).
+    expect(onNfce).toHaveBeenCalledWith(expect.objectContaining({ estado: "emitindo", resultado: null }));
+
+    // E depois com 'concluido' + o resultado autorizado.
+    await waitFor(() =>
+      expect(onNfce).toHaveBeenCalledWith(
+        expect.objectContaining({ estado: "concluido", resultado: expect.objectContaining({ status: "autorizada" }) }),
+      ),
+    );
+  });
+
+  it("Leva 7: SEM o add-on nfe, onNfce nunca é chamado (comportamento idêntico a hoje)", async () => {
+    const { finalizarPagamento } = setup({ addonHabilitado: () => false });
+    const onNfce = vi.fn();
+
+    await finalizarPagamento(selectedComanda, [], payload, { onNfce });
+
+    await waitFor(() => expect(criarLancamentoMock).toHaveBeenCalled());
+    expect(onNfce).not.toHaveBeenCalled();
+  });
+
   it("falha do add-on (fiscal ou TEF) nunca quebra a finalização da venda", async () => {
     emitirDocumentoFiscalMock.mockRejectedValueOnce(new Error("falha simulada"));
     const { finalizarPagamento } = setup({ addonHabilitado: (a) => a === "nfe" });

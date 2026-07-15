@@ -1,0 +1,215 @@
+/**
+ * CupomNfce — layout de cupom térmico (NFC-e). CSS separado do JSX
+ * (decisão 018). Largura estreita (80mm típico), fonte legível, tudo em
+ * preto-e-branco de alto contraste para imprimir bem em impressora
+ * térmica e ler bem na tela do PDV (Princípio nº1: intuitivo).
+ */
+
+.cupom-nfce {
+  --cupom-larg: 302px; /* ~80mm em 96dpi */
+  width: var(--cupom-larg);
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 12px 14px;
+  background: #fff;
+  color: #000;
+  font-family: "Menlo", "Consolas", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+/* ── Tarjas de aviso (homologação / contingência / pendente) ── */
+.cupom-nfce__avisos {
+  margin-bottom: 10px;
+}
+
+.cupom-nfce__aviso {
+  margin: 0 0 4px;
+  padding: 6px 8px;
+  border: 2px dashed #000;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+/* ── Emitente ── */
+.cupom-nfce__emitente {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #000;
+}
+
+.cupom-nfce__nome {
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.cupom-nfce__linha {
+  font-size: 11px;
+}
+
+.cupom-nfce__titulo {
+  margin: 8px 0;
+  text-align: center;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+/* ── Itens ── */
+.cupom-nfce__itens {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+
+.cupom-nfce__itens th,
+.cupom-nfce__itens td {
+  padding: 2px 0;
+  text-align: right;
+  vertical-align: top;
+}
+
+.cupom-nfce__itens thead th {
+  border-bottom: 1px solid #000;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.cupom-nfce__col-desc {
+  text-align: left;
+  width: 48%;
+}
+
+.cupom-nfce__item-cod {
+  color: #444;
+  font-size: 10px;
+}
+
+/* ── Totais ── */
+.cupom-nfce__totais,
+.cupom-nfce__pagamentos {
+  margin: 8px 0;
+  padding: 8px 0;
+  border-top: 1px dashed #000;
+}
+
+.cupom-nfce__totais > div,
+.cupom-nfce__pagamentos > div {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.cupom-nfce__totais dt,
+.cupom-nfce__totais dd,
+.cupom-nfce__pagamentos dt,
+.cupom-nfce__pagamentos dd {
+  margin: 0;
+}
+
+.cupom-nfce__total-final {
+  margin-top: 6px !important;
+  padding-top: 6px;
+  border-top: 1px solid #000;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.cupom-nfce__pagamentos {
+  border-top: none;
+  padding-top: 0;
+}
+
+.cupom-nfce__troco {
+  font-weight: 700;
+}
+
+/* ── Consumidor ── */
+.cupom-nfce__consumidor {
+  margin: 8px 0;
+  text-align: center;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+/* ── Chave de acesso ── */
+.cupom-nfce__chave {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 8px 0;
+  padding: 8px 0;
+  border-top: 1px dashed #000;
+  border-bottom: 1px dashed #000;
+  text-align: center;
+}
+
+.cupom-nfce__chave-titulo {
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.cupom-nfce__chave-valor {
+  font-size: 11px;
+  word-break: break-all;
+  letter-spacing: 0.5px;
+}
+
+/* ── Protocolo / estado ── */
+.cupom-nfce__protocolo,
+.cupom-nfce__pendente {
+  margin: 8px 0;
+  text-align: center;
+  font-size: 11px;
+}
+
+.cupom-nfce__pendente {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ── QR Code ── */
+.cupom-nfce__qr {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+}
+
+.cupom-nfce__qr-img {
+  width: 160px;
+  height: 160px;
+}
+
+.cupom-nfce__qr-img svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.cupom-nfce__qr-carregando,
+.cupom-nfce__qr-erro {
+  font-size: 11px;
+  text-align: center;
+}
+
+/* ── Rodapé legal ── */
+.cupom-nfce__legal {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 10px;
+}
+
+/* ── Impressão: sem margens, largura total do papel ── */
+@media print {
+  .cupom-nfce {
+    width: 100%;
+    padding: 0;
+  }
+}

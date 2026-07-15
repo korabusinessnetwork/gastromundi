@@ -3,6 +3,7 @@ import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
+import { rotuloMetodo } from "@/utils/pagamentos";
 import { getSizes } from "@/constants/sizes";
 import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrendingDown } from "react-icons/lu";
 import {
@@ -18,7 +19,6 @@ const PERIODOS = [
   { id: "intervalo", label: "Período" },
 ];
 
-const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
 
 const fmtR = (v) => "R$ " + Number(v ?? 0).toFixed(2);
 
@@ -265,7 +265,7 @@ export default function DesempenhoReport() {
                 porMetodo.map((m) => (
                   <BarraHorizontal
                     key={m.metodo}
-                    label={METODOS_LABEL[m.metodo] ?? m.metodo}
+                    label={rotuloMetodo(m.metodo)}
                     valor={Number(m.total) || 0}
                     max={maxMetodo}
                     cor={varColor(C.accent)}
