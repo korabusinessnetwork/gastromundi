@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { diaLocalISO, rotuloDiaBR, agruparVendasPorDia } from "./datas";
+import { diaLocalISO, rotuloDiaBR, agruparVendasPorDia, intervaloPeriodo, agruparVendasPorOperador } from "./datas";
 import { totalPorMetodo } from "./pagamentos";
 
 describe("diaLocalISO", () => {
@@ -72,5 +72,68 @@ describe("agruparVendasPorDia", () => {
   it("lida com lista vazia/indefinida", () => {
     expect(agruparVendasPorDia([])).toEqual([]);
     expect(agruparVendasPorDia(undefined)).toEqual([]);
+  });
+});
+
+describe("intervaloPeriodo", () => {
+  const agora = new Date("2026-07-21T15:00:00.000Z").getTime();
+
+  it("'tudo' não recorta", () => {
+    expect(intervaloPeriodo("tudo", "", "", agora)).toEqual({ ini: null, fim: null });
+  });
+
+  it("'semana' cobre os últimos 7 dias", () => {
+    const { ini, fim } = intervaloPeriodo("semana", "", "", agora);
+    expect(fim).toBe(agora);
+    expect(agora - ini).toBe(7 * 24 * 60 * 60 * 1000);
+  });
+
+  it("'mes' cobre os últimos 30 dias", () => {
+    const { ini } = intervaloPeriodo("mes", "", "", agora);
+    expect(agora - ini).toBe(30 * 24 * 60 * 60 * 1000);
+  });
+
+  it("custom usa as datas informadas (fim inclui o dia todo)", () => {
+    const { ini, fim } = intervaloPeriodo("custom", "2026-07-10", "2026-07-15", agora);
+    expect(new Date(ini).getHours()).toBe(0);
+    expect(fim).toBeGreaterThan(ini);
+  });
+
+  it("custom vazio não recorta", () => {
+    expect(intervaloPeriodo("custom", "", "", agora)).toEqual({ ini: null, fim: null });
+  });
+});
+
+describe("agruparVendasPorOperador", () => {
+  const vendas = [
+    { cashier: "ana",  total: 100 },
+    { cashier: "ana",  total: 50 },
+    { cashier: "bruno", total: 200 },
+    { cashier: null,   total: 20 },
+  ];
+
+  it("agrupa por operador com total, vendas e ticket", () => {
+    const ops = agruparVendasPorOperador(vendas);
+    const ana = ops.find((o) => o.operador === "ana");
+    expect(ana.vendas).toBe(2);
+    expect(ana.total).toBe(150);
+    expect(ana.ticket).toBe(75);
+  });
+
+  it("calcula participação (%) no faturamento", () => {
+    const ops = agruparVendasPorOperador(vendas);
+    // total geral = 370; bruno = 200 → ~54.05%
+    const bruno = ops.find((o) => o.operador === "bruno");
+    expect(bruno.participacao).toBeCloseTo((200 / 370) * 100);
+  });
+
+  it("ordena por total desc e trata operador ausente como —", () => {
+    const ops = agruparVendasPorOperador(vendas);
+    expect(ops[0].operador).toBe("bruno");
+    expect(ops.some((o) => o.operador === "—")).toBe(true);
+  });
+
+  it("lida com lista vazia", () => {
+    expect(agruparVendasPorOperador([])).toEqual([]);
   });
 });

@@ -75,3 +75,59 @@ export function agruparVendasPorDia(vendas, opts = {}) {
     .map((g) => ({ ...g, ticket: g.comandas > 0 ? g.total / g.comandas : 0 }))
     .sort((a, b) => (a.dia < b.dia ? 1 : a.dia > b.dia ? -1 : 0));
 }
+
+/**
+ * Resolve o intervalo [ini, fim] em milissegundos de um período nomeado
+ * do RelatorioView. Espelha a lógica de filtrarPorPeriodo (hora local da
+ * máquina) para as agregações admin baterem com a lista de vendas.
+ * "tudo" e um custom vazio retornam {ini:null, fim:null} (sem recorte).
+ *
+ * @param {"hoje"|"semana"|"mes"|"tudo"|"custom"} periodo
+ * @param {string} [customInicio] - "YYYY-MM-DD"
+ * @param {string} [customFim] - "YYYY-MM-DD"
+ * @param {number} [agora] - epoch ms de referência
+ * @returns {{ini:number|null, fim:number|null}}
+ */
+export function intervaloPeriodo(periodo, customInicio, customFim, agora = Date.now()) {
+  if (periodo === "tudo") return { ini: null, fim: null };
+  if (periodo === "custom") {
+    const ini = customInicio ? new Date(customInicio + "T00:00:00").getTime() : null;
+    const fim = customFim ? new Date(customFim + "T23:59:59").getTime() : null;
+    if (ini == null && fim == null) return { ini: null, fim: null };
+    return { ini: ini ?? 0, fim: fim ?? agora };
+  }
+  const hojeInicio = new Date(new Date(agora).toDateString()).getTime();
+  if (periodo === "hoje") return { ini: hojeInicio, fim: agora };
+  const dias = periodo === "semana" ? 7 : 30;
+  return { ini: agora - dias * 24 * 60 * 60 * 1000, fim: agora };
+}
+
+/**
+ * Agrupa vendas por operador que cobrou (campo `cashier`), somando total
+ * e contando vendas, com ticket médio e participação (%) no faturamento.
+ * Visão administrativa (dados de todos os operadores). Pura.
+ *
+ * @param {Array<object>} vendas
+ * @returns {Array<{operador:string, vendas:number, total:number, ticket:number, participacao:number}>}
+ *   ordenado por total (desc)
+ */
+export function agruparVendasPorOperador(vendas) {
+  const mapa = new Map();
+  let totalGeral = 0;
+  for (const v of Array.isArray(vendas) ? vendas : []) {
+    const operador = v?.cashier || "—";
+    const valor = Number(v?.total ?? 0);
+    totalGeral += valor;
+    if (!mapa.has(operador)) mapa.set(operador, { operador, vendas: 0, total: 0 });
+    const g = mapa.get(operador);
+    g.vendas += 1;
+    g.total += valor;
+  }
+  return [...mapa.values()]
+    .map((g) => ({
+      ...g,
+      ticket: g.vendas > 0 ? g.total / g.vendas : 0,
+      participacao: totalGeral > 0 ? (g.total / totalGeral) * 100 : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
+}

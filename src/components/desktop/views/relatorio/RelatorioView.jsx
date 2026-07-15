@@ -1,6 +1,7 @@
 ﻿import { useState, useMemo, useEffect, Fragment } from "react";
 import { normalizarPagamentos, totalPorMetodo } from "@/utils/pagamentos";
-import { agruparVendasPorDia, rotuloDiaBR } from "@/utils/datas";
+import { agruparVendasPorDia, rotuloDiaBR, intervaloPeriodo, agruparVendasPorOperador } from "@/utils/datas";
+import { calcularVariacaoPercentual } from "@/lib/relatorios";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
@@ -17,7 +18,8 @@ import {
   LuPrinter, LuDownload, LuX, LuCircleX,
 } from "react-icons/lu";
 
-const ABAS = ["Vendas", "Desempenho", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
+const ABAS_BASE = ["Vendas", "Desempenho", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
+// "Admin" só entra para role admin (visão consolidada/sensível) — B3.
 
 const PERIODOS = [
   { id: "hoje",    label: "Hoje"    },
@@ -400,6 +402,9 @@ export default function RelatorioView() {
   }, [aba]);
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+  // Visão administrativa consolidada (B3): só role admin — gerente/caixa não veem.
+  const isSuperAdmin = currentUser?.role === "admin";
+  const ABAS = isSuperAdmin ? [...ABAS_BASE, "Admin"] : ABAS_BASE;
 
   // ── Vendas ────────────────────────────────────────────────────
   const vendasFiltradas = useMemo(() => {
@@ -425,6 +430,39 @@ export default function RelatorioView() {
     () => agruparVendasPorDia(vendasFiltradas, { totalPorMetodo }),
     [vendasFiltradas],
   );
+
+  // ── Consolidado administrativo (B3) — independente do filtro de método,
+  //    é uma visão gerencial: faturamento do período vs período anterior de
+  //    mesma duração, ticket médio e faturamento por operador. Calculado a
+  //    partir de `sales` (janela de bootstrap) pelos limites do período.
+  const adminConsolidado = useMemo(() => {
+    const { ini, fim } = intervaloPeriodo(periodo, customInicio, customFim);
+    const atMs = (v) => (v.at ? new Date(v.at).getTime() : 0);
+    const atuais = (ini == null && fim == null)
+      ? sales
+      : sales.filter((v) => { const t = atMs(v); return (ini == null || t >= ini) && (fim == null || t <= fim); });
+
+    const totalAtual = atuais.reduce((s, v) => s + (v.total ?? 0), 0);
+    const ticket = atuais.length > 0 ? totalAtual / atuais.length : 0;
+
+    let totalAnterior = null, variacao = null;
+    if (ini != null && fim != null) {
+      const dur = fim - ini;
+      const prevIni = ini - dur, prevFim = ini;
+      const anteriores = sales.filter((v) => { const t = atMs(v); return t >= prevIni && t < prevFim; });
+      totalAnterior = anteriores.reduce((s, v) => s + (v.total ?? 0), 0);
+      variacao = calcularVariacaoPercentual(totalAtual, totalAnterior);
+    }
+
+    const porMetodo = {};
+    atuais.forEach((v) => { Object.entries(totalPorMetodo(v)).forEach(([m, val]) => { porMetodo[m] = (porMetodo[m] ?? 0) + val; }); });
+
+    return {
+      totalAtual, totalAnterior, variacao, ticket, count: atuais.length,
+      porOperador: agruparVendasPorOperador(atuais),
+      porMetodo,
+    };
+  }, [sales, periodo, customInicio, customFim]);
 
   // ── Fechamentos ───────────────────────────────────────────────
   const fechsFiltrados = useMemo(() =>
@@ -598,6 +636,20 @@ export default function RelatorioView() {
     ]);
     if (fmt === "pdf") exportToPDF("Logs de Operadores", headers, rows, periodo);
     else               exportToXLSX("Logs de Operadores", headers, rows, periodo);
+  };
+
+  const exportAdmin = (fmt) => {
+    const headers = ["Operador", "Vendas", "Total (R$)", "Ticket Médio (R$)", "Participação (%)"];
+    const rows = adminConsolidado.porOperador.map(o => [
+      o.operador, o.vendas,
+      Number(o.total ?? 0).toFixed(2),
+      Number(o.ticket ?? 0).toFixed(2),
+      Number(o.participacao ?? 0).toFixed(1),
+    ]);
+    const totais = `Faturamento: R$ ${adminConsolidado.totalAtual.toFixed(2)} · ${adminConsolidado.count} venda(s)`
+      + (adminConsolidado.variacao != null ? ` · ${adminConsolidado.variacao >= 0 ? "+" : ""}${adminConsolidado.variacao.toFixed(1)}% vs período anterior` : "");
+    if (fmt === "pdf") exportToPDF("Relatório Admin — Faturamento por Operador", headers, rows, periodo, { totais });
+    else               exportToXLSX("Relatorio Admin", headers, rows, periodo);
   };
 
   return (
@@ -1459,6 +1511,97 @@ export default function RelatorioView() {
 
             <div style={{ marginTop: 12, fontSize: sz.fontSm + 1, color: varColor(C.muted) }}>
               * Senhas marcadas como "não registrada" foram definidas antes desta funcionalidade. Redefina-as nas Configurações para que apareçam aqui.
+            </div>
+          </div>
+        )}
+
+        {/* ══ ADMIN (visão consolidada — só role admin) — B3 ══ */}
+        {aba === "Admin" && !isSuperAdmin && (
+          <Empty icon={LuLock} msg="Acesso restrito a administradores" sz={sz} />
+        )}
+        {aba === "Admin" && isSuperAdmin && (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            {/* KPIs consolidados */}
+            <div style={{
+              display: "grid", gridTemplateColumns: width < 700 ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+              gap: sz.gap, padding: `${sz.pad}px ${sz.pad}px ${sz.padSm}px`, flexShrink: 0,
+            }}>
+              <KpiCard label="Faturamento do Período" value={fmtR(adminConsolidado.totalAtual)} color={varColor(C.green)} Icon={LuBanknote} sz={sz} />
+              <KpiCard
+                label="Período Anterior"
+                value={adminConsolidado.totalAnterior != null ? fmtR(adminConsolidado.totalAnterior) : "—"}
+                color={varColor(C.muted)} Icon={LuChartBar} sz={sz}
+              />
+              <KpiCard
+                label="Variação"
+                value={adminConsolidado.variacao != null ? `${adminConsolidado.variacao >= 0 ? "+" : ""}${adminConsolidado.variacao.toFixed(1)}%` : "—"}
+                color={adminConsolidado.variacao == null ? varColor(C.muted) : adminConsolidado.variacao >= 0 ? varColor(C.green) : varColor(C.red)}
+                Icon={LuZap} sz={sz}
+              />
+              <KpiCard label="Ticket Médio" value={fmtR(adminConsolidado.ticket)} color={varColor(C.accent)} Icon={LuReceipt} sz={sz} />
+            </div>
+
+            {/* Toolbar */}
+            <div style={{ display: "flex", alignItems: "center", padding: `0 ${sz.pad}px ${sz.padSm}px`, flexShrink: 0, gap: 12 }}>
+              <div style={{
+                flex: 1, background: `${alfa(C.accent, "10")}`, border: `1px solid ${alfa(C.accent, "33")}`,
+                borderRadius: 12, padding: "10px 14px", fontSize: sz.fontSm + 1, color: varColor(C.accent), fontWeight: 600,
+              }}>
+                <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                Visão administrativa consolidada — inclui todos os operadores. Confidencial.
+              </div>
+              <ExportBar onPDF={() => exportAdmin("pdf")} onXLSX={() => exportAdmin("xlsx")} sz={sz} />
+            </div>
+
+            {/* Faturamento por operador */}
+            <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
+              {adminConsolidado.porOperador.length === 0 ? (
+                <Empty icon={LuChartBar} msg="Nenhuma venda no período selecionado" sz={sz} />
+              ) : (
+                <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+                      <Th>Operador</Th>
+                      <Th right>Vendas</Th>
+                      <Th right>Total</Th>
+                      <Th right>Ticket Médio</Th>
+                      <Th right>Participação</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminConsolidado.porOperador.map((o) => (
+                      <tr
+                        key={o.operador}
+                        onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                        style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
+                      >
+                        <Td sz={sz}><span style={{ fontWeight: 700 }}>{o.operador}</span></Td>
+                        <Td sz={sz} right>{o.vendas}</Td>
+                        <Td sz={sz} right color={varColor(C.green)}><span style={{ fontWeight: 800 }}>{fmtR(o.total)}</span></Td>
+                        <Td sz={sz} right muted>{fmtR(o.ticket)}</Td>
+                        <Td sz={sz} right><span style={{ fontWeight: 700 }}>{o.participacao.toFixed(1)}%</span></Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: `2px solid var(${C.border})` }}>
+                      <td style={{ padding: "12px 16px", fontWeight: 800, fontSize: sz.fontBase }}>
+                        {adminConsolidado.porOperador.length} operador(es)
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800, fontSize: sz.fontBase }}>
+                        {adminConsolidado.count}
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, fontSize: sz.fontLg, color: varColor(C.green) }}>
+                        {fmtR(adminConsolidado.totalAtual)}
+                      </td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tfoot>
+                </table>
+                </div>
+              )}
             </div>
           </div>
         )}
