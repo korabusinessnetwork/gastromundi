@@ -12,6 +12,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
+import { produtosVencendo } from "@/lib/validade";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
@@ -30,7 +31,7 @@ export default function PDVView() {
     pending, products, estoque,
     addPending, updatePending, removePending,
     caixaAberto, currentUser, sales, users, metodosCustom,
-    lancadas, addLancada,
+    lancadas, addLancada, diasAlertaValidade,
   } = useApp();
   const { finalizarPagamento } = useFinalizarPagamento();
   const { cancelarComanda } = useCancelarComanda();
@@ -58,6 +59,7 @@ export default function PDVView() {
 
   const [toast,         setToast]         = useState(false);
   const [alertaAberto,  setAlertaAberto]  = useState(false);
+  const [alertaValidadeAberto, setAlertaValidadeAberto] = useState(false);
   const [buscaComanda,  setBuscaComanda]  = useState("");
 
   // modal nova comanda
@@ -783,6 +785,53 @@ export default function PDVView() {
                     background: "#f59e0b18", border: "1px solid #f59e0b44", color: "#f59e0b",
                   }}>
                     {p.emoji} {p.name} · <span style={{ fontWeight: 900 }}>{estoque[p.id]}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── Alerta de validade (C1) — mesmo padrão do alerta de estoque ── */}
+      {(mode === "mapa" || mode === "grid") && (() => {
+        const vencendo = produtosVencendo(products, diasAlertaValidade ?? 7);
+        if (vencendo.length === 0) return null;
+        const vencidos = vencendo.filter(v => v.vencido);
+        const proximos = vencendo.filter(v => !v.vencido);
+        const rotuloDias = (dias) => dias < 0
+          ? `vencido há ${Math.abs(dias)}d`
+          : dias === 0 ? "vence hoje" : `${dias}d`;
+        return (
+          <div style={{ flexShrink: 0, borderBottom: `1px solid #ef444444`, background: "#ef44440a" }}>
+            <button
+              onClick={() => setAlertaValidadeAberto(v => !v)}
+              style={{
+                width: "100%", background: "none", border: "none", cursor: "pointer",
+                padding: "10px 24px", display: "flex", alignItems: "center", gap: 10, textAlign: "left",
+              }}
+            >
+              <LuTriangleAlert size={16} color={varColor(C.red)} />
+              <span style={{ fontWeight: 700, fontSize: 16, color: varColor(C.red), flex: 1 }}>
+                {vencidos.length > 0 && `${vencidos.length} produto${vencidos.length !== 1 ? "s" : ""} vencido${vencidos.length !== 1 ? "s" : ""}`}
+                {vencidos.length > 0 && proximos.length > 0 && " · "}
+                {proximos.length > 0 && `${proximos.length} vencendo em breve`}
+              </span>
+              <span style={{ fontSize: 18, color: varColor(C.red), fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                {alertaValidadeAberto ? <><LuChevronUp size={14} /> Ocultar</> : <><LuChevronDown size={14} /> Ver</>}
+              </span>
+            </button>
+            {alertaValidadeAberto && (
+              <div style={{ padding: "0 24px 12px", display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {vencendo.map(({ produto, dias, vencido }) => (
+                  <span key={produto.id} style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "4px 12px", borderRadius: 20, fontSize: 18, fontWeight: 700,
+                    background: vencido ? `${alfa(C.red, "18")}` : "#f59e0b18",
+                    border: `1px solid ${vencido ? alfa(C.red, "44") : "#f59e0b44"}`,
+                    color: vencido ? varColor(C.red) : "#f59e0b",
+                  }}>
+                    {produto.emoji} {produto.name} · <span style={{ fontWeight: 900 }}>{rotuloDias(dias)}</span>
                   </span>
                 ))}
               </div>

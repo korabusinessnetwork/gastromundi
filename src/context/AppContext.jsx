@@ -32,6 +32,7 @@ export function AppProvider({ children }) {
   const [meiosPagamento,  setMeiosPagamentoLocal] = useState(["dinheiro", "credito", "debito", "pix"]);
   const [metodosCustom,   setMetodosCustomLocal]  = useState([]);
   const [taxaServico,     setTaxaServicoLocal]    = useState(false);
+  const [diasAlertaValidade, setDiasAlertaValidadeLocal] = useState(7); // C1 — janela de alerta de validade
   const [estoque,         setEstoqueLocal]        = useState({});
   const [estoqueMinimos,  setEstoqueMinimosLocal] = useState({});
   const [tenant,          setTenantLocal]         = useState(null); // Fase 1 — camada de comercialização (ADR-005)
@@ -163,7 +164,7 @@ export function AppProvider({ children }) {
         buscarSalesData(),
         supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom"]),
+        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","dias_alerta_validade"]),
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
         // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
         buscarBootstrapTenant(),
@@ -209,6 +210,8 @@ export function AppProvider({ children }) {
         if (taxa?.value !== undefined) setTaxaServicoLocal(!!taxa.value);
         const custom = configData.find(c => c.key === "metodos_custom");
         if (custom?.value && Array.isArray(custom.value)) setMetodosCustomLocal(custom.value);
+        const diasValidade = configData.find(c => c.key === "dias_alerta_validade");
+        if (diasValidade?.value != null && !isNaN(Number(diasValidade.value))) setDiasAlertaValidadeLocal(Number(diasValidade.value));
       }
 
       if (tenantData) {
@@ -559,6 +562,12 @@ export function AppProvider({ children }) {
     await supabase.from("config").upsert({ key: "taxa_servico", value: !!val });
   };
 
+  const setDiasAlertaValidade = async (val) => {
+    const n = Math.max(1, Math.min(365, Number(val) || 7));
+    setDiasAlertaValidadeLocal(n);
+    await supabase.from("config").upsert({ key: "dias_alerta_validade", value: n });
+  };
+
   // ── Context value ─────────────────────────────────────────────
   const addLancada = (id) => setLancadas(prev => new Set([...prev, id]));
 
@@ -597,6 +606,7 @@ export function AppProvider({ children }) {
     addFechamento,
     setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque, baixarEstoque, setMinimoEstoque,
     taxaServico, setTaxaServico,
+    diasAlertaValidade, setDiasAlertaValidade,
     metodosCustom, setMetodosCustom,
   };
 

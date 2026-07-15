@@ -967,14 +967,28 @@ const ABAS_CONFIG = [
 ];
 
 function GeralTab({ sz }) {
-  const { taxaServico, setTaxaServico } = useApp();
+  const { taxaServico, setTaxaServico, diasAlertaValidade, setDiasAlertaValidade } = useApp();
   const [saving, setSaving] = useState(false);
+  const [dias, setDias] = useState(String(diasAlertaValidade ?? 7));
+  const [savingDias, setSavingDias] = useState(false);
+
+  useEffect(() => { setDias(String(diasAlertaValidade ?? 7)); }, [diasAlertaValidade]);
 
   const handleToggle = async () => {
     setSaving(true);
     await setTaxaServico(!taxaServico);
     setSaving(false);
   };
+
+  const handleSalvarDias = async () => {
+    setSavingDias(true);
+    await setDiasAlertaValidade(dias);
+    setSavingDias(false);
+  };
+
+  const diasNum = Number(dias);
+  const diasValido = Number.isFinite(diasNum) && diasNum >= 1 && diasNum <= 365;
+  const diasAlterado = String(diasAlertaValidade ?? 7) !== String(dias).trim();
 
   return (
     <div className="geral-tab">
@@ -997,6 +1011,45 @@ function GeralTab({ sz }) {
         >
           <span className="geral-tab__toggle-bolinha" style={{ left: taxaServico ? 29 : 3 }} />
         </button>
+      </div>
+
+      {/* C1 — janela de alerta de validade */}
+      <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
+        <div style={{ flex: 1 }}>
+          <div className="geral-tab__titulo" style={{ fontSize: sz.fontBase }}>Alerta de Validade</div>
+          <div className="geral-tab__ajuda" style={{ fontSize: sz.fontSm }}>
+            Avisa no PDV quando um produto está a até esta quantidade de dias de vencer
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="number"
+            min="1"
+            max="365"
+            value={dias}
+            onChange={e => setDias(e.target.value)}
+            style={{
+              width: 72, padding: "9px 12px", borderRadius: 10,
+              border: `1.5px solid ${diasValido ? varColor(C.border) : varColor(C.red)}`,
+              background: varColor(C.surface), color: varColor(C.text),
+              fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", textAlign: "center",
+            }}
+          />
+          <span style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>dias</span>
+          <button
+            onClick={handleSalvarDias}
+            disabled={savingDias || !diasValido || !diasAlterado}
+            style={{
+              padding: "9px 16px", borderRadius: 10, border: "none",
+              background: (diasValido && diasAlterado && !savingDias) ? varColor(C.accent) : varColor(C.faint),
+              color: (diasValido && diasAlterado && !savingDias) ? "#fff" : varColor(C.muted),
+              cursor: (diasValido && diasAlterado && !savingDias) ? "pointer" : "not-allowed",
+              fontWeight: 700, fontSize: sz.fontSm + 1, fontFamily: "inherit",
+            }}
+          >
+            {savingDias ? "Salvando…" : "Salvar"}
+          </button>
+        </div>
       </div>
     </div>
   );
