@@ -1,8 +1,10 @@
 # NFC-e (modelo 65) — Checklist de "Plugar a Chave" (go-live SEFAZ-RS)
 
-> **Estado do código:** a esteira fiscal está **100% pronta** (Levas 8–13). Falta só
-> **plugar a chave** (certificado A1 + CSC) e **testar em homologação**. Este é o
-> passo-a-passo do dia. Faça **na ordem** — cada bloco depende do anterior.
+> **Estado do código:** a esteira fiscal está **100% pronta** (Levas 8–14, incluindo
+> **contingência offline acionável** — quando a SEFAZ cai, o cupom sai na hora e a nota
+> é transmitida depois). Falta só **plugar a chave** (certificado A1 + CSC) e **testar
+> em homologação**. Este é o passo-a-passo do dia. Faça **na ordem** — cada bloco
+> depende do anterior.
 >
 > **Regra de ouro (fronteira de segredo):** o **certificado A1 (.pfx + senha)** e o
 > **VALOR do CSC** são **segredos**. Vivem **só** em `Deno.env`/Vault da Edge —
@@ -35,9 +37,11 @@ Rodar **na ordem**, uma por vez, no SQL Editor do projeto. São idempotentes.
 - [ ] `supabase/migrations/20260734_tenant_fiscal_config_evento.sql` — campos de cancelamento
 - [ ] **`supabase/migrations/20260735_tenant_fiscal_config_default_tenant.sql`** — `DEFAULT tenant_atual_id()` no `tenant_id`
 - [ ] **`supabase/migrations/20260736_nfce_inutilizacoes.sql`** — tabela de inutilização + coluna `url_inutilizacao`
+- [ ] **`supabase/migrations/20260737_tenant_fiscal_config_contingencia.sql`** — estado de contingência (`contingencia_ativa`/`_desde`) + RPC `set_contingencia_fiscal`
 
 **Verificar a RLS depois de aplicar** (a migration já cria as policies, mas confirme):
 - [ ] `tenant_fiscal_config`, `nfce_emitidas`, `nfce_inutilizacoes` com **RLS habilitada**
+- [ ] `set_contingencia_fiscal(boolean)` com `EXECUTE` só para `authenticated` (o corpo já restringe ao tenant do chamador)
 - [ ] `public.tenant_atual_id()` e `public.is_super_admin()` **NÃO** foram revogadas de `PUBLIC`/`anon` (a RLS depende delas)
 
 ---
@@ -118,6 +122,12 @@ Fazer **uma venda de teste** e acompanhar cada serviço:
 - [ ] **Inutilização:** inutilizar uma faixa de numeração não usada → `inutilizada` (cStat **102**).
       ⚠️ Confirmar o **leiaute** (Id do `infInut` = 41 díg; cStat 102 = homologada) na
       documentação SEFAZ-RS.
+- [ ] **Contingência (SEFAZ fora):** apontar `url_autorizacao` para um endpoint morto (simula SEFAZ caída) →
+      emitir uma venda → o cupom deve sair **na hora** em **contingência offline** (tpEmis=9, legenda
+      "EMITIDA EM CONTINGÊNCIA OFFLINE" na DANFE, banner âmbar na tela), nota fica `pendente`. Restaurar a URL
+      correta → o `reenviar-nfce` (ou nova venda autorizada) transmite a pendente e **desliga** a contingência
+      sozinho. Confirmar o toggle em `tenant_fiscal_config.contingencia_ativa`.
+      ⚠️ Confirmar os cStat de "serviço paralisado" (**108/109**, marcados `⟵ CONFIRMAR` em `nfceContingenciaDecisao.js`) na tabela oficial SEFAZ-RS.
 - [ ] Conferir os XMLs guardados (`nfce_emitidas.xml`, `nfce_inutilizacoes.xml` = procInutNFe).
 
 ---
