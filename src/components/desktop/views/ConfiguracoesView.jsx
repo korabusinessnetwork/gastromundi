@@ -119,6 +119,8 @@ function traduzirErro(error) {
     return "Esse nome de usuário já está em uso (pode ser um usuário desativado).";
   if (msg.includes("not-null") || msg.includes("null value"))
     return "Campo obrigatório não preenchido.";
+  if (error?.code === "no_rows_updated")
+    return "Não foi possível salvar: só um administrador pode editar usuários.";
   if (msg.includes("permission denied") || msg.includes("policy"))
     return "Sem permissão para realizar esta ação.";
   return "Erro ao salvar: " + msg;

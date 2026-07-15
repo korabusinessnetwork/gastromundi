@@ -426,8 +426,26 @@ export function AppProvider({ children }) {
   const updateUser = async (id, changes) => {
     // permissions não existe no banco — remove antes de enviar
     const { permissions: _perms, ...payload } = changes;
-    const { error } = await supabase.from("users").update(payload).eq("id", id);
-    if (!error) setUsersLocal(prev => prev.map(u => {
+    // .select() após o update: PostgREST retorna sucesso HTTP com 0 linhas
+    // quando a RLS filtra tudo (ex.: editor aberto para gerente, mas a
+    // policy users_update exige admin) OU quando o id não bate. Sem checar
+    // as linhas retornadas, a UI "atualizava" o estado local e fingia
+    // sucesso sem nada persistir no banco.
+    const { data, error } = await supabase
+      .from("users")
+      .update(payload)
+      .eq("id", id)
+      .select();
+    if (error) return { error };
+    if (!data || data.length === 0) {
+      return {
+        error: {
+          code: "no_rows_updated",
+          message: "Nenhuma linha atualizada — sem permissão (apenas admin edita usuários) ou usuário inexistente.",
+        },
+      };
+    }
+    setUsersLocal(prev => prev.map(u => {
       if (u.id !== id) return u;
       const merged = { ...u, ...changes };
       return {
@@ -435,7 +453,7 @@ export function AppProvider({ children }) {
         permissions: { ...getPermissions(merged.role), ...(merged.permissions || {}) },
       };
     }));
-    return { error };
+    return { error: null, data };
   };
 
   const removeUser = async (id) => {
