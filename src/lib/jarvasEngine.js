@@ -111,7 +111,10 @@ export async function regraDivergenciaCaixa({ fechamentos, jaExiste }) {
   const d = ultimo?.data ?? ultimo;
   if (!d || typeof d.totalVendas !== "number" || typeof d.totalConferido !== "number") return;
 
-  const diff = d.totalConferido - d.totalVendas;
+  // Crítico 8 — o conferido inclui o fundo de caixa (o dinheiro contado
+  // na gaveta começa com o fundo dentro); a divergência real é contra
+  // vendas + fundo, senão todo fechamento aparece com "sobra" do fundo.
+  const diff = d.totalConferido - d.totalVendas - (d.fundo ?? 0);
   const chave = `caixa:divergencia:${ultimo.id ?? ultimo.created_at ?? "ultimo"}`;
   if (Math.abs(diff) <= TOLERANCIA_CAIXA || jaExiste(chave)) return;
 
@@ -121,9 +124,9 @@ export async function regraDivergenciaCaixa({ fechamentos, jaExiste }) {
     visibilidade: "estrategico",
     modulo: "caixa",
     titulo: `Divergência de caixa: R$ ${diff.toFixed(2)}`,
-    descricao: `Último fechamento: vendas R$ ${d.totalVendas.toFixed(2)} vs conferido R$ ${d.totalConferido.toFixed(2)} (${diff > 0 ? "sobra" : "falta"}).`,
+    descricao: `Último fechamento: esperado R$ ${(d.totalVendas + (d.fundo ?? 0)).toFixed(2)} (vendas + fundo) vs conferido R$ ${d.totalConferido.toFixed(2)} (${diff > 0 ? "sobra" : "falta"}).`,
     acao: { label: "Revisar fechamento", tipo: "abrir_fechamentos", params: {} },
-    origem: { chave, dados: { fechamento_id: ultimo.id ?? null, totalVendas: d.totalVendas, totalConferido: d.totalConferido } },
+    origem: { chave, dados: { fechamento_id: ultimo.id ?? null, totalVendas: d.totalVendas, totalConferido: d.totalConferido, fundo: d.fundo ?? 0 } },
   });
 }
 
@@ -285,7 +288,7 @@ export async function regraContasVencidas({ jaExiste }) {
 }
 
 // ── 4. Cancelamentos recorrentes por operador (7 dias) ─────────────
-async function regraCancelamentos({ jaExiste }) {
+export async function regraCancelamentos({ jaExiste }) {
   const { data: eventos, error } = await supabase
     .from("jarvas_eventos")
     .select("id, operator_id, payload, created_at")

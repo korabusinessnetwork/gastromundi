@@ -10,6 +10,7 @@ const { supabaseMock, setLancamentosResult } = vi.hoisted(() => {
   const builder = {
     select: () => builder,
     eq: () => builder,
+    gte: () => builder,
     limit: () => Promise.resolve(resultado),
   };
   return {
@@ -28,6 +29,7 @@ import {
   regraPrevisaoRuptura,
   regraPrevisaoFaturamento,
   regraContasVencidas,
+  regraCancelamentos,
 } from "./jarvasEngine";
 
 const dias = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
@@ -114,6 +116,30 @@ describe("regraDivergenciaCaixa", () => {
         origem: expect.objectContaining({
           chave: expect.any(String),
           dados: expect.objectContaining({ totalVendas: 100, totalConferido: 120 }),
+        }),
+      }),
+    );
+  });
+
+  it("crítico 8: fundo de caixa dentro do conferido não conta como sobra", async () => {
+    // Conferido 150 = vendas 100 + fundo 50 → divergência real é zero.
+    const fechamentos = [{ id: 5, totalVendas: 100, totalConferido: 150, fundo: 50 }];
+    await regraDivergenciaCaixa({ fechamentos, jaExiste: () => false });
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("crítico 8: divergência real além do fundo ainda gera alerta com o fundo nos dados", async () => {
+    // Conferido 160 - vendas 100 - fundo 50 = R$10 de sobra real.
+    const fechamentos = [{ id: 6, totalVendas: 100, totalConferido: 160, fundo: 50 }];
+    await regraDivergenciaCaixa({ fechamentos, jaExiste: () => false });
+
+    expect(registrarInsight).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tipo: "alerta",
+        severidade: "warning",
+        origem: expect.objectContaining({
+          dados: expect.objectContaining({ totalVendas: 100, totalConferido: 160, fundo: 50 }),
         }),
       }),
     );
@@ -287,6 +313,78 @@ describe("regraContasVencidas (Financeiro fase 1)", () => {
     setLancamentosResult({ data: null, error: { message: "falha" } });
 
     await expect(regraContasVencidas({ jaExiste: () => false })).resolves.toBeUndefined();
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+});
+
+describe("regraCancelamentos", () => {
+  const evento = (id, op) => ({ id, operator_id: op, payload: {}, created_at: dias(1) });
+
+  it("operador com 5+ cancelamentos em 7 dias gera alerta warning", async () => {
+    setLancamentosResult({
+      data: [1, 2, 3, 4, 5].map((i) => evento(`ev${i}`, "joao")),
+      error: null,
+    });
+
+    await regraCancelamentos({ jaExiste: () => false });
+
+    const semana = new Date().toISOString().slice(0, 10);
+    expect(registrarInsight).toHaveBeenCalledTimes(1);
+    expect(registrarInsight).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tipo: "alerta",
+        severidade: "warning",
+        modulo: "pedidos",
+        titulo: expect.stringContaining("5 cancelamentos"),
+        origem: expect.objectContaining({
+          chave: `pedidos:cancelamentos:joao:${semana}`,
+          dados: expect.objectContaining({ operador: "joao", quantidade: 5 }),
+        }),
+      }),
+    );
+  });
+
+  it("abaixo do limite não gera insight", async () => {
+    setLancamentosResult({
+      data: [1, 2, 3, 4].map((i) => evento(`ev${i}`, "joao")),
+      error: null,
+    });
+
+    await regraCancelamentos({ jaExiste: () => false });
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("agrupa por operador: só quem estoura o limite gera alerta", async () => {
+    setLancamentosResult({
+      data: [
+        ...[1, 2, 3, 4, 5].map((i) => evento(`a${i}`, "joao")),
+        ...[1, 2].map((i) => evento(`b${i}`, "maria")),
+      ],
+      error: null,
+    });
+
+    await regraCancelamentos({ jaExiste: () => false });
+
+    expect(registrarInsight).toHaveBeenCalledTimes(1);
+    expect(registrarInsight.mock.calls[0][0].origem.dados.operador).toBe("joao");
+  });
+
+  it("dedupe via jaExiste retorna sem registrar", async () => {
+    setLancamentosResult({
+      data: [1, 2, 3, 4, 5].map((i) => evento(`ev${i}`, "joao")),
+      error: null,
+    });
+
+    await regraCancelamentos({ jaExiste: () => true });
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("erro na consulta não gera insight (nunca lança)", async () => {
+    setLancamentosResult({ data: null, error: { message: "falha" } });
+
+    await expect(regraCancelamentos({ jaExiste: () => false })).resolves.toBeUndefined();
     expect(registrarInsight).not.toHaveBeenCalled();
   });
 });

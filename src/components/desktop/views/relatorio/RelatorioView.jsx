@@ -584,7 +584,8 @@ export default function RelatorioView() {
   const exportFechamentos = (fmt) => {
     const headers = ["Data/Hora", "Usuário", "Fundo (R$)", "Total Vendas (R$)", "Conferido (R$)", "Diferença (R$)"];
     const rows = fechsFiltrados.map(f => {
-      const dif = (f.totalConferido ?? 0) - (f.totalVendas ?? 0);
+      // Diferença real: conferido inclui o fundo, então compara contra vendas + fundo
+      const dif = (f.totalConferido ?? 0) - (f.totalVendas ?? 0) - (f.fundo ?? 0);
       return [
         fmtData(f.at), f.user ?? "—",
         Number(f.fundo ?? 0).toFixed(2),
@@ -1253,7 +1254,8 @@ export default function RelatorioView() {
                   </thead>
                   <tbody>
                     {fechsFiltrados.map((f, i) => {
-                      const dif = (f.totalConferido ?? 0) - (f.totalVendas ?? 0);
+                      // Mesma conta do detalhe: conferido inclui o fundo
+                      const dif = (f.totalConferido ?? 0) - (f.totalVendas ?? 0) - (f.fundo ?? 0);
                       const hasObs = !!f.observacao;
                       return (
                         <Fragment key={f.id ?? i}>
