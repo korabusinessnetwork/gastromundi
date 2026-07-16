@@ -36,6 +36,57 @@ export function verificarEstoqueMinimo(quantidadeAnterior, quantidadeNova, minim
 const chaveAlerta = (produtoId) => `estoque:minimo:produto:${produtoId}`;
 
 /**
+ * Oversell: a venda tentou baixar mais do que havia em estoque — a RPC
+ * clampa o saldo em zero e a diferença some sem rastro. Detectado aqui
+ * para o Jarvas alertar o gestor (contagem errada ou venda sem reposição).
+ *
+ * @param {number} quantidadeAnterior - saldo antes da baixa
+ * @param {number} qtdBaixa - quantidade baixada (em unidade de estoque)
+ * @returns {boolean}
+ */
+export function verificarOversell(quantidadeAnterior, qtdBaixa) {
+  return Number(qtdBaixa) > Math.max(0, Number(quantidadeAnterior) || 0);
+}
+
+const chaveOversell = (produtoId) => `estoque:oversell:produto:${produtoId}`;
+
+/**
+ * Alerta de venda sem estoque suficiente (oversell), com o mesmo dedupe
+ * do alerta de mínimo. Fire-and-forget — nunca lança, nunca bloqueia a venda.
+ *
+ * @param {{ produtoId: string|number, nome: string, vendido: number, disponivel: number }} dados
+ * @param {string} [usuario]
+ * @returns {Promise<void>}
+ */
+export async function gerarAlertaOversell({ produtoId, nome, vendido, disponivel }, usuario) {
+  try {
+    const chave = chaveOversell(produtoId);
+    const { data: abertos } = await buscarInsights({ status: ["novo", "lido"], limite: 200 });
+    const jaExiste = (abertos ?? []).some((i) => i?.origem?.chave === chave);
+    if (jaExiste) return;
+
+    await registrarInsight({
+      tipo: "alerta",
+      severidade: "danger",
+      visibilidade: "operacional",
+      modulo: "estoque",
+      titulo: `Venda sem estoque: ${nome}`,
+      descricao: `Uma venda baixou ${fmtNum(vendido)} de ${nome}, mas o estoque tinha só ${fmtNum(disponivel)}. O saldo foi zerado e a diferença não existe no sistema — confira a contagem e a reposição.`,
+      acao: { label: "Ver estoque", tipo: "abrir_estoque", params: { produto_ids: [produtoId] } },
+      origem: { chave, dados: { produto_id: produtoId, nome, vendido, disponivel } },
+    });
+  } catch (err) {
+    // intencionalmente silencioso — alerta do Jarvas nunca pode quebrar a venda
+    console.error("[estoque] falha ao gerar alerta de oversell:", err);
+  }
+}
+
+const fmtNum = (n) => {
+  const v = Number(n) || 0;
+  return v % 1 === 0 ? String(v) : v.toFixed(3).replace(/\.?0+$/, "");
+};
+
+/**
  * Gera o alerta de estoque mínimo no Jarvas (jarvas_insights), com
  * dedupe: não registra se já existe um alerta aberto (novo/lido) para
  * o mesmo produto. Fire-and-forget — nunca lança, nunca bloqueia a
@@ -101,7 +152,13 @@ export async function processarBaixaEstoque({
   const quantidade = linha ? Number(linha.quantidade) : Math.max(0, Number(quantidadeAnterior) - qty);
   const minimo = linha?.minimo != null ? Number(linha.minimo) : minimoFallback;
 
-  if (verificarEstoqueMinimo(quantidadeAnterior, quantidade, minimo)) {
+  // Oversell tem precedência: já é "danger", cobre a ruptura e explica a causa.
+  if (verificarOversell(quantidadeAnterior, qty)) {
+    void gerarAlertaOversell(
+      { produtoId, nome: nomeProduto, vendido: qty, disponivel: Math.max(0, Number(quantidadeAnterior) || 0) },
+      usuario,
+    );
+  } else if (verificarEstoqueMinimo(quantidadeAnterior, quantidade, minimo)) {
     void gerarAlertaEstoque({ produtoId, nome: nomeProduto, quantidade, minimo }, usuario);
   }
 

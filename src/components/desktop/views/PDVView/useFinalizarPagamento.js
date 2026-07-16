@@ -4,6 +4,7 @@ import { logAction } from "@/lib/logger";
 import { criarLancamento } from "@/lib/financeiro";
 import { emitirDocumentoFiscal } from "@/lib/fiscal";
 import { processarPagamentoTef, isPagamentoCartao } from "@/lib/tef";
+import { consumoParaEstoque } from "@/utils/conversaoUnidades";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
 // cadastrado hoje, mas a checagem já fica pronta para quando existir
@@ -34,7 +35,7 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
  * e por voltar para a grade de comandas (handleBack) após concluir.
  */
 export function useFinalizarPagamento() {
-  const { addSale, removePending, estoque, baixarEstoque, currentUser, addonHabilitado } = useApp();
+  const { addSale, removePending, estoque, baixarEstoque, currentUser, addonHabilitado, products } = useApp();
 
   const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId }, { onNfce } = {}) => {
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
@@ -146,8 +147,15 @@ export function useFinalizarPagamento() {
       delta[item.id] = (delta[item.id] ?? 0) + (item.qty ?? 1);
     }
     for (const [prodId, qty] of Object.entries(delta)) {
-      const atual = estoque[prodId] ?? 0;
-      if (atual > 0) await baixarEstoque(prodId, qty);
+      // Produto sem entrada no mapa de estoque = sem controle de estoque.
+      // Estoque zerado NÃO pula a baixa: a RPC clampa em zero e o Jarvas
+      // sinaliza a venda sem estoque (oversell) — pular escondia o furo.
+      if (!(prodId in estoque)) continue;
+      const produto = (products ?? []).find(p => String(p.id) === prodId);
+      // Crítico 7 — converte a quantidade vendida (unidade de consumo)
+      // para unidade de estoque via fator_consumo_estoque do produto.
+      const qtdEstoque = produto ? consumoParaEstoque(qty, produto) : qty;
+      await baixarEstoque(prodId, qtdEstoque);
     }
 
     const metodoResumo = (pagamentos ?? []).map(p => p?.metodo).filter(Boolean).join(" + ") || "—";

@@ -139,12 +139,31 @@ describe("useFinalizarPagamento (regressão do incidente)", () => {
     expect(appMock.baixarEstoque).toHaveBeenCalledWith("1", 1);
   });
 
-  it("não desconta estoque quando o produto já está zerado", async () => {
+  it("produto zerado AINDA passa pela baixa (a RPC clampa em zero e o Jarvas sinaliza a venda sem estoque)", async () => {
     const { appMock, finalizarPagamento } = setup({ estoque: { 1: 0 } });
 
     await finalizarPagamento(selectedComanda, [], payload);
 
+    expect(appMock.baixarEstoque).toHaveBeenCalledWith("1", 1);
+  });
+
+  it("não desconta estoque de produto sem controle de estoque (sem entrada no mapa)", async () => {
+    const { appMock, finalizarPagamento } = setup({ estoque: { 2: 5 } }); // produto 1 fora do mapa
+
+    await finalizarPagamento(selectedComanda, [], payload);
+
     expect(appMock.baixarEstoque).not.toHaveBeenCalled();
+  });
+
+  it("crítico 7: converte a quantidade vendida para unidade de estoque via fator_consumo_estoque", async () => {
+    const { appMock, finalizarPagamento } = setup({
+      products: [{ id: 1, name: "Chopp", fator_consumo_estoque: 0.5 }],
+    });
+
+    await finalizarPagamento(selectedComanda, [], payload);
+
+    // 1 unidade de consumo × fator 0,5 = 0,5 em unidade de estoque
+    expect(appMock.baixarEstoque).toHaveBeenCalledWith("1", 0.5);
   });
 
   it("não chama a RPC de liberar mesa quando a comanda não tem mesa", async () => {

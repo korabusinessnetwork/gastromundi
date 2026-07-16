@@ -47,7 +47,10 @@ CREATE TABLE public.products (
   unidade_estoque       text    NOT NULL DEFAULT 'un',
   unidade_consumo       text,
   fator_consumo_estoque numeric DEFAULT 1,
-  produzivel            boolean NOT NULL DEFAULT true -- F015, 20260721_produtos_produzivel.sql
+  produzivel            boolean NOT NULL DEFAULT true, -- F015, 20260721_produtos_produzivel.sql
+  validade_dias         integer,                       -- C1, 20260731_produtos_validade.sql
+  proxima_validade      date,                          -- C1, 20260731_produtos_validade.sql
+  codigo_barras         text                           -- 20260745_produtos_codigo_barras.sql
 );
 
 -- ── pending (pedidos em aberto — Realtime habilitado) ─────────
