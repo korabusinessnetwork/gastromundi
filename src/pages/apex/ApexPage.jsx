@@ -33,12 +33,6 @@ const CONTATO_URL = import.meta.env.VITE_CONTATO_URL || "";
 export default function ApexPage() {
   useEffect(() => {
     document.title = "KORA — O PDV que se adapta a você";
-    // Âncoras da nav (#inimigo, #planos…) com rolagem suave, só
-    // enquanto o site está montado.
-    const raiz = document.documentElement;
-    const anterior = raiz.style.scrollBehavior;
-    raiz.style.scrollBehavior = "smooth";
-    return () => { raiz.style.scrollBehavior = anterior; };
   }, []);
 
   return (

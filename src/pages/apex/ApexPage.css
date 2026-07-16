@@ -38,14 +38,27 @@
   --kora-font-titulo: "Sora", system-ui, sans-serif;
   --kora-font-texto: "Space Grotesk", system-ui, sans-serif;
 
-  min-height: 100dvh;
+  /* O CSS global do produto trava o scroll do body (o PDV rola por
+     dentro dos painéis), então o site rola AQUI: .apex é o contêiner
+     de rolagem — com scrollbar visível e âncoras suaves, ao contrário
+     do app. */
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+
   background: var(--kora-fundo);
   color: var(--kora-grafite);
   font-family: var(--kora-font-texto);
   font-size: 16px;
   line-height: 1.6;
-  overflow-x: hidden;
 }
+
+/* Restaura a scrollbar que o global esconde (::-webkit-scrollbar 0) */
+.apex::-webkit-scrollbar { width: 10px; height: 0; }
+.apex::-webkit-scrollbar-thumb { background: #C9C7D6; border-radius: 5px; }
+.apex::-webkit-scrollbar-track { background: transparent; }
 
 /* ── Utilitários compartilhados entre as seções ────────────────── */
 .apex-container {
