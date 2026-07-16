@@ -1,4 +1,6 @@
 {
+  "autoCompactEnabled": true,
+  "autoCompactWindow": 160000,
   "permissions": {
     "allow": [
       "Bash(npx vite *)",
