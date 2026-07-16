@@ -36,6 +36,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const [showDivisor,   setShowDivisor]   = useState(false);
   const [nPessoas,      setNPessoas]      = useState(2);
   const [confirmando,   setConfirmando]   = useState(false);
+  const [erroConfirmar, setErroConfirmar] = useState("");
   const [aplicarTaxa,   setAplicarTaxa]   = useState(!!taxaServico);
 
   // Desconto / Acréscimo
@@ -123,6 +124,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const handleConfirm = async () => {
     if (!podeConfirmar || confirmando) return;
     setConfirmando(true);
+    setErroConfirmar("");
     const payloadPagamentos = isSplit
       ? pagamentos.map(p => ({
           metodo:   p.metodo,
@@ -131,7 +133,19 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
           troco:    p.metodo === "dinheiro" ? Math.max(0, (p.recebido || 0) - p.valor) : 0,
         }))
       : [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: Math.max(0, singleTroco) }];
-    await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste, clienteId: clienteFiado?.id ?? null });
+    try {
+      const resultado = await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste, clienteId: clienteFiado?.id ?? null });
+      if (resultado?.error) {
+        setErroConfirmar(resultado.error?.message || "Não foi possível registrar o pagamento. Tente novamente.");
+      }
+    } catch (err) {
+      setErroConfirmar(err?.message || "Não foi possível registrar o pagamento. Tente novamente.");
+    } finally {
+      // Sucesso navega para fora do checkout (setState pós-desmonte é no-op
+      // no React 18); em falha o botão volta a ficar clicável em vez de
+      // travar em "Processando..." para sempre.
+      setConfirmando(false);
+    }
   };
 
   const buildPrintPagamentos = () => {
@@ -621,6 +635,11 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                     onSelecionar={setClienteFiado}
                     usuario={currentUser?.username}
                   />
+                </div>
+              )}
+              {erroConfirmar && (
+                <div className="checkout-view__aviso-confirmar" role="alert" style={{ color: varColor(C.red), fontWeight: 700 }}>
+                  {erroConfirmar}
                 </div>
               )}
               {!podeConfirmar && (

@@ -128,10 +128,12 @@ export default function MobilePage() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        await addPending(order);
+        const { error } = await addPending(order);
+        if (error) throw error;
         logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta (palm): ${nomeComanda}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, via: "palm" });
       } else if (lancMesa.trim() && !order.mesa) {
-        await updatePending(order.id, { mesa: lancMesa.trim() });
+        const { error } = await updatePending(order.id, { mesa: lancMesa.trim() });
+        if (error) throw error;
         order = { ...order, mesa: lancMesa.trim() };
       }
 
@@ -140,7 +142,8 @@ export default function MobilePage() {
       const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
       const acumulados = [...anteriores, ...novos];
       const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-      await updatePending(order.id, { items: acumulados, total: novoTotal });
+      const { error } = await updatePending(order.id, { items: acumulados, total: novoTotal });
+      if (error) throw error;
       addLancada(order.id);
       logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados (palm) na Comanda ${nomeComanda} · ${novos.length} tipo(s) · R$ ${novoTotal.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, tipos: novos.length, total: novoTotal, via: "palm" });
 

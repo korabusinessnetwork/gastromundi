@@ -43,7 +43,7 @@ import { useFinalizarPagamento } from "./useFinalizarPagamento";
 function setup(overrides = {}) {
   const appMock = setAppMock({
     addSale: vi.fn(() => Promise.resolve()),
-    removePending: vi.fn(() => Promise.resolve()),
+    removePending: vi.fn(() => Promise.resolve({ error: null })),
     baixarEstoque: vi.fn(() => Promise.resolve()),
     estoque: { 1: 10, 2: 5 },
     currentUser: { name: "Maria", username: "maria", role: "caixa" },

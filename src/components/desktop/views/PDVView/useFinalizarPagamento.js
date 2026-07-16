@@ -125,7 +125,15 @@ export function useFinalizarPagamento() {
       }
     }
 
-    await removePending(selected.id);
+    // Venda já está gravada — se a remoção da pending falhar, a comanda
+    // reaparece na grade e o operador cobra DE NOVO (cobrança dupla).
+    // Tenta uma segunda vez e, se ainda falhar, avisa alto no fim do fluxo.
+    let remocaoFalhou = null;
+    {
+      let { error } = await removePending(selected.id);
+      if (error) ({ error } = await removePending(selected.id));
+      remocaoFalhou = error ?? null;
+    }
     if (selected.mesa) {
       supabase.rpc("limpar_reserva_mesa", { mesa_numero: selected.mesa })
         .then(() => {}, (err) => console.error("Falha ao limpar reserva da mesa:", err));
@@ -144,6 +152,13 @@ export function useFinalizarPagamento() {
 
     const metodoResumo = (pagamentos ?? []).map(p => p?.metodo).filter(Boolean).join(" + ") || "—";
     logAction(currentUser?.username, "comanda:finalizar", { msg: `Comanda ${selected.comanda} finalizada · R$ ${total.toFixed(2)} · ${metodoResumo}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, total, metodo: metodoResumo });
+
+    if (remocaoFalhou) {
+      logAction(currentUser?.username, "comanda:finalizar:remocao_falhou", { msg: `Venda gravada, mas a comanda ${selected.comanda} não foi removida da grade`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, venda_id: sale.id, erro: remocaoFalhou?.message ?? String(remocaoFalhou) });
+      // Lança DEPOIS dos efeitos (mesa/estoque/log) para não perdê-los:
+      // o CheckoutView exibe esta mensagem e o operador resolve manualmente.
+      throw new Error(`Venda registrada, mas a comanda ${selected.comanda} não saiu da tela. NÃO cobre de novo — feche a comanda manualmente.`);
+    }
 
     return sale;
   };
