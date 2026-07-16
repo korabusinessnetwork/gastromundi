@@ -131,6 +131,24 @@ X-Salada;24,90;Lanches;🍔;sim;un
 Suco de Laranja 300ml;9,00;Bebidas;🍊;sim;un
 ```
 
+### E se o sistema antigo não exporta nada?
+
+Nem todo PDV tem export — sistemas desktop antigos muitas vezes não têm. O
+desenho não depende disso: o modelo CSV é o **piso que funciona sempre**, e a
+escada pra chegar nele, da mais fácil pra mais trabalhosa:
+
+1. Botão de exportar do sistema antigo (SaaS modernos têm) → caso resolvido.
+2. Relatório imprimível/PDF de "listagem de produtos" → copiar pra planilha.
+3. Pedir a planilha ao suporte do fornecedor antigo (LGPD garante ao titular a
+   portabilidade dos dados — a maioria entrega quando pedido formalmente).
+4. Sistema local na máquina do cliente → extrair do banco de arquivo
+   (`.fdb` Firebird, `.mdb` Access, SQLite…) — trabalho pontual de dev.
+5. XMLs de NF-e/NFC-e guardados → reconstruir cardápio (nome/preço) a partir deles.
+6. Último recurso: digitar direto na planilha modelo (ainda muito mais rápido
+   que cadastrar tela a tela).
+
+Todos os caminhos terminam na mesma planilha → mesmo pipeline de validação.
+
 ## 6. Regras de parsing e validação (onde migração costuma quebrar)
 
 - **Encoding**: aceitar UTF-8 e Windows-1252/Latin-1 (Excel BR exporta assim);
