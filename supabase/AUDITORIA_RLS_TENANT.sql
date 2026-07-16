@@ -30,34 +30,65 @@
 -- tenha essa policy RESTRICTIVE — e não olhar policy por policy (isso
 -- daria falso positivo em toda permissiva de papel).
 --
--- Esperado: todas as operacionais '✅ clamp restritivo por tenant'. A
--- ÚNICA '⚠️ SEM restritivo' legítima é `users` (isolada à parte: 4
--- policies de admin filtram por tenant + users_select_self; sem
--- restritiva porque o super-admin plataforma tem tenant_id NULL e uma
--- restritiva o trancaria da própria linha). Qualquer OUTRA tabela em
--- '⚠️' é exposição real — investigar.
+-- Esperado: NENHUMA linha '⚠️'. Operacionais → '✅ clamp RESTRICTIVE';
+-- billing (assinaturas/_pagamentos/tenant_addons), fiscais (nfce_emitidas,
+-- nfce_inutilizacoes, tenant_fiscal_config) e `users` → '✅ toda permissiva
+-- escopada' (isolam por tenant_atual_id/is_super_admin/self dentro de cada
+-- policy, sem RESTRICTIVE). Qualquer tabela em '⚠️' é exposição real —
+-- tem uma permissiva ampla (por papel/authenticated) sem clamp: investigar.
+-- NOTA (relkind='r'): pg_class inclui índices e constraints; um índice
+-- sobre tenant_id também tem um atributo `tenant_id`, então sem o filtro
+-- relkind='r' a query devolve nomes de índice/PK (*_idx, *_pkey, *_key)
+-- como se fossem tabela. Filtramos só tabela ORDINÁRIA.
+--
+-- NOTA (2 mecanismos de isolamento válidos): uma tabela está isolada se
+--   (a) tem policy RESTRICTIVE citando tenant_atual_id (padrão Leva 2), OU
+--   (b) TODA policy PERMISSIVA dela é escopada — cita tenant_atual_id,
+--       is_super_admin (leitura de plataforma) ou auth.uid()/self.
+-- Billing (Leva 4) e fiscais (nfce_*, tenant_fiscal_config) usam (b): não
+-- têm RESTRICTIVE, mas nenhuma permissiva é ampla. Só é exposição quando
+-- existe uma permissiva AMPLA (por papel/authenticated, sem tenant) e a
+-- tabela NÃO tem clamp restritivo — exatamente o furo que `users` teve.
 WITH tabelas_com_tenant AS (
   SELECT DISTINCT c.relname AS tabela
   FROM pg_attribute a
   JOIN pg_class     c ON c.oid = a.attrelid
   JOIN pg_namespace n ON n.oid = c.relnamespace
   WHERE n.nspname = 'public'
+    AND c.relkind = 'r'            -- só tabela real (exclui índice/constraint)
     AND a.attname = 'tenant_id'
     AND a.attnum > 0
     AND NOT a.attisdropped
 ),
-isolamento_restritivo AS (
+clamp_restritivo AS (
   SELECT DISTINCT tablename
   FROM pg_policies
   WHERE schemaname = 'public'
     AND permissive = 'RESTRICTIVE'
     AND COALESCE(qual,'') ILIKE '%tenant_atual_id%'
+),
+-- Permissiva AMPLA = concede acesso sem citar tenant/self/super-admin.
+permissiva_ampla AS (
+  SELECT DISTINCT tablename
+  FROM pg_policies
+  WHERE schemaname = 'public'
+    AND permissive = 'PERMISSIVE'
+    AND COALESCE(qual,'')       NOT ILIKE '%tenant_atual_id%'
+    AND COALESCE(with_check,'') NOT ILIKE '%tenant_atual_id%'
+    AND COALESCE(qual,'')       NOT ILIKE '%is_super_admin%'
+    AND COALESCE(qual,'')       NOT ILIKE '%auth.uid()%'
 )
 SELECT t.tabela,
-       CASE WHEN i.tablename IS NOT NULL THEN '✅ clamp restritivo por tenant'
-            ELSE '⚠️ SEM restritivo — checar caso a caso' END AS veredito
+       CASE
+         WHEN c.tablename IS NOT NULL
+           THEN '✅ isolada — clamp RESTRICTIVE'
+         WHEN a.tablename IS NULL
+           THEN '✅ isolada — toda permissiva escopada'
+         ELSE '⚠️ EXPOSIÇÃO — permissiva ampla sem clamp — investigar'
+       END AS veredito
 FROM tabelas_com_tenant t
-LEFT JOIN isolamento_restritivo i ON i.tablename = t.tabela
+LEFT JOIN clamp_restritivo   c ON c.tablename = t.tabela
+LEFT JOIN permissiva_ampla   a ON a.tablename = t.tabela
 ORDER BY veredito, t.tabela;
 
 -- ── 2) A Leva 4 (20260726) está aplicada? (billing isolado por tenant)
