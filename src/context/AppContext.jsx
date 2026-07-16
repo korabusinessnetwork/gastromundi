@@ -3,6 +3,7 @@ import { getPermissions } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
 import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
+import { emailDoLogin } from "@/lib/tenantSlug";
 import { sincronizarStatusAssinatura } from "@/lib/assinatura";
 import { gerarVariaveisTema, aplicarVariaveisTema } from "@/lib/tema";
 import { logAction } from "@/lib/logger";
@@ -320,8 +321,11 @@ export function AppProvider({ children }) {
       return { error: `Conta bloqueada. Aguarde ${secs}s.` };
     }
 
-    // Supabase Auth valida a senha no servidor — sem hash no cliente
-    const email = `${clean}@gastromundi.local`;
+    // Supabase Auth valida a senha no servidor — sem hash no cliente.
+    // E-mail com namespace por tenant (slug do subdomínio) para permitir o
+    // mesmo username em tenants diferentes. Fallback 'gastromundi' quando
+    // não há subdomínio (dev/preview/domínio nu) — inerte por design.
+    const email = emailDoLogin(clean);
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password: sanitizeInput(password, 100),

@@ -15,11 +15,12 @@
  * (role='plataforma' em public.users). Um admin de estabelecimento comum
  * recebe 403 — provisionar tenants é ação da PLATAFORMA (decisão 027).
  *
- * Convenção de username (decisão de bootstrap — ver ADR-008, evolução):
- * o login do app monta o e-mail como `${username}@gastromundi.local`
- * GLOBAL. Enquanto o login não for ciente de tenant, o username precisa
- * ser único na plataforma inteira — se já existir, esta função recusa
- * com 409 e mensagem clara (prevenção de erro > erro cru).
+ * Convenção de username (login ciente de tenant via subdomínio — 20260740):
+ * o login monta o e-mail como `${username}@${slug}.local`, onde `slug` é o
+ * do tenant (rótulo do subdomínio). Assim o MESMO username coexiste em
+ * tenants diferentes; a unicidade é por tenant (UNIQUE (tenant_id,username))
+ * e o e-mail do Auth fica único pelo slug. O slug nasce na RPC
+ * provisionar_tenant (deriva do nome ou usa o `slug` opcional do corpo).
  *
  * Atomicidade: se a criação do admin falhar depois do tenant criado, o
  * tenant é removido (compensação) para não deixar estabelecimento órfão
@@ -73,6 +74,7 @@ Deno.serve(async (req) => {
     if (!body) return json({ error: "Corpo inválido." }, 400);
 
     const nome = (body.nome ?? "").trim();
+    const slug = (body.slug ?? "").trim().toLowerCase();  // opcional; RPC deriva do nome se vazio
     const planoCodigo = (body.plano_codigo ?? "avancado").trim();
     const tema = body.tema ?? {};
     const admin = body.admin ?? {};
@@ -93,6 +95,7 @@ Deno.serve(async (req) => {
     const { data: tenant, error: eTenant } = await supabaseCaller
       .rpc("provisionar_tenant", {
         p_nome: nome,
+        p_slug: slug || null,
         p_plano_codigo: planoCodigo,
         p_tema: tema,
       });
@@ -108,19 +111,20 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Username precisa ser único na plataforma (login global). Recusa cedo.
-    const email = `${username}@gastromundi.local`;
-    const { data: jaExiste } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("username", username)
-      .maybeSingle();
-
-    if (jaExiste) {
-      // Compensa: apaga o tenant recém-criado (ainda sem dono).
-      await supabaseAdmin.from("tenants").delete().eq("id", tenant.id);
-      return json({ error: `O username "${username}" já está em uso. Escolha outro.` }, 409);
-    }
+    // E-mail com namespace do tenant (slug) — permite o mesmo username em
+    // tenants diferentes. Como o slug é único e o tenant nasce vazio, não
+    // há colisão de username DENTRO dele; a unicidade é garantida pelo
+    // UNIQUE (tenant_id, username) no banco e pela unicidade do e-mail no
+    // Auth. Se o e-mail já existir (reprovisionamento), createUser abaixo
+    // falha e a compensação (item que apaga o tenant) trata.
+    //
+    // Gate de inércia: sem TENANT_ROOT_DOMAIN (login por subdomínio ainda
+    // desligado), usa 'gastromundi' — o mesmo namespace do front no
+    // fallback. Provisionar um 2º tenant nesse estado colidiria no e-mail
+    // (esperado): o subdomínio precisa estar ativo. Ao ligar o domínio,
+    // passa a usar o slug do tenant.
+    const slugNs = Deno.env.get("TENANT_ROOT_DOMAIN") ? tenant.slug : "gastromundi";
+    const email = `${username}@${slugNs}.local`;
 
     // ── 5. Cria a credencial de auth do 1º admin ─────────────────────
     const { data: authCreated, error: eAuth } = await supabaseAdmin.auth.admin.createUser({
@@ -158,6 +162,7 @@ Deno.serve(async (req) => {
     return json({
       tenant_id: tenant.id,
       nome: tenant.nome,
+      slug: tenant.slug,
       plano_codigo: tenant.plano_codigo,
       admin: { username, auth_id: authCreated.user.id },
     });

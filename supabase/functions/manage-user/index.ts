@@ -47,16 +47,18 @@ Deno.serve(async (req) => {
       return json({ error: "Sessão inválida." }, 401);
     }
 
-    // Verifica se o chamador é admin pela tabela users
+    // Verifica se o chamador é admin pela tabela users (e de QUAL tenant).
     const { data: callerData } = await supabaseClient
       .from("users")
-      .select("role")
+      .select("role, tenant_id")
       .eq("auth_id", caller.id)
       .single();
 
     if (callerData?.role !== "admin") {
       return json({ error: "Acesso restrito a administradores." }, 403);
     }
+
+    const callerTenantId = callerData.tenant_id;
 
     // ── 2. Cliente admin (service_role) para operar auth.users ────
     const supabaseAdmin = createClient(
@@ -71,8 +73,27 @@ Deno.serve(async (req) => {
     // ── 3. Ações ───────────────────────────────────────────────────
     if (action === "create") {
       if (!username || !password) return json({ error: "username e password obrigatórios." }, 400);
+      if (!callerTenantId) return json({ error: "Admin sem tenant definido." }, 400);
 
-      const email = `${username.trim().toLowerCase()}@gastromundi.local`;
+      // E-mail com namespace do tenant do admin (slug do subdomínio), para
+      // o mesmo username coexistir entre tenants. Resolve o slug do tenant.
+      const { data: tenantRow } = await supabaseAdmin
+        .from("tenants")
+        .select("slug")
+        .eq("id", callerTenantId)
+        .single();
+
+      if (!tenantRow?.slug) return json({ error: "Tenant sem slug configurado." }, 400);
+
+      // Namespace do e-mail: enquanto o login por subdomínio não estiver
+      // ativo (TENANT_ROOT_DOMAIN ausente), usa 'gastromundi' — o MESMO
+      // que o front monta no fallback. Isso mantém front e function
+      // consistentes no período inerte. Ao ativar o domínio (setar
+      // TENANT_ROOT_DOMAIN aqui e VITE_ROOT_DOMAIN no front), passa a usar
+      // o slug do tenant. Ver 20260740.
+      const uname = username.trim().toLowerCase();
+      const slugNs = Deno.env.get("TENANT_ROOT_DOMAIN") ? tenantRow.slug : "gastromundi";
+      const email = `${uname}@${slugNs}.local`;
 
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email,
@@ -83,11 +104,14 @@ Deno.serve(async (req) => {
 
       if (error) return json({ error: error.message }, 400);
 
-      // Vincula auth_id na tabela users
+      // Vincula auth_id na tabela users — ESCOPADO ao tenant do chamador.
+      // Sem o filtro de tenant, com username por-tenant o service_role
+      // (ignora RLS) casaria a linha homônima de OUTRO tenant.
       await supabaseAdmin
         .from("users")
         .update({ auth_id: data.user.id })
-        .eq("username", username.trim().toLowerCase());
+        .eq("username", uname)
+        .eq("tenant_id", callerTenantId);
 
       return json({ auth_id: data.user.id });
     }
