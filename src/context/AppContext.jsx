@@ -413,6 +413,23 @@ export function AppProvider({ children }) {
     return { error };
   };
 
+  // Recarrega saldos/mínimos do banco — usado após importação em lote
+  // (não depende do Realtime estar habilitado na tabela).
+  const recarregarEstoque = async () => {
+    const { data, error } = await supabase
+      .from("estoque").select("produto_id,quantidade,minimo");
+    if (!error && data) {
+      const qtds = {}, minimos = {};
+      for (const row of data) {
+        qtds[row.produto_id]    = Number(row.quantidade);
+        minimos[row.produto_id] = Number(row.minimo);
+      }
+      setEstoqueLocal(qtds);
+      setEstoqueMinimosLocal(minimos);
+    }
+    return { error };
+  };
+
   // ── Actions: Sales ────────────────────────────────────────────
   const addSale = async (sale) => {
     setSalesLocal(prev => [sale, ...prev]);
@@ -670,7 +687,7 @@ export function AppProvider({ children }) {
     addUser, updateUser, removeUser,
     // outros
     addFechamento,
-    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque, baixarEstoque, setMinimoEstoque,
+    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque, baixarEstoque, setMinimoEstoque, recarregarEstoque,
     taxaServico, setTaxaServico,
     diasAlertaValidade, setDiasAlertaValidade,
     // C3 — grupos de categoria (radar do Palm + mapeamento em Configurações)
