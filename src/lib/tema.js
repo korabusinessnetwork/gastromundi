@@ -36,6 +36,11 @@ const TOKENS_PERMITIDOS = {
   text: "--gm-text",
   muted: "--gm-muted",
   faint: "--gm-faint",
+  // Fontes de marca (ADR-007). Valor = font-family stack; só renderiza se
+  // a família estiver carregada (index.html). setProperty já sanitiza o
+  // valor — nunca vira regra CSS arbitrária.
+  font_titulo: "--gm-font-titulo",
+  font_texto: "--gm-font-texto",
 };
 
 // Fallback: valores default quando uma CSS var não está definida ou

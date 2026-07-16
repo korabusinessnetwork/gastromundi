@@ -39,4 +39,9 @@
   --gm-faint: #323d58;
   /* Overlay translúcido do accent (estados ativo/pressionado) — F018 */
   --gm-alow: rgba(124, 58, 237, 0.13);
+  /* Fontes de marca (ADR-007). Default = system-ui: o GastroMundi não
+     carrega webfont. Um tenant sobrescreve via `font_titulo`/`font_texto`
+     no tema (ex.: Casa Coffee → Saira/Sora, carregadas em index.html). */
+  --gm-font-titulo: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --gm-font-texto:  "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }

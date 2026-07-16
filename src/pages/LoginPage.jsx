@@ -71,10 +71,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ background: varColor(C.bg), minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text) }}>
+    <div style={{ background: varColor(C.bg), minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--gm-font-texto)", color: varColor(C.text) }}>
       <div style={{ width: "100%", maxWidth: sz.checkoutResumo > 0 ? sz.checkoutResumo - 80 : 480, padding: `0 ${sz.pad}px`, boxSizing: "border-box" }}>
         <div style={{ textAlign: "center", marginBottom: sz.pad + 8 }}>
-          <div style={{ fontWeight: 900, fontSize: sz.fontXl, letterSpacing: "-0.5px" }}>{marca.nome}</div>
+          <div style={{ fontWeight: 900, fontSize: sz.fontXl, letterSpacing: "-0.5px", fontFamily: "var(--gm-font-titulo)" }}>{marca.nome}</div>
           <div style={{ color: varColor(C.muted), fontSize: sz.fontBase - 1, marginTop: 4 }}>by Kora · Acesso ao Sistema</div>
         </div>
 

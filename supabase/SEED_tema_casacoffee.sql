@@ -34,7 +34,11 @@ SET tema = coalesce(tema, '{}'::jsonb) || jsonb_build_object(
       'border', '#5c4437',                        -- bordas
       'text',   '#f2e8d8',                        -- texto (creme claro)
       'muted',  '#c6ad97',                        -- texto secundário (caramelo suave)
-      'faint',  '#5c4437'                         -- linhas/estados apagados
+      'faint',  '#5c4437',                        -- linhas/estados apagados
+      -- Fontes do Social DNA (carregadas em index.html). Rexton (títulos)
+      -- é PAGA → stand-in livre Saira; Sora (texto) é a fonte real, grátis.
+      'font_titulo', '"Saira", system-ui, sans-serif',
+      'font_texto',  '"Sora", system-ui, sans-serif'
     )
 WHERE slug = 'casacoffeecolab';
 
