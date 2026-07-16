@@ -1,6 +1,6 @@
 -- ══════════════════════════════════════════════════════════════════
 -- provisionar_tenant — agora grava o `slug` do tenant (login por subdomínio)
--- docs/08_DECISOES/adr-008.md · complementa 20260740 · substitui 20260730 §B
+-- docs/08_DECISOES/adr-009.md · complementa 20260740 · substitui 20260730 §B
 --
 -- Por quê: a 20260740 tornou tenants.slug NOT NULL. A versão anterior de
 -- provisionar_tenant fazia INSERT (nome, plano_codigo, tema) SEM slug →

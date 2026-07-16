@@ -1,7 +1,7 @@
 -- ══════════════════════════════════════════════════════════════════
 -- CUTOVER do login por SUBDOMÍNIO — renomeia e-mails de Auth existentes
 -- ⚠️ NÃO RODE AGORA. Este é o passo da VIRADA, não da fase inerte.
--- Complementa 20260740/20260741. Ver docs/08_DECISOES/adr-008.md.
+-- Complementa 20260740/20260741. Ver docs/08_DECISOES/adr-009.md.
 --
 -- ┌─ O QUE FAZ ─────────────────────────────────────────────────────┐
 -- │ Usuários de tenants != 'gastromundi' hoje têm e-mail de Auth      │

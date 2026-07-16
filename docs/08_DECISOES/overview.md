@@ -60,6 +60,8 @@ ADRs capturam o "porquê" por trás de decisões técnicas e de produto signific
 | [ADR-005](./adr-005.md) | Planos, gating por módulo e add-ons pagos (F013) — registro central `planos`/`planos_modulos`, gating em 3 camadas, tabela `tenants` mínima | Proposto (documentação — implementação não iniciada) | 2026-07-06 |
 | [ADR-006](./adr-006.md) | Billing e enforcement de assinatura (F016) — vigência, carência, bloqueio real via RLS/RPC | Proposto (documentação — implementação não iniciada) | 2026-07-06 |
 | [ADR-007](./adr-007.md) | Theming e white-label por estabelecimento — CSS Custom Properties + padrão `.css` co-localizado | Proposto (documentação — implementação não iniciada) | 2026-07-06 |
+| [ADR-008](./adr-008.md) | Isolamento multi-tenant real e Console da Plataforma (super-admin) — `tenant_id` no JWT, RLS por tenant, papel `plataforma` | Aceito (implementação em andamento) | 2026-07-11 |
+| [ADR-009](./adr-009.md) | Login ciente de tenant por subdomínio — `tenants.slug`, `username` por tenant, e-mail no namespace do subdomínio | Aceito e implementado (em produção) | 2026-07-16 |
 
 ---
 

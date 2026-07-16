@@ -1,6 +1,6 @@
 -- ══════════════════════════════════════════════════════════════════
 -- Login ciente de tenant via SUBDOMÍNIO — slug do tenant + username por tenant
--- docs/08_DECISOES/adr-008.md · decisão 002/017/027
+-- docs/08_DECISOES/adr-009.md (realiza a superfície de login do adr-008) · decisão 002/017/027
 --
 -- ┌─ O PROBLEMA ────────────────────────────────────────────────────┐
 -- │ O login pede só usuário+senha (sem estabelecimento). Por baixo o  │
