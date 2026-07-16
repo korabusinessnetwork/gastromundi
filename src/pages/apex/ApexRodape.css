@@ -32,6 +32,26 @@
   color: #77768A;
 }
 
+@media (max-width: 1023px) {
+  .apex-rodape {
+    padding: 22px 32px;
+  }
+}
+
+@media (max-width: 767px) {
+  .apex-rodape {
+    padding: 18px 20px;
+  }
+
+  .apex-rodape__wordmark {
+    font-size: 12px;
+  }
+
+  .apex-rodape__copyright {
+    font-size: 12px;
+  }
+}
+
 @media (max-width: 480px) {
   .apex-rodape {
     justify-content: center;

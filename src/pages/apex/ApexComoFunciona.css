@@ -71,8 +71,38 @@
   color: var(--kora-nevoa);
 }
 
-@media (max-width: 860px) {
+/* ── Tablet (contrato de breakpoints do site: 1023px) ──────────────
+   Este trecho não aparece no artboard responsivo do handoff (a seção
+   "Como funciona" foi omitida do protótipo Tablet/Mobile 834/390px);
+   seguimos a diretriz geral do README ("passos 3→1 col") e o mesmo
+   ritmo de padding/título usado nas seções vizinhas (inimigo,
+   funcionalidades) para manter consistência visual entre elas. */
+@media (max-width: 1023px) {
+  .apex-passos {
+    padding: 64px 40px;
+  }
+
+  .apex-passos__titulo {
+    font-size: 28px;
+  }
+
   .apex-passos__grid {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* ── Mobile (contrato de breakpoints do site: 767px) ──────────────── */
+@media (max-width: 767px) {
+  .apex-passos {
+    padding: 44px 20px;
+  }
+
+  .apex-passos__titulo {
+    font-size: 22px;
+  }
+
+  .apex-passos__intro .apex-kicker {
+    font-size: 11px;
   }
 }

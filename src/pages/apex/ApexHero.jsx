@@ -11,8 +11,15 @@ import "./ApexHero.css";
 export default function ApexHero({ contatoUrl }) {
   return (
     <header className="apex-hero">
+      {/* Badge com duas variantes de copy: no mobile o artboard pede a
+          curta (cabe numa linha do pill); o CSS mostra uma por vez. */}
       <span className="apex-hero__badge">
-        PDV para restaurantes, bares, cafés, padarias e mercados
+        <span className="apex-hero__badge-longo">
+          PDV para restaurantes, bares, cafés, padarias e mercados
+        </span>
+        <span className="apex-hero__badge-curto">
+          PDV para restaurantes, bares e cafés
+        </span>
       </span>
       <h1 className="apex-hero__titulo">
         Seu negócio vendendo pelo KORA no mesmo dia — caixa, comanda, Pix e nota fiscal

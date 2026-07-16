@@ -25,10 +25,13 @@
   letter-spacing: 0.5px;
 }
 
+/* Badge tem copy longa (desktop/tablet) e curta (mobile) — uma por vez */
+.apex-hero__badge-curto { display: none; }
+
 .apex-hero__titulo {
   font-family: var(--kora-font-titulo);
   font-weight: 800;
-  font-size: clamp(32px, 6vw, 54px);
+  font-size: 54px;
   line-height: 1.12;
   color: #fff;
   max-width: 800px;
@@ -228,14 +231,78 @@
   padding: 10px;
 }
 
-@media (max-width: 700px) {
+/* Tablet (~768–1023px): título e mock encolhem, mas mantêm a mesma
+   composição do desktop (CTAs lado a lado, mock em 3 colunas) — ainda
+   cabe largura de sobra, só os paddings laterais é que precisam ceder. */
+@media (max-width: 1023px) {
   .apex-hero {
-    padding: 56px 16px 0;
+    padding: 64px 40px 0;
+  }
+
+  .apex-hero__titulo {
+    font-size: 40px;
+    max-width: 640px;
+  }
+
+  .apex-hero__paragrafo {
+    font-size: 16px;
+    max-width: 540px;
+  }
+
+  .apex-hero__mock {
+    width: 700px;
+  }
+}
+
+/* Mobile (<768px): CTAs empilham full-width (alvo de toque grande, sem
+   dois botões espremidos lado a lado) e o mock vira coluna única — o
+   grid de produtos cai pra 2 colunas e o fechamento fica abaixo, como
+   no artboard 390px. */
+@media (max-width: 767px) {
+  .apex-hero {
+    padding: 44px 20px 0;
+  }
+
+  .apex-hero__badge {
+    font-size: 12px;
+    padding: 6px 14px;
+  }
+
+  /* Copy curta do badge no mobile (artboard 390px) */
+  .apex-hero__badge-longo { display: none; }
+  .apex-hero__badge-curto { display: inline; }
+
+  .apex-hero__titulo {
+    font-size: 29px;
+    line-height: 1.2;
+    max-width: 100%;
+  }
+
+  .apex-hero__paragrafo {
+    font-size: 15px;
+    line-height: 1.55;
+    max-width: 100%;
+  }
+
+  .apex-hero__ctas {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    margin-top: 22px;
+  }
+
+  .apex-hero__ctas .apex-botao {
+    width: 100%;
+    text-align: center;
+  }
+
+  .apex-hero__mock-label {
+    margin-top: 36px;
   }
 
   .apex-hero__mock {
     flex-direction: column;
-    padding: 16px 16px 0;
+    padding: 14px 14px 0;
   }
 
   .apex-hero__mock-grid {

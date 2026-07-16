@@ -78,6 +78,12 @@
   color: var(--kora-badge-verde-texto);
 }
 
+.apex-func__cardTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .apex-func__cardTitulo {
   font-family: var(--kora-font-titulo);
   font-weight: 700;
@@ -129,18 +135,73 @@
   white-space: nowrap;
 }
 
-@media (max-width: 860px) {
+/* ── Tablet (contrato de breakpoints do site: 1023px) ──────────────
+   8 cards em grid 2 colunas; cada card vira layout horizontal
+   (número menor à esquerda, texto à direita) — conforme artboard
+   Tablet 834px do handoff. */
+@media (max-width: 1023px) {
+  .apex-func {
+    padding: 64px 40px;
+  }
+
+  .apex-func__titulo {
+    font-size: 28px;
+  }
+
   .apex-func__grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .apex-func__card {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .apex-func__numero {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+    flex-shrink: 0;
   }
 }
 
-@media (max-width: 520px) {
+/* ── Mobile (contrato de breakpoints do site: 767px) ────────────────
+   8 cards em 1 coluna (layout horizontal compacto herdado da regra
+   de tablet acima); banner escuro com CTA full-width. */
+@media (max-width: 767px) {
+  .apex-func {
+    padding: 44px 20px;
+  }
+
+  .apex-func__titulo {
+    font-size: 22px;
+  }
+
+  .apex-func__intro .apex-kicker {
+    font-size: 11px;
+  }
+
   .apex-func__grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .apex-func__banner {
+    flex-direction: column;
+    align-items: stretch;
     padding: 32px 24px;
+    gap: 20px;
+  }
+
+  .apex-func__bannerTitulo {
+    font-size: 22px;
+  }
+
+  .apex-func__bannerCta {
+    width: 100%;
+    text-align: center;
   }
 }

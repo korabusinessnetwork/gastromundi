@@ -50,7 +50,21 @@
   color: var(--kora-grafite);
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1023px) {
+  .apex-faq {
+    padding: 80px 32px;
+  }
+}
+
+@media (max-width: 767px) {
+  .apex-faq {
+    padding: 56px 20px;
+  }
+
+  .apex-faq__titulo {
+    font-size: 22px;
+  }
+
   .apex-faq__grade {
     grid-template-columns: 1fr;
   }

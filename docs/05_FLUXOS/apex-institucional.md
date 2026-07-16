@@ -55,6 +55,24 @@ de design hi-fi `design_handoff_site_kora` (funil: atenção → confiança/prov
   pra âncora `#demo` e o fechamento vira "Entrar" (login)
 - Preços exibidos são os da decisão 029 (`memory/decisions.md`) — ao mudar preço, mudar lá e aqui
 
+### Responsivo (handoff "Site KORA Responsivo", artboards 834px e 390px)
+
+Breakpoints padronizados do site: **desktop ≥1024px**, **tablet `max-width: 1023px`**,
+**mobile `max-width: 767px`** (cada seção declara os seus no próprio CSS).
+
+- **Tablet**: paddings 32–40px; nav completa compacta (uma linha, sem quebra); hero H1 40px
+  com mock 700px; prova em 2×2 (4 itens); inimigo com intro em cima e comparativos empilhados
+  dentro de cada card; funcionalidades em 2 colunas horizontais (número à esquerda); planos em
+  2 colunas com o Piloto como card largo; CTA final H2 26px.
+- **Mobile**: paddings 20px, títulos 22px, kickers 11px; nav vira **logo + hambúrguer**
+  (44×44px, `aria-expanded`, drawer que fecha no link/backdrop); hero com badge curto e CTAs
+  full-width empilhados, mock em coluna única; prova só com os 3 itens essenciais; planos
+  **empilhados com Casa Cheia primeiro e completo**, demais compactos (nome + resumo + preço)
+  que expandem ao toque (botão ≥44px, chevron, `aria-expanded`); FAQ 1 coluna; CTA final
+  full-width.
+- Intuitividade: no celular o dono compara planos — por isso o recomendado vem primeiro e
+  aberto, e os demais mostram preço sem toque nenhum; expandir é opt-in com affordance óbvia.
+
 ## Variáveis de Ambiente
 
 | Variável | Tipo | Descrição | Exemplo |

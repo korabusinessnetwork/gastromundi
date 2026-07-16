@@ -85,10 +85,17 @@ export default function ApexFuncionalidades({ contatoUrl }) {
               >
                 {item.numero}
               </span>
-              <span className="apex-func__cardTitulo">{item.titulo}</span>
-              <span className="apex-func__cardDescricao">
-                {item.descricao}
-              </span>
+              {/* Wrapper agrupando título+descrição: no desktop o card
+                  continua empilhado (número em cima), mas em tablet/mobile
+                  ele vira layout horizontal (número à esquerda, texto à
+                  direita) — o wrapper é o que permite girar só o texto
+                  junto, sem separar número de título/descrição. */}
+              <div className="apex-func__cardTexto">
+                <span className="apex-func__cardTitulo">{item.titulo}</span>
+                <span className="apex-func__cardDescricao">
+                  {item.descricao}
+                </span>
+              </div>
             </div>
           ))}
         </div>

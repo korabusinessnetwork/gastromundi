@@ -42,3 +42,27 @@
   font-size: 13px;
   color: #77768A;
 }
+
+@media (max-width: 1023px) {
+  .apex-demo {
+    padding: 72px 32px;
+  }
+
+  .apex-demo__titulo {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 767px) {
+  .apex-demo {
+    padding: 56px 20px;
+  }
+
+  .apex-demo__titulo {
+    font-size: 22px;
+  }
+
+  .apex-demo__cta {
+    width: 100%;
+  }
+}

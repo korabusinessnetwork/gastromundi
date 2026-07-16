@@ -1,3 +1,4 @@
+import { useState } from "react";
 import "./ApexPlanos.css";
 
 /**
@@ -8,12 +9,21 @@ import "./ApexPlanos.css";
  * sombra e preço em roxo) — intuitivo por hierarquia, não por texto.
  * NF-e/NFC-e e TEF ficam FORA dos cards, na faixa de add-ons: são
  * ortogonais ao plano (ADR-005), nunca item de um plano específico.
+ *
+ * Responsivo (handoff hi-fi): no mobile os planos que não são o
+ * destaque viram cards COMPACTOS (nome + resumo curto + preço) que
+ * expandem ao toque para revelar as features completas e o CTA — assim
+ * o dono do restaurante compara os 5 preços numa rolada só, sem ler
+ * cinco listas inteiras, e só abre o que interessa. O card Casa Cheia
+ * (mais escolhido) sempre aparece completo e primeiro, sem exigir toque.
+ * `resumo` é o texto curto exclusivo dessa visão compacta.
  */
 const PLANOS = [
   {
     nome: "Faísca",
     tier: "Básico",
     descricao: "Para quem está começando: food trucks e cafés",
+    resumo: "1 caixa · cardápio · relatórios",
     preco: "R$ 149",
     features: [
       "1 caixa (PDV)",
@@ -28,6 +38,7 @@ const PLANOS = [
     nome: "Ritmo",
     tier: "Simples",
     descricao: "Para lanchonetes e padarias de balcão",
+    resumo: "2 caixas · estoque · KDS",
     preco: "R$ 249",
     features: [
       "Tudo do Faísca",
@@ -57,6 +68,7 @@ const PLANOS = [
     nome: "Expansão",
     tier: "Alto",
     descricao: "Para grupos e mercados com várias unidades",
+    resumo: "Multi-loja · painel consolidado",
     preco: "R$ 497",
     features: [
       "Tudo do Casa Cheia",
@@ -71,6 +83,7 @@ const PLANOS = [
     nome: "Piloto",
     tier: "Avançado",
     descricao: "Com JARVAS: o gerente virtual com IA do KORA",
+    resumo: "JARVAS — gerente virtual com IA",
     preco: "R$ 1.397",
     destaque: "em-breve",
     features: [
@@ -87,6 +100,15 @@ const PLANOS = [
 export default function ApexPlanos({ contatoUrl }) {
   const href = contatoUrl || "#demo";
 
+  // Controla, por plano, se o card compacto do mobile está expandido.
+  // Só é usado pelos planos que não são o destaque (esses já nascem
+  // abertos, em qualquer tamanho de tela).
+  const [expandidos, setExpandidos] = useState({});
+
+  const alternarExpandido = (nome) => {
+    setExpandidos((atual) => ({ ...atual, [nome]: !atual[nome] }));
+  };
+
   return (
     <section id="planos" className="apex-planos">
       <div className="apex-container apex-planos__conteudo">
@@ -102,63 +124,124 @@ export default function ApexPlanos({ contatoUrl }) {
         </div>
 
         <div className="apex-planos__grade">
-          {PLANOS.map((plano) => (
-            <article
-              key={plano.nome}
-              className={
-                "apex-planos__card" +
-                (plano.destaque === "mais-escolhido"
-                  ? " apex-planos__card--destaque"
-                  : "") +
-                (plano.destaque === "em-breve"
-                  ? " apex-planos__card--em-breve"
-                  : "")
-              }
-            >
-              {plano.destaque === "mais-escolhido" && (
-                <span className="apex-planos__badge apex-planos__badge--destaque">
-                  Mais escolhido
-                </span>
-              )}
-              {plano.destaque === "em-breve" && (
-                <span className="apex-planos__badge apex-planos__badge--em-breve">
-                  Em breve
-                </span>
-              )}
+          {PLANOS.map((plano) => {
+            const ehDestaque = plano.destaque === "mais-escolhido";
+            const aberto = ehDestaque || !!expandidos[plano.nome];
+            const idDetalhes =
+              "plano-detalhes-" +
+              plano.nome
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/\p{Diacritic}/gu, "")
+                .replace(/\s+/g, "-");
 
-              <div className="apex-planos__identidade">
-                <span className="apex-planos__nome">
-                  {plano.nome}{" "}
-                  <span className="apex-planos__tier">({plano.tier})</span>
-                </span>
-                <span className="apex-planos__descricao">
-                  {plano.descricao}
-                </span>
-              </div>
-
-              <div className="apex-planos__preco-linha">
-                <span className="apex-planos__preco">{plano.preco}</span>
-                <span className="apex-planos__periodo">/mês</span>
-              </div>
-
-              <div className="apex-planos__features">
-                {plano.features.map((feature) => (
-                  <span key={feature}>✓ {feature}</span>
-                ))}
-              </div>
-
-              <a
-                href={href}
+            return (
+              <article
+                key={plano.nome}
                 className={
-                  plano.destaque === "mais-escolhido"
-                    ? "apex-botao apex-botao--primario apex-planos__cta"
-                    : "apex-botao apex-botao--outline apex-planos__cta"
+                  "apex-planos__card" +
+                  (ehDestaque ? " apex-planos__card--destaque" : "") +
+                  (plano.destaque === "em-breve"
+                    ? " apex-planos__card--em-breve"
+                    : "")
                 }
               >
-                {plano.cta}
-              </a>
-            </article>
-          ))}
+                {ehDestaque && (
+                  <span className="apex-planos__badge apex-planos__badge--destaque">
+                    Mais escolhido
+                  </span>
+                )}
+                {plano.destaque === "em-breve" && (
+                  <span className="apex-planos__badge apex-planos__badge--em-breve">
+                    Em breve
+                  </span>
+                )}
+
+                {ehDestaque ? (
+                  <>
+                    <div className="apex-planos__identidade">
+                      <span className="apex-planos__nome">
+                        {plano.nome}{" "}
+                        <span className="apex-planos__tier">
+                          ({plano.tier})
+                        </span>
+                      </span>
+                      <span className="apex-planos__descricao">
+                        {plano.descricao}
+                      </span>
+                    </div>
+
+                    <div className="apex-planos__preco-linha">
+                      <span className="apex-planos__preco">
+                        {plano.preco}
+                      </span>
+                      <span className="apex-planos__periodo">/mês</span>
+                    </div>
+                  </>
+                ) : (
+                  // Em telas ≥768px este cabeçalho se comporta como o
+                  // bloco de identidade + preço de sempre (o toque não
+                  // muda nada visível — o card já está sempre aberto).
+                  // No mobile ele vira a linha compacta (nome/resumo à
+                  // esquerda, preço à direita) que expande ao toque.
+                  <button
+                    type="button"
+                    className="apex-planos__cabecalho-toque"
+                    aria-expanded={aberto}
+                    aria-controls={idDetalhes}
+                    onClick={() => alternarExpandido(plano.nome)}
+                  >
+                    <span className="apex-planos__identidade">
+                      <span className="apex-planos__nome">
+                        {plano.nome}{" "}
+                        <span className="apex-planos__tier">
+                          ({plano.tier})
+                        </span>
+                      </span>
+                      <span className="apex-planos__descricao apex-planos__descricao--completa">
+                        {plano.descricao}
+                      </span>
+                      <span className="apex-planos__resumo-compacto">
+                        {plano.resumo}
+                      </span>
+                    </span>
+
+                    <span className="apex-planos__cabecalho-toque-direita">
+                      <span className="apex-planos__preco-linha">
+                        <span className="apex-planos__preco">
+                          {plano.preco}
+                        </span>
+                        <span className="apex-planos__periodo">/mês</span>
+                      </span>
+                      <span
+                        className="apex-planos__chevron"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </button>
+                )}
+
+                <div id={idDetalhes} className="apex-planos__corpo">
+                  <div className="apex-planos__features">
+                    {plano.features.map((feature) => (
+                      <span key={feature}>✓ {feature}</span>
+                    ))}
+                  </div>
+
+                  <a
+                    href={href}
+                    className={
+                      ehDestaque
+                        ? "apex-botao apex-botao--primario apex-planos__cta"
+                        : "apex-botao apex-botao--outline apex-planos__cta"
+                    }
+                  >
+                    {plano.cta}
+                  </a>
+                </div>
+              </article>
+            );
+          })}
         </div>
 
         <div className="apex-planos__addons">

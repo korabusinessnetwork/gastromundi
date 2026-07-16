@@ -70,16 +70,136 @@
   font-weight: 600;
 }
 
-@media (max-width: 860px) {
+/* Botão hambúrguer — só existe visualmente no mobile; em desktop/tablet
+   fica fora do fluxo (display:none) porque os links já estão visíveis. */
+.apex-nav__hamburguer {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 4px;
+  width: 44px;
+  height: 44px;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.apex-nav__hamburguer:hover {
+  background: var(--kora-fundo);
+}
+
+.apex-nav__hamburguer-linha {
+  width: 22px;
+  height: 2.5px;
+  background: var(--kora-tinta);
+  border-radius: 2px;
+  transition: opacity 0.15s ease;
+}
+
+.apex-nav__hamburguer-linha--curta {
+  width: 14px;
+}
+
+/* Drawer mobile — fixo por cima da nav (que já é sticky/z-index 10);
+   parte de um backdrop clicável (fecha ao tocar fora) e lista os links
+   com alvo de toque generoso, terminando no mesmo CTA do desktop. */
+.apex-nav__backdrop {
+  display: none;
+}
+
+.apex-nav__drawer {
+  display: none;
+}
+
+@media (max-width: 1023px) {
   .apex-nav__container {
-    padding: 16px 24px;
+    padding: 16px 32px;
+    gap: 16px;
   }
 
-  .apex-nav__link {
-    display: none;
+  /* Em 834px a régua completa (logo + 4 links + Entrar + CTA) só cabe
+     compacta — sem deixar link ou CTA quebrar em duas linhas. */
+  .apex-nav__links {
+    gap: 16px;
+    font-size: 13px;
+  }
+
+  .apex-nav__link,
+  .apex-nav__entrar {
+    white-space: nowrap;
+  }
+
+  .apex-nav__cta {
+    white-space: nowrap;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 767px) {
+  .apex-nav__container {
+    padding: 14px 20px;
   }
 
   .apex-nav__links {
-    gap: 20px;
+    display: none;
+  }
+
+  .apex-nav__hamburguer {
+    display: flex;
+  }
+
+  .apex-nav__backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(27, 25, 48, 0.4);
+    z-index: 19;
+  }
+
+  .apex-nav__drawer {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(300px, 84vw);
+    background: #fff;
+    box-shadow: -8px 0 32px rgba(27, 25, 48, 0.18);
+    padding: 84px 20px 24px;
+    gap: 4px;
+    z-index: 20;
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+  }
+
+  .apex-nav__drawer--aberto {
+    transform: translateX(0);
+  }
+
+  .apex-nav__drawer-link {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 8px;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--kora-grafite);
+    text-decoration: none;
+    border-radius: 8px;
+  }
+
+  .apex-nav__drawer-link:hover {
+    background: var(--kora-fundo);
+    color: var(--kora-roxo);
+  }
+
+  .apex-nav__drawer-cta {
+    justify-content: center;
+    margin-top: 12px;
+    min-height: 48px;
   }
 }

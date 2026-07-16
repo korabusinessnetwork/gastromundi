@@ -159,6 +159,50 @@
   background: #fff;
 }
 
+/* ── Cabeçalho tocável (planos que não são o destaque) ─────────────
+   Em telas ≥768px isto reproduz exatamente o bloco identidade + preço
+   de sempre (empilhado, mesmo gap) — só que dentro de um <button> por
+   causa da interação de expandir do mobile. Reset total do "botão"
+   pra não ter nenhuma diferença visual no desktop/tablet. */
+.apex-planos__cabecalho-toque {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* "display: contents" faz o preço e o chevron se comportarem como
+   filhos diretos do cabeçalho (mesmo empilhamento de sempre) — só o
+   mobile precisa dessa div como agrupador real, pra virar uma linha. */
+.apex-planos__cabecalho-toque-direita {
+  display: contents;
+}
+
+.apex-planos__resumo-compacto {
+  display: none;
+}
+
+.apex-planos__chevron {
+  display: none;
+}
+
+/* Corpo colapsável (features + CTA). Fora do mobile ele fica sempre
+   visível — o "aberto" já vem `true` por padrão pra quem não é o
+   destaque também, então nada muda visualmente em telas maiores. */
+.apex-planos__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .apex-planos__addons {
   background: var(--kora-fundo);
   border: 1px solid var(--kora-linha);
@@ -197,8 +241,183 @@
   text-align: center;
 }
 
-@media (max-width: 640px) {
+/* ── Tablet (≤1023px) ───────────────────────────────────────────── */
+@media (max-width: 1023px) {
+  .apex-planos {
+    padding: 80px 32px;
+  }
+
+  .apex-planos__grade {
+    grid-template-columns: 1fr 1fr;
+    max-width: 720px;
+  }
+
+  /* Piloto vira card largo (grid-column 1/-1) com o preço à direita:
+     reflow só com flex/order, sem mexer no JSX — os 4 primeiros tiers
+     não mudam de estrutura, só de grid. */
+  .apex-planos__card--em-breve {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    row-gap: 12px;
+    column-gap: 24px;
+  }
+
+  .apex-planos__card--em-breve .apex-planos__cabecalho-toque {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1 1 100%;
+    gap: 12px 24px;
+  }
+
+  .apex-planos__card--em-breve .apex-planos__identidade {
+    flex: 1 1 260px;
+    order: 1;
+  }
+
+  .apex-planos__card--em-breve .apex-planos__cabecalho-toque-direita {
+    display: flex;
+    align-items: center;
+    order: 2;
+  }
+
+  .apex-planos__card--em-breve .apex-planos__corpo {
+    flex: 1 1 100%;
+  }
+}
+
+/* ── Mobile (≤767px) ────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .apex-planos {
+    padding: 56px 20px;
+  }
+
+  .apex-planos .apex-kicker {
+    font-size: 11px;
+  }
+
+  .apex-planos__titulo {
+    font-size: 22px;
+  }
+
+  /* Empilhado, com o destaque (Casa Cheia) primeiro e completo — os
+     demais mantêm a ordem entre si, igual ao desktop (o `order` só
+     tira o destaque da posição original, não embaralha o resto). */
+  .apex-planos__grade {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+    gap: 12px;
+  }
+
+  .apex-planos__card {
+    padding: 18px;
+    gap: 10px;
+  }
+
+  .apex-planos__card--destaque {
+    order: -1;
+    gap: 14px;
+  }
+
+  /* Desfaz o layout "card largo em linha" do tablet: no mobile o
+     Piloto volta a ser um card compacto igual aos outros. */
+  .apex-planos__card--em-breve {
+    grid-column: auto;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    row-gap: 0;
+  }
+
+  .apex-planos__card--em-breve .apex-planos__cabecalho-toque {
+    flex-direction: row;
+  }
+
+  .apex-planos__card--em-breve .apex-planos__identidade {
+    flex: 1 1 auto;
+  }
+
+  /* Cabeçalho tocável vira linha compacta: nome + resumo à esquerda,
+     preço à direita, com chevron indicando que é expansível. Alvo de
+     toque ≥44px pro dono do restaurante abrir sem errar no celular. */
+  .apex-planos__card:not(.apex-planos__card--destaque)
+    .apex-planos__cabecalho-toque {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 44px;
+  }
+
+  .apex-planos__card:not(.apex-planos__card--destaque)
+    .apex-planos__identidade {
+    gap: 3px;
+  }
+
+  .apex-planos__card:not(.apex-planos__card--destaque)
+    .apex-planos__cabecalho-toque-direita {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .apex-planos__card:not(.apex-planos__card--destaque)
+    .apex-planos__preco {
+    font-size: 20px;
+  }
+
+  .apex-planos__descricao--completa {
+    display: none;
+  }
+
+  .apex-planos__resumo-compacto {
+    display: block;
+    font-size: 12px;
+    color: var(--kora-nevoa);
+  }
+
+  /* Chevron: seta simples que gira 180° quando o card está aberto —
+     indicador visual óbvio de "isso expande", sem precisar de texto. */
+  .apex-planos__chevron {
+    display: block;
+    width: 9px;
+    height: 9px;
+    border-right: 2px solid var(--kora-nevoa);
+    border-bottom: 2px solid var(--kora-nevoa);
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .apex-planos__cabecalho-toque[aria-expanded="true"] .apex-planos__chevron {
+    transform: rotate(-135deg);
+  }
+
+  /* Corpo (features + CTA) só aparece quando o card não-destaque está
+     expandido. display:none em vez de max-height: sem gap fantasma
+     quando fechado e sem custo de transição — simples e previsível. */
+  .apex-planos__card:not(.apex-planos__card--destaque) .apex-planos__corpo {
+    display: none;
+    margin-top: 14px;
+  }
+
+  .apex-planos__cabecalho-toque[aria-expanded="true"] ~ .apex-planos__corpo {
+    display: flex;
+  }
+
   .apex-planos__addons {
+    padding: 18px 20px;
+    max-width: 100%;
     grid-template-columns: 1fr;
+  }
+
+  .apex-planos__addons-titulo {
+    white-space: normal;
   }
 }
