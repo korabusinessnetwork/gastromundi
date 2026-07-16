@@ -1,0 +1,12 @@
+/* Casco do protótipo /demo — a demo usa os tokens do PRODUTO (--gm-*,
+   globais via tema.css), não os --kora-* do site. O body global vive com
+   overflow hidden (padrão do PDV), então a .demo é seu próprio viewport;
+   quem rola é o conteúdo interno (shell/telas). */
+
+.demo {
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--gm-bg);
+  color: var(--gm-text);
+  font-family: var(--gm-font-texto);
+}

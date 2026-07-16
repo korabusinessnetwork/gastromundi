@@ -73,6 +73,23 @@ Breakpoints padronizados do site: **desktop ≥1024px**, **tablet `max-width: 10
 - Intuitividade: no celular o dono compara planos — por isso o recomendado vem primeiro e
   aberto, e os demais mostram preço sem toque nenhum; expandir é opt-in com affordance óbvia.
 
+## Protótipo navegável (`/demo`)
+
+O CTA primário do hero ("Ver o KORA rodando") abre `/demo` — uma demonstração
+fictícia do produto, **só no apex** (fora dele a rota redireciona pro login):
+
+- **`DemoLogin`**: réplica da tela de login do produto com a arte genérica KORA,
+  credenciais fictícias já preenchidas (`demo`) e zero validação — qualquer
+  Enter/clique entra. Banner deixa claro que é demonstração.
+- **`DemoShell` + 4 telas**: Frente de Caixa (interativa — adicionar itens à
+  comanda, cobrar Pix/cartão com sucesso fictício), Estoque, Clientes (busca +
+  cadastro local) e Relatórios. Dados de `demoDados.js`, tudo em memória.
+- Visual do **produto** (tokens `--gm-*`), não do site — a graça é mostrar o
+  sistema real. Nenhum Supabase, nenhum AppContext, nada persiste.
+- CTA de conversão dentro da demo ("Quero o KORA no meu negócio" → `/#planos`)
+  e saída explícita ("Sair da demo" → `/`).
+- Código em `src/pages/apex/demo/` (lazy — só quem abre a demo baixa o chunk).
+
 ## Variáveis de Ambiente
 
 | Variável | Tipo | Descrição | Exemplo |

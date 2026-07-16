@@ -8,6 +8,9 @@ import { ehApexInstitucional } from "@/lib/apex";
 // Página institucional do apex (kora.codes) — lazy: quem opera o PDV nos
 // subdomínios nunca baixa esse código; só o visitante do apex.
 const ApexPage = lazy(() => import("@/pages/apex/ApexPage"));
+// Protótipo navegável ("Ver o KORA rodando") — só existe no apex; nos
+// subdomínios de tenant a rota nem se registra e cai no fallback /login.
+const DemoPage = lazy(() => import("@/pages/apex/demo/DemoPage"));
 
 // Pages
 import LoginPage        from "@/pages/LoginPage";
@@ -36,6 +39,15 @@ const router = createBrowserRouter([
     path: "/",
     element: ehApexInstitucional()
       ? <Suspense fallback={null}><ApexPage /></Suspense>
+      : <Navigate to="/login" replace />,
+  },
+
+  // Demonstração fictícia do produto (apex): login de mentira + telas
+  // protótipo com dados fictícios. Fora do apex, comportamento antigo.
+  {
+    path: "/demo",
+    element: ehApexInstitucional()
+      ? <Suspense fallback={null}><DemoPage /></Suspense>
       : <Navigate to="/login" replace />,
   },
 

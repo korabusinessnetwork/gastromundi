@@ -8,7 +8,7 @@ import "./ApexHero.css";
  * não uma peça de marketing genérica. Decorativo (aria-hidden), sem
  * elementos interativos reais.
  */
-export default function ApexHero({ contatoUrl }) {
+export default function ApexHero() {
   return (
     <header className="apex-hero">
       {/* Badge com duas variantes de copy: no mobile o artboard pede a
@@ -30,8 +30,10 @@ export default function ApexHero({ contatoUrl }) {
         sistema fica com a cara da sua operação.
       </p>
       <div className="apex-hero__ctas">
-        <a href={contatoUrl || "#demo"} className="apex-botao apex-botao--primario-claro">
-          Ver o KORA rodando com meu cardápio
+        {/* CTA primário abre o protótipo navegável (/demo): o visitante vê o
+            produto rodando na hora, sem esperar a demonstração agendada. */}
+        <a href="/demo" className="apex-botao apex-botao--primario-claro">
+          Ver o KORA rodando
         </a>
         <a href="#planos" className="apex-botao apex-botao--outline-escuro">
           Ver planos
