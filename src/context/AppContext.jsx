@@ -609,7 +609,7 @@ export function AppProvider({ children }) {
     });
     const { error } = await supabase
       .from("categoria_grupo")
-      .upsert({ category: cat, grupo_id: gid, updated_at: new Date().toISOString() }, { onConflict: "category" });
+      .upsert({ category: cat, grupo_id: gid, updated_at: new Date().toISOString() }, { onConflict: "tenant_id,category" });
     return { error };
   };
 
