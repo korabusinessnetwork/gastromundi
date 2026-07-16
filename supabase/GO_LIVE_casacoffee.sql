@@ -31,10 +31,8 @@ WHERE slug = 'casacoffeecolab';
 --   → rodar: supabase/SEED_tema_casacoffee.sql
 
 -- ── 3. AÇÃO · plano do tenant ───────────────────────────────────────
--- O plano liga os módulos (tenant_tem_modulo). Recomendação pro Casa
--- Coffee: 'medio' (Casa Cheia) — cafeteria com salão usa mesas/comandas
--- e Palm do garçom; se a Paula operar só balcão, 'simples' basta.
--- DECISÃO DO DONO — troque o código abaixo se for outro.
+-- O plano liga os módulos (tenant_tem_modulo). Casa Coffee é CLIENTE
+-- FUNDADORA (decisão 030): plano máximo ('avancado', todos os módulos).
 --
 -- Nota: NÃO usar alterar_plano_tenant() aqui — a guarda is_super_admin()
 -- dela lê o JWT do chamador, e o SQL Editor roda sem JWT (barraria com
@@ -42,22 +40,24 @@ WHERE slug = 'casacoffeecolab';
 -- CONSOLE (app); no SQL Editor, como postgres, o equivalente é o UPDATE
 -- direto — com a mesma validação de plano embutida no WHERE.
 UPDATE public.tenants t
-   SET plano_codigo = 'medio'
+   SET plano_codigo = 'avancado'
  WHERE t.slug = 'casacoffeecolab'
-   AND EXISTS (SELECT 1 FROM public.planos p WHERE p.codigo = 'medio')
+   AND EXISTS (SELECT 1 FROM public.planos p WHERE p.codigo = 'avancado')
 RETURNING t.slug, t.plano_codigo;
 -- Esperado: 1 linha (slug + plano novo). 0 linhas = tenant não existe
 -- OU o código de plano digitado não está no catálogo — confira os dois.
 
--- ── 4. AÇÃO · assinatura (billing manual — fase bootstrap) ──────────
--- Cliente fundador (decisão 029): desconto forte em troca de case; o
--- VALOR é decisão do dono → preencha :valor_fundador antes de rodar.
--- Preço cheio de tabela do Médio: R$ 349. Idempotente (1 por tenant).
+-- ── 4. AÇÃO · assinatura fundadora (billing manual — bootstrap) ─────
+-- Plano Fundador (decisão 030): vitalício, 3 MESES DE TESTE grátis e
+-- depois R$ 300/mês simbólicos no plano máximo (custeio de API).
+-- Modelagem: valor_mensal = 300.00 e o PRIMEIRO vencimento cai só ao
+-- fim do teste (data_inicio + 3 meses) — até lá status = 'ativo' sem
+-- cobrança. Idempotente (1 assinatura por tenant).
 INSERT INTO public.assinaturas (tenant_id, valor_mensal, data_inicio, data_vencimento)
 SELECT t.id,
-       0.00,                        -- ⚠️ TROCAR pelo valor fundador acordado
+       300.00,                      -- fundador vitalício (decisão 030)
        current_date,
-       (current_date + interval '1 month')::date
+       (current_date + interval '3 months')::date
 FROM public.tenants t
 WHERE t.slug = 'casacoffeecolab'
   AND NOT EXISTS (

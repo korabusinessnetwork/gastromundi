@@ -24,15 +24,15 @@ Rodar `supabase/SEED_tema_casacoffee.sql` (idempotente) se `tema_aplicado = fals
 Login e sidebar passam a mostrar "Casa Coffee Colab by Kora" com a paleta café/terracota —
 e a **aba do navegador** também (fix `aplicarTituloDocumento`, já em produção).
 
-### 3. Plano (SQL bloco 3 — decisão do dono)
-Recomendação: **`medio` (Casa Cheia)** — cafeteria com salão usa mesas/comandas/Palm.
-Se a Paula for operar só balcão, `simples` cobre. O plano liga os módulos via
-`tenant_tem_modulo()`; dá pra trocar depois com a mesma função sem downtime.
+### 3. Plano (SQL bloco 3)
+Casa Coffee é **cliente fundadora** (decisão 030) → plano máximo **`avancado`** (todos os
+módulos). O plano liga os módulos via `tenant_tem_modulo()`; dá pra trocar depois sem downtime.
 
-### 4. Assinatura fundadora (SQL bloco 4 — decisão do dono)
-Preencher o `valor_mensal` com o **preço fundador acordado com a Paula** antes de rodar
-(decisão 029: desconto forte em troca de case; preço cheio do Médio na tabela é R$ 349).
-O valor NÃO fica no código — só na linha de `assinaturas` do tenant.
+### 4. Assinatura fundadora (SQL bloco 4 — Plano Fundador, decisão 030)
+Termos fundadores: **vitalício, 3 meses de teste grátis, depois R$ 300/mês simbólicos**
+(custeio de API). No billing manual isso vira `valor_mensal = 300.00` com o primeiro
+`data_vencimento` só ao fim do teste (`data_inicio + 3 meses`). O "vitalício" (valor nunca
+sobe com a tabela) é compromisso do dono — não há campo no banco.
 
 ### 5. Usuários da Paula (SQL bloco 6 pra conferir)
 - **Caminho feliz**: já criado junto no passo 1 pelo Console.
