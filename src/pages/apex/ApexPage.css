@@ -1,0 +1,226 @@
+/**
+ * Página institucional do apex kora.codes — layout.
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ * Mobile-first: grid de módulos colapsa, sem scroll horizontal em
+ * nenhuma largura.
+ */
+
+.apex {
+  min-height: 100dvh;
+  background: var(--gm-bg);
+  color: var(--gm-text);
+  font-family: var(--gm-font-texto);
+  overflow-x: hidden;
+}
+
+.apex-secao {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 56px 20px;
+  box-sizing: border-box;
+}
+
+.apex-secao__titulo {
+  margin: 0 0 8px;
+  font-family: var(--gm-font-titulo);
+  font-size: clamp(22px, 4vw, 30px);
+  font-weight: 900;
+  letter-spacing: -0.3px;
+  text-align: center;
+}
+
+.apex-secao__subtitulo {
+  margin: 0 auto 32px;
+  max-width: 560px;
+  text-align: center;
+  color: var(--gm-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ── Hero ──────────────────────────────────────────────────────── */
+.apex-hero {
+  padding: 72px 20px 56px;
+  text-align: center;
+  border-bottom: 1px solid var(--gm-border);
+  background: linear-gradient(180deg, var(--gm-card) 0%, var(--gm-bg) 100%);
+}
+
+.apex-hero__conteudo {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.apex-hero__wordmark {
+  font-family: var(--gm-font-titulo);
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: 4px;
+  color: var(--gm-accent);
+  margin-bottom: 24px;
+}
+
+.apex-hero__titulo {
+  margin: 0 0 16px;
+  font-family: var(--gm-font-titulo);
+  font-weight: 900;
+  font-size: clamp(28px, 6vw, 44px);
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+}
+
+.apex-hero__subtitulo {
+  margin: 0 0 32px;
+  font-size: 17px;
+  color: var(--gm-muted);
+  line-height: 1.6;
+}
+
+.apex-hero__acoes {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.apex-hero__acoes--contato {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.apex-hero__aux {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.apex-hero__aux strong {
+  color: var(--gm-text);
+}
+
+/* ── Botões ────────────────────────────────────────────────────── */
+.apex-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 800;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: filter 0.15s ease, transform 0.05s ease;
+}
+
+.apex-botao:active {
+  transform: translateY(1px);
+}
+
+.apex-botao--primario {
+  background: var(--gm-accent);
+  color: #fff;
+}
+
+.apex-botao--primario:hover {
+  filter: brightness(1.08);
+}
+
+.apex-botao--secundario {
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  border-color: var(--gm-border);
+}
+
+.apex-botao--secundario:hover {
+  border-color: var(--gm-muted);
+}
+
+/* ── Módulos ───────────────────────────────────────────────────── */
+.apex-modulos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 560px) {
+  .apex-modulos {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 860px) {
+  .apex-modulos {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.apex-modulo {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  padding: 22px 18px;
+  text-align: left;
+}
+
+.apex-modulo__icone {
+  display: block;
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.apex-modulo__titulo {
+  margin: 0 0 6px;
+  font-family: var(--gm-font-titulo);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.apex-modulo__descricao {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+  line-height: 1.5;
+}
+
+/* ── Sua marca ─────────────────────────────────────────────────── */
+.apex-secao--marca {
+  background: var(--gm-card);
+  border-top: 1px solid var(--gm-border);
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.apex-marca {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.apex-marca__texto {
+  margin-bottom: 0;
+}
+
+/* ── Contato ───────────────────────────────────────────────────── */
+.apex-secao--contato {
+  text-align: center;
+  padding-bottom: 72px;
+}
+
+/* ── Rodapé ────────────────────────────────────────────────────── */
+.apex-rodape {
+  padding: 24px 20px 32px;
+  text-align: center;
+  color: var(--gm-muted);
+  font-size: 12px;
+  border-top: 1px solid var(--gm-border);
+}
+
+.apex-rodape p {
+  margin: 2px 0;
+}
+
+.apex-rodape__ano {
+  color: var(--gm-faint);
+}

@@ -1,7 +1,13 @@
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import PrivateRoute   from "./PrivateRoute";
 import ConsoleRoute   from "./ConsoleRoute";
 import MobileRoute    from "./MobileRoute";
+import { ehApexInstitucional } from "@/lib/apex";
+
+// Página institucional do apex (kora.codes) — lazy: quem opera o PDV nos
+// subdomínios nunca baixa esse código; só o visitante do apex.
+const ApexPage = lazy(() => import("@/pages/apex/ApexPage"));
 
 // Pages
 import LoginPage        from "@/pages/LoginPage";
@@ -23,8 +29,15 @@ import ConsolePage        from "@/pages/console/ConsolePage";
 import MODULOS from "@/constants/modulos";
 
 const router = createBrowserRouter([
-  // Raiz → redireciona baseado no estado de auth (tratado no LoginPage)
-  { path: "/", element: <Navigate to="/login" replace /> },
+  // Raiz: no apex (kora.codes/www) mostra a vitrine institucional da Kora;
+  // em qualquer outro host (subdomínio de tenant, dev, preview) segue o
+  // comportamento de sempre — direto ao login. Decisão em src/lib/apex.js.
+  {
+    path: "/",
+    element: ehApexInstitucional()
+      ? <Suspense fallback={null}><ApexPage /></Suspense>
+      : <Navigate to="/login" replace />,
+  },
 
   // Autenticação
   { path: "/login", element: <LoginPage /> },

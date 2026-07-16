@@ -53,4 +53,5 @@ Fluxos documentam a jornada do usuário em sequências de telas, decisões e est
 | Autenticação | [auth-flow.md](./auth-flow.md) | Alta | Rascunho |
 | Onboarding (alvo/roadmap) | [onboarding-flow.md](./onboarding-flow.md) | Alta | Rascunho |
 | **Ativar novo estabelecimento (app real)** | [ativar-novo-estabelecimento.md](./ativar-novo-estabelecimento.md) | Alta | Vigente |
+| **Apex institucional (kora.codes)** | [apex-institucional.md](./apex-institucional.md) | Média | Vigente |
 | Faturamento | [billing-flow.md](./billing-flow.md) | Alta | Rascunho |

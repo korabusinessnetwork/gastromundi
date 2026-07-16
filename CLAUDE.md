@@ -25,6 +25,22 @@ elegância técnica. Regras práticas:
 - **Jarvas** (IA transversal): spec em `docs/03_REGRAS_DE_NEGOCIO/JARVAS.md` — insight/alerta/sugestão orientados a eventos, nunca executa ações sem confirmação humana.
 - **Produto = SaaS multi-estabelecimento white-label** (decisão 017). Hoje atende o estabelecimento GastroMundi, mas o alvo é vender em escala para vários estabelecimentos. Todo código novo deve assumir **múltiplos tenants** e ser **adaptável por estabelecimento**: nada de marca, nome, cor, logo ou regra específica de um cliente hardcodada — identidade e configurações vêm do tenant. Combina com o sistema de planos (F013) e o multi-tenancy por RLS (decisão 002).
 
+## Processo de trabalho — orquestração multi-modelo (regra do dono, 2026-07-16)
+
+**Sempre operar no modo da skill `multi-model-orchestrator`** (skill do claude.ai do dono;
+quando o corpo dela não carregar no ambiente, seguir o padrão abaixo, que a codifica):
+
+1. **Planejar TUDO antes de executar** — escopo fechado, peças definidas, sem retrabalho.
+2. **Builds multi-parte → fan-out paralelo** de até 10 subagentes, com **dono exclusivo
+   por diretório/arquivo** (dois agentes nunca tocam o mesmo arquivo). Modelo casado ao
+   peso da peça: **Opus/Sonnet nas peças críticas** (lógica, telas, segurança),
+   **Haiku nas menores** (seeds, docs, boilerplate).
+3. **Sintetizar e VALIDAR no fim** — o orquestrador revisa cada entrega dos modelos
+   inferiores, integra os pontos compartilhados (rotas, índices), roda testes e build.
+4. **Tarefa de peça única não ganha fan-out** — o orquestrador faz direto (casar o
+   modelo ao tamanho da tarefa vale também para não fragmentar o que é pequeno).
+5. Subagentes **não commitam/nem fazem push** — integração e commit são do orquestrador.
+
 ## Custo — priorizar o gratuito (fase de bootstrap)
 
 Enquanto o projeto está em construção/pré-receita, **use sempre meios gratuitos**. Toda
