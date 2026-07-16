@@ -1,74 +1,17 @@
 // ──────────────────────────────────────────────────────────────────
-// Migração de dados — PRODUTOS: plano de importação (puro) + aplicação
-// no Supabase (client autenticado do app — a RLS isola o tenant e o
-// tenant_id nasce do DEFAULT tenant_atual_id(); NUNCA vem do arquivo).
+// Migração de dados — PRODUTOS: aplicação do plano no Supabase
+// (client autenticado do app — a RLS isola o tenant e o tenant_id
+// nasce do DEFAULT tenant_atual_id(); NUNCA vem do arquivo).
 //
-// `products` não tem unique em name (nome só é único DENTRO do tenant),
-// então idempotência é por casamento de nome normalizado no código:
-// existe → UPDATE por id; não existe → INSERT. Rodar o mesmo arquivo
-// duas vezes não duplica nada.
+// O planejamento (puro) vive em plano.js — compartilhado com a Edge
+// Function importar-dados. Rodar o mesmo arquivo duas vezes não
+// duplica nada (UPDATE por id quando o nome já existe no tenant).
 // ──────────────────────────────────────────────────────────────────
 
 import { supabase } from "@/lib/supabase";
-import { normalizarTexto } from "./planilha";
+import { TAMANHO_LOTE, planejarImportacaoProdutos, paraPayloadProduto } from "./plano";
 
-export const TAMANHO_LOTE = 200;
-
-/**
- * Monta o plano de importação (PURO — é o que o preview mostra).
- * @param {Array} produtosPlanilha - saída de validarPlanilhaProdutos().produtos
- * @param {Array<{id:number|string, name:string, price:number, category:string, emoji?:string, active?:boolean, unidade_estoque?:string}>} produtosExistentes
- * @returns {{criar:Array, atualizar:Array<{id, changes, nome}>, iguais:Array, categoriasNovas:string[]}}
- */
-export function planejarImportacaoProdutos(produtosPlanilha, produtosExistentes) {
-  const existentesPorNome = new Map(
-    (produtosExistentes || []).map((p) => [normalizarTexto(p.name), p])
-  );
-  const categoriasExistentes = new Set(
-    (produtosExistentes || []).map((p) => normalizarTexto(p.category))
-  );
-
-  const criar = [];
-  const atualizar = [];
-  const iguais = [];
-  const categoriasNovas = new Map();
-
-  for (const item of produtosPlanilha || []) {
-    if (!categoriasExistentes.has(normalizarTexto(item.categoria)) &&
-        !categoriasNovas.has(normalizarTexto(item.categoria))) {
-      categoriasNovas.set(normalizarTexto(item.categoria), item.categoria);
-    }
-
-    const existente = existentesPorNome.get(normalizarTexto(item.nome));
-    if (!existente) {
-      criar.push(item);
-      continue;
-    }
-
-    const changes = {};
-    if (Number(existente.price) !== item.preco) changes.price = item.preco;
-    if ((existente.category || "") !== item.categoria) changes.category = item.categoria;
-    if (item.emoji && (existente.emoji || null) !== item.emoji) changes.emoji = item.emoji;
-    if (Boolean(existente.active) !== item.ativo) changes.active = item.ativo;
-
-    if (Object.keys(changes).length === 0) iguais.push(item);
-    else atualizar.push({ id: existente.id, nome: item.nome, changes });
-  }
-
-  return { criar, atualizar, iguais, categoriasNovas: [...categoriasNovas.values()] };
-}
-
-/** Converte um item da planilha no payload da tabela `products`. */
-export function paraPayloadProduto(item) {
-  return {
-    name: item.nome,
-    price: item.preco,
-    category: item.categoria,
-    emoji: item.emoji,
-    active: item.ativo,
-    unidade_estoque: item.unidade || "un",
-  };
-}
+export { TAMANHO_LOTE, planejarImportacaoProdutos, paraPayloadProduto };
 
 /**
  * Aplica o plano no banco, em lotes, reportando progresso. Para no

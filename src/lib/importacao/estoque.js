@@ -1,64 +1,16 @@
 // ──────────────────────────────────────────────────────────────────
-// Migração de dados — ESTOQUE INICIAL (Fase 2): plano de importação
-// (puro) + aplicação no Supabase (client autenticado do app — RLS).
+// Migração de dados — ESTOQUE INICIAL (Fase 2): aplicação do plano no
+// Supabase (client autenticado do app — RLS).
 //
-// A planilha traz o NOME do produto; o plano casa com o cardápio já
-// cadastrado (nome normalizado) e vira upsert por produto_id — a
-// tabela `estoque` tem PK em produto_id, então rodar o mesmo arquivo
-// duas vezes não duplica nem soma nada (define, não incrementa).
+// O planejamento (puro) vive em plano.js — compartilhado com a Edge
+// Function importar-dados. Upsert por produto_id (PK da tabela):
+// rodar o mesmo arquivo duas vezes não duplica nem soma nada.
 // ──────────────────────────────────────────────────────────────────
 
 import { supabase } from "@/lib/supabase";
-import { normalizarTexto } from "./planilha";
-import { TAMANHO_LOTE } from "./produtos";
+import { TAMANHO_LOTE, MINIMO_PADRAO, planejarImportacaoEstoque, paraLinhasExportEstoque } from "./plano";
 
-/** Mínimo padrão quando o produto ainda não tem linha em `estoque` (DEFAULT do schema). */
-export const MINIMO_PADRAO = 10;
-
-/**
- * Monta o plano de importação (PURO — é o que o preview mostra).
- * Produto que não existe no cardápio vira erro apontado por linha
- * ("importe os produtos primeiro") — nunca cria produto por tabela.
- * @param {Array} itensPlanilha - saída de validarPlanilhaEstoque().itens
- * @param {Array<{id:number|string, name:string}>} produtosExistentes
- * @param {Array<{produto_id:number|string, quantidade:number, minimo:number}>} estoqueAtual
- * @returns {{definir:Array<{produto_id, nome, quantidade, minimo}>, iguais:Array, naoEncontrados:Array<{linha, mensagem}>}}
- */
-export function planejarImportacaoEstoque(itensPlanilha, produtosExistentes, estoqueAtual) {
-  const produtosPorNome = new Map(
-    (produtosExistentes || []).map((p) => [normalizarTexto(p.name), p])
-  );
-  const estoquePorProduto = new Map(
-    (estoqueAtual || []).map((e) => [String(e.produto_id), e])
-  );
-
-  const definir = [];
-  const iguais = [];
-  const naoEncontrados = [];
-
-  for (const item of itensPlanilha || []) {
-    const produto = produtosPorNome.get(normalizarTexto(item.produto));
-    if (!produto) {
-      naoEncontrados.push({
-        linha: item.linha,
-        mensagem: `"${item.produto}" não está no cardápio — importe/cadastre os produtos antes do estoque.`,
-      });
-      continue;
-    }
-
-    const atual = estoquePorProduto.get(String(produto.id));
-    // Mínimo vazio na planilha mantém o atual (ou o padrão do sistema)
-    const minimo = item.minimo ?? (atual ? Number(atual.minimo) : MINIMO_PADRAO);
-
-    if (atual && Number(atual.quantidade) === item.quantidade && Number(atual.minimo) === minimo) {
-      iguais.push(item);
-    } else {
-      definir.push({ produto_id: produto.id, nome: produto.name, quantidade: item.quantidade, minimo });
-    }
-  }
-
-  return { definir, iguais, naoEncontrados };
-}
+export { MINIMO_PADRAO, planejarImportacaoEstoque, paraLinhasExportEstoque };
 
 /**
  * Aplica o plano no banco em lotes (upsert por produto_id), reportando
@@ -96,11 +48,4 @@ export async function buscarEstoqueParaMigracao() {
     .from("estoque")
     .select("produto_id, quantidade, minimo, products(name)")
     .order("produto_id");
-}
-
-/** Achata o resultado do join no shape do CSV de export ({produto, quantidade, minimo}). */
-export function paraLinhasExportEstoque(linhas) {
-  return (linhas || [])
-    .filter((e) => e.products?.name)
-    .map((e) => ({ produto: e.products.name, quantidade: Number(e.quantidade), minimo: Number(e.minimo) }));
 }

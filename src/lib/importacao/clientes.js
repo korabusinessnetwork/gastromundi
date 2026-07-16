@@ -1,64 +1,17 @@
 // ──────────────────────────────────────────────────────────────────
-// Migração de dados — CLIENTES (Fase 2): plano de importação (puro) +
-// aplicação no Supabase (client autenticado do app — RLS isola o
-// tenant; tenant_id NUNCA vem do arquivo).
+// Migração de dados — CLIENTES (Fase 2): aplicação do plano no
+// Supabase (client autenticado do app — RLS isola o tenant; tenant_id
+// NUNCA vem do arquivo).
 //
-// Idempotência por telefone normalizado (só dígitos) — a mesma chave
-// de dedupe do cadastro na tela. Rodar o mesmo arquivo duas vezes não
-// duplica ninguém.
+// O planejamento (puro) vive em plano.js — compartilhado com a Edge
+// Function importar-dados. Idempotência por telefone normalizado (só
+// dígitos): rodar o mesmo arquivo duas vezes não duplica ninguém.
 // ──────────────────────────────────────────────────────────────────
 
 import { supabase } from "@/lib/supabase";
-import { normalizarTelefone } from "./planilha";
-import { TAMANHO_LOTE } from "./produtos";
+import { TAMANHO_LOTE, planejarImportacaoClientes, paraPayloadCliente } from "./plano";
 
-/**
- * Monta o plano de importação (PURO — é o que o preview mostra).
- * Campos opcionais vazios na planilha nunca apagam o que já existe.
- * @param {Array} clientesPlanilha - saída de validarPlanilhaClientes().clientes
- * @param {Array<{id:string, nome:string, telefone?:string, endereco?:string, observacoes?:string}>} clientesExistentes
- * @returns {{criar:Array, atualizar:Array<{id, nome, changes}>, iguais:Array}}
- */
-export function planejarImportacaoClientes(clientesPlanilha, clientesExistentes) {
-  const existentesPorTelefone = new Map();
-  for (const c of clientesExistentes || []) {
-    const tel = normalizarTelefone(c.telefone);
-    if (tel && !existentesPorTelefone.has(tel)) existentesPorTelefone.set(tel, c);
-  }
-
-  const criar = [];
-  const atualizar = [];
-  const iguais = [];
-
-  for (const item of clientesPlanilha || []) {
-    const existente = existentesPorTelefone.get(item.telefone);
-    if (!existente) {
-      criar.push(item);
-      continue;
-    }
-
-    const changes = {};
-    if (item.nome !== existente.nome) changes.nome = item.nome;
-    if (item.endereco && (existente.endereco || null) !== item.endereco) changes.endereco = item.endereco;
-    if (item.observacoes && (existente.observacoes || null) !== item.observacoes) changes.observacoes = item.observacoes;
-
-    if (Object.keys(changes).length === 0) iguais.push(item);
-    else atualizar.push({ id: existente.id, nome: item.nome, changes });
-  }
-
-  return { criar, atualizar, iguais };
-}
-
-/** Converte um item da planilha no payload da tabela `clientes`. */
-export function paraPayloadCliente(item, usuario) {
-  return {
-    nome: item.nome,
-    telefone: item.telefone,
-    endereco: item.endereco,
-    observacoes: item.observacoes,
-    criado_por: usuario ?? null,
-  };
-}
+export { planejarImportacaoClientes, paraPayloadCliente };
 
 /**
  * Aplica o plano no banco, em lotes, reportando progresso. Para no
