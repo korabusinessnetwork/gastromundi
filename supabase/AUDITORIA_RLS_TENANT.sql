@@ -19,7 +19,23 @@
 -- são reconhecidas acima.
 -- ══════════════════════════════════════════════════════════════════
 
--- ── 1) Policies em tabelas que TÊM tenant_id, classificadas por escopo
+-- ── 1) TESTE DEFINITIVO — tabelas com tenant_id SEM clamp restritivo ─
+-- IMPORTANTE (semântica RLS do Postgres): PERMISSIVE somam com OR;
+-- RESTRICTIVE somam com AND por cima de tudo. A Leva 2 (20260724)
+-- criou, em cada tabela operacional, uma policy `AS RESTRICTIVE FOR ALL
+-- USING (tenant_id = tenant_atual_id())`. Logo, TODAS as policies de
+-- papel/assinatura daquela tabela ficam ANDadas com o filtro de tenant —
+-- NÃO precisam filtrar tenant individualmente. Portanto o único jeito
+-- correto de achar exposição é procurar tabela com tenant_id que NÃO
+-- tenha essa policy RESTRICTIVE — e não olhar policy por policy (isso
+-- daria falso positivo em toda permissiva de papel).
+--
+-- Esperado: todas as operacionais '✅ clamp restritivo por tenant'. A
+-- ÚNICA '⚠️ SEM restritivo' legítima é `users` (isolada à parte: 4
+-- policies de admin filtram por tenant + users_select_self; sem
+-- restritiva porque o super-admin plataforma tem tenant_id NULL e uma
+-- restritiva o trancaria da própria linha). Qualquer OUTRA tabela em
+-- '⚠️' é exposição real — investigar.
 WITH tabelas_com_tenant AS (
   SELECT DISTINCT c.relname AS tabela
   FROM pg_attribute a
@@ -29,22 +45,20 @@ WITH tabelas_com_tenant AS (
     AND a.attname = 'tenant_id'
     AND a.attnum > 0
     AND NOT a.attisdropped
+),
+isolamento_restritivo AS (
+  SELECT DISTINCT tablename
+  FROM pg_policies
+  WHERE schemaname = 'public'
+    AND permissive = 'RESTRICTIVE'
+    AND COALESCE(qual,'') ILIKE '%tenant_atual_id%'
 )
-SELECT
-  p.tablename,
-  p.policyname,
-  p.cmd,
-  CASE
-    WHEN COALESCE(p.qual,'')       ILIKE '%tenant_atual_id%'
-      OR COALESCE(p.with_check,'') ILIKE '%tenant_atual_id%' THEN '✅ tenant'
-    WHEN COALESCE(p.qual,'')       ILIKE '%auth.uid()%'      THEN '✅ self'
-    WHEN COALESCE(p.qual,'')       ILIKE '%is_super_admin%'
-      OR COALESCE(p.with_check,'') ILIKE '%is_super_admin%'  THEN '✅ super-admin'
-    ELSE '❌ SEM filtro de tenant'
-  END AS escopo
-FROM pg_policies p
-JOIN tabelas_com_tenant t ON t.tabela = p.tablename
-ORDER BY escopo, p.tablename, p.policyname;
+SELECT t.tabela,
+       CASE WHEN i.tablename IS NOT NULL THEN '✅ clamp restritivo por tenant'
+            ELSE '⚠️ SEM restritivo — checar caso a caso' END AS veredito
+FROM tabelas_com_tenant t
+LEFT JOIN isolamento_restritivo i ON i.tablename = t.tabela
+ORDER BY veredito, t.tabela;
 
 -- ── 2) A Leva 4 (20260726) está aplicada? (billing isolado por tenant)
 -- As 4 devem voltar '✅ escopo tenant'. Se alguma vier '❌', a 20260726
