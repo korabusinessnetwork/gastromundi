@@ -398,7 +398,7 @@ CREATE INDEX jarvas_insights_created_at_idx ON public.jarvas_insights (created_a
 -- venda_itens           → venda_itens_all_caixa_up (caixa/gerente/admin) — TD009 etapa 1
 -- venda_pagamentos      → venda_pagamentos_all_caixa_up (caixa/gerente/admin) — TD009 etapa 1
 -- fechamentos           → fechamentos_all_caixa_up (caixa/gerente/admin)
--- config                → config_select_auth ; config_write_gerente_admin
+-- config                → config_select_auth ; config_write_gerente_admin ; config_write_caixa_sessao (caixa: só fundo_atual/caixa_aberto/sessao_aberta_em — 20260744)
 -- operator_logs         → oplogs_insert_auth ; oplogs_select_gerente_admin
 -- unidades_medida       → unidades_select_auth ; unidades_write_admin
 -- notas_fiscais         → nf_all_gerente_admin
