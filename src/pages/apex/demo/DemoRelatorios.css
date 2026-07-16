@@ -1,0 +1,209 @@
+/* Relatórios da demo — stat-cards + gráficos de barra em CSS puro. */
+
+.demo-relatorios {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 920px;
+}
+
+/* ── Stat-cards ───────────────────────────────────────────────── */
+
+.demo-relatorios__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.demo-relatorios__stat {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.demo-relatorios__stat-rotulo {
+  font-size: 12px;
+  color: var(--gm-muted);
+}
+
+.demo-relatorios__stat-numero {
+  font-family: var(--gm-font-titulo);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-relatorios__stat-delta {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-green);
+}
+
+/* ── Painéis ──────────────────────────────────────────────────── */
+
+.demo-relatorios__painel {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.demo-relatorios__titulo {
+  font-family: var(--gm-font-titulo);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gm-text);
+  margin: 0 0 14px;
+}
+
+.demo-relatorios__duplo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Vendas por hora ──────────────────────────────────────────── */
+
+.demo-relatorios__grafico {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 140px;
+}
+
+.demo-relatorios__coluna {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.demo-relatorios__barra {
+  width: 100%;
+  max-width: 42px;
+  background: var(--gm-alow);
+  border: 1px solid var(--gm-border);
+  border-radius: 6px 6px 0 0;
+  box-sizing: border-box;
+}
+
+.demo-relatorios__barra--pico {
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+}
+
+.demo-relatorios__hora {
+  font-size: 11px;
+  color: var(--gm-muted);
+}
+
+/* ── Mais vendidos ────────────────────────────────────────────── */
+
+.demo-relatorios__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.demo-relatorios__top-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.demo-relatorios__top-nome {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gm-text);
+}
+
+.demo-relatorios__top-detalhe {
+  font-size: 12px;
+  color: var(--gm-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.demo-relatorios__top-trilha,
+.demo-relatorios__meio-trilha {
+  height: 8px;
+  background: var(--gm-surface);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.demo-relatorios__top-barra {
+  height: 100%;
+  background: var(--gm-accent);
+  border-radius: 999px;
+}
+
+/* ── Meios de pagamento ───────────────────────────────────────── */
+
+.demo-relatorios__meio {
+  display: grid;
+  grid-template-columns: 72px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+}
+
+.demo-relatorios__meio-nome {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gm-text);
+}
+
+.demo-relatorios__meio-barra {
+  height: 100%;
+  background: var(--gm-accent);
+  border-radius: 999px;
+}
+
+.demo-relatorios__meio-barra--pix {
+  background: var(--gm-green);
+}
+
+.demo-relatorios__meio-pct {
+  font-size: 12px;
+  color: var(--gm-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-relatorios__nota {
+  font-size: 13px;
+  color: var(--gm-muted);
+  margin: 0;
+}
+
+/* ── Responsivo ───────────────────────────────────────────────── */
+
+@media (max-width: 1023px) {
+  .demo-relatorios__duplo {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .demo-relatorios__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .demo-relatorios__grafico {
+    height: 110px;
+    gap: 5px;
+  }
+}

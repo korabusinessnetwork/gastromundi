@@ -1,0 +1,321 @@
+/* Frente de Caixa da demo — 2 colunas como o PDV real: produtos à
+   esquerda, comanda à direita. Alvos grandes (é vitrine de PDV de toque). */
+
+.demo-pdv {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* ── Produtos ─────────────────────────────────────────────────── */
+
+.demo-pdv__produtos {
+  flex: 2;
+  min-width: 0;
+}
+
+.demo-pdv__categorias {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.demo-pdv__chip {
+  min-height: 36px;
+  padding: 6px 14px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  color: var(--gm-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.demo-pdv__chip:hover {
+  color: var(--gm-text);
+}
+
+.demo-pdv__chip--ativa,
+.demo-pdv__chip--ativa:hover {
+  background: var(--gm-alow);
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
+.demo-pdv__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.demo-pdv__produto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 92px;
+  padding: 12px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  color: var(--gm-text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.08s ease, border-color 0.08s ease;
+}
+
+.demo-pdv__produto:hover {
+  border-color: var(--gm-accent);
+}
+
+.demo-pdv__produto:active {
+  transform: scale(0.97);
+}
+
+.demo-pdv__produto-emoji {
+  font-size: 20px;
+}
+
+.demo-pdv__produto-nome {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.demo-pdv__produto-preco {
+  font-size: 12px;
+  color: var(--gm-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Comanda ──────────────────────────────────────────────────── */
+
+.demo-pdv__comanda {
+  flex: 1;
+  min-width: 280px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  padding: 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+}
+
+.demo-pdv__comanda-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.demo-pdv__mesa {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.demo-pdv__pessoas {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--gm-green);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.demo-pdv__sucesso {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--gm-green);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.demo-pdv__vazio {
+  color: var(--gm-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 8px;
+  border: 1px dashed var(--gm-border);
+  border-radius: 10px;
+}
+
+.demo-pdv__itens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.demo-pdv__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.demo-pdv__item-nome {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.demo-pdv__item-controles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.demo-pdv__qtd-botao {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  color: var(--gm-text);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.demo-pdv__qtd-botao:hover {
+  border-color: var(--gm-accent);
+}
+
+.demo-pdv__qtd {
+  min-width: 18px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-pdv__item-valor {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Fechamento ───────────────────────────────────────────────── */
+
+.demo-pdv__fechamento {
+  border-top: 1px solid var(--gm-border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.demo-pdv__linha {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.demo-pdv__linha--total {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gm-text);
+  border-top: 1px solid var(--gm-border);
+  padding-top: 8px;
+}
+
+.demo-pdv__valor {
+  font-weight: 600;
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-pdv__valor-total {
+  font-weight: 800;
+  color: #a78bfa; /* accent clareado p/ texto, mesmo tom do mock do hero */
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-pdv__cobrar {
+  min-height: 44px;
+  padding: 11px;
+  border-radius: 10px;
+  font-family: var(--gm-font-titulo);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.demo-pdv__cobrar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.demo-pdv__cobrar--pix {
+  background: var(--gm-green);
+  border: none;
+  color: #04150f;
+}
+
+.demo-pdv__cobrar--cartao {
+  background: transparent;
+  border: 1px solid var(--gm-border);
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+
+.demo-pdv__cobrar--cartao:hover:not(:disabled) {
+  color: var(--gm-text);
+}
+
+/* ── Tablet ───────────────────────────────────────────────────── */
+
+@media (max-width: 1023px) {
+  .demo-pdv {
+    gap: 16px;
+  }
+
+  .demo-pdv__comanda {
+    min-width: 250px;
+  }
+}
+
+/* ── Mobile: coluna única, comanda abaixo da grade ────────────── */
+
+@media (max-width: 767px) {
+  .demo-pdv {
+    flex-direction: column;
+  }
+
+  .demo-pdv__grade {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .demo-pdv__produto {
+    min-height: 84px;
+  }
+
+  .demo-pdv__comanda {
+    width: 100%;
+    min-width: 0;
+    position: static;
+  }
+}

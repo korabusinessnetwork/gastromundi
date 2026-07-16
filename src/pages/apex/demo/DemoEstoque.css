@@ -1,0 +1,183 @@
+/* Estoque da demo — resumo em cards + lista em grade; no mobile a
+   grade vira cartões empilhados. */
+
+.demo-estoque {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 860px;
+}
+
+/* ── Cards-resumo ─────────────────────────────────────────────── */
+
+.demo-estoque__resumo {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.demo-estoque__card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.demo-estoque__card--alerta {
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.demo-estoque__card--alerta .demo-estoque__card-numero {
+  color: var(--gm-red);
+}
+
+.demo-estoque__card-numero {
+  font-family: var(--gm-font-titulo);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--gm-text);
+}
+
+.demo-estoque__card-rotulo {
+  font-size: 12px;
+  color: var(--gm-muted);
+}
+
+/* ── Lista ────────────────────────────────────────────────────── */
+
+.demo-estoque__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.demo-estoque__cabecalho,
+.demo-estoque__linha {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 84px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+}
+
+.demo-estoque__cabecalho {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--gm-muted);
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.demo-estoque__linha + .demo-estoque__linha {
+  border-top: 1px solid var(--gm-border);
+}
+
+.demo-estoque__linha--alerta {
+  background: rgba(239, 68, 68, 0.07);
+}
+
+.demo-estoque__nome {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gm-text);
+}
+
+.demo-estoque__num {
+  font-size: 13px;
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-estoque__num--minimo {
+  color: var(--gm-muted);
+}
+
+.demo-estoque__status {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  padding: 4px 0;
+  border-radius: 999px;
+}
+
+.demo-estoque__status--ok {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--gm-green);
+}
+
+.demo-estoque__status--repor {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--gm-red);
+}
+
+.demo-estoque__nota {
+  font-size: 13px;
+  color: var(--gm-muted);
+  margin: 0;
+}
+
+/* ── Mobile: lista vira cartões ───────────────────────────────── */
+
+@media (max-width: 767px) {
+  .demo-estoque__resumo {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .demo-estoque__lista {
+    background: transparent;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: visible;
+  }
+
+  .demo-estoque__cabecalho {
+    display: none;
+  }
+
+  .demo-estoque__linha {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "nome   status"
+      "qtd    status";
+    row-gap: 4px;
+    background: var(--gm-card);
+    border: 1px solid var(--gm-border);
+    border-radius: 12px;
+  }
+
+  .demo-estoque__linha + .demo-estoque__linha {
+    border-top: 1px solid var(--gm-border);
+  }
+
+  .demo-estoque__linha--alerta {
+    border-color: rgba(239, 68, 68, 0.5);
+  }
+
+  .demo-estoque__nome {
+    grid-area: nome;
+  }
+
+  .demo-estoque__num {
+    grid-area: qtd;
+    font-size: 12px;
+  }
+
+  .demo-estoque__num--minimo {
+    display: none;
+  }
+
+  .demo-estoque__status {
+    grid-area: status;
+    padding: 4px 14px;
+  }
+}

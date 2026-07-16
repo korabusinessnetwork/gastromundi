@@ -4,6 +4,12 @@
    quem rola é o conteúdo interno (shell/telas). */
 
 .demo {
+  /* O monograma (KoraMonograma) pinta com --kora-*, que são escopados em
+     .apex — redeclarados aqui só pro símbolo não sumir fora do site. */
+  --kora-roxo: #473CA8;
+  --kora-azul: #3E8DD6;
+  --kora-verde: #37BFA7;
+
   height: 100dvh;
   overflow: hidden;
   background: var(--gm-bg);
