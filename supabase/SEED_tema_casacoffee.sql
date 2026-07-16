@@ -38,7 +38,12 @@ SET tema = coalesce(tema, '{}'::jsonb) || jsonb_build_object(
       -- Fontes do Social DNA (carregadas em index.html). Rexton (títulos)
       -- é PAGA → stand-in livre Saira; Sora (texto) é a fonte real, grátis.
       'font_titulo', '"Saira", system-ui, sans-serif',
-      'font_texto',  '"Sora", system-ui, sans-serif'
+      'font_texto',  '"Sora", system-ui, sans-serif',
+      -- Logo do Casa (versão creme #f2e8d8, fundo transparente) no Supabase
+      -- Storage (bucket público `branding`). Login e sidebar trocam o texto
+      -- pela imagem quando `logo_url` existe. PNG raster; se um dia vier SVG,
+      -- só troca a URL. ⚠️ o PNG precisa ser transparente (senão, caixa branca).
+      'logo_url', 'https://jgdvylwiuqgjtavffguc.supabase.co/storage/v1/object/public/branding/casacoffeecolab.png'
     )
 WHERE slug = 'casacoffeecolab';
 
