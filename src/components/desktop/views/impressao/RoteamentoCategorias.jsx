@@ -57,7 +57,7 @@ export default function RoteamentoCategorias({ sz }) {
       if (localId) {
         await supabase.from("categorias_roteamento").upsert(
           { categoria, local_impressao_id: localId, updated_at: new Date().toISOString() },
-          { onConflict: "categoria" }
+          { onConflict: "tenant_id,categoria" }
         );
       } else {
         // "Não imprimir" → remove o roteamento

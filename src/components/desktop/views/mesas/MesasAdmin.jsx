@@ -188,7 +188,7 @@ export default function MesasAdmin({ sz }) {
       }));
       const { error } = await supabase
         .from("mesas")
-        .upsert(rows, { onConflict: "numero" });
+        .upsert(rows, { onConflict: "tenant_id,numero" });
       if (error) throw error;
       setPosicoesDirty(false);
     } catch {
