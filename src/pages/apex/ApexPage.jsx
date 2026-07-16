@@ -37,7 +37,7 @@ export default function ApexPage() {
 
   return (
     <div className="apex">
-      <ApexNav contatoUrl={CONTATO_URL} />
+      <ApexNav />
       <main>
         <ApexHero />
         <ApexProva />

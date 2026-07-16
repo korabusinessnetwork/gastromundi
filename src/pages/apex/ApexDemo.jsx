@@ -4,9 +4,9 @@ import KoraMonograma from "./KoraMonograma";
 /**
  * Seção "#demo" — CTA final da página: fundo escuro igual ao hero pra
  * fechar o funil no mesmo tom visual. Se não houver fluxo de contato
- * configurado (VITE_CONTATO_URL vazio), o CTA verde vira um convite
- * pra entrar no produto ("Entrar") em vez de apontar pra uma âncora
- * sem destino real — sempre a próxima ação óbvia, nunca um beco sem saída.
+ * configurado (VITE_CONTATO_URL vazio), o CTA vira um convite pra abrir
+ * o protótipo navegável ("Ver o KORA rodando" → /demo) em vez de mandar
+ * o visitante pro login real (beco sem saída pra quem ainda não é cliente).
  */
 export default function ApexDemo({ contatoUrl }) {
   return (
@@ -27,8 +27,8 @@ export default function ApexDemo({ contatoUrl }) {
             Agendar minha demonstração
           </a>
         ) : (
-          <a href="/login" className="apex-botao apex-botao--branco apex-demo__cta">
-            Entrar
+          <a href="/demo" className="apex-botao apex-botao--branco apex-demo__cta">
+            Ver o KORA rodando
           </a>
         )}
 

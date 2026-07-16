@@ -18,7 +18,7 @@ import "./ApexNav.css";
  * grande. O drawer fecha ao tocar num link (o visitante queria ir pra
  * seção, não admirar o menu) ou ao tocar fora dele.
  */
-export default function ApexNav({ contatoUrl }) {
+export default function ApexNav() {
   const [menuAberto, setMenuAberto] = useState(false);
 
   const links = [
@@ -47,7 +47,7 @@ export default function ApexNav({ contatoUrl }) {
             </a>
           ))}
           <a href="/login" className="apex-nav__entrar">Entrar</a>
-          <a href={contatoUrl || "#demo"} className="apex-botao apex-botao--primario apex-nav__cta">
+          <a href="/demo" className="apex-botao apex-botao--primario apex-nav__cta">
             Ver o KORA rodando
           </a>
         </div>
@@ -94,7 +94,7 @@ export default function ApexNav({ contatoUrl }) {
           Entrar
         </a>
         <a
-          href={contatoUrl || "#demo"}
+          href="/demo"
           className="apex-botao apex-botao--primario apex-nav__drawer-cta"
           onClick={fecharMenu}
         >
