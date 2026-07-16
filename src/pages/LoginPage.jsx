@@ -5,7 +5,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
-import { varColor, gerarVariaveisTema, aplicarVariaveisTema, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
+import { varColor, gerarVariaveisTema, aplicarVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
 import { resolverSlugTenant } from "@/lib/tenantSlug";
 import { buscarBrandingPorSlug } from "@/lib/tenant";
 import { sanitizeInput, MAX_ATTEMPTS } from "@/utils";
@@ -43,6 +43,7 @@ export default function LoginPage() {
       if (data.tema) aplicarVariaveisTema(gerarVariaveisTema(data.tema));
       const nome = nomeExibicaoTenant(data.tema, data.nome || "GastroMundi");
       setMarca({ nome: nome.toUpperCase(), logo: logoUrlTenant(data.tema) });
+      aplicarTituloDocumento(nome); // aba do navegador com a marca do tenant
     })();
     return () => { ativo = false; };
   }, []);

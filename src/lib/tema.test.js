@@ -5,8 +5,30 @@ import {
   nomeExibicaoTenant,
   logoUrlTenant,
   aplicarVariaveisTema,
+  aplicarTituloDocumento,
   resolverCor,
 } from "./tema";
+
+describe("aplicarTituloDocumento (white-label na aba do navegador)", () => {
+  it("aplica 'NOME by Kora' em caixa alta, no padrão do title estático", () => {
+    const doc = { title: "GASTROMUNDI by Kora" };
+    aplicarTituloDocumento("Casa Coffee Colab", doc);
+    expect(doc.title).toBe("CASA COFFEE COLAB by Kora");
+  });
+
+  it("sem nome utilizável não mexe no título (bootstrap ainda sem tenant)", () => {
+    const doc = { title: "GASTROMUNDI by Kora" };
+    aplicarTituloDocumento("", doc);
+    aplicarTituloDocumento("   ", doc);
+    aplicarTituloDocumento(null, doc);
+    aplicarTituloDocumento(undefined, doc);
+    expect(doc.title).toBe("GASTROMUNDI by Kora");
+  });
+
+  it("sem document (SSR/teste) não quebra", () => {
+    expect(() => aplicarTituloDocumento("Casa Coffee Colab", null)).not.toThrow();
+  });
+});
 
 describe("gerarVariaveisTema (Fase 6 — sem tema custom, sem overrides)", () => {
   it("retorna objeto vazio quando o tenant não tem tema (tenant atual, GastroMundi)", () => {

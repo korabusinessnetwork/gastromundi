@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
 import { emailDoLogin } from "@/lib/tenantSlug";
 import { sincronizarStatusAssinatura } from "@/lib/assinatura";
-import { gerarVariaveisTema, aplicarVariaveisTema } from "@/lib/tema";
+import { gerarVariaveisTema, aplicarVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant } from "@/lib/tema";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
@@ -261,6 +261,9 @@ export function AppProvider({ children }) {
   //    nada muda visualmente.
   useEffect(() => {
     aplicarVariaveisTema(gerarVariaveisTema(tenant?.tema));
+    // Aba do navegador com a marca do tenant (white-label). Só quando o
+    // tenant é conhecido — antes disso o <title> estático/LoginPage valem.
+    if (tenant) aplicarTituloDocumento(nomeExibicaoTenant(tenant.tema, tenant.nome));
   }, [tenant?.tema]);
 
   // ── Jarvas: análise pós-carregamento (fire-and-forget; motor só

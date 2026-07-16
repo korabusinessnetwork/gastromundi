@@ -109,6 +109,22 @@ export function logoUrlTenant(tema) {
 }
 
 /**
+ * Título do documento (aba do navegador) com a marca do tenant — o
+ * white-label vale na aba também (mesmo padrão do <title> estático do
+ * index.html: "NOME by Kora"). Sem nome utilizável, não mexe: o título
+ * estático continua valendo (ex.: bootstrap ainda sem tenant).
+ *
+ * @param {string|null|undefined} nome - nome de exibição do tenant
+ * @param {Document} [doc]
+ */
+export function aplicarTituloDocumento(nome, doc = typeof document !== "undefined" ? document : null) {
+  if (!doc) return;
+  const n = typeof nome === "string" ? nome.trim() : "";
+  if (!n) return;
+  doc.title = `${n.toUpperCase()} by Kora`;
+}
+
+/**
  * Aplica as variáveis de tema no elemento raiz (via CSSOM, nunca
  * concatenando texto CSS bruto — `style.setProperty` já valida o
  * valor, evitando injeção). Chamado depois do bootstrap, quando
