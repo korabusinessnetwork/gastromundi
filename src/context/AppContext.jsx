@@ -543,35 +543,38 @@ export function AppProvider({ children }) {
     );
   };
 
+  // config tem PK composta (tenant_id, key) — migração 20260738. O
+  // tenant_id é resolvido pelo DEFAULT tenant_atual_id() no banco (não vai
+  // no payload), mas o onConflict precisa nomear as duas colunas da PK.
   const setFundoAtual = async (val) => {
     setFundoAtualLocal(val);
-    await supabase.from("config").upsert({ key: "fundo_atual", value: val });
+    await supabase.from("config").upsert({ key: "fundo_atual", value: val }, { onConflict: "tenant_id,key" });
   };
 
   const setCaixaAberto = async (val) => {
     setCaixaAbertoLocal(val);
-    await supabase.from("config").upsert({ key: "caixa_aberto", value: val });
+    await supabase.from("config").upsert({ key: "caixa_aberto", value: val }, { onConflict: "tenant_id,key" });
     if (val) emitirEvento("caixa.aberto", "caixa", {}, currentUser?.username);
   };
 
   const setSessaoAbertaEm = async (val) => {
     setSessaoAbertaEmLocal(val);
-    await supabase.from("config").upsert({ key: "sessao_aberta_em", value: val });
+    await supabase.from("config").upsert({ key: "sessao_aberta_em", value: val }, { onConflict: "tenant_id,key" });
   };
 
   const setMeiosPagamento = async (val) => {
     setMeiosPagamentoLocal(val);
-    await supabase.from("config").upsert({ key: "meios_pagamento", value: val });
+    await supabase.from("config").upsert({ key: "meios_pagamento", value: val }, { onConflict: "tenant_id,key" });
   };
 
   const setMetodosCustom = async (val) => {
     setMetodosCustomLocal(val);
-    await supabase.from("config").upsert({ key: "metodos_custom", value: val });
+    await supabase.from("config").upsert({ key: "metodos_custom", value: val }, { onConflict: "tenant_id,key" });
   };
 
   const setTaxaServico = async (val) => {
     setTaxaServicoLocal(!!val);
-    await supabase.from("config").upsert({ key: "taxa_servico", value: !!val });
+    await supabase.from("config").upsert({ key: "taxa_servico", value: !!val }, { onConflict: "tenant_id,key" });
   };
 
   const setDiasAlertaValidade = async (val) => {
