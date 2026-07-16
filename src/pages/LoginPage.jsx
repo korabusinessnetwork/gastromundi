@@ -5,7 +5,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
-import { varColor, gerarVariaveisTema, aplicarVariaveisTema, nomeExibicaoTenant } from "@/lib/tema";
+import { varColor, gerarVariaveisTema, aplicarVariaveisTema, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
 import { resolverSlugTenant } from "@/lib/tenantSlug";
 import { buscarBrandingPorSlug } from "@/lib/tenant";
 import { sanitizeInput, MAX_ATTEMPTS } from "@/utils";
@@ -27,7 +27,7 @@ export default function LoginPage() {
   const [attempts, setAttempts] = useState(0);
   // Marca do estabelecimento resolvida pelo subdomínio (ADR-009/ADR-007).
   // Pré-login não há JWT/tenant carregado; a marca vem por slug via RPC.
-  const [marca, setMarca] = useState({ nome: "GASTROMUNDI" });
+  const [marca, setMarca] = useState({ nome: "GASTROMUNDI", logo: null });
 
   // ── White-label na porta de entrada: aplica o tema do tenant (--gm-*)
   //    e o nome ANTES do login. Como a tela toda usa var(--gm-*), ela se
@@ -42,7 +42,7 @@ export default function LoginPage() {
       if (!ativo || !data) return;
       if (data.tema) aplicarVariaveisTema(gerarVariaveisTema(data.tema));
       const nome = nomeExibicaoTenant(data.tema, data.nome || "GastroMundi");
-      setMarca({ nome: nome.toUpperCase() });
+      setMarca({ nome: nome.toUpperCase(), logo: logoUrlTenant(data.tema) });
     })();
     return () => { ativo = false; };
   }, []);
@@ -74,7 +74,11 @@ export default function LoginPage() {
     <div style={{ background: varColor(C.bg), minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--gm-font-texto)", color: varColor(C.text) }}>
       <div style={{ width: "100%", maxWidth: sz.checkoutResumo > 0 ? sz.checkoutResumo - 80 : 480, padding: `0 ${sz.pad}px`, boxSizing: "border-box" }}>
         <div style={{ textAlign: "center", marginBottom: sz.pad + 8 }}>
-          <div style={{ fontWeight: 900, fontSize: sz.fontXl, letterSpacing: "-0.5px", fontFamily: "var(--gm-font-titulo)" }}>{marca.nome}</div>
+          {marca.logo ? (
+            <img src={marca.logo} alt={marca.nome} style={{ maxWidth: "min(280px, 70%)", maxHeight: 72, objectFit: "contain", display: "inline-block" }} />
+          ) : (
+            <div style={{ fontWeight: 900, fontSize: sz.fontXl, letterSpacing: "-0.5px", fontFamily: "var(--gm-font-titulo)" }}>{marca.nome}</div>
+          )}
           <div style={{ color: varColor(C.muted), fontSize: sz.fontBase - 1, marginTop: 4 }}>by Kora · Acesso ao Sistema</div>
         </div>
 
