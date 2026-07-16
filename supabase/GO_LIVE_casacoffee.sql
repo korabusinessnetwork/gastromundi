@@ -35,10 +35,19 @@ WHERE slug = 'casacoffeecolab';
 -- Coffee: 'medio' (Casa Cheia) — cafeteria com salão usa mesas/comandas
 -- e Palm do garçom; se a Paula operar só balcão, 'simples' basta.
 -- DECISÃO DO DONO — troque o código abaixo se for outro.
-SELECT public.alterar_plano_tenant(
-  (SELECT id FROM public.tenants WHERE slug = 'casacoffeecolab'),
-  'medio'
-);
+--
+-- Nota: NÃO usar alterar_plano_tenant() aqui — a guarda is_super_admin()
+-- dela lê o JWT do chamador, e o SQL Editor roda sem JWT (barraria com
+-- "Apenas a plataforma pode alterar o plano"). Essa RPC é a porta do
+-- CONSOLE (app); no SQL Editor, como postgres, o equivalente é o UPDATE
+-- direto — com a mesma validação de plano embutida no WHERE.
+UPDATE public.tenants t
+   SET plano_codigo = 'medio'
+ WHERE t.slug = 'casacoffeecolab'
+   AND EXISTS (SELECT 1 FROM public.planos p WHERE p.codigo = 'medio')
+RETURNING t.slug, t.plano_codigo;
+-- Esperado: 1 linha (slug + plano novo). 0 linhas = tenant não existe
+-- OU o código de plano digitado não está no catálogo — confira os dois.
 
 -- ── 4. AÇÃO · assinatura (billing manual — fase bootstrap) ──────────
 -- Cliente fundador (decisão 029): desconto forte em troca de case; o
