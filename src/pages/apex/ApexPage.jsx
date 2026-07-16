@@ -22,6 +22,24 @@ import "./ApexPage.css";
 
 const CONTATO_URL = import.meta.env.VITE_CONTATO_URL || "";
 
+/**
+ * Monograma oficial da Kora (versão "espectro" 2a): K em barras
+ * arredondadas — haste roxa + braços azul e verde. Inline (406 bytes no
+ * original) para não gerar request extra; as cores vêm dos tokens
+ * --kora-* definidos em ApexPage.css, mantendo fonte única da paleta.
+ */
+function KoraMonograma({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 120 120" role="img" aria-label="Símbolo da Kora">
+      <g transform="translate(12,12)">
+        <rect x="8" y="0" width="20" height="96" rx="10" fill="var(--kora-roxo)" />
+        <rect x="28" y="-12" width="20" height="60" rx="10" fill="var(--kora-azul)" transform="rotate(45 28 48)" />
+        <rect x="28" y="48" width="20" height="60" rx="10" fill="var(--kora-verde)" transform="rotate(-45 28 48)" />
+      </g>
+    </svg>
+  );
+}
+
 const MODULOS = [
   { icone: "💳", titulo: "Frente de Caixa", descricao: "PDV rápido no balcão, feito para o ritmo do dia a dia." },
   { icone: "📱", titulo: "Palm", descricao: "Garçom lança o pedido pelo celular, direto da mesa." },
@@ -40,6 +58,7 @@ export default function ApexPage() {
     <div className="apex">
       <header className="apex-hero">
         <div className="apex-hero__conteudo">
+          <KoraMonograma className="apex-hero__logo" />
           <div className="apex-hero__wordmark">KORA</div>
           <h1 className="apex-hero__titulo">
             O sistema completo do seu restaurante ou café — do pedido ao caixa

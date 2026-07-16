@@ -31,7 +31,8 @@ Função `ehApexInstitucional(hostname)` em `src/lib/apex.js`:
 **Arquivo**: `src/pages/apex/ApexPage.jsx` (+ CSS separado, decisão 018)
 
 - Estática — nenhum fetch de dados no carregamento
-- Usa tokens de CSS do tema padrão (`--gm-*`) — sem cor hardcodada
+- Identidade própria da plataforma: tokens `--kora-*` (paleta oficial do monograma, tema claro),
+  escopados em `.apex` para não vazarem pro app dos tenants; monograma SVG inline no hero
 - Nenhum dado específico de estabelecimento hardcodado
 - Link de contato comercial é opcional: se `VITE_CONTATO_URL` vazio, botão não aparece
 

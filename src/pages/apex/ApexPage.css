@@ -1,14 +1,31 @@
 /**
  * Página institucional do apex kora.codes — layout.
- * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
- * Mobile-first: grid de módulos colapsa, sem scroll horizontal em
- * nenhuma largura.
+ * CSS separado do JSX (decisão 018).
+ *
+ * Identidade: tokens --kora-* (paleta oficial da marca, derivada do
+ * monograma "espectro" — roxo/azul/verde). A vitrine é CLARA de
+ * propósito: diferencia a plataforma (comercial, leitura longa) do app
+ * operacional dos estabelecimentos (escuro, ritmo de balcão). Os tokens
+ * ficam escopados em .apex para nunca vazarem pro app dos tenants.
+ * Mobile-first: grid de módulos colapsa, sem scroll horizontal.
  */
 
 .apex {
+  /* Marca */
+  --kora-roxo: #473CA8;   /* primária: botões, links, destaque */
+  --kora-azul: #3E8DD6;   /* secundária: ilustrações, hover, gráficos */
+  --kora-verde: #37BFA7;  /* acento: badges, detalhes */
+
+  /* Neutros */
+  --kora-tinta: #1B1930;    /* títulos, rodapé */
+  --kora-grafite: #3F3E52;  /* corpo de texto */
+  --kora-nevoa: #77768A;    /* texto secundário */
+  --kora-linha: #E6E5EE;    /* bordas, divisores */
+  --kora-fundo: #F8F8FB;    /* fundo de página */
+
   min-height: 100dvh;
-  background: var(--gm-bg);
-  color: var(--gm-text);
+  background: var(--kora-fundo);
+  color: var(--kora-grafite);
   font-family: var(--gm-font-texto);
   overflow-x: hidden;
 }
@@ -27,23 +44,24 @@
   font-weight: 900;
   letter-spacing: -0.3px;
   text-align: center;
+  color: var(--kora-tinta);
 }
 
 .apex-secao__subtitulo {
   margin: 0 auto 32px;
   max-width: 560px;
   text-align: center;
-  color: var(--gm-muted);
+  color: var(--kora-nevoa);
   font-size: 15px;
   line-height: 1.6;
 }
 
 /* ── Hero ──────────────────────────────────────────────────────── */
 .apex-hero {
-  padding: 72px 20px 56px;
+  padding: 64px 20px 56px;
   text-align: center;
-  border-bottom: 1px solid var(--gm-border);
-  background: linear-gradient(180deg, var(--gm-card) 0%, var(--gm-bg) 100%);
+  border-bottom: 1px solid var(--kora-linha);
+  background: #fff;
 }
 
 .apex-hero__conteudo {
@@ -51,13 +69,19 @@
   margin: 0 auto;
 }
 
+.apex-hero__logo {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 12px;
+}
+
 .apex-hero__wordmark {
   font-family: var(--gm-font-titulo);
   font-weight: 900;
   font-size: 20px;
-  letter-spacing: 4px;
-  color: var(--gm-accent);
-  margin-bottom: 24px;
+  letter-spacing: 6px;
+  color: var(--kora-tinta);
+  margin-bottom: 28px;
 }
 
 .apex-hero__titulo {
@@ -67,12 +91,13 @@
   font-size: clamp(28px, 6vw, 44px);
   line-height: 1.15;
   letter-spacing: -0.5px;
+  color: var(--kora-tinta);
 }
 
 .apex-hero__subtitulo {
   margin: 0 0 32px;
   font-size: 17px;
-  color: var(--gm-muted);
+  color: var(--kora-nevoa);
   line-height: 1.6;
 }
 
@@ -92,11 +117,11 @@
 .apex-hero__aux {
   margin: 0;
   font-size: 13px;
-  color: var(--gm-muted);
+  color: var(--kora-nevoa);
 }
 
 .apex-hero__aux strong {
-  color: var(--gm-text);
+  color: var(--kora-tinta);
 }
 
 /* ── Botões ────────────────────────────────────────────────────── */
@@ -112,7 +137,7 @@
   font-family: inherit;
   text-decoration: none;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: 1.5px solid transparent;
   transition: filter 0.15s ease, transform 0.05s ease;
 }
 
@@ -121,22 +146,23 @@
 }
 
 .apex-botao--primario {
-  background: var(--gm-accent);
+  background: var(--kora-roxo);
   color: #fff;
 }
 
 .apex-botao--primario:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.12);
 }
 
 .apex-botao--secundario {
-  background: var(--gm-surface);
-  color: var(--gm-text);
-  border-color: var(--gm-border);
+  background: #fff;
+  color: var(--kora-roxo);
+  border-color: var(--kora-roxo);
 }
 
 .apex-botao--secundario:hover {
-  border-color: var(--gm-muted);
+  filter: brightness(1.06);
+  background: #f4f2fc;
 }
 
 /* ── Módulos ───────────────────────────────────────────────────── */
@@ -159,8 +185,8 @@
 }
 
 .apex-modulo {
-  background: var(--gm-card);
-  border: 1px solid var(--gm-border);
+  background: #fff;
+  border: 1px solid var(--kora-linha);
   border-radius: 16px;
   padding: 22px 18px;
   text-align: left;
@@ -177,20 +203,21 @@
   font-family: var(--gm-font-titulo);
   font-size: 16px;
   font-weight: 800;
+  color: var(--kora-tinta);
 }
 
 .apex-modulo__descricao {
   margin: 0;
   font-size: 13px;
-  color: var(--gm-muted);
+  color: var(--kora-nevoa);
   line-height: 1.5;
 }
 
 /* ── Sua marca ─────────────────────────────────────────────────── */
 .apex-secao--marca {
-  background: var(--gm-card);
-  border-top: 1px solid var(--gm-border);
-  border-bottom: 1px solid var(--gm-border);
+  background: #fff;
+  border-top: 1px solid var(--kora-linha);
+  border-bottom: 1px solid var(--kora-linha);
 }
 
 .apex-marca {
@@ -208,13 +235,13 @@
   padding-bottom: 72px;
 }
 
-/* ── Rodapé ────────────────────────────────────────────────────── */
+/* ── Rodapé (tinta — fecho escuro da marca) ────────────────────── */
 .apex-rodape {
-  padding: 24px 20px 32px;
+  padding: 28px 20px 36px;
   text-align: center;
-  color: var(--gm-muted);
+  background: var(--kora-tinta);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 12px;
-  border-top: 1px solid var(--gm-border);
 }
 
 .apex-rodape p {
@@ -222,5 +249,5 @@
 }
 
 .apex-rodape__ano {
-  color: var(--gm-faint);
+  color: rgba(255, 255, 255, 0.5);
 }
