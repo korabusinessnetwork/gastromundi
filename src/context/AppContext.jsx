@@ -8,7 +8,7 @@ import { gerarVariaveisTema, aplicarVariaveisTema } from "@/lib/tema";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
-import { mapearVendaParaLinhas } from "@/lib/vendas";
+import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
 import { processarBaixaEstoque } from "@/lib/estoque";
 import { sanitizeInput } from "@/utils/crypto";
 import {
@@ -413,17 +413,21 @@ export function AppProvider({ children }) {
     }, currentUser?.username);
 
     // TD009 (etapa 1) — gravação dupla nas tabelas relacionais novas.
-    // sales continua a fonte de verdade: falha aqui nunca pode quebrar a venda.
-    void (async () => {
-      try {
-        const { venda, itens, pagamentos } = mapearVendaParaLinhas(sale);
-        await supabase.from("vendas").insert(venda);
-        if (itens.length > 0) await supabase.from("venda_itens").insert(itens);
-        if (pagamentos.length > 0) await supabase.from("venda_pagamentos").insert(pagamentos);
-      } catch (err) {
-        console.error("dual-write vendas:", err);
-      }
-    })();
+    // sales continua a fonte de verdade: falha aqui nunca pode quebrar a
+    // venda. persistirVendaNormalizada checa o .error de cada insert (o
+    // supabase-js não lança em RLS/constraint) e nos avisa via onFalha —
+    // fim do furo silencioso que gerou buracos na janela do 20260722.
+    void persistirVendaNormalizada(supabase, sale, {
+      onFalha: ({ etapa, error, venda_id }) => {
+        console.error(`dual-write vendas (${etapa}) venda ${venda_id}:`, error);
+        // Trilha durável: em vez de só console, deixa rastro pro Jarvas.
+        emitirEvento("venda.dualwrite.falhou", "pdv", {
+          venda_id,
+          etapa,
+          erro: error?.message ?? error?.code ?? String(error),
+        }, currentUser?.username);
+      },
+    });
   };
 
   // ── Actions: Users ────────────────────────────────────────────

@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { mapearVendaParaLinhas, montarVendaLegada } from "./vendas";
+import { describe, it, expect, vi } from "vitest";
+import { mapearVendaParaLinhas, montarVendaLegada, persistirVendaNormalizada } from "./vendas";
 
 describe("mapearVendaParaLinhas", () => {
   it("mapeia uma venda completa (itens + split de pagamento)", () => {
@@ -197,5 +197,135 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
     const reconstruida = montarVendaLegada(mapearVendaParaLinhas(original));
 
     expect(reconstruida).toEqual(original);
+  });
+});
+
+describe("persistirVendaNormalizada (dual-write — detecção de falha)", () => {
+  // Fake client: registra cada insert e devolve o `{ error }` configurado
+  // por tabela (ou null). Espelha o supabase-js: NÃO lança em erro de
+  // RLS/constraint — resolve com { error }. Um valor-função permite
+  // simular o client lançando de fato (rede caindo).
+  const fakeClient = (byTable = {}) => {
+    const calls = [];
+    return {
+      calls,
+      from(table) {
+        return {
+          insert(rows) {
+            calls.push({ table, rows });
+            const resp = byTable[table];
+            if (typeof resp === "function") return resp(rows);
+            return Promise.resolve(resp ?? { error: null });
+          },
+        };
+      },
+    };
+  };
+
+  const saleBase = {
+    id: "vp1",
+    comanda: "5",
+    total: 30,
+    items: [{ id: 1, name: "Café", price: 15, qty: 2 }],
+    pagamentos: [{ metodo: "pix", valor: 30 }],
+  };
+
+  it("sucesso: grava as 3 tabelas, ok=true e não aciona onFalha", async () => {
+    const client = fakeClient();
+    const onFalha = vi.fn();
+
+    const res = await persistirVendaNormalizada(client, saleBase, { onFalha });
+
+    expect(res).toEqual({ ok: true, falhas: [] });
+    expect(onFalha).not.toHaveBeenCalled();
+    expect(client.calls.map((c) => c.table)).toEqual(["vendas", "venda_itens", "venda_pagamentos"]);
+  });
+
+  it("erro de RLS no header: registra a falha, NÃO insere as filhas e NÃO lança", async () => {
+    const erro = { code: "42501", message: "RLS: new row violates policy" };
+    const client = fakeClient({ vendas: { error: erro } });
+    const onFalha = vi.fn();
+
+    const res = await persistirVendaNormalizada(client, saleBase, { onFalha });
+
+    // (a) o erro é detectado/registrado — fim do furo silencioso
+    expect(res.ok).toBe(false);
+    expect(res.falhas).toEqual([{ etapa: "vendas", error: erro }]);
+    expect(onFalha).toHaveBeenCalledWith({ etapa: "vendas", error: erro, venda_id: "vp1" });
+    // filhas não são tentadas quando o header falha
+    expect(client.calls.map((c) => c.table)).toEqual(["vendas"]);
+  });
+
+  it("violação de unicidade no header é idempotente: ok=true, sem alarme, sem reinserir filhas", async () => {
+    // dual-write repetido (StrictMode/resync/clique duplo): venda já existe.
+    const client = fakeClient({ vendas: { error: { code: "23505", message: "duplicate key" } } });
+    const onFalha = vi.fn();
+
+    const res = await persistirVendaNormalizada(client, saleBase, { onFalha });
+
+    expect(res).toEqual({ ok: true, falhas: [] });
+    expect(onFalha).not.toHaveBeenCalled();
+    // não reinsere itens/pagamentos (evita duplicar linhas sem chave natural)
+    expect(client.calls.map((c) => c.table)).toEqual(["vendas"]);
+  });
+
+  it("erro só nos itens: registra a etapa certa e segue tentando pagamentos", async () => {
+    const erro = { code: "42501", message: "RLS itens" };
+    const client = fakeClient({ venda_itens: { error: erro } });
+    const onFalha = vi.fn();
+
+    const res = await persistirVendaNormalizada(client, saleBase, { onFalha });
+
+    expect(res.ok).toBe(false);
+    expect(res.falhas).toEqual([{ etapa: "venda_itens", error: erro }]);
+    expect(client.calls.map((c) => c.table)).toEqual(["vendas", "venda_itens", "venda_pagamentos"]);
+  });
+
+  it("client lançando de fato (rede) vira falha 'excecao' e NUNCA propaga", async () => {
+    const client = fakeClient({ vendas: () => Promise.reject(new Error("network down")) });
+    const onFalha = vi.fn();
+
+    let lancou = false;
+    let res;
+    try {
+      res = await persistirVendaNormalizada(client, saleBase, { onFalha });
+    } catch {
+      lancou = true;
+    }
+
+    // (b) addSale nunca lança: a finalização (sales, já gravada) segue normal
+    expect(lancou).toBe(false);
+    expect(res.ok).toBe(false);
+    expect(res.falhas[0].etapa).toBe("excecao");
+    expect(onFalha).toHaveBeenCalled();
+  });
+
+  it("onFalha que lança não quebra a persistência (trilha é isolada)", async () => {
+    const client = fakeClient({ vendas: { error: { code: "42501" } } });
+
+    const res = await persistirVendaNormalizada(client, saleBase, {
+      onFalha: () => { throw new Error("trilha quebrou"); },
+    });
+
+    expect(res.ok).toBe(false);
+    expect(res.falhas).toHaveLength(1);
+  });
+
+  it("sem onFalha e sem opts: ainda detecta e não lança", async () => {
+    const client = fakeClient({ vendas: { error: { code: "42501" } } });
+
+    const res = await persistirVendaNormalizada(client, saleBase);
+
+    expect(res.ok).toBe(false);
+    expect(res.falhas[0].etapa).toBe("vendas");
+  });
+
+  it("venda sem itens nem pagamentos só grava o header", async () => {
+    const client = fakeClient();
+
+    const res = await persistirVendaNormalizada(client, { id: "vp9", total: 0, items: [], pagamentos: [] });
+
+    expect(res.ok).toBe(true);
+    expect(client.calls.map((c) => c.table)).toEqual(["vendas"]);
   });
 });
