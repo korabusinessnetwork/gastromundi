@@ -101,10 +101,31 @@ mexer no banco. Import/export vira parte do produto, não um favor manual.
   2–3 PDVs que os leads usam e conseguir um arquivo de exemplo de cada —
   cada tradutor desagua no MESMO pipeline de validação.
 
-### Fase 3 — programático (quando houver demanda real)
+### Fase 3 — programático — ✅ IMPLEMENTADA
+
+> Código: `supabase/functions/importar-dados/index.ts`. Reusa os MESMOS
+> módulos puros do front (`planilha.js` + `plano.js` — o planejamento foi
+> extraído pra `plano.js` sem import de Supabase justamente pra rodar em
+> Deno): as regras de parsing/idempotência existem num lugar só.
 
 - Edge Function `importar-dados` para volumes grandes/automação e para o
   Console da plataforma importar em nome de um tenant no onboarding assistido.
+- **Autorização** (nunca anônimo): super-admin `plataforma` importa em nome
+  de qualquer tenant (`tenant_id` obrigatório no corpo); `admin` de
+  estabelecimento importa só no próprio tenant. A `service_role` fica só na
+  função (nunca no front) e, como ela ignora RLS, toda leitura filtra e toda
+  escrita seta `tenant_id` explicitamente — o tenant NUNCA vem do CSV.
+- **Contrato**: `POST` com JWT no `Authorization` e corpo
+  `{ tipo: "produtos"|"clientes"|"estoque", csv: "<texto do arquivo>",
+  tenant_id?, dry_run? }`. Com `dry_run: true` só valida e devolve o plano
+  (`erros`/`avisos` linha a linha + contagens) — o preview do wizard em API;
+  sem, grava em lotes de 500 e devolve `criados`/`atualizados`. Se parar no
+  meio, reenviar o MESMO arquivo continua de onde parou (idempotente).
+- **Deploy**: `supabase functions deploy importar-dados --no-verify-jwt`
+  (JWT verificado dentro da função, mesmo padrão da
+  `provisionar-estabelecimento`). Precisa do CLI, pois a função importa os
+  módulos de `src/lib/importacao/` no bundle — não dá pra colar no editor
+  do painel.
 
 ### Fora de escopo (não gastar energia agora)
 
