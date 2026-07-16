@@ -9,7 +9,8 @@
       "Bash(npm run *)",
       "Bash(git commit -m ' *)",
       "Skill(update-config)",
-      "Skill(update-config:*)"
+      "Skill(update-config:*)",
+      "mcp__Claude_Code_Remote__send_later"
     ]
   }
 }
