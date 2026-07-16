@@ -2,38 +2,39 @@
 -- SEED · tema white-label do Casa Coffee Colab (ADR-007 · decisão 017)
 -- Derivado do "Social DNA — Casa Coffee Colab" (paleta oﬁcial da marca).
 --
--- Direção: CREAM (claro) — a cara literal do DNA (café-casa, acolhedor).
--- Fundo creme, texto café, CTA terracota. É a identidade mais fiel do
--- Casa; como o app foi desenhado assumindo fundo escuro, esta direção
--- pede QA de contraste tela a tela (ver ADR-007 / nota de theming claro).
+-- Direção: CAFÉ (meio-termo escuro) — entre o espresso (quase preto) e o
+-- cream (claro). Um marrom-café quente e aconchegante, mais suave que o
+-- espresso, mas AINDA ESCURO de propósito: o app foi desenhado assumindo
+-- fundo escuro (texto claro sobre superfícies escuras), então manter o
+-- tema escuro preserva o contraste em TODAS as telas internas — sem QA
+-- claro tela a tela. Troca a identidade GastroMundi (navy #070b14 + roxo
+-- #7c3aed) pela do Casa (café/terracota).
 --
 -- Paleta-fonte (Social DNA): terracota #8c3a2a · marrom-café #5b3c34 ·
 -- verde-mata #305429 · caramelo #a56a3a · creme #ead8c1.
 --
--- Semânticos: só `green` é sobrescrito para o verde-mata do DNA (#305429),
--- que lê melhor sobre creme que o verde default (claro demais p/ fundo
--- claro). `red`/`blue` herdam o default (legíveis sobre o creme).
+-- Semânticos (green/red/blue) NÃO são tocados: são universais, legíveis
+-- sobre fundo escuro e garantem status/dinheiro/erro consistentes.
 --
 -- `tema` guarda SÓ os tokens sobrescritos (o resto herda tema.css). O
 -- merge (||) preserva chaves já existentes (ex.: logo_url, se houver).
 --
 -- ⚠️ EXECUÇÃO MANUAL: rode no SQL Editor. Idempotente (reexecutar só
--- reescreve os mesmos valores).
+-- reescreve os mesmos valores). Reescreve por cima do tema anterior.
 -- ══════════════════════════════════════════════════════════════════
 
 UPDATE public.tenants
 SET tema = coalesce(tema, '{}'::jsonb) || jsonb_build_object(
       'nome_exibicao', 'Casa Coffee Colab',
       'accent', '#8c3a2a',                       -- terracota (CTA, destaques)
-      'alow',   'rgba(140, 58, 42, 0.12)',       -- overlay do accent (ativo/pressionado)
-      'bg',     '#ead8c1',                        -- creme (fundo)
-      'card',   '#f7efe3',                        -- cartão (creme claro)
-      'surface','#ffffff',                        -- superfície elevada (campos)
-      'border', '#d8c3a8',                        -- bordas (bege)
-      'text',   '#3a2118',                        -- texto (café escuro)
-      'muted',  '#8a6a52',                        -- texto secundário (café médio)
-      'faint',  '#cbb89c',                        -- linhas/estados apagados
-      'green',  '#305429'                         -- verde-mata do DNA (contraste sobre creme)
+      'alow',   'rgba(140, 58, 42, 0.18)',       -- overlay do accent (ativo/pressionado)
+      'bg',     '#2e2018',                        -- café escuro quente (fundo)
+      'card',   '#3a291f',                        -- cartão
+      'surface','#48352a',                        -- superfície elevada (campos)
+      'border', '#5c4437',                        -- bordas
+      'text',   '#f2e8d8',                        -- texto (creme claro)
+      'muted',  '#c6ad97',                        -- texto secundário (caramelo suave)
+      'faint',  '#5c4437'                         -- linhas/estados apagados
     )
 WHERE slug = 'casacoffeecolab';
 
