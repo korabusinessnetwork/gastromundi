@@ -11,6 +11,7 @@ import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
 import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
 import { processarBaixaEstoque } from "@/lib/estoque";
+import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { sanitizeInput } from "@/utils/crypto";
 import {
   saveSession, loadSession, clearSession,
@@ -371,6 +372,9 @@ export function AppProvider({ children }) {
   // chamador mostrar feedback — senão a UI finge sucesso enquanto o
   // banco ficou para trás (pedido do garçom some, cobrança dupla).
   const addPending = async (order) => {
+    // uid estável por item — base da reconciliação multi-dispositivo
+    // (Palm × PDV) feita no updatePending.
+    order = { ...order, items: garantirUidItens(order.items) };
     setPendingLocal(prev => [order, ...prev]);
     const { id, comanda, mesa, apelido, items, status, note, total, garcom, created_by } = order;
     const { error } = await supabase.from("pending").insert({ id, comanda, mesa, apelido, items, status, note, total, garcom, created_by });
@@ -399,7 +403,27 @@ export function AppProvider({ children }) {
     return { error: null };
   };
 
-  const updatePending = async (id, changes) => {
+  // `baseItems` = snapshot de onde o chamador derivou `changes.items`.
+  // Com ele, itens lançados por outro dispositivo (Palm) entre o snapshot
+  // e a gravação são preservados em vez de sobrescritos ("última escrita
+  // vence" fazia itens sumirem da conta). A janela de corrida residual
+  // (leitura→gravação não é atômica) fica registrada como dívida técnica —
+  // a solução definitiva é um RPC de append em jsonb no Postgres.
+  const updatePending = async (id, changes, { baseItems } = {}) => {
+    if (Array.isArray(changes.items)) {
+      changes = { ...changes, items: garantirUidItens(changes.items) };
+      if (Array.isArray(baseItems)) {
+        const { data: atual, error: erroLeitura } = await supabase
+          .from("pending").select("items").eq("id", id).maybeSingle();
+        if (!erroLeitura && atual) {
+          const { items, houveMescla } = mesclarItensComanda({ base: baseItems, propostos: changes.items, banco: atual.items });
+          if (houveMescla) {
+            changes = { ...changes, items };
+            if ("total" in changes) changes.total = totalItensAtivos(items);
+          }
+        }
+      }
+    }
     let anterior = null;
     setPendingLocal(prev => prev.map(o => {
       if (o.id !== id) return o;

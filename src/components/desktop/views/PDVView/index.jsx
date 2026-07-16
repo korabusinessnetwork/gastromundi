@@ -105,6 +105,28 @@ export default function PDVView({ notify }) {
 
   const abertas = pending.filter(o => o.status !== "closed");
 
+  // ── Ressincroniza a comanda aberta com o realtime ─────────────
+  // Sem isto, `selected` fica congelado no snapshot de quando a comanda
+  // foi aberta: itens lançados pelo Palm não entravam na conta e a
+  // finalização apagava (sem cobrar) tudo que chegou depois.
+  useEffect(() => {
+    if (!selected || selected._virtual) return;
+    const fresca = pending.find(o => o.id === selected.id);
+    if (fresca) {
+      if (fresca !== selected) setSelected(fresca);
+      return;
+    }
+    // A comanda sumiu do banco. Fluxos locais (finalizar/cancelar/
+    // transferir) navegam por conta própria — só reagimos quando foi
+    // OUTRO dispositivo que encerrou, para não cobrar de novo.
+    if (salvando || transferindo || cancelandoComanda) return;
+    setSelected(null);
+    setCartItems([]);
+    setMode("mapa");
+    notify?.(`${fmtComanda(selected.comanda)} foi encerrada em outro dispositivo.`, "err");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, selected, salvando, transferindo, cancelandoComanda]);
+
   // ── Selecionar comanda → pede mesa antes de entrar ────────────
   const handleSelectComanda = (order) => {
     setBuscaComanda("");
@@ -223,7 +245,7 @@ export default function PDVView({ notify }) {
       const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
       const acumulados = [...anteriores, ...novos];
       const total      = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-      const { error } = await updatePending(ordem.id, { items: acumulados, total });
+      const { error } = await updatePending(ordem.id, { items: acumulados, total }, { baseItems: anteriores });
       if (error) throw error;
       addLancada(ordem.id);
       logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados na ${fmtComanda(ordem.comanda)} · ${novos.length} tipo(s) · R$ ${total.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: ordem.comanda, tipos: novos.length, total });
@@ -252,7 +274,7 @@ export default function PDVView({ notify }) {
         const novos      = cartItems.map(({ _key, ...rest }) => rest);
         const acumulados = [...anteriores, ...novos];
         const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-        const { error } = await updatePending(ordem.id, { items: acumulados, total: novoTotal });
+        const { error } = await updatePending(ordem.id, { items: acumulados, total: novoTotal }, { baseItems: anteriores });
         if (error) throw error;
         setSelected(prev => ({ ...prev, items: acumulados, total: novoTotal }));
         setCartItems([]);
@@ -398,7 +420,7 @@ export default function PDVView({ notify }) {
           apelido:    selected?.apelido || "",
         };
         const resultados = await Promise.all([
-          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }),
+          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }, { baseItems: itens }),
           addPending(novaOrder),
         ]);
         const falha = resultados.find(r => r?.error);
@@ -420,8 +442,8 @@ export default function PDVView({ notify }) {
         });
         const totalDestino = novosDestino.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
         const resultados = await Promise.all([
-          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }),
-          updatePending(destinoId,   { items: novosDestino, total: totalDestino }),
+          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }, { baseItems: itens }),
+          updatePending(destinoId,   { items: novosDestino, total: totalDestino }, { baseItems: Array.isArray(destino.items) ? destino.items : [] }),
         ]);
         const falha = resultados.find(r => r?.error);
         if (falha) {
@@ -1053,7 +1075,7 @@ export default function PDVView({ notify }) {
                     return { ...it, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "" };
                   }).flat();
                   const novoTotal = novos.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-                  const { error } = await updatePending(selected.id, { items: novos, total: novoTotal });
+                  const { error } = await updatePending(selected.id, { items: novos, total: novoTotal }, { baseItems: selected.items });
                   if (error) {
                     notify?.("Não foi possível cancelar o item. Tente novamente.", "err");
                     return;
@@ -1683,18 +1705,24 @@ export default function PDVView({ notify }) {
               </button>
               <button
                 onClick={async () => {
+                  if (cancelandoComanda) return;
                   setConfirmCancelar(false);
-                  const itensComanda = Array.isArray(selected?.items) ? selected.items : [];
-                  // Remove primeiro: log e evento só depois do banco confirmar,
-                  // senão a trilha registra um cancelamento que não aconteceu.
-                  const { error } = await removePending(selected.id);
-                  if (error) {
-                    notify?.("Não foi possível cancelar a comanda. Tente novamente.", "err");
-                    return;
+                  setCancelandoComanda(true);
+                  try {
+                    const itensComanda = Array.isArray(selected?.items) ? selected.items : [];
+                    // Remove primeiro: log e evento só depois do banco confirmar,
+                    // senão a trilha registra um cancelamento que não aconteceu.
+                    const { error } = await removePending(selected.id);
+                    if (error) {
+                      notify?.("Não foi possível cancelar a comanda. Tente novamente.", "err");
+                      return;
+                    }
+                    logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda cancelada: ${fmtComanda(selected.comanda)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), items: itensComanda });
+                    emitirEvento("pedido.cancelado", "pedidos", { pedido_id: selected.id, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), itens: itensComanda.length }, currentUser?.username);
+                    handleBack();
+                  } finally {
+                    setCancelandoComanda(false);
                   }
-                  logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda cancelada: ${fmtComanda(selected.comanda)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), items: itensComanda });
-                  emitirEvento("pedido.cancelado", "pedidos", { pedido_id: selected.id, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), itens: itensComanda.length }, currentUser?.username);
-                  handleBack();
                 }}
                 disabled={!confirmCancelarMotivo.trim()}
                 style={{

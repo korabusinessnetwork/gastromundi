@@ -142,7 +142,7 @@ export default function MobilePage() {
       const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
       const acumulados = [...anteriores, ...novos];
       const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-      const { error } = await updatePending(order.id, { items: acumulados, total: novoTotal });
+      const { error } = await updatePending(order.id, { items: acumulados, total: novoTotal }, { baseItems: anteriores });
       if (error) throw error;
       addLancada(order.id);
       logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados (palm) na Comanda ${nomeComanda} · ${novos.length} tipo(s) · R$ ${novoTotal.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, tipos: novos.length, total: novoTotal, via: "palm" });
