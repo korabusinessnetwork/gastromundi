@@ -52,7 +52,13 @@ mexer no banco. Import/export vira parte do produto, não um favor manual.
 
 ## 4. Escopo por fases
 
-### Fase 1 — MVP (o que resolve migração já)
+### Fase 1 — MVP (o que resolve migração já) — ✅ IMPLEMENTADA
+
+> Código: núcleo puro em `src/lib/importacao/` (`planilha.js` + `produtos.js`,
+> com testes co-localizados) e tela em
+> `src/components/desktop/views/ImportarExportarTab.jsx`
+> (aba "Importar / Exportar" das Configurações, só admin). Import de
+> clientes/estoque e de-para de concorrentes seguem na Fase 2.
 
 **Import de produtos via planilha (CSV)** + **export de produtos e clientes**.
 

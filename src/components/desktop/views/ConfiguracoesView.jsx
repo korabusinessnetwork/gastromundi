@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter } from "react-icons/lu";
 import ConfiguracaoImpressao from "./impressao/ConfiguracaoImpressao";
 import MesasAdmin from "./mesas/MesasAdmin";
+import ImportarExportarTab from "./ImportarExportarTab";
 import "./ConfiguracoesView.css";
 
 const ROLES = [
@@ -965,6 +966,7 @@ const ABAS_CONFIG = [
   { id: "mesas",            label: "Mesas",               gerenteOnly: true },
   { id: "categorias",       label: "Grupos de Categoria", gerenteOnly: true },
   { id: "impressao",        label: "Impressão",           adminOnly: true  },
+  { id: "importar",         label: "Importar / Exportar", adminOnly: true  },
 ];
 
 function GeralTab({ sz }) {
@@ -1172,6 +1174,7 @@ export default function ConfiguracoesView() {
         {aba === "mesas"     && isGerente && <MesasAdmin sz={sz} />}
         {aba === "categorias" && isGerente && <CategoriasGrupoTab sz={sz} />}
         {aba === "impressao" && isAdmin && <ConfiguracaoImpressao sz={sz} />}
+        {aba === "importar"  && isAdmin && <ImportarExportarTab />}
       </div>
     </div>
   );

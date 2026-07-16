@@ -1,0 +1,234 @@
+/* Aba Importar / Exportar (Configurações) — wizard de migração de dados.
+   Segue o visual das outras abas (cards --gm-*), CSS separado (decisão 018). */
+
+.imex {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 860px;
+}
+
+.imex__card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.imex__card--coluna {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.imex__card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.imex__titulo {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--gm-text);
+}
+
+.imex__ajuda {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--gm-muted);
+  line-height: 1.5;
+}
+
+.imex__acoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.imex__botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.imex__botao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.imex__botao--primario {
+  background: var(--gm-accent);
+  border: none;
+  color: #fff;
+}
+
+.imex__botao--secundario {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+}
+
+.imex__botao--atencao {
+  background: transparent;
+  border: 1px solid #f59e0b;
+  color: #f59e0b;
+  white-space: normal;
+  text-align: center;
+}
+
+/* ── Preview ──────────────────────────────────────────────────── */
+
+.imex__resumo {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.imex__pill {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-muted);
+}
+
+.imex__pill--criar {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--gm-green);
+}
+
+.imex__pill--atualizar {
+  background: var(--gm-alow);
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
+.imex__pill--erro {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--gm-red);
+}
+
+.imex__nota {
+  font-size: 13px;
+  color: var(--gm-muted);
+  background: var(--gm-surface);
+  border: 1px dashed var(--gm-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  line-height: 1.5;
+}
+
+.imex__erros,
+.imex__avisos {
+  margin: 0;
+  padding: 10px 14px 10px 30px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.imex__erros {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: var(--gm-red);
+}
+
+.imex__avisos {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+}
+
+.imex__lista {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.imex__item {
+  font-size: 12px;
+  color: var(--gm-text);
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+/* ── Progresso / resultado ────────────────────────────────────── */
+
+.imex__progresso-trilha {
+  height: 10px;
+  background: var(--gm-surface);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.imex__progresso-barra {
+  height: 100%;
+  background: var(--gm-accent);
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.imex__sucesso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gm-green);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.imex__falha {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gm-red);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 10px;
+  padding: 12px 14px;
+  line-height: 1.5;
+}
+
+/* ── Mobile ───────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .imex__card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .imex__acoes {
+    justify-content: stretch;
+    flex-direction: column;
+  }
+
+  .imex__botao {
+    justify-content: center;
+  }
+}

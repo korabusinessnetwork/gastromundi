@@ -404,6 +404,15 @@ export function AppProvider({ children }) {
     return { error };
   };
 
+  // Recarrega o cardápio inteiro do banco — usado após operações em lote
+  // que gravam fora das actions acima (ex.: importação de planilha).
+  const recarregarProdutos = async () => {
+    const { data, error } = await supabase
+      .from("products").select("*").eq("active", true).order("id");
+    if (!error && data) setProductsLocal(data);
+    return { error };
+  };
+
   // ── Actions: Sales ────────────────────────────────────────────
   const addSale = async (sale) => {
     setSalesLocal(prev => [sale, ...prev]);
@@ -654,7 +663,7 @@ export function AppProvider({ children }) {
     // pending
     addPending, removePending, updatePending,
     // products
-    addProduct, updateProduct, removeProduct,
+    addProduct, updateProduct, removeProduct, recarregarProdutos,
     // sales
     addSale,
     // users
