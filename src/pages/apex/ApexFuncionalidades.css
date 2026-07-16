@@ -1,0 +1,146 @@
+.apex-func {
+  background: #fff;
+  border-top: 1px solid var(--kora-linha);
+  padding: 96px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.apex-func__container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
+}
+
+.apex-func__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.apex-func__titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 36px;
+  line-height: 1.2;
+  color: var(--kora-tinta);
+  margin: 0;
+  max-width: 640px;
+  text-wrap: balance;
+}
+
+.apex-func__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.apex-func__card {
+  background: var(--kora-fundo);
+  border: 1px solid var(--kora-linha);
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.apex-func__numero {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+}
+
+/* Fundos suaves derivados da paleta da marca (o handoff usa oklch
+   sem token dedicado; aqui usamos rgba dos próprios --kora-* para
+   manter uma única fonte de cor). */
+.apex-func__numero--roxo {
+  background: rgba(71, 60, 168, 0.12);
+  color: var(--kora-roxo);
+}
+
+.apex-func__numero--azul {
+  background: rgba(62, 141, 214, 0.12);
+  color: var(--kora-azul);
+}
+
+.apex-func__numero--verde {
+  background: var(--kora-badge-verde-bg);
+  color: var(--kora-badge-verde-texto);
+}
+
+.apex-func__cardTitulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--kora-tinta);
+}
+
+.apex-func__cardDescricao {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--kora-nevoa);
+}
+
+.apex-func__banner {
+  background: var(--kora-tinta);
+  border-radius: 18px;
+  padding: 40px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.apex-func__bannerTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 640px;
+}
+
+.apex-func__bannerTitulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 26px;
+  color: #fff;
+  text-wrap: balance;
+}
+
+.apex-func__bannerParagrafo {
+  font-size: 15px;
+  line-height: 1.6;
+  /* #A9A7BC: cinza claro do handoff p/ texto sobre --kora-tinta; sem token dedicado no ApexPage.css */
+  color: #A9A7BC;
+}
+
+.apex-func__bannerCta {
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .apex-func__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .apex-func__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .apex-func__banner {
+    padding: 32px 24px;
+  }
+}

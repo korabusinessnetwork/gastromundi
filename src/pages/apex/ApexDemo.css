@@ -1,0 +1,44 @@
+.apex-demo {
+  background: var(--kora-tinta);
+  padding: 88px 24px;
+}
+
+.apex-demo__conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+}
+
+.apex-demo__monograma {
+  width: 40px;
+  height: 40px;
+}
+
+.apex-demo__titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 36px;
+  color: #fff;
+  margin: 0;
+  max-width: 600px;
+  text-wrap: balance;
+}
+
+.apex-demo__paragrafo {
+  font-size: 16px;
+  color: #A9A7BC;
+  margin: 0;
+  max-width: 520px;
+  text-wrap: pretty;
+}
+
+.apex-demo__cta {
+  margin-top: 8px;
+}
+
+.apex-demo__microcopy {
+  font-size: 13px;
+  color: #77768A;
+}

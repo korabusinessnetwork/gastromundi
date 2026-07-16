@@ -1,0 +1,57 @@
+.apex-faq {
+  padding: 96px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.apex-faq__conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+.apex-faq__titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 32px;
+  color: var(--kora-tinta);
+  margin: 0;
+}
+
+.apex-faq__grade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  width: 100%;
+  max-width: 860px;
+}
+
+.apex-faq__card {
+  background: #fff;
+  border: 1px solid var(--kora-linha);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.apex-faq__pergunta {
+  font-family: var(--kora-font-titulo);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--kora-tinta);
+}
+
+.apex-faq__resposta {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--kora-grafite);
+}
+
+@media (max-width: 700px) {
+  .apex-faq__grade {
+    grid-template-columns: 1fr;
+  }
+}

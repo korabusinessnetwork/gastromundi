@@ -1,126 +1,60 @@
+import { useEffect } from "react";
 import "./ApexPage.css";
+import ApexNav from "./ApexNav";
+import ApexHero from "./ApexHero";
+import ApexProva from "./ApexProva";
+import ApexInimigo from "./ApexInimigo";
+import ApexFuncionalidades from "./ApexFuncionalidades";
+import ApexComoFunciona from "./ApexComoFunciona";
+import ApexPlanos from "./ApexPlanos";
+import ApexFaq from "./ApexFaq";
+import ApexDemo from "./ApexDemo";
+import ApexRodape from "./ApexRodape";
 
 /**
- * Página institucional do apex kora.codes (ADR-007/ADR-009, decisão 017).
+ * Site institucional do apex kora.codes (landing de vendas — handoff
+ * "design_handoff_site_kora", hi-fi). Quem cai aqui é um dono de
+ * restaurante/bar/café avaliando o produto; o funil é atenção →
+ * confiança/prova → oferta, terminando em "agendar demonstração"
+ * (fluxo de contato = VITE_CONTATO_URL; sem a env, os CTAs de demo
+ * apontam para a âncora #demo e o fechamento cai no login).
  *
- * Vitrine comercial da plataforma Kora — quem cai aqui é um visitante
- * (dono de restaurante/café) avaliando o sistema, não um cliente
- * logando. Cada estabelecimento continua acessando pelo seu próprio
- * endereço (subdomínio), que vai direto para a tela de login com a
- * marca dele — isso não muda. Esta página não depende de rotas nem de
- * contexto do app (sem React Router, sem Supabase): é estática, então
- * funciona sozinha mesmo servida fora da árvore de rotas autenticada.
+ * Cada estabelecimento cliente continua acessando pelo seu subdomínio
+ * (vai direto ao login com a marca dele) — o site tem um "Entrar"
+ * discreto na nav para quem chegar aqui por engano.
  *
- * Por que é intuitiva (Princípio nº1 do CLAUDE.md): uma rolagem só,
- * de cima pra baixo, na ordem que um dono de restaurante pensa — "o
- * que é" (hero), "o que faz" (módulos), "fica com a minha cara"
- * (marca própria), "como eu falo com vocês" (contato). Uma única ação
- * primária repetida (Entrar), sempre visível e sempre o mesmo botão,
- * sem menu, sem jargão técnico, sem decisão a mais para o visitante
- * tomar.
+ * Estática: sem rotas, sem Supabase, sem estado. Uma seção por
+ * componente/arquivo (padrão do projeto), CSS co-localizado
+ * (decisões 018/023), tokens --kora-* escopados em .apex.
  */
 
 const CONTATO_URL = import.meta.env.VITE_CONTATO_URL || "";
 
-/**
- * Monograma oficial da Kora (versão "espectro" 2a): K em barras
- * arredondadas — haste roxa + braços azul e verde. Inline (406 bytes no
- * original) para não gerar request extra; as cores vêm dos tokens
- * --kora-* definidos em ApexPage.css, mantendo fonte única da paleta.
- */
-function KoraMonograma({ className }) {
-  return (
-    <svg className={className} viewBox="0 0 120 120" role="img" aria-label="Símbolo da Kora">
-      <g transform="translate(12,12)">
-        <rect x="8" y="0" width="20" height="96" rx="10" fill="var(--kora-roxo)" />
-        <rect x="28" y="-12" width="20" height="60" rx="10" fill="var(--kora-azul)" transform="rotate(45 28 48)" />
-        <rect x="28" y="48" width="20" height="60" rx="10" fill="var(--kora-verde)" transform="rotate(-45 28 48)" />
-      </g>
-    </svg>
-  );
-}
-
-const MODULOS = [
-  { icone: "💳", titulo: "Frente de Caixa", descricao: "PDV rápido no balcão, feito para o ritmo do dia a dia." },
-  { icone: "📱", titulo: "Palm", descricao: "Garçom lança o pedido pelo celular, direto da mesa." },
-  { icone: "🍳", titulo: "Cozinha", descricao: "Pedido chega na tela da cozinha na hora, sem papel." },
-  { icone: "📦", titulo: "Estoque", descricao: "Controle com alerta de quantidade mínima e validade." },
-  { icone: "💰", titulo: "Financeiro", descricao: "Fluxo de caixa e fechamento do dia sem planilha." },
-  { icone: "🧾", titulo: "Nota Fiscal", descricao: "NFC-e emitida direto na venda, sem sistema à parte." },
-  { icone: "📊", titulo: "Relatórios", descricao: "O que vende, quando vende e quanto vende — em poucos toques." },
-  { icone: "🤖", titulo: "Jarvas", descricao: "Assistente que avisa e sugere — nunca decide sozinho." },
-];
-
 export default function ApexPage() {
-  const ano = new Date().getFullYear();
+  useEffect(() => {
+    document.title = "KORA — O PDV que se adapta a você";
+    // Âncoras da nav (#inimigo, #planos…) com rolagem suave, só
+    // enquanto o site está montado.
+    const raiz = document.documentElement;
+    const anterior = raiz.style.scrollBehavior;
+    raiz.style.scrollBehavior = "smooth";
+    return () => { raiz.style.scrollBehavior = anterior; };
+  }, []);
 
   return (
     <div className="apex">
-      <header className="apex-hero">
-        <div className="apex-hero__conteudo">
-          <KoraMonograma className="apex-hero__logo" />
-          <div className="apex-hero__wordmark">KORA</div>
-          <h1 className="apex-hero__titulo">
-            O sistema completo do seu restaurante ou café — do pedido ao caixa
-          </h1>
-          <p className="apex-hero__subtitulo">
-            Frente de caixa, garçom, cozinha, estoque e financeiro em um só
-            lugar, com a cara do seu negócio.
-          </p>
-          <div className="apex-hero__acoes">
-            <a className="apex-botao apex-botao--primario" href="/login">Entrar</a>
-          </div>
-          <p className="apex-hero__aux">
-            Já é cliente? Acesse pelo endereço do seu estabelecimento
-            (<strong>seunome.kora.codes</strong>).
-          </p>
-        </div>
-      </header>
-
+      <ApexNav contatoUrl={CONTATO_URL} />
       <main>
-        <section className="apex-secao" aria-labelledby="apex-modulos-titulo">
-          <h2 id="apex-modulos-titulo" className="apex-secao__titulo">Tudo que o seu estabelecimento precisa</h2>
-          <p className="apex-secao__subtitulo">Cada módulo resolve uma parte da operação — juntos, cobrem o dia inteiro.</p>
-          <div className="apex-modulos">
-            {MODULOS.map((m) => (
-              <div className="apex-modulo" key={m.titulo}>
-                <span className="apex-modulo__icone" aria-hidden="true">{m.icone}</span>
-                <h3 className="apex-modulo__titulo">{m.titulo}</h3>
-                <p className="apex-modulo__descricao">{m.descricao}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="apex-secao apex-secao--marca" aria-labelledby="apex-marca-titulo">
-          <div className="apex-marca">
-            <h2 id="apex-marca-titulo" className="apex-secao__titulo">Sua marca na frente, sempre</h2>
-            <p className="apex-secao__subtitulo apex-marca__texto">
-              O sistema veste as cores, o nome e o endereço do seu
-              estabelecimento. Seus clientes e sua equipe usam algo com a sua
-              cara — a Kora fica por trás, cuidando da parte técnica.
-            </p>
-          </div>
-        </section>
-
-        <section className="apex-secao apex-secao--contato" aria-labelledby="apex-contato-titulo">
-          <h2 id="apex-contato-titulo" className="apex-secao__titulo">Quer levar a Kora para o seu estabelecimento?</h2>
-          <p className="apex-secao__subtitulo">Comece agora ou fale com a gente antes.</p>
-          <div className="apex-hero__acoes apex-hero__acoes--contato">
-            {CONTATO_URL ? (
-              <a className="apex-botao apex-botao--secundario" href={CONTATO_URL} target="_blank" rel="noreferrer">
-                Falar com a gente
-              </a>
-            ) : null}
-            <a className="apex-botao apex-botao--primario" href="/login">Entrar</a>
-          </div>
-        </section>
+        <ApexHero contatoUrl={CONTATO_URL} />
+        <ApexProva />
+        <ApexInimigo />
+        <ApexFuncionalidades contatoUrl={CONTATO_URL} />
+        <ApexComoFunciona />
+        <ApexPlanos contatoUrl={CONTATO_URL} />
+        <ApexFaq />
+        <ApexDemo contatoUrl={CONTATO_URL} />
       </main>
-
-      <footer className="apex-rodape">
-        <p>Kora · plataforma de gestão para restaurantes e cafés</p>
-        <p className="apex-rodape__ano">© {ano}</p>
-      </footer>
+      <ApexRodape />
     </div>
   );
 }

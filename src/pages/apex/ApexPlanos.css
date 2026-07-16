@@ -1,0 +1,204 @@
+.apex-planos {
+  background: #fff;
+  border-top: 1px solid var(--kora-linha);
+  border-bottom: 1px solid var(--kora-linha);
+  padding: 96px 24px;
+}
+
+.apex-planos__conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
+}
+
+.apex-planos__cabecalho {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  max-width: 640px;
+}
+
+.apex-planos__titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 36px;
+  color: var(--kora-tinta);
+  margin: 0;
+  text-wrap: balance;
+}
+
+.apex-planos__subtitulo {
+  font-size: 16px;
+  color: var(--kora-nevoa);
+  margin: 0;
+}
+
+.apex-planos__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 280px));
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 1560px;
+}
+
+.apex-planos__card {
+  border: 1px solid var(--kora-linha);
+  border-radius: 18px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+}
+
+.apex-planos__card--destaque {
+  border: 2px solid var(--kora-roxo);
+  /* oklch cravado no protótipo (sombra roxa translúcida, sem token equivalente) */
+  box-shadow: 0 12px 40px oklch(0.4 0.14 280 / 0.15);
+}
+
+.apex-planos__card--em-breve {
+  /* gradiente suave cravado no protótipo, sem token equivalente */
+  background: linear-gradient(180deg, oklch(0.97 0.015 280), #fff);
+}
+
+.apex-planos__badge {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 16px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.apex-planos__badge--destaque {
+  background: var(--kora-roxo);
+}
+
+.apex-planos__badge--em-breve {
+  background: linear-gradient(90deg, var(--kora-roxo), var(--kora-azul));
+}
+
+.apex-planos__identidade {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.apex-planos__nome {
+  font-family: var(--kora-font-titulo);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--kora-tinta);
+}
+
+.apex-planos__tier {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--kora-nevoa);
+}
+
+.apex-planos__descricao {
+  font-size: 14px;
+  color: var(--kora-nevoa);
+}
+
+.apex-planos__preco-linha {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.apex-planos__preco {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 36px;
+  color: var(--kora-tinta);
+  font-variant-numeric: tabular-nums;
+}
+
+.apex-planos__card--destaque .apex-planos__preco {
+  color: var(--kora-roxo);
+}
+
+.apex-planos__periodo {
+  font-size: 14px;
+  color: var(--kora-nevoa);
+}
+
+.apex-planos__features {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 14px;
+  color: var(--kora-grafite);
+}
+
+.apex-planos__cta {
+  margin-top: auto;
+  width: 100%;
+}
+
+.apex-planos__card--em-breve .apex-planos__cta {
+  border-color: var(--kora-nevoa);
+  color: var(--kora-grafite);
+}
+
+.apex-planos__card--em-breve .apex-planos__cta:hover {
+  border-color: var(--kora-roxo);
+  color: var(--kora-roxo);
+  background: #fff;
+}
+
+.apex-planos__addons {
+  background: var(--kora-fundo);
+  border: 1px solid var(--kora-linha);
+  border-radius: 14px;
+  padding: 20px 28px;
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  align-items: center;
+  gap: 16px 32px;
+  max-width: 900px;
+  width: 100%;
+}
+
+.apex-planos__addons-titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--kora-tinta);
+  white-space: nowrap;
+}
+
+.apex-planos__addon {
+  font-size: 14px;
+  color: var(--kora-grafite);
+  line-height: 1.5;
+}
+
+.apex-planos__addon strong {
+  color: var(--kora-roxo);
+}
+
+.apex-planos__urgencia {
+  font-size: 14px;
+  color: var(--kora-nevoa);
+  font-style: italic;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .apex-planos__addons {
+    grid-template-columns: 1fr;
+  }
+}

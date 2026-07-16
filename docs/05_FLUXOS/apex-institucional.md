@@ -28,13 +28,32 @@ Função `ehApexInstitucional(hostname)` em `src/lib/apex.js`:
 
 ## Página
 
-**Arquivo**: `src/pages/apex/ApexPage.jsx` (+ CSS separado, decisão 018)
+**Arquivo**: `src/pages/apex/ApexPage.jsx` — casco que compõe uma seção por componente
+(um arquivo JSX + um CSS co-localizado por seção, decisões 018/023). Implementa o handoff
+de design hi-fi `design_handoff_site_kora` (funil: atenção → confiança/prova → oferta → demo).
 
-- Estática — nenhum fetch de dados no carregamento
-- Identidade própria da plataforma: tokens `--kora-*` (paleta oficial do monograma, tema claro),
-  escopados em `.apex` para não vazarem pro app dos tenants; monograma SVG inline no hero
+| Seção | Arquivo | Conteúdo |
+|-------|---------|----------|
+| Nav | `ApexNav.jsx` | Sticky; âncoras das seções + "Entrar" (`/login`) + CTA demo |
+| Hero | `ApexHero.jsx` | Fundo escuro, promessa, mock real do PDV (tokens `--gm-*` de propósito) |
+| Prova | `ApexProva.jsx` | Barra com 5 provas rápidas (mesmo dia, 1 turno, NFC-e, offline, personalizado) |
+| Inimigo | `ApexInimigo.jsx` | "PDV genérico" vs KORA — 4 comparações |
+| Funcionalidades | `ApexFuncionalidades.jsx` | 8 cards + banner escuro "do nosso jeito? não — do SEU" |
+| Como funciona | `ApexComoFunciona.jsx` | 3 passos até a primeira venda |
+| Planos | `ApexPlanos.jsx` | 5 planos (decisão 029); add-ons NF-e/TEF em faixa separada (ADR-005) |
+| FAQ | `ApexFaq.jsx` | 4 objeções de compra |
+| Demo | `ApexDemo.jsx` | Fechamento escuro; CTA verde de demo (ou "Entrar" sem `VITE_CONTATO_URL`) |
+| Rodapé | `ApexRodape.jsx` | Monograma + copyright dinâmico |
+
+- Estática — nenhum fetch de dados no carregamento; sem Supabase, sem estado
+- Identidade própria da plataforma: tokens `--kora-*` (tema CLARO oficial do site, handoff
+  `kora-tokens.css`), fontes Sora (títulos/CTAs) e Space Grotesk (corpo), escopados em `.apex`
+  para não vazarem pro app dos tenants; monograma oficial em `KoraMonograma.jsx` (SVG inline)
+- Utilitários compartilhados (botões, kickers, container) em `ApexPage.css`
 - Nenhum dado específico de estabelecimento hardcodado
-- Link de contato comercial é opcional: se `VITE_CONTATO_URL` vazio, botão não aparece
+- Link de contato comercial é opcional: se `VITE_CONTATO_URL` vazio, CTAs de demo apontam
+  pra âncora `#demo` e o fechamento vira "Entrar" (login)
+- Preços exibidos são os da decisão 029 (`memory/decisions.md`) — ao mudar preço, mudar lá e aqui
 
 ## Variáveis de Ambiente
 

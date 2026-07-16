@@ -1,0 +1,248 @@
+/* Hero do site institucional — bg tinta, centrado, com o mock do PDV
+   real usando os tokens --gm-* do produto (tema.css), não os --kora-*
+   do site: é a vitrine de verdade, não uma peça de marketing genérica. */
+
+.apex-hero {
+  background: var(--kora-tinta);
+  padding: 72px 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  overflow: hidden;
+}
+
+.apex-hero__badge {
+  /* oklch(0.28 0.06 280) do handoff — sem token no site, roxo escurecido
+     próximo da tinta; sem equivalente --kora-* atual */
+  background: oklch(0.28 0.06 280);
+  /* #B8B0F0 — lilás claro do handoff p/ texto sobre bg escuro, sem token */
+  color: #B8B0F0;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 16px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+}
+
+.apex-hero__titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: clamp(32px, 6vw, 54px);
+  line-height: 1.12;
+  color: #fff;
+  max-width: 800px;
+  margin: 24px 0 0;
+  text-wrap: balance;
+}
+
+.apex-hero__paragrafo {
+  font-size: 19px;
+  line-height: 1.6;
+  /* #A9A7BC — cinza-lilás do corpo de texto no hero escuro, sem token no site */
+  color: #A9A7BC;
+  max-width: 640px;
+  margin: 20px 0 0;
+  text-wrap: pretty;
+}
+
+.apex-hero__ctas {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.apex-hero__microcopy {
+  font-size: 13px;
+  color: #77768A;
+  margin-top: 14px;
+}
+
+.apex-hero__mock-label {
+  font-size: 13px;
+  color: #77768A;
+  margin-top: 56px;
+}
+
+.apex-hero__mock {
+  margin-top: 16px;
+  width: 920px;
+  max-width: 100%;
+  background: var(--gm-bg);
+  border: 1px solid var(--gm-border);
+  border-bottom: none;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -20px 60px rgba(124, 58, 237, 0.3);
+  padding: 20px 20px 0;
+  display: flex;
+  gap: 16px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.apex-hero__mock-comanda {
+  flex: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.apex-hero__mock-comanda-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.apex-hero__mock-mesa {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--gm-text);
+}
+
+.apex-hero__mock-pessoas {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--gm-green);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.apex-hero__mock-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.apex-hero__mock-item {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.apex-hero__mock-item-nome {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apex-hero__mock-item-preco {
+  font-size: 12px;
+  color: var(--gm-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.apex-hero__mock-item--add {
+  background: var(--gm-alow);
+  border: 1px dashed var(--gm-accent);
+  align-items: center;
+  justify-content: center;
+}
+
+.apex-hero__mock-item-add {
+  font-size: 13px;
+  font-weight: 600;
+  /* #a78bfa — lilás de texto accent sobre fundo escuro (tema.css não
+     define este tom; é o accent clareado para contraste em texto) */
+  color: #a78bfa;
+}
+
+.apex-hero__mock-fechamento {
+  flex: 1;
+  min-width: 0;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.apex-hero__mock-fechamento-titulo {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--gm-muted);
+}
+
+.apex-hero__mock-linha {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.apex-hero__mock-linha--total {
+  font-size: 15px;
+  border-top: 1px solid var(--gm-border);
+  padding-top: 10px;
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.apex-hero__mock-valor {
+  font-weight: 600;
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.apex-hero__mock-valor-total {
+  font-weight: 800;
+  /* #a78bfa — mesmo lilás de texto accent do item "+ item" */
+  color: #a78bfa;
+  font-variant-numeric: tabular-nums;
+}
+
+.apex-hero__mock-botao {
+  font-family: var(--kora-font-titulo);
+  font-weight: 700;
+  font-size: 13px;
+  text-align: center;
+  padding: 11px;
+  border-radius: 9px;
+}
+
+.apex-hero__mock-botao--pix {
+  background: var(--gm-green);
+  color: #04150f;
+}
+
+.apex-hero__mock-botao--cartao {
+  border: 1px solid var(--gm-border);
+  color: var(--gm-muted);
+  font-weight: 600;
+  padding: 10px;
+}
+
+@media (max-width: 700px) {
+  .apex-hero {
+    padding: 56px 16px 0;
+  }
+
+  .apex-hero__mock {
+    flex-direction: column;
+    padding: 16px 16px 0;
+  }
+
+  .apex-hero__mock-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .apex-hero__mock-fechamento {
+    border-radius: 0;
+  }
+}

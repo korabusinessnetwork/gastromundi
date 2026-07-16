@@ -1,0 +1,27 @@
+/* Barra de prova concreta — branca, borda inferior, itens curtos com
+   termo-chave em destaque na cor tinta. */
+
+.apex-prova {
+  background: #fff;
+  border-bottom: 1px solid var(--kora-linha);
+  padding: 22px 24px;
+  display: flex;
+  justify-content: center;
+  gap: 56px;
+  row-gap: 12px;
+  font-size: 14px;
+  color: var(--kora-nevoa);
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.apex-prova__chave {
+  color: var(--kora-tinta);
+}
+
+@media (max-width: 700px) {
+  .apex-prova {
+    gap: 24px;
+    padding: 20px 16px;
+  }
+}

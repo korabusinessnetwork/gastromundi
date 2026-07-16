@@ -1,0 +1,91 @@
+.apex-inimigo {
+  padding: 96px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.apex-inimigo__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: stretch;
+}
+
+.apex-inimigo__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: center;
+}
+
+.apex-inimigo__titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1.2;
+  color: var(--kora-tinta);
+  margin: 0;
+  text-wrap: balance;
+}
+
+.apex-inimigo__paragrafo {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--kora-nevoa);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.apex-inimigo__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.apex-inimigo__card {
+  background: #fff;
+  border: 1px solid var(--kora-linha);
+  border-radius: 14px;
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.apex-inimigo__coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.apex-inimigo__rotulo {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.apex-inimigo__rotulo--generico { color: var(--kora-erro); }
+.apex-inimigo__rotulo--kora { color: var(--kora-badge-verde-texto); }
+
+.apex-inimigo__texto {
+  font-size: 14px;
+}
+
+.apex-inimigo__texto--generico { color: var(--kora-nevoa); }
+.apex-inimigo__texto--kora {
+  color: var(--kora-tinta);
+  font-weight: 600;
+}
+
+@media (max-width: 860px) {
+  .apex-inimigo__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .apex-inimigo__card {
+    grid-template-columns: 1fr;
+  }
+}

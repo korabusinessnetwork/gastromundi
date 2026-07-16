@@ -1,0 +1,85 @@
+/* Nav do site institucional — sticky, branca, borda inferior --kora-linha. */
+
+.apex-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border-bottom: 1px solid var(--kora-linha);
+}
+
+.apex-nav__container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 64px;
+}
+
+.apex-nav__marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.apex-nav__monograma {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
+.apex-nav__wordmark {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: 4px;
+  color: var(--kora-tinta);
+}
+
+.apex-nav__links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.apex-nav__link {
+  color: var(--kora-grafite);
+  text-decoration: none;
+}
+
+.apex-nav__link:hover {
+  color: var(--kora-roxo);
+}
+
+.apex-nav__entrar {
+  font-size: 14px;
+  color: var(--kora-nevoa);
+  text-decoration: none;
+}
+
+.apex-nav__entrar:hover {
+  color: var(--kora-tinta);
+}
+
+.apex-nav__cta {
+  min-height: auto;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@media (max-width: 860px) {
+  .apex-nav__container {
+    padding: 16px 24px;
+  }
+
+  .apex-nav__link {
+    display: none;
+  }
+
+  .apex-nav__links {
+    gap: 20px;
+  }
+}

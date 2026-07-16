@@ -1,253 +1,111 @@
 /**
- * Página institucional do apex kora.codes — layout.
- * CSS separado do JSX (decisão 018).
- *
- * Identidade: tokens --kora-* (paleta oficial da marca, derivada do
- * monograma "espectro" — roxo/azul/verde). A vitrine é CLARA de
- * propósito: diferencia a plataforma (comercial, leitura longa) do app
- * operacional dos estabelecimentos (escuro, ritmo de balcão). Os tokens
- * ficam escopados em .apex para nunca vazarem pro app dos tenants.
- * Mobile-first: grid de módulos colapsa, sem scroll horizontal.
+ * Site institucional KORA (apex kora.codes) — casco e fundações.
+ * CSS separado do JSX (decisão 018), co-localizado por componente
+ * (decisão 023): cada seção tem seu próprio .css; aqui ficam só os
+ * tokens --kora-* (paleta oficial do site, handoff de design), as
+ * fontes, utilitários compartilhados (botões, kickers, container).
+ * Tokens escopados em .apex para nunca vazarem pro app dos tenants.
+ * O mock do produto no hero usa os tokens --gm-* globais (tema.css)
+ * de propósito: é o PRODUTO de verdade que aparece na vitrine.
  */
 
 .apex {
   /* Marca */
-  --kora-roxo: #473CA8;   /* primária: botões, links, destaque */
-  --kora-azul: #3E8DD6;   /* secundária: ilustrações, hover, gráficos */
-  --kora-verde: #37BFA7;  /* acento: badges, detalhes */
+  --kora-roxo: #473CA8;
+  --kora-azul: #3E8DD6;
+  --kora-verde: #37BFA7;
 
   /* Neutros */
-  --kora-tinta: #1B1930;    /* títulos, rodapé */
-  --kora-grafite: #3F3E52;  /* corpo de texto */
-  --kora-nevoa: #77768A;    /* texto secundário */
-  --kora-linha: #E6E5EE;    /* bordas, divisores */
-  --kora-fundo: #F8F8FB;    /* fundo de página */
+  --kora-tinta: #1B1930;
+  --kora-grafite: #3F3E52;
+  --kora-nevoa: #77768A;
+  --kora-linha: #E6E5EE;
+  --kora-fundo: #F8F8FB;
+  --kora-footer: #14121F;
+
+  /* Semânticas */
+  --kora-sucesso: #19B575;
+  --kora-alerta: #E8A23B;
+  --kora-erro: #DE3F32;
+  --kora-info: #4A87DB;
+  --kora-link: #3E6FD0;
+
+  /* Derivadas de uso */
+  --kora-badge-verde-bg: #E2F5EF;
+  --kora-badge-verde-texto: #1E7A66;
+
+  /* Tipografia do site (handoff): títulos/CTAs Sora, corpo Space Grotesk */
+  --kora-font-titulo: "Sora", system-ui, sans-serif;
+  --kora-font-texto: "Space Grotesk", system-ui, sans-serif;
 
   min-height: 100dvh;
   background: var(--kora-fundo);
   color: var(--kora-grafite);
-  font-family: var(--gm-font-texto);
+  font-family: var(--kora-font-texto);
+  font-size: 16px;
+  line-height: 1.6;
   overflow-x: hidden;
 }
 
-.apex-secao {
-  max-width: 960px;
+/* ── Utilitários compartilhados entre as seções ────────────────── */
+.apex-container {
+  max-width: 1160px;
   margin: 0 auto;
-  padding: 56px 20px;
+  padding: 0 24px;
   box-sizing: border-box;
 }
 
-.apex-secao__titulo {
-  margin: 0 0 8px;
-  font-family: var(--gm-font-titulo);
-  font-size: clamp(22px, 4vw, 30px);
-  font-weight: 900;
-  letter-spacing: -0.3px;
-  text-align: center;
-  color: var(--kora-tinta);
-}
-
-.apex-secao__subtitulo {
-  margin: 0 auto 32px;
-  max-width: 560px;
-  text-align: center;
-  color: var(--kora-nevoa);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-/* ── Hero ──────────────────────────────────────────────────────── */
-.apex-hero {
-  padding: 64px 20px 56px;
-  text-align: center;
-  border-bottom: 1px solid var(--kora-linha);
-  background: #fff;
-}
-
-.apex-hero__conteudo {
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.apex-hero__logo {
-  width: 72px;
-  height: 72px;
-  margin-bottom: 12px;
-}
-
-.apex-hero__wordmark {
-  font-family: var(--gm-font-titulo);
-  font-weight: 900;
-  font-size: 20px;
-  letter-spacing: 6px;
-  color: var(--kora-tinta);
-  margin-bottom: 28px;
-}
-
-.apex-hero__titulo {
-  margin: 0 0 16px;
-  font-family: var(--gm-font-titulo);
-  font-weight: 900;
-  font-size: clamp(28px, 6vw, 44px);
-  line-height: 1.15;
-  letter-spacing: -0.5px;
-  color: var(--kora-tinta);
-}
-
-.apex-hero__subtitulo {
-  margin: 0 0 32px;
-  font-size: 17px;
-  color: var(--kora-nevoa);
-  line-height: 1.6;
-}
-
-.apex-hero__acoes {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-bottom: 18px;
-}
-
-.apex-hero__acoes--contato {
-  margin-top: 8px;
-  margin-bottom: 0;
-}
-
-.apex-hero__aux {
-  margin: 0;
+.apex-kicker {
+  font-family: var(--kora-font-titulo);
   font-size: 13px;
-  color: var(--kora-nevoa);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--kora-roxo);
 }
 
-.apex-hero__aux strong {
-  color: var(--kora-tinta);
-}
+.apex-kicker--vermelho { color: var(--kora-erro); }
+.apex-kicker--verde    { color: var(--kora-verde); }
 
-/* ── Botões ────────────────────────────────────────────────────── */
+/* ── Botões (hovers do handoff) ────────────────────────────────── */
 .apex-botao {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 52px;
-  padding: 14px 28px;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 800;
-  font-family: inherit;
+  min-height: 48px;
+  padding: 12px 26px;
+  border-radius: 10px;
+  font-family: var(--kora-font-titulo);
+  font-size: 15px;
+  font-weight: 700;
   text-decoration: none;
   cursor: pointer;
   border: 1.5px solid transparent;
-  transition: filter 0.15s ease, transform 0.05s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.05s ease;
 }
 
-.apex-botao:active {
-  transform: translateY(1px);
-}
+.apex-botao:active { transform: translateY(1px); }
 
-.apex-botao--primario {
-  background: var(--kora-roxo);
-  color: #fff;
-}
+/* primário em fundo claro (nav, seções brancas): escurece no hover */
+.apex-botao--primario { background: var(--kora-roxo); color: #fff; }
+.apex-botao--primario:hover { background: #3A3090; }
 
-.apex-botao--primario:hover {
-  filter: brightness(1.12);
-}
+/* primário em fundo escuro (hero): clareia no hover */
+.apex-botao--primario-claro { background: var(--kora-roxo); color: #fff; }
+.apex-botao--primario-claro:hover { background: #5A4EC8; }
 
-.apex-botao--secundario {
-  background: #fff;
-  color: var(--kora-roxo);
-  border-color: var(--kora-roxo);
-}
+/* outline em fundo escuro: borda acende no verde */
+.apex-botao--outline-escuro { background: transparent; color: #fff; border-color: #47445E; }
+.apex-botao--outline-escuro:hover { border-color: var(--kora-verde); color: var(--kora-verde); }
 
-.apex-botao--secundario:hover {
-  filter: brightness(1.06);
-  background: #f4f2fc;
-}
+/* outline em fundo claro: inverte para preenchido roxo */
+.apex-botao--outline { background: #fff; color: var(--kora-roxo); border-color: var(--kora-roxo); }
+.apex-botao--outline:hover { background: var(--kora-roxo); color: #fff; }
 
-/* ── Módulos ───────────────────────────────────────────────────── */
-.apex-modulos {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
+/* CTA verde (fechamento): clareia no hover */
+.apex-botao--verde { background: var(--kora-verde); color: #0D2B25; }
+.apex-botao--verde:hover { background: #4CD4BC; }
 
-@media (min-width: 560px) {
-  .apex-modulos {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 860px) {
-  .apex-modulos {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.apex-modulo {
-  background: #fff;
-  border: 1px solid var(--kora-linha);
-  border-radius: 16px;
-  padding: 22px 18px;
-  text-align: left;
-}
-
-.apex-modulo__icone {
-  display: block;
-  font-size: 28px;
-  margin-bottom: 10px;
-}
-
-.apex-modulo__titulo {
-  margin: 0 0 6px;
-  font-family: var(--gm-font-titulo);
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--kora-tinta);
-}
-
-.apex-modulo__descricao {
-  margin: 0;
-  font-size: 13px;
-  color: var(--kora-nevoa);
-  line-height: 1.5;
-}
-
-/* ── Sua marca ─────────────────────────────────────────────────── */
-.apex-secao--marca {
-  background: #fff;
-  border-top: 1px solid var(--kora-linha);
-  border-bottom: 1px solid var(--kora-linha);
-}
-
-.apex-marca {
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.apex-marca__texto {
-  margin-bottom: 0;
-}
-
-/* ── Contato ───────────────────────────────────────────────────── */
-.apex-secao--contato {
-  text-align: center;
-  padding-bottom: 72px;
-}
-
-/* ── Rodapé (tinta — fecho escuro da marca) ────────────────────── */
-.apex-rodape {
-  padding: 28px 20px 36px;
-  text-align: center;
-  background: var(--kora-tinta);
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 12px;
-}
-
-.apex-rodape p {
-  margin: 2px 0;
-}
-
-.apex-rodape__ano {
-  color: rgba(255, 255, 255, 0.5);
-}
+/* CTA branco (banner escuro) */
+.apex-botao--branco { background: #fff; color: var(--kora-tinta); }
+.apex-botao--branco:hover { background: var(--kora-linha); }

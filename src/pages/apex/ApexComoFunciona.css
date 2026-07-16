@@ -1,0 +1,78 @@
+.apex-passos {
+  padding: 96px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.apex-passos__container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
+}
+
+.apex-passos__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.apex-passos__titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 36px;
+  line-height: 1.2;
+  color: var(--kora-tinta);
+  margin: 0;
+  max-width: 620px;
+  text-wrap: balance;
+}
+
+.apex-passos__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  width: 100%;
+}
+
+.apex-passos__card {
+  background: #fff;
+  border: 1px solid var(--kora-linha);
+  border-radius: 16px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.apex-passos__numero {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1;
+}
+
+.apex-passos__numero--roxo { color: var(--kora-roxo); }
+.apex-passos__numero--azul { color: var(--kora-azul); }
+.apex-passos__numero--verde { color: var(--kora-badge-verde-texto); }
+
+.apex-passos__cardTitulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--kora-tinta);
+}
+
+.apex-passos__cardTexto {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--kora-nevoa);
+}
+
+@media (max-width: 860px) {
+  .apex-passos__grid {
+    grid-template-columns: 1fr;
+  }
+}
