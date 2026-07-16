@@ -76,14 +76,30 @@ mexer no banco. Import/export vira parte do produto, não um favor manual.
   no cliente e baixa. Mesmo layout de colunas do modelo de import
   (**export de A importa em B** — é isso que resolve portabilidade).
 
-### Fase 2 — abrangência
+### Fase 2 — abrangência — ✅ IMPLEMENTADA (clientes + estoque)
 
-- Import de **clientes** (mesmo wizard, outro modelo).
-- Import de **estoque inicial** (quantidade + mínimo por produto).
-- **De-para de concorrentes**: aceitar o export nativo dos PDVs mais comuns da
-  nossa praça (levantar os 2–3 que os leads reais usam antes de codar) e
-  converter para o nosso modelo — um "tradutor" por origem, todos desaguando
-  no MESMO pipeline de validação da Fase 1.
+> Código: `src/lib/importacao/clientes.js` e `src/lib/importacao/estoque.js`
+> (com testes co-localizados), validadores em `planilha.js`
+> (`validarPlanilhaClientes` / `validarPlanilhaEstoque`) e o MESMO wizard da
+> Fase 1 generalizado pros 3 tipos (`ImportarExportarTab.jsx`).
+
+- Import de **clientes** (mesmo wizard, outro modelo) — ✅. Modelo
+  `nome;telefone;endereco;observacoes`; nome e telefone obrigatórios (mesma
+  regra do cadastro em tela); dedupe/idempotência por telefone normalizado
+  (só dígitos); campo vazio na planilha nunca apaga o que já existe.
+- Import de **estoque inicial** (quantidade + mínimo por produto) — ✅.
+  Modelo `produto;quantidade;minimo`; casa pelo nome do produto no cardápio
+  (produto inexistente = erro por linha, "importe os produtos primeiro");
+  mínimo vazio mantém o atual; upsert por `produto_id` (define, não soma).
+  Export de estoque incluso (mesmo layout — portabilidade).
+- **De-para de concorrentes** — ◐ parcial. O degrau genérico está pronto:
+  os validadores aceitam apelidos de cabeçalho comuns de outros PDVs
+  (`Produto/Descrição/Item` → nome, `Valor/Preço de venda` → preco,
+  `Grupo/Seção` → categoria, `Cliente/Celular/Fone`, `Qtd/Saldo/Estoque
+  mínimo`…), então muito export cru entra sem renomear coluna. Tradutores
+  específicos por origem ficam pendentes de **amostras reais**: levantar os
+  2–3 PDVs que os leads usam e conseguir um arquivo de exemplo de cada —
+  cada tradutor desagua no MESMO pipeline de validação.
 
 ### Fase 3 — programático (quando houver demanda real)
 
@@ -122,11 +138,13 @@ o dono ajusta depois na tela de produto.
   categoria nova criada pelo import precisa ser mapeada a um grupo
   (comida/bebida/cafe). No preview, pedir o grupo de cada categoria nova
   (select simples) — é o que faz a categoria aparecer certa no PDV/Cozinha.
-- `estoque (produto_id, quantidade, minimo)`: Fase 2 — coluna opcional
-  `estoque_inicial` no CSV pode alimentar aqui.
+- `estoque (produto_id, quantidade, minimo)`: ✅ Fase 2 — planilha própria
+  `produto;quantidade;minimo` (decidiu-se planilha separada em vez de coluna
+  extra no CSV de produtos: contagem de estoque é um momento diferente da
+  montagem do cardápio).
 - `itens_fiscal` (NCM, CFOP, CSOSN…): NÃO importar no MVP — dado fiscal é
   delicado e pertence ao fluxo do add-on NF-e.
-- `clientes (nome, telefone, endereco, observacoes)`: modelo trivial na Fase 2;
+- `clientes (nome, telefone, endereco, observacoes)`: ✅ Fase 2;
   dedupe por telefone normalizado (só dígitos).
 
 ### Template CSV de produtos (contrato do MVP)
@@ -136,6 +154,25 @@ nome;preco;categoria;emoji;ativo;unidade
 X-Salada;24,90;Lanches;🍔;sim;un
 Suco de Laranja 300ml;9,00;Bebidas;🍊;sim;un
 ```
+
+### Template CSV de clientes (Fase 2)
+
+```csv
+nome;telefone;endereco;observacoes
+Ana Souza;51 99999-0001;Rua das Flores, 123;Prefere retirar no balcão
+Carlos Lima;51 98888-0002;;
+```
+
+### Template CSV de estoque inicial (Fase 2)
+
+```csv
+produto;quantidade;minimo
+X-Salada;30;10
+Suco de Laranja 300ml;24;
+```
+
+(`produto` = nome exatamente como está no cardápio; `minimo` vazio mantém o
+mínimo atual ou o padrão do sistema.)
 
 ### E se o sistema antigo não exporta nada?
 

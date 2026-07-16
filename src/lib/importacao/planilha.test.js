@@ -5,11 +5,18 @@ import {
   parsearCSV,
   normalizarTexto,
   normalizarCabecalho,
+  normalizarTelefone,
   parsearPrecoBR,
   parsearBooleanoBR,
   validarPlanilhaProdutos,
+  validarPlanilhaClientes,
+  validarPlanilhaEstoque,
   montarCSVProdutos,
+  montarCSVClientes,
+  montarCSVEstoque,
   gerarModeloCSV,
+  gerarModeloClientesCSV,
+  gerarModeloEstoqueCSV,
 } from "./planilha";
 
 describe("decodificarArquivo", () => {
@@ -161,5 +168,116 @@ describe("montarCSVProdutos / gerarModeloCSV (portabilidade)", () => {
     const r = validarPlanilhaProdutos(gerarModeloCSV());
     expect(r.erros).toEqual([]);
     expect(r.produtos).toHaveLength(2);
+  });
+});
+
+describe("aliases de cabeçalho (export cru de outros PDVs)", () => {
+  it("produtos: Produto/Valor/Grupo entram sem renomear coluna", () => {
+    const r = validarPlanilhaProdutos("Produto;Valor;Grupo\nX-Bacon;27,90;Lanches");
+    expect(r.erros).toEqual([]);
+    expect(r.produtos[0]).toMatchObject({ nome: "X-Bacon", preco: 27.9, categoria: "Lanches" });
+  });
+
+  it("coluna exata do modelo ganha do apelido quando as duas existem", () => {
+    const r = validarPlanilhaProdutos("nome;produto;preco;categoria\nCerto;Errado;10,00;Pratos");
+    expect(r.produtos[0].nome).toBe("Certo");
+  });
+});
+
+describe("normalizarTelefone", () => {
+  it.each([
+    ["(51) 99999-0001", "51999990001"],
+    ["+55 51 9 9999-0001", "5551999990001"],
+    ["51999990001", "51999990001"],
+    ["", ""],
+    [null, ""],
+  ])("%s → %s", (entrada, esperado) => {
+    expect(normalizarTelefone(entrada)).toBe(esperado);
+  });
+});
+
+describe("validarPlanilhaClientes", () => {
+  const cabecalho = "nome;telefone;endereco;observacoes";
+
+  it("caminho feliz — telefone normalizado pra só dígitos", () => {
+    const r = validarPlanilhaClientes(`${cabecalho}\nAna Souza;(51) 99999-0001;Rua A, 1;Fiado ok`);
+    expect(r.erros).toEqual([]);
+    expect(r.clientes).toEqual([
+      { linha: 2, nome: "Ana Souza", telefone: "51999990001", endereco: "Rua A, 1", observacoes: "Fiado ok" },
+    ]);
+  });
+
+  it("aliases: Cliente/Celular casam com nome/telefone", () => {
+    const r = validarPlanilhaClientes("Cliente;Celular\nCarlos;51 98888-0002");
+    expect(r.erros).toEqual([]);
+    expect(r.clientes[0]).toMatchObject({ nome: "Carlos", telefone: "51988880002" });
+  });
+
+  it("nome e telefone vazios ou telefone curto são erros por linha", () => {
+    const r = validarPlanilhaClientes(`${cabecalho}\n;51 99999-0001;;\nSem fone;;;\nFone curto;123;;`);
+    expect(r.clientes).toEqual([]);
+    expect(r.erros).toEqual([
+      { linha: 2, mensagem: "Nome do cliente vazio." },
+      { linha: 3, mensagem: "Telefone vazio — é o contato mínimo pra fiado e delivery." },
+      { linha: 4, mensagem: 'Telefone "123" não parece válido (use DDD + número).' },
+    ]);
+  });
+
+  it("telefone duplicado no arquivo: vale a última linha, com aviso", () => {
+    const r = validarPlanilhaClientes(`${cabecalho}\nAna;51999990001;;\nAna Souza;(51)99999-0001;;`);
+    expect(r.clientes).toHaveLength(1);
+    expect(r.clientes[0].nome).toBe("Ana Souza");
+    expect(r.avisos[0].mensagem).toMatch(/mais de uma vez/);
+  });
+
+  it("export reimporta sem editar nada (round-trip) e modelo é válido", () => {
+    const csv = montarCSVClientes([
+      { nome: "Ana; Souza", telefone: "51 99999-0001", endereco: "Rua A", observacoes: null },
+    ]);
+    const r = validarPlanilhaClientes(csv);
+    expect(r.erros).toEqual([]);
+    expect(r.clientes[0]).toMatchObject({ nome: "Ana; Souza", telefone: "51999990001", endereco: "Rua A" });
+    expect(validarPlanilhaClientes(gerarModeloClientesCSV()).erros).toEqual([]);
+  });
+});
+
+describe("validarPlanilhaEstoque", () => {
+  const cabecalho = "produto;quantidade;minimo";
+
+  it("caminho feliz — quantidade decimal pt-BR e mínimo vazio vira null", () => {
+    const r = validarPlanilhaEstoque(`${cabecalho}\nX-Salada;30;10\nSuco;2,5;`);
+    expect(r.erros).toEqual([]);
+    expect(r.itens).toEqual([
+      { linha: 2, produto: "X-Salada", quantidade: 30, minimo: 10 },
+      { linha: 3, produto: "Suco", quantidade: 2.5, minimo: null },
+    ]);
+  });
+
+  it("quantidade inválida/negativa e mínimo inválido são erros por linha", () => {
+    const r = validarPlanilhaEstoque(`${cabecalho}\nA;abc;\nB;10;xyz`);
+    expect(r.itens).toEqual([]);
+    expect(r.erros[0].mensagem).toMatch(/não é um número válido/);
+    expect(r.erros[1].mensagem).toMatch(/Mínimo "xyz"/);
+  });
+
+  it("aliases: Item/Qtd/Estoque mínimo casam com o modelo", () => {
+    const r = validarPlanilhaEstoque("Item;Qtd;Estoque mínimo\nCafé;12;4");
+    expect(r.erros).toEqual([]);
+    expect(r.itens[0]).toMatchObject({ produto: "Café", quantidade: 12, minimo: 4 });
+  });
+
+  it("produto duplicado no arquivo: vale a última linha, com aviso", () => {
+    const r = validarPlanilhaEstoque(`${cabecalho}\nCafé;5;\ncafe;8;`);
+    expect(r.itens).toHaveLength(1);
+    expect(r.itens[0].quantidade).toBe(8);
+    expect(r.avisos[0].mensagem).toMatch(/mais de uma vez/);
+  });
+
+  it("export reimporta sem editar nada (round-trip) e modelo é válido", () => {
+    const csv = montarCSVEstoque([{ produto: "X-Salada", quantidade: 2.5, minimo: 10 }]);
+    const r = validarPlanilhaEstoque(csv);
+    expect(r.erros).toEqual([]);
+    expect(r.itens[0]).toMatchObject({ produto: "X-Salada", quantidade: 2.5, minimo: 10 });
+    expect(validarPlanilhaEstoque(gerarModeloEstoqueCSV()).erros).toEqual([]);
   });
 });

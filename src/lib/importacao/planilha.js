@@ -1,20 +1,52 @@
 // ──────────────────────────────────────────────────────────────────
 // Migração de dados — núcleo de PLANILHA (funções puras, sem Supabase)
 //
-// Contrato do CSV de produtos (docs/03_REGRAS_DE_NEGOCIO/MIGRACAO_DADOS.md):
-//   nome;preco;categoria;emoji;ativo;unidade
+// Contratos de CSV (docs/03_REGRAS_DE_NEGOCIO/MIGRACAO_DADOS.md):
+//   produtos: nome;preco;categoria;emoji;ativo;unidade
+//   clientes: nome;telefone;endereco;observacoes        (Fase 2)
+//   estoque:  produto;quantidade;minimo                 (Fase 2)
 // Tolerante ao mundo real do Excel brasileiro: encoding Windows-1252,
 // separador ";", dinheiro "R$ 1.234,56", cabeçalho com acento/caixa
-// variada, booleanos "sim/não". Toda regra aqui tem teste co-localizado.
+// variada (e apelidos comuns de exports de outros PDVs), booleanos
+// "sim/não". Toda regra aqui tem teste co-localizado.
 // ──────────────────────────────────────────────────────────────────
 
-/** Colunas do modelo. Só `nome`, `preco` e `categoria` são obrigatórias. */
+/** Colunas do modelo de produtos. Só `nome`, `preco` e `categoria` são obrigatórias. */
 export const COLUNAS_MODELO = ["nome", "preco", "categoria", "emoji", "ativo", "unidade"];
 export const COLUNAS_OBRIGATORIAS = ["nome", "preco", "categoria"];
+
+export const COLUNAS_MODELO_CLIENTES = ["nome", "telefone", "endereco", "observacoes"];
+export const COLUNAS_OBRIGATORIAS_CLIENTES = ["nome", "telefone"];
+
+export const COLUNAS_MODELO_ESTOQUE = ["produto", "quantidade", "minimo"];
+export const COLUNAS_OBRIGATORIAS_ESTOQUE = ["produto", "quantidade"];
 
 export const LIMITE_LINHAS = 5000;
 export const LIMITE_NOME = 80;
 export const LIMITE_CATEGORIA = 40;
+export const LIMITE_ENDERECO = 160;
+export const LIMITE_OBSERVACOES = 240;
+
+// Apelidos de cabeçalho (já normalizados) → coluna do nosso modelo.
+// É o que faz o export "cru" de outros PDVs entrar sem o cliente
+// renomear coluna — o degrau genérico do de-para de concorrentes.
+const ALIASES_PRODUTOS = {
+  produto: "nome", descricao: "nome", item: "nome",
+  valor: "preco", precovenda: "preco", precodevenda: "preco", precounitario: "preco",
+  grupo: "categoria", secao: "categoria",
+  status: "ativo",
+  unidademedida: "unidade", un: "unidade",
+};
+const ALIASES_CLIENTES = {
+  cliente: "nome",
+  celular: "telefone", fone: "telefone", whatsapp: "telefone", telefone1: "telefone",
+  obs: "observacoes", observacao: "observacoes",
+};
+const ALIASES_ESTOQUE = {
+  nome: "produto", item: "produto", descricao: "produto",
+  qtd: "quantidade", saldo: "quantidade", estoque: "quantidade", quantidadeatual: "quantidade",
+  estoqueminimo: "minimo", qtdminima: "minimo", minima: "minimo",
+};
 
 /**
  * Decodifica o arquivo detectando o encoding: tenta UTF-8 estrito e,
@@ -136,6 +168,50 @@ export function parsearBooleanoBR(valor, valorPadrao = true) {
   return null;
 }
 
+/** Só dígitos — como o telefone é comparado/deduplicado em todo o app. */
+export function normalizarTelefone(valor) {
+  return String(valor ?? "").replace(/\D/g, "");
+}
+
+/**
+ * Preâmbulo comum dos validadores: parseia, checa vazio/limite e monta
+ * o índice de colunas com cabeçalho tolerante (nome normalizado, em
+ * qualquer ordem, aceitando apelidos de outros PDVs).
+ * @returns {{erro: object}|{linhas: string[][], indice: object}}
+ */
+function prepararPlanilha(texto, colunasModelo, colunasObrigatorias, aliases = {}) {
+  const linhas = parsearCSV(texto);
+
+  if (linhas.length === 0) {
+    return { erro: { linha: 0, mensagem: "O arquivo está vazio." } };
+  }
+  if (linhas.length - 1 > LIMITE_LINHAS) {
+    return { erro: { linha: 0, mensagem: `O arquivo tem mais de ${LIMITE_LINHAS} linhas — divida em partes menores.` } };
+  }
+
+  const indice = {};
+  for (const coluna of colunasModelo) indice[coluna] = -1;
+  linhas[0].forEach((celula, i) => {
+    const chave = normalizarCabecalho(celula);
+    const coluna = colunasModelo.includes(chave) ? chave : aliases[chave];
+    if (coluna && indice[coluna] === -1) indice[coluna] = i;
+  });
+
+  const faltando = colunasObrigatorias.filter((c) => indice[c] === -1);
+  if (faltando.length) {
+    return {
+      erro: {
+        linha: 1,
+        mensagem: `Faltam colunas obrigatórias no cabeçalho: ${faltando.join(", ")}. Baixe a planilha modelo e confira.`,
+      },
+    };
+  }
+  return { linhas, indice };
+}
+
+const pegarCelula = (linhas, indice, i) => (coluna) =>
+  (indice[coluna] === -1 ? "" : (linhas[i][indice[coluna]] ?? "").trim());
+
 /**
  * Valida as linhas do CSV de produtos e monta a lista limpa.
  * Puro: recebe o texto, devolve { produtos, erros, avisos }.
@@ -147,42 +223,15 @@ export function parsearBooleanoBR(valor, valorPadrao = true) {
 export function validarPlanilhaProdutos(texto) {
   const erros = [];
   const avisos = [];
-  const linhas = parsearCSV(texto);
-
-  if (linhas.length === 0) {
-    return { produtos: [], erros: [{ linha: 0, mensagem: "O arquivo está vazio." }], avisos };
-  }
-  if (linhas.length - 1 > LIMITE_LINHAS) {
-    return {
-      produtos: [],
-      erros: [{ linha: 0, mensagem: `O arquivo tem mais de ${LIMITE_LINHAS} linhas — divida em partes menores.` }],
-      avisos,
-    };
-  }
-
-  // Cabeçalho tolerante: casa por nome normalizado, em qualquer ordem
-  const cabecalho = linhas[0].map(normalizarCabecalho);
-  const indice = {};
-  for (const coluna of COLUNAS_MODELO) {
-    indice[coluna] = cabecalho.indexOf(coluna);
-  }
-  const faltando = COLUNAS_OBRIGATORIAS.filter((c) => indice[c] === -1);
-  if (faltando.length) {
-    return {
-      produtos: [],
-      erros: [{
-        linha: 1,
-        mensagem: `Faltam colunas obrigatórias no cabeçalho: ${faltando.join(", ")}. Baixe a planilha modelo e confira.`,
-      }],
-      avisos,
-    };
-  }
+  const prep = prepararPlanilha(texto, COLUNAS_MODELO, COLUNAS_OBRIGATORIAS, ALIASES_PRODUTOS);
+  if (prep.erro) return { produtos: [], erros: [prep.erro], avisos };
+  const { linhas, indice } = prep;
 
   const porNome = new Map(); // dedupe dentro do arquivo (vale a última)
 
   for (let i = 1; i < linhas.length; i++) {
     const numeroLinha = i + 1; // 1-based, como o usuário vê no Excel
-    const pegar = (coluna) => (indice[coluna] === -1 ? "" : (linhas[i][indice[coluna]] ?? "").trim());
+    const pegar = pegarCelula(linhas, indice, i);
 
     const nome = pegar("nome").slice(0, LIMITE_NOME);
     const categoria = pegar("categoria").slice(0, LIMITE_CATEGORIA);
@@ -253,5 +302,147 @@ export function gerarModeloCSV() {
   return montarCSVProdutos([
     { name: "X-Salada", price: 24.9, category: "Lanches", emoji: "🍔", active: true, unidade_estoque: "un" },
     { name: "Suco de Laranja 300ml", price: 9, category: "Bebidas", emoji: "🍊", active: true, unidade_estoque: "un" },
+  ]);
+}
+
+// ── Clientes (Fase 2) ───────────────────────────────────────────────
+
+/**
+ * Valida o CSV de clientes: nome e telefone obrigatórios (telefone é o
+ * contato mínimo pra fiado/delivery — mesma regra do cadastro na tela)
+ * e a chave de dedupe, normalizado pra só dígitos.
+ * @param {string} texto
+ * @returns {{clientes: Array, erros: Array, avisos: Array}}
+ */
+export function validarPlanilhaClientes(texto) {
+  const erros = [];
+  const avisos = [];
+  const prep = prepararPlanilha(texto, COLUNAS_MODELO_CLIENTES, COLUNAS_OBRIGATORIAS_CLIENTES, ALIASES_CLIENTES);
+  if (prep.erro) return { clientes: [], erros: [prep.erro], avisos };
+  const { linhas, indice } = prep;
+
+  const porTelefone = new Map(); // dedupe dentro do arquivo (vale a última)
+
+  for (let i = 1; i < linhas.length; i++) {
+    const numeroLinha = i + 1;
+    const pegar = pegarCelula(linhas, indice, i);
+
+    const nome = pegar("nome").slice(0, LIMITE_NOME);
+    const telefoneBruto = pegar("telefone");
+    const telefone = normalizarTelefone(telefoneBruto);
+
+    if (!nome) { erros.push({ linha: numeroLinha, mensagem: "Nome do cliente vazio." }); continue; }
+    if (!telefone) { erros.push({ linha: numeroLinha, mensagem: "Telefone vazio — é o contato mínimo pra fiado e delivery." }); continue; }
+    if (telefone.length < 8 || telefone.length > 13) {
+      erros.push({ linha: numeroLinha, mensagem: `Telefone "${telefoneBruto}" não parece válido (use DDD + número).` });
+      continue;
+    }
+
+    if (porTelefone.has(telefone)) {
+      avisos.push({ linha: numeroLinha, mensagem: `O telefone ${telefoneBruto} aparece mais de uma vez no arquivo — vale esta linha.` });
+    }
+    porTelefone.set(telefone, {
+      linha: numeroLinha,
+      nome,
+      telefone,
+      endereco: pegar("endereco").slice(0, LIMITE_ENDERECO) || null,
+      observacoes: pegar("observacoes").slice(0, LIMITE_OBSERVACOES) || null,
+    });
+  }
+
+  return { clientes: [...porTelefone.values()], erros, avisos };
+}
+
+/**
+ * CSV de clientes no MESMO layout do modelo de import (portabilidade).
+ * @param {Array<{nome:string, telefone?:string, endereco?:string, observacoes?:string}>} clientes
+ */
+export function montarCSVClientes(clientes) {
+  const sep = ";";
+  const cabecalho = COLUNAS_MODELO_CLIENTES.join(sep);
+  const linhas = (clientes || []).map((c) =>
+    [
+      celulaCSV(c.nome, sep),
+      celulaCSV(c.telefone || "", sep),
+      celulaCSV(c.endereco || "", sep),
+      celulaCSV(c.observacoes || "", sep),
+    ].join(sep)
+  );
+  return "﻿" + [cabecalho, ...linhas].join("\r\n");
+}
+
+/** Modelo de clientes com 2 linhas de exemplo. */
+export function gerarModeloClientesCSV() {
+  return montarCSVClientes([
+    { nome: "Ana Souza", telefone: "51 99999-0001", endereco: "Rua das Flores, 123", observacoes: "Prefere retirar no balcão" },
+    { nome: "Carlos Lima", telefone: "51 98888-0002", endereco: "", observacoes: "" },
+  ]);
+}
+
+// ── Estoque inicial (Fase 2) ────────────────────────────────────────
+
+/**
+ * Valida o CSV de estoque inicial: produto (nome, casado depois com o
+ * cardápio) e quantidade obrigatórios; mínimo opcional (vazio mantém o
+ * mínimo atual ou o padrão do sistema).
+ * @param {string} texto
+ * @returns {{itens: Array, erros: Array, avisos: Array}}
+ */
+export function validarPlanilhaEstoque(texto) {
+  const erros = [];
+  const avisos = [];
+  const prep = prepararPlanilha(texto, COLUNAS_MODELO_ESTOQUE, COLUNAS_OBRIGATORIAS_ESTOQUE, ALIASES_ESTOQUE);
+  if (prep.erro) return { itens: [], erros: [prep.erro], avisos };
+  const { linhas, indice } = prep;
+
+  const porProduto = new Map(); // dedupe dentro do arquivo (vale a última)
+
+  for (let i = 1; i < linhas.length; i++) {
+    const numeroLinha = i + 1;
+    const pegar = pegarCelula(linhas, indice, i);
+
+    const produto = pegar("produto").slice(0, LIMITE_NOME);
+    const quantidade = parsearPrecoBR(pegar("quantidade"));
+    const minimoBruto = pegar("minimo");
+    const minimo = minimoBruto === "" ? null : parsearPrecoBR(minimoBruto);
+
+    if (!produto) { erros.push({ linha: numeroLinha, mensagem: "Nome do produto vazio." }); continue; }
+    if (quantidade === null) { erros.push({ linha: numeroLinha, mensagem: `Quantidade "${pegar("quantidade")}" não é um número válido (use 10 ou 2,5).` }); continue; }
+    if (quantidade < 0) { erros.push({ linha: numeroLinha, mensagem: "Quantidade não pode ser negativa." }); continue; }
+    if (minimoBruto !== "" && minimo === null) { erros.push({ linha: numeroLinha, mensagem: `Mínimo "${minimoBruto}" não é um número válido — deixe vazio pra manter o atual.` }); continue; }
+    if (minimo !== null && minimo < 0) { erros.push({ linha: numeroLinha, mensagem: "Mínimo não pode ser negativo." }); continue; }
+
+    const chave = normalizarTexto(produto);
+    if (porProduto.has(chave)) {
+      avisos.push({ linha: numeroLinha, mensagem: `"${produto}" aparece mais de uma vez no arquivo — vale esta linha.` });
+    }
+    porProduto.set(chave, { linha: numeroLinha, produto, quantidade, minimo });
+  }
+
+  return { itens: [...porProduto.values()], erros, avisos };
+}
+
+/**
+ * CSV de estoque no MESMO layout do modelo de import (portabilidade).
+ * @param {Array<{produto:string, quantidade:number, minimo?:number}>} itens
+ */
+export function montarCSVEstoque(itens) {
+  const sep = ";";
+  const cabecalho = COLUNAS_MODELO_ESTOQUE.join(sep);
+  const linhas = (itens || []).map((e) =>
+    [
+      celulaCSV(e.produto, sep),
+      String(e.quantidade ?? 0).replace(".", ","),
+      e.minimo == null ? "" : String(e.minimo).replace(".", ","),
+    ].join(sep)
+  );
+  return "﻿" + [cabecalho, ...linhas].join("\r\n");
+}
+
+/** Modelo de estoque com 2 linhas de exemplo. */
+export function gerarModeloEstoqueCSV() {
+  return montarCSVEstoque([
+    { produto: "X-Salada", quantidade: 30, minimo: 10 },
+    { produto: "Suco de Laranja 300ml", quantidade: 24, minimo: null },
   ]);
 }
