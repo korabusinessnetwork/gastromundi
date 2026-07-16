@@ -1,5 +1,11 @@
 # Fluxo de Onboarding — GastroMundi
 
+> ⚠️ **Este doc descreve o onboarding-ALVO (roadmap)** — tour guiado, `/dashboard`,
+> flags `onboarding_step_x_completed` — que ainda **não existe** na stack real
+> (Supabase direto, ADR-004). Para o passo a passo **operacional do app de hoje**
+> (como um estabelecimento novo sai do zero e vende, self-service), veja
+> [ativar-novo-estabelecimento.md](./ativar-novo-estabelecimento.md).
+
 ## Objetivo
 Documentar o fluxo de onboarding do GastroMundi: a jornada do usuário desde o cadastro até estar pronto para usar o produto de forma efetiva.
 

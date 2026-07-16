@@ -51,5 +51,6 @@ Fluxos documentam a jornada do usuário em sequências de telas, decisões e est
 | Fluxo | Arquivo | Criticidade | Status |
 |-------|---------|-------------|--------|
 | Autenticação | [auth-flow.md](./auth-flow.md) | Alta | Rascunho |
-| Onboarding | [onboarding-flow.md](./onboarding-flow.md) | Alta | Rascunho |
+| Onboarding (alvo/roadmap) | [onboarding-flow.md](./onboarding-flow.md) | Alta | Rascunho |
+| **Ativar novo estabelecimento (app real)** | [ativar-novo-estabelecimento.md](./ativar-novo-estabelecimento.md) | Alta | Vigente |
 | Faturamento | [billing-flow.md](./billing-flow.md) | Alta | Rascunho |
