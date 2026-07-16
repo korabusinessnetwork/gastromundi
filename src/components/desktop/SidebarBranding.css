@@ -6,6 +6,9 @@
 }
 
 .sidebar-branding__nome {
+  /* mesma fonte de título do login (--gm-font-titulo): Saira p/ o Casa,
+     system-ui p/ o GastroMundi (default) — identidade consistente. */
+  font-family: var(--gm-font-titulo);
   font-weight: 900;
   /* fluido em vez de fixo — nomes de estabelecimento variam muito mais
      em tamanho que "GASTROMUNDI"; responsividade sem depender do
@@ -18,6 +21,8 @@
 }
 
 .sidebar-branding__tagline {
+  /* assinatura da plataforma na fonte de TEXTO (como no login) */
+  font-family: var(--gm-font-texto);
   color: var(--gm-muted);
   font-weight: 400;
   font-size: 12px;

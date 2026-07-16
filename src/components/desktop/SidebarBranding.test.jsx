@@ -24,13 +24,13 @@ describe("SidebarBranding — Fase 6 (white-label, ADR-007)", () => {
     expect(screen.getByText("by Kora")).toBeInTheDocument();
   });
 
-  it("com nome_exibicao customizado: mostra o nome do tenant, sem o tagline 'by Kora'", () => {
+  it("com nome_exibicao customizado: mostra o nome do tenant COM o tagline 'by Kora' (assinatura da plataforma)", () => {
     setAppMock({ tenant: { id: "t2", nome: "Pizzaria do João", tema: { nome_exibicao: "Pizzaria do João" } } });
 
     render(<SidebarBranding />);
 
     expect(screen.getByText("PIZZARIA DO JOÃO")).toBeInTheDocument();
-    expect(screen.queryByText("by Kora")).not.toBeInTheDocument();
+    expect(screen.getByText("by Kora")).toBeInTheDocument();
   });
 
   it("com logo_url customizado: mostra a imagem em vez do nome em texto", () => {

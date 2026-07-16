@@ -15,7 +15,6 @@ export default function SidebarBranding() {
   const { tenant } = useApp();
   const nome = nomeExibicaoTenant(tenant?.tema);
   const logoUrl = logoUrlTenant(tenant?.tema);
-  const ehPadrao = nome === "GastroMundi";
 
   return (
     <div className="sidebar-branding">
@@ -24,8 +23,10 @@ export default function SidebarBranding() {
       ) : (
         <div className="sidebar-branding__nome">
           {nome.toUpperCase()}
-          {ehPadrao && <br />}
-          {ehPadrao && <span className="sidebar-branding__tagline">by Kora</span>}
+          {/* "by Kora" é assinatura da PLATAFORMA — aparece em todo tenant
+              (GastroMundi ou white-label), como a marca-mãe do SaaS. */}
+          <br />
+          <span className="sidebar-branding__tagline">by Kora</span>
         </div>
       )}
     </div>
