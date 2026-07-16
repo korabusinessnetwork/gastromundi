@@ -50,6 +50,31 @@ export async function buscarTenantAtual() {
 }
 
 /**
+ * Branding de um tenant a partir do SLUG do subdomínio — para a TELA DE
+ * LOGIN, que é PRÉ-autenticação (ADR-009). Antes do login não há JWT, e a
+ * RLS de `tenants` (id = tenant_atual_id()) devolve zero linhas ao anon —
+ * por isso a leitura passa por uma RPC SECURITY DEFINER (`branding_por_slug`,
+ * 20260742) que expõe SÓ nome + tema (marca), nunca dados operacionais.
+ *
+ * Sem slug, slug desconhecido ou erro → { data: null } e o chamador cai no
+ * branding padrão (GastroMundi). Nunca lança.
+ *
+ * @param {string} slug
+ * @returns {Promise<{data: {nome: string, tema: object}|null, error: object|null}>}
+ */
+export async function buscarBrandingPorSlug(slug) {
+  if (!slug) return { data: null, error: null };
+  try {
+    const { data, error } = await supabase.rpc("branding_por_slug", { p_slug: slug });
+    if (error) return { data: null, error };
+    const row = Array.isArray(data) ? data[0] : data;
+    return { data: row ?? null, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao buscar o branding do estabelecimento." } };
+  }
+}
+
+/**
  * Busca os códigos de módulo incluídos num plano, direto do registro
  * central (`public.planos_modulos`) — nunca hardcoded no front.
  *

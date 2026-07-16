@@ -25,6 +25,7 @@
 // campos podem virar custom property, nunca uma chave arbitrária do tenant.
 const TOKENS_PERMITIDOS = {
   accent: "--gm-accent",
+  alow: "--gm-alow",
   bg: "--gm-bg",
   card: "--gm-card",
   surface: "--gm-surface",
@@ -46,6 +47,7 @@ const FALLBACK_DEFAULTS = {
   "--gm-surface": "#161b2c",
   "--gm-border": "#28324d",
   "--gm-accent": "#7c3aed",
+  "--gm-alow": "rgba(124, 58, 237, 0.13)",
   "--gm-green": "#10b981",
   "--gm-red": "#ef4444",
   "--gm-blue": "#3b82f6",
