@@ -26,6 +26,7 @@ export default function MobilePage() {
     lancadas, addLancada,
     logout,
     sales, sessaoAbertaEm, categoriaGrupoMap,
+    redeOnline, ponteEndereco,
   } = useApp();
 
   const { width } = useResponsive();
@@ -220,6 +221,24 @@ export default function MobilePage() {
   // ── PEDIDO (tela de produtos) ─────────────────────────────────
   return (
     <>
+    {/* ── Leva 13: sem internet + ponte configurada → oferece o modo local.
+        Um toque leva à página servida pela ponte no Wi-Fi do caixa, onde o
+        pedido continua saindo na impressora. Botão só aparece quando faz
+        sentido (prevenção > erro). ── */}
+    {redeOnline === false && ponteEndereco && (
+      <button
+        onClick={() => { window.location.href = ponteEndereco; }}
+        style={{
+          position: "fixed", top: 10, left: "50%", transform: "translateX(-50%)",
+          zIndex: 300, border: "none", borderRadius: 999, padding: "10px 18px",
+          background: AMBER, color: "#1a1a1a", fontWeight: 800, fontSize: 14,
+          fontFamily: "inherit", cursor: "pointer", boxShadow: "0 4px 14px #0006",
+          display: "flex", alignItems: "center", gap: 8,
+        }}
+      >
+        Sem internet? Tocar pedido pelo Wi-Fi do caixa
+      </button>
+    )}
     {/* ── GRID de comandas ── */}
     {mode === "grid" && (
       <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text) }}>

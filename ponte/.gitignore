@@ -1,0 +1,3 @@
+# Dados locais da ponte (token, fila de pedidos, snapshot do catálogo) —
+# são do estabelecimento onde ela roda, nunca vão para o repositório.
+dados/

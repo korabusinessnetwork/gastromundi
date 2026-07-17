@@ -20,6 +20,7 @@ import { criarFila, drenarFila } from "@/lib/offline/fila";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 import { useStatusRede } from "@/hooks/useStatusRede";
 import IndicadorRede from "@/components/shared/IndicadorRede";
+import PonteLocalBridge from "@/components/shared/PonteLocalBridge";
 import {
   saveSession, loadSession, clearSession,
   getAttempts, setAttempts, clearAttempts,
@@ -61,6 +62,10 @@ export function AppProvider({ children }) {
   const redeOnline = useStatusRede();
   const [pendenciasOffline, setPendenciasOffline] = useState(() => filaOffline.tamanho());
   const drenandoRef = useRef(false);
+  // Leva 13 — endereço da página do Palm servida pela Ponte KORA
+  // (http://IP:porta/palm?t=token). Persistido em config para o Palm
+  // saber para onde ir quando a internet cair.
+  const [ponteEndereco, setPonteEnderecoLocal] = useState(null);
 
   // ── Auth ─────────────────────────────────────────────────────
   const [currentUser,  setCurrentUser]  = useState(() => loadSession());
@@ -194,7 +199,7 @@ export function AppProvider({ children }) {
         buscarSalesData(),
         supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","metodos_tef","dias_alerta_validade"]),
+        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","metodos_tef","dias_alerta_validade","ponte_endereco"]),
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
         // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
         buscarBootstrapTenant(),
@@ -230,6 +235,7 @@ export function AppProvider({ children }) {
           if (Array.isArray(config.metodosCustom)) setMetodosCustomLocal(config.metodosCustom);
           if (Array.isArray(config.metodosTef))    setMetodosTefLocal(config.metodosTef);
           if (config.taxaServico !== undefined) setTaxaServicoLocal(!!config.taxaServico);
+          if (typeof config.ponteEndereco === "string" && config.ponteEndereco) setPonteEnderecoLocal(config.ponteEndereco);
         }
         setLoading(false);
         return;
@@ -276,6 +282,9 @@ export function AppProvider({ children }) {
         if (Array.isArray(tef?.value)) setMetodosTefLocal(tef.value);
         const diasValidade = configData.find(c => c.key === "dias_alerta_validade");
         if (diasValidade?.value != null && !isNaN(Number(diasValidade.value))) setDiasAlertaValidadeLocal(Number(diasValidade.value));
+        // Leva 13 — endereço do Palm na ponte local (salvo pela bridge)
+        const ponte = configData.find(c => c.key === "ponte_endereco");
+        if (typeof ponte?.value === "string" && ponte.value) setPonteEnderecoLocal(ponte.value);
       }
 
       if (tenantData) {
@@ -308,6 +317,7 @@ export function AppProvider({ children }) {
             metodosCustom: Array.isArray(configMap.metodos_custom) ? configMap.metodos_custom : undefined,
             metodosTef: Array.isArray(configMap.metodos_tef) ? configMap.metodos_tef : undefined,
             taxaServico: configMap.taxa_servico !== undefined ? !!configMap.taxa_servico : undefined,
+            ponteEndereco: typeof configMap.ponte_endereco === "string" ? configMap.ponte_endereco : undefined,
           },
         });
       }
@@ -905,6 +915,14 @@ export function AppProvider({ children }) {
     return gravarConfig("taxa_servico", !!val, () => setTaxaServicoLocal(anterior));
   };
 
+  // Leva 13 — a bridge grava o endereço do Palm quando ele muda (IP novo
+  // do roteador, token novo). Também vai para o snapshot no próximo boot.
+  const setPonteEndereco = async (val) => {
+    const anterior = ponteEndereco;
+    setPonteEnderecoLocal(val);
+    return gravarConfig("ponte_endereco", val, () => setPonteEnderecoLocal(anterior));
+  };
+
   const setDiasAlertaValidade = async (val) => {
     const anterior = diasAlertaValidade;
     const n = Math.max(1, Math.min(365, Number(val) || 7));
@@ -988,12 +1006,15 @@ export function AppProvider({ children }) {
     metodosTef, setMetodosTef,
     // offline-first (Leva 11)
     redeOnline, pendenciasOffline, enfileirarOffline,
+    // ponte local (Leva 13)
+    ponteEndereco, setPonteEndereco,
   };
 
   return (
     <AppContext.Provider value={value}>
       {children}
       <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
+      <PonteLocalBridge />
     </AppContext.Provider>
   );
 }

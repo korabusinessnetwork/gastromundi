@@ -1,0 +1,391 @@
+<!doctype html>
+<!--
+  Ponte KORA — página de pedido do Palm (modo local, sem internet).
+  Servida pelo servidor.js na rede do estabelecimento; fala só com a
+  própria origem (/catalogo, /pedido), então funciona sem HTTPS.
+  Autossuficiente de propósito: zero dependências, zero rede externa.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Pedido local</title>
+<style>
+  :root {
+    --bg: #0f0f10; --card: #1a1a1c; --border: #2a2a2e;
+    --texto: #f2f2f2; --muted: #9a9aa2;
+    --accent: #e8863a; --ok: #34c05f; --erro: #e5484d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg); color: var(--texto);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100dvh; padding-bottom: 110px;
+  }
+  header {
+    position: sticky; top: 0; z-index: 5; background: var(--bg);
+    padding: 14px 16px 10px; border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 17px; font-weight: 800; }
+  .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .sub b.on { color: var(--ok); } .sub b.off { color: var(--erro); }
+  .busca {
+    width: 100%; margin-top: 10px; padding: 12px 14px; font-size: 16px;
+    border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card); color: var(--texto); outline: none;
+  }
+  .cats { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none; }
+  .cats::-webkit-scrollbar { display: none; }
+  .cat {
+    flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    border: 1px solid var(--border); background: var(--card); color: var(--muted);
+  }
+  .cat.ativa { background: var(--accent); border-color: var(--accent); color: #fff; }
+  main { padding: 12px 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .produto {
+    text-align: left; background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px; color: var(--texto); min-height: 84px;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 6px;
+  }
+  .produto:active { border-color: var(--accent); }
+  .produto .nome { font-size: 14px; font-weight: 700; line-height: 1.25; }
+  .produto .preco { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .produto .qtd {
+    position: absolute; display: none;
+  }
+  .produto .badge {
+    background: var(--accent); color: #fff; border-radius: 999px;
+    font-size: 12px; font-weight: 800; padding: 2px 8px; align-self: flex-start;
+  }
+  .aviso { color: var(--muted); font-size: 14px; padding: 30px 10px; text-align: center; line-height: 1.5; }
+  .aviso .btn { margin-top: 14px; }
+
+  /* Barra fixa do carrinho */
+  .barra {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: var(--bg); border-top: 1px solid var(--border);
+  }
+  .btn {
+    width: 100%; padding: 16px; font-size: 17px; font-weight: 800;
+    border: none; border-radius: 12px; background: var(--accent); color: #fff;
+  }
+  .btn:disabled { opacity: 0.45; }
+  .btn.secundario { background: var(--card); color: var(--texto); border: 1px solid var(--border); }
+
+  /* Tela do carrinho / envio */
+  .folha { display: none; }
+  body.no-carrinho .catalogo { display: none; }
+  body.no-carrinho .folha { display: block; }
+  .item { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .item .info { flex: 1; min-width: 0; }
+  .item .info .nome { font-size: 15px; font-weight: 700; }
+  .item .info .preco { font-size: 13px; color: var(--muted); }
+  .qtde { display: flex; align-items: center; gap: 4px; }
+  .qtde button {
+    width: 42px; height: 42px; font-size: 20px; font-weight: 800; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--card); color: var(--texto);
+  }
+  .qtde span { min-width: 30px; text-align: center; font-size: 16px; font-weight: 800; }
+  .campo { margin-top: 14px; }
+  .campo label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+  .campo input, .campo textarea {
+    width: 100%; padding: 13px 14px; font-size: 16px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--card); color: var(--texto); outline: none;
+  }
+  .linha2 { display: flex; gap: 10px; } .linha2 .campo { flex: 1; }
+  .total { display: flex; justify-content: space-between; font-size: 17px; font-weight: 800; margin-top: 16px; }
+  .msg-erro { color: var(--erro); font-size: 14px; font-weight: 700; margin-top: 12px; display: none; }
+
+  /* Tela de sucesso */
+  .sucesso { display: none; text-align: center; padding: 70px 24px 24px; }
+  body.no-sucesso .catalogo, body.no-sucesso .folha, body.no-sucesso .barra { display: none; }
+  body.no-sucesso .sucesso { display: block; }
+  .sucesso .icone { font-size: 64px; }
+  .sucesso h2 { font-size: 22px; margin-top: 14px; }
+  .sucesso p { color: var(--muted); margin-top: 8px; font-size: 15px; line-height: 1.5; }
+  .sucesso .btn { margin-top: 28px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Pedido local <span style="color:var(--muted);font-weight:600;font-size:13px">· sem internet</span></h1>
+  <div class="sub" id="status">Conectando ao caixa…</div>
+  <div class="catalogo">
+    <input class="busca" id="busca" type="search" placeholder="Buscar produto…" />
+    <div class="cats" id="cats"></div>
+  </div>
+</header>
+
+<main>
+  <div class="catalogo">
+    <div class="grid" id="grid"></div>
+    <div class="aviso" id="avisoCatalogo" style="display:none"></div>
+  </div>
+
+  <div class="folha">
+    <div id="listaCarrinho"></div>
+    <div class="linha2">
+      <div class="campo">
+        <label for="comanda">Comanda *</label>
+        <input id="comanda" inputmode="numeric" placeholder="Nº ou nome" />
+      </div>
+      <div class="campo">
+        <label for="mesa">Mesa</label>
+        <input id="mesa" placeholder="Opcional" />
+      </div>
+    </div>
+    <div class="campo">
+      <label for="garcom">Seu nome (garçom) *</label>
+      <input id="garcom" placeholder="Quem está lançando" />
+    </div>
+    <div class="campo">
+      <label for="note">Observação do pedido</label>
+      <textarea id="note" rows="2" placeholder="Ex.: sem cebola, levar junto…"></textarea>
+    </div>
+    <div class="total"><span>Total</span><span id="totalFolha">R$ 0,00</span></div>
+    <div class="msg-erro" id="erroEnvio"></div>
+  </div>
+
+  <div class="sucesso">
+    <div class="icone">✅</div>
+    <h2>Pedido enviado!</h2>
+    <p>Ele já chegou no caixa e vai sair na impressora.<br/>Pode conferir a comanda por lá.</p>
+    <button class="btn" id="btnNovo">Fazer outro pedido</button>
+  </div>
+</main>
+
+<div class="barra">
+  <button class="btn" id="btnPrincipal" disabled>Toque nos produtos para montar o pedido</button>
+  <button class="btn secundario" id="btnVoltar" style="display:none;margin-top:8px">← Voltar aos produtos</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var token = new URLSearchParams(location.search).get("t") || "";
+  var produtos = [];
+  var carrinho = []; // { id, name, price, qty, emoji, category, produzivel }
+  var catAtiva = "Todos";
+  var idPedido = null; // gerado uma vez por pedido — reenvio não duplica
+  var $ = function (id) { return document.getElementById(id); };
+
+  var fmt = function (n) {
+    return "R$ " + (Math.round(n * 100) / 100).toFixed(2).replace(".", ",");
+  };
+  // crypto.randomUUID não existe em página http:// (contexto não seguro).
+  var gerarId = function () {
+    return "palm-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+  };
+
+  // ── Status / catálogo ─────────────────────────────────────────
+  function setStatus(ok, texto) {
+    $("status").innerHTML = "<b class=\"" + (ok ? "on" : "off") + "\">●</b> " + texto;
+  }
+
+  function carregarCatalogo() {
+    fetch("/catalogo?t=" + encodeURIComponent(token))
+      .then(function (r) { return r.json().then(function (j) { return { st: r.status, j: j }; }); })
+      .then(function (res) {
+        if (res.st !== 200) {
+          setStatus(false, "Sem catálogo");
+          mostrarAviso(res.j && res.j.erro ? res.j.erro : "Não deu para carregar o catálogo.", true);
+          return;
+        }
+        produtos = Array.isArray(res.j.products) ? res.j.products : [];
+        setStatus(true, "Conectado ao caixa · " + produtos.length + " produtos");
+        mostrarAviso(null);
+        montarCategorias();
+        desenharGrid();
+      })
+      .catch(function () {
+        setStatus(false, "Caixa fora do alcance");
+        mostrarAviso("Não achei o caixa na rede. Confira se o PC do caixa está ligado e no mesmo Wi-Fi, e tente de novo.", true);
+      });
+  }
+
+  function mostrarAviso(texto, comBotao) {
+    var el = $("avisoCatalogo");
+    if (!texto) { el.style.display = "none"; return; }
+    el.style.display = "block";
+    el.innerHTML = texto + (comBotao ? "<br/><button class=\"btn\" style=\"margin-top:14px\" id=\"btnRecarregar\">Tentar de novo</button>" : "");
+    var btn = $("btnRecarregar");
+    if (btn) btn.onclick = carregarCatalogo;
+  }
+
+  function montarCategorias() {
+    var cats = ["Todos"];
+    produtos.forEach(function (p) { if (p.category && cats.indexOf(p.category) < 0) cats.push(p.category); });
+    $("cats").innerHTML = cats.map(function (c) {
+      return "<button class=\"cat" + (c === catAtiva ? " ativa" : "") + "\" data-cat=\"" + c.replace(/"/g, "") + "\">" + c + "</button>";
+    }).join("");
+    Array.prototype.forEach.call($("cats").children, function (b) {
+      b.onclick = function () { catAtiva = b.getAttribute("data-cat"); montarCategorias(); desenharGrid(); };
+    });
+  }
+
+  function desenharGrid() {
+    var termo = $("busca").value.trim().toLowerCase();
+    var visiveis = produtos.filter(function (p) {
+      if (catAtiva !== "Todos" && p.category !== catAtiva) return false;
+      if (termo && String(p.name || "").toLowerCase().indexOf(termo) < 0) return false;
+      return true;
+    });
+    var grid = $("grid");
+    grid.innerHTML = visiveis.map(function (p, i) {
+      var no = qtdNoCarrinho(p.id);
+      return "<button class=\"produto\" data-i=\"" + i + "\">" +
+        (no > 0 ? "<span class=\"badge\">" + no + "×</span>" : "") +
+        "<span class=\"nome\">" + (p.emoji ? p.emoji + " " : "") + escapar(p.name) + "</span>" +
+        "<span class=\"preco\">" + fmt(Number(p.price) || 0) + "</span></button>";
+    }).join("");
+    Array.prototype.forEach.call(grid.children, function (b) {
+      b.onclick = function () { adicionar(visiveis[Number(b.getAttribute("data-i"))]); };
+    });
+  }
+
+  function escapar(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // ── Carrinho ──────────────────────────────────────────────────
+  function qtdNoCarrinho(id) {
+    var item = carrinho.filter(function (i) { return i.id === id; })[0];
+    return item ? item.qty : 0;
+  }
+
+  function adicionar(p) {
+    var item = carrinho.filter(function (i) { return i.id === p.id; })[0];
+    if (item) item.qty += 1;
+    else carrinho.push({ id: p.id, name: p.name, price: Number(p.price) || 0, qty: 1, emoji: p.emoji || "", category: p.category || "", produzivel: p.produzivel === false ? false : true });
+    atualizarBarra();
+    desenharGrid();
+  }
+
+  function mudarQtd(id, delta) {
+    carrinho = carrinho.map(function (i) { return i.id === id ? Object.assign({}, i, { qty: i.qty + delta }) : i; })
+      .filter(function (i) { return i.qty > 0; });
+    if (carrinho.length === 0) voltarCatalogo();
+    else { desenharCarrinho(); atualizarBarra(); }
+  }
+
+  function totalCarrinho() {
+    return carrinho.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
+  }
+
+  function atualizarBarra() {
+    var btn = $("btnPrincipal");
+    var qtd = carrinho.reduce(function (s, i) { return s + i.qty; }, 0);
+    if (document.body.classList.contains("no-carrinho")) {
+      btn.disabled = false;
+      btn.textContent = "Enviar pedido · " + fmt(totalCarrinho());
+    } else if (qtd === 0) {
+      btn.disabled = true;
+      btn.textContent = "Toque nos produtos para montar o pedido";
+    } else {
+      btn.disabled = false;
+      btn.textContent = "Ver pedido (" + qtd + ") · " + fmt(totalCarrinho());
+    }
+  }
+
+  function desenharCarrinho() {
+    $("listaCarrinho").innerHTML = carrinho.map(function (i) {
+      return "<div class=\"item\"><div class=\"info\">" +
+        "<div class=\"nome\">" + (i.emoji ? i.emoji + " " : "") + escapar(i.name) + "</div>" +
+        "<div class=\"preco\">" + fmt(i.price) + " cada</div></div>" +
+        "<div class=\"qtde\">" +
+        "<button data-id=\"" + i.id + "\" data-d=\"-1\">−</button>" +
+        "<span>" + i.qty + "</span>" +
+        "<button data-id=\"" + i.id + "\" data-d=\"1\">+</button>" +
+        "</div></div>";
+    }).join("");
+    Array.prototype.forEach.call($("listaCarrinho").querySelectorAll("button"), function (b) {
+      b.onclick = function () { mudarQtd(isNaN(Number(b.getAttribute("data-id"))) ? b.getAttribute("data-id") : Number(b.getAttribute("data-id")), Number(b.getAttribute("data-d"))); };
+    });
+    $("totalFolha").textContent = fmt(totalCarrinho());
+  }
+
+  // ── Navegação entre telas ─────────────────────────────────────
+  function abrirCarrinho() {
+    document.body.classList.add("no-carrinho");
+    $("btnVoltar").style.display = "block";
+    desenharCarrinho();
+    atualizarBarra();
+  }
+
+  function voltarCatalogo() {
+    document.body.classList.remove("no-carrinho");
+    $("btnVoltar").style.display = "none";
+    $("erroEnvio").style.display = "none";
+    desenharGrid();
+    atualizarBarra();
+  }
+
+  // ── Envio ─────────────────────────────────────────────────────
+  function enviar() {
+    var comanda = $("comanda").value.trim();
+    var garcom = $("garcom").value.trim();
+    var erroEl = $("erroEnvio");
+    erroEl.style.display = "none";
+    if (!comanda) { erroEl.textContent = "Informe o número ou nome da comanda."; erroEl.style.display = "block"; $("comanda").focus(); return; }
+    if (!garcom) { erroEl.textContent = "Informe seu nome — sai impresso na cozinha."; erroEl.style.display = "block"; $("garcom").focus(); return; }
+    try { localStorage.setItem("kora.palm.garcom", garcom); } catch (e) { /* sem storage, segue */ }
+
+    if (!idPedido) idPedido = gerarId(); // reaproveitado no reenvio — não duplica
+    var btn = $("btnPrincipal");
+    btn.disabled = true;
+    btn.textContent = "Enviando…";
+
+    fetch("/pedido?t=" + encodeURIComponent(token), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: idPedido,
+        comanda: comanda,
+        mesa: $("mesa").value.trim(),
+        garcom: garcom,
+        note: $("note").value.trim(),
+        items: carrinho,
+      }),
+    })
+      .then(function (r) { return r.json().then(function (j) { return { st: r.status, j: j }; }); })
+      .then(function (res) {
+        if (res.st === 200 || res.st === 201) {
+          carrinho = []; idPedido = null;
+          $("comanda").value = ""; $("mesa").value = ""; $("note").value = "";
+          document.body.classList.remove("no-carrinho");
+          document.body.classList.add("no-sucesso");
+        } else {
+          erroEl.textContent = (res.j && res.j.erro) || "O caixa recusou o pedido. Tente de novo.";
+          erroEl.style.display = "block";
+          atualizarBarra();
+        }
+      })
+      .catch(function () {
+        erroEl.textContent = "Não deu para falar com o caixa. Confira o Wi-Fi e toque em Enviar de novo — o pedido não se perde nem duplica.";
+        erroEl.style.display = "block";
+        atualizarBarra();
+      });
+  }
+
+  // ── Liga tudo ─────────────────────────────────────────────────
+  $("busca").addEventListener("input", desenharGrid);
+  $("btnVoltar").onclick = voltarCatalogo;
+  $("btnNovo").onclick = function () {
+    document.body.classList.remove("no-sucesso");
+    voltarCatalogo();
+    carregarCatalogo();
+  };
+  $("btnPrincipal").onclick = function () {
+    if (document.body.classList.contains("no-carrinho")) enviar();
+    else abrirCarrinho();
+  };
+  try { $("garcom").value = localStorage.getItem("kora.palm.garcom") || ""; } catch (e) { /* ok */ }
+  atualizarBarra();
+  carregarCatalogo();
+})();
+</script>
+</body>
+</html>
