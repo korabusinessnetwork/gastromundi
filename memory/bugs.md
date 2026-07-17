@@ -55,6 +55,13 @@ revisão item a item com o dono antes de merge.
 | Cor do gerente "hardcodada" | constants/roles.js | ✅ falso positivo — papel é conceito da plataforma, não branding do tenant |
 | `emitirDocumentoFiscal` stub | fiscal | ⏳ pendente (depende de provedor fiscal — decisão de custo do dono) |
 
+## Teste real do dono — 2026-07-17 (offline no celular)
+
+| Achado | Onde | Estado |
+|---|---|---|
+| Pedido lançado offline não grava E não sincroniza quando a internet volta — o rollback otimista (contrato Leva 1) descarta o pedido na falha; não existe fila local (sem service worker, sem PWA, sem IndexedDB) | app inteiro (AppContext fala direto com Supabase) | ⏳ pendente — projeto offline-first (PWA + fila local + sync), ~2–3 levas; desenho já existe em `pesquisas-diarias/ideia-2026-07-10.html` (vite-plugin-pwa + Dexie, custo zero) |
+| Site promete "funciona offline" sem lastro (`ApexProva.jsx:25`, `ApexFaq.jsx:17`) | páginas de venda | ⏳ pendente — dono decide: priorizar offline-first ou ajustar o texto do site |
+
 ### Ações manuais pendentes (painel Supabase)
 
 - Migrations **20260744**, **20260745**, **20260746** ainda não aplicadas em produção.
