@@ -94,8 +94,17 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
 
   const usaFiado = pagamentos.some(p => p.metodo === "fiado");
 
+  // No split, dinheiro com "Recebido" digitado abaixo do valor alocado
+  // não pode confirmar — a tela já mostra "Falta: R$ x" e o botão guia.
+  // Recebido em branco (0) segue valendo como "valor exato".
+  const dinheiroInsuficiente = isSplit && pagamentos.some(
+    p => p.metodo === "dinheiro" && (p.recebido || 0) > 0 && p.recebido < p.valor - 0.005
+  );
+
+  // Tolerância de meio centavo (só ruído de float): com round2 em tudo,
+  // 1 centavo não alocado é diferença real e deve bloquear a confirmação.
   const podeConfirmar = (isSplit
-    ? pagamentos.every(p => !!p.metodo) && Math.abs(faltaAlocar) < 0.015
+    ? pagamentos.every(p => !!p.metodo) && Math.abs(faltaAlocar) < 0.005 && !dinheiroInsuficiente
     : !!singleMetodo) && (!usaFiado || !!clienteFiado);
 
   const updatePagamento = (idx, patch) =>

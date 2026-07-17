@@ -33,6 +33,7 @@ export default function PDVView({ notify }) {
     addPending, updatePending, removePending,
     caixaAberto, currentUser, sales, users, metodosCustom,
     lancadas, addLancada, diasAlertaValidade,
+    loading: bootstrapLoading,
   } = useApp();
   const { finalizarPagamento } = useFinalizarPagamento();
   const { cancelarComanda } = useCancelarComanda();
@@ -501,6 +502,22 @@ export default function PDVView({ notify }) {
     setMesaPendingOrder(order);
     setShowMesa(true);
   };
+
+  // Enquanto o bootstrap não trouxe o estado real do caixa (o default
+  // local é "aberto"), não deixar operar: evita registrar venda com o
+  // caixa de fato fechado nos primeiros segundos após o login.
+  if (bootstrapLoading) {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        height: "100vh", background: varColor(C.bg),
+        fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.muted),
+        fontSize: sz.fontBase, fontWeight: 600, userSelect: "none",
+      }}>
+        Conectando ao caixa…
+      </div>
+    );
+  }
 
   if (!caixaAberto) {
     return (

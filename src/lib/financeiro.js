@@ -111,7 +111,11 @@ export async function baixarConta(id, usuario) {
  * @returns {Promise<{data: object[]|null, error: object|null}>}
  */
 export async function listarLancamentos({ de, ate, tipo, status } = {}) {
-  let query = supabase.from("lancamentos").select("*").order("competencia", { ascending: false });
+  // Colunas explícitas — tabela financeira, nunca select * (CLAUDE.md/Segurança)
+  let query = supabase
+    .from("lancamentos")
+    .select("id,tipo,categoria,descricao,valor,competencia,vencimento,status,origem,venda_id,retroativo,criado_por,baixado_por,baixado_em,created_at,cliente_id")
+    .order("competencia", { ascending: false });
   if (de) query = query.gte("competencia", de);
   if (ate) query = query.lte("competencia", ate);
   if (tipo) query = query.eq("tipo", tipo);

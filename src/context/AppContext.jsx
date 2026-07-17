@@ -165,7 +165,8 @@ export function AppProvider({ children }) {
         { data: catGrupoData, error: eCatGrupo },
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
-        supabase.from("pending").select("*").order("created_at", { ascending: false }),
+        // Colunas explícitas (nunca select * em pedidos — CLAUDE.md/Segurança)
+        supabase.from("pending").select("id,comanda,items,status,note,total,garcom,created_by,created_at,updated_at,mesa,apelido,status_cozinha,em_preparo_em,pronto_em").order("created_at", { ascending: false }),
         // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
         buscarSalesData(),
         supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),

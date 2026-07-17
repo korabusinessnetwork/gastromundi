@@ -220,6 +220,22 @@ Fluxos cobertos:
 
 **Resultado:** `npm test` — 9 arquivos, 74 testes, todos verdes. `npm run build` sem erros.
 
+### [TD012] `key={i}` (índice) em listas React
+
+**Categoria:** Code Quality · **Impacto:** Baixo · **Esforço:** Médio · **Prioridade:** 🟢 Low · **Status:** Identificado (2026-07-17, varredura)
+
+**Descrição:** ~25 ocorrências de `key={i}`/`key={idx}` em `.map()` (cabeçalhos de tabela, itens de comanda, entradas de split de pagamento etc.). Verificado na varredura de 2026-07-17: as listas afetadas ou são estáticas (headers) ou têm todos os inputs controlados (valor vem do state), então não há bug de comportamento hoje — o risco é futuro, se alguma dessas listas passar a reordenar/ter estado não-controlado por item.
+
+**Solução proposta:** ao tocar em cada tela, trocar por chave estável (id do item, `metodo`, texto do header). Não vale um refactor em massa isolado.
+
+### [TD013] `updatePending` sem merge atômico no banco (RPC de append JSONB)
+
+**Categoria:** Arquitetura · **Impacto:** Médio · **Esforço:** Médio · **Prioridade:** 🟡 Medium · **Status:** Identificado (2026-07-16, Leva 2)
+
+**Descrição:** a Leva 2 resolveu a perda de itens entre dispositivos no lado do cliente (merge por `uid` + resync do `selected` via Realtime), mas o update em `pending.items` continua sendo read-modify-write do array inteiro no cliente. Dois lançamentos simultâneos na mesma comanda em janelas muito curtas ainda podem se sobrescrever antes de o Realtime sincronizar.
+
+**Solução proposta:** RPC `SECURITY DEFINER` de append atômico no JSONB (`items = items || novos_itens` com lock de linha), no mesmo padrão de `baixar_estoque`/`limpar_reserva_mesa`, e o cliente passar a enviar só os itens novos.
+
 ---
 
 ## Template de Item de Débito Técnico

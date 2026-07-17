@@ -61,9 +61,11 @@ export const hashPassword = async (pwd) => {
 export const isV2Hash = (s) =>
   typeof s === "string" && /^[a-f0-9]{64}$/.test(s);
 
-/** Remove caracteres perigosos e limita tamanho */
+/** Remove caracteres perigosos e limita tamanho. Aceita não-string
+ *  (null/undefined/número) sem lançar — devolve "" para nulos. */
 export const sanitizeInput = (str, max = 60) =>
-  str.replace(/[<>"'`]/g, "").slice(0, max).trim();
+  (typeof str === "string" ? str : String(str ?? ""))
+    .replace(/[<>"'`]/g, "").slice(0, max).trim();
 
 /** Avalia a força de uma senha (0-4) */
 export const passwordStrength = (pwd) => {

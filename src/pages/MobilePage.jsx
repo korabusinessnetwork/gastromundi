@@ -21,6 +21,7 @@ const fmtComanda = (name) =>
 export default function MobilePage() {
   const {
     pending, products, currentUser, estoque, caixaAberto,
+    loading: bootstrapLoading,
     addPending, updatePending,
     lancadas, addLancada,
     logout,
@@ -167,6 +168,22 @@ export default function MobilePage() {
       setSalvando(false);
     }
   };
+
+  // ── Guard: bootstrap ainda carregando o estado real do caixa ─
+  // (o default local é "aberto" — sem este gate dava para lançar
+  // pedido nos primeiros segundos mesmo com o caixa fechado)
+  if (bootstrapLoading) {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        height: "100dvh", background: varColor(C.bg),
+        fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.muted),
+        fontSize: 15, fontWeight: 600, padding: 24,
+      }}>
+        Conectando ao caixa…
+      </div>
+    );
+  }
 
   // ── Guard: caixa fechado ──────────────────────────────────────
   if (!caixaAberto) {
