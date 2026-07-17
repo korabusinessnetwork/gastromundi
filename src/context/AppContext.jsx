@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { getPermissions } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
@@ -13,6 +13,11 @@ import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
 import { processarBaixaEstoque } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { sanitizeInput } from "@/utils/crypto";
+import { isErroDeRede } from "@/lib/offline/rede";
+import { criarFila, drenarFila } from "@/lib/offline/fila";
+import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
+import { useStatusRede } from "@/hooks/useStatusRede";
+import IndicadorRede from "@/components/shared/IndicadorRede";
 import {
   saveSession, loadSession, clearSession,
   getAttempts, setAttempts, clearAttempts,
@@ -20,6 +25,11 @@ import {
 } from "@/utils/session";
 
 const AppContext = createContext(null);
+
+// Fila local de operações offline (Leva 11) — singleton de módulo sobre
+// localStorage: sobrevive a reload/fechamento do app e é compartilhada
+// por todas as instâncias do provider (só existe uma no app real).
+const filaOffline = criarFila({ storage: window.localStorage });
 
 export function AppProvider({ children }) {
   // ── Estado local ─────────────────────────────────────────────
@@ -44,6 +54,11 @@ export function AppProvider({ children }) {
   // IDs de comandas com pedido lançado na sessão atual (sobrevive troca de aba)
   const [lancadas,    setLancadas]         = useState(new Set());
 
+  // ── Offline-first (Leva 11) ──────────────────────────────────
+  const redeOnline = useStatusRede();
+  const [pendenciasOffline, setPendenciasOffline] = useState(() => filaOffline.tamanho());
+  const drenandoRef = useRef(false);
+
   // ── Auth ─────────────────────────────────────────────────────
   const [currentUser,  setCurrentUser]  = useState(() => loadSession());
   const [mobileChoice, setMobileChoice] = useState(null);
@@ -63,6 +78,11 @@ export function AppProvider({ children }) {
         if (userData) {
           setCurrentUser(userData);
           saveSession(userData);
+          await bootstrap();
+        } else if (loadSession() && typeof navigator !== "undefined" && navigator.onLine === false) {
+          // Sem internet a busca do usuário falha mesmo com sessão válida.
+          // A sessão local basta para operar: o bootstrap hidrata do
+          // snapshot e o app segue offline em vez de travar no login.
           await bootstrap();
         } else {
           setLoading(false);
@@ -190,6 +210,27 @@ export function AppProvider({ children }) {
       if (eGrupos)   console.error("[bootstrap] grupos_categoria error:", eGrupos);
       if (eCatGrupo) console.error("[bootstrap] categoria_grupo error:", eCatGrupo);
 
+      // ── Offline (Leva 11): sem internet, hidrata do último snapshot ──
+      // e deixa o PDV operar; os pedidos entram na fila local.
+      if (isErroDeRede(eProducts) || isErroDeRede(ePending)) {
+        const snapshot = lerSnapshot(window.localStorage);
+        if (snapshot) {
+          if (snapshot.products?.length) setProductsLocal(snapshot.products);
+          if (snapshot.pending)          setPendingLocal(snapshot.pending);
+          if (snapshot.estoque)          setEstoqueLocal(snapshot.estoque);
+          if (snapshot.estoqueMinimos)   setEstoqueMinimosLocal(snapshot.estoqueMinimos);
+          const config = snapshot.config ?? {};
+          if (config.caixaAberto !== undefined) setCaixaAbertoLocal(!!config.caixaAberto);
+          if (config.sessaoAbertaEm)            setSessaoAbertaEmLocal(config.sessaoAbertaEm);
+          if (config.fundoAtual !== undefined)  setFundoAtualLocal(Number(config.fundoAtual));
+          if (Array.isArray(config.meiosPagamento) && config.meiosPagamento.length) setMeiosPagamentoLocal(config.meiosPagamento);
+          if (Array.isArray(config.metodosCustom)) setMetodosCustomLocal(config.metodosCustom);
+          if (config.taxaServico !== undefined) setTaxaServicoLocal(!!config.taxaServico);
+        }
+        setLoading(false);
+        return;
+      }
+
       if (gruposData)   setGruposCategoriaLocal(gruposData);
       if (catGrupoData) setCategoriaGruposLocal(catGrupoData);
 
@@ -202,8 +243,8 @@ export function AppProvider({ children }) {
       })));
       if (fechamentosData)         setFechamentosLocal(fechamentosData.map(r => r.data));
 
+      const qtds = {}, minimos = {};
       if (estoqueData) {
-        const qtds = {}, minimos = {};
         for (const row of estoqueData) {
           qtds[row.produto_id]    = Number(row.quantidade);
           minimos[row.produto_id] = Number(row.minimo);
@@ -240,6 +281,26 @@ export function AppProvider({ children }) {
             console.error("[bootstrap] falha ao sincronizar status da assinatura:", err);
           });
         }
+      }
+
+      // Snapshot para a próxima abertura sem internet (Leva 11). Só o
+      // essencial para operar o PDV — vendas/usuários seguem online-only.
+      if (productsData || pendingData) {
+        const configMap = Object.fromEntries((configData ?? []).map(c => [c.key, c.value]));
+        salvarSnapshot(window.localStorage, {
+          products: productsData ?? [],
+          pending: pendingData ?? [],
+          estoque: qtds,
+          estoqueMinimos: minimos,
+          config: {
+            caixaAberto: configMap.caixa_aberto === true || configMap.caixa_aberto === "true",
+            sessaoAbertaEm: configMap.sessao_aberta_em ?? null,
+            fundoAtual: configMap.fundo_atual !== undefined ? Number(configMap.fundo_atual) : undefined,
+            meiosPagamento: Array.isArray(configMap.meios_pagamento) ? configMap.meios_pagamento : undefined,
+            metodosCustom: Array.isArray(configMap.metodos_custom) ? configMap.metodos_custom : undefined,
+            taxaServico: configMap.taxa_servico !== undefined ? !!configMap.taxa_servico : undefined,
+          },
+        });
       }
 
       setLoading(false);
@@ -316,6 +377,36 @@ export function AppProvider({ children }) {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // ── Offline-first (Leva 11): reenvio da fila local ───────────
+  // Replay de uma operação guardada. Insert vira UPSERT por id: se a
+  // primeira tentativa gravou mas a resposta se perdeu na queda de rede,
+  // reenviar não duplica nem estoura chave única.
+  const executarOpOffline = (op) => {
+    if (op.tipo === "insert") return supabase.from("pending").upsert(op.payload, { onConflict: "id" });
+    if (op.tipo === "update") return supabase.from("pending").update(op.changes).eq("id", op.id);
+    if (op.tipo === "delete") return supabase.from("pending").delete().eq("id", op.id);
+    return Promise.resolve({ error: null }); // tipo desconhecido — descarta
+  };
+
+  const drenarPendenciasOffline = async () => {
+    if (drenandoRef.current || filaOffline.tamanho() === 0) return;
+    drenandoRef.current = true;
+    try {
+      const { falhas } = await drenarFila({ fila: filaOffline, executar: executarOpOffline, isErroDeRede });
+      for (const { op, error } of falhas) {
+        console.error("[offline] operação descartada no reenvio:", op.tipo, error?.message);
+      }
+    } finally {
+      drenandoRef.current = false;
+      setPendenciasOffline(filaOffline.tamanho());
+    }
+  };
+
+  useEffect(() => {
+    if (redeOnline && !loading) drenarPendenciasOffline();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [redeOnline, loading, pendenciasOffline]);
+
   // ── Actions: Auth ─────────────────────────────────────────────
   const login = async (username, password) => {
     const clean = sanitizeInput(username);
@@ -380,6 +471,12 @@ export function AppProvider({ children }) {
     const { id, comanda, mesa, apelido, items, status, note, total, garcom, created_by } = order;
     const { error } = await supabase.from("pending").insert({ id, comanda, mesa, apelido, items, status, note, total, garcom, created_by });
     if (error) {
+      // Sem internet o pedido NÃO some (Leva 11): mantém o estado
+      // otimista, guarda na fila local e reenvia quando a rede voltar.
+      if (isErroDeRede(error)) {
+        setPendenciasOffline(filaOffline.enfileirar({ tipo: "insert", payload: { id, comanda, mesa, apelido, items, status, note, total, garcom, created_by } }));
+        return { error: null, offline: true };
+      }
       console.error("addPending error:", error);
       setPendingLocal(prev => prev.filter(o => o.id !== id));
       return { error };
@@ -396,6 +493,10 @@ export function AppProvider({ children }) {
     });
     const { error } = await supabase.from("pending").delete().eq("id", id);
     if (error) {
+      if (isErroDeRede(error)) {
+        setPendenciasOffline(filaOffline.enfileirar({ tipo: "delete", id }));
+        return { error: null, offline: true };
+      }
       console.error("removePending error:", error);
       // Restaura a comanda: ela continua existindo no banco.
       if (removida) setPendingLocal(prev => prev.some(o => o.id === id) ? prev : [removida, ...prev]);
@@ -433,6 +534,10 @@ export function AppProvider({ children }) {
     }));
     const { error } = await supabase.from("pending").update({ ...changes, updated_at: new Date().toISOString() }).eq("id", id);
     if (error) {
+      if (isErroDeRede(error)) {
+        setPendenciasOffline(filaOffline.enfileirar({ tipo: "update", id, changes: { ...changes, updated_at: new Date().toISOString() } }));
+        return { error: null, offline: true };
+      }
       console.error("updatePending error:", error);
       if (anterior) setPendingLocal(prev => prev.map(o => o.id === id ? anterior : o));
       return { error };
@@ -814,9 +919,16 @@ export function AppProvider({ children }) {
     // C3 — grupos de categoria (radar do Palm + mapeamento em Configurações)
     gruposCategoria, categoriaGrupos, categoriaGrupoMap, setCategoriaGrupo,
     metodosCustom, setMetodosCustom,
+    // offline-first (Leva 11)
+    redeOnline, pendenciasOffline,
   };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+      <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
+    </AppContext.Provider>
+  );
 }
 
 export const useApp = () => {
