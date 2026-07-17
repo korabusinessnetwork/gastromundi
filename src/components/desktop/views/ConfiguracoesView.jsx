@@ -11,6 +11,7 @@ import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { createPortal } from "react-dom";
 import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter } from "react-icons/lu";
+import { METODOS_TEF_PADRAO } from "@/lib/tef";
 import ConfiguracaoImpressao from "./impressao/ConfiguracaoImpressao";
 import MesasAdmin from "./mesas/MesasAdmin";
 import ImportarExportarTab from "./ImportarExportarTab";
@@ -537,7 +538,7 @@ const METODOS_CATALOG = [
 // ── Aba Meios de Pagamento ────────────────────────────────────────
 
 function MeiosPagamentoTab({ sz }) {
-  const { meiosPagamento, setMeiosPagamento, metodosCustom, setMetodosCustom, currentUser } = useApp();
+  const { meiosPagamento, setMeiosPagamento, metodosCustom, setMetodosCustom, metodosTef, setMetodosTef, currentUser } = useApp();
   const [ativos,       setAtivos]      = useState(
     meiosPagamento?.length ? meiosPagamento : METODOS_CATALOG.map(m => m.id)
   );
@@ -699,6 +700,46 @@ function MeiosPagamentoTab({ sz }) {
         {ativos.length === 0 && (
           <div className="meios-pagamento-tab__aviso-vazio" style={{ marginTop: sz.padSm, background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}` }}>
             ⚠️ É necessário pelo menos um meio de pagamento ativo.
+          </div>
+        )}
+      </div>
+
+      {/* Maquininha (TEF) — quais métodos passam pela maquininha. Quem
+          passa pela maquininha só cobra com internet; os demais podem
+          fechar a comanda offline (a venda sobe sozinha quando voltar). */}
+      <div className="meios-pagamento-tab__card" style={{ padding: sz.pad }}>
+        <div className="meios-pagamento-tab__titulo" style={{ fontSize: sz.fontBase + 1, marginBottom: 4 }}>
+          Maquininha (TEF)
+        </div>
+        <div className="meios-pagamento-tab__ajuda" style={{ fontSize: sz.fontSm + 1, marginBottom: sz.pad }}>
+          Marque quais formas de pagamento passam pela maquininha. Essas precisam de internet
+          na hora de cobrar; as demais funcionam mesmo sem internet — a venda fica guardada e
+          sobe sozinha quando a conexão voltar.
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: sz.gap }}>
+          {todosMetodos.map((m) => {
+            const listaTef = Array.isArray(metodosTef) ? metodosTef : METODOS_TEF_PADRAO;
+            const usaTef = listaTef.includes(m.id);
+            return (
+              <ToggleChip
+                key={m.id}
+                active={usaTef}
+                color={varColor(C.accent)}
+                sz={sz}
+                onClick={() => {
+                  if (!isAdmin) return;
+                  const lista = Array.isArray(metodosTef) ? metodosTef : METODOS_TEF_PADRAO;
+                  setMetodosTef(usaTef ? lista.filter((id) => id !== m.id) : [...lista, m.id]);
+                }}
+              >
+                {m.label}{usaTef ? " · maquininha" : ""}
+              </ToggleChip>
+            );
+          })}
+        </div>
+        {!isAdmin && (
+          <div className="meios-pagamento-tab__ajuda" style={{ fontSize: sz.fontSm, marginTop: sz.padSm }}>
+            Somente o administrador pode alterar quais métodos usam a maquininha.
           </div>
         )}
       </div>

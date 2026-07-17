@@ -10,6 +10,8 @@ import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
 import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
+import { criarLancamento } from "@/lib/financeiro";
+import { METODOS_TEF_PADRAO } from "@/lib/tef";
 import { processarBaixaEstoque } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { sanitizeInput } from "@/utils/crypto";
@@ -43,6 +45,7 @@ export function AppProvider({ children }) {
   const [sessaoAbertaEm,  setSessaoAbertaEmLocal] = useState(null);
   const [meiosPagamento,  setMeiosPagamentoLocal] = useState(["dinheiro", "credito", "debito", "pix"]);
   const [metodosCustom,   setMetodosCustomLocal]  = useState([]);
+  const [metodosTef,      setMetodosTefLocal]     = useState(METODOS_TEF_PADRAO); // quais métodos usam maquininha (TEF)
   const [taxaServico,     setTaxaServicoLocal]    = useState(false);
   const [diasAlertaValidade, setDiasAlertaValidadeLocal] = useState(7); // C1 — janela de alerta de validade
   const [estoque,         setEstoqueLocal]        = useState({});
@@ -191,7 +194,7 @@ export function AppProvider({ children }) {
         buscarSalesData(),
         supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","dias_alerta_validade"]),
+        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","metodos_tef","dias_alerta_validade"]),
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
         // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
         buscarBootstrapTenant(),
@@ -225,6 +228,7 @@ export function AppProvider({ children }) {
           if (config.fundoAtual !== undefined)  setFundoAtualLocal(Number(config.fundoAtual));
           if (Array.isArray(config.meiosPagamento) && config.meiosPagamento.length) setMeiosPagamentoLocal(config.meiosPagamento);
           if (Array.isArray(config.metodosCustom)) setMetodosCustomLocal(config.metodosCustom);
+          if (Array.isArray(config.metodosTef))    setMetodosTefLocal(config.metodosTef);
           if (config.taxaServico !== undefined) setTaxaServicoLocal(!!config.taxaServico);
         }
         setLoading(false);
@@ -266,6 +270,10 @@ export function AppProvider({ children }) {
         if (taxa?.value !== undefined) setTaxaServicoLocal(!!taxa.value);
         const custom = configData.find(c => c.key === "metodos_custom");
         if (custom?.value && Array.isArray(custom.value)) setMetodosCustomLocal(custom.value);
+        // Array (mesmo vazio) = escolha explícita do estabelecimento;
+        // sem config vale METODOS_TEF_PADRAO (crédito/débito).
+        const tef = configData.find(c => c.key === "metodos_tef");
+        if (Array.isArray(tef?.value)) setMetodosTefLocal(tef.value);
         const diasValidade = configData.find(c => c.key === "dias_alerta_validade");
         if (diasValidade?.value != null && !isNaN(Number(diasValidade.value))) setDiasAlertaValidadeLocal(Number(diasValidade.value));
       }
@@ -298,6 +306,7 @@ export function AppProvider({ children }) {
             fundoAtual: configMap.fundo_atual !== undefined ? Number(configMap.fundo_atual) : undefined,
             meiosPagamento: Array.isArray(configMap.meios_pagamento) ? configMap.meios_pagamento : undefined,
             metodosCustom: Array.isArray(configMap.metodos_custom) ? configMap.metodos_custom : undefined,
+            metodosTef: Array.isArray(configMap.metodos_tef) ? configMap.metodos_tef : undefined,
             taxaServico: configMap.taxa_servico !== undefined ? !!configMap.taxa_servico : undefined,
           },
         });
@@ -385,8 +394,44 @@ export function AppProvider({ children }) {
     if (op.tipo === "insert") return supabase.from("pending").upsert(op.payload, { onConflict: "id" });
     if (op.tipo === "update") return supabase.from("pending").update(op.changes).eq("id", op.id);
     if (op.tipo === "delete") return supabase.from("pending").delete().eq("id", op.id);
+    // Cobrança offline (não-TEF): venda fechada sem internet. Upsert por id
+    // — se a primeira tentativa gravou mas a resposta se perdeu, reenviar
+    // não duplica. Evento + gravação dupla só acontecem aqui, no reenvio
+    // que confirmou (addSale offline pula os dois de propósito).
+    if (op.tipo === "insert_venda") return reenviarVendaOffline(op);
+    if (op.tipo === "rpc_baixar_estoque") {
+      return supabase.rpc("baixar_estoque", { p_produto_id: op.produtoId, p_qtd: op.qtd });
+    }
+    if (op.tipo === "insert_lancamento") return criarLancamento(op.dados, op.usuario);
     return Promise.resolve({ error: null }); // tipo desconhecido — descarta
   };
+
+  const reenviarVendaOffline = async (op) => {
+    const sale = op.payload.data;
+    const { error } = await supabase.from("sales").upsert({ id: op.payload.id, data: sale }, { onConflict: "id" });
+    if (error) return { error };
+    emitirEvento("venda.finalizada", "pdv", {
+      venda_id: sale.id,
+      total: sale.total ?? null,
+      metodo: sale.metodo ?? sale.payment ?? null,
+      itens: Array.isArray(sale.items) ? sale.items.length : null,
+    }, currentUser?.username);
+    void persistirVendaNormalizada(supabase, sale, {
+      onFalha: ({ etapa, error: e, venda_id }) => {
+        console.error(`dual-write vendas (${etapa}) venda ${venda_id}:`, e);
+        emitirEvento("venda.dualwrite.falhou", "pdv", {
+          venda_id,
+          etapa,
+          erro: e?.message ?? e?.code ?? String(e),
+        }, currentUser?.username);
+      },
+    });
+    return { error: null };
+  };
+
+  // Enfileira uma operação para reenvio quando a internet voltar e
+  // atualiza o contador do badge — único caminho para fora do provider.
+  const enfileirarOffline = (op) => setPendenciasOffline(filaOffline.enfileirar(op));
 
   const drenarPendenciasOffline = async () => {
     if (drenandoRef.current || filaOffline.tamanho() === 0) return;
@@ -597,6 +642,13 @@ export function AppProvider({ children }) {
     setSalesLocal(prev => [sale, ...prev]);
     const { error } = await supabase.from("sales").insert({ id: sale.id, data: sale });
     if (error) {
+      // Sem internet (métodos não-TEF): a venda fica na fila local e sobe
+      // sozinha quando a conexão voltar. Evento + gravação dupla ficam para
+      // o reenvio confirmado (executarOpOffline), senão duplicariam.
+      if (isErroDeRede(error)) {
+        enfileirarOffline({ tipo: "insert_venda", payload: { id: sale.id, data: sale } });
+        return { offline: true };
+      }
       console.error("addSale error:", JSON.stringify(error, null, 2));
       throw error;
     }
@@ -748,6 +800,14 @@ export function AppProvider({ children }) {
       chamarRpc: (id, q) => supabase.rpc("baixar_estoque", { p_produto_id: id, p_qtd: q }),
     });
     if (error) {
+      // Sem internet: mantém o desconto otimista e agenda a RPC para quando
+      // a conexão voltar. Caveat conhecido: a RPC não é idempotente — se a
+      // baixa gravou mas a resposta se perdeu, o reenvio desconta de novo
+      // (janela rara; corrigível com chave de idempotência na RPC).
+      if (isErroDeRede(error)) {
+        enfileirarOffline({ tipo: "rpc_baixar_estoque", produtoId: productId, qtd: qty });
+        return { error: null, offline: true };
+      }
       // Baixa não confirmada no servidor: desfaz o desconto otimista e deixa
       // rastro visível para o Jarvas/gestor (TD012 — antes falhava em silêncio).
       setEstoqueLocal(prev => ({ ...prev, [productId]: anterior }));
@@ -831,6 +891,12 @@ export function AppProvider({ children }) {
     const anterior = metodosCustom;
     setMetodosCustomLocal(val);
     return gravarConfig("metodos_custom", val, () => setMetodosCustomLocal(anterior));
+  };
+
+  const setMetodosTef = async (val) => {
+    const anterior = metodosTef;
+    setMetodosTefLocal(val);
+    return gravarConfig("metodos_tef", val, () => setMetodosTefLocal(anterior));
   };
 
   const setTaxaServico = async (val) => {
@@ -919,8 +985,9 @@ export function AppProvider({ children }) {
     // C3 — grupos de categoria (radar do Palm + mapeamento em Configurações)
     gruposCategoria, categoriaGrupos, categoriaGrupoMap, setCategoriaGrupo,
     metodosCustom, setMetodosCustom,
+    metodosTef, setMetodosTef,
     // offline-first (Leva 11)
-    redeOnline, pendenciasOffline,
+    redeOnline, pendenciasOffline, enfileirarOffline,
   };
 
   return (

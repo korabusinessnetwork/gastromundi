@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const emitirEvento = vi.fn();
 vi.mock("./jarvas", () => ({ emitirEvento: (...args) => emitirEvento(...args) }));
 
-import { isPagamentoCartao, processarPagamentoTef } from "./tef";
+import { isPagamentoCartao, processarPagamentoTef, metodoUsaTef, METODOS_TEF_PADRAO } from "./tef";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -28,6 +28,40 @@ describe("isPagamentoCartao", () => {
   it("false com segurança para valor ausente", () => {
     expect(isPagamentoCartao(undefined)).toBe(false);
     expect(isPagamentoCartao(null)).toBe(false);
+  });
+});
+
+describe("metodoUsaTef (Leva 12 — seleção por método)", () => {
+  it("sem lista configurada, cai no padrão crédito/débito", () => {
+    expect(metodoUsaTef("credito")).toBe(true);
+    expect(metodoUsaTef("debito", undefined)).toBe(true);
+    expect(metodoUsaTef("dinheiro")).toBe(false);
+    expect(metodoUsaTef("pix", null)).toBe(false);
+  });
+
+  it("respeita a lista configurada pelo estabelecimento", () => {
+    expect(metodoUsaTef("pix", ["pix"])).toBe(true);
+    expect(metodoUsaTef("credito", ["pix"])).toBe(false);
+  });
+
+  it("lista vazia é escolha explícita: nenhum método usa TEF", () => {
+    expect(metodoUsaTef("credito", [])).toBe(false);
+    expect(metodoUsaTef("debito", [])).toBe(false);
+  });
+
+  it("compara sem diferenciar caixa/espaços", () => {
+    expect(metodoUsaTef(" Credito ", ["credito"])).toBe(true);
+    expect(metodoUsaTef("pix", [" PIX "])).toBe(true);
+  });
+
+  it("false com segurança para método ausente", () => {
+    expect(metodoUsaTef(undefined)).toBe(false);
+    expect(metodoUsaTef(null, ["credito"])).toBe(false);
+    expect(metodoUsaTef("")).toBe(false);
+  });
+
+  it("padrão exportado é crédito + débito", () => {
+    expect(METODOS_TEF_PADRAO).toEqual(["credito", "debito"]);
   });
 });
 

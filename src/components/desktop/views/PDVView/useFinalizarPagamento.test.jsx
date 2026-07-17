@@ -350,6 +350,96 @@ describe("useFinalizarPagamento — add-ons pagos (Fase 3, decisão 019)", () =>
   });
 });
 
+describe("useFinalizarPagamento — Leva 12 (offline-first no checkout)", () => {
+  const pagamentoCredito = { ...payload, pagamentos: [{ metodo: "credito", valor: 30 }] };
+
+  it("sem internet, pagamento TEF é BLOQUEADO antes de gravar qualquer coisa", async () => {
+    const { appMock, finalizarPagamento } = setup({
+      redeOnline: false,
+      addonHabilitado: (a) => a === "tef",
+    });
+
+    await expect(finalizarPagamento(selectedComanda, [], pagamentoCredito)).rejects.toThrow(/maquininha/i);
+    expect(appMock.addSale).not.toHaveBeenCalled();
+    expect(appMock.removePending).not.toHaveBeenCalled();
+  });
+
+  it("sem internet, método que NÃO usa TEF (dinheiro) fecha normalmente", async () => {
+    const { appMock, finalizarPagamento } = setup({
+      redeOnline: false,
+      addonHabilitado: (a) => a === "tef",
+    });
+
+    await expect(finalizarPagamento(selectedComanda, [], payload)).resolves.toBeDefined();
+    expect(appMock.addSale).toHaveBeenCalledTimes(1);
+  });
+
+  it("sem internet, crédito passa quando o estabelecimento tirou o cartão da maquininha (metodosTef: [])", async () => {
+    const { appMock, finalizarPagamento } = setup({
+      redeOnline: false,
+      addonHabilitado: (a) => a === "tef",
+      metodosTef: [],
+    });
+
+    await expect(finalizarPagamento(selectedComanda, [], pagamentoCredito)).resolves.toBeDefined();
+    expect(appMock.addSale).toHaveBeenCalledTimes(1);
+  });
+
+  it("sem o add-on TEF, nada é bloqueado offline (não há maquininha)", async () => {
+    const { appMock, finalizarPagamento } = setup({
+      redeOnline: false,
+      addonHabilitado: () => false,
+    });
+
+    await expect(finalizarPagamento(selectedComanda, [], pagamentoCredito)).resolves.toBeDefined();
+    expect(appMock.addSale).toHaveBeenCalledTimes(1);
+  });
+
+  it("processamento TEF respeita a lista configurada (pix na maquininha, crédito fora)", async () => {
+    const { finalizarPagamento } = setup({
+      addonHabilitado: (a) => a === "tef",
+      metodosTef: ["pix"],
+    });
+
+    await finalizarPagamento(selectedComanda, [], {
+      ...payload,
+      pagamentos: [
+        { metodo: "pix", valor: 20 },
+        { metodo: "credito", valor: 10 },
+      ],
+    });
+
+    await waitFor(() => expect(processarPagamentoTefMock).toHaveBeenCalledTimes(1));
+    expect(processarPagamentoTefMock).toHaveBeenCalledWith(
+      { metodo: "pix", valor: 20 },
+      { usuario: "maria", comanda: "5" },
+    );
+  });
+
+  it("falha de REDE ao criar o lançamento enfileira a receita para reenvio (insert_lancamento)", async () => {
+    criarLancamentoMock.mockResolvedValueOnce({ data: null, error: { message: "TypeError: Failed to fetch" } });
+    const { appMock, finalizarPagamento } = setup();
+
+    await finalizarPagamento(selectedComanda, [], payload);
+
+    await waitFor(() => expect(appMock.enfileirarOffline).toHaveBeenCalledTimes(1));
+    expect(appMock.enfileirarOffline).toHaveBeenCalledWith({
+      tipo: "insert_lancamento",
+      dados: expect.objectContaining({ tipo: "receita", categoria: "vendas", valor: 30, status: "recebido" }),
+      usuario: "maria",
+    });
+  });
+
+  it("erro DEFINITIVO do lançamento (não-rede) segue fire-and-forget, sem enfileirar", async () => {
+    criarLancamentoMock.mockResolvedValueOnce({ data: null, error: { message: "violates row-level security policy" } });
+    const { appMock, finalizarPagamento } = setup();
+
+    await expect(finalizarPagamento(selectedComanda, [], payload)).resolves.toBeDefined();
+    await waitFor(() => expect(criarLancamentoMock).toHaveBeenCalledTimes(1));
+    expect(appMock.enfileirarOffline).not.toHaveBeenCalled();
+  });
+});
+
 describe("useFinalizarPagamento — Fase 4 (billing) NÃO bloqueia nenhuma escrita", () => {
   it("finaliza a venda normalmente mesmo com a assinatura 'bloqueada' (enforcement é só na Fase 5)", async () => {
     const { appMock, finalizarPagamento } = setup({

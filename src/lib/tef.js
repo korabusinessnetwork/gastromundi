@@ -17,6 +17,13 @@ import { emitirEvento } from "./jarvas";
 const METODOS_CARTAO = new Set(["credito", "debito"]);
 
 /**
+ * Métodos que usam TEF quando o estabelecimento nunca configurou a
+ * seleção (config `metodos_tef` ausente) — cartão de crédito e débito,
+ * o comportamento histórico do PDV.
+ */
+export const METODOS_TEF_PADRAO = ["credito", "debito"];
+
+/**
  * Verifica se um método de pagamento é elegível a TEF (cartão).
  * Função pura — sem side-effect, usada tanto pelo hook quanto pelos testes.
  *
@@ -25,6 +32,23 @@ const METODOS_CARTAO = new Set(["credito", "debito"]);
  */
 export function isPagamentoCartao(metodo) {
   return METODOS_CARTAO.has(String(metodo ?? "").trim().toLowerCase());
+}
+
+/**
+ * Verifica se um método de pagamento usa a maquininha (TEF) segundo a
+ * configuração do estabelecimento (config `metodos_tef`). Um array —
+ * inclusive vazio, "nenhum método usa TEF" — vale como escolha explícita;
+ * sem config, vale o padrão (crédito/débito). Função pura.
+ *
+ * @param {string} metodo
+ * @param {string[]|null|undefined} metodosTef lista configurada pelo estabelecimento
+ * @returns {boolean}
+ */
+export function metodoUsaTef(metodo, metodosTef) {
+  const id = String(metodo ?? "").trim().toLowerCase();
+  if (!id) return false;
+  const lista = Array.isArray(metodosTef) ? metodosTef : METODOS_TEF_PADRAO;
+  return lista.some((m) => String(m ?? "").trim().toLowerCase() === id);
 }
 
 /**

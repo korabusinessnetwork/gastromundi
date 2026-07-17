@@ -3,8 +3,9 @@ import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { criarLancamento } from "@/lib/financeiro";
 import { emitirDocumentoFiscal } from "@/lib/fiscal";
-import { processarPagamentoTef, isPagamentoCartao } from "@/lib/tef";
+import { processarPagamentoTef, metodoUsaTef } from "@/lib/tef";
 import { consumoParaEstoque } from "@/utils/conversaoUnidades";
+import { isErroDeRede } from "@/lib/offline/rede";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
 // cadastrado hoje, mas a checagem já fica pronta para quando existir
@@ -35,9 +36,17 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
  * e por voltar para a grade de comandas (handleBack) após concluir.
  */
 export function useFinalizarPagamento() {
-  const { addSale, removePending, estoque, baixarEstoque, currentUser, addonHabilitado, products } = useApp();
+  const { addSale, removePending, estoque, baixarEstoque, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
 
   const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId }, { onNfce } = {}) => {
+    // TEF é só online: a maquininha precisa de comunicação em tempo real —
+    // não dá pra "guardar pra depois" uma cobrança de cartão. Métodos sem
+    // TEF (dinheiro, Pix etc.) podem fechar offline: a venda entra na fila
+    // local e sobe quando a internet voltar.
+    const exigeTef = (m) => addonHabilitado?.("tef") && metodoUsaTef(m, metodosTef);
+    if (!redeOnline && (pagamentos ?? []).some((p) => exigeTef(p?.metodo))) {
+      throw new Error("Sem internet: pagamento pela maquininha (TEF) fica indisponível. Cobre em dinheiro, Pix ou outro método — ou aguarde a conexão voltar.");
+    }
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
     const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
     const todosItens      = [...itensAcumulados, ...itensLocais];
@@ -73,22 +82,26 @@ export function useFinalizarPagamento() {
           const valorPagamento = Number(p?.valor) || 0;
           if (!p?.metodo || valorPagamento <= 0) continue;
 
-          if (isFiado(p.metodo)) {
-            const vencimento = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-            await criarLancamento({
-              tipo: "receita", categoria: "vendas",
-              descricao: `Fiado — comanda ${selected.comanda}`,
-              valor: valorPagamento, competencia: hoje, vencimento, status: "previsto",
-              origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
-            }, currentUser?.username);
-          } else {
-            await criarLancamento({
-              tipo: "receita", categoria: "vendas",
-              descricao: `Venda — comanda ${selected.comanda}`,
-              valor: valorPagamento, competencia: hoje, status: "recebido",
-              origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
-            }, currentUser?.username);
-          }
+          const dados = isFiado(p.metodo)
+            ? {
+                tipo: "receita", categoria: "vendas",
+                descricao: `Fiado — comanda ${selected.comanda}`,
+                valor: valorPagamento, competencia: hoje,
+                vencimento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+                status: "previsto",
+                origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
+              }
+            : {
+                tipo: "receita", categoria: "vendas",
+                descricao: `Venda — comanda ${selected.comanda}`,
+                valor: valorPagamento, competencia: hoje, status: "recebido",
+                origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
+              };
+          const { error } = await criarLancamento(dados, currentUser?.username);
+          // Sem internet a receita não se perde: entra na fila local e é
+          // recriada no reenvio. Outros erros seguem fire-and-forget (a
+          // venda nunca é bloqueada pelo financeiro).
+          if (isErroDeRede(error)) enfileirarOffline({ tipo: "insert_lancamento", dados, usuario: currentUser?.username });
         }
       } catch (err) {
         console.error("financeiro (receita por venda):", err);
@@ -119,7 +132,7 @@ export function useFinalizarPagamento() {
     }
     if (addonHabilitado?.("tef")) {
       for (const p of pagamentos ?? []) {
-        if (!isPagamentoCartao(p?.metodo)) continue;
+        if (!metodoUsaTef(p?.metodo, metodosTef)) continue;
         void processarPagamentoTef(p, { usuario: currentUser?.username, comanda: selected.comanda }).catch((err) => {
           console.error("tef:", err);
         });

@@ -7,6 +7,7 @@ import { getSizes } from "@/constants/sizes";
 import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuWallet, LuPercent, LuX, LuUsers } from "react-icons/lu";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
+import { metodoUsaTef } from "@/lib/tef";
 import ClienteFiadoSelector from "./ClienteFiadoSelector";
 import ImpressaoAcoes from "./ImpressaoAcoes";
 import "./CheckoutView.css";
@@ -24,7 +25,7 @@ const METODOS_CATALOG = [
 export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const { meiosPagamento, metodosCustom, taxaServico, currentUser } = useApp();
+  const { meiosPagamento, metodosCustom, taxaServico, currentUser, redeOnline, addonHabilitado, metodosTef } = useApp();
   const catalogCompleto = [
     ...METODOS_CATALOG,
     ...(metodosCustom ?? []).map(m => ({ ...m, Icon: LuWallet })),
@@ -94,6 +95,13 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
 
   const usaFiado = pagamentos.some(p => p.metodo === "fiado");
 
+  // Prevenção > erro: sem internet, métodos que passam pela maquininha
+  // (TEF) ficam desabilitados na hora de escolher — em vez de deixar
+  // selecionar e falhar na confirmação. Só vale com o add-on TEF ativo.
+  const metodoIndisponivelOffline = (id) =>
+    !redeOnline && addonHabilitado?.("tef") && metodoUsaTef(id, metodosTef);
+  const tefOffline = pagamentos.some(p => p.metodo && metodoIndisponivelOffline(p.metodo));
+
   // No split, dinheiro com "Recebido" digitado abaixo do valor alocado
   // não pode confirmar — a tela já mostra "Falta: R$ x" e o botão guia.
   // Recebido em branco (0) segue valendo como "valor exato".
@@ -105,7 +113,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   // 1 centavo não alocado é diferença real e deve bloquear a confirmação.
   const podeConfirmar = (isSplit
     ? pagamentos.every(p => !!p.metodo) && Math.abs(faltaAlocar) < 0.005 && !dinheiroInsuficiente
-    : !!singleMetodo) && (!usaFiado || !!clienteFiado);
+    : !!singleMetodo) && (!usaFiado || !!clienteFiado) && !tefOffline;
 
   const updatePagamento = (idx, patch) =>
     setPagamentos(prev => prev.map((p, i) => i === idx ? { ...p, ...patch } : p));
@@ -451,20 +459,27 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                       {/* Linha 1: método + valor + remover */}
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <div className="checkout-view__split-metodos">
-                          {METODOS.map(m => (
-                            <button
-                              key={m.id}
-                              onClick={() => updatePagamento(idx, { metodo: m.id })}
-                              className="checkout-view__chip-metodo"
-                              style={{
-                                border: `1.5px solid ${p.metodo === m.id ? varColor(C.accent) : varColor(C.border)}`,
-                                background: p.metodo === m.id ? "var(--gm-alow)" : "transparent",
-                                color: p.metodo === m.id ? varColor(C.accent) : varColor(C.muted),
-                              }}
-                            >
-                              {m.label}
-                            </button>
-                          ))}
+                          {METODOS.map(m => {
+                            const indisponivel = metodoIndisponivelOffline(m.id);
+                            return (
+                              <button
+                                key={m.id}
+                                onClick={() => updatePagamento(idx, { metodo: m.id })}
+                                disabled={indisponivel}
+                                className="checkout-view__chip-metodo"
+                                style={{
+                                  border: `1.5px solid ${p.metodo === m.id ? varColor(C.accent) : varColor(C.border)}`,
+                                  background: p.metodo === m.id ? "var(--gm-alow)" : "transparent",
+                                  color: p.metodo === m.id ? varColor(C.accent) : varColor(C.muted),
+                                  opacity: indisponivel ? 0.4 : 1,
+                                  cursor: indisponivel ? "not-allowed" : "pointer",
+                                }}
+                                title={indisponivel ? "Maquininha (TEF) indisponível sem internet" : undefined}
+                              >
+                                {m.label}{indisponivel ? " · sem internet" : ""}
+                              </button>
+                            );
+                          })}
                         </div>
                         <div className="checkout-view__split-valor-wrap">
                           <span className="checkout-view__input-prefixo" style={{ color: varColor(C.muted) }}>R$</span>
@@ -567,10 +582,12 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                 }}>
                   {METODOS.map(m => {
                     const ativo = singleMetodo === m.id;
+                    const indisponivel = metodoIndisponivelOffline(m.id);
                     return (
                       <button
                         key={m.id}
                         onClick={() => updatePagamento(0, { metodo: m.id, recebido: 0 })}
+                        disabled={indisponivel}
                         className="checkout-view__metodo-card"
                         style={{
                           border: `2px solid ${ativo ? varColor(C.accent) : varColor(C.border)}`,
@@ -578,7 +595,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                           color: ativo ? varColor(C.accent) : varColor(C.text),
                           fontSize: sz.fontLg,
                           boxShadow: ativo ? `0 0 0 4px ${alfa(C.accent, "22")}` : "none",
+                          opacity: indisponivel ? 0.4 : 1,
+                          cursor: indisponivel ? "not-allowed" : "pointer",
                         }}
+                        title={indisponivel ? "Maquininha (TEF) indisponível sem internet" : undefined}
                       >
                         <div className="checkout-view__metodo-icone" style={{
                           background: ativo ? alfa(C.accent, "22") : varColor(C.card),
@@ -586,7 +606,9 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                         }}>
                           <m.Icon size={24} />
                         </div>
-                        {m.label}
+                        {m.label}{indisponivel && (
+                          <span style={{ display: "block", fontSize: 12, fontWeight: 600 }}>sem internet</span>
+                        )}
                       </button>
                     );
                   })}
@@ -658,7 +680,9 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
               )}
               {!podeConfirmar && (
                 <div className="checkout-view__aviso-confirmar" style={{ color: varColor(C.muted) }}>
-                  {usaFiado && !clienteFiado
+                  {tefOffline
+                    ? "Sem internet: a maquininha (TEF) não funciona. Troque para dinheiro, Pix ou outro método — a venda fica guardada e sobe quando a conexão voltar."
+                    : usaFiado && !clienteFiado
                     ? "Busque ou cadastre o cliente do fiado acima"
                     : isSplit
                     ? Math.abs(faltaAlocar) >= 0.015

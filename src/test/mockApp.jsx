@@ -97,6 +97,13 @@ export function createAppMockValue(overrides = {}) {
     setTaxaServico: vi.fn(() => Promise.resolve({ error: null })),
     metodosCustom: [],
     setMetodosCustom: vi.fn(),
+    // Leva 12 — offline-first no checkout: por padrão os testes rodam
+    // "online" com TEF no crédito/débito (igual ao default real).
+    redeOnline: true,
+    metodosTef: ["credito", "debito"],
+    setMetodosTef: vi.fn(() => Promise.resolve({ error: null })),
+    enfileirarOffline: vi.fn(),
+    pendenciasOffline: 0,
     ...overrides,
   };
 }
