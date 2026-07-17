@@ -61,6 +61,8 @@ revisão item a item com o dono antes de merge.
 |---|---|---|
 | Pedido lançado offline não grava E não sincroniza quando a internet volta — o rollback otimista (contrato Leva 1) descarta o pedido na falha; não existe fila local (sem service worker, sem PWA, sem IndexedDB) | app inteiro (AppContext fala direto com Supabase) | ⏳ pendente — projeto offline-first (PWA + fila local + sync), ~2–3 levas; desenho já existe em `pesquisas-diarias/ideia-2026-07-10.html` (vite-plugin-pwa + Dexie, custo zero) |
 | Site promete "funciona offline" sem lastro (`ApexProva.jsx:25`, `ApexFaq.jsx:17`) | páginas de venda | ⏳ pendente — dono decide: priorizar offline-first ou ajustar o texto do site |
+| Palm: na aba de comandas, tocar num slot "Disponível" abria o modal com o botão "Criar e Lançar" morto — `handleLancar` retornava em silêncio com carrinho vazio, impossível criar comanda a partir da aba | MobilePage | ✅ corrigido — criar comanda sem itens agora funciona (modal vira "Abrir Comanda", cria e abre o detalhe; itens podem ser lançados depois) |
+| Pedido offline na mesma rede não chega ao caixa/impressora | Palm/caixa | ⏳ fila — estudar ponte local (QZ Tray já roda no caixa); desenho junto com a Leva 11, apresentar ao dono antes de montar |
 
 ### Ações manuais pendentes (painel Supabase)
 
