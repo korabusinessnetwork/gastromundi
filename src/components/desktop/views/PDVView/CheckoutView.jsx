@@ -63,18 +63,23 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   }, {});
   const itensVisiveis = Object.values(itensAgrupados);
 
-  const subtotal      = itensVisiveis.reduce((s, i) => s + i.price * i.qty, 0);
-  const valorTaxa     = aplicarTaxa ? subtotal * 0.10 : 0;
-  const baseComTaxa   = subtotal + valorTaxa;
+  // Todo valor cobrado é arredondado a centavos: taxa de 10% e ajuste
+  // percentual geram frações de centavo que estouravam a tolerância do
+  // split e chegavam ao pagamento com casas fantasma.
+  const round2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
+
+  const subtotal      = round2(itensVisiveis.reduce((s, i) => s + i.price * i.qty, 0));
+  const valorTaxa     = aplicarTaxa ? round2(subtotal * 0.10) : 0;
+  const baseComTaxa   = round2(subtotal + valorTaxa);
 
   const calcAjuste = (base, aj) => {
     if (!aj) return 0;
     const v = parseFloat(aj.valor) || 0;
     const val = aj.mode === "percentual" ? base * (v / 100) : v;
-    return aj.tipo === "desconto" ? -val : val;
+    return round2(aj.tipo === "desconto" ? -val : val);
   };
   const valorAjuste   = calcAjuste(baseComTaxa, ajusteAplicado);
-  const total         = Math.max(0, baseComTaxa + valorAjuste);
+  const total         = round2(Math.max(0, baseComTaxa + valorAjuste));
 
   const isSplit = pagamentos.length > 1;
 

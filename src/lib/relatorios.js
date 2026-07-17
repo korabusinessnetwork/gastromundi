@@ -53,8 +53,10 @@ export function calcularPeriodoAnterior(inicio, fim) {
 
 /**
  * Variação percentual entre dois valores, para a comparação de
- * período. Retorna null quando não há como comparar (ambos zero) para
- * o chamador exibir "—" em vez de "0%" ou "Infinity%".
+ * período. Retorna null quando não há base de comparação (anterior
+ * zerado) para o chamador exibir "—" em vez de um percentual
+ * arbitrário — "+100%" quando o anterior é 0 seria um número
+ * inventado, não uma variação real.
  *
  * @param {number} atual
  * @param {number} anterior
@@ -63,7 +65,7 @@ export function calcularPeriodoAnterior(inicio, fim) {
 export function calcularVariacaoPercentual(atual, anterior) {
   const a = Number(atual) || 0;
   const b = Number(anterior) || 0;
-  if (b === 0) return a === 0 ? null : 100;
+  if (b === 0) return null;
   return ((a - b) / b) * 100;
 }
 
@@ -102,10 +104,10 @@ export function calcularMargemProdutos(topProdutos, fichasTecnicas) {
  * Busca o relatório de vendas de um período via RPC (agregação no
  * Postgres). Sempre valida o intervalo antes de chamar o Supabase.
  *
- * @param {{inicio: Date|string, fim: Date|string, limiteProdutos?: number}} params
+ * @param {{inicio: Date|string, fim: Date|string, limiteProdutos?: number, timezone?: string}} params
  * @returns {Promise<{data: object|null, error: object|null}>}
  */
-export async function buscarRelatorioVendas({ inicio, fim, limiteProdutos = 20 } = {}) {
+export async function buscarRelatorioVendas({ inicio, fim, limiteProdutos = 20, timezone } = {}) {
   if (!inicio || !fim) return { data: null, error: { message: "Período inválido." } };
   const inicioISO = new Date(inicio).toISOString();
   const fimISO = new Date(fim).toISOString();
@@ -113,11 +115,20 @@ export async function buscarRelatorioVendas({ inicio, fim, limiteProdutos = 20 }
     return { data: null, error: { message: "A data de início deve ser anterior à data de fim." } };
   }
 
+  // Fuso do estabelecimento para a série diária: sem ele a RPC agrupa
+  // em UTC e vendas da noite (após 21h no Brasil) caem no dia seguinte.
+  let tz = timezone;
+  if (!tz) {
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
+    catch { tz = "UTC"; }
+  }
+
   try {
     const { data, error } = await supabase.rpc("relatorio_vendas", {
       p_inicio: inicioISO,
       p_fim: fimISO,
       p_limite_produtos: limiteProdutos,
+      p_tz: tz,
     });
     if (error) return { data: null, error };
     return { data, error: null };
