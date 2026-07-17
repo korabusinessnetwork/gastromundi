@@ -55,7 +55,7 @@ export default function AssinaturaBanner() {
     return (
       <div className="assinatura-banner assinatura-banner--bloqueado" style={{ background: `${alfa(C.red, "14")}`, borderColor: `${alfa(C.red, "55")}`, color: varColor(C.text) }}>
         <LuTriangleAlert size={16} color={varColor(C.red)} />
-        <span>Sua mensalidade está atrasada. Regularize para continuar usando o GastroMundi.</span>
+        <span>Sua mensalidade está atrasada. Regularize para continuar usando o sistema.</span>
       </div>
     );
   }

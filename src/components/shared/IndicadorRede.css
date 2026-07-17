@@ -1,0 +1,41 @@
+.indicador-rede {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  max-width: calc(100vw - 24px);
+  text-align: center;
+}
+
+.indicador-rede--offline {
+  background: #b45309;
+}
+
+.indicador-rede--sincronizando {
+  background: #1d4ed8;
+}
+
+.indicador-rede__ponto {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  flex-shrink: 0;
+  animation: indicador-rede-pulso 1.4s ease-in-out infinite;
+}
+
+@keyframes indicador-rede-pulso {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}

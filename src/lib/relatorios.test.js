@@ -69,8 +69,8 @@ describe("calcularVariacaoPercentual", () => {
     expect(calcularVariacaoPercentual(0, 0)).toBeNull();
   });
 
-  it("trata período anterior zerado com valor atual positivo como alta de 100%", () => {
-    expect(calcularVariacaoPercentual(80, 0)).toBe(100);
+  it("retorna null quando o período anterior é zerado (não inventa '+100%')", () => {
+    expect(calcularVariacaoPercentual(80, 0)).toBeNull();
   });
 });
 
@@ -128,7 +128,17 @@ describe("buscarRelatorioVendas", () => {
       p_inicio: "2026-07-01T00:00:00.000Z",
       p_fim: "2026-07-08T00:00:00.000Z",
       p_limite_produtos: 20,
+      p_tz: expect.any(String),
     });
+  });
+
+  it("envia o fuso pedido em p_tz para a série diária não quebrar na virada do dia UTC", async () => {
+    mockSupabase.current.setRpcResult("relatorio_vendas", { data: { faturamento: 0 }, error: null });
+
+    await buscarRelatorioVendas({ inicio: "2026-07-01", fim: "2026-07-08", timezone: "America/Sao_Paulo" });
+
+    const chamada = mockSupabase.current.calls.find((c) => c.rpc === "relatorio_vendas");
+    expect(chamada.args[0].p_tz).toBe("America/Sao_Paulo");
   });
 
   it("propaga erro do Supabase sem lançar exceção", async () => {

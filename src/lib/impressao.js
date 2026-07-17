@@ -44,10 +44,43 @@ export const CONFIG_IMPRESSAO_PADRAO = {
   perfilImpressora: PERFIL_IMPRESSORA_PADRAO,
 };
 
+// Cache local da config de impressão — impressão local (window.print /
+// QZ Tray em localhost) não depende de internet; só a config dependia.
+// Guardando a última config lida, imprimir continua funcionando offline.
+const CHAVE_CACHE_CONFIG_IMPRESSAO = "kora.cache.config_impressao.v1";
+
+function lerCacheConfigImpressao() {
+  try {
+    const bruto = localStorage.getItem(CHAVE_CACHE_CONFIG_IMPRESSAO);
+    const valor = bruto ? JSON.parse(bruto) : null;
+    return valor && typeof valor === "object" ? valor : null;
+  } catch {
+    return null;
+  }
+}
+
+function salvarCacheConfigImpressao(valor) {
+  try {
+    localStorage.setItem(CHAVE_CACHE_CONFIG_IMPRESSAO, JSON.stringify(valor ?? {}));
+  } catch {
+    // cache é conveniência — sem espaço/permissão, segue sem ele
+  }
+}
+
+// Merge próprio pro perfil (aninhado) — senão salvar só 1 campo
+// do perfil apagaria os demais defaults (largura, driver etc.).
+function mesclarConfigImpressao(valor) {
+  return {
+    ...CONFIG_IMPRESSAO_PADRAO,
+    ...valor,
+    perfilImpressora: { ...PERFIL_IMPRESSORA_PADRAO, ...(valor?.perfilImpressora ?? {}) },
+  };
+}
+
 /**
  * Busca as preferências de impressão do estabelecimento. Nunca lança:
- * falha retorna os defaults (nunca quebra a impressão por causa de
- * uma config ausente).
+ * falha cai no cache local (última config lida com sucesso — mantém a
+ * impressão local funcionando offline) e, sem cache, nos defaults.
  *
  * @returns {Promise<{data: object, error: object|null}>}
  */
@@ -58,19 +91,17 @@ export async function buscarConfigImpressao() {
       .select("key, value")
       .eq("key", "config_impressao")
       .maybeSingle();
-    if (error) return { data: CONFIG_IMPRESSAO_PADRAO, error };
+    if (error) {
+      const cache = lerCacheConfigImpressao();
+      if (cache) return { data: mesclarConfigImpressao(cache), error: null };
+      return { data: CONFIG_IMPRESSAO_PADRAO, error };
+    }
     const valor = data?.value ?? {};
-    return {
-      data: {
-        ...CONFIG_IMPRESSAO_PADRAO,
-        ...valor,
-        // Merge próprio pro perfil (aninhado) — senão salvar só 1 campo
-        // do perfil apagaria os demais defaults (largura, driver etc.).
-        perfilImpressora: { ...PERFIL_IMPRESSORA_PADRAO, ...(valor.perfilImpressora ?? {}) },
-      },
-      error: null,
-    };
+    salvarCacheConfigImpressao(valor);
+    return { data: mesclarConfigImpressao(valor), error: null };
   } catch (err) {
+    const cache = lerCacheConfigImpressao();
+    if (cache) return { data: mesclarConfigImpressao(cache), error: null };
     return { data: CONFIG_IMPRESSAO_PADRAO, error: { message: err?.message ?? "Falha ao buscar configuração de impressão." } };
   }
 }
@@ -84,6 +115,7 @@ export async function buscarConfigImpressao() {
 export async function salvarConfigImpressao(config) {
   try {
     const { error } = await supabase.from("config").upsert({ key: "config_impressao", value: config ?? {} });
+    if (!error) salvarCacheConfigImpressao(config ?? {});
     return { error };
   } catch (err) {
     return { error: { message: err?.message ?? "Falha ao salvar configuração de impressão." } };

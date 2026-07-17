@@ -23,7 +23,11 @@ export function useCancelarComanda() {
       it.cancelado ? it : { ...it, cancelado: true, motivoCancelamento: motivo, canceladoPor: quemCancelou },
     );
 
-    await removePending(selected.id);
+    // Log e evento só depois do banco confirmar — senão a trilha de
+    // auditoria registra um cancelamento que não aconteceu e a comanda
+    // reaparece na grade.
+    const { error } = await removePending(selected.id);
+    if (error) throw new Error("Não foi possível cancelar a comanda. Tente novamente.");
     logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda ${fmtComanda(selected.comanda)} cancelada por ${quemCancelou}`, name: quemCancelou, role: currentUser?.role, comanda: selected.comanda, motivo, items: novosItens });
     emitirEvento("pedido.cancelado", "pedidos", { pedido_id: selected.id, comanda: selected.comanda, motivo, itens: novosItens.length }, currentUser?.username);
 

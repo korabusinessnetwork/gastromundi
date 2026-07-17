@@ -1,0 +1,11 @@
+{
+  "name": "kora-ponte",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ponte KORA — leva o pedido do celular até o caixa/impressora pela rede local, mesmo sem internet.",
+  "main": "servidor.js",
+  "scripts": {
+    "start": "node servidor.js"
+  }
+}

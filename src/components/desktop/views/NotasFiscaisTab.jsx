@@ -231,6 +231,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
   const [xmlErro,      setXmlErro]     = useState("");
   const [checkingDup,  setCheckingDup] = useState(false);
   const [duplicadaEm,  setDuplicadaEm] = useState(null);
+  const [dupErro,      setDupErro]     = useState("");
   const [itensVinc,    setItensVinc]   = useState([]);
   const [saving,       setSaving]      = useState(false);
   const [saveErro,     setSaveErro]    = useState("");
@@ -275,9 +276,11 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
   const loadNotas = async () => {
     setLoadingList(true);
+    // Sem xml_raw: a lista só precisa do cabeçalho (o XML inteiro de
+    // cada nota deixaria a listagem pesada à toa).
     const { data } = await supabase
       .from("notas_fiscais")
-      .select("*, notas_fiscais_itens(id)")
+      .select("id, numero, serie, data_emissao, fornecedor_nome, fornecedor_cnpj, valor_total, status, created_at, notas_fiscais_itens(id)")
       .order("created_at", { ascending: false });
     setNotas(data || []);
     setLoadingList(false);
@@ -310,7 +313,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
   const startWizard = () => {
     setStep(1); setXmlString(""); setParsed(null); setXmlErro("");
-    setDuplicadaEm(null); setItensVinc([]); setSaving(false);
+    setDuplicadaEm(null); setDupErro(""); setItensVinc([]); setSaving(false);
     setSaveErro(""); setImportOk(null); setFromManual(false);
     setView("wizard");
   };
@@ -404,12 +407,20 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
       initItens(); setStep(3); return;
     }
     setCheckingDup(true);
-    const { data } = await supabase
+    setDupErro("");
+    const { data, error } = await supabase
       .from("notas_fiscais")
       .select("created_at")
       .eq("chave_acesso", parsed.cabecalho.chaveAcesso)
       .maybeSingle();
     setCheckingDup(false);
+    if (error) {
+      // Sem confirmar que a nota é inédita, não deixa avançar: se a
+      // consulta falhou e a nota já existia, reimportar daria entrada
+      // em dobro no estoque.
+      setDupErro("Não foi possível verificar se esta nota já foi importada. Confira a conexão e tente de novo.");
+      return;
+    }
     if (data) {
       setDuplicadaEm(new Date(data.created_at).toLocaleDateString("pt-BR"));
     } else {
@@ -450,10 +461,18 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
         })
         .select()
         .single();
-      if (notaErr) throw notaErr;
+      if (notaErr) {
+        // 23505 = violação de unicidade da chave de acesso (índice do
+        // banco): outra pessoa/dispositivo importou a mesma nota entre
+        // a verificação do passo 2 e o confirmar.
+        if (notaErr.code === "23505") {
+          throw new Error("esta nota já foi importada (chave de acesso duplicada).");
+        }
+        throw notaErr;
+      }
 
       // 2. Itens da nota
-      await supabase.from("notas_fiscais_itens").insert(
+      const { error: itensErr } = await supabase.from("notas_fiscais_itens").insert(
         itensVinc.map(item => ({
           nota_fiscal_id:    notaData.id,
           product_id:        item.produto?.id || null,
@@ -467,10 +486,11 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
           quantidade_estoque: item.produto ? item.qtdEstoque : null,
         }))
       );
+      if (itensErr) throw itensErr;
 
       // 3. Entradas de estoque (audit trail)
       if (vinculados.length > 0) {
-        await supabase.from("estoque_entradas").insert(
+        const { error: entradasErr } = await supabase.from("estoque_entradas").insert(
           vinculados.map(item => ({
             product_id:     item.produto.id,
             nota_fiscal_id: notaData.id,
@@ -479,6 +499,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             data_entrada:   cabecalho.dataEmissao || new Date().toISOString().split("T")[0],
           }))
         );
+        if (entradasErr) throw entradasErr;
       }
 
       // 4. Atualiza estoque no contexto (bulk para evitar race condition)
@@ -489,7 +510,8 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             novoEstoque[item.produto.id] = (novoEstoque[item.produto.id] ?? 0) + item.qtdEstoque;
           }
         }
-        await bulkSetEstoque(novoEstoque);
+        const { error: estoqueErr } = await bulkSetEstoque(novoEstoque);
+        if (estoqueErr) throw new Error("a nota foi salva, mas o estoque não foi atualizado. Recarregue a página e ajuste o estoque manualmente se necessário.");
       }
 
       setImportOk({ numero: cabecalho.numero, fornecedor: cabecalho.fornecedorNome, count: vinculados.length });
@@ -992,6 +1014,13 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                   <div style={{ fontWeight: 700, color: varColor(C.red) }}>Nota já importada</div>
                   <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted) }}>Esta nota foi importada em {duplicadaEm}. Não é possível importar novamente.</div>
                 </div>
+              </div>
+            )}
+
+            {dupErro && (
+              <div className="nf-tab__aviso" style={{ background: alfa(C.red, "12"), border: `1.5px solid ${alfa(C.red, "44")}`, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10 }}>
+                <LuTriangleAlert size={20} color={varColor(C.red)} />
+                <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.red), fontWeight: 600 }}>{dupErro}</div>
               </div>
             )}
 

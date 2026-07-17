@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
+import { varColor, nomeExibicaoTenant } from "@/lib/tema";
+import { useApp } from "@/context/AppContext";
 import {
   LuPrinter, LuRefreshCw, LuCircleAlert, LuX,
   LuSettings, LuWifi, LuWifiOff, LuShieldCheck, LuLoader,
@@ -173,6 +174,7 @@ function ModalSelecionarImpressora({ local, impressoras, onClose, sz }) {
 
 export default function ImpressorasConfig({ sz }) {
   const { status, impressoras, erroMsg, conectar, atualizar } = useQZTray();
+  const { tenant } = useApp();
   const [locais, setLocais]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [configs, setConfigs]   = useState(lerConfig());
@@ -207,13 +209,16 @@ export default function ImpressorasConfig({ sz }) {
 
       const agora = new Date().toLocaleString("pt-BR");
       const linha = (txt, tamanho = 32) => txt.padEnd(tamanho).slice(0, tamanho);
+      // Identidade do tenant no teste (white-label); "by Kora" é a
+      // assinatura da plataforma, igual pra todo estabelecimento.
+      const nomeTenant = nomeExibicaoTenant(tenant?.tema).toUpperCase();
 
       const dados = [
         { type: "raw", format: "plain", data:
           "\x1B\x40"                          // inicializa impressora
           + "\x1B\x61\x01"                    // centraliza
           + "\x1B\x21\x30"                    // fonte dupla (grande)
-          + "GASTROMUNDI\n"
+          + `${nomeTenant}\n`
           + "\x1B\x21\x00"                    // fonte normal
           + "by Kora\n"
           + "--------------------------------\n"

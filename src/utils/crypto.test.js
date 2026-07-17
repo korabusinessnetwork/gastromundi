@@ -45,4 +45,13 @@ describe("sanitizeInput", () => {
   it("aceita um tamanho máximo customizado", () => {
     expect(sanitizeInput("abcdefghij", 3)).toBe("abc");
   });
+
+  it("não lança com null/undefined — devolve string vazia", () => {
+    expect(sanitizeInput(null)).toBe("");
+    expect(sanitizeInput(undefined)).toBe("");
+  });
+
+  it("aceita não-string (número) convertendo para string", () => {
+    expect(sanitizeInput(123)).toBe("123");
+  });
 });

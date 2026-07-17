@@ -79,7 +79,8 @@ export default function ConsolePage() {
         <div className="console__marca">
           <LuStore size={22} aria-hidden />
           <div>
-            <div className="console__marca-titulo">GASTROMUNDI</div>
+            {/* Console é da PLATAFORMA (multi-tenant) — marca Kora, não a de um cliente */}
+            <div className="console__marca-titulo">KORA</div>
             <div className="console__marca-sub">Console da Plataforma</div>
           </div>
         </div>

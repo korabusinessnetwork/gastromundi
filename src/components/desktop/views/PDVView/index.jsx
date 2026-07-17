@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { useResponsive, useMesas } from "@/utils/hooks";
-import { totalPorMetodo } from "@/utils/pagamentos";
+import { totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
@@ -27,12 +27,13 @@ import ModalCupomNfce from "@/components/fiscal/ModalCupomNfce";
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
-export default function PDVView() {
+export default function PDVView({ notify }) {
   const {
     pending, products, estoque,
     addPending, updatePending, removePending,
     caixaAberto, currentUser, sales, users, metodosCustom,
     lancadas, addLancada, diasAlertaValidade,
+    loading: bootstrapLoading,
   } = useApp();
   const { finalizarPagamento } = useFinalizarPagamento();
   const { cancelarComanda } = useCancelarComanda();
@@ -105,6 +106,28 @@ export default function PDVView() {
 
   const abertas = pending.filter(o => o.status !== "closed");
 
+  // ── Ressincroniza a comanda aberta com o realtime ─────────────
+  // Sem isto, `selected` fica congelado no snapshot de quando a comanda
+  // foi aberta: itens lançados pelo Palm não entravam na conta e a
+  // finalização apagava (sem cobrar) tudo que chegou depois.
+  useEffect(() => {
+    if (!selected || selected._virtual) return;
+    const fresca = pending.find(o => o.id === selected.id);
+    if (fresca) {
+      if (fresca !== selected) setSelected(fresca);
+      return;
+    }
+    // A comanda sumiu do banco. Fluxos locais (finalizar/cancelar/
+    // transferir) navegam por conta própria — só reagimos quando foi
+    // OUTRO dispositivo que encerrou, para não cobrar de novo.
+    if (salvando || transferindo || cancelandoComanda) return;
+    setSelected(null);
+    setCartItems([]);
+    setMode("mapa");
+    notify?.(`${fmtComanda(selected.comanda)} foi encerrada em outro dispositivo.`, "err");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, selected, salvando, transferindo, cancelandoComanda]);
+
   // ── Selecionar comanda → pede mesa antes de entrar ────────────
   const handleSelectComanda = (order) => {
     setBuscaComanda("");
@@ -141,7 +164,13 @@ export default function PDVView() {
       if (!order._virtual) {
         // Comanda já existe — atualiza só se mudou
         const mudou = mesa !== (mesaPendingOrder.mesa || "") || apelido !== (mesaPendingOrder.apelido || "");
-        if (mudou) await updatePending(order.id, { mesa, apelido });
+        if (mudou) {
+          const { error } = await updatePending(order.id, { mesa, apelido });
+          if (error) {
+            notify?.("Não foi possível salvar a mesa. Tente novamente.", "err");
+            return;
+          }
+        }
       }
       // Se virtual, mantém _virtual — será persistida ao lançar
       setSelected(order);
@@ -217,7 +246,8 @@ export default function PDVView() {
       const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
       const acumulados = [...anteriores, ...novos];
       const total      = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-      await updatePending(ordem.id, { items: acumulados, total });
+      const { error } = await updatePending(ordem.id, { items: acumulados, total }, { baseItems: anteriores });
+      if (error) throw error;
       addLancada(ordem.id);
       logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados na ${fmtComanda(ordem.comanda)} · ${novos.length} tipo(s) · R$ ${total.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: ordem.comanda, tipos: novos.length, total });
       setToast(true);
@@ -225,6 +255,7 @@ export default function PDVView() {
       handleBack();
     } catch (err) {
       console.error("Erro ao lançar pedido:", err);
+      notify?.("Erro ao lançar o pedido — nada foi salvo. Tente novamente.", "err");
     } finally {
       setSalvando(false);
     }
@@ -232,22 +263,30 @@ export default function PDVView() {
 
   // ── Ir para checkout — acumula itens locais antes de finalizar ─
   const handleFinalizar = async () => {
-    let ordem = selected;
-    if (ordem._virtual) {
-      if (cartItems.length === 0) return; // não faz sentido finalizar sem itens
-      ordem = await persistirVirtual(ordem);
-      setSelected(ordem);
+    try {
+      let ordem = selected;
+      if (ordem._virtual) {
+        if (cartItems.length === 0) return; // não faz sentido finalizar sem itens
+        ordem = await persistirVirtual(ordem);
+        setSelected(ordem);
+      }
+      if (cartItems.length > 0) {
+        const anteriores = Array.isArray(ordem.items) ? ordem.items : [];
+        const novos      = cartItems.map(({ _key, ...rest }) => rest);
+        const acumulados = [...anteriores, ...novos];
+        const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+        const { error } = await updatePending(ordem.id, { items: acumulados, total: novoTotal }, { baseItems: anteriores });
+        if (error) throw error;
+        setSelected(prev => ({ ...prev, items: acumulados, total: novoTotal }));
+        setCartItems([]);
+      }
+      setMode("checkout");
+    } catch (err) {
+      // Mantém o carrinho e NÃO entra no checkout: cobrar itens que não
+      // foram gravados geraria divergência entre a conta e a comanda.
+      console.error("handleFinalizar error:", err?.message ?? err, err);
+      notify?.("Não foi possível salvar os itens antes de fechar a conta. Tente novamente.", "err");
     }
-    if (cartItems.length > 0) {
-      const anteriores = Array.isArray(ordem.items) ? ordem.items : [];
-      const novos      = cartItems.map(({ _key, ...rest }) => rest);
-      const acumulados = [...anteriores, ...novos];
-      const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-      await updatePending(ordem.id, { items: acumulados, total: novoTotal });
-      setSelected(prev => ({ ...prev, items: acumulados, total: novoTotal }));
-      setCartItems([]);
-    }
-    setMode("checkout");
   };
 
   // ── Confirmar pagamento → grava venda e remove comanda ────────
@@ -262,9 +301,13 @@ export default function PDVView() {
           setCupomNfce({ aberta: true, estado, resultado, venda }),
       });
       handleBack();
+      return { error: null };
     } catch (err) {
       // não usar JSON.stringify: mascara Error como "{}"
       console.error("handleConfirmPayment error:", err?.message ?? err, err);
+      // Devolve o erro para o CheckoutView exibir e reabilitar o botão —
+      // engolir aqui deixava o checkout preso em "Processando...".
+      return { error: err instanceof Error ? err : new Error("Não foi possível registrar o pagamento. Tente novamente.") };
     } finally {
       setSalvando(false);
     }
@@ -297,7 +340,8 @@ export default function PDVView() {
   // ── Persiste comanda virtual no banco ─────────────────────────
   const persistirVirtual = async (order) => {
     const { _virtual, ...payload } = order;
-    await addPending(payload);
+    const { error } = await addPending(payload);
+    if (error) throw error;
     logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta: ${order.comanda}`, name: currentUser?.name, role: currentUser?.role, comanda: order.comanda });
     return payload;
   };
@@ -376,10 +420,15 @@ export default function PDVView() {
           mesa:       selected?.mesa    || "",
           apelido:    selected?.apelido || "",
         };
-        await Promise.all([
-          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }),
+        const resultados = await Promise.all([
+          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }, { baseItems: itens }),
           addPending(novaOrder),
         ]);
+        const falha = resultados.find(r => r?.error);
+        if (falha) {
+          notify?.("A transferência não foi concluída — verifique as comandas e tente novamente.", "err");
+          return;
+        }
       } else {
         // Destino existente
         const destino    = abertas.find(o => o.id === destinoId);
@@ -393,10 +442,15 @@ export default function PDVView() {
           }
         });
         const totalDestino = novosDestino.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-        await Promise.all([
-          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }),
-          updatePending(destinoId,   { items: novosDestino, total: totalDestino }),
+        const resultados = await Promise.all([
+          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }, { baseItems: itens }),
+          updatePending(destinoId,   { items: novosDestino, total: totalDestino }, { baseItems: Array.isArray(destino.items) ? destino.items : [] }),
         ]);
+        const falha = resultados.find(r => r?.error);
+        if (falha) {
+          notify?.("A transferência não foi concluída — verifique as comandas e tente novamente.", "err");
+          return;
+        }
       }
 
       const qtdTransf = aTransferir.reduce((s, x) => s + x.qty, 0);
@@ -404,7 +458,8 @@ export default function PDVView() {
 
       const itensAtivosRestantes = novosOrigem.filter(i => !i.cancelado);
       if (itensAtivosRestantes.length === 0) {
-        await removePending(selected.id);
+        const { error } = await removePending(selected.id);
+        if (error) notify?.("Itens transferidos, mas a comanda de origem vazia não pôde ser removida.", "err");
         setSelected(null);
         setMode("mapa");
       } else {
@@ -431,7 +486,12 @@ export default function PDVView() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    await addPending(order);
+    const { error } = await addPending(order);
+    if (error) {
+      notify?.("Não foi possível abrir a comanda. Tente novamente.", "err");
+      setCriando(false);
+      return;
+    }
     logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta: ${order.comanda}`, name: currentUser?.name, role: currentUser?.role, comanda: order.comanda });
     setNomeComanda("");
     setShowNova(false);
@@ -442,6 +502,22 @@ export default function PDVView() {
     setMesaPendingOrder(order);
     setShowMesa(true);
   };
+
+  // Enquanto o bootstrap não trouxe o estado real do caixa (o default
+  // local é "aberto"), não deixar operar: evita registrar venda com o
+  // caixa de fato fechado nos primeiros segundos após o login.
+  if (bootstrapLoading) {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        height: "100vh", background: varColor(C.bg),
+        fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.muted),
+        fontSize: sz.fontBase, fontWeight: 600, userSelect: "none",
+      }}>
+        Conectando ao caixa…
+      </div>
+    );
+  }
 
   if (!caixaAberto) {
     return (
@@ -1016,7 +1092,11 @@ export default function PDVView() {
                     return { ...it, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "" };
                   }).flat();
                   const novoTotal = novos.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-                  await updatePending(selected.id, { items: novos, total: novoTotal });
+                  const { error } = await updatePending(selected.id, { items: novos, total: novoTotal }, { baseItems: selected.items });
+                  if (error) {
+                    notify?.("Não foi possível cancelar o item. Tente novamente.", "err");
+                    return;
+                  }
                   setSelected(prev => ({ ...prev, items: novos, total: novoTotal }));
                 }}
               />
@@ -1224,6 +1304,8 @@ export default function PDVView() {
                         setShowCancelarComanda(false);
                         setSelected(null);
                         setMode("grid");
+                      } catch (err) {
+                        notify?.(err?.message || "Não foi possível cancelar a comanda. Tente novamente.", "err");
                       } finally {
                         setCancelandoComanda(false);
                       }
@@ -1640,12 +1722,24 @@ export default function PDVView() {
               </button>
               <button
                 onClick={async () => {
+                  if (cancelandoComanda) return;
                   setConfirmCancelar(false);
-                  const itensComanda = Array.isArray(selected?.items) ? selected.items : [];
-                  logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda cancelada: ${fmtComanda(selected.comanda)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), items: itensComanda });
-                  emitirEvento("pedido.cancelado", "pedidos", { pedido_id: selected.id, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), itens: itensComanda.length }, currentUser?.username);
-                  await removePending(selected.id);
-                  handleBack();
+                  setCancelandoComanda(true);
+                  try {
+                    const itensComanda = Array.isArray(selected?.items) ? selected.items : [];
+                    // Remove primeiro: log e evento só depois do banco confirmar,
+                    // senão a trilha registra um cancelamento que não aconteceu.
+                    const { error } = await removePending(selected.id);
+                    if (error) {
+                      notify?.("Não foi possível cancelar a comanda. Tente novamente.", "err");
+                      return;
+                    }
+                    logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda cancelada: ${fmtComanda(selected.comanda)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), items: itensComanda });
+                    emitirEvento("pedido.cancelado", "pedidos", { pedido_id: selected.id, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), itens: itensComanda.length }, currentUser?.username);
+                    handleBack();
+                  } finally {
+                    setCancelandoComanda(false);
+                  }
                 }}
                 disabled={!confirmCancelarMotivo.trim()}
                 style={{
@@ -1872,7 +1966,6 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   vendasHoje.forEach(v => { Object.entries(totalPorMetodo(v)).forEach(([m, val]) => { porMetodo[m] = (porMetodo[m] ?? 0) + val; }); });
 
   const customLabels = Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label]));
-  const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix", ...customLabels };
   const METODOS_COLOR = { dinheiro: "#10b981", credito: "#3b82f6", debito: "#8b5cf6", pix: "#f59e0b" };
 
   const verificarSenha = async () => {
@@ -2061,7 +2154,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   {Object.entries(porMetodo).sort((a, b) => b[1] - a[1]).map(([metodo, val]) => (
                     <div key={metodo} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: varColor(C.surface), borderRadius: 10, padding: "10px 14px", border: `1px solid var(${C.border})` }}>
                       <span style={{ fontSize: sz.fontSm + 1, fontWeight: 700, color: METODOS_COLOR[metodo] ?? varColor(C.muted), background: `${METODOS_COLOR[metodo] ?? varColor(C.muted)}18`, border: `1px solid ${METODOS_COLOR[metodo] ?? varColor(C.muted)}44`, borderRadius: 8, padding: "3px 10px" }}>
-                        {METODOS_LABEL[metodo] ?? metodo}
+                        {rotuloMetodo(metodo, customLabels)}
                       </span>
                       <span style={{ fontWeight: 800, fontSize: sz.fontBase, color: varColor(C.text) }}>
                         R$ {Number(val).toFixed(2)}

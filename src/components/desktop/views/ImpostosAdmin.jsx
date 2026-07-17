@@ -155,8 +155,30 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  // Alíquota em % — aceita vírgula; "" vira 0.
+  const pct = (v) => (v === "" || v == null) ? 0 : parseFloat(String(v).replace(",", "."));
+
+  const ALIQUOTAS = [
+    ["aliquota_icms",     "ICMS",                     "icms"],
+    ["reducao_base_icms", "redução de base do ICMS",  "icms"],
+    ["aliquota_ipi",      "IPI",                      "pis_cofins"],
+    ["aliquota_pis",      "PIS",                      "pis_cofins"],
+    ["aliquota_cofins",   "COFINS",                   "pis_cofins"],
+    ["aliquota_ibs",      "IBS",                      "reforma"],
+    ["aliquota_cbs",      "CBS",                      "reforma"],
+    ["aliquota_is",       "IS",                       "reforma"],
+  ];
+
   const salvar = async () => {
     if (!form.ncm.trim()) { setErro("NCM é obrigatório."); setAba("identificacao"); return; }
+    for (const [campo, nome, abaCampo] of ALIQUOTAS) {
+      const v = pct(form[campo]);
+      if (isNaN(v) || v < 0 || v > 100) {
+        setErro(`Alíquota de ${nome} deve ser um número entre 0% e 100%.`);
+        setAba(abaCampo);
+        return;
+      }
+    }
     setSalvando(true);
     setErro("");
     try {
@@ -168,17 +190,17 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
         origem_mercadoria:     form.origem_mercadoria || null,
         csosn:                 form.csosn || null,
         cst_icms:              form.cst_icms || null,
-        aliquota_icms:         parseFloat(form.aliquota_icms) || 0,
-        reducao_base_icms:     parseFloat(form.reducao_base_icms) || 0,
+        aliquota_icms:         pct(form.aliquota_icms),
+        reducao_base_icms:     pct(form.reducao_base_icms),
         cst_ipi:               form.cst_ipi || null,
-        aliquota_ipi:          parseFloat(form.aliquota_ipi) || 0,
+        aliquota_ipi:          pct(form.aliquota_ipi),
         cst_pis:               form.cst_pis || null,
-        aliquota_pis:          parseFloat(form.aliquota_pis) || 0,
+        aliquota_pis:          pct(form.aliquota_pis),
         cst_cofins:            form.cst_cofins || null,
-        aliquota_cofins:       parseFloat(form.aliquota_cofins) || 0,
-        aliquota_ibs:          parseFloat(form.aliquota_ibs) || 0,
-        aliquota_cbs:          parseFloat(form.aliquota_cbs) || 0,
-        aliquota_is:           parseFloat(form.aliquota_is) || 0,
+        aliquota_cofins:       pct(form.aliquota_cofins),
+        aliquota_ibs:          pct(form.aliquota_ibs),
+        aliquota_cbs:          pct(form.aliquota_cbs),
+        aliquota_is:           pct(form.aliquota_is),
         regime_tributario:     form.regime_tributario || "simples",
         observacao_fiscal:     form.observacao_fiscal.trim() || null,
         updated_at:            new Date().toISOString(),
@@ -420,6 +442,7 @@ export default function ImpostosAdmin({ sz }) {
 
   const [fiscalMap,    setFiscalMap]    = useState({}); // { item_id: dados_fiscal }
   const [loading,      setLoading]      = useState(true);
+  const [loadErro,     setLoadErro]     = useState("");
   const [busca,        setBusca]        = useState("");
   const [catFiltro,    setCatFiltro]    = useState("Todos");
   const [statusFiltro, setStatusFiltro] = useState("Todos");
@@ -436,20 +459,28 @@ export default function ImpostosAdmin({ sz }) {
     [itens]
   );
 
-  useEffect(() => {
-    if (!itens.length) { setLoading(false); return; }
+  const carregarFiscal = async () => {
+    if (!itens.length) { setLoading(false); setLoadErro(""); return; }
+    setLoading(true);
+    setLoadErro("");
     const ids = itens.map(p => p.id);
-    supabase
+    const { data, error } = await supabase
       .from("itens_fiscal")
-      .select("*")
-      .in("item_id", ids)
-      .then(({ data }) => {
-        const map = {};
-        (data ?? []).forEach(d => { map[d.item_id] = d; });
-        setFiscalMap(map);
-        setLoading(false);
-      });
-  }, [itens.length]);
+      .select("item_id, ncm, cest, cfop, origem_mercadoria, csosn, cst_icms, aliquota_icms, reducao_base_icms, cst_ipi, aliquota_ipi, cst_pis, aliquota_pis, cst_cofins, aliquota_cofins, aliquota_ibs, aliquota_cbs, aliquota_is, regime_tributario, observacao_fiscal")
+      .in("item_id", ids);
+    if (error) {
+      // Sem os dados reais, mostrar tudo como "Pendente" enganaria o usuário.
+      setLoadErro("Não foi possível carregar as configurações fiscais.");
+      setLoading(false);
+      return;
+    }
+    const map = {};
+    (data ?? []).forEach(d => { map[d.item_id] = d; });
+    setFiscalMap(map);
+    setLoading(false);
+  };
+
+  useEffect(() => { carregarFiscal(); }, [itens]);
 
   const onSaved = (itemId, payload) => {
     setFiscalMap(prev => ({ ...prev, [itemId]: { ...prev[itemId], ...payload } }));
@@ -482,6 +513,19 @@ export default function ImpostosAdmin({ sz }) {
 
   if (loading) {
     return <div style={{ color: varColor(C.muted), textAlign: "center", padding: 60, fontSize: sz.fontBase }}>Carregando configurações fiscais...</div>;
+  }
+
+  if (loadErro) {
+    return (
+      <div style={{ textAlign: "center", padding: 60, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+        <div className="impostos-admin__erro" style={{ background: alfa(C.red, "12"), border: `1px solid ${alfa(C.red, "33")}`, fontSize: sz.fontBase }}>
+          <LuTriangleAlert size={16} style={{ flexShrink: 0 }} /> {loadErro}
+        </div>
+        <button onClick={carregarFiscal} className="impostos-admin__btn-salvar" style={{ background: varColor(C.accent), fontSize: sz.fontBase }}>
+          Tentar de novo
+        </button>
+      </div>
+    );
   }
 
   return (

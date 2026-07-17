@@ -24,6 +24,7 @@ const EMPTY_FORM = {
   unidade_estoque: "",
   compras: [],
   unidade_consumo: "",
+  fator_consumo: "",       // crítico 7 — quantas unidades de ESTOQUE 1 unidade de consumo gasta; vazio = 1
   codigo_barras: "",
   validade_dias: "",       // C1 — shelf life típico (dias); vazio = sem controle
   proxima_validade: "",    // C1 — próxima data a acompanhar (YYYY-MM-DD)
@@ -227,6 +228,7 @@ export default function ProdutosView() {
       unidade_estoque: p.unidade_estoque ?? p.unidade ?? "",
       compras,
       unidade_consumo: p.unidade_consumo ?? "",
+      fator_consumo:   p.fator_consumo_estoque != null && Number(p.fator_consumo_estoque) !== 1 ? String(p.fator_consumo_estoque) : "",
       codigo_barras:   p.codigo_barras ?? "",
       validade_dias:    p.validade_dias != null ? String(p.validade_dias) : "",
       proxima_validade: p.proxima_validade ?? "",
@@ -275,6 +277,10 @@ export default function ProdutosView() {
     for (const c of form.compras) {
       if (c.unidade && !c.fator) return `Informe o fator de conversão do fornecedor "${c.nome || "sem nome"}".`;
     }
+    if (form.fator_consumo !== "") {
+      const f = parseFloat(String(form.fator_consumo).replace(",", "."));
+      if (isNaN(f) || f <= 0) return "O fator de consumo deve ser um número maior que zero.";
+    }
     return null;
   };
 
@@ -290,7 +296,13 @@ export default function ProdutosView() {
       emoji:                 form.emoji || null,
       unidade_estoque:       ue,
       unidade_consumo:       form.unidade_consumo.trim() || null,
-      fator_consumo_estoque: 1,
+      // crítico 7 — fator real informado no cadastro; sem unidade de
+      // consumo (ou campo vazio) a conversão é 1:1.
+      fator_consumo_estoque: (() => {
+        if (!form.unidade_consumo.trim() || form.fator_consumo === "") return 1;
+        const f = parseFloat(String(form.fator_consumo).replace(",", "."));
+        return !isNaN(f) && f > 0 ? f : 1;
+      })(),
       unidades_compra:       form.compras
         .filter(c => c.unidade && c.fator)
         .map(c => ({ nome: c.nome.trim() || null, unidade: c.unidade, fator: parseFloat(c.fator), unidade_destino: ue })),
@@ -710,6 +722,38 @@ export default function ProdutosView() {
                       );
                     })}
                   </div>
+                )}
+
+                {/* crítico 7 — fator consumo→estoque: só aparece quando a
+                    unidade de consumo difere da de estoque (senão é 1:1) */}
+                {form.unidade_consumo && form.unidade_estoque && form.unidade_consumo !== form.unidade_estoque && (
+                  <>
+                    <div className="produtos-view__conversao-frase" style={{ fontSize: sz.fontBase }}>
+                      Uma{" "}
+                      <span style={{ color: varColor(C.green), fontWeight: 800 }}>{form.unidade_consumo}</span>
+                      {" "}vendida gasta{" "}
+                      <input
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        value={form.fator_consumo}
+                        onChange={e => setField("fator_consumo", e.target.value)}
+                        placeholder="1"
+                        className="produtos-view__conversao-fator"
+                        style={{ borderColor: form.fator_consumo ? alfa(C.green, "88") : varColor(C.border), fontSize: sz.fontBase }}
+                      />
+                      {" "}<span style={{ color: varColor(C.accent), fontWeight: 800 }}>{form.unidade_estoque}</span>{" "}do estoque
+                    </div>
+                    {(() => {
+                      const f = parseFloat(String(form.fator_consumo).replace(",", "."));
+                      if (!(f > 0)) return null;
+                      return (
+                        <div className="produtos-view__conversao-preview" style={{ background: alfa(C.green, "10"), borderColor: alfa(C.green, "33") }}>
+                          ✓ 1 {form.unidade_consumo} vendida → −{fmtQtd(f)} {form.unidade_estoque} no estoque
+                        </div>
+                      );
+                    })()}
+                  </>
                 )}
               </div>
             </div>

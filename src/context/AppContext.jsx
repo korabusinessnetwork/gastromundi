@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { getPermissions } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
@@ -10,8 +10,17 @@ import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
 import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
+import { criarLancamento } from "@/lib/financeiro";
+import { METODOS_TEF_PADRAO } from "@/lib/tef";
 import { processarBaixaEstoque } from "@/lib/estoque";
+import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { sanitizeInput } from "@/utils/crypto";
+import { isErroDeRede } from "@/lib/offline/rede";
+import { criarFila, drenarFila } from "@/lib/offline/fila";
+import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
+import { useStatusRede } from "@/hooks/useStatusRede";
+import IndicadorRede from "@/components/shared/IndicadorRede";
+import PonteLocalBridge from "@/components/shared/PonteLocalBridge";
 import {
   saveSession, loadSession, clearSession,
   getAttempts, setAttempts, clearAttempts,
@@ -19,6 +28,11 @@ import {
 } from "@/utils/session";
 
 const AppContext = createContext(null);
+
+// Fila local de operações offline (Leva 11) — singleton de módulo sobre
+// localStorage: sobrevive a reload/fechamento do app e é compartilhada
+// por todas as instâncias do provider (só existe uma no app real).
+const filaOffline = criarFila({ storage: window.localStorage });
 
 export function AppProvider({ children }) {
   // ── Estado local ─────────────────────────────────────────────
@@ -32,6 +46,7 @@ export function AppProvider({ children }) {
   const [sessaoAbertaEm,  setSessaoAbertaEmLocal] = useState(null);
   const [meiosPagamento,  setMeiosPagamentoLocal] = useState(["dinheiro", "credito", "debito", "pix"]);
   const [metodosCustom,   setMetodosCustomLocal]  = useState([]);
+  const [metodosTef,      setMetodosTefLocal]     = useState(METODOS_TEF_PADRAO); // quais métodos usam maquininha (TEF)
   const [taxaServico,     setTaxaServicoLocal]    = useState(false);
   const [diasAlertaValidade, setDiasAlertaValidadeLocal] = useState(7); // C1 — janela de alerta de validade
   const [estoque,         setEstoqueLocal]        = useState({});
@@ -42,6 +57,15 @@ export function AppProvider({ children }) {
   const [loading,       setLoading]          = useState(true);
   // IDs de comandas com pedido lançado na sessão atual (sobrevive troca de aba)
   const [lancadas,    setLancadas]         = useState(new Set());
+
+  // ── Offline-first (Leva 11) ──────────────────────────────────
+  const redeOnline = useStatusRede();
+  const [pendenciasOffline, setPendenciasOffline] = useState(() => filaOffline.tamanho());
+  const drenandoRef = useRef(false);
+  // Leva 13 — endereço da página do Palm servida pela Ponte KORA
+  // (http://IP:porta/palm?t=token). Persistido em config para o Palm
+  // saber para onde ir quando a internet cair.
+  const [ponteEndereco, setPonteEnderecoLocal] = useState(null);
 
   // ── Auth ─────────────────────────────────────────────────────
   const [currentUser,  setCurrentUser]  = useState(() => loadSession());
@@ -62,6 +86,11 @@ export function AppProvider({ children }) {
         if (userData) {
           setCurrentUser(userData);
           saveSession(userData);
+          await bootstrap();
+        } else if (loadSession() && typeof navigator !== "undefined" && navigator.onLine === false) {
+          // Sem internet a busca do usuário falha mesmo com sessão válida.
+          // A sessão local basta para operar: o bootstrap hidrata do
+          // snapshot e o app segue offline em vez de travar no login.
           await bootstrap();
         } else {
           setLoading(false);
@@ -164,12 +193,13 @@ export function AppProvider({ children }) {
         { data: catGrupoData, error: eCatGrupo },
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
-        supabase.from("pending").select("*").order("created_at", { ascending: false }),
+        // Colunas explícitas (nunca select * em pedidos — CLAUDE.md/Segurança)
+        supabase.from("pending").select("id,comanda,items,status,note,total,garcom,created_by,created_at,updated_at,mesa,apelido,status_cozinha,em_preparo_em,pronto_em").order("created_at", { ascending: false }),
         // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
         buscarSalesData(),
         supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","dias_alerta_validade"]),
+        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","metodos_tef","dias_alerta_validade","ponte_endereco"]),
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
         // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
         buscarBootstrapTenant(),
@@ -188,6 +218,29 @@ export function AppProvider({ children }) {
       if (eGrupos)   console.error("[bootstrap] grupos_categoria error:", eGrupos);
       if (eCatGrupo) console.error("[bootstrap] categoria_grupo error:", eCatGrupo);
 
+      // ── Offline (Leva 11): sem internet, hidrata do último snapshot ──
+      // e deixa o PDV operar; os pedidos entram na fila local.
+      if (isErroDeRede(eProducts) || isErroDeRede(ePending)) {
+        const snapshot = lerSnapshot(window.localStorage);
+        if (snapshot) {
+          if (snapshot.products?.length) setProductsLocal(snapshot.products);
+          if (snapshot.pending)          setPendingLocal(snapshot.pending);
+          if (snapshot.estoque)          setEstoqueLocal(snapshot.estoque);
+          if (snapshot.estoqueMinimos)   setEstoqueMinimosLocal(snapshot.estoqueMinimos);
+          const config = snapshot.config ?? {};
+          if (config.caixaAberto !== undefined) setCaixaAbertoLocal(!!config.caixaAberto);
+          if (config.sessaoAbertaEm)            setSessaoAbertaEmLocal(config.sessaoAbertaEm);
+          if (config.fundoAtual !== undefined)  setFundoAtualLocal(Number(config.fundoAtual));
+          if (Array.isArray(config.meiosPagamento) && config.meiosPagamento.length) setMeiosPagamentoLocal(config.meiosPagamento);
+          if (Array.isArray(config.metodosCustom)) setMetodosCustomLocal(config.metodosCustom);
+          if (Array.isArray(config.metodosTef))    setMetodosTefLocal(config.metodosTef);
+          if (config.taxaServico !== undefined) setTaxaServicoLocal(!!config.taxaServico);
+          if (typeof config.ponteEndereco === "string" && config.ponteEndereco) setPonteEnderecoLocal(config.ponteEndereco);
+        }
+        setLoading(false);
+        return;
+      }
+
       if (gruposData)   setGruposCategoriaLocal(gruposData);
       if (catGrupoData) setCategoriaGruposLocal(catGrupoData);
 
@@ -200,8 +253,8 @@ export function AppProvider({ children }) {
       })));
       if (fechamentosData)         setFechamentosLocal(fechamentosData.map(r => r.data));
 
+      const qtds = {}, minimos = {};
       if (estoqueData) {
-        const qtds = {}, minimos = {};
         for (const row of estoqueData) {
           qtds[row.produto_id]    = Number(row.quantidade);
           minimos[row.produto_id] = Number(row.minimo);
@@ -223,8 +276,15 @@ export function AppProvider({ children }) {
         if (taxa?.value !== undefined) setTaxaServicoLocal(!!taxa.value);
         const custom = configData.find(c => c.key === "metodos_custom");
         if (custom?.value && Array.isArray(custom.value)) setMetodosCustomLocal(custom.value);
+        // Array (mesmo vazio) = escolha explícita do estabelecimento;
+        // sem config vale METODOS_TEF_PADRAO (crédito/débito).
+        const tef = configData.find(c => c.key === "metodos_tef");
+        if (Array.isArray(tef?.value)) setMetodosTefLocal(tef.value);
         const diasValidade = configData.find(c => c.key === "dias_alerta_validade");
         if (diasValidade?.value != null && !isNaN(Number(diasValidade.value))) setDiasAlertaValidadeLocal(Number(diasValidade.value));
+        // Leva 13 — endereço do Palm na ponte local (salvo pela bridge)
+        const ponte = configData.find(c => c.key === "ponte_endereco");
+        if (typeof ponte?.value === "string" && ponte.value) setPonteEnderecoLocal(ponte.value);
       }
 
       if (tenantData) {
@@ -238,6 +298,28 @@ export function AppProvider({ children }) {
             console.error("[bootstrap] falha ao sincronizar status da assinatura:", err);
           });
         }
+      }
+
+      // Snapshot para a próxima abertura sem internet (Leva 11). Só o
+      // essencial para operar o PDV — vendas/usuários seguem online-only.
+      if (productsData || pendingData) {
+        const configMap = Object.fromEntries((configData ?? []).map(c => [c.key, c.value]));
+        salvarSnapshot(window.localStorage, {
+          products: productsData ?? [],
+          pending: pendingData ?? [],
+          estoque: qtds,
+          estoqueMinimos: minimos,
+          config: {
+            caixaAberto: configMap.caixa_aberto === true || configMap.caixa_aberto === "true",
+            sessaoAbertaEm: configMap.sessao_aberta_em ?? null,
+            fundoAtual: configMap.fundo_atual !== undefined ? Number(configMap.fundo_atual) : undefined,
+            meiosPagamento: Array.isArray(configMap.meios_pagamento) ? configMap.meios_pagamento : undefined,
+            metodosCustom: Array.isArray(configMap.metodos_custom) ? configMap.metodos_custom : undefined,
+            metodosTef: Array.isArray(configMap.metodos_tef) ? configMap.metodos_tef : undefined,
+            taxaServico: configMap.taxa_servico !== undefined ? !!configMap.taxa_servico : undefined,
+            ponteEndereco: typeof configMap.ponte_endereco === "string" ? configMap.ponte_endereco : undefined,
+          },
+        });
       }
 
       setLoading(false);
@@ -314,6 +396,72 @@ export function AppProvider({ children }) {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // ── Offline-first (Leva 11): reenvio da fila local ───────────
+  // Replay de uma operação guardada. Insert vira UPSERT por id: se a
+  // primeira tentativa gravou mas a resposta se perdeu na queda de rede,
+  // reenviar não duplica nem estoura chave única.
+  const executarOpOffline = (op) => {
+    if (op.tipo === "insert") return supabase.from("pending").upsert(op.payload, { onConflict: "id" });
+    if (op.tipo === "update") return supabase.from("pending").update(op.changes).eq("id", op.id);
+    if (op.tipo === "delete") return supabase.from("pending").delete().eq("id", op.id);
+    // Cobrança offline (não-TEF): venda fechada sem internet. Upsert por id
+    // — se a primeira tentativa gravou mas a resposta se perdeu, reenviar
+    // não duplica. Evento + gravação dupla só acontecem aqui, no reenvio
+    // que confirmou (addSale offline pula os dois de propósito).
+    if (op.tipo === "insert_venda") return reenviarVendaOffline(op);
+    if (op.tipo === "rpc_baixar_estoque") {
+      return supabase.rpc("baixar_estoque", { p_produto_id: op.produtoId, p_qtd: op.qtd });
+    }
+    if (op.tipo === "insert_lancamento") return criarLancamento(op.dados, op.usuario);
+    return Promise.resolve({ error: null }); // tipo desconhecido — descarta
+  };
+
+  const reenviarVendaOffline = async (op) => {
+    const sale = op.payload.data;
+    const { error } = await supabase.from("sales").upsert({ id: op.payload.id, data: sale }, { onConflict: "id" });
+    if (error) return { error };
+    emitirEvento("venda.finalizada", "pdv", {
+      venda_id: sale.id,
+      total: sale.total ?? null,
+      metodo: sale.metodo ?? sale.payment ?? null,
+      itens: Array.isArray(sale.items) ? sale.items.length : null,
+    }, currentUser?.username);
+    void persistirVendaNormalizada(supabase, sale, {
+      onFalha: ({ etapa, error: e, venda_id }) => {
+        console.error(`dual-write vendas (${etapa}) venda ${venda_id}:`, e);
+        emitirEvento("venda.dualwrite.falhou", "pdv", {
+          venda_id,
+          etapa,
+          erro: e?.message ?? e?.code ?? String(e),
+        }, currentUser?.username);
+      },
+    });
+    return { error: null };
+  };
+
+  // Enfileira uma operação para reenvio quando a internet voltar e
+  // atualiza o contador do badge — único caminho para fora do provider.
+  const enfileirarOffline = (op) => setPendenciasOffline(filaOffline.enfileirar(op));
+
+  const drenarPendenciasOffline = async () => {
+    if (drenandoRef.current || filaOffline.tamanho() === 0) return;
+    drenandoRef.current = true;
+    try {
+      const { falhas } = await drenarFila({ fila: filaOffline, executar: executarOpOffline, isErroDeRede });
+      for (const { op, error } of falhas) {
+        console.error("[offline] operação descartada no reenvio:", op.tipo, error?.message);
+      }
+    } finally {
+      drenandoRef.current = false;
+      setPendenciasOffline(filaOffline.tamanho());
+    }
+  };
+
+  useEffect(() => {
+    if (redeOnline && !loading) drenarPendenciasOffline();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [redeOnline, loading, pendenciasOffline]);
+
   // ── Actions: Auth ─────────────────────────────────────────────
   const login = async (username, password) => {
     const clean = sanitizeInput(username);
@@ -365,22 +513,91 @@ export function AppProvider({ children }) {
   };
 
   // ── Actions: Pending ──────────────────────────────────────────
+  // O supabase-js NÃO lança em erro de RLS/constraint — resolve com
+  // { error }. Toda escrita aqui checa o .error, desfaz o estado
+  // otimista quando a gravação falha e devolve { error } para o
+  // chamador mostrar feedback — senão a UI finge sucesso enquanto o
+  // banco ficou para trás (pedido do garçom some, cobrança dupla).
   const addPending = async (order) => {
+    // uid estável por item — base da reconciliação multi-dispositivo
+    // (Palm × PDV) feita no updatePending.
+    order = { ...order, items: garantirUidItens(order.items) };
     setPendingLocal(prev => [order, ...prev]);
     const { id, comanda, mesa, apelido, items, status, note, total, garcom, created_by } = order;
-    await supabase.from("pending").insert({ id, comanda, mesa, apelido, items, status, note, total, garcom, created_by });
+    const { error } = await supabase.from("pending").insert({ id, comanda, mesa, apelido, items, status, note, total, garcom, created_by });
+    if (error) {
+      // Sem internet o pedido NÃO some (Leva 11): mantém o estado
+      // otimista, guarda na fila local e reenvia quando a rede voltar.
+      if (isErroDeRede(error)) {
+        setPendenciasOffline(filaOffline.enfileirar({ tipo: "insert", payload: { id, comanda, mesa, apelido, items, status, note, total, garcom, created_by } }));
+        return { error: null, offline: true };
+      }
+      console.error("addPending error:", error);
+      setPendingLocal(prev => prev.filter(o => o.id !== id));
+      return { error };
+    }
     emitirEvento("pedido.aberto", "pedidos", { pedido_id: id, comanda, mesa: mesa ?? null, total: total ?? null, garcom: garcom ?? null }, created_by ?? currentUser?.username);
+    return { error: null };
   };
 
   const removePending = async (id) => {
-    setPendingLocal(prev => prev.filter(o => o.id !== id));
+    let removida = null;
+    setPendingLocal(prev => {
+      removida = prev.find(o => o.id === id) ?? removida;
+      return prev.filter(o => o.id !== id);
+    });
     const { error } = await supabase.from("pending").delete().eq("id", id);
-    if (error) console.error("removePending error:", JSON.stringify(error, null, 2));
+    if (error) {
+      if (isErroDeRede(error)) {
+        setPendenciasOffline(filaOffline.enfileirar({ tipo: "delete", id }));
+        return { error: null, offline: true };
+      }
+      console.error("removePending error:", error);
+      // Restaura a comanda: ela continua existindo no banco.
+      if (removida) setPendingLocal(prev => prev.some(o => o.id === id) ? prev : [removida, ...prev]);
+      return { error };
+    }
+    return { error: null };
   };
 
-  const updatePending = async (id, changes) => {
-    setPendingLocal(prev => prev.map(o => o.id === id ? { ...o, ...changes } : o));
-    await supabase.from("pending").update({ ...changes, updated_at: new Date().toISOString() }).eq("id", id);
+  // `baseItems` = snapshot de onde o chamador derivou `changes.items`.
+  // Com ele, itens lançados por outro dispositivo (Palm) entre o snapshot
+  // e a gravação são preservados em vez de sobrescritos ("última escrita
+  // vence" fazia itens sumirem da conta). A janela de corrida residual
+  // (leitura→gravação não é atômica) fica registrada como dívida técnica —
+  // a solução definitiva é um RPC de append em jsonb no Postgres.
+  const updatePending = async (id, changes, { baseItems } = {}) => {
+    if (Array.isArray(changes.items)) {
+      changes = { ...changes, items: garantirUidItens(changes.items) };
+      if (Array.isArray(baseItems)) {
+        const { data: atual, error: erroLeitura } = await supabase
+          .from("pending").select("items").eq("id", id).maybeSingle();
+        if (!erroLeitura && atual) {
+          const { items, houveMescla } = mesclarItensComanda({ base: baseItems, propostos: changes.items, banco: atual.items });
+          if (houveMescla) {
+            changes = { ...changes, items };
+            if ("total" in changes) changes.total = totalItensAtivos(items);
+          }
+        }
+      }
+    }
+    let anterior = null;
+    setPendingLocal(prev => prev.map(o => {
+      if (o.id !== id) return o;
+      anterior = o;
+      return { ...o, ...changes };
+    }));
+    const { error } = await supabase.from("pending").update({ ...changes, updated_at: new Date().toISOString() }).eq("id", id);
+    if (error) {
+      if (isErroDeRede(error)) {
+        setPendenciasOffline(filaOffline.enfileirar({ tipo: "update", id, changes: { ...changes, updated_at: new Date().toISOString() } }));
+        return { error: null, offline: true };
+      }
+      console.error("updatePending error:", error);
+      if (anterior) setPendingLocal(prev => prev.map(o => o.id === id ? anterior : o));
+      return { error };
+    }
+    return { error: null };
   };
 
   // ── Actions: Products ─────────────────────────────────────────
@@ -435,6 +652,13 @@ export function AppProvider({ children }) {
     setSalesLocal(prev => [sale, ...prev]);
     const { error } = await supabase.from("sales").insert({ id: sale.id, data: sale });
     if (error) {
+      // Sem internet (métodos não-TEF): a venda fica na fila local e sobe
+      // sozinha quando a conexão voltar. Evento + gravação dupla ficam para
+      // o reenvio confirmado (executarOpOffline), senão duplicariam.
+      if (isErroDeRede(error)) {
+        enfileirarOffline({ tipo: "insert_venda", payload: { id: sale.id, data: sale } });
+        return { offline: true };
+      }
       console.error("addSale error:", JSON.stringify(error, null, 2));
       throw error;
     }
@@ -517,26 +741,40 @@ export function AppProvider({ children }) {
   // ── Actions: Fechamentos ──────────────────────────────────────
   const addFechamento = async (f) => {
     setFechamentosLocal(prev => [f, ...prev]);
-    await supabase.from("fechamentos").insert({ data: f });
+    const { error } = await supabase.from("fechamentos").insert({ data: f });
+    if (error) {
+      console.error("addFechamento error:", error);
+      setFechamentosLocal(prev => prev.filter(x => x.id !== f.id));
+      return { error };
+    }
     emitirEvento("caixa.fechado", "caixa", {
       total_vendas: f?.totalVendas ?? null,
       total_conferido: f?.totalConferido ?? null,
     }, currentUser?.username);
+    return { error: null };
   };
 
   // ── Actions: Estoque ──────────────────────────────────────────
   const updateEstoque = async (productId, qty) => {
     const novaQtd = Math.max(0, qty);
+    const anterior = estoque[productId];
     setEstoqueLocal(prev => ({ ...prev, [productId]: novaQtd }));
-    await supabase.from("estoque").upsert(
+    const { error } = await supabase.from("estoque").upsert(
       { produto_id: productId, quantidade: novaQtd, updated_at: new Date().toISOString() },
       { onConflict: "produto_id" },
     );
+    if (error) {
+      console.error("updateEstoque error:", error);
+      setEstoqueLocal(prev => ({ ...prev, [productId]: anterior ?? 0 }));
+      return { error };
+    }
     emitirEvento("estoque.ajustado", "estoque", { produto_id: productId, quantidade: novaQtd }, currentUser?.username);
+    return { error: null };
   };
 
   // Atualiza múltiplos produtos de uma vez (evita race condition em imports em lote)
   const bulkSetEstoque = async (newEstoque) => {
+    const anterior = estoque;
     setEstoqueLocal(newEstoque);
     const rows = Object.entries(newEstoque ?? {}).map(([produto_id, quantidade]) => ({
       produto_id,
@@ -544,9 +782,15 @@ export function AppProvider({ children }) {
       updated_at: new Date().toISOString(),
     }));
     if (rows.length > 0) {
-      await supabase.from("estoque").upsert(rows, { onConflict: "produto_id" });
+      const { error } = await supabase.from("estoque").upsert(rows, { onConflict: "produto_id" });
+      if (error) {
+        console.error("bulkSetEstoque error:", error);
+        setEstoqueLocal(anterior);
+        return { error };
+      }
     }
     emitirEvento("estoque.ajuste_em_lote", "estoque", { itens: Object.keys(newEstoque ?? {}).length }, currentUser?.username);
+    return { error: null };
   };
 
   // Baixa atômica no servidor (evita race condition entre dispositivos descontando ao mesmo tempo).
@@ -565,59 +809,125 @@ export function AppProvider({ children }) {
       usuario: currentUser?.username,
       chamarRpc: (id, q) => supabase.rpc("baixar_estoque", { p_produto_id: id, p_qtd: q }),
     });
-    if (error) return;
+    if (error) {
+      // Sem internet: mantém o desconto otimista e agenda a RPC para quando
+      // a conexão voltar. Caveat conhecido: a RPC não é idempotente — se a
+      // baixa gravou mas a resposta se perdeu, o reenvio desconta de novo
+      // (janela rara; corrigível com chave de idempotência na RPC).
+      if (isErroDeRede(error)) {
+        enfileirarOffline({ tipo: "rpc_baixar_estoque", produtoId: productId, qtd: qty });
+        return { error: null, offline: true };
+      }
+      // Baixa não confirmada no servidor: desfaz o desconto otimista e deixa
+      // rastro visível para o Jarvas/gestor (TD012 — antes falhava em silêncio).
+      setEstoqueLocal(prev => ({ ...prev, [productId]: anterior }));
+      emitirEvento("estoque.baixa.falhou", "estoque", {
+        produto_id: productId,
+        quantidade: qty,
+        erro: error?.message ?? error?.code ?? String(error),
+      }, currentUser?.username);
+      return { error };
+    }
 
     setEstoqueLocal(prev => ({ ...prev, [productId]: quantidade }));
     emitirEvento("estoque.baixa", "estoque", { produto_id: productId, quantidade: qty }, currentUser?.username);
+    return { error: null };
   };
 
   const setMinimoEstoque = async (productId, minimo) => {
     const novoMinimo = Math.max(0, Number(minimo) || 0);
+    const anterior = estoqueMinimos[productId];
     setEstoqueMinimosLocal(prev => ({ ...prev, [productId]: novoMinimo }));
-    await supabase.from("estoque").upsert(
+    const { error } = await supabase.from("estoque").upsert(
       { produto_id: productId, minimo: novoMinimo, updated_at: new Date().toISOString() },
       { onConflict: "produto_id" },
     );
+    if (error) {
+      console.error("setMinimoEstoque error:", error);
+      setEstoqueMinimosLocal(prev => {
+        const next = { ...prev };
+        if (anterior === undefined) delete next[productId];
+        else next[productId] = anterior;
+        return next;
+      });
+      return { error };
+    }
+    return { error: null };
   };
 
   // config tem PK composta (tenant_id, key) — migração 20260738. O
   // tenant_id é resolvido pelo DEFAULT tenant_atual_id() no banco (não vai
   // no payload), mas o onConflict precisa nomear as duas colunas da PK.
+  // Cada setter grava otimista, checa o .error do upsert (a RLS de config
+  // exige gerente/admin — o papel caixa falhava em silêncio) e desfaz o
+  // estado local quando a persistência falha, devolvendo { error }.
+  const gravarConfig = async (key, value, desfazer) => {
+    const { error } = await supabase.from("config").upsert({ key, value }, { onConflict: "tenant_id,key" });
+    if (error) {
+      console.error(`config upsert (${key}) error:`, error);
+      desfazer();
+      return { error };
+    }
+    return { error: null };
+  };
+
   const setFundoAtual = async (val) => {
+    const anterior = fundoAtual;
     setFundoAtualLocal(val);
-    await supabase.from("config").upsert({ key: "fundo_atual", value: val }, { onConflict: "tenant_id,key" });
+    return gravarConfig("fundo_atual", val, () => setFundoAtualLocal(anterior));
   };
 
   const setCaixaAberto = async (val) => {
+    const anterior = caixaAberto;
     setCaixaAbertoLocal(val);
-    await supabase.from("config").upsert({ key: "caixa_aberto", value: val }, { onConflict: "tenant_id,key" });
-    if (val) emitirEvento("caixa.aberto", "caixa", {}, currentUser?.username);
+    const res = await gravarConfig("caixa_aberto", val, () => setCaixaAbertoLocal(anterior));
+    if (!res.error && val) emitirEvento("caixa.aberto", "caixa", {}, currentUser?.username);
+    return res;
   };
 
   const setSessaoAbertaEm = async (val) => {
+    const anterior = sessaoAbertaEm;
     setSessaoAbertaEmLocal(val);
-    await supabase.from("config").upsert({ key: "sessao_aberta_em", value: val }, { onConflict: "tenant_id,key" });
+    return gravarConfig("sessao_aberta_em", val, () => setSessaoAbertaEmLocal(anterior));
   };
 
   const setMeiosPagamento = async (val) => {
+    const anterior = meiosPagamento;
     setMeiosPagamentoLocal(val);
-    await supabase.from("config").upsert({ key: "meios_pagamento", value: val }, { onConflict: "tenant_id,key" });
+    return gravarConfig("meios_pagamento", val, () => setMeiosPagamentoLocal(anterior));
   };
 
   const setMetodosCustom = async (val) => {
+    const anterior = metodosCustom;
     setMetodosCustomLocal(val);
-    await supabase.from("config").upsert({ key: "metodos_custom", value: val }, { onConflict: "tenant_id,key" });
+    return gravarConfig("metodos_custom", val, () => setMetodosCustomLocal(anterior));
+  };
+
+  const setMetodosTef = async (val) => {
+    const anterior = metodosTef;
+    setMetodosTefLocal(val);
+    return gravarConfig("metodos_tef", val, () => setMetodosTefLocal(anterior));
   };
 
   const setTaxaServico = async (val) => {
+    const anterior = taxaServico;
     setTaxaServicoLocal(!!val);
-    await supabase.from("config").upsert({ key: "taxa_servico", value: !!val }, { onConflict: "tenant_id,key" });
+    return gravarConfig("taxa_servico", !!val, () => setTaxaServicoLocal(anterior));
+  };
+
+  // Leva 13 — a bridge grava o endereço do Palm quando ele muda (IP novo
+  // do roteador, token novo). Também vai para o snapshot no próximo boot.
+  const setPonteEndereco = async (val) => {
+    const anterior = ponteEndereco;
+    setPonteEnderecoLocal(val);
+    return gravarConfig("ponte_endereco", val, () => setPonteEnderecoLocal(anterior));
   };
 
   const setDiasAlertaValidade = async (val) => {
+    const anterior = diasAlertaValidade;
     const n = Math.max(1, Math.min(365, Number(val) || 7));
     setDiasAlertaValidadeLocal(n);
-    await supabase.from("config").upsert({ key: "dias_alerta_validade", value: n });
+    return gravarConfig("dias_alerta_validade", n, () => setDiasAlertaValidadeLocal(anterior));
   };
 
   // ── Actions: Grupos de categoria (C3) ─────────────────────────
@@ -693,9 +1003,20 @@ export function AppProvider({ children }) {
     // C3 — grupos de categoria (radar do Palm + mapeamento em Configurações)
     gruposCategoria, categoriaGrupos, categoriaGrupoMap, setCategoriaGrupo,
     metodosCustom, setMetodosCustom,
+    metodosTef, setMetodosTef,
+    // offline-first (Leva 11)
+    redeOnline, pendenciasOffline, enfileirarOffline,
+    // ponte local (Leva 13)
+    ponteEndereco, setPonteEndereco,
   };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+      <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
+      <PonteLocalBridge />
+    </AppContext.Provider>
+  );
 }
 
 export const useApp = () => {

@@ -7,7 +7,7 @@ const { registrarInsight, buscarInsights } = vi.hoisted(() => ({
 
 vi.mock("./jarvas", () => ({ registrarInsight, buscarInsights }));
 
-import { verificarEstoqueMinimo, gerarAlertaEstoque, processarBaixaEstoque } from "./estoque";
+import { verificarEstoqueMinimo, verificarOversell, gerarAlertaEstoque, gerarAlertaOversell, processarBaixaEstoque } from "./estoque";
 
 describe("verificarEstoqueMinimo", () => {
   it("detecta quando a baixa cruza o mínimo (estava acima, ficou em/abaixo)", () => {
@@ -31,6 +31,62 @@ describe("verificarEstoqueMinimo", () => {
   it("lida com mínimo ausente/inválido como zero", () => {
     expect(verificarEstoqueMinimo(5, 0, null)).toBe(true);
     expect(verificarEstoqueMinimo(0, 0, undefined)).toBe(false);
+  });
+});
+
+describe("verificarOversell", () => {
+  it("detecta baixa maior que o saldo disponível", () => {
+    expect(verificarOversell(2, 5)).toBe(true);
+    expect(verificarOversell(0, 1)).toBe(true);
+  });
+
+  it("não dispara quando o saldo cobre a baixa", () => {
+    expect(verificarOversell(5, 5)).toBe(false);
+    expect(verificarOversell(10, 3)).toBe(false);
+  });
+
+  it("saldo negativo/inválido conta como zero", () => {
+    expect(verificarOversell(-2, 1)).toBe(true);
+    expect(verificarOversell(null, 1)).toBe(true);
+    expect(verificarOversell(undefined, 0)).toBe(false);
+  });
+});
+
+describe("gerarAlertaOversell", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("registra alerta 'danger' com a chave de oversell do produto", async () => {
+    buscarInsights.mockResolvedValue({ data: [], error: null });
+
+    await gerarAlertaOversell({ produtoId: 7, nome: "Chopp", vendido: 5, disponivel: 2 }, "maria");
+
+    expect(registrarInsight).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tipo: "alerta",
+        severidade: "danger",
+        modulo: "estoque",
+        origem: expect.objectContaining({ chave: "estoque:oversell:produto:7" }),
+      }),
+    );
+  });
+
+  it("dedupe: não registra se já existe alerta de oversell aberto para o produto", async () => {
+    buscarInsights.mockResolvedValue({
+      data: [{ id: "x", status: "novo", origem: { chave: "estoque:oversell:produto:7" } }],
+      error: null,
+    });
+
+    await gerarAlertaOversell({ produtoId: 7, nome: "Chopp", vendido: 5, disponivel: 2 }, "maria");
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("nunca lança mesmo se o Jarvas falhar", async () => {
+    buscarInsights.mockRejectedValue(new Error("falha de rede"));
+
+    await expect(gerarAlertaOversell({ produtoId: 7, nome: "Chopp", vendido: 5, disponivel: 2 })).resolves.toBeUndefined();
   });
 });
 
@@ -137,6 +193,36 @@ describe("processarBaixaEstoque", () => {
     expect(error).toEqual({ message: "falha" });
     expect(quantidade).toBe(3); // fallback calculado localmente
     expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("oversell (baixa maior que o saldo) dispara o alerta de venda sem estoque", async () => {
+    buscarInsights.mockResolvedValue({ data: [], error: null });
+    const chamarRpc = vi.fn(() => Promise.resolve({ data: [{ quantidade: 0, minimo: 10 }], error: null }));
+
+    const { quantidade, error } = await processarBaixaEstoque({
+      produtoId: 7, qty: 5, quantidadeAnterior: 2, nomeProduto: "Chopp",
+      usuario: "maria", chamarRpc,
+    });
+
+    expect(error).toBeNull();
+    expect(quantidade).toBe(0);
+    await vi.waitFor(() => expect(registrarInsight).toHaveBeenCalledTimes(1));
+    expect(registrarInsight.mock.calls[0][0].origem.chave).toBe("estoque:oversell:produto:7");
+    expect(registrarInsight.mock.calls[0][0].origem.dados).toMatchObject({ vendido: 5, disponivel: 2 });
+  });
+
+  it("oversell tem precedência sobre o alerta de mínimo (um alerta só, o mais grave)", async () => {
+    buscarInsights.mockResolvedValue({ data: [], error: null });
+    // Cruzou o mínimo E vendeu mais do que tinha: 12 → 0 com baixa de 15.
+    const chamarRpc = vi.fn(() => Promise.resolve({ data: [{ quantidade: 0, minimo: 10 }], error: null }));
+
+    await processarBaixaEstoque({
+      produtoId: 8, qty: 15, quantidadeAnterior: 12, nomeProduto: "Água",
+      usuario: "maria", chamarRpc,
+    });
+
+    await vi.waitFor(() => expect(registrarInsight).toHaveBeenCalledTimes(1));
+    expect(registrarInsight.mock.calls[0][0].origem.chave).toBe("estoque:oversell:produto:8");
   });
 
   it("usa minimoFallback quando a RPC não devolve minimo", async () => {

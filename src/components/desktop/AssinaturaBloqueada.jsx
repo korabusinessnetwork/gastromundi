@@ -25,7 +25,7 @@ export default function AssinaturaBloqueada() {
         Sua mensalidade está atrasada
       </div>
       <div className="assinatura-bloqueada__texto" style={{ color: varColor(C.muted) }}>
-        O acesso ao GastroMundi fica suspenso até a renovação ser confirmada.
+        O acesso ao sistema fica suspenso até a renovação ser confirmada.
         Regularize o pagamento com o suporte para voltar a usar o sistema normalmente.
       </div>
     </div>

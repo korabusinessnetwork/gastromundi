@@ -3,7 +3,9 @@ import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { criarLancamento } from "@/lib/financeiro";
 import { emitirDocumentoFiscal } from "@/lib/fiscal";
-import { processarPagamentoTef, isPagamentoCartao } from "@/lib/tef";
+import { processarPagamentoTef, metodoUsaTef } from "@/lib/tef";
+import { consumoParaEstoque } from "@/utils/conversaoUnidades";
+import { isErroDeRede } from "@/lib/offline/rede";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
 // cadastrado hoje, mas a checagem já fica pronta para quando existir
@@ -34,9 +36,17 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
  * e por voltar para a grade de comandas (handleBack) após concluir.
  */
 export function useFinalizarPagamento() {
-  const { addSale, removePending, estoque, baixarEstoque, currentUser, addonHabilitado } = useApp();
+  const { addSale, removePending, estoque, baixarEstoque, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
 
   const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId }, { onNfce } = {}) => {
+    // TEF é só online: a maquininha precisa de comunicação em tempo real —
+    // não dá pra "guardar pra depois" uma cobrança de cartão. Métodos sem
+    // TEF (dinheiro, Pix etc.) podem fechar offline: a venda entra na fila
+    // local e sobe quando a internet voltar.
+    const exigeTef = (m) => addonHabilitado?.("tef") && metodoUsaTef(m, metodosTef);
+    if (!redeOnline && (pagamentos ?? []).some((p) => exigeTef(p?.metodo))) {
+      throw new Error("Sem internet: pagamento pela maquininha (TEF) fica indisponível. Cobre em dinheiro, Pix ou outro método — ou aguarde a conexão voltar.");
+    }
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
     const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
     const todosItens      = [...itensAcumulados, ...itensLocais];
@@ -72,22 +82,26 @@ export function useFinalizarPagamento() {
           const valorPagamento = Number(p?.valor) || 0;
           if (!p?.metodo || valorPagamento <= 0) continue;
 
-          if (isFiado(p.metodo)) {
-            const vencimento = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-            await criarLancamento({
-              tipo: "receita", categoria: "vendas",
-              descricao: `Fiado — comanda ${selected.comanda}`,
-              valor: valorPagamento, competencia: hoje, vencimento, status: "previsto",
-              origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
-            }, currentUser?.username);
-          } else {
-            await criarLancamento({
-              tipo: "receita", categoria: "vendas",
-              descricao: `Venda — comanda ${selected.comanda}`,
-              valor: valorPagamento, competencia: hoje, status: "recebido",
-              origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
-            }, currentUser?.username);
-          }
+          const dados = isFiado(p.metodo)
+            ? {
+                tipo: "receita", categoria: "vendas",
+                descricao: `Fiado — comanda ${selected.comanda}`,
+                valor: valorPagamento, competencia: hoje,
+                vencimento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+                status: "previsto",
+                origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
+              }
+            : {
+                tipo: "receita", categoria: "vendas",
+                descricao: `Venda — comanda ${selected.comanda}`,
+                valor: valorPagamento, competencia: hoje, status: "recebido",
+                origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
+              };
+          const { error } = await criarLancamento(dados, currentUser?.username);
+          // Sem internet a receita não se perde: entra na fila local e é
+          // recriada no reenvio. Outros erros seguem fire-and-forget (a
+          // venda nunca é bloqueada pelo financeiro).
+          if (isErroDeRede(error)) enfileirarOffline({ tipo: "insert_lancamento", dados, usuario: currentUser?.username });
         }
       } catch (err) {
         console.error("financeiro (receita por venda):", err);
@@ -118,14 +132,22 @@ export function useFinalizarPagamento() {
     }
     if (addonHabilitado?.("tef")) {
       for (const p of pagamentos ?? []) {
-        if (!isPagamentoCartao(p?.metodo)) continue;
+        if (!metodoUsaTef(p?.metodo, metodosTef)) continue;
         void processarPagamentoTef(p, { usuario: currentUser?.username, comanda: selected.comanda }).catch((err) => {
           console.error("tef:", err);
         });
       }
     }
 
-    await removePending(selected.id);
+    // Venda já está gravada — se a remoção da pending falhar, a comanda
+    // reaparece na grade e o operador cobra DE NOVO (cobrança dupla).
+    // Tenta uma segunda vez e, se ainda falhar, avisa alto no fim do fluxo.
+    let remocaoFalhou = null;
+    {
+      let { error } = await removePending(selected.id);
+      if (error) ({ error } = await removePending(selected.id));
+      remocaoFalhou = error ?? null;
+    }
     if (selected.mesa) {
       supabase.rpc("limpar_reserva_mesa", { mesa_numero: selected.mesa })
         .then(() => {}, (err) => console.error("Falha ao limpar reserva da mesa:", err));
@@ -138,12 +160,26 @@ export function useFinalizarPagamento() {
       delta[item.id] = (delta[item.id] ?? 0) + (item.qty ?? 1);
     }
     for (const [prodId, qty] of Object.entries(delta)) {
-      const atual = estoque[prodId] ?? 0;
-      if (atual > 0) await baixarEstoque(prodId, qty);
+      // Produto sem entrada no mapa de estoque = sem controle de estoque.
+      // Estoque zerado NÃO pula a baixa: a RPC clampa em zero e o Jarvas
+      // sinaliza a venda sem estoque (oversell) — pular escondia o furo.
+      if (!(prodId in estoque)) continue;
+      const produto = (products ?? []).find(p => String(p.id) === prodId);
+      // Crítico 7 — converte a quantidade vendida (unidade de consumo)
+      // para unidade de estoque via fator_consumo_estoque do produto.
+      const qtdEstoque = produto ? consumoParaEstoque(qty, produto) : qty;
+      await baixarEstoque(prodId, qtdEstoque);
     }
 
     const metodoResumo = (pagamentos ?? []).map(p => p?.metodo).filter(Boolean).join(" + ") || "—";
     logAction(currentUser?.username, "comanda:finalizar", { msg: `Comanda ${selected.comanda} finalizada · R$ ${total.toFixed(2)} · ${metodoResumo}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, total, metodo: metodoResumo });
+
+    if (remocaoFalhou) {
+      logAction(currentUser?.username, "comanda:finalizar:remocao_falhou", { msg: `Venda gravada, mas a comanda ${selected.comanda} não foi removida da grade`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, venda_id: sale.id, erro: remocaoFalhou?.message ?? String(remocaoFalhou) });
+      // Lança DEPOIS dos efeitos (mesa/estoque/log) para não perdê-los:
+      // o CheckoutView exibe esta mensagem e o operador resolve manualmente.
+      throw new Error(`Venda registrada, mas a comanda ${selected.comanda} não saiu da tela. NÃO cobre de novo — feche a comanda manualmente.`);
+    }
 
     return sale;
   };

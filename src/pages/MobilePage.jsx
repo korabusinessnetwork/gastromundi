@@ -21,10 +21,12 @@ const fmtComanda = (name) =>
 export default function MobilePage() {
   const {
     pending, products, currentUser, estoque, caixaAberto,
+    loading: bootstrapLoading,
     addPending, updatePending,
     lancadas, addLancada,
     logout,
     sales, sessaoAbertaEm, categoriaGrupoMap,
+    redeOnline, ponteEndereco,
   } = useApp();
 
   const { width } = useResponsive();
@@ -111,7 +113,7 @@ export default function MobilePage() {
   const handleLancar = async () => {
     const nomeComanda = lancComanda.trim();
     if (!nomeComanda) { setLancErro("Informe o número ou nome da comanda."); return; }
-    if (cartItems.length === 0 || salvando) return;
+    if (salvando) return;
     setSalvando(true);
     try {
       let order = mapa[nomeComanda];
@@ -128,32 +130,38 @@ export default function MobilePage() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        await addPending(order);
+        const { error } = await addPending(order);
+        if (error) throw error;
         logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta (palm): ${nomeComanda}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, via: "palm" });
       } else if (lancMesa.trim() && !order.mesa) {
-        await updatePending(order.id, { mesa: lancMesa.trim() });
+        const { error } = await updatePending(order.id, { mesa: lancMesa.trim() });
+        if (error) throw error;
         order = { ...order, mesa: lancMesa.trim() };
       }
 
-      const anteriores = Array.isArray(order.items) ? order.items : [];
-      const agora      = new Date().toISOString();
-      const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
-      const acumulados = [...anteriores, ...novos];
-      const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-      await updatePending(order.id, { items: acumulados, total: novoTotal });
-      addLancada(order.id);
-      logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados (palm) na Comanda ${nomeComanda} · ${novos.length} tipo(s) · R$ ${novoTotal.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, tipos: novos.length, total: novoTotal, via: "palm" });
-
       // order atualizado localmente — não depende do Supabase sync
-      const updatedOrder = { ...order, items: acumulados, total: novoTotal, updated_at: agora };
+      let updatedOrder = order;
+
+      if (cartItems.length > 0) {
+        const anteriores = Array.isArray(order.items) ? order.items : [];
+        const agora      = new Date().toISOString();
+        const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
+        const acumulados = [...anteriores, ...novos];
+        const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+        const { error } = await updatePending(order.id, { items: acumulados, total: novoTotal }, { baseItems: anteriores });
+        if (error) throw error;
+        addLancada(order.id);
+        logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados (palm) na Comanda ${nomeComanda} · ${novos.length} tipo(s) · R$ ${novoTotal.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, tipos: novos.length, total: novoTotal, via: "palm" });
+        updatedOrder = { ...order, items: acumulados, total: novoTotal, updated_at: agora };
+        setToast(true);
+        setTimeout(() => setToast(false), 3000);
+      }
 
       setShowLancar(false);
       setLancComanda("");
       setLancMesa("");
       setCartItems([]);
       setCartAberto(false);
-      setToast(true);
-      setTimeout(() => setToast(false), 3000);
       setMode("grid");
       // reabre o detalhe imediatamente com os dados locais
       setTimeout(() => abrirDetalhe(updatedOrder), 80);
@@ -164,6 +172,22 @@ export default function MobilePage() {
       setSalvando(false);
     }
   };
+
+  // ── Guard: bootstrap ainda carregando o estado real do caixa ─
+  // (o default local é "aberto" — sem este gate dava para lançar
+  // pedido nos primeiros segundos mesmo com o caixa fechado)
+  if (bootstrapLoading) {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        height: "100dvh", background: varColor(C.bg),
+        fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.muted),
+        fontSize: 15, fontWeight: 600, padding: 24,
+      }}>
+        Conectando ao caixa…
+      </div>
+    );
+  }
 
   // ── Guard: caixa fechado ──────────────────────────────────────
   if (!caixaAberto) {
@@ -197,6 +221,24 @@ export default function MobilePage() {
   // ── PEDIDO (tela de produtos) ─────────────────────────────────
   return (
     <>
+    {/* ── Leva 13: sem internet + ponte configurada → oferece o modo local.
+        Um toque leva à página servida pela ponte no Wi-Fi do caixa, onde o
+        pedido continua saindo na impressora. Botão só aparece quando faz
+        sentido (prevenção > erro). ── */}
+    {redeOnline === false && ponteEndereco && (
+      <button
+        onClick={() => { window.location.href = ponteEndereco; }}
+        style={{
+          position: "fixed", top: 10, left: "50%", transform: "translateX(-50%)",
+          zIndex: 300, border: "none", borderRadius: 999, padding: "10px 18px",
+          background: AMBER, color: "#1a1a1a", fontWeight: 800, fontSize: 14,
+          fontFamily: "inherit", cursor: "pointer", boxShadow: "0 4px 14px #0006",
+          display: "flex", alignItems: "center", gap: 8,
+        }}
+      >
+        Sem internet? Tocar pedido pelo Wi-Fi do caixa
+      </button>
+    )}
     {/* ── GRID de comandas ── */}
     {mode === "grid" && (
       <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text) }}>
@@ -583,8 +625,8 @@ export default function MobilePage() {
         <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", padding: 24, width: "100%", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 18, color: varColor(C.text) }}>Lançar Pedido</div>
-              <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 2 }}>{qtdTotal} {qtdTotal === 1 ? "item" : "itens"} · R$ {total.toFixed(2)}</div>
+              <div style={{ fontWeight: 800, fontSize: 18, color: varColor(C.text) }}>{cartItems.length === 0 ? "Abrir Comanda" : "Lançar Pedido"}</div>
+              <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 2 }}>{cartItems.length === 0 ? "Sem itens por enquanto — dá pra lançar depois" : `${qtdTotal} ${qtdTotal === 1 ? "item" : "itens"} · R$ ${total.toFixed(2)}`}</div>
             </div>
             <button onClick={() => { if (!salvando) setShowLancar(false); }} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0 }}><LuX size={22} /></button>
           </div>
@@ -602,7 +644,9 @@ export default function MobilePage() {
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => { if (!salvando) setShowLancar(false); }} style={{ flex: 1, padding: 14, borderRadius: 12, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 15, fontFamily: "inherit" }}>Cancelar</button>
             <button onClick={handleLancar} disabled={!lancComanda.trim() || salvando} style={{ flex: 2, padding: 14, borderRadius: 12, border: "none", background: lancComanda.trim() && !salvando ? varColor(C.accent) : varColor(C.surface), color: lancComanda.trim() && !salvando ? "#fff" : varColor(C.muted), cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 15, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}>
-              {salvando ? "Enviando..." : mapa[lancComanda.trim()] ? "✓ Adicionar à Comanda" : "✓ Criar e Lançar"}
+              {salvando ? "Enviando..."
+                : cartItems.length === 0 ? (mapa[lancComanda.trim()] ? "✓ Abrir Comanda" : "✓ Criar Comanda")
+                : mapa[lancComanda.trim()] ? "✓ Adicionar à Comanda" : "✓ Criar e Lançar"}
             </button>
           </div>
         </div>

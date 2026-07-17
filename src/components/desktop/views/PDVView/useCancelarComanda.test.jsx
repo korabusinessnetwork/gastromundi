@@ -31,7 +31,7 @@ beforeEach(() => {
 
 function setup(overrides = {}) {
   const appMock = setAppMock({
-    removePending: vi.fn(() => Promise.resolve()),
+    removePending: vi.fn(() => Promise.resolve({ error: null })),
     currentUser: { name: "Maria", username: "maria", role: "gerente" },
     ...overrides,
   });

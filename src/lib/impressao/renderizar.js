@@ -1,5 +1,6 @@
 import estilosComprovante from "./comprovante.css?raw";
 import estilosProducao from "./producao.css?raw";
+import { rotuloMetodo } from "@/utils/pagamentos";
 
 /**
  * Renderização/impressão — F015. Constrói o HTML da janela de
@@ -11,8 +12,6 @@ import estilosProducao from "./producao.css?raw";
  * térmica "de verdade" continua disponível via QZ Tray
  * (`src/lib/qztray.js`, `ImpressorasConfig.jsx`), não substituída aqui.
  */
-
-const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix", fiado: "Fiado" };
 
 function fmtR(v) {
   return "R$ " + Number(v ?? 0).toFixed(2);
@@ -64,7 +63,7 @@ export function renderizarRecibo(dados) {
 
   const linhasPagamento = (pagamentos ?? [])
     .filter((p) => p?.metodo)
-    .map((p) => `<div class="metodo">${pagamentos.length > 1 ? `${fmtR(p.valor)} · ` : ""}Pagamento: ${METODOS_LABEL[p.metodo] ?? p.metodo}</div>`)
+    .map((p) => `<div class="metodo">${pagamentos.length > 1 ? `${fmtR(p.valor)} · ` : ""}Pagamento: ${rotuloMetodo(p.metodo)}</div>`)
     .join("");
 
   return `<!DOCTYPE html>

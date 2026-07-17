@@ -47,7 +47,10 @@ CREATE TABLE public.products (
   unidade_estoque       text    NOT NULL DEFAULT 'un',
   unidade_consumo       text,
   fator_consumo_estoque numeric DEFAULT 1,
-  produzivel            boolean NOT NULL DEFAULT true -- F015, 20260721_produtos_produzivel.sql
+  produzivel            boolean NOT NULL DEFAULT true, -- F015, 20260721_produtos_produzivel.sql
+  validade_dias         integer,                       -- C1, 20260731_produtos_validade.sql
+  proxima_validade      date,                          -- C1, 20260731_produtos_validade.sql
+  codigo_barras         text                           -- 20260745_produtos_codigo_barras.sql
 );
 
 -- ── pending (pedidos em aberto — Realtime habilitado) ─────────
@@ -398,7 +401,7 @@ CREATE INDEX jarvas_insights_created_at_idx ON public.jarvas_insights (created_a
 -- venda_itens           → venda_itens_all_caixa_up (caixa/gerente/admin) — TD009 etapa 1
 -- venda_pagamentos      → venda_pagamentos_all_caixa_up (caixa/gerente/admin) — TD009 etapa 1
 -- fechamentos           → fechamentos_all_caixa_up (caixa/gerente/admin)
--- config                → config_select_auth ; config_write_gerente_admin
+-- config                → config_select_auth ; config_write_gerente_admin ; config_write_caixa_sessao (caixa: só fundo_atual/caixa_aberto/sessao_aberta_em — 20260744)
 -- operator_logs         → oplogs_insert_auth ; oplogs_select_gerente_admin
 -- unidades_medida       → unidades_select_auth ; unidades_write_admin
 -- notas_fiscais         → nf_all_gerente_admin

@@ -1,4 +1,5 @@
 import { quebrarLinha } from "./largura";
+import { rotuloMetodo } from "@/utils/pagamentos";
 
 /**
  * F020 — formata os dados já montados por `src/lib/impressao.js`
@@ -7,8 +8,6 @@ import { quebrarLinha } from "./largura";
  * imprime nada, só devolve `string[]` (uma por linha) — quem imprime
  * é `drivers/escposQzTray.js`.
  */
-
-const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix", fiado: "Fiado" };
 
 function fmtR(v) {
   return "R$ " + Number(v ?? 0).toFixed(2);
@@ -81,7 +80,7 @@ export function formatarComprovanteEscpos(dados, colunas) {
     linhas.push(linhaSeparadora(colunas));
     for (const p of pagamentosComMetodo) {
       const prefixo = pagamentosComMetodo.length > 1 ? `${fmtR(p.valor)} · ` : "";
-      linhas.push(`${prefixo}Pagamento: ${METODOS_LABEL[p.metodo] ?? p.metodo}`);
+      linhas.push(`${prefixo}Pagamento: ${rotuloMetodo(p.metodo)}`);
     }
   }
 
