@@ -2,7 +2,9 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
-const EMPRESA = "GASTROMUNDI by Kora";
+// Fallback quando o chamador não informa a identidade do tenant
+// (white-label, decisão 017): nunca assumir a marca de um cliente.
+const EMPRESA_FALLBACK = "GASTROMUNDI by Kora";
 const DARK    = [10, 17, 34];   // header fill
 const LIGHT   = [245, 247, 250]; // alternate row
 
@@ -16,9 +18,10 @@ function periodoLabel(periodo) {
  * @param {string[]} headers   - Column header strings
  * @param {Array[]}  rows      - Row arrays (values are converted to strings)
  * @param {string}   periodo   - Period key for subtitle
- * @param {object}   [opts]    - { landscape: bool, totais: string }
+ * @param {object}   [opts]    - { landscape: bool, totais: string, empresa: string }
  */
 export function exportToPDF(titulo, headers, rows, periodo, opts = {}) {
+  const empresa = opts.empresa || EMPRESA_FALLBACK;
   const orientation = opts.landscape !== false ? "landscape" : "portrait";
   const doc = new jsPDF({ orientation, unit: "mm" });
   const W   = doc.internal.pageSize.width;
@@ -27,7 +30,7 @@ export function exportToPDF(titulo, headers, rows, periodo, opts = {}) {
   // ── Cabeçalho ────────────────────────────────────────────────
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.text(EMPRESA, 14, 14);
+  doc.text(empresa, 14, 14);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
@@ -74,9 +77,11 @@ export function exportToPDF(titulo, headers, rows, periodo, opts = {}) {
  * @param {string[]} headers   - Column header strings
  * @param {Array[]}  rows      - Row arrays
  * @param {string}   periodo   - Period key
+ * @param {object}   [opts]    - { empresa: string }
  */
-export function exportToXLSX(titulo, headers, rows, periodo) {
-  const metaRow  = [`${EMPRESA} — ${titulo}`, "", "", `Período: ${periodoLabel(periodo)}`, "", `Gerado em: ${new Date().toLocaleString("pt-BR")}`];
+export function exportToXLSX(titulo, headers, rows, periodo, opts = {}) {
+  const empresa  = opts.empresa || EMPRESA_FALLBACK;
+  const metaRow  = [`${empresa} — ${titulo}`, "", "", `Período: ${periodoLabel(periodo)}`, "", `Gerado em: ${new Date().toLocaleString("pt-BR")}`];
   const emptyRow = [];
 
   const data = [metaRow, emptyRow, headers, ...rows];

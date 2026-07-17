@@ -144,7 +144,8 @@ export default function DesktopLayout() {
             </button>
             <div style={{ flex: 1, fontWeight: 900, fontSize: 14, letterSpacing: "-0.3px", overflowWrap: "break-word" }}>
               {nomeEstabelecimento.toUpperCase()}
-              {nomeEstabelecimento === "GastroMundi" && <span style={{ color: varColor(C.muted), fontWeight: 400 }}> by Kora</span>}
+              {/* Assinatura da plataforma — aparece para todo tenant (white-label, decisão 017) */}
+              <span style={{ color: varColor(C.muted), fontWeight: 400 }}> by Kora</span>
             </div>
             <span style={{
               fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 10,

@@ -20,7 +20,7 @@ export default function UpgradeNecessario({ label }) {
         {label} não está no seu plano atual
       </div>
       <div className="upgrade-necessario__texto" style={{ color: varColor(C.muted) }}>
-        Fale com o suporte do GastroMundi para habilitar esse recurso.
+        Fale com o suporte do Kora para habilitar esse recurso.
       </div>
     </div>
   );

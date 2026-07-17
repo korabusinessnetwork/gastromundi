@@ -9,7 +9,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { getSizes } from "@/constants/sizes";
 import { useResponsive } from "@/utils/hooks";
-import { normalizarPagamentos, totalTroco } from "@/utils/pagamentos";
+import { normalizarPagamentos, totalTroco, rotuloMetodo } from "@/utils/pagamentos";
 import MODULOS from "@/constants/modulos";
 import SidebarBranding from "./SidebarBranding";
 import {
@@ -422,7 +422,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                       <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 16, color: varColor(C.muted) }}>
                         <LuReceipt size={13} />
                         Pagamento: <strong style={{ color: varColor(C.text) }}>
-                          {{ dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" }[p.metodo] ?? p.metodo}
+                          {rotuloMetodo(p.metodo)}
                         </strong>
                       </div>
                     ) : null)}

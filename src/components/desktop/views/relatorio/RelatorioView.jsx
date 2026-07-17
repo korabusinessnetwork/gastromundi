@@ -5,12 +5,12 @@ import { calcularVariacaoPercentual } from "@/lib/relatorios";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
-import { exportToPDF, exportToXLSX } from "@/lib/exportReport";
+import { exportToPDF as exportToPDFBase, exportToXLSX as exportToXLSXBase } from "@/lib/exportReport";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
+import { varColor, nomeExibicaoTenant } from "@/lib/tema";
 import DesempenhoReport from "./DesempenhoReport";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
@@ -29,7 +29,6 @@ const PERIODOS = [
   { id: "custom",  label: "Período" },
 ];
 
-const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
 const METODOS_ICON  = { dinheiro: LuBanknote, credito: LuCreditCard, debito: LuSmartphone, pix: LuZap };
 const ACTION_TYPE_META = {
   auth:    { label: "Auth",    color: varColor(C.blue)      },
@@ -372,9 +371,17 @@ function FechamentoDetalheModal({ f, onClose }) {
 // ── View principal ────────────────────────────────────────────────
 
 export default function RelatorioView() {
-  const { sales, fechamentos, pending, users, currentUser } = useApp();
+  const { sales, fechamentos, pending, users, currentUser, tenant } = useApp();
   const { width } = useResponsive();
   const sz = getSizes(width);
+
+  // Cabeçalho dos exports com a identidade do tenant (white-label,
+  // decisão 017); "by Kora" é a assinatura da plataforma.
+  const empresaExport = `${nomeExibicaoTenant(tenant?.tema).toUpperCase()} by Kora`;
+  const exportToPDF  = (titulo, headers, rows, periodo, opts = {}) =>
+    exportToPDFBase(titulo, headers, rows, periodo, { empresa: empresaExport, ...opts });
+  const exportToXLSX = (titulo, headers, rows, periodo) =>
+    exportToXLSXBase(titulo, headers, rows, periodo, { empresa: empresaExport });
 
   const [aba,           setAba]           = useState("Vendas");
   const [periodo,       setPeriodo]       = useState("hoje");
@@ -828,7 +835,7 @@ export default function RelatorioView() {
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flex: 1 }}>
                 {["todos", "dinheiro", "credito", "debito", "pix"].map(m => (
                   <ChipBtn key={m} active={metodoFilt === m} onClick={() => setMetodoFilt(m)} sz={sz}>
-                    {m === "todos" ? "Todos" : (() => { const MI = METODOS_ICON[m]; return <>{MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}{METODOS_LABEL[m]}</>; })()}
+                    {m === "todos" ? "Todos" : (() => { const MI = METODOS_ICON[m]; return <>{MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}{rotuloMetodo(m)}</>; })()}
                   </ChipBtn>
                 ))}
               </div>

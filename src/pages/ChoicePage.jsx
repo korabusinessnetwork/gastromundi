@@ -3,13 +3,13 @@ import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/constants/roles";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
+import { varColor, nomeExibicaoTenant } from "@/lib/tema";
 import { getSizes } from "@/constants/sizes";
 import { useResponsive } from "@/utils/hooks";
 import { LuBellRing, LuReceipt } from "react-icons/lu";
 
 export default function ChoicePage() {
-  const { currentUser, setMobileChoice, logout } = useApp();
+  const { currentUser, setMobileChoice, logout, tenant } = useApp();
   const navigate = useNavigate();
   const { width } = useResponsive();
   const sz = getSizes(width);
@@ -23,7 +23,7 @@ export default function ChoicePage() {
   return (
     <div style={{ background: varColor(C.bg), minHeight: "100dvh", fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text), display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: sz.pad }}>
       <div style={{ textAlign: "center", marginBottom: sz.pad + 8 }}>
-        <div style={{ fontWeight: 900, fontSize: sz.fontXl, letterSpacing: "-0.5px" }}>GASTROMUNDI</div>
+        <div style={{ fontWeight: 900, fontSize: sz.fontXl, letterSpacing: "-0.5px" }}>{nomeExibicaoTenant(tenant?.tema).toUpperCase()}</div>
         <div style={{ color: varColor(C.muted), fontSize: sz.fontSm - 1, marginTop: 4 }}>by Kora</div>
         <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <div style={{ width: 36, height: 36, borderRadius: "50%", background: `${role.color}22`, border: `1px solid ${role.color}55`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, color: role.color }}>
