@@ -15,6 +15,8 @@ import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { produtosVencendo } from "@/lib/validade";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
+import { supabase } from "@/lib/supabase";
+import { mesmoItemDeVenda } from "@/lib/combos";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
 import { useTravaComanda } from "@/hooks/useTravaComanda";
 import { travadaPorOutro, nomeTrava } from "@/lib/comandaLock";
@@ -107,6 +109,24 @@ export default function PDVView({ notify }) {
   const [barcodeFeedback,   setBarcodeFeedback]   = useState(null); // null | "ok" | "notfound"
 
   const abertas = pending.filter(o => o.status !== "closed");
+
+  // ── Combos ativos (B4) — vendáveis no PDV ─────────────────────
+  // Carrega uma vez por entrada na tela; a receita (subprodutos com
+  // controla_estoque) viaja junto no item do carrinho para a baixa de
+  // estoque dos componentes na finalização.
+  const [combos, setCombos] = useState([]);
+  useEffect(() => {
+    let ativo = true;
+    supabase
+      .from("combos")
+      .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque))")
+      .eq("ativo", true)
+      .then(({ data, error }) => {
+        if (error) { console.error("[pdv] erro ao carregar combos:", error); return; }
+        if (ativo) setCombos(data ?? []);
+      });
+    return () => { ativo = false; };
+  }, []);
 
   // ── Ressincroniza a comanda aberta com o realtime ─────────────
   // Sem isto, `selected` fica congelado no snapshot de quando a comanda
@@ -233,7 +253,9 @@ export default function PDVView({ notify }) {
   // ── Adicionar produto ao carrinho ──────────────────────────────
   const handleAddProduct = (product) => {
     setCartItems(prev => {
-      const idx = prev.findIndex(i => i.id === product.id);
+      // Combo e produto avulso do mesmo principal são linhas diferentes
+      // (mesmoItemDeVenda compara id + comboId) — misturar cobraria errado.
+      const idx = prev.findIndex(i => mesmoItemDeVenda(i, product));
       if (idx >= 0) return prev.map((i, n) => n === idx ? { ...i, qty: i.qty + 1 } : i);
       return [...prev, { ...product, qty: 1, _key: Date.now() + Math.random() }];
     });
@@ -506,7 +528,7 @@ export default function PDVView({ notify }) {
         const destino    = abertas.find(o => o.id === destinoId);
         const novosDestino = [...(Array.isArray(destino.items) ? destino.items : [])];
         aTransferir.forEach(({ it, qty }) => {
-          const existIdx = novosDestino.findIndex(d => d.id === it.id && !d.cancelado);
+          const existIdx = novosDestino.findIndex(d => mesmoItemDeVenda(d, it) && !d.cancelado);
           if (existIdx >= 0) {
             novosDestino[existIdx] = { ...novosDestino[existIdx], qty: (novosDestino[existIdx].qty ?? 1) + qty };
           } else {
@@ -1137,7 +1159,7 @@ export default function PDVView({ notify }) {
             {/* Produtos */}
             {(!isMob || abaAtiva === "produtos") && (
               <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                <ProductGrid products={products} onAdd={handleAddProduct} />
+                <ProductGrid products={products} combos={combos} onAdd={handleAddProduct} />
               </div>
             )}
 

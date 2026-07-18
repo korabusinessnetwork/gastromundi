@@ -466,6 +466,9 @@ export function AppProvider({ children }) {
     if (op.tipo === "rpc_baixar_estoque") {
       return supabase.rpc("baixar_estoque", { p_produto_id: op.produtoId, p_qtd: op.qtd });
     }
+    if (op.tipo === "rpc_baixar_estoque_subproduto") {
+      return supabase.rpc("baixar_estoque_subproduto", { p_subproduto_id: op.subprodutoId, p_qtd: op.qtd });
+    }
     if (op.tipo === "insert_lancamento") return criarLancamento(op.dados, op.usuario);
     return Promise.resolve({ error: null }); // tipo desconhecido — descarta
   };
@@ -992,6 +995,38 @@ export function AppProvider({ children }) {
     return { error: null };
   };
 
+  // B4 — baixa atômica de subproduto (componentes de combo). Sem estado
+  // otimista local: o saldo de subproduto não aparece no PDV, só no
+  // cadastro (SubprodutosView recarrega do banco). Nunca deve travar a
+  // venda: erro vira evento para o Jarvas, não bloqueio.
+  const baixarEstoqueSubproduto = async (subprodutoId, qtd, nome) => {
+    let error = null;
+    try {
+      ({ error } = await supabase.rpc("baixar_estoque_subproduto", {
+        p_subproduto_id: subprodutoId,
+        p_qtd: qtd,
+      }));
+    } catch (err) {
+      error = { message: err?.message ?? String(err) };
+    }
+    if (error) {
+      // Mesmo caveat de idempotência da baixa de produto (ver acima).
+      if (isErroDeRede(error)) {
+        enfileirarOffline({ tipo: "rpc_baixar_estoque_subproduto", subprodutoId, qtd });
+        return { error: null, offline: true };
+      }
+      emitirEvento("estoque.baixa.falhou", "estoque", {
+        subproduto_id: subprodutoId,
+        nome: nome ?? null,
+        quantidade: qtd,
+        erro: error?.message ?? error?.code ?? String(error),
+      }, currentUser?.username);
+      return { error };
+    }
+    emitirEvento("estoque.baixa", "estoque", { subproduto_id: subprodutoId, nome: nome ?? null, quantidade: qtd }, currentUser?.username);
+    return { error: null };
+  };
+
   const setMinimoEstoque = async (productId, minimo) => {
     const novoMinimo = Math.max(0, Number(minimo) || 0);
     const anterior = estoqueMinimos[productId];
@@ -1157,7 +1192,7 @@ export function AppProvider({ children }) {
     addUser, updateUser, removeUser,
     // outros
     addFechamento,
-    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque, baixarEstoque, setMinimoEstoque, recarregarEstoque,
+    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque, baixarEstoque, baixarEstoqueSubproduto, setMinimoEstoque, recarregarEstoque,
     taxaServico, setTaxaServico,
     diasAlertaValidade, setDiasAlertaValidade,
     // C3 — grupos de categoria (radar do Palm + mapeamento em Configurações)

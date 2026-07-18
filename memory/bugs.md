@@ -41,7 +41,7 @@ revisão item a item com o dono antes de merge.
 | Marca "GastroMundi" hardcodada (exports, ESC/POS, textos, console) | vários | ✅ Leva 9 — identidade vem do tenant; "by Kora" = assinatura da plataforma |
 | `caixaAberto` default `true` antes do bootstrap (dava pra vender com caixa fechado) | AppContext/PDVView/MobilePage | ✅ Leva 10 — gate "Conectando ao caixa…" |
 | Oversell de estoque sem alerta | PDVView/Jarvas | ✅ Leva 4 |
-| Combos/subprodutos não baixam estoque dos componentes | PDVView | ⏳ pendente (regra de negócio a definir com o dono) |
+| Combos/subprodutos não baixam estoque dos componentes | PDVView | ✅ B4 (2026-07-18) — combos entram na grade do PDV (modo "combo" = card extra ao lado do principal; "substituir" toma o lugar dele); a receita viaja no item do carrinho; na finalização o principal baixa pelo fluxo normal e os subprodutos com `controla_estoque` baixam via RPC `baixar_estoque_subproduto` (tabela `estoque_subprodutos`, migration **20260748** — aplicar no painel); saldo/mínimo editáveis em Subprodutos; offline enfileira o replay (`rpc_baixar_estoque_subproduto`, mesmo caveat de não-idempotência do principal). v1: só PDV desktop (Palm não lança combo); sem alerta Jarvas de mínimo p/ subprodutos |
 
 ### Baixos
 
@@ -69,6 +69,8 @@ revisão item a item com o dono antes de merge.
 
 - ✅ Migrations **20260744**, **20260745**, **20260746** e **20260747** aplicadas
   em produção pelo dono em 2026-07-18 ("tudo rodando").
+- ⏳ Migration **20260748** (`estoque_subprodutos` + RPC `baixar_estoque_subproduto`)
+  — necessária para a baixa de estoque de combos/subprodutos (B4).
 - ⏳ **Habilitar Realtime na tabela `sales`** (painel → Database → Replication) —
   necessário para a Leva 15.4 (saldo do dia sincronizado entre dispositivos).
   Sem isso o canal `sales-realtime` fica dormente (fail-open: cada caixa segue
