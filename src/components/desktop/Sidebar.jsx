@@ -104,8 +104,8 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
 
   const allItems = [
     { to: "/app/pdv",       label: "Frente de Caixa",  perm: "pdv",      badge: pending.length || null, modulo: MODULOS.PDV },
-    // inativo: aba desativada a pedido do dono — visível porém inerte ("Em breve")
-    { to: "/app/cozinha",   label: "Cozinha",          perm: "cozinha",  modulo: MODULOS.COZINHA, inativo: true },
+    // Cozinha removida do menu a pedido do dono (rota /app/cozinha segue no
+    // router; para voltar, recolocar o item aqui).
     { to: "/app/clientes",  label: "Clientes",          perm: "clientes", modulo: MODULOS.CLIENTES },
     { to: "/app/produtos",  label: "Cadastro Produtos", perm: "produtos", modulo: MODULOS.CARDAPIO },
     { to: "/app/relatorio", label: "Relatório",         perm: "relatorio", extra: relatorioVisivel, modulo: MODULOS.RELATORIOS },
@@ -177,22 +177,6 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
     );
   };
 
-  // Item inativo (desligado por decisão de produto): visível para o operador
-  // saber que existe, mas apagado e sem ação — o selo "Em breve" explica por
-  // que não responde (prevenção de erro > mensagem de erro, princípio nº 1).
-  const InativoItem = ({ item }) => {
-    const Icon = NAV_ICONS[item.to] ?? LuReceipt;
-    return (
-      <div style={{ ...linkStyle(false), opacity: 0.4, cursor: "default" }}>
-        <Icon size={sz.fontBase} />
-        <span style={{ flex: 1 }}>{item.label}</span>
-        <span style={{ fontSize: sz.fontSm - 1, padding: "1px 6px", borderRadius: 10, fontWeight: 700, border: `1px solid var(${C.border})`, color: varColor(C.muted), whiteSpace: "nowrap" }}>
-          Em breve
-        </span>
-      </div>
-    );
-  };
-
   return (
     <aside style={{ background: varColor(C.card), borderRight: `1px solid var(${C.border})`, display: "flex", flexDirection: "column", position: "sticky", top: 0, height: "100dvh", width: "100%", overflowX: "hidden" }}>
 
@@ -240,9 +224,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
           const isActive = location.pathname === item.to;
           return (
           <div key={item.to}>
-            {item.inativo ? (
-              <InativoItem item={item} />
-            ) : guardado ? (
+            {guardado ? (
               <button
                 onClick={openAuthRel}
                 style={{ ...linkStyle(isActive), color: isActive ? varColor(C.accent) : varColor(C.muted) }}
