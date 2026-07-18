@@ -14,6 +14,7 @@ import { criarLancamento } from "@/lib/financeiro";
 import { METODOS_TEF_PADRAO } from "@/lib/tef";
 import { processarBaixaEstoque } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
+import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { criarFila, drenarFila } from "@/lib/offline/fila";
@@ -178,6 +179,33 @@ export function AppProvider({ children }) {
     }
   }
 
+  // Leva 14 — trava de edição: fica true quando as colunas da trava ainda
+  // não existem no banco (migration 20260747 não aplicada). Aí a trava
+  // desliga por inteiro (fail-open) e o app opera como antes (merge da
+  // Leva 2 continua sendo a rede de segurança contra escrita concorrente).
+  const lockIndisponivelRef = useRef(false);
+
+  // Colunas base de pending (nunca select * em tabela sensível — CLAUDE.md).
+  const COLUNAS_PENDING = "id,comanda,items,status,note,total,garcom,created_by,created_at,updated_at,mesa,apelido,status_cozinha,em_preparo_em,pronto_em";
+  const COLUNAS_TRAVA = "editando_por,editando_nome,editando_desde";
+
+  // Busca pending tentando incluir as colunas da trava; se o banco ainda não
+  // tem a migration 20260747 (erro 42703 = coluna inexistente), marca a trava
+  // como indisponível e repete só com as colunas antigas — o bootstrap
+  // inteiro não pode quebrar por causa de uma feature opcional.
+  async function buscarPendingData() {
+    const res = await supabase.from("pending")
+      .select(`${COLUNAS_PENDING},${COLUNAS_TRAVA}`)
+      .order("created_at", { ascending: false });
+    if (res.error?.code === "42703") {
+      lockIndisponivelRef.current = true;
+      return supabase.from("pending")
+        .select(COLUNAS_PENDING)
+        .order("created_at", { ascending: false });
+    }
+    return res;
+  }
+
   // ── Fetch inicial do Supabase (só roda autenticado) ───────────
   async function bootstrap() {
       const [
@@ -193,8 +221,7 @@ export function AppProvider({ children }) {
         { data: catGrupoData, error: eCatGrupo },
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
-        // Colunas explícitas (nunca select * em pedidos — CLAUDE.md/Segurança)
-        supabase.from("pending").select("id,comanda,items,status,note,total,garcom,created_by,created_at,updated_at,mesa,apelido,status_cozinha,em_preparo_em,pronto_em").order("created_at", { ascending: false }),
+        buscarPendingData(),
         // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
         buscarSalesData(),
         supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
@@ -600,6 +627,54 @@ export function AppProvider({ children }) {
     return { error: null };
   };
 
+  // ── Trava de edição de comanda (Leva 14) ─────────────────────
+  // Enquanto uma pessoa está com a comanda aberta, outra não mexe.
+  // Adquirir = UPDATE condicional: só grava se a trava está livre, é minha,
+  // ou expirou (TTL). Quem chegar primeiro leva; o perdedor recebe ok:false
+  // com o nome de quem está editando. Tudo fail-open: sem migration (42703)
+  // ou sem rede, a trava se desliga e o app opera como antes.
+  const adquirirTrava = async (id) => {
+    if (lockIndisponivelRef.current || !currentUser?.username) return { ok: true, semTrava: true };
+    const agora = new Date();
+    const limiteExpirada = new Date(agora.getTime() - LOCK_TTL_MS).toISOString();
+    const { data, error } = await supabase.from("pending")
+      .update({ editando_por: currentUser.username, editando_nome: currentUser.name ?? currentUser.username, editando_desde: agora.toISOString() })
+      .eq("id", id)
+      .or(`editando_por.is.null,editando_por.eq.${currentUser.username},editando_desde.lt.${limiteExpirada}`)
+      .select("id,editando_por,editando_nome,editando_desde")
+      .maybeSingle();
+    if (error) {
+      if (error.code === "42703") lockIndisponivelRef.current = true;
+      // Rede fora ou banco sem migration: não bloqueia ninguém (fail-open).
+      return { ok: true, semTrava: true };
+    }
+    if (!data) {
+      // Outra pessoa segura a trava — busca quem, pra UI mostrar o nome.
+      const { data: dono } = await supabase.from("pending")
+        .select("editando_nome,editando_por,editando_desde").eq("id", id).maybeSingle();
+      return { ok: false, nome: dono?.editando_nome || dono?.editando_por || "outra pessoa", desde: dono?.editando_desde ?? null };
+    }
+    setPendingLocal(prev => prev.map(o => o.id === id ? { ...o, ...data } : o));
+    return { ok: true };
+  };
+
+  // Renovação (heartbeat): reusa a aquisição — se a minha trava segue
+  // valendo, o UPDATE condicional só atualiza o editando_desde.
+  const renovarTrava = (id) => adquirirTrava(id);
+
+  const liberarTrava = async (id) => {
+    if (lockIndisponivelRef.current || !currentUser?.username) return { error: null };
+    setPendingLocal(prev => prev.map(o => (o.id === id && o.editando_por === currentUser.username)
+      ? { ...o, editando_por: null, editando_nome: null, editando_desde: null }
+      : o));
+    const { error } = await supabase.from("pending")
+      .update({ editando_por: null, editando_nome: null, editando_desde: null })
+      .eq("id", id)
+      .eq("editando_por", currentUser.username);
+    // Falhou (rede etc.)? Sem drama: a trava expira sozinha pelo TTL.
+    return { error: error ?? null };
+  };
+
   // ── Actions: Products ─────────────────────────────────────────
   const addProduct = async (product) => {
     // omite o id gerado pelo app — o banco gera o uuid via default
@@ -989,6 +1064,8 @@ export function AppProvider({ children }) {
     login, logout,
     // pending
     addPending, removePending, updatePending,
+    // trava de edição de comanda (Leva 14)
+    adquirirTrava, liberarTrava, renovarTrava,
     // products
     addProduct, updateProduct, removeProduct, recarregarProdutos,
     // sales

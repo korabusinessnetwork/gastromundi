@@ -4,7 +4,7 @@ import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuUser, LuClock } from "react-icons/lu";
+import { LuUser, LuClock, LuLock } from "react-icons/lu";
 import "./ComandaGrid.css";
 
 const TOTAL = 1000;
@@ -35,7 +35,7 @@ function getElapsed(dateStr) {
   return { label: `${h}h${r > 0 ? `${r}min` : ""}`, color: "#ef4444", warn: true };
 }
 
-export default function ComandaGrid({ abertas, visitadas = new Set(), selected, onSelect, onOpenEmpty, busca = "" }) {
+export default function ComandaGrid({ abertas, visitadas = new Set(), selected, onSelect, onOpenEmpty, busca = "", emUsoPor = () => null }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const [limite, setLimite] = useState(PAGE);
@@ -90,6 +90,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
               const isVisitada = visitadas.has(order.id);
               const isSelected = selected?.id === order.id;
               const elapsed    = getElapsed(order.created_at);
+              const emUso      = emUsoPor(order);
 
               const borderColor = isSelected ? varColor(C.accent) : isVisitada ? AMBER : hasItems ? alfa(C.blue, "55") : varColor(C.border);
               const bgColor     = isSelected ? alfa(C.accent, "0d") : isVisitada ? alfa(AMBER, "10") : varColor(C.card);
@@ -122,6 +123,11 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
                       {fmtComanda(order.comanda) || `#${String(order.id).slice(-4).toUpperCase()}`}
                     </div>
                     <div style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted), display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+                      {emUso && (
+                        <span style={{ fontSize: sz.fontSm, fontWeight: 700, color: AMBER, display: "flex", alignItems: "center", gap: 3 }}>
+                          <LuLock size={10} /> Em uso · {emUso}
+                        </span>
+                      )}
                       {order.mesa && (
                         <span className="comanda-grid__tag-mesa" style={{ background: alfa(C.accent, "14"), color: varColor(C.accent), fontSize: sz.fontSm }}>
                           🪑 {order.mesa}{order.apelido ? ` · ${order.apelido}` : ""}
@@ -176,6 +182,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
               order={order}
               isSelected={selected?.id === order?.id}
               isVisitada={order ? visitadas.has(order.id) : false}
+              emUso={order ? emUsoPor(order) : null}
               onClick={() => order ? onSelect(order) : onOpenEmpty(String(num))}
               sz={sz}
             />
@@ -200,7 +207,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
   );
 }
 
-function ComandaCard({ num, order, isSelected, isVisitada, onClick, sz }) {
+function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, onClick, sz }) {
   const [hovered, setHovered] = useState(false);
 
   if (!order) {
@@ -299,6 +306,16 @@ function ComandaCard({ num, order, isSelected, isVisitada, onClick, sz }) {
       {!/^\d+$/.test(String(order.comanda ?? "").trim()) && (
         <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.text), marginTop: -4 }}>
           {order.comanda}
+        </div>
+      )}
+
+      {/* Em uso por outra pessoa (trava de edição) */}
+      {emUso && (
+        <div style={{
+          fontSize: sz.fontSm, fontWeight: 700, color: AMBER,
+          display: "flex", alignItems: "center", gap: 4,
+        }}>
+          <LuLock size={10} /> Em uso · {emUso}
         </div>
       )}
 

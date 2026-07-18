@@ -9,6 +9,8 @@ import { getSizes } from "@/constants/sizes";
 import { useResponsive } from "@/utils/hooks";
 import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid, LuLogOut, LuClock, LuChartBar, LuLightbulb } from "react-icons/lu";
 import { totalLancamentosGarcom, radarOportunidades } from "@/lib/painelGarcom";
+import { useTravaComanda } from "@/hooks/useTravaComanda";
+import { travadaPorOutro, nomeTrava } from "@/lib/comandaLock";
 
 const TOTAL_COMANDAS = 1000;
 const PAGE = 50;
@@ -68,6 +70,16 @@ export default function MobilePage() {
   const mapa    = {};
   abertas.forEach(o => { mapa[String(o.comanda)] = o; });
 
+  // ── Trava de edição (Leva 14): enquanto EU estou com uma comanda aberta
+  // (detalhe ou tela de pedido apontando pra ela), ninguém mais mexe nela —
+  // e vice-versa. Usa detalheComanda (não detalheVisible) pra trava
+  // sobreviver à transição "Adicionar itens" → tela de pedido sem soltar.
+  const comandaEmEdicao = detalheComanda
+    ? (mapa[String(detalheComanda.comanda)] ?? detalheComanda)
+    : (mode === "pedido" && lancComanda.trim() ? mapa[lancComanda.trim()] : null);
+  const { bloqueio } = useTravaComanda(comandaEmEdicao, true);
+  const emUsoPorOutro = (order) => travadaPorOutro(order, currentUser?.username);
+
   const categorias = ["Todos", ...new Set(products.map(p => p.category).filter(Boolean))];
   const filtrados  = catAtiva === "Todos" ? products : products.filter(p => p.category === catAtiva);
 
@@ -114,6 +126,12 @@ export default function MobilePage() {
     const nomeComanda = lancComanda.trim();
     if (!nomeComanda) { setLancErro("Informe o número ou nome da comanda."); return; }
     if (salvando) return;
+    // Trava de edição (Leva 14): comanda aberta em outro aparelho → não mexe.
+    const existente = mapa[nomeComanda];
+    if (existente && (emUsoPorOutro(existente) || (bloqueio && comandaEmEdicao?.id === existente.id))) {
+      setLancErro(`Em uso por ${bloqueio?.nome ?? nomeTrava(existente)}. Aguarde fechar a comanda.`);
+      return;
+    }
     setSalvando(true);
     try {
       let order = mapa[nomeComanda];
@@ -276,11 +294,13 @@ export default function MobilePage() {
                   const isLancada = lancadas.has(order.id);
                   const items     = Array.isArray(order.items) ? order.items : [];
                   const hasItems  = items.reduce((s, it) => s + (it.qty || 1), 0) > 0;
+                  const emUso     = emUsoPorOutro(order);
                   const borderColor = isLancada ? AMBER : hasItems ? `${alfa(C.blue, "66")}` : varColor(C.border);
                   const bgColor     = isLancada ? `${AMBER}14` : hasItems ? `${alfa(C.blue, "0a")}` : varColor(C.card);
                   return (
                     <div key={order.id} onClick={() => selecionarComanda(order.comanda, order.mesa)} style={{ background: bgColor, border: `1.5px solid ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: varColor(C.text), display: "flex", flexDirection: "column", gap: 6, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
                       <div style={{ fontWeight: 800, fontSize: 16 }}>{fmtComanda(order.comanda)}</div>
+                      {emUso && <div style={{ fontSize: 11, fontWeight: 700, color: AMBER, display: "flex", alignItems: "center", gap: 4 }}><LuLock size={10} /> Em uso · {nomeTrava(order)}</div>}
                       {order.mesa && <div style={{ fontSize: 12, color: varColor(C.muted) }}>Mesa {order.mesa}</div>}
                       {order.garcom && <div style={{ fontSize: 12, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
                       <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
@@ -304,6 +324,7 @@ export default function MobilePage() {
                       <div style={{ fontWeight: 800, fontSize: 16 }}>Comanda {num}</div>
                       {order ? (
                         <>
+                          {emUsoPorOutro(order) && <div style={{ fontSize: 11, fontWeight: 700, color: AMBER, display: "flex", alignItems: "center", gap: 4 }}><LuLock size={10} /> Em uso · {nomeTrava(order)}</div>}
                           {order.mesa && <div style={{ fontSize: 12, color: varColor(C.muted) }}>Mesa {order.mesa}</div>}
                           {order.garcom && <div style={{ fontSize: 12, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
                           <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
@@ -683,6 +704,13 @@ export default function MobilePage() {
                   </div>
                   <button onClick={fecharDetalhe} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0, flexShrink: 0 }}><LuX size={22} /></button>
                 </div>
+                {/* Trava de edição (Leva 14): outra pessoa está com esta comanda aberta */}
+                {(bloqueio || emUsoPorOutro(order)) && (
+                  <div style={{ margin: "10px 20px 0", padding: "10px 14px", borderRadius: 12, background: `${AMBER}14`, border: `1.5px solid ${AMBER}66`, color: AMBER, fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+                    <LuLock size={14} style={{ flexShrink: 0 }} />
+                    Em uso por {bloqueio?.nome ?? nomeTrava(order)} — dá pra ver, mas não mexer até liberar.
+                  </div>
+                )}
                 <div style={{ flex: 1, overflowY: "auto" }}>
                   {items.map((item, i) => {
                     const qty = item.qty ?? 1;
@@ -732,18 +760,24 @@ export default function MobilePage() {
                     <div style={{ fontSize: 12, color: varColor(C.muted), fontWeight: 600 }}>Total</div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: varColor(C.green) }}>R$ {totalOrder.toFixed(2)}</div>
                   </div>
-                  <button onClick={() => {
-                    fecharDetalhe();
-                    setTimeout(() => {
-                      setLancComanda(String(order.comanda));
-                      setLancMesa(order.mesa || "");
-                      setLancErro("");
-                      setMode("pedido");
-                      // não abre o modal — usuário seleciona produtos primeiro
-                    }, 320);
-                  }} style={{ display: "flex", alignItems: "center", gap: 8, background: varColor(C.accent), border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "14px 20px", fontWeight: 800, fontSize: 15, WebkitTapHighlightColor: "transparent" }}>
-                    <LuPlus size={16} /> Adicionar itens
-                  </button>
+                  {(() => {
+                    const travada = !!(bloqueio || emUsoPorOutro(order));
+                    return (
+                      <button disabled={travada} onClick={() => {
+                        if (travada) return;
+                        fecharDetalhe();
+                        setTimeout(() => {
+                          setLancComanda(String(order.comanda));
+                          setLancMesa(order.mesa || "");
+                          setLancErro("");
+                          setMode("pedido");
+                          // não abre o modal — usuário seleciona produtos primeiro
+                        }, 320);
+                      }} style={{ display: "flex", alignItems: "center", gap: 8, background: travada ? varColor(C.surface) : varColor(C.accent), border: "none", borderRadius: 12, color: travada ? varColor(C.muted) : "#fff", cursor: travada ? "not-allowed" : "pointer", padding: "14px 20px", fontWeight: 800, fontSize: 15, WebkitTapHighlightColor: "transparent" }}>
+                        {travada ? <LuLock size={16} /> : <LuPlus size={16} />} {travada ? "Em uso" : "Adicionar itens"}
+                      </button>
+                    );
+                  })()}
                 </div>
               </>
             );
