@@ -35,7 +35,7 @@ function getElapsed(dateStr) {
   return { label: `${h}h${r > 0 ? `${r}min` : ""}`, color: "#ef4444", warn: true };
 }
 
-export default function ComandaGrid({ abertas, visitadas = new Set(), selected, onSelect, onOpenEmpty, busca = "", emUsoPor = () => null }) {
+export default function ComandaGrid({ abertas, visitadas = new Set(), selected, onSelect, onOpenEmpty, busca = "", somenteAbertas = false, emUsoPor = () => null }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const [limite, setLimite] = useState(PAGE);
@@ -43,15 +43,23 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
   const mapa = {};
   (abertas ?? []).forEach(o => { mapa[String(o.comanda)] = o; });
 
-  // ── Modo busca ────────────────────────────────────────────────
-  if (busca.trim()) {
+  // ── Modo busca / somente abertas ──────────────────────────────
+  // `somenteAbertas` (aba "Comandas abertas"): mesma lista compacta da
+  // busca, mas SEM slots vazios — só o que existe e ainda não foi pago,
+  // da mais antiga pra mais nova (quem espera há mais tempo primeiro).
+  if (busca.trim() || somenteAbertas) {
     const q = busca.trim().toLowerCase();
-    const aberasFiltradas = (abertas ?? []).filter(o =>
-      String(o.comanda ?? "").toLowerCase().includes(q) ||
-      fmtComanda(o.comanda).toLowerCase().includes(q) ||
-      (o.garcom ?? "").toLowerCase().includes(q)
-    );
-    const numBusca      = /^\d+$/.test(busca.trim()) ? parseInt(busca.trim(), 10) : null;
+    const aberasFiltradas = (abertas ?? [])
+      .filter(o =>
+        !q ||
+        String(o.comanda ?? "").toLowerCase().includes(q) ||
+        fmtComanda(o.comanda).toLowerCase().includes(q) ||
+        (o.garcom ?? "").toLowerCase().includes(q)
+      )
+      .sort((a, b) => somenteAbertas
+        ? new Date(a.created_at ?? 0) - new Date(b.created_at ?? 0)
+        : 0);
+    const numBusca      = !somenteAbertas && /^\d+$/.test(busca.trim()) ? parseInt(busca.trim(), 10) : null;
     const slotDisponivel = numBusca && !mapa[String(numBusca)] ? numBusca : null;
     const vazio          = aberasFiltradas.length === 0 && !slotDisponivel;
 
@@ -59,9 +67,15 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
       <div style={{ height: "100%", overflowY: "auto", padding: `${sz.pad}px ${sz.pad + 4}px ${sz.pad}px ${sz.pad + 20}px` }}>
         {vazio ? (
           <div className="comanda-grid__vazio" style={{ color: varColor(C.muted) }}>
-            <div className="comanda-grid__vazio-icone">🔍</div>
-            <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Nenhuma comanda encontrada</div>
-            <div style={{ fontSize: sz.fontSm + 1 }}>"{busca}" não corresponde a nenhuma comanda em aberto</div>
+            <div className="comanda-grid__vazio-icone">{somenteAbertas && !q ? "✅" : "🔍"}</div>
+            <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>
+              {somenteAbertas && !q ? "Nenhuma comanda em aberto" : "Nenhuma comanda encontrada"}
+            </div>
+            <div style={{ fontSize: sz.fontSm + 1 }}>
+              {somenteAbertas && !q
+                ? "Todas as comandas foram pagas"
+                : `"${busca}" não corresponde a nenhuma comanda em aberto`}
+            </div>
           </div>
         ) : (
           <div className="comanda-grid__lista-busca" style={{ maxWidth: Math.min(580, width - sz.pad * 2) }}>
