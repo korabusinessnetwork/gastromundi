@@ -9,10 +9,10 @@
 //
 // Funções puras aqui; a parte com Supabase fica no AppContext.
 
-/** Trava sem renovação por 90s é considerada abandonada. */
-export const LOCK_TTL_MS = 90_000;
+/** Trava sem renovação por 5 minutos é considerada abandonada. */
+export const LOCK_TTL_MS = 5 * 60_000;
 
-/** Enquanto segura a trava, o app renova a cada 30s (3 batidas por TTL). */
+/** Enquanto segura a trava, o app renova a cada 30s (10 batidas por TTL). */
 export const HEARTBEAT_MS = 30_000;
 
 /** A trava desta comanda está ativa (existe e não expirou)? */

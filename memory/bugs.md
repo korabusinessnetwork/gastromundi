@@ -13,7 +13,7 @@ revisão item a item com o dono antes de merge.
 | Achado | Onde | Estado |
 |---|---|---|
 | `updatePending` sobrescrevia itens entre dispositivos (sem merge) | AppContext | ✅ Leva 2 (`789be70`) — merge por `uid`; resíduo em TD013 (RPC de append atômico) |
-| Duas pessoas editando a mesma comanda ao mesmo tempo (estado final pedido pelo dono: enquanto um está com a comanda aberta, o outro não mexe) | Palm + PDV | ✅ Leva 14 — trava de edição advisory (`editando_*` em `pending`, TTL 90s + heartbeat 30s, fail-open sem migration/rede); merge da Leva 2 segue como rede de segurança; **migration 20260747 pendente no painel** |
+| Duas pessoas editando a mesma comanda ao mesmo tempo (estado final pedido pelo dono: enquanto um está com a comanda aberta, o outro não mexe) | Palm + PDV | ✅ Leva 14 — trava de edição advisory (`editando_*` em `pending`, TTL 5min + heartbeat 30s, fail-open sem migration/rede); merge da Leva 2 segue como rede de segurança; **migration 20260747 pendente no painel** |
 | `selected` sem resync com Realtime | PDVView | ✅ Leva 2 |
 | Checkout travado em "Processando..." após erro | PDVView/CheckoutView | ✅ Leva 1 (`b89db6c`) |
 | Cobrança dupla em retentativa de pagamento | useFinalizarPagamento | ✅ Leva 1 |
