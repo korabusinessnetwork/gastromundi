@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
 import { emailDoLogin } from "@/lib/tenantSlug";
 import { sincronizarStatusAssinatura } from "@/lib/assinatura";
-import { gerarVariaveisTema, aplicarVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant } from "@/lib/tema";
+import { gerarVariaveisTema, aplicarVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
+import { salvarBrandingCache } from "@/lib/brandingCache";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
@@ -369,10 +370,17 @@ export function AppProvider({ children }) {
   //    {} e os defaults de src/styles/tema.css continuam valendo —
   //    nada muda visualmente.
   useEffect(() => {
-    aplicarVariaveisTema(gerarVariaveisTema(tenant?.tema));
+    const variaveis = gerarVariaveisTema(tenant?.tema);
+    aplicarVariaveisTema(variaveis);
     // Aba do navegador com a marca do tenant (white-label). Só quando o
     // tenant é conhecido — antes disso o <title> estático/LoginPage valem.
-    if (tenant) aplicarTituloDocumento(nomeExibicaoTenant(tenant.tema, tenant.nome));
+    if (tenant) {
+      const nome = nomeExibicaoTenant(tenant.tema, tenant.nome);
+      aplicarTituloDocumento(nome);
+      // Cache por origem (anti-flash): a próxima abertura deste endereço
+      // já pinta com esta marca antes do bootstrap (script do index.html).
+      salvarBrandingCache({ nome, logo: logoUrlTenant(tenant.tema), variaveis });
+    }
   }, [tenant?.tema]);
 
   // ── Jarvas: análise pós-carregamento (fire-and-forget; motor só

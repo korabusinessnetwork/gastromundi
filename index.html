@@ -6,7 +6,32 @@
          POR CIMA do layout e cobre bottom sheets fixas (ex.: "Lançar Pedido" no
          Palm); com isso, o viewport encolhe junto e a folha sobe acima do teclado. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
-    <title>GASTROMUNDI by Kora</title>
+    <!-- Título estático NEUTRO (marca da plataforma): a marca do tenant é
+         aplicada pelo script de branding abaixo (cache) ou pelo app após o
+         bootstrap. Nunca a marca de UM cliente hardcodada (decisão 017). -->
+    <title>Kora</title>
+    <!-- Anti-flash de troca de estabelecimento: aplica a marca/tema em cache
+         (gravado por src/lib/brandingCache.js; localStorage é POR ORIGEM,
+         então cada subdomínio só vê a própria marca) ANTES da primeira
+         pintura — sem isso, casacoffee.kora.codes pintava o visual default
+         até o bootstrap responder. Só tokens --gm-* passam (lista fechada,
+         mesma regra do brandingCache) e setProperty valida o valor. -->
+    <script>
+      try {
+        var b = JSON.parse(localStorage.getItem("kora_branding_v1"));
+        if (b && typeof b === "object") {
+          if (typeof b.nome === "string" && b.nome.trim()) {
+            document.title = b.nome.trim().toUpperCase() + " by Kora";
+          }
+          var v = b.variaveis || {};
+          for (var k in v) {
+            if (/^--gm-[a-z_]+$/.test(k) && typeof v[k] === "string") {
+              document.documentElement.style.setProperty(k, v[k]);
+            }
+          }
+        }
+      } catch (e) { /* sem cache/storage: segue o visual default */ }
+    </script>
     <!--
       Fontes white-label (ADR-007). São as famílias que o tema de um tenant
       pode escolher via `font_titulo` / `font_texto` (tokens --gm-font-*).
