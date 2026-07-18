@@ -25,7 +25,7 @@
           }
           var v = b.variaveis || {};
           for (var k in v) {
-            if (/^--gm-[a-z_]+$/.test(k) && typeof v[k] === "string") {
+            if (/^--gm-[a-z_-]+$/.test(k) && typeof v[k] === "string") {
               document.documentElement.style.setProperty(k, v[k]);
             }
           }
