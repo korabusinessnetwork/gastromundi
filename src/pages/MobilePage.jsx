@@ -7,8 +7,9 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { getSizes } from "@/constants/sizes";
 import { useResponsive } from "@/utils/hooks";
-import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid, LuLogOut, LuClock, LuChartBar, LuLightbulb } from "react-icons/lu";
+import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid, LuLogOut, LuClock, LuChartBar, LuLightbulb, LuPause, LuSend, LuTrash2 } from "react-icons/lu";
 import { totalLancamentosGarcom, radarOportunidades } from "@/lib/painelGarcom";
+import { criarEspera, adicionarEspera, removerEspera, totalEspera, qtdItensEspera, resumoEsperas } from "@/lib/pedidosEmEspera";
 import { useTravaComanda } from "@/hooks/useTravaComanda";
 import { travadaPorOutro, nomeTrava } from "@/lib/comandaLock";
 
@@ -40,9 +41,14 @@ export default function MobilePage() {
   const [limite,     setLimite]     = useState(PAGE);
   const [catAtiva,   setCatAtiva]   = useState("Todos");
   const [cartAberto, setCartAberto] = useState(false);
-  const [toast,      setToast]      = useState(false);
+  const [toast,      setToast]      = useState("");
   const [buscaGrid,  setBuscaGrid]  = useState("");
   const [buscaItens, setBuscaItens] = useState("");
+
+  // Pedidos em espera: fila local de pedidos montados mas ainda não
+  // enviados — o garçom atende várias mesas e envia tudo de uma vez.
+  const [esperas,     setEsperas]     = useState([]);
+  const [showEsperas, setShowEsperas] = useState(false);
 
   // Modal de lançamento
   const [showLancar,    setShowLancar]    = useState(false);
@@ -122,6 +128,51 @@ export default function MobilePage() {
     }
   };
 
+  // Núcleo compartilhado entre "Lançar Pedido" e "Enviar todos" (em espera):
+  // cria a comanda se não existe, registra a mesa e acumula os itens.
+  // Lança em caso de erro — o chamador decide como avisar o usuário.
+  const persistirLancamento = async (nomeComanda, mesa, itensCarrinho) => {
+    let order = mapa[nomeComanda];
+    if (!order) {
+      order = {
+        id:         crypto.randomUUID(),
+        comanda:    nomeComanda,
+        mesa,
+        items:      [],
+        status:     "open",
+        total:      0,
+        garcom:     currentUser?.name     || "",
+        created_by: currentUser?.username || "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await addPending(order);
+      if (error) throw error;
+      logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta (palm): ${nomeComanda}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, via: "palm" });
+    } else if (mesa && !order.mesa) {
+      const { error } = await updatePending(order.id, { mesa });
+      if (error) throw error;
+      order = { ...order, mesa };
+    }
+
+    // order atualizado localmente — não depende do Supabase sync
+    let updatedOrder = order;
+
+    if (itensCarrinho.length > 0) {
+      const anteriores = Array.isArray(order.items) ? order.items : [];
+      const agora      = new Date().toISOString();
+      const novos      = itensCarrinho.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
+      const acumulados = [...anteriores, ...novos];
+      const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+      const { error } = await updatePending(order.id, { items: acumulados, total: novoTotal }, { baseItems: anteriores });
+      if (error) throw error;
+      addLancada(order.id);
+      logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados (palm) na Comanda ${nomeComanda} · ${novos.length} tipo(s) · R$ ${novoTotal.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, tipos: novos.length, total: novoTotal, via: "palm" });
+      updatedOrder = { ...order, items: acumulados, total: novoTotal, updated_at: agora };
+    }
+    return updatedOrder;
+  };
+
   const handleLancar = async () => {
     const nomeComanda = lancComanda.trim();
     if (!nomeComanda) { setLancErro("Informe o número ou nome da comanda."); return; }
@@ -134,45 +185,11 @@ export default function MobilePage() {
     }
     setSalvando(true);
     try {
-      let order = mapa[nomeComanda];
-      if (!order) {
-        order = {
-          id:         crypto.randomUUID(),
-          comanda:    nomeComanda,
-          mesa:       lancMesa.trim(),
-          items:      [],
-          status:     "open",
-          total:      0,
-          garcom:     currentUser?.name     || "",
-          created_by: currentUser?.username || "",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        const { error } = await addPending(order);
-        if (error) throw error;
-        logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta (palm): ${nomeComanda}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, via: "palm" });
-      } else if (lancMesa.trim() && !order.mesa) {
-        const { error } = await updatePending(order.id, { mesa: lancMesa.trim() });
-        if (error) throw error;
-        order = { ...order, mesa: lancMesa.trim() };
-      }
-
-      // order atualizado localmente — não depende do Supabase sync
-      let updatedOrder = order;
+      const updatedOrder = await persistirLancamento(nomeComanda, lancMesa.trim(), cartItems);
 
       if (cartItems.length > 0) {
-        const anteriores = Array.isArray(order.items) ? order.items : [];
-        const agora      = new Date().toISOString();
-        const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
-        const acumulados = [...anteriores, ...novos];
-        const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-        const { error } = await updatePending(order.id, { items: acumulados, total: novoTotal }, { baseItems: anteriores });
-        if (error) throw error;
-        addLancada(order.id);
-        logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados (palm) na Comanda ${nomeComanda} · ${novos.length} tipo(s) · R$ ${novoTotal.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, tipos: novos.length, total: novoTotal, via: "palm" });
-        updatedOrder = { ...order, items: acumulados, total: novoTotal, updated_at: agora };
-        setToast(true);
-        setTimeout(() => setToast(false), 3000);
+        setToast("✓ Pedido enviado com sucesso!");
+        setTimeout(() => setToast(""), 3000);
       }
 
       setShowLancar(false);
@@ -188,6 +205,58 @@ export default function MobilePage() {
       setLancErro("Erro ao lançar pedido. Tente novamente.");
     } finally {
       setSalvando(false);
+    }
+  };
+
+  // ── Pedidos em espera ─────────────────────────────────────────
+  // Guarda o pedido atual na fila local (nada vai ao servidor ainda)
+  // e libera a tela para o garçom seguir com a próxima comanda.
+  const porEmEspera = () => {
+    const nomeComanda = lancComanda.trim();
+    if (!nomeComanda) { setLancErro("Informe o número ou nome da comanda."); return; }
+    if (cartItems.length === 0) return;
+    setEsperas(prev => adicionarEspera(prev, criarEspera({ comanda: nomeComanda, mesa: lancMesa, items: cartItems })));
+    setShowLancar(false);
+    setLancComanda("");
+    setLancMesa("");
+    setLancErro("");
+    setCartItems([]);
+    setCartAberto(false);
+    setToast(`Comanda ${nomeComanda} em espera — siga com a próxima`);
+    setTimeout(() => setToast(""), 2500);
+  };
+
+  // Envia todos os pedidos da fila de uma vez. Quem falhar (comanda em
+  // uso em outro aparelho, erro de rede) permanece na fila com o motivo
+  // à vista — nada se perde silenciosamente.
+  const enviarEsperas = async () => {
+    if (salvando || esperas.length === 0) return;
+    setSalvando(true);
+    const restantes = [];
+    let enviados = 0;
+    for (const esp of esperas) {
+      const existente = mapa[esp.comanda];
+      if (existente && emUsoPorOutro(existente)) {
+        restantes.push({ ...esp, erro: `Em uso por ${nomeTrava(existente)}. Aguarde liberar e envie de novo.` });
+        continue;
+      }
+      try {
+        await persistirLancamento(esp.comanda, esp.mesa, esp.items);
+        enviados++;
+      } catch (e) {
+        console.error(e);
+        restantes.push({ ...esp, erro: "Erro ao enviar. Tente de novo." });
+      }
+    }
+    setEsperas(restantes);
+    setSalvando(false);
+    if (enviados > 0) {
+      setToast(`✓ ${enviados} pedido${enviados !== 1 ? "s" : ""} enviado${enviados !== 1 ? "s" : ""} com sucesso!`);
+      setTimeout(() => setToast(""), 3000);
+    }
+    if (restantes.length === 0) {
+      setShowEsperas(false);
+      setMode("grid");
     }
   };
 
@@ -346,6 +415,13 @@ export default function MobilePage() {
             </>
           )}
         </div>
+        {/* Fila de espera visível também na grade — o garçom nunca "esquece"
+            pedidos guardados no aparelho */}
+        {esperas.length > 0 && (
+          <div style={{ padding: "10px 16px", paddingBottom: "calc(10px + env(safe-area-inset-bottom))", borderTop: `1px solid var(${C.border})`, flexShrink: 0, background: varColor(C.card) }}>
+            <BarraEsperas esperas={esperas} onClick={() => setShowEsperas(true)} />
+          </div>
+        )}
       </div>
     )}
 
@@ -576,6 +652,7 @@ export default function MobilePage() {
         paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
         display: "flex", flexDirection: "column", gap: 8, zIndex: 100,
       }}>
+        {esperas.length > 0 && <BarraEsperas esperas={esperas} onClick={() => setShowEsperas(true)} />}
         {cartItems.length > 0 && (
           <button
             onClick={() => setCartAberto(v => !v)}
@@ -635,7 +712,7 @@ export default function MobilePage() {
     </div>}
 
     {/* Toast — sempre visível independente do mode */}
-    <ToastMsg visible={toast} />
+    <ToastMsg msg={toast} />
 
     {/* Modal Lançar */}
     {showLancar && createPortal(
@@ -668,6 +745,105 @@ export default function MobilePage() {
               {salvando ? "Enviando..."
                 : cartItems.length === 0 ? (mapa[lancComanda.trim()] ? "✓ Abrir Comanda" : "✓ Criar Comanda")
                 : mapa[lancComanda.trim()] ? "✓ Adicionar à Comanda" : "✓ Criar e Lançar"}
+            </button>
+          </div>
+          {/* Em espera: segura este pedido no aparelho e libera a tela para a
+              próxima comanda — tudo é enviado junto depois, num toque só. */}
+          {cartItems.length > 0 && (
+            <button
+              onClick={porEmEspera}
+              disabled={!lancComanda.trim() || salvando}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                padding: 13, borderRadius: 12, marginTop: -4,
+                border: `1.5px solid ${lancComanda.trim() && !salvando ? `${AMBER}88` : varColor(C.border)}`,
+                background: lancComanda.trim() && !salvando ? `${AMBER}14` : "none",
+                color: lancComanda.trim() && !salvando ? AMBER : varColor(C.muted),
+                cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed",
+                fontWeight: 800, fontSize: 15, fontFamily: "inherit",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              <LuPause size={15} /> Deixar em espera e ir pra próxima
+            </button>
+          )}
+        </div>
+      </div>,
+      document.body
+    )}
+
+    {/* Bottom sheet — pedidos em espera (revisar e enviar todos) */}
+    {showEsperas && createPortal(
+      <div
+        onClick={e => { if (e.target === e.currentTarget && !salvando) setShowEsperas(false); }}
+        style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif" }}
+      >
+        <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", width: "100%", maxHeight: "80dvh", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "20px 20px 14px", borderBottom: `1px solid var(${C.border})`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 19, color: varColor(C.text), display: "flex", alignItems: "center", gap: 8 }}>
+                <LuPause size={18} color={AMBER} /> Pedidos em espera
+              </div>
+              {(() => {
+                const r = resumoEsperas(esperas);
+                return (
+                  <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 3 }}>
+                    {r.pedidos} pedido{r.pedidos !== 1 ? "s" : ""} · {r.itens} {r.itens === 1 ? "item" : "itens"} · R$ {r.total.toFixed(2)}
+                  </div>
+                );
+              })()}
+            </div>
+            <button onClick={() => { if (!salvando) setShowEsperas(false); }} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0, flexShrink: 0 }}><LuX size={22} /></button>
+          </div>
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            {esperas.length === 0 ? (
+              <div style={{ padding: 40, textAlign: "center", color: varColor(C.muted), fontSize: 14 }}>Nenhum pedido em espera.</div>
+            ) : esperas.map((esp, i) => (
+              <div key={esp.comanda} style={{ padding: "14px 20px", borderBottom: i < esperas.length - 1 ? `1px solid var(${C.border})` : "none", display: "flex", alignItems: "flex-start", gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: varColor(C.text) }}>
+                    {fmtComanda(esp.comanda)}{esp.mesa ? <span style={{ fontWeight: 500, color: varColor(C.muted) }}> · Mesa {esp.mesa}</span> : null}
+                  </div>
+                  <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 3, lineHeight: 1.5 }}>
+                    {esp.items.map(it => `${it.qty ?? 1}× ${it.name}`).join(", ")}
+                  </div>
+                  {esp.erro && (
+                    <div style={{ fontSize: 12, color: AMBER, fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                      <LuLock size={11} style={{ flexShrink: 0 }} /> {esp.erro}
+                    </div>
+                  )}
+                </div>
+                <div style={{ flexShrink: 0, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: varColor(C.green) }}>R$ {totalEspera(esp).toFixed(2)}</div>
+                  <button
+                    onClick={() => setEsperas(prev => {
+                      const depois = removerEspera(prev, esp.comanda);
+                      if (depois.length === 0) setShowEsperas(false);
+                      return depois;
+                    })}
+                    title="Descartar este pedido"
+                    style={{ background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "33")}`, borderRadius: 8, color: varColor(C.red), cursor: "pointer", padding: 6, lineHeight: 0, WebkitTapHighlightColor: "transparent" }}
+                  >
+                    <LuTrash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", borderTop: `1px solid var(${C.border})` }}>
+            <button
+              onClick={enviarEsperas}
+              disabled={salvando || esperas.length === 0}
+              style={{
+                width: "100%", padding: 16, borderRadius: 12, border: "none",
+                background: !salvando && esperas.length > 0 ? varColor(C.accent) : varColor(C.faint),
+                color: "#fff", fontWeight: 800, fontSize: 16,
+                cursor: !salvando && esperas.length > 0 ? "pointer" : "not-allowed",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                fontFamily: "inherit", WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              <LuSend size={16} /> {salvando ? "Enviando..." : `Enviar todos (${esperas.length})`}
             </button>
           </div>
         </div>
@@ -790,7 +966,37 @@ export default function MobilePage() {
   );
 }
 
-function ToastMsg({ visible }) {
+// Barra âmbar "N pedidos em espera" — mesma cara na tela de pedido e na
+// grade, sempre levando ao mesmo lugar (revisar e enviar todos).
+function BarraEsperas({ esperas, onClick }) {
+  const r = resumoEsperas(esperas);
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%", boxSizing: "border-box",
+        background: `${AMBER}14`, border: `1.5px solid ${AMBER}88`,
+        borderRadius: 12, padding: "12px 16px",
+        display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+        cursor: "pointer", color: AMBER, fontFamily: "inherit",
+        WebkitTapHighlightColor: "transparent",
+      }}
+    >
+      <span style={{ fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
+        <LuPause size={15} /> {r.pedidos} pedido{r.pedidos !== 1 ? "s" : ""} em espera · R$ {r.total.toFixed(2)}
+      </span>
+      <span style={{ fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", gap: 5 }}>
+        Revisar e enviar <LuSend size={13} />
+      </span>
+    </button>
+  );
+}
+
+function ToastMsg({ msg }) {
+  // guarda a última mensagem para o texto não sumir durante o fade-out
+  const ultima = useRef("");
+  if (msg) ultima.current = msg;
+  const visible = !!msg;
   return (
     <div style={{
       position: "fixed", top: 20, left: "50%",
@@ -804,7 +1010,7 @@ function ToastMsg({ visible }) {
       transition: "opacity 0.3s, transform 0.3s",
       whiteSpace: "nowrap",
     }}>
-      ✓ Pedido enviado com sucesso!
+      {msg || ultima.current}
     </div>
   );
 }
