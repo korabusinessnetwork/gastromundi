@@ -59,11 +59,52 @@ export function resolverSlugTenant(hostname) {
 }
 
 /**
+ * Retorna o rótulo de subdomínio que o hostname REIVINDICA como tenant,
+ * ou null quando não há reivindicação (dev, IP, preview Vercel, apex/www,
+ * domínio nu). Diferente de `resolverSlugTenant`, NÃO aplica fallback:
+ * um subdomínio digitado errado (ex.: gastrumundi.kora.codes) volta
+ * "gastrumundi" — e cabe à tela validar se esse tenant existe (via
+ * `branding_por_slug`) e mostrar erro claro quando não existir, em vez
+ * de cair silenciosamente no login de outro estabelecimento.
+ *
+ * @param {string} [hostname] - default window.location.hostname
+ * @param {string} [rootDomain] - default VITE_ROOT_DOMAIN (testável)
+ * @returns {string|null}
+ */
+export function slugDoSubdominio(hostname, rootDomain = ROOT_DOMAIN) {
+  const host = String(
+    hostname ?? (typeof window !== "undefined" ? window.location.hostname : "")
+  ).toLowerCase().trim();
+
+  if (!host || host === "localhost") return null;
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return null;                 // IP
+  if (host.endsWith(".vercel.app") || host.endsWith(".local")) return null;
+
+  if (rootDomain) {
+    if (host === rootDomain || host === "www." + rootDomain) return null;
+    if (host.endsWith("." + rootDomain)) {
+      const first = host.slice(0, host.length - rootDomain.length - 1).split(".")[0];
+      return first && first !== "www" ? first : null;
+    }
+    return null; // outro domínio apontado pro app: sem reivindicação de tenant
+  }
+
+  // Sem ROOT_DOMAIN: mesma heurística do resolver (3+ rótulos ⇒ 1º é o slug).
+  const labels = host.split(".");
+  if (labels.length >= 3 && labels[0] !== "www") return labels[0];
+  return null;
+}
+
+/**
  * Monta o e-mail namespaced que o Supabase Auth espera para este tenant.
+ * Com subdomínio na URL, o namespace é SEMPRE o subdomínio digitado —
+ * subdomínio errado autentica contra um namespace inexistente (login
+ * falha), nunca contra o tenant do fallback.
  * @param {string} username
  * @param {string} [hostname]
  * @returns {string} `${username}@${slug}.local`
  */
 export function emailDoLogin(username, hostname) {
-  return `${username}@${resolverSlugTenant(hostname)}.local`;
+  const slug = slugDoSubdominio(hostname) ?? resolverSlugTenant(hostname);
+  return `${username}@${slug}.local`;
 }
