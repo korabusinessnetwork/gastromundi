@@ -1,0 +1,363 @@
+/* ============================================================
+   LAYOUT PDV — FRENTE DE CAIXA · TEMA CASA COFFEE COLAB
+   Arquivo único: layout + temas derivados do Social DNA v2.6.
+   Uso: aplique .theme-casa (claro) ou .theme-casa-dark (escuro)
+   no <body> ou no container raiz .pdv.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap');
+
+/* ---------- PALETA OFICIAL (referência) ----------
+   Terracota  #8c3a2a   (Pantone 7629 C)
+   Verde      #305429   (Pantone 5743 C)
+   Marrom     #5b3c34   (Pantone 7601 C)
+   Caramelo   #a56a3a   (Pantone 7575 C)
+   Creme      #ead8c1   (Pantone 468 C)
+   Preto      #000000 · Branco #ffffff
+--------------------------------------------------- */
+
+/* CLARO — dia (creme como base, nunca branco puro) */
+.theme-casa {
+  --bg: #F4EDE1;               /* creme suavizado p/ turno longo */
+  --surface: #FFFDF8;
+  --border: #E0D3BF;
+  --text: #2A211D;
+  --text-muted: #8A776B;
+  --text-faint: #B3A092;
+
+  /* Semânticas — mesmas funções das outras paletas */
+  --success: #305429;          /* verde da marca = finalizar */
+  --success-text: #F6EFE5;
+  --success-soft: #E4EBDD;
+  --success-soft-text: #305429;
+  --danger: #8c3a2a;           /* terracota da marca = cancelar/erro */
+  --danger-soft: #F5E4DE;
+  --danger-border: #DBB3A6;
+  --danger-text: #8c3a2a;
+  --warning: #a56a3a;          /* caramelo = atenção/estoque */
+  --warning-soft: #F3E3CC;
+  --warning-text: #8A5622;
+  --warning-border: #C99B62;
+  --info: #5b3c34;             /* marrom = ações informativas */
+  --info-soft: #EDE2D2;
+  --info-text: #5b3c34;
+  --info-border: #D3BFA6;
+
+  --brand-header: #5b3c34;     /* cabeçalho marrom da marca */
+  --brand-header-text: #F6EFE5;
+  --brand-header-muted: #C9B5A9;
+  --nav-active-bg: #305429;
+  --nav-active-text: #F6EFE5;
+
+  --font: 'Sora', Helvetica, Arial, sans-serif;
+}
+
+/* ESCURO — noite (marrom profundo; semânticas clareadas
+   p/ manter contraste AA sobre fundo escuro) */
+.theme-casa-dark {
+  --bg: #241B17;
+  --surface: #322721;
+  --border: #3E3028;
+  --text: #F2EAE1;
+  --text-muted: #A8968A;
+  --text-faint: #7A6A5E;
+
+  --success: #7FB069;          /* verde clareado (o #305429 some no escuro) */
+  --success-text: #14210F;
+  --success-soft: rgba(127, 176, 105, .14);
+  --success-soft-text: #9DC48A;
+  --danger: #D4785F;           /* terracota clareada */
+  --danger-soft: rgba(212, 106, 84, .12);
+  --danger-border: #6B3A2E;
+  --danger-text: #D4785F;
+  --warning: #D9A468;          /* caramelo clareado */
+  --warning-soft: rgba(165, 106, 58, .2);
+  --warning-text: #D9A468;
+  --warning-border: #A56A3A;
+  --info: #E4D2BC;             /* creme como informativo */
+  --info-soft: rgba(234, 216, 193, .1);
+  --info-text: #E4D2BC;
+  --info-border: #5A4A3E;
+
+  --brand-header: #322721;
+  --brand-header-text: #F2EAE1;
+  --brand-header-muted: #A8968A;
+  --nav-active-bg: #7FB069;
+  --nav-active-text: #14210F;
+
+  --font: 'Sora', Helvetica, Arial, sans-serif;
+}
+
+/* ---------- APLICAÇÃO ---------- */
+.theme-casa .pdv,
+.theme-casa-dark .pdv,
+.theme-casa.pdv,
+.theme-casa-dark.pdv {
+  font-family: var(--font);
+}
+
+/* Cabeçalho com a cor institucional (marrom) */
+.theme-casa .pdv-header,
+.theme-casa-dark .pdv-header {
+  background: var(--brand-header);
+  border-bottom-color: var(--border);
+}
+.theme-casa .pdv-header .pdv-title,
+.theme-casa-dark .pdv-header .pdv-title { color: var(--brand-header-text); }
+.theme-casa .pdv-header .pdv-subtitle,
+.theme-casa-dark .pdv-header .pdv-subtitle { color: var(--brand-header-muted); }
+.theme-casa .pdv-status {
+  background: rgba(234, 216, 193, .18);
+  color: var(--brand-header-text);
+}
+
+/* Kbd do finalizar sobre verde escuro */
+.theme-casa .pdv-btn-finalizar .pdv-kbd { background: rgba(255, 255, 255, .2); }
+.theme-casa-dark .pdv-btn-finalizar .pdv-kbd { background: rgba(0, 0, 0, .16); }
+
+/* ---------- REGRAS DO SOCIAL DNA APLICADAS AO PDV ----------
+   1. Verde #305429 SÓ em confirmar/finalizar — nunca decorativo.
+   2. Terracota #8c3a2a SÓ em cancelar/erro — nunca em destaque
+      de produto, senão o operador perde o reflexo.
+   3. Caramelo #a56a3a = atenção (estoque, espera, pendência).
+   4. Creme é a base; branco puro só em superfícies pequenas.
+   5. Sora em toda a UI (Rexton/Mayonice são de marca/social,
+      não de tela operacional — legibilidade primeiro).
+   6. Microcopy no tom do Casa quando não atrapalhar a operação:
+      estados vazios e confirmações ("tudo pronto por aqui"),
+      nunca em botões de ação — ação é literal: FINALIZAR,
+      Cancelar item, Desconto.
+------------------------------------------------------------ */
+
+
+/* ---------- BASE ---------- */
+:root, .theme-casa, .theme-casa-dark {
+  --fs-base: 13px;
+  --fs-tile: 14px;
+  --fs-total: 34px;
+  --h-finalizar: 52px;
+  --h-btn: 38px;
+  --radius: 10px;
+  --radius-sm: 8px;
+}
+
+.pdv {
+  font-family: Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ---------- CABEÇALHO ---------- */
+.pdv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.pdv-title { font-size: 15px; font-weight: 700; }
+.pdv-subtitle { font-size: 12px; color: var(--text-muted); }
+
+.pdv-status {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--success-soft);
+  color: var(--success-soft-text);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px; font-weight: 600;
+}
+.pdv-status::before {
+  content: "";
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--success);
+}
+
+/* ---------- CORPO ---------- */
+.pdv-body { display: flex; flex: 1; min-height: 0; }
+.pdv-main {
+  flex: 1;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 12px;
+  min-width: 0;
+}
+
+/* Categorias */
+.pdv-cats { display: flex; gap: 8px; }
+.pdv-cat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--fs-base); font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 44px; /* alvo de toque mínimo */
+}
+.pdv-cat.is-active {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  border-color: transparent;
+}
+
+/* Grade de produtos */
+.pdv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  overflow-y: auto;
+}
+@media (min-width: 1400px) { .pdv-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.pdv-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 64px;
+  cursor: pointer;
+  text-align: left;
+}
+.pdv-tile:active { transform: scale(.98); }
+.pdv-tile-name { font-size: var(--fs-tile); font-weight: 700; color: var(--text); }
+.pdv-tile-price { font-size: var(--fs-base); color: var(--text-muted); }
+
+/* Alerta de estoque no tile */
+.pdv-tile.low-stock { border-color: var(--warning-border); }
+.pdv-badge-warning {
+  font-size: 11px; font-weight: 700;
+  color: var(--warning-text);
+  background: var(--warning-soft);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+/* Barra de busca + cliente */
+.pdv-toolbar { display: flex; gap: 8px; margin-top: auto; }
+.pdv-search {
+  flex: 1;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: var(--fs-base);
+  color: var(--text-muted);
+}
+.pdv-btn-info {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--info-soft);
+  color: var(--info-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: var(--fs-base); font-weight: 600;
+  cursor: pointer;
+}
+.pdv-kbd {
+  font-size: 11px;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: auto;
+}
+.pdv-btn-info .pdv-kbd { color: var(--info); border-color: var(--info-border); margin-left: 0; }
+
+/* ---------- COMANDA (coluna direita) ---------- */
+.pdv-cart {
+  width: 300px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.pdv-cart-title { font-size: var(--fs-base); font-weight: 700; }
+
+.pdv-items {
+  display: flex; flex-direction: column; gap: 8px;
+  font-size: var(--fs-base);
+  overflow-y: auto;
+}
+.pdv-item { display: flex; justify-content: space-between; gap: 8px; }
+.pdv-item-qty { font-weight: 700; }
+.pdv-item-price { font-variant-numeric: tabular-nums; }
+
+.pdv-summary {
+  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pdv-summary-row { display: flex; justify-content: space-between; }
+
+/* TOTAL — sempre o maior elemento da tela */
+.pdv-total {
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.pdv-total-label { font-size: var(--fs-base); font-weight: 700; color: var(--text-muted); }
+.pdv-total-value {
+  font-size: var(--fs-total);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- AÇÕES ---------- */
+/* Finalizar: sempre verde, sempre a mesma posição, maior alvo */
+.pdv-btn-finalizar {
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  width: 100%;
+  height: var(--h-finalizar);
+  background: var(--success);
+  color: var(--success-text);
+  font-size: 16px; font-weight: 800;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.pdv-btn-finalizar:hover { filter: brightness(1.06); }
+.pdv-btn-finalizar:active { filter: brightness(.94); }
+.pdv-btn-finalizar .pdv-kbd {
+  color: inherit;
+  background: rgba(0, 0, 0, .18);
+  border: none;
+  margin-left: 0;
+}
+
+.pdv-actions { display: flex; gap: 8px; }
+.pdv-btn-neutral {
+  flex: 1;
+  display: flex; justify-content: center; align-items: center;
+  height: var(--h-btn);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--fs-base); font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+/* Cancelar: sempre vermelho suave — vermelho cheio só em confirmação destrutiva */
+.pdv-btn-danger {
+  flex: 1;
+  display: flex; justify-content: center; align-items: center;
+  height: var(--h-btn);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  font-size: var(--fs-base); font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.pdv-btn-danger.is-solid { background: var(--danger); color: #FFFFFF; border: none; }
+
+/* ---------- ACESSIBILIDADE ---------- */
+/* Cor nunca é o único sinal: mantenha ícone/posição/texto junto da cor. */
+.pdv :focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
+}

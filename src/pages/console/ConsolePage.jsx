@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
+  LuPalette,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import { listarEstabelecimentos, listarPlanos } from "@/lib/console";
+import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
 import AlterarPlanoModal from "@/components/console/AlterarPlanoModal";
+import AlterarLayoutModal from "@/components/console/AlterarLayoutModal";
 import "./ConsolePage.css";
 
 /**
@@ -32,6 +35,7 @@ export default function ConsolePage() {
   const [erro, setErro] = useState("");
   const [modalAberto, setModalAberto] = useState(false);
   const [tenantSelecionado, setTenantSelecionado] = useState(null);
+  const [tenantLayoutSelecionado, setTenantLayoutSelecionado] = useState(null);
   const [sucesso, setSucesso] = useState(null);
 
   const carregar = useCallback(async () => {
@@ -69,6 +73,20 @@ export default function ConsolePage() {
     setSucesso({
       nome: tenant.nome,
       planoAlterado: rotularPlano(planos, tenant.plano_codigo),
+    });
+    carregar();
+  };
+
+  const aoAlterarLayout = (tenant) => {
+    setSucesso(null);
+    setTenantLayoutSelecionado(tenant);
+  };
+
+  const aoLayoutAlterado = (tenant) => {
+    setTenantLayoutSelecionado(null);
+    setSucesso({
+      nome: tenant.nome,
+      layoutAlterado: rotularLayout(tenant.tema),
     });
     carregar();
   };
@@ -115,6 +133,8 @@ export default function ConsolePage() {
             <span>
               {sucesso.planoAlterado ? (
                 <>Plano de <strong>{sucesso.nome}</strong> atualizado para <strong>{sucesso.planoAlterado}</strong>.</>
+              ) : sucesso.layoutAlterado ? (
+                <>Layout de <strong>{sucesso.nome}</strong> trocado para <strong>{sucesso.layoutAlterado}</strong>.</>
               ) : (
                 <><strong>{sucesso.nome}</strong> criado. O responsável já pode entrar com o
                 usuário <strong>{sucesso.admin?.username}</strong>.</>
@@ -147,7 +167,9 @@ export default function ConsolePage() {
         ) : (
           <ul className="console__lista">
             {tenants.map((t) => (
-              <li key={t.id}>
+              // Botões IRMÃOS (não aninhados — HTML inválido): o card troca
+              // o plano, o botão de paleta ao lado troca o layout.
+              <li key={t.id} className="console__item">
                 <button
                   type="button"
                   className="console__card console__card--clicavel"
@@ -164,6 +186,15 @@ export default function ConsolePage() {
                   {t.plano_codigo && (
                     <span className="console__plano">{rotularPlano(planos, t.plano_codigo)}</span>
                   )}
+                </button>
+                <button
+                  type="button"
+                  className="console__layout"
+                  onClick={() => aoAlterarLayout(t)}
+                  title="Trocar o layout deste estabelecimento"
+                >
+                  <LuPalette size={17} aria-hidden />
+                  <span className="console__layout-nome">{rotularLayout(t.tema)}</span>
                 </button>
               </li>
             ))}
@@ -187,6 +218,14 @@ export default function ConsolePage() {
           onAlterado={aoPlanoAlterado}
         />
       )}
+
+      {tenantLayoutSelecionado && (
+        <AlterarLayoutModal
+          tenant={tenantLayoutSelecionado}
+          onFechar={() => setTenantLayoutSelecionado(null)}
+          onAlterado={aoLayoutAlterado}
+        />
+      )}
     </div>
   );
 }
@@ -204,4 +243,11 @@ function formatarData(iso) {
 // fallback caso o catálogo não tenha carregado.
 function rotularPlano(planos, codigo) {
   return planos.find((p) => p.codigo === codigo)?.nome ?? codigo;
+}
+
+// Nome amigável do layout atual do tenant (catálogo src/layouts).
+// layoutDoTema já degrada para "padrao" quando o tema não define layout.
+function rotularLayout(tema) {
+  const codigo = layoutDoTema(tema);
+  return LAYOUTS[codigo]?.nome ?? codigo;
 }

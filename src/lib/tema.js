@@ -142,6 +142,22 @@ export function aplicarVariaveisTema(variaveis, root = document.documentElement)
 }
 
 /**
+ * Remove do elemento raiz TODAS as custom properties de tema já
+ * aplicadas via CSSOM, devolvendo os defaults do `:root` (tema.css).
+ * Usado ao trocar de layout/variante (src/layouts): sem a limpeza,
+ * tokens do layout anterior "vazariam" para o novo quando o novo não
+ * os define (ex.: sair de um layout com fontes custom para o padrao).
+ *
+ * @param {HTMLElement} [root]
+ */
+export function limparVariaveisTema(root = typeof document !== "undefined" ? document.documentElement : null) {
+  if (!root) return;
+  for (const token of Object.values(TOKENS_PERMITIDOS)) {
+    root.style.removeProperty(token);
+  }
+}
+
+/**
  * Resolve uma CSS Custom Property para seu valor hexadecimal em runtime.
  * Usado por props que precisam de valor hex real (ícones lucide-react,
  * recharts, canvas, etc.) — não chamado direto em componentes, sempre

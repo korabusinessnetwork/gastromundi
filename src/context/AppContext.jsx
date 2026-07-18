@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
 import { emailDoLogin } from "@/lib/tenantSlug";
 import { sincronizarStatusAssinatura } from "@/lib/assinatura";
-import { gerarVariaveisTema, aplicarVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
+import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
+import { layoutDoTema, varianteDoHorario, temTrocaAutomatica, variaveisDoLayout, msAteProximaTroca } from "@/layouts";
 import { salvarBrandingCache } from "@/lib/brandingCache";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
@@ -365,12 +366,21 @@ export function AppProvider({ children }) {
   }, [users]);
 
   // ── Fase 6 — camada de comercialização (ADR-007): aplica o tema do
-  //    tenant (--gm-*) assim que `tenant.tema` é conhecido. Sem tema
-  //    custom (tenant atual, GastroMundi), `gerarVariaveisTema` retorna
-  //    {} e os defaults de src/styles/tema.css continuam valendo —
-  //    nada muda visualmente.
+  //    tenant (--gm-*) assim que `tenant.tema` é conhecido, em camadas:
+  //    defaults do tema.css → variante do layout (`tema.layout`,
+  //    src/layouts) → overrides finos do tenant por cima. Sem layout e
+  //    sem tema custom, nada é sobrescrito — aparência atual intacta.
+  const [varianteLayout, setVarianteLayout] = useState(() => varianteDoHorario(new Date().getHours()));
+
   useEffect(() => {
-    const variaveis = gerarVariaveisTema(tenant?.tema);
+    const codigoLayout = layoutDoTema(tenant?.tema);
+    const variaveis = {
+      ...variaveisDoLayout(codigoLayout, varianteLayout),
+      ...gerarVariaveisTema(tenant?.tema),
+    };
+    // Limpa o que a aplicação anterior setou (troca de layout/variante
+    // não pode herdar tokens órfãos) e aplica o merge da vez.
+    limparVariaveisTema();
     aplicarVariaveisTema(variaveis);
     // Aba do navegador com a marca do tenant (white-label). Só quando o
     // tenant é conhecido — antes disso o <title> estático/LoginPage valem.
@@ -381,7 +391,19 @@ export function AppProvider({ children }) {
       // já pinta com esta marca antes do bootstrap (script do index.html).
       salvarBrandingCache({ nome, logo: logoUrlTenant(tenant.tema), variaveis });
     }
-  }, [tenant?.tema]);
+  }, [tenant?.tema, varianteLayout]);
+
+  // ── Timer dia/noite dos layouts adaptativos (marca, casa): arma um
+  //    despertar para a próxima fronteira (06:00/19:00). Ao disparar, a
+  //    variante muda, o efeito acima repinta e este efeito re-arma a
+  //    fronteira seguinte. Layout fixo não arma nada.
+  useEffect(() => {
+    if (!temTrocaAutomatica(layoutDoTema(tenant?.tema))) return;
+    const timer = setTimeout(() => {
+      setVarianteLayout(varianteDoHorario(new Date().getHours()));
+    }, msAteProximaTroca(new Date()));
+    return () => clearTimeout(timer);
+  }, [tenant?.tema, varianteLayout]);
 
   // ── Jarvas: análise pós-carregamento (fire-and-forget; motor só
   //    roda para gerente/admin e tem throttle interno de 6h) ──────

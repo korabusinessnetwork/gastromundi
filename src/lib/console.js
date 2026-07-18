@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { LAYOUT_PADRAO_NOVOS } from "@/layouts";
 
 /**
  * Console da Plataforma (S1-2, ADR-008 §7) — camada de dados.
@@ -23,13 +24,13 @@ const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/provisionar-
  * Nunca lança: falha de rede/RLS volta como { data: [], error } para o
  * chamador tratar o estado de erro na UI.
  *
- * @returns {Promise<{data: Array<{id:string,nome:string,plano_codigo:string,created_at:string}>, error: object|null}>}
+ * @returns {Promise<{data: Array<{id:string,nome:string,plano_codigo:string,tema:object|null,created_at:string}>, error: object|null}>}
  */
 export async function listarEstabelecimentos() {
   try {
     const { data, error } = await supabase
       .from("tenants")
-      .select("id, nome, plano_codigo, created_at")
+      .select("id, nome, plano_codigo, tema, created_at")
       .order("created_at", { ascending: false });
     if (error) return { data: [], error };
     return { data: data ?? [], error: null };
@@ -144,7 +145,9 @@ export async function provisionarEstabelecimento(payload) {
       body: JSON.stringify({
         nome: payload.nome,
         plano_codigo: payload.planoCodigo,
-        tema: payload.tema ?? {},
+        // Estabelecimento novo nasce no layout da marca (1b, dia/noite
+        // automático) — regra do dono. O payload pode sobrescrever.
+        tema: { layout: LAYOUT_PADRAO_NOVOS, ...(payload.tema ?? {}) },
         admin: {
           name: payload.adminNome,
           username: normalizarUsername(payload.adminUsername),
@@ -186,5 +189,32 @@ export async function alterarPlano(tenantId, planoCodigo) {
     return { data, error: null };
   } catch (err) {
     return { data: null, error: { message: err?.message ?? "Falha ao alterar o plano." } };
+  }
+}
+
+/**
+ * Troca o LAYOUT de um estabelecimento via RPC `alterar_layout_tenant`
+ * (20260801). Mesmo desenho do alterarPlano: a autorização real é do
+ * banco (SECURITY DEFINER + is_super_admin()); a RPC grava
+ * `tema.layout` e LIMPA os overrides de paleta antigos, para que o
+ * layout escolhido apareça de fato (overrides finos por cima de outro
+ * layout mascarariam a escolha) — nome de exibição e logo são mantidos.
+ *
+ * Nunca lança: falha de rede/RLS volta como { data: null, error }.
+ *
+ * @param {string} tenantId     id do estabelecimento
+ * @param {string} layoutCodigo código do layout (catálogo src/layouts)
+ * @returns {Promise<{data: object|null, error: object|null}>}
+ */
+export async function alterarLayout(tenantId, layoutCodigo) {
+  try {
+    const { data, error } = await supabase.rpc("alterar_layout_tenant", {
+      p_tenant_id: tenantId,
+      p_layout: layoutCodigo,
+    });
+    if (error) return { data: null, error };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao alterar o layout." } };
   }
 }
