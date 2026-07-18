@@ -6,10 +6,10 @@ import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor, gerarVariaveisTema, aplicarVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
-import { resolverSlugTenant } from "@/lib/tenantSlug";
+import { resolverSlugTenant, slugDoSubdominio } from "@/lib/tenantSlug";
 import { buscarBrandingPorSlug } from "@/lib/tenant";
 import { sanitizeInput, MAX_ATTEMPTS } from "@/utils";
-import { LuEye, LuEyeOff, LuShieldAlert, LuTriangleAlert } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuShieldAlert, LuTriangleAlert, LuSearchX } from "react-icons/lu";
 
 export default function LoginPage() {
   const { login, currentUser, isMobile, loading: dbLoading } = useApp();
@@ -28,18 +28,34 @@ export default function LoginPage() {
   // Marca do estabelecimento resolvida pelo subdomínio (ADR-009/ADR-007).
   // Pré-login não há JWT/tenant carregado; a marca vem por slug via RPC.
   const [marca, setMarca] = useState({ nome: "GASTROMUNDI", logo: null });
+  // Subdomínio digitado que NÃO corresponde a nenhum estabelecimento —
+  // mostra a tela de "endereço não encontrado" em vez do login (nunca
+  // cair silenciosamente no login de outro tenant).
+  const [subdominioInvalido, setSubdominioInvalido] = useState("");
+  // Enquanto valida um subdomínio reivindicado, não renderiza o login
+  // padrão (evita flash da marca errada e login no tenant errado).
+  const [checandoTenant, setChecandoTenant] = useState(() => !!slugDoSubdominio());
 
   // ── White-label na porta de entrada: aplica o tema do tenant (--gm-*)
   //    e o nome ANTES do login. Como a tela toda usa var(--gm-*), ela se
   //    recolore sozinha. Sem subdomínio/tema (dev, apex, gastromundi),
-  //    fica o padrão — idêntico a hoje. Fire-and-forget: falha na busca
-  //    não trava o login, só mantém o visual padrão.
+  //    fica o padrão — idêntico a hoje.
+  //
+  //    Com subdomínio na URL, a busca também VALIDA o endereço: a RPC
+  //    respondendo "não existe" (sem erro de rede) bloqueia o login e
+  //    mostra a tela de endereço não encontrado. Falha de REDE não
+  //    bloqueia (fail-open): o login segue com o visual padrão e a
+  //    autenticação real continua protegida pelo namespace do slug + RLS.
   useEffect(() => {
     let ativo = true;
     (async () => {
-      const slug = resolverSlugTenant();
-      const { data } = await buscarBrandingPorSlug(slug);
-      if (!ativo || !data) return;
+      const reivindicado = slugDoSubdominio();
+      const slug = reivindicado ?? resolverSlugTenant();
+      const { data, error } = await buscarBrandingPorSlug(slug);
+      if (!ativo) return;
+      if (reivindicado && !data && !error) { setSubdominioInvalido(reivindicado); setChecandoTenant(false); return; }
+      setChecandoTenant(false);
+      if (!data) return;
       if (data.tema) aplicarVariaveisTema(gerarVariaveisTema(data.tema));
       const nome = nomeExibicaoTenant(data.tema, data.nome || "GastroMundi");
       setMarca({ nome: nome.toUpperCase(), logo: logoUrlTenant(data.tema) });
@@ -70,6 +86,40 @@ export default function LoginPage() {
     // A rota final (Console p/ plataforma, app/palm/escolha p/ demais) é
     // decidida pelo efeito acima quando currentUser muda — evita bounce.
   };
+
+  // Subdomínio digitado errado: erro claro, sem formulário de login —
+  // não existe estabelecimento aqui, logo não existe onde entrar.
+  if (subdominioInvalido) {
+    const endereco = typeof window !== "undefined" ? window.location.hostname : subdominioInvalido;
+    return (
+      <div style={{ background: varColor(C.bg), minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--gm-font-texto)", color: varColor(C.text) }}>
+        <div style={{ width: "100%", maxWidth: 440, padding: `0 ${sz.pad}px`, boxSizing: "border-box", textAlign: "center" }}>
+          <div style={{ background: varColor(C.card), borderRadius: 20, padding: sz.pad + 12, border: `1px solid var(${C.border})` }}>
+            <LuSearchX size={40} style={{ color: varColor(C.muted) }} />
+            <div style={{ fontWeight: 900, fontSize: sz.fontXl - 2, marginTop: 12, fontFamily: "var(--gm-font-titulo)" }}>Endereço não encontrado</div>
+            <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, marginTop: 10, lineHeight: 1.6 }}>
+              Não existe nenhum estabelecimento em<br />
+              <strong style={{ color: varColor(C.text), wordBreak: "break-all" }}>{endereco}</strong>
+            </div>
+            <div style={{ color: varColor(C.muted), fontSize: sz.fontBase - 1, marginTop: 14, lineHeight: 1.6 }}>
+              Confira se o endereço foi digitado certo — o nome do estabelecimento vem antes do primeiro ponto. Se o erro continuar, fale com quem te passou o link.
+            </div>
+          </div>
+          <div style={{ color: varColor(C.muted), fontSize: sz.fontBase - 2, marginTop: 14 }}>Kora</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Validando o subdomínio: tela neutra, sem marca de nenhum tenant
+  // (evita mostrar o visual de um estabelecimento que pode não ser o certo).
+  if (checandoTenant) {
+    return (
+      <div style={{ background: varColor(C.bg), minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--gm-font-texto)", color: varColor(C.muted), fontSize: 14 }}>
+        Carregando…
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: varColor(C.bg), minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--gm-font-texto)", color: varColor(C.text) }}>
