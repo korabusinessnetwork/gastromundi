@@ -69,12 +69,12 @@ revisão item a item com o dono antes de merge.
 
 - ✅ Migrations **20260744**, **20260745**, **20260746** e **20260747** aplicadas
   em produção pelo dono em 2026-07-18 ("tudo rodando").
-- ⏳ Migration **20260748** (`estoque_subprodutos` + RPC `baixar_estoque_subproduto`)
-  — necessária para a baixa de estoque de combos/subprodutos (B4).
-- ⏳ **Habilitar Realtime na tabela `sales`** (painel → Database → Replication) —
-  necessário para a Leva 15.4 (saldo do dia sincronizado entre dispositivos).
-  Sem isso o canal `sales-realtime` fica dormente (fail-open: cada caixa segue
-  vendo só as próprias vendas até recarregar a página).
+- ✅ Migration **20260748** (`estoque_subprodutos` + RPC `baixar_estoque_subproduto`)
+  aplicada em produção pelo dono em 2026-07-18.
+- ✅ **Realtime habilitado na tabela `sales`** (Database → Publications →
+  `supabase_realtime`) pelo dono em 2026-07-18 — Leva 15.4 completa: saldo do
+  dia sincronizado entre dispositivos.
+- Nenhuma ação manual pendente no momento.
 
 ## Leva 15 — pedidos do dono (2026-07-18)
 
@@ -83,7 +83,7 @@ revisão item a item com o dono antes de merge.
 | 15.1 | Remover produto na finalização (lista + botão no topo, senha admin) | ✅ |
 | 15.2 | Rótulo de método `custom_*` nas comandas fechadas | ✅ |
 | 15.3 | Cancelar comandas fechadas (blob marca `cancelada` p/ auditoria; linhas relacionais + lançamentos removidos; senha gerente/admin + motivo) | ✅ |
-| 15.4 | Saldo do dia sincronizado (canal Realtime `sales`) | ✅ código — **falta habilitar Realtime no painel** |
+| 15.4 | Saldo do dia sincronizado (canal Realtime `sales`) | ✅ (Realtime habilitado no painel em 2026-07-18) |
 | 15.5 | Busca por número de comanda no relatório | ✅ |
 | 15.6 | Card de Lucro no financeiro (`calcularCustoVendas`: fichas técnicas × vendas do mês, menos saídas pagas; cobertura parcial sinalizada no rótulo) | ✅ |
 | 15.7 | Frente de caixa abre direto na lista | ✅ |
