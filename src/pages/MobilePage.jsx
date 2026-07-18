@@ -720,7 +720,7 @@ export default function MobilePage() {
         onClick={e => { if (e.target === e.currentTarget && !salvando) setShowLancar(false); }}
         style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif" }}
       >
-        <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", padding: 24, width: "100%", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: "calc(24px + env(safe-area-inset-bottom))", width: "100%", maxHeight: "100dvh", overflowY: "auto", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <div style={{ fontWeight: 800, fontSize: 18, color: varColor(C.text) }}>{cartItems.length === 0 ? "Abrir Comanda" : "Lançar Pedido"}</div>
