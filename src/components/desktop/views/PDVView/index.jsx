@@ -10,7 +10,7 @@ import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
-import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList } from "react-icons/lu";
+import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList, LuReceipt } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { produtosVencendo } from "@/lib/validade";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
@@ -56,8 +56,10 @@ export default function PDVView({ notify }) {
     setCartItems([]);
   }, [location.key]);
 
-  // "grid" (lista) | "mapa" | "pedido" | "checkout" — abre direto na lista
+  // "grid" (lista) | "mapa" | "abertas" (só comandas pendentes) | "pedido" | "checkout" — abre direto na lista
   const [mode,        setMode]        = useState("grid");
+  // Modos de "painel" (com tab bar, alertas e ações de topo) — tudo que não é pedido/checkout
+  const emPainel = mode === "grid" || mode === "mapa" || mode === "abertas";
   const [selected,    setSelected]    = useState(null);
   const [cartItems,   setCartItems]   = useState([]);
   const [salvando,    setSalvando]    = useState(false);
@@ -689,7 +691,7 @@ export default function PDVView({ notify }) {
                     : `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} em aberto`}
                 </div>
               </div>
-              {(mode === "mapa" || mode === "grid") && (
+              {emPainel && (
                 <button
                   onClick={() => { setShowSaldo(true); setSaldoSenha(""); setSaldoSenhaErro(false); setSaldoAutorizado(false); setSaldoSenhaVis(false); }}
                   title="Saldo do dia"
@@ -715,7 +717,7 @@ export default function PDVView({ notify }) {
           {/* Direita: ações */}
           <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: sz.gap, flexWrap: "wrap" }}>
           {/* Toast inline — visível no mapa/lista após lançar */}
-          {(mode === "mapa" || mode === "grid") && (
+          {emPainel && (
             <div style={{
               display: "flex", alignItems: "center", gap: 8,
               background: `${alfa(C.green, "18")}`, border: `1px solid ${alfa(C.green, "44")}`,
@@ -729,7 +731,7 @@ export default function PDVView({ notify }) {
               ✓ Pedido lançado!
             </div>
           )}
-          {(mode === "mapa" || mode === "grid") && (
+          {emPainel && (
             <button
               onClick={() => { setShowNova(true); setNomeComanda(""); }}
               disabled={!caixaAberto}
@@ -904,7 +906,7 @@ export default function PDVView({ notify }) {
       )}
 
       {/* ── Alerta de estoque (mapa + lista) ───────────────────── */}
-      {(mode === "mapa" || mode === "grid") && (() => {
+      {emPainel && (() => {
         const criticos = products.filter(p => {
           const q = estoque[p.id] ?? 0;
           return q === 0;
@@ -973,7 +975,7 @@ export default function PDVView({ notify }) {
       })()}
 
       {/* ── Alerta de validade (C1) — mesmo padrão do alerta de estoque ── */}
-      {(mode === "mapa" || mode === "grid") && (() => {
+      {emPainel && (() => {
         const vencendo = produtosVencendo(products, diasAlertaValidade ?? 7);
         if (vencendo.length === 0) return null;
         const vencidos = vencendo.filter(v => v.vencido);
@@ -1020,7 +1022,7 @@ export default function PDVView({ notify }) {
       })()}
 
       {/* ── Tab Mapa / Lista ─────────────────────────────────────── */}
-      {(mode === "mapa" || mode === "grid") && (
+      {emPainel && (
         <div style={{
           flexShrink: 0,
           display: "flex",
@@ -1028,8 +1030,9 @@ export default function PDVView({ notify }) {
           padding: `0 ${sz.pad}px`,
         }}>
           {[
-            { key: "grid", label: "Lista", Icon: LuList },
-            { key: "mapa", label: "Mapa",  Icon: LuLayoutGrid },
+            { key: "grid",    label: "Lista",           Icon: LuList },
+            { key: "mapa",    label: "Mapa",            Icon: LuLayoutGrid },
+            { key: "abertas", label: "Comandas abertas", Icon: LuReceipt },
           ].map(({ key, label, Icon }) => (
             <button
               key={key}
@@ -1053,8 +1056,8 @@ export default function PDVView({ notify }) {
         </div>
       )}
 
-      {/* ── Busca de comandas (apenas na lista) ──────────────────── */}
-      {mode === "grid" && (
+      {/* ── Busca de comandas (lista e comandas abertas) ─────────── */}
+      {(mode === "grid" || mode === "abertas") && (
         <div style={{
           flexShrink: 0,
           padding: "16px 24px",
@@ -1120,6 +1123,23 @@ export default function PDVView({ notify }) {
               onSelect={handleSelectComanda}
               onOpenEmpty={handleOpenEmpty}
               busca={buscaComanda}
+              emUsoPor={(order) => emUsoPorOutro(order) ? nomeTrava(order) : null}
+            />
+          </div>
+        )}
+
+        {/* Só as comandas pendentes de pagamento — o operador localiza
+            rápido quem ainda não pagou, sem os slots vazios da lista. */}
+        {mode === "abertas" && (
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            <ComandaGrid
+              abertas={abertas}
+              visitadas={lancadas}
+              selected={null}
+              onSelect={handleSelectComanda}
+              onOpenEmpty={handleOpenEmpty}
+              busca={buscaComanda}
+              somenteAbertas
               emUsoPor={(order) => emUsoPorOutro(order) ? nomeTrava(order) : null}
             />
           </div>
