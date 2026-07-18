@@ -2,7 +2,10 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- interactive-widget=resizes-content: sem isso, o teclado do Android sobe
+         POR CIMA do layout e cobre bottom sheets fixas (ex.: "Lançar Pedido" no
+         Palm); com isso, o viewport encolhe junto e a folha sobe acima do teclado. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>GASTROMUNDI by Kora</title>
     <!--
       Fontes white-label (ADR-007). São as famílias que o tema de um tenant
