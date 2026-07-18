@@ -16,6 +16,8 @@ import { produtosVencendo } from "@/lib/validade";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
+import { useTravaComanda } from "@/hooks/useTravaComanda";
+import { travadaPorOutro, nomeTrava } from "@/lib/comandaLock";
 import { useCancelarComanda } from "./useCancelarComanda";
 import ComandaGrid   from "./ComandaGrid";
 import ProductGrid   from "./ProductGrid";
@@ -128,9 +130,34 @@ export default function PDVView({ notify }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, selected, salvando, transferindo, cancelandoComanda]);
 
+  // ── Trava de edição (Leva 14) ─────────────────────────────────
+  // Enquanto o caixa está com a comanda aberta (pedido/checkout), o Palm
+  // não mexe nela — e vice-versa. A checagem síncrona (emUsoPorOutro)
+  // previne a entrada; o hook adquire a trava de verdade no banco e, se
+  // outro dispositivo ganhou a corrida, devolve `bloqueio`.
+  const travaAtiva = (mode === "pedido" || mode === "checkout") && !!selected && !selected._virtual;
+  const { bloqueio } = useTravaComanda(selected, travaAtiva);
+  const emUsoPorOutro = (order) => travadaPorOutro(order, currentUser?.username);
+
+  // Perdeu a corrida da trava (outro dispositivo abriu antes): sai da
+  // comanda com aviso em vez de deixar editar às cegas.
+  useEffect(() => {
+    if (!bloqueio || !travaAtiva || salvando || transferindo || cancelandoComanda) return;
+    notify?.(`${fmtComanda(selected.comanda)} está em uso por ${bloqueio.nome}.`, "err");
+    setMode("mapa");
+    setSelected(null);
+    setCartItems([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bloqueio]);
+
   // ── Selecionar comanda → pede mesa antes de entrar ────────────
   const handleSelectComanda = (order) => {
     setBuscaComanda("");
+    // Trava de edição (Leva 14): comanda aberta em outro aparelho → não entra.
+    if (emUsoPorOutro(order)) {
+      notify?.(`${fmtComanda(order.comanda)} está em uso por ${nomeTrava(order)}. Aguarde liberar.`, "err");
+      return;
+    }
     const temItens = Array.isArray(order.items) && order.items.length > 0;
     if (order.mesa || temItens) {
       // Tem mesa definida OU já tem itens (ex: lançado pelo Palm sem mesa) — entra direto
@@ -156,6 +183,16 @@ export default function PDVView({ notify }) {
 
   const handleConfirmarMesa = async () => {
     if (!mesaPendingOrder || salvandoMesa) return;
+    // Trava de edição (Leva 14): alguém abriu a comanda enquanto a modal estava na tela.
+    if (!mesaPendingOrder._virtual) {
+      const fresca = pending.find(o => o.id === mesaPendingOrder.id) ?? mesaPendingOrder;
+      if (emUsoPorOutro(fresca)) {
+        notify?.(`${fmtComanda(fresca.comanda)} está em uso por ${nomeTrava(fresca)}. Aguarde liberar.`, "err");
+        setShowMesa(false);
+        setMesaPendingOrder(null);
+        return;
+      }
+    }
     const mesa    = mesaInput.trim();
     const apelido = apelidoInput.trim();
     setSalvandoMesa(true);
@@ -231,6 +268,7 @@ export default function PDVView({ notify }) {
   // ── Lançar pedido → acumula itens no Supabase ────────────────
   const handleLancar = async () => {
     if (!selected || cartItems.length === 0 || salvando) return;
+    if (bloqueio) { notify?.(`${fmtComanda(selected.comanda)} está em uso por ${bloqueio.nome}.`, "err"); return; }
     setSalvando(true);
     try {
       // Persiste comanda se ainda for virtual
@@ -263,6 +301,7 @@ export default function PDVView({ notify }) {
 
   // ── Ir para checkout — acumula itens locais antes de finalizar ─
   const handleFinalizar = async () => {
+    if (bloqueio) { notify?.(`${fmtComanda(selected?.comanda)} está em uso por ${bloqueio.nome}.`, "err"); return; }
     try {
       let ordem = selected;
       if (ordem._virtual) {
@@ -292,6 +331,7 @@ export default function PDVView({ notify }) {
   // ── Confirmar pagamento → grava venda e remove comanda ────────
   const handleConfirmPayment = async (payload) => {
     if (!selected) return;
+    if (bloqueio) return { error: new Error(`Comanda em uso por ${bloqueio.nome}. Aguarde liberar.`) };
     setSalvando(true);
     try {
       await finalizarPagamento(selected, cartItems, payload, {
@@ -1026,6 +1066,7 @@ export default function PDVView({ notify }) {
               onSelect={handleSelectComanda}
               onOpenEmpty={handleOpenEmpty}
               busca={buscaComanda}
+              emUsoPor={(order) => emUsoPorOutro(order) ? nomeTrava(order) : null}
             />
           </div>
         )}

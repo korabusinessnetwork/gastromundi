@@ -77,6 +77,11 @@ export function createAppMockValue(overrides = {}) {
     addPending: vi.fn(() => Promise.resolve({ error: null })),
     removePending: vi.fn(() => Promise.resolve({ error: null })),
     updatePending: vi.fn(() => Promise.resolve({ error: null })),
+    // Leva 14 — trava de edição de comanda: por padrão os testes adquirem
+    // a trava com sucesso (sem bloqueio) — sobrescreva nos testes da trava.
+    adquirirTrava: vi.fn(() => Promise.resolve({ ok: true })),
+    liberarTrava: vi.fn(() => Promise.resolve({ error: null })),
+    renovarTrava: vi.fn(() => Promise.resolve({ ok: true })),
     addProduct: vi.fn(),
     updateProduct: vi.fn(),
     removeProduct: vi.fn(),

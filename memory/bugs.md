@@ -13,6 +13,7 @@ revisão item a item com o dono antes de merge.
 | Achado | Onde | Estado |
 |---|---|---|
 | `updatePending` sobrescrevia itens entre dispositivos (sem merge) | AppContext | ✅ Leva 2 (`789be70`) — merge por `uid`; resíduo em TD013 (RPC de append atômico) |
+| Duas pessoas editando a mesma comanda ao mesmo tempo (estado final pedido pelo dono: enquanto um está com a comanda aberta, o outro não mexe) | Palm + PDV | ✅ Leva 14 — trava de edição advisory (`editando_*` em `pending`, TTL 90s + heartbeat 30s, fail-open sem migration/rede); merge da Leva 2 segue como rede de segurança; **migration 20260747 pendente no painel** |
 | `selected` sem resync com Realtime | PDVView | ✅ Leva 2 |
 | Checkout travado em "Processando..." após erro | PDVView/CheckoutView | ✅ Leva 1 (`b89db6c`) |
 | Cobrança dupla em retentativa de pagamento | useFinalizarPagamento | ✅ Leva 1 |
@@ -69,3 +70,6 @@ revisão item a item com o dono antes de merge.
 - Migrations **20260744**, **20260745**, **20260746** ainda não aplicadas em produção.
   A 20260746 (`relatorio_vendas` com `p_tz`) é **pré-requisito do próximo deploy** —
   o front já envia o fuso.
+- Migration **20260747** (`pending` + colunas `editando_por/editando_nome/editando_desde`,
+  trava de edição da Leva 14) também pendente — sem ela a trava fica dormente
+  (fail-open: tudo funciona como antes, sem exclusividade). Não é bloqueante de deploy.
