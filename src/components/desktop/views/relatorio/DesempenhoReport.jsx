@@ -18,7 +18,7 @@ const PERIODOS = [
   { id: "intervalo", label: "Período" },
 ];
 
-const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
+const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix", fiado: "Fiado" };
 
 const fmtR = (v) => "R$ " + Number(v ?? 0).toFixed(2);
 

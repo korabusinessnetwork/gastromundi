@@ -29,7 +29,7 @@ const PERIODOS = [
   { id: "custom",  label: "Período" },
 ];
 
-const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix" };
+const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix", fiado: "Fiado" };
 const METODOS_ICON  = { dinheiro: LuBanknote, credito: LuCreditCard, debito: LuSmartphone, pix: LuZap };
 const ACTION_TYPE_META = {
   auth:    { label: "Auth",    color: varColor(C.blue)      },
@@ -584,7 +584,7 @@ export default function RelatorioView() {
   const exportFechamentos = (fmt) => {
     const headers = ["Data/Hora", "Usuário", "Fundo (R$)", "Total Vendas (R$)", "Conferido (R$)", "Diferença (R$)"];
     const rows = fechsFiltrados.map(f => {
-      const dif = (f.totalConferido ?? 0) - (f.totalVendas ?? 0);
+      const dif = (f.totalConferido ?? 0) - ((f.totalVendas ?? 0) + (f.fundo ?? 0));
       return [
         fmtData(f.at), f.user ?? "—",
         Number(f.fundo ?? 0).toFixed(2),
@@ -1253,7 +1253,7 @@ export default function RelatorioView() {
                   </thead>
                   <tbody>
                     {fechsFiltrados.map((f, i) => {
-                      const dif = (f.totalConferido ?? 0) - (f.totalVendas ?? 0);
+                      const dif = (f.totalConferido ?? 0) - ((f.totalVendas ?? 0) + (f.fundo ?? 0));
                       const hasObs = !!f.observacao;
                       return (
                         <Fragment key={f.id ?? i}>

@@ -63,7 +63,7 @@ export const isV2Hash = (s) =>
 
 /** Remove caracteres perigosos e limita tamanho */
 export const sanitizeInput = (str, max = 60) =>
-  str.replace(/[<>"'`]/g, "").slice(0, max).trim();
+  (typeof str === "string" ? str : "").replace(/[<>"'`]/g, "").slice(0, max).trim();
 
 /** Avalia a força de uma senha (0-4) */
 export const passwordStrength = (pwd) => {

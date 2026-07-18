@@ -87,6 +87,24 @@ describe("regraDivergenciaCaixa", () => {
     expect(registrarInsight).not.toHaveBeenCalled();
   });
 
+  it("fundo de abertura não conta como divergência (conferido = vendas + fundo)", async () => {
+    // fundo R$150, caixa batendo certo → divergência real R$0, nenhum alerta
+    const fechamentos = [{ id: 5, totalVendas: 100, totalConferido: 250, fundo: 150 }];
+    await regraDivergenciaCaixa({ fechamentos, jaExiste: () => false });
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("divergência real é calculada descontando o fundo", async () => {
+    // fundo R$150, faltam R$60 no caixa → conferido 190 (100 vendas + 150 fundo - 60)
+    const fechamentos = [{ id: 6, totalVendas: 100, totalConferido: 190, fundo: 150 }];
+    await regraDivergenciaCaixa({ fechamentos, jaExiste: () => false });
+
+    expect(registrarInsight).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: "alerta", severidade: "danger" }),
+    );
+  });
+
   it("diferença > R$1 (e <= R$50) gera alerta warning", async () => {
     const fechamentos = [{ id: 2, totalVendas: 100, totalConferido: 110 }];
     await regraDivergenciaCaixa({ fechamentos, jaExiste: () => false });

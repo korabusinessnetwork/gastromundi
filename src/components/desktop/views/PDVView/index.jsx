@@ -1852,7 +1852,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   vendasHoje.forEach(v => { Object.entries(totalPorMetodo(v)).forEach(([m, val]) => { porMetodo[m] = (porMetodo[m] ?? 0) + val; }); });
 
   const customLabels = Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label]));
-  const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix", ...customLabels };
+  const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix", fiado: "Fiado", ...customLabels };
   const METODOS_COLOR = { dinheiro: "#10b981", credito: "#3b82f6", debito: "#8b5cf6", pix: "#f59e0b" };
 
   const verificarSenha = async () => {

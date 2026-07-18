@@ -111,7 +111,10 @@ export async function regraDivergenciaCaixa({ fechamentos, jaExiste }) {
   const d = ultimo?.data ?? ultimo;
   if (!d || typeof d.totalVendas !== "number" || typeof d.totalConferido !== "number") return;
 
-  const diff = d.totalConferido - d.totalVendas;
+  // O fundo de abertura entra no conferido mas não é venda — subtrai para
+  // não acusar divergência falsa (mesma conta de FechamentoModal/RelatorioView).
+  const fundo = typeof d.fundo === "number" ? d.fundo : 0;
+  const diff = d.totalConferido - d.totalVendas - fundo;
   const chave = `caixa:divergencia:${ultimo.id ?? ultimo.created_at ?? "ultimo"}`;
   if (Math.abs(diff) <= TOLERANCIA_CAIXA || jaExiste(chave)) return;
 
@@ -123,7 +126,7 @@ export async function regraDivergenciaCaixa({ fechamentos, jaExiste }) {
     titulo: `Divergência de caixa: R$ ${diff.toFixed(2)}`,
     descricao: `Último fechamento: vendas R$ ${d.totalVendas.toFixed(2)} vs conferido R$ ${d.totalConferido.toFixed(2)} (${diff > 0 ? "sobra" : "falta"}).`,
     acao: { label: "Revisar fechamento", tipo: "abrir_fechamentos", params: {} },
-    origem: { chave, dados: { fechamento_id: ultimo.id ?? null, totalVendas: d.totalVendas, totalConferido: d.totalConferido } },
+    origem: { chave, dados: { fechamento_id: ultimo.id ?? null, totalVendas: d.totalVendas, totalConferido: d.totalConferido, fundo } },
   });
 }
 
