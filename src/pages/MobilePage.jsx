@@ -183,6 +183,20 @@ export default function MobilePage() {
       setLancErro(`Em uso por ${bloqueio?.nome ?? nomeTrava(existente)}. Aguarde fechar a comanda.`);
       return;
     }
+    // Já tem pedido em espera na fila? O pedido atual se junta a eles e a
+    // tela de revisão abre com TODOS — o garçom lança tudo num toque só,
+    // em vez de enviar um agora e esquecer os que ficaram esperando.
+    if (cartItems.length > 0 && esperas.length > 0) {
+      setEsperas(prev => adicionarEspera(prev, criarEspera({ comanda: nomeComanda, mesa: lancMesa, items: cartItems })));
+      setShowLancar(false);
+      setLancComanda("");
+      setLancMesa("");
+      setLancErro("");
+      setCartItems([]);
+      setCartAberto(false);
+      setShowEsperas(true);
+      return;
+    }
     setSalvando(true);
     try {
       const updatedOrder = await persistirLancamento(nomeComanda, lancMesa.trim(), cartItems);
@@ -744,6 +758,7 @@ export default function MobilePage() {
             <button onClick={handleLancar} disabled={!lancComanda.trim() || salvando} style={{ flex: 2, padding: 14, borderRadius: 12, border: "none", background: lancComanda.trim() && !salvando ? varColor(C.accent) : varColor(C.surface), color: lancComanda.trim() && !salvando ? "#fff" : varColor(C.muted), cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 15, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}>
               {salvando ? "Enviando..."
                 : cartItems.length === 0 ? (mapa[lancComanda.trim()] ? "✓ Abrir Comanda" : "✓ Criar Comanda")
+                : esperas.length > 0 ? `✓ Revisar e lançar todos (${esperas.length + 1})`
                 : mapa[lancComanda.trim()] ? "✓ Adicionar à Comanda" : "✓ Criar e Lançar"}
             </button>
           </div>
