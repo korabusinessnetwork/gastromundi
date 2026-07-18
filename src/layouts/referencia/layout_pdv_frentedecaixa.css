@@ -1,0 +1,362 @@
+/* ============================================================
+   LAYOUT PDV — FRENTE DE CAIXA
+   Paletas: 1a Neutro funcional (padrão) · 1b Marca · 1c Noturno
+   Uso: aplique .theme-light, .theme-dark ou .theme-night no <body>
+   ou container raiz. Componentes usam apenas as variáveis.
+   ============================================================ */
+
+/* ---------- TOKENS ---------- */
+
+/* 1a — Neutro funcional CLARO (tema padrão) */
+.theme-light {
+  --bg: #F4F5F7;
+  --surface: #FFFFFF;
+  --border: #E3E5E9;
+  --text: #191B1E;
+  --text-muted: #6B7076;
+  --text-faint: #9BA1A8;
+
+  /* Semânticas — nunca mudam de função */
+  --success: #1D9A5B;          /* finalizar / aprovado */
+  --success-text: #FFFFFF;
+  --success-soft: #E8F5EE;
+  --success-soft-text: #177347;
+  --danger: #D14C4C;           /* cancelar / erro */
+  --danger-soft: #FBEEEE;
+  --danger-border: #EBC9C9;
+  --danger-text: #B23A3A;
+  --warning: #E39A2E;          /* atenção / estoque baixo */
+  --warning-soft: #FBF1DE;
+  --warning-text: #9A6412;
+  --warning-border: #E8B96A;
+  --info: #3B77C2;             /* buscar / cliente / informativo */
+  --info-soft: #EAF1FA;
+  --info-text: #2A5C9C;
+  --info-border: #BFD4EC;
+
+  --nav-active-bg: #191B1E;
+  --nav-active-text: #FFFFFF;
+}
+
+/* 1a — Neutro funcional ESCURO */
+.theme-dark {
+  --bg: #17191D;
+  --surface: #21242A;
+  --border: #2E3238;
+  --text: #F2F3F5;
+  --text-muted: #9BA1A8;
+  --text-faint: #6B7076;
+
+  --success: #2EB56E;
+  --success-text: #0C2417;
+  --success-soft: rgba(46, 181, 110, .14);
+  --success-soft-text: #4FCB89;
+  --danger: #E36060;
+  --danger-soft: rgba(227, 96, 96, .12);
+  --danger-border: #5C3434;
+  --danger-text: #E36060;
+  --warning: #E8AC4A;
+  --warning-soft: rgba(232, 172, 74, .14);
+  --warning-text: #E8AC4A;
+  --warning-border: #8A6A2E;
+  --info: #5B94D6;
+  --info-soft: rgba(91, 148, 214, .14);
+  --info-text: #7FAEE2;
+  --info-border: #3A4B60;
+
+  --nav-active-bg: #F2F3F5;
+  --nav-active-text: #17191D;
+}
+
+/* 1b — Marca (aplique junto com .theme-light ou .theme-dark) */
+.brand {
+  --brand: #473CA8;
+  --brand-light: #6E63D6;
+  --info: #3E8DD6;
+  --success: #2AA48F;          /* teal da marca no claro */
+  --nav-active-bg: var(--brand);
+  --nav-active-text: #FFFFFF;
+}
+.theme-dark.brand {
+  --bg: #16151F;
+  --surface: #201E2E;
+  --border: #2E2B42;
+  --success: #37BFA7;
+  --success-text: #0B2620;
+  --nav-active-bg: var(--brand-light);
+}
+
+/* 1c — Alto contraste noturno (bar / luz baixa) */
+.theme-night {
+  --bg: #101215;
+  --surface: #1A1D21;
+  --border: #33383F;
+  --text: #FFFFFF;
+  --text-muted: #A6ADB5;
+  --text-faint: #6E757D;
+
+  --success: #34C275;
+  --success-text: #04160C;
+  --success-soft: rgba(52, 194, 117, .16);
+  --success-soft-text: #63D598;
+  --danger: #F05B5B;
+  --danger-soft: rgba(240, 91, 91, .14);
+  --danger-border: #63363A;
+  --danger-text: #F05B5B;
+  --warning: #F2B23C;
+  --warning-soft: rgba(242, 178, 60, .16);
+  --warning-text: #F2B23C;
+  --warning-border: #F2B23C;
+  --info: #4E9CF0;
+  --info-soft: rgba(78, 156, 240, .16);
+  --info-text: #7FB6F4;
+  --info-border: #2C4A6B;
+
+  --nav-active-bg: #4E9CF0;
+  --nav-active-text: #04121F;
+
+  /* tipografia/alvos maiores no noturno */
+  --fs-base: 14px;
+  --fs-tile: 15px;
+  --fs-total: 38px;
+  --h-finalizar: 56px;
+  --h-btn: 42px;
+}
+
+/* ---------- BASE ---------- */
+:root,
+.theme-light, .theme-dark, .theme-night {
+  --fs-base: 13px;
+  --fs-tile: 14px;
+  --fs-total: 34px;
+  --h-finalizar: 52px;
+  --h-btn: 38px;
+  --radius: 10px;
+  --radius-sm: 8px;
+}
+
+.pdv {
+  font-family: Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ---------- CABEÇALHO ---------- */
+.pdv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.brand .pdv-header { background: var(--brand); border-bottom: none; }
+.brand .pdv-header .pdv-title { color: #FFFFFF; }
+.brand .pdv-header .pdv-subtitle { color: #C6C1EC; }
+
+.pdv-title { font-size: 15px; font-weight: 700; }
+.pdv-subtitle { font-size: 12px; color: var(--text-muted); }
+
+.pdv-status {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--success-soft);
+  color: var(--success-soft-text);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px; font-weight: 600;
+}
+.pdv-status::before {
+  content: "";
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--success);
+}
+
+/* ---------- CORPO ---------- */
+.pdv-body { display: flex; flex: 1; min-height: 0; }
+.pdv-main {
+  flex: 1;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 12px;
+  min-width: 0;
+}
+
+/* Categorias */
+.pdv-cats { display: flex; gap: 8px; }
+.pdv-cat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--fs-base); font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 44px; /* alvo de toque mínimo */
+}
+.pdv-cat.is-active {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+  border-color: transparent;
+}
+
+/* Grade de produtos */
+.pdv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  overflow-y: auto;
+}
+@media (min-width: 1400px) { .pdv-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.pdv-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 64px;
+  cursor: pointer;
+  text-align: left;
+}
+.pdv-tile:active { transform: scale(.98); }
+.pdv-tile-name { font-size: var(--fs-tile); font-weight: 700; color: var(--text); }
+.pdv-tile-price { font-size: var(--fs-base); color: var(--text-muted); }
+
+/* Alerta de estoque no tile */
+.pdv-tile.low-stock { border-color: var(--warning-border); }
+.pdv-badge-warning {
+  font-size: 11px; font-weight: 700;
+  color: var(--warning-text);
+  background: var(--warning-soft);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+/* Barra de busca + cliente */
+.pdv-toolbar { display: flex; gap: 8px; margin-top: auto; }
+.pdv-search {
+  flex: 1;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: var(--fs-base);
+  color: var(--text-muted);
+}
+.pdv-btn-info {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--info-soft);
+  color: var(--info-text);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: var(--fs-base); font-weight: 600;
+  cursor: pointer;
+}
+.pdv-kbd {
+  font-size: 11px;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: auto;
+}
+.pdv-btn-info .pdv-kbd { color: var(--info); border-color: var(--info-border); margin-left: 0; }
+
+/* ---------- COMANDA (coluna direita) ---------- */
+.pdv-cart {
+  width: 300px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.pdv-cart-title { font-size: var(--fs-base); font-weight: 700; }
+
+.pdv-items {
+  display: flex; flex-direction: column; gap: 8px;
+  font-size: var(--fs-base);
+  overflow-y: auto;
+}
+.pdv-item { display: flex; justify-content: space-between; gap: 8px; }
+.pdv-item-qty { font-weight: 700; }
+.pdv-item-price { font-variant-numeric: tabular-nums; }
+
+.pdv-summary {
+  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pdv-summary-row { display: flex; justify-content: space-between; }
+
+/* TOTAL — sempre o maior elemento da tela */
+.pdv-total {
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.pdv-total-label { font-size: var(--fs-base); font-weight: 700; color: var(--text-muted); }
+.pdv-total-value {
+  font-size: var(--fs-total);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- AÇÕES ---------- */
+/* Finalizar: sempre verde, sempre a mesma posição, maior alvo */
+.pdv-btn-finalizar {
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  width: 100%;
+  height: var(--h-finalizar);
+  background: var(--success);
+  color: var(--success-text);
+  font-size: 16px; font-weight: 800;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.pdv-btn-finalizar:hover { filter: brightness(1.06); }
+.pdv-btn-finalizar:active { filter: brightness(.94); }
+.pdv-btn-finalizar .pdv-kbd {
+  color: inherit;
+  background: rgba(0, 0, 0, .18);
+  border: none;
+  margin-left: 0;
+}
+.theme-light .pdv-btn-finalizar .pdv-kbd { background: rgba(255, 255, 255, .22); }
+
+.pdv-actions { display: flex; gap: 8px; }
+.pdv-btn-neutral {
+  flex: 1;
+  display: flex; justify-content: center; align-items: center;
+  height: var(--h-btn);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--fs-base); font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+/* Cancelar: sempre vermelho suave — vermelho cheio só em confirmação destrutiva */
+.pdv-btn-danger {
+  flex: 1;
+  display: flex; justify-content: center; align-items: center;
+  height: var(--h-btn);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  font-size: var(--fs-base); font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.pdv-btn-danger.is-solid { background: var(--danger); color: #FFFFFF; border: none; }
+
+/* ---------- ACESSIBILIDADE ---------- */
+/* Cor nunca é o único sinal: mantenha ícone/posição/texto junto da cor. */
+.pdv :focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
+}
