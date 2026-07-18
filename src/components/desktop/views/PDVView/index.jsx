@@ -15,6 +15,8 @@ import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { produtosVencendo } from "@/lib/validade";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
+import { supabase } from "@/lib/supabase";
+import { mesmoItemDeVenda } from "@/lib/combos";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
 import { useTravaComanda } from "@/hooks/useTravaComanda";
 import { travadaPorOutro, nomeTrava } from "@/lib/comandaLock";
@@ -47,15 +49,15 @@ export default function PDVView({ notify }) {
   const { mesas, loading: mesasLoading } = useMesas();
   const location = useLocation();
 
-  // Reset to mapa whenever the sidebar navigates to this page
+  // Reset to lista whenever the sidebar navigates to this page
   useEffect(() => {
-    setMode("mapa");
+    setMode("grid");
     setSelected(null);
     setCartItems([]);
   }, [location.key]);
 
-  // "mapa" | "grid" | "pedido" | "checkout"
-  const [mode,        setMode]        = useState("mapa");
+  // "grid" (lista) | "mapa" | "pedido" | "checkout" — abre direto na lista
+  const [mode,        setMode]        = useState("grid");
   const [selected,    setSelected]    = useState(null);
   const [cartItems,   setCartItems]   = useState([]);
   const [salvando,    setSalvando]    = useState(false);
@@ -108,6 +110,24 @@ export default function PDVView({ notify }) {
 
   const abertas = pending.filter(o => o.status !== "closed");
 
+  // ── Combos ativos (B4) — vendáveis no PDV ─────────────────────
+  // Carrega uma vez por entrada na tela; a receita (subprodutos com
+  // controla_estoque) viaja junto no item do carrinho para a baixa de
+  // estoque dos componentes na finalização.
+  const [combos, setCombos] = useState([]);
+  useEffect(() => {
+    let ativo = true;
+    supabase
+      .from("combos")
+      .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque))")
+      .eq("ativo", true)
+      .then(({ data, error }) => {
+        if (error) { console.error("[pdv] erro ao carregar combos:", error); return; }
+        if (ativo) setCombos(data ?? []);
+      });
+    return () => { ativo = false; };
+  }, []);
+
   // ── Ressincroniza a comanda aberta com o realtime ─────────────
   // Sem isto, `selected` fica congelado no snapshot de quando a comanda
   // foi aberta: itens lançados pelo Palm não entravam na conta e a
@@ -125,7 +145,7 @@ export default function PDVView({ notify }) {
     if (salvando || transferindo || cancelandoComanda) return;
     setSelected(null);
     setCartItems([]);
-    setMode("mapa");
+    setMode("grid");
     notify?.(`${fmtComanda(selected.comanda)} foi encerrada em outro dispositivo.`, "err");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, selected, salvando, transferindo, cancelandoComanda]);
@@ -144,7 +164,7 @@ export default function PDVView({ notify }) {
   useEffect(() => {
     if (!bloqueio || !travaAtiva || salvando || transferindo || cancelandoComanda) return;
     notify?.(`${fmtComanda(selected.comanda)} está em uso por ${bloqueio.nome}.`, "err");
-    setMode("mapa");
+    setMode("grid");
     setSelected(null);
     setCartItems([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -225,7 +245,7 @@ export default function PDVView({ notify }) {
 
   const handleBack = () => {
     setBuscaComanda("");
-    setMode("mapa");
+    setMode("grid");
     setSelected(null);
     setCartItems([]);
   };
@@ -233,7 +253,9 @@ export default function PDVView({ notify }) {
   // ── Adicionar produto ao carrinho ──────────────────────────────
   const handleAddProduct = (product) => {
     setCartItems(prev => {
-      const idx = prev.findIndex(i => i.id === product.id);
+      // Combo e produto avulso do mesmo principal são linhas diferentes
+      // (mesmoItemDeVenda compara id + comboId) — misturar cobraria errado.
+      const idx = prev.findIndex(i => mesmoItemDeVenda(i, product));
       if (idx >= 0) return prev.map((i, n) => n === idx ? { ...i, qty: i.qty + 1 } : i);
       return [...prev, { ...product, qty: 1, _key: Date.now() + Math.random() }];
     });
@@ -351,6 +373,38 @@ export default function PDVView({ notify }) {
     } finally {
       setSalvando(false);
     }
+  };
+
+  // ── Remover (cancelar) item na tela de finalizar — Leva 15.1 ──
+  // Recebe o item agrupado do CheckoutView (name+price) e cancela a
+  // quantidade pedida nos itens lançados correspondentes, dividindo o
+  // último em ativo + cancelado quando a remoção é parcial.
+  const handleRemoverItemCheckout = async (itemRef, qtyRemover, motivo) => {
+    if (!selected) return { error: new Error("Comanda não encontrada.") };
+    let restante = qtyRemover;
+    const marcar = (it, qtd) => ({
+      ...it, qty: qtd, cancelado: true,
+      motivoCancelamento: motivo || "",
+      canceladoPor: currentUser?.name || "",
+    });
+    const novos = (selected.items ?? []).map((it) => {
+      if (restante <= 0 || it.cancelado || it.name !== itemRef.name || it.price !== itemRef.price) return it;
+      const qtyIt = it.qty ?? 1;
+      if (qtyIt <= restante) { restante -= qtyIt; return marcar(it, qtyIt); }
+      const cancelar = restante;
+      restante = 0;
+      return [{ ...it, qty: qtyIt - cancelar }, marcar(it, cancelar)];
+    }).flat();
+    const novoTotal = novos.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+    const { error } = await updatePending(selected.id, { items: novos, total: novoTotal }, { baseItems: selected.items });
+    if (error) return { error };
+    setSelected(prev => ({ ...prev, items: novos, total: novoTotal }));
+    logAction(currentUser?.username, "itens:cancelar", {
+      msg: `Item cancelado no fechamento da ${fmtComanda(selected.comanda)} · ${qtyRemover}× ${itemRef.name} · ${motivo}`,
+      name: currentUser?.name, role: currentUser?.role,
+      comanda: selected.comanda, item: itemRef.name, qty: qtyRemover, motivo,
+    });
+    return { error: null };
   };
 
   // ── Abrir slot vazio — cria comanda virtual (só persiste ao lançar) ──
@@ -474,7 +528,7 @@ export default function PDVView({ notify }) {
         const destino    = abertas.find(o => o.id === destinoId);
         const novosDestino = [...(Array.isArray(destino.items) ? destino.items : [])];
         aTransferir.forEach(({ it, qty }) => {
-          const existIdx = novosDestino.findIndex(d => d.id === it.id && !d.cancelado);
+          const existIdx = novosDestino.findIndex(d => mesmoItemDeVenda(d, it) && !d.cancelado);
           if (existIdx >= 0) {
             novosDestino[existIdx] = { ...novosDestino[existIdx], qty: (novosDestino[existIdx].qty ?? 1) + qty };
           } else {
@@ -501,7 +555,7 @@ export default function PDVView({ notify }) {
         const { error } = await removePending(selected.id);
         if (error) notify?.("Itens transferidos, mas a comanda de origem vazia não pôde ser removida.", "err");
         setSelected(null);
-        setMode("mapa");
+        setMode("grid");
       } else {
         setSelected(prev => ({ ...prev, items: novosOrigem, total: totalOrigem }));
       }
@@ -974,8 +1028,8 @@ export default function PDVView({ notify }) {
           padding: `0 ${sz.pad}px`,
         }}>
           {[
-            { key: "mapa", label: "Mapa",  Icon: LuLayoutGrid },
             { key: "grid", label: "Lista", Icon: LuList },
+            { key: "mapa", label: "Mapa",  Icon: LuLayoutGrid },
           ].map(({ key, label, Icon }) => (
             <button
               key={key}
@@ -1105,7 +1159,7 @@ export default function PDVView({ notify }) {
             {/* Produtos */}
             {(!isMob || abaAtiva === "produtos") && (
               <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                <ProductGrid products={products} onAdd={handleAddProduct} />
+                <ProductGrid products={products} combos={combos} onAdd={handleAddProduct} />
               </div>
             )}
 
@@ -1154,6 +1208,7 @@ export default function PDVView({ notify }) {
             ]}
             onConfirm={handleConfirmPayment}
             onBack={() => setMode("pedido")}
+            onRemoverItem={handleRemoverItemCheckout}
           />
         )}
       </div>
@@ -1974,7 +2029,8 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
       .then(({ data }) => setLogsComandaCancelada(data ?? []));
   }, [autorizado]);
 
-  const vendasHoje = (sales ?? []).filter(s => s.at && new Date(s.at).toDateString() === hoje);
+  // Leva 15.3 — vendas canceladas não contam no saldo do dia
+  const vendasHoje = (sales ?? []).filter(s => s.at && !s.cancelada && new Date(s.at).toDateString() === hoje);
   const totalVendas = vendasHoje.reduce((s, v) => s + (v.total ?? 0), 0);
   const qtdVendas   = vendasHoje.length;
 

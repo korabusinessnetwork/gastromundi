@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
 import { listarLancamentos, baixarConta, processarVencidos, calcularFluxoCaixa } from "@/lib/financeiro";
+import { buscarFichasTecnicas, calcularCustoVendas } from "@/lib/relatorios";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
@@ -25,7 +26,7 @@ function boundsDoMes(referencia) {
 }
 
 export default function FinanceiroView() {
-  const { currentUser } = useApp();
+  const { currentUser, sales } = useApp();
   const { width } = useResponsive();
   const sz = getSizes(width);
 
@@ -35,6 +36,17 @@ export default function FinanceiroView() {
   const [filtroTipo, setFiltroTipo]     = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [showNovo, setShowNovo] = useState(false);
+  const [fichas, setFichas] = useState([]);
+
+  // Leva 15.6 — fichas técnicas para o custo dos produtos vendidos (lucro).
+  useEffect(() => {
+    let ativo = true;
+    buscarFichasTecnicas().then(({ data, error }) => {
+      if (error) { console.error("[financeiro] erro ao buscar fichas técnicas:", error); return; }
+      if (ativo) setFichas(data ?? []);
+    });
+    return () => { ativo = false; };
+  }, []);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -55,6 +67,24 @@ export default function FinanceiroView() {
     () => calcularFluxoCaixa(lancamentos, periodo.de, periodo.ate),
     [lancamentos, periodo],
   );
+
+  // Leva 15.6 — lucro do período: entradas realizadas − custo dos produtos
+  // vendidos (fichas técnicas) − saídas realizadas (notas já pagas).
+  // Vendas canceladas ficam fora; itens sem ficha entram como cobertura
+  // parcial (o card avisa) em vez de custo inventado.
+  const lucro = useMemo(() => {
+    const vendasDoPeriodo = (sales ?? []).filter((s) => {
+      if (!s || s.cancelada || !s.at) return false;
+      const dia = String(s.at).slice(0, 10);
+      return dia >= periodo.de && dia <= periodo.ate;
+    });
+    const custoVendas = calcularCustoVendas(vendasDoPeriodo, fichas);
+    return {
+      valor: fluxo.realizado.entradas - custoVendas.custo - fluxo.realizado.saidas,
+      custoProdutos: custoVendas.custo,
+      unidadesSemFicha: custoVendas.unidadesSemFicha,
+    };
+  }, [sales, fichas, periodo, fluxo]);
 
   const lancamentosFiltrados = useMemo(() => {
     return lancamentos
@@ -108,7 +138,7 @@ export default function FinanceiroView() {
         </div>
       </div>
 
-      <ResumoCards fluxo={fluxo} width={width} sz={sz} />
+      <ResumoCards fluxo={fluxo} lucro={lucro} width={width} sz={sz} />
 
       <LancamentosList
         lancamentos={lancamentosFiltrados}

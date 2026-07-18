@@ -12,6 +12,7 @@ import {
   calcularPeriodoAnterior,
   calcularVariacaoPercentual,
   calcularMargemProdutos,
+  calcularCustoVendas,
   buscarRelatorioVendas,
   buscarFichasTecnicas,
 } from "./relatorios";
@@ -105,6 +106,64 @@ describe("calcularMargemProdutos", () => {
 
     expect(resultado.custoUnitario).toBe(5); // 20 / 4 porções
     expect(resultado.custoTotal).toBe(40);
+  });
+});
+
+describe("calcularCustoVendas", () => {
+  const fichas = [
+    // custo por porção: (2 × 6) / 1 = 12
+    { produtoId: 1, rendimento: "1", ingredientes: [{ qtd: "2", custoUnit: "6" }] },
+    // custo por porção: 20 / 4 = 5
+    { produtoId: 2, rendimento: "4", ingredientes: [{ qtd: "1", custoUnit: "20" }] },
+  ];
+
+  it("soma o custo por porção × quantidade dos itens com ficha", () => {
+    const vendas = [
+      { id: "v1", items: [{ id: 1, qty: 2 }, { id: 2, qty: 3 }] },
+    ];
+
+    const r = calcularCustoVendas(vendas, fichas);
+
+    expect(r.custo).toBe(2 * 12 + 3 * 5); // 39
+    expect(r.unidadesComFicha).toBe(5);
+    expect(r.unidadesSemFicha).toBe(0);
+  });
+
+  it("conta itens sem ficha como 'sem ficha' em vez de inventar custo zero silencioso", () => {
+    const vendas = [{ id: "v1", items: [{ id: 1, qty: 1 }, { id: 99, qty: 4 }] }];
+
+    const r = calcularCustoVendas(vendas, fichas);
+
+    expect(r.custo).toBe(12);
+    expect(r.unidadesComFicha).toBe(1);
+    expect(r.unidadesSemFicha).toBe(4);
+  });
+
+  it("ignora vendas canceladas e itens cancelados (Leva 15.3)", () => {
+    const vendas = [
+      { id: "v1", cancelada: true, items: [{ id: 1, qty: 10 }] },
+      { id: "v2", items: [{ id: 1, qty: 1 }, { id: 2, qty: 2, cancelado: true }] },
+    ];
+
+    const r = calcularCustoVendas(vendas, fichas);
+
+    expect(r.custo).toBe(12);
+    expect(r.unidadesComFicha).toBe(1);
+    expect(r.unidadesSemFicha).toBe(0);
+  });
+
+  it("assume qty 1 quando o item não traz quantidade (shape antigo do blob)", () => {
+    const vendas = [{ id: "v1", items: [{ id: 2 }] }];
+
+    const r = calcularCustoVendas(vendas, fichas);
+
+    expect(r.custo).toBe(5);
+    expect(r.unidadesComFicha).toBe(1);
+  });
+
+  it("lida com listas vazias/nulas sem quebrar", () => {
+    expect(calcularCustoVendas(null, null)).toEqual({ custo: 0, unidadesComFicha: 0, unidadesSemFicha: 0 });
+    expect(calcularCustoVendas([{ id: "v1" }], fichas).custo).toBe(0);
   });
 });
 

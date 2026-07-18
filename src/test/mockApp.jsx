@@ -86,6 +86,8 @@ export function createAppMockValue(overrides = {}) {
     updateProduct: vi.fn(),
     removeProduct: vi.fn(),
     addSale: vi.fn(),
+    // Leva 15.3 — cancelamento de venda fechada
+    cancelarVendaFechada: vi.fn(() => Promise.resolve({ error: null })),
     addUser: vi.fn(),
     updateUser: vi.fn(),
     removeUser: vi.fn(),

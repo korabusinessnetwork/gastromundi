@@ -101,6 +101,55 @@ export function calcularMargemProdutos(topProdutos, fichasTecnicas) {
 }
 
 /**
+ * Leva 15.6 — custo dos produtos vendidos num conjunto de vendas,
+ * calculado pelas fichas técnicas (mesma fórmula de custo por porção
+ * de calcularMargemProdutos). Função pura — recebe as vendas no shape
+ * legado de sales.data e a lista de fichas.
+ *
+ * Vendas canceladas e itens cancelados ficam de fora. Itens sem ficha
+ * técnica NÃO entram no custo — em vez de inventar número (regra do
+ * Jarvas), o retorno informa quantas unidades ficaram sem ficha para
+ * o chamador exibir o dado como parcial.
+ *
+ * @param {Array<object>} vendas - shape de sales.data ({items:[{id,qty,cancelado}], cancelada})
+ * @param {Array<{produtoId:number, rendimento:string|number, ingredientes:Array<{qtd:string|number, custoUnit:string|number}>}>} fichasTecnicas
+ * @returns {{ custo: number, unidadesComFicha: number, unidadesSemFicha: number }}
+ */
+export function calcularCustoVendas(vendas, fichasTecnicas) {
+  const fichasPorProduto = new Map((fichasTecnicas ?? []).map((f) => [f.produtoId, f]));
+
+  let custo = 0;
+  let unidadesComFicha = 0;
+  let unidadesSemFicha = 0;
+
+  for (const venda of vendas ?? []) {
+    if (!venda || venda.cancelada) continue;
+    const itens = Array.isArray(venda.items) ? venda.items : [];
+    for (const item of itens) {
+      if (!item || item.cancelado) continue;
+      const qtd = Number(item.qty ?? 1) || 0;
+      if (qtd <= 0) continue;
+
+      const ficha = item.id != null ? fichasPorProduto.get(item.id) : null;
+      if (!ficha) {
+        unidadesSemFicha += qtd;
+        continue;
+      }
+
+      const rendimento = parseFloat(ficha.rendimento) || 1;
+      const custoTotalFicha = (ficha.ingredientes ?? []).reduce(
+        (s, ing) => s + (parseFloat(ing.qtd) || 0) * (parseFloat(ing.custoUnit) || 0),
+        0,
+      );
+      custo += (custoTotalFicha / rendimento) * qtd;
+      unidadesComFicha += qtd;
+    }
+  }
+
+  return { custo, unidadesComFicha, unidadesSemFicha };
+}
+
+/**
  * Busca o relatório de vendas de um período via RPC (agregação no
  * Postgres). Sempre valida o intervalo antes de chamar o Supabase.
  *

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { totalPorMetodo } from "@/utils/pagamentos";
+import { totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
@@ -20,7 +20,8 @@ function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios) {
   const inicio = sessaoAbertaEm
     ? new Date(sessaoAbertaEm).getTime()
     : new Date(new Date().toDateString()).getTime();
-  const hoje = (sales ?? []).filter(s => s && new Date(s.at).getTime() >= inicio);
+  // Leva 15.3 — vendas canceladas ficam fora do fechamento
+  const hoje = (sales ?? []).filter(s => s && !s.cancelada && new Date(s.at).getTime() >= inicio);
   const m = {};
   const naoMapeados = {};
   meios.forEach(k => { m[k] = 0; });
@@ -36,8 +37,12 @@ function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios) {
 }
 
 export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onConfirm, onClose }) {
-  const { meiosPagamento } = useApp();
+  const { meiosPagamento, metodosCustom } = useApp();
   const meios = meiosPagamento?.length ? meiosPagamento : Object.keys(METODOS_CATALOG);
+  const customLabels = useMemo(
+    () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),
+    [metodosCustom]
+  );
 
   const [salvando,    setSalvando]    = useState(false);
   const [observacao,  setObservacao]  = useState("");
@@ -122,7 +127,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
           </div>
 
           {meios.map(metodo => {
-            const { Icon, label } = METODOS_CATALOG[metodo] ?? { label: metodo, Icon: LuBanknote };
+            const { Icon, label } = METODOS_CATALOG[metodo] ?? { label: rotuloMetodo(metodo, customLabels), Icon: LuBanknote };
             const sistemaVal = sistema[metodo] ?? 0;
             const confVal    = parsVal(conf[metodo]);
             const diff       = confVal - sistemaVal;
@@ -198,7 +203,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
                 R$ {Object.values(naoMapeados).reduce((s, v) => s + v, 0).toFixed(2)} em métodos não configurados:
               </strong>{" "}
               {Object.entries(naoMapeados).map(([metodo, valor], i, arr) =>
-                `${metodo} (R$ ${valor.toFixed(2)})${i < arr.length - 1 ? ", " : ""}`
+                `${rotuloMetodo(metodo, customLabels)} (R$ ${valor.toFixed(2)})${i < arr.length - 1 ? ", " : ""}`
               ).join("")}
             </div>
           </div>

@@ -5,6 +5,7 @@ import { criarLancamento } from "@/lib/financeiro";
 import { emitirDocumentoFiscal } from "@/lib/fiscal";
 import { processarPagamentoTef, metodoUsaTef } from "@/lib/tef";
 import { consumoParaEstoque } from "@/utils/conversaoUnidades";
+import { calcularBaixasSubprodutos } from "@/lib/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
@@ -36,7 +37,7 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
  * e por voltar para a grade de comandas (handleBack) após concluir.
  */
 export function useFinalizarPagamento() {
-  const { addSale, removePending, estoque, baixarEstoque, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
+  const { addSale, removePending, estoque, baixarEstoque, baixarEstoqueSubproduto, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
 
   const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId }, { onNfce } = {}) => {
     // TEF é só online: a maquininha precisa de comunicação em tempo real —
@@ -169,6 +170,13 @@ export function useFinalizarPagamento() {
       // para unidade de estoque via fator_consumo_estoque do produto.
       const qtdEstoque = produto ? consumoParaEstoque(qty, produto) : qty;
       await baixarEstoque(prodId, qtdEstoque);
+    }
+
+    // B4 — combos também descontam o estoque dos subprodutos que os compõem
+    // (a receita viaja no item do carrinho; só entram os com controla_estoque).
+    // Mesma filosofia da baixa do principal: nunca bloqueia nem quebra a venda.
+    for (const baixa of calcularBaixasSubprodutos(itensAtivos)) {
+      await baixarEstoqueSubproduto(baixa.subprodutoId, baixa.qtd, baixa.nome);
     }
 
     const metodoResumo = (pagamentos ?? []).map(p => p?.metodo).filter(Boolean).join(" + ") || "—";

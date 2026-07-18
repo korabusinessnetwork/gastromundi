@@ -42,6 +42,17 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
   const getObs = (item) => Array.isArray(item.obs) ? item.obs : (item.obs ? [item.obs] : []);
 
+  // B4 — composição do combo visível no carrinho (o operador confere o que
+  // acompanha sem precisar decorar a receita)
+  const resumoCombo = (item) => {
+    const subs = item?.combo?.subprodutos;
+    if (!Array.isArray(subs) || subs.length === 0) return null;
+    return subs
+      .filter(s => s?.nome)
+      .map(s => (Number(s.quantidade ?? 1) > 1 ? `${s.quantidade}× ${s.nome}` : s.nome))
+      .join(" + ") || null;
+  };
+
   const addObsDraft = (i) => setDrafts(prev => ({ ...prev, [i]: prev[i] !== undefined ? prev[i] : "" }));
 
   const removeObs = (itemIdx, obsIdx) => {
@@ -149,6 +160,11 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                           {item.name}
                           <span style={{ fontWeight: 500 }}> × {qty}</span>
                         </div>
+                        {resumoCombo(item) && (
+                          <div style={{ fontSize: 16, color: varColor(C.muted), marginTop: 2, textDecoration: cancelado ? "line-through" : "none" }}>
+                            ↳ {resumoCombo(item)}
+                          </div>
+                        )}
                         {obsArr.map((obs, j) => (
                           <div key={j} style={{ fontSize: 18, color: cancelado ? varColor(C.muted) : varColor(C.accent), marginTop: 2, textDecoration: cancelado ? "line-through" : "none" }}>↳ {obs}</div>
                         ))}
@@ -244,6 +260,12 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                     </button>
                   </div>
                 </div>
+
+                {resumoCombo(item) && (
+                  <div style={{ fontSize: 16, color: varColor(C.muted), marginTop: -4 }}>
+                    ↳ {resumoCombo(item)}
+                  </div>
+                )}
 
                 {/* Linha 2: preço · subtotal */}
                 <div className="cart-panel__preco-linha">

@@ -22,7 +22,7 @@
 --   fase 2 (20260724) é RESTRICTIVE e continua valendo (AND) — o
 --   caixa só alcança as linhas do próprio tenant.
 --
--- ⚠️  Aplicar no painel/CLI do Supabase — ainda NÃO aplicada em produção.
+-- ✅ Aplicada em produção pelo dono em 2026-07-18.
 
 DROP POLICY IF EXISTS "config_write_caixa_sessao" ON public.config;
 CREATE POLICY "config_write_caixa_sessao" ON public.config FOR ALL

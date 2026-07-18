@@ -84,3 +84,24 @@
   font-weight: 800;
   margin-top: auto;
 }
+
+/* B4 — card de combo: mesmo card, com selo e borda de destaque para o
+   operador distinguir do produto avulso num relance */
+.produto-card--combo {
+  border-color: var(--gm-accent);
+}
+
+.produto-card__badge-combo {
+  align-self: flex-start;
+  background: var(--gm-accent);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+
+.produto-card__combo-itens {
+  color: var(--gm-muted);
+  line-height: 1.35;
+}

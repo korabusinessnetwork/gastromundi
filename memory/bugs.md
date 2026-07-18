@@ -13,13 +13,13 @@ revisão item a item com o dono antes de merge.
 | Achado | Onde | Estado |
 |---|---|---|
 | `updatePending` sobrescrevia itens entre dispositivos (sem merge) | AppContext | ✅ Leva 2 (`789be70`) — merge por `uid`; resíduo em TD013 (RPC de append atômico) |
-| Duas pessoas editando a mesma comanda ao mesmo tempo (estado final pedido pelo dono: enquanto um está com a comanda aberta, o outro não mexe) | Palm + PDV | ✅ Leva 14 — trava de edição advisory (`editando_*` em `pending`, TTL 5min + heartbeat 30s, fail-open sem migration/rede); merge da Leva 2 segue como rede de segurança; **migration 20260747 pendente no painel** |
+| Duas pessoas editando a mesma comanda ao mesmo tempo (estado final pedido pelo dono: enquanto um está com a comanda aberta, o outro não mexe) | Palm + PDV | ✅ Leva 14 — trava de edição advisory (`editando_*` em `pending`, TTL 5min + heartbeat 30s, fail-open sem migration/rede); merge da Leva 2 segue como rede de segurança; migration 20260747 aplicada em 2026-07-18 |
 | `selected` sem resync com Realtime | PDVView | ✅ Leva 2 |
 | Checkout travado em "Processando..." após erro | PDVView/CheckoutView | ✅ Leva 1 (`b89db6c`) |
 | Cobrança dupla em retentativa de pagamento | useFinalizarPagamento | ✅ Leva 1 |
 | `addPending`/`addFechamento`/`updatePending` sem checar `.error` (writes silenciosos) | AppContext | ✅ Leva 1 — contrato `{ error }` + rollback otimista + toasts |
-| Papel `caixa` sem acesso às keys de sessão (RLS) | config | ✅ Leva 3 (`7e4f1b8`, migration 20260744 — **aplicar no painel**) |
-| `fator_consumo_estoque` ignorado na baixa | PDVView | ✅ Leva 4 (`299789f`, migration 20260745 — **aplicar no painel**) |
+| Papel `caixa` sem acesso às keys de sessão (RLS) | config | ✅ Leva 3 (`7e4f1b8`, migration 20260744 — aplicada em 2026-07-18) |
+| `fator_consumo_estoque` ignorado na baixa | PDVView | ✅ Leva 4 (`299789f`, migration 20260745 — aplicada em 2026-07-18) |
 | Jarvas contava fundo como venda na divergência | jarvasEngine + fechamento | ✅ Leva 5 (`a6b661b`) |
 
 ### Altos
@@ -28,20 +28,20 @@ revisão item a item com o dono antes de merge.
 |---|---|---|
 | NF-e reimportável (duplicava entradas de estoque) | NotasFiscaisTab | ✅ Leva 6 (`f247c55`) |
 | Config fiscal sumia da tela ao salvar | ImpostosAdmin | ✅ Leva 7 (`fc6644f`) |
-| Fechamento/saldo calculado por dispositivo (sem Realtime em `vendas`) | AppContext | ⏳ pendente (relacionado a TD010) |
+| Fechamento/saldo calculado por dispositivo (sem Realtime em `vendas`) | AppContext | ✅ Leva 15.4 — canal `sales-realtime` no AppContext (insert/update/delete sincronizam o saldo do dia entre caixas; resolve TD010). **Requer habilitar Realtime na tabela `sales` no painel** |
 
 ### Médios
 
 | Achado | Onde | Estado |
 |---|---|---|
 | Centavos sem arredondar no checkout (frações fantasma) | CheckoutView | ✅ Leva 8 (`fbc2ae1`) — `round2` em tudo |
-| Relatórios agrupavam dias em UTC | RPC `relatorio_vendas` | ✅ Leva 8 (migration 20260746 `p_tz` — **aplicar no painel antes do deploy**) |
+| Relatórios agrupavam dias em UTC | RPC `relatorio_vendas` | ✅ Leva 8 (migration 20260746 `p_tz` — aplicada em 2026-07-18) |
 | `select *` em `pending` e `lancamentos` | AppContext, financeiro.js | ✅ Leva 10 — colunas explícitas |
 | Rótulos de método custom só no PDV / `METODOS_LABEL` duplicado em 5 arquivos | vários | ✅ Leva 9 (`0cbe1ba`) — convergido em `rotuloMetodo` |
 | Marca "GastroMundi" hardcodada (exports, ESC/POS, textos, console) | vários | ✅ Leva 9 — identidade vem do tenant; "by Kora" = assinatura da plataforma |
 | `caixaAberto` default `true` antes do bootstrap (dava pra vender com caixa fechado) | AppContext/PDVView/MobilePage | ✅ Leva 10 — gate "Conectando ao caixa…" |
 | Oversell de estoque sem alerta | PDVView/Jarvas | ✅ Leva 4 |
-| Combos/subprodutos não baixam estoque dos componentes | PDVView | ⏳ pendente (regra de negócio a definir com o dono) |
+| Combos/subprodutos não baixam estoque dos componentes | PDVView | ✅ B4 (2026-07-18) — combos entram na grade do PDV (modo "combo" = card extra ao lado do principal; "substituir" toma o lugar dele); a receita viaja no item do carrinho; na finalização o principal baixa pelo fluxo normal e os subprodutos com `controla_estoque` baixam via RPC `baixar_estoque_subproduto` (tabela `estoque_subprodutos`, migration **20260748** — aplicar no painel); saldo/mínimo editáveis em Subprodutos; offline enfileira o replay (`rpc_baixar_estoque_subproduto`, mesmo caveat de não-idempotência do principal). v1: só PDV desktop (Palm não lança combo); sem alerta Jarvas de mínimo p/ subprodutos |
 
 ### Baixos
 
@@ -67,9 +67,23 @@ revisão item a item com o dono antes de merge.
 
 ### Ações manuais pendentes (painel Supabase)
 
-- Migrations **20260744**, **20260745**, **20260746** ainda não aplicadas em produção.
-  A 20260746 (`relatorio_vendas` com `p_tz`) é **pré-requisito do próximo deploy** —
-  o front já envia o fuso.
-- Migration **20260747** (`pending` + colunas `editando_por/editando_nome/editando_desde`,
-  trava de edição da Leva 14) também pendente — sem ela a trava fica dormente
-  (fail-open: tudo funciona como antes, sem exclusividade). Não é bloqueante de deploy.
+- ✅ Migrations **20260744**, **20260745**, **20260746** e **20260747** aplicadas
+  em produção pelo dono em 2026-07-18 ("tudo rodando").
+- ⏳ Migration **20260748** (`estoque_subprodutos` + RPC `baixar_estoque_subproduto`)
+  — necessária para a baixa de estoque de combos/subprodutos (B4).
+- ⏳ **Habilitar Realtime na tabela `sales`** (painel → Database → Replication) —
+  necessário para a Leva 15.4 (saldo do dia sincronizado entre dispositivos).
+  Sem isso o canal `sales-realtime` fica dormente (fail-open: cada caixa segue
+  vendo só as próprias vendas até recarregar a página).
+
+## Leva 15 — pedidos do dono (2026-07-18)
+
+| Item | O quê | Estado |
+|---|---|---|
+| 15.1 | Remover produto na finalização (lista + botão no topo, senha admin) | ✅ |
+| 15.2 | Rótulo de método `custom_*` nas comandas fechadas | ✅ |
+| 15.3 | Cancelar comandas fechadas (blob marca `cancelada` p/ auditoria; linhas relacionais + lançamentos removidos; senha gerente/admin + motivo) | ✅ |
+| 15.4 | Saldo do dia sincronizado (canal Realtime `sales`) | ✅ código — **falta habilitar Realtime no painel** |
+| 15.5 | Busca por número de comanda no relatório | ✅ |
+| 15.6 | Card de Lucro no financeiro (`calcularCustoVendas`: fichas técnicas × vendas do mês, menos saídas pagas; cobertura parcial sinalizada no rótulo) | ✅ |
+| 15.7 | Frente de caixa abre direto na lista | ✅ |

@@ -15,6 +15,14 @@ const UNIDADES   = ["Unidade", "Porção", "Copo", "Dose"];
 const EMPTY = {
   nome: "", categoria: "Acompanhamentos", preco: "",
   unidade_medida: "Unidade", controla_estoque: false, ativo: true,
+  quantidade: "", minimo: "",
+};
+
+// B4 — o relacionamento estoque_subprodutos pode vir como objeto (1-pra-1)
+// ou array de 1, dependendo da versão do PostgREST; normaliza aqui.
+const estoqueDe = (s) => {
+  const e = s?.estoque_subprodutos;
+  return Array.isArray(e) ? (e[0] ?? null) : (e ?? null);
 };
 
 function Toggle({ value, onChange }) {
@@ -38,6 +46,8 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
     unidade_medida:   item.unidade_medida ?? "Unidade",
     controla_estoque: item.controla_estoque ?? false,
     ativo:            item.ativo ?? true,
+    quantidade:       String(estoqueDe(item)?.quantidade ?? ""),
+    minimo:           String(estoqueDe(item)?.minimo ?? ""),
   } : { ...EMPTY });
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro]         = useState("");
@@ -49,6 +59,10 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
     if (!nome)                       { setErro("Informe o nome.");           return; }
     const preco = parseFloat(String(form.preco).replace(",", "."));
     if (isNaN(preco) || preco < 0)   { setErro("Preço inválido.");           return; }
+    const quantidade = form.controla_estoque ? parseFloat(String(form.quantidade || "0").replace(",", ".")) : null;
+    const minimo     = form.controla_estoque ? parseFloat(String(form.minimo || "0").replace(",", "."))     : null;
+    if (form.controla_estoque && (isNaN(quantidade) || quantidade < 0)) { setErro("Quantidade em estoque inválida."); return; }
+    if (form.controla_estoque && (isNaN(minimo) || minimo < 0))         { setErro("Estoque mínimo inválido.");        return; }
     setSalvando(true);
     setErro("");
     const payload = {
@@ -61,11 +75,24 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
       updated_at:       new Date().toISOString(),
     };
     try {
+      let subprodutoId = item?.id ?? null;
       if (item) {
         const { error } = await supabase.from("subprodutos").update(payload).eq("id", item.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("subprodutos").insert(payload);
+        const { data, error } = await supabase.from("subprodutos").insert(payload).select("id").single();
+        if (error) throw error;
+        subprodutoId = data?.id ?? null;
+      }
+      // B4 — saldo de estoque do subproduto (tabela estoque_subprodutos),
+      // mesmo padrão de upsert do estoque de produtos.
+      if (form.controla_estoque && subprodutoId != null) {
+        const { error } = await supabase
+          .from("estoque_subprodutos")
+          .upsert(
+            { subproduto_id: subprodutoId, quantidade, minimo, updated_at: new Date().toISOString() },
+            { onConflict: "subproduto_id" }
+          );
         if (error) throw error;
       }
       onSalvo();
@@ -143,6 +170,36 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
             </div>
             <Toggle value={form.controla_estoque} onChange={v => setF("controla_estoque", v)} />
           </div>
+          {form.controla_estoque && (
+            <div className="subprodutos-view__grid-dupla">
+              <div>
+                <div className="subprodutos-view__label">Qtd. em estoque</div>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.quantidade}
+                  onChange={e => setF("quantidade", e.target.value)}
+                  placeholder="0"
+                  className="subprodutos-view__input"
+                  style={{ fontSize: sz.fontBase }}
+                />
+              </div>
+              <div>
+                <div className="subprodutos-view__label">Estoque mínimo</div>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.minimo}
+                  onChange={e => setF("minimo", e.target.value)}
+                  placeholder="0"
+                  className="subprodutos-view__input"
+                  style={{ fontSize: sz.fontBase }}
+                />
+              </div>
+            </div>
+          )}
           <div className="subprodutos-view__toggle-linha">
             <div className="subprodutos-view__toggle-titulo" style={{ fontSize: sz.fontBase }}>Ativo</div>
             <Toggle value={form.ativo} onChange={v => setF("ativo", v)} />
@@ -175,7 +232,7 @@ export default function SubprodutosView({ sz }) {
 
   const carregar = async () => {
     setLoading(true);
-    const { data } = await supabase.from("subprodutos").select("*").order("nome");
+    const { data } = await supabase.from("subprodutos").select("*, estoque_subprodutos(quantidade, minimo)").order("nome");
     setLista(data ?? []);
     setLoading(false);
   };
@@ -273,7 +330,19 @@ export default function SubprodutosView({ sz }) {
                     <td className="subprodutos-view__td subprodutos-view__unidade" style={{ fontSize: sz.fontBase }}>{s.unidade_medida}</td>
                     <td className="subprodutos-view__td" style={{ textAlign: "center", fontWeight: 700, fontSize: sz.fontBase }}>R$ {Number(s.preco).toFixed(2)}</td>
                     <td className="subprodutos-view__td" style={{ textAlign: "center" }}>
-                      <span style={{ fontSize: sz.fontSm, fontWeight: 600, color: s.controla_estoque ? varColor(C.green) : varColor(C.muted) }}>{s.controla_estoque ? "Sim" : "Não"}</span>
+                      {s.controla_estoque ? (() => {
+                        const est    = estoqueDe(s);
+                        const qtd    = Number(est?.quantidade ?? 0);
+                        const minimo = Number(est?.minimo ?? 0);
+                        const baixo  = minimo > 0 && qtd <= minimo;
+                        return (
+                          <span style={{ fontSize: sz.fontSm, fontWeight: 700, color: baixo ? varColor(C.red) : varColor(C.green), display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            {baixo && <LuTriangleAlert size={13} />}{qtd}
+                          </span>
+                        );
+                      })() : (
+                        <span style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.muted) }}>—</span>
+                      )}
                     </td>
                     <td className="subprodutos-view__td" style={{ textAlign: "center" }}>
                       <button

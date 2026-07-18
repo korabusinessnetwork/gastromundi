@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { ROLES } from "@/constants/roles";
-import { verificarSenhaUsuario } from "@/lib/adminAuth";
+import { verificarSenhaUsuario, verificarSenhaAdmin } from "@/lib/adminAuth";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
@@ -16,7 +16,7 @@ import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
   LuHistory, LuX, LuUser, LuArrowLeft, LuShieldAlert, LuWallet, LuChefHat, LuUsers,
-  LuSparkles, LuFileText, LuFileCheck,
+  LuSparkles, LuFileText, LuFileCheck, LuTrash2,
 } from "react-icons/lu";
 
 const NAV_ICONS = {
@@ -34,18 +34,46 @@ const NAV_ICONS = {
 };
 
 export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogout, onBackToChoice, onClose }) {
-  const { currentUser, pending, sales, sessaoAbertaEm, users, moduloHabilitado } = useApp();
+  const { currentUser, pending, sales, sessaoAbertaEm, users, moduloHabilitado, cancelarVendaFechada } = useApp();
   const [upgradeInfo, setUpgradeInfo] = useState(null); // { label } — módulo bloqueado pelo plano atual
   const { width } = useResponsive();
   const sz = getSizes(width);
   const role    = ROLES[currentUser?.role] || ROLES.garcom;
   const abertas  = pending.filter(o => o.status !== "closed");
+  // Leva 15.3 — vendas canceladas saem da lista (ficam só na trilha de auditoria)
+  const naoCanceladas = sales.filter(s => s && !s.cancelada);
   const fechadas = sessaoAbertaEm
-    ? sales.filter(s => s && new Date(s.at) >= new Date(sessaoAbertaEm))
-    : sales;
+    ? naoCanceladas.filter(s => new Date(s.at) >= new Date(sessaoAbertaEm))
+    : naoCanceladas;
 
   const [showFechadas,    setShowFechadas]   = useState(false);
   const [fechadaDetalhe, setFechadaDetalhe] = useState(null);
+
+  // Leva 15.3 — cancelamento de venda fechada (motivo + senha de gerente/admin)
+  const [cancelVenda,     setCancelVenda]     = useState(null);
+  const [cancelMotivo,    setCancelMotivo]    = useState("");
+  const [cancelSenha,     setCancelSenha]     = useState("");
+  const [cancelSenhaErro, setCancelSenhaErro] = useState(false);
+  const [cancelErro,      setCancelErro]      = useState("");
+  const [cancelando,      setCancelando]      = useState(false);
+
+  const abrirCancelamento = () => {
+    setCancelVenda(fechadaDetalhe);
+    setCancelMotivo(""); setCancelSenha(""); setCancelSenhaErro(false); setCancelErro("");
+  };
+
+  const confirmarCancelamento = async () => {
+    if (cancelando || !cancelMotivo.trim() || !cancelSenha.trim()) return;
+    setCancelando(true); setCancelErro(""); setCancelSenhaErro(false);
+    try {
+      const autorizado = await verificarSenhaAdmin(cancelSenha);
+      if (!autorizado) { setCancelSenhaErro(true); return; }
+      const { error } = await cancelarVendaFechada(cancelVenda.id, cancelMotivo.trim());
+      if (error) { setCancelErro("Não foi possível cancelar a venda. Tente novamente."); return; }
+      setCancelVenda(null);
+      setFechadaDetalhe(null);
+    } finally { setCancelando(false); }
+  };
 
   // Auth guard para Relatório (caixa)
   const [showAuthRel, setShowAuthRel] = useState(false);
@@ -467,6 +495,19 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                     <span style={{ fontWeight: 700, fontSize: 18 }}>Total</span>
                     <span style={{ fontWeight: 900, fontSize: 22, color: varColor(C.green) }}>R$ {Number(fechadaDetalhe.total ?? 0).toFixed(2)}</span>
                   </div>
+
+                  {/* Leva 15.3 — cancelar venda fechada (ação destrutiva: motivo + senha) */}
+                  <button
+                    onClick={abrirCancelamento}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      padding: "12px 16px", borderRadius: 12, cursor: "pointer",
+                      background: alfa(varColor(C.red), "10"), border: `1.5px solid ${alfa(varColor(C.red), "55")}`,
+                      color: varColor(C.red), fontWeight: 700, fontSize: 16,
+                    }}
+                  >
+                    <LuTrash2 size={16} /> Cancelar venda
+                  </button>
                 </div>
               ) : (
                 <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -506,6 +547,112 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                   })}
                 </div>
               )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Leva 15.3 — confirmação de cancelamento de venda fechada */}
+      {cancelVenda && createPortal(
+        <div
+          onClick={e => { if (e.target === e.currentTarget && !cancelando) setCancelVenda(null); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9100,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
+          }}
+        >
+          <div style={{
+            background: varColor(C.card), borderRadius: 20, width: "100%", maxWidth: 440,
+            border: `1px solid var(${C.border})`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+            color: varColor(C.text), padding: 24, display: "flex", flexDirection: "column", gap: 14,
+          }}>
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 18, color: varColor(C.red), display: "flex", alignItems: "center", gap: 8 }}>
+                <LuTrash2 size={18} /> Cancelar venda
+              </div>
+              <div style={{ fontSize: 16, color: varColor(C.muted), marginTop: 4 }}>
+                {(/^\d+$/.test(String(cancelVenda.comanda ?? "").trim()) ? `Comanda ${cancelVenda.comanda}` : cancelVenda.comanda) || `#${String(cancelVenda.id).slice(-6).toUpperCase()}`}
+                {" · "}R$ {Number(cancelVenda.total ?? 0).toFixed(2)}
+              </div>
+              <div style={{ fontSize: 15, color: varColor(C.muted), marginTop: 8 }}>
+                A venda sai do saldo do dia, dos relatórios e do financeiro. Essa ação não pode ser desfeita.
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Motivo (obrigatório)</div>
+              <textarea
+                value={cancelMotivo}
+                onChange={e => setCancelMotivo(e.target.value)}
+                placeholder="Ex: cobrança duplicada, pagamento não confirmado..."
+                maxLength={200}
+                rows={2}
+                style={{
+                  width: "100%", boxSizing: "border-box", resize: "none",
+                  background: varColor(C.surface), border: `1px solid var(${C.border})`,
+                  borderRadius: 10, padding: "10px 12px", color: varColor(C.text), fontSize: 16,
+                  fontFamily: "inherit",
+                }}
+              />
+            </div>
+
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                <LuLock size={12} /> Senha de gerente ou admin
+              </div>
+              <input
+                type="password"
+                value={cancelSenha}
+                onChange={e => { setCancelSenha(e.target.value); setCancelSenhaErro(false); }}
+                onKeyDown={e => { if (e.key === "Enter") confirmarCancelamento(); }}
+                placeholder="Senha"
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  background: varColor(C.surface),
+                  border: `1.5px solid ${cancelSenhaErro ? varColor(C.red) : `var(${C.border})`}`,
+                  borderRadius: 10, padding: "10px 12px", color: varColor(C.text), fontSize: 16,
+                }}
+              />
+              {cancelSenhaErro && (
+                <div style={{ color: varColor(C.red), fontSize: 14, marginTop: 6, fontWeight: 600 }}>
+                  Senha incorreta. Apenas admin ou gerente pode cancelar vendas.
+                </div>
+              )}
+            </div>
+
+            {cancelErro && (
+              <div role="alert" style={{ color: varColor(C.red), fontSize: 15, fontWeight: 600 }}>{cancelErro}</div>
+            )}
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => { if (!cancelando) setCancelVenda(null); }}
+                disabled={cancelando}
+                style={{
+                  flex: 1, padding: "12px 0", borderRadius: 10, cursor: cancelando ? "default" : "pointer",
+                  background: varColor(C.surface), border: `1px solid var(${C.border})`,
+                  color: varColor(C.text), fontWeight: 700, fontSize: 16, opacity: cancelando ? 0.6 : 1,
+                }}
+              >
+                Voltar
+              </button>
+              <button
+                onClick={confirmarCancelamento}
+                disabled={cancelando || !cancelMotivo.trim() || !cancelSenha.trim()}
+                style={{
+                  flex: 2, padding: "12px 0", borderRadius: 10,
+                  cursor: (cancelando || !cancelMotivo.trim() || !cancelSenha.trim()) ? "default" : "pointer",
+                  background: (!cancelMotivo.trim() || !cancelSenha.trim()) ? varColor(C.surface) : varColor(C.red),
+                  border: `1px solid ${(!cancelMotivo.trim() || !cancelSenha.trim()) ? `var(${C.border})` : varColor(C.red)}`,
+                  color: (!cancelMotivo.trim() || !cancelSenha.trim()) ? varColor(C.muted) : "#fff",
+                  fontWeight: 800, fontSize: 16,
+                }}
+              >
+                {cancelando ? "Cancelando..." : "Cancelar venda"}
+              </button>
             </div>
           </div>
         </div>,
