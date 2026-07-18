@@ -53,6 +53,20 @@ describe("normalizarBranding", () => {
     expect(r.variaveis).toEqual({ "--gm-accent": "#fff" });
   });
 
+  it("aceita os tokens de fonte hifenizados (--gm-font-titulo/-texto)", () => {
+    const r = normalizarBranding({
+      nome: "Casa Coffee",
+      variaveis: {
+        "--gm-font-titulo": '"Saira", sans-serif',
+        "--gm-font-texto": '"Sora", sans-serif',
+      },
+    });
+    expect(r.variaveis).toEqual({
+      "--gm-font-titulo": '"Saira", sans-serif',
+      "--gm-font-texto": '"Sora", sans-serif',
+    });
+  });
+
   it("descarta valores de variável não-string ou vazios", () => {
     const r = normalizarBranding({ nome: "X", variaveis: { "--gm-accent": 7, "--gm-bg": "  " } });
     expect(r.variaveis).toEqual({});

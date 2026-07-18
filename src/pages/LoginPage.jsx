@@ -5,7 +5,8 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
-import { varColor, gerarVariaveisTema, aplicarVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
+import { varColor, gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
+import { layoutDoTema, varianteDoHorario, variaveisDoLayout } from "@/layouts";
 import { resolverSlugTenant, slugDoSubdominio } from "@/lib/tenantSlug";
 import { buscarBrandingPorSlug } from "@/lib/tenant";
 import { lerBrandingCache, salvarBrandingCache } from "@/lib/brandingCache";
@@ -72,8 +73,19 @@ export default function LoginPage() {
       if (reivindicado && !data && !error) { salvarBrandingCache(null); setSubdominioInvalido(reivindicado); setChecandoTenant(false); return; }
       setChecandoTenant(false);
       if (!data) return;
-      const variaveis = gerarVariaveisTema(data.tema);
-      if (data.tema) aplicarVariaveisTema(variaveis);
+      // Mesma composição do AppContext: variáveis do LAYOUT do tenant
+      // (tema.layout, na variante do horário atual) por baixo, overrides
+      // finos do tema por cima. Sem isso, um tenant que só define layout
+      // (ex.: casa) pintava o visual default no pré-login e gravava um
+      // cache vazio — o flash de marca errada que não pode acontecer.
+      const variaveis = {
+        ...variaveisDoLayout(layoutDoTema(data.tema), varianteDoHorario(new Date().getHours())),
+        ...gerarVariaveisTema(data.tema),
+      };
+      if (Object.keys(variaveis).length > 0) {
+        limparVariaveisTema();
+        aplicarVariaveisTema(variaveis);
+      }
       const nome = nomeExibicaoTenant(data.tema, data.nome || "GastroMundi");
       setMarca({ nome: nome.toUpperCase(), logo: logoUrlTenant(data.tema) });
       aplicarTituloDocumento(nome); // aba do navegador com a marca do tenant

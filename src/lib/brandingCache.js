@@ -18,7 +18,8 @@ export const BRANDING_CACHE_KEY = "kora_branding_v1";
 
 // Mesmo formato de token aceito pelo script inline do index.html —
 // qualquer chave fora do padrão --gm-* é descartada (nunca CSS arbitrário).
-const TOKEN_VALIDO = /^--gm-[a-z_]+$/;
+// O hífen entra por causa dos tokens de fonte (--gm-font-titulo/-texto).
+const TOKEN_VALIDO = /^--gm-[a-z_-]+$/;
 
 /**
  * Normaliza um objeto de branding vindo do storage ou do chamador.

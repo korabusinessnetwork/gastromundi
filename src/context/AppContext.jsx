@@ -373,24 +373,25 @@ export function AppProvider({ children }) {
   const [varianteLayout, setVarianteLayout] = useState(() => varianteDoHorario(new Date().getHours()));
 
   useEffect(() => {
-    const codigoLayout = layoutDoTema(tenant?.tema);
+    // Antes do tenant carregar, quem manda é a pintura anti-flash (cache do
+    // index.html / LoginPage) — limpar aqui apagaria essa pintura e faria a
+    // tela piscar o visual default até o bootstrap responder.
+    if (!tenant) return;
+    const codigoLayout = layoutDoTema(tenant.tema);
     const variaveis = {
       ...variaveisDoLayout(codigoLayout, varianteLayout),
-      ...gerarVariaveisTema(tenant?.tema),
+      ...gerarVariaveisTema(tenant.tema),
     };
     // Limpa o que a aplicação anterior setou (troca de layout/variante
     // não pode herdar tokens órfãos) e aplica o merge da vez.
     limparVariaveisTema();
     aplicarVariaveisTema(variaveis);
-    // Aba do navegador com a marca do tenant (white-label). Só quando o
-    // tenant é conhecido — antes disso o <title> estático/LoginPage valem.
-    if (tenant) {
-      const nome = nomeExibicaoTenant(tenant.tema, tenant.nome);
-      aplicarTituloDocumento(nome);
-      // Cache por origem (anti-flash): a próxima abertura deste endereço
-      // já pinta com esta marca antes do bootstrap (script do index.html).
-      salvarBrandingCache({ nome, logo: logoUrlTenant(tenant.tema), variaveis });
-    }
+    // Aba do navegador com a marca do tenant (white-label).
+    const nome = nomeExibicaoTenant(tenant.tema, tenant.nome);
+    aplicarTituloDocumento(nome);
+    // Cache por origem (anti-flash): a próxima abertura deste endereço
+    // já pinta com esta marca antes do bootstrap (script do index.html).
+    salvarBrandingCache({ nome, logo: logoUrlTenant(tenant.tema), variaveis });
   }, [tenant?.tema, varianteLayout]);
 
   // ── Timer dia/noite dos layouts adaptativos (marca, casa): arma um
