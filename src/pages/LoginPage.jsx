@@ -8,6 +8,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor, gerarVariaveisTema, aplicarVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
 import { resolverSlugTenant, slugDoSubdominio } from "@/lib/tenantSlug";
 import { buscarBrandingPorSlug } from "@/lib/tenant";
+import { lerBrandingCache, salvarBrandingCache } from "@/lib/brandingCache";
 import { sanitizeInput, MAX_ATTEMPTS } from "@/utils";
 import { LuEye, LuEyeOff, LuShieldAlert, LuTriangleAlert, LuSearchX } from "react-icons/lu";
 
@@ -27,14 +28,23 @@ export default function LoginPage() {
   const [attempts, setAttempts] = useState(0);
   // Marca do estabelecimento resolvida pelo subdomínio (ADR-009/ADR-007).
   // Pré-login não há JWT/tenant carregado; a marca vem por slug via RPC.
-  const [marca, setMarca] = useState({ nome: "GASTROMUNDI", logo: null });
+  // O cache por origem (brandingCache) dá a marca certa já na 1ª pintura —
+  // sem ele, a tela abria com a marca do fallback até a RPC responder.
+  const [marca, setMarca] = useState(() => {
+    const cache = lerBrandingCache();
+    if (cache?.nome || cache?.logo) return { nome: (cache.nome ?? "").toUpperCase(), logo: cache.logo };
+    return { nome: "GASTROMUNDI", logo: null };
+  });
   // Subdomínio digitado que NÃO corresponde a nenhum estabelecimento —
   // mostra a tela de "endereço não encontrado" em vez do login (nunca
   // cair silenciosamente no login de outro tenant).
   const [subdominioInvalido, setSubdominioInvalido] = useState("");
   // Enquanto valida um subdomínio reivindicado, não renderiza o login
   // padrão (evita flash da marca errada e login no tenant errado).
-  const [checandoTenant, setChecandoTenant] = useState(() => !!slugDoSubdominio());
+  // Com marca em cache desta origem, o endereço já foi validado numa
+  // visita anterior: renderiza direto com ela e a RPC revalida por trás
+  // (subdomínio digitado errado nunca tem cache — continua na tela neutra).
+  const [checandoTenant, setChecandoTenant] = useState(() => !!slugDoSubdominio() && !lerBrandingCache());
 
   // ── White-label na porta de entrada: aplica o tema do tenant (--gm-*)
   //    e o nome ANTES do login. Como a tela toda usa var(--gm-*), ela se
@@ -50,20 +60,26 @@ export default function LoginPage() {
     let ativo = true;
     (async () => {
       const reivindicado = slugDoSubdominio();
-      // Com subdomínio na URL, a aba fica neutra ("Kora") até confirmar o
-      // tenant — o <title> estático é a marca do fallback e não deve
-      // aparecer em endereço de outro (ou nenhum) estabelecimento.
-      if (reivindicado && typeof document !== "undefined") document.title = "Kora";
+      // Com subdomínio na URL e SEM cache, a aba fica neutra ("Kora") até
+      // confirmar o tenant. Com cache, o script do index.html já pôs a
+      // marca certa na aba — não voltar ao neutro (evita piscar o título).
+      if (reivindicado && !lerBrandingCache() && typeof document !== "undefined") document.title = "Kora";
       const slug = reivindicado ?? resolverSlugTenant();
       const { data, error } = await buscarBrandingPorSlug(slug);
       if (!ativo) return;
-      if (reivindicado && !data && !error) { setSubdominioInvalido(reivindicado); setChecandoTenant(false); return; }
+      // Tenant não existe (RPC ok, sem linha): endereço inválido — e limpa
+      // qualquer cache velho desta origem (ex.: estabelecimento removido).
+      if (reivindicado && !data && !error) { salvarBrandingCache(null); setSubdominioInvalido(reivindicado); setChecandoTenant(false); return; }
       setChecandoTenant(false);
       if (!data) return;
-      if (data.tema) aplicarVariaveisTema(gerarVariaveisTema(data.tema));
+      const variaveis = gerarVariaveisTema(data.tema);
+      if (data.tema) aplicarVariaveisTema(variaveis);
       const nome = nomeExibicaoTenant(data.tema, data.nome || "GastroMundi");
       setMarca({ nome: nome.toUpperCase(), logo: logoUrlTenant(data.tema) });
       aplicarTituloDocumento(nome); // aba do navegador com a marca do tenant
+      // Cache por origem: a próxima abertura deste endereço já pinta com
+      // esta marca antes de qualquer requisição (script do index.html).
+      salvarBrandingCache({ nome, logo: logoUrlTenant(data.tema), variaveis });
     })();
     return () => { ativo = false; };
   }, []);
