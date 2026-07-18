@@ -518,9 +518,9 @@ export default function MobilePage() {
       {/* Header */}
       <div style={{
         padding: "14px 16px", borderBottom: `1px solid var(${C.border})`,
-        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexShrink: 0,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, overflow: "hidden" }}>
           <button
             onClick={logout}
             title="Sair"
@@ -533,9 +533,9 @@ export default function MobilePage() {
           >
             <LuLogOut size={16} />
           </button>
-          <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}>
-            <LuUtensils size={20} /> Palm
-            <span style={{ fontSize: 13, fontWeight: 500, color: varColor(C.muted) }}>· {currentUser?.name?.split(" ")[0]}</span>
+          <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8, minWidth: 0, whiteSpace: "nowrap" }}>
+            <LuUtensils size={20} style={{ flexShrink: 0 }} /> Palm
+            <span style={{ fontSize: 13, fontWeight: 500, color: varColor(C.muted), minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {currentUser?.name?.split(" ")[0]}</span>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -543,10 +543,10 @@ export default function MobilePage() {
             onClick={() => setMode("painel")}
             title="Meu painel"
             style={{
-              display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
+              display: "flex", alignItems: "center", gap: 6, flexShrink: 0, whiteSpace: "nowrap",
               background: varColor(C.surface), border: `1.5px solid var(${C.border})`, borderRadius: 12,
               color: varColor(C.muted), cursor: "pointer",
-              padding: "8px 12px", fontWeight: 600, fontSize: 13,
+              padding: "8px 10px", fontWeight: 600, fontSize: 13,
               WebkitTapHighlightColor: "transparent",
             }}
           >
@@ -555,10 +555,10 @@ export default function MobilePage() {
           <button
             onClick={() => { setMode("grid"); setLancComanda(""); setLancMesa(""); }}
             style={{
-              display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
+              display: "flex", alignItems: "center", gap: 6, flexShrink: 0, whiteSpace: "nowrap",
               background: varColor(C.surface), border: `1.5px solid var(${C.border})`, borderRadius: 12,
               color: varColor(C.muted), cursor: "pointer",
-              padding: "8px 14px", fontWeight: 600, fontSize: 13,
+              padding: "8px 12px", fontWeight: 600, fontSize: 13,
               WebkitTapHighlightColor: "transparent",
             }}
           >
