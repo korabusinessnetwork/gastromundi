@@ -50,6 +50,10 @@ export default function LoginPage() {
     let ativo = true;
     (async () => {
       const reivindicado = slugDoSubdominio();
+      // Com subdomínio na URL, a aba fica neutra ("Kora") até confirmar o
+      // tenant — o <title> estático é a marca do fallback e não deve
+      // aparecer em endereço de outro (ou nenhum) estabelecimento.
+      if (reivindicado && typeof document !== "undefined") document.title = "Kora";
       const slug = reivindicado ?? resolverSlugTenant();
       const { data, error } = await buscarBrandingPorSlug(slug);
       if (!ativo) return;
