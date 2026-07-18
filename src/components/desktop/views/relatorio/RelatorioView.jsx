@@ -371,7 +371,9 @@ function FechamentoDetalheModal({ f, onClose }) {
 // ── View principal ────────────────────────────────────────────────
 
 export default function RelatorioView() {
-  const { sales, fechamentos, pending, users, currentUser, tenant } = useApp();
+  const { sales: salesBrutas, fechamentos, pending, users, currentUser, tenant } = useApp();
+  // Leva 15.3 — vendas canceladas ficam fora de todos os relatórios
+  const sales = useMemo(() => (salesBrutas ?? []).filter(s => s && !s.cancelada), [salesBrutas]);
   const { width } = useResponsive();
   const sz = getSizes(width);
 
@@ -389,6 +391,7 @@ export default function RelatorioView() {
   const [customFim,     setCustomFim]     = useState("");
   const [fechDetalhe,   setFechDetalhe]   = useState(null);
   const [metodoFilt,  setMetodoFilt]  = useState("todos");
+  const [buscaComanda, setBuscaComanda] = useState(""); // Leva 15.5
   const [logTipo,    setLogTipo]    = useState("todos");
   const [subVendas,  setSubVendas]  = useState("resumido");
   const [opLogs,     setOpLogs]     = useState([]);
@@ -417,8 +420,11 @@ export default function RelatorioView() {
   const vendasFiltradas = useMemo(() => {
     let l = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim);
     if (metodoFilt !== "todos") l = l.filter(s => Object.keys(totalPorMetodo(s)).includes(metodoFilt));
+    // Leva 15.5 — busca por número/nome da comanda
+    const busca = buscaComanda.trim().toLowerCase();
+    if (busca) l = l.filter(s => String(s.comanda ?? "").toLowerCase().includes(busca));
     return l;
-  }, [sales, periodo, metodoFilt, customInicio, customFim]);
+  }, [sales, periodo, metodoFilt, buscaComanda, customInicio, customFim]);
 
   const kpis = useMemo(() => {
     const total  = vendasFiltradas.reduce((s, v) => s + (v.total ?? 0), 0);
@@ -840,6 +846,21 @@ export default function RelatorioView() {
                 ))}
               </div>
 
+              {/* Leva 15.5 — busca por número da comanda */}
+              <input
+                type="search"
+                value={buscaComanda}
+                onChange={e => setBuscaComanda(e.target.value)}
+                placeholder="Buscar comanda..."
+                aria-label="Buscar por número da comanda"
+                style={{
+                  width: 170, boxSizing: "border-box",
+                  background: varColor(C.surface), border: `1px solid var(${C.border})`,
+                  borderRadius: 8, padding: "7px 12px", color: varColor(C.text),
+                  fontSize: sz.fontSm + 2, outline: "none",
+                }}
+              />
+
               <ExportBar onPDF={() => exportVendas("pdf")} onXLSX={() => exportVendas("xlsx")} sz={sz} />
             </div>
 
@@ -847,7 +868,7 @@ export default function RelatorioView() {
             {subVendas === "resumido" && (
               <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
                 {vendasFiltradas.length === 0 ? (
-                  <Empty icon="🧾" msg="Nenhuma venda no período selecionado" sz={sz} />
+                  <Empty icon="🧾" msg={buscaComanda.trim() ? `Nenhuma comanda encontrada para "${buscaComanda.trim()}"` : "Nenhuma venda no período selecionado"} sz={sz} />
                 ) : (
                   <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
@@ -909,7 +930,7 @@ export default function RelatorioView() {
             {subVendas === "detalhado" && (
               <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
                 {vendasFiltradas.length === 0 ? (
-                  <Empty icon="🧾" msg="Nenhuma venda no período selecionado" sz={sz} />
+                  <Empty icon="🧾" msg={buscaComanda.trim() ? `Nenhuma comanda encontrada para "${buscaComanda.trim()}"` : "Nenhuma venda no período selecionado"} sz={sz} />
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                     {vendasFiltradas.map((v, i) => {

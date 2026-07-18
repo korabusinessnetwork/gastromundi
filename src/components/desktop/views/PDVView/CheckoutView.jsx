@@ -4,10 +4,11 @@ import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuWallet, LuPercent, LuX, LuUsers } from "react-icons/lu";
+import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuWallet, LuPercent, LuX, LuUsers, LuTrash2, LuMinus, LuPlus, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { metodoUsaTef } from "@/lib/tef";
+import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import ClienteFiadoSelector from "./ClienteFiadoSelector";
 import ImpressaoAcoes from "./ImpressaoAcoes";
 import "./CheckoutView.css";
@@ -22,7 +23,7 @@ const METODOS_CATALOG = [
   { id: "pix",      label: "Pix",      Icon: LuZap        },
 ];
 
-export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
+export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemoverItem }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const { meiosPagamento, metodosCustom, taxaServico, currentUser, redeOnline, addonHabilitado, metodosTef } = useApp();
@@ -49,6 +50,17 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
 
   // F010 — cliente do fiado (fiado exige cliente identificado)
   const [clienteFiado, setClienteFiado] = useState(null);
+
+  // Leva 15.1 — remover produto na finalização. `modoRemocao` mostra a
+  // lixeira em cada item; `remocao` é o popup de confirmação (qty +
+  // motivo + senha de gerente, mesmo padrão do cancelamento no CartPanel).
+  const [modoRemocao, setModoRemocao] = useState(false);
+  const [remocao,     setRemocao]     = useState(null); // { item, qtyMax, qtySel, motivo }
+  const [remSenha,     setRemSenha]     = useState("");
+  const [remSenhaErro, setRemSenhaErro] = useState(false);
+  const [remSenhaVis,  setRemSenhaVis]  = useState(false);
+  const [remErro,      setRemErro]      = useState("");
+  const [removendo,    setRemovendo]    = useState(false);
 
   // Agrupa itens ativos pelo mesmo produto (name + price), somando qty e unindo obs
   const itensAgrupados = items.filter(i => !i.cancelado).reduce((acc, item) => {
@@ -111,7 +123,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
 
   // Tolerância de meio centavo (só ruído de float): com round2 em tudo,
   // 1 centavo não alocado é diferença real e deve bloquear a confirmação.
-  const podeConfirmar = (isSplit
+  const podeConfirmar = itensVisiveis.length > 0 && (isSplit
     ? pagamentos.every(p => !!p.metodo) && Math.abs(faltaAlocar) < 0.005 && !dinheiroInsuficiente
     : !!singleMetodo) && (!usaFiado || !!clienteFiado) && !tefOffline;
 
@@ -141,6 +153,44 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const voltarParaUnico = () => {
     setPagamentos(prev => [{ metodo: prev[0]?.metodo ?? null, valor: total, recebido: 0 }]);
     setShowDivisor(false);
+  };
+
+  // Leva 15.1 — abre o popup de remoção para um item agrupado da lista
+  const abrirRemocao = (item) => {
+    setRemocao({ item, qtyMax: item.qty, qtySel: 1, motivo: "" });
+    setRemSenha("");
+    setRemSenhaErro(false);
+    setRemSenhaVis(false);
+    setRemErro("");
+  };
+
+  const confirmarRemocao = async () => {
+    if (!remocao || removendo) return;
+    if (!remocao.motivo.trim() || !remSenha.trim()) return;
+    setRemovendo(true);
+    setRemErro("");
+    try {
+      const autorizado = await verificarSenhaAdmin(remSenha);
+      if (!autorizado) {
+        setRemSenhaErro(true);
+        return;
+      }
+      const { error } = await onRemoverItem(
+        { name: remocao.item.name, price: remocao.item.price },
+        remocao.qtySel,
+        remocao.motivo.trim()
+      );
+      if (error) {
+        setRemErro("Não foi possível remover o item. Tente novamente.");
+        return;
+      }
+      // Removeu tudo que estava na lista? Sai do modo de remoção.
+      const removeuTudo = itensVisiveis.length === 1 && remocao.qtySel >= remocao.qtyMax;
+      if (removeuTudo) setModoRemocao(false);
+      setRemocao(null);
+    } finally {
+      setRemovendo(false);
+    }
   };
 
   const handleConfirm = async () => {
@@ -238,6 +288,21 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
             <LuPercent size={16} /> {ajusteAplicado ? (ajusteAplicado.tipo === "desconto" ? "Desconto" : "Acréscimo") : "Desconto / Acréscimo"}
           </button>
 
+          {/* Leva 15.1 — remover produto na finalização */}
+          {onRemoverItem && itensVisiveis.length > 0 && (
+            <button
+              onClick={() => setModoRemocao(v => !v)}
+              className="checkout-view__btn-remover-item"
+              style={{
+                background: modoRemocao ? alfa(varColor(C.red), "18") : varColor(C.surface),
+                border: `1.5px solid ${modoRemocao ? alfa(varColor(C.red), "66") : varColor(C.border)}`,
+                color: modoRemocao ? varColor(C.red) : varColor(C.text),
+              }}
+            >
+              <LuTrash2 size={16} /> {modoRemocao ? "Concluir remoção" : "Remover item"}
+            </button>
+          )}
+
           {/* F015 — imprimir comprovante ou pré-nota */}
           <ImpressaoAcoes montarVenda={montarVendaParaImpressao} />
         </div>
@@ -291,9 +356,52 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                   <div className="checkout-view__item-total" style={{ fontSize: sz.fontLg, color: varColor(C.text) }}>
                     R$ {(item.price * qty).toFixed(2)}
                   </div>
+
+                  {modoRemocao && (
+                    <button
+                      onClick={() => abrirRemocao(item)}
+                      className="checkout-view__item-remover"
+                      style={{
+                        background: alfa(varColor(C.red), "14"),
+                        border: `1.5px solid ${alfa(varColor(C.red), "55")}`,
+                        color: varColor(C.red),
+                      }}
+                      aria-label={`Remover ${item.name}`}
+                    >
+                      <LuTrash2 size={18} />
+                    </button>
+                  )}
                 </div>
               );
             })}
+
+            {itensVisiveis.length === 0 && (
+              <div className="checkout-view__lista-vazia" style={{ color: varColor(C.muted) }}>
+                Todos os itens foram removidos. Volte para a comanda para lançar novos itens.
+              </div>
+            )}
+
+            {/* Leva 15.1 — botão abaixo do último item da lista */}
+            {onRemoverItem && itensVisiveis.length > 0 && (
+              <div className="checkout-view__remover-rodape">
+                {modoRemocao && (
+                  <div className="checkout-view__remover-dica" style={{ color: varColor(C.muted) }}>
+                    Toque na lixeira do item que deseja remover
+                  </div>
+                )}
+                <button
+                  onClick={() => setModoRemocao(v => !v)}
+                  className="checkout-view__btn-remover-lista"
+                  style={{
+                    background: modoRemocao ? alfa(varColor(C.red), "18") : "transparent",
+                    border: `1.5px dashed ${modoRemocao ? alfa(varColor(C.red), "66") : varColor(C.border)}`,
+                    color: modoRemocao ? varColor(C.red) : varColor(C.muted),
+                  }}
+                >
+                  <LuTrash2 size={15} /> {modoRemocao ? "Concluir remoção" : "Remover produto"}
+                </button>
+              </div>
+            )}
             </div>{/* fim área scrollável */}
 
             {/* Rodapé fixo — taxa, desconto, total */}
@@ -680,7 +788,9 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
               )}
               {!podeConfirmar && (
                 <div className="checkout-view__aviso-confirmar" style={{ color: varColor(C.muted) }}>
-                  {tefOffline
+                  {itensVisiveis.length === 0
+                    ? "Todos os itens foram removidos — volte para a comanda"
+                    : tefOffline
                     ? "Sem internet: a maquininha (TEF) não funciona. Troque para dinheiro, Pix ou outro método — a venda fica guardada e sobe quando a conexão voltar."
                     : usaFiado && !clienteFiado
                     ? "Busque ou cadastre o cliente do fiado acima"
@@ -854,6 +964,176 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                   }}
                 >
                   Aplicar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Popup Remover produto (Leva 15.1) ── */}
+      {remocao && createPortal(
+        <div
+          onClick={e => { if (e.target === e.currentTarget && !removendo) setRemocao(null); }}
+          className="checkout-view__overlay"
+        >
+          <div className="checkout-view__modal" style={{
+            background: varColor(C.card), border: `1px solid var(${C.border})`,
+          }}>
+            <div className="checkout-view__modal-header" style={{ padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})` }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: sz.fontXl, color: varColor(C.red) }}>Remover produto</div>
+                <div style={{ fontSize: sz.fontBase, fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>
+                  {remocao.item.name} · R$ {Number(remocao.item.price).toFixed(2)}
+                </div>
+              </div>
+              <button onClick={() => { if (!removendo) setRemocao(null); }} className="checkout-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+                <LuX size={sz.fontLg} />
+              </button>
+            </div>
+
+            <div style={{ padding: `${sz.padSm}px ${sz.pad}px ${sz.pad}px`, display: "flex", flexDirection: "column", gap: sz.padSm }}>
+
+              {/* Quantidade (só quando há mais de 1) */}
+              {remocao.qtyMax > 1 && (
+                <div>
+                  <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                    Quantidade a remover
+                  </div>
+                  <div className="checkout-view__remocao-stepper">
+                    <button
+                      onClick={() => setRemocao(r => ({ ...r, qtySel: Math.max(1, r.qtySel - 1) }))}
+                      className="checkout-view__stepper-btn"
+                      style={{
+                        border: `1.5px solid var(${C.border})`,
+                        background: varColor(C.surface), color: varColor(C.text),
+                        cursor: remocao.qtySel <= 1 ? "not-allowed" : "pointer",
+                        opacity: remocao.qtySel <= 1 ? 0.4 : 1,
+                      }}
+                    ><LuMinus size={16} /></button>
+                    <input
+                      type="number" min="1" max={remocao.qtyMax}
+                      value={remocao.qtySel}
+                      onChange={e => {
+                        const v = parseInt(e.target.value, 10);
+                        setRemocao(r => ({ ...r, qtySel: Math.min(r.qtyMax, Math.max(1, isNaN(v) ? 1 : v)) }));
+                      }}
+                      className="checkout-view__remocao-qty-input"
+                      style={{ border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text) }}
+                    />
+                    <button
+                      onClick={() => setRemocao(r => ({ ...r, qtySel: Math.min(r.qtyMax, r.qtySel + 1) }))}
+                      className="checkout-view__stepper-btn"
+                      style={{
+                        border: `1.5px solid var(${C.border})`,
+                        background: varColor(C.surface), color: varColor(C.text),
+                        cursor: remocao.qtySel >= remocao.qtyMax ? "not-allowed" : "pointer",
+                        opacity: remocao.qtySel >= remocao.qtyMax ? 0.4 : 1,
+                      }}
+                    ><LuPlus size={16} /></button>
+                    <span style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>de {remocao.qtyMax}</span>
+                  </div>
+                  {remocao.qtySel >= remocao.qtyMax && (
+                    <div style={{ fontSize: sz.fontSm, color: varColor(C.red), fontWeight: 600, marginTop: 6 }}>
+                      Todos os itens serão removidos
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Motivo (obrigatório) */}
+              <div>
+                <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                  Motivo (obrigatório)
+                </div>
+                <textarea
+                  value={remocao.motivo}
+                  onChange={e => setRemocao(r => ({ ...r, motivo: e.target.value }))}
+                  placeholder="Ex: cliente desistiu, pedido errado..."
+                  maxLength={200}
+                  rows={2}
+                  className="checkout-view__remocao-motivo"
+                  style={{ border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text) }}
+                />
+                <div style={{ fontSize: 12, color: varColor(C.muted), textAlign: "right", marginTop: 2 }}>
+                  {remocao.motivo.length}/200
+                </div>
+              </div>
+
+              {/* Senha de gerente/admin */}
+              <div>
+                <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>
+                  <LuLock size={13} /> Senha de gerente ou admin
+                </div>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={remSenhaVis ? "text" : "password"}
+                    value={remSenha}
+                    onChange={e => { setRemSenha(e.target.value); setRemSenhaErro(false); }}
+                    placeholder="Digite a senha"
+                    className="checkout-view__remocao-senha"
+                    style={{
+                      border: `1.5px solid ${remSenhaErro ? varColor(C.red) : varColor(C.border)}`,
+                      background: varColor(C.surface), color: varColor(C.text),
+                    }}
+                  />
+                  <button
+                    onClick={() => setRemSenhaVis(v => !v)}
+                    className="checkout-view__remocao-senha-olho"
+                    style={{ color: varColor(C.muted) }}
+                    aria-label={remSenhaVis ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {remSenhaVis ? <LuEyeOff size={16} /> : <LuEye size={16} />}
+                  </button>
+                </div>
+                {remSenhaErro && (
+                  <div style={{ fontSize: sz.fontSm, color: varColor(C.red), fontWeight: 600, marginTop: 6 }}>
+                    Senha incorreta. Apenas admin ou gerente pode cancelar itens.
+                  </div>
+                )}
+              </div>
+
+              {remErro && (
+                <div role="alert" style={{ fontSize: sz.fontSm, color: varColor(C.red), fontWeight: 700 }}>
+                  {remErro}
+                </div>
+              )}
+
+              {/* Ações */}
+              <div className="checkout-view__modal-acoes" style={{ gap: sz.gap, paddingTop: 2 }}>
+                <button
+                  onClick={() => setRemocao(null)}
+                  disabled={removendo}
+                  className="checkout-view__modal-btn-remover"
+                  style={{
+                    flex: 1, padding: `${sz.gap}px`,
+                    border: `1.5px solid var(${C.border})`, background: "none",
+                    color: varColor(C.muted), fontSize: sz.fontBase,
+                    cursor: removendo ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Voltar
+                </button>
+                <button
+                  onClick={confirmarRemocao}
+                  disabled={!remocao.motivo.trim() || !remSenha.trim() || removendo}
+                  className="checkout-view__modal-btn-aplicar"
+                  style={{
+                    flex: 2, padding: `${sz.gap}px`,
+                    background: remocao.motivo.trim() && remSenha.trim() && !removendo ? varColor(C.red) : varColor(C.faint),
+                    fontSize: sz.fontLg,
+                    cursor: remocao.motivo.trim() && remSenha.trim() && !removendo ? "pointer" : "not-allowed",
+                    boxShadow: remocao.motivo.trim() && remSenha.trim() && !removendo ? `0 4px 20px ${alfa(varColor(C.red), "44")}` : "none",
+                  }}
+                >
+                  {removendo
+                    ? "Removendo..."
+                    : remocao.qtyMax > 1 && remocao.qtySel >= remocao.qtyMax
+                    ? "Remover tudo"
+                    : remocao.qtyMax > 1
+                    ? `Remover ${remocao.qtySel}`
+                    : "Remover"}
                 </button>
               </div>
             </div>

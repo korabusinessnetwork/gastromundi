@@ -423,6 +423,33 @@ export function AppProvider({ children }) {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // ── Realtime: vendas fechadas (saldo do dia entre dispositivos) ──
+  // Leva 15.4 — sem isso, cada caixa só enxergava as próprias vendas e o
+  // Saldo do Dia / fechamento divergiam entre dispositivos (bug A4/TD010).
+  // Requer Realtime habilitado na tabela `sales` (Database → Replication).
+  useEffect(() => {
+    const channel = supabase
+      .channel("sales-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, (payload) => {
+        if (payload.eventType === "INSERT") {
+          const venda = payload.new?.data;
+          if (!venda?.id) return;
+          setSalesLocal(prev => prev.find(s => s && s.id === venda.id) ? prev : [venda, ...prev]);
+        } else if (payload.eventType === "UPDATE") {
+          // Cancelamento (15.3) e outras edições do blob propagam na hora.
+          const venda = payload.new?.data;
+          if (!venda?.id) return;
+          setSalesLocal(prev => prev.map(s => (s && s.id === venda.id ? venda : s)));
+        } else if (payload.eventType === "DELETE") {
+          const id = payload.old?.id;
+          if (id) setSalesLocal(prev => prev.filter(s => !s || s.id !== id));
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   // ── Offline-first (Leva 11): reenvio da fila local ───────────
   // Replay de uma operação guardada. Insert vira UPSERT por id: se a
   // primeira tentativa gravou mas a resposta se perdeu na queda de rede,
@@ -762,6 +789,62 @@ export function AppProvider({ children }) {
     });
   };
 
+  // Leva 15.3 — cancela uma venda já fechada (comanda fechada).
+  // O blob em `sales` NÃO é apagado: marcamos data.cancelada (trilha de
+  // auditoria) e removemos as linhas relacionais (TD009), já que o caminho
+  // de leitura é relacional-first — apagar as linhas tira a venda dos
+  // relatórios sem precisar de migration. Lançamentos financeiros da venda
+  // (receita automática / fiado) também são removidos.
+  const cancelarVendaFechada = async (vendaId, motivo) => {
+    const alvo = sales.find(s => s && s.id === vendaId);
+    if (!alvo) return { error: { code: "venda_nao_encontrada", message: "Venda não encontrada." } };
+    if (alvo.cancelada) return { error: { code: "ja_cancelada", message: "Esta venda já foi cancelada." } };
+
+    const cancelada = {
+      ...alvo,
+      cancelada: true,
+      motivoCancelamento: motivo,
+      canceladaPor: currentUser?.name ?? currentUser?.username ?? null,
+      canceladaEm: new Date().toISOString(),
+    };
+
+    // .select() após o update: PostgREST devolve sucesso HTTP com 0 linhas
+    // quando a RLS filtra tudo ou o id não existe (mesmo padrão do
+    // updateUser) — sem checar, a UI fingiria que cancelou.
+    const { data: linhas, error } = await supabase
+      .from("sales")
+      .update({ data: cancelada })
+      .eq("id", vendaId)
+      .select("id");
+    if (error) return { error };
+    if (!linhas || linhas.length === 0) {
+      return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada — venda inexistente ou sem permissão." } };
+    }
+
+    // Espelho relacional: filhos antes do cabeçalho (FK). Falha aqui não
+    // desfaz o cancelamento (o blob é a fonte de verdade) — só registra.
+    const { error: ePag } = await supabase.from("venda_pagamentos").delete().eq("venda_id", vendaId);
+    if (ePag) console.error("cancelarVendaFechada venda_pagamentos:", ePag);
+    const { error: eIt } = await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
+    if (eIt) console.error("cancelarVendaFechada venda_itens:", eIt);
+    const { error: eVen } = await supabase.from("vendas").delete().eq("id", vendaId);
+    if (eVen) console.error("cancelarVendaFechada vendas:", eVen);
+
+    const { error: eLanc } = await supabase.from("lancamentos").delete().eq("venda_id", vendaId);
+    if (eLanc) console.error("cancelarVendaFechada lancamentos:", eLanc);
+
+    setSalesLocal(prev => prev.map(s => (s && s.id === vendaId ? cancelada : s)));
+
+    logAction(currentUser?.username, "venda:cancelar", {
+      msg: `Venda cancelada · ${alvo.comanda ?? vendaId} · R$ ${Number(alvo.total ?? 0).toFixed(2)} · motivo: ${motivo}`,
+      name: currentUser?.name, role: currentUser?.role, venda_id: vendaId, motivo,
+    });
+    emitirEvento("venda.cancelada", "pdv", {
+      venda_id: vendaId, total: alvo.total ?? null, motivo,
+    }, currentUser?.username);
+    return { error: null };
+  };
+
   // ── Actions: Users ────────────────────────────────────────────
   const addUser = async (user) => {
     // omite id (gerado pelo banco) e permissions (derivado do role no cliente)
@@ -1069,7 +1152,7 @@ export function AppProvider({ children }) {
     // products
     addProduct, updateProduct, removeProduct, recarregarProdutos,
     // sales
-    addSale,
+    addSale, cancelarVendaFechada,
     // users
     addUser, updateUser, removeUser,
     // outros
