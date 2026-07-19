@@ -116,8 +116,25 @@ Deno.serve(async (req) => {
       return json({ auth_id: data.user.id });
     }
 
+    // Valida que o auth_id alvo pertence ao MESMO tenant do admin
+    // chamador. Sem isso, um admin de um estabelecimento resetava a
+    // senha / apagava a conta de usuários de OUTRO tenant (ou do
+    // super-admin da plataforma, cuja linha tem tenant_id NULL e
+    // portanto nunca casa) — IDOR, já que o service_role ignora RLS.
+    const alvoDoMesmoTenant = async (targetAuthId: string) => {
+      const { data: alvo } = await supabaseAdmin
+        .from("users")
+        .select("tenant_id")
+        .eq("auth_id", targetAuthId)
+        .maybeSingle();
+      return !!alvo && !!callerTenantId && alvo.tenant_id === callerTenantId;
+    };
+
     if (action === "update_password") {
       if (!auth_id || !password) return json({ error: "auth_id e password obrigatórios." }, 400);
+      if (!(await alvoDoMesmoTenant(auth_id))) {
+        return json({ error: "Usuário não encontrado neste estabelecimento." }, 404);
+      }
 
       const { error } = await supabaseAdmin.auth.admin.updateUserById(auth_id, { password });
       if (error) return json({ error: error.message }, 400);
@@ -127,6 +144,9 @@ Deno.serve(async (req) => {
 
     if (action === "delete") {
       if (!auth_id) return json({ error: "auth_id obrigatório." }, 400);
+      if (!(await alvoDoMesmoTenant(auth_id))) {
+        return json({ error: "Usuário não encontrado neste estabelecimento." }, 404);
+      }
 
       const { error } = await supabaseAdmin.auth.admin.deleteUser(auth_id);
       if (error) return json({ error: error.message }, 400);
