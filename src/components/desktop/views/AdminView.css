@@ -137,6 +137,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* respiro nas bordas pra o modal não encostar na tela no celular */
+  padding: 16px;
   z-index: 600;
   font-family: "Inter", system-ui, sans-serif;
 }
@@ -145,7 +147,10 @@
   background: var(--gm-card);
   border-radius: 16px;
   padding: 28px;
-  width: 380px;
+  /* mobile-safe: ocupa a largura disponível até o teto de 380px */
+  width: 100%;
+  max-width: 380px;
+  box-sizing: border-box;
   border: 1px solid var(--gm-border);
   color: var(--gm-text);
   display: flex;

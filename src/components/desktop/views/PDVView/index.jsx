@@ -46,6 +46,10 @@ export default function PDVView({ notify }) {
   const sz = getSizes(width);
   // isMob alinhado com CartPanel: mobile/tablet usam tabs (cartWidth===0)
   const isMob = sz.cartWidth === 0;
+  // Celular estreito (<768): o header e as barras de ação empilham em coluna
+  // em vez de usar o grid de 3 colunas do desktop, que espremia o título
+  // ("Frente / de / Caixa") e cortava o botão "Nova Comanda" fora da tela.
+  const isCel = width < 768;
   const { mesas, loading: mesasLoading } = useMesas();
   const location = useLocation();
 
@@ -642,9 +646,9 @@ export default function PDVView({ notify }) {
       {mode !== "checkout" && (
         <div style={{
           padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})`,
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          alignItems: "center",
+          ...(isCel
+            ? { display: "flex", flexDirection: "column", alignItems: "stretch" }
+            : { display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }),
           gap: sz.gap,
           flexShrink: 0,
         }}>
@@ -677,8 +681,8 @@ export default function PDVView({ notify }) {
                 <LuArrowLeft size={16} /> Voltar
               </button>
             )}
-            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-              <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 20, ...(isCel ? { flex: 1, justifyContent: "space-between" } : {}) }}>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2 }}>
                   {mode === "pedido" ? fmtComanda(selected?.comanda) : "Frente de Caixa"}
                 </div>
@@ -711,11 +715,11 @@ export default function PDVView({ notify }) {
             </div>
           </div>
 
-          {/* Centro: vazio */}
-          <div />
+          {/* Centro: vazio (só no grid do desktop; no celular não vira linha em branco) */}
+          {!isCel && <div />}
 
           {/* Direita: ações */}
-          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: sz.gap, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: isCel ? "flex-start" : "flex-end", alignItems: "center", gap: sz.gap, flexWrap: "wrap" }}>
           {/* Toast inline — visível no mapa/lista após lançar */}
           {emPainel && (
             <div style={{
@@ -741,6 +745,7 @@ export default function PDVView({ notify }) {
                 color: "#fff", fontWeight: 700, fontSize: sz.fontBase,
                 cursor: caixaAberto ? "pointer" : "not-allowed",
                 display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
+                ...(isCel ? { width: "100%", justifyContent: "center" } : {}),
               }}
             >
               <LuPlus size={sz.fontBase} /> Nova Comanda

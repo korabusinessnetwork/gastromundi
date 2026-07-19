@@ -211,3 +211,20 @@
   border: none;
   background: #fff;
 }
+
+/* Celular: o form e a coluna de preview (340px) não cabem lado a lado,
+   então empilham em coluna e o preview passa a ocupar a largura toda. */
+@media (max-width: 767px) {
+  .perfil-impressora {
+    flex-direction: column;
+  }
+  .perfil-impressora__form {
+    min-width: 0;
+  }
+  .perfil-impressora__preview-coluna {
+    width: 100%;
+  }
+  .perfil-impressora__preview-iframe {
+    width: 100%;
+  }
+}
