@@ -13,6 +13,24 @@ import { rotuloMetodo } from "@/utils/pagamentos";
  * (`src/lib/qztray.js`, `ImpressorasConfig.jsx`), não substituída aqui.
  */
 
+/**
+ * Escapa texto para interpolação segura no HTML da impressão. Nome de
+ * produto, observação, comanda, garçom etc. são digitados por usuários
+ * — sem escape, um `<img onerror=…>` num desses campos executaria
+ * same-origin ao imprimir (stored XSS). Função pura, testada.
+ *
+ * @param {any} v
+ * @returns {string}
+ */
+export function esc(v) {
+  return String(v ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function fmtR(v) {
   return "R$ " + Number(v ?? 0).toFixed(2);
 }
@@ -25,12 +43,12 @@ function linhasItensRecibo(itens) {
   return itens
     .map((it) => `
       <tr>
-        <td>${it.emoji ? `${it.emoji} ` : ""}${it.nome}</td>
-        <td style="text-align:center;">${it.qty}</td>
+        <td>${it.emoji ? `${esc(it.emoji)} ` : ""}${esc(it.nome)}</td>
+        <td style="text-align:center;">${esc(it.qty)}</td>
         <td style="text-align:right;">${fmtR(it.preco)}</td>
         <td style="text-align:right;font-weight:bold;">${fmtR(it.preco * it.qty)}</td>
       </tr>
-      ${it.obs.map((o) => `<tr><td colspan="4" class="obs">📝 ${o}</td></tr>`).join("")}
+      ${it.obs.map((o) => `<tr><td colspan="4" class="obs">📝 ${esc(o)}</td></tr>`).join("")}
     `)
     .join("");
 }
@@ -38,13 +56,13 @@ function linhasItensRecibo(itens) {
 function blocoCabecalhoIdentidade(identidade) {
   return `
     <div class="cabecalho">
-      ${identidade.logoUrl ? `<img class="cabecalho__logo" src="${identidade.logoUrl}" alt="${identidade.nome}" />` : `<div class="cabecalho__nome">${identidade.nome}</div>`}
+      ${identidade.logoUrl ? `<img class="cabecalho__logo" src="${esc(identidade.logoUrl)}" alt="${esc(identidade.nome)}" />` : `<div class="cabecalho__nome">${esc(identidade.nome)}</div>`}
       <div class="cabecalho__linha">${new Date().toLocaleString("pt-BR")}</div>
     </div>
     ${(identidade.endereco || identidade.cnpj) ? `
       <div class="identidade-fiscal">
-        ${identidade.endereco ? `${identidade.endereco}<br/>` : ""}
-        ${identidade.cnpj ? `CNPJ: ${identidade.cnpj}` : ""}
+        ${identidade.endereco ? `${esc(identidade.endereco)}<br/>` : ""}
+        ${identidade.cnpj ? `CNPJ: ${esc(identidade.cnpj)}` : ""}
       </div>
     ` : ""}
   `;
@@ -63,19 +81,19 @@ export function renderizarRecibo(dados) {
 
   const linhasPagamento = (pagamentos ?? [])
     .filter((p) => p?.metodo)
-    .map((p) => `<div class="metodo">${pagamentos.length > 1 ? `${fmtR(p.valor)} · ` : ""}Pagamento: ${rotuloMetodo(p.metodo)}</div>`)
+    .map((p) => `<div class="metodo">${pagamentos.length > 1 ? `${fmtR(p.valor)} · ` : ""}Pagamento: ${esc(rotuloMetodo(p.metodo))}</div>`)
     .join("");
 
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8"/>
-  <title>${naoFiscal ? "Cupom" : "Comprovante"} · ${fmtComanda(comanda)}</title>
+  <title>${naoFiscal ? "Cupom" : "Comprovante"} · ${esc(fmtComanda(comanda))}</title>
   <style>${estilosComprovante}</style>
 </head>
 <body>
   ${blocoCabecalhoIdentidade(identidade)}
-  <div class="cabecalho__linha" style="text-align:center;">${fmtComanda(comanda)}</div>
+  <div class="cabecalho__linha" style="text-align:center;">${esc(fmtComanda(comanda))}</div>
   <hr/>
   <table>
     <thead>
@@ -93,9 +111,9 @@ export function renderizarRecibo(dados) {
     </tfoot>
   </table>
   ${linhasPagamento}
-  ${naoFiscal ? `<div class="aviso-nao-fiscal">${avisoNaoFiscal}</div>` : ""}
+  ${naoFiscal ? `<div class="aviso-nao-fiscal">${esc(avisoNaoFiscal)}</div>` : ""}
   <hr/>
-  <div class="rodape">${identidade.rodape}</div>
+  <div class="rodape">${esc(identidade.rodape)}</div>
 </body>
 </html>`;
 }
@@ -113,8 +131,8 @@ export function renderizarViaProducao(dados) {
   const linhasItens = itens
     .map((it) => `
       <div class="item">
-        <div class="item__linha">${it.qty}x ${it.emoji ? `${it.emoji} ` : ""}${it.nome}</div>
-        ${it.obs.map((o) => `<div class="item__obs">📝 ${o}</div>`).join("")}
+        <div class="item__linha">${esc(it.qty)}x ${it.emoji ? `${esc(it.emoji)} ` : ""}${esc(it.nome)}</div>
+        ${it.obs.map((o) => `<div class="item__obs">📝 ${esc(o)}</div>`).join("")}
       </div>
     `)
     .join("");
@@ -123,14 +141,14 @@ export function renderizarViaProducao(dados) {
 <html>
 <head>
   <meta charset="utf-8"/>
-  <title>Via de Produção · ${fmtComanda(comanda)}</title>
+  <title>Via de Produção · ${esc(fmtComanda(comanda))}</title>
   <style>${estilosProducao}</style>
 </head>
 <body>
   <div class="cabecalho">
-    <div class="cabecalho__titulo">${fmtComanda(comanda)}</div>
+    <div class="cabecalho__titulo">${esc(fmtComanda(comanda))}</div>
     <div class="cabecalho__linha">
-      ${mesa ? `Mesa ${mesa} · ` : ""}${garcom ? `${garcom} · ` : ""}${new Date(horario).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+      ${mesa ? `Mesa ${esc(mesa)} · ` : ""}${garcom ? `${esc(garcom)} · ` : ""}${new Date(horario).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
     </div>
   </div>
   <hr/>

@@ -1,5 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { renderizarRecibo, renderizarViaProducao } from "./renderizar";
+import { esc, renderizarRecibo, renderizarViaProducao } from "./renderizar";
+
+describe("esc", () => {
+  it("escapa os metacaracteres de HTML", () => {
+    expect(esc(`<img src=x onerror="alert('1')">&`)).toBe(
+      "&lt;img src=x onerror=&quot;alert(&#39;1&#39;)&quot;&gt;&amp;"
+    );
+  });
+
+  it("aceita null/undefined/números sem lançar", () => {
+    expect(esc(null)).toBe("");
+    expect(esc(undefined)).toBe("");
+    expect(esc(2)).toBe("2");
+  });
+});
 
 describe("renderizarRecibo", () => {
   const dadosBase = {
@@ -45,6 +59,17 @@ describe("renderizarRecibo", () => {
   it("nunca lança mesmo com dados incompletos", () => {
     expect(() => renderizarRecibo({ identidade: {}, itens: [], pagamentos: [] })).not.toThrow();
   });
+
+  it("escapa nome de produto e observação maliciosos (stored XSS na impressão)", () => {
+    const html = renderizarRecibo({
+      ...dadosBase,
+      itens: [{ nome: `<img src=x onerror=alert(1)>`, qty: 1, preco: 10, emoji: "", obs: ["<script>fetch('/x')</script>"] }],
+    });
+
+    expect(html).not.toContain("<img src=x");
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+  });
 });
 
 describe("renderizarViaProducao", () => {
@@ -57,6 +82,16 @@ describe("renderizarViaProducao", () => {
     expect(html).toContain("X-Burguer");
     expect(html).toContain("sem cebola");
     expect(html).not.toContain("R$");
+  });
+
+  it("escapa observação maliciosa na via de produção", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "X", qty: 1, emoji: "", obs: ["<svg onload=alert(1)>"] }],
+    });
+
+    expect(html).not.toContain("<svg");
+    expect(html).toContain("&lt;svg onload=alert(1)&gt;");
   });
 
   it("mostra mensagem clara quando não há itens produzíveis", () => {

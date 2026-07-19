@@ -113,7 +113,7 @@ function DeleteConfirm({ msg, onCancel, onConfirm }) {
     <div onClick={e => { if (e.target === e.currentTarget) onCancel(); }} className="admin__delete-overlay">
       <div className="admin__delete-modal">
         <div className="admin__delete-titulo">Confirmar exclusão</div>
-        <div className="admin__delete-msg" dangerouslySetInnerHTML={{ __html: msg }} />
+        <div className="admin__delete-msg">{msg}</div>
         <div className="admin__delete-botoes">
           <button onClick={onCancel} className="admin__delete-cancelar">Cancelar</button>
           <button onClick={onConfirm} className="admin__delete-confirmar">Excluir</button>
@@ -680,7 +680,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
 
       {deleteId && (
         <DeleteConfirm
-          msg={`<strong>${fichas.find(f => f.id === deleteId)?.nome}</strong> será removida permanentemente.`}
+          msg={<><strong>{fichas.find(f => f.id === deleteId)?.nome}</strong> será removida permanentemente.</>}
           onCancel={() => setDeleteId(null)}
           onConfirm={excluir}
         />
@@ -781,7 +781,7 @@ function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
       )}
 
       {deleteId && (
-        <DeleteConfirm msg={`<strong>${fornecedores.find(f => f.id === deleteId)?.nome}</strong> será removido permanentemente.`} onCancel={() => setDeleteId(null)} onConfirm={excluir} />
+        <DeleteConfirm msg={<><strong>{fornecedores.find(f => f.id === deleteId)?.nome}</strong> será removido permanentemente.</>} onCancel={() => setDeleteId(null)} onConfirm={excluir} />
       )}
     </div>
   );
@@ -1133,7 +1133,7 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
 
       {deleteId && (
         <DeleteConfirm
-          msg={`O imposto <strong>${impostos.find(i => i.id === deleteId)?.nome}</strong> será removido.`}
+          msg={<>O imposto <strong>{impostos.find(i => i.id === deleteId)?.nome}</strong> será removido.</>}
           onCancel={() => setDeleteId(null)}
           onConfirm={excluir}
         />
