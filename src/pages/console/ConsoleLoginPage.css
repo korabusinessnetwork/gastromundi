@@ -1,0 +1,150 @@
+/**
+ * Login do Console da Plataforma (host dedicado, ex.: console.kora.codes).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * Marca NEUTRA da Kora: no host do console nenhum tema de tenant é aplicado,
+ * então valem os tokens --gm-* padrão. Nada aqui referencia marca de cliente.
+ */
+
+.console-login {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  background: var(--gm-bg);
+  color: var(--gm-text);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.console-login__caixa {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* ── Marca ─────────────────────────────────────────────────────── */
+.console-login__marca {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.console-login__marca-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--gm-surface);
+  color: var(--gm-accent);
+  margin-bottom: 12px;
+}
+.console-login__marca-titulo {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  line-height: 1.1;
+}
+.console-login__marca-sub {
+  font-size: 13px;
+  color: var(--gm-muted);
+  margin-top: 4px;
+}
+
+/* ── Card do formulário ────────────────────────────────────────── */
+.console-login__card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  padding: 22px;
+}
+
+.console-login__campo { margin-bottom: 16px; }
+
+.console-login__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.console-login__input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-size: 15px;
+  font-family: inherit;
+  box-sizing: border-box;
+  outline: none;
+}
+.console-login__input:focus {
+  border-color: var(--gm-accent);
+}
+.console-login__input--senha { padding-right: 44px; }
+
+.console-login__senha-wrap { position: relative; }
+
+.console-login__olho {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.console-login__erro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: var(--gm-red);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.console-login__entrar {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--gm-accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+.console-login__entrar:hover:not(:disabled) { filter: brightness(1.08); }
+.console-login__entrar:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+/* ── Aviso ─────────────────────────────────────────────────────── */
+.console-login__aviso {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  color: var(--gm-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}

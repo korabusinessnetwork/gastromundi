@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import { consoleAtivo, ehConsoleHost } from "@/lib/consoleHost";
 
 /**
  * ConsoleRoute — porta do Console da Plataforma (S1-2, ADR-008 §7).
@@ -19,6 +20,15 @@ import { useApp } from "@/context/AppContext";
 export default function ConsoleRoute({ children }) {
   const { currentUser } = useApp();
   const location = useLocation();
+
+  // Defesa-em-profundidade (Task #18): com o Console em subdomínio próprio
+  // LIGADO, o painel só vive no host dedicado. Se este componente for
+  // renderizado fora dele (rota forçada num host de tenant), manda embora
+  // antes de qualquer coisa. O roteador já evita chegar aqui; este é o
+  // cinto de segurança. A fronteira REAL continua no banco (RLS/RPCs).
+  if (consoleAtivo() && !ehConsoleHost()) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (!currentUser) {
     return <Navigate to="/login" state={{ from: location }} replace />;

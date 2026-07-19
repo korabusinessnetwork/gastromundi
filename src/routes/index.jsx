@@ -4,6 +4,7 @@ import PrivateRoute   from "./PrivateRoute";
 import ConsoleRoute   from "./ConsoleRoute";
 import MobileRoute    from "./MobileRoute";
 import { ehApexInstitucional } from "@/lib/apex";
+import { consoleAtivo, ehConsoleHost } from "@/lib/consoleHost";
 
 // Página institucional do apex (kora.codes) — lazy: quem opera o PDV nos
 // subdomínios nunca baixa esse código; só o visitante do apex.
@@ -29,9 +30,39 @@ import ClientesPage       from "@/pages/desktop/ClientesPage";
 import HistoricoNfcePage  from "@/pages/desktop/HistoricoNfcePage";
 import PainelFiscalPage   from "@/pages/desktop/PainelFiscalPage";
 import ConsolePage        from "@/pages/console/ConsolePage";
+import ConsoleLoginPage   from "@/pages/console/ConsoleLoginPage";
 import MODULOS from "@/constants/modulos";
 
-const router = createBrowserRouter([
+// Recurso "Console em subdomínio próprio" (Task #18). Calculado UMA vez no
+// carregamento do módulo (como ehApexInstitucional). Master switch inerte:
+// sem VITE_CONSOLE_SUBDOMAIN + VITE_ROOT_DOMAIN, `consoleLigado` é false e o
+// roteador se comporta exatamente como hoje.
+const consoleLigado     = consoleAtivo();
+const naHostDoConsole   = consoleLigado && ehConsoleHost();
+// Recurso ligado, mas estamos num host de TENANT/apex/dev: o /console some
+// daqui (só existe no host dedicado) — quem tentar cai no login do tenant.
+const consoleForaDoHost = consoleLigado && !naHostDoConsole;
+
+// ── Host DEDICADO do Console (ex.: console.kora.codes) ─────────────
+// Só o Console existe aqui: login de desenvolvedor próprio + painel. Nada
+// de app de estabelecimento, apex ou demo. Sem marca de tenant, sem porta
+// de login do estabelecimento — qualquer outra rota volta pra raiz.
+const rotasHostConsole = [
+  { path: "/login",   element: <ConsoleLoginPage /> },
+  {
+    path: "/console",
+    element: (
+      <ConsoleRoute>
+        <ConsolePage />
+      </ConsoleRoute>
+    ),
+  },
+  { path: "/",  element: <ConsoleLoginPage /> },
+  { path: "*",  element: <Navigate to="/" replace /> },
+];
+
+// ── Hosts de TENANT / apex / dev — comportamento de sempre ─────────
+const rotasApp = [
   // Raiz: no apex (kora.codes/www) mostra a vitrine institucional da Kora;
   // em qualquer outro host (subdomínio de tenant, dev, preview) segue o
   // comportamento de sempre — direto ao login. Decisão em src/lib/apex.js.
@@ -56,13 +87,21 @@ const router = createBrowserRouter([
 
   // Console da Plataforma (S1-2) — só o super-admin `plataforma`.
   // Rota à parte de /app: a plataforma não opera o estabelecimento.
+  //
+  // Com o recurso de console-em-subdomínio LIGADO, o /console NÃO existe
+  // nos hosts de tenant — ele só mora no host dedicado. Aqui vira um beco
+  // sem saída (volta ao login do tenant), removendo a porta da plataforma
+  // dos subdomínios de estabelecimento. Com o switch desligado, é o
+  // comportamento de sempre (ConsoleRoute decide pelo papel).
   {
     path: "/console",
-    element: (
-      <ConsoleRoute>
-        <ConsolePage />
-      </ConsoleRoute>
-    ),
+    element: consoleForaDoHost
+      ? <Navigate to="/login" replace />
+      : (
+        <ConsoleRoute>
+          <ConsolePage />
+        </ConsoleRoute>
+      ),
   },
 
   // Tela de escolha de modo (admin no mobile)
@@ -194,6 +233,11 @@ const router = createBrowserRouter([
 
   // Fallback
   { path: "*", element: <Navigate to="/login" replace /> },
-]);
+];
+
+// No host dedicado do console, servimos APENAS as rotas do console; em
+// qualquer outro host, o app normal. A escolha é por host (defesa-em-
+// profundidade de UX); a autorização REAL continua no banco (RLS/RPCs).
+const router = createBrowserRouter(naHostDoConsole ? rotasHostConsole : rotasApp);
 
 export default router;

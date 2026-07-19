@@ -8,13 +8,14 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor, gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
 import { layoutDoTema, varianteDoHorario, variaveisDoLayout } from "@/layouts";
 import { resolverSlugTenant, slugDoSubdominio } from "@/lib/tenantSlug";
+import { consoleAtivo } from "@/lib/consoleHost";
 import { buscarBrandingPorSlug } from "@/lib/tenant";
 import { lerBrandingCache, salvarBrandingCache } from "@/lib/brandingCache";
 import { sanitizeInput, MAX_ATTEMPTS } from "@/utils";
 import { LuEye, LuEyeOff, LuShieldAlert, LuTriangleAlert, LuSearchX } from "react-icons/lu";
 
 export default function LoginPage() {
-  const { login, currentUser, isMobile, loading: dbLoading } = useApp();
+  const { login, logout, currentUser, isMobile, loading: dbLoading } = useApp();
   const { width } = useResponsive();
   const sz = getSizes(width);
   const navigate  = useNavigate();
@@ -98,8 +99,18 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!currentUser) return;
-    // Super-admin da plataforma não opera estabelecimento — vai ao Console.
-    if (currentUser.role === "plataforma") { navigate("/console", { replace: true }); return; }
+    // Super-admin da plataforma não opera estabelecimento.
+    if (currentUser.role === "plataforma") {
+      // Console em subdomínio próprio LIGADO: a plataforma NÃO entra pela
+      // porta do estabelecimento. Uma sessão `plataforma` aqui só é possível
+      // enquanto a credencial ainda estiver no namespace de tenant (transição
+      // de go-live) — encerra a sessão em vez de abrir o Console neste host,
+      // sem revelar a existência/URL do painel. Com o switch desligado,
+      // comportamento de sempre (vai ao Console no mesmo host).
+      if (consoleAtivo()) { logout(); return; }
+      navigate("/console", { replace: true });
+      return;
+    }
     const p = currentUser.permissions;
     if (isMobile && p.palm && !p.pdv) { navigate("/palm",    { replace: true }); return; }
     if (isMobile && p.pdv  && p.palm) { navigate("/escolha", { replace: true }); return; }
