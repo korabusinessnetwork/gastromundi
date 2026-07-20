@@ -17,6 +17,7 @@ Princípio central: **a venda no PDV é a transação-fonte** — ela se propaga
 | Clientes | [`CLIENTES.md`](./CLIENTES.md) | Cadastro, histórico, fidelidade | Documentado |
 | Relatórios | [`RELATORIOS.md`](./RELATORIOS.md) | Vendas, margem, desempenho | Documentado |
 | Jarvas | [`JARVAS.md`](./JARVAS.md) | Camada transversal de IA | Documentado |
+| Delivery | [`DELIVERY.md`](./DELIVERY.md) | Vitrine pública de pedidos (cardápio online), taxa por CEP, pagamento na entrega | Estrutura aprovada (não implementado) |
 
 ## Taxonomia de eventos (Event Bus) — matriz única
 
