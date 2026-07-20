@@ -98,7 +98,7 @@ estrutural do que parecia.
 ## Mini-exemplo de cabeçalho preenchido
 
 ```markdown
-# Restrições do Projeto GastroMundi
+# Restrições do Projeto Kora
 
 ## Objetivo
 Registrar limites inegociáveis do projeto — custo, compliance fiscal, técnicos — que

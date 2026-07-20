@@ -60,7 +60,7 @@ O que {{PRODUTO}} faz e por quê
 - Como resolvemos: {{SOLUCAO_DIFERENCIADA}}
 - Impacto esperado: {{IMPACTO}}
 
-*Exemplo: GastroMundi democratiza gestão de PDV/operação para bares e restaurantes indie, substituindo sistemas caros e lentos por uma ferramenta intuitiva, rápida e sem lock-in.*
+*Exemplo: Kora democratiza gestão de PDV/operação para bares e restaurantes indie, substituindo sistemas caros e lentos por uma ferramenta intuitiva, rápida e sem lock-in.*
 
 ## Público-Alvo
 
@@ -78,7 +78,7 @@ O que {{PRODUTO}} faz e por quê
 
 **Para** {{PUBLICO_ALVO}} / **que** {{PROBLEMA}} / **{{PRODUTO}}** é {{CATEGORIA}} / **que** {{BENEFICIO_1}} e {{BENEFICIO_2}} / **Diferente de** {{ALTERNATIVAS}} / **entrega** {{VALOR_UNICO}}.
 
-*Exemplo: Para gerentes de bar indie / que cansaram de PDVs burocráticos e caros / GastroMundi é um sistema de operação rápido e flexível / que oferece visibilidade em tempo real e integração fácil / Diferente de sistemas corporativos legacy / entrega simplicidade e controle total.*
+*Exemplo: Para gerentes de bar indie / que cansaram de PDVs burocráticos e caros / Kora é um sistema de operação rápido e flexível / que oferece visibilidade em tempo real e integração fácil / Diferente de sistemas corporativos legacy / entrega simplicidade e controle total.*
 
 ## Tom de Voz
 

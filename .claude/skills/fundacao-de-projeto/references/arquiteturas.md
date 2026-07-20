@@ -24,7 +24,7 @@ O produto tem UI e precisa subir rápido, barato, com pouca equipe?
 ## Modelo A — SPA + BaaS (default)
 
 **Stack:** React + Vite → Supabase (SDK direto, Auth, RLS, realtime) + React
-Router v6 + Vercel. **É o modelo do GastroMundi.**
+Router v6 + Vercel. **É o modelo do Kora.**
 
 - **Quando:** MVP, produto novo, equipe pequena, orçamento bootstrap.
 - **Força:** rápido de subir, barato (tiers gratuitos), realtime de graça,

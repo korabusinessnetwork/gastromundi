@@ -1,7 +1,7 @@
 ---
 name: fundacao-de-projeto
 description: >-
-  Monta a fundação completa de um app/produto novo no padrão GastroMundi —
+  Monta a fundação completa de um app/produto novo no padrão Kora —
   governança (memory/), documentação document-first (docs/ 00→11), ADRs, plano
   de segurança e a camada default da stack (React+Vite+Supabase, multi-tenant
   white-label). Use ao INICIAR um projeto novo ("montar a estrutura/fundação",

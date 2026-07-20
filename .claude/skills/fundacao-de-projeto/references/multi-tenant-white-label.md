@@ -54,11 +54,11 @@ tema carregado em runtime), nunca de uma constante no repositório.
 
 Isso vale para:
 - Nome do estabelecimento, logo, favicon, cores de marca (tokens de design)
-- Textos de UI que hoje "fazem sentido só pro GastroMundi" (nome do produto na tela de
+- Textos de UI que hoje "fazem sentido só pro Kora" (nome do produto na tela de
   login, mensagens de boas-vindas, rodapé)
 - Regras de negócio que hoje só existem porque "é assim que o cliente atual trabalha"
   (ex.: taxa de serviço fixa, forma de arredondamento, categorias de produto padrão) —
-  isso vira configuração por tenant, não `if (tenantId === 'gastromundi-original')`
+  isso vira configuração por tenant, não `if (tenantId === 'kora-original')`
 
 ### Exemplo — config vinda do tenant (bom) vs hardcoded (ruim)
 
@@ -67,7 +67,7 @@ Isso vale para:
 function Header() {
   return (
     <header style={{ background: '#8B0000' }}>
-      <img src="/logo-gastromundi.png" alt="GastroMundi" />
+      <img src="/logo-kora.png" alt="Kora" />
       <span>Taxa de serviço: 10%</span>
     </header>
   );
@@ -90,9 +90,9 @@ function Header() {
 
 ```sql
 -- RUIM — regra de negócio de UM cliente vazando pro schema/policy geral
-CREATE POLICY "só gastromundi vê pedidos"
+CREATE POLICY "só kora vê pedidos"
   ON pedidos FOR SELECT
-  USING (estabelecimento = 'gastromundi');
+  USING (estabelecimento = 'kora');
 
 -- BOM — isolamento por tenant, genérico para qualquer cliente
 CREATE POLICY "tenant só vê seus próprios pedidos"
