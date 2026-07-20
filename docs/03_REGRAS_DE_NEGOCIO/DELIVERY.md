@@ -92,7 +92,13 @@ gateway/TEF é necessário.
 
 **Tabelas novas (todas com `tenant_id` desde o nascimento — multi-tenant/RLS):**
 - `produto_delivery` — `foto_url`, `descricao`, `disponivel_delivery` (a tabela
-  `products` hoje só tem `emoji`, sem foto/descrição).
+  `products` hoje só tem `emoji`, sem foto/descrição). **Fotos no Supabase
+  Storage** (bucket `delivery-fotos`): grátis no free tier (1 GB storage + 5 GB
+  egress/mês cobrem milhares de aberturas de cardápio). Otimização obrigatória p/
+  manter no grátis: **WebP no upload + thumbnail no grid** (foto cheia só ao abrir
+  o produto) + `Cache-Control` agressivo. Egress é somado entre todos os tenants
+  do projeto → migrar pro Pro (US$ 25/mês, 250 GB egress) só quando o volume real
+  pedir (decisão de custo do dono, com número na mão).
 - `grupos_complemento` + `complementos` — add-ons por produto (ex.: "Ponto da
   carne", "Adicionais": +bacon R$4), com `min`/`max` de escolha por grupo.
 - `config_delivery` — 1 linha por tenant: aberto/fechado, horário de
@@ -123,6 +129,20 @@ gateway/TEF é necessário.
 - Complementos respeitam `min`/`max` por grupo antes de permitir avançar.
 - Inputs do cliente (CEP, endereço, observações) validados antes de qualquer
   operação no Supabase.
+
+## Notificação de pedido novo (merchant)
+Dois níveis, **ambos grátis** (sem serviço pago):
+- **Nível 1 (MVP):** app aberto ou em segundo plano com tela ligada → Realtime (já
+  existe) + **som** + `Notification API`. Zero infra nova.
+- **Nível 2 (camada seguinte):** navegador/PWA **fechado** → **Web Push** (service
+  worker da Leva 11 + chaves VAPID grátis + disparo via Supabase Edge Function,
+  free: 500 mil execuções/mês). Android: funciona 100%. iPhone: só com o **PWA
+  instalado na tela inicial** (limitação do iOS, sem custo).
+
+## Endereço e troco (UX)
+Sem tabela extra: resolvidos no **desenho da tela de entrega/comanda** — endereço
+com CEP+ViaCEP e complemento manual; troco como campo "troco para quanto" quando a
+forma é dinheiro (calcula o troco a levar).
 
 ## Exceções
 - Falha do ViaCEP → permitir cadastro manual do bairro/endereço; nunca travar o
