@@ -20,7 +20,7 @@
 // em um clique com contagem clara, e estados de vazio/carregando/erro
 // com texto humano. Nada de jargão técnico na tela.
 // ──────────────────────────────────────────────────────────────────
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
@@ -49,6 +49,8 @@ import {
   LuChevronDown,
   LuBanknote,
   LuRefreshCw,
+  LuBell,
+  LuBellOff,
 } from "react-icons/lu";
 import {
   statusLabel,
@@ -67,6 +69,13 @@ import {
   atualizarStatusPedido,
   STATUS_CANCELADO,
 } from "@/lib/deliveryPedidos";
+import {
+  detectarNovosPedidos,
+  alertarPedidosNovos,
+  permissaoNotificacao,
+  pedirPermissaoNotificacao,
+  notificacoesSuportadas,
+} from "@/lib/deliveryAlertas";
 import {
   carregarConfigDelivery,
   salvarConfigDelivery,
@@ -287,15 +296,65 @@ export default function DeliveryView({ notify } = {}) {
 // Intuitividade (Princípio nº 1): colunas por etapa (kanban) do fluxo, a
 // próxima ação em destaque no cartão, contato do cliente a um toque
 // (WhatsApp), e estados de vazio/carregando/erro com texto humano.
-function AbaPedidos({ sz, isAdmin, ehAddon, aviso }) {
+// Preferência de avisos por navegador (não é dado de negócio → localStorage).
+const CHAVE_AVISOS = "kora.delivery.avisos";
+const lerPrefAvisos = () => {
+  try {
+    return localStorage.getItem(CHAVE_AVISOS) === "1";
+  } catch {
+    return false;
+  }
+};
+
+function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
   const { pedidos, carregando, erro, recarregar } = usePedidosDelivery();
   const [tick, setTick] = useState(0); // recalcula "há X min" de tempos em tempos
+
+  // Avisos de pedido novo (Fase 5, Nível 1): som + Notification API. Só
+  // alerta o que chega DEPOIS que a tela já carregou a lista base.
+  const [avisosLigados, setAvisosLigados] = useState(lerPrefAvisos);
+  const idsVistosRef = useRef(null); // null = ainda não semeou (1ª carga)
 
   // Relógio leve só pro rótulo de tempo respirar (1 min). Sem custo de rede.
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 60000);
     return () => clearInterval(t);
   }, []);
+
+  // Detecta pedidos novos a cada mudança da lista. A 1ª carga só SEMEIA os ids
+  // conhecidos (sem alertar retroativo); as próximas comparam e alertam.
+  useEffect(() => {
+    if (carregando) return;
+    if (idsVistosRef.current === null) {
+      idsVistosRef.current = new Set(pedidos.map((p) => String(p.id)));
+      return;
+    }
+    const novos = detectarNovosPedidos(idsVistosRef.current, pedidos);
+    for (const p of pedidos) idsVistosRef.current.add(String(p.id));
+    if (avisosLigados && novos.length > 0) {
+      alertarPedidosNovos(novos, { som: true, notificar: true });
+    }
+  }, [pedidos, carregando, avisosLigados]);
+
+  const alternarAvisos = useCallback(async () => {
+    if (avisosLigados) {
+      setAvisosLigados(false);
+      try { localStorage.setItem(CHAVE_AVISOS, "0"); } catch { /* ok */ }
+      return;
+    }
+    // Ligar: pede permissão de notificação (gesto do usuário). O som funciona
+    // mesmo sem permissão — a notificação é o extra que precisa de consentimento.
+    if (notificacoesSuportadas() && permissaoNotificacao() === "default") {
+      await pedirPermissaoNotificacao();
+    }
+    setAvisosLigados(true);
+    try { localStorage.setItem(CHAVE_AVISOS, "1"); } catch { /* ok */ }
+    if (notificacoesSuportadas() && permissaoNotificacao() === "denied") {
+      aviso("Avisos ligados (com som). Para o alerta na tela, libere as notificações no navegador.", "info");
+    } else {
+      aviso("Avisos de pedido novo ligados.", "ok");
+    }
+  }, [avisosLigados, aviso]);
 
   const colunas = useMemo(() => agruparPorStatus(pedidos), [pedidos, tick]);
   const abertos = useMemo(
@@ -307,22 +366,28 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso }) {
     async (pedido) => {
       const proximo = proximoStatus(pedido.status);
       if (!proximo) return;
-      const { error } = await atualizarStatusPedido(pedido.id, proximo);
+      const { error } = await atualizarStatusPedido(pedido.id, proximo, {
+        operador: currentUser?.username,
+        numero: pedido.numero,
+      });
       if (error) return aviso("Não foi possível atualizar o pedido. Tente novamente.", "err");
       aviso(`Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`, "ok");
       await recarregar();
     },
-    [aviso, recarregar]
+    [aviso, recarregar, currentUser]
   );
 
   const cancelar = useCallback(
     async (pedido) => {
-      const { error } = await atualizarStatusPedido(pedido.id, STATUS_CANCELADO);
+      const { error } = await atualizarStatusPedido(pedido.id, STATUS_CANCELADO, {
+        operador: currentUser?.username,
+        numero: pedido.numero,
+      });
       if (error) return aviso("Não foi possível cancelar. Tente novamente.", "err");
       aviso(`Pedido ${pedido.numero} cancelado.`, "ok");
       await recarregar();
     },
-    [aviso, recarregar]
+    [aviso, recarregar, currentUser]
   );
 
   return (
@@ -336,14 +401,31 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso }) {
               ? `${abertos} pedido${abertos !== 1 ? "s" : ""} em andamento`
               : "Nenhum pedido em andamento"}
         </div>
-        <button
-          onClick={recarregar}
-          className="delivery-view__btn"
-          style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "6px 12px", fontSize: sz.fontSm }}
-          title="Atualizar a lista de pedidos"
-        >
-          <LuRefreshCw size={13} /> Atualizar
-        </button>
+        <div className="delivery-view__pedidos-acoes">
+          <button
+            onClick={alternarAvisos}
+            className="delivery-view__btn"
+            style={{
+              background: avisosLigados ? alfa(C.green, "16") : alfa(C.muted, "12"),
+              color: avisosLigados ? varColor(C.green) : varColor(C.muted),
+              padding: "6px 12px",
+              fontSize: sz.fontSm,
+            }}
+            title={avisosLigados ? "Avisos de pedido novo ligados (som + alerta na tela). Toque para desligar." : "Ligar avisos de pedido novo (som + alerta na tela)."}
+            aria-pressed={avisosLigados}
+          >
+            {avisosLigados ? <LuBell size={13} /> : <LuBellOff size={13} />}
+            {avisosLigados ? "Avisos ligados" : "Ativar avisos"}
+          </button>
+          <button
+            onClick={recarregar}
+            className="delivery-view__btn"
+            style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "6px 12px", fontSize: sz.fontSm }}
+            title="Atualizar a lista de pedidos"
+          >
+            <LuRefreshCw size={13} /> Atualizar
+          </button>
+        </div>
       </div>
 
       {carregando ? (

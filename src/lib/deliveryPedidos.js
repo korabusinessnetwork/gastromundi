@@ -20,6 +20,7 @@
 // Nunca faz select * em tabela sensível (CLAUDE.md): campos explícitos.
 // ──────────────────────────────────────────────────────────────────
 import { supabase } from "./supabase";
+import { logAction } from "./logger";
 
 // Fluxo de status do delivery. A coluna `status` é text livre (sem CHECK
 // no banco), então o fluxo é definido AQUI, na única fonte de verdade do
@@ -237,8 +238,12 @@ export async function carregarItensPedido(pedidoId) {
 /**
  * Avança/muda o status de um pedido. Admin escreve direto (RLS RESTRICTIVE).
  * `updated_at` é tocado para o realtime/histórico. Nunca lança.
+ *
+ * `contexto` (opcional, retrocompatível): { operador, numero } só para a
+ * AUDITORIA da transição em operator_logs (fire-and-forget — nunca bloqueia
+ * nem quebra a operação; ver DELIVERY.md §Auditoria).
  */
-export async function atualizarStatusPedido(pedidoId, novoStatus) {
+export async function atualizarStatusPedido(pedidoId, novoStatus, contexto = {}) {
   if (!pedidoId || !novoStatus) {
     return { data: null, error: new Error("Pedido ou status ausente.") };
   }
@@ -250,6 +255,12 @@ export async function atualizarStatusPedido(pedidoId, novoStatus) {
       .select(CAMPOS_PEDIDO)
       .maybeSingle();
     if (error) return { data: null, error };
+    // Auditoria da transição (fire-and-forget, nunca bloqueia).
+    logAction(contexto?.operador, "delivery:status", {
+      pedido_id: pedidoId,
+      numero: contexto?.numero ?? data?.numero ?? null,
+      para: novoStatus,
+    });
     return { data, error: null };
   } catch (error) {
     return { data: null, error };

@@ -277,6 +277,14 @@
 .delivery-view__pedidos-resumo {
   font-weight: 600;
 }
+/* Agrupa as ações da barra de topo (sino de avisos + atualizar) para que
+   fiquem juntas à direita e quebrem em bloco no mobile. */
+.delivery-view__pedidos-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
 /* Colunas do kanban: rolam na horizontal quando não cabem (não estoura o
    corpo da página — cada coluna tem largura mínima confortável). */
