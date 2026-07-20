@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
@@ -12,6 +13,7 @@ import {
   LuTruck, LuShoppingCart, LuCheck,
   LuCalendar, LuArrowLeft, LuChevronRight, LuChevronDown, LuSearch,
   LuLink, LuPackage, LuPercent, LuFileText, LuSlidersHorizontal,
+  LuWallet, LuReceipt, LuFileCheck,
 } from "react-icons/lu";
 import NotasFiscaisTab from "@/components/desktop/views/NotasFiscaisTab";
 import ImpostosAdmin from "@/components/desktop/views/ImpostosAdmin";
@@ -1144,23 +1146,30 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
 
 // ── Grade inicial ─────────────────────────────────────────────────
 
+// Seções com `secao` são abas internas da Área Admin (abrem aqui mesmo).
+// Seções com `to` são atalhos para telas próprias (Financeiro, Notas Emitidas,
+// Config. Fiscal) — saíram da sidebar (que estava lotada) e agora vivem aqui.
+// `perm` esconde o atalho de quem não tem acesso à tela de destino.
 const SECOES = [
-  { id: "fichas",       label: "Ficha Técnica", desc: "Receitas, ingredientes e custo por porção", Icon: LuClipboardList, color: varColor(C.accent)  },
-  { id: "fornecedores", label: "Fornecedores",  desc: "Contatos e cadastro de fornecedores",       Icon: LuTruck,        color: varColor(C.blue)    },
-  { id: "compras",      label: "Compras",       desc: "Registro de compras e pedidos",             Icon: LuShoppingCart, color: varColor(C.green)   },
-  { id: "impostos",     label: "Impostos",      desc: "Alíquotas e configuração fiscal",           Icon: LuPercent,      color: "#f97316" },
-  { id: "notas_fiscais", label: "Notas Fiscais", desc: "Importação de NF-e via XML e controle de entradas", Icon: LuFileText, color: varColor(C.blue) },
+  { id: "fichas",         label: "Ficha Técnica",       desc: "Receitas, ingredientes e custo por porção",         Icon: LuClipboardList, color: varColor(C.accent) },
+  { id: "fornecedores",   label: "Fornecedores",        desc: "Contatos e cadastro de fornecedores",               Icon: LuTruck,         color: varColor(C.blue)  },
+  { id: "compras",        label: "Compras",             desc: "Registro de compras e pedidos",                     Icon: LuShoppingCart,  color: varColor(C.green) },
+  { id: "impostos",       label: "Impostos",            desc: "Alíquotas por categoria",                           Icon: LuPercent,       color: "#f97316" },
+  { id: "notas_fiscais",  label: "Notas de Entrada",    desc: "Importação de NF-e (XML) dos fornecedores",         Icon: LuFileText,      color: varColor(C.blue) },
+  { id: "financeiro",     label: "Financeiro",          desc: "Fluxo de caixa, contas e lucro",                    Icon: LuWallet,        color: varColor(C.green), to: "/app/financeiro",    perm: "financeiro"    },
+  { id: "notas_emitidas", label: "Notas Emitidas",      desc: "Consulta, reimpressão e cancelamento de NFC-e",     Icon: LuReceipt,       color: varColor(C.blue),  to: "/app/notas-fiscais", perm: "relatorio"     },
+  { id: "config_fiscal",  label: "Configuração Fiscal", desc: "CNPJ, série, ambiente e certificado do emissor",    Icon: LuFileCheck,     color: "#f97316",         to: "/app/fiscal",        perm: "configuracoes" },
 ];
 
-function GradeInicial({ sz, onSelecionar, fichas, fornecedores, compras, impostos, notasFiscaisCount }) {
+function GradeInicial({ sz, secoes, onSelecionar, onNavegar, fichas, fornecedores, compras, impostos, notasFiscaisCount }) {
   const contadores = { fichas: fichas.length, fornecedores: fornecedores.length, compras: compras.length, impostos: impostos.length, notas_fiscais: notasFiscaisCount };
   return (
     <div className="grade-inicial">
       <div className="grade-inicial__grid">
-        {SECOES.map(s => (
+        {secoes.map(s => (
           <button
             key={s.id}
-            onClick={() => onSelecionar(s.id)}
+            onClick={() => s.to ? onNavegar(s.to) : onSelecionar(s.id)}
             className="grade-inicial__card"
             style={{ borderColor: varColor(C.border) }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = alfa(s.color, "66"); e.currentTarget.style.background = alfa(s.color, "08"); }}
@@ -1175,7 +1184,9 @@ function GradeInicial({ sz, onSelecionar, fichas, fornecedores, compras, imposto
             </div>
             <div className="grade-inicial__rodape">
               <span className="grade-inicial__contador" style={{ fontSize: 18 }}>
-                {contadores[s.id]} {contadores[s.id] === 1 ? "registro" : "registros"}
+                {s.to
+                  ? "Abrir"
+                  : `${contadores[s.id]} ${contadores[s.id] === 1 ? "registro" : "registros"}`}
               </span>
               <LuChevronRight size={16} color={varColor(C.muted)} />
             </div>
@@ -1191,7 +1202,12 @@ function GradeInicial({ sz, onSelecionar, fichas, fornecedores, compras, imposto
 export default function AdminView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const { products, estoque } = useApp();
+  const navigate = useNavigate();
+  const { products, estoque, currentUser } = useApp();
+
+  // Atalhos para telas próprias só aparecem para quem tem a permissão da
+  // tela de destino (as abas internas ficam sempre visíveis).
+  const secoesVisiveis = SECOES.filter(s => !s.perm || currentUser?.permissions?.[s.perm]);
 
   const [secao,              setSecao]              = useState(null);
   const [fichas,             setFichas]             = useState([]);
@@ -1255,7 +1271,7 @@ export default function AdminView() {
         {loading ? (
           <div className="admin-view__carregando">Carregando...</div>
         ) : !secao ? (
-          <GradeInicial sz={sz} onSelecionar={setSecao} fichas={fichas} fornecedores={fornecedores} compras={compras} impostos={impostos} notasFiscaisCount={notasFiscaisCount} />
+          <GradeInicial sz={sz} secoes={secoesVisiveis} onSelecionar={setSecao} onNavegar={navigate} fichas={fichas} fornecedores={fornecedores} compras={compras} impostos={impostos} notasFiscaisCount={notasFiscaisCount} />
         ) : (
           <>
             {secao === "fichas"       && <FichasTecnicasTab sz={sz} fichas={fichas}             products={products} estoque={estoque} onSave={handleSave} onDelete={handleSave} />}

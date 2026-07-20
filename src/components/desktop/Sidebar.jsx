@@ -109,17 +109,16 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
     // router; para voltar, recolocar o item aqui).
     { to: "/app/clientes",  label: "Clientes",          perm: "clientes", modulo: MODULOS.CLIENTES },
     { to: "/app/produtos",  label: "Cadastro Produtos", perm: "produtos", modulo: MODULOS.CARDAPIO },
+    { to: "/app/estoque",   label: "Estoque",           perm: "estoque",  modulo: MODULOS.ESTOQUE },
     { to: "/app/delivery",  label: "Delivery",          perm: "produtos", modulo: MODULOS.DELIVERY },
     { to: "/app/relatorio", label: "Relatório",         perm: "relatorio", extra: relatorioVisivel, modulo: MODULOS.RELATORIOS },
   ].filter(item => currentUser?.permissions?.[item.perm] || item.extra);
 
+  // Financeiro, Notas Fiscais e Config. Fiscal saíram daqui: agora vivem dentro
+  // da Área Admin (a sidebar estava lotada). Ver AdminView (SECOES com `to`).
   const bottomItems = [
-    { to: "/app/estoque",       label: "Estoque",         perm: "estoque",       modulo: MODULOS.ESTOQUE    },
-    { to: "/app/financeiro",    label: "Financeiro",      perm: "financeiro",    modulo: MODULOS.FINANCEIRO },
-    { to: "/app/notas-fiscais", label: "Notas Fiscais",   perm: "relatorio" },
-    { to: "/app/fiscal",        label: "Config. Fiscal",  perm: "configuracoes" },
-    { to: "/app/admin",         label: "Área Admin",      perm: "configuracoes" },
-    { to: "/app/configuracoes", label: "Configurações",   perm: "configuracoes" },
+    { to: "/app/admin",         label: "Área Admin",    perm: "configuracoes" },
+    { to: "/app/configuracoes", label: "Configurações", perm: "configuracoes" },
   ].filter(item => currentUser?.permissions?.[item.perm]);
 
   // Fase 2 (ADR-005) — gating por plano: item com permissão de papel OK mas

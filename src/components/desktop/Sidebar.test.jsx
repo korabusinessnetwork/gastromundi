@@ -37,7 +37,7 @@ describe("Sidebar — gating por plano (F013/ADR-005, Fase 2)", () => {
     setup({ tenant: { planoCodigo: "avancado", modulosDisponiveis: null }, moduloHabilitado: () => true });
 
     // Itens acessíveis viram link de navegação (role="link" do react-router)
-    expect(screen.getByRole("link", { name: /financeiro/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /cadastro produtos/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /estoque/i })).toBeInTheDocument();
   });
 
@@ -49,14 +49,14 @@ describe("Sidebar — gating por plano (F013/ADR-005, Fase 2)", () => {
       moduloHabilitado: (m) => modulosDoPlanoBasico.includes(m),
     });
 
-    // Continua visível...
-    const financeiroBtn = screen.getByRole("button", { name: /financeiro/i });
-    expect(financeiroBtn).toBeInTheDocument();
+    // Continua visível... (Estoque está no plano avançado, não no básico)
+    const estoqueBtn = screen.getByRole("button", { name: /estoque/i });
+    expect(estoqueBtn).toBeInTheDocument();
     // ...mas não é mais um link de navegação (não navega)
-    expect(screen.queryByRole("link", { name: /financeiro/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /estoque/i })).not.toBeInTheDocument();
 
-    await user.click(financeiroBtn);
-    expect(screen.getByText(/financeiro não está no seu plano/i)).toBeInTheDocument();
+    await user.click(estoqueBtn);
+    expect(screen.getByText(/estoque não está no seu plano/i)).toBeInTheDocument();
   });
 
   it("não bloqueia módulos que o plano básico já inclui (PDV)", () => {
