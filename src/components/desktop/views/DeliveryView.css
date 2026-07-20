@@ -39,6 +39,46 @@
   white-space: nowrap;
 }
 
+/* Tag "Integrado ao PDV" + botão de abrir/fechar a loja, empilhados. */
+.delivery-view__header-acoes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* Botão abrir/fechar delivery — verde quando aberto (pode fechar),
+   vermelho quando fechado (pode abrir). Ação clara, um toque. */
+.delivery-view__toggle-loja {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+.delivery-view__toggle-loja:hover {
+  filter: brightness(0.95);
+}
+.delivery-view__toggle-loja:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.delivery-view__toggle-loja--aberta {
+  background: oklch(0.72 0.17 150 / 0.15);
+  color: oklch(0.5 0.15 150);
+  border-color: oklch(0.72 0.17 150 / 0.35);
+}
+.delivery-view__toggle-loja--fechada {
+  background: oklch(0.6 0.19 25 / 0.15);
+  color: oklch(0.55 0.19 25);
+  border-color: oklch(0.6 0.19 25 / 0.35);
+}
+
 /* Abas */
 .delivery-view__abas {
   display: flex;
@@ -112,8 +152,71 @@
   border-radius: 14px;
   padding: 14px;
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.delivery-view__card-topo {
+  display: flex;
   gap: 12px;
   align-items: flex-start;
+}
+.delivery-view__card-divisor {
+  margin: 0;
+}
+.delivery-view__card-preco-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.delivery-view__card-preco {
+  font-weight: 800;
+}
+.delivery-view__card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.delivery-view__card-acoes {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+.delivery-view__card-editar {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, filter 0.15s ease;
+}
+.delivery-view__card-editar:hover {
+  background: oklch(0.6 0 0 / 0.06);
+}
+.delivery-view__card-editar--perigo {
+  background: oklch(0.6 0.19 25);
+  border-color: oklch(0.6 0.19 25);
+  color: #fff;
+}
+.delivery-view__card-editar--perigo:hover {
+  background: oklch(0.54 0.19 25);
+  filter: none;
+}
+.delivery-view__card-remover--neutro {
+  background: oklch(0.6 0 0 / 0.14);
+  color: inherit;
+}
+.delivery-view__card-remover--neutro:hover {
+  background: oklch(0.6 0 0 / 0.22);
 }
 .delivery-view__card-foto {
   width: 56px;
@@ -457,7 +560,7 @@
   align-items: center;
   justify-content: center;
   padding: 10px 0;
-  border-radius: 10px;
+  border-radius: 12px;
   border: none;
   background: oklch(0.6 0.19 25);
   color: #fff;

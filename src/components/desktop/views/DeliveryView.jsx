@@ -54,6 +54,8 @@ import {
   LuRefreshCw,
   LuBell,
   LuBellOff,
+  LuPower,
+  LuPowerOff,
 } from "react-icons/lu";
 import {
   statusLabel,
@@ -140,6 +142,12 @@ export default function DeliveryView({ notify } = {}) {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
+  // Estado da loja (config_delivery.aberto): controla se a vitrine pública
+  // aceita pedidos. Espelhado aqui pra dar o botão de abrir/fechar no topo,
+  // sem obrigar o operador a entrar na aba "Entrega e taxas".
+  const [configDelivery, setConfigDelivery] = useState(null);
+  const [salvandoAberto, setSalvandoAberto] = useState(false);
+
   const aviso = useCallback(
     (msg, tipo) => (typeof notify === "function" ? notify(msg, tipo) : undefined),
     [notify]
@@ -167,6 +175,19 @@ export default function DeliveryView({ notify } = {}) {
     };
   }, [carregarLinhas]);
 
+  // Carrega a config só pra saber se a loja está aberta (botão do topo).
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const { data, error } = await carregarConfigDelivery();
+      if (!ativo || error) return;
+      setConfigDelivery(
+        data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] }
+      );
+    })();
+    return () => { ativo = false; };
+  }, []);
+
   // Junta cada linha de delivery com o produto (nome/preço/emoji vêm de products).
   const porProdutoId = useMemo(() => {
     const m = new Map();
@@ -190,6 +211,30 @@ export default function DeliveryView({ notify } = {}) {
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
 
+  // Abrir/fechar a loja direto do topo. Otimista: vira na hora e reverte se
+  // o Supabase recusar. Só admin/gerente mexe.
+  const alternarAberto = useCallback(async () => {
+    if (!isAdmin || salvandoAberto || !configDelivery) return;
+    if (!tenant?.id) return aviso("Estabelecimento não identificado.", "err");
+    const anterior = configDelivery;
+    const proximo = { ...configDelivery, aberto: !configDelivery.aberto };
+    setConfigDelivery(proximo);
+    setSalvandoAberto(true);
+    const { data, error } = await salvarConfigDelivery(tenant.id, proximo);
+    setSalvandoAberto(false);
+    if (error) {
+      setConfigDelivery(anterior);
+      return aviso("Não foi possível mudar o status da loja.", "err");
+    }
+    setConfigDelivery(data || proximo);
+    logAction(currentUser?.username, "delivery:config", {
+      msg: proximo.aberto ? "Delivery aberto" : "Delivery fechado",
+      name: currentUser?.name,
+      role: currentUser?.role,
+    });
+    aviso(proximo.aberto ? "Delivery aberto." : "Delivery fechado.", "ok");
+  }, [isAdmin, salvandoAberto, configDelivery, tenant, currentUser, aviso]);
+
   return (
     <div className="delivery-view" style={{ background: varColor(C.bg), color: varColor(C.text) }}>
       {/* Cabeçalho */}
@@ -202,23 +247,49 @@ export default function DeliveryView({ notify } = {}) {
             {itensCardapio.length} item{itensCardapio.length !== 1 ? "s" : ""} no cardápio online
           </div>
         </div>
-        <span
-          className="delivery-view__modo-tag"
-          style={{
-            fontSize: sz.fontSm,
-            background: alfa(ehAddon ? C.blue : C.green, "15"),
-            color: varColor(ehAddon ? C.blue : C.green),
-            border: `1px solid ${alfa(ehAddon ? C.blue : C.green, "33")}`,
-          }}
-          title={
-            ehAddon
-              ? "Seu plano tem PDV: o delivery usa o mesmo cardápio do sistema."
-              : "Plano só de delivery: este é o seu cadastro de produtos."
-          }
-        >
-          {ehAddon ? <LuStore size={13} /> : <LuTruck size={13} />}
-          {ehAddon ? "Integrado ao PDV" : "Delivery independente"}
-        </span>
+        <div className="delivery-view__header-acoes">
+          <span
+            className="delivery-view__modo-tag"
+            style={{
+              fontSize: sz.fontSm,
+              background: alfa(ehAddon ? C.blue : C.green, "15"),
+              color: varColor(ehAddon ? C.blue : C.green),
+              border: `1px solid ${alfa(ehAddon ? C.blue : C.green, "33")}`,
+            }}
+            title={
+              ehAddon
+                ? "Seu plano tem PDV: o delivery usa o mesmo cardápio do sistema."
+                : "Plano só de delivery: este é o seu cadastro de produtos."
+            }
+          >
+            {ehAddon ? <LuStore size={13} /> : <LuTruck size={13} />}
+            {ehAddon ? "Integrado ao PDV" : "Delivery independente"}
+          </span>
+
+          {isAdmin && configDelivery && (
+            <button
+              type="button"
+              onClick={alternarAberto}
+              disabled={salvandoAberto}
+              className={`delivery-view__toggle-loja delivery-view__toggle-loja--${
+                configDelivery.aberto ? "aberta" : "fechada"
+              }`}
+              style={{ fontSize: sz.fontSm }}
+              title={
+                configDelivery.aberto
+                  ? "A loja está aceitando pedidos. Clique para fechar."
+                  : "A loja não está aceitando pedidos. Clique para abrir."
+              }
+            >
+              {configDelivery.aberto ? <LuPowerOff size={14} /> : <LuPower size={14} />}
+              {salvandoAberto
+                ? "Salvando…"
+                : configDelivery.aberto
+                  ? "Fechar delivery"
+                  : "Abrir delivery"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Abas */}
@@ -799,52 +870,77 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
 
   return (
     <div className="delivery-view__card" style={{ background: varColor(C.card), border: `1px solid ${varColor(C.border)}` }}>
-      {item.foto_url ? (
-        <img className="delivery-view__card-foto" src={item.foto_url} alt={nome} />
-      ) : (
-        <div className="delivery-view__card-emoji" style={{ background: alfa(C.accent, "12") }}>{emoji}</div>
-      )}
-      <div className="delivery-view__card-corpo">
-        <div className="delivery-view__card-nome" style={{ fontSize: sz.fontBase }}>{nome}</div>
-        {item.descricao ? (
-          <div className="delivery-view__card-desc" style={{ fontSize: sz.fontSm }}>{item.descricao}</div>
+      <div className="delivery-view__card-topo">
+        {item.foto_url ? (
+          <img className="delivery-view__card-foto" src={item.foto_url} alt={nome} />
         ) : (
-          <div className="delivery-view__card-desc" style={{ fontSize: sz.fontSm, fontStyle: "italic", opacity: 0.6 }}>
-            Sem descrição — clique em editar para caprichar.
-          </div>
+          <div className="delivery-view__card-emoji" style={{ background: alfa(C.accent, "12") }}>{emoji}</div>
         )}
-        <div className="delivery-view__card-linha">
-          {preco != null && (
-            <span className="delivery-view__pill" style={{ fontSize: sz.fontSm, background: alfa(C.accent, "12"), color: varColor(C.accent) }}>
-              {formatarReais(preco)}
-            </span>
+        <div className="delivery-view__card-corpo">
+          <div className="delivery-view__card-nome" style={{ fontSize: sz.fontLg }}>{nome}</div>
+          {item.descricao ? (
+            <div className="delivery-view__card-desc" style={{ fontSize: sz.fontSm }}>{item.descricao}</div>
+          ) : (
+            <div className="delivery-view__card-desc" style={{ fontSize: sz.fontSm, fontStyle: "italic", opacity: 0.6 }}>
+              Sem descrição — clique em editar para caprichar.
+            </div>
           )}
-          <button
-            onClick={onToggle}
-            disabled={!isAdmin}
-            className="delivery-view__pill"
-            style={{
-              border: "none", cursor: isAdmin ? "pointer" : "default", fontSize: sz.fontSm,
-              background: alfa(item.disponivel ? C.green : C.muted, "15"),
-              color: varColor(item.disponivel ? C.green : C.muted),
-            }}
-            title="Ligar/desligar no cardápio"
-          >
-            {item.disponivel ? "Disponível" : "Indisponível"}
-          </button>
         </div>
-        {isAdmin && (
-          <div className="delivery-view__card-linha">
-            <button onClick={onEditar} className="delivery-view__btn" style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "6px 12px", fontSize: sz.fontSm }}>
-              <LuPencil size={13} /> Editar
-            </button>
-            {confirmar ? (
-              <>
-                <span style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>Remover?</span>
-                <button onClick={onRemover} className="delivery-view__btn" style={{ background: varColor(C.red), color: "#fff", padding: "6px 12px", fontSize: sz.fontSm }}>Sim</button>
-                <button onClick={() => setConfirmar(false)} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "6px 12px", fontSize: sz.fontSm }}>Não</button>
-              </>
-            ) : (
+      </div>
+
+      <div className="delivery-view__card-divisor" style={{ borderTop: `1px solid ${varColor(C.border)}` }} />
+
+      <div className="delivery-view__card-preco-linha">
+        <span className="delivery-view__card-preco" style={{ fontSize: sz.fontLg }}>
+          {preco != null ? formatarReais(preco) : "—"}
+        </span>
+        <button
+          onClick={onToggle}
+          disabled={!isAdmin}
+          className="delivery-view__pill"
+          style={{
+            border: "none", cursor: isAdmin ? "pointer" : "default", fontSize: sz.fontSm,
+            background: alfa(item.disponivel ? C.green : C.muted, "15"),
+            color: varColor(item.disponivel ? C.green : C.muted),
+          }}
+          title="Ligar/desligar no cardápio"
+        >
+          <span
+            className="delivery-view__card-dot"
+            style={{ background: varColor(item.disponivel ? C.green : C.muted) }}
+          />
+          {item.disponivel ? "Disponível" : "Indisponível"}
+        </button>
+      </div>
+
+      {isAdmin && (
+        <div className="delivery-view__card-acoes">
+          {confirmar ? (
+            <>
+              <button
+                onClick={onRemover}
+                className="delivery-view__card-editar delivery-view__card-editar--perigo"
+                style={{ fontSize: sz.fontBase }}
+              >
+                <LuTrash2 size={15} /> Confirmar remoção
+              </button>
+              <button
+                onClick={() => setConfirmar(false)}
+                className="delivery-view__card-remover delivery-view__card-remover--neutro"
+                title="Cancelar"
+              >
+                <LuX size={16} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={onEditar}
+                className="delivery-view__card-editar"
+                style={{ fontSize: sz.fontBase, borderColor: varColor(C.border), color: varColor(C.text) }}
+              >
+                <LuPencil size={15} /> Editar
+              </button>
               <button
                 onClick={() => setConfirmar(true)}
                 className="delivery-view__card-remover"
@@ -852,10 +948,10 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
               >
                 <LuTrash2 size={16} />
               </button>
-            )}
-          </div>
-        )}
-      </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
