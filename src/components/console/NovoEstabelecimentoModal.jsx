@@ -21,6 +21,7 @@ import "./NovoEstabelecimentoModal.css";
  */
 export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado }) {
   const [nome, setNome] = useState("");
+  const [endereco, setEndereco] = useState("");
   const [planoCodigo, setPlanoCodigo] = useState("");
   const [adminNome, setAdminNome] = useState("");
   const [adminUsername, setAdminUsername] = useState("");
@@ -46,7 +47,7 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
     if (enviando) return;
     setErroServidor("");
 
-    const form = { nome, planoCodigo, adminNome, adminUsername, adminPassword };
+    const form = { nome, endereco, planoCodigo, adminNome, adminUsername, adminPassword };
     const { ok, erros: errosValidacao } = validarNovoEstabelecimento(form);
     if (!ok) {
       setErros(errosValidacao);
@@ -93,6 +94,22 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
                 onChange={(e) => { setNome(e.target.value); limparErro("nome"); }}
               />
               {erros.nome && <span className="nem-erro-campo">{erros.nome}</span>}
+            </label>
+
+            <label className="nem-campo">
+              <span className="nem-label">Endereço (opcional)</span>
+              <input
+                className="nem-input"
+                type="text"
+                value={endereco}
+                placeholder="Rua, número, bairro, cidade"
+                maxLength={160}
+                disabled={enviando}
+                onChange={(e) => setEndereco(e.target.value)}
+              />
+              <span className="nem-dica">
+                Para quem quer delivery integrado — vira o ponto de partida no mapa de entrega. Pode preencher ou ajustar depois.
+              </span>
             </label>
 
             <label className="nem-campo">

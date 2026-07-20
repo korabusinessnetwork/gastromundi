@@ -106,6 +106,7 @@ import {
   temFaixasKm,
 } from "@/lib/deliveryAdmin";
 import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
+import { geocodificarEndereco } from "@/lib/delivery";
 import { enviarFotoProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import "./DeliveryView.css";
@@ -1904,6 +1905,12 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
   // modo da taxa: "area" (bairro/CEP) ou "km" (por distância).
   const [modoTaxa, setModoTaxa] = useState("area");
 
+  // endereço do estabelecimento (origem do mapa por km). O texto fica
+  // editável aqui; ao "Localizar", geocodifica (Nominatim, grátis) e
+  // posiciona o pino — que segue arrastável para o ajuste fino.
+  const [enderecoOrigem, setEnderecoOrigem] = useState("");
+  const [geocodificando, setGeocodificando] = useState(false);
+
   // nova faixa em edição
   const [faixaTipo, setFaixaTipo] = useState("bairro");
   const [faixaBairro, setFaixaBairro] = useState("");
@@ -1922,6 +1929,7 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
       const cfg =
         data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
       setConfig(cfg);
+      setEnderecoOrigem(cfg.endereco_origem || "");
       setModoTaxa(temFaixasKm(cfg.faixas_taxa) ? "km" : "area");
     })();
     return () => { ativo = false; };
@@ -1971,6 +1979,28 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
   const definirOrigem = (lat, lng) => {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
     salvar({ origem_lat: lat, origem_lng: lng });
+  };
+
+  // Geocodifica o endereço digitado (Nominatim, grátis) e posiciona o
+  // pino. Se o endereço não for encontrado, guarda o texto mesmo assim e
+  // pede para arrastar o pino à mão — nunca trava por causa de terceiro.
+  const localizarPeloEndereco = async () => {
+    const texto = enderecoOrigem.trim();
+    if (!texto) {
+      // Limpou o endereço: apaga só o texto, mantém o pino onde está.
+      salvar({ endereco_origem: null });
+      return;
+    }
+    setGeocodificando(true);
+    const { data } = await geocodificarEndereco(texto);
+    setGeocodificando(false);
+    if (data) {
+      salvar({ endereco_origem: texto, origem_lat: data.lat, origem_lng: data.lng });
+      aviso("Endereço localizado no mapa. Arraste o pino se quiser ajustar.", "ok");
+    } else {
+      salvar({ endereco_origem: texto });
+      aviso("Não encontramos esse endereço. Ele foi salvo — marque o ponto arrastando o pino no mapa.", "err");
+    }
   };
 
   if (carregando || !config) {
@@ -2041,6 +2071,44 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
         {/* Mapa visual (só no modo por distância) */}
         {modoTaxa === "km" && (
           <div style={{ marginBottom: 12 }}>
+            {/* Endereço do estabelecimento → origem do mapa */}
+            <div className="delivery-view__campo" style={{ marginBottom: 10 }}>
+              <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>
+                Endereço do estabelecimento (ponto de partida das entregas)
+              </label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input
+                  className="delivery-view__input"
+                  style={{ ...inputStyle(sz), flex: "1 1 240px" }}
+                  type="text"
+                  placeholder="Rua, número, bairro, cidade"
+                  value={enderecoOrigem}
+                  disabled={readOnly || geocodificando}
+                  onChange={(e) => setEnderecoOrigem(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !readOnly) localizarPeloEndereco(); }}
+                />
+                {!readOnly && (
+                  <button
+                    onClick={localizarPeloEndereco}
+                    disabled={geocodificando}
+                    className="delivery-view__btn"
+                    style={{
+                      padding: "8px 16px", fontSize: sz.fontSm, whiteSpace: "nowrap",
+                      background: varColor(C.accent), color: "#fff",
+                      opacity: geocodificando ? 0.7 : 1,
+                    }}
+                  >
+                    {geocodificando ? "Localizando…" : "Localizar no mapa"}
+                  </button>
+                )}
+              </div>
+              {!readOnly && (
+                <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4 }}>
+                  Digite o endereço e toque em "Localizar" — o pino vai para lá. Você ainda pode arrastá-lo para o ajuste fino.
+                </div>
+              )}
+            </div>
+
             <MapaRaioEntrega
               origem={origem}
               aneis={aneisKm}

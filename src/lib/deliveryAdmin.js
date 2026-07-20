@@ -210,6 +210,10 @@ export function sanitizarConfig(config) {
     faixas_taxa: faixas,
     origem_lat: coordOuNull(config?.origem_lat, -90, 90),
     origem_lng: coordOuNull(config?.origem_lng, -180, 180),
+    endereco_origem:
+      typeof config?.endereco_origem === "string"
+        ? config.endereco_origem.trim() || null
+        : null,
   };
 }
 
@@ -302,7 +306,7 @@ function coordOuNull(bruto, min, max) {
 export async function carregarConfigDelivery() {
   const { data, error } = await supabase
     .from("config_delivery")
-    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, updated_at")
+    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, endereco_origem, updated_at")
     .maybeSingle();
   return { data, error };
 }

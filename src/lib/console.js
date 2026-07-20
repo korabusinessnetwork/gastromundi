@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { LAYOUT_PADRAO_NOVOS } from "@/layouts";
+import { geocodificarEndereco } from "@/lib/delivery";
 
 /**
  * Console da Plataforma (S1-2, ADR-008 §7) — camada de dados.
@@ -127,13 +128,27 @@ export function validarNovoEstabelecimento(f = {}) {
  *
  * Nunca lança: erro de rede/autorização volta como { error } para a UI.
  *
- * @param {{nome:string, planoCodigo:string, tema?:object, adminNome:string, adminUsername:string, adminPassword:string}} payload
+ * @param {{nome:string, planoCodigo:string, tema?:object, adminNome:string, adminUsername:string, adminPassword:string, endereco?:string}} payload
  * @returns {Promise<{data?:object, error?:string}>}
  */
 export async function provisionarEstabelecimento(payload) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) return { error: "Sessão expirada. Entre novamente." };
+
+    // Endereço de origem do delivery (opcional — só quem quer delivery
+    // integrado). Geocodifica aqui (Nominatim, grátis) para já nascer com
+    // o pino no mapa; se falhar, guarda só o texto e o dono ajusta depois
+    // arrastando o pino na tela "Entrega e taxas". Nunca trava a criação.
+    const endereco = String(payload.endereco ?? "").trim();
+    let delivery = null;
+    if (endereco) {
+      const { data: coord } = await geocodificarEndereco(endereco);
+      delivery = {
+        endereco_origem: endereco,
+        ...(coord ? { origem_lat: coord.lat, origem_lng: coord.lng } : {}),
+      };
+    }
 
     const res = await fetch(EDGE_URL, {
       method: "POST",
@@ -153,6 +168,8 @@ export async function provisionarEstabelecimento(payload) {
           username: normalizarUsername(payload.adminUsername),
           password: payload.adminPassword,
         },
+        // Só vai quando há endereço — a Edge Function semeia config_delivery.
+        ...(delivery ? { delivery } : {}),
       }),
     });
 

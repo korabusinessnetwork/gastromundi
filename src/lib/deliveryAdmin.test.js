@@ -224,6 +224,7 @@ describe("sanitizarConfig", () => {
       faixas_taxa: [],
       origem_lat: null,
       origem_lng: null,
+      endereco_origem: null,
     });
   });
 
@@ -237,6 +238,13 @@ describe("sanitizarConfig", () => {
     // fora do intervalo ou não-numérico → null
     expect(sanitizarConfig({ origem_lat: 200, origem_lng: -51 }).origem_lat).toBe(null);
     expect(sanitizarConfig({ origem_lat: "x", origem_lng: "y" }).origem_lat).toBe(null);
+  });
+
+  it("guarda o endereço de origem em texto (trim) ou null", () => {
+    expect(sanitizarConfig({ endereco_origem: "  Rua A, 10  " }).endereco_origem).toBe("Rua A, 10");
+    expect(sanitizarConfig({ endereco_origem: "   " }).endereco_origem).toBe(null);
+    expect(sanitizarConfig({ endereco_origem: 123 }).endereco_origem).toBe(null);
+    expect(sanitizarConfig({}).endereco_origem).toBe(null);
   });
 
   it("ordena as faixas km do menor anel para o maior", () => {

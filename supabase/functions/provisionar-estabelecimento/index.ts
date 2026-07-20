@@ -159,6 +159,30 @@ Deno.serve(async (req) => {
       return json({ error: ePerfil.message ?? "Falha ao criar o perfil do admin." }, 400);
     }
 
+    // ── 7. (Opcional) Semeia a origem do delivery ────────────────────
+    // Só quando o Console mandou um endereço (cliente que quer delivery
+    // integrado). Best-effort: se falhar, NÃO derruba o provisionamento —
+    // o admin ajusta depois na tela "Entrega e taxas". Escreve via
+    // service_role porque o admin recém-criado ainda não tem sessão.
+    const delivery = body.delivery ?? null;
+    const enderecoOrigem = (delivery?.endereco_origem ?? "").trim();
+    if (enderecoOrigem) {
+      const lat = Number(delivery?.origem_lat);
+      const lng = Number(delivery?.origem_lng);
+      const temCoord =
+        Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
+        Number.isFinite(lng) && lng >= -180 && lng <= 180;
+      const { error: eDelivery } = await supabaseAdmin.from("config_delivery").upsert({
+        tenant_id: tenant.id,
+        endereco_origem: enderecoOrigem,
+        ...(temCoord ? { origem_lat: lat, origem_lng: lng } : {}),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "tenant_id" });
+      if (eDelivery) {
+        console.error("Falha ao semear config_delivery (ignorado):", eDelivery.message);
+      }
+    }
+
     return json({
       tenant_id: tenant.id,
       nome: tenant.nome,
