@@ -12,6 +12,9 @@ const ApexPage = lazy(() => import("@/pages/apex/ApexPage"));
 // Protótipo navegável ("Ver o KORA rodando") — só existe no apex; nos
 // subdomínios de tenant a rota nem se registra e cai no fallback /login.
 const DemoPage = lazy(() => import("@/pages/apex/demo/DemoPage"));
+// Vitrine pública de delivery (cardápio online, anon por slug) — lazy: só
+// quem abre /cardapio baixa esse código; o operador do PDV nunca carrega.
+const CardapioPage = lazy(() => import("@/pages/delivery/CardapioPage"));
 
 // Pages
 import LoginPage        from "@/pages/LoginPage";
@@ -84,6 +87,18 @@ const rotasApp = [
 
   // Autenticação
   { path: "/login", element: <LoginPage /> },
+
+  // Vitrine pública de delivery — SEM login (cliente final pede pelo slug do
+  // subdomínio). Fica fora do PrivateRoute de propósito: é a única superfície
+  // anônima do app além do login. Segurança real nas RPCs SECURITY DEFINER.
+  {
+    path: "/cardapio",
+    element: (
+      <Suspense fallback={null}>
+        <CardapioPage />
+      </Suspense>
+    ),
+  },
 
   // Console da Plataforma (S1-2) — só o super-admin `plataforma`.
   // Rota à parte de /app: a plataforma não opera o estabelecimento.
