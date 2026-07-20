@@ -18,6 +18,10 @@ import {
   sanitizarConfig,
   formatarCep,
   formatarReais,
+  formatarKm,
+  distanciaKm,
+  selecionarFaixaKm,
+  temFaixasKm,
 } from "./deliveryAdmin";
 
 describe("produtosParaImportar", () => {
@@ -218,11 +222,121 @@ describe("sanitizarConfig", () => {
       tempo_preparo_min: 0,
       horario: {},
       faixas_taxa: [],
+      origem_lat: null,
+      origem_lng: null,
     });
   });
 
   it("horario inválido vira objeto vazio", () => {
     expect(sanitizarConfig({ horario: "qualquer coisa" }).horario).toEqual({});
+  });
+
+  it("guarda coordenadas de origem só quando são válidas", () => {
+    expect(sanitizarConfig({ origem_lat: -30.03, origem_lng: -51.23 }).origem_lat).toBe(-30.03);
+    expect(sanitizarConfig({ origem_lat: -30.03, origem_lng: -51.23 }).origem_lng).toBe(-51.23);
+    // fora do intervalo ou não-numérico → null
+    expect(sanitizarConfig({ origem_lat: 200, origem_lng: -51 }).origem_lat).toBe(null);
+    expect(sanitizarConfig({ origem_lat: "x", origem_lng: "y" }).origem_lat).toBe(null);
+  });
+
+  it("ordena as faixas km do menor anel para o maior", () => {
+    const out = sanitizarConfig({
+      faixas_taxa: [
+        { tipo: "km", km_ate: 8, taxa: 12 },
+        { tipo: "km", km_ate: 2, taxa: 5 },
+        { tipo: "km", km_ate: 5, taxa: 8 },
+      ],
+    });
+    expect(out.faixas_taxa.map((f) => f.km_ate)).toEqual([2, 5, 8]);
+  });
+});
+
+describe("faixa por km — normalizar/validar/resumo", () => {
+  it("normaliza km_ate e taxa não-negativos", () => {
+    expect(normalizarFaixaTaxa({ tipo: "km", km_ate: "3", taxa: "5,5" })).toEqual({
+      tipo: "km",
+      km_ate: 3,
+      taxa: 0, // "5,5" não é número → 0 (a UI já converte vírgula antes)
+    });
+    expect(normalizarFaixaTaxa({ tipo: "km", km_ate: -2, taxa: 5 })).toEqual({
+      tipo: "km",
+      km_ate: 0,
+      taxa: 5,
+    });
+  });
+
+  it("faixa km só vale com raio > 0", () => {
+    expect(validarFaixa({ tipo: "km", km_ate: 3, taxa: 8 })).toBe(true);
+    expect(validarFaixa({ tipo: "km", km_ate: 0, taxa: 8 })).toBe(false);
+  });
+
+  it("resumo humano do anel", () => {
+    expect(faixaResumo({ tipo: "km", km_ate: 3, taxa: 8 })).toBe("Até 3 km — R$ 8,00");
+    expect(faixaResumo({ tipo: "km", km_ate: 2.5, taxa: 0 })).toBe("Até 2,5 km — Grátis");
+  });
+});
+
+describe("formatarKm", () => {
+  it("inteiro sem casas, fração com uma casa e vírgula", () => {
+    expect(formatarKm(3)).toBe("3");
+    expect(formatarKm(2.5)).toBe("2,5");
+    expect(formatarKm(-1)).toBe("0");
+  });
+});
+
+describe("distanciaKm (haversine)", () => {
+  it("mesmo ponto → 0", () => {
+    expect(distanciaKm(-30, -51, -30, -51)).toBe(0);
+  });
+
+  it("aproxima uma distância conhecida (~1,11 km por 0,01° de latitude)", () => {
+    const d = distanciaKm(-30.0, -51.0, -30.01, -51.0);
+    expect(d).toBeGreaterThan(1.0);
+    expect(d).toBeLessThan(1.2);
+  });
+
+  it("coordenada inválida → null", () => {
+    expect(distanciaKm("x", -51, -30, -51)).toBe(null);
+    expect(distanciaKm(undefined, undefined, undefined, undefined)).toBe(null);
+  });
+});
+
+describe("selecionarFaixaKm", () => {
+  const aneis = [
+    { tipo: "km", km_ate: 2, taxa: 5 },
+    { tipo: "km", km_ate: 5, taxa: 8 },
+    { tipo: "km", km_ate: 8, taxa: 12 },
+  ];
+
+  it("pega o menor anel que cobre a distância", () => {
+    expect(selecionarFaixaKm(aneis, 1.5)).toEqual({ tipo: "km", km_ate: 2, taxa: 5 });
+    expect(selecionarFaixaKm(aneis, 3)).toEqual({ tipo: "km", km_ate: 5, taxa: 8 });
+    expect(selecionarFaixaKm(aneis, 5)).toEqual({ tipo: "km", km_ate: 5, taxa: 8 });
+  });
+
+  it("fora de todos os anéis → null (fora da área)", () => {
+    expect(selecionarFaixaKm(aneis, 9)).toBe(null);
+  });
+
+  it("ignora faixas que não são km e ordena mesmo fora de ordem", () => {
+    const mistura = [
+      { tipo: "bairro", bairro: "Centro", taxa: 3 },
+      { tipo: "km", km_ate: 5, taxa: 8 },
+      { tipo: "km", km_ate: 2, taxa: 5 },
+    ];
+    expect(selecionarFaixaKm(mistura, 1)).toEqual({ tipo: "km", km_ate: 2, taxa: 5 });
+  });
+
+  it("distância inválida → null", () => {
+    expect(selecionarFaixaKm(aneis, "abc")).toBe(null);
+  });
+});
+
+describe("temFaixasKm", () => {
+  it("detecta se há ao menos um anel km", () => {
+    expect(temFaixasKm([{ tipo: "km", km_ate: 3, taxa: 5 }])).toBe(true);
+    expect(temFaixasKm([{ tipo: "bairro", bairro: "Centro", taxa: 5 }])).toBe(false);
+    expect(temFaixasKm([])).toBe(false);
   });
 });
 

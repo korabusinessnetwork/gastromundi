@@ -132,6 +132,12 @@ export function montarPayloadPedido({ cliente, entrega, pagamento, itens }) {
       bairro: (entrega?.bairro ?? "").trim(),
       endereco: (entrega?.endereco ?? "").trim(),
       complemento: (entrega?.complemento ?? "").trim() || null,
+      // Coordenadas só entram quando o modo é por km e o navegador
+      // conseguiu geocodificar o endereço. O servidor recalcula a taxa a
+      // partir delas (haversine); quando ausentes, cai no fluxo CEP/bairro.
+      ...(Number.isFinite(Number(entrega?.lat)) && Number.isFinite(Number(entrega?.lng))
+        ? { lat: Number(entrega.lat), lng: Number(entrega.lng) }
+        : {}),
     },
     pagamento: {
       forma: pagamento?.forma ?? null,
@@ -174,16 +180,22 @@ export async function carregarCardapio(slug) {
 }
 
 /**
- * Calcula a taxa de entrega (faixa do tenant) a partir do CEP/bairro.
+ * Calcula a taxa de entrega (faixa do tenant) a partir do CEP/bairro e,
+ * quando o estabelecimento cobra por distância, das coordenadas do cliente
+ * (lat/lng). O servidor é a fonte da verdade: ele decide o modo, calcula a
+ * distância (haversine) e escolhe o anel. lat/lng só vão quando existem.
  * @returns {Promise<{data: object|null, error: object|null}>}
  */
-export async function calcularTaxaEntrega(slug, cep, bairro) {
+export async function calcularTaxaEntrega(slug, cep, bairro, lat, lng) {
   if (!slug) return { data: null, error: null };
   try {
+    const temCoord = Number.isFinite(Number(lat)) && Number.isFinite(Number(lng));
     const { data, error } = await supabase.rpc("calcular_taxa_entrega", {
       p_slug: slug,
       p_cep: apenasDigitosCep(cep),
       p_bairro: (bairro ?? "").trim() || null,
+      p_lat: temCoord ? Number(lat) : null,
+      p_lng: temCoord ? Number(lng) : null,
     });
     if (error) return { data: null, error };
     return { data: data ?? null, error: null };
@@ -243,6 +255,44 @@ export async function buscarEnderecoViaCep(cep) {
       },
       error: null,
     };
+  } catch {
+    return { data: null, error: null };
+  }
+}
+
+// ── Nominatim / OpenStreetMap (grátis) — geocodificação p/ taxa por km ──
+
+/**
+ * Resolve latitude/longitude a partir de um endereço em texto, usando o
+ * Nominatim (OpenStreetMap) — grátis, sem chave. Usado só no modo "por
+ * distância": o navegador do cliente geocodifica o endereço digitado e
+ * manda a coordenada pro servidor, que calcula a distância e a taxa.
+ *
+ * Degradação graciosa (mesma regra do ViaCEP): nunca lança. Falha de rede
+ * ou endereço não encontrado vira { data: null } — a tela deixa o cliente
+ * seguir/tentar de novo, nunca trava por causa de terceiro.
+ *
+ * @param {string} endereco - endereço livre (rua, número, bairro, cidade…)
+ * @returns {Promise<{data: {lat:number, lng:number}|null, error: object|null}>}
+ */
+export async function geocodificarEndereco(endereco) {
+  const q = String(endereco ?? "").trim();
+  if (q.length < 4) return { data: null, error: null };
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=" +
+      encodeURIComponent(q);
+    const resp = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!resp.ok) return { data: null, error: null };
+    const json = await resp.json();
+    const primeiro = Array.isArray(json) ? json[0] : null;
+    if (!primeiro) return { data: null, error: null };
+    const lat = Number(primeiro.lat);
+    const lng = Number(primeiro.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return { data: null, error: null };
+    }
+    return { data: { lat, lng }, error: null };
   } catch {
     return { data: null, error: null };
   }

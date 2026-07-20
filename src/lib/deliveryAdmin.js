@@ -125,16 +125,23 @@ export function filtrarItensDelivery(itens, termo, idsExcluir = [], limite = 30)
 
 /**
  * Normaliza uma faixa de taxa vinda da UI para o formato gravado no
- * jsonb faixas_taxa. Dois tipos:
+ * jsonb faixas_taxa. Três tipos:
  *   { tipo:'bairro', bairro, taxa }
  *   { tipo:'cep', cep_ini, cep_fim, taxa }
+ *   { tipo:'km', km_ate, taxa }   (anel: cobre até km_ate km do ponto)
  * Sempre devolve um objeto (com taxa numérica ≥ 0); campos de texto
  * aparados. NÃO decide validade — para isso use validarFaixa.
  */
 export function normalizarFaixaTaxa(faixa) {
-  const tipo = faixa?.tipo === "cep" ? "cep" : "bairro";
   const taxa = Math.max(0, Number(faixa?.taxa) || 0);
-  if (tipo === "cep") {
+  if (faixa?.tipo === "km") {
+    return {
+      tipo: "km",
+      km_ate: Math.max(0, Number(faixa?.km_ate) || 0),
+      taxa,
+    };
+  }
+  if (faixa?.tipo === "cep") {
     return {
       tipo: "cep",
       cep_ini: soDigitos(faixa?.cep_ini, 8),
@@ -153,10 +160,14 @@ export function normalizarFaixaTaxa(faixa) {
  * Uma faixa está pronta para gravar?
  *   bairro: precisa de nome de bairro.
  *   cep: precisa dos 8 dígitos em cada ponta e cep_ini ≤ cep_fim.
+ *   km: precisa de km_ate > 0 (o anel tem que ter raio).
  * (Taxa 0 é válida — entrega grátis naquela faixa.)
  */
 export function validarFaixa(faixa) {
   const f = normalizarFaixaTaxa(faixa);
+  if (f.tipo === "km") {
+    return f.km_ate > 0;
+  }
   if (f.tipo === "cep") {
     if (f.cep_ini.length !== 8 || f.cep_fim.length !== 8) return false;
     return f.cep_ini <= f.cep_fim;
@@ -168,6 +179,9 @@ export function validarFaixa(faixa) {
 export function faixaResumo(faixa) {
   const f = normalizarFaixaTaxa(faixa);
   const valor = f.taxa > 0 ? formatarReais(f.taxa) : "Grátis";
+  if (f.tipo === "km") {
+    return `Até ${formatarKm(f.km_ate)} km — ${valor}`;
+  }
   if (f.tipo === "cep") {
     return `CEP ${formatarCep(f.cep_ini)} a ${formatarCep(f.cep_fim)} — ${valor}`;
   }
@@ -177,19 +191,72 @@ export function faixaResumo(faixa) {
 /**
  * Sanitiza o objeto de configuração antes de gravar em config_delivery.
  * Garante tipos corretos, números não-negativos, faixas normalizadas e
- * só as válidas. Nunca confia direto no que veio da UI.
+ * só as válidas. Faixas por km ficam ordenadas do menor anel para o maior
+ * (para a seleção "menor anel que cobre" ficar previsível). Nunca confia
+ * direto no que veio da UI.
  */
 export function sanitizarConfig(config) {
   const faixas = (Array.isArray(config?.faixas_taxa) ? config.faixas_taxa : [])
     .filter(validarFaixa)
-    .map(normalizarFaixaTaxa);
+    .map(normalizarFaixaTaxa)
+    .sort((a, b) =>
+      a.tipo === "km" && b.tipo === "km" ? a.km_ate - b.km_ate : 0
+    );
   return {
     aberto: !!config?.aberto,
     pedido_minimo: Math.max(0, Number(config?.pedido_minimo) || 0),
     tempo_preparo_min: Math.max(0, Math.round(Number(config?.tempo_preparo_min) || 0)),
     horario: config?.horario && typeof config.horario === "object" ? config.horario : {},
     faixas_taxa: faixas,
+    origem_lat: coordOuNull(config?.origem_lat, -90, 90),
+    origem_lng: coordOuNull(config?.origem_lng, -180, 180),
   };
+}
+
+// ── Distância / anéis por km (cálculo grátis, sem serviço pago) ─────
+
+/**
+ * Distância em km, em linha reta, entre dois pontos (lat/lng em graus),
+ * pela fórmula de Haversine. É o mesmo cálculo que o servidor faz em SQL
+ * (calcular_taxa_entrega) — o front usa só para PRÉ-VISUALIZAR no mapa; o
+ * valor que vale é sempre o que a RPC devolve. Coordenada inválida → null.
+ */
+export function distanciaKm(lat1, lng1, lat2, lng2) {
+  const a1 = Number(lat1), o1 = Number(lng1), a2 = Number(lat2), o2 = Number(lng2);
+  if ([a1, o1, a2, o2].some((n) => !Number.isFinite(n))) return null;
+  const R = 6371; // raio médio da Terra (km)
+  const rad = (g) => (g * Math.PI) / 180;
+  const dLat = rad(a2 - a1);
+  const dLng = rad(o2 - o1);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a1)) * Math.cos(rad(a2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/**
+ * Escolhe o anel por km para uma distância: o MENOR anel (km_ate) que
+ * ainda cobre a distância. Fora de todos os anéis → null (fora da área).
+ * Ignora faixas que não são do tipo km. Espelha a regra do servidor.
+ *
+ * @param {Array} faixas - faixas_taxa (mistura tolerada; só km conta)
+ * @param {number} dist - distância em km
+ * @returns {{tipo:'km', km_ate:number, taxa:number}|null}
+ */
+export function selecionarFaixaKm(faixas, dist) {
+  const d = Number(dist);
+  if (!Number.isFinite(d)) return null;
+  const aneis = (Array.isArray(faixas) ? faixas : [])
+    .filter((f) => f?.tipo === "km")
+    .map(normalizarFaixaTaxa)
+    .filter((f) => f.km_ate > 0)
+    .sort((a, b) => a.km_ate - b.km_ate);
+  return aneis.find((f) => f.km_ate >= d) || null;
+}
+
+/** A config está no modo "por distância"? (tem ao menos um anel km). */
+export function temFaixasKm(faixas) {
+  return (Array.isArray(faixas) ? faixas : []).some((f) => f?.tipo === "km");
 }
 
 // ── auxiliares puras internas ──────────────────────────────────────
@@ -212,6 +279,19 @@ export function formatarReais(valor) {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
 }
 
+/** Km sem casas inúteis: 3 → "3", 2.5 → "2,5". */
+export function formatarKm(valor) {
+  const n = Math.max(0, Number(valor) || 0);
+  return (Number.isInteger(n) ? String(n) : n.toFixed(1)).replace(".", ",");
+}
+
+/** Coordenada válida dentro do intervalo, ou null (não confia na UI). */
+function coordOuNull(bruto, min, max) {
+  const n = Number(bruto);
+  if (!Number.isFinite(n) || n < min || n > max) return null;
+  return n;
+}
+
 // ════════════════════════════════════════════════════════════════
 // ACESSO A DADOS (I/O) — admin autenticado, tabelas diretas (RLS)
 // ════════════════════════════════════════════════════════════════
@@ -222,7 +302,7 @@ export function formatarReais(valor) {
 export async function carregarConfigDelivery() {
   const { data, error } = await supabase
     .from("config_delivery")
-    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, updated_at")
+    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, updated_at")
     .maybeSingle();
   return { data, error };
 }

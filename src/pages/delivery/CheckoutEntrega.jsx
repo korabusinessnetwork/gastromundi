@@ -3,6 +3,12 @@
 // calculada no servidor (calcularTaxaEntrega). Degradação graciosa: se o
 // ViaCEP falhar, o cliente digita bairro/endereço à mão (nunca trava por
 // terceiro). "Fora da área de entrega" bloqueia o avanço com aviso claro.
+//
+// Dois modos, decididos pelo SERVIDOR (o cliente não sabe qual é): por
+// área (bairro/CEP) resolve na 1ª chamada; por distância (km) o servidor
+// responde motivo:'sem_coordenada' — então geocodificamos o endereço
+// digitado (Nominatim/OSM, grátis) e recalculamos com a coordenada. O
+// preço por anel é sempre do servidor.
 // ──────────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from "react";
 import {
@@ -12,15 +18,16 @@ import {
   cepCompleto,
   formatarCep,
   formatarPreco,
+  geocodificarEndereco,
 } from "@/lib/delivery";
 
 export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvancar }) {
   const [buscandoCep, setBuscandoCep] = useState(false);
-  const [taxa, setTaxa] = useState(null); // { ok, taxa, motivo }
+  const [taxa, setTaxa] = useState(null); // { ok, taxa, motivo, km }
   const [calculandoTaxa, setCalculandoTaxa] = useState(false);
   const cepAnterior = useRef("");
 
-  // Quando o CEP fica completo: ViaCEP (bairro/rua) → taxa (servidor).
+  // Quando o CEP fica completo: ViaCEP preenche bairro/rua (uma vez por CEP).
   useEffect(() => {
     const cep = apenasDigitosCep(dados.cep);
     if (!cepCompleto(cep) || cep === cepAnterior.current) return;
@@ -31,10 +38,9 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
       setBuscandoCep(true);
       const { data } = await buscarEnderecoViaCep(cep);
       if (!ativo) return;
-      const bairro = data?.bairro || dados.bairro || "";
-      // Preenche o que veio do ViaCEP (sem sobrescrever o que o cliente já digitou).
+      // Preenche o que veio do ViaCEP (sem sobrescrever o que o cliente digitou).
       onMudar({
-        bairro,
+        bairro: dados.bairro || data?.bairro || "",
         endereco:
           dados.endereco ||
           [data?.logradouro, data?.cidade && `${data.cidade}/${data.uf}`]
@@ -42,13 +48,6 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
             .join(" - "),
       });
       setBuscandoCep(false);
-
-      setCalculandoTaxa(true);
-      const { data: taxaRes } = await calcularTaxaEntrega(slug, cep, bairro);
-      if (!ativo) return;
-      setTaxa(taxaRes);
-      if (taxaRes?.ok) onMudar({ taxa: Number(taxaRes.taxa) || 0 });
-      setCalculandoTaxa(false);
     })();
     return () => {
       ativo = false;
@@ -56,7 +55,60 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dados.cep, slug]);
 
-  const foraDeArea = taxa && !taxa.ok;
+  // Calcula a taxa (servidor decide o modo). Recalcula com debounce quando
+  // CEP/bairro/endereço mudam. No modo por km, o servidor pede coordenada
+  // (motivo:'sem_coordenada') → geocodificamos o endereço e tentamos de novo.
+  useEffect(() => {
+    const cep = apenasDigitosCep(dados.cep);
+    if (!cepCompleto(cep)) {
+      setTaxa(null);
+      return;
+    }
+    const bairro = dados.bairro || "";
+    const endereco = dados.endereco || "";
+
+    let ativo = true;
+    const t = setTimeout(async () => {
+      setCalculandoTaxa(true);
+
+      // 1ª tentativa sem coordenada — o modo por área (bairro/CEP) resolve aqui.
+      let { data: res } = await calcularTaxaEntrega(slug, cep, bairro);
+
+      // Modo por distância: o servidor pediu coordenada. Geocodifica o
+      // endereço digitado e recalcula. Falha de geocode → mantém o motivo.
+      let coord = null;
+      if (res?.motivo === "sem_coordenada" && endereco.trim()) {
+        const texto = [endereco, bairro].filter(Boolean).join(", ");
+        const { data: geo } = await geocodificarEndereco(texto);
+        if (geo) {
+          coord = geo;
+          const r2 = await calcularTaxaEntrega(slug, cep, bairro, geo.lat, geo.lng);
+          res = r2.data;
+        }
+      }
+
+      if (!ativo) return;
+      setTaxa(res);
+      if (res?.ok) {
+        onMudar({
+          taxa: Number(res.taxa) || 0,
+          lat: coord ? coord.lat : null,
+          lng: coord ? coord.lng : null,
+        });
+      }
+      setCalculandoTaxa(false);
+    }, 700);
+
+    return () => {
+      ativo = false;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dados.cep, dados.bairro, dados.endereco, slug]);
+
+  const semCoordenada = taxa?.motivo === "sem_coordenada";
+  const indisponivelKm = taxa?.motivo === "origem_indefinida";
+  const foraDeArea = taxa && !taxa.ok && !semCoordenada && !indisponivelKm;
   const temTaxa = taxa?.ok;
   const podeAvancar =
     dados.nome.trim() &&
@@ -169,7 +221,19 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
           {calculandoTaxa && (
             <div className="vitrine__aviso">Calculando a taxa de entrega…</div>
           )}
-          {foraDeArea && (
+          {!calculandoTaxa && semCoordenada && (
+            <div className="vitrine__aviso vitrine__aviso--erro">
+              Não consegui localizar seu endereço no mapa. Confira a rua e o número
+              para calcular a entrega.
+            </div>
+          )}
+          {!calculandoTaxa && indisponivelKm && (
+            <div className="vitrine__aviso vitrine__aviso--erro">
+              A entrega por distância está indisponível no momento. Fale com o
+              estabelecimento.
+            </div>
+          )}
+          {!calculandoTaxa && foraDeArea && (
             <div className="vitrine__aviso vitrine__aviso--erro">
               Esse endereço está fora da nossa área de entrega. Confira o CEP ou o
               bairro.
@@ -178,7 +242,7 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
           {temTaxa && (
             <div className="resumo">
               <div className="resumo__linha">
-                <span>Taxa de entrega</span>
+                <span>Taxa de entrega{Number(taxa?.km) > 0 ? ` · ${String(taxa.km).replace(".", ",")} km` : ""}</span>
                 <span>
                   {Number(dados.taxa) > 0 ? formatarPreco(dados.taxa) : "Grátis"}
                 </span>

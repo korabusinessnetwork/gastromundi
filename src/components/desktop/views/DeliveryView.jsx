@@ -103,7 +103,9 @@ import {
   validarFaixa,
   formatarReais,
   formatarCep,
+  temFaixasKm,
 } from "@/lib/deliveryAdmin";
+import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
 import { enviarFotoProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import "./DeliveryView.css";
@@ -1760,11 +1762,15 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
 
+  // modo da taxa: "area" (bairro/CEP) ou "km" (por distância).
+  const [modoTaxa, setModoTaxa] = useState("area");
+
   // nova faixa em edição
   const [faixaTipo, setFaixaTipo] = useState("bairro");
   const [faixaBairro, setFaixaBairro] = useState("");
   const [faixaCepIni, setFaixaCepIni] = useState("");
   const [faixaCepFim, setFaixaCepFim] = useState("");
+  const [faixaKmAte, setFaixaKmAte] = useState("");
   const [faixaTaxa, setFaixaTaxa] = useState("");
 
   useEffect(() => {
@@ -1774,9 +1780,10 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
       if (!ativo) return;
       setCarregando(false);
       if (error) return aviso("Não foi possível carregar as configurações.", "err");
-      setConfig(
-        data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] }
-      );
+      const cfg =
+        data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
+      setConfig(cfg);
+      setModoTaxa(temFaixasKm(cfg.faixas_taxa) ? "km" : "area");
     })();
     return () => { ativo = false; };
   }, [aviso]);
@@ -1795,22 +1802,36 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
     aviso("Configurações salvas.", "ok");
   };
 
+  const taxaNum = () => parseFloat(String(faixaTaxa).replace(",", ".")) || 0;
+
   const addFaixa = () => {
-    const nova =
-      faixaTipo === "cep"
-        ? { tipo: "cep", cep_ini: faixaCepIni, cep_fim: faixaCepFim, taxa: parseFloat(String(faixaTaxa).replace(",", ".")) || 0 }
-        : { tipo: "bairro", bairro: faixaBairro, taxa: parseFloat(String(faixaTaxa).replace(",", ".")) || 0 };
-    if (!validarFaixa(nova)) {
-      return aviso(faixaTipo === "cep" ? "Preencha os dois CEPs (8 dígitos, início ≤ fim)." : "Informe o nome do bairro.", "err");
+    let nova, erro;
+    if (modoTaxa === "km") {
+      nova = { tipo: "km", km_ate: parseFloat(String(faixaKmAte).replace(",", ".")) || 0, taxa: taxaNum() };
+      erro = "Informe a distância do anel em km (maior que zero).";
+    } else if (faixaTipo === "cep") {
+      nova = { tipo: "cep", cep_ini: faixaCepIni, cep_fim: faixaCepFim, taxa: taxaNum() };
+      erro = "Preencha os dois CEPs (8 dígitos, início ≤ fim).";
+    } else {
+      nova = { tipo: "bairro", bairro: faixaBairro, taxa: taxaNum() };
+      erro = "Informe o nome do bairro.";
     }
+    if (!validarFaixa(nova)) return aviso(erro, "err");
     const faixas = [...(config.faixas_taxa || []), nova];
-    setFaixaBairro(""); setFaixaCepIni(""); setFaixaCepFim(""); setFaixaTaxa("");
+    setFaixaBairro(""); setFaixaCepIni(""); setFaixaCepFim(""); setFaixaKmAte(""); setFaixaTaxa("");
     salvar({ faixas_taxa: faixas });
   };
 
   const removerFaixa = (idx) => {
-    const faixas = (config.faixas_taxa || []).filter((_, i) => i !== idx);
+    const alvo = faixasVisiveis[idx];
+    const faixas = (config.faixas_taxa || []).filter((f) => f !== alvo);
     salvar({ faixas_taxa: faixas });
+  };
+
+  // Ao arrastar o pino no mapa, grava a origem do estabelecimento.
+  const definirOrigem = (lat, lng) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    salvar({ origem_lat: lat, origem_lng: lng });
   };
 
   if (carregando || !config) {
@@ -1818,6 +1839,16 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
   }
 
   const readOnly = !isAdmin;
+
+  // Só as faixas do modo atual aparecem na lista (não misturar — "só km").
+  const faixasVisiveis = (config.faixas_taxa || []).filter((f) =>
+    modoTaxa === "km" ? f?.tipo === "km" : f?.tipo !== "km"
+  );
+  const aneisKm = (config.faixas_taxa || []).filter((f) => f?.tipo === "km");
+  const origem =
+    Number.isFinite(Number(config.origem_lat)) && Number.isFinite(Number(config.origem_lng))
+      ? { lat: Number(config.origem_lat), lng: Number(config.origem_lng) }
+      : null;
 
   return (
     <div style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 18 }}>
@@ -1833,20 +1864,63 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
         </div>
       </div>
 
-      {/* Faixas de taxa por distância */}
+      {/* Taxa de entrega */}
       <div>
         <div style={{ fontWeight: 700, fontSize: sz.fontBase, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
           <LuTruck size={16} color={varColor(C.accent)} /> Taxa de entrega
         </div>
+
+        {/* Seletor de modo: por área (bairro/CEP) ou por distância (km) */}
+        {isAdmin && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            {[
+              { id: "area", label: "Por bairro / CEP" },
+              { id: "km", label: "Por distância (km)" },
+            ].map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setModoTaxa(m.id)}
+                className="delivery-view__btn"
+                style={{
+                  padding: "8px 14px", fontSize: sz.fontSm,
+                  background: modoTaxa === m.id ? varColor(C.accent) : alfa(C.muted, "12"),
+                  color: modoTaxa === m.id ? "#fff" : varColor(C.muted),
+                }}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginBottom: 10 }}>
-          Cobre por bairro ou por faixa de CEP. Quem estiver fora de todas as faixas não consegue pedir para entrega.
+          {modoTaxa === "km"
+            ? "Marque no mapa de onde você entrega e crie anéis por distância (ex.: até 2 km R$ 5, até 5 km R$ 8). Fora do maior anel, o cliente não consegue pedir."
+            : "Cobre por bairro ou por faixa de CEP. Quem estiver fora de todas as faixas não consegue pedir para entrega."}
         </div>
 
+        {/* Mapa visual (só no modo por distância) */}
+        {modoTaxa === "km" && (
+          <div style={{ marginBottom: 12 }}>
+            <MapaRaioEntrega
+              origem={origem}
+              aneis={aneisKm}
+              onOrigemChange={definirOrigem}
+              readOnly={readOnly}
+            />
+            {!origem && (
+              <div style={{ fontSize: sz.fontSm, color: varColor(C.red), marginTop: 6 }}>
+                Marque o ponto de partida no mapa — sem ele o cálculo por distância não funciona.
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-          {(config.faixas_taxa || []).length === 0 && (
+          {faixasVisiveis.length === 0 && (
             <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>Nenhuma faixa cadastrada ainda.</div>
           )}
-          {(config.faixas_taxa || []).map((f, idx) => (
+          {faixasVisiveis.map((f, idx) => (
             <div key={idx} className="delivery-view__faixa" style={{ background: varColor(C.surface) }}>
               <span className="delivery-view__faixa-texto" style={{ fontSize: sz.fontBase }}>{faixaResumo(f)}</span>
               {isAdmin && (
@@ -1860,24 +1934,28 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
 
         {isAdmin && (
           <div style={{ border: `1px dashed ${varColor(C.border)}`, borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ display: "flex", gap: 6 }}>
-              {["bairro", "cep"].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setFaixaTipo(t)}
-                  className="delivery-view__btn"
-                  style={{
-                    padding: "7px 14px", fontSize: sz.fontSm,
-                    background: faixaTipo === t ? varColor(C.accent) : alfa(C.muted, "12"),
-                    color: faixaTipo === t ? "#fff" : varColor(C.muted),
-                  }}
-                >
-                  {t === "bairro" ? "Por bairro" : "Por CEP"}
-                </button>
-              ))}
-            </div>
+            {modoTaxa === "area" && (
+              <div style={{ display: "flex", gap: 6 }}>
+                {["bairro", "cep"].map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setFaixaTipo(t)}
+                    className="delivery-view__btn"
+                    style={{
+                      padding: "7px 14px", fontSize: sz.fontSm,
+                      background: faixaTipo === t ? varColor(C.accent) : alfa(C.muted, "12"),
+                      color: faixaTipo === t ? "#fff" : varColor(C.muted),
+                    }}
+                  >
+                    {t === "bairro" ? "Por bairro" : "Por CEP"}
+                  </button>
+                ))}
+              </div>
+            )}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {faixaTipo === "bairro" ? (
+              {modoTaxa === "km" ? (
+                <input className="delivery-view__input" style={{ ...inputStyle(sz), flex: "1 1 160px" }} type="number" min="0" step="0.1" value={faixaKmAte} onChange={(e) => setFaixaKmAte(e.target.value)} placeholder="Até quantos km" />
+              ) : faixaTipo === "bairro" ? (
                 <input className="delivery-view__input" style={{ ...inputStyle(sz), flex: "1 1 160px" }} value={faixaBairro} onChange={(e) => setFaixaBairro(e.target.value)} placeholder="Bairro" maxLength={60} />
               ) : (
                 <>
