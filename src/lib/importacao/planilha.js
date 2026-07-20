@@ -27,6 +27,15 @@ export const LIMITE_CATEGORIA = 40;
 export const LIMITE_ENDERECO = 160;
 export const LIMITE_OBSERVACOES = 240;
 
+// Teto de magnitude pra preço/quantidade/mínimo. Não existe prato, insumo
+// ou estoque de restaurante que legitimamente passe de 1 milhão (preço em
+// R$ ou unidades) — valor acima disso é quase sempre erro de digitação ou
+// planilha corrompida (célula deslocada, export de outro sistema em
+// centavos, etc.) e entraria sem limite nos cálculos/estoque/preços. Em
+// vez de clampar em silêncio, rejeitamos a linha com mensagem clara —
+// mesmo padrão dos outros erros de validação deste arquivo.
+export const LIMITE_VALOR_NUMERICO = 1_000_000;
+
 // Apelidos de cabeçalho (já normalizados) → coluna do nosso modelo.
 // É o que faz o export "cru" de outros PDVs entrar sem o cliente
 // renomear coluna — o degrau genérico do de-para de concorrentes.
@@ -137,7 +146,9 @@ export function normalizarCabecalho(str) {
  * @returns {number|null}
  */
 export function parsearPrecoBR(valor) {
-  if (typeof valor === "number") return Number.isFinite(valor) ? valor : null;
+  if (typeof valor === "number") {
+    return Number.isFinite(valor) && Math.abs(valor) <= LIMITE_VALOR_NUMERICO ? valor : null;
+  }
   let s = String(valor ?? "").trim().replace(/^r\$\s*/i, "").replace(/\s/g, "");
   if (!s) return null;
   const temVirgula = s.includes(",");
@@ -153,7 +164,7 @@ export function parsearPrecoBR(valor) {
   }
   if (!/^\d+(\.\d+)?$/.test(s)) return null;
   const n = Number(s);
-  return Number.isFinite(n) ? n : null;
+  return Number.isFinite(n) && n <= LIMITE_VALOR_NUMERICO ? n : null;
 }
 
 /**
@@ -267,9 +278,21 @@ export function validarPlanilhaProdutos(texto) {
   return { produtos: [...porNome.values()], erros, avisos };
 }
 
-/** Escapa uma célula pro CSV (aspas quando tem separador/aspas/quebra). */
+// Caracteres que o Excel/LibreOffice/Google Sheets interpretam como início
+// de FÓRMULA numa célula de CSV: "=", "+", "-", "@" abrem fórmula; TAB e CR
+// também disparam em alguns parsers. Um nome de produto tipo "=cmd|..."
+// viraria fórmula executável na planilha de quem importa o export — vetor
+// clássico de CSV injection (OWASP).
+const CARACTERES_PERIGOSOS_CSV = ["=", "+", "-", "@", "\t", "\r"];
+
+/**
+ * Escapa uma célula pro CSV: neutraliza fórmula (prefixo aspa simples se a
+ * célula começa com caractere perigoso — padrão OWASP contra CSV
+ * injection) e só depois aplica o escaping normal de aspas/separador/quebra.
+ */
 function celulaCSV(valor, separador) {
-  const s = String(valor ?? "");
+  let s = String(valor ?? "");
+  if (CARACTERES_PERIGOSOS_CSV.includes(s[0])) s = "'" + s;
   return s.includes(separador) || s.includes('"') || s.includes("\n")
     ? `"${s.replace(/"/g, '""')}"`
     : s;

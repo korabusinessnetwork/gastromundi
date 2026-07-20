@@ -518,6 +518,8 @@ export function AppProvider({ children }) {
     const sale = op.payload.data;
     const { error } = await supabase.from("sales").upsert({ id: op.payload.id, data: sale }, { onConflict: "id" });
     if (error) return { error };
+    // DÍVIDA (auditoria P3/P4): reenvio pode reaplicar efeitos — precisa de chave de idempotência na RPC
+    // (o upsert acima não duplica a venda, mas o evento e o dual-write abaixo podem reemitir no dreno).
     emitirEvento("venda.finalizada", "pdv", {
       venda_id: sale.id,
       total: sale.total ?? null,
@@ -706,6 +708,11 @@ export function AppProvider({ children }) {
   // ou sem rede, a trava se desliga e o app opera como antes.
   const adquirirTrava = async (id) => {
     if (lockIndisponivelRef.current || !currentUser?.username) return { ok: true, semTrava: true };
+    // X3 — o username entra cru no filtro .or() abaixo. Um username com `,`
+    // `.` `)` ou espaço reescreveria a lógica do filtro (roubo de trava).
+    // Só montamos o .or() com username em allowlist [a-zA-Z0-9._-]; fora
+    // dela, fail-open (não trava ninguém — coerente com o resto da função).
+    if (!/^[a-zA-Z0-9._-]+$/.test(currentUser.username)) return { ok: true, semTrava: true };
     const agora = new Date();
     const limiteExpirada = new Date(agora.getTime() - LOCK_TTL_MS).toISOString();
     const { data, error } = await supabase.from("pending")
@@ -756,15 +763,29 @@ export function AppProvider({ children }) {
   };
 
   const updateProduct = async (id, changes) => {
-    const { error } = await supabase.from("products").update(changes).eq("id", id);
-    if (!error) setProductsLocal(prev => prev.map(p => p.id === id ? { ...p, ...changes } : p));
-    return { error };
+    // .select() após o update: PostgREST devolve sucesso HTTP com 0 linhas
+    // quando a RLS filtra tudo (ex.: gerente edita preço, mas a policy exige
+    // admin) ou o id não bate. Sem checar as linhas, a UI fingiria sucesso
+    // sem nada persistir (mesmo padrão do updateUser/cancelarVendaFechada).
+    const { data, error } = await supabase.from("products").update(changes).eq("id", id).select("id");
+    if (error) return { error };
+    if (!data || data.length === 0) {
+      return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada — sem permissão ou produto inexistente." } };
+    }
+    setProductsLocal(prev => prev.map(p => p.id === id ? { ...p, ...changes } : p));
+    return { error: null };
   };
 
   const removeProduct = async (id) => {
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (!error) setProductsLocal(prev => prev.filter(p => p.id !== id));
-    return { error };
+    // .select() após o delete: 0 linhas removidas (RLS ou id inexistente)
+    // resolve { error: null } no supabase-js — checagem evita sucesso falso.
+    const { data, error } = await supabase.from("products").delete().eq("id", id).select("id");
+    if (error) return { error };
+    if (!data || data.length === 0) {
+      return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida — sem permissão ou produto inexistente." } };
+    }
+    setProductsLocal(prev => prev.filter(p => p.id !== id));
+    return { error: null };
   };
 
   // Recarrega o cardápio inteiro do banco — usado após operações em lote
@@ -935,9 +956,17 @@ export function AppProvider({ children }) {
   };
 
   const removeUser = async (id) => {
-    const { error } = await supabase.from("users").delete().eq("id", id);
-    if (!error) setUsersLocal(prev => prev.filter(u => u.id !== id));
-    return { error };
+    // .select() após o delete: 0 linhas removidas (RLS filtra — apenas admin
+    // remove usuários — ou id inexistente) resolve { error: null } no
+    // supabase-js. Checar as linhas evita sucesso falso (mesmo padrão do
+    // updateUser/cancelarVendaFechada).
+    const { data, error } = await supabase.from("users").delete().eq("id", id).select("id");
+    if (error) return { error };
+    if (!data || data.length === 0) {
+      return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida — sem permissão (apenas admin remove usuários) ou usuário inexistente." } };
+    }
+    setUsersLocal(prev => prev.filter(u => u.id !== id));
+    return { error: null };
   };
 
   // ── Actions: Fechamentos ──────────────────────────────────────
@@ -1017,6 +1046,7 @@ export function AppProvider({ children }) {
       // baixa gravou mas a resposta se perdeu, o reenvio desconta de novo
       // (janela rara; corrigível com chave de idempotência na RPC).
       if (isErroDeRede(error)) {
+        // DÍVIDA (auditoria P3/P4): reenvio pode reaplicar efeitos — precisa de chave de idempotência na RPC
         enfileirarOffline({ tipo: "rpc_baixar_estoque", produtoId: productId, qtd: qty });
         return { error: null, offline: true };
       }
@@ -1053,6 +1083,7 @@ export function AppProvider({ children }) {
     if (error) {
       // Mesmo caveat de idempotência da baixa de produto (ver acima).
       if (isErroDeRede(error)) {
+        // DÍVIDA (auditoria P3/P4): reenvio pode reaplicar efeitos — precisa de chave de idempotência na RPC
         enfileirarOffline({ tipo: "rpc_baixar_estoque_subproduto", subprodutoId, qtd });
         return { error: null, offline: true };
       }
@@ -1170,10 +1201,17 @@ export function AppProvider({ children }) {
   const setCategoriaGrupo = async (category, grupoId) => {
     const cat = String(category ?? "").trim();
     if (!cat) return { error: { message: "Categoria inválida." } };
+    // P8 — captura o estado anterior antes do otimista para reverter no erro
+    // (senão a UI mantém o mapeamento aplicado enquanto o banco não gravou).
+    const anterior = categoriaGrupos;
     if (grupoId == null || grupoId === "") {
       setCategoriaGruposLocal(prev => prev.filter(r => r.category !== cat));
       const { error } = await supabase.from("categoria_grupo").delete().eq("category", cat);
-      return { error };
+      if (error) {
+        setCategoriaGruposLocal(anterior);
+        return { error };
+      }
+      return { error: null };
     }
     const gid = Number(grupoId);
     setCategoriaGruposLocal(prev => {
@@ -1183,7 +1221,11 @@ export function AppProvider({ children }) {
     const { error } = await supabase
       .from("categoria_grupo")
       .upsert({ category: cat, grupo_id: gid, updated_at: new Date().toISOString() }, { onConflict: "tenant_id,category" });
-    return { error };
+    if (error) {
+      setCategoriaGruposLocal(anterior);
+      return { error };
+    }
+    return { error: null };
   };
 
   // ── Context value ─────────────────────────────────────────────

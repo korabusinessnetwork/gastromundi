@@ -506,8 +506,15 @@ export default function PDVView({ notify }) {
       }).filter(Boolean);
       const totalOrigem = novosOrigem.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
 
+      // ── Transferência resiliente (sem Promise.all) ──────────────
+      // O supabase-js NÃO lança em erro — resolve `{ error }`. Se as duas
+      // gravações fossem disparadas juntas e a segunda falhasse, os itens
+      // sumiriam de uma comanda sem entrar na outra (perda silenciosa =
+      // prejuízo). Por isso as escritas são SEQUENCIAIS e o DESTINO é
+      // confirmado ANTES da remoção na ORIGEM: se algo falhar, no pior caso
+      // os itens ficam duplicados (visível/recuperável), nunca sumidos.
       if (transMode === "nova") {
-        // Cria nova comanda com os itens transferidos
+        // Cria nova comanda com os itens transferidos.
         const itensNova = aTransferir.map(({ it, qty }) => ({ ...it, qty }));
         const totalNova = itensNova.reduce((s, i) => s + i.price * i.qty, 0);
         const novaOrder = {
@@ -521,19 +528,35 @@ export default function PDVView({ notify }) {
           mesa:       selected?.mesa    || "",
           apelido:    selected?.apelido || "",
         };
-        const resultados = await Promise.all([
-          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }, { baseItems: itens }),
-          addPending(novaOrder),
-        ]);
-        const falha = resultados.find(r => r?.error);
-        if (falha) {
-          notify?.("A transferência não foi concluída — verifique as comandas e tente novamente.", "err");
+
+        // 1º passo — cria/adiciona no destino. Origem ainda intacta.
+        const { error: erroDestino } = await addPending(novaOrder);
+        if (erroDestino) {
+          notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          return;
+        }
+
+        // 2º passo — remove da origem só depois do destino confirmado.
+        const { error: erroOrigem } = await updatePending(
+          selected.id, { items: novosOrigem, total: totalOrigem }, { baseItems: itens },
+        );
+        if (erroOrigem) {
+          // Destino já criado e origem intacta: desfaz a criação
+          // (compensação) para não duplicar. Se a compensação também
+          // falhar, os itens ficaram duplicados — avisa para conferência.
+          const { error: erroCompensacao } = await removePending(novaOrder.id);
+          if (erroCompensacao) {
+            notify?.("Atenção: os itens podem ter ficado duplicados. Confira as duas comandas.", "err");
+          } else {
+            notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          }
           return;
         }
       } else {
-        // Destino existente
-        const destino    = abertas.find(o => o.id === destinoId);
-        const novosDestino = [...(Array.isArray(destino.items) ? destino.items : [])];
+        // Destino existente.
+        const destino          = abertas.find(o => o.id === destinoId);
+        const itensDestinoOrig = Array.isArray(destino.items) ? destino.items : [];
+        const novosDestino     = [...itensDestinoOrig];
         aTransferir.forEach(({ it, qty }) => {
           const existIdx = novosDestino.findIndex(d => mesmoItemDeVenda(d, it) && !d.cancelado);
           if (existIdx >= 0) {
@@ -543,13 +566,34 @@ export default function PDVView({ notify }) {
           }
         });
         const totalDestino = novosDestino.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-        const resultados = await Promise.all([
-          updatePending(selected.id, { items: novosOrigem, total: totalOrigem }, { baseItems: itens }),
-          updatePending(destinoId,   { items: novosDestino, total: totalDestino }, { baseItems: Array.isArray(destino.items) ? destino.items : [] }),
-        ]);
-        const falha = resultados.find(r => r?.error);
-        if (falha) {
-          notify?.("A transferência não foi concluída — verifique as comandas e tente novamente.", "err");
+
+        // 1º passo — adiciona no destino. Origem ainda intacta.
+        const { error: erroDestino } = await updatePending(
+          destinoId, { items: novosDestino, total: totalDestino }, { baseItems: itensDestinoOrig },
+        );
+        if (erroDestino) {
+          notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          return;
+        }
+
+        // 2º passo — remove da origem só depois do destino confirmado.
+        const { error: erroOrigem } = await updatePending(
+          selected.id, { items: novosOrigem, total: totalOrigem }, { baseItems: itens },
+        );
+        if (erroOrigem) {
+          // Destino já recebeu os itens e origem intacta: tenta reverter o
+          // destino ao estado original (compensação). Se a reversão falhar,
+          // os itens podem ficar duplicados (visível/recuperável), nunca
+          // sumidos.
+          const totalDestinoOrig = itensDestinoOrig.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+          const { error: erroCompensacao } = await updatePending(
+            destinoId, { items: itensDestinoOrig, total: totalDestinoOrig }, { baseItems: novosDestino },
+          );
+          if (erroCompensacao) {
+            notify?.("Atenção: os itens podem ter ficado duplicados. Confira as duas comandas.", "err");
+          } else {
+            notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          }
           return;
         }
       }

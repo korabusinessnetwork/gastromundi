@@ -31,6 +31,22 @@ export function esc(v) {
     .replaceAll("'", "&#39;");
 }
 
+/**
+ * X2 — o logo vem do CADASTRO DO TENANT (white-label, decisão 017): sem
+ * validar o esquema, um `javascript:`/`data:text/html` salvo ali vira
+ * XSS na janela de impressão. Allowlist: só `http:`, `https:` (logo
+ * hospedado) ou `data:image/…` (logo embutido em base64) passam — o
+ * resto é descartado e o cabeçalho cai pro nome em texto.
+ *
+ * @param {any} url
+ * @returns {boolean}
+ */
+export function logoUrlSegura(url) {
+  const s = String(url ?? "").trim();
+  if (!s) return false;
+  return /^https?:/i.test(s) || /^data:image\//i.test(s);
+}
+
 function fmtR(v) {
   return "R$ " + Number(v ?? 0).toFixed(2);
 }
@@ -54,9 +70,10 @@ function linhasItensRecibo(itens) {
 }
 
 function blocoCabecalhoIdentidade(identidade) {
+  const logoValido = logoUrlSegura(identidade.logoUrl);
   return `
     <div class="cabecalho">
-      ${identidade.logoUrl ? `<img class="cabecalho__logo" src="${esc(identidade.logoUrl)}" alt="${esc(identidade.nome)}" />` : `<div class="cabecalho__nome">${esc(identidade.nome)}</div>`}
+      ${logoValido ? `<img class="cabecalho__logo" src="${esc(identidade.logoUrl)}" alt="${esc(identidade.nome)}" />` : `<div class="cabecalho__nome">${esc(identidade.nome)}</div>`}
       <div class="cabecalho__linha">${new Date().toLocaleString("pt-BR")}</div>
     </div>
     ${(identidade.endereco || identidade.cnpj) ? `

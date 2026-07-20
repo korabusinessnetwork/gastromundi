@@ -85,6 +85,21 @@ describe("parsearPrecoBR", () => {
   it.each([["abc"], [""], ["12,34,56"], [null]])("rejeita %s", (entrada) => {
     expect(parsearPrecoBR(entrada)).toBeNull();
   });
+
+  it("aceita valor exatamente no teto de magnitude (1.000.000)", () => {
+    expect(parsearPrecoBR("1000000")).toBe(1_000_000);
+    expect(parsearPrecoBR(1_000_000)).toBe(1_000_000);
+  });
+
+  it("rejeita valor acima do teto de magnitude — provável erro de digitação/planilha corrompida", () => {
+    expect(parsearPrecoBR("1000000,01")).toBeNull();
+    expect(parsearPrecoBR("999999999999")).toBeNull();
+    expect(parsearPrecoBR(999999999999)).toBeNull();
+  });
+
+  it("valor normal dentro do teto continua passando", () => {
+    expect(parsearPrecoBR("24,90")).toBe(24.9);
+  });
 });
 
 describe("parsearBooleanoBR", () => {
@@ -148,6 +163,13 @@ describe("validarPlanilhaProdutos", () => {
   it("arquivo vazio", () => {
     expect(validarPlanilhaProdutos("").erros[0].mensagem).toMatch(/vazio/);
   });
+
+  it("preço absurdo (acima do teto de magnitude) é rejeitado com mensagem clara, sem derrubar as boas", () => {
+    const r = validarPlanilhaProdutos(`${cabecalho}\nBom;10,00;Pratos;;;\nAbsurdo;999999999999;Pratos;;;`);
+    expect(r.produtos).toHaveLength(1);
+    expect(r.produtos[0].nome).toBe("Bom");
+    expect(r.erros[0].mensagem).toMatch(/não é um valor válido/);
+  });
 });
 
 describe("montarCSVProdutos / gerarModeloCSV (portabilidade)", () => {
@@ -168,6 +190,38 @@ describe("montarCSVProdutos / gerarModeloCSV (portabilidade)", () => {
     const r = validarPlanilhaProdutos(gerarModeloCSV());
     expect(r.erros).toEqual([]);
     expect(r.produtos).toHaveLength(2);
+  });
+});
+
+describe("montarCSVProdutos — proteção contra CSV injection (I1)", () => {
+  it.each(["=", "+", "-", "@", "\t", "\r"])(
+    "prefixa com aspa simples quando o nome começa com %j (fórmula em Excel/Sheets)",
+    (charPerigoso) => {
+      const nomePerigoso = `${charPerigoso}cmd|'/C calc'!A1`;
+      const csv = montarCSVProdutos([{ name: nomePerigoso, price: 10, category: "Pratos" }]);
+      const linhaProduto = csv.split("\r\n")[1];
+      const celulaNome = linhaProduto.split(";")[0].replace(/^"|"$/g, "");
+      expect(celulaNome.startsWith("'" + charPerigoso)).toBe(true);
+    }
+  );
+
+  it("valor normal (sem caractere perigoso no início) não é alterado", () => {
+    const csv = montarCSVProdutos([{ name: "X-Salada", price: 10, category: "Pratos" }]);
+    expect(csv).toContain("X-Salada");
+    expect(csv).not.toContain("'X-Salada");
+  });
+
+  it("caractere perigoso no meio do nome (não no início) não é prefixado", () => {
+    const csv = montarCSVProdutos([{ name: "Combo=Duplo", price: 10, category: "Pratos" }]);
+    const linhaProduto = csv.split("\r\n")[1];
+    expect(linhaProduto.startsWith("Combo=Duplo")).toBe(true);
+  });
+
+  it("continua escapando aspas/separador/quebra de linha normalmente, mesmo com prefixo de proteção", () => {
+    const csv = montarCSVProdutos([{ name: '=diz "oi"; ok', price: 10, category: "Pratos" }]);
+    const linhaProduto = csv.split("\r\n")[1];
+    // prefixo ' + aspas internas dobradas + célula entre aspas por ter ; e "
+    expect(linhaProduto).toContain('"\'=diz ""oi""; ok"');
   });
 });
 
@@ -279,5 +333,17 @@ describe("validarPlanilhaEstoque", () => {
     expect(r.erros).toEqual([]);
     expect(r.itens[0]).toMatchObject({ produto: "X-Salada", quantidade: 2.5, minimo: 10 });
     expect(validarPlanilhaEstoque(gerarModeloEstoqueCSV()).erros).toEqual([]);
+  });
+
+  it("quantidade absurda (acima do teto de magnitude) é rejeitada com mensagem clara", () => {
+    const r = validarPlanilhaEstoque(`${cabecalho}\nX-Salada;999999999999;`);
+    expect(r.itens).toEqual([]);
+    expect(r.erros[0].mensagem).toMatch(/não é um número válido/);
+  });
+
+  it("quantidade exatamente no teto (1.000.000) é aceita", () => {
+    const r = validarPlanilhaEstoque(`${cabecalho}\nX-Salada;1000000;`);
+    expect(r.erros).toEqual([]);
+    expect(r.itens[0].quantidade).toBe(1_000_000);
   });
 });

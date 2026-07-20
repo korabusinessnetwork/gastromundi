@@ -218,8 +218,12 @@
   function montarCategorias() {
     var cats = ["Todos"];
     produtos.forEach(function (p) { if (p.category && cats.indexOf(p.category) < 0) cats.push(p.category); });
+    // X1: categoria vem do catálogo do caixa (rede local, mas nunca é
+    // confiável) — escapar antes de injetar no HTML (mesma função usada
+    // pra nome de produto), senão uma categoria maliciosa vira XSS no
+    // painel da Palm. Escapar tanto no atributo data-cat quanto no texto.
     $("cats").innerHTML = cats.map(function (c) {
-      return "<button class=\"cat" + (c === catAtiva ? " ativa" : "") + "\" data-cat=\"" + c.replace(/"/g, "") + "\">" + c + "</button>";
+      return "<button class=\"cat" + (c === catAtiva ? " ativa" : "") + "\" data-cat=\"" + escapar(c) + "\">" + escapar(c) + "</button>";
     }).join("");
     Array.prototype.forEach.call($("cats").children, function (b) {
       b.onclick = function () { catAtiva = b.getAttribute("data-cat"); montarCategorias(); desenharGrid(); };
@@ -247,7 +251,12 @@
   }
 
   function escapar(s) {
-    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   // ── Carrinho ──────────────────────────────────────────────────

@@ -9,22 +9,28 @@
 export const criarEspera = ({ comanda, mesa = "", items = [] }) => ({
   comanda: String(comanda ?? "").trim(),
   mesa:    String(mesa ?? "").trim(),
-  items:   items.map(i => ({ ...i })),
+  items:   (Array.isArray(items) ? items : []).map(i => ({ ...i })),
 });
 
 /**
  * Adiciona uma espera à fila. Se já existe espera para a MESMA comanda,
  * funde os itens (mesmo produto soma quantidade) em vez de duplicar a
  * entrada — o garçom vê uma linha por comanda, como espera ver.
+ *
+ * P9: `items` da entrada nova é validado como array antes de iterar —
+ * uma entrada malformada (campo ausente/tipo errado, ex.: vindo de um
+ * `localStorage` corrompido) não quebra a fusão nem derruba a tela; a
+ * comanda entra/atualiza só com os itens que de fato são válidos.
  */
 export const adicionarEspera = (lista, nova) => {
   const fila = Array.isArray(lista) ? lista : [];
+  const itensNovos = Array.isArray(nova?.items) ? nova.items : [];
   if (!nova?.comanda) return fila;
   const idx = fila.findIndex(e => e.comanda === nova.comanda);
-  if (idx < 0) return [...fila, nova];
+  if (idx < 0) return [...fila, { ...nova, items: itensNovos.map(i => ({ ...i })) }];
   const existente = fila[idx];
   const itens = [...existente.items];
-  for (const item of nova.items ?? []) {
+  for (const item of itensNovos) {
     const j = itens.findIndex(i => i.id === item.id);
     if (j >= 0) itens[j] = { ...itens[j], qty: (itens[j].qty ?? 1) + (item.qty ?? 1) };
     else        itens.push({ ...item });

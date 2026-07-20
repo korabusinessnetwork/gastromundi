@@ -255,6 +255,18 @@ export async function atualizarStatusPedido(pedidoId, novoStatus, contexto = {})
       .select(CAMPOS_PEDIDO)
       .maybeSingle();
     if (error) return { data: null, error };
+    // DL2: supabase-js não lança quando o UPDATE não bate em nenhuma
+    // linha (pedido de outro tenant sob a RLS RESTRICTIVE, ou id que já
+    // não existe mais) — vem sem `error`, mas `data: null` (maybeSingle).
+    // Sem essa checagem o operador via "atualizado" no toast enquanto o
+    // status no banco não mudou nada — sucesso falso. Trata como erro
+    // pro chamador não seguir como se a transição tivesse acontecido.
+    if (!data) {
+      return {
+        data: null,
+        error: new Error("Não foi possível atualizar este pedido (não encontrado ou sem permissão)."),
+      };
+    }
     // Auditoria da transição (fire-and-forget, nunca bloqueia).
     logAction(contexto?.operador, "delivery:status", {
       pedido_id: pedidoId,

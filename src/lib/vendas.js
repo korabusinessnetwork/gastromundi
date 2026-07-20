@@ -1,6 +1,22 @@
 import { normalizarPagamentos } from "@/utils/pagamentos";
 
 /**
+ * P7 — arredonda um valor monetário para 2 casas sem viés de ponto
+ * flutuante (0.1 + 0.2 !== 0.3). Sem isso, subtotal/total acumulam
+ * erro de centavo ao longo de várias vendas — pouco por venda, mas
+ * some do caixa no fechamento do dia. Função pura, local a este
+ * módulo (mesma técnica usada em outras camadas de dinheiro do app).
+ *
+ * @param {any} v
+ * @returns {number}
+ */
+export function round2(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+/**
  * TD009 (etapa 1) — mapeia uma venda no formato antigo (blob de
  * sales.data) para as linhas das tabelas relacionais novas
  * (vendas, venda_itens, venda_pagamentos). Função pura — não faz
@@ -17,11 +33,13 @@ export function mapearVendaParaLinhas(sale) {
     id: sale.id,
     comanda: sale.comanda ?? null,
     mesa: sale.mesa ?? null,
-    subtotal: sale.subtotal ?? null,
+    // P7: arredonda pra 2 casas antes de persistir — evita erro de
+    // centavo acumulado (ponto flutuante) no subtotal/total gravado.
+    subtotal: sale.subtotal != null ? round2(sale.subtotal) : null,
     taxa_servico: !!sale.taxaServico,
-    valor_taxa: sale.valorTaxa ?? 0,
-    valor_ajuste: sale.valorAjuste ?? 0,
-    total: sale.total ?? 0,
+    valor_taxa: round2(sale.valorTaxa ?? 0),
+    valor_ajuste: round2(sale.valorAjuste ?? 0),
+    total: round2(sale.total ?? 0),
     cashier: sale.cashier ?? null,
     cliente_id: sale.clienteId ?? null, // F010 — vínculo opcional ao cliente
     ...(sale.at ? { at: sale.at } : {}),
@@ -31,7 +49,7 @@ export function mapearVendaParaLinhas(sale) {
     venda_id: sale.id,
     product_id: item.id ?? null,
     nome: item.name ?? "",
-    preco: Number(item.price) || 0,
+    preco: round2(item.price),
     qtd: item.qty ?? 1,
     cancelado: !!item.cancelado,
     motivo_cancelamento: item.motivoCancelamento ?? null,
@@ -43,7 +61,7 @@ export function mapearVendaParaLinhas(sale) {
     .map((p) => ({
       venda_id: sale.id,
       metodo: p.metodo,
-      valor: Number(p.valor) || 0,
+      valor: round2(p.valor),
     }));
 
   return { venda, itens, pagamentos };

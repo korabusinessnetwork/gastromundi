@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { esc, renderizarRecibo, renderizarViaProducao } from "./renderizar";
+import { esc, logoUrlSegura, renderizarRecibo, renderizarViaProducao } from "./renderizar";
 
 describe("esc", () => {
   it("escapa os metacaracteres de HTML", () => {
@@ -12,6 +12,22 @@ describe("esc", () => {
     expect(esc(null)).toBe("");
     expect(esc(undefined)).toBe("");
     expect(esc(2)).toBe("2");
+  });
+});
+
+describe("logoUrlSegura", () => {
+  it("aceita http/https e data:image (X2 — allowlist de esquema do logo do tenant)", () => {
+    expect(logoUrlSegura("https://cdn.exemplo.com/logo.png")).toBe(true);
+    expect(logoUrlSegura("http://cdn.exemplo.com/logo.png")).toBe(true);
+    expect(logoUrlSegura("data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==")).toBe(true);
+  });
+
+  it("rejeita esquemas perigosos ou não-imagem", () => {
+    expect(logoUrlSegura("javascript:alert(1)")).toBe(false);
+    expect(logoUrlSegura("data:text/html,<script>alert(1)</script>")).toBe(false);
+    expect(logoUrlSegura("")).toBe(false);
+    expect(logoUrlSegura(null)).toBe(false);
+    expect(logoUrlSegura(undefined)).toBe(false);
   });
 });
 
@@ -58,6 +74,17 @@ describe("renderizarRecibo", () => {
 
   it("nunca lança mesmo com dados incompletos", () => {
     expect(() => renderizarRecibo({ identidade: {}, itens: [], pagamentos: [] })).not.toThrow();
+  });
+
+  it("X2 — descarta logo com esquema perigoso e cai pro nome em texto", () => {
+    const html = renderizarRecibo({
+      ...dadosBase,
+      identidade: { ...dadosBase.identidade, logoUrl: "javascript:alert(document.cookie)" },
+    });
+
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("javascript:");
+    expect(html).toContain('<div class="cabecalho__nome">GastroMundi</div>');
   });
 
   it("escapa nome de produto e observação maliciosos (stored XSS na impressão)", () => {

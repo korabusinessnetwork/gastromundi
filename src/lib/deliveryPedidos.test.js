@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // A camada importa o client Supabase (que exige VITE_* no import). Só
 // testamos as funções PURAS aqui — o client é mockado para não exigir env.
@@ -25,7 +25,9 @@ import {
   resumoPagamento,
   formatarReais,
   tempoDecorrido,
+  atualizarStatusPedido,
 } from "./deliveryPedidos";
+import { supabase } from "./supabase";
 
 describe("statusLabel", () => {
   it("traduz cada status do fluxo + cancelado", () => {
@@ -242,5 +244,43 @@ describe("tempoDecorrido", () => {
   });
   it("trata data futura como 'agora'", () => {
     expect(tempoDecorrido("2026-07-20T12:05:00Z", base)).toBe("agora");
+  });
+});
+
+describe("atualizarStatusPedido (DL2)", () => {
+  beforeEach(() => {
+    supabase.reset();
+  });
+
+  it("some com o pedido, id/status ausentes: nem chama o banco", async () => {
+    const { data, error } = await atualizarStatusPedido(null, "em_preparo");
+    expect(error).toBeTruthy();
+    expect(data).toBeNull();
+  });
+
+  it("propaga erro explícito do Supabase", async () => {
+    supabase.setTableError("delivery_pedidos", { message: "falhou" });
+    const { data, error } = await atualizarStatusPedido("p1", "em_preparo");
+    expect(error).toBeTruthy();
+    expect(data).toBeNull();
+  });
+
+  it("DL2 — UPDATE que não bate em nenhuma linha (RLS/id inexistente) vira erro, não sucesso falso", async () => {
+    // supabase-js não lança aqui: sem `error`, mas `data: null` porque
+    // maybeSingle() não achou a linha (outro tenant ou id apagado).
+    supabase.setTableResult("delivery_pedidos", { data: null, error: null });
+    const { data, error } = await atualizarStatusPedido("p1", "em_preparo");
+    expect(data).toBeNull();
+    expect(error).toBeTruthy();
+  });
+
+  it("sucesso real: retorna o pedido atualizado sem erro", async () => {
+    supabase.setTableResult("delivery_pedidos", {
+      data: { id: "p1", numero: 7, status: "em_preparo" },
+      error: null,
+    });
+    const { data, error } = await atualizarStatusPedido("p1", "em_preparo");
+    expect(error).toBeNull();
+    expect(data).toEqual({ id: "p1", numero: 7, status: "em_preparo" });
   });
 });

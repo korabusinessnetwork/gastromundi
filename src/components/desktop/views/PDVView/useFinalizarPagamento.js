@@ -7,6 +7,7 @@ import { processarPagamentoTef, metodoUsaTef } from "@/lib/tef";
 import { consumoParaEstoque } from "@/utils/conversaoUnidades";
 import { calcularBaixasSubprodutos } from "@/lib/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
+import { round2 } from "@/lib/vendas";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
 // cadastrado hoje, mas a checagem já fica pronta para quando existir
@@ -51,7 +52,10 @@ export function useFinalizarPagamento() {
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
     const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
     const todosItens      = [...itensAcumulados, ...itensLocais];
-    const subtotal        = todosItens.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+    // P7 — arredonda o subtotal na ORIGEM (não só na gravação em vendas.js):
+    // este `subtotal` vai para recibo, UI e sales.data; sem round2 o erro de
+    // ponto flutuante (0.1+0.2) vazaria para essas superfícies.
+    const subtotal        = round2(todosItens.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0));
 
     const sale = {
       id:          crypto.randomUUID(),

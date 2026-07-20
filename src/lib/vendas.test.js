@@ -1,7 +1,45 @@
 import { describe, it, expect, vi } from "vitest";
-import { mapearVendaParaLinhas, montarVendaLegada, persistirVendaNormalizada } from "./vendas";
+import { mapearVendaParaLinhas, montarVendaLegada, persistirVendaNormalizada, round2 } from "./vendas";
+
+describe("round2 (P7)", () => {
+  it("arredonda pra 2 casas sem viés de ponto flutuante", () => {
+    expect(round2(0.1 + 0.2)).toBe(0.3);
+    expect(round2(19.999)).toBe(20);
+    expect(round2(10.005)).toBe(10.01);
+  });
+  it("trata entrada inválida como 0", () => {
+    expect(round2(null)).toBe(0);
+    expect(round2(undefined)).toBe(0);
+    expect(round2("abc")).toBe(0);
+    expect(round2(NaN)).toBe(0);
+  });
+  it("preserva valor já redondo", () => {
+    expect(round2(53)).toBe(53);
+    expect(round2(-2)).toBe(-2);
+  });
+});
 
 describe("mapearVendaParaLinhas", () => {
+  it("P7 — arredonda subtotal/total/taxa/ajuste com erro de centavo de ponto flutuante", () => {
+    const sale = {
+      id: "vfloat",
+      subtotal: 0.1 + 0.2, // 0.30000000000000004
+      taxaServico: false,
+      valorTaxa: 1.005,
+      valorAjuste: 0,
+      total: 10.1 + 0.2, // erro clássico de ponto flutuante
+      items: [{ id: 1, name: "Item", price: 4.1 + 0.2, qty: 1 }],
+      pagamentos: [{ metodo: "pix", valor: 4.1 + 0.2 }],
+    };
+
+    const { venda, itens, pagamentos } = mapearVendaParaLinhas(sale);
+
+    expect(venda.subtotal).toBe(0.3);
+    expect(venda.total).toBe(10.3);
+    expect(itens[0].preco).toBe(4.3);
+    expect(pagamentos[0].valor).toBe(4.3);
+  });
+
   it("mapeia uma venda completa (itens + split de pagamento)", () => {
     const sale = {
       id: "v1",

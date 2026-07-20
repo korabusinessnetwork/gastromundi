@@ -68,6 +68,20 @@ describe("adicionarEspera", () => {
     adicionarEspera(original, criarEspera({ comanda: "1", items: [item("a", 10)] }));
     expect(original[0].items[0].qty).toBe(1);
   });
+
+  it("P9 — items malformado (não-array) não quebra, entra/funde como lista vazia", () => {
+    const espera = criarEspera({ comanda: "1", items: [item("a", 10)] });
+    espera.items = "não é array"; // ex.: dado corrompido vindo do localStorage
+    expect(() => adicionarEspera([], espera)).not.toThrow();
+    const fila = adicionarEspera([], espera);
+    expect(fila).toHaveLength(1);
+    expect(fila[0].items).toEqual([]);
+
+    const existente = adicionarEspera([], criarEspera({ comanda: "1", items: [item("a", 10)] }));
+    expect(() => adicionarEspera(existente, espera)).not.toThrow();
+    const fundida = adicionarEspera(existente, espera);
+    expect(fundida[0].items).toHaveLength(1); // itens existentes preservados
+  });
 });
 
 describe("removerEspera", () => {
