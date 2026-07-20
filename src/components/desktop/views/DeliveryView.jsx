@@ -1821,17 +1821,6 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
 
   return (
     <div style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 18 }}>
-      {/* Loja aberta */}
-      <label className="delivery-view__switch" style={{ fontSize: sz.fontBase, padding: "12px 14px", borderRadius: 12, background: varColor(C.card), border: `1px solid ${varColor(C.border)}` }}>
-        <span>
-          <strong>Delivery aberto agora</strong>
-          <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
-            {config.aberto ? "Clientes conseguem fazer pedidos." : "O cardápio aparece, mas sem aceitar pedidos."}
-          </div>
-        </span>
-        <input type="checkbox" checked={!!config.aberto} disabled={readOnly} onChange={(e) => salvar({ aberto: e.target.checked })} style={{ width: 22, height: 22 }} />
-      </label>
-
       {/* Pedido mínimo + tempo de preparo */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <div className="delivery-view__campo" style={{ flex: "1 1 180px" }}>
