@@ -1435,48 +1435,62 @@ function SeletorProdutoComplemento({ sz, products, idsExcluir, onEscolher }) {
 // (GrupoCardMini). Header com "voltar" + nome; corpo com regras (mín/máx),
 // itens do grupo e a busca multi-seleção de "aparece nestes produtos".
 function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, recarregar, onVoltar, onRemovido }) {
+  // ── Rascunho local — NADA persiste até "Salvar" ─────────────────────
+  // Todo o editor é um rascunho: nome, mín/máx, itens e "aparece nestes
+  // produtos" ficam só na memória. "Salvar" grava tudo de uma vez; "Voltar"
+  // com pendências pede confirmação. Assim o dono nunca altera um grupo sem
+  // querer — o que estava salvo fica intacto até ele confirmar.
+  const mapItem = (it) => ({ id: it.id, produto_id: it.produto_id, nome: it.nome, preco: it.preco });
   const [nome, setNome] = useState(grupo.nome);
   const [min, setMin] = useState(String(grupo.min_escolhas ?? 0));
   const [max, setMax] = useState(String(grupo.max_escolhas ?? 1));
-  // Item do grupo agora vem de um produto JÁ CRIADO, escolhido na busca.
+  const [itens, setItens] = useState(() => (grupo.itens || []).map(mapItem));
+  const [produtoIds, setProdutoIds] = useState(grupo.produtoIds ?? []);
   const [selecionadoProd, setSelecionadoProd] = useState(null);
   const [novoPreco, setNovoPreco] = useState("");
   const [salvando, setSalvando] = useState(false);
-  const [adicionando, setAdicionando] = useState(false);
-  // Produtos onde este grupo aparece (checklist). Estado local otimista:
-  // marca/desmarca na hora e persiste via produto_grupos; reverte no erro.
-  const [produtoIds, setProdutoIds] = useState(grupo.produtoIds ?? []);
-  const [vinculando, setVinculando] = useState(false);
+  const [confirmarVoltar, setConfirmarVoltar] = useState(false);
+  const [confirmarRemover, setConfirmarRemover] = useState(false);
 
-  const salvarGrupo = async () => {
-    setSalvando(true);
-    const { error } = await salvarGrupoComplemento({
-      id: grupo.id, nome: nome.trim() || grupo.nome,
-      min_escolhas: Number(min) || 0, max_escolhas: Number(max) || 1, ordem: grupo.ordem,
-    });
-    setSalvando(false);
-    if (error) return aviso("Não foi possível salvar o grupo.", "err");
-    await recarregar();
+  // Ressincroniza o rascunho quando o grupo é recarregado do servidor (só
+  // acontece após salvar/remover — durante a edição a referência do grupo é
+  // estável, então edições em andamento nunca são perdidas por re-render).
+  useEffect(() => {
+    setNome(grupo.nome);
+    setMin(String(grupo.min_escolhas ?? 0));
+    setMax(String(grupo.max_escolhas ?? 1));
+    setItens((grupo.itens || []).map(mapItem));
+    setProdutoIds(grupo.produtoIds ?? []);
+    setSelecionadoProd(null);
+    setNovoPreco("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupo]);
+
+  // Há algo diferente do que está salvo? Controla o botão "Salvar" e o
+  // aviso ao voltar.
+  const sujo = useMemo(() => {
+    if ((nome ?? "").trim() !== (grupo.nome ?? "")) return true;
+    if ((Number(min) || 0) !== (Number(grupo.min_escolhas) || 0)) return true;
+    if ((Number(max) || 1) !== (Number(grupo.max_escolhas) || 1)) return true;
+    if (itens.some((i) => !i.id)) return true; // itens novos ainda não salvos
+    const idsOrig = (grupo.itens || []).map((i) => String(i.id)).sort();
+    const idsAtual = itens.filter((i) => i.id).map((i) => String(i.id)).sort();
+    if (idsOrig.length !== idsAtual.length) return true;
+    if (idsOrig.some((v, k) => v !== idsAtual[k])) return true;
+    const pOrig = (grupo.produtoIds || []).map(String).sort();
+    const pAtual = produtoIds.map(String).sort();
+    if (pOrig.length !== pAtual.length) return true;
+    if (pOrig.some((v, k) => v !== pAtual[k])) return true;
+    return false;
+  }, [nome, min, max, itens, produtoIds, grupo]);
+
+  // Marca/desmarca "aparece nestes produtos" — só no rascunho.
+  const alternarProduto = (produtoId) => {
+    setProdutoIds((prev) => alternarProdutoId(prev, produtoId));
   };
 
-  const alternarProduto = async (produtoId) => {
-    if (vinculando) return;
-    const jaTem = produtoIds.some((x) => String(x) === String(produtoId));
-    const antes = produtoIds;
-    setProdutoIds(alternarProdutoId(produtoIds, produtoId));
-    setVinculando(true);
-    const { error } = jaTem
-      ? await desvincularGrupoProduto(grupo.id, produtoId)
-      : await vincularGrupoProduto(grupo.id, produtoId);
-    setVinculando(false);
-    if (error) {
-      setProdutoIds(antes); // reverte a marcação otimista
-      return aviso("Não foi possível atualizar onde o grupo aparece.", "err");
-    }
-  };
-
-  // produto_id já presentes neste grupo — não deixa adicionar o mesmo duas vezes.
-  const idsNoGrupo = (grupo.itens || []).map((it) => it.produto_id).filter((x) => x != null);
+  // produto_id já no rascunho — não deixa adicionar o mesmo item duas vezes.
+  const idsNoGrupo = itens.map((it) => it.produto_id).filter((x) => x != null);
 
   const escolherProduto = (prod) => {
     setSelecionadoProd(prod);
@@ -1485,38 +1499,122 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
     setNovoPreco(prod?.price != null ? String(prod.price) : "");
   };
 
-  const addItem = async () => {
-    if (!selecionadoProd || adicionando) return;
-    setAdicionando(true);
-    const { error } = await salvarComplemento({
-      grupo_id: grupo.id,
-      produto_id: selecionadoProd.id,
-      nome: selecionadoProd.name,
-      preco: parseFloat(String(novoPreco).replace(",", ".")) || 0,
-      disponivel: true, ordem: (grupo.itens?.length || 0),
-    });
-    setAdicionando(false);
-    if (error) return aviso("Não foi possível adicionar o item.", "err");
+  // Adiciona o item só ao rascunho (o id nasce quando "Salvar" gravar).
+  const addItem = () => {
+    if (!selecionadoProd) return;
+    setItens((prev) => [
+      ...prev,
+      {
+        _tempId: `novo-${Date.now()}`,
+        produto_id: selecionadoProd.id,
+        nome: selecionadoProd.name,
+        preco: parseFloat(String(novoPreco).replace(",", ".")) || 0,
+      },
+    ]);
     setSelecionadoProd(null);
     setNovoPreco("");
+  };
+
+  // Remove o item do rascunho (some do banco só quando "Salvar" rodar).
+  const removerItem = (item) => {
+    setItens((prev) => prev.filter((x) => (x.id ?? x._tempId) !== (item.id ?? item._tempId)));
+  };
+
+  // Grava TUDO de uma vez: config do grupo, itens (novos/removidos) e vínculos.
+  const salvar = async () => {
+    if (salvando) return;
+    setSalvando(true);
+
+    // 1) Config do grupo (nome, mín, máx).
+    const g = await salvarGrupoComplemento({
+      id: grupo.id, nome: nome.trim() || grupo.nome,
+      min_escolhas: Number(min) || 0, max_escolhas: Number(max) || 1, ordem: grupo.ordem,
+    });
+    if (g.error) { setSalvando(false); return aviso("Não foi possível salvar o grupo.", "err"); }
+
+    // 2) Itens: remove os tirados do rascunho, insere os novos.
+    const idsAtuais = new Set(itens.filter((i) => i.id).map((i) => String(i.id)));
+    const removidos = (grupo.itens || []).filter((o) => !idsAtuais.has(String(o.id)));
+    for (const it of removidos) {
+      const { error } = await removerComplemento(it.id);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar os itens.", "err"); }
+    }
+    const mantidos = itens.filter((i) => i.id).length;
+    const novos = itens.filter((i) => !i.id);
+    for (let k = 0; k < novos.length; k++) {
+      const it = novos[k];
+      const { error } = await salvarComplemento({
+        grupo_id: grupo.id, produto_id: it.produto_id, nome: it.nome,
+        preco: it.preco, disponivel: true, ordem: mantidos + k,
+      });
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar os itens.", "err"); }
+    }
+
+    // 3) "Aparece nestes produtos": vincula os novos, desvincula os tirados.
+    const pOrig = (grupo.produtoIds || []).map(String);
+    const pAtual = produtoIds.map(String);
+    for (const pid of pAtual.filter((x) => !pOrig.includes(x))) {
+      const { error } = await vincularGrupoProduto(grupo.id, pid);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar onde o grupo aparece.", "err"); }
+    }
+    for (const pid of pOrig.filter((x) => !pAtual.includes(x))) {
+      const { error } = await desvincularGrupoProduto(grupo.id, pid);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar onde o grupo aparece.", "err"); }
+    }
+
+    setSalvando(false);
+    aviso("Grupo salvo.", "ok");
+    await recarregar(); // recarrega → o effect ressincroniza o rascunho.
+  };
+
+  // Voltar: se há rascunho pendente, confirma antes de descartar.
+  const tentarVoltar = () => {
+    if (sujo) { setConfirmarVoltar(true); return; }
+    onVoltar();
+  };
+
+  // Remove o grupo inteiro (ação destrutiva — só após confirmar no modal).
+  const removerGrupo = async () => {
+    const { error } = await removerGrupoComplemento(grupo.id);
+    if (error) return aviso("Não foi possível remover o grupo.", "err");
+    setConfirmarRemover(false);
     await recarregar();
+    onRemovido?.();
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {/* Header do editor: voltar + título */}
+      {/* Header do editor: voltar + título + Salvar (trava de tudo) */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <button
           type="button"
-          onClick={onVoltar}
+          onClick={tentarVoltar}
           className="delivery-view__btn"
           style={{ display: "flex", alignItems: "center", gap: 6, background: varColor(C.surface), color: varColor(C.text), padding: "8px 12px", fontSize: sz.fontSm, whiteSpace: "nowrap" }}
         >
           <LuArrowLeft size={15} /> Voltar
         </button>
-        <span style={{ fontSize: sz.fontBase + 2, fontWeight: 700, color: varColor(C.text) }}>
+        <span style={{ flex: 1, fontSize: sz.fontBase + 2, fontWeight: 700, color: varColor(C.text) }}>
           {nome || grupo.nome}
         </span>
+        {isAdmin && (
+          <>
+            {sujo && (
+              <span style={{ fontSize: sz.fontSm - 1, color: varColor(C.red), fontWeight: 600, whiteSpace: "nowrap" }}>
+                Alterações não salvas
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={salvar}
+              disabled={!sujo || salvando}
+              className="delivery-view__btn"
+              style={{ display: "flex", alignItems: "center", gap: 6, background: sujo ? varColor(C.accent) : alfa(C.muted, "20"), color: sujo ? "#fff" : varColor(C.muted), padding: "9px 16px", fontSize: sz.fontSm, fontWeight: 700, whiteSpace: "nowrap", cursor: sujo && !salvando ? "pointer" : "default" }}
+            >
+              {salvando ? "Salvando…" : "Salvar"}
+            </button>
+          </>
+        )}
       </div>
 
     <div style={{ border: `1px solid ${varColor(C.border)}`, borderRadius: 14, padding: 16, background: varColor(C.card) }}>
@@ -1538,21 +1636,14 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
           <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 56 }} type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} disabled={!isAdmin} />
         </label>
         {isAdmin && (
-          <>
-            <button onClick={salvarGrupo} disabled={salvando} className="delivery-view__btn" style={{ background: alfa(C.accent, "15"), color: varColor(C.accent), padding: "8px 12px", fontSize: sz.fontSm }}>Salvar</button>
-            <button
-              onClick={async () => {
-                const { error } = await removerGrupoComplemento(grupo.id);
-                if (error) return aviso("Não foi possível remover o grupo.", "err");
-                await recarregar();
-                onRemovido?.();
-              }}
-              className="delivery-view__btn"
-              style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "8px 10px", fontSize: sz.fontSm }}
-            >
-              <LuTrash2 size={13} />
-            </button>
-          </>
+          <button
+            onClick={() => setConfirmarRemover(true)}
+            title="Remover grupo"
+            className="delivery-view__btn"
+            style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "8px 10px", fontSize: sz.fontSm }}
+          >
+            <LuTrash2 size={13} />
+          </button>
         )}
       </div>
       <div style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted), marginTop: 4 }}>
@@ -1561,19 +1652,15 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
 
       {/* Itens do grupo */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
-        {(grupo.itens || []).map((it) => (
-          <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: varColor(C.surface) }}>
+        {itens.map((it) => (
+          <div key={it.id ?? it._tempId} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: varColor(C.surface) }}>
             <span style={{ flex: 1, fontSize: sz.fontBase }}>{it.nome}</span>
             <span style={{ fontSize: sz.fontSm, color: varColor(C.accent), fontWeight: 600 }}>
               {Number(it.preco) > 0 ? `+ ${formatarReais(it.preco)}` : "Grátis"}
             </span>
             {isAdmin && (
               <button
-                onClick={async () => {
-                  const { error } = await removerComplemento(it.id);
-                  if (error) return aviso("Não foi possível remover o item.", "err");
-                  await recarregar();
-                }}
+                onClick={() => removerItem(it)}
                 className="delivery-view__modal-fechar"
                 style={{ color: varColor(C.muted) }}
               >
@@ -1603,7 +1690,7 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
                 </button>
               </div>
               <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 96 }} type="number" min="0" step="0.01" value={novoPreco} onChange={(e) => setNovoPreco(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addItem()} placeholder="R$ 0,00" />
-              <button onClick={addItem} disabled={adicionando} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "8px 14px", fontSize: sz.fontSm }}>
+              <button onClick={addItem} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "8px 14px", fontSize: sz.fontSm }}>
                 <LuPlus size={13} /> Adicionar
               </button>
             </>
@@ -1634,13 +1721,65 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
               sz={sz}
               itens={itensCardapio}
               produtoIds={produtoIds}
-              vinculando={vinculando}
+              vinculando={false}
               onAlternar={alternarProduto}
             />
           )}
         </div>
       )}
     </div>
+
+      {/* Confirmação ao voltar com rascunho pendente (avisa e confirma) */}
+      {confirmarVoltar && createPortal(
+        <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setConfirmarVoltar(false))}>
+          <div className="delivery-view__modal" style={{ background: varColor(C.card), color: varColor(C.text), maxWidth: 420 }}>
+            <div className="delivery-view__modal-topo">
+              <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Alterações não salvas</div>
+              <button onClick={() => setConfirmarVoltar(false)} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+                <LuX size={18} />
+              </button>
+            </div>
+            <div style={{ fontSize: sz.fontBase, color: varColor(C.text), lineHeight: 1.5 }}>
+              Você tem alterações não salvas neste grupo. Se sair agora, elas serão descartadas e o grupo continua como estava.
+            </div>
+            <div className="delivery-view__modal-botoes">
+              <button onClick={() => setConfirmarVoltar(false)} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0", fontSize: sz.fontBase }}>
+                Continuar editando
+              </button>
+              <button onClick={() => { setConfirmarVoltar(false); onVoltar(); }} className="delivery-view__btn" style={{ background: varColor(C.red), color: "#fff", padding: "11px 0", fontSize: sz.fontBase }}>
+                Descartar e sair
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Confirmação da remoção do grupo inteiro (ação destrutiva) */}
+      {confirmarRemover && createPortal(
+        <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setConfirmarRemover(false))}>
+          <div className="delivery-view__modal" style={{ background: varColor(C.card), color: varColor(C.text), maxWidth: 420 }}>
+            <div className="delivery-view__modal-topo">
+              <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Remover grupo</div>
+              <button onClick={() => setConfirmarRemover(false)} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+                <LuX size={18} />
+              </button>
+            </div>
+            <div style={{ fontSize: sz.fontBase, color: varColor(C.text), lineHeight: 1.5 }}>
+              Remover o grupo <strong>{grupo.nome}</strong>? Ele deixará de aparecer em todos os produtos vinculados. Essa ação não pode ser desfeita.
+            </div>
+            <div className="delivery-view__modal-botoes">
+              <button onClick={() => setConfirmarRemover(false)} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0", fontSize: sz.fontBase }}>
+                Cancelar
+              </button>
+              <button onClick={removerGrupo} className="delivery-view__btn" style={{ background: varColor(C.red), color: "#fff", padding: "11px 0", fontSize: sz.fontBase }}>
+                Remover grupo
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
