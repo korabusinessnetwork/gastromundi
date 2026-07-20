@@ -238,6 +238,39 @@
   gap: 12px;
   cursor: pointer;
 }
+
+/* Upload de foto do produto: prévia à esquerda, ações à direita.
+   Quebra em bloco no mobile (foto por cima das ações). */
+.delivery-view__foto-upload {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.delivery-view__foto-preview,
+.delivery-view__foto-vazia {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+.delivery-view__foto-vazia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.delivery-view__foto-acoes {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.delivery-view__foto-acoes > span {
+  flex-basis: 100%;
+}
 .delivery-view__modal-botoes {
   display: flex;
   gap: 10px;

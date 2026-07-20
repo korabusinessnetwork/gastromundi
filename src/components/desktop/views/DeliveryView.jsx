@@ -94,6 +94,7 @@ import {
   formatarReais,
   formatarCep,
 } from "@/lib/deliveryAdmin";
+import { enviarFotoProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
 import "./DeliveryView.css";
 
 const ABAS = [
@@ -764,6 +765,7 @@ function AbaCardapio({
           item={modal.item}
           ehAddon={ehAddon}
           products={products}
+          tenant={tenant}
           currentUser={currentUser}
           addProduct={addProduct}
           updateProduct={updateProduct}
@@ -850,7 +852,7 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
 //   nome/preço vêm do PDV e aparecem só para referência.
 // Standalone: nome/preço/categoria + a camada de delivery, tudo junto.
 function ModalProduto({
-  sz, modo, item, ehAddon, products, currentUser, addProduct, updateProduct, recarregarProdutos, aviso, onFechar, onSalvo,
+  sz, modo, item, ehAddon, products, tenant, currentUser, addProduct, updateProduct, recarregarProdutos, aviso, onFechar, onSalvo,
 }) {
   const prod = item?.produto || null;
   const [nome, setNome] = useState(prod?.name || "");
@@ -858,10 +860,41 @@ function ModalProduto({
   const [categoria, setCategoria] = useState(prod?.category || "");
   const [emoji, setEmoji] = useState(prod?.emoji || "");
   const [descricao, setDescricao] = useState(item?.descricao || "");
+  // Foto: a URL já gravada (edição) e, quando o dono escolhe uma nova, o
+  // File local + a prévia (object URL). O upload só acontece no salvar,
+  // quando o produto_id já existe (standalone "novo" cria o produto antes).
   const [fotoUrl, setFotoUrl] = useState(item?.foto_url || "");
+  const [fotoFile, setFotoFile] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState("");
+  const fotoInputRef = useRef(null);
   const [disponivel, setDisponivel] = useState(item?.disponivel ?? true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+
+  // Libera o object URL da prévia ao trocar/fechar (evita vazamento).
+  useEffect(() => {
+    return () => { if (fotoPreview) URL.revokeObjectURL(fotoPreview); };
+  }, [fotoPreview]);
+
+  const escolherFoto = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite reescolher o mesmo arquivo depois
+    if (!file) return;
+    if (!file.type?.startsWith("image/")) return setErro("Escolha um arquivo de imagem.");
+    setErro("");
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+    setFotoFile(file);
+    setFotoPreview(URL.createObjectURL(file));
+  };
+
+  const removerFoto = () => {
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+    setFotoPreview("");
+    setFotoFile(null);
+    setFotoUrl("");
+  };
+
+  const temFoto = !!(fotoPreview || fotoUrl);
 
   const categorias = useMemo(
     () => [...new Set(products.map((p) => p.category).filter(Boolean))].sort(),
@@ -906,11 +939,26 @@ function ModalProduto({
       }
     }
 
+    // Foto: se o dono escolheu uma nova, sobe agora (produto_id já existe).
+    let fotoFinal = fotoUrl.trim() || null;
+    if (fotoFile) {
+      const { url, error: eFoto } = await enviarFotoProduto({
+        file: fotoFile,
+        tenantId: tenant?.id,
+        produtoId,
+      });
+      if (eFoto) {
+        setSalvando(false);
+        return setErro(eFoto.message || "Não foi possível enviar a foto.");
+      }
+      fotoFinal = url;
+    }
+
     // Camada de delivery (sempre).
     const { error } = await salvarProdutoDelivery({
       id: item?.id,
       produto_id: produtoId,
-      foto_url: fotoUrl.trim() || null,
+      foto_url: fotoFinal,
       descricao: descricao.trim() || null,
       disponivel,
       ordem: item?.ordem ?? 0,
@@ -966,16 +1014,51 @@ function ModalProduto({
           </>
         )}
 
-        {/* Camada de delivery (ambos os modos) */}
+        {/* Camada de delivery (ambos os modos) — foto do produto (upload) */}
         <div className="delivery-view__campo">
           <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>
             <LuImage size={13} style={{ verticalAlign: "-2px", marginRight: 4 }} />
-            Foto (link da imagem)
+            Foto do produto
           </label>
-          <input className="delivery-view__input" style={inputStyle(sz)} value={fotoUrl} onChange={(e) => setFotoUrl(e.target.value)} placeholder="https://…" />
-          <span style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted) }}>
-            Cole o link de uma foto. O upload direto de imagens entra quando o armazenamento de fotos for ativado.
-          </span>
+          <div className="delivery-view__foto-upload">
+            {temFoto ? (
+              <img className="delivery-view__foto-preview" src={fotoPreview || fotoUrl} alt="Prévia da foto do produto" style={{ border: `1px solid ${alfa(C.muted, "22")}` }} />
+            ) : (
+              <div className="delivery-view__foto-vazia" style={{ background: alfa(C.muted, "10"), color: varColor(C.muted) }}>
+                <LuImage size={26} />
+              </div>
+            )}
+            <div className="delivery-view__foto-acoes">
+              <input
+                ref={fotoInputRef}
+                type="file"
+                accept={ACCEPT_IMAGEM}
+                onChange={escolherFoto}
+                style={{ display: "none" }}
+              />
+              <button
+                type="button"
+                onClick={() => fotoInputRef.current?.click()}
+                className="delivery-view__btn"
+                style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "9px 14px", fontSize: sz.fontSm }}
+              >
+                <LuImage size={14} /> {temFoto ? "Trocar foto" : "Escolher foto"}
+              </button>
+              {temFoto && (
+                <button
+                  type="button"
+                  onClick={removerFoto}
+                  className="delivery-view__btn"
+                  style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "9px 14px", fontSize: sz.fontSm }}
+                >
+                  <LuTrash2 size={14} /> Remover
+                </button>
+              )}
+              <span style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted) }}>
+                Tire do celular ou escolha da galeria. Ajustamos o tamanho automaticamente.
+              </span>
+            </div>
+          </div>
         </div>
         <div className="delivery-view__campo">
           <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Descrição</label>
