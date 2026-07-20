@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -820,7 +821,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
       {/* ── Popup Desconto / Acréscimo ── */}
       {showAjuste && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) setShowAjuste(false); }}
+          {...fecharAoClicarFora(() => setShowAjuste(false))}
           className="checkout-view__overlay"
         >
           <div className="checkout-view__modal" style={{
@@ -975,7 +976,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
       {/* ── Popup Remover produto (Leva 15.1) ── */}
       {remocao && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget && !removendo) setRemocao(null); }}
+          {...fecharAoClicarFora(() => setRemocao(null), !removendo)}
           className="checkout-view__overlay"
         >
           <div className="checkout-view__modal" style={{

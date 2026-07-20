@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useMemo } from "react";
 import { LuPrinter, LuX, LuLoaderCircle, LuTriangleAlert } from "react-icons/lu";
 import { montarDanfeNfce } from "@/lib/nfceDanfe";
@@ -76,7 +77,7 @@ export default function ModalCupomNfce({ estadoEmissao, resultado, venda, onFech
       role="dialog"
       aria-modal="true"
       aria-label="Cupom da NFC-e"
-      onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}
+      {...fecharAoClicarFora(onFechar)}
     >
       <div className="modal-cupom-nfce">
         <header className="modal-cupom-nfce__cabecalho">

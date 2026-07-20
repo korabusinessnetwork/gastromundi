@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
@@ -731,7 +732,7 @@ export default function MobilePage() {
     {/* Modal Lançar */}
     {showLancar && createPortal(
       <div
-        onClick={e => { if (e.target === e.currentTarget && !salvando) setShowLancar(false); }}
+        {...fecharAoClicarFora(() => setShowLancar(false), !salvando)}
         style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif" }}
       >
         <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: "calc(24px + env(safe-area-inset-bottom))", width: "100%", maxHeight: "100dvh", overflowY: "auto", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 16 }}>
@@ -790,7 +791,7 @@ export default function MobilePage() {
     {/* Bottom sheet — pedidos em espera (revisar e enviar todos) */}
     {showEsperas && createPortal(
       <div
-        onClick={e => { if (e.target === e.currentTarget && !salvando) setShowEsperas(false); }}
+        {...fecharAoClicarFora(() => setShowEsperas(false), !salvando)}
         style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif" }}
       >
         <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", width: "100%", maxHeight: "80dvh", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
@@ -868,7 +869,7 @@ export default function MobilePage() {
 
     {/* Bottom sheet — detalhe da comanda */}
     {createPortal(
-      <div onClick={e => { if (e.target === e.currentTarget) fecharDetalhe(); }} style={{ position: "fixed", inset: 0, zIndex: 9100, background: detalheVisible ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif", pointerEvents: detalheComanda ? "auto" : "none", transition: "background 0.3s" }}>
+      <div {...fecharAoClicarFora(fecharDetalhe)} style={{ position: "fixed", inset: 0, zIndex: 9100, background: detalheVisible ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif", pointerEvents: detalheComanda ? "auto" : "none", transition: "background 0.3s" }}>
         <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", width: "100%", maxHeight: "80dvh", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", transform: detalheVisible ? "translateY(0)" : "translateY(100%)", transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)" }}>
           {detalheComanda && (() => {
             // sempre usa dados frescos do pending; fallback para o snapshot local (ex: logo após lançamento)

@@ -8,14 +8,13 @@ import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { labelEstoque, getUnidadesCompra, fmtQtd } from "@/utils/conversaoUnidades";
 import { LuTriangleAlert, LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon, LuRuler } from "react-icons/lu";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import SubprodutosView from "./SubprodutosView";
 import CombosView from "./CombosView";
 import "./ProdutosView.css";
-
-const EMOJIS = ["🍺","🥤","💧","🍹","🍸","🥂","🍷","🍵","☕","🍔","🍟","🍕","🌭","🥪","🥗","🍝","🍣","🍜","🌮","🥩","🍗","🍖","🥚","🧀","🍰","🍦","🍫","🍿","🧂","🍱"];
 
 const EMPTY_COMPRA = { nome: "", unidade: "", fator: "" };
 
@@ -126,7 +125,6 @@ export default function ProdutosView() {
   const [deletando, setDeletando] = useState(false);
   const [catFiltro,    setCatFiltro]    = useState("Todos");
   const [busca,     setBusca]     = useState("");
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [unidadesMedida, setUnidadesMedida] = useState([]);
   const [editingCompra, setEditingCompra] = useState(null);
   const [isInsumo, setIsInsumo] = useState(false);
@@ -478,7 +476,7 @@ export default function ProdutosView() {
 
       {/* ── Modal Novo / Editar ── */}
       {modal && (
-        <div onClick={e => { if (e.target === e.currentTarget) fecharModal(); }} className="produtos-view__modal-overlay">
+        <div {...fecharAoClicarFora(fecharModal)} className="produtos-view__modal-overlay">
           <div className="produtos-view__modal">
             <div className="produtos-view__modal-topo">
               <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>
@@ -487,25 +485,6 @@ export default function ProdutosView() {
                   : isInsumo ? "Editar Insumo" : isProducao ? "Editar Item de Produção" : "Editar Produto"}
               </div>
               <button onClick={fecharModal} className="produtos-view__modal-fechar"><LuXIcon size={16} /></button>
-            </div>
-
-            {/* Emoji */}
-            <div>
-              <Label>Emoji</Label>
-              <div className="produtos-view__emoji-linha">
-                <button onClick={() => setShowEmojiPicker(v => !v)} className="produtos-view__emoji-btn" style={{ borderColor: showEmojiPicker ? varColor(C.accent) : varColor(C.border) }}>
-                  {form.emoji || "📦"}
-                </button>
-                <span className="produtos-view__emoji-ajuda" style={{ fontSize: sz.fontSm }}>Clique para escolher um emoji</span>
-                {form.emoji && <button onClick={() => setField("emoji", "")} className="produtos-view__emoji-limpar" style={{ fontSize: sz.fontSm }}>✕ limpar</button>}
-              </div>
-              {showEmojiPicker && (
-                <div className="produtos-view__emoji-picker">
-                  {EMOJIS.map(e => (
-                    <button key={e} onClick={() => { setField("emoji", e); setShowEmojiPicker(false); }} className="produtos-view__emoji-opcao" style={{ background: form.emoji === e ? "var(--gm-alow)" : "transparent", outline: form.emoji === e ? `2px solid var(${C.accent})` : "none" }}>{e}</button>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Nome */}
@@ -547,36 +526,6 @@ export default function ProdutosView() {
                 </div>
               </div>
             )}
-
-            {/* ── Validade (C1) — opcional ── */}
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ flex: "1 1 140px" }}>
-                <Label>Próxima validade</Label>
-                <input
-                  type="date"
-                  value={form.proxima_validade}
-                  onChange={e => setField("proxima_validade", e.target.value)}
-                  style={{
-                    width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 10,
-                    border: `1.5px solid ${form.proxima_validade ? varColor(C.accent) : varColor(C.border)}`,
-                    background: varColor(C.surface), color: varColor(C.text),
-                    fontSize: sz.fontBase, fontFamily: "inherit", outline: "none",
-                  }}
-                />
-              </div>
-              <div style={{ flex: "1 1 120px" }}>
-                <Label>Validade (dias)</Label>
-                <Input
-                  type="number"
-                  value={form.validade_dias}
-                  onChange={v => setField("validade_dias", v)}
-                  placeholder="Ex: 30"
-                />
-              </div>
-            </div>
-            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: -4 }}>
-              Opcional. A próxima validade aparece como alerta no PDV quando estiver perto de vencer.
-            </div>
 
             {/* ── Seção: Unidades de medida ── */}
             <div className="produtos-view__secao-unidades">
@@ -780,7 +729,7 @@ export default function ProdutosView() {
 
       {/* Modal Gerenciar Categorias */}
       {showCatModal && createPortal(
-        <div onClick={e => { if (e.target === e.currentTarget) { setShowCatModal(false); setCatEditando(null); setCatNova(""); } }} className="produtos-view__confirm-overlay" style={{ background: "rgba(0,0,0,0.7)" }}>
+        <div {...fecharAoClicarFora(() => { setShowCatModal(false); setCatEditando(null); setCatNova(""); })} className="produtos-view__confirm-overlay" style={{ background: "rgba(0,0,0,0.7)" }}>
           <div className="produtos-view__cat-modal">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
@@ -834,7 +783,7 @@ export default function ProdutosView() {
 
       {/* Modal Confirmar Exclusão de Categoria */}
       {catConfirmDelete && createPortal(
-        <div onClick={e => { if (e.target === e.currentTarget) setCatConfirmDelete(null); }} className="produtos-view__confirm-overlay">
+        <div {...fecharAoClicarFora(() => setCatConfirmDelete(null))} className="produtos-view__confirm-overlay">
           <div className="produtos-view__confirm-modal">
             <div className="produtos-view__confirm-topo">
               <div className="produtos-view__confirm-icone" style={{ background: alfa(C.red, "18"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
@@ -869,7 +818,7 @@ export default function ProdutosView() {
         (() => {
           const p = products.find(x => x.id === deleteId);
           return (
-            <div onClick={e => { if (e.target === e.currentTarget) setDeleteId(null); }} className="produtos-view__confirm-overlay" style={{ background: "rgba(0,0,0,0.7)" }}>
+            <div {...fecharAoClicarFora(() => setDeleteId(null))} className="produtos-view__confirm-overlay" style={{ background: "rgba(0,0,0,0.7)" }}>
               <div className="produtos-view__confirm-modal">
                 <div className="produtos-view__confirm-topo">
                   <div className="produtos-view__confirm-icone" style={{ background: alfa(C.red, "18"), border: `1.5px solid ${alfa(C.red, "44")}` }}>

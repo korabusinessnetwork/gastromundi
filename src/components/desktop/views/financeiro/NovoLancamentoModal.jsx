@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -48,7 +49,7 @@ export default function NovoLancamentoModal({ usuario, onCreated, onClose }) {
 
   return (
     <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      {...fecharAoClicarFora(onClose)}
       className="novo-lancamento__overlay"
     >
       <div className="novo-lancamento__modal">

@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
@@ -160,7 +161,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
 
   return createPortal(
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      {...fecharAoClicarFora(onClose)}
       className="combos-view__modal-overlay"
     >
       <div className="combos-view__modal">

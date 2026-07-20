@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
@@ -220,7 +221,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
 
   return createPortal(
     <div
-      onClick={e => { if (e.target === e.currentTarget && !salvando) onClose(); }}
+      {...fecharAoClicarFora(onClose, !salvando)}
       className="impostos-admin__modal-overlay"
     >
       <div className="impostos-admin__modal">

@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -326,7 +327,7 @@ export default function PainelFiscal() {
       {confirmarProd && createPortal(
         <div
           className="painel-fiscal__overlay"
-          onClick={(e) => { if (e.target === e.currentTarget) setConfirmarProd(false); }}
+          {...fecharAoClicarFora(() => setConfirmarProd(false))}
         >
           <div className="painel-fiscal__modal" role="dialog" aria-modal="true" aria-label="Mudar para Produção">
             <div className="painel-fiscal__modal-icone"><LuTriangleAlert size={22} /></div>

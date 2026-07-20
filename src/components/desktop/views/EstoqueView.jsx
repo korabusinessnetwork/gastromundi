@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
@@ -466,7 +467,7 @@ export default function EstoqueView() {
       {/* ── Modal de autenticação ─────────────────────────────────── */}
       {showAuth && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) setShowAuth(false); }}
+          {...fecharAoClicarFora(() => setShowAuth(false))}
           className="estoque-view__auth-overlay"
         >
           <div className="estoque-view__auth-modal">

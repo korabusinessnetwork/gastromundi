@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState } from "react";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
@@ -18,7 +19,7 @@ export default function AberturaCaixaModal({ onConfirm, onClose }) {
 
   return (
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      {...fecharAoClicarFora(onClose)}
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
         display: "flex", alignItems: "center", justifyContent: "center",

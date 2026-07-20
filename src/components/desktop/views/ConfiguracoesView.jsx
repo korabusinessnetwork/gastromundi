@@ -1,4 +1,5 @@
 ﻿import { useState, useMemo, useEffect } from "react";
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
 import { useResponsive } from "@/utils/hooks";
@@ -369,7 +370,7 @@ function UsuariosTab({ sz }) {
       {/* Modal Novo / Editar */}
       {modal && (
         <div
-          onClick={e => { if (e.target === e.currentTarget) fechar(); }}
+          {...fecharAoClicarFora(fechar)}
           className="cfg__overlay"
         >
           <div className="usuarios-tab__modal" style={{ padding: sz.pad + 4, gap: sz.padSm + 4 }}>
@@ -472,7 +473,7 @@ function UsuariosTab({ sz }) {
       {/* Modal Confirmar Desativação */}
       {deleteId && (
         <div
-          onClick={e => { if (e.target === e.currentTarget) setDeleteId(null); }}
+          {...fecharAoClicarFora(() => setDeleteId(null))}
           className="cfg__overlay"
         >
           <div className="usuarios-tab__confirm-modal" style={{ padding: sz.pad }}>

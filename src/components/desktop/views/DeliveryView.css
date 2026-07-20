@@ -68,15 +68,18 @@
   opacity: 0.6;
   cursor: default;
 }
+/* Cor = AÇÃO do botão, não o estado atual: loja aberta mostra "Fechar
+   delivery" (vermelho, parar) e loja fechada mostra "Abrir delivery"
+   (verde, seguir). */
 .delivery-view__toggle-loja--aberta {
-  background: oklch(0.72 0.17 150 / 0.15);
-  color: oklch(0.5 0.15 150);
-  border-color: oklch(0.72 0.17 150 / 0.35);
-}
-.delivery-view__toggle-loja--fechada {
   background: oklch(0.6 0.19 25 / 0.15);
   color: oklch(0.55 0.19 25);
   border-color: oklch(0.6 0.19 25 / 0.35);
+}
+.delivery-view__toggle-loja--fechada {
+  background: oklch(0.72 0.17 150 / 0.15);
+  color: oklch(0.5 0.15 150);
+  border-color: oklch(0.72 0.17 150 / 0.35);
 }
 
 /* Abas */

@@ -1,4 +1,5 @@
 ﻿import { useState, useMemo, useEffect, Fragment } from "react";
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { normalizarPagamentos, totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { agruparVendasPorDia, rotuloDiaBR, intervaloPeriodo, agruparVendasPorOperador } from "@/utils/datas";
 import { calcularVariacaoPercentual } from "@/lib/relatorios";
@@ -205,7 +206,7 @@ function FechamentoDetalheModal({ f, onClose }) {
 
   return createPortal(
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      {...fecharAoClicarFora(onClose)}
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
         display: "flex", alignItems: "center", justifyContent: "center",

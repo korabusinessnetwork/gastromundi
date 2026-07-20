@@ -105,6 +105,7 @@ import {
   formatarCep,
 } from "@/lib/deliveryAdmin";
 import { enviarFotoProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import "./DeliveryView.css";
 
 const ABAS = [
@@ -1081,7 +1082,7 @@ function ModalProduto({
   };
 
   return createPortal(
-    <div className="delivery-view__overlay" onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+    <div className="delivery-view__overlay" {...fecharAoClicarFora(onFechar)}>
       <div className="delivery-view__modal" style={{ background: varColor(C.card), color: varColor(C.text) }}>
         <div className="delivery-view__modal-topo">
           <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>

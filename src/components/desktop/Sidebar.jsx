@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
@@ -273,7 +274,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
       {/* Modal Auth — Relatório (caixa) */}
       {showAuthRel && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) setShowAuthRel(false); }}
+          {...fecharAoClicarFora(() => setShowAuthRel(false))}
           style={{
             position: "fixed", inset: 0, zIndex: 9100,
             background: "rgba(0,0,0,0.75)",
@@ -384,7 +385,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
       {/* Modal Comandas Fechadas */}
       {showFechadas && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) { setShowFechadas(false); setFechadaDetalhe(null); } }}
+          {...fecharAoClicarFora(() => { setShowFechadas(false); setFechadaDetalhe(null); })}
           style={{
             position: "fixed", inset: 0, zIndex: 9000,
             background: "rgba(0,0,0,0.7)",
@@ -558,7 +559,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
       {/* Leva 15.3 — confirmação de cancelamento de venda fechada */}
       {cancelVenda && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget && !cancelando) setCancelVenda(null); }}
+          {...fecharAoClicarFora(() => setCancelVenda(null), !cancelando)}
           style={{
             position: "fixed", inset: 0, zIndex: 9100,
             background: "rgba(0,0,0,0.7)",
@@ -674,7 +675,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
       {/* Modal — módulo fora do plano atual (convite a upgrade, princípio nº 1) */}
       {upgradeInfo && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) setUpgradeInfo(null); }}
+          {...fecharAoClicarFora(() => setUpgradeInfo(null))}
           style={{
             position: "fixed", inset: 0, zIndex: 9100,
             background: "rgba(0,0,0,0.75)",

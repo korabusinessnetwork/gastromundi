@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
@@ -255,7 +256,7 @@ export default function LocaisImpressao({ sz }) {
       {/* Modal Criar/Editar */}
       {modal && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget && !salvando) fecharModal(); }}
+          {...fecharAoClicarFora(fecharModal, !salvando)}
           style={{ position: "fixed", inset: 0, zIndex: 9100, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter',system-ui,sans-serif" }}
         >
           <div style={{ background: varColor(C.card), borderRadius: 20, width: "100%", maxWidth: 440, border: `1px solid var(${C.border})`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", gap: 20, padding: 28 }}>
@@ -324,7 +325,7 @@ export default function LocaisImpressao({ sz }) {
       {/* Modal Confirmar exclusão */}
       {confirmDelete && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null); }}
+          {...fecharAoClicarFora(() => setConfirmDelete(null))}
           style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter',system-ui,sans-serif" }}
         >
           <div style={{ background: varColor(C.card), borderRadius: 20, width: "100%", maxWidth: 400, border: `1px solid var(${C.border})`, padding: 28, display: "flex", flexDirection: "column", gap: 20 }}>

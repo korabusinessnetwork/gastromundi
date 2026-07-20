@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useMemo } from "react";
 import { totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import C from "@/constants/colors";
@@ -77,7 +78,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
 
   return (
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      {...fecharAoClicarFora(onClose)}
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
         display: "flex", alignItems: "center", justifyContent: "center",

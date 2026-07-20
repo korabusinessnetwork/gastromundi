@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import C from "@/constants/colors";
@@ -162,7 +163,7 @@ export default function ClientesView() {
       {/* ── Modal: cadastro rápido ── */}
       {showCadastro && createPortal(
         <div
-          onClick={(e) => { if (e.target === e.currentTarget) setShowCadastro(false); }}
+          {...fecharAoClicarFora(() => setShowCadastro(false))}
           className="clientes-view__overlay"
         >
           <div className="clientes-view__modal">
@@ -289,7 +290,7 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
 
   return (
     <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      {...fecharAoClicarFora(onClose)}
       className="clientes-view__overlay"
     >
       <div className="cliente-detalhe__modal">

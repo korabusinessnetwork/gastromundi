@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
@@ -105,7 +106,7 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
 
   return createPortal(
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      {...fecharAoClicarFora(onClose)}
       className="subprodutos-view__modal-overlay"
     >
       <div className="subprodutos-view__modal">

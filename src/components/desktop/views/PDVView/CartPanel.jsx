@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -356,7 +357,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
       {/* ── Popup: Confirmar exclusão / cancelamento ──────────────── */}
       {confirmExcluir && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) { setConfirmExcluir(null); setItemSenha(""); setItemSenhaErro(false); setItemSenhaOk(false); } }}
+          {...fecharAoClicarFora(() => { setConfirmExcluir(null); setItemSenha(""); setItemSenhaErro(false); setItemSenhaOk(false); })}
           className="cart-panel__overlay"
           style={{ zIndex: 9100 }}
         >
@@ -526,7 +527,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
       {/* ── Popup: Confirmar finalização ───────────────────────────── */}
       {confirmando && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) setConfirmando(false); }}
+          {...fecharAoClicarFora(() => setConfirmando(false))}
           className="cart-panel__overlay"
           style={{ zIndex: 9000 }}
         >

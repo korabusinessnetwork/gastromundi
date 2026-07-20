@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
@@ -337,7 +338,7 @@ export default function MesasAdmin({ sz }) {
       {/* ── Modal Criar/Editar ─────────────────────────────────────── */}
       {modal && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget && !salvando) fecharModal(); }}
+          {...fecharAoClicarFora(fecharModal, !salvando)}
           style={{
             position: "fixed", inset: 0, zIndex: 9000,
             background: "rgba(0,0,0,0.72)",
@@ -465,7 +466,7 @@ export default function MesasAdmin({ sz }) {
       {/* ── Modal Confirmar Exclusão ────────────────────────────────── */}
       {confirmDelete && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null); }}
+          {...fecharAoClicarFora(() => setConfirmDelete(null))}
           style={{
             position: "fixed", inset: 0, zIndex: 9100,
             background: "rgba(0,0,0,0.72)",

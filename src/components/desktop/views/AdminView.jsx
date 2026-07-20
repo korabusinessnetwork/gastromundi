@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useMemo, useRef } from "react";
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -77,7 +78,7 @@ function Txta({ value, onChange, placeholder, rows = 3 }) {
 function ModalBase({ title, onClose, onSave, saveLabel = "Salvar", saving, width = 540, children }) {
   return createPortal(
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      {...fecharAoClicarFora(onClose)}
       className="admin__modal-overlay"
     >
       <div className="admin__modal" style={{ maxWidth: width }}>
@@ -112,7 +113,7 @@ function ModalBase({ title, onClose, onSave, saveLabel = "Salvar", saving, width
 
 function DeleteConfirm({ msg, onCancel, onConfirm }) {
   return createPortal(
-    <div onClick={e => { if (e.target === e.currentTarget) onCancel(); }} className="admin__delete-overlay">
+    <div {...fecharAoClicarFora(onCancel)} className="admin__delete-overlay">
       <div className="admin__delete-modal">
         <div className="admin__delete-titulo">Confirmar exclusão</div>
         <div className="admin__delete-msg">{msg}</div>

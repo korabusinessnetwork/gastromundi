@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useCallback } from "react";
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
@@ -1252,7 +1253,7 @@ export default function PDVView({ notify }) {
       {/* ── Modal: Nova Comanda ──────────────────────────────────── */}
       {showNova && (
         <div
-          onClick={e => { if (e.target === e.currentTarget) setShowNova(false); }}
+          {...fecharAoClicarFora(() => setShowNova(false))}
           style={{
             position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)",
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -1319,7 +1320,7 @@ export default function PDVView({ notify }) {
       {/* ── Popup: Cancelar Comanda ─────────────────────────────── */}
       {showCancelarComanda && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) setShowCancelarComanda(false); }}
+          {...fecharAoClicarFora(() => setShowCancelarComanda(false))}
           style={{
             position: "fixed", inset: 0, zIndex: 9100,
             background: "rgba(0,0,0,0.75)",
@@ -1453,7 +1454,7 @@ export default function PDVView({ notify }) {
       {/* ── Popup: Transferir Itens ─────────────────────────────── */}
       {showTransferir && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) setShowTransferir(false); }}
+          {...fecharAoClicarFora(() => setShowTransferir(false))}
           style={{
             position: "fixed", inset: 0, zIndex: 9000,
             background: "rgba(0,0,0,0.7)",
@@ -1771,7 +1772,7 @@ export default function PDVView({ notify }) {
       {/* ── Popup: Confirmar cancelamento ───────────────────────── */}
       {confirmCancelar && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) setConfirmCancelar(false); }}
+          {...fecharAoClicarFora(() => setConfirmCancelar(false))}
           style={{
             position: "fixed", inset: 0, zIndex: 9000,
             background: "rgba(0,0,0,0.7)",
@@ -1882,7 +1883,7 @@ export default function PDVView({ notify }) {
       {/* ── Popup: Mesa ──────────────────────────────────────────── */}
       {showMesa && mesaPendingOrder && createPortal(
         <div
-          onClick={e => { if (e.target === e.currentTarget) { handleConfirmarMesa(); } }}
+          {...fecharAoClicarFora(() => { handleConfirmarMesa(); })}
           style={{
             position: "fixed", inset: 0, zIndex: 9100,
             background: "rgba(0,0,0,0.7)",
@@ -2098,7 +2099,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
 
   return (
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      {...fecharAoClicarFora(onClose)}
       style={{
         position: "fixed", inset: 0, zIndex: 9200,
         background: "rgba(0,0,0,0.75)",

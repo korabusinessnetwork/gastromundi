@@ -1,3 +1,4 @@
+import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
@@ -85,7 +86,7 @@ function ModalSelecionarImpressora({ local, impressoras, onClose, sz }) {
 
   return createPortal(
     <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(false); }}
+      {...fecharAoClicarFora(() => onClose(false))}
       style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(0,0,0,0.72)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Inter',system-ui,sans-serif" }}
     >
       <div style={{ background: varColor(C.card), borderRadius: 20, width: "100%", maxWidth: 480, border: `1px solid var(${C.border})`, boxShadow: "0 24px 64px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", gap: 20, padding: 28, maxHeight: "85vh" }}>
