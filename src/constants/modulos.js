@@ -21,6 +21,7 @@ const MODULOS = {
   JARVAS:              "jarvas",
   MULTILOJA:           "multiloja",
   FISCAL_INTEGRACOES:  "fiscal_integracoes",
+  DELIVERY:            "delivery",
 };
 
 export default MODULOS;

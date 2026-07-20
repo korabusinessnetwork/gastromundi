@@ -16,12 +16,13 @@ import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
   LuHistory, LuX, LuUser, LuArrowLeft, LuShieldAlert, LuWallet, LuChefHat, LuUsers,
-  LuSparkles, LuFileText, LuFileCheck, LuTrash2,
+  LuSparkles, LuFileText, LuFileCheck, LuTrash2, LuBike,
 } from "react-icons/lu";
 
 const NAV_ICONS = {
   "/app/pdv":           LuReceipt,
   "/app/produtos":      LuPackage,
+  "/app/delivery":      LuBike,
   "/app/relatorio":     LuChartBar,
   "/app/estoque":       LuArchive,
   "/app/financeiro":    LuWallet,
@@ -108,6 +109,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
     // router; para voltar, recolocar o item aqui).
     { to: "/app/clientes",  label: "Clientes",          perm: "clientes", modulo: MODULOS.CLIENTES },
     { to: "/app/produtos",  label: "Cadastro Produtos", perm: "produtos", modulo: MODULOS.CARDAPIO },
+    { to: "/app/delivery",  label: "Delivery",          perm: "produtos", modulo: MODULOS.DELIVERY },
     { to: "/app/relatorio", label: "Relatório",         perm: "relatorio", extra: relatorioVisivel, modulo: MODULOS.RELATORIOS },
   ].filter(item => currentUser?.permissions?.[item.perm] || item.extra);
 

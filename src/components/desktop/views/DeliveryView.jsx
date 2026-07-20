@@ -1,0 +1,984 @@
+// ──────────────────────────────────────────────────────────────────
+// DeliveryView — painel do dono do delivery.
+//
+// CADASTRO SEPARADO do cadastro normal de produtos do PDV (pedido do
+// dono): aqui o dono cuida SÓ do que o cliente final vê no cardápio
+// online — foto, descrição, disponibilidade, complementos e as regras
+// de entrega (taxa/horário/pedido mínimo).
+//
+// Dois modos, derivados do plano (F013/ADR-005) — sem o dono escolher:
+//   • ADDON (o plano também tem PDV): o cardápio JÁ existe em Produtos.
+//     Então aqui não se cria produto do zero — IMPORTA-SE o cardápio do
+//     PDV de uma vez e enriquece cada item com foto/descrição. Assim o
+//     delivery nasce sincronizado com o PDV, sem redigitar nada.
+//   • STANDALONE (só delivery, sem PDV): este é o ÚNICO cadastro que o
+//     estabelecimento tem — então aqui se cria o produto do zero
+//     (nome/preço/categoria) já com a cara do delivery.
+//
+// Intuitividade (Princípio nº 1): uma aba por assunto (Cardápio,
+// Complementos, Entrega), a próxima ação sempre em destaque, importação
+// em um clique com contagem clara, e estados de vazio/carregando/erro
+// com texto humano. Nada de jargão técnico na tela.
+// ──────────────────────────────────────────────────────────────────
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { useApp } from "@/context/AppContext";
+import { logAction } from "@/lib/logger";
+import { useResponsive } from "@/utils/hooks";
+import { getSizes } from "@/constants/sizes";
+import MODULOS from "@/constants/modulos";
+import C from "@/constants/colors";
+import { varColor } from "@/lib/tema";
+import { alfa } from "@/constants/colorAlfa";
+import {
+  LuBike,
+  LuDownload,
+  LuPencil,
+  LuTrash2,
+  LuX,
+  LuPlus,
+  LuImage,
+  LuUtensils,
+  LuTruck,
+  LuStore,
+} from "react-icons/lu";
+import {
+  carregarConfigDelivery,
+  salvarConfigDelivery,
+  listarProdutosDelivery,
+  salvarProdutoDelivery,
+  removerProdutoDelivery,
+  importarProdutosDelivery,
+  produtosParaImportar,
+  listarGruposComplemento,
+  salvarGrupoComplemento,
+  removerGrupoComplemento,
+  salvarComplemento,
+  removerComplemento,
+  faixaResumo,
+  validarFaixa,
+  formatarReais,
+  formatarCep,
+} from "@/lib/deliveryAdmin";
+import "./DeliveryView.css";
+
+const ABAS = [
+  { id: "cardapio",     label: "Cardápio" },
+  { id: "complementos", label: "Complementos" },
+  { id: "entrega",      label: "Entrega e taxas" },
+];
+
+export default function DeliveryView({ notify } = {}) {
+  const { products, tenant, currentUser, moduloHabilitado, addProduct, updateProduct, recarregarProdutos } = useApp();
+  const { width } = useResponsive();
+  const sz = getSizes(width);
+
+  // Modo derivado do plano: tem PDV → addon; só delivery → standalone.
+  const ehAddon = moduloHabilitado(MODULOS.PDV);
+
+  const [aba, setAba] = useState("cardapio");
+  const [linhas, setLinhas] = useState([]);      // produto_delivery do tenant
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState("");
+
+  const aviso = useCallback(
+    (msg, tipo) => (typeof notify === "function" ? notify(msg, tipo) : undefined),
+    [notify]
+  );
+
+  const carregarLinhas = useCallback(async () => {
+    const { data, error } = await listarProdutosDelivery();
+    if (error) {
+      setErro("Não conseguimos carregar o cardápio do delivery. Tente novamente.");
+      return;
+    }
+    setErro("");
+    setLinhas(data);
+  }, []);
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      setCarregando(true);
+      await carregarLinhas();
+      if (ativo) setCarregando(false);
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [carregarLinhas]);
+
+  // Junta cada linha de delivery com o produto (nome/preço/emoji vêm de products).
+  const porProdutoId = useMemo(() => {
+    const m = new Map();
+    for (const p of products) m.set(String(p.id), p);
+    return m;
+  }, [products]);
+
+  const itensCardapio = useMemo(
+    () =>
+      linhas.map((l) => ({
+        ...l,
+        produto: porProdutoId.get(String(l.produto_id)) || null,
+      })),
+    [linhas, porProdutoId]
+  );
+
+  const faltamImportar = useMemo(
+    () => (ehAddon ? produtosParaImportar(products, linhas) : []),
+    [ehAddon, products, linhas]
+  );
+
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+
+  return (
+    <div className="delivery-view" style={{ background: varColor(C.bg), color: varColor(C.text) }}>
+      {/* Cabeçalho */}
+      <div className="delivery-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
+        <div>
+          <div className="delivery-view__titulo" style={{ fontSize: sz.fontLg }}>
+            <LuBike size={20} color={varColor(C.accent)} /> Delivery
+          </div>
+          <div className="delivery-view__sub" style={{ fontSize: sz.fontSm }}>
+            {itensCardapio.length} item{itensCardapio.length !== 1 ? "s" : ""} no cardápio online
+          </div>
+        </div>
+        <span
+          className="delivery-view__modo-tag"
+          style={{
+            fontSize: sz.fontSm,
+            background: alfa(ehAddon ? C.blue : C.green, "15"),
+            color: varColor(ehAddon ? C.blue : C.green),
+            border: `1px solid ${alfa(ehAddon ? C.blue : C.green, "33")}`,
+          }}
+          title={
+            ehAddon
+              ? "Seu plano tem PDV: o delivery usa o mesmo cardápio do sistema."
+              : "Plano só de delivery: este é o seu cadastro de produtos."
+          }
+        >
+          {ehAddon ? <LuStore size={13} /> : <LuTruck size={13} />}
+          {ehAddon ? "Integrado ao PDV" : "Delivery independente"}
+        </span>
+      </div>
+
+      {/* Abas */}
+      <div className="delivery-view__abas" style={{ padding: `0 ${sz.pad}px` }}>
+        {ABAS.map((a) => {
+          const ativo = aba === a.id;
+          return (
+            <button
+              key={a.id}
+              onClick={() => setAba(a.id)}
+              className="delivery-view__aba"
+              style={{
+                borderBottom: ativo ? `2px solid var(${C.accent})` : "2px solid transparent",
+                color: ativo ? varColor(C.accent) : varColor(C.muted),
+                fontWeight: ativo ? 700 : 500,
+                fontSize: sz.fontBase,
+              }}
+            >
+              {a.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="delivery-view__area" style={{ padding: sz.pad }}>
+        {erro && (
+          <div
+            className="delivery-view__aviso"
+            style={{ background: alfa(C.red, "12"), color: varColor(C.red), border: `1px solid ${alfa(C.red, "33")}`, marginBottom: 12, fontSize: sz.fontSm }}
+          >
+            ⚠️ {erro}
+          </div>
+        )}
+
+        {aba === "cardapio" && (
+          <AbaCardapio
+            sz={sz}
+            isAdmin={isAdmin}
+            ehAddon={ehAddon}
+            carregando={carregando}
+            itens={itensCardapio}
+            faltamImportar={faltamImportar}
+            products={products}
+            linhas={linhas}
+            addProduct={addProduct}
+            updateProduct={updateProduct}
+            recarregarProdutos={recarregarProdutos}
+            currentUser={currentUser}
+            aviso={aviso}
+            recarregar={carregarLinhas}
+          />
+        )}
+
+        {aba === "complementos" && (
+          <AbaComplementos sz={sz} isAdmin={isAdmin} itens={itensCardapio} aviso={aviso} />
+        )}
+
+        {aba === "entrega" && (
+          <AbaEntrega sz={sz} isAdmin={isAdmin} tenant={tenant} currentUser={currentUser} aviso={aviso} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA 1 — Cardápio (importação no addon / cadastro no standalone)
+// ════════════════════════════════════════════════════════════════
+function AbaCardapio({
+  sz, isAdmin, ehAddon, carregando, itens, faltamImportar,
+  products, linhas, addProduct, updateProduct, recarregarProdutos, currentUser, aviso, recarregar,
+}) {
+  const [importando, setImportando] = useState(false);
+  const [modal, setModal] = useState(null); // { modo:'novo'|'editar', item? }
+
+  const importar = async () => {
+    if (importando || faltamImportar.length === 0) return;
+    setImportando(true);
+    const { data, error } = await importarProdutosDelivery(products, linhas);
+    setImportando(false);
+    if (error) {
+      aviso("Não foi possível importar agora. Tente novamente.", "err");
+      return;
+    }
+    logAction(currentUser?.username, "delivery:importar", {
+      msg: `Importou ${data.importados} produto(s) do PDV para o delivery`,
+      name: currentUser?.name, role: currentUser?.role,
+    });
+    aviso(`${data.importados} produto(s) importado(s) para o delivery.`, "ok");
+    await recarregar();
+  };
+
+  return (
+    <>
+      {/* Ação principal por modo */}
+      {isAdmin && ehAddon && (
+        <div
+          className="delivery-view__import"
+          style={{ background: alfa(C.blue, "0c"), border: `1px solid ${alfa(C.blue, "33")}`, marginBottom: 16 }}
+        >
+          <div className="delivery-view__import-texto">
+            <div className="delivery-view__import-titulo" style={{ fontSize: sz.fontBase }}>
+              <LuDownload size={16} color={varColor(C.blue)} /> Importar cardápio do PDV
+            </div>
+            <div className="delivery-view__import-desc" style={{ fontSize: sz.fontSm }}>
+              {faltamImportar.length > 0
+                ? `Traz de uma vez os ${faltamImportar.length} produto(s) do sistema que ainda não estão no delivery. Depois é só colocar foto e descrição.`
+                : "Tudo em dia — todos os produtos do PDV já estão no delivery."}
+            </div>
+          </div>
+          <button
+            onClick={importar}
+            disabled={importando || faltamImportar.length === 0}
+            className="delivery-view__btn"
+            style={{ background: varColor(C.blue), color: "#fff", padding: `10px ${sz.pad}px`, fontSize: sz.fontBase }}
+          >
+            <LuDownload size={15} />
+            {importando ? "Importando…" : faltamImportar.length > 0 ? `Importar ${faltamImportar.length}` : "Importado"}
+          </button>
+        </div>
+      )}
+
+      {isAdmin && !ehAddon && (
+        <div style={{ marginBottom: 16 }}>
+          <button
+            onClick={() => setModal({ modo: "novo" })}
+            className="delivery-view__btn"
+            style={{ background: varColor(C.accent), color: "#fff", padding: `10px ${sz.pad}px`, fontSize: sz.fontBase }}
+          >
+            <LuPlus size={15} /> Novo produto
+          </button>
+        </div>
+      )}
+
+      {/* Lista / estados */}
+      {carregando ? (
+        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
+          <div style={{ fontSize: 40, opacity: 0.4 }}>⏳</div>
+          <div style={{ fontSize: sz.fontBase }}>Carregando o cardápio…</div>
+        </div>
+      ) : itens.length === 0 ? (
+        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
+          <div style={{ fontSize: 44, opacity: 0.3 }}>🛵</div>
+          <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Nenhum produto no delivery ainda</div>
+          <div style={{ fontSize: sz.fontSm }}>
+            {ehAddon
+              ? "Use “Importar cardápio do PDV” acima para trazer seus produtos."
+              : "Clique em “Novo produto” para começar seu cardápio online."}
+          </div>
+        </div>
+      ) : (
+        <div className="delivery-view__cards">
+          {itens.map((it) => (
+            <CardProduto
+              key={it.id}
+              sz={sz}
+              item={it}
+              isAdmin={isAdmin}
+              ehAddon={ehAddon}
+              onEditar={() => setModal({ modo: "editar", item: it })}
+              onRemover={async () => {
+                const { error } = await removerProdutoDelivery(it.id);
+                if (error) return aviso("Não foi possível remover.", "err");
+                aviso("Removido do delivery.", "ok");
+                await recarregar();
+              }}
+              onToggle={async () => {
+                const { error } = await salvarProdutoDelivery({
+                  id: it.id, produto_id: it.produto_id,
+                  foto_url: it.foto_url, descricao: it.descricao,
+                  disponivel: !it.disponivel, ordem: it.ordem,
+                });
+                if (error) return aviso("Não foi possível atualizar.", "err");
+                await recarregar();
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {modal && (
+        <ModalProduto
+          sz={sz}
+          modo={modal.modo}
+          item={modal.item}
+          ehAddon={ehAddon}
+          products={products}
+          currentUser={currentUser}
+          addProduct={addProduct}
+          updateProduct={updateProduct}
+          recarregarProdutos={recarregarProdutos}
+          aviso={aviso}
+          onFechar={() => setModal(null)}
+          onSalvo={async () => {
+            setModal(null);
+            await recarregar();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) {
+  const nome = item.produto?.name || "(produto removido do PDV)";
+  const preco = item.produto?.price;
+  const emoji = item.produto?.emoji || "🍽️";
+  const [confirmar, setConfirmar] = useState(false);
+
+  return (
+    <div className="delivery-view__card" style={{ background: varColor(C.card), border: `1px solid ${varColor(C.border)}` }}>
+      {item.foto_url ? (
+        <img className="delivery-view__card-foto" src={item.foto_url} alt={nome} />
+      ) : (
+        <div className="delivery-view__card-emoji" style={{ background: alfa(C.accent, "12") }}>{emoji}</div>
+      )}
+      <div className="delivery-view__card-corpo">
+        <div className="delivery-view__card-nome" style={{ fontSize: sz.fontBase }}>{nome}</div>
+        {item.descricao ? (
+          <div className="delivery-view__card-desc" style={{ fontSize: sz.fontSm }}>{item.descricao}</div>
+        ) : (
+          <div className="delivery-view__card-desc" style={{ fontSize: sz.fontSm, fontStyle: "italic", opacity: 0.6 }}>
+            Sem descrição — clique em editar para caprichar.
+          </div>
+        )}
+        <div className="delivery-view__card-linha">
+          {preco != null && (
+            <span className="delivery-view__pill" style={{ fontSize: sz.fontSm, background: alfa(C.accent, "12"), color: varColor(C.accent) }}>
+              {formatarReais(preco)}
+            </span>
+          )}
+          <button
+            onClick={onToggle}
+            disabled={!isAdmin}
+            className="delivery-view__pill"
+            style={{
+              border: "none", cursor: isAdmin ? "pointer" : "default", fontSize: sz.fontSm,
+              background: alfa(item.disponivel ? C.green : C.muted, "15"),
+              color: varColor(item.disponivel ? C.green : C.muted),
+            }}
+            title="Ligar/desligar no cardápio"
+          >
+            {item.disponivel ? "Disponível" : "Indisponível"}
+          </button>
+        </div>
+        {isAdmin && (
+          <div className="delivery-view__card-linha">
+            <button onClick={onEditar} className="delivery-view__btn" style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "6px 12px", fontSize: sz.fontSm }}>
+              <LuPencil size={13} /> Editar
+            </button>
+            {confirmar ? (
+              <>
+                <span style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>Remover?</span>
+                <button onClick={onRemover} className="delivery-view__btn" style={{ background: varColor(C.red), color: "#fff", padding: "6px 12px", fontSize: sz.fontSm }}>Sim</button>
+                <button onClick={() => setConfirmar(false)} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "6px 12px", fontSize: sz.fontSm }}>Não</button>
+              </>
+            ) : (
+              <button onClick={() => setConfirmar(true)} className="delivery-view__btn" style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "6px 12px", fontSize: sz.fontSm }}>
+                <LuTrash2 size={13} /> {ehAddon ? "Tirar do delivery" : "Excluir"}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Modal criar/editar item do delivery.
+// Addon: só a camada de delivery (foto/descrição/disponível/ordem) —
+//   nome/preço vêm do PDV e aparecem só para referência.
+// Standalone: nome/preço/categoria + a camada de delivery, tudo junto.
+function ModalProduto({
+  sz, modo, item, ehAddon, products, currentUser, addProduct, updateProduct, recarregarProdutos, aviso, onFechar, onSalvo,
+}) {
+  const prod = item?.produto || null;
+  const [nome, setNome] = useState(prod?.name || "");
+  const [preco, setPreco] = useState(prod?.price != null ? String(prod.price) : "");
+  const [categoria, setCategoria] = useState(prod?.category || "");
+  const [emoji, setEmoji] = useState(prod?.emoji || "");
+  const [descricao, setDescricao] = useState(item?.descricao || "");
+  const [fotoUrl, setFotoUrl] = useState(item?.foto_url || "");
+  const [disponivel, setDisponivel] = useState(item?.disponivel ?? true);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+
+  const categorias = useMemo(
+    () => [...new Set(products.map((p) => p.category).filter(Boolean))].sort(),
+    [products]
+  );
+
+  const salvar = async () => {
+    if (salvando) return;
+    // Standalone precisa de nome+preço (o produto é criado aqui).
+    if (!ehAddon) {
+      if (!nome.trim()) return setErro("Informe o nome do produto.");
+      const p = parseFloat(String(preco).replace(",", "."));
+      if (isNaN(p) || p <= 0) return setErro("Preço deve ser maior que zero.");
+    }
+    setSalvando(true);
+    setErro("");
+
+    let produtoId = item?.produto_id;
+
+    // Standalone: cria/atualiza o produto em products (este é o cadastro dele).
+    if (!ehAddon) {
+      const payload = {
+        name: nome.trim().toUpperCase(),
+        price: parseFloat(String(preco).replace(",", ".")),
+        category: categoria.trim() || "Delivery",
+        emoji: emoji || null,
+      };
+      if (modo === "novo") {
+        const { data, error } = await addProduct(payload);
+        if (error || !data?.id) {
+          setSalvando(false);
+          return setErro(error?.message || "Não foi possível criar o produto.");
+        }
+        produtoId = data.id;
+        logAction(currentUser?.username, "delivery:produto:criar", { msg: `Produto de delivery criado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
+      } else {
+        const { error } = await updateProduct(item.produto_id, payload);
+        if (error) {
+          setSalvando(false);
+          return setErro(error.message || "Não foi possível salvar o produto.");
+        }
+      }
+    }
+
+    // Camada de delivery (sempre).
+    const { error } = await salvarProdutoDelivery({
+      id: item?.id,
+      produto_id: produtoId,
+      foto_url: fotoUrl.trim() || null,
+      descricao: descricao.trim() || null,
+      disponivel,
+      ordem: item?.ordem ?? 0,
+    });
+    setSalvando(false);
+    if (error) return setErro(error.message || "Não foi possível salvar no delivery.");
+
+    if (!ehAddon) await recarregarProdutos();
+    aviso(modo === "novo" ? "Produto adicionado ao delivery." : "Alterações salvas.", "ok");
+    onSalvo();
+  };
+
+  return createPortal(
+    <div className="delivery-view__overlay" onClick={(e) => { if (e.target === e.currentTarget) onFechar(); }}>
+      <div className="delivery-view__modal" style={{ background: varColor(C.card), color: varColor(C.text) }}>
+        <div className="delivery-view__modal-topo">
+          <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>
+            {modo === "novo" ? "Novo produto do delivery" : "Editar produto do delivery"}
+          </div>
+          <button onClick={onFechar} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+            <LuX size={18} />
+          </button>
+        </div>
+
+        {/* Standalone: dados do produto. Addon: só referência do PDV. */}
+        {ehAddon ? (
+          <div className="delivery-view__aviso" style={{ background: alfa(C.blue, "0c"), border: `1px solid ${alfa(C.blue, "22")}`, fontSize: sz.fontSm }}>
+            <strong>{prod?.name || "Produto"}</strong>
+            {prod?.price != null ? ` · ${formatarReais(prod.price)}` : ""} — nome e preço vêm do
+            cadastro do PDV. Aqui você ajusta como ele aparece no delivery.
+          </div>
+        ) : (
+          <>
+            <div className="delivery-view__campo">
+              <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Nome *</label>
+              <input className="delivery-view__input" style={inputStyle(sz)} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: X-Salada" maxLength={60} />
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <div className="delivery-view__campo" style={{ flex: 1 }}>
+                <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Preço (R$) *</label>
+                <input className="delivery-view__input" style={inputStyle(sz)} type="number" min="0" step="0.01" value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" />
+              </div>
+              <div className="delivery-view__campo" style={{ width: 88 }}>
+                <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Emoji</label>
+                <input className="delivery-view__input" style={{ ...inputStyle(sz), textAlign: "center" }} value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder="🍔" maxLength={4} />
+              </div>
+            </div>
+            <div className="delivery-view__campo">
+              <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Categoria</label>
+              <input className="delivery-view__input" style={inputStyle(sz)} value={categoria} onChange={(e) => setCategoria(e.target.value)} placeholder="Ex: Lanches" maxLength={40} list="delivery-cats" />
+              <datalist id="delivery-cats">{categorias.map((c) => <option key={c} value={c} />)}</datalist>
+            </div>
+          </>
+        )}
+
+        {/* Camada de delivery (ambos os modos) */}
+        <div className="delivery-view__campo">
+          <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>
+            <LuImage size={13} style={{ verticalAlign: "-2px", marginRight: 4 }} />
+            Foto (link da imagem)
+          </label>
+          <input className="delivery-view__input" style={inputStyle(sz)} value={fotoUrl} onChange={(e) => setFotoUrl(e.target.value)} placeholder="https://…" />
+          <span style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted) }}>
+            Cole o link de uma foto. O upload direto de imagens entra quando o armazenamento de fotos for ativado.
+          </span>
+        </div>
+        <div className="delivery-view__campo">
+          <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Descrição</label>
+          <textarea className="delivery-view__textarea" style={inputStyle(sz)} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Pão, hambúrguer, queijo, alface e tomate." maxLength={280} />
+        </div>
+        <label className="delivery-view__switch" style={{ fontSize: sz.fontBase }}>
+          <span>Disponível no cardápio</span>
+          <input type="checkbox" checked={disponivel} onChange={(e) => setDisponivel(e.target.checked)} style={{ width: 20, height: 20 }} />
+        </label>
+
+        {erro && (
+          <div className="delivery-view__aviso" style={{ background: alfa(C.red, "12"), color: varColor(C.red), border: `1px solid ${alfa(C.red, "33")}`, fontSize: sz.fontSm }}>
+            ⚠️ {erro}
+          </div>
+        )}
+
+        <div className="delivery-view__modal-botoes">
+          <button onClick={onFechar} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0", fontSize: sz.fontBase }}>Cancelar</button>
+          <button onClick={salvar} disabled={salvando} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "11px 0", fontSize: sz.fontBase }}>
+            {salvando ? "Salvando…" : "Salvar"}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA 2 — Complementos (grupos + itens por produto)
+// ════════════════════════════════════════════════════════════════
+function AbaComplementos({ sz, isAdmin, itens, aviso }) {
+  const [produtoId, setProdutoId] = useState(null);
+  const [grupos, setGrupos] = useState([]);
+  const [carregando, setCarregando] = useState(false);
+
+  const selecionado = itens.find((i) => String(i.produto_id) === String(produtoId)) || null;
+
+  const carregar = useCallback(async (pid) => {
+    if (!pid) return;
+    setCarregando(true);
+    const { data, error } = await listarGruposComplemento(pid);
+    setCarregando(false);
+    if (error) return aviso("Não foi possível carregar os complementos.", "err");
+    setGrupos(data);
+  }, [aviso]);
+
+  useEffect(() => {
+    if (produtoId) carregar(produtoId);
+    else setGrupos([]);
+  }, [produtoId, carregar]);
+
+  if (itens.length === 0) {
+    return (
+      <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
+        <div style={{ fontSize: 44, opacity: 0.3 }}>🧩</div>
+        <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Adicione produtos ao cardápio primeiro</div>
+        <div style={{ fontSize: sz.fontSm }}>Os complementos (ex.: “Escolha o ponto da carne”) ficam por produto.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="delivery-view__campo" style={{ maxWidth: 420, marginBottom: 16 }}>
+        <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>
+          <LuUtensils size={13} style={{ verticalAlign: "-2px", marginRight: 4 }} /> Escolha o produto
+        </label>
+        <select
+          className="delivery-view__input"
+          style={inputStyle(sz)}
+          value={produtoId || ""}
+          onChange={(e) => setProdutoId(e.target.value || null)}
+        >
+          <option value="">— selecione —</option>
+          {itens.map((i) => (
+            <option key={i.id} value={i.produto_id}>{i.produto?.name || "(produto)"}</option>
+          ))}
+        </select>
+      </div>
+
+      {selecionado && (
+        <GruposDoProduto
+          sz={sz}
+          isAdmin={isAdmin}
+          produtoId={produtoId}
+          grupos={grupos}
+          carregando={carregando}
+          aviso={aviso}
+          recarregar={() => carregar(produtoId)}
+        />
+      )}
+    </div>
+  );
+}
+
+function GruposDoProduto({ sz, isAdmin, produtoId, grupos, carregando, aviso, recarregar }) {
+  const [novoGrupo, setNovoGrupo] = useState("");
+  const [salvandoGrupo, setSalvandoGrupo] = useState(false);
+
+  const addGrupo = async () => {
+    const nome = novoGrupo.trim();
+    if (!nome || salvandoGrupo) return;
+    setSalvandoGrupo(true);
+    const { error } = await salvarGrupoComplemento({ produto_id: produtoId, nome, min_escolhas: 0, max_escolhas: 1, ordem: grupos.length });
+    setSalvandoGrupo(false);
+    if (error) return aviso("Não foi possível criar o grupo.", "err");
+    setNovoGrupo("");
+    await recarregar();
+  };
+
+  if (carregando) {
+    return <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: 16 }}>Carregando…</div>;
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {grupos.length === 0 && (
+        <div style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>
+          Nenhum grupo ainda. Crie o primeiro (ex.: “Adicionais”, “Escolha o ponto”).
+        </div>
+      )}
+
+      {grupos.map((g) => (
+        <GrupoCard key={g.id} sz={sz} isAdmin={isAdmin} grupo={g} aviso={aviso} recarregar={recarregar} />
+      ))}
+
+      {isAdmin && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", maxWidth: 480 }}>
+          <input
+            className="delivery-view__input"
+            style={inputStyle(sz)}
+            value={novoGrupo}
+            onChange={(e) => setNovoGrupo(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addGrupo()}
+            placeholder="Novo grupo (ex.: Adicionais)"
+            maxLength={60}
+          />
+          <button onClick={addGrupo} disabled={!novoGrupo.trim() || salvandoGrupo} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "10px 16px", fontSize: sz.fontBase }}>
+            <LuPlus size={14} /> Grupo
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GrupoCard({ sz, isAdmin, grupo, aviso, recarregar }) {
+  const [nome, setNome] = useState(grupo.nome);
+  const [min, setMin] = useState(String(grupo.min_escolhas ?? 0));
+  const [max, setMax] = useState(String(grupo.max_escolhas ?? 1));
+  const [novoItem, setNovoItem] = useState("");
+  const [novoPreco, setNovoPreco] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  const salvarGrupo = async () => {
+    setSalvando(true);
+    const { error } = await salvarGrupoComplemento({
+      id: grupo.id, produto_id: grupo.produto_id, nome: nome.trim() || grupo.nome,
+      min_escolhas: Number(min) || 0, max_escolhas: Number(max) || 1, ordem: grupo.ordem,
+    });
+    setSalvando(false);
+    if (error) return aviso("Não foi possível salvar o grupo.", "err");
+    await recarregar();
+  };
+
+  const addItem = async () => {
+    const n = novoItem.trim();
+    if (!n) return;
+    const { error } = await salvarComplemento({
+      grupo_id: grupo.id, nome: n,
+      preco: parseFloat(String(novoPreco).replace(",", ".")) || 0,
+      disponivel: true, ordem: (grupo.itens?.length || 0),
+    });
+    if (error) return aviso("Não foi possível adicionar o item.", "err");
+    setNovoItem("");
+    setNovoPreco("");
+    await recarregar();
+  };
+
+  return (
+    <div style={{ border: `1px solid ${varColor(C.border)}`, borderRadius: 14, padding: 14, background: varColor(C.card) }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <input
+          className="delivery-view__input"
+          style={{ ...inputStyle(sz), flex: 1, minWidth: 160, fontWeight: 700 }}
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          disabled={!isAdmin}
+          maxLength={60}
+        />
+        <label style={{ fontSize: sz.fontSm, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}>
+          mín
+          <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 56 }} type="number" min="0" value={min} onChange={(e) => setMin(e.target.value)} disabled={!isAdmin} />
+        </label>
+        <label style={{ fontSize: sz.fontSm, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}>
+          máx
+          <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 56 }} type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} disabled={!isAdmin} />
+        </label>
+        {isAdmin && (
+          <>
+            <button onClick={salvarGrupo} disabled={salvando} className="delivery-view__btn" style={{ background: alfa(C.accent, "15"), color: varColor(C.accent), padding: "8px 12px", fontSize: sz.fontSm }}>Salvar</button>
+            <button
+              onClick={async () => {
+                const { error } = await removerGrupoComplemento(grupo.id);
+                if (error) return aviso("Não foi possível remover o grupo.", "err");
+                await recarregar();
+              }}
+              className="delivery-view__btn"
+              style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "8px 10px", fontSize: sz.fontSm }}
+            >
+              <LuTrash2 size={13} />
+            </button>
+          </>
+        )}
+      </div>
+      <div style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted), marginTop: 4 }}>
+        {Number(min) > 0 ? "Obrigatório" : "Opcional"} · escolhe de {min || 0} a {max || 1}
+      </div>
+
+      {/* Itens do grupo */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+        {(grupo.itens || []).map((it) => (
+          <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: varColor(C.surface) }}>
+            <span style={{ flex: 1, fontSize: sz.fontBase }}>{it.nome}</span>
+            <span style={{ fontSize: sz.fontSm, color: varColor(C.accent), fontWeight: 600 }}>
+              {Number(it.preco) > 0 ? `+ ${formatarReais(it.preco)}` : "Grátis"}
+            </span>
+            {isAdmin && (
+              <button
+                onClick={async () => {
+                  const { error } = await removerComplemento(it.id);
+                  if (error) return aviso("Não foi possível remover o item.", "err");
+                  await recarregar();
+                }}
+                className="delivery-view__modal-fechar"
+                style={{ color: varColor(C.muted) }}
+              >
+                <LuX size={14} />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {isAdmin && (
+        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          <input className="delivery-view__input" style={{ ...inputStyle(sz), flex: 1 }} value={novoItem} onChange={(e) => setNovoItem(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addItem()} placeholder="Novo item (ex.: Bacon)" maxLength={60} />
+          <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 96 }} type="number" min="0" step="0.01" value={novoPreco} onChange={(e) => setNovoPreco(e.target.value)} placeholder="R$ 0,00" />
+          <button onClick={addItem} disabled={!novoItem.trim()} className="delivery-view__btn" style={{ background: alfa(C.accent, "15"), color: varColor(C.accent), padding: "8px 12px", fontSize: sz.fontSm }}>
+            <LuPlus size={13} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA 3 — Entrega e taxas (config_delivery)
+// ════════════════════════════════════════════════════════════════
+function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
+  const [config, setConfig] = useState(null);
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+
+  // nova faixa em edição
+  const [faixaTipo, setFaixaTipo] = useState("bairro");
+  const [faixaBairro, setFaixaBairro] = useState("");
+  const [faixaCepIni, setFaixaCepIni] = useState("");
+  const [faixaCepFim, setFaixaCepFim] = useState("");
+  const [faixaTaxa, setFaixaTaxa] = useState("");
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const { data, error } = await carregarConfigDelivery();
+      if (!ativo) return;
+      setCarregando(false);
+      if (error) return aviso("Não foi possível carregar as configurações.", "err");
+      setConfig(
+        data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] }
+      );
+    })();
+    return () => { ativo = false; };
+  }, [aviso]);
+
+  const set = (patch) => setConfig((c) => ({ ...c, ...patch }));
+
+  const salvar = async (extra) => {
+    if (!tenant?.id) return aviso("Estabelecimento não identificado.", "err");
+    const alvo = { ...config, ...(extra || {}) };
+    setSalvando(true);
+    const { data, error } = await salvarConfigDelivery(tenant.id, alvo);
+    setSalvando(false);
+    if (error) return aviso("Não foi possível salvar.", "err");
+    setConfig(data || alvo);
+    logAction(currentUser?.username, "delivery:config", { msg: "Configurações de entrega atualizadas", name: currentUser?.name, role: currentUser?.role });
+    aviso("Configurações salvas.", "ok");
+  };
+
+  const addFaixa = () => {
+    const nova =
+      faixaTipo === "cep"
+        ? { tipo: "cep", cep_ini: faixaCepIni, cep_fim: faixaCepFim, taxa: parseFloat(String(faixaTaxa).replace(",", ".")) || 0 }
+        : { tipo: "bairro", bairro: faixaBairro, taxa: parseFloat(String(faixaTaxa).replace(",", ".")) || 0 };
+    if (!validarFaixa(nova)) {
+      return aviso(faixaTipo === "cep" ? "Preencha os dois CEPs (8 dígitos, início ≤ fim)." : "Informe o nome do bairro.", "err");
+    }
+    const faixas = [...(config.faixas_taxa || []), nova];
+    setFaixaBairro(""); setFaixaCepIni(""); setFaixaCepFim(""); setFaixaTaxa("");
+    salvar({ faixas_taxa: faixas });
+  };
+
+  const removerFaixa = (idx) => {
+    const faixas = (config.faixas_taxa || []).filter((_, i) => i !== idx);
+    salvar({ faixas_taxa: faixas });
+  };
+
+  if (carregando || !config) {
+    return <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: 16 }}>Carregando…</div>;
+  }
+
+  const readOnly = !isAdmin;
+
+  return (
+    <div style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 18 }}>
+      {/* Loja aberta */}
+      <label className="delivery-view__switch" style={{ fontSize: sz.fontBase, padding: "12px 14px", borderRadius: 12, background: varColor(C.card), border: `1px solid ${varColor(C.border)}` }}>
+        <span>
+          <strong>Delivery aberto agora</strong>
+          <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+            {config.aberto ? "Clientes conseguem fazer pedidos." : "O cardápio aparece, mas sem aceitar pedidos."}
+          </div>
+        </span>
+        <input type="checkbox" checked={!!config.aberto} disabled={readOnly} onChange={(e) => salvar({ aberto: e.target.checked })} style={{ width: 22, height: 22 }} />
+      </label>
+
+      {/* Pedido mínimo + tempo de preparo */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <div className="delivery-view__campo" style={{ flex: "1 1 180px" }}>
+          <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Pedido mínimo (R$)</label>
+          <input className="delivery-view__input" style={inputStyle(sz)} type="number" min="0" step="0.01" value={config.pedido_minimo ?? 0} disabled={readOnly} onChange={(e) => set({ pedido_minimo: e.target.value })} onBlur={() => salvar()} />
+        </div>
+        <div className="delivery-view__campo" style={{ flex: "1 1 180px" }}>
+          <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Tempo de preparo (min)</label>
+          <input className="delivery-view__input" style={inputStyle(sz)} type="number" min="0" value={config.tempo_preparo_min ?? 30} disabled={readOnly} onChange={(e) => set({ tempo_preparo_min: e.target.value })} onBlur={() => salvar()} />
+        </div>
+      </div>
+
+      {/* Faixas de taxa por distância */}
+      <div>
+        <div style={{ fontWeight: 700, fontSize: sz.fontBase, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+          <LuTruck size={16} color={varColor(C.accent)} /> Taxa de entrega
+        </div>
+        <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginBottom: 10 }}>
+          Cobre por bairro ou por faixa de CEP. Quem estiver fora de todas as faixas não consegue pedir para entrega.
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+          {(config.faixas_taxa || []).length === 0 && (
+            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>Nenhuma faixa cadastrada ainda.</div>
+          )}
+          {(config.faixas_taxa || []).map((f, idx) => (
+            <div key={idx} className="delivery-view__faixa" style={{ background: varColor(C.surface) }}>
+              <span className="delivery-view__faixa-texto" style={{ fontSize: sz.fontBase }}>{faixaResumo(f)}</span>
+              {isAdmin && (
+                <button onClick={() => removerFaixa(idx)} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+                  <LuTrash2 size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {isAdmin && (
+          <div style={{ border: `1px dashed ${varColor(C.border)}`, borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              {["bairro", "cep"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setFaixaTipo(t)}
+                  className="delivery-view__btn"
+                  style={{
+                    padding: "7px 14px", fontSize: sz.fontSm,
+                    background: faixaTipo === t ? varColor(C.accent) : alfa(C.muted, "12"),
+                    color: faixaTipo === t ? "#fff" : varColor(C.muted),
+                  }}
+                >
+                  {t === "bairro" ? "Por bairro" : "Por CEP"}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {faixaTipo === "bairro" ? (
+                <input className="delivery-view__input" style={{ ...inputStyle(sz), flex: "1 1 160px" }} value={faixaBairro} onChange={(e) => setFaixaBairro(e.target.value)} placeholder="Bairro" maxLength={60} />
+              ) : (
+                <>
+                  <input className="delivery-view__input" style={{ ...inputStyle(sz), flex: "1 1 120px" }} value={formatarCep(faixaCepIni)} onChange={(e) => setFaixaCepIni(e.target.value)} placeholder="CEP inicial" />
+                  <input className="delivery-view__input" style={{ ...inputStyle(sz), flex: "1 1 120px" }} value={formatarCep(faixaCepFim)} onChange={(e) => setFaixaCepFim(e.target.value)} placeholder="CEP final" />
+                </>
+              )}
+              <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 110 }} type="number" min="0" step="0.01" value={faixaTaxa} onChange={(e) => setFaixaTaxa(e.target.value)} placeholder="Taxa R$" />
+              <button onClick={addFaixa} disabled={salvando} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "10px 16px", fontSize: sz.fontBase }}>
+                <LuPlus size={14} /> Adicionar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Estilo base de input, casado ao tema do tenant (var --gm-*).
+function inputStyle(sz) {
+  return {
+    border: `1.5px solid ${varColor(C.border)}`,
+    background: varColor(C.surface),
+    color: varColor(C.text),
+    fontSize: sz.fontBase,
+  };
+}

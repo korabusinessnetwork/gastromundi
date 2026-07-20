@@ -1,0 +1,169 @@
+import { describe, it, expect, vi } from "vitest";
+
+// A camada importa o client Supabase (que exige VITE_* no import). Só
+// testamos as funções PURAS aqui — o client é mockado para não exigir env.
+vi.mock("./supabase", async () => {
+  const { createMockSupabase } = await import("@/test/mockSupabase");
+  return { supabase: createMockSupabase() };
+});
+
+import {
+  produtosParaImportar,
+  normalizarFaixaTaxa,
+  validarFaixa,
+  faixaResumo,
+  sanitizarConfig,
+  formatarCep,
+  formatarReais,
+} from "./deliveryAdmin";
+
+describe("produtosParaImportar", () => {
+  it("traz só os produtos ativos que ainda não estão no delivery", () => {
+    const products = [
+      { id: 1, active: true },
+      { id: 2, active: true },
+      { id: 3, active: true },
+    ];
+    const jaPublicados = [{ produto_id: 2 }];
+    const faltantes = produtosParaImportar(products, jaPublicados);
+    expect(faltantes.map((p) => p.id)).toEqual([1, 3]);
+  });
+
+  it("compara id por string (id number x produto_id string do jsonb/uuid)", () => {
+    const products = [{ id: 10 }, { id: 20 }];
+    const jaPublicados = [{ produto_id: "10" }];
+    expect(produtosParaImportar(products, jaPublicados).map((p) => p.id)).toEqual([20]);
+  });
+
+  it("ignora produtos inativos (active === false)", () => {
+    const products = [
+      { id: 1, active: false },
+      { id: 2, active: true },
+    ];
+    expect(produtosParaImportar(products, []).map((p) => p.id)).toEqual([2]);
+  });
+
+  it("trata active ausente como ativo", () => {
+    const products = [{ id: 1 }, { id: 2 }];
+    expect(produtosParaImportar(products, []).map((p) => p.id)).toEqual([1, 2]);
+  });
+
+  it("é robusto a entradas não-array", () => {
+    expect(produtosParaImportar(null, null)).toEqual([]);
+    expect(produtosParaImportar(undefined, undefined)).toEqual([]);
+  });
+
+  it("nada a importar quando tudo já foi publicado", () => {
+    const products = [{ id: 1 }, { id: 2 }];
+    const jaPublicados = [{ produto_id: 1 }, { produto_id: 2 }];
+    expect(produtosParaImportar(products, jaPublicados)).toEqual([]);
+  });
+});
+
+describe("normalizarFaixaTaxa", () => {
+  it("bairro: apara o nome e normaliza a taxa", () => {
+    expect(normalizarFaixaTaxa({ tipo: "bairro", bairro: "  Centro  ", taxa: "5" })).toEqual({
+      tipo: "bairro",
+      bairro: "Centro",
+      taxa: 5,
+    });
+  });
+
+  it("cep: mantém só dígitos e corta em 8", () => {
+    expect(
+      normalizarFaixaTaxa({ tipo: "cep", cep_ini: "90.000-000", cep_fim: "90999999999", taxa: 8 })
+    ).toEqual({ tipo: "cep", cep_ini: "90000000", cep_fim: "90999999", taxa: 8 });
+  });
+
+  it("taxa nunca fica negativa e default é bairro", () => {
+    expect(normalizarFaixaTaxa({ taxa: -3 })).toEqual({ tipo: "bairro", bairro: "", taxa: 0 });
+  });
+
+  it("tipo desconhecido cai para bairro", () => {
+    expect(normalizarFaixaTaxa({ tipo: "xpto", bairro: "X" }).tipo).toBe("bairro");
+  });
+});
+
+describe("validarFaixa", () => {
+  it("bairro válido precisa de nome", () => {
+    expect(validarFaixa({ tipo: "bairro", bairro: "Centro", taxa: 5 })).toBe(true);
+    expect(validarFaixa({ tipo: "bairro", bairro: "   ", taxa: 5 })).toBe(false);
+  });
+
+  it("cep exige 8 dígitos em cada ponta e ini <= fim", () => {
+    expect(validarFaixa({ tipo: "cep", cep_ini: "90000000", cep_fim: "90999999", taxa: 5 })).toBe(true);
+    expect(validarFaixa({ tipo: "cep", cep_ini: "9000000", cep_fim: "90999999", taxa: 5 })).toBe(false);
+    expect(validarFaixa({ tipo: "cep", cep_ini: "90999999", cep_fim: "90000000", taxa: 5 })).toBe(false);
+  });
+
+  it("taxa 0 é válida (entrega grátis)", () => {
+    expect(validarFaixa({ tipo: "bairro", bairro: "Centro", taxa: 0 })).toBe(true);
+  });
+});
+
+describe("faixaResumo", () => {
+  it("bairro com taxa", () => {
+    expect(faixaResumo({ tipo: "bairro", bairro: "Centro", taxa: 5 })).toBe("Centro — R$ 5,00");
+  });
+
+  it("taxa 0 aparece como Grátis", () => {
+    expect(faixaResumo({ tipo: "bairro", bairro: "Centro", taxa: 0 })).toBe("Centro — Grátis");
+  });
+
+  it("cep formata as duas pontas", () => {
+    expect(faixaResumo({ tipo: "cep", cep_ini: "90000000", cep_fim: "90999999", taxa: 8 })).toBe(
+      "CEP 90000-000 a 90999-999 — R$ 8,00"
+    );
+  });
+});
+
+describe("sanitizarConfig", () => {
+  it("normaliza tipos e números não-negativos", () => {
+    const out = sanitizarConfig({
+      aberto: 1,
+      pedido_minimo: "20",
+      tempo_preparo_min: "35.6",
+      horario: { seg: "18-23" },
+      faixas_taxa: [
+        { tipo: "bairro", bairro: "Centro", taxa: 5 },
+        { tipo: "bairro", bairro: "", taxa: 5 }, // inválida, cai fora
+      ],
+    });
+    expect(out.aberto).toBe(true);
+    expect(out.pedido_minimo).toBe(20);
+    expect(out.tempo_preparo_min).toBe(36);
+    expect(out.horario).toEqual({ seg: "18-23" });
+    expect(out.faixas_taxa).toEqual([{ tipo: "bairro", bairro: "Centro", taxa: 5 }]);
+  });
+
+  it("defaults seguros quando vem vazio/undefined", () => {
+    const out = sanitizarConfig(undefined);
+    expect(out).toEqual({
+      aberto: false,
+      pedido_minimo: 0,
+      tempo_preparo_min: 0,
+      horario: {},
+      faixas_taxa: [],
+    });
+  });
+
+  it("horario inválido vira objeto vazio", () => {
+    expect(sanitizarConfig({ horario: "qualquer coisa" }).horario).toEqual({});
+  });
+});
+
+describe("formatarCep", () => {
+  it("insere hífen só depois do 5º dígito", () => {
+    expect(formatarCep("90000")).toBe("90000");
+    expect(formatarCep("900000")).toBe("90000-0");
+    expect(formatarCep("90.000-000")).toBe("90000-000");
+  });
+});
+
+describe("formatarReais", () => {
+  it("formata em pt-BR com R$ e vírgula", () => {
+    expect(formatarReais(5)).toBe("R$ 5,00");
+    expect(formatarReais(12.5)).toBe("R$ 12,50");
+    expect(formatarReais("nan")).toBe("R$ 0,00");
+  });
+});

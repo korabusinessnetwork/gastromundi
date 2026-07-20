@@ -23,6 +23,7 @@ import MobilePage       from "@/pages/MobilePage";
 import DesktopLayout    from "@/pages/desktop/DesktopLayout";
 import PDVPage          from "@/pages/desktop/PDVPage";
 import ProdutosPage     from "@/pages/desktop/ProdutosPage";
+import DeliveryPage     from "@/pages/desktop/DeliveryPage";
 import RelatorioPage    from "@/pages/desktop/RelatorioPage";
 import ConfiguracoesPage from "@/pages/desktop/ConfiguracoesPage";
 import EstoquePage        from "@/pages/desktop/EstoquePage";
@@ -164,6 +165,14 @@ const rotasApp = [
         element: (
           <PrivateRoute requiredPermission="produtos" requiredModulo={MODULOS.CARDAPIO} moduloLabel="Cadastro de Produtos">
             <ProdutosPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "delivery",
+        element: (
+          <PrivateRoute requiredPermission="produtos" requiredModulo={MODULOS.DELIVERY} moduloLabel="Delivery">
+            <DeliveryPage />
           </PrivateRoute>
         ),
       },
