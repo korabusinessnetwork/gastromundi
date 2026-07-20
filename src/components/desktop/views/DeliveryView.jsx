@@ -1135,8 +1135,26 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginBottom: 2 }}>
-        Crie um grupo uma vez (ex.: “Adicionais”, “Molhos”) e marque em quais produtos ele aparece. O mesmo grupo pode ser usado em vários itens.
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 200, fontSize: sz.fontSm, color: varColor(C.muted) }}>
+          Crie um grupo uma vez (ex.: “Adicionais”, “Molhos”) e marque em quais produtos ele aparece. O mesmo grupo pode ser usado em vários itens.
+        </div>
+        {isAdmin && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", maxWidth: 480 }}>
+            <input
+              className="delivery-view__input"
+              style={inputStyle(sz)}
+              value={novoGrupo}
+              onChange={(e) => setNovoGrupo(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addGrupo()}
+              placeholder="Novo grupo (ex.: Adicionais)"
+              maxLength={60}
+            />
+            <button onClick={addGrupo} disabled={!novoGrupo.trim() || salvandoGrupo} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "10px 16px", fontSize: sz.fontBase, whiteSpace: "nowrap" }}>
+              <LuPlus size={14} /> Grupo
+            </button>
+          </div>
+        )}
       </div>
 
       {grupos.length === 0 && (
@@ -1159,23 +1177,6 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
           recarregar={carregar}
         />
       ))}
-
-      {isAdmin && (
-        <div style={{ display: "flex", gap: 8, alignItems: "center", maxWidth: 480 }}>
-          <input
-            className="delivery-view__input"
-            style={inputStyle(sz)}
-            value={novoGrupo}
-            onChange={(e) => setNovoGrupo(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addGrupo()}
-            placeholder="Novo grupo (ex.: Adicionais)"
-            maxLength={60}
-          />
-          <button onClick={addGrupo} disabled={!novoGrupo.trim() || salvandoGrupo} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "10px 16px", fontSize: sz.fontBase }}>
-            <LuPlus size={14} /> Grupo
-          </button>
-        </div>
-      )}
     </div>
   );
 }
