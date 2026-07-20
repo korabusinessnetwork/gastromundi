@@ -24,6 +24,7 @@ select
 
 -- 3) O que a tabela public.users diz do seu papel/tenant?
 --    (fonte da verdade do provisionamento — role='admin' pro dono)
-select id, email, role, tenant_id
+--    Liga por auth_id (o id é bigint; auth.uid() é uuid).
+select id, name, username, role, tenant_id, active
 from public.users
-where id = auth.uid();
+where auth_id = auth.uid();
