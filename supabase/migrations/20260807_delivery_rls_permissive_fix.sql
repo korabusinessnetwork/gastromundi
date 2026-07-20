@@ -11,12 +11,23 @@
 --   PERMISSIVE. Sem NENHUMA permissive, o resultado é "nega tudo" — por
 --   isso o INSERT em produto_delivery voltava 403.
 --   As tabelas ANTIGAS (products, config, sales…) já tinham as permissive
---   de papel da 20240107, e por isso a mesma RESTRICTIVE funcionava nelas;
---   as tabelas NOVAS do Delivery nasceram sem essa base.
+--   de papel da 20240107/20240108, e por isso a mesma RESTRICTIVE funcionava
+--   nelas; as tabelas NOVAS do Delivery nasceram sem essa base.
+--
+-- ┌─ CORREÇÃO DA CORREÇÃO (2026-07-20) ─────────────────────────────┐
+-- │ A 1ª versão desta migration checava o papel em (auth.jwt()->>    │
+-- │ 'role'). ERRADO: o PostgREST reserva o `role` da RAIZ do JWT     │
+-- │ para o role do banco (authenticated/anon/service_role) — ver     │
+-- │ 20240108. O papel do APP vive em app_metadata.gastro_role. Com   │
+-- │ o claim errado, ('authenticated' IN ('gerente','admin')) dava    │
+-- │ SEMPRE falso → a permissive de escrita nunca liberava → 403      │
+-- │ CONTINUAVA mesmo após rodar a migration. Agora usa o MESMO claim │
+-- │ das policies que funcionam: app_metadata ->> 'gastro_role'.      │
+-- └──────────────────────────────────────────────────────────────────┘
 --
 -- SOLUÇÃO:
 --   Adicionar as policies PERMISSIVE de papel que faltavam, espelhando o
---   padrão já usado no cardápio/operação do PDV:
+--   padrão já usado no cardápio/operação do PDV (chave gastro_role):
 --     • Gestão do cardápio (config_delivery, produto_delivery,
 --       grupos_complemento, complementos) → igual a `products`/`config`:
 --         leitura para authenticated; escrita para gerente/admin.
@@ -46,11 +57,12 @@ BEGIN
       tbl || '_select_auth', tbl);
 
     -- Escrita (INSERT/UPDATE/DELETE) só para gerente/admin (dono do cardápio).
+    -- Papel lido de app_metadata.gastro_role (NÃO da raiz `role` do JWT).
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', tbl || '_write_gerente_admin', tbl);
     EXECUTE format(
       'CREATE POLICY %I ON public.%I FOR ALL '
-      'USING ((auth.jwt() ->> ''role'') IN (''gerente'', ''admin'')) '
-      'WITH CHECK ((auth.jwt() ->> ''role'') IN (''gerente'', ''admin''))',
+      'USING ((auth.jwt() -> ''app_metadata'' ->> ''gastro_role'') IN (''gerente'', ''admin'')) '
+      'WITH CHECK ((auth.jwt() -> ''app_metadata'' ->> ''gastro_role'') IN (''gerente'', ''admin''))',
       tbl || '_write_gerente_admin', tbl);
   END LOOP;
 END;
@@ -73,11 +85,12 @@ BEGIN
 
     -- Escrita (avançar status etc.) para o operador de caixa e acima.
     -- O cliente público NÃO usa esta policy — cria pedido via RPC (definer).
+    -- Papel lido de app_metadata.gastro_role (NÃO da raiz `role` do JWT).
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', tbl || '_write_caixa_up', tbl);
     EXECUTE format(
       'CREATE POLICY %I ON public.%I FOR ALL '
-      'USING ((auth.jwt() ->> ''role'') IN (''caixa'', ''gerente'', ''admin'')) '
-      'WITH CHECK ((auth.jwt() ->> ''role'') IN (''caixa'', ''gerente'', ''admin''))',
+      'USING ((auth.jwt() -> ''app_metadata'' ->> ''gastro_role'') IN (''caixa'', ''gerente'', ''admin'')) '
+      'WITH CHECK ((auth.jwt() -> ''app_metadata'' ->> ''gastro_role'') IN (''caixa'', ''gerente'', ''admin''))',
       tbl || '_write_caixa_up', tbl);
   END LOOP;
 END;
