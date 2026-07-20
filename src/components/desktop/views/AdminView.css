@@ -759,38 +759,40 @@
 /* ── GradeInicial ── */
 
 .grade-inicial {
-  max-width: 700px;
+  max-width: 1080px;
   margin: 0 auto;
 }
 
+/* Grade responsiva: quantos cards couberem por linha (mín. ~220px cada).
+   Com mais seções, isso mantém tudo visível de relance sem barra gigante. */
 .grade-inicial__grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
 }
 
 .grade-inicial__card {
   background: var(--gm-card);
   border-width: 1.5px;
   border-style: solid;
-  border-radius: 20px;
-  padding: 28px;
+  border-radius: 16px;
+  padding: 18px;
   cursor: pointer;
   text-align: left;
   color: var(--gm-text);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   transition: border-color 0.18s, background 0.18s;
   font-family: inherit;
-  /* alvo de toque generoso (princípio nº 1) */
-  min-height: 180px;
+  /* alvo de toque confortável (princípio nº 1), porém mais compacto */
+  min-height: 140px;
 }
 
 .grade-inicial__icone {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   border-width: 1.5px;
   border-style: solid;
   display: flex;

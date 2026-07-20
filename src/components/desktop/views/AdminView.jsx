@@ -1176,14 +1176,14 @@ function GradeInicial({ sz, secoes, onSelecionar, onNavegar, fichas, fornecedore
             onMouseLeave={e => { e.currentTarget.style.borderColor = varColor(C.border); e.currentTarget.style.background = varColor(C.card); }}
           >
             <div className="grade-inicial__icone" style={{ background: alfa(s.color, "18"), borderColor: alfa(s.color, "44") }}>
-              <s.Icon size={24} color={s.color} />
+              <s.Icon size={20} color={s.color} />
             </div>
             <div style={{ flex: 1 }}>
-              <div className="grade-inicial__titulo" style={{ fontSize: sz.fontLg - 1 }}>{s.label}</div>
-              <div className="grade-inicial__desc" style={{ fontSize: sz.fontSm + 1 }}>{s.desc}</div>
+              <div className="grade-inicial__titulo" style={{ fontSize: sz.fontBase }}>{s.label}</div>
+              <div className="grade-inicial__desc" style={{ fontSize: sz.fontSm }}>{s.desc}</div>
             </div>
             <div className="grade-inicial__rodape">
-              <span className="grade-inicial__contador" style={{ fontSize: 18 }}>
+              <span className="grade-inicial__contador" style={{ fontSize: 13 }}>
                 {s.to
                   ? "Abrir"
                   : `${contadores[s.id]} ${contadores[s.id] === 1 ? "registro" : "registros"}`}
