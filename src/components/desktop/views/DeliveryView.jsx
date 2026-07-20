@@ -264,6 +264,7 @@ export default function DeliveryView({ notify } = {}) {
             faltamImportar={faltamImportar}
             products={products}
             linhas={linhas}
+            tenant={tenant}
             addProduct={addProduct}
             updateProduct={updateProduct}
             recarregarProdutos={recarregarProdutos}
@@ -653,7 +654,7 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
 // ════════════════════════════════════════════════════════════════
 function AbaCardapio({
   sz, isAdmin, ehAddon, carregando, itens, faltamImportar,
-  products, linhas, addProduct, updateProduct, recarregarProdutos, currentUser, aviso, recarregar,
+  products, linhas, tenant, addProduct, updateProduct, recarregarProdutos, currentUser, aviso, recarregar,
 }) {
   const [importando, setImportando] = useState(false);
   const [modal, setModal] = useState(null); // { modo:'novo'|'editar', item? }
