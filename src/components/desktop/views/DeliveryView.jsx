@@ -84,6 +84,7 @@ import {
   removerProdutoDelivery,
   importarProdutosDelivery,
   produtosParaImportar,
+  filtrarProdutos,
   listarGruposComplemento,
   salvarGrupoComplemento,
   removerGrupoComplemento,
@@ -269,7 +270,7 @@ export default function DeliveryView({ notify } = {}) {
         )}
 
         {aba === "complementos" && (
-          <AbaComplementos sz={sz} isAdmin={isAdmin} itens={itensCardapio} aviso={aviso} />
+          <AbaComplementos sz={sz} isAdmin={isAdmin} itens={itensCardapio} products={products} aviso={aviso} />
         )}
 
         {aba === "entrega" && (
@@ -1090,7 +1091,7 @@ function ModalProduto({
 // ════════════════════════════════════════════════════════════════
 // ABA 2 — Complementos (grupos + itens por produto)
 // ════════════════════════════════════════════════════════════════
-function AbaComplementos({ sz, isAdmin, itens, aviso }) {
+function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
   const [produtoId, setProdutoId] = useState(null);
   const [grupos, setGrupos] = useState([]);
   const [carregando, setCarregando] = useState(false);
@@ -1146,6 +1147,7 @@ function AbaComplementos({ sz, isAdmin, itens, aviso }) {
           isAdmin={isAdmin}
           produtoId={produtoId}
           grupos={grupos}
+          products={products}
           carregando={carregando}
           aviso={aviso}
           recarregar={() => carregar(produtoId)}
@@ -1155,7 +1157,7 @@ function AbaComplementos({ sz, isAdmin, itens, aviso }) {
   );
 }
 
-function GruposDoProduto({ sz, isAdmin, produtoId, grupos, carregando, aviso, recarregar }) {
+function GruposDoProduto({ sz, isAdmin, produtoId, grupos, products, carregando, aviso, recarregar }) {
   const [novoGrupo, setNovoGrupo] = useState("");
   const [salvandoGrupo, setSalvandoGrupo] = useState(false);
 
@@ -1183,7 +1185,7 @@ function GruposDoProduto({ sz, isAdmin, produtoId, grupos, carregando, aviso, re
       )}
 
       {grupos.map((g) => (
-        <GrupoCard key={g.id} sz={sz} isAdmin={isAdmin} grupo={g} aviso={aviso} recarregar={recarregar} />
+        <GrupoCard key={g.id} sz={sz} isAdmin={isAdmin} grupo={g} products={products} aviso={aviso} recarregar={recarregar} />
       ))}
 
       {isAdmin && (
@@ -1206,13 +1208,83 @@ function GruposDoProduto({ sz, isAdmin, produtoId, grupos, carregando, aviso, re
   );
 }
 
-function GrupoCard({ sz, isAdmin, grupo, aviso, recarregar }) {
+// Menu de busca para escolher um produto JÁ CRIADO como complemento.
+// Digita → lista os itens do catálogo que casam (menos os já no grupo) →
+// clica para escolher. Sem digitação técnica: só buscar e tocar.
+function SeletorProdutoComplemento({ sz, products, idsExcluir, onEscolher }) {
+  const [termo, setTermo] = useState("");
+  const [aberto, setAberto] = useState(false);
+
+  const resultados = useMemo(
+    () => filtrarProdutos(products, termo, idsExcluir),
+    [products, termo, idsExcluir]
+  );
+
+  return (
+    <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
+      <input
+        className="delivery-view__input"
+        style={{ ...inputStyle(sz), width: "100%" }}
+        value={termo}
+        onChange={(e) => { setTermo(e.target.value); setAberto(true); }}
+        onFocus={() => setAberto(true)}
+        onBlur={() => setTimeout(() => setAberto(false), 120)}
+        placeholder="Buscar item já criado…"
+      />
+      {aberto && (
+        <div
+          style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20,
+            maxHeight: 240, overflowY: "auto",
+            background: varColor(C.card), border: `1px solid ${varColor(C.border)}`,
+            borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
+          }}
+        >
+          {resultados.length === 0 ? (
+            <div style={{ padding: "10px 12px", fontSize: sz.fontSm, color: varColor(C.muted) }}>
+              {(products || []).length === 0
+                ? "Nenhum produto criado ainda."
+                : "Nenhum item encontrado."}
+            </div>
+          ) : (
+            resultados.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                // onMouseDown (antes do blur) garante que o clique registra.
+                onMouseDown={(e) => { e.preventDefault(); onEscolher(p); setTermo(""); setAberto(false); }}
+                className="delivery-view__btn"
+                style={{
+                  display: "flex", alignItems: "center", gap: 8, width: "100%",
+                  padding: "10px 12px", background: "transparent", border: "none",
+                  borderBottom: `1px solid ${alfa(C.border, "60")}`,
+                  fontSize: sz.fontBase, color: varColor(C.text), textAlign: "left",
+                  cursor: "pointer",
+                }}
+              >
+                {p.emoji && <span style={{ fontSize: sz.fontBase + 2 }}>{p.emoji}</span>}
+                <span style={{ flex: 1 }}>{p.name}</span>
+                <span style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+                  {formatarReais(p.price)}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GrupoCard({ sz, isAdmin, grupo, products, aviso, recarregar }) {
   const [nome, setNome] = useState(grupo.nome);
   const [min, setMin] = useState(String(grupo.min_escolhas ?? 0));
   const [max, setMax] = useState(String(grupo.max_escolhas ?? 1));
-  const [novoItem, setNovoItem] = useState("");
+  // Item do grupo agora vem de um produto JÁ CRIADO, escolhido na busca.
+  const [selecionadoProd, setSelecionadoProd] = useState(null);
   const [novoPreco, setNovoPreco] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [adicionando, setAdicionando] = useState(false);
 
   const salvarGrupo = async () => {
     setSalvando(true);
@@ -1225,16 +1297,29 @@ function GrupoCard({ sz, isAdmin, grupo, aviso, recarregar }) {
     await recarregar();
   };
 
+  // produto_id já presentes neste grupo — não deixa adicionar o mesmo duas vezes.
+  const idsNoGrupo = (grupo.itens || []).map((it) => it.produto_id).filter((x) => x != null);
+
+  const escolherProduto = (prod) => {
+    setSelecionadoProd(prod);
+    // Pré-preenche o preço com o do PDV, mas fica editável (preço do
+    // delivery pode ser diferente do balcão — decisão do dono).
+    setNovoPreco(prod?.price != null ? String(prod.price) : "");
+  };
+
   const addItem = async () => {
-    const n = novoItem.trim();
-    if (!n) return;
+    if (!selecionadoProd || adicionando) return;
+    setAdicionando(true);
     const { error } = await salvarComplemento({
-      grupo_id: grupo.id, nome: n,
+      grupo_id: grupo.id,
+      produto_id: selecionadoProd.id,
+      nome: selecionadoProd.name,
       preco: parseFloat(String(novoPreco).replace(",", ".")) || 0,
       disponivel: true, ordem: (grupo.itens?.length || 0),
     });
+    setAdicionando(false);
     if (error) return aviso("Não foi possível adicionar o item.", "err");
-    setNovoItem("");
+    setSelecionadoProd(null);
     setNovoPreco("");
     await recarregar();
   };
@@ -1305,12 +1390,37 @@ function GrupoCard({ sz, isAdmin, grupo, aviso, recarregar }) {
       </div>
 
       {isAdmin && (
-        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-          <input className="delivery-view__input" style={{ ...inputStyle(sz), flex: 1 }} value={novoItem} onChange={(e) => setNovoItem(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addItem()} placeholder="Novo item (ex.: Bacon)" maxLength={60} />
-          <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 96 }} type="number" min="0" step="0.01" value={novoPreco} onChange={(e) => setNovoPreco(e.target.value)} placeholder="R$ 0,00" />
-          <button onClick={addItem} disabled={!novoItem.trim()} className="delivery-view__btn" style={{ background: alfa(C.accent, "15"), color: varColor(C.accent), padding: "8px 12px", fontSize: sz.fontSm }}>
-            <LuPlus size={13} />
-          </button>
+        <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {selecionadoProd ? (
+            // Produto escolhido: mostra o item + preço (editável) + confirmar.
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 180, padding: "8px 10px", borderRadius: 8, background: alfa(C.accent, "12"), color: varColor(C.accent), fontSize: sz.fontBase, fontWeight: 600 }}>
+                {selecionadoProd.emoji && <span>{selecionadoProd.emoji}</span>}
+                <span style={{ flex: 1 }}>{selecionadoProd.name}</span>
+                <button
+                  type="button"
+                  onClick={() => { setSelecionadoProd(null); setNovoPreco(""); }}
+                  className="delivery-view__modal-fechar"
+                  title="Trocar item"
+                  style={{ color: varColor(C.accent) }}
+                >
+                  <LuX size={14} />
+                </button>
+              </div>
+              <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 96 }} type="number" min="0" step="0.01" value={novoPreco} onChange={(e) => setNovoPreco(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addItem()} placeholder="R$ 0,00" />
+              <button onClick={addItem} disabled={adicionando} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "8px 14px", fontSize: sz.fontSm }}>
+                <LuPlus size={13} /> Adicionar
+              </button>
+            </>
+          ) : (
+            // Ainda escolhendo: menu de busca dos produtos já criados.
+            <SeletorProdutoComplemento
+              sz={sz}
+              products={products}
+              idsExcluir={idsNoGrupo}
+              onEscolher={escolherProduto}
+            />
+          )}
         </div>
       )}
     </div>

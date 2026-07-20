@@ -9,6 +9,7 @@ vi.mock("./supabase", async () => {
 
 import {
   produtosParaImportar,
+  filtrarProdutos,
   normalizarFaixaTaxa,
   validarFaixa,
   faixaResumo,
@@ -57,6 +58,43 @@ describe("produtosParaImportar", () => {
     const products = [{ id: 1 }, { id: 2 }];
     const jaPublicados = [{ produto_id: 1 }, { produto_id: 2 }];
     expect(produtosParaImportar(products, jaPublicados)).toEqual([]);
+  });
+});
+
+describe("filtrarProdutos", () => {
+  const produtos = [
+    { id: 1, name: "Bacon", active: true },
+    { id: 2, name: "Batata Frita", active: true },
+    { id: 3, name: "Pão de Queijo", active: true },
+    { id: 4, name: "Bacon Extra", active: false },
+  ];
+
+  it("casa pelo nome sem acento e sem caixa", () => {
+    expect(filtrarProdutos(produtos, "pao").map((p) => p.id)).toEqual([3]);
+    expect(filtrarProdutos(produtos, "BATA").map((p) => p.id)).toEqual([2]);
+  });
+
+  it("termo vazio lista todos os ativos, ordenados por nome", () => {
+    expect(filtrarProdutos(produtos, "").map((p) => p.id)).toEqual([1, 2, 3]);
+  });
+
+  it("ignora produtos inativos (active === false)", () => {
+    expect(filtrarProdutos(produtos, "bacon").map((p) => p.id)).toEqual([1]);
+  });
+
+  it("exclui os produto_id já presentes no grupo", () => {
+    expect(filtrarProdutos(produtos, "", [2]).map((p) => p.id)).toEqual([1, 3]);
+    // compara por string (id number x produto_id string do banco)
+    expect(filtrarProdutos(produtos, "", ["1"]).map((p) => p.id)).toEqual([2, 3]);
+  });
+
+  it("respeita o limite de resultados", () => {
+    expect(filtrarProdutos(produtos, "", [], 1).map((p) => p.id)).toEqual([1]);
+  });
+
+  it("é robusto a entradas não-array", () => {
+    expect(filtrarProdutos(null, "x")).toEqual([]);
+    expect(filtrarProdutos(undefined, "")).toEqual([]);
   });
 });
 

@@ -21,6 +21,7 @@
 // teste (deliveryAdmin.test.js) — dinheiro/regra do negócio.
 // ──────────────────────────────────────────────────────────────────
 import { supabase } from "@/lib/supabase";
+import { normalizarTexto } from "@/lib/importacao/planilha";
 
 // ════════════════════════════════════════════════════════════════
 // FUNÇÕES PURAS (testadas) — nada de I/O aqui
@@ -43,6 +44,33 @@ export function produtosParaImportar(products, jaPublicados) {
   return lista.filter(
     (p) => p && p.active !== false && !publicados.has(String(p.id))
   );
+}
+
+/**
+ * Filtra o catálogo do PDV para o menu de busca de complementos: só
+ * produtos ativos, casando o termo pelo nome (sem acento/caixa), já
+ * excluindo os que o grupo atual JÁ tem (evita adicionar o mesmo item
+ * duas vezes — prevenção de erro > mensagem de erro). Termo vazio lista
+ * todos (ativos, não excluídos). Ordenado por nome; teto de resultados
+ * para a lista não estourar a tela.
+ *
+ * @param {Array<{id:number|string, name?:string, active?:boolean}>} products
+ * @param {string} termo - texto digitado na busca
+ * @param {Array<number|string>} [idsExcluir] - produto_id já no grupo
+ * @param {number} [limite] - máximo de resultados (padrão 30)
+ * @returns {Array} subconjunto de `products`
+ */
+export function filtrarProdutos(products, termo, idsExcluir = [], limite = 30) {
+  const lista = Array.isArray(products) ? products : [];
+  const excluir = new Set(
+    (Array.isArray(idsExcluir) ? idsExcluir : []).map((id) => String(id))
+  );
+  const t = normalizarTexto(termo);
+  return lista
+    .filter((p) => p && p.active !== false && !excluir.has(String(p.id)))
+    .filter((p) => (t === "" ? true : normalizarTexto(p.name).includes(t)))
+    .sort((a, b) => normalizarTexto(a.name).localeCompare(normalizarTexto(b.name)))
+    .slice(0, Math.max(0, Number(limite) || 30));
 }
 
 /**
@@ -254,7 +282,7 @@ export async function listarGruposComplemento(produtoId) {
   if (ids.length > 0) {
     const { data: comps, error: eComps } = await supabase
       .from("complementos")
-      .select("id, grupo_id, nome, preco, disponivel, ordem")
+      .select("id, grupo_id, produto_id, nome, preco, disponivel, ordem")
       .in("grupo_id", ids)
       .order("ordem", { ascending: true });
     if (eComps) return { data: [], error: eComps };
@@ -296,6 +324,9 @@ export async function removerGrupoComplemento(id) {
 export async function salvarComplemento(comp) {
   const payload = {
     grupo_id: comp.grupo_id,
+    // Vínculo com o produto do catálogo (item já criado). NULL mantém a
+    // compatibilidade com complementos antigos de texto livre.
+    produto_id: comp.produto_id != null ? comp.produto_id : null,
     nome: String(comp.nome ?? "").trim(),
     preco: Math.max(0, Number(comp.preco) || 0),
     disponivel: comp.disponivel ?? true,
