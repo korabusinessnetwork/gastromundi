@@ -447,3 +447,24 @@
   transform: translateY(-1px);
   outline: none;
 }
+
+/* Botão de remover / "Tirar do delivery" no card do cardápio: quadrado
+   compacto, só o ícone (tooltip via title), vermelho com hover mais escuro. */
+.delivery-view__card-remover {
+  flex: none;
+  width: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+  border-radius: 10px;
+  border: none;
+  background: oklch(0.6 0.19 25);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.delivery-view__card-remover:hover {
+  background: oklch(0.54 0.19 25);
+}

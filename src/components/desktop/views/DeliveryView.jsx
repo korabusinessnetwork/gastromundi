@@ -845,8 +845,12 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
                 <button onClick={() => setConfirmar(false)} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "6px 12px", fontSize: sz.fontSm }}>Não</button>
               </>
             ) : (
-              <button onClick={() => setConfirmar(true)} className="delivery-view__btn" style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "6px 12px", fontSize: sz.fontSm }}>
-                <LuTrash2 size={13} /> {ehAddon ? "Tirar do delivery" : "Excluir"}
+              <button
+                onClick={() => setConfirmar(true)}
+                className="delivery-view__card-remover"
+                title={ehAddon ? "Tirar do delivery" : "Excluir"}
+              >
+                <LuTrash2 size={16} />
               </button>
             )}
           </div>
