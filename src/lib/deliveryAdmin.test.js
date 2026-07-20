@@ -10,6 +10,7 @@ vi.mock("./supabase", async () => {
 import {
   produtosParaImportar,
   filtrarProdutos,
+  filtrarItensDelivery,
   alternarProdutoId,
   normalizarFaixaTaxa,
   validarFaixa,
@@ -96,6 +97,40 @@ describe("filtrarProdutos", () => {
   it("é robusto a entradas não-array", () => {
     expect(filtrarProdutos(null, "x")).toEqual([]);
     expect(filtrarProdutos(undefined, "")).toEqual([]);
+  });
+});
+
+describe("filtrarItensDelivery", () => {
+  const itens = [
+    { produto_id: 1, produto: { name: "Bacon" } },
+    { produto_id: 2, produto: { name: "Batata Frita" } },
+    { produto_id: 3, produto: { name: "Pão de Queijo" } },
+  ];
+
+  it("casa pelo nome do produto sem acento e sem caixa", () => {
+    expect(filtrarItensDelivery(itens, "pao").map((i) => i.produto_id)).toEqual([3]);
+    expect(filtrarItensDelivery(itens, "BATA").map((i) => i.produto_id)).toEqual([2]);
+  });
+
+  it("termo vazio lista todos, ordenados por nome", () => {
+    expect(filtrarItensDelivery(itens, "").map((i) => i.produto_id)).toEqual([1, 2, 3]);
+  });
+
+  it("exclui os produto_id já vinculados ao grupo", () => {
+    expect(filtrarItensDelivery(itens, "", [2]).map((i) => i.produto_id)).toEqual([1, 3]);
+    // compara por string (produto_id number x uuid/string do banco)
+    expect(filtrarItensDelivery(itens, "", ["1"]).map((i) => i.produto_id)).toEqual([2, 3]);
+  });
+
+  it("respeita o limite de resultados", () => {
+    expect(filtrarItensDelivery(itens, "", [], 1).map((i) => i.produto_id)).toEqual([1]);
+  });
+
+  it("é robusto a item sem produto/nome e a entrada não-array", () => {
+    expect(filtrarItensDelivery([{ produto_id: 9 }], "x")).toEqual([]);
+    expect(filtrarItensDelivery([{ produto_id: 9 }], "").map((i) => i.produto_id)).toEqual([9]);
+    expect(filtrarItensDelivery(null, "x")).toEqual([]);
+    expect(filtrarItensDelivery(undefined, "")).toEqual([]);
   });
 });
 

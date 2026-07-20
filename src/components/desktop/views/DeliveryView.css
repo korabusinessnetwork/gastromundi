@@ -434,3 +434,16 @@
   gap: 8px;
   margin-top: 6px;
 }
+
+/* Card médio da biblioteca de grupos (aba Complementos). Realce ao passar
+   o mouse / focar pelo teclado — reforça que o card inteiro é clicável. */
+.delivery-view__grupo-card {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.delivery-view__grupo-card:hover,
+.delivery-view__grupo-card:focus-visible {
+  border-color: var(--cor-accent, #e11d48);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  outline: none;
+}

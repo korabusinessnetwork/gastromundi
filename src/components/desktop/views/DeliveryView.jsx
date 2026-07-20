@@ -48,6 +48,8 @@ import {
   LuMessageCircle,
   LuChevronRight,
   LuChevronDown,
+  LuArrowLeft,
+  LuSearch,
   LuBanknote,
   LuRefreshCw,
   LuBell,
@@ -86,6 +88,7 @@ import {
   importarProdutosDelivery,
   produtosParaImportar,
   filtrarProdutos,
+  filtrarItensDelivery,
   alternarProdutoId,
   listarBibliotecaGrupos,
   vincularGrupoProduto,
@@ -1108,6 +1111,8 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
   const [carregando, setCarregando] = useState(true);
   const [novoGrupo, setNovoGrupo] = useState("");
   const [salvandoGrupo, setSalvandoGrupo] = useState(false);
+  // Qual grupo está aberto para edição. null = grade de cards.
+  const [grupoAbertoId, setGrupoAbertoId] = useState(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -1123,22 +1128,43 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
     const nome = novoGrupo.trim();
     if (!nome || salvandoGrupo) return;
     setSalvandoGrupo(true);
-    const { error } = await salvarGrupoComplemento({ nome, min_escolhas: 0, max_escolhas: 1, ordem: grupos.length });
+    const { data, error } = await salvarGrupoComplemento({ nome, min_escolhas: 0, max_escolhas: 1, ordem: grupos.length });
     setSalvandoGrupo(false);
     if (error) return aviso("Não foi possível criar o grupo.", "err");
     setNovoGrupo("");
     await carregar();
+    // Abre o grupo recém-criado direto na edição (caminho feliz: criou → já configura).
+    if (data?.id) setGrupoAbertoId(data.id);
   };
 
   if (carregando) {
     return <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: 16 }}>Carregando…</div>;
   }
 
+  // ── Editor aberto: mostra só o grupo escolhido, limpo, com "voltar" ──
+  const grupoAberto = grupoAbertoId ? grupos.find((g) => g.id === grupoAbertoId) : null;
+  if (grupoAberto) {
+    return (
+      <GrupoEditor
+        sz={sz}
+        isAdmin={isAdmin}
+        grupo={grupoAberto}
+        products={products}
+        itensCardapio={itens}
+        aviso={aviso}
+        recarregar={carregar}
+        onVoltar={() => setGrupoAbertoId(null)}
+        onRemovido={() => setGrupoAbertoId(null)}
+      />
+    );
+  }
+
+  // ── Grade de cards (visão padrão) ───────────────────────────────────
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 200, fontSize: sz.fontSm, color: varColor(C.muted) }}>
-          Crie um grupo uma vez (ex.: “Adicionais”, “Molhos”) e marque em quais produtos ele aparece. O mesmo grupo pode ser usado em vários itens.
+          Crie um grupo uma vez (ex.: “Adicionais”, “Molhos”) e marque em quais produtos ele aparece. Toque num card para editar.
         </div>
         {isAdmin && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", maxWidth: 480 }}>
@@ -1158,27 +1184,79 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
         )}
       </div>
 
-      {grupos.length === 0 && (
+      {grupos.length === 0 ? (
         <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
           <div style={{ fontSize: 44, opacity: 0.3 }}>🧩</div>
           <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Nenhum grupo ainda</div>
           <div style={{ fontSize: sz.fontSm }}>Crie o primeiro grupo (ex.: “Adicionais”) e escolha em quais produtos ele aparece.</div>
         </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))",
+            gap: 12,
+          }}
+        >
+          {grupos.map((g) => (
+            <GrupoCardMini
+              key={g.id}
+              sz={sz}
+              grupo={g}
+              onAbrir={() => setGrupoAbertoId(g.id)}
+            />
+          ))}
+        </div>
       )}
-
-      {grupos.map((g) => (
-        <GrupoCard
-          key={g.id}
-          sz={sz}
-          isAdmin={isAdmin}
-          grupo={g}
-          products={products}
-          itensCardapio={itens}
-          aviso={aviso}
-          recarregar={carregar}
-        />
-      ))}
     </div>
+  );
+}
+
+// Card médio, clicável, da grade da biblioteca. Só LEITURA: mostra o nome,
+// resumo (obrigatório/opcional), quantos itens tem e em quantos produtos
+// aparece. Tocar abre o editor. Nada de campo editável aqui — a edição
+// mora no menu limpo (GrupoEditor), pra grade ficar fácil de escanear.
+function GrupoCardMini({ sz, grupo, onAbrir }) {
+  const nItens = (grupo.itens || []).length;
+  const nProdutos = (grupo.produtoIds || []).length;
+  const obrigatorio = Number(grupo.min_escolhas) > 0;
+
+  return (
+    <button
+      type="button"
+      onClick={onAbrir}
+      className="delivery-view__grupo-card"
+      style={{
+        display: "flex", flexDirection: "column", gap: 8, textAlign: "left",
+        border: `1px solid ${varColor(C.border)}`, borderRadius: 14,
+        padding: 14, background: varColor(C.card), cursor: "pointer",
+        width: "100%", minHeight: 116,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ flex: 1, fontSize: sz.fontBase + 1, fontWeight: 700, color: varColor(C.text) }}>
+          {grupo.nome}
+        </span>
+        <LuChevronRight size={18} style={{ color: varColor(C.muted), flexShrink: 0 }} />
+      </div>
+
+      <span
+        style={{
+          alignSelf: "flex-start", fontSize: sz.fontSm - 1, fontWeight: 600,
+          padding: "2px 8px", borderRadius: 999,
+          background: obrigatorio ? alfa(C.accent, "15") : varColor(C.surface),
+          color: obrigatorio ? varColor(C.accent) : varColor(C.muted),
+        }}
+      >
+        {obrigatorio ? "Obrigatório" : "Opcional"} · {grupo.min_escolhas ?? 0}–{grupo.max_escolhas ?? 1}
+      </span>
+
+      <div style={{ marginTop: "auto", display: "flex", gap: 12, fontSize: sz.fontSm, color: varColor(C.muted) }}>
+        <span>{nItens} {nItens === 1 ? "item" : "itens"}</span>
+        <span>·</span>
+        <span>{nProdutos} {nProdutos === 1 ? "produto" : "produtos"}</span>
+      </div>
+    </button>
   );
 }
 
@@ -1250,7 +1328,10 @@ function SeletorProdutoComplemento({ sz, products, idsExcluir, onEscolher }) {
   );
 }
 
-function GrupoCard({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, recarregar }) {
+// Menu de edição LIMPO de um grupo. Abre a partir de um card da grade
+// (GrupoCardMini). Header com "voltar" + nome; corpo com regras (mín/máx),
+// itens do grupo e a busca multi-seleção de "aparece nestes produtos".
+function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, recarregar, onVoltar, onRemovido }) {
   const [nome, setNome] = useState(grupo.nome);
   const [min, setMin] = useState(String(grupo.min_escolhas ?? 0));
   const [max, setMax] = useState(String(grupo.max_escolhas ?? 1));
@@ -1319,7 +1400,23 @@ function GrupoCard({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, re
   };
 
   return (
-    <div style={{ border: `1px solid ${varColor(C.border)}`, borderRadius: 14, padding: 14, background: varColor(C.card) }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Header do editor: voltar + título */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <button
+          type="button"
+          onClick={onVoltar}
+          className="delivery-view__btn"
+          style={{ display: "flex", alignItems: "center", gap: 6, background: varColor(C.surface), color: varColor(C.text), padding: "8px 12px", fontSize: sz.fontSm, whiteSpace: "nowrap" }}
+        >
+          <LuArrowLeft size={15} /> Voltar
+        </button>
+        <span style={{ fontSize: sz.fontBase + 2, fontWeight: 700, color: varColor(C.text) }}>
+          {nome || grupo.nome}
+        </span>
+      </div>
+
+    <div style={{ border: `1px solid ${varColor(C.border)}`, borderRadius: 14, padding: 16, background: varColor(C.card) }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <input
           className="delivery-view__input"
@@ -1345,6 +1442,7 @@ function GrupoCard({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, re
                 const { error } = await removerGrupoComplemento(grupo.id);
                 if (error) return aviso("Não foi possível remover o grupo.", "err");
                 await recarregar();
+                onRemovido?.();
               }}
               className="delivery-view__btn"
               style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "8px 10px", fontSize: sz.fontSm }}
@@ -1418,7 +1516,7 @@ function GrupoCard({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, re
         </div>
       )}
 
-      {/* Onde este grupo aparece — checklist dos produtos do cardápio. */}
+      {/* Onde este grupo aparece — busca multi-seleção dos produtos do cardápio. */}
       {isAdmin && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${alfa(C.border, "60")}` }}>
           <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.text), marginBottom: 6 }}>
@@ -1429,35 +1527,126 @@ function GrupoCard({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, re
               Adicione produtos ao cardápio para vincular este grupo a eles.
             </div>
           ) : (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {itensCardapio.map((it) => {
-                const marcado = produtoIds.some((x) => String(x) === String(it.produto_id));
-                return (
-                  <button
-                    key={it.id}
-                    type="button"
-                    onClick={() => alternarProduto(it.produto_id)}
-                    disabled={vinculando}
-                    className="delivery-view__btn"
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6,
-                      padding: "6px 10px", borderRadius: 999, fontSize: sz.fontSm,
-                      cursor: "pointer",
-                      background: marcado ? alfa(C.accent, "15") : varColor(C.surface),
-                      color: marcado ? varColor(C.accent) : varColor(C.muted),
-                      border: `1px solid ${marcado ? alfa(C.accent, "40") : varColor(C.border)}`,
-                      fontWeight: marcado ? 600 : 400,
-                    }}
-                  >
-                    {marcado ? <LuCheck size={12} /> : <LuPlus size={12} />}
-                    {it.produto?.name || "(produto)"}
-                  </button>
-                );
-              })}
-            </div>
+            <SeletorProdutosMulti
+              sz={sz}
+              itens={itensCardapio}
+              produtoIds={produtoIds}
+              vinculando={vinculando}
+              onAlternar={alternarProduto}
+            />
           )}
         </div>
       )}
+    </div>
+    </div>
+  );
+}
+
+// Busca multi-seleção para "aparece nestes produtos". Em cima, os produtos
+// já vinculados aparecem como chips removíveis; embaixo, uma busca lista os
+// que ainda NÃO estão no combo — digita, filtra e toca pra adicionar (dá
+// pra escolher vários). Substitui o antigo checklist de pílulas: com muitos
+// produtos, procurar é mais intuitivo que varrer uma lista inteira.
+function SeletorProdutosMulti({ sz, itens, produtoIds, vinculando, onAlternar }) {
+  const [termo, setTermo] = useState("");
+  const [aberto, setAberto] = useState(false);
+
+  // Chips: os itens do cardápio cujo produto_id está vinculado.
+  const selecionados = useMemo(
+    () => (itens || []).filter((it) => produtoIds.some((x) => String(x) === String(it.produto_id))),
+    [itens, produtoIds]
+  );
+
+  // Busca: só os que ainda NÃO estão vinculados (exclui os já escolhidos).
+  const resultados = useMemo(
+    () => filtrarItensDelivery(itens, termo, produtoIds),
+    [itens, termo, produtoIds]
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* Chips dos já vinculados */}
+      {selecionados.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {selecionados.map((it) => (
+            <span
+              key={it.id}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "5px 8px 5px 10px", borderRadius: 999, fontSize: sz.fontSm,
+                background: alfa(C.accent, "15"), color: varColor(C.accent),
+                border: `1px solid ${alfa(C.accent, "40")}`, fontWeight: 600,
+              }}
+            >
+              {it.produto?.name || "(produto)"}
+              <button
+                type="button"
+                onClick={() => onAlternar(it.produto_id)}
+                disabled={vinculando}
+                className="delivery-view__modal-fechar"
+                title="Remover deste combo"
+                style={{ color: varColor(C.accent), display: "inline-flex" }}
+              >
+                <LuX size={13} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Busca para adicionar mais produtos */}
+      <div style={{ position: "relative", maxWidth: 420 }}>
+        <LuSearch
+          size={15}
+          style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }}
+        />
+        <input
+          className="delivery-view__input"
+          style={{ ...inputStyle(sz), width: "100%", paddingLeft: 32 }}
+          value={termo}
+          onChange={(e) => { setTermo(e.target.value); setAberto(true); }}
+          onFocus={() => setAberto(true)}
+          onBlur={() => setTimeout(() => setAberto(false), 120)}
+          placeholder="Buscar produto para adicionar…"
+        />
+        {aberto && (
+          <div
+            style={{
+              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20,
+              maxHeight: 240, overflowY: "auto",
+              background: varColor(C.card), border: `1px solid ${varColor(C.border)}`,
+              borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
+            }}
+          >
+            {resultados.length === 0 ? (
+              <div style={{ padding: "10px 12px", fontSize: sz.fontSm, color: varColor(C.muted) }}>
+                {termo.trim() ? "Nenhum produto encontrado." : "Todos os produtos já estão neste combo."}
+              </div>
+            ) : (
+              resultados.map((it) => (
+                <button
+                  key={it.id}
+                  type="button"
+                  disabled={vinculando}
+                  // onMouseDown (antes do blur) garante que o clique registra.
+                  onMouseDown={(e) => { e.preventDefault(); onAlternar(it.produto_id); setTermo(""); }}
+                  className="delivery-view__btn"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, width: "100%",
+                    padding: "10px 12px", background: "transparent", border: "none",
+                    borderBottom: `1px solid ${alfa(C.border, "60")}`,
+                    fontSize: sz.fontBase, color: varColor(C.text), textAlign: "left",
+                    cursor: "pointer",
+                  }}
+                >
+                  <LuPlus size={13} style={{ color: varColor(C.accent), flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{it.produto?.name || "(produto)"}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

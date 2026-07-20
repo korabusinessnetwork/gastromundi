@@ -93,6 +93,37 @@ export function alternarProdutoId(ids, id) {
 }
 
 /**
+ * Filtra os itens do cardápio do DELIVERY (não o catálogo do PDV) para a
+ * busca "aparece nestes produtos": casa o termo pelo nome do produto (sem
+ * acento/caixa), excluindo os que o grupo JÁ tem vinculados. Termo vazio
+ * lista todos (não excluídos). Ordena por nome; teto de resultados.
+ *
+ * Diferente de filtrarProdutos porque a fonte aqui é o cardápio do
+ * delivery — cada item tem shape { produto_id, produto: { name, ... } } —
+ * e o que importa é o produto_id do vínculo, não o id do catálogo.
+ *
+ * @param {Array<{produto_id:number|string, produto?:{name?:string}}>} itens
+ * @param {string} termo - texto digitado na busca
+ * @param {Array<number|string>} [idsExcluir] - produto_id já vinculados
+ * @param {number} [limite] - máximo de resultados (padrão 30)
+ * @returns {Array} subconjunto de `itens`
+ */
+export function filtrarItensDelivery(itens, termo, idsExcluir = [], limite = 30) {
+  const lista = Array.isArray(itens) ? itens : [];
+  const excluir = new Set(
+    (Array.isArray(idsExcluir) ? idsExcluir : []).map((id) => String(id))
+  );
+  const t = normalizarTexto(termo);
+  return lista
+    .filter((it) => it && !excluir.has(String(it.produto_id)))
+    .filter((it) => (t === "" ? true : normalizarTexto(it.produto?.name).includes(t)))
+    .sort((a, b) =>
+      normalizarTexto(a.produto?.name).localeCompare(normalizarTexto(b.produto?.name))
+    )
+    .slice(0, Math.max(0, Number(limite) || 30));
+}
+
+/**
  * Normaliza uma faixa de taxa vinda da UI para o formato gravado no
  * jsonb faixas_taxa. Dois tipos:
  *   { tipo:'bairro', bairro, taxa }
