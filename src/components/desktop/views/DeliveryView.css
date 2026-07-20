@@ -264,3 +264,132 @@
   border-radius: 10px;
   padding: 10px 12px;
 }
+
+/* ── Aba Pedidos (operação — kanban por etapa do fluxo) ───────────── */
+.delivery-view__pedidos-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.delivery-view__pedidos-resumo {
+  font-weight: 600;
+}
+
+/* Colunas do kanban: rolam na horizontal quando não cabem (não estoura o
+   corpo da página — cada coluna tem largura mínima confortável). */
+.delivery-view__kanban {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+.delivery-view__coluna {
+  flex: 1 1 260px;
+  min-width: 240px;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.delivery-view__coluna-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 2px 6px;
+}
+.delivery-view__coluna-bolinha {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex: none;
+}
+.delivery-view__coluna-contador {
+  margin-left: auto;
+  min-width: 22px;
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+.delivery-view__coluna-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Cartão do pedido */
+.delivery-view__pedido {
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.delivery-view__pedido-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.delivery-view__pedido-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+}
+.delivery-view__pedido-tempo {
+  white-space: nowrap;
+}
+.delivery-view__pedido-cliente {
+  font-weight: 700;
+}
+.delivery-view__pedido-linha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.delivery-view__zap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-weight: 700;
+  text-decoration: none;
+}
+.delivery-view__pedido-itens-toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 0;
+  font-family: inherit;
+  font-weight: 600;
+}
+.delivery-view__pedido-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 0 2px;
+}
+.delivery-view__pedido-item-obs {
+  font-style: italic;
+}
+.delivery-view__pedido-total {
+  margin-top: 2px;
+}
+.delivery-view__pedido-acoes {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}

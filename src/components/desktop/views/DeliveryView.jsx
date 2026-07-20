@@ -24,7 +24,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
-import { useResponsive } from "@/utils/hooks";
+import { useResponsive, usePedidosDelivery } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import MODULOS from "@/constants/modulos";
 import C from "@/constants/colors";
@@ -41,7 +41,32 @@ import {
   LuUtensils,
   LuTruck,
   LuStore,
+  LuClipboardList,
+  LuMapPin,
+  LuPhone,
+  LuMessageCircle,
+  LuChevronRight,
+  LuChevronDown,
+  LuBanknote,
+  LuRefreshCw,
 } from "react-icons/lu";
+import {
+  statusLabel,
+  statusCor,
+  proximoStatus,
+  rotuloAcao,
+  ehTerminal,
+  podeCancelar,
+  agruparPorStatus,
+  resumoEndereco,
+  formatarTelefone,
+  linkWhatsApp,
+  resumoPagamento,
+  tempoDecorrido,
+  carregarItensPedido,
+  atualizarStatusPedido,
+  STATUS_CANCELADO,
+} from "@/lib/deliveryPedidos";
 import {
   carregarConfigDelivery,
   salvarConfigDelivery,
@@ -63,10 +88,26 @@ import {
 import "./DeliveryView.css";
 
 const ABAS = [
+  { id: "pedidos",      label: "Pedidos" },
   { id: "cardapio",     label: "Cardápio" },
   { id: "complementos", label: "Complementos" },
   { id: "entrega",      label: "Entrega e taxas" },
 ];
+
+// Chaves de cor semânticas (statusCor) → token do design system OU cor de
+// alerta literal (âmbar não é token de marca; ver colorAlfa.js). White-label
+// respeitado: os tokens seguem o tema do tenant; o âmbar é semântico fixo.
+const COR_STATUS = {
+  blue:   C.blue,
+  accent: C.accent,
+  green:  C.green,
+  red:    C.red,
+  muted:  C.muted,
+  amber:  "#f59e0b",
+};
+const baseCorStatus = (status) => COR_STATUS[statusCor(status)] || C.muted;
+const cssCor = (base) =>
+  typeof base === "string" && base.startsWith("--gm-") ? varColor(base) : base;
 
 export default function DeliveryView({ notify } = {}) {
   const { products, tenant, currentUser, moduloHabilitado, addProduct, updateProduct, recarregarProdutos } = useApp();
@@ -76,7 +117,7 @@ export default function DeliveryView({ notify } = {}) {
   // Modo derivado do plano: tem PDV → addon; só delivery → standalone.
   const ehAddon = moduloHabilitado(MODULOS.PDV);
 
-  const [aba, setAba] = useState("cardapio");
+  const [aba, setAba] = useState("pedidos");
   const [linhas, setLinhas] = useState([]);      // produto_delivery do tenant
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -194,6 +235,10 @@ export default function DeliveryView({ notify } = {}) {
           </div>
         )}
 
+        {aba === "pedidos" && (
+          <AbaPedidos sz={sz} isAdmin={isAdmin} ehAddon={ehAddon} aviso={aviso} currentUser={currentUser} />
+        )}
+
         {aba === "cardapio" && (
           <AbaCardapio
             sz={sz}
@@ -221,6 +266,296 @@ export default function DeliveryView({ notify } = {}) {
           <AbaEntrega sz={sz} isAdmin={isAdmin} tenant={tenant} currentUser={currentUser} aviso={aviso} />
         )}
       </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA 0 — Pedidos (operação: acompanha e toca o pedido até a entrega)
+// ════════════════════════════════════════════════════════════════
+//
+// Superfície de OPERAÇÃO do delivery. O pedido que o cliente enviou pela
+// vitrine já foi gravado (RPC criar_pedido_delivery) em `delivery_pedidos`
+// e espelhado em `pending`. Aqui o operador ACOMPANHA e AVANÇA o status
+// (recebido → em preparo → saiu → entregue) até a entrega.
+//
+// Dinheiro: esta aba só mexe no CICLO DE VIDA (delivery_pedidos.status).
+// Nunca cria venda — no addon a venda é fechada na frente de caixa (a
+// comanda "Delivery NNN" nasce em `pending`); relatórios leem `sales`.
+// Sem contagem dupla. No standalone, `delivery_pedidos` é o registro.
+//
+// Intuitividade (Princípio nº 1): colunas por etapa (kanban) do fluxo, a
+// próxima ação em destaque no cartão, contato do cliente a um toque
+// (WhatsApp), e estados de vazio/carregando/erro com texto humano.
+function AbaPedidos({ sz, isAdmin, ehAddon, aviso }) {
+  const { pedidos, carregando, erro, recarregar } = usePedidosDelivery();
+  const [tick, setTick] = useState(0); // recalcula "há X min" de tempos em tempos
+
+  // Relógio leve só pro rótulo de tempo respirar (1 min). Sem custo de rede.
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  const colunas = useMemo(() => agruparPorStatus(pedidos), [pedidos, tick]);
+  const abertos = useMemo(
+    () => pedidos.filter((p) => !ehTerminal(p?.status ?? "recebido")).length,
+    [pedidos]
+  );
+
+  const avancar = useCallback(
+    async (pedido) => {
+      const proximo = proximoStatus(pedido.status);
+      if (!proximo) return;
+      const { error } = await atualizarStatusPedido(pedido.id, proximo);
+      if (error) return aviso("Não foi possível atualizar o pedido. Tente novamente.", "err");
+      aviso(`Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`, "ok");
+      await recarregar();
+    },
+    [aviso, recarregar]
+  );
+
+  const cancelar = useCallback(
+    async (pedido) => {
+      const { error } = await atualizarStatusPedido(pedido.id, STATUS_CANCELADO);
+      if (error) return aviso("Não foi possível cancelar. Tente novamente.", "err");
+      aviso(`Pedido ${pedido.numero} cancelado.`, "ok");
+      await recarregar();
+    },
+    [aviso, recarregar]
+  );
+
+  return (
+    <>
+      {/* Barra de topo: resumo + recarregar manual (fallback sem realtime) */}
+      <div className="delivery-view__pedidos-topo">
+        <div className="delivery-view__pedidos-resumo" style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+          {carregando
+            ? "Carregando pedidos…"
+            : abertos > 0
+              ? `${abertos} pedido${abertos !== 1 ? "s" : ""} em andamento`
+              : "Nenhum pedido em andamento"}
+        </div>
+        <button
+          onClick={recarregar}
+          className="delivery-view__btn"
+          style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "6px 12px", fontSize: sz.fontSm }}
+          title="Atualizar a lista de pedidos"
+        >
+          <LuRefreshCw size={13} /> Atualizar
+        </button>
+      </div>
+
+      {carregando ? (
+        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
+          <div style={{ fontSize: 40, opacity: 0.4 }}>⏳</div>
+          <div style={{ fontSize: sz.fontBase }}>Carregando pedidos…</div>
+        </div>
+      ) : erro ? (
+        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
+          <div style={{ fontSize: 44, opacity: 0.3 }}>📡</div>
+          <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Não conseguimos carregar os pedidos</div>
+          <div style={{ fontSize: sz.fontSm }}>Verifique a conexão e toque em “Atualizar”.</div>
+        </div>
+      ) : colunas.length === 0 ? (
+        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
+          <div style={{ fontSize: 44, opacity: 0.3 }}>🛵</div>
+          <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Nenhum pedido por aqui ainda</div>
+          <div style={{ fontSize: sz.fontSm }}>
+            Quando um cliente pedir pelo cardápio online, o pedido aparece aqui na hora.
+          </div>
+        </div>
+      ) : (
+        <div className="delivery-view__kanban">
+          {colunas.map((col) => {
+            const base = baseCorStatus(col.status);
+            return (
+              <div key={col.status} className="delivery-view__coluna">
+                <div
+                  className="delivery-view__coluna-titulo"
+                  style={{ fontSize: sz.fontSm, color: cssCor(base) }}
+                >
+                  <span className="delivery-view__coluna-bolinha" style={{ background: cssCor(base) }} />
+                  {col.label}
+                  <span
+                    className="delivery-view__coluna-contador"
+                    style={{ background: alfa(base, "1f"), color: cssCor(base), fontSize: sz.fontSm - 1 }}
+                  >
+                    {col.pedidos.length}
+                  </span>
+                </div>
+                <div className="delivery-view__coluna-cards">
+                  {col.pedidos.map((p) => (
+                    <CardPedido
+                      key={p.id}
+                      sz={sz}
+                      pedido={p}
+                      isAdmin={isAdmin}
+                      ehAddon={ehAddon}
+                      onAvancar={() => avancar(p)}
+                      onCancelar={() => cancelar(p)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
+  const [aberto, setAberto] = useState(false);
+  const [itens, setItens] = useState(null); // null = ainda não buscou
+  const [carregandoItens, setCarregandoItens] = useState(false);
+  const [confirmarCancelar, setConfirmarCancelar] = useState(false);
+
+  const base = baseCorStatus(pedido.status);
+  const acao = rotuloAcao(pedido.status);
+  const endereco = resumoEndereco(pedido);
+  const zap = linkWhatsApp(
+    pedido.cliente_telefone,
+    `Olá! Aqui é do delivery, sobre o seu pedido ${pedido.numero}.`
+  );
+
+  const toggleItens = async () => {
+    const proximo = !aberto;
+    setAberto(proximo);
+    if (proximo && itens === null && !carregandoItens) {
+      setCarregandoItens(true);
+      const { data } = await carregarItensPedido(pedido.id);
+      setItens(Array.isArray(data) ? data : []);
+      setCarregandoItens(false);
+    }
+  };
+
+  return (
+    <div
+      className="delivery-view__pedido"
+      style={{ background: varColor(C.card), border: `1px solid ${varColor(C.border)}`, borderLeft: `3px solid ${cssCor(base)}` }}
+    >
+      {/* Cabeçalho: número + tempo */}
+      <div className="delivery-view__pedido-topo">
+        <span className="delivery-view__pedido-num" style={{ fontSize: sz.fontBase, color: varColor(C.text) }}>
+          <LuClipboardList size={14} color={cssCor(base)} /> {pedido.numero}
+        </span>
+        <span className="delivery-view__pedido-tempo" style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+          {tempoDecorrido(pedido.created_at)}
+        </span>
+      </div>
+
+      {/* Cliente */}
+      <div className="delivery-view__pedido-cliente" style={{ fontSize: sz.fontBase, color: varColor(C.text) }}>
+        {pedido.cliente_nome || "Cliente"}
+      </div>
+
+      {/* Telefone → WhatsApp (só toque; número é do cliente) */}
+      {pedido.cliente_telefone && (
+        <div className="delivery-view__pedido-linha" style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+          <LuPhone size={13} /> {formatarTelefone(pedido.cliente_telefone)}
+          {zap && (
+            <a
+              href={zap}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="delivery-view__zap"
+              style={{ color: varColor(C.green), fontSize: sz.fontSm }}
+              title="Falar com o cliente no WhatsApp"
+            >
+              <LuMessageCircle size={13} /> WhatsApp
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* Endereço */}
+      {endereco && (
+        <div className="delivery-view__pedido-linha" style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+          <LuMapPin size={13} /> {endereco}
+        </div>
+      )}
+
+      {/* Pagamento */}
+      <div className="delivery-view__pedido-linha" style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+        <LuBanknote size={13} /> {resumoPagamento(pedido)}
+      </div>
+
+      {/* Itens (sob demanda) */}
+      <button
+        onClick={toggleItens}
+        className="delivery-view__pedido-itens-toggle"
+        style={{ fontSize: sz.fontSm, color: varColor(C.accent) }}
+      >
+        {aberto ? <LuChevronDown size={14} /> : <LuChevronRight size={14} />}
+        {aberto ? "Ocultar itens" : "Ver itens"}
+      </button>
+      {aberto && (
+        <div className="delivery-view__pedido-itens" style={{ fontSize: sz.fontSm, color: varColor(C.text) }}>
+          {carregandoItens ? (
+            <div style={{ color: varColor(C.muted) }}>Carregando itens…</div>
+          ) : itens && itens.length > 0 ? (
+            itens.map((it) => (
+              <div key={it.id} className="delivery-view__pedido-item">
+                <span>{it.qtd}× {it.nome}</span>
+                {it.obs && <span className="delivery-view__pedido-item-obs" style={{ color: varColor(C.muted) }}> — {it.obs}</span>}
+              </div>
+            ))
+          ) : (
+            <div style={{ color: varColor(C.muted) }}>Sem itens detalhados.</div>
+          )}
+        </div>
+      )}
+
+      {/* Total */}
+      <div className="delivery-view__pedido-total" style={{ fontSize: sz.fontBase, color: varColor(C.text) }}>
+        Total <strong>{formatarReais(pedido.total)}</strong>
+      </div>
+
+      {/* Ações — só admin/gerente toca o pedido */}
+      {isAdmin && !ehTerminal(pedido.status) && (
+        <div className="delivery-view__pedido-acoes">
+          {acao && (
+            <button
+              onClick={onAvancar}
+              className="delivery-view__btn"
+              style={{ background: cssCor(base), color: "#fff", padding: "8px 12px", fontSize: sz.fontSm, flex: 1 }}
+            >
+              {acao}
+            </button>
+          )}
+          {podeCancelar(pedido.status) && (
+            confirmarCancelar ? (
+              <>
+                <button
+                  onClick={onCancelar}
+                  className="delivery-view__btn"
+                  style={{ background: varColor(C.red), color: "#fff", padding: "8px 12px", fontSize: sz.fontSm }}
+                >
+                  Cancelar mesmo
+                </button>
+                <button
+                  onClick={() => setConfirmarCancelar(false)}
+                  className="delivery-view__btn"
+                  style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "8px 12px", fontSize: sz.fontSm }}
+                >
+                  Voltar
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setConfirmarCancelar(true)}
+                className="delivery-view__btn"
+                style={{ background: alfa(C.red, "12"), color: varColor(C.red), padding: "8px 10px", fontSize: sz.fontSm }}
+                title="Cancelar este pedido"
+              >
+                <LuX size={13} />
+              </button>
+            )
+          )}
+        </div>
+      )}
     </div>
   );
 }

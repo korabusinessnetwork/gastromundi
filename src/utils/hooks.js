@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { listarPedidosDelivery } from "@/lib/deliveryPedidos";
 
 /**
  * useLS — localStorage com fallback e sincronização
@@ -184,4 +185,74 @@ export function usePedidosCozinha() {
   }, []);
 
   return { pedidos, loading };
+}
+
+/**
+ * usePedidosDelivery — pedidos de delivery do tenant (aba de Pedidos, Fase 4)
+ * com sincronização ao vivo. Fonte da lista: `delivery_pedidos` (histórico
+ * próprio do delivery). A RLS já filtra por tenant; admin lê direto.
+ *
+ * Duas assinaturas de realtime, de propósito:
+ *  • `delivery_pedidos`: mudança de status ao vivo entre dispositivos. SÓ
+ *    funciona depois que o dono habilitar Realtime nessa tabela (Database →
+ *    Replication) — passo manual reservado. Sem isso, o painel ainda vive de
+ *    fetch + refetch por ação.
+ *  • `pending` filtrado em created_by='delivery' (INSERT): a tabela `pending`
+ *    JÁ tem Realtime, então um pedido novo do cliente aparece na hora HOJE.
+ *    Como o INSERT do `pending` não traz a linha de `delivery_pedidos`, aqui
+ *    só disparamos um recarregar() — barato e sempre correto.
+ *
+ * Expõe { pedidos, carregando, erro, recarregar }.
+ */
+export function usePedidosDelivery() {
+  const [pedidos, setPedidos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(null);
+
+  const recarregar = useCallback(async () => {
+    const { data, error } = await listarPedidosDelivery();
+    setPedidos(data);
+    setErro(error);
+    setCarregando(false);
+  }, []);
+
+  useEffect(() => { recarregar(); }, [recarregar]);
+
+  // Status ao vivo — só ativo após habilitar Realtime em `delivery_pedidos`.
+  useEffect(() => {
+    const channel = supabase
+      .channel("delivery-pedidos-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "delivery_pedidos" }, (payload) => {
+        if (payload.eventType === "INSERT") {
+          const novo = payload.new;
+          setPedidos((prev) => (prev.find((p) => p.id === novo.id) ? prev : [novo, ...prev]));
+        } else if (payload.eventType === "UPDATE") {
+          const atualizado = payload.new;
+          setPedidos((prev) => prev.map((p) => (p.id === atualizado.id ? { ...p, ...atualizado } : p)));
+        } else if (payload.eventType === "DELETE") {
+          setPedidos((prev) => prev.filter((p) => p.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  // Novo pedido do cliente ao vivo HOJE: `pending` já tem Realtime. O espelho
+  // do delivery entra com created_by='delivery' — nesse INSERT, recarrega a
+  // lista de `delivery_pedidos` (fonte de verdade da aba).
+  useEffect(() => {
+    const channel = supabase
+      .channel("delivery-pending-espelho")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "pending", filter: "created_by=eq.delivery" },
+        () => { recarregar(); },
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [recarregar]);
+
+  return { pedidos, carregando, erro, recarregar };
 }
