@@ -10,6 +10,7 @@ vi.mock("./supabase", async () => {
 import {
   produtosParaImportar,
   filtrarProdutos,
+  alternarProdutoId,
   normalizarFaixaTaxa,
   validarFaixa,
   faixaResumo,
@@ -203,5 +204,32 @@ describe("formatarReais", () => {
     expect(formatarReais(5)).toBe("R$ 5,00");
     expect(formatarReais(12.5)).toBe("R$ 12,50");
     expect(formatarReais("nan")).toBe("R$ 0,00");
+  });
+});
+
+describe("alternarProdutoId", () => {
+  it("adiciona o produto quando ainda não está vinculado", () => {
+    expect(alternarProdutoId([1, 2], 3)).toEqual([1, 2, 3]);
+  });
+
+  it("remove o produto quando já está vinculado", () => {
+    expect(alternarProdutoId([1, 2, 3], 2)).toEqual([1, 3]);
+  });
+
+  it("compara por String (bigint do banco vs. number da UI)", () => {
+    expect(alternarProdutoId(["10", "20"], 10)).toEqual(["20"]);
+    expect(alternarProdutoId([10, 20], "10")).toEqual([20]);
+  });
+
+  it("não muta a lista original", () => {
+    const ids = [1, 2];
+    const fora = alternarProdutoId(ids, 3);
+    expect(ids).toEqual([1, 2]);
+    expect(fora).not.toBe(ids);
+  });
+
+  it("trata entrada não-array como lista vazia", () => {
+    expect(alternarProdutoId(undefined, 5)).toEqual([5]);
+    expect(alternarProdutoId(null, 5)).toEqual([5]);
   });
 });

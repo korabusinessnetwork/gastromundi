@@ -74,6 +74,25 @@ export function filtrarProdutos(products, termo, idsExcluir = [], limite = 30) {
 }
 
 /**
+ * Liga/desliga um produto na lista de vínculos de um grupo (checklist
+ * "aparece nestes produtos"). Comparação por String para não tropeçar em
+ * bigint vindo do banco vs. number/string vindo da UI. Não muta a lista
+ * original — sempre devolve um array novo, ordem preservada.
+ *
+ * @param {Array<number|string>} ids - produto_ids já vinculados
+ * @param {number|string} id - produto a alternar
+ * @returns {Array<number|string>} nova lista de vínculos
+ */
+export function alternarProdutoId(ids, id) {
+  const lista = Array.isArray(ids) ? ids : [];
+  const alvo = String(id);
+  if (lista.some((x) => String(x) === alvo)) {
+    return lista.filter((x) => String(x) !== alvo);
+  }
+  return [...lista, id];
+}
+
+/**
  * Normaliza uma faixa de taxa vinda da UI para o formato gravado no
  * jsonb faixas_taxa. Dois tipos:
  *   { tipo:'bairro', bairro, taxa }
@@ -268,6 +287,73 @@ export async function importarProdutosDelivery(products, jaPublicados) {
 
 // ── grupos_complemento + complementos ───────────────────────────────
 
+/**
+ * Biblioteca de grupos do tenant: TODOS os grupos (não mais de um produto
+ * só), cada um com seus itens e a lista de produtos onde aparece
+ * (produtoIds, via tabela de ligação produto_grupos). É a base da tela
+ * "biblioteca de complementos reutilizáveis" (dono, 2026-07-20).
+ */
+export async function listarBibliotecaGrupos() {
+  const { data: grupos, error: eGrupos } = await supabase
+    .from("grupos_complemento")
+    .select("id, produto_id, nome, min_escolhas, max_escolhas, ordem")
+    .order("ordem", { ascending: true })
+    .order("nome", { ascending: true });
+  if (eGrupos) return { data: [], error: eGrupos };
+
+  const ids = (grupos ?? []).map((g) => g.id);
+  let complementos = [];
+  let vinculos = [];
+  if (ids.length > 0) {
+    const [{ data: comps, error: eComps }, { data: links, error: eLinks }] =
+      await Promise.all([
+        supabase
+          .from("complementos")
+          .select("id, grupo_id, produto_id, nome, preco, disponivel, ordem")
+          .in("grupo_id", ids)
+          .order("ordem", { ascending: true }),
+        supabase
+          .from("produto_grupos")
+          .select("grupo_id, produto_id, ordem")
+          .in("grupo_id", ids),
+      ]);
+    if (eComps) return { data: [], error: eComps };
+    if (eLinks) return { data: [], error: eLinks };
+    complementos = comps ?? [];
+    vinculos = links ?? [];
+  }
+
+  const porGrupo = (grupos ?? []).map((g) => ({
+    ...g,
+    itens: complementos.filter((c) => c.grupo_id === g.id),
+    produtoIds: vinculos
+      .filter((v) => v.grupo_id === g.id)
+      .map((v) => v.produto_id),
+  }));
+  return { data: porGrupo, error: null };
+}
+
+/** Vincula um grupo a um produto (checklist "aparece nestes produtos"). */
+export async function vincularGrupoProduto(grupoId, produtoId) {
+  const { error } = await supabase
+    .from("produto_grupos")
+    .upsert(
+      { grupo_id: grupoId, produto_id: produtoId },
+      { onConflict: "produto_id,grupo_id", ignoreDuplicates: true }
+    );
+  return { error };
+}
+
+/** Desvincula um grupo de um produto. */
+export async function desvincularGrupoProduto(grupoId, produtoId) {
+  const { error } = await supabase
+    .from("produto_grupos")
+    .delete()
+    .eq("grupo_id", grupoId)
+    .eq("produto_id", produtoId);
+  return { error };
+}
+
 /** Grupos de complemento de um produto, com seus itens. */
 export async function listarGruposComplemento(produtoId) {
   const { data: grupos, error: eGrupos } = await supabase
@@ -296,10 +382,13 @@ export async function listarGruposComplemento(produtoId) {
   return { data: porGrupo, error: null };
 }
 
-/** Cria/atualiza um grupo de complemento. tenant_id via DEFAULT. */
+/**
+ * Cria/atualiza um grupo de complemento na biblioteca do tenant.
+ * tenant_id via DEFAULT. O grupo NÃO pertence mais a um produto — o
+ * vínculo é feito à parte (produto_grupos / vincularGrupoProduto).
+ */
 export async function salvarGrupoComplemento(grupo) {
   const payload = {
-    produto_id: grupo.produto_id,
     nome: String(grupo.nome ?? "").trim(),
     min_escolhas: Math.max(0, Number(grupo.min_escolhas) || 0),
     max_escolhas: Math.max(1, Number(grupo.max_escolhas) || 1),

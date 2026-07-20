@@ -37,6 +37,7 @@ import {
   LuTrash2,
   LuX,
   LuPlus,
+  LuCheck,
   LuImage,
   LuUtensils,
   LuTruck,
@@ -85,7 +86,10 @@ import {
   importarProdutosDelivery,
   produtosParaImportar,
   filtrarProdutos,
-  listarGruposComplemento,
+  alternarProdutoId,
+  listarBibliotecaGrupos,
+  vincularGrupoProduto,
+  desvincularGrupoProduto,
   salvarGrupoComplemento,
   removerGrupoComplemento,
   salvarComplemento,
@@ -1089,87 +1093,40 @@ function ModalProduto({
 }
 
 // ════════════════════════════════════════════════════════════════
-// ABA 2 — Complementos (grupos + itens por produto)
+// ABA 2 — Complementos (BIBLIOTECA de grupos reutilizáveis)
+//
+// Intuitivo: um só lugar onde o dono cria um grupo UMA vez (ex.:
+// "Adicionais") e marca, num checklist, em quais produtos ele aparece —
+// em vez de recriar o mesmo grupo produto a produto. O mesmo grupo
+// reaparece em todos os itens marcados; editar seus itens reflete em
+// todos de uma vez. Nada some do cardápio: os grupos antigos foram
+// migrados para essa biblioteca com seu produto já vinculado.
 // ════════════════════════════════════════════════════════════════
 function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
-  const [produtoId, setProdutoId] = useState(null);
   const [grupos, setGrupos] = useState([]);
-  const [carregando, setCarregando] = useState(false);
+  const [carregando, setCarregando] = useState(true);
+  const [novoGrupo, setNovoGrupo] = useState("");
+  const [salvandoGrupo, setSalvandoGrupo] = useState(false);
 
-  const selecionado = itens.find((i) => String(i.produto_id) === String(produtoId)) || null;
-
-  const carregar = useCallback(async (pid) => {
-    if (!pid) return;
+  const carregar = useCallback(async () => {
     setCarregando(true);
-    const { data, error } = await listarGruposComplemento(pid);
+    const { data, error } = await listarBibliotecaGrupos();
     setCarregando(false);
     if (error) return aviso("Não foi possível carregar os complementos.", "err");
     setGrupos(data);
   }, [aviso]);
 
-  useEffect(() => {
-    if (produtoId) carregar(produtoId);
-    else setGrupos([]);
-  }, [produtoId, carregar]);
-
-  if (itens.length === 0) {
-    return (
-      <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-        <div style={{ fontSize: 44, opacity: 0.3 }}>🧩</div>
-        <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Adicione produtos ao cardápio primeiro</div>
-        <div style={{ fontSize: sz.fontSm }}>Os complementos (ex.: “Escolha o ponto da carne”) ficam por produto.</div>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="delivery-view__campo" style={{ maxWidth: 420, marginBottom: 16 }}>
-        <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>
-          <LuUtensils size={13} style={{ verticalAlign: "-2px", marginRight: 4 }} /> Escolha o produto
-        </label>
-        <select
-          className="delivery-view__input"
-          style={inputStyle(sz)}
-          value={produtoId || ""}
-          onChange={(e) => setProdutoId(e.target.value || null)}
-        >
-          <option value="">— selecione —</option>
-          {itens.map((i) => (
-            <option key={i.id} value={i.produto_id}>{i.produto?.name || "(produto)"}</option>
-          ))}
-        </select>
-      </div>
-
-      {selecionado && (
-        <GruposDoProduto
-          sz={sz}
-          isAdmin={isAdmin}
-          produtoId={produtoId}
-          grupos={grupos}
-          products={products}
-          carregando={carregando}
-          aviso={aviso}
-          recarregar={() => carregar(produtoId)}
-        />
-      )}
-    </div>
-  );
-}
-
-function GruposDoProduto({ sz, isAdmin, produtoId, grupos, products, carregando, aviso, recarregar }) {
-  const [novoGrupo, setNovoGrupo] = useState("");
-  const [salvandoGrupo, setSalvandoGrupo] = useState(false);
+  useEffect(() => { carregar(); }, [carregar]);
 
   const addGrupo = async () => {
     const nome = novoGrupo.trim();
     if (!nome || salvandoGrupo) return;
     setSalvandoGrupo(true);
-    const { error } = await salvarGrupoComplemento({ produto_id: produtoId, nome, min_escolhas: 0, max_escolhas: 1, ordem: grupos.length });
+    const { error } = await salvarGrupoComplemento({ nome, min_escolhas: 0, max_escolhas: 1, ordem: grupos.length });
     setSalvandoGrupo(false);
     if (error) return aviso("Não foi possível criar o grupo.", "err");
     setNovoGrupo("");
-    await recarregar();
+    await carregar();
   };
 
   if (carregando) {
@@ -1178,14 +1135,29 @@ function GruposDoProduto({ sz, isAdmin, produtoId, grupos, products, carregando,
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginBottom: 2 }}>
+        Crie um grupo uma vez (ex.: “Adicionais”, “Molhos”) e marque em quais produtos ele aparece. O mesmo grupo pode ser usado em vários itens.
+      </div>
+
       {grupos.length === 0 && (
-        <div style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>
-          Nenhum grupo ainda. Crie o primeiro (ex.: “Adicionais”, “Escolha o ponto”).
+        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
+          <div style={{ fontSize: 44, opacity: 0.3 }}>🧩</div>
+          <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Nenhum grupo ainda</div>
+          <div style={{ fontSize: sz.fontSm }}>Crie o primeiro grupo (ex.: “Adicionais”) e escolha em quais produtos ele aparece.</div>
         </div>
       )}
 
       {grupos.map((g) => (
-        <GrupoCard key={g.id} sz={sz} isAdmin={isAdmin} grupo={g} products={products} aviso={aviso} recarregar={recarregar} />
+        <GrupoCard
+          key={g.id}
+          sz={sz}
+          isAdmin={isAdmin}
+          grupo={g}
+          products={products}
+          itensCardapio={itens}
+          aviso={aviso}
+          recarregar={carregar}
+        />
       ))}
 
       {isAdmin && (
@@ -1276,7 +1248,7 @@ function SeletorProdutoComplemento({ sz, products, idsExcluir, onEscolher }) {
   );
 }
 
-function GrupoCard({ sz, isAdmin, grupo, products, aviso, recarregar }) {
+function GrupoCard({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, recarregar }) {
   const [nome, setNome] = useState(grupo.nome);
   const [min, setMin] = useState(String(grupo.min_escolhas ?? 0));
   const [max, setMax] = useState(String(grupo.max_escolhas ?? 1));
@@ -1285,16 +1257,36 @@ function GrupoCard({ sz, isAdmin, grupo, products, aviso, recarregar }) {
   const [novoPreco, setNovoPreco] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [adicionando, setAdicionando] = useState(false);
+  // Produtos onde este grupo aparece (checklist). Estado local otimista:
+  // marca/desmarca na hora e persiste via produto_grupos; reverte no erro.
+  const [produtoIds, setProdutoIds] = useState(grupo.produtoIds ?? []);
+  const [vinculando, setVinculando] = useState(false);
 
   const salvarGrupo = async () => {
     setSalvando(true);
     const { error } = await salvarGrupoComplemento({
-      id: grupo.id, produto_id: grupo.produto_id, nome: nome.trim() || grupo.nome,
+      id: grupo.id, nome: nome.trim() || grupo.nome,
       min_escolhas: Number(min) || 0, max_escolhas: Number(max) || 1, ordem: grupo.ordem,
     });
     setSalvando(false);
     if (error) return aviso("Não foi possível salvar o grupo.", "err");
     await recarregar();
+  };
+
+  const alternarProduto = async (produtoId) => {
+    if (vinculando) return;
+    const jaTem = produtoIds.some((x) => String(x) === String(produtoId));
+    const antes = produtoIds;
+    setProdutoIds(alternarProdutoId(produtoIds, produtoId));
+    setVinculando(true);
+    const { error } = jaTem
+      ? await desvincularGrupoProduto(grupo.id, produtoId)
+      : await vincularGrupoProduto(grupo.id, produtoId);
+    setVinculando(false);
+    if (error) {
+      setProdutoIds(antes); // reverte a marcação otimista
+      return aviso("Não foi possível atualizar onde o grupo aparece.", "err");
+    }
   };
 
   // produto_id já presentes neste grupo — não deixa adicionar o mesmo duas vezes.
@@ -1420,6 +1412,47 @@ function GrupoCard({ sz, isAdmin, grupo, products, aviso, recarregar }) {
               idsExcluir={idsNoGrupo}
               onEscolher={escolherProduto}
             />
+          )}
+        </div>
+      )}
+
+      {/* Onde este grupo aparece — checklist dos produtos do cardápio. */}
+      {isAdmin && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${alfa(C.border, "60")}` }}>
+          <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.text), marginBottom: 6 }}>
+            <LuUtensils size={12} style={{ verticalAlign: "-2px", marginRight: 4 }} /> Aparece nestes produtos
+          </div>
+          {itensCardapio.length === 0 ? (
+            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+              Adicione produtos ao cardápio para vincular este grupo a eles.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {itensCardapio.map((it) => {
+                const marcado = produtoIds.some((x) => String(x) === String(it.produto_id));
+                return (
+                  <button
+                    key={it.id}
+                    type="button"
+                    onClick={() => alternarProduto(it.produto_id)}
+                    disabled={vinculando}
+                    className="delivery-view__btn"
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "6px 10px", borderRadius: 999, fontSize: sz.fontSm,
+                      cursor: "pointer",
+                      background: marcado ? alfa(C.accent, "15") : varColor(C.surface),
+                      color: marcado ? varColor(C.accent) : varColor(C.muted),
+                      border: `1px solid ${marcado ? alfa(C.accent, "40") : varColor(C.border)}`,
+                      fontWeight: marcado ? 600 : 400,
+                    }}
+                  >
+                    {marcado ? <LuCheck size={12} /> : <LuPlus size={12} />}
+                    {it.produto?.name || "(produto)"}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
