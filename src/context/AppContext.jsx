@@ -4,6 +4,7 @@ import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
 import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
 import { emailDoLogin } from "@/lib/tenantSlug";
+import { ehConsoleHost } from "@/lib/consoleHost";
 import { sincronizarStatusAssinatura } from "@/lib/assinatura";
 import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
 import { layoutDoTema, varianteDoHorario, temTrocaAutomatica, variaveisDoLayout, msAteProximaTroca } from "@/layouts";
@@ -377,6 +378,15 @@ export function AppProvider({ children }) {
     // index.html / LoginPage) — limpar aqui apagaria essa pintura e faria a
     // tela piscar o visual default até o bootstrap responder.
     if (!tenant) return;
+    // No host do Console (plataforma), a marca é SEMPRE neutra da KORA: nunca
+    // aplicar tema/título/cache de tenant aqui — senão a marca de um
+    // estabelecimento (ex.: "GASTROMUNDI by Kora") vaza na aba/visual do
+    // console. Limpa qualquer token --gm-* órfão e fixa o título neutro.
+    if (ehConsoleHost()) {
+      limparVariaveisTema();
+      if (typeof document !== "undefined") document.title = "KORA · Console";
+      return;
+    }
     const codigoLayout = layoutDoTema(tenant.tema);
     const variaveis = {
       ...variaveisDoLayout(codigoLayout, varianteLayout),
