@@ -216,6 +216,54 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // ── 5c. IDEMPOTÊNCIA por venda_id (F1): não emite DUAS notas p/ a mesma
+    // venda ─────────────────────────────────────────────────────────────
+    // Duas chamadas para a MESMA venda (duplo clique, retry do PDV, timeout
+    // do front) não podem gerar duas NFC-e (nNF distintos) para a mesma
+    // venda — isso é DUPLICIDADE FISCAL. Antes de reservar número, checamos
+    // se aquela venda já tem nota em estado terminal/definitivo:
+    //   • autorizada → devolve a MESMA nota (idempotente), sem emitir outra;
+    //   • pendente   → já saiu em contingência; devolve-a (o reenvio fecha).
+    // Só reemitimos se não houver nota reaproveitável (nada, ou só rejeitada).
+    // Obs.: a trava DEFINITIVA contra corrida exige índice único parcial em
+    // (tenant_id, venda_id) — sinalizado ao orquestrador (migration). Esta
+    // checagem cobre o reenvio sequencial, que é o caso real do PDV.
+    if (vendaId) {
+      const { data: existentes, error: existErro } = await supabase
+        .from("nfce_emitidas")
+        .select("chave, numero, serie, status, protocolo, c_stat, x_motivo, tp_amb, tp_emis, dh_emi, url_qrcode, v_nf")
+        .eq("venda_id", vendaId)
+        .in("status", ["autorizada", "pendente"])
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (existErro) {
+        return json({ error: "Falha ao checar nota existente da venda.", detalhe: existErro.message }, 500);
+      }
+      const jaEmitida = existentes?.[0];
+      if (jaEmitida) {
+        // Reaproveita a nota já existente — mesma chave, mesmo número. NUNCA
+        // emite outra para a mesma venda (nada de segredo no retorno).
+        return json(
+          {
+            status: jaEmitida.status,
+            idempotente: true,
+            contingencia: Number(jaEmitida.tp_emis) === 9,
+            chave: jaEmitida.chave,
+            protocolo: jaEmitida.protocolo ?? null,
+            cStat: jaEmitida.c_stat ?? null,
+            xMotivo: jaEmitida.x_motivo ?? (jaEmitida.status === "pendente"
+              ? "Emitida em contingência; será transmitida quando a SEFAZ voltar." : null),
+            emit: emitCupom,
+            tpAmb: Number(jaEmitida.tp_amb) || tpAmb,
+            tpEmis: Number(jaEmitida.tp_emis) || tpEmis,
+            dhEmi: jaEmitida.dh_emi ?? dataEmissao.toISOString(),
+            urlQrCode: jaEmitida.url_qrcode ?? null,
+          },
+          200,
+        );
+      }
+    }
+
     // ── 6. Emissão real: reserva o número de forma ATÔMICA (Leva 4) ───
     // RPC proximo_numero_nfce faz UPDATE ... RETURNING (20260732): dois
     // caixas concorrentes nunca pegam o mesmo nNF (evita rejeição por
@@ -226,6 +274,25 @@ Deno.serve(async (req: Request) => {
     });
     if (numError || numero == null) {
       return json({ error: "Falha ao numerar a NFC-e.", detalhe: numError?.message }, 500);
+    }
+
+    // ── 6b. REGISTRA A RESERVA do nNF antes de assinar (F4) ───────────
+    // O número já foi reservado de forma ATÔMICA (passo 6) — nunca se repete
+    // nem se reaproveita. Mas a numeração fiscal também não pode ter BURACO
+    // silencioso: se a assinatura ou a transmissão falhar no meio, o número
+    // ficaria consumido sem NENHUM registro (a persistência só acontecia no
+    // fim). Por isso derivamos JÁ a chave de acesso (determinística, sem
+    // segredo) do número reservado — ela é a identidade durável desse nNF e
+    // garante que qualquer falha pós-reserva (passo 10z) seja rastreável.
+    let chaveReservada: string | null = null;
+    try {
+      chaveReservada = montarXmlNfce(
+        montarEntradaXml({ config, venda: vendaFiscal, numero, codigoNumerico, tpAmb, tpEmis, dataEmissao }),
+      ).chave;
+    } catch {
+      // Não deveria falhar aqui (cadastro fiscal já validado no passo 5b);
+      // se falhar, seguimos — o passo 10z ainda persiste o número reservado.
+      chaveReservada = null;
     }
 
     // ── 7–9. Monta (mesmo numero/dataEmissao/codigoNumerico) → digest → QR
@@ -282,81 +349,121 @@ Deno.serve(async (req: Request) => {
       }
     };
 
-    let doc = await prepararDocumento(tpEmis);
-    let { retorno, erroTransmissao } = await transmitir(doc.xmlAssinado);
+    // ── 10..11. Assina → transmite → persiste. Envolto em try/catch porque o
+    // número JÁ foi reservado (passo 6): qualquer falha aqui (assinatura,
+    // rede, imprevisto) NÃO pode deixar o nNF virar buraco silencioso na
+    // numeração fiscal. No catch (passo 10z) registramos o número reservado. ──
+    try {
+      let doc = await prepararDocumento(tpEmis);
+      let { retorno, erroTransmissao } = await transmitir(doc.xmlAssinado);
 
-    // ── 10b. Desfecho (núcleo puro): autorizada · rejeitada · pendente. ──
-    let d = decidirDesfechoEmissao({
-      tpEmis, erroTransmissao,
-      autorizada: retorno?.autorizada ?? false,
-      cStat: retorno?.cStat ?? null,
-    });
-
-    // ── 10c. Auto-fallback (Leva 14): se estávamos ONLINE e a SEFAZ está
-    // indisponível (erro de transmissão ou cStat 108/109), reconstrói o MESMO
-    // número como contingência (tpEmis=9), assina o QR offline e tenta
-    // transmitir de novo (provável nova falha → pendente). Reusa o número —
-    // não chama a RPC de numeração outra vez. ──
-    let ligouContingencia = false;
-    if (tpEmis === 1 && deveEntrarContingencia({ erroTransmissao, cStat: retorno?.cStat ?? null })) {
-      tpEmis = 9;
-      doc = await prepararDocumento(tpEmis);
-      ({ retorno, erroTransmissao } = await transmitir(doc.xmlAssinado));
-      d = decidirDesfechoEmissao({
+      // ── 10b. Desfecho (núcleo puro): autorizada · rejeitada · pendente. ──
+      let d = decidirDesfechoEmissao({
         tpEmis, erroTransmissao,
         autorizada: retorno?.autorizada ?? false,
         cStat: retorno?.cStat ?? null,
       });
-      ligouContingencia = true;
-    }
 
-    // ── 10d. Liga/desliga o ESTADO de contingência do tenant (fire-and-forget,
-    // via RPC restrita — nunca derruba a emissão; o cupom já saiu). ──
-    if (ligouContingencia && !config.contingencia_ativa) {
-      await alternarContingencia(supabase, true);
-    } else if (config.contingencia_ativa && deveSairContingencia({ autorizada: d.status === "autorizada" })) {
-      // Auto-recovery: uma emissão online autorizada prova que a SEFAZ voltou.
-      await alternarContingencia(supabase, false);
-    }
+      // ── 10c. Auto-fallback (Leva 14): se estávamos ONLINE e a SEFAZ está
+      // indisponível (erro de transmissão ou cStat 108/109), reconstrói o MESMO
+      // número como contingência (tpEmis=9), assina o QR offline e tenta
+      // transmitir de novo (provável nova falha → pendente). Reusa o número —
+      // não chama a RPC de numeração outra vez. ──
+      let ligouContingencia = false;
+      if (tpEmis === 1 && deveEntrarContingencia({ erroTransmissao, cStat: retorno?.cStat ?? null })) {
+        tpEmis = 9;
+        doc = await prepararDocumento(tpEmis);
+        ({ retorno, erroTransmissao } = await transmitir(doc.xmlAssinado));
+        d = decidirDesfechoEmissao({
+          tpEmis, erroTransmissao,
+          autorizada: retorno?.autorizada ?? false,
+          cStat: retorno?.cStat ?? null,
+        });
+        ligouContingencia = true;
+      }
 
-    // ── 11. Persiste o desfecho em nfce_emitidas (Leva 8) — DURÁVEL, por
-    // tenant, para reimpressão (nfeProc) e reenvio (fila). Nunca bloqueia. ──
-    await persistirDesfecho(supabase, {
-      desfecho: d.status,
-      tenantId: config.tenant_id as string,
-      vendaId,
-      chave: doc.chave,
-      numero,
-      serie: (config.serie as number) ?? null,
-      tpAmb,
-      tpEmis,
-      dhEmi: dataEmissao,
-      urlQrCode: doc.urlQr,
-      vNF: doc.vNF,
-      xmlAssinado: doc.xmlAssinado,
-      retorno,
-      erroTransmissao,
-    });
+      // ── 10d. Liga/desliga o ESTADO de contingência do tenant (fire-and-forget,
+      // via RPC restrita — nunca derruba a emissão; o cupom já saiu). ──
+      if (ligouContingencia && !config.contingencia_ativa) {
+        await alternarContingencia(supabase, true);
+      } else if (config.contingencia_ativa && deveSairContingencia({ autorizada: d.status === "autorizada" })) {
+        // Auto-recovery: uma emissão online autorizada prova que a SEFAZ voltou.
+        await alternarContingencia(supabase, false);
+      }
 
-    return json(
-      {
-        status: d.status,
-        contingencia: d.contingencia,
+      // ── 11. Persiste o desfecho em nfce_emitidas (Leva 8) — DURÁVEL, por
+      // tenant, para reimpressão (nfeProc) e reenvio (fila). Nunca bloqueia. ──
+      await persistirDesfecho(supabase, {
+        desfecho: d.status,
+        tenantId: config.tenant_id as string,
+        vendaId,
         chave: doc.chave,
-        protocolo: retorno?.protocolo ?? null,
-        cStat: retorno?.cStat ?? null,
-        xMotivo: retorno?.xMotivo ?? (d.status === "pendente"
-          ? "Emitida em contingência; será transmitida quando a SEFAZ voltar." : null),
-        // Bloco NÃO-secreto do cupom (Leva 7). O urlQr já vem hasheado do
-        // servidor — expõe a URL de consulta, nunca o CSC.
-        emit: emitCupom,
+        numero,
+        serie: (config.serie as number) ?? null,
         tpAmb,
         tpEmis,
-        dhEmi: dataEmissao.toISOString(),
+        dhEmi: dataEmissao,
         urlQrCode: doc.urlQr,
-      },
-      200,
-    );
+        vNF: doc.vNF,
+        xmlAssinado: doc.xmlAssinado,
+        retorno,
+        erroTransmissao,
+      });
+
+      return json(
+        {
+          status: d.status,
+          contingencia: d.contingencia,
+          chave: doc.chave,
+          protocolo: retorno?.protocolo ?? null,
+          cStat: retorno?.cStat ?? null,
+          xMotivo: retorno?.xMotivo ?? (d.status === "pendente"
+            ? "Emitida em contingência; será transmitida quando a SEFAZ voltar." : null),
+          // Bloco NÃO-secreto do cupom (Leva 7). O urlQr já vem hasheado do
+          // servidor — expõe a URL de consulta, nunca o CSC.
+          emit: emitCupom,
+          tpAmb,
+          tpEmis,
+          dhEmi: dataEmissao.toISOString(),
+          urlQrCode: doc.urlQr,
+        },
+        200,
+      );
+    } catch (eEmissao) {
+      // ── 10z. FALHA PÓS-RESERVA (F4): o nNF já foi consumido atomicamente.
+      // NUNCA reusar esse número (a próxima venda pega o seguinte) NEM deixá-lo
+      // sumir sem rastro. Registra o número reservado como 'pendente' (motivo
+      // 'falha_pos_reserva') com a chave derivada no passo 6b, para que um
+      // gestor possa acompanhar/inutilizar depois. Best-effort: nunca lança
+      // (segredo jamais vai ao log/retorno). ──
+      await registrarReservaComFalha(supabase, {
+        tenantId: config.tenant_id as string,
+        vendaId,
+        chave: chaveReservada,
+        numero,
+        serie: (config.serie as number) ?? null,
+        tpAmb,
+        tpEmis,
+        dhEmi: dataEmissao,
+        motivo: `falha_pos_reserva: ${String((eEmissao as Error)?.message ?? eEmissao)}`,
+      });
+      return json(
+        {
+          status: "pendente",
+          contingencia: tpEmis === 9,
+          chave: chaveReservada,
+          numero,
+          detalhe:
+            "Número fiscal reservado, mas a emissão falhou antes de concluir. " +
+            "O número foi registrado (não será reutilizado) para acompanhamento/inutilização.",
+          emit: emitCupom,
+          tpAmb,
+          tpEmis,
+          dhEmi: dataEmissao.toISOString(),
+        },
+        502,
+      );
+    }
   } catch (e) {
     // Nunca vaza segredo na mensagem de erro.
     return json({ error: "Falha ao emitir NFC-e.", detalhe: String((e as Error)?.message ?? e) }, 500);
@@ -497,6 +604,71 @@ async function persistirDesfecho(
     }
   } catch (e) {
     console.error(`nfce_emitidas: falha ao persistir desfecho (chave ${p.chave}): ${String((e as Error)?.message ?? e)}`);
+  }
+}
+
+/**
+ * Registra de forma DURÁVEL um número (nNF) que foi RESERVADO atomicamente
+ * mas cuja emissão FALHOU antes de concluir (F4). Sem isto, uma falha de
+ * assinatura/rede entre a reserva e a persistência deixaria o número
+ * consumido SEM registro → buraco silencioso na numeração fiscal (a SEFAZ
+ * cobra justificativa de todo número não emitido). Grava como 'pendente'
+ * (sem xml para retransmitir — xml_tipo null) para que o número apareça e
+ * possa ser acompanhado/inutilizado por um gestor. O número NUNCA é reusado:
+ * o contador já avançou atomicamente no passo 6.
+ *
+ * NUNCA lança e NUNCA loga segredo — só a chave/número (públicos). Usa upsert
+ * ON CONFLICT (tenant_id, chave) para não duplicar. Se a chave não pôde ser
+ * derivada (chave null), apenas loga — não há identidade fiscal para gravar.
+ */
+async function registrarReservaComFalha(
+  supabase: ReturnType<typeof createClient>,
+  p: {
+    tenantId: string;
+    vendaId: string | null;
+    chave: string | null;
+    numero: number;
+    serie: number | null;
+    tpAmb: number;
+    tpEmis: number;
+    dhEmi: Date;
+    motivo: string;
+  },
+): Promise<void> {
+  try {
+    if (!p.chave) {
+      console.error(`nfce_emitidas: número ${p.numero} reservado com falha e SEM chave derivável — registrar manualmente.`);
+      return;
+    }
+    const row = {
+      tenant_id: p.tenantId,
+      venda_id: p.vendaId,
+      chave: p.chave,
+      numero: p.numero,
+      serie: p.serie,
+      status: "pendente",
+      tp_amb: p.tpAmb,
+      tp_emis: p.tpEmis,
+      protocolo: null,
+      c_stat: null,
+      x_motivo: null,
+      v_nf: null,
+      dh_emi: p.dhEmi.toISOString(),
+      url_qrcode: null,
+      xml: null,
+      xml_tipo: null, // sem XML assinado — não há o que retransmitir
+      tentativas: 0,
+      motivo: p.motivo,
+      transmitida_em: null,
+    };
+    const { error } = await supabase
+      .from("nfce_emitidas")
+      .upsert(row, { onConflict: "tenant_id,chave" });
+    if (error) {
+      console.error(`nfce_emitidas: falha ao registrar reserva com falha (chave ${p.chave}, nNF ${p.numero}): ${error.message}`);
+    }
+  } catch (e) {
+    console.error(`nfce_emitidas: exceção ao registrar reserva com falha (nNF ${p.numero}): ${String((e as Error)?.message ?? e)}`);
   }
 }
 

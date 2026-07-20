@@ -50,6 +50,19 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return json({ error: "Sessão inválida." }, 401);
 
+    // ── 1b. GATE DE PAPEL: só GERENTE ou ADMIN cancelam (F3) ──────────
+    // Cancelar uma NFC-e autorizada é evento fiscal com peso — libera para
+    // gerente e admin; caixa/garçom NÃO cancelam (mesmo padrão de gate por
+    // JWT + public.users de provisionar-estabelecimento). Não autorizado → 403.
+    const { data: perfil } = await supabase
+      .from("users")
+      .select("role")
+      .eq("auth_id", user.id)
+      .single();
+    if (perfil?.role !== "gerente" && perfil?.role !== "admin") {
+      return json({ error: "Apenas gerente ou administrador podem cancelar uma NFC-e." }, 403);
+    }
+
     // ── 2. Entrada: chave + justificativa (+ nSeqEvento opcional) ─────
     const body = await req.json().catch(() => null);
     const chave = String(body?.chave ?? "").replace(/\D/g, "");

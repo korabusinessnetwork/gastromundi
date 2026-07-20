@@ -52,6 +52,21 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return json({ error: "Sessão inválida." }, 401);
 
+    // ── 1b. GATE DE PAPEL: só ADMIN inutiliza numeração (F2) ──────────
+    // Inutilizar QUEIMA uma faixa de numeração fiscal na SEFAZ — ato
+    // irreversível e sensível. Não basta estar autenticado: exige role
+    // 'admin' em public.users (mesmo padrão de provisionar-estabelecimento).
+    // Caixa/garçom/gerente → 403. O client é user-scoped, mas a decisão de
+    // AUTORIZAÇÃO fica explícita aqui (defesa em profundidade, não só RLS).
+    const { data: perfil } = await supabase
+      .from("users")
+      .select("role")
+      .eq("auth_id", user.id)
+      .single();
+    if (perfil?.role !== "admin") {
+      return json({ error: "Apenas administradores podem inutilizar numeração fiscal." }, 403);
+    }
+
     // ── 2. Entrada: série + faixa + justificativa (+ ano opcional) ────
     const body = await req.json().catch(() => null);
     const serie = Number(body?.serie);

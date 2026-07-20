@@ -46,6 +46,23 @@ function dec(valor, casas) {
 /** Valor monetário: 2 casas. */
 const money = (v) => dec(v, 2);
 
+/**
+ * Arredonda para 2 casas (centavos) sem viés de ponto flutuante — MESMO
+ * critério de nfceItemFiscal.js (Math.round com Number.EPSILON, half-up).
+ * Usado no somatório dos totais (ICMSTot): cada componente do item é
+ * arredondado a 2 casas ANTES de somar, para que a soma bata EXATAMENTE com
+ * o que sai em cada <det> (money = toFixed(2)). Somar os brutos e arredondar
+ * só no fim gera diferença de centavo — e a SEFAZ REJEITA a nota quando o
+ * total não fecha com os itens.
+ */
+function round2(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) {
+    throw new Error(`Valor numérico inválido para arredondamento: "${v}".`);
+  }
+  return Number((Math.round((n + Number.EPSILON) * 100) / 100).toFixed(2));
+}
+
 /** Só dígitos (remove máscara de CNPJ/CPF/CEP/telefone). */
 const soDigitos = (v) => String(v ?? "").replace(/\D/g, "");
 
@@ -223,14 +240,25 @@ function montarTotal(itens) {
   for (const it of itens) {
     const q = Number(it.qCom);
     const vp = it.vProd != null ? Number(it.vProd) : q * Number(it.vUnCom);
-    vProd += vp;
-    vDesc += Number(it.vDesc ?? 0);
-    vBC += Number(it.icms?.vBC ?? 0);
-    vICMS += Number(it.icms?.vICMS ?? 0);
-    vPIS += Number(it.pis?.vPIS ?? 0);
-    vCOFINS += Number(it.cofins?.vCOFINS ?? 0);
+    // Arredonda CADA componente do item a 2 casas ANTES de acumular — o mesmo
+    // valor (money) que sai no <det>. Assim Σitens == total (a SEFAZ exige que
+    // vProd/vDesc/vNF fechem com a soma dos itens; centavo de folga = rejeição).
+    vProd += round2(vp);
+    vDesc += round2(it.vDesc ?? 0);
+    vBC += round2(it.icms?.vBC ?? 0);
+    vICMS += round2(it.icms?.vICMS ?? 0);
+    vPIS += round2(it.pis?.vPIS ?? 0);
+    vCOFINS += round2(it.cofins?.vCOFINS ?? 0);
   }
-  const vNF = vProd - vDesc;
+  // Fecha os acumuladores em 2 casas (mata a poeira de ponto flutuante da soma)
+  // e deriva o vNF já arredondado — vNF = Σvprod − Σvdesc, exato ao centavo.
+  vProd = round2(vProd);
+  vDesc = round2(vDesc);
+  vBC = round2(vBC);
+  vICMS = round2(vICMS);
+  vPIS = round2(vPIS);
+  vCOFINS = round2(vCOFINS);
+  const vNF = round2(vProd - vDesc);
   const icmsTot =
     tag("vBC", money(vBC)) +
     tag("vICMS", money(vICMS)) +

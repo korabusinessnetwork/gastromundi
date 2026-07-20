@@ -39,6 +39,17 @@ const corsHeaders = {
 // para a próxima chamada/agendamento (backoff é do schedule, não daqui).
 const LIMITE_LOTE = 20;
 
+// TRAVA de reenvio concorrente (F5): marca de "reenvio em andamento" gravada
+// em `motivo` no momento em que este worker RESERVA a linha para si. Dois
+// reenvios simultâneos (agendamento + POST manual, ou dois agendamentos) não
+// podem transmitir a MESMA nota duas vezes. A reserva é um UPDATE atômico
+// (trava de linha do Postgres): só um worker "vence" cada linha.
+const MARCA_EM_ANDAMENTO = "reenvio_em_andamento";
+// TTL da trava: se um worker travar a linha e morrer (deploy/timeout), a
+// linha volta a ser reivindicável após este tempo — nunca fica presa para
+// sempre. O caminho normal libera a trava ao gravar o desfecho real.
+const TRAVA_TTL_MS = 5 * 60 * 1000;
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -85,6 +96,8 @@ Deno.serve(async (req: Request) => {
 
     const resumo = {
       processadas: 0, autorizadas: 0, rejeitadas: 0, aindaPendentes: 0, falhas: 0,
+      // Notas puladas por já estarem em reenvio por OUTRO worker (trava, F5).
+      travadas: 0,
       total: pendentes?.length ?? 0,
       // Sem a chave, o worker varre mas não transmite — sinaliza o motivo.
       segredosProntos,
@@ -110,6 +123,18 @@ Deno.serve(async (req: Request) => {
         // (sem incrementar tentativa — não houve envio real) e segue.
         if (!segredosProntos) {
           resumo.aindaPendentes += 1;
+          continue;
+        }
+
+        // ── TRAVA (F5): reivindica a linha atomicamente antes de transmitir ──
+        // UPDATE condicional: só "vence" se a linha ainda está pendente E não
+        // está travada por outro worker (ou a trava expirou pelo TTL). O
+        // Postgres serializa os UPDATEs concorrentes na trava de linha, então
+        // dois workers nunca transmitem a MESMA nota. Se não retornar linha,
+        // outro worker já pegou → pula (contabiliza em `travadas`).
+        const claimed = await reivindicarLinha(supabase, linha.id);
+        if (!claimed) {
+          resumo.travadas += 1;
           continue;
         }
 
@@ -170,6 +195,38 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Falha ao reenviar a fila de NFC-e.", detalhe: String((e as Error)?.message ?? e) }, 500);
   }
 });
+
+/**
+ * TRAVA (F5): reivindica a linha para ESTE worker com um UPDATE atômico e
+ * condicional. Grava a marca `reenvio_em_andamento` em `motivo` SÓ se a linha
+ * ainda está 'pendente' E não está travada por outro worker vivo — ou seja,
+ * `motivo` está nulo, é diferente da marca, OU a trava expirou (updated_at
+ * mais antigo que o TTL). O Postgres serializa os UPDATEs concorrentes na
+ * trava de linha: de dois workers simultâneos, só um casa a condição e recebe
+ * a linha de volta no `.select()`. Retorna true só quando venceu a corrida.
+ * O caminho normal (gravação do desfecho) sobrescreve `motivo`, liberando a
+ * trava; se o worker morrer travado, o TTL a libera na próxima varredura.
+ */
+async function reivindicarLinha(
+  supabase: ReturnType<typeof createClient>,
+  id: string,
+): Promise<boolean> {
+  const cutoff = new Date(Date.now() - TRAVA_TTL_MS).toISOString();
+  const { data, error } = await supabase
+    .from("nfce_emitidas")
+    .update({ motivo: MARCA_EM_ANDAMENTO, updated_at: agora() })
+    .eq("id", id)
+    .eq("status", "pendente")
+    .or(`motivo.is.null,motivo.neq.${MARCA_EM_ANDAMENTO},updated_at.lt.${cutoff}`)
+    .select("id");
+  if (error) {
+    // Sem segredo — só o id (não sensível) e o texto do erro. Falha ao
+    // reivindicar = não transmite (conservador: não arrisca envio duplo).
+    console.error(`reenviar-nfce: reivindicar falhou (id ${id}): ${error.message}`);
+    return false;
+  }
+  return Array.isArray(data) && data.length > 0;
+}
 
 /** Atualiza a linha da fila. RLS garante que só a linha do tenant muda. */
 async function atualizarLinha(
