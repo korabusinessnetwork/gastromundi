@@ -10,7 +10,10 @@
       "Bash(git commit -m ' *)",
       "Skill(update-config)",
       "Skill(update-config:*)",
-      "mcp__Claude_Code_Remote__send_later"
+      "mcp__Claude_Code_Remote__send_later",
+      "Bash(mkdir -p .claude/hooks)",
+      "Bash(cat)",
+      "Bash(chmod +x .claude/hooks/session-start.sh)"
     ]
   }
 }
