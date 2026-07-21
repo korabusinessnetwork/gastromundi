@@ -38,12 +38,42 @@ export function tenantAtualObservabilidade() {
 }
 
 // ── scrub (LGPD) ─────────────────────────────────────────────────
-// Allowlist mental do que PODE subir: mensagem do erro, código Postgres
-// (error.code), nome da operação/rota, tenant_id (UUID). NUNCA sobe:
-// token/refresh, senha/hash, CPF/telefone/endereço/e-mail/nome de cliente,
-// valores financeiros brutos.
+// Allowlist mental do que PODE subir: mensagem do erro (JÁ mascarada — ver
+// mascararPII), código Postgres (error.code), nome da operação/rota,
+// tenant_id (UUID). NUNCA sobe: token/refresh, senha/hash, CPF/telefone/
+// endereço/e-mail, NOME de cliente, COORDENADAS (lat/lng), valores brutos.
+//
+// `nome`/`name`/`cliente`/`customer` fecham o vazamento do nome do cliente;
+// `latitude|longitude` + `lat`/`lng`/`lon` (com fronteira _ - / início / fim
+// pra NÃO raspar "plataforma", "latency" etc.) fecham as coordenadas.
 export const CHAVES_PROIBIDAS =
-  /senha|password|token|authorization|apikey|api_key|secret|hash|cpf|cnpj|telefone|celular|endereco|address|email|e_mail|valor|total|preco|price|cookie/i;
+  /senha|password|token|authorization|apikey|api_key|secret|hash|cpf|cnpj|telefone|celular|endereco|address|email|e_mail|nome|name|cliente|customer|latitude|longitude|(?:^|[_-])(?:lat|lng|lon)(?:$|[_-])|valor|total|preco|price|cookie/i;
+
+/**
+ * Mascara PII EMBUTIDA EM TEXTO LIVRE (o que o scrub de chaves não alcança).
+ * O vetor real: a mensagem de erro do Postgres traz o dado da linha —
+ * ex.: `Key (telefone)=(11999998888) already exists`. Aqui isso vira
+ * `Key (telefone)=(...)`. Também mascara e-mail e sequências longas de
+ * dígitos (CPF/CNPJ/telefone/cartão). Preserva o code do Postgres (5
+ * dígitos) e UUID (quebrado por letras/hífens) — úteis pro diagnóstico.
+ * Função pura, nunca lança.
+ *
+ * @param {any} texto
+ * @returns {any} string mascarada (ou o próprio valor se não for string)
+ */
+export function mascararPII(texto) {
+  if (typeof texto !== "string" || !texto) return texto;
+  return texto
+    // detalhe de constraint do Postgres: Key (col)=(valor) → Key (col)=(...)
+    .replace(/=\([^)]*\)/g, "=(...)")
+    // e-mail
+    .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/gi, "[email]")
+    // sequência longa de dígitos (>= 7 chars, aceitando . - espaço ( ) no
+    // meio): CPF, CNPJ, telefone, cartão. As fronteiras (?<![\w-]) / (?![\w-])
+    // impedem casar segmento de UUID (colado a hex/hífen) e o code 23505
+    // (5 dígitos < 7). Preserva diagnóstico.
+    .replace(/(?<![\w-])\d[\d.\-\s()]{5,}\d(?![\w-])/g, "[num]");
+}
 
 /**
  * Varredura recursiva: apaga qualquer chave batendo no regex, em qualquer
@@ -87,10 +117,38 @@ export function scrubLGPD(evento) {
     if (!evento || typeof evento !== "object") return evento ?? null;
     if (evento.request) delete evento.request.cookies;
     delete evento.user; // não enviar identidade
+    // Chaves sensíveis (recursivo). Inclui breadcrumbs — o Sentry anexa
+    // fetch/console/xhr por padrão, e um deles pode carregar PII na chave.
     scrubDeep(evento.request, CHAVES_PROIBIDAS);
     scrubDeep(evento.extra, CHAVES_PROIBIDAS);
     scrubDeep(evento.contexts, CHAVES_PROIBIDAS);
     scrubDeep(evento.tags, CHAVES_PROIBIDAS);
+    scrubDeep(evento.breadcrumbs, CHAVES_PROIBIDAS);
+
+    // TEXTO LIVRE: o scrub de chaves não alcança a mensagem da exceção nem
+    // as mensagens de breadcrumb. É AQUI que o detalhe do Postgres (com
+    // telefone/CPF) vazava. Mascara sem apagar o diagnóstico (code/UUID).
+    if (Array.isArray(evento.exception?.values)) {
+      for (const v of evento.exception.values) {
+        if (v && typeof v.value === "string") v.value = mascararPII(v.value);
+      }
+    }
+    if (typeof evento.message === "string") evento.message = mascararPII(evento.message);
+    if (evento.logentry && typeof evento.logentry.message === "string") {
+      evento.logentry.message = mascararPII(evento.logentry.message);
+    }
+    if (Array.isArray(evento.breadcrumbs)) {
+      for (const b of evento.breadcrumbs) {
+        if (!b) continue;
+        if (typeof b.message === "string") b.message = mascararPII(b.message);
+        // data do breadcrumb (ex.: url de fetch pode trazer PII no query).
+        if (b.data && typeof b.data === "object") {
+          for (const k of Object.keys(b.data)) {
+            if (typeof b.data[k] === "string") b.data[k] = mascararPII(b.data[k]);
+          }
+        }
+      }
+    }
     return evento;
   } catch {
     return null; // fail-closed: melhor perder o evento do que vazar PII

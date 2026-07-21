@@ -19,6 +19,7 @@ vi.mock("@sentry/react", () => ({
 import {
   scrubDeep,
   scrubLGPD,
+  mascararPII,
   CHAVES_PROIBIDAS,
   reportarFalha,
   reportarInconsistencia,
@@ -54,12 +55,12 @@ describe("scrubDeep", () => {
   });
 
   it("varre arrays e não lança em ciclo (referência circular)", () => {
-    const a = { token: "x", filhos: [{ cpf: "123" }, { nome_ok: 1 }] };
+    const a = { token: "x", filhos: [{ cpf: "123" }, { flag_ok: 1 }] };
     a.self = a; // ciclo
     expect(() => scrubDeep(a)).not.toThrow();
     expect(a.token).toBeUndefined();
     expect(a.filhos[0].cpf).toBeUndefined();
-    expect(a.filhos[1].nome_ok).toBe(1);
+    expect(a.filhos[1].flag_ok).toBe(1);
   });
 
   it("é pura para valores primitivos/null (não lança, devolve o alvo)", () => {
@@ -99,9 +100,114 @@ describe("scrubLGPD", () => {
     expect(saida.tags.tenant_id).toBe("uuid-1");
   });
 
+  it("apaga chave de NOME de cliente e COORDENADAS (lat/lng), sem raspar plataforma/latency", () => {
+    const evento = {
+      extra: {
+        nome: "João da Silva",
+        cliente: "João da Silva",
+        customer_name: "João",
+        latitude: -23.55,
+        longitude: -46.63,
+        lat: -23.55,
+        lng: -46.63,
+        // NÃO devem ser raspadas (sem fronteira de lat/lng/lon):
+        plataforma: "web",
+        latency: 120,
+        acao: "criarPedido",
+      },
+    };
+    const saida = scrubLGPD(evento);
+    expect(saida.extra.nome).toBeUndefined();
+    expect(saida.extra.cliente).toBeUndefined();
+    expect(saida.extra.customer_name).toBeUndefined();
+    expect(saida.extra.latitude).toBeUndefined();
+    expect(saida.extra.longitude).toBeUndefined();
+    expect(saida.extra.lat).toBeUndefined();
+    expect(saida.extra.lng).toBeUndefined();
+    // Falsos-positivos evitados:
+    expect(saida.extra.plataforma).toBe("web");
+    expect(saida.extra.latency).toBe(120);
+    expect(saida.extra.acao).toBe("criarPedido");
+  });
+
+  it("mascara PII em TEXTO LIVRE da exceção (detalhe do Postgres com telefone), preservando o code", () => {
+    const evento = {
+      exception: {
+        values: [
+          {
+            type: "SupabaseError(23505)",
+            value:
+              'duplicate key value violates unique constraint "clientes_telefone_key" Key (telefone)=(11999998888) already exists.',
+          },
+        ],
+      },
+    };
+    const saida = scrubLGPD(evento);
+    const v = saida.exception.values[0].value;
+    expect(v).not.toContain("11999998888");
+    expect(v).toContain("=(...)");
+    // O code do erro no type continua legível pro agrupamento/diagnóstico:
+    expect(saida.exception.values[0].type).toBe("SupabaseError(23505)");
+  });
+
+  it("mascara PII em message, logentry e breadcrumbs (message + data)", () => {
+    const evento = {
+      message: "falha ao gravar cliente joao@ex.com",
+      logentry: { message: "cpf 123.456.789-00 rejeitado" },
+      breadcrumbs: [
+        { message: "POST cliente 11999998888" },
+        { data: { url: "https://api/x?email=a@b.com", metodo: "POST" } },
+      ],
+    };
+    const saida = scrubLGPD(evento);
+    expect(saida.message).toContain("[email]");
+    expect(saida.message).not.toContain("joao@ex.com");
+    expect(saida.logentry.message).toContain("[num]");
+    expect(saida.logentry.message).not.toContain("123.456.789-00");
+    expect(saida.breadcrumbs[0].message).toContain("[num]");
+    expect(saida.breadcrumbs[1].data.url).toContain("[email]");
+    expect(saida.breadcrumbs[1].data.metodo).toBe("POST");
+  });
+
   it("nunca lança e devolve null se algo der muito errado", () => {
     expect(scrubLGPD(undefined)).toBeNull();
     expect(scrubLGPD(null)).toBeNull();
+  });
+});
+
+describe("mascararPII", () => {
+  it("mascara o detalhe de constraint do Postgres: Key (col)=(valor) → Key (col)=(...)", () => {
+    expect(mascararPII("Key (telefone)=(11999998888) already exists")).toBe(
+      "Key (telefone)=(...) already exists"
+    );
+    expect(mascararPII("Key (email)=(a@b.com)")).toBe("Key (email)=(...)");
+  });
+
+  it("mascara e-mail", () => {
+    expect(mascararPII("erro para joao.silva+tag@dominio.com.br aqui")).toBe(
+      "erro para [email] aqui"
+    );
+  });
+
+  it("mascara sequência longa de dígitos (CPF/CNPJ/telefone/cartão)", () => {
+    expect(mascararPII("cpf 123.456.789-00")).toBe("cpf [num]");
+    expect(mascararPII("tel 11999998888")).toBe("tel [num]");
+    expect(mascararPII("cartao 4111 1111 1111 1111")).toBe("cartao [num]");
+  });
+
+  it("PRESERVA o code do Postgres (5 dígitos) e UUID — úteis pro diagnóstico", () => {
+    expect(mascararPII("erro code 23505")).toBe("erro code 23505");
+    const uuid = "550e8400-e29b-41d4-a716-446655440000";
+    expect(mascararPII(`tenant ${uuid}`)).toBe(`tenant ${uuid}`);
+  });
+
+  it("é passthrough para não-string (número, null, undefined, objeto)", () => {
+    expect(mascararPII(42)).toBe(42);
+    expect(mascararPII(null)).toBeNull();
+    expect(mascararPII(undefined)).toBeUndefined();
+    const obj = { a: 1 };
+    expect(mascararPII(obj)).toBe(obj);
+    expect(mascararPII("")).toBe("");
   });
 });
 
