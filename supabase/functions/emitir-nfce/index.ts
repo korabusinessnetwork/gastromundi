@@ -44,6 +44,7 @@ import { montarItemFiscal } from "../../../src/lib/nfceItemFiscal.js";
 import { digestInfNfe } from "../../../src/lib/nfceAssinatura.js";
 import { montarRegistroNfceEmitida } from "../../../src/lib/nfceRegistro.js";
 import { montarNotaPendenteTransmissao } from "../../../src/lib/nfceContingencia.js";
+import { escolherNotaReaproveitavel } from "../../../src/lib/nfceIdempotencia.js";
 import {
   decidirTpEmisInicial,
   deveEntrarContingencia,
@@ -224,22 +225,28 @@ Deno.serve(async (req: Request) => {
     // se aquela venda já tem nota em estado terminal/definitivo:
     //   • autorizada → devolve a MESMA nota (idempotente), sem emitir outra;
     //   • pendente   → já saiu em contingência; devolve-a (o reenvio fecha).
-    // Só reemitimos se não houver nota reaproveitável (nada, ou só rejeitada).
+    // Só reemitimos se não houver nota REAPROVEITÁVEL. Reaproveitável =
+    // autorizada, ou pendente COM xml assinado a retransmitir (contingência
+    // real). Um 'pendente' SEM xml assinado é FANTASMA de falha_pos_reserva
+    // (passo 10z): número reservado cuja emissão morreu antes de assinar — o
+    // reenviar-nfce NUNCA o completa. Tratá-lo como reaproveitável TRAVARIA a
+    // venda para sempre; por isso escolherNotaReaproveitavel o IGNORA e a venda
+    // pode reemitir (o número morto fica para o gestor inutilizar).
     // Obs.: a trava DEFINITIVA contra corrida exige índice único parcial em
     // (tenant_id, venda_id) — sinalizado ao orquestrador (migration). Esta
     // checagem cobre o reenvio sequencial, que é o caso real do PDV.
     if (vendaId) {
       const { data: existentes, error: existErro } = await supabase
         .from("nfce_emitidas")
-        .select("chave, numero, serie, status, protocolo, c_stat, x_motivo, tp_amb, tp_emis, dh_emi, url_qrcode, v_nf")
+        .select("chave, numero, serie, status, protocolo, c_stat, x_motivo, tp_amb, tp_emis, dh_emi, url_qrcode, v_nf, xml_tipo")
         .eq("venda_id", vendaId)
         .in("status", ["autorizada", "pendente"])
         .order("created_at", { ascending: false })
-        .limit(1);
+        .limit(5);
       if (existErro) {
         return json({ error: "Falha ao checar nota existente da venda.", detalhe: existErro.message }, 500);
       }
-      const jaEmitida = existentes?.[0];
+      const jaEmitida = escolherNotaReaproveitavel(existentes ?? []);
       if (jaEmitida) {
         // Reaproveita a nota já existente — mesma chave, mesmo número. NUNCA
         // emite outra para a mesma venda (nada de segredo no retorno).
