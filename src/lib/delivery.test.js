@@ -20,6 +20,8 @@ import {
   calcularTroco,
   grupoSatisfeito,
   produtoPodeAdicionar,
+  rotuloRegraGrupo,
+  primeiroGrupoPendente,
   montarPayloadPedido,
 } from "./delivery";
 
@@ -134,6 +136,47 @@ describe("produtoPodeAdicionar", () => {
   it("produto sem grupos sempre pode ser adicionado", () => {
     expect(produtoPodeAdicionar({ grupos: [] }, {})).toBe(true);
     expect(produtoPodeAdicionar({}, {})).toBe(true);
+  });
+});
+
+describe("rotuloRegraGrupo", () => {
+  it("escolha única obrigatória vira 'Escolha 1'", () => {
+    expect(rotuloRegraGrupo({ min: 1, max: 1 })).toBe("Escolha 1");
+  });
+  it("faixa obrigatória vira 'Escolha de N a M'", () => {
+    expect(rotuloRegraGrupo({ min: 1, max: 3 })).toBe("Escolha de 1 a 3");
+  });
+  it("obrigatório sem teto vira 'Escolha ao menos N'", () => {
+    expect(rotuloRegraGrupo({ min: 2, max: 0 })).toBe("Escolha ao menos 2");
+  });
+  it("opcional com teto > 1 mostra o limite", () => {
+    expect(rotuloRegraGrupo({ min: 0, max: 3 })).toBe("Opcional · até 3");
+  });
+  it("opcional único (ou sem limite) é só 'Opcional'", () => {
+    expect(rotuloRegraGrupo({ min: 0, max: 1 })).toBe("Opcional");
+    expect(rotuloRegraGrupo({ min: 0, max: 0 })).toBe("Opcional");
+    expect(rotuloRegraGrupo({})).toBe("Opcional");
+  });
+});
+
+describe("primeiroGrupoPendente", () => {
+  const produto = {
+    grupos: [
+      { id: "g1", min: 1, max: 1 },
+      { id: "g2", min: 1, max: 2 },
+      { id: "g3", min: 0, max: 3 },
+    ],
+  };
+  it("aponta o primeiro obrigatório ainda não satisfeito", () => {
+    expect(primeiroGrupoPendente(produto, {})).toBe("g1");
+    expect(primeiroGrupoPendente(produto, { g1: ["a"] })).toBe("g2");
+  });
+  it("null quando todos os obrigatórios estão satisfeitos", () => {
+    expect(primeiroGrupoPendente(produto, { g1: ["a"], g2: ["b"] })).toBeNull();
+  });
+  it("produto sem grupos não tem pendência", () => {
+    expect(primeiroGrupoPendente({ grupos: [] }, {})).toBeNull();
+    expect(primeiroGrupoPendente({}, {})).toBeNull();
   });
 });
 

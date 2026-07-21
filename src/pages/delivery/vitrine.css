@@ -208,9 +208,71 @@
 }
 .modal-corpo { padding: 16px; }
 
+/* ── Painel do produto: hero → corpo rolável → rodapé fixo ──────────
+   O CTA (quantidade + adicionar) nunca some no scroll (Princípio nº 1). */
+.modal-painel--produto {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* o corpo é quem rola, não o painel */
+}
+.modal-painel--produto .modal-corpo {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.produto-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.produto-hero__foto {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: var(--gm-surface);
+  flex-shrink: 0;
+}
+.produto-hero__foto--emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+}
+.produto-hero__desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--gm-muted);
+}
+
+.modal-rodape {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--gm-card);
+  border-top: 1px solid var(--gm-border);
+}
+.modal-rodape .btn {
+  flex: 1;
+}
+
 /* ── Grupos de complemento ──────────────────────────────────────── */
 .grupo {
   margin-bottom: 20px;
+  border-radius: 12px;
+  transition: box-shadow 0.2s ease, background 0.2s ease;
+}
+/* Conduz o cliente até o obrigatório que falta (não só bloqueia). */
+.grupo--pendente {
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  box-shadow: 0 0 0 2px var(--gm-accent);
+  padding: 8px;
+  margin: -8px -8px 12px;
 }
 .grupo__cabecalho {
   display: flex;
@@ -227,17 +289,28 @@
   border-radius: 999px;
   background: var(--gm-surface);
   color: var(--gm-muted);
+  white-space: nowrap;
 }
 .grupo__regra--obrig { color: var(--gm-accent); }
+.grupo__regra--ok {
+  color: var(--gm-green);
+  background: color-mix(in srgb, var(--gm-green) 12%, transparent);
+}
 
 .opcao {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding: 12px 8px;
-  border-radius: 10px;
-  cursor: pointer;
+  border: none;
   border-bottom: 1px solid var(--gm-border);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 .opcao:last-child { border-bottom: none; }
 .opcao__marca {
@@ -283,6 +356,22 @@
 }
 .campo__textarea { resize: vertical; min-height: 64px; }
 
+/* Observação colapsada — vira campo só quando o cliente quer (menos poluição). */
+.obs-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 10px 4px;
+  background: transparent;
+  border: none;
+  color: var(--gm-accent);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
 /* ── Seletor de quantidade ──────────────────────────────────────── */
 .qtd {
   display: inline-flex;
@@ -325,6 +414,8 @@
   color: #fff;
 }
 .btn--primario:disabled { opacity: 0.45; cursor: not-allowed; }
+/* Bloqueado mas CLICÁVEL: o clique conduz ao obrigatório que falta. */
+.btn--bloqueado { opacity: 0.55; }
 .btn--fantasma {
   background: var(--gm-surface);
   color: var(--gm-text);

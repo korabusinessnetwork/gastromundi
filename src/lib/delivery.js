@@ -114,6 +114,41 @@ export function produtoPodeAdicionar(produto, selecoesPorGrupo) {
   );
 }
 
+/**
+ * Rótulo humano da regra de um grupo — linguagem do dia a dia, não jargão
+ * (Princípio nº 1). Ex.: "Escolha 1", "Escolha de 1 a 3", "Opcional · até 3".
+ * @param {{min?: number, max?: number}} grupo
+ * @returns {string}
+ */
+export function rotuloRegraGrupo(grupo) {
+  const min = Math.max(0, Number(grupo?.min) || 0);
+  const maxRaw = Number(grupo?.max);
+  const max = Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : 0; // 0 = sem limite
+  if (min > 0) {
+    if (max > 0 && max === min) return `Escolha ${min}`;
+    if (max > 0) return `Escolha de ${min} a ${max}`;
+    return `Escolha ao menos ${min}`;
+  }
+  if (max > 1) return `Opcional · até ${max}`;
+  return "Opcional";
+}
+
+/**
+ * Primeiro grupo ainda não satisfeito — usado para GUIAR o cliente até o
+ * campo que falta (prevenção/condução de erro > mensagem seca).
+ * @param {{grupos?: Array<{id: string}>}} produto
+ * @param {Record<string, string[]>} selecoesPorGrupo
+ * @returns {string|null} id do grupo pendente, ou null se tudo satisfeito
+ */
+export function primeiroGrupoPendente(produto, selecoesPorGrupo) {
+  const grupos = produto?.grupos ?? [];
+  for (const g of grupos) {
+    const qtd = (selecoesPorGrupo?.[g.id] ?? []).length;
+    if (!grupoSatisfeito(g, qtd)) return g.id;
+  }
+  return null;
+}
+
 // ── Payload do pedido (o que a RPC criar_pedido_delivery espera) ────
 
 /**
