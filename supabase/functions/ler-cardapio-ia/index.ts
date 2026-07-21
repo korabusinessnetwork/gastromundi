@@ -41,6 +41,52 @@ const json = (body: unknown, status = 200) =>
 const MAX_IMAGENS = 10; // trava de custo/quota — cardápio real cabe nisso
 const PREFIXO_JPEG = "data:image/jpeg;base64,";
 
+/**
+ * Traduz a falha do Gemini numa CAUSA clara para o dono — sem nunca expor a
+ * chave (que só viaja no header `x-goog-api-key`, jamais no corpo de erro do
+ * Google). Devolve { motivo, dica } a partir do status HTTP e da mensagem
+ * que o Gemini retorna em `error.message`/`error.status`.
+ */
+function causaGemini(status: number, body: string): { motivo: string; dica: string } {
+  let msgGoogle = "";
+  try {
+    const j = JSON.parse(body);
+    msgGoogle = j?.error?.message ?? j?.error?.status ?? "";
+  } catch {
+    msgGoogle = body.slice(0, 160);
+  }
+  const base = msgGoogle ? ` (Google: ${msgGoogle})` : "";
+  switch (status) {
+    case 400:
+      return {
+        motivo: `Requisição recusada pelo Gemini${base}.`,
+        dica: "Confira o nome do modelo em GEMINI_MODEL (ex.: gemini-2.0-flash) e se as imagens são JPEG válidos.",
+      };
+    case 401:
+    case 403:
+      return {
+        motivo: `Chave da IA inválida ou API não habilitada${base}.`,
+        dica: "Gere a chave no Google AI Studio e habilite a 'Generative Language API' no projeto. Reconfigure o secret GEMINI_API_KEY.",
+      };
+    case 404:
+      return {
+        motivo: `Modelo do Gemini não encontrado${base}.`,
+        dica: "Ajuste GEMINI_MODEL para um modelo válido (ex.: gemini-2.0-flash ou gemini-1.5-flash).",
+      };
+    case 429:
+      return {
+        motivo: `Cota da IA esgotada no momento${base}.`,
+        dica: "Aguarde alguns minutos (limite grátis por minuto/dia) e tente de novo.",
+      };
+    default:
+      return {
+        motivo: `Gemini indisponível (HTTP ${status})${base}.`,
+        dica: "Instabilidade do serviço do Google — tente novamente em instantes.",
+      };
+  }
+}
+
+
 const PROMPT = [
   "Você lê CARDÁPIOS de restaurante/lanchonete a partir de imagens.",
   "Extraia TODOS os itens que têm um PREÇO visível.",
@@ -112,7 +158,8 @@ Deno.serve(async (req) => {
       const errBody = await resp.text();
       // Nunca logamos a chave; só status e um trecho do corpo de erro.
       console.error("Gemini API error:", resp.status, errBody.slice(0, 300));
-      return json({ erro: "Falha ao ler o cardápio por IA. Tente novamente." }, 502);
+      const { motivo, dica } = causaGemini(resp.status, errBody);
+      return json({ erro: motivo, dica, status_gemini: resp.status }, 502);
     }
 
     const resultado = await resp.json();

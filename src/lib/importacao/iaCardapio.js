@@ -50,14 +50,40 @@ export async function lerCardapioComIA(bytes, onProgresso) {
   onProgresso?.("ia", 1, 1);
 
   if (error) {
-    return {
-      produtos: [],
-      avisos: [{ linha: 0, mensagem: "A leitura por IA falhou. Tente de novo mais tarde ou importe por planilha." }],
-    };
+    // A Edge Function responde não-2xx com a CAUSA no corpo, mas o
+    // supabase-js transforma isso em `error` e não popula `data`. O corpo
+    // vem em `error.context` (Response) — lemos para mostrar o motivo real
+    // (ex.: chave inválida, cota esgotada) em vez de um genérico.
+    const detalhe = await lerCorpoDoErro(error);
+    const mensagem = detalhe
+      ? detalhe
+      : "A leitura por IA falhou. Tente de novo mais tarde ou importe por planilha.";
+    return { produtos: [], avisos: [{ linha: 0, mensagem }] };
   }
   if (data?.erro) {
-    return { produtos: [], avisos: [{ linha: 0, mensagem: String(data.erro) }] };
+    const extra = data?.dica ? ` ${data.dica}` : "";
+    return { produtos: [], avisos: [{ linha: 0, mensagem: `${data.erro}${extra}` }] };
   }
 
   return normalizarItensIA(data?.itens ?? data);
+}
+
+/**
+ * Extrai a causa legível do erro de uma Edge Function. O supabase-js embrulha
+ * respostas não-2xx num FunctionsHttpError cujo corpo fica em `error.context`
+ * (um Response). Tenta ler `{ erro, dica }` de lá. Nunca lança — na dúvida,
+ * devolve string vazia e o chamador usa a mensagem genérica.
+ * @param {any} error
+ * @returns {Promise<string>}
+ */
+export async function lerCorpoDoErro(error) {
+  try {
+    const ctx = error?.context;
+    if (!ctx || typeof ctx.json !== "function") return "";
+    const corpo = await ctx.json();
+    if (!corpo?.erro) return "";
+    return corpo.dica ? `${corpo.erro} ${corpo.dica}` : String(corpo.erro);
+  } catch {
+    return "";
+  }
 }
