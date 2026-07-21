@@ -29,6 +29,8 @@ import {
   buscarEstoqueParaMigracao,
   paraLinhasExportEstoque,
 } from "@/lib/importacao/estoque";
+import { xlsxParaCSV } from "@/lib/importacao/xlsxEntrada";
+import { extrairProdutosDoTextoPdf } from "@/lib/importacao/pdfCardapio";
 import { LuDownload, LuUpload, LuTriangleAlert, LuCircleCheck } from "react-icons/lu";
 
 /**
@@ -46,7 +48,32 @@ import { LuDownload, LuUpload, LuTriangleAlert, LuCircleCheck } from "react-icon
  * tenant_id nasce do JWT; a planilha nunca decide o tenant.
  */
 
-const MAX_BYTES = 2 * 1024 * 1024; // 2 MB — planilha de migração é pequena
+// Teto por formato: CSV/planilha de migração é pequena; xlsx carrega
+// estilos/abas e pesa mais; PDF de cardápio com imagens pesa mais ainda.
+const LIMITES_BYTES = {
+  csv: 2 * 1024 * 1024,
+  xlsx: 5 * 1024 * 1024,
+  pdf: 10 * 1024 * 1024,
+};
+const DICA_TAMANHO = {
+  csv: "exporte só a lista, sem outras abas.",
+  xlsx: "deixe só a aba com os dados, sem imagens.",
+  pdf: "envie o cardápio em texto, sem páginas de fotos.",
+};
+// Extensão → atributo accept do <input> (o que o seletor de arquivo mostra).
+const ACCEPT = {
+  csv: ".csv,text/csv",
+  xlsx: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  pdf: ".pdf,application/pdf",
+};
+
+/** Detecta o formato pelo nome do arquivo (o tipo MIME do browser é instável). */
+function detectarFormato(arquivo) {
+  const nome = (arquivo?.name || "").toLowerCase();
+  if (nome.endsWith(".xlsx")) return "xlsx";
+  if (nome.endsWith(".pdf")) return "pdf";
+  return "csv"; // .csv e desconhecidos caem no leitor de texto tolerante
+}
 
 function baixarArquivo(nome, conteudo) {
   const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8" });
@@ -70,8 +97,10 @@ export default function ImportarExportarTab() {
     produtos: {
       titulo: "Produtos (cardápio)",
       ajuda:
-        "Veio de outro sistema? Baixe a planilha modelo, preencha (ou cole os dados " +
-        "do export antigo) e envie aqui. Você confere tudo antes de gravar.",
+        "Veio de outro sistema? Envie a planilha (CSV ou Excel) OU o PDF do seu " +
+        "cardápio — a gente lê e organiza os itens pra você. Confere tudo antes de gravar.",
+      aceita: ["csv", "xlsx", "pdf"],
+      montarCSV: montarCSVProdutos, // PDF → produtos → CSV do modelo → mesmo validador
       modeloArquivo: "modelo-produtos-kora.csv",
       gerarModelo: gerarModeloCSV,
       exportArquivo: "produtos-kora.csv",
@@ -106,8 +135,9 @@ export default function ImportarExportarTab() {
     clientes: {
       titulo: "Clientes",
       ajuda:
-        "Traga sua lista de clientes de uma vez (nome e telefone; endereço e observações " +
-        "se tiver). O telefone evita cadastro duplicado.",
+        "Traga sua lista de clientes de uma vez, em CSV ou Excel (nome e telefone; " +
+        "endereço e observações se tiver). O telefone evita cadastro duplicado.",
+      aceita: ["csv", "xlsx"],
       modeloArquivo: "modelo-clientes-kora.csv",
       gerarModelo: gerarModeloClientesCSV,
       exportArquivo: "clientes-kora.csv",
@@ -139,7 +169,8 @@ export default function ImportarExportarTab() {
       titulo: "Estoque inicial",
       ajuda:
         "Depois de importar os produtos, defina a contagem inicial (e o mínimo, se quiser) " +
-        "de cada um. O arquivo usa o nome do produto como está no cardápio.",
+        "de cada um, em CSV ou Excel. O arquivo usa o nome do produto como está no cardápio.",
+      aceita: ["csv", "xlsx"],
       modeloArquivo: "modelo-estoque-kora.csv",
       gerarModelo: gerarModeloEstoqueCSV,
       exportArquivo: "estoque-kora.csv",
@@ -197,29 +228,59 @@ export default function ImportarExportarTab() {
 
   const escolherArquivo = (novoTipo) => {
     tipoRef.current = novoTipo;
+    // O seletor mostra só os formatos que ESTE tipo aceita (produtos aceita PDF; os demais, não).
+    if (inputRef.current) {
+      inputRef.current.accept = (TIPOS[novoTipo].aceita || ["csv"]).map((f) => ACCEPT[f]).join(",");
+    }
     inputRef.current?.click();
   };
 
+  // Converte o arquivo escolhido no texto CSV que o wizard já valida.
+  // xlsx e PDF viram o MESMO CSV — daí pra frente o fluxo é idêntico ao
+  // do CSV, reusando toda a validação/preview/gravação testada.
+  async function lerArquivoComoTexto(arquivo, formato, cfgEscolhida) {
+    const buffer = await arquivo.arrayBuffer();
+    if (formato === "xlsx") {
+      return { texto: xlsxParaCSV(buffer), avisosExtras: [] };
+    }
+    if (formato === "pdf") {
+      const { pdfParaLinhas } = await import("@/lib/importacao/pdfExtrator"); // lazy: pdfjs é pesado
+      const linhas = await pdfParaLinhas(buffer);
+      const { produtos, avisos } = extrairProdutosDoTextoPdf(linhas);
+      return { texto: cfgEscolhida.montarCSV(produtos), avisosExtras: avisos };
+    }
+    return { texto: decodificarArquivo(buffer), avisosExtras: [] };
+  }
+
   const aoEscolherArquivo = async (e) => {
     const arquivo = e.target.files?.[0];
-    const cfgEscolhida = TIPOS[tipoRef.current];
+    const tipoEscolhido = tipoRef.current;
+    const cfgEscolhida = TIPOS[tipoEscolhido];
     if (!arquivo || !cfgEscolhida) return;
     setFalha("");
-    if (arquivo.size > MAX_BYTES) {
-      setFalha("Arquivo maior que 2 MB — exporte só a lista, sem outras abas.");
+
+    const formato = detectarFormato(arquivo);
+    if (!cfgEscolhida.aceita.includes(formato)) {
+      setFalha(`${cfgEscolhida.titulo} não aceita ${formato.toUpperCase()}. Use ${cfgEscolhida.aceita.map((f) => f.toUpperCase()).join(" ou ")}.`);
       return;
     }
+    if (arquivo.size > LIMITES_BYTES[formato]) {
+      const mb = Math.round(LIMITES_BYTES[formato] / (1024 * 1024));
+      setFalha(`Arquivo maior que ${mb} MB — ${DICA_TAMANHO[formato]}`);
+      return;
+    }
+
     try {
-      const texto = decodificarArquivo(await arquivo.arrayBuffer());
+      const { texto, avisosExtras } = await lerArquivoComoTexto(arquivo, formato, cfgEscolhida);
       const prep = await cfgEscolhida.preparar(texto);
       if (prep.falha) { setFalha(prep.falha); return; }
-      setTipo(tipoRef.current);
+      setTipo(tipoEscolhido);
       setNomeArquivo(arquivo.name);
-      setValidacao(prep.validacao);
+      setValidacao({ ...prep.validacao, avisos: [...avisosExtras, ...prep.validacao.avisos] });
       setPlano(prep.plano);
       setEtapa("preview");
     } catch {
-      setFalha("Não consegui ler esse arquivo. Ele é um CSV? Baixe o modelo e compare.");
+      setFalha("Não consegui ler esse arquivo. É um CSV, Excel (.xlsx) ou PDF de cardápio em texto? Baixe o modelo e compare.");
     }
   };
 
@@ -286,6 +347,7 @@ export default function ImportarExportarTab() {
             </div>
           ))}
           <input ref={inputRef} type="file" accept=".csv,text/csv" hidden onChange={aoEscolherArquivo} />
+          {/* accept é reescrito por tipo no clique (produtos aceita PDF; os demais, só planilha) */}
           <div className="imex__nota">
             Seus dados são seus: o export sai no mesmo formato do modelo de import — serve de
             backup e entra em qualquer conta KORA (e o que sai de lá volta pra cá).
@@ -313,7 +375,7 @@ export default function ImportarExportarTab() {
           {temErros && (
             <ul className="imex__erros">
               {validacao.erros.slice(0, 30).map((e) => (
-                <li key={`${e.linha}-${e.mensagem}`}>Linha {e.linha}: {e.mensagem}</li>
+                <li key={`${e.linha}-${e.mensagem}`}>{e.linha > 0 ? `Linha ${e.linha}: ` : ""}{e.mensagem}</li>
               ))}
               {validacao.erros.length > 30 && <li>… e mais {validacao.erros.length - 30} erro(s).</li>}
             </ul>
@@ -321,7 +383,7 @@ export default function ImportarExportarTab() {
           {validacao.avisos.length > 0 && (
             <ul className="imex__avisos">
               {validacao.avisos.slice(0, 10).map((a) => (
-                <li key={`${a.linha}-${a.mensagem}`}>Linha {a.linha}: {a.mensagem}</li>
+                <li key={`${a.linha}-${a.mensagem}`}>{a.linha > 0 ? `Linha ${a.linha}: ` : ""}{a.mensagem}</li>
               ))}
             </ul>
           )}
