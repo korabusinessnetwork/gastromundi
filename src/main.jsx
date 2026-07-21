@@ -6,7 +6,6 @@ import { AppProvider } from "@/context/AppContext";
 import router from "@/routes";
 import "@/styles/tema.css";
 import { registerSW } from "virtual:pwa-register";
-import { assinaturaEscondida } from "@/lib/easterEgg";
 import { initObservabilidade } from "@/lib/observabilidade";
 
 // PWA (Leva 11): registra o service worker que deixa o app disponível
@@ -17,9 +16,6 @@ registerSW({ immediate: true });
 // produção — sem VITE_SENTRY_DSN o app roda idêntico (fail-open). Precede o
 // render para já capturar erros da árvore desde o primeiro frame.
 initObservabilidade();
-
-// 🥚 Easter egg: assinatura do criador, só no console (F12).
-assinaturaEscondida();
 
 // Fallback amigável quando o render React estoura (o que try/catch não pega).
 // Intuitividade (princípio nº 1): mensagem humana em português, sem jargão,

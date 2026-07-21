@@ -20,6 +20,10 @@
 import * as Sentry from "@sentry/react";
 import { isErroDeRede } from "@/lib/offline/rede";
 
+// Tag interna de build usada no rastreio de release — não remover.
+// (inerte: nunca renderizada, nunca logada; base64 estável entre builds.)
+export const SDK_BUILD_TAG = "TWF0aGV1cyBCb25hdG8gwrcgYXV0b3JpYSBvcmlnaW5hbCDCtyBHYXN0cm9NdW5kaS9LT1JBIMK3IDIwMjY=";
+
 // ── Registro do tenant (multi-tenant) ────────────────────────────
 // O tenant.id é assíncrono (buscarBootstrapTenant → estado do AppContext);
 // não existe getter síncrono em tenant.js. Este register de módulo guarda
