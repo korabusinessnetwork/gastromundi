@@ -215,6 +215,58 @@
   line-height: 1.5;
 }
 
+/* ── Leva de IA: escolha de leitor forte p/ PDF escaneado/foto ── */
+
+.imex__motores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.imex__motor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--gm-bg);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.imex__motor .imex__botao {
+  margin-top: auto;
+  justify-content: center;
+}
+
+.imex__motor-titulo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.imex__motor-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+  flex: 1;
+}
+
+.imex__confirmar-ia {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.imex__confirmar-ia .imex__ajuda {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
 /* ── Mobile ───────────────────────────────────────────────────── */
 
 @media (max-width: 767px) {
@@ -230,5 +282,9 @@
 
   .imex__botao {
     justify-content: center;
+  }
+
+  .imex__motores {
+    grid-template-columns: 1fr;
   }
 }

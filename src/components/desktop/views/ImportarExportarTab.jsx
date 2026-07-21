@@ -67,6 +67,13 @@ const ACCEPT = {
   pdf: ".pdf,application/pdf",
 };
 
+// Rótulo humano de cada fase da leitura forte (OCR/IA), mostrado na barra.
+const FASE_IA = {
+  render: "Preparando as páginas do cardápio…",
+  ocr: "Lendo o cardápio aqui no navegador…",
+  ia: "A IA está lendo o cardápio…",
+};
+
 /** Detecta o formato pelo nome do arquivo (o tipo MIME do browser é instável). */
 function detectarFormato(arquivo) {
   const nome = (arquivo?.name || "").toLowerCase();
@@ -89,6 +96,7 @@ export default function ImportarExportarTab() {
   const { recarregarProdutos, recarregarEstoque, currentUser } = useApp();
   const inputRef = useRef(null);
   const tipoRef = useRef(null); // tipo escolhido no clique, lido no onChange do input
+  const pdfRef = useRef(null); // { arquivo, cfg, nome, tipo } do PDF sem texto (p/ OCR/IA)
 
   // Cada tipo pluga suas funções no MESMO fluxo do wizard. O plano é
   // normalizado pra { criar, atualizar, iguais, bruto } — o preview e a
@@ -204,7 +212,7 @@ export default function ImportarExportarTab() {
     },
   };
 
-  // etapa: inicio | preview | gravando | concluido
+  // etapa: inicio | escolha-ia | processando-ia | preview | gravando | concluido
   const [etapa, setEtapa] = useState("inicio");
   const [tipo, setTipo] = useState(null);
   const [nomeArquivo, setNomeArquivo] = useState("");
@@ -214,6 +222,8 @@ export default function ImportarExportarTab() {
   const [resultado, setResultado] = useState(null); // { criados, atualizados }
   const [falha, setFalha] = useState("");
   const [exportando, setExportando] = useState("");
+  const [confirmarIA, setConfirmarIA] = useState(false); // gate: dono confirma envio ao Google
+  const [progressoIA, setProgressoIA] = useState({ fase: "", feito: 0, total: 0, motor: "" });
 
   const cfg = tipo ? TIPOS[tipo] : null;
 
@@ -223,6 +233,8 @@ export default function ImportarExportarTab() {
     setValidacao(null);
     setPlano(null);
     setFalha("");
+    setConfirmarIA(false);
+    pdfRef.current = null;
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -235,21 +247,17 @@ export default function ImportarExportarTab() {
     inputRef.current?.click();
   };
 
-  // Converte o arquivo escolhido no texto CSV que o wizard já valida.
-  // xlsx e PDF viram o MESMO CSV — daí pra frente o fluxo é idêntico ao
-  // do CSV, reusando toda a validação/preview/gravação testada.
-  async function lerArquivoComoTexto(arquivo, formato, cfgEscolhida) {
-    const buffer = await arquivo.arrayBuffer();
-    if (formato === "xlsx") {
-      return { texto: xlsxParaCSV(buffer), avisosExtras: [] };
-    }
-    if (formato === "pdf") {
-      const { pdfParaLinhas } = await import("@/lib/importacao/pdfExtrator"); // lazy: pdfjs é pesado
-      const linhas = await pdfParaLinhas(buffer);
-      const { produtos, avisos } = extrairProdutosDoTextoPdf(linhas);
-      return { texto: cfgEscolhida.montarCSV(produtos), avisosExtras: avisos };
-    }
-    return { texto: decodificarArquivo(buffer), avisosExtras: [] };
+  // Um único caminho para o preview: recebe o texto CSV (de CSV/xlsx/PDF)
+  // e os avisos extras, roda a validação/planejamento testados e mostra a
+  // conferência. Reusado por planilha, texto de PDF, OCR e IA.
+  async function irParaPreviewComTexto(texto, avisosExtras, cfgEscolhida, nomeArq, tipoEscolhido) {
+    const prep = await cfgEscolhida.preparar(texto);
+    if (prep.falha) { setFalha(prep.falha); return; }
+    setTipo(tipoEscolhido);
+    setNomeArquivo(nomeArq);
+    setValidacao({ ...prep.validacao, avisos: [...avisosExtras, ...prep.validacao.avisos] });
+    setPlano(prep.plano);
+    setEtapa("preview");
   }
 
   const aoEscolherArquivo = async (e) => {
@@ -271,16 +279,60 @@ export default function ImportarExportarTab() {
     }
 
     try {
-      const { texto, avisosExtras } = await lerArquivoComoTexto(arquivo, formato, cfgEscolhida);
-      const prep = await cfgEscolhida.preparar(texto);
-      if (prep.falha) { setFalha(prep.falha); return; }
-      setTipo(tipoEscolhido);
-      setNomeArquivo(arquivo.name);
-      setValidacao({ ...prep.validacao, avisos: [...avisosExtras, ...prep.validacao.avisos] });
-      setPlano(prep.plano);
-      setEtapa("preview");
+      const buffer = await arquivo.arrayBuffer();
+
+      if (formato === "pdf") {
+        const { pdfParaLinhas } = await import("@/lib/importacao/pdfExtrator"); // lazy: pdfjs é pesado
+        const linhas = await pdfParaLinhas(buffer);
+        const { produtos, avisos } = extrairProdutosDoTextoPdf(linhas);
+        if (produtos.length === 0) {
+          // PDF sem camada de texto (escaneado/foto): oferece as levas de
+          // leitura mais fortes (OCR offline ou IA). Guarda o ARQUIVO (não
+          // o buffer, que o pdfjs detacha) p/ reprocessar sem novo upload.
+          pdfRef.current = { arquivo, cfg: cfgEscolhida, nome: arquivo.name, tipo: tipoEscolhido };
+          setTipo(tipoEscolhido);
+          setNomeArquivo(arquivo.name);
+          setConfirmarIA(false);
+          setEtapa("escolha-ia");
+          return;
+        }
+        await irParaPreviewComTexto(cfgEscolhida.montarCSV(produtos), avisos, cfgEscolhida, arquivo.name, tipoEscolhido);
+        return;
+      }
+
+      const texto = formato === "xlsx" ? xlsxParaCSV(buffer) : decodificarArquivo(buffer);
+      await irParaPreviewComTexto(texto, [], cfgEscolhida, arquivo.name, tipoEscolhido);
     } catch {
-      setFalha("Não consegui ler esse arquivo. É um CSV, Excel (.xlsx) ou PDF de cardápio em texto? Baixe o modelo e compare.");
+      setFalha("Não consegui ler esse arquivo. É um CSV, Excel (.xlsx) ou PDF de cardápio? Baixe o modelo e compare.");
+    }
+  };
+
+  // Roda a leva escolhida (OCR offline ou IA) sobre o PDF sem texto e leva
+  // ao mesmo preview. Cada leitor devolve { produtos, avisos } — daí pra
+  // frente o fluxo é idêntico ao da planilha (validação/preview testados).
+  const rodarLeitorForte = async (motor) => {
+    const ctx = pdfRef.current;
+    if (!ctx) return;
+    setFalha("");
+    setConfirmarIA(false);
+    setProgressoIA({ fase: "render", feito: 0, total: 0, motor });
+    setEtapa("processando-ia");
+    const onProg = (fase, feito, total) => setProgressoIA({ fase, feito, total, motor });
+    try {
+      // Buffer novo a cada leitura: o pdfjs detacha o ArrayBuffer que usa.
+      const buffer = await ctx.arquivo.arrayBuffer();
+      let produtos, avisos;
+      if (motor === "ocr") {
+        const { pdfParaProdutosOCR } = await import("@/lib/importacao/ocrTesseract");
+        ({ produtos, avisos } = await pdfParaProdutosOCR(buffer, onProg));
+      } else {
+        const { lerCardapioComIA } = await import("@/lib/importacao/iaCardapio");
+        ({ produtos, avisos } = await lerCardapioComIA(buffer, onProg));
+      }
+      await irParaPreviewComTexto(ctx.cfg.montarCSV(produtos), avisos, ctx.cfg, ctx.nome, ctx.tipo);
+    } catch {
+      setFalha("Não consegui ler esse cardápio agora. Tente o outro modo ou importe por planilha.");
+      setEtapa("escolha-ia");
     }
   };
 
@@ -353,6 +405,82 @@ export default function ImportarExportarTab() {
             backup e entra em qualquer conta KORA (e o que sai de lá volta pra cá).
           </div>
         </>
+      )}
+
+      {etapa === "escolha-ia" && (
+        <div className="imex__card imex__card--coluna">
+          <div className="imex__titulo">
+            "{nomeArquivo}" parece um cardápio escaneado ou em foto
+          </div>
+          <div className="imex__ajuda">
+            Não achei texto pra ler direto nesse PDF. Posso tentar reconhecer os itens de
+            duas formas — escolha a que preferir:
+          </div>
+
+          <div className="imex__motores">
+            <div className="imex__motor">
+              <div className="imex__motor-titulo">Ler aqui no navegador</div>
+              <div className="imex__motor-desc">
+                Grátis e privado: a leitura acontece no seu computador, o cardápio não
+                sai daqui. Pode demorar um pouco e errar mais em fotos tortas.
+              </div>
+              <button type="button" className="imex__botao imex__botao--secundario"
+                onClick={() => rodarLeitorForte("ocr")}>
+                Ler no navegador (grátis)
+              </button>
+            </div>
+
+            <div className="imex__motor">
+              <div className="imex__motor-titulo">Leitura inteligente (IA)</div>
+              <div className="imex__motor-desc">
+                Mais precisa em cardápios bagunçados. Para isso, as páginas do cardápio
+                são enviadas ao serviço de IA do Google para leitura.
+              </div>
+              {!confirmarIA ? (
+                <button type="button" className="imex__botao imex__botao--primario"
+                  onClick={() => setConfirmarIA(true)}>
+                  Usar leitura inteligente…
+                </button>
+              ) : (
+                <div className="imex__confirmar-ia">
+                  <div className="imex__ajuda">
+                    <LuTriangleAlert aria-hidden="true" /> Isso envia as imagens do seu
+                    cardápio para o Google ler. Só os itens e preços voltam pra cá. Pode confirmar?
+                  </div>
+                  <div className="imex__acoes">
+                    <button type="button" className="imex__botao imex__botao--secundario"
+                      onClick={() => setConfirmarIA(false)}>
+                      Agora não
+                    </button>
+                    <button type="button" className="imex__botao imex__botao--primario"
+                      onClick={() => rodarLeitorForte("ia")}>
+                      Enviar e ler com IA
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="imex__acoes">
+            <button type="button" className="imex__botao imex__botao--secundario" onClick={voltarInicio}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {etapa === "processando-ia" && (
+        <div className="imex__card imex__card--coluna">
+          <div className="imex__titulo">
+            {progressoIA.motor === "ia" ? "Leitura inteligente" : "Lendo o cardápio"}
+          </div>
+          <div className="imex__progresso-trilha">
+            <div className="imex__progresso-barra"
+              style={{ width: progressoIA.total ? `${Math.round((progressoIA.feito / progressoIA.total) * 100)}%` : "0%" }} />
+          </div>
+          <div className="imex__ajuda">{FASE_IA[progressoIA.fase] || "Preparando…"}</div>
+        </div>
       )}
 
       {etapa === "preview" && (

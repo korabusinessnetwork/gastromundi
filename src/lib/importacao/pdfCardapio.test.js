@@ -9,6 +9,7 @@ import {
   pareceCategoria,
   limparCategoria,
   extrairProdutosDoTextoPdf,
+  normalizarItensIA,
   CATEGORIA_PADRAO,
 } from "./pdfCardapio";
 
@@ -145,5 +146,66 @@ describe("extrairProdutosDoTextoPdf", () => {
   it("tolera entrada não-array", () => {
     expect(extrairProdutosDoTextoPdf(null).produtos).toEqual([]);
     expect(extrairProdutosDoTextoPdf(undefined).produtos).toEqual([]);
+  });
+});
+
+describe("normalizarItensIA", () => {
+  it("normaliza array de itens da IA (preço número e texto)", () => {
+    const { produtos, avisos } = normalizarItensIA([
+      { name: "X-Salada", price: 24.9, category: "Lanches" },
+      { nome: "Coca-Cola", preco: "R$ 8,00", categoria: "Bebidas" },
+    ]);
+    expect(produtos).toEqual([
+      { name: "X-Salada", price: 24.9, category: "Lanches" },
+      { name: "Coca-Cola", price: 8, category: "Bebidas" },
+    ]);
+    expect(avisos).toEqual([]);
+  });
+
+  it("aceita string JSON com cerca markdown ```json", () => {
+    const bruto = '```json\n[{"name":"Pizza","price":"45,00","category":"Pizzas"}]\n```';
+    const { produtos } = normalizarItensIA(bruto);
+    expect(produtos).toEqual([{ name: "Pizza", price: 45, category: "Pizzas" }]);
+  });
+
+  it("aceita objeto com chave itens ou produtos", () => {
+    expect(normalizarItensIA({ itens: [{ name: "Suco", price: 9 }] }).produtos).toHaveLength(1);
+    expect(normalizarItensIA({ produtos: [{ name: "Água", price: 5 }] }).produtos).toHaveLength(1);
+  });
+
+  it("cai em categoria padrão e avisa quando falta seção", () => {
+    const { produtos, avisos } = normalizarItensIA([{ name: "Pastel", price: 7 }]);
+    expect(produtos[0].category).toBe(CATEGORIA_PADRAO);
+    expect(avisos.some((a) => a.mensagem.includes(CATEGORIA_PADRAO))).toBe(true);
+  });
+
+  it("descarta itens sem nome ou sem preço válido e avisa", () => {
+    const { produtos, avisos } = normalizarItensIA([
+      { name: "Válido", price: 10, category: "X" },
+      { name: "", price: 10 },
+      { name: "Sem preço", price: 0 },
+      { name: "Preço lixo", price: "abc" },
+      null,
+    ]);
+    expect(produtos).toEqual([{ name: "Válido", price: 10, category: "X" }]);
+    expect(avisos.some((a) => a.mensagem.toLowerCase().includes("ignorad"))).toBe(true);
+  });
+
+  it("avisa quando não há nenhum item válido", () => {
+    const { produtos, avisos } = normalizarItensIA([]);
+    expect(produtos).toEqual([]);
+    expect(avisos).toHaveLength(1);
+    expect(avisos[0].mensagem.toLowerCase()).toContain("preço");
+  });
+
+  it("tolera JSON inválido sem quebrar", () => {
+    const { produtos, avisos } = normalizarItensIA("isso não é json");
+    expect(produtos).toEqual([]);
+    expect(avisos[0].mensagem.toLowerCase()).toContain("legível");
+  });
+
+  it("tolera entrada nula", () => {
+    expect(normalizarItensIA(null).produtos).toEqual([]);
+    expect(normalizarItensIA(undefined).produtos).toEqual([]);
   });
 });

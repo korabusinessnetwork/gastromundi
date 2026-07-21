@@ -19,6 +19,10 @@ import { parsearPrecoBR, LIMITE_LINHAS } from "./planilha";
 
 export const CATEGORIA_PADRAO = "Sem categoria";
 
+// A IA (visão) às vezes devolve o JSON embrulhado numa cerca de código
+// markdown ("```json ... ```"). Tiramos a cerca antes de dar JSON.parse.
+const RE_CERCA_JSON = /^```(?:json)?\s*|\s*```$/g;
+
 // Preço no FIM da linha. Aceita: "24,90", "R$ 24,90", "1.234,56",
 // "24.90" (decimal com ponto) e "R$ 15" (inteiro só COM R$). Um inteiro
 // solto sem R$ ("Pizza 4") NÃO conta como preço — evita falso positivo
@@ -126,6 +130,98 @@ export function extrairProdutosDoTextoPdf(linhas) {
       linha: 0,
       mensagem: `${semCategoria} item(ns) sem seção no PDF entraram em "${CATEGORIA_PADRAO}" — ajuste a categoria na tela de Produtos depois.`,
     });
+  }
+
+  return { produtos, avisos };
+}
+
+/**
+ * Normaliza a resposta da IA (leitura de cardápio por visão) para o MESMO
+ * formato de produtos do resto do pipeline: { name, price, category }.
+ *
+ * PURO e defensivo: a IA é uma fonte externa não confiável, então aqui
+ * NÃO confiamos em nada — validamos cada item, convertemos o preço com o
+ * mesmo parser BR do CSV, descartamos o que não tem nome ou preço > 0 e
+ * jamais inventamos valores (regra do Jarvas vale para extração também).
+ *
+ * Aceita string (com ou sem cerca ```json), objeto já parseado, ou um
+ * objeto { itens: [...] } / { produtos: [...] }. Preço pode vir número ou
+ * texto ("R$ 24,90"). Categoria ausente cai em CATEGORIA_PADRAO.
+ *
+ * @param {string|object} entrada resposta crua da IA
+ * @returns {{ produtos: Array<{name:string, price:number, category:string}>, avisos: Array<{linha:number, mensagem:string}> }}
+ */
+export function normalizarItensIA(entrada) {
+  const avisos = [];
+
+  let dados = entrada;
+  if (typeof entrada === "string") {
+    const limpo = entrada.trim().replace(RE_CERCA_JSON, "").trim();
+    try {
+      dados = JSON.parse(limpo);
+    } catch {
+      return {
+        produtos: [],
+        avisos: [{ linha: 0, mensagem: "A IA não devolveu um cardápio legível. Tente de novo ou importe por planilha." }],
+      };
+    }
+  }
+
+  // A IA pode devolver a lista direto ou dentro de uma chave.
+  const lista = Array.isArray(dados)
+    ? dados
+    : Array.isArray(dados?.itens)
+      ? dados.itens
+      : Array.isArray(dados?.produtos)
+        ? dados.produtos
+        : [];
+
+  const produtos = [];
+  let semCategoria = 0;
+  let descartados = 0;
+
+  for (const item of lista) {
+    if (produtos.length >= LIMITE_LINHAS) {
+      avisos.push({ linha: 0, mensagem: `Cardápio muito grande — li os primeiros ${LIMITE_LINHAS} itens. Divida em partes.` });
+      break;
+    }
+    if (!item || typeof item !== "object") {
+      descartados += 1;
+      continue;
+    }
+
+    const name = String(item.name ?? item.nome ?? "").replace(/\s+/g, " ").trim();
+    const preco = parsearPrecoBR(item.price ?? item.preco);
+    if (!name || preco === null || preco <= 0) {
+      descartados += 1;
+      continue;
+    }
+
+    const categoriaCrua = String(item.category ?? item.categoria ?? "").trim();
+    const category = categoriaCrua || CATEGORIA_PADRAO;
+    if (!categoriaCrua) semCategoria += 1;
+
+    produtos.push({ name, price: preco, category });
+  }
+
+  if (produtos.length === 0) {
+    avisos.push({
+      linha: 0,
+      mensagem: "A IA não encontrou itens com preço nesse cardápio. Confira a foto/página ou importe por planilha.",
+    });
+  } else {
+    if (semCategoria > 0) {
+      avisos.push({
+        linha: 0,
+        mensagem: `${semCategoria} item(ns) sem seção entraram em "${CATEGORIA_PADRAO}" — ajuste a categoria na tela de Produtos depois.`,
+      });
+    }
+    if (descartados > 0) {
+      avisos.push({
+        linha: 0,
+        mensagem: `${descartados} item(ns) vieram sem nome ou preço válido e foram ignorados — confira o cardápio na prévia.`,
+      });
+    }
   }
 
   return { produtos, avisos };
