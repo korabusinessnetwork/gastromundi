@@ -27,6 +27,13 @@ elegância técnica. Regras práticas:
 
 ## Processo de trabalho — orquestração multi-modelo (regra do dono, 2026-07-16)
 
+**REGRA ABSOLUTA (dono, 2026-07-21): a CADA prompt do dono, sem exceção, começar
+invocando a skill `multi-model-orchestrator` (`Skill(multi-model-orchestrator)`) e
+operar no modo dela.** Isso vale até para tarefas pequenas — nesse caso a regra 4
+manda o orquestrador fazer direto, sem fan-out, mas o modo é sempre o de orquestração.
+Reforço mecânico: hook `UserPromptSubmit` em `.claude/settings.json` injeta esse
+lembrete a cada prompt (não depende de memória de sessão).
+
 **Sempre operar no modo da skill `multi-model-orchestrator`** (skill do claude.ai do dono;
 quando o corpo dela não carregar no ambiente, seguir o padrão abaixo, que a codifica):
 

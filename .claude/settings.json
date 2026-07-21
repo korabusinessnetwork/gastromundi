@@ -9,5 +9,17 @@
       "Bash(Get-Content \"c:\\\\Users\\\\Bonas\\\\Documents\\\\Gastromundi by Kora\\\\gastromundi\\\\.env.local\")",
       "Bash(Select-String \"SUPABASE_URL\")"
     ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"REGRA ABSOLUTA (dono, 2026-07-21): antes de responder a QUALQUER prompt, opere no modo da skill multi-model-orchestrator (Planejar -> Executar -> Sintetizar/Validar). Invoque a skill via Skill(multi-model-orchestrator). Tarefa de peca unica NAO ganha fan-out: o orquestrador faz direto (regra 4 da skill). Subagentes nunca commitam/pusham.\"}}'"
+          }
+        ]
+      }
+    ]
   }
 }
