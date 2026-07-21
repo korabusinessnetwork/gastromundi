@@ -452,6 +452,7 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
       const proximo = proximoStatus(pedido.status);
       if (!proximo) return;
       const { error } = await atualizarStatusPedido(pedido.id, proximo, {
+        de: pedido.status,
         operador: currentUser?.username,
         numero: pedido.numero,
       });
@@ -465,6 +466,7 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
   const cancelar = useCallback(
     async (pedido) => {
       const { error } = await atualizarStatusPedido(pedido.id, STATUS_CANCELADO, {
+        de: pedido.status,
         operador: currentUser?.username,
         numero: pedido.numero,
       });

@@ -16,6 +16,7 @@ import {
   proximoStatus,
   rotuloAcao,
   podeCancelar,
+  transicaoValida,
   agruparPorStatus,
   resumoEndereco,
   apenasDigitosTelefone,
@@ -97,6 +98,39 @@ describe("podeCancelar", () => {
   it("não deixa cancelar terminal", () => {
     expect(podeCancelar("entregue")).toBe(false);
     expect(podeCancelar("cancelado")).toBe(false);
+  });
+});
+
+describe("transicaoValida (N3 — espelha o trigger 20260815)", () => {
+  it("avança um passo no fluxo", () => {
+    expect(transicaoValida("recebido", "em_preparo")).toBe(true);
+    expect(transicaoValida("em_preparo", "saiu_entrega")).toBe(true);
+    expect(transicaoValida("saiu_entrega", "entregue")).toBe(true);
+  });
+  it("permite cancelar de qualquer não-terminal", () => {
+    expect(transicaoValida("recebido", "cancelado")).toBe(true);
+    expect(transicaoValida("em_preparo", "cancelado")).toBe(true);
+    expect(transicaoValida("saiu_entrega", "cancelado")).toBe(true);
+  });
+  it("NÃO ressuscita terminal (entregue/cancelado não mudam)", () => {
+    expect(transicaoValida("entregue", "em_preparo")).toBe(false);
+    expect(transicaoValida("entregue", "cancelado")).toBe(false);
+    expect(transicaoValida("cancelado", "recebido")).toBe(false);
+    expect(transicaoValida("cancelado", "entregue")).toBe(false);
+  });
+  it("NÃO pula etapa nem anda pra trás", () => {
+    expect(transicaoValida("recebido", "entregue")).toBe(false);
+    expect(transicaoValida("recebido", "saiu_entrega")).toBe(false);
+    expect(transicaoValida("saiu_entrega", "recebido")).toBe(false);
+  });
+  it("mesmo → mesmo é no-op válido (edição de outros campos)", () => {
+    expect(transicaoValida("recebido", "recebido")).toBe(true);
+    expect(transicaoValida("entregue", "entregue")).toBe(true);
+  });
+  it("status ausente ou desconhecido → inválido (defensivo)", () => {
+    expect(transicaoValida(null, "em_preparo")).toBe(false);
+    expect(transicaoValida("recebido", "")).toBe(false);
+    expect(transicaoValida("xpto", "em_preparo")).toBe(false);
   });
 });
 
@@ -272,6 +306,26 @@ describe("atualizarStatusPedido (DL2)", () => {
     const { data, error } = await atualizarStatusPedido("p1", "em_preparo");
     expect(data).toBeNull();
     expect(error).toBeTruthy();
+  });
+
+  it("N3 — com `de` terminal, barra antes do banco (não ressuscita)", async () => {
+    // Banco devolveria sucesso; a guarda cliente-side impede chegar lá.
+    supabase.setTableResult("delivery_pedidos", {
+      data: { id: "p1", status: "recebido" },
+      error: null,
+    });
+    const { data, error } = await atualizarStatusPedido("p1", "recebido", { de: "entregue" });
+    expect(error).toBeTruthy();
+    expect(data).toBeNull();
+  });
+
+  it("N3 — sem `de` (retrocompat), segue direto pro banco (trigger é a guarda)", async () => {
+    supabase.setTableResult("delivery_pedidos", {
+      data: { id: "p1", numero: 7, status: "em_preparo" },
+      error: null,
+    });
+    const { error } = await atualizarStatusPedido("p1", "em_preparo");
+    expect(error).toBeNull();
   });
 
   it("sucesso real: retorna o pedido atualizado sem erro", async () => {

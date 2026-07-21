@@ -86,6 +86,29 @@ export function podeCancelar(status) {
 }
 
 /**
+ * Uma transição de status é válida? Fonte de verdade única do fluxo,
+ * espelhada pelo trigger BEFORE UPDATE em delivery_pedidos (migration
+ * 20260815 — guarda de segurança no banco). Aqui serve à PREVENÇÃO DE
+ * ERRO no front (Princípio nº 1): barrar antes do round-trip.
+ *
+ *   • de terminal (entregue/cancelado) → nada avança (não ressuscita);
+ *   • cancelar é permitido de qualquer não-terminal;
+ *   • avançar só um passo no STATUS_FLUXO (sem pular etapa);
+ *   • mesmo → mesmo é no-op válido (edição de outros campos).
+ *
+ * @param {string} de status atual
+ * @param {string} para status desejado
+ * @returns {boolean}
+ */
+export function transicaoValida(de, para) {
+  if (!de || !para) return false;
+  if (de === para) return true;
+  if (ehTerminal(de)) return false;
+  if (para === STATUS_CANCELADO) return true;
+  return proximoStatus(de) === para;
+}
+
+/**
  * Agrupa a lista de pedidos por status, na ordem do fluxo + cancelado no
  * fim. Retorna [{ status, label, pedidos }] — só colunas com pedido, para
  * a tela não virar um mar de vazios.
@@ -246,6 +269,16 @@ export async function carregarItensPedido(pedidoId) {
 export async function atualizarStatusPedido(pedidoId, novoStatus, contexto = {}) {
   if (!pedidoId || !novoStatus) {
     return { data: null, error: new Error("Pedido ou status ausente.") };
+  }
+  // Prevenção de erro (Princípio nº 1): se o chamador informa o status
+  // atual (`contexto.de`), barra transição inválida antes do round-trip —
+  // erro humano em vez de esperar a rejeição do trigger. Retrocompatível:
+  // sem `de`, segue direto e o trigger (20260815) continua sendo a guarda.
+  if (contexto?.de && !transicaoValida(contexto.de, novoStatus)) {
+    return {
+      data: null,
+      error: new Error("Essa mudança de status não é permitida para este pedido."),
+    };
   }
   try {
     const { data, error } = await supabase
