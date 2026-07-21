@@ -312,9 +312,9 @@ export function montarCSVProdutos(produtos) {
       celulaCSV(p.name, sep),
       String(p.price ?? 0).replace(".", ","),
       celulaCSV(p.category, sep),
-      p.emoji || "",
+      celulaCSV(p.emoji || "", sep),
       p.active === false ? "não" : "sim",
-      p.unidade_estoque || "un",
+      celulaCSV(p.unidade_estoque || "un", sep),
     ].join(sep)
   );
   return "﻿" + [cabecalho, ...linhas].join("\r\n");

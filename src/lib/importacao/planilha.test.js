@@ -17,6 +17,7 @@ import {
   gerarModeloCSV,
   gerarModeloClientesCSV,
   gerarModeloEstoqueCSV,
+  COLUNAS_MODELO,
 } from "./planilha";
 
 describe("decodificarArquivo", () => {
@@ -222,6 +223,36 @@ describe("montarCSVProdutos — proteção contra CSV injection (I1)", () => {
     const linhaProduto = csv.split("\r\n")[1];
     // prefixo ' + aspas internas dobradas + célula entre aspas por ter ; e "
     expect(linhaProduto).toContain('"\'=diz ""oi""; ok"');
+  });
+
+  // emoji é texto livre no banco: um valor tipo "=HYPERLINK(...)" ou com ";"
+  // também vira fórmula/quebra a estrutura no CSV exportado (importado por
+  // outro tenant na portabilidade). Passa por celulaCSV como nome/categoria.
+  it("emoji com caractere de fórmula é neutralizado (não fica cru na coluna 4)", () => {
+    const csv = montarCSVProdutos([
+      { name: "X", price: 10, category: "Pratos", emoji: "=HYPERLINK(0)" },
+    ]);
+    const colunaEmoji = csv.split("\r\n")[1].split(";")[3].replace(/^"|"$/g, "");
+    expect(colunaEmoji.startsWith("'=")).toBe(true);
+  });
+
+  it("emoji com separador não quebra a estrutura de colunas", () => {
+    const csv = montarCSVProdutos([
+      { name: "X", price: 10, category: "Pratos", emoji: "a;b" },
+    ]);
+    // a;b entra entre aspas — o parser de CSV lê como UMA coluna, não duas
+    expect(csv.split("\r\n")[1]).toContain('"a;b"');
+    const linhaDados = parsearCSV(csv)[1];
+    expect(linhaDados.length).toBe(COLUNAS_MODELO.length);
+    expect(linhaDados[3]).toBe("a;b");
+  });
+
+  it("unidade_estoque com caractere de fórmula é neutralizada", () => {
+    const csv = montarCSVProdutos([
+      { name: "X", price: 10, category: "Pratos", unidade_estoque: "=cmd" },
+    ]);
+    const colunaUnidade = csv.split("\r\n")[1].split(";")[5].replace(/^"|"$/g, "");
+    expect(colunaUnidade.startsWith("'=")).toBe(true);
   });
 });
 
