@@ -43,24 +43,30 @@ function dec(valor, casas) {
   return n.toFixed(casas);
 }
 
-/** Valor monetário: 2 casas. */
-const money = (v) => dec(v, 2);
-
 /**
- * Arredonda para 2 casas (centavos) sem viés de ponto flutuante — MESMO
- * critério de nfceItemFiscal.js (Math.round com Number.EPSILON, half-up).
- * Usado no somatório dos totais (ICMSTot): cada componente do item é
- * arredondado a 2 casas ANTES de somar, para que a soma bata EXATAMENTE com
- * o que sai em cada <det> (money = toFixed(2)). Somar os brutos e arredondar
- * só no fim gera diferença de centavo — e a SEFAZ REJEITA a nota quando o
- * total não fecha com os itens.
+ * Núcleo de arredondamento a 2 casas half-up sem viés de ponto flutuante
+ * (Math.round + Number.EPSILON) — MESMO critério de nfceItemFiscal.js.
+ * Fonte ÚNICA para money() (cada <det>) e round2() (somatório dos totais):
+ * item e total precisam usar EXATAMENTE o mesmo arredondamento. Em valor de
+ * meio-centavo (ex.: 3 × 0,335 = 1,005), toFixed(2) e o half-up divergem
+ * ("1.00" vs 1.01) — e aí Σitens não fecha com o vNF e a SEFAZ REJEITA a nota.
  */
-function round2(v) {
+function arred2(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) {
     throw new Error(`Valor numérico inválido para arredondamento: "${v}".`);
   }
-  return Number((Math.round((n + Number.EPSILON) * 100) / 100).toFixed(2));
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+/** Valor monetário: 2 casas, half-up idêntico ao round2 do somatório. */
+const money = (v) => arred2(v).toFixed(2);
+
+/** Arredonda para 2 casas (centavos) half-up — usado no somatório dos totais
+ *  (ICMSTot): cada componente do item é arredondado ANTES de somar, para que
+ *  a soma bata EXATAMENTE com o que sai em cada <det> (money). */
+function round2(v) {
+  return Number(arred2(v).toFixed(2));
 }
 
 /** Só dígitos (remove máscara de CNPJ/CPF/CEP/telefone). */

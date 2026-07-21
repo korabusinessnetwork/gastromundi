@@ -144,6 +144,21 @@ describe("nfceXml — montarXmlNfce (documento completo)", () => {
     expect(xml).toContain("<vNF>25.00</vNF>");
   });
 
+  it("valor de meio-centavo: <det> e total usam o MESMO half-up (fecham na SEFAZ)", () => {
+    // vProd = 1 × 1,005 = 1,005. toFixed(2) daria "1.00" no <det>, mas o
+    // somatório arredonda half-up para 1,01 — divergência = rejeição. Com a
+    // fonte única de arredondamento, item e total batem em 1,01.
+    const { xml } = montarXmlNfce(
+      docBase({
+        itens: [{ ...itemSimples, qCom: 1, vUnCom: 1.005 }],
+        pagamentos: [{ tPag: "01", vPag: 1.01 }],
+      }),
+    );
+    expect(xml).not.toContain("<vProd>1.00</vProd>"); // <det> não fica defasado
+    expect(xml).toContain("<vProd>1.01</vProd>");
+    expect(xml).toContain("<vNF>1.01</vNF>");
+  });
+
   it("desconto no item reduz o vNF total", () => {
     const { xml } = montarXmlNfce(
       docBase({ itens: [{ ...itemSimples, vDesc: 5 }] }),
