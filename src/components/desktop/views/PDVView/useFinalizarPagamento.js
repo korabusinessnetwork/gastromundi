@@ -8,6 +8,7 @@ import { consumoParaEstoque } from "@/utils/conversaoUnidades";
 import { calcularBaixasSubprodutos } from "@/lib/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { round2 } from "@/lib/vendas";
+import { reportarFalha } from "@/lib/observabilidade";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
 // cadastrado hoje, mas a checagem já fica pronta para quando existir
@@ -188,6 +189,10 @@ export function useFinalizarPagamento() {
 
     if (remocaoFalhou) {
       logAction(currentUser?.username, "comanda:finalizar:remocao_falhou", { msg: `Venda gravada, mas a comanda ${selected.comanda} não foi removida da grade`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, venda_id: sale.id, erro: remocaoFalhou?.message ?? String(remocaoFalhou) });
+      // Risco de cobrança dupla: a venda gravou mas a comanda não saiu da
+      // grade (removePending falhou nas 2 tentativas). É exatamente o tipo de
+      // falha silenciosa que o operador pode não notar — sobe pro Sentry.
+      reportarFalha(remocaoFalhou, { risco: "cobranca_dupla", acao: "removePending", comanda: selected.comanda, venda_id: sale.id });
       // Lança DEPOIS dos efeitos (mesa/estoque/log) para não perdê-los:
       // o CheckoutView exibe esta mensagem e o operador resolve manualmente.
       throw new Error(`Venda registrada, mas a comanda ${selected.comanda} não saiu da tela. NÃO cobre de novo — feche a comanda manualmente.`);

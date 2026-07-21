@@ -10,6 +10,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@sentry/react": "^10.67.0",
+    "@sentry/vite-plugin": "^5.4.0",
     "@supabase/supabase-js": "^2.108.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",

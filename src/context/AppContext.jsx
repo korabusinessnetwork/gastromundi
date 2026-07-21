@@ -20,6 +20,7 @@ import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/c
 import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
+import { reportarFalha, reportarInconsistencia, setTenantObservabilidade } from "@/lib/observabilidade";
 import { criarFila, drenarFila } from "@/lib/offline/fila";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 import { useStatusRede } from "@/hooks/useStatusRede";
@@ -319,6 +320,9 @@ export function AppProvider({ children }) {
 
       if (tenantData) {
         setTenantLocal(tenantData);
+        // Observabilidade: registra o UUID do tenant (NUNCA nome/marca/PII)
+        // para taguear os eventos do Sentry por estabelecimento (multi-tenant).
+        setTenantObservabilidade(tenantData.id ?? null);
         // Fase 4 — camada de comercialização (ADR-006): sincroniza o CACHE
         // de status no banco (telas administrativas). Fire-and-forget —
         // nunca bloqueia o bootstrap; o status exibido já foi calculado
@@ -529,6 +533,7 @@ export function AppProvider({ children }) {
     void persistirVendaNormalizada(supabase, sale, {
       onFalha: ({ etapa, error: e, venda_id }) => {
         console.error(`dual-write vendas (${etapa}) venda ${venda_id}:`, e);
+        reportarFalha(e, { acao: "persistirVendaNormalizada", etapa, tabela: "vendas", venda_id, origem: "reenvioOffline" });
         emitirEvento("venda.dualwrite.falhou", "pdv", {
           venda_id,
           etapa,
@@ -550,6 +555,10 @@ export function AppProvider({ children }) {
       const { falhas } = await drenarFila({ fila: filaOffline, executar: executarOpOffline, isErroDeRede });
       for (const { op, error } of falhas) {
         console.error("[offline] operação descartada no reenvio:", op.tipo, error?.message);
+        // Falha NÃO-rede ao drenar: a op foi descartada (não é reenfileirada)
+        // e aqui mora a não-idempotência do estoque / evento reemitido. É bug
+        // silencioso — reporta com o tipo da op (drenarFila já separou rede).
+        reportarFalha(error, { acao: "drenarPendenciasOffline", op: op?.tipo });
       }
     } finally {
       drenandoRef.current = false;
@@ -633,6 +642,7 @@ export function AppProvider({ children }) {
         return { error: null, offline: true };
       }
       console.error("addPending error:", error);
+      reportarFalha(error, { acao: "addPending", tabela: "pending" });
       setPendingLocal(prev => prev.filter(o => o.id !== id));
       return { error };
     }
@@ -653,6 +663,7 @@ export function AppProvider({ children }) {
         return { error: null, offline: true };
       }
       console.error("removePending error:", error);
+      reportarFalha(error, { acao: "removePending", tabela: "pending", id });
       // Restaura a comanda: ela continua existindo no banco.
       if (removida) setPendingLocal(prev => prev.some(o => o.id === id) ? prev : [removida, ...prev]);
       return { error };
@@ -694,6 +705,7 @@ export function AppProvider({ children }) {
         return { error: null, offline: true };
       }
       console.error("updatePending error:", error);
+      reportarFalha(error, { acao: "updatePending", tabela: "pending", id });
       if (anterior) setPendingLocal(prev => prev.map(o => o.id === id ? anterior : o));
       return { error };
     }
@@ -770,6 +782,7 @@ export function AppProvider({ children }) {
     const { data, error } = await supabase.from("products").update(changes).eq("id", id).select("id");
     if (error) return { error };
     if (!data || data.length === 0) {
+      reportarInconsistencia("write afetou 0 linhas", { acao: "updateProduct", tabela: "products", id });
       return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada — sem permissão ou produto inexistente." } };
     }
     setProductsLocal(prev => prev.map(p => p.id === id ? { ...p, ...changes } : p));
@@ -782,6 +795,7 @@ export function AppProvider({ children }) {
     const { data, error } = await supabase.from("products").delete().eq("id", id).select("id");
     if (error) return { error };
     if (!data || data.length === 0) {
+      reportarInconsistencia("write afetou 0 linhas", { acao: "removeProduct", tabela: "products", id });
       return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida — sem permissão ou produto inexistente." } };
     }
     setProductsLocal(prev => prev.filter(p => p.id !== id));
@@ -827,6 +841,7 @@ export function AppProvider({ children }) {
         return { offline: true };
       }
       console.error("addSale error:", JSON.stringify(error, null, 2));
+      reportarFalha(error, { acao: "addSale", tabela: "sales", venda_id: sale.id });
       throw error;
     }
     emitirEvento("venda.finalizada", "pdv", {
@@ -844,6 +859,7 @@ export function AppProvider({ children }) {
     void persistirVendaNormalizada(supabase, sale, {
       onFalha: ({ etapa, error, venda_id }) => {
         console.error(`dual-write vendas (${etapa}) venda ${venda_id}:`, error);
+        reportarFalha(error, { acao: "persistirVendaNormalizada", etapa, tabela: "vendas", venda_id });
         // Trilha durável: em vez de só console, deixa rastro pro Jarvas.
         emitirEvento("venda.dualwrite.falhou", "pdv", {
           venda_id,
@@ -883,6 +899,7 @@ export function AppProvider({ children }) {
       .select("id");
     if (error) return { error };
     if (!linhas || linhas.length === 0) {
+      reportarInconsistencia("write afetou 0 linhas", { acao: "cancelarVendaFechada", tabela: "sales", venda_id: vendaId });
       return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada — venda inexistente ou sem permissão." } };
     }
 
@@ -937,6 +954,7 @@ export function AppProvider({ children }) {
       .select();
     if (error) return { error };
     if (!data || data.length === 0) {
+      reportarInconsistencia("write afetou 0 linhas", { acao: "updateUser", tabela: "users", id });
       return {
         error: {
           code: "no_rows_updated",
@@ -963,6 +981,7 @@ export function AppProvider({ children }) {
     const { data, error } = await supabase.from("users").delete().eq("id", id).select("id");
     if (error) return { error };
     if (!data || data.length === 0) {
+      reportarInconsistencia("write afetou 0 linhas", { acao: "removeUser", tabela: "users", id });
       return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida — sem permissão (apenas admin remove usuários) ou usuário inexistente." } };
     }
     setUsersLocal(prev => prev.filter(u => u.id !== id));
@@ -975,6 +994,7 @@ export function AppProvider({ children }) {
     const { error } = await supabase.from("fechamentos").insert({ data: f });
     if (error) {
       console.error("addFechamento error:", error);
+      reportarFalha(error, { acao: "addFechamento", tabela: "fechamentos" });
       setFechamentosLocal(prev => prev.filter(x => x.id !== f.id));
       return { error };
     }
@@ -996,6 +1016,7 @@ export function AppProvider({ children }) {
     );
     if (error) {
       console.error("updateEstoque error:", error);
+      reportarFalha(error, { acao: "updateEstoque", tabela: "estoque", produto_id: productId });
       setEstoqueLocal(prev => ({ ...prev, [productId]: anterior ?? 0 }));
       return { error };
     }
@@ -1016,6 +1037,7 @@ export function AppProvider({ children }) {
       const { error } = await supabase.from("estoque").upsert(rows, { onConflict: "produto_id" });
       if (error) {
         console.error("bulkSetEstoque error:", error);
+        reportarFalha(error, { acao: "bulkSetEstoque", tabela: "estoque", itens: rows.length });
         setEstoqueLocal(anterior);
         return { error };
       }
@@ -1053,6 +1075,7 @@ export function AppProvider({ children }) {
       // Baixa não confirmada no servidor: desfaz o desconto otimista e deixa
       // rastro visível para o Jarvas/gestor (TD012 — antes falhava em silêncio).
       setEstoqueLocal(prev => ({ ...prev, [productId]: anterior }));
+      reportarFalha(error, { acao: "baixarEstoque", tabela: "estoque", produto_id: productId, quantidade: qty });
       emitirEvento("estoque.baixa.falhou", "estoque", {
         produto_id: productId,
         quantidade: qty,
@@ -1087,6 +1110,7 @@ export function AppProvider({ children }) {
         enfileirarOffline({ tipo: "rpc_baixar_estoque_subproduto", subprodutoId, qtd });
         return { error: null, offline: true };
       }
+      reportarFalha(error, { acao: "baixarEstoqueSubproduto", tabela: "estoque", subproduto_id: subprodutoId, quantidade: qtd });
       emitirEvento("estoque.baixa.falhou", "estoque", {
         subproduto_id: subprodutoId,
         nome: nome ?? null,
@@ -1109,6 +1133,7 @@ export function AppProvider({ children }) {
     );
     if (error) {
       console.error("setMinimoEstoque error:", error);
+      reportarFalha(error, { acao: "setMinimoEstoque", tabela: "estoque", produto_id: productId });
       setEstoqueMinimosLocal(prev => {
         const next = { ...prev };
         if (anterior === undefined) delete next[productId];
@@ -1130,6 +1155,7 @@ export function AppProvider({ children }) {
     const { error } = await supabase.from("config").upsert({ key, value }, { onConflict: "tenant_id,key" });
     if (error) {
       console.error(`config upsert (${key}) error:`, error);
+      reportarFalha(error, { acao: "gravarConfig", tabela: "config", key });
       desfazer();
       return { error };
     }
@@ -1208,6 +1234,7 @@ export function AppProvider({ children }) {
       setCategoriaGruposLocal(prev => prev.filter(r => r.category !== cat));
       const { error } = await supabase.from("categoria_grupo").delete().eq("category", cat);
       if (error) {
+        reportarFalha(error, { acao: "setCategoriaGrupo", tabela: "categoria_grupo", operacao: "delete", category: cat });
         setCategoriaGruposLocal(anterior);
         return { error };
       }
@@ -1222,6 +1249,7 @@ export function AppProvider({ children }) {
       .from("categoria_grupo")
       .upsert({ category: cat, grupo_id: gid, updated_at: new Date().toISOString() }, { onConflict: "tenant_id,category" });
     if (error) {
+      reportarFalha(error, { acao: "setCategoriaGrupo", tabela: "categoria_grupo", operacao: "upsert", category: cat });
       setCategoriaGruposLocal(anterior);
       return { error };
     }
