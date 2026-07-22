@@ -1630,10 +1630,39 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
           disabled={!isAdmin}
           maxLength={60}
         />
-        <label style={{ fontSize: sz.fontSm, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}>
-          mín
-          <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 56 }} type="number" min="0" value={min} onChange={(e) => setMin(e.target.value)} disabled={!isAdmin} />
-        </label>
+        {/* Obrigatório × Opcional — o cliente é obrigado a marcar este grupo?
+            Seletor explícito no lugar do número cru "mín": opcional → min=0,
+            obrigatório → min≥1. O dono escolhe em palavras, sem pensar em
+            número (Princípio nº1 — intuitividade acima de densidade). */}
+        <div
+          role="group"
+          aria-label="O cliente é obrigado a escolher neste grupo?"
+          style={{ display: "inline-flex", borderRadius: 999, border: `1px solid ${varColor(C.border)}`, overflow: "hidden" }}
+        >
+          {[
+            { obrig: false, texto: "Opcional" },
+            { obrig: true, texto: "Obrigatório" },
+          ].map((opt) => {
+            const ativo = (Number(min) > 0) === opt.obrig;
+            return (
+              <button
+                key={opt.texto}
+                type="button"
+                aria-pressed={ativo}
+                disabled={!isAdmin}
+                onClick={() => isAdmin && setMin(opt.obrig ? String(Math.max(1, Number(min) || 0)) : "0")}
+                style={{
+                  padding: "8px 14px", fontSize: sz.fontSm, fontWeight: 700, border: "none",
+                  background: ativo ? varColor(C.accent) : "transparent",
+                  color: ativo ? "#fff" : varColor(C.muted),
+                  cursor: isAdmin ? "pointer" : "default", whiteSpace: "nowrap",
+                }}
+              >
+                {opt.texto}
+              </button>
+            );
+          })}
+        </div>
         <label style={{ fontSize: sz.fontSm, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}>
           máx
           <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 56 }} type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} disabled={!isAdmin} />
@@ -1650,7 +1679,9 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
         )}
       </div>
       <div style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted), marginTop: 4 }}>
-        {Number(min) > 0 ? "Obrigatório" : "Opcional"} · escolhe de {min || 0} a {max || 1}
+        {Number(min) > 0
+          ? `Obrigatório — o cliente precisa escolher ${Number(max) > 1 ? `de ${min || 1} a ${max}` : "1 opção"}`
+          : `Opcional — o cliente pode escolher ${Number(max) > 1 ? `até ${max}` : "1, se quiser"}`}
       </div>
 
       {/* Itens do grupo */}
