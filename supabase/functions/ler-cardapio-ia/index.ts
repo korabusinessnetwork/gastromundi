@@ -40,6 +40,11 @@ const json = (body: unknown, status = 200) =>
 
 const MAX_IMAGENS = 10; // trava de custo/quota — cardápio real cabe nisso
 const PREFIXO_JPEG = "data:image/jpeg;base64,";
+// Teto de bytes por imagem (base64). O front gera JPEG q0.85 @2x, que cabe
+// folgado abaixo disso; o limite barra um cliente adulterado que mande
+// páginas enormes (pressão de memória na função + tokens desperdiçados no
+// Gemini). ~5 MB de base64 por página. base64 ≈ 4/3 do binário → ~3,7 MB reais.
+const MAX_BYTES_IMG = 5 * 1024 * 1024;
 
 /**
  * Traduz a falha do Gemini numa CAUSA clara para o dono — sem nunca expor a
@@ -132,6 +137,9 @@ Deno.serve(async (req) => {
     for (const img of imagens) {
       if (typeof img !== "string" || !img.startsWith(PREFIXO_JPEG)) {
         return json({ erro: "Formato de imagem inválido." }, 400);
+      }
+      if (img.length > MAX_BYTES_IMG) {
+        return json({ erro: "Uma das páginas do cardápio está grande demais. Reduza a qualidade ou envie menos páginas por vez." }, 400);
       }
       partesImagem.push({
         inline_data: { mime_type: "image/jpeg", data: img.slice(PREFIXO_JPEG.length) },
