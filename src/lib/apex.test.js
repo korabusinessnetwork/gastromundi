@@ -1,9 +1,19 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { ehApexInstitucional } from "./apex";
 
 // Sem VITE_ROOT_DOMAIN no ambiente de teste, passamos rootDomain explícito
 // como 2º argumento em cada chamada.
 describe("ehApexInstitucional", () => {
+  // Blindagem: o .env.local do dev pode ter VITE_APEX_PREVIEW=1 (preview da
+  // institucional em dev), o que forçaria a função a sempre retornar true.
+  // Aqui neutralizamos esse flag para testar a lógica real de hostname.
+  beforeAll(() => {
+    vi.stubEnv("VITE_APEX_PREVIEW", "0");
+  });
+  afterAll(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("apex e www.apex são institucional", () => {
     expect(ehApexInstitucional("kora.codes", "kora.codes")).toBe(true);
     expect(ehApexInstitucional("www.kora.codes", "kora.codes")).toBe(true);

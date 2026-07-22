@@ -18,10 +18,6 @@
 
 const ROOT_DOMAIN = (import.meta.env.VITE_ROOT_DOMAIN || "").toLowerCase();
 
-// Override de preview local: permite ver a página institucional em dev
-// sem precisar apontar um domínio de verdade (VITE_APEX_PREVIEW=1).
-const APEX_PREVIEW = import.meta.env.VITE_APEX_PREVIEW === "1";
-
 /**
  * Verifica se o hostname atual corresponde ao apex institucional da Kora
  * (domínio nu ou www), e não a um subdomínio de tenant.
@@ -30,7 +26,10 @@ const APEX_PREVIEW = import.meta.env.VITE_APEX_PREVIEW === "1";
  * @returns {boolean}
  */
 export function ehApexInstitucional(hostname, rootDomain = ROOT_DOMAIN) {
-  if (APEX_PREVIEW) return true;
+  // Override de preview local: permite ver a página institucional em dev
+  // sem precisar apontar um domínio de verdade (VITE_APEX_PREVIEW=1).
+  // Lido no momento da chamada para ser testável (vi.stubEnv).
+  if (import.meta.env.VITE_APEX_PREVIEW === "1") return true;
 
   const host = String(
     hostname ?? (typeof window !== "undefined" ? window.location.hostname : "")

@@ -4,3 +4,6 @@ dist/
 .env.local
 .env.*.local
 .env.migration
+
+# Config pessoal do Obsidian (vault apontado para memory/ ou raiz)
+.obsidian/
