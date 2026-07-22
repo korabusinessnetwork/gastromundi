@@ -297,6 +297,22 @@
   background: color-mix(in srgb, var(--gm-green) 12%, transparent);
 }
 
+/* ── Subgrupos aninhados (estilo iFood) ─────────────────────────────
+   Recuo + faixa lateral deixam claro que o subgrupo "pertence" ao grupo
+   acima, sem exigir explicação (Princípio nº 1: hierarquia visível). */
+.grupo__subgrupos {
+  margin-top: 8px;
+  padding-left: 12px;
+  border-left: 2px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.grupo--sub {
+  margin-bottom: 12px;
+}
+.grupo--sub .grupo__nome { font-size: 14px; }
+
 .opcao {
   display: flex;
   align-items: center;

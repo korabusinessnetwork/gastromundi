@@ -99,6 +99,10 @@ import {
   removerGrupoComplemento,
   salvarComplemento,
   removerComplemento,
+  subgrupoCriaCiclo,
+  vincularSubgrupo,
+  desvincularSubgrupo,
+  reordenarSubgrupos,
   faixaResumo,
   validarFaixa,
   formatarReais,
@@ -106,6 +110,7 @@ import {
   temFaixasKm,
 } from "@/lib/deliveryAdmin";
 import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
+import ListaArrastavel from "@/components/shared/ListaArrastavel";
 import { geocodificarEndereco } from "@/lib/delivery";
 import { enviarFotoProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
@@ -1255,6 +1260,7 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
         sz={sz}
         isAdmin={isAdmin}
         grupo={grupoAberto}
+        biblioteca={grupos}
         products={products}
         itensCardapio={itens}
         aviso={aviso}
@@ -1325,6 +1331,7 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
 function GrupoCardMini({ sz, grupo, onAbrir }) {
   const nItens = (grupo.itens || []).length;
   const nProdutos = (grupo.produtoIds || []).length;
+  const nSubgrupos = (grupo.subgrupoIds || []).length;
   const obrigatorio = Number(grupo.min_escolhas) > 0;
 
   return (
@@ -1357,10 +1364,16 @@ function GrupoCardMini({ sz, grupo, onAbrir }) {
         {obrigatorio ? "Obrigatório" : "Opcional"} · {grupo.min_escolhas ?? 0}–{grupo.max_escolhas ?? 1}
       </span>
 
-      <div style={{ marginTop: "auto", display: "flex", gap: 12, fontSize: sz.fontSm, color: varColor(C.muted) }}>
+      <div style={{ marginTop: "auto", display: "flex", gap: 12, fontSize: sz.fontSm, color: varColor(C.muted), flexWrap: "wrap" }}>
         <span>{nItens} {nItens === 1 ? "item" : "itens"}</span>
         <span>·</span>
         <span>{nProdutos} {nProdutos === 1 ? "produto" : "produtos"}</span>
+        {nSubgrupos > 0 && (
+          <>
+            <span>·</span>
+            <span>{nSubgrupos} {nSubgrupos === 1 ? "subgrupo" : "subgrupos"}</span>
+          </>
+        )}
       </div>
     </button>
   );
@@ -1434,10 +1447,85 @@ function SeletorProdutoComplemento({ sz, products, idsExcluir, onEscolher }) {
   );
 }
 
+// Menu de busca para anexar um grupo JÁ CRIADO como subgrupo (aninhamento
+// reciclável estilo iFood). Digita → lista os grupos candidatos (a lista já
+// vem sem ele mesmo, sem os já anexados e sem os que criariam ciclo) →
+// clica pra anexar. Mesmo padrão do seletor de produto: só buscar e tocar.
+function SeletorSubgrupo({ sz, candidatos, onEscolher }) {
+  const [termo, setTermo] = useState("");
+  const [aberto, setAberto] = useState(false);
+
+  const resultados = useMemo(() => {
+    const t = termo.trim().toLowerCase();
+    const base = Array.isArray(candidatos) ? candidatos : [];
+    if (!t) return base;
+    return base.filter((g) => String(g.nome || "").toLowerCase().includes(t));
+  }, [candidatos, termo]);
+
+  return (
+    <div style={{ position: "relative", maxWidth: 420 }}>
+      <LuSearch
+        size={15}
+        style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }}
+      />
+      <input
+        className="delivery-view__input"
+        style={{ ...inputStyle(sz), width: "100%", paddingLeft: 32 }}
+        value={termo}
+        onChange={(e) => { setTermo(e.target.value); setAberto(true); }}
+        onFocus={() => setAberto(true)}
+        onBlur={() => setTimeout(() => setAberto(false), 120)}
+        placeholder="Buscar grupo para anexar como subgrupo…"
+      />
+      {aberto && (
+        <div
+          style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20,
+            maxHeight: 240, overflowY: "auto",
+            background: varColor(C.card), border: `1px solid ${varColor(C.border)}`,
+            borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
+          }}
+        >
+          {resultados.length === 0 ? (
+            <div style={{ padding: "10px 12px", fontSize: sz.fontSm, color: varColor(C.muted) }}>
+              Nenhum grupo encontrado.
+            </div>
+          ) : (
+            resultados.map((g) => {
+              const nSub = (g.itens || []).length;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); onEscolher(g); setTermo(""); setAberto(false); }}
+                  className="delivery-view__btn"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, width: "100%",
+                    padding: "10px 12px", background: "transparent", border: "none",
+                    borderBottom: `1px solid ${alfa(C.border, "60")}`,
+                    fontSize: sz.fontBase, color: varColor(C.text), textAlign: "left",
+                    cursor: "pointer",
+                  }}
+                >
+                  <LuPlus size={13} style={{ color: varColor(C.accent), flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{g.nome}</span>
+                  <span style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+                    {nSub} {nSub === 1 ? "item" : "itens"}
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Menu de edição LIMPO de um grupo. Abre a partir de um card da grade
 // (GrupoCardMini). Header com "voltar" + nome; corpo com regras (mín/máx),
 // itens do grupo e a busca multi-seleção de "aparece nestes produtos".
-function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, recarregar, onVoltar, onRemovido }) {
+function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCardapio = [], aviso, recarregar, onVoltar, onRemovido }) {
   // ── Rascunho local — NADA persiste até "Salvar" ─────────────────────
   // Todo o editor é um rascunho: nome, mín/máx, itens e "aparece nestes
   // produtos" ficam só na memória. "Salvar" grava tudo de uma vez; "Voltar"
@@ -1449,6 +1537,8 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
   const [max, setMax] = useState(String(grupo.max_escolhas ?? 1));
   const [itens, setItens] = useState(() => (grupo.itens || []).map(mapItem));
   const [produtoIds, setProdutoIds] = useState(grupo.produtoIds ?? []);
+  // Subgrupos aninhados (estilo iFood): ids dos grupos-filho, em ordem.
+  const [subgrupoIds, setSubgrupoIds] = useState(() => (grupo.subgrupoIds ?? []).map(String));
   const [selecionadoProd, setSelecionadoProd] = useState(null);
   const [novoPreco, setNovoPreco] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -1464,6 +1554,7 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
     setMax(String(grupo.max_escolhas ?? 1));
     setItens((grupo.itens || []).map(mapItem));
     setProdutoIds(grupo.produtoIds ?? []);
+    setSubgrupoIds((grupo.subgrupoIds ?? []).map(String));
     setSelecionadoProd(null);
     setNovoPreco("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1476,16 +1567,23 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
     if ((Number(min) || 0) !== (Number(grupo.min_escolhas) || 0)) return true;
     if ((Number(max) || 1) !== (Number(grupo.max_escolhas) || 1)) return true;
     if (itens.some((i) => !i.id)) return true; // itens novos ainda não salvos
-    const idsOrig = (grupo.itens || []).map((i) => String(i.id)).sort();
-    const idsAtual = itens.filter((i) => i.id).map((i) => String(i.id)).sort();
+    // Ordem importa (reordenar arrastando também é alteração a salvar):
+    // compara os ids preservando a sequência, não como conjunto ordenado.
+    const idsOrig = (grupo.itens || []).map((i) => String(i.id));
+    const idsAtual = itens.filter((i) => i.id).map((i) => String(i.id));
     if (idsOrig.length !== idsAtual.length) return true;
     if (idsOrig.some((v, k) => v !== idsAtual[k])) return true;
     const pOrig = (grupo.produtoIds || []).map(String).sort();
     const pAtual = produtoIds.map(String).sort();
     if (pOrig.length !== pAtual.length) return true;
     if (pOrig.some((v, k) => v !== pAtual[k])) return true;
+    // Subgrupos: ordem também conta (arrastar reordena) → compara em sequência.
+    const sOrig = (grupo.subgrupoIds || []).map(String);
+    const sAtual = subgrupoIds.map(String);
+    if (sOrig.length !== sAtual.length) return true;
+    if (sOrig.some((v, k) => v !== sAtual[k])) return true;
     return false;
-  }, [nome, min, max, itens, produtoIds, grupo]);
+  }, [nome, min, max, itens, produtoIds, subgrupoIds, grupo]);
 
   // Marca/desmarca "aparece nestes produtos" — só no rascunho.
   const alternarProduto = (produtoId) => {
@@ -1523,6 +1621,58 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
     setItens((prev) => prev.filter((x) => (x.id ?? x._tempId) !== (item.id ?? item._tempId)));
   };
 
+  // Reordena os itens do rascunho pela nova ordem de ids (arrastar). Só
+  // muda a sequência local; persiste ao "Salvar".
+  const reordenarItens = (idsEmOrdem) => {
+    setItens((prev) => {
+      const chave = (x) => String(x.id ?? x._tempId);
+      const porId = new Map(prev.map((x) => [chave(x), x]));
+      return idsEmOrdem.map((id) => porId.get(String(id))).filter(Boolean);
+    });
+  };
+
+  // ── Subgrupos (grupos aninhados, recicláveis) ───────────────────────
+  // A biblioteca inteira, indexada por id, para resolver nome/resumo do
+  // subgrupo a partir do id guardado no rascunho.
+  const bibliotecaPorId = useMemo(() => {
+    const m = new Map();
+    for (const g of biblioteca || []) m.set(String(g.id), g);
+    return m;
+  }, [biblioteca]);
+
+  // Anexa um grupo existente como subgrupo (só rascunho). O seletor já
+  // exclui candidatos que criariam ciclo, mas revalidamos por garantia.
+  const addSubgrupo = (grupoFilho) => {
+    const fid = String(grupoFilho.id);
+    setSubgrupoIds((prev) => {
+      if (prev.includes(fid)) return prev;
+      if (subgrupoCriaCiclo(biblioteca, grupo.id, fid)) return prev;
+      return [...prev, fid];
+    });
+  };
+
+  const removerSubgrupo = (filhoId) => {
+    setSubgrupoIds((prev) => prev.filter((x) => x !== String(filhoId)));
+  };
+
+  const reordenarSubs = (idsEmOrdem) => {
+    setSubgrupoIds(idsEmOrdem.map(String));
+  };
+
+  // Candidatos a subgrupo: todo grupo da biblioteca menos ele mesmo, os
+  // já anexados e os que fechariam um ciclo (prevenção de erro > erro).
+  const candidatosSubgrupo = useMemo(
+    () =>
+      (biblioteca || []).filter((g) => {
+        const gid = String(g.id);
+        if (gid === String(grupo.id)) return false;
+        if (subgrupoIds.includes(gid)) return false;
+        if (subgrupoCriaCiclo(biblioteca, grupo.id, gid)) return false;
+        return true;
+      }),
+    [biblioteca, grupo.id, subgrupoIds]
+  );
+
   // Grava TUDO de uma vez: config do grupo, itens (novos/removidos) e vínculos.
   const salvar = async () => {
     if (salvando) return;
@@ -1535,20 +1685,20 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
     });
     if (g.error) { setSalvando(false); return aviso("Não foi possível salvar o grupo.", "err"); }
 
-    // 2) Itens: remove os tirados do rascunho, insere os novos.
+    // 2) Itens: remove os tirados, grava o resto NA ORDEM do rascunho.
+    // Percorrer `itens` em ordem e gravar ordem = índice persiste tanto os
+    // novos quanto a reordenação por arrasto (upsert atualiza os que já têm id).
     const idsAtuais = new Set(itens.filter((i) => i.id).map((i) => String(i.id)));
     const removidos = (grupo.itens || []).filter((o) => !idsAtuais.has(String(o.id)));
     for (const it of removidos) {
       const { error } = await removerComplemento(it.id);
       if (error) { setSalvando(false); return aviso("Não foi possível salvar os itens.", "err"); }
     }
-    const mantidos = itens.filter((i) => i.id).length;
-    const novos = itens.filter((i) => !i.id);
-    for (let k = 0; k < novos.length; k++) {
-      const it = novos[k];
+    for (let k = 0; k < itens.length; k++) {
+      const it = itens[k];
       const { error } = await salvarComplemento({
-        grupo_id: grupo.id, produto_id: it.produto_id, nome: it.nome,
-        preco: it.preco, disponivel: true, ordem: mantidos + k,
+        id: it.id, grupo_id: grupo.id, produto_id: it.produto_id, nome: it.nome,
+        preco: it.preco, disponivel: true, ordem: k,
       });
       if (error) { setSalvando(false); return aviso("Não foi possível salvar os itens.", "err"); }
     }
@@ -1563,6 +1713,25 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
     for (const pid of pOrig.filter((x) => !pAtual.includes(x))) {
       const { error } = await desvincularGrupoProduto(grupo.id, pid);
       if (error) { setSalvando(false); return aviso("Não foi possível salvar onde o grupo aparece.", "err"); }
+    }
+
+    // 4) Subgrupos aninhados: desanexa os tirados, anexa os novos e grava
+    // a ordem final (arrastar reordena). Diff por id, ordem = índice.
+    const sOrig = (grupo.subgrupoIds || []).map(String);
+    const sAtual = subgrupoIds.map(String);
+    for (const fid of sOrig.filter((x) => !sAtual.includes(x))) {
+      const { error } = await desvincularSubgrupo(grupo.id, fid);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar os subgrupos.", "err"); }
+    }
+    for (let k = 0; k < sAtual.length; k++) {
+      const { error } = await vincularSubgrupo(grupo.id, sAtual[k], k);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar os subgrupos.", "err"); }
+    }
+    // Reforça a ordem dos que já existiam (o upsert com ignoreDuplicates
+    // não atualiza a ordem de um vínculo pré-existente).
+    if (sAtual.length > 0) {
+      const { error } = await reordenarSubgrupos(grupo.id, sAtual);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar os subgrupos.", "err"); }
     }
 
     setSalvando(false);
@@ -1685,25 +1854,32 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
           : `Opcional — o cliente pode escolher ${Number(max) > 1 ? `até ${max}` : "1, se quiser"}`}
       </div>
 
-      {/* Itens do grupo */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
-        {itens.map((it) => (
-          <div key={it.id ?? it._tempId} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: varColor(C.surface) }}>
-            <span style={{ flex: 1, fontSize: sz.fontBase }}>{it.nome}</span>
-            <span style={{ fontSize: sz.fontSm, color: varColor(C.accent), fontWeight: 600 }}>
-              {Number(it.preco) > 0 ? `+ ${formatarReais(it.preco)}` : "Grátis"}
-            </span>
-            {isAdmin && (
-              <button
-                onClick={() => removerItem(it)}
-                className="delivery-view__modal-fechar"
-                style={{ color: varColor(C.muted) }}
-              >
-                <LuX size={14} />
-              </button>
-            )}
-          </div>
-        ))}
+      {/* Itens do grupo — arraste pela alça (⠿) para reordenar (cima/baixo).
+          A ordem aqui é a mesma que o cliente vê na vitrine. */}
+      <div style={{ marginTop: 10 }}>
+        <ListaArrastavel
+          itens={itens}
+          idDe={(it) => it.id ?? it._tempId}
+          onReordenar={reordenarItens}
+          renderItem={(it, { alca }) => (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: varColor(C.surface), marginBottom: 6 }}>
+              {isAdmin && <span {...alca}>⠿</span>}
+              <span style={{ flex: 1, fontSize: sz.fontBase }}>{it.nome}</span>
+              <span style={{ fontSize: sz.fontSm, color: varColor(C.accent), fontWeight: 600 }}>
+                {Number(it.preco) > 0 ? `+ ${formatarReais(it.preco)}` : "Grátis"}
+              </span>
+              {isAdmin && (
+                <button
+                  onClick={() => removerItem(it)}
+                  className="delivery-view__modal-fechar"
+                  style={{ color: varColor(C.muted) }}
+                >
+                  <LuX size={14} />
+                </button>
+              )}
+            </div>
+          )}
+        />
       </div>
 
       {isAdmin && (
@@ -1737,6 +1913,65 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
               idsExcluir={idsNoGrupo}
               onEscolher={escolherProduto}
             />
+          )}
+        </div>
+      )}
+
+      {/* Subgrupos aninhados (estilo iFood): anexa OUTROS grupos da
+          biblioteca dentro deste. Cada subgrupo continua reutilizável
+          sozinho — aqui só se reaproveita. Arraste pela alça pra ordenar. */}
+      {isAdmin && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${alfa(C.border, "60")}` }}>
+          <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.text), marginBottom: 2 }}>
+            <LuClipboardList size={12} style={{ verticalAlign: "-2px", marginRight: 4 }} /> Subgrupos deste grupo
+          </div>
+          <div style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted), marginBottom: 8 }}>
+            Reaproveite grupos já criados aqui dentro. Cada subgrupo mantém suas próprias
+            regras (obrigatório/opcional) e continua disponível sozinho em outros produtos.
+          </div>
+
+          {subgrupoIds.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <ListaArrastavel
+                itens={subgrupoIds}
+                idDe={(id) => id}
+                onReordenar={reordenarSubs}
+                renderItem={(id, { alca }) => {
+                  const sub = bibliotecaPorId.get(String(id));
+                  const nSub = (sub?.itens || []).length;
+                  const obrig = Number(sub?.min_escolhas) > 0;
+                  return (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: varColor(C.surface), marginBottom: 6 }}>
+                      <span {...alca}>⠿</span>
+                      <span style={{ flex: 1, fontSize: sz.fontBase, fontWeight: 600, color: varColor(C.text) }}>
+                        {sub?.nome || "(grupo removido)"}
+                      </span>
+                      <span style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted) }}>
+                        {obrig ? "Obrigatório" : "Opcional"} · {nSub} {nSub === 1 ? "item" : "itens"}
+                      </span>
+                      <button
+                        onClick={() => removerSubgrupo(id)}
+                        className="delivery-view__modal-fechar"
+                        title="Remover subgrupo (não apaga o grupo)"
+                        style={{ color: varColor(C.muted) }}
+                      >
+                        <LuX size={14} />
+                      </button>
+                    </div>
+                  );
+                }}
+              />
+            </div>
+          )}
+
+          {candidatosSubgrupo.length > 0 ? (
+            <SeletorSubgrupo sz={sz} candidatos={candidatosSubgrupo} onEscolher={addSubgrupo} />
+          ) : (
+            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+              {biblioteca.length <= 1
+                ? "Crie outros grupos na biblioteca para reaproveitá-los aqui como subgrupos."
+                : "Nenhum outro grupo disponível para anexar aqui."}
+            </div>
           )}
         </div>
       )}

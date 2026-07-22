@@ -263,6 +263,45 @@ export function temFaixasKm(faixas) {
   return (Array.isArray(faixas) ? faixas : []).some((f) => f?.tipo === "km");
 }
 
+// ── Subgrupos aninhados (reciclagem estilo iFood) ───────────────────
+
+/**
+ * Aninhar `filhoId` sob `paiId` criaria um ciclo? Um ciclo trava a
+ * recursão (grupo que contém a si mesmo, direta ou indiretamente). A regra
+ * do banco (CHECK grupo_pai_id <> grupo_filho_id) barra só o auto-vínculo
+ * direto; aqui barramos também o INDIRETO na UI, antes de gravar
+ * (prevenção de erro > mensagem de erro, Princípio nº 1).
+ *
+ * Cria ciclo quando pai === filho OU quando o PAI já é alcançável a partir
+ * do FILHO (o filho já tem o pai na sua própria subárvore) — anexar o filho
+ * fecharia o laço.
+ *
+ * @param {Array<{id:string, subgrupoIds?:string[]}>} grupos - biblioteca
+ * @param {string} paiId - grupo que receberá o subgrupo
+ * @param {string} filhoId - grupo a anexar como subgrupo
+ * @returns {boolean}
+ */
+export function subgrupoCriaCiclo(grupos, paiId, filhoId) {
+  if (paiId == null || filhoId == null) return false;
+  if (String(paiId) === String(filhoId)) return true;
+  const porId = new Map(
+    (Array.isArray(grupos) ? grupos : []).map((g) => [String(g?.id), g])
+  );
+  // BFS a partir do filho: se alcançarmos o pai, anexar fecharia o ciclo.
+  const alvo = String(paiId);
+  const vistos = new Set();
+  const fila = [String(filhoId)];
+  while (fila.length > 0) {
+    const atual = fila.shift();
+    if (atual === alvo) return true;
+    if (vistos.has(atual)) continue;
+    vistos.add(atual);
+    const g = porId.get(atual);
+    for (const sub of g?.subgrupoIds ?? []) fila.push(String(sub));
+  }
+  return false;
+}
+
 // ── auxiliares puras internas ──────────────────────────────────────
 
 function soDigitos(bruto, max) {
@@ -419,23 +458,34 @@ export async function listarBibliotecaGrupos() {
   const ids = (grupos ?? []).map((g) => g.id);
   let complementos = [];
   let vinculos = [];
+  let aninhamentos = [];
   if (ids.length > 0) {
-    const [{ data: comps, error: eComps }, { data: links, error: eLinks }] =
-      await Promise.all([
-        supabase
-          .from("complementos")
-          .select("id, grupo_id, produto_id, nome, preco, disponivel, ordem")
-          .in("grupo_id", ids)
-          .order("ordem", { ascending: true }),
-        supabase
-          .from("produto_grupos")
-          .select("grupo_id, produto_id, ordem")
-          .in("grupo_id", ids),
-      ]);
+    const [
+      { data: comps, error: eComps },
+      { data: links, error: eLinks },
+      { data: subs, error: eSubs },
+    ] = await Promise.all([
+      supabase
+        .from("complementos")
+        .select("id, grupo_id, produto_id, nome, preco, disponivel, ordem")
+        .in("grupo_id", ids)
+        .order("ordem", { ascending: true }),
+      supabase
+        .from("produto_grupos")
+        .select("grupo_id, produto_id, ordem")
+        .in("grupo_id", ids),
+      supabase
+        .from("grupo_subgrupos")
+        .select("grupo_pai_id, grupo_filho_id, ordem")
+        .in("grupo_pai_id", ids)
+        .order("ordem", { ascending: true }),
+    ]);
     if (eComps) return { data: [], error: eComps };
     if (eLinks) return { data: [], error: eLinks };
+    if (eSubs) return { data: [], error: eSubs };
     complementos = comps ?? [];
     vinculos = links ?? [];
+    aninhamentos = subs ?? [];
   }
 
   const porGrupo = (grupos ?? []).map((g) => ({
@@ -444,6 +494,10 @@ export async function listarBibliotecaGrupos() {
     produtoIds: vinculos
       .filter((v) => v.grupo_id === g.id)
       .map((v) => v.produto_id),
+    // Ids dos subgrupos filhos, já em ordem (para render/reordenação).
+    subgrupoIds: aninhamentos
+      .filter((s) => s.grupo_pai_id === g.id)
+      .map((s) => s.grupo_filho_id),
   }));
   return { data: porGrupo, error: null };
 }
@@ -467,6 +521,89 @@ export async function desvincularGrupoProduto(grupoId, produtoId) {
     .eq("grupo_id", grupoId)
     .eq("produto_id", produtoId);
   return { error };
+}
+
+// ── grupo_subgrupos (aninhamento reciclável estilo iFood) ───────────
+
+/**
+ * Aninha um grupo existente (filho) sob outro (pai). Idempotente
+ * (onConflict ignora duplicado). O CHECK do banco barra auto-vínculo
+ * direto; a UI já barra ciclos indiretos via subgrupoCriaCiclo antes.
+ * @param {string} paiId
+ * @param {string} filhoId
+ * @param {number} [ordem]
+ */
+export async function vincularSubgrupo(paiId, filhoId, ordem = 0) {
+  const { error } = await supabase
+    .from("grupo_subgrupos")
+    .upsert(
+      { grupo_pai_id: paiId, grupo_filho_id: filhoId, ordem: Number(ordem) || 0 },
+      { onConflict: "grupo_pai_id,grupo_filho_id", ignoreDuplicates: true }
+    );
+  return { error };
+}
+
+/** Desfaz o aninhamento (não apaga o grupo filho — ele continua na biblioteca). */
+export async function desvincularSubgrupo(paiId, filhoId) {
+  const { error } = await supabase
+    .from("grupo_subgrupos")
+    .delete()
+    .eq("grupo_pai_id", paiId)
+    .eq("grupo_filho_id", filhoId);
+  return { error };
+}
+
+/**
+ * Persiste a ORDEM dos subgrupos de um pai (após arrastar pra cima/baixo).
+ * Recebe os ids filhos já na ordem desejada e grava ordem = índice.
+ * @param {string} paiId
+ * @param {string[]} filhoIdsEmOrdem
+ */
+export async function reordenarSubgrupos(paiId, filhoIdsEmOrdem) {
+  const lista = Array.isArray(filhoIdsEmOrdem) ? filhoIdsEmOrdem : [];
+  for (let i = 0; i < lista.length; i++) {
+    const { error } = await supabase
+      .from("grupo_subgrupos")
+      .update({ ordem: i })
+      .eq("grupo_pai_id", paiId)
+      .eq("grupo_filho_id", lista[i]);
+    if (error) return { error };
+  }
+  return { error: null };
+}
+
+/**
+ * Persiste a ORDEM dos itens (complementos) de um grupo após reordenar
+ * arrastando. Recebe os ids na ordem desejada; grava ordem = índice.
+ * @param {string[]} complementoIdsEmOrdem
+ */
+export async function reordenarComplementos(complementoIdsEmOrdem) {
+  const lista = Array.isArray(complementoIdsEmOrdem) ? complementoIdsEmOrdem : [];
+  for (let i = 0; i < lista.length; i++) {
+    const { error } = await supabase
+      .from("complementos")
+      .update({ ordem: i })
+      .eq("id", lista[i]);
+    if (error) return { error };
+  }
+  return { error: null };
+}
+
+/**
+ * Persiste a ORDEM dos grupos da biblioteca após reordenar arrastando.
+ * Recebe os ids na ordem desejada; grava ordem = índice.
+ * @param {string[]} grupoIdsEmOrdem
+ */
+export async function reordenarGrupos(grupoIdsEmOrdem) {
+  const lista = Array.isArray(grupoIdsEmOrdem) ? grupoIdsEmOrdem : [];
+  for (let i = 0; i < lista.length; i++) {
+    const { error } = await supabase
+      .from("grupos_complemento")
+      .update({ ordem: i })
+      .eq("id", lista[i]);
+    if (error) return { error };
+  }
+  return { error: null };
 }
 
 /** Grupos de complemento de um produto, com seus itens. */

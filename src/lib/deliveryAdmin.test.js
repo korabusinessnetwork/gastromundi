@@ -22,6 +22,7 @@ import {
   distanciaKm,
   selecionarFaixaKm,
   temFaixasKm,
+  subgrupoCriaCiclo,
 } from "./deliveryAdmin";
 
 describe("produtosParaImportar", () => {
@@ -388,5 +389,42 @@ describe("alternarProdutoId", () => {
   it("trata entrada não-array como lista vazia", () => {
     expect(alternarProdutoId(undefined, 5)).toEqual([5]);
     expect(alternarProdutoId(null, 5)).toEqual([5]);
+  });
+});
+
+describe("subgrupoCriaCiclo (barra aninhamento que fecharia laço)", () => {
+  // Biblioteca: a → b → c (a contém b, b contém c).
+  const biblioteca = [
+    { id: "a", subgrupoIds: ["b"] },
+    { id: "b", subgrupoIds: ["c"] },
+    { id: "c", subgrupoIds: [] },
+  ];
+
+  it("auto-vínculo direto (pai === filho) cria ciclo", () => {
+    expect(subgrupoCriaCiclo(biblioteca, "a", "a")).toBe(true);
+  });
+
+  it("ciclo indireto: anexar 'a' dentro de 'c' fecharia a→b→c→a", () => {
+    expect(subgrupoCriaCiclo(biblioteca, "c", "a")).toBe(true);
+  });
+
+  it("anexar um grupo folha ('c') em outro ('a') não cria ciclo", () => {
+    expect(subgrupoCriaCiclo(biblioteca, "a", "c")).toBe(false);
+  });
+
+  it("grupos independentes não criam ciclo", () => {
+    const solta = [{ id: "x", subgrupoIds: [] }, { id: "y", subgrupoIds: [] }];
+    expect(subgrupoCriaCiclo(solta, "x", "y")).toBe(false);
+  });
+
+  it("ids ausentes ou nulos não quebram nem acusam ciclo", () => {
+    expect(subgrupoCriaCiclo(biblioteca, null, "a")).toBe(false);
+    expect(subgrupoCriaCiclo(biblioteca, "a", null)).toBe(false);
+    expect(subgrupoCriaCiclo([], "a", "b")).toBe(false);
+  });
+
+  it("compara por String (uuid do banco em tipos mistos)", () => {
+    const b = [{ id: 1, subgrupoIds: [2] }, { id: 2, subgrupoIds: [] }];
+    expect(subgrupoCriaCiclo(b, "2", "1")).toBe(true);
   });
 });

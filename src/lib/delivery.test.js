@@ -19,6 +19,8 @@ import {
   totalItens,
   calcularTroco,
   grupoSatisfeito,
+  achatarGrupos,
+  grupoArvoreSatisfeita,
   produtoPodeAdicionar,
   rotuloRegraGrupo,
   primeiroGrupoPendente,
@@ -136,6 +138,64 @@ describe("produtoPodeAdicionar", () => {
   it("produto sem grupos sempre pode ser adicionado", () => {
     expect(produtoPodeAdicionar({ grupos: [] }, {})).toBe(true);
     expect(produtoPodeAdicionar({}, {})).toBe(true);
+  });
+});
+
+describe("achatarGrupos (raiz → subgrupos, pré-ordem)", () => {
+  const grupos = [
+    {
+      id: "raiz",
+      subgrupos: [
+        { id: "s1", subgrupos: [{ id: "s1a" }] },
+        { id: "s2" },
+      ],
+    },
+    { id: "outro" },
+  ];
+  it("visita raiz antes dos filhos e desce recursivo", () => {
+    expect(achatarGrupos(grupos).map((g) => g.id)).toEqual([
+      "raiz", "s1", "s1a", "s2", "outro",
+    ]);
+  });
+  it("lista vazia ou sem subgrupos não quebra", () => {
+    expect(achatarGrupos([])).toEqual([]);
+    expect(achatarGrupos([{ id: "x" }]).map((g) => g.id)).toEqual(["x"]);
+  });
+});
+
+describe("grupoArvoreSatisfeita (min/max próprio E de todos os subgrupos)", () => {
+  const arvore = {
+    id: "raiz", min: 1, max: 1,
+    subgrupos: [{ id: "sub", min: 1, max: 1 }],
+  };
+  it("false quando o próprio grupo não foi satisfeito", () => {
+    expect(grupoArvoreSatisfeita(arvore, { sub: ["a"] })).toBe(false);
+  });
+  it("false quando um subgrupo obrigatório não foi satisfeito", () => {
+    expect(grupoArvoreSatisfeita(arvore, { raiz: ["x"] })).toBe(false);
+  });
+  it("true quando raiz e subgrupo estão satisfeitos", () => {
+    expect(grupoArvoreSatisfeita(arvore, { raiz: ["x"], sub: ["a"] })).toBe(true);
+  });
+});
+
+describe("produtoPodeAdicionar / primeiroGrupoPendente com subgrupos aninhados", () => {
+  const produto = {
+    grupos: [
+      {
+        id: "g1", min: 1, max: 1,
+        subgrupos: [{ id: "g1sub", min: 1, max: 2 }],
+      },
+    ],
+  };
+  it("obrigatório de um subgrupo bloqueia mesmo com a raiz satisfeita", () => {
+    expect(produtoPodeAdicionar(produto, { g1: ["a"] })).toBe(false);
+  });
+  it("libera quando raiz e subgrupo estão satisfeitos", () => {
+    expect(produtoPodeAdicionar(produto, { g1: ["a"], g1sub: ["b"] })).toBe(true);
+  });
+  it("primeiroGrupoPendente aponta o subgrupo aninhado ainda pendente", () => {
+    expect(primeiroGrupoPendente(produto, { g1: ["a"] })).toBe("g1sub");
   });
 });
 

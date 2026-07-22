@@ -1,0 +1,47 @@
+/* ──────────────────────────────────────────────────────────────────
+   ListaArrastavel — reordenar segurando e arrastando (touch + mouse).
+   A alça (⠿) é o único ponto de arrasto; o resto da linha segue clicável.
+   touch-action: none na alça impede o scroll da página roubar o gesto.
+   ────────────────────────────────────────────────────────────────── */
+.lista-arrastavel {
+  display: flex;
+  flex-direction: column;
+}
+
+.arrastar-linha {
+  transition: box-shadow 0.15s ease, opacity 0.15s ease, transform 0.05s ease;
+}
+/* Linha sendo arrastada: destaca e "levanta" para dar feedback imediato. */
+.arrastar-linha--ativa {
+  opacity: 0.9;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  border-radius: 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.arrastar-alca {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--gm-muted, #8a8a8a);
+  font-size: 18px;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none; /* o gesto é do arrasto, não do scroll */
+  user-select: none;
+  border-radius: 8px;
+}
+.arrastar-alca:hover {
+  background: var(--gm-surface, rgba(255, 255, 255, 0.06));
+  color: var(--gm-text, #eee);
+}
+.arrastar-alca:active {
+  cursor: grabbing;
+}

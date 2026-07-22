@@ -103,15 +103,53 @@ export function grupoSatisfeito(grupo, qtdEscolhida) {
 }
 
 /**
- * O produto pode ir pra sacola? Todos os grupos precisam estar satisfeitos.
+ * Achata a árvore de grupos (raiz → subgrupos → ...) numa lista plana, em
+ * ordem de exibição (pré-ordem/DFS). Cada subgrupo é um grupo NORMAL com id
+ * único, então achatar preserva o espaço de seleção plano (grupoId → ids).
+ * Usada para varrer TODOS os grupos independentemente da profundidade
+ * (validação, soma de complementos, condução ao pendente).
+ * @param {Array} grupos
+ * @returns {Array} todos os grupos da árvore, em pré-ordem
+ */
+export function achatarGrupos(grupos) {
+  const saida = [];
+  const visitar = (lista) => {
+    for (const g of lista ?? []) {
+      if (!g) continue;
+      saida.push(g);
+      if (g.subgrupos?.length) visitar(g.subgrupos);
+    }
+  };
+  visitar(grupos);
+  return saida;
+}
+
+/**
+ * Uma árvore de grupo está satisfeita quando o PRÓPRIO grupo respeita seu
+ * min/max E todos os subgrupos (recursivamente) também estão satisfeitos.
+ * Cada grupo é chaveado pelo próprio id no mapa plano de seleções.
+ * @param {{id: string, subgrupos?: Array}} grupo
+ * @param {Record<string, string[]>} selecoesPorGrupo
+ * @returns {boolean}
+ */
+export function grupoArvoreSatisfeita(grupo, selecoesPorGrupo) {
+  if (!grupo) return true;
+  const proprio = grupoSatisfeito(grupo, (selecoesPorGrupo?.[grupo.id] ?? []).length);
+  if (!proprio) return false;
+  return (grupo.subgrupos ?? []).every((sub) =>
+    grupoArvoreSatisfeita(sub, selecoesPorGrupo)
+  );
+}
+
+/**
+ * O produto pode ir pra sacola? Toda a árvore de grupos (raiz + subgrupos,
+ * em qualquer profundidade) precisa estar satisfeita.
  * @param {{grupos?: Array}} produto
  * @param {Record<string, string[]>} selecoesPorGrupo - grupoId → ids escolhidos
  */
 export function produtoPodeAdicionar(produto, selecoesPorGrupo) {
   const grupos = produto?.grupos ?? [];
-  return grupos.every((g) =>
-    grupoSatisfeito(g, (selecoesPorGrupo?.[g.id] ?? []).length)
-  );
+  return grupos.every((g) => grupoArvoreSatisfeita(g, selecoesPorGrupo));
 }
 
 /**
@@ -141,8 +179,10 @@ export function rotuloRegraGrupo(grupo) {
  * @returns {string|null} id do grupo pendente, ou null se tudo satisfeito
  */
 export function primeiroGrupoPendente(produto, selecoesPorGrupo) {
-  const grupos = produto?.grupos ?? [];
-  for (const g of grupos) {
+  // Caminhada DFS em pré-ordem: mesma ordem em que os grupos aparecem na
+  // tela, então rolamos para o PRIMEIRO campo que falta (pai antes dos
+  // filhos), incluindo subgrupos em qualquer profundidade.
+  for (const g of achatarGrupos(produto?.grupos ?? [])) {
     const qtd = (selecoesPorGrupo?.[g.id] ?? []).length;
     if (!grupoSatisfeito(g, qtd)) return g.id;
   }

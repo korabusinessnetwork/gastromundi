@@ -18,7 +18,82 @@ import {
   produtoPodeAdicionar,
   rotuloRegraGrupo,
   primeiroGrupoPendente,
+  achatarGrupos,
 } from "@/lib/delivery";
+
+// ──────────────────────────────────────────────────────────────────
+// GrupoBloco — renderiza UM grupo (cabeçalho + opções) e, recursivamente,
+// os subgrupos aninhados abaixo dele (estilo iFood). Cada subgrupo é um
+// grupo normal com id próprio, então a seleção continua um mapa plano
+// (selecoes[grupo.id]); o aninhamento só muda o DESENHO (indentação) e a
+// caminhada de validação. Intuitivo: o cliente vê "grupo > subgrupos"
+// como uma lista recuada, sem precisar entender que é reciclável.
+// ──────────────────────────────────────────────────────────────────
+function GrupoBloco({ grupo, nivel, selecoes, destaque, onAlternar, registrarRef }) {
+  const ids = selecoes[grupo.id] ?? [];
+  const obrigatorio = Number(grupo.min) > 0;
+  const escolhaUnica = Number(grupo.max) === 1;
+  const ok = grupoSatisfeito(grupo, ids.length);
+  const pendente = destaque === grupo.id;
+  const subgrupos = grupo.subgrupos ?? [];
+
+  return (
+    <div
+      className={
+        `grupo${nivel > 0 ? " grupo--sub" : ""}${pendente ? " grupo--pendente" : ""}`
+      }
+      ref={(node) => registrarRef(grupo.id, node)}
+    >
+      <div className="grupo__cabecalho">
+        <h3 className="grupo__nome">{grupo.nome}</h3>
+        <span
+          className={
+            "grupo__regra" +
+            (obrigatorio && ok ? " grupo__regra--ok" : "") +
+            (obrigatorio && !ok ? " grupo__regra--obrig" : "")
+          }
+        >
+          {obrigatorio && ok ? "✓ pronto" : rotuloRegraGrupo(grupo)}
+        </span>
+      </div>
+      {(grupo.itens ?? []).map((c) => {
+        const ativa = ids.includes(c.id);
+        return (
+          <button
+            type="button"
+            className={`opcao${ativa ? " opcao--ativa" : ""}`}
+            key={c.id}
+            onClick={() => onAlternar(grupo, c)}
+            aria-pressed={ativa}
+          >
+            <span className={`opcao__marca${escolhaUnica ? " opcao__marca--radio" : ""}`}>
+              {ativa ? "✓" : ""}
+            </span>
+            <span className="opcao__nome">{c.nome}</span>
+            {Number(c.preco) > 0 && (
+              <span className="opcao__preco">+ {formatarPreco(c.preco)}</span>
+            )}
+          </button>
+        );
+      })}
+      {subgrupos.length > 0 && (
+        <div className="grupo__subgrupos">
+          {subgrupos.map((sub) => (
+            <GrupoBloco
+              key={sub.id}
+              grupo={sub}
+              nivel={nivel + 1}
+              selecoes={selecoes}
+              destaque={destaque}
+              onAlternar={onAlternar}
+              registrarRef={registrarRef}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ProdutoModal({ produto, onFechar, onAdicionar }) {
   // selecoesPorGrupo: grupoId → [complementoId]
@@ -51,9 +126,10 @@ export default function ProdutoModal({ produto, onFechar, onAdicionar }) {
   }
 
   // Complementos escolhidos (com preço) — para exibir e montar o item.
+  // Achata a árvore (raiz + subgrupos) para não perder escolhas aninhadas.
   const complementosEscolhidos = useMemo(() => {
     const escolhidos = [];
-    for (const g of grupos) {
+    for (const g of achatarGrupos(grupos)) {
       const ids = selecoes[g.id] ?? [];
       for (const c of g.itens ?? []) {
         if (ids.includes(c.id)) escolhidos.push({ id: c.id, nome: c.nome, preco: c.preco });
@@ -118,57 +194,19 @@ export default function ProdutoModal({ produto, onFechar, onAdicionar }) {
             {produto?.descricao && <p className="produto-hero__desc">{produto.descricao}</p>}
           </div>
 
-          {grupos.map((g) => {
-            const ids = selecoes[g.id] ?? [];
-            const obrigatorio = Number(g.min) > 0;
-            const escolhaUnica = Number(g.max) === 1;
-            const ok = grupoSatisfeito(g, ids.length);
-            const pendente = destaque === g.id;
-            return (
-              <div
-                className={`grupo${pendente ? " grupo--pendente" : ""}`}
-                key={g.id}
-                ref={(node) => {
-                  gruposRef.current[g.id] = node;
-                }}
-              >
-                <div className="grupo__cabecalho">
-                  <h3 className="grupo__nome">{g.nome}</h3>
-                  <span
-                    className={
-                      "grupo__regra" +
-                      (obrigatorio && ok ? " grupo__regra--ok" : "") +
-                      (obrigatorio && !ok ? " grupo__regra--obrig" : "")
-                    }
-                  >
-                    {obrigatorio && ok ? "✓ pronto" : rotuloRegraGrupo(g)}
-                  </span>
-                </div>
-                {(g.itens ?? []).map((c) => {
-                  const ativa = ids.includes(c.id);
-                  return (
-                    <button
-                      type="button"
-                      className={`opcao${ativa ? " opcao--ativa" : ""}`}
-                      key={c.id}
-                      onClick={() => alternar(g, c)}
-                      aria-pressed={ativa}
-                    >
-                      <span
-                        className={`opcao__marca${escolhaUnica ? " opcao__marca--radio" : ""}`}
-                      >
-                        {ativa ? "✓" : ""}
-                      </span>
-                      <span className="opcao__nome">{c.nome}</span>
-                      {Number(c.preco) > 0 && (
-                        <span className="opcao__preco">+ {formatarPreco(c.preco)}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })}
+          {grupos.map((g) => (
+            <GrupoBloco
+              key={g.id}
+              grupo={g}
+              nivel={0}
+              selecoes={selecoes}
+              destaque={destaque}
+              onAlternar={alternar}
+              registrarRef={(id, node) => {
+                gruposRef.current[id] = node;
+              }}
+            />
+          ))}
 
           {/* Observação colapsável — só ocupa espaço quando o cliente quer */}
           {mostrarObs || obs ? (
