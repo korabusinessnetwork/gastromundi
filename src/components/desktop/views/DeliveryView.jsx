@@ -1598,6 +1598,7 @@ function GrupoEditor({ sz, isAdmin, grupo, products, itensCardapio = [], aviso, 
           <LuArrowLeft size={15} /> Voltar
         </button>
         <span style={{ flex: 1, fontSize: sz.fontBase + 2, fontWeight: 700, color: varColor(C.text) }}>
+          <span style={{ fontWeight: 600, color: varColor(C.muted) }}>nome: </span>
           {nome || grupo.nome}
         </span>
         {isAdmin && (
