@@ -45,6 +45,11 @@ const PREFIXO_JPEG = "data:image/jpeg;base64,";
 // páginas enormes (pressão de memória na função + tokens desperdiçados no
 // Gemini). ~5 MB de base64 por página. base64 ≈ 4/3 do binário → ~3,7 MB reais.
 const MAX_BYTES_IMG = 5 * 1024 * 1024;
+// Teto DIÁRIO de leituras por IA por tenant (M1 — rate-limit grátis).
+// Cardápio real é importado poucas vezes; 50/dia é folgado para o uso
+// legítimo e barra o abuso que estoura a cota grátis compartilhada do
+// Gemini (noisy neighbor). Ajustável por env sem redeploy de código.
+const IA_LIMITE_DIARIO = Number(Deno.env.get("IA_LIMITE_DIARIO") ?? "50");
 
 /**
  * Traduz a falha do Gemini numa CAUSA clara para o dono — sem nunca expor a
@@ -146,7 +151,28 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── 3. Chama o Gemini (visão) ───────────────────────────────────
+    // ── 3. Rate-limit diário por tenant (M1) ────────────────────────
+    // Conta 1 uso ANTES de gastar cota no Gemini. O tenant vem do JWT
+    // dentro da RPC (nunca do cliente). Fail-open: se a RPC ainda não
+    // existir (migration não aplicada) ou falhar, seguimos sem o teto —
+    // um atraso de migration não pode derrubar a leitura de cardápio.
+    const { data: uso, error: usoErr } = await supabaseClient.rpc(
+      "registrar_uso_ia",
+      { p_limite: IA_LIMITE_DIARIO },
+    );
+    if (!usoErr) {
+      const linha = Array.isArray(uso) ? uso[0] : uso;
+      if (linha?.excedeu) {
+        return json({
+          erro: "Você atingiu o limite de leituras por IA de hoje.",
+          dica: `São até ${IA_LIMITE_DIARIO} leituras por dia. Tente amanhã ou importe por planilha/CSV.`,
+        }, 429);
+      }
+    } else {
+      console.error("registrar_uso_ia indisponível (seguindo sem teto):", usoErr.message);
+    }
+
+    // ── 4. Chama o Gemini (visão) ───────────────────────────────────
     const apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) return json({ erro: "GEMINI_API_KEY não configurada no Supabase." }, 500);
 
