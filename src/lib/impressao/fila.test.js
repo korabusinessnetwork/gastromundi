@@ -188,3 +188,108 @@ describe("processarFilaImpressao", () => {
     expect(imprimir).not.toHaveBeenCalled();
   });
 });
+
+describe("recuperarTrabalhosPresos", () => {
+  // Helpers de leitura da trilha de chamadas do mock.
+  const chamadas = (method) =>
+    mockSupabase.current.calls.filter((c) => c.table === TABELA && c.method === method);
+  const indiceDoEq = (campo, valor) =>
+    mockSupabase.current.calls.findIndex(
+      (c) => c.method === "eq" && c.args?.[0] === campo && c.args?.[1] === valor
+    );
+
+  it("sem locais (sem cache) → no-op e nem consulta o banco", async () => {
+    const res = await fila.recuperarTrabalhosPresos();
+    expect(res).toEqual({ recuperados: 0, error: null });
+    expect(mockSupabase.current.calls.length).toBe(0);
+  });
+
+  it("trabalho preso com tentativas baixas → volta para 'pendente' com tentativas+1", async () => {
+    gravarBindings("estacao-1", { cozinha: { nome: "Epson Cozinha" } });
+    mockSupabase.current.setTableResult(TABELA, {
+      data: [{ id: "job-preso", tentativas: 0 }],
+      error: null,
+    });
+
+    const res = await fila.recuperarTrabalhosPresos();
+    expect(res).toEqual({ recuperados: 1, error: null });
+
+    const update = chamadas("update")[0].args[0];
+    expect(update.status).toBe(fila.STATUS.PENDENTE);
+    expect(update.tentativas).toBe(1);
+    expect(update.erro).toContain("preso em processando");
+  });
+
+  it("preso na última tentativa → vira 'erro' definitivo em vez de reciclar para sempre", async () => {
+    gravarBindings("estacao-1", { cozinha: { nome: "Epson Cozinha" } });
+    mockSupabase.current.setTableResult(TABELA, {
+      data: [{ id: "job-veneno", tentativas: fila.MAX_TENTATIVAS - 1 }],
+      error: null,
+    });
+
+    const res = await fila.recuperarTrabalhosPresos();
+    expect(res).toEqual({ recuperados: 1, error: null });
+
+    const update = chamadas("update")[0].args[0];
+    expect(update.status).toBe(fila.STATUS.ERRO);
+    expect(update.tentativas).toBe(fila.MAX_TENTATIVAS);
+  });
+
+  it("só recicla o que passou do timeout — o corte é now() - timeoutMs", async () => {
+    gravarBindings("estacao-1", { cozinha: { nome: "Epson Cozinha" } });
+    const timeoutMs = 60_000;
+
+    const antes = Date.now();
+    await fila.recuperarTrabalhosPresos({ timeoutMs });
+    const depois = Date.now();
+
+    const lt = mockSupabase.current.calls.find((c) => c.method === "lt");
+    expect(lt.args[0]).toBe("atualizado_em");
+    const corte = Date.parse(lt.args[1]);
+    expect(corte).toBeGreaterThanOrEqual(antes - timeoutMs);
+    expect(corte).toBeLessThanOrEqual(depois - timeoutMs);
+  });
+
+  it("o update é guardado por status='processando' (não sobrescreve quem concluiu)", async () => {
+    gravarBindings("estacao-1", { cozinha: { nome: "Epson Cozinha" } });
+    mockSupabase.current.setTableResult(TABELA, {
+      data: [{ id: "job-preso", tentativas: 0 }],
+      error: null,
+    });
+
+    await fila.recuperarTrabalhosPresos();
+
+    const eqs = mockSupabase.current.calls.filter((c) => c.method === "eq");
+    expect(eqs).toContainEqual(
+      expect.objectContaining({ args: ["status", fila.STATUS.PROCESSANDO] })
+    );
+    expect(eqs).toContainEqual(expect.objectContaining({ args: ["id", "job-preso"] }));
+  });
+
+  it("erro do Supabase → { recuperados: 0, error } sem lançar", async () => {
+    gravarBindings("estacao-1", { cozinha: { nome: "Epson Cozinha" } });
+    mockSupabase.current.setTableError(TABELA, { message: "offline" });
+
+    const res = await fila.recuperarTrabalhosPresos();
+    expect(res).toEqual({ recuperados: 0, error: { message: "offline" } });
+  });
+
+  it("processarFilaImpressao recicla os presos ANTES de buscar trabalho novo", async () => {
+    definirEstacaoAtual("estacao-1");
+    gravarBindings("estacao-1", { cozinha: { nome: "Epson Cozinha" } });
+    mockSupabase.current.setTableResult(TABELA, {
+      data: [{ id: "job-1", local_impressao_id: "cozinha", documento: {}, tentativas: 0 }],
+      error: null,
+    });
+
+    await fila.processarFilaImpressao({
+      imprimir: vi.fn(async () => ({ error: null })),
+      resolverPerfil: vi.fn(() => ({})),
+    });
+
+    const iProcessando = indiceDoEq("status", fila.STATUS.PROCESSANDO);
+    const iPendente = indiceDoEq("status", fila.STATUS.PENDENTE);
+    expect(iProcessando).toBeGreaterThanOrEqual(0);
+    expect(iProcessando).toBeLessThan(iPendente);
+  });
+});
