@@ -63,3 +63,19 @@ export function resolverPerfilDoLocal(localId, configImpressao) {
   }
   return perfilGlobal;
 }
+
+/**
+ * ESTA máquina consegue imprimir o local `localId`? Ou seja: há um vínculo
+ * local→impressora para ele no cache da estação atual (ou no mapa legado).
+ *
+ * É o critério que o despacho (Fase 3) usa para decidir entre imprimir AGORA
+ * (vinculado aqui) ou mandar pra fila de impressão em rede (dono é outro PC).
+ * Mesma fonte que `resolverPerfilDoLocal`, para as duas nunca discordarem.
+ * Pura/síncrona; nunca lança.
+ *
+ * @param {string} localId
+ * @returns {boolean}
+ */
+export function localVinculadoNestaMaquina(localId) {
+  return Boolean(lerVinculoImpressoras()[localId]?.nome);
+}

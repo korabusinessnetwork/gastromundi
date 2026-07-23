@@ -2,7 +2,8 @@ import { supabase } from "../supabase";
 import { buscarConfigImpressao, montarViaProducao } from "../impressao";
 import { imprimirDocumento } from "./drivers";
 import { rotearPedidoPorLocal } from "./roteador";
-import { resolverPerfilDoLocal } from "./resolverPerfil";
+import { resolverPerfilDoLocal, localVinculadoNestaMaquina } from "./resolverPerfil";
+import { enfileirarTrabalho } from "./fila";
 
 /**
  * Orquestra a impressão da via de produção COM roteamento por local —
@@ -20,6 +21,13 @@ import { resolverPerfilDoLocal } from "./resolverPerfil";
  * roteamento não configurado, banco indisponível, ou nenhuma categoria
  * do pedido mapeada — cai no comportamento de hoje: 1 via única no
  * perfil global. Nunca deixa a comanda sem sair.
+ *
+ * Fase 3 — impressão em rede (opt-in, `config_impressao.impressaoEmRede`):
+ * por via, se o local está vinculado NESTA máquina, imprime na hora
+ * (rápido/offline, igual Fase 2). Se NÃO está e a rede está ligada, o
+ * trabalho vai pra fila (`trabalhos_impressao`) e o PC dono do local o
+ * imprime no seu poll. Com a rede desligada, o não-vinculado cai no
+ * comportamento atual (imprime no perfil global aqui) — zero regressão.
  */
 
 // roteamento: { [categoria]: local_impressao_id } · locais: [{ id, nome }] ativos
@@ -55,11 +63,27 @@ export async function imprimirViaProducaoRoteada(pedido) {
     return imprimirDocumento(dados, configImpressao?.perfilImpressora);
   }
 
+  const emRede = Boolean(configImpressao?.impressaoEmRede);
   const erros = [];
   for (const rota of rotas) {
-    const perfil = resolverPerfilDoLocal(rota.local_impressao_id, configImpressao);
-    const { error } = await imprimirDocumento(rota.documento, perfil);
-    if (error) erros.push(`${rota.local_nome ?? "Local"}: ${error.message ?? "falha na impressão"}`);
+    const nome = rota.local_nome ?? "Local";
+
+    // Vinculado nesta máquina → imprime agora (rápido/offline). Também é o
+    // caminho quando a rede está desligada: aí o não-vinculado cai no perfil
+    // global aqui (comportamento das Fases 1/2, sem regressão).
+    if (!emRede || localVinculadoNestaMaquina(rota.local_impressao_id)) {
+      const perfil = resolverPerfilDoLocal(rota.local_impressao_id, configImpressao);
+      const { error } = await imprimirDocumento(rota.documento, perfil);
+      if (error) erros.push(`${nome}: ${error.message ?? "falha na impressão"}`);
+      continue;
+    }
+
+    // Rede ligada e local é de outro PC → vai pra fila; o dono do local imprime.
+    const { error } = await enfileirarTrabalho({
+      localImpressaoId: rota.local_impressao_id,
+      documento: rota.documento,
+    });
+    if (error) erros.push(`${nome}: não entrou na fila de impressão (${error.message ?? "falha"})`);
   }
   if (erros.length > 0) return { error: { message: erros.join(" · ") } };
   return { error: null };

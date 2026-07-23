@@ -42,6 +42,11 @@ export const CONFIG_IMPRESSAO_PADRAO = {
   cnpj: "",
   rodapePersonalizado: "Obrigado pela preferência!",
   perfilImpressora: PERFIL_IMPRESSORA_PADRAO,
+  // Fase 3 — impressão em rede (fila `trabalhos_impressao`): quando ligada,
+  // uma via roteada para um local NÃO vinculado nesta máquina vai pra fila e
+  // o PC dono do local a imprime. Desligada por padrão → comportamento das
+  // Fases 1/2 (cada máquina imprime só o que está vinculado nela).
+  impressaoEmRede: false,
 };
 
 // Cache local da config de impressão — impressão local (window.print /

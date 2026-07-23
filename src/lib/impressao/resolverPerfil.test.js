@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
-import { resolverPerfilDoLocal } from "./resolverPerfil";
+import { resolverPerfilDoLocal, localVinculadoNestaMaquina } from "./resolverPerfil";
 
 const CHAVE_CACHE = "gastromundi:estacao_bindings.v1";
 const LS_KEY_LEGADO = "gastromundi:impressoras_config_v2";
@@ -97,5 +97,30 @@ describe("resolverPerfilDoLocal (Fase 2 — vínculo por estação, cache do ban
       // impressoras: {} é um objeto válido → é o mapa efetivo; loc-cozinha não está nele → global.
       expect(resolverPerfilDoLocal("loc-cozinha", CONFIG)).toBe(CONFIG.perfilImpressora);
     });
+  });
+});
+
+describe("localVinculadoNestaMaquina (Fase 3 — decide imprimir aqui x mandar pra fila)", () => {
+  it("true quando o local tem impressora vinculada no cache da estação", () => {
+    gravarCacheEstacao({ "loc-cozinha": { nome: "EPSON" } });
+    expect(localVinculadoNestaMaquina("loc-cozinha")).toBe(true);
+  });
+
+  it("false para local sem vínculo, sem nada gravado, ou vínculo sem nome", () => {
+    expect(localVinculadoNestaMaquina("loc-cozinha")).toBe(false);
+    gravarCacheEstacao({ "loc-bar": { nome: "Balcão" } });
+    expect(localVinculadoNestaMaquina("loc-cozinha")).toBe(false);
+    gravarCacheEstacao({ "loc-cozinha": { nome: "" } });
+    expect(localVinculadoNestaMaquina("loc-cozinha")).toBe(false);
+  });
+
+  it("também enxerga o vínculo do mapa legado quando não há cache de estação", () => {
+    localStorage.setItem(LS_KEY_LEGADO, JSON.stringify({ "loc-cozinha": { nome: "Antiga" } }));
+    expect(localVinculadoNestaMaquina("loc-cozinha")).toBe(true);
+  });
+
+  it("nunca quebra com cache corrompido", () => {
+    localStorage.setItem(CHAVE_CACHE, "{ não é json");
+    expect(localVinculadoNestaMaquina("loc-cozinha")).toBe(false);
   });
 });

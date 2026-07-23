@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockSupabase, imprimirDocumento } = vi.hoisted(() => ({
+const { mockSupabase, imprimirDocumento, enfileirarTrabalho } = vi.hoisted(() => ({
   mockSupabase: { current: null },
   imprimirDocumento: vi.fn(async () => ({ error: null })),
+  enfileirarTrabalho: vi.fn(async () => ({ data: { id: "trab-1" }, error: null })),
 }));
 vi.mock("../supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
@@ -13,6 +14,9 @@ vi.mock("../supabase", async () => {
 
 // Captura as impressões sem tocar em driver real (window.print / QZ Tray).
 vi.mock("./drivers", () => ({ imprimirDocumento }));
+
+// Captura o enfileiramento (Fase 3) sem tocar no banco.
+vi.mock("./fila", () => ({ enfileirarTrabalho }));
 
 import { imprimirViaProducaoRoteada } from "./despacho";
 
@@ -33,6 +37,7 @@ beforeEach(() => {
   mockSupabase.current.reset();
   localStorage.clear();
   imprimirDocumento.mockResolvedValue({ error: null });
+  enfileirarTrabalho.mockResolvedValue({ data: { id: "trab-1" }, error: null });
 });
 
 describe("imprimirViaProducaoRoteada (Fase 1 — orquestração)", () => {
@@ -122,5 +127,79 @@ describe("imprimirViaProducaoRoteada (Fase 1 — orquestração)", () => {
     expect(error).not.toBeNull();
     expect(error.message).toContain("Bar");
     expect(error.message).toContain("impressora offline");
+  });
+});
+
+// Vincula locais NESTA máquina pelo cache da estação (Fase 2).
+function vincularNestaMaquina(impressoras) {
+  localStorage.setItem(
+    "gastromundi:estacao_bindings.v1",
+    JSON.stringify({ estacaoId: "est-1", impressoras }),
+  );
+}
+
+describe("imprimirViaProducaoRoteada (Fase 3 — impressão em rede)", () => {
+  const roteamentoCozinhaBar = () =>
+    configurarRoteamento(
+      [
+        { categoria: "Comidas", local_impressao_id: "loc-cozinha" },
+        { categoria: "Bebidas", local_impressao_id: "loc-bar" },
+      ],
+      [
+        { id: "loc-cozinha", nome: "Cozinha" },
+        { id: "loc-bar", nome: "Bar" },
+      ],
+    );
+  const pedidoCozinhaBar = () => ({
+    comanda: "7",
+    items: [
+      { name: "Fritas", qty: 1, category: "Comidas" },
+      { name: "Cerveja", qty: 2, category: "Bebidas" },
+    ],
+  });
+
+  it("rede ligada: local vinculado aqui imprime na hora; local de outro PC vai pra fila", async () => {
+    configurarConfig({ ...CONFIG_VALUE, impressaoEmRede: true });
+    roteamentoCozinhaBar();
+    vincularNestaMaquina({ "loc-cozinha": { nome: "EPSON-COZINHA" } }); // bar NÃO é desta máquina
+
+    const { error } = await imprimirViaProducaoRoteada(pedidoCozinhaBar());
+
+    expect(error).toBeNull();
+    // Cozinha (vinculada aqui) imprimiu; bar (de outro PC) não imprimiu aqui.
+    expect(imprimirDocumento).toHaveBeenCalledTimes(1);
+    const [docCozinha, perfilCozinha] = imprimirDocumento.mock.calls[0];
+    expect(docCozinha.itens.map((i) => i.nome)).toEqual(["Fritas"]);
+    expect(perfilCozinha).toMatchObject({ driver: "escpos-qztray", impressoraQz: "EPSON-COZINHA" });
+    // Bar foi enfileirado para o PC dono do local.
+    expect(enfileirarTrabalho).toHaveBeenCalledTimes(1);
+    const [arg] = enfileirarTrabalho.mock.calls[0];
+    expect(arg.localImpressaoId).toBe("loc-bar");
+    expect(arg.documento.itens.map((i) => i.nome)).toEqual(["Cerveja"]);
+  });
+
+  it("rede DESLIGADA (padrão): local não vinculado imprime no perfil global aqui, sem fila (zero regressão)", async () => {
+    configurarConfig(); // sem impressaoEmRede → default false
+    roteamentoCozinhaBar();
+    // nada vinculado nesta máquina
+
+    const { error } = await imprimirViaProducaoRoteada(pedidoCozinhaBar());
+
+    expect(error).toBeNull();
+    expect(enfileirarTrabalho).not.toHaveBeenCalled();
+    expect(imprimirDocumento).toHaveBeenCalledTimes(2); // as duas vias saem aqui
+  });
+
+  it("rede ligada + falha ao enfileirar → erro agregado avisa que não entrou na fila", async () => {
+    configurarConfig({ ...CONFIG_VALUE, impressaoEmRede: true });
+    roteamentoCozinhaBar();
+    vincularNestaMaquina({ "loc-cozinha": { nome: "EPSON-COZINHA" } });
+    enfileirarTrabalho.mockResolvedValueOnce({ data: null, error: { message: "sem rede" } });
+
+    const { error } = await imprimirViaProducaoRoteada(pedidoCozinhaBar());
+
+    expect(error).not.toBeNull();
+    expect(error.message).toContain("Bar");
+    expect(error.message.toLowerCase()).toContain("fila");
   });
 });

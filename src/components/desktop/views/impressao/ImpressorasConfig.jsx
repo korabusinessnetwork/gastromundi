@@ -10,10 +10,11 @@ import {
   estacaoIdAtual, definirEstacaoAtual, listarEstacoes, criarEstacao,
   salvarImpressorasEstacao, sincronizarBindingsEstacao,
 } from "@/lib/estacao";
+import { buscarConfigImpressao, salvarConfigImpressao } from "@/lib/impressao";
 import {
   LuPrinter, LuRefreshCw, LuCircleAlert, LuX,
   LuSettings, LuWifi, LuWifiOff, LuShieldCheck, LuLoader,
-  LuPlay, LuSquareCheckBig, LuMonitor,
+  LuPlay, LuSquareCheckBig, LuMonitor, LuNetwork,
 } from "react-icons/lu";
 
 // ── Estado de conexão com QZ Tray ──────────────────────────────────
@@ -199,6 +200,11 @@ export default function ImpressorasConfig({ sz }) {
   const [salvandoEstacao, setSalvandoEstacao] = useState(false);
   const [erroVinculo, setErroVinculo]     = useState("");
 
+  // ── Impressão em rede (Fase 3 — fila `trabalhos_impressao`) ───────
+  const [emRede, setEmRede]           = useState(false);
+  const [salvandoRede, setSalvandoRede] = useState(false);
+  const [erroRede, setErroRede]       = useState("");
+
   const estacaoAtual = estacoes.find(e => e.id === estacaoId) ?? null;
 
   useEffect(() => {
@@ -228,6 +234,32 @@ export default function ImpressorasConfig({ sz }) {
     })();
     return () => { cancelado = true; };
   }, []);
+
+  useEffect(() => {
+    let cancelado = false;
+    buscarConfigImpressao().then(({ data }) => {
+      if (!cancelado) setEmRede(Boolean(data?.impressaoEmRede));
+    });
+    return () => { cancelado = true; };
+  }, []);
+
+  // Liga/desliga a impressão em rede — otimista, com rollback se o banco recusar.
+  const alternarImpressaoEmRede = async () => {
+    if (salvandoRede) return;
+    const anterior = emRede;
+    const novo = !anterior;
+    setEmRede(novo);
+    setSalvandoRede(true);
+    setErroRede("");
+    const { data: cfg } = await buscarConfigImpressao();
+    const { error } = await salvarConfigImpressao({ ...(cfg ?? {}), impressaoEmRede: novo });
+    setSalvandoRede(false);
+    if (error) {
+      setEmRede(anterior); // rollback
+      setErroRede(error.message ?? "Não foi possível salvar a impressão em rede.");
+      setTimeout(() => setErroRede(""), 4000);
+    }
+  };
 
   const handleFecharModal = (_salvou) => {
     setModal(null);
@@ -546,6 +578,44 @@ export default function ImpressorasConfig({ sz }) {
 
       {/* Seletor de estação desta máquina */}
       {renderSeletorEstacao()}
+
+      {/* Impressão em rede (Fase 3) */}
+      <div style={{ background: varColor(C.card), border: `1px solid ${emRede ? alfa(C.accent, "44") : varColor(C.border)}`, borderRadius: 14, padding: sz.pad, display: "flex", alignItems: "flex-start", gap: 14 }}>
+        <div style={{ width: 42, height: 42, borderRadius: 11, flexShrink: 0, background: emRede ? `${alfa(C.accent, "18")}` : varColor(C.surface), border: `1px solid ${emRede ? varColor(C.accent) + "44" : varColor(C.border)}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <LuNetwork size={19} color={emRede ? varColor(C.accent) : varColor(C.muted)} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 800, fontSize: sz.fontBase }}>Impressão em rede</div>
+          <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4, lineHeight: 1.6 }}>
+            Quando ligado, cada computador imprime o que é dele: uma comanda do bar lançada no
+            caixa sai sozinha na impressora do bar. Deixe desligado se só este computador imprime.
+          </div>
+          {erroRede && (
+            <div style={{ marginTop: 8, fontSize: sz.fontSm, color: varColor(C.red), display: "flex", alignItems: "center", gap: 6 }}>
+              <LuCircleAlert size={13} style={{ flexShrink: 0 }} /> {erroRede}
+            </div>
+          )}
+        </div>
+        {/* Switch */}
+        <button
+          role="switch"
+          aria-checked={emRede}
+          aria-label="Impressão em rede"
+          onClick={alternarImpressaoEmRede}
+          disabled={salvandoRede}
+          style={{
+            flexShrink: 0, width: 52, height: 30, borderRadius: 999, border: "none", padding: 3,
+            background: emRede ? varColor(C.accent) : varColor(C.border),
+            cursor: salvandoRede ? "wait" : "pointer",
+            display: "flex", alignItems: "center", justifyContent: emRede ? "flex-end" : "flex-start",
+            transition: "background 0.18s", opacity: salvandoRede ? 0.7 : 1,
+          }}
+        >
+          <span style={{ width: 24, height: 24, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {salvandoRede && <LuLoader size={12} color={varColor(C.muted)} style={{ animation: "spin 1s linear infinite" }} />}
+          </span>
+        </button>
+      </div>
 
       {/* Banner QZ Tray */}
       {renderBannerQZ()}
