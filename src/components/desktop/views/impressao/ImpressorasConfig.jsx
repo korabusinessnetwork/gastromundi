@@ -7,19 +7,14 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor, nomeExibicaoTenant } from "@/lib/tema";
 import { useApp } from "@/context/AppContext";
 import {
+  estacaoIdAtual, definirEstacaoAtual, listarEstacoes, criarEstacao,
+  salvarImpressorasEstacao, sincronizarBindingsEstacao,
+} from "@/lib/estacao";
+import {
   LuPrinter, LuRefreshCw, LuCircleAlert, LuX,
   LuSettings, LuWifi, LuWifiOff, LuShieldCheck, LuLoader,
-  LuPlay, LuSquareCheckBig,
+  LuPlay, LuSquareCheckBig, LuMonitor,
 } from "react-icons/lu";
-
-const LS_KEY = "gastromundi:impressoras_config_v2";
-
-function lerConfig() {
-  try { return JSON.parse(localStorage.getItem(LS_KEY) ?? "{}"); } catch { return {}; }
-}
-function salvarConfig(cfg) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); } catch {}
-}
 
 // ── Estado de conexão com QZ Tray ──────────────────────────────────
 
@@ -69,18 +64,20 @@ function useQZTray() {
 
 // ── Modal de seleção de impressora para um local ───────────────────
 
-function ModalSelecionarImpressora({ local, impressoras, onClose, sz }) {
-  const cfgAtual = lerConfig()[local.id] ?? null;
+function ModalSelecionarImpressora({ local, impressoras, cfgAtual, onSalvar, onClose, sz }) {
   const [selecionada, setSelecionada] = useState(cfgAtual?.nome ?? "");
+  const [salvando, setSalvando]       = useState(false);
+  const [erro, setErro]               = useState("");
 
-  const salvar = () => {
-    const cfg = lerConfig();
-    if (selecionada) {
-      cfg[local.id] = { nome: selecionada };
-    } else {
-      delete cfg[local.id];
+  const salvar = async () => {
+    setSalvando(true);
+    setErro("");
+    const { error } = await onSalvar(selecionada);
+    setSalvando(false);
+    if (error) {
+      setErro(error.message ?? "Erro ao salvar a impressora.");
+      return;
     }
-    salvarConfig(cfg);
     onClose(true);
   };
 
@@ -150,19 +147,29 @@ function ModalSelecionarImpressora({ local, impressoras, onClose, sz }) {
           })}
         </div>
 
+        {/* Erro ao salvar */}
+        {erro && (
+          <div style={{ padding: "10px 14px", borderRadius: 10, background: `${alfa(C.red, "0e")}`, border: `1px solid ${alfa(C.red, "33")}`, color: varColor(C.red), fontSize: sz.fontSm, display: "flex", alignItems: "center", gap: 8 }}>
+            <LuCircleAlert size={14} style={{ flexShrink: 0 }} /> {erro}
+          </div>
+        )}
+
         {/* Ações */}
         <div style={{ display: "flex", gap: 10, paddingTop: 4, borderTop: `1px solid var(${C.border})` }}>
           <button
             onClick={() => onClose(false)}
-            style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
+            disabled={salvando}
+            style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: salvando ? "not-allowed" : "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
           >
             Cancelar
           </button>
           <button
             onClick={salvar}
-            style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit" }}
+            disabled={salvando}
+            style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", opacity: salvando ? 0.75 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
           >
-            Confirmar
+            {salvando && <LuLoader size={14} style={{ animation: "spin 1s linear infinite" }} />}
+            {salvando ? "Salvando…" : "Confirmar"}
           </button>
         </div>
       </div>
@@ -178,9 +185,21 @@ export default function ImpressorasConfig({ sz }) {
   const { tenant } = useApp();
   const [locais, setLocais]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [configs, setConfigs]   = useState(lerConfig());
   const [modal, setModal]       = useState(null); // local object
   const [testando, setTestando] = useState({}); // { [localId]: "idle"|"ok"|"erro" }
+
+  // ── Estação (posto de trabalho) desta máquina ─────────────────────
+  const [estacoes, setEstacoes]           = useState([]);
+  const [estacaoId, setEstacaoId]         = useState(() => estacaoIdAtual());
+  const [loadingEstacoes, setLoadingEstacoes] = useState(true);
+  const [erroEstacoes, setErroEstacoes]   = useState("");
+  const [trocandoEstacao, setTrocandoEstacao] = useState(false);
+  const [criandoEstacao, setCriandoEstacao]   = useState(false);
+  const [nomeNovaEstacao, setNomeNovaEstacao] = useState("");
+  const [salvandoEstacao, setSalvandoEstacao] = useState(false);
+  const [erroVinculo, setErroVinculo]     = useState("");
+
+  const estacaoAtual = estacoes.find(e => e.id === estacaoId) ?? null;
 
   useEffect(() => {
     supabase
@@ -190,16 +209,79 @@ export default function ImpressorasConfig({ sz }) {
       .then(({ data }) => { setLocais(data ?? []); setLoading(false); });
   }, []);
 
-  const handleFecharModal = (salvou) => {
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      setLoadingEstacoes(true);
+      const { data, error } = await listarEstacoes();
+      if (cancelado) return;
+      if (error) {
+        setErroEstacoes(error.message ?? "Não foi possível carregar as estações desta conta.");
+        setLoadingEstacoes(false);
+        return;
+      }
+      setEstacoes(data ?? []);
+      setErroEstacoes("");
+      setLoadingEstacoes(false);
+      // Sincronização best-effort de vínculos pendentes (ex.: após limpar cache).
+      sincronizarBindingsEstacao().catch(() => {});
+    })();
+    return () => { cancelado = true; };
+  }, []);
+
+  const handleFecharModal = (_salvou) => {
     setModal(null);
-    if (salvou) setConfigs(lerConfig());
   };
 
-  const removerConfig = (localId) => {
-    const cfg = lerConfig();
-    delete cfg[localId];
-    salvarConfig(cfg);
-    setConfigs(lerConfig());
+  // Persiste o mapa de vínculos da estação atual no banco e reflete no estado local.
+  const handleSalvarLocal = async (localId, nomeOuVazio) => {
+    if (!estacaoAtual) {
+      return { error: new Error("Selecione uma estação para vincular impressoras.") };
+    }
+    const novoMapa = { ...(estacaoAtual.impressoras ?? {}) };
+    if (nomeOuVazio) {
+      novoMapa[localId] = { nome: nomeOuVazio };
+    } else {
+      delete novoMapa[localId];
+    }
+    const { error } = await salvarImpressorasEstacao(estacaoAtual.id, novoMapa);
+    if (!error) {
+      setEstacoes(prev => prev.map(e => (e.id === estacaoAtual.id ? { ...e, impressoras: novoMapa } : e)));
+    }
+    return { error };
+  };
+
+  const removerConfig = async (localId) => {
+    const { error } = await handleSalvarLocal(localId, "");
+    if (error) {
+      setErroVinculo(error.message ?? "Erro ao remover a impressora deste local.");
+      setTimeout(() => setErroVinculo(""), 4000);
+    }
+  };
+
+  const trocarParaEstacao = (id) => {
+    definirEstacaoAtual(id);
+    setEstacaoId(id);
+    setTrocandoEstacao(false);
+  };
+
+  const criarNovaEstacao = async () => {
+    const nome = nomeNovaEstacao.trim();
+    if (!nome) return;
+    setSalvandoEstacao(true);
+    const { data, error } = await criarEstacao(nome);
+    setSalvandoEstacao(false);
+    if (error) {
+      setErroEstacoes(error.message ?? "Não foi possível criar a estação.");
+      return;
+    }
+    definirEstacaoAtual(data.id);
+    setEstacoes(prev => [...prev, data]);
+    setEstacaoId(data.id);
+    setNomeNovaEstacao("");
+    setCriandoEstacao(false);
+    setTrocandoEstacao(false);
+    setErroEstacoes("");
   };
 
   const imprimirTeste = async (local, nomePrinter) => {
@@ -244,6 +326,129 @@ export default function ImpressorasConfig({ sz }) {
       setTestando(prev => ({ ...prev, [local.id]: "erro" }));
       setTimeout(() => setTestando(prev => ({ ...prev, [local.id]: undefined })), 4000);
     }
+  };
+
+  // ── Seletor de estação desta máquina ──────────────────────────────
+
+  const renderSeletorEstacao = () => {
+    if (loadingEstacoes) {
+      return (
+        <div style={{ padding: "16px 20px", borderRadius: 14, background: varColor(C.surface), border: `1px solid var(${C.border})`, display: "flex", alignItems: "center", gap: 14 }}>
+          <LuLoader size={20} color={varColor(C.muted)} style={{ animation: "spin 1s linear infinite" }} />
+          <div style={{ fontSize: sz.fontBase, color: varColor(C.muted) }}>Carregando estações…</div>
+        </div>
+      );
+    }
+
+    if (erroEstacoes) {
+      return (
+        <div style={{ padding: "16px 20px", borderRadius: 14, background: `${alfa(C.red, "08")}`, border: `1px solid ${alfa(C.red, "33")}`, display: "flex", alignItems: "flex-start", gap: 14 }}>
+          <LuCircleAlert size={20} color={varColor(C.red)} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.red) }}>Não foi possível carregar as estações</div>
+            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4, lineHeight: 1.6 }}>{erroEstacoes}</div>
+          </div>
+        </div>
+      );
+    }
+
+    // Sem estação escolhida nesta máquina, ou usuário pediu para trocar.
+    if (!estacaoAtual || trocandoEstacao) {
+      return (
+        <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 14, padding: sz.pad, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <LuMonitor size={20} color={varColor(C.accent)} />
+            <div style={{ fontWeight: 800, fontSize: sz.fontBase }}>Qual é este computador?</div>
+          </div>
+          <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), lineHeight: 1.5 }}>
+            Escolha a estação deste computador para vincular as impressoras. O vínculo fica salvo no sistema, não só neste navegador.
+          </div>
+
+          {estacoes.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {estacoes.map(e => (
+                <button
+                  key={e.id}
+                  onClick={() => trocarParaEstacao(e.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "12px 16px", borderRadius: 12, cursor: "pointer",
+                    border: `1.5px solid ${e.id === estacaoId ? varColor(C.accent) : varColor(C.border)}`,
+                    background: e.id === estacaoId ? `${alfa(C.accent, "10")}` : varColor(C.surface),
+                    textAlign: "left", fontFamily: "inherit",
+                  }}
+                >
+                  <LuMonitor size={18} color={e.id === estacaoId ? varColor(C.accent) : varColor(C.muted)} />
+                  <div style={{ flex: 1, fontWeight: 600, fontSize: sz.fontBase, color: e.id === estacaoId ? varColor(C.accent) : varColor(C.text) }}>
+                    {e.nome}
+                  </div>
+                  {e.id === estacaoId && <LuShieldCheck size={16} color={varColor(C.accent)} />}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {criandoEstacao ? (
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                autoFocus
+                value={nomeNovaEstacao}
+                onChange={e => setNomeNovaEstacao(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") criarNovaEstacao(); }}
+                placeholder="Nome da estação (ex: Caixa 1, Cozinha)"
+                style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontSize: sz.fontBase, fontFamily: "inherit" }}
+              />
+              <button
+                onClick={criarNovaEstacao}
+                disabled={!nomeNovaEstacao.trim() || salvandoEstacao}
+                style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", fontWeight: 700, fontSize: sz.fontSm, cursor: (!nomeNovaEstacao.trim() || salvandoEstacao) ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: (!nomeNovaEstacao.trim() || salvandoEstacao) ? 0.6 : 1, whiteSpace: "nowrap" }}
+              >
+                {salvandoEstacao ? "Criando…" : "Criar"}
+              </button>
+              <button
+                onClick={() => { setCriandoEstacao(false); setNomeNovaEstacao(""); }}
+                style={{ padding: "10px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontFamily: "inherit", fontSize: sz.fontSm }}
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => setCriandoEstacao(true)}
+                style={{ padding: "10px 16px", borderRadius: 10, border: `1.5px solid ${varColor(C.accent)}66`, background: `${alfa(C.accent, "08")}`, color: varColor(C.accent), fontWeight: 700, fontSize: sz.fontSm, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                + Criar nova estação
+              </button>
+              {estacaoAtual && trocandoEstacao && (
+                <button
+                  onClick={() => setTrocandoEstacao(false)}
+                  style={{ padding: "10px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontFamily: "inherit", fontSize: sz.fontSm }}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Estação escolhida — banner compacto.
+    return (
+      <div style={{ padding: "12px 20px", borderRadius: 14, background: varColor(C.surface), border: `1px solid var(${C.border})`, display: "flex", alignItems: "center", gap: 12 }}>
+        <LuMonitor size={18} color={varColor(C.accent)} />
+        <div style={{ flex: 1, fontSize: sz.fontBase }}>
+          Estação: <strong>{estacaoAtual.nome}</strong>
+        </div>
+        <button
+          onClick={() => setTrocandoEstacao(true)}
+          style={{ padding: "7px 14px", borderRadius: 9, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit" }}
+        >
+          Trocar
+        </button>
+      </div>
+    );
   };
 
   // ── Banner de conexão QZ Tray ────────────────────────────────────
@@ -334,17 +539,28 @@ export default function ImpressorasConfig({ sz }) {
   }
 
   const conectado = status === "conectado";
+  const podeVincular = Boolean(estacaoAtual);
 
   return (
     <div style={{ maxWidth: 720, display: "flex", flexDirection: "column", gap: sz.pad }}>
 
+      {/* Seletor de estação desta máquina */}
+      {renderSeletorEstacao()}
+
       {/* Banner QZ Tray */}
       {renderBannerQZ()}
 
-      {/* Aviso de configuração por dispositivo */}
+      {/* Aviso de configuração por estação */}
       {conectado && (
         <div style={{ padding: "10px 16px", borderRadius: 10, background: `${alfa(C.blue, "0e")}`, border: `1px solid ${alfa(C.blue, "22")}`, fontSize: sz.fontSm, color: varColor(C.muted) }}>
-          <strong style={{ color: varColor(C.blue) }}>ℹ Por dispositivo</strong> — Esta configuração é salva localmente neste computador. Cada máquina escolhe suas próprias impressoras.
+          <strong style={{ color: varColor(C.blue) }}>ℹ Vínculos por estação</strong> — Ficam salvos no sistema (não neste navegador): sobrevivem a limpar o cache ou trocar de computador. Cada estação tem suas próprias impressoras.
+        </div>
+      )}
+
+      {/* Erro ao remover vínculo */}
+      {erroVinculo && (
+        <div style={{ padding: "10px 16px", borderRadius: 10, background: `${alfa(C.red, "0e")}`, border: `1px solid ${alfa(C.red, "33")}`, fontSize: sz.fontSm, color: varColor(C.red), display: "flex", alignItems: "center", gap: 8 }}>
+          <LuCircleAlert size={14} style={{ flexShrink: 0 }} /> {erroVinculo}
         </div>
       )}
 
@@ -358,7 +574,7 @@ export default function ImpressorasConfig({ sz }) {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {locais.map(local => {
-            const cfg = configs[local.id] ?? null;
+            const cfg = estacaoAtual?.impressoras?.[local.id] ?? null;
             return (
               <div
                 key={local.id}
@@ -385,7 +601,9 @@ export default function ImpressorasConfig({ sz }) {
                   <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {cfg
                       ? <span style={{ color: varColor(C.accent), fontWeight: 600 }}>{cfg.nome}</span>
-                      : "Sem impressora configurada"
+                      : !podeVincular
+                        ? "Escolha uma estação acima para configurar"
+                        : "Sem impressora configurada"
                     }
                   </div>
                 </div>
@@ -446,11 +664,20 @@ export default function ImpressorasConfig({ sz }) {
                     </button>
                   )}
                   <button
-                    onClick={() => conectado ? setModal(local) : conectar()}
-                    disabled={status === "conectando"}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: `1.5px solid ${conectado ? varColor(C.border) : varColor(C.accent) + "66"}`, background: conectado ? varColor(C.surface) : `${alfa(C.accent, "08")}`, color: conectado ? varColor(C.text) : varColor(C.accent), cursor: status === "conectando" ? "not-allowed" : "pointer", fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit", transition: "border-color 0.15s" }}
-                    onMouseEnter={e => { if (conectado) e.currentTarget.style.borderColor = varColor(C.accent) + "66"; }}
-                    onMouseLeave={e => { if (conectado) e.currentTarget.style.borderColor = varColor(C.border); }}
+                    onClick={() => { if (!conectado) { conectar(); return; } if (!podeVincular) return; setModal(local); }}
+                    disabled={status === "conectando" || (conectado && !podeVincular)}
+                    title={conectado && !podeVincular ? "Escolha uma estação para vincular impressoras" : undefined}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9,
+                      border: `1.5px solid ${conectado ? varColor(C.border) : varColor(C.accent) + "66"}`,
+                      background: conectado ? varColor(C.surface) : `${alfa(C.accent, "08")}`,
+                      color: conectado ? varColor(C.text) : varColor(C.accent),
+                      cursor: (status === "conectando" || (conectado && !podeVincular)) ? "not-allowed" : "pointer",
+                      opacity: (conectado && !podeVincular) ? 0.55 : 1,
+                      fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit", transition: "border-color 0.15s",
+                    }}
+                    onMouseEnter={e => { if (conectado && podeVincular) e.currentTarget.style.borderColor = varColor(C.accent) + "66"; }}
+                    onMouseLeave={e => { if (conectado && podeVincular) e.currentTarget.style.borderColor = varColor(C.border); }}
                   >
                     <LuSettings size={14} />
                     {conectado ? (cfg ? "Trocar" : "Selecionar") : "Conectar QZ"}
@@ -463,10 +690,12 @@ export default function ImpressorasConfig({ sz }) {
       )}
 
       {/* Modal de seleção */}
-      {modal && conectado && (
+      {modal && conectado && podeVincular && (
         <ModalSelecionarImpressora
           local={modal}
           impressoras={impressoras}
+          cfgAtual={estacaoAtual?.impressoras?.[modal.id] ?? null}
+          onSalvar={(nome) => handleSalvarLocal(modal.id, nome)}
           sz={sz}
           onClose={handleFecharModal}
         />

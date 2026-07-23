@@ -3,8 +3,7 @@ import { useApp } from "@/context/AppContext";
 import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido } from "@/lib/cozinha";
-import { montarViaProducao, buscarConfigImpressao } from "@/lib/impressao";
-import { imprimirDocumento } from "@/lib/impressao/drivers";
+import { imprimirViaProducaoRoteada } from "@/lib/impressao/despacho";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -67,14 +66,13 @@ export default function CozinhaView() {
     }
   };
 
-  // F015/F020 — via de produção: 1 clique, sem preço/jargão, só o que
-  // a cozinha precisa. O driver (browser-raster/QZ Tray) e o perfil de
-  // papel (58/80mm) vêm da config de impressão do estabelecimento.
+  // F015/F020 — via de produção roteada por LOCAL (Fase 1): 1 clique
+  // gera uma via por local de destino (cozinha, bar…), cada uma na
+  // impressora vinculada ao local nesta máquina; sem roteamento
+  // configurado, cai numa via única no perfil global (sem regressão).
   // Nunca lança: pop-up bloqueado/falha de driver vira um alerta simples.
   const handleImprimirVia = async (pedido) => {
-    const dados = montarViaProducao({ pedido });
-    const { data: configImpressao } = await buscarConfigImpressao();
-    const { error } = await imprimirDocumento(dados, configImpressao?.perfilImpressora);
+    const { error } = await imprimirViaProducaoRoteada(pedido);
     if (error) window.alert(error.message);
   };
 
