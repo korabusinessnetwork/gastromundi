@@ -7,6 +7,7 @@ import RoteamentoCategorias from "./RoteamentoCategorias";
 import ImpressorasConfig from "./ImpressorasConfig";
 import PerfilImpressora from "./PerfilImpressora";
 import PonteLocalConfig from "./PonteLocalConfig";
+import HistoricoImpressao from "./HistoricoImpressao";
 
 const ABAS = [
   { id: "locais",       label: "Locais de Impressão"      },
@@ -14,6 +15,7 @@ const ABAS = [
   { id: "impressoras",  label: "Impressoras"              },
   { id: "perfil",       label: "Perfil de Impressão"      },
   { id: "ponte",        label: "Pedidos sem Internet"     },
+  { id: "historico",    label: "Histórico de Impressão"   },
 ];
 
 export default function ConfiguracaoImpressao({ sz }) {
@@ -47,6 +49,7 @@ export default function ConfiguracaoImpressao({ sz }) {
       {aba === "impressoras" && <ImpressorasConfig sz={sz} />}
       {aba === "perfil"      && <PerfilImpressora sz={sz} />}
       {aba === "ponte"       && <PonteLocalConfig sz={sz} />}
+      {aba === "historico"   && <HistoricoImpressao sz={sz} />}
     </div>
   );
 }

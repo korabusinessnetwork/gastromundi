@@ -4,6 +4,7 @@ import { imprimirDocumento } from "./drivers";
 import { rotearPedidoPorLocal } from "./roteador";
 import { resolverPerfilDoLocal, localVinculadoNestaMaquina } from "./resolverPerfil";
 import { enfileirarTrabalho } from "./fila";
+import { registrarImpressaoLocal } from "./historico";
 
 /**
  * Orquestra a impressão da via de produção COM roteamento por local —
@@ -74,7 +75,12 @@ export async function imprimirViaProducaoRoteada(pedido) {
     if (!emRede || localVinculadoNestaMaquina(rota.local_impressao_id)) {
       const perfil = resolverPerfilDoLocal(rota.local_impressao_id, configImpressao);
       const { error } = await imprimirDocumento(rota.documento, perfil);
-      if (error) erros.push(`${nome}: ${error.message ?? "falha na impressão"}`);
+      if (error) {
+        erros.push(`${nome}: ${error.message ?? "falha na impressão"}`);
+      } else {
+        // Fase 4 — rastro de auditoria da via impressa aqui (fire-and-forget).
+        registrarImpressaoLocal({ localImpressaoId: rota.local_impressao_id, documento: rota.documento });
+      }
       continue;
     }
 

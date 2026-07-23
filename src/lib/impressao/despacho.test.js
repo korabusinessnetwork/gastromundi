@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockSupabase, imprimirDocumento, enfileirarTrabalho } = vi.hoisted(() => ({
+const { mockSupabase, imprimirDocumento, enfileirarTrabalho, registrarImpressaoLocal } = vi.hoisted(() => ({
   mockSupabase: { current: null },
   imprimirDocumento: vi.fn(async () => ({ error: null })),
   enfileirarTrabalho: vi.fn(async () => ({ data: { id: "trab-1" }, error: null })),
+  registrarImpressaoLocal: vi.fn(async () => ({ error: null })),
 }));
 vi.mock("../supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
@@ -17,6 +18,9 @@ vi.mock("./drivers", () => ({ imprimirDocumento }));
 
 // Captura o enfileiramento (Fase 3) sem tocar no banco.
 vi.mock("./fila", () => ({ enfileirarTrabalho }));
+
+// Captura o registro de auditoria (Fase 4) sem tocar no banco.
+vi.mock("./historico", () => ({ registrarImpressaoLocal }));
 
 import { imprimirViaProducaoRoteada } from "./despacho";
 
@@ -38,6 +42,7 @@ beforeEach(() => {
   localStorage.clear();
   imprimirDocumento.mockResolvedValue({ error: null });
   enfileirarTrabalho.mockResolvedValue({ data: { id: "trab-1" }, error: null });
+  registrarImpressaoLocal.mockResolvedValue({ error: null });
 });
 
 describe("imprimirViaProducaoRoteada (Fase 1 — orquestração)", () => {
@@ -201,5 +206,45 @@ describe("imprimirViaProducaoRoteada (Fase 3 — impressão em rede)", () => {
     expect(error).not.toBeNull();
     expect(error.message).toContain("Bar");
     expect(error.message.toLowerCase()).toContain("fila");
+  });
+});
+
+describe("imprimirViaProducaoRoteada (Fase 4 — auditoria da impressão local)", () => {
+  it("cada via impressa aqui vira um registro de histórico (fire-and-forget)", async () => {
+    configurarConfig();
+    configurarRoteamento(
+      [
+        { categoria: "Comidas", local_impressao_id: "loc-cozinha" },
+        { categoria: "Bebidas", local_impressao_id: "loc-bar" },
+      ],
+      [
+        { id: "loc-cozinha", nome: "Cozinha" },
+        { id: "loc-bar", nome: "Bar" },
+      ],
+    );
+
+    await imprimirViaProducaoRoteada({
+      items: [
+        { name: "Fritas", qty: 1, category: "Comidas" },
+        { name: "Suco", qty: 1, category: "Bebidas" },
+      ],
+    });
+
+    expect(registrarImpressaoLocal).toHaveBeenCalledTimes(2);
+    const locaisRegistrados = registrarImpressaoLocal.mock.calls.map((c) => c[0].localImpressaoId);
+    expect(locaisRegistrados).toEqual(expect.arrayContaining(["loc-cozinha", "loc-bar"]));
+  });
+
+  it("via que FALHOU ao imprimir não é registrada no histórico", async () => {
+    configurarConfig();
+    configurarRoteamento(
+      [{ categoria: "Bebidas", local_impressao_id: "loc-bar" }],
+      [{ id: "loc-bar", nome: "Bar" }],
+    );
+    imprimirDocumento.mockResolvedValueOnce({ error: { message: "impressora offline" } });
+
+    await imprimirViaProducaoRoteada({ items: [{ name: "Suco", qty: 1, category: "Bebidas" }] });
+
+    expect(registrarImpressaoLocal).not.toHaveBeenCalled();
   });
 });
