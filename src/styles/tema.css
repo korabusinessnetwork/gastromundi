@@ -25,6 +25,11 @@
  * getComputedStyle e re-resolve quando o tema do tenant muda.
  */
 
+/* Escala de TAMANHO de fonte (--fs-*, --lh-*, --tap-min). Fica em arquivo
+   à parte por ser ortogonal à cor; ambos são tokens de tema. @import precede
+   qualquer regra (só depois do comentário). */
+@import "./tipografia.css";
+
 :root {
   --gm-bg: #070b14;
   --gm-card: #0e1220;
@@ -44,4 +49,7 @@
      no tema (ex.: Casa Coffee → Saira/Sora, carregadas em index.html). */
   --gm-font-titulo: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --gm-font-texto:  "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Mono para dados técnicos (SKU, IDs, nº de comanda/mesa) — TIPOGRAFIA.md.
+     Tenant pode sobrescrever como as demais --gm-font-*. */
+  --gm-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 }

@@ -1,0 +1,80 @@
+/**
+ * F010 — seletor de cliente para fiado (PDV). Decisão 018 (CSS separado do JSX) +
+ * tokens --fs-*/--lh-* (tipografia.css). Cores e padding/gap ficam inline (por enquanto).
+ * TAMANHO DE FONTE migrante em das classes do componente, nunca mais via sz.* no JSX.
+ */
+
+/* Cliente já selecionado — exibe nome e telefone confirmados */
+.cliente-fiado-selecionado__nome {
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.cliente-fiado-selecionado__telefone {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+/* Campo de busca — input de busca por nome/telefone */
+.cliente-fiado-busca__input {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-family: inherit;
+}
+
+/* Mensagens de estado — erro, carregando, etc */
+.cliente-fiado-estado__erro {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.cliente-fiado-estado__carregando {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Item de resultado na lista — cada cliente encontrado */
+.cliente-fiado-resultado__nome {
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.cliente-fiado-resultado__telefone {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+/* Botão de cadastro rápido — "+ Cadastrar..." */
+.cliente-fiado-acao__cadastro-rapido {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-family: inherit;
+}
+
+/* Form de cadastro — seção telefone + botões */
+.cliente-fiado-cadastro__label {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.cliente-fiado-cadastro__input-telefone {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-family: inherit;
+}
+
+.cliente-fiado-cadastro__botao {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-family: inherit;
+}
+
+.cliente-fiado-cadastro__botao-confirmar {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-family: inherit;
+}

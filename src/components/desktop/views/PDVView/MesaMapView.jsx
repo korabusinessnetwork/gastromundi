@@ -3,6 +3,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
+import "./MesaMapView.css";
 
 function statusMesa(mesa, abertas) {
   if (mesa.status_manual === "manutencao") return "manutencao";
@@ -29,7 +30,7 @@ export default function MesaMapView({ mesas, loading, abertas, onSelectComanda, 
 
   if (loading) {
     return (
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.muted), fontSize: sz.fontBase }}>
+      <div className="mesa-map__loading" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.muted) }}>
         Carregando mesas...
       </div>
     );
@@ -42,11 +43,11 @@ export default function MesaMapView({ mesas, loading, abertas, onSelectComanda, 
         alignItems: "center", justifyContent: "center",
         gap: 14, color: varColor(C.muted), padding: 40, textAlign: "center",
       }}>
-        <div style={{ fontSize: 52 }}>🪑</div>
-        <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2, color: varColor(C.text) }}>
+        <div className="mesa-map__vazio-emoji">🪑</div>
+        <div className="mesa-map__vazio-titulo" style={{ fontWeight: 800, color: varColor(C.text) }}>
           Nenhuma mesa cadastrada
         </div>
-        <div style={{ fontSize: sz.fontBase, maxWidth: 340, lineHeight: 1.6 }}>
+        <div className="mesa-map__vazio-texto" style={{ maxWidth: 340 }}>
           Cadastre mesas em Configurações para visualizá-las no mapa.
           As vendas funcionam normalmente pelo modo Lista.
         </div>
@@ -80,11 +81,11 @@ export default function MesaMapView({ mesas, loading, abertas, onSelectComanda, 
       {/* Legenda de status */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {Object.entries(STATUS).map(([key, s]) => (
-          <span key={key} style={{
+          <span key={key} className="mesa-map__legenda" style={{
             display: "inline-flex", alignItems: "center", gap: 5,
             padding: "3px 10px", borderRadius: 20,
             background: s.bg, border: `1px solid ${s.border}`,
-            fontSize: 12, fontWeight: 700, color: s.cor,
+            color: s.cor,
           }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.cor, display: "inline-block", flexShrink: 0 }} />
             {s.label}
@@ -159,6 +160,7 @@ function CardMesa({ mesa, abertas, w, h, sz, onClick }) {
 
   return (
     <div
+      className="card-mesa"
       onClick={() => onClick(mesa)}
       title={`Mesa ${mesa.numero} — ${s.label}${pedido?.garcom ? ` · ${pedido.garcom}` : ""}`}
       style={{
@@ -179,20 +181,20 @@ function CardMesa({ mesa, abertas, w, h, sz, onClick }) {
         e.currentTarget.style.boxShadow = "";
       }}
     >
-      <div style={{ fontSize: sz.fontBase + 2, fontWeight: 900, color: s.cor, lineHeight: 1 }}>
+      <div className="card-mesa__numero" style={{ color: s.cor }}>
         {mesa.numero}
       </div>
-      <div style={{ fontSize: 10, fontWeight: 700, color: s.cor, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.85 }}>
+      <div className="card-mesa__status" style={{ color: s.cor }}>
         {s.label}
       </div>
       {total > 0 && (
-        <div style={{ fontSize: 11, fontWeight: 800, color: s.cor }}>
+        <div className="card-mesa__valor" style={{ color: s.cor }}>
           R$ {total.toFixed(2)}
         </div>
       )}
       {pedido?.garcom && (
-        <div style={{
-          fontSize: 10, color: s.cor, opacity: 0.7,
+        <div className="card-mesa__garcom" style={{
+          color: s.cor,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           maxWidth: w - 12,
         }}>
@@ -200,7 +202,7 @@ function CardMesa({ mesa, abertas, w, h, sz, onClick }) {
         </div>
       )}
       {st === "livre" && mesa.capacidade != null && (
-        <div style={{ fontSize: 10, color: s.cor, opacity: 0.6 }}>
+        <div className="card-mesa__capacidade" style={{ color: s.cor }}>
           {mesa.capacidade}p
         </div>
       )}

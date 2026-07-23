@@ -1,0 +1,71 @@
+/**
+ * F018 — Migração de tipografia (MesaMapView). Decisão 018 (CSS separado do JSX) +
+ * tokens --fs-*/--lh-* (ADR-007). Tamanho de fonte agora usa escala do design system
+ * (src/styles/tipografia.css), não mais inline via `sz.*` do JSX. Layout (padding/gap)
+ * permanece em estilo inline. `.num` = tabular-nums em dinheiro.
+ */
+
+.mesa-map__loading {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.mesa-map__vazio-emoji {
+  font-size: var(--fs-5xl);
+  line-height: 1;
+}
+
+.mesa-map__vazio-titulo {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.mesa-map__vazio-texto {
+  font-size: var(--fs-base);
+  line-height: 1.6;
+}
+
+.mesa-map__legenda {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+}
+
+.card-mesa {
+  /* container: cores/layout via inline */
+}
+
+.card-mesa__numero {
+  font-size: var(--fs-xl);
+  line-height: 1;
+  font-weight: 900;
+}
+
+.card-mesa__status {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  opacity: 0.85;
+}
+
+.card-mesa__valor {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-mesa__garcom {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  opacity: 0.7;
+}
+
+.card-mesa__capacidade {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  opacity: 0.6;
+}

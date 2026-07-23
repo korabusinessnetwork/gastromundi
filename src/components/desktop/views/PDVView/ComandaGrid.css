@@ -11,6 +11,13 @@
  * ficam corretas se o tenant sobrescrever o tema (Fase 6), e uma
  * extração mais profunda por classes fica para uma leva futura,
  * dedicada só a isso (evita rushed change no fluxo de pagamento).
+ *
+ * TAMANHO DE FONTE vem da escala do design system (--fs-*/--lh-* de
+ * src/styles/tipografia.css), por classe — não mais inline via sz.*
+ * do JSX (mesmo padrão de ProductGrid.css). `sz` continua no JSX só
+ * para padding/gap/grid (layout), que seguem no sistema JS por
+ * breakpoint. Dinheiro/tempo usam tabular-nums; o nº de comanda/mesa
+ * em destaque (`.comanda-card__numero`) usa `--gm-font-mono`.
  */
 
 .comanda-grid__vazio {
@@ -26,6 +33,16 @@
 .comanda-grid__vazio-icone {
   font-size: 44px;
   opacity: 0.3;
+}
+
+.comanda-grid__vazio-titulo {
+  font-size: var(--fs-base);   /* role: corpo/título de estado vazio (era sz.fontBase + 1) */
+  line-height: var(--lh-base);
+}
+
+.comanda-grid__vazio-texto {
+  font-size: var(--fs-sm);   /* role: apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 .comanda-grid__lista-busca {
@@ -60,6 +77,16 @@
   font-weight: 900;
 }
 
+.comanda-grid__slot-titulo {
+  font-size: var(--fs-xl);   /* role: título (era sz.fontBase + 2) */
+  line-height: var(--lh-xl);
+}
+
+.comanda-grid__slot-subtexto {
+  font-size: var(--fs-sm);   /* role: apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
 .comanda-grid__item-busca {
   display: flex;
   align-items: center;
@@ -85,16 +112,45 @@
   font-size: 18px;
 }
 
+.comanda-grid__item-nome {
+  font-size: var(--fs-lg);   /* role: nome (era sz.fontBase + 1) */
+  line-height: var(--lh-lg);
+}
+
+.comanda-grid__item-meta {
+  font-size: var(--fs-sm);   /* role: apoio/label (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+.comanda-grid__item-emuso {
+  font-size: var(--fs-sm);   /* role: label (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
 .comanda-grid__tag-mesa {
   font-weight: 700;
   border-radius: 5px;
   padding: 1px 6px;
+  font-size: var(--fs-sm);   /* role: label/tag (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .comanda-grid__garcom {
   display: flex;
   align-items: center;
   gap: 3px;
+}
+
+.comanda-grid__item-valor {
+  font-size: var(--fs-lg);   /* role: valor money (era sz.fontBase + 1) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.comanda-grid__item-tempo {
+  font-size: var(--fs-sm);   /* role: tempo (era sz.fontSm) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .comanda-grid__paginacao {
@@ -112,6 +168,8 @@
   font-weight: 600;
   font-family: inherit;
   transition: background 0.15s;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .comanda-grid__ver-mais:hover {
@@ -143,6 +201,8 @@
 .comanda-card__numero {
   font-weight: 900;
   line-height: 1.1;
+  font-size: var(--fs-xl);   /* role: nº de comanda/mesa em destaque (era sz.fontLg - 1) */
+  font-family: var(--gm-font-mono);
 }
 
 .comanda-card__tempo {
@@ -154,6 +214,9 @@
   display: flex;
   align-items: center;
   gap: 3px;
+  font-size: var(--fs-sm);   /* role: tempo (era sz.fontSm - 1) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .comanda-card__meta {
@@ -161,6 +224,32 @@
   flex-wrap: wrap;
   gap: 5px;
   align-items: center;
+}
+
+.comanda-card__mensagem {
+  font-size: var(--fs-sm);   /* role: apoio/placeholder (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.comanda-card__nome {
+  font-size: var(--fs-lg);   /* role: nome (era sz.fontBase) */
+  line-height: var(--lh-lg);
+}
+
+.comanda-card__emuso {
+  font-size: var(--fs-sm);   /* role: label (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.comanda-card__tag-mesa {
+  border-radius: 6px;
+  font-size: var(--fs-sm);   /* role: label/tag (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.comanda-card__garcom {
+  font-size: var(--fs-sm);   /* role: label (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .comanda-card__rodape {
@@ -173,8 +262,13 @@
 
 .comanda-card__rodape-tag {
   border-radius: 6px;
+  font-size: var(--fs-sm);   /* role: label (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .comanda-card__rodape-total {
   font-weight: 800;
+  font-size: var(--fs-lg);   /* role: valor money (era sz.fontBase + 1) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }

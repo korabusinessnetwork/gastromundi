@@ -1,0 +1,51 @@
+/**
+ * Escala tipográfica — GastroMundi (design system: docs/02_DESIGN_SYSTEM/TIPOGRAFIA.md).
+ *
+ * >>> FONTE ÚNICA DE VERDADE de TAMANHO/altura de fonte. <<<
+ * É para o tamanho de texto o que tema.css é para a cor de marca.
+ *
+ * NÃO contém nenhuma cor. Migração da tipografia do PDV (JS → CSS): as telas
+ * deixam de dimensionar fonte inline via `sz.*` (src/constants/sizes.js →
+ * getSizes por breakpoint) e passam a usar estes tokens por classe de
+ * componente. `clamp()` entrega a responsividade fluida que antes era
+ * computada em JS por largura de tela. Um tenant pode sobrescrever qualquer
+ * --fs-* em runtime (ADR-007), como já faz com as cores.
+ *
+ * ATENÇÃO: CSS Custom Properties NÃO funcionam dentro de @media. Se precisar
+ * de um ponto de quebra literal, escreva o px direto na regra — nunca o token.
+ */
+
+:root {
+  /* Escala (rem/px @ raiz 16px). De lg pra cima usa clamp(): fluido no lugar
+     da curva por breakpoint do getSizes. Comentário = faixa min → max. */
+  --fs-xs:   0.75rem;                                      /* 12 */
+  --fs-sm:   0.875rem;                                     /* 14 */
+  --fs-base: 1rem;                                         /* 16 */
+  --fs-lg:   clamp(1.0625rem, 1rem   + 0.25vw, 1.125rem);  /* 17 → 18 */
+  --fs-xl:   clamp(1.125rem,  1.05rem + 0.35vw, 1.25rem);  /* 18 → 20 */
+  --fs-2xl:  clamp(1.25rem,   1.1rem  + 0.6vw,  1.5rem);   /* 20 → 24 */
+  --fs-3xl:  clamp(1.5rem,    1.3rem  + 0.9vw,  1.875rem); /* 24 → 30 */
+  --fs-4xl:  clamp(1.75rem,   1.4rem  + 1.6vw,  2.25rem);  /* 28 → 36 */
+  --fs-5xl:  clamp(2rem,      1.5rem  + 2.4vw,  3rem);     /* 32 → 48 */
+
+  /* Alturas de linha pareadas à escala (TIPOGRAFIA.md): corpo folgado,
+     títulos justos. */
+  --lh-xs:   1.5;
+  --lh-sm:   1.5;
+  --lh-base: 1.5;
+  --lh-lg:   1.4;
+  --lh-xl:   1.35;
+  --lh-2xl:  1.25;
+  --lh-3xl:  1.2;
+  --lh-4xl:  1.1;
+  --lh-5xl:  1.1;
+
+  /* Tracking: negativo só em títulos grandes (2xl+) para densidade premium;
+     0 no corpo; positivo em labels em caixa alta. */
+  --tracking-tight:  -0.011em;
+  --tracking-normal:  0;
+  --tracking-label:   0.06em;
+
+  /* Alvo de toque mínimo — princípio nº 1 (o PDV é tela de toque). */
+  --tap-min: 44px;
+}

@@ -3,6 +3,13 @@
  * (layout/cursor/transições/bordas fixas) para .css. Cores continuam
  * em `C` (muitas usam hex+alfa condicional — ver nota em
  * ComandaGrid.jsx sobre por que isso não é tokenizado nesta leva).
+ *
+ * TAMANHO DE FONTE migrado para a escala do design system (--fs-*/--lh-*
+ * de src/styles/tipografia.css), por classe — não mais inline via sz.*
+ * no JSX (mesmo padrão de ProductGrid.css). `sz` continua no JSX só
+ * para padding/gap/grid (layout). Total/troco são números HERO
+ * (--fs-2xl) com `font-variant-numeric: tabular-nums` — esta é a tela
+ * de troco, todo valor monetário/quantidade leva tabular-nums.
  */
 
 @keyframes checkout-slide-in {
@@ -33,7 +40,8 @@
   border-radius: 10px;
   padding: 10px 18px;
   font-weight: 700;
-  font-size: 18px;
+  font-size: var(--fs-base);   /* role: botão (era 18px) */
+  line-height: var(--lh-base);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -42,12 +50,14 @@
 
 .checkout-view__titulo {
   font-weight: 800;
-  font-size: 18px;
+  font-size: var(--fs-xl);   /* role: título de seção (era 18px) */
+  line-height: var(--lh-xl);
 }
 
 .checkout-view__subtitulo {
   color: var(--gm-muted);
-  font-size: 16px;
+  font-size: var(--fs-sm);   /* role: apoio/meta (era 16px) */
+  line-height: var(--lh-sm);
   margin-top: 2px;
 }
 
@@ -56,7 +66,8 @@
   cursor: pointer;
   padding: 10px 18px;
   font-weight: 700;
-  font-size: 17px;
+  font-size: var(--fs-base);   /* role: botão (era 17px) */
+  line-height: var(--lh-base);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -111,10 +122,33 @@
 
 .checkout-view__item-nome {
   font-weight: 700;
+  font-size: var(--fs-lg);   /* role: nome do item (era sz.fontLg - 1) */
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.checkout-view__item-emoji {
+  font-size: var(--fs-2xl);   /* role: glyph decorativo (era 20px) */
+  line-height: 1;
+}
+
+.checkout-view__item-qtd {
+  font-weight: 900;
+  font-size: var(--fs-lg);   /* role: quantidade em destaque (era 18px) */
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-view__item-qtd--compacta {
+  font-size: var(--fs-xs);   /* role: quantidade compacta ao lado do emoji (era 11px) */
+}
+
+.checkout-view__item-preco-unit {
+  font-size: var(--fs-base);   /* role: qty × preço unitário (era sz.fontBase) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
 }
 
 .checkout-view__item-obs {
@@ -122,10 +156,15 @@
   border-radius: 6px;
   padding: 3px 8px;
   display: inline-block;
+  font-size: var(--fs-base);   /* role: nota do item (era 18px) */
+  line-height: var(--lh-base);
 }
 
 .checkout-view__item-total {
   font-weight: 800;
+  font-size: var(--fs-lg);   /* role: valor money inline (era sz.fontLg) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
   text-align: right;
   flex-shrink: 0;
 }
@@ -144,6 +183,33 @@
   padding-bottom: 12px;
 }
 
+.checkout-view__taxa-label {
+  font-size: var(--fs-base);   /* role: label (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.checkout-view__btn-toggle-taxa {
+  font-size: var(--fs-sm);   /* role: botão pequeno (era sz.fontSm - 1) */
+  line-height: var(--lh-sm);
+}
+
+.checkout-view__taxa-valor,
+.checkout-view__ajuste-aplicado-valor {
+  font-size: var(--fs-lg);   /* role: valor money inline */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-view__ajuste-aplicado-label {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.checkout-view__btn-remover-ajuste {
+  font-size: var(--fs-xs);   /* role: link pequeno (era sz.fontSm - 2) */
+  line-height: var(--lh-xs);
+}
+
 .checkout-view__total-linha {
   display: flex;
   justify-content: space-between;
@@ -151,6 +217,17 @@
   padding-top: 16px;
   margin-top: 8px;
   border-top: 2px solid var(--gm-border);
+}
+
+.checkout-view__total-label {
+  font-size: var(--fs-lg);   /* role: label do total (era sz.fontLg) */
+  line-height: var(--lh-lg);
+}
+
+.checkout-view__total-valor {
+  font-size: var(--fs-2xl);   /* role: NÚMERO HERO — total (era sz.fontXl + 6) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
 }
 
 .checkout-view__pagamento {
@@ -166,19 +243,31 @@
 }
 
 .checkout-view__pagamento-titulo {
-  font-size: 16px;
+  font-size: var(--fs-xs);   /* role: caption/eyebrow (era 16px) */
+  line-height: var(--lh-xs);
   font-weight: 700;
   color: var(--gm-muted);
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: var(--tracking-label);
   margin-bottom: 4px;
+}
+
+.checkout-view__pagamento-subtitulo {
+  font-size: var(--fs-base);   /* role: apoio (era 17px) */
+  line-height: var(--lh-base);
+}
+
+.checkout-view__btn-pagamento-unico {
+  font-size: var(--fs-xs);   /* role: botão pequeno (era 13px) */
+  line-height: var(--lh-xs);
 }
 
 .checkout-view__btn-divisor {
   border-radius: 8px;
   cursor: pointer;
   padding: 6px 12px;
-  font-size: 13px;
+  font-size: var(--fs-xs);   /* role: botão pequeno (era 13px) */
+  line-height: var(--lh-xs);
   font-weight: 700;
   font-family: inherit;
   display: flex;
@@ -198,11 +287,35 @@
   flex-wrap: wrap;
 }
 
+.checkout-view__stepper-label,
+.checkout-view__stepper-unidade {
+  font-size: var(--fs-sm);   /* role: label (era 14px) */
+  line-height: var(--lh-sm);
+}
+
+.checkout-view__stepper-valor {
+  font-size: var(--fs-xl);   /* role: quantidade em destaque (era 20px) */
+  line-height: var(--lh-xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-view__stepper-estimativa {
+  font-size: var(--fs-xs);   /* role: hint com valor money (era 13px) */
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-view__btn-dividir {
+  font-size: var(--fs-sm);   /* role: botão (era 14px) */
+  line-height: var(--lh-sm);
+}
+
 .checkout-view__stepper-btn {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  font-size: 18px;
+  font-size: var(--fs-base);   /* role: glyph +/- (era 18px) */
+  line-height: var(--lh-base);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -240,7 +353,8 @@
   padding: 5px 12px;
   border-radius: 8px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: var(--fs-xs);   /* role: chip pequeno (era 13px) */
+  line-height: var(--lh-xs);
   cursor: pointer;
   font-family: inherit;
   transition: all 0.12s;
@@ -257,7 +371,8 @@
   left: 10px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 13px;
+  font-size: var(--fs-xs);   /* role: prefixo R$ (era 13px) */
+  line-height: var(--lh-xs);
   font-weight: 700;
   pointer-events: none;
 }
@@ -266,12 +381,14 @@
   width: 100%;
   padding: 8px 8px 8px 34px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--fs-sm);   /* role: input de valor (era 14px) */
+  line-height: var(--lh-sm);
   font-weight: 700;
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s;
+  font-variant-numeric: tabular-nums;
 }
 
 .checkout-view__btn-remover-split {
@@ -292,15 +409,28 @@
   gap: 8px;
 }
 
+.checkout-view__recebido-label {
+  font-size: var(--fs-xs);   /* role: label (era 13px) */
+  line-height: var(--lh-xs);
+}
+
 .checkout-view__recebido-input {
   width: 100%;
   padding: 6px 8px 6px 34px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: var(--fs-sm);   /* role: input de valor (era 13px, bump p/ escala) */
+  line-height: var(--lh-sm);
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-view__split-troco {
+  font-size: var(--fs-xs);   /* role: troco/falta por pagamento (era 13px) */
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .checkout-view__falta-alocar {
@@ -311,13 +441,25 @@
   align-items: center;
 }
 
+.checkout-view__falta-label {
+  font-size: var(--fs-sm);   /* role: label (era 14px) */
+  line-height: var(--lh-sm);
+}
+
+.checkout-view__falta-valor {
+  font-size: var(--fs-sm);   /* role: valor money (era 15px) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
 .checkout-view__btn-adicionar-outro {
   padding: 11px;
   border-radius: 10px;
   background: none;
   cursor: pointer;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--fs-sm);   /* role: botão (era 14px) */
+  line-height: var(--lh-sm);
   font-family: inherit;
   transition: border-color 0.12s, color 0.12s;
 }
@@ -343,6 +485,8 @@
   border-radius: 16px;
   cursor: pointer;
   font-weight: 700;
+  font-size: var(--fs-lg);   /* role: label do método (era sz.fontLg) */
+  line-height: var(--lh-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -363,6 +507,11 @@
   transition: background 0.15s, border-color 0.15s;
 }
 
+.checkout-view__metodo-offline-nota {
+  font-size: var(--fs-xs);   /* role: caption (era 12px) */
+  line-height: var(--lh-xs);
+}
+
 .checkout-view__troco {
   display: flex;
   flex-direction: column;
@@ -374,6 +523,11 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.2px;
+}
+
+.checkout-view__troco-opcional {
+  font-size: var(--fs-sm);   /* role: apoio (era 14px) */
+  line-height: var(--lh-sm);
 }
 
 .checkout-view__troco-input-wrap {
@@ -393,6 +547,9 @@
   padding: 16px 18px 16px 56px;
   border-radius: 12px;
   font-weight: 700;
+  font-size: var(--fs-2xl);   /* role: NÚMERO HERO — recebido em dinheiro (era sz.fontXl - 2, CSS estava inerte) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
   box-sizing: border-box;
   font-family: inherit;
   outline: none;
@@ -407,6 +564,17 @@
   align-items: center;
 }
 
+.checkout-view__troco-resultado-label {
+  font-size: var(--fs-base);   /* role: label (era sz.fontBase + 1) */
+  line-height: var(--lh-base);
+}
+
+.checkout-view__troco-resultado-valor {
+  font-size: var(--fs-2xl);   /* role: NÚMERO HERO — troco/falta (era sz.fontXl - 2, CSS estava inerte) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
 .checkout-view__rodape-confirmar {
   padding: 20px 32px 28px;
   border-top: 1px solid var(--gm-border);
@@ -415,8 +583,14 @@
   gap: 10px;
 }
 
+.checkout-view__label-fiado {
+  font-size: var(--fs-xs);   /* role: label (era 13px) */
+  line-height: var(--lh-xs);
+}
+
 .checkout-view__aviso-confirmar {
-  font-size: 16px;
+  font-size: var(--fs-base);   /* role: corpo (era 16px) */
+  line-height: var(--lh-base);
   text-align: center;
   margin-bottom: 4px;
 }
@@ -428,7 +602,8 @@
   border: none;
   color: #fff;
   font-weight: 800;
-  font-size: 18px;
+  font-size: var(--fs-lg);   /* role: CTA principal do PDV (era 18px) */
+  line-height: var(--lh-lg);
   letter-spacing: 0.3px;
   transition: background 0.2s, box-shadow 0.2s;
 }
@@ -462,6 +637,17 @@
   justify-content: space-between;
 }
 
+.checkout-view__modal-titulo {
+  font-size: var(--fs-xl);   /* role: título de seção/modal (era sz.fontXl) */
+  line-height: var(--lh-xl);
+}
+
+.checkout-view__modal-subtitulo {
+  font-size: var(--fs-base);   /* role: apoio com valor money (era sz.fontBase) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+
 .checkout-view__modal-fechar {
   background: none;
   border: none;
@@ -482,6 +668,16 @@
   transition: all 0.15s;
 }
 
+.checkout-view__modal-tipo-nome {
+  font-size: var(--fs-lg);   /* role: nome da opção (era sz.fontLg) */
+  line-height: var(--lh-lg);
+}
+
+.checkout-view__modal-tipo-sub {
+  font-size: var(--fs-sm);   /* role: apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
 .checkout-view__modal-modo {
   display: flex;
   border-radius: 10px;
@@ -495,7 +691,15 @@
   border: none;
   cursor: pointer;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: botão (era sz.fontBase) */
+  line-height: var(--lh-base);
   transition: all 0.15s;
+}
+
+.checkout-view__modal-input-label {
+  font-size: var(--fs-xs);   /* role: caption/eyebrow uppercase (era sz.fontSm) */
+  line-height: var(--lh-xs);
+  letter-spacing: var(--tracking-label);
 }
 
 .checkout-view__modal-input-wrap {
@@ -508,6 +712,8 @@
   top: 50%;
   transform: translateY(-50%);
   font-weight: 700;
+  font-size: var(--fs-lg);   /* role: prefixo %/R$ (era sz.fontLg) */
+  line-height: var(--lh-lg);
   pointer-events: none;
   user-select: none;
 }
@@ -519,6 +725,9 @@
   font-weight: 800;
   font-family: inherit;
   outline: none;
+  font-size: var(--fs-2xl);   /* role: NÚMERO HERO — valor do ajuste (era sz.fontXl + 4) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
   transition: border-color 0.15s;
 }
 
@@ -532,6 +741,27 @@
   justify-content: space-between;
 }
 
+.checkout-view__preview-label,
+.checkout-view__preview-valor {
+  font-size: var(--fs-base);   /* role: linha de preview (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.checkout-view__preview-valor {
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-view__preview-total-label {
+  font-size: var(--fs-lg);   /* role: label do novo total (era sz.fontLg) */
+  line-height: var(--lh-lg);
+}
+
+.checkout-view__preview-total-valor {
+  font-size: var(--fs-2xl);   /* role: NÚMERO HERO — novo total (era sz.fontXl + 2) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
 .checkout-view__modal-acoes {
   display: flex;
 }
@@ -541,6 +771,8 @@
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .checkout-view__modal-btn-aplicar {
@@ -549,6 +781,8 @@
   color: #fff;
   font-weight: 800;
   font-family: inherit;
+  font-size: var(--fs-lg);   /* role: CTA do modal (era sz.fontLg) */
+  line-height: var(--lh-lg);
   transition: background 0.15s, box-shadow 0.15s;
 }
 
@@ -559,7 +793,8 @@
   cursor: pointer;
   padding: 10px 18px;
   font-weight: 700;
-  font-size: 17px;
+  font-size: var(--fs-base);   /* role: botão (era 17px) */
+  line-height: var(--lh-base);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -583,7 +818,8 @@
 .checkout-view__lista-vazia {
   padding: 32px 0;
   text-align: center;
-  font-size: 16px;
+  font-size: var(--fs-base);   /* role: estado vazio (era 16px) */
+  line-height: var(--lh-base);
   font-weight: 600;
 }
 
@@ -595,7 +831,8 @@
 }
 
 .checkout-view__remover-dica {
-  font-size: 14px;
+  font-size: var(--fs-sm);   /* role: hint (era 14px) */
+  line-height: var(--lh-sm);
   font-weight: 600;
   text-align: center;
 }
@@ -605,7 +842,8 @@
   cursor: pointer;
   padding: 10px 16px;
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--fs-sm);   /* role: botão (era 15px) */
+  line-height: var(--lh-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -621,11 +859,26 @@
   gap: 10px;
 }
 
+.checkout-view__remocao-qty-de,
+.checkout-view__remocao-aviso,
+.checkout-view__remocao-senha-erro,
+.checkout-view__remocao-erro-geral {
+  font-size: var(--fs-sm);   /* role: label/aviso (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.checkout-view__remocao-contador {
+  font-size: var(--fs-xs);   /* role: caption (era 12px) */
+  line-height: var(--lh-xs);
+}
+
 .checkout-view__remocao-qty-input {
   width: 72px;
   border-radius: 10px;
   padding: 10px 0;
-  font-size: 20px;
+  font-size: var(--fs-xl);   /* role: quantidade em destaque (era 20px) */
+  line-height: var(--lh-xl);
+  font-variant-numeric: tabular-nums;
   font-weight: 900;
   text-align: center;
   font-family: inherit;
@@ -636,7 +889,8 @@
   width: 100%;
   border-radius: 10px;
   padding: 10px 12px;
-  font-size: 16px;
+  font-size: var(--fs-base);   /* role: corpo (era 16px) */
+  line-height: var(--lh-base);
   font-family: inherit;
   resize: none;
   outline: none;
@@ -647,7 +901,8 @@
   width: 100%;
   border-radius: 10px;
   padding: 10px 44px 10px 12px;
-  font-size: 16px;
+  font-size: var(--fs-base);   /* role: corpo/input (era 16px) */
+  line-height: var(--lh-base);
   font-family: inherit;
   outline: none;
   box-sizing: border-box;

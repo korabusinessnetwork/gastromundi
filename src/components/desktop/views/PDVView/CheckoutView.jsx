@@ -333,28 +333,28 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     background: "var(--gm-alow)", border: `1.5px solid ${alfa(C.accent, "44")}`,
                   }}>
                     {item.emoji
-                      ? <span style={{ fontSize: 20, lineHeight: 1 }}>{item.emoji}</span>
+                      ? <span className="checkout-view__item-emoji">{item.emoji}</span>
                       : null}
-                    <span style={{ fontWeight: 900, fontSize: item.emoji ? 11 : 18, color: varColor(C.accent), lineHeight: 1 }}>×{qty}</span>
+                    <span className={`checkout-view__item-qtd${item.emoji ? " checkout-view__item-qtd--compacta" : ""}`} style={{ color: varColor(C.accent) }}>×{qty}</span>
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="checkout-view__item-nome" style={{ fontSize: sz.fontLg - 1 }}>
+                    <div className="checkout-view__item-nome">
                       {item.name}
                     </div>
-                    <div style={{ fontSize: sz.fontBase, color: varColor(C.muted), marginTop: 4 }}>
+                    <div className="checkout-view__item-preco-unit" style={{ color: varColor(C.muted), marginTop: 4 }}>
                       {qty}× R$ {Number(item.price).toFixed(2)}
                     </div>
                     {obsArr.map((obs, j) => (
                       <div key={j} className="checkout-view__item-obs" style={{
-                        fontSize: 18, color: varColor(C.accent), background: "var(--gm-alow)",
+                        color: varColor(C.accent), background: "var(--gm-alow)",
                       }}>
                         📝 {obs}
                       </div>
                     ))}
                   </div>
 
-                  <div className="checkout-view__item-total" style={{ fontSize: sz.fontLg, color: varColor(C.text) }}>
+                  <div className="checkout-view__item-total" style={{ color: varColor(C.text) }}>
                     R$ {(item.price * qty).toFixed(2)}
                   </div>
 
@@ -412,11 +412,12 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
             {taxaServico && (
               <div className="checkout-view__linha-ajuste">
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: sz.fontBase, color: varColor(C.muted), fontWeight: 600 }}>Taxa de Serviço (10%)</span>
+                  <span className="checkout-view__taxa-label" style={{ color: varColor(C.muted), fontWeight: 600 }}>Taxa de Serviço (10%)</span>
                   <button
                     onClick={() => setAplicarTaxa(v => !v)}
+                    className="checkout-view__btn-toggle-taxa"
                     style={{
-                      fontSize: sz.fontSm - 1, fontWeight: 700, padding: "3px 10px",
+                      fontWeight: 700, padding: "3px 10px",
                       borderRadius: 8, border: `1.5px solid ${aplicarTaxa ? alfa(C.red, "88") : alfa(C.green, "88")}`,
                       background: aplicarTaxa ? alfa(C.red, "15") : alfa(C.green, "15"),
                       color: aplicarTaxa ? varColor(C.red) : varColor(C.green),
@@ -426,7 +427,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     {aplicarTaxa ? "Remover" : "Aplicar"}
                   </button>
                 </div>
-                <span style={{ fontWeight: 700, fontSize: sz.fontBase, color: aplicarTaxa ? varColor(C.text) : varColor(C.muted), textDecoration: aplicarTaxa ? "none" : "line-through" }}>
+                <span className="checkout-view__taxa-valor" style={{ fontWeight: 700, color: aplicarTaxa ? varColor(C.text) : varColor(C.muted), textDecoration: aplicarTaxa ? "none" : "line-through" }}>
                   R$ {(subtotal * 0.10).toFixed(2)}
                 </span>
               </div>
@@ -436,14 +437,15 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
             {ajusteAplicado && valorAjuste !== 0 && (
               <div className="checkout-view__linha-ajuste">
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: sz.fontSm, color: ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green) }}>
+                  <span className="checkout-view__ajuste-aplicado-label" style={{ color: ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green) }}>
                     {ajusteAplicado.tipo === "desconto" ? "Desconto" : "Acréscimo"}
                     {" "}({ajusteAplicado.mode === "percentual" ? `${ajusteAplicado.valor}%` : `R$ ${parseFloat(ajusteAplicado.valor).toFixed(2)}`})
                   </span>
                   <button
                     onClick={() => setAjusteAplicado(null)}
+                    className="checkout-view__btn-remover-ajuste"
                     style={{
-                      fontSize: sz.fontSm - 2, fontWeight: 700, padding: "2px 8px",
+                      fontWeight: 700, padding: "2px 8px",
                       borderRadius: 6, border: `1px solid var(${C.border})`,
                       background: "transparent", color: varColor(C.muted),
                       cursor: "pointer", fontFamily: "inherit",
@@ -452,7 +454,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     Remover
                   </button>
                 </div>
-                <span style={{ fontWeight: 700, fontSize: sz.fontBase, color: ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green) }}>
+                <span className="checkout-view__ajuste-aplicado-valor" style={{ fontWeight: 700, color: ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green) }}>
                   {valorAjuste < 0 ? "-" : "+"}R$ {Math.abs(valorAjuste).toFixed(2)}
                 </span>
               </div>
@@ -460,8 +462,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
 
             {/* Total */}
             <div className="checkout-view__total-linha" style={{ borderTop: `2px solid var(${C.border})` }}>
-              <span style={{ fontWeight: 800, fontSize: sz.fontLg, color: varColor(C.muted) }}>Total</span>
-              <span style={{ fontWeight: 900, fontSize: sz.fontXl + 6, color: varColor(C.green) }}>
+              <span className="checkout-view__total-label" style={{ fontWeight: 800, color: varColor(C.muted) }}>Total</span>
+              <span className="checkout-view__total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>
                 R$ {total.toFixed(2)}
               </span>
             </div>
@@ -478,17 +480,18 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   <div className="checkout-view__pagamento-titulo" style={{ color: varColor(C.muted) }}>
                     Forma de Pagamento
                   </div>
-                  <div style={{ fontSize: 17, color: varColor(C.muted) }}>
+                  <div className="checkout-view__pagamento-subtitulo" style={{ color: varColor(C.muted) }}>
                     {isSplit ? `${pagamentos.length} pagamentos · R$ ${total.toFixed(2)} total` : "Selecione como o cliente vai pagar"}
                   </div>
                 </div>
                 {isSplit ? (
                   <button
                     onClick={voltarParaUnico}
+                    className="checkout-view__btn-pagamento-unico"
                     style={{
                       background: "none", border: `1px solid var(${C.border})`,
                       borderRadius: 8, color: varColor(C.muted), cursor: "pointer",
-                      padding: "6px 12px", fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+                      padding: "6px 12px", fontWeight: 600, fontFamily: "inherit",
                     }}
                   >
                     Pagamento único
@@ -513,7 +516,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                 <div className="checkout-view__stepper" style={{
                   background: varColor(C.surface), border: `1.5px solid ${alfa(C.accent, "44")}`,
                 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: varColor(C.muted), whiteSpace: "nowrap" }}>Dividir entre</span>
+                  <span className="checkout-view__stepper-label" style={{ fontWeight: 600, color: varColor(C.muted), whiteSpace: "nowrap" }}>Dividir entre</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <button
                       onClick={() => setNPessoas(n => Math.max(2, n - 1))}
@@ -524,7 +527,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                         cursor: nPessoas <= 2 ? "not-allowed" : "pointer", opacity: nPessoas <= 2 ? 0.4 : 1,
                       }}
                     >−</button>
-                    <span style={{ fontSize: 20, fontWeight: 900, color: varColor(C.text), minWidth: 32, textAlign: "center" }}>{nPessoas}</span>
+                    <span className="checkout-view__stepper-valor" style={{ fontWeight: 900, color: varColor(C.text), minWidth: 32, textAlign: "center" }}>{nPessoas}</span>
                     <button
                       onClick={() => setNPessoas(n => Math.min(10, n + 1))}
                       className="checkout-view__stepper-btn"
@@ -535,15 +538,16 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                       }}
                     >+</button>
                   </div>
-                  <span style={{ fontSize: 14, color: varColor(C.muted) }}>pessoas</span>
-                  <span style={{ fontSize: 13, color: varColor(C.muted), flex: 1 }}>
+                  <span className="checkout-view__stepper-unidade" style={{ color: varColor(C.muted) }}>pessoas</span>
+                  <span className="checkout-view__stepper-estimativa" style={{ color: varColor(C.muted), flex: 1 }}>
                     ≈ R$ {(total / nPessoas).toFixed(2)} cada
                   </span>
                   <button
                     onClick={() => dividirPagamento(nPessoas)}
+                    className="checkout-view__btn-dividir"
                     style={{
                       padding: "8px 16px", borderRadius: 8, border: "none",
-                      background: varColor(C.accent), color: "#fff", fontWeight: 700, fontSize: 14,
+                      background: varColor(C.accent), color: "#fff", fontWeight: 700,
                       cursor: "pointer", fontFamily: "inherit",
                       boxShadow: `0 2px 8px ${alfa(C.accent, "44")}`,
                     }}
@@ -619,7 +623,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                       {/* Linha 2: dinheiro → recebido + troco */}
                       {p.metodo === "dinheiro" && (
                         <div className="checkout-view__split-recebido">
-                          <span style={{ fontSize: 13, color: varColor(C.muted), fontWeight: 600, whiteSpace: "nowrap" }}>Recebido:</span>
+                          <span className="checkout-view__recebido-label" style={{ color: varColor(C.muted), fontWeight: 600, whiteSpace: "nowrap" }}>Recebido:</span>
                           <div style={{ position: "relative", flex: 1 }}>
                             <span className="checkout-view__input-prefixo" style={{ color: varColor(C.muted) }}>R$</span>
                             <input
@@ -637,8 +641,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                             />
                           </div>
                           {(p.recebido || 0) > 0 && (
-                            <span style={{
-                              fontSize: 13, fontWeight: 700,
+                            <span className="checkout-view__split-troco" style={{
+                              fontWeight: 700,
                               color: trocoP >= 0 ? varColor(C.green) : varColor(C.accent),
                               minWidth: 90, textAlign: "right", whiteSpace: "nowrap",
                             }}>
@@ -657,10 +661,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     background: faltaAlocar > 0 ? alfa(C.accent, "14") : alfa(C.red, "14"),
                     border: `1.5px solid ${alfa(faltaAlocar > 0 ? varColor(C.accent) : varColor(C.red), "55")}`,
                   }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: faltaAlocar > 0 ? varColor(C.accent) : varColor(C.red) }}>
+                    <span className="checkout-view__falta-label" style={{ fontWeight: 700, color: faltaAlocar > 0 ? varColor(C.accent) : varColor(C.red) }}>
                       {faltaAlocar > 0 ? "Falta alocar" : "Valor excede o total"}
                     </span>
-                    <span style={{ fontSize: 15, fontWeight: 900, color: faltaAlocar > 0 ? varColor(C.accent) : varColor(C.red) }}>
+                    <span className="checkout-view__falta-valor" style={{ fontWeight: 900, color: faltaAlocar > 0 ? varColor(C.accent) : varColor(C.red) }}>
                       R$ {Math.abs(faltaAlocar).toFixed(2)}
                     </span>
                   </div>
@@ -702,7 +706,6 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                           border: `2px solid ${ativo ? varColor(C.accent) : varColor(C.border)}`,
                           background: ativo ? "var(--gm-alow)" : varColor(C.surface),
                           color: ativo ? varColor(C.accent) : varColor(C.text),
-                          fontSize: sz.fontLg,
                           boxShadow: ativo ? `0 0 0 4px ${alfa(C.accent, "22")}` : "none",
                           opacity: indisponivel ? 0.4 : 1,
                           cursor: indisponivel ? "not-allowed" : "pointer",
@@ -716,7 +719,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                           <m.Icon size={24} />
                         </div>
                         {m.label}{indisponivel && (
-                          <span style={{ display: "block", fontSize: 12, fontWeight: 600 }}>sem internet</span>
+                          <span className="checkout-view__metodo-offline-nota" style={{ display: "block", fontWeight: 600 }}>sem internet</span>
                         )}
                       </button>
                     );
@@ -726,7 +729,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                 {singleMetodo === "dinheiro" && (
                   <div className="checkout-view__troco">
                     <label className="checkout-view__troco-label" style={{ color: varColor(C.muted) }}>
-                      Calcular Troco <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, fontSize: 14 }}>(opcional)</span>
+                      Calcular Troco <span className="checkout-view__troco-opcional" style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span>
                     </label>
                     <div className="checkout-view__troco-input-wrap">
                       <span className="checkout-view__troco-prefixo" style={{ color: varColor(C.muted) }}>
@@ -744,7 +747,6 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                         style={{
                           border: `1.5px solid var(${C.border})`,
                           background: varColor(C.surface), color: varColor(C.text),
-                          fontSize: sz.fontXl - 2,
                         }}
                         onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
                         onBlur={e => e.currentTarget.style.borderColor = varColor(C.border)}
@@ -756,10 +758,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                         background: singleTroco >= 0 ? alfa(C.green, "14") : alfa(C.accent, "14"),
                         border: `1.5px solid ${alfa(singleTroco >= 0 ? varColor(C.green) : varColor(C.accent), "55")}`,
                       }}>
-                        <span style={{ fontSize: sz.fontBase + 1, fontWeight: 700, color: varColor(C.muted) }}>
+                        <span className="checkout-view__troco-resultado-label" style={{ fontWeight: 700, color: varColor(C.muted) }}>
                           {singleTroco >= 0 ? "Troco" : "Falta"}
                         </span>
-                        <span style={{ fontSize: sz.fontXl - 2, fontWeight: 900, color: singleTroco >= 0 ? varColor(C.green) : varColor(C.accent) }}>
+                        <span className="checkout-view__troco-resultado-valor" style={{ fontWeight: 900, color: singleTroco >= 0 ? varColor(C.green) : varColor(C.accent) }}>
                           R$ {Math.abs(singleTroco).toFixed(2)}
                         </span>
                       </div>
@@ -772,7 +774,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
             <div className="checkout-view__rodape-confirmar" style={{ borderTop: `1px solid var(${C.border})` }}>
               {usaFiado && (
                 <div style={{ marginBottom: 4 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: varColor(C.muted), marginBottom: 6 }}>
+                  <div className="checkout-view__label-fiado" style={{ fontWeight: 700, color: varColor(C.muted), marginBottom: 6 }}>
                     Cliente do fiado
                   </div>
                   <ClienteFiadoSelector
@@ -830,8 +832,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
             {/* Header */}
             <div className="checkout-view__modal-header" style={{ padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})` }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: sz.fontXl, color: "#fff" }}>Desconto / Acréscimo</div>
-                <div style={{ fontSize: sz.fontBase, fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>Total atual: R$ {baseComTaxa.toFixed(2)}</div>
+                <div className="checkout-view__modal-titulo" style={{ fontWeight: 800, color: "#fff" }}>Desconto / Acréscimo</div>
+                <div className="checkout-view__modal-subtitulo" style={{ fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>Total atual: R$ {baseComTaxa.toFixed(2)}</div>
               </div>
               <button onClick={() => setShowAjuste(false)} className="checkout-view__modal-fechar" style={{ color: varColor(C.muted) }}>
                 <LuX size={sz.fontLg} />
@@ -851,8 +853,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     border: `2px solid ${ajusteTipo === t.id ? t.color : varColor(C.border)}`,
                     background: ajusteTipo === t.id ? alfa(t.color, "18") : varColor(C.surface),
                   }}>
-                    <div style={{ fontWeight: 800, fontSize: sz.fontLg, color: ajusteTipo === t.id ? t.color : varColor(C.text) }}>{t.label}</div>
-                    <div style={{ fontSize: sz.fontSm, color: ajusteTipo === t.id ? alfa(t.color, "bb") : varColor(C.muted), marginTop: 4 }}>{t.sub}</div>
+                    <div className="checkout-view__modal-tipo-nome" style={{ fontWeight: 800, color: ajusteTipo === t.id ? t.color : varColor(C.text) }}>{t.label}</div>
+                    <div className="checkout-view__modal-tipo-sub" style={{ color: ajusteTipo === t.id ? alfa(t.color, "bb") : varColor(C.muted), marginTop: 4 }}>{t.sub}</div>
                   </button>
                 ))}
               </div>
@@ -865,7 +867,6 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     background: ajusteMode === m.id ? varColor(C.card) : "transparent",
                     color: ajusteMode === m.id ? varColor(C.text) : varColor(C.muted),
                     fontWeight: ajusteMode === m.id ? 700 : 500,
-                    fontSize: sz.fontBase,
                     boxShadow: ajusteMode === m.id ? "0 1px 4px rgba(0,0,0,0.2)" : "none",
                   }}>
                     {m.label}
@@ -875,11 +876,11 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
 
               {/* Input */}
               <div>
-                <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                <div className="checkout-view__modal-input-label" style={{ fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
                   {ajusteMode === "percentual" ? "Percentual de " : "Valor de "}{ajusteTipo === "desconto" ? "desconto" : "acréscimo"}
                 </div>
                 <div className="checkout-view__modal-input-wrap">
-                  <span className="checkout-view__modal-input-prefixo" style={{ color: varColor(C.muted), fontSize: sz.fontLg }}>
+                  <span className="checkout-view__modal-input-prefixo" style={{ color: varColor(C.muted) }}>
                     {ajusteMode === "percentual" ? "%" : "R$"}
                   </span>
                   <input
@@ -901,7 +902,6 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     style={{
                       padding: `${sz.padSm}px ${sz.padSm}px ${sz.padSm}px 52px`,
                       border: `2px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text),
-                      fontSize: sz.fontXl + 4,
                     }}
                     onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "99")}
                     onBlur={e => e.currentTarget.style.borderColor = varColor(C.border)}
@@ -918,16 +918,16 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                 return (
                   <div className="checkout-view__preview" style={{ border: `1.5px solid ${alfa(cor, "55")}`, background: alfa(cor, "0c") }}>
                     <div className="checkout-view__preview-linha" style={{ padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${alfa(cor, "22")}` }}>
-                      <span style={{ fontSize: sz.fontBase, color: varColor(C.muted) }}>Total atual</span>
-                      <span style={{ fontSize: sz.fontBase, fontWeight: 700, color: varColor(C.muted) }}>R$ {baseComTaxa.toFixed(2)}</span>
+                      <span className="checkout-view__preview-label" style={{ color: varColor(C.muted) }}>Total atual</span>
+                      <span className="checkout-view__preview-valor" style={{ fontWeight: 700, color: varColor(C.muted) }}>R$ {baseComTaxa.toFixed(2)}</span>
                     </div>
                     <div className="checkout-view__preview-linha" style={{ padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${alfa(cor, "22")}` }}>
-                      <span style={{ fontSize: sz.fontBase, color: cor, fontWeight: 600 }}>{ajusteTipo === "desconto" ? "− Desconto" : "+ Acréscimo"}</span>
-                      <span style={{ fontSize: sz.fontBase, fontWeight: 700, color: cor }}>{ajusteTipo === "desconto" ? "−" : "+"}R$ {val.toFixed(2)}</span>
+                      <span className="checkout-view__preview-label" style={{ color: cor, fontWeight: 600 }}>{ajusteTipo === "desconto" ? "− Desconto" : "+ Acréscimo"}</span>
+                      <span className="checkout-view__preview-valor" style={{ fontWeight: 700, color: cor }}>{ajusteTipo === "desconto" ? "−" : "+"}R$ {val.toFixed(2)}</span>
                     </div>
                     <div className="checkout-view__preview-linha" style={{ alignItems: "center", padding: `${sz.padSm}px ${sz.padSm}px` }}>
-                      <span style={{ fontSize: sz.fontLg, fontWeight: 700, color: varColor(C.text) }}>Novo Total</span>
-                      <span style={{ fontSize: sz.fontXl + 2, fontWeight: 900, color: cor }}>R$ {novoTotal.toFixed(2)}</span>
+                      <span className="checkout-view__preview-total-label" style={{ fontWeight: 700, color: varColor(C.text) }}>Novo Total</span>
+                      <span className="checkout-view__preview-total-valor" style={{ fontWeight: 900, color: cor }}>R$ {novoTotal.toFixed(2)}</span>
                     </div>
                   </div>
                 );
@@ -942,7 +942,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     style={{
                       flex: 1, padding: `${sz.gap}px`,
                       border: `1.5px solid var(${C.border})`, background: "none",
-                      color: varColor(C.muted), fontSize: sz.fontBase,
+                      color: varColor(C.muted),
                     }}
                   >
                     Remover
@@ -959,7 +959,6 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   style={{
                     flex: 2, padding: `${sz.gap}px`,
                     background: parseFloat(ajusteValor) > 0 ? varColor(C.accent) : varColor(C.faint),
-                    fontSize: sz.fontLg,
                     cursor: parseFloat(ajusteValor) > 0 ? "pointer" : "not-allowed",
                     boxShadow: parseFloat(ajusteValor) > 0 ? `0 4px 20px ${alfa(C.accent, "44")}` : "none",
                   }}
@@ -984,8 +983,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
           }}>
             <div className="checkout-view__modal-header" style={{ padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})` }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: sz.fontXl, color: varColor(C.red) }}>Remover produto</div>
-                <div style={{ fontSize: sz.fontBase, fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>
+                <div className="checkout-view__modal-titulo" style={{ fontWeight: 800, color: varColor(C.red) }}>Remover produto</div>
+                <div className="checkout-view__modal-subtitulo" style={{ fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>
                   {remocao.item.name} · R$ {Number(remocao.item.price).toFixed(2)}
                 </div>
               </div>
@@ -999,7 +998,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
               {/* Quantidade (só quando há mais de 1) */}
               {remocao.qtyMax > 1 && (
                 <div>
-                  <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                  <div className="checkout-view__modal-input-label" style={{ fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
                     Quantidade a remover
                   </div>
                   <div className="checkout-view__remocao-stepper">
@@ -1033,10 +1032,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                         opacity: remocao.qtySel >= remocao.qtyMax ? 0.4 : 1,
                       }}
                     ><LuPlus size={16} /></button>
-                    <span style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>de {remocao.qtyMax}</span>
+                    <span className="checkout-view__remocao-qty-de" style={{ color: varColor(C.muted) }}>de {remocao.qtyMax}</span>
                   </div>
                   {remocao.qtySel >= remocao.qtyMax && (
-                    <div style={{ fontSize: sz.fontSm, color: varColor(C.red), fontWeight: 600, marginTop: 6 }}>
+                    <div className="checkout-view__remocao-aviso" style={{ color: varColor(C.red), fontWeight: 600, marginTop: 6 }}>
                       Todos os itens serão removidos
                     </div>
                   )}
@@ -1045,7 +1044,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
 
               {/* Motivo (obrigatório) */}
               <div>
-                <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                <div className="checkout-view__modal-input-label" style={{ fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
                   Motivo (obrigatório)
                 </div>
                 <textarea
@@ -1057,14 +1056,14 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   className="checkout-view__remocao-motivo"
                   style={{ border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text) }}
                 />
-                <div style={{ fontSize: 12, color: varColor(C.muted), textAlign: "right", marginTop: 2 }}>
+                <div className="checkout-view__remocao-contador" style={{ color: varColor(C.muted), textAlign: "right", marginTop: 2 }}>
                   {remocao.motivo.length}/200
                 </div>
               </div>
 
               {/* Senha de gerente/admin */}
               <div>
-                <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>
+                <div className="checkout-view__modal-input-label" style={{ fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>
                   <LuLock size={13} /> Senha de gerente ou admin
                 </div>
                 <div style={{ position: "relative" }}>
@@ -1089,14 +1088,14 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   </button>
                 </div>
                 {remSenhaErro && (
-                  <div style={{ fontSize: sz.fontSm, color: varColor(C.red), fontWeight: 600, marginTop: 6 }}>
+                  <div className="checkout-view__remocao-senha-erro" style={{ color: varColor(C.red), fontWeight: 600, marginTop: 6 }}>
                     Senha incorreta. Apenas admin ou gerente pode cancelar itens.
                   </div>
                 )}
               </div>
 
               {remErro && (
-                <div role="alert" style={{ fontSize: sz.fontSm, color: varColor(C.red), fontWeight: 700 }}>
+                <div role="alert" className="checkout-view__remocao-erro-geral" style={{ color: varColor(C.red), fontWeight: 700 }}>
                   {remErro}
                 </div>
               )}
@@ -1110,7 +1109,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   style={{
                     flex: 1, padding: `${sz.gap}px`,
                     border: `1.5px solid var(${C.border})`, background: "none",
-                    color: varColor(C.muted), fontSize: sz.fontBase,
+                    color: varColor(C.muted),
                     cursor: removendo ? "not-allowed" : "pointer",
                   }}
                 >
@@ -1123,7 +1122,6 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   style={{
                     flex: 2, padding: `${sz.gap}px`,
                     background: remocao.motivo.trim() && remSenha.trim() && !removendo ? varColor(C.red) : varColor(C.faint),
-                    fontSize: sz.fontLg,
                     cursor: remocao.motivo.trim() && remSenha.trim() && !removendo ? "pointer" : "not-allowed",
                     boxShadow: remocao.motivo.trim() && remSenha.trim() && !removendo ? `0 4px 20px ${alfa(varColor(C.red), "44")}` : "none",
                   }}

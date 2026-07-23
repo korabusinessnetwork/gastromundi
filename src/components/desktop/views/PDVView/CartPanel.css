@@ -6,6 +6,11 @@
  * ComandaGrid.jsx sobre por que isso não é tokenizado nesta leva
  * (CSS Custom Properties não suportam sufixo de alfa em hex; um
  * color-mix() mudaria a opacidade exata renderizada).
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-*/--lh-* de
+ * src/styles/tipografia.css), por classe de componente — não mais inline via
+ * sz.* do JSX. `sz` continua no JSX só para padding/gap/largura (layout).
+ * Dinheiro/quantidade usam font-variant-numeric: tabular-nums.
  */
 
 .cart-panel {
@@ -19,10 +24,18 @@
   border-bottom: 1px solid var(--gm-border);
 }
 
+/* Nome/número da comanda — título do painel (era sz.fontLg). */
+.cart-panel__header-titulo {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
 .cart-panel__garcom {
   display: flex;
   align-items: center;
   gap: 4px;
+  font-size: var(--fs-base);   /* role: apoio (era sz.fontBase - 1) */
+  line-height: var(--lh-base);
 }
 
 .cart-panel__lista {
@@ -33,6 +46,8 @@
 .cart-panel__vazio {
   text-align: center;
   padding: 32px 16px;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .cart-panel__secao-titulo {
@@ -41,6 +56,9 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   border-bottom: 1px solid var(--gm-border);
+  font-size: var(--fs-base);   /* role: título de subseção (era 18px) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;   /* contagem de itens entre parênteses */
 }
 
 .cart-panel__item {
@@ -75,6 +93,51 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  font-size: var(--fs-lg);   /* role: nome de item (era sz.fontBase + 2) */
+  line-height: var(--lh-lg);
+}
+
+/* "× N" ao lado do nome do item — é quantidade. */
+.cart-panel__item-qty-mult {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Emoji do item — glyph decorativo (era 22px literal). */
+.cart-panel__item-emoji {
+  font-size: var(--fs-2xl);
+  line-height: 1;
+}
+
+/* Composição do combo, visível no carrinho (era 16px literal). */
+.cart-panel__combo-resumo {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Observação de item já lançado (era 18px literal). */
+.cart-panel__obs-lancado {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Motivo do cancelamento, exibido junto ao item (era 14px literal). */
+.cart-panel__motivo-cancelado {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Preço/subtotal do item já lançado — money (era sz.fontBase + 2). */
+.cart-panel__item-preco-cancelado {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Selo "Cancelado" — caption/selo em caixa alta (era 13px literal). */
+.cart-panel__badge-cancelado {
+  font-size: var(--fs-xs);
+  line-height: 1;
+  letter-spacing: var(--tracking-label);
 }
 
 .cart-panel__btn-obs {
@@ -99,6 +162,9 @@
   width: 28px;
   text-align: center;
   font-weight: 800;
+  font-size: var(--fs-lg);   /* role: quantidade, junto ao nome (era sz.fontBase + 2) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }
 
 .cart-panel__qty-btn {
@@ -133,12 +199,32 @@
   gap: 8px;
 }
 
+/* Preço unitário ("R$ X cada") — apoio, money (era sz.fontSm + 2). */
+.cart-panel__preco-unitario {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtotal do item — money, mesmo peso do nome (era sz.fontBase + 2). */
+.cart-panel__subtotal-item {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
 .cart-panel__obs-chip {
   display: flex;
   align-items: center;
   gap: 6px;
   border-radius: 8px;
   padding: 5px 8px;
+}
+
+/* Texto da observação confirmada (era sz.fontSm + 1). */
+.cart-panel__obs-chip-texto {
+  font-size: var(--fs-sm);
+  line-height: 1.4;
 }
 
 .cart-panel__obs-remover {
@@ -165,6 +251,8 @@
   outline: none;
   box-sizing: border-box;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: input (era sz.fontSm + 1) */
+  line-height: var(--lh-base);
 }
 
 .cart-panel__obs-confirmar {
@@ -189,6 +277,19 @@
   align-items: center;
 }
 
+/* "Total" — rótulo ao lado do valor hero (era sz.fontBase + 1). */
+.cart-panel__total-label {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Valor do TOTAL do carrinho — número hero (era sz.fontLg). */
+.cart-panel__total-valor {
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
 .cart-panel__btn-lancar {
   width: 100%;
   padding: 13px;
@@ -198,6 +299,8 @@
   font-weight: 700;
   margin-bottom: 8px;
   transition: background 0.2s;
+  font-size: var(--fs-base);   /* role: botão (era sz.fontBase + 1) */
+  line-height: var(--lh-base);
 }
 
 .cart-panel__btn-finalizar {
@@ -208,6 +311,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: var(--fs-base);   /* role: botão (era sz.fontBase + 1) */
+  line-height: var(--lh-base);
 }
 
 /* ── Popups (exclusão / finalização) — mesma casca ── */
@@ -221,7 +326,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--gm-font-texto);   /* B1 — identidade vem do tenant, não hardcoded */
 }
 
 .cart-panel__modal {
@@ -254,16 +359,36 @@
   justify-content: center;
 }
 
+/* Título dos popups ("Cancelar item?", "Finalizar Comanda?") — era 16/18px literal. */
+.cart-panel__modal-titulo {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Subtexto abaixo do título de popup (nome da comanda) — era 16px literal. */
+.cart-panel__modal-subtexto {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
 .cart-panel__modal-nome-item {
   max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: var(--fs-sm);   /* role: apoio, sob o título (era 16px literal) */
+  line-height: var(--lh-sm);
 }
 
 .cart-panel__stepper {
   border-radius: 12px;
   padding: 14px 18px;
+}
+
+/* Legenda do stepper de quantidade (era 18px literal). */
+.cart-panel__stepper-legenda {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
 }
 
 .cart-panel__stepper-linha {
@@ -291,6 +416,15 @@
   outline: none;
   font-family: inherit;
   box-sizing: border-box;
+  font-size: var(--fs-2xl);   /* role: quantidade em destaque (era 22px literal) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Aviso "todos os itens serão..." (era 14px literal). */
+.cart-panel__stepper-aviso {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
 }
 
 .cart-panel__campo {
@@ -306,6 +440,8 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era 18px e 14px literais) */
+  line-height: var(--lh-sm);
 }
 
 .cart-panel__textarea {
@@ -316,8 +452,15 @@
   resize: none;
   box-sizing: border-box;
   transition: border-color 0.15s;
-  line-height: 1.5;
+  line-height: var(--lh-base);
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: input (era 17px literal) */
+}
+
+/* Contador "N/200" abaixo da textarea (era 14px literal). */
+.cart-panel__contador {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
 }
 
 .cart-panel__senha-wrap {
@@ -332,6 +475,15 @@
   box-sizing: border-box;
   transition: border-color 0.15s;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: input (era 16px literal) */
+  line-height: var(--lh-base);
+}
+
+/* Feedback de senha incorreta/autorizada (eram 14px literais). */
+.cart-panel__senha-erro,
+.cart-panel__senha-ok {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
 }
 
 .cart-panel__senha-olho {
@@ -357,6 +509,8 @@
   border-radius: 12px;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: botão (eram 17/18px literais) */
+  line-height: var(--lh-base);
 }
 
 .cart-panel__modal-botao--primario {
@@ -367,6 +521,12 @@
   gap: 7px;
 }
 
+/* Botão de destaque (ex.: "Sim, finalizar") — um degrau acima do padrão. */
+.cart-panel__modal-botao--destaque {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
 .cart-panel__resumo-finalizar {
   border-radius: 14px;
   padding: 18px 20px;
@@ -374,4 +534,31 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+}
+
+/* "N itens consumidos" (era 16px literal, contém quantidade). */
+.cart-panel__resumo-linha-titulo {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+
+/* "Vai para a tela de pagamento" (era 18px literal). */
+.cart-panel__resumo-linha-sub {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Rótulo "TOTAL" em caixa alta no resumo de finalização (era 14px literal). */
+.cart-panel__resumo-total-label {
+  font-size: var(--fs-xs);
+  line-height: 1;
+  letter-spacing: var(--tracking-label);
+}
+
+/* Valor do total geral — número hero (era 26px literal). */
+.cart-panel__resumo-total-valor {
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
 }

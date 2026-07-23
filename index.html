@@ -42,7 +42,14 @@
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700;800&family=Sora:wght@300;400;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" />
+    <!--
+      Inter é a família de UI padrão da plataforma (tema.css: --gm-font-*
+      apontam para ela). Antes NÃO era carregada e o app caía em system-ui;
+      agora carrega de fato. JetBrains Mono cobre dados técnicos (--gm-font-mono:
+      SKU/IDs/nº de comanda). Ambas GRÁTIS (OFL), custo zero. As demais famílias
+      abaixo são as opções white-label que um tenant pode escolher (ADR-007).
+    -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Saira:wght@500;600;700;800&family=Sora:wght@300;400;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" />
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       body { overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }

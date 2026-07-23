@@ -38,7 +38,7 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
             key={cat}
             onClick={() => setCatAtiva(cat)}
             className={`produto-grid__chip${catAtiva === cat ? " produto-grid__chip--ativo" : ""}`}
-            style={{ padding: `${sz.padSm - 4}px ${sz.pad - 4}px`, fontSize: sz.fontBase }}
+            style={{ padding: `${sz.padSm - 4}px ${sz.pad - 4}px` }}
           >
             {cat}
           </button>
@@ -60,7 +60,7 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
           <ComboCard key={`combo-${card.combo.id}`} combo={card.combo} produto={card.produto} onAdd={onAdd} sz={sz} />
         ))}
         {cards.length === 0 && (
-          <div className="produto-grid__vazio" style={{ fontSize: 17 }}>
+          <div className="produto-grid__vazio">
             Nenhum produto nesta categoria
           </div>
         )}
@@ -85,12 +85,12 @@ function ProdutoCard({ product, onAdd, sz }) {
       style={{ padding: `${sz.pad - 2}px ${sz.padSm}px`, gap: sz.gap - 8 }}
     >
       {product.emoji && (
-        <div style={{ fontSize: sz.fontXl - 4 }}>{product.emoji}</div>
+        <div className="produto-card__emoji">{product.emoji}</div>
       )}
-      <div className="produto-card__nome" style={{ fontSize: sz.fontBase }}>
+      <div className="produto-card__nome">
         {product.name}
       </div>
-      <div className="produto-card__preco" style={{ fontSize: sz.fontBase + 1 }}>
+      <div className="produto-card__preco">
         R$ {Number(product.price).toFixed(2)}
       </div>
     </button>
@@ -119,16 +119,16 @@ function ComboCard({ combo, produto, onAdd, sz }) {
       className={`produto-card produto-card--combo${pressed ? " produto-card--pressed" : ""}`}
       style={{ padding: `${sz.pad - 2}px ${sz.padSm}px`, gap: sz.gap - 8 }}
     >
-      <div className="produto-card__badge-combo" style={{ fontSize: sz.fontSm - 2 }}>COMBO</div>
-      <div className="produto-card__nome" style={{ fontSize: sz.fontBase }}>
+      <div className="produto-card__badge-combo">COMBO</div>
+      <div className="produto-card__nome">
         {combo.nome}
       </div>
       {itens.length > 0 && (
-        <div className="produto-card__combo-itens" style={{ fontSize: sz.fontSm - 1 }}>
+        <div className="produto-card__combo-itens">
           {produto?.name ? `${produto.name} + ` : ""}{itens.join(" + ")}
         </div>
       )}
-      <div className="produto-card__preco" style={{ fontSize: sz.fontBase + 1 }}>
+      <div className="produto-card__preco">
         R$ {Number(combo.preco_total ?? 0).toFixed(2)}
       </div>
     </button>

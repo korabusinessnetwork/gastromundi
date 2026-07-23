@@ -1,0 +1,376 @@
+/**
+ * F018 — leva 1 (núcleo do PDV). Decisão 018 (CSS separado do JSX) +
+ * tokens --gm-* (ADR-007). Cores/transições/cursor/layout fixo são classe.
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-*/--lh-* de
+ * src/styles/tipografia.css), por classe de componente — não mais inline via
+ * sz.* do JSX. `sz` continua no JSX só para padding/gap/grid (layout), que
+ * seguem no sistema JS por breakpoint. `tabular-nums` = alinhamento de
+ * dinheiro/quantidade/hora. Classes .pdv__modal-* e .pdv__saldo-kpi-* são
+ * compartilhadas entre telas/modais com o mesmo papel visual (título, rótulo,
+ * input, botão) para manter consistência (princípio nº 1 — intuitividade).
+ */
+
+/* ── Estado de carregamento / caixa fechado ─────────────────────── */
+
+.pdv__loading {
+  font-size: var(--fs-base);   /* role: corpo (era inline sem token) */
+  line-height: var(--lh-base);
+}
+
+.pdv__lock-titulo {
+  font-size: var(--fs-xl);   /* role: título de tela ("Caixa Fechado") */
+  line-height: var(--lh-xl);
+}
+
+.pdv__lock-desc {
+  font-size: var(--fs-base);   /* role: descrição/corpo */
+  line-height: var(--lh-base);
+}
+
+/* ── Header do PDV ───────────────────────────────────────────────── */
+
+.pdv__voltar-btn {
+  font-size: var(--fs-base);   /* role: botão */
+  line-height: var(--lh-base);
+}
+
+.pdv__titulo {
+  font-size: var(--fs-xl);   /* role: nome de tela / nº de comanda */
+  line-height: var(--lh-xl);
+}
+
+.pdv__subtitulo {
+  font-size: var(--fs-sm);   /* role: texto secundário do header */
+  line-height: var(--lh-sm);
+}
+
+.pdv__saldo-btn {
+  font-size: var(--fs-base);   /* role: botão ("Saldo do Dia") */
+  line-height: var(--lh-base);
+}
+
+.pdv__toast {
+  font-size: var(--fs-base);   /* role: mensagem de feedback (era sem token) */
+  line-height: var(--lh-base);
+}
+
+.pdv__nova-comanda-btn {
+  font-size: var(--fs-base);   /* role: botão (era sem token) */
+  line-height: var(--lh-base);
+}
+
+.pdv__acao-btn {
+  font-size: var(--fs-base);   /* role: botão (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+/* Alertas de estoque baixo / validade — mesmas classes reusadas pelas duas
+   faixas (estrutura idêntica, dado diferente). */
+.pdv__alerta-label {
+  font-size: var(--fs-base);   /* role: label do aviso (era 16px) */
+  line-height: var(--lh-base);
+}
+
+.pdv__alerta-toggle {
+  font-size: var(--fs-base);   /* role: ação "Ver/Ocultar" (era 18px) */
+  line-height: var(--lh-base);
+}
+
+.pdv__alerta-chip {
+  font-size: var(--fs-base);   /* role: chip de contagem (era 18px) */
+  line-height: var(--lh-base);
+}
+
+.pdv__tab-btn {
+  font-size: var(--fs-base);   /* role: aba Mapa/Lista/Comandas (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.pdv__busca-input {
+  font-size: var(--fs-base);   /* role: input (era 18px) */
+  line-height: var(--lh-base);
+}
+
+.pdv__mobile-tab-btn {
+  font-size: var(--fs-base);   /* role: aba Produtos/Carrinho no celular (era 17px) */
+  line-height: var(--lh-base);
+}
+
+/* ── Leitor de código de barras ──────────────────────────────────── */
+
+.pdv__barcode-feedback {
+  font-size: var(--fs-xs);   /* role: caption de retorno (era 13px) */
+  line-height: var(--lh-xs);
+}
+
+.pdv__scanner-btn {
+  font-size: var(--fs-sm);   /* role: botão compacto secundário (era 15px) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__barcode-input {
+  font-size: var(--fs-sm);   /* role: input compacto (era 14px) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__barcode-ok-btn {
+  font-size: var(--fs-sm);   /* role: botão compacto (era 14px) */
+  line-height: var(--lh-sm);
+}
+
+/* ── Modais (compartilhadas entre Nova Comanda / Cancelar Comanda /
+   Transferir Itens / Confirmar Cancelamento / Mesa) ────────────────── */
+
+.pdv__modal-titulo {
+  font-size: var(--fs-xl);   /* role: título de modal — unificado (era 16–20px conforme o modal) */
+  line-height: var(--lh-xl);
+}
+
+.pdv__modal-subtitulo {
+  font-size: var(--fs-sm);   /* role: subtítulo (era 15–16px) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__modal-desc {
+  font-size: var(--fs-base);   /* role: descrição/corpo (era 16px) */
+  line-height: var(--lh-base);
+}
+
+.pdv__modal-label {
+  font-size: var(--fs-xs);   /* role: rótulo em caixa alta (era 14px) */
+  line-height: var(--lh-xs);
+  letter-spacing: var(--tracking-label);
+}
+
+.pdv__modal-input {
+  font-size: var(--fs-base);   /* role: input (era 16–18px) */
+  line-height: var(--lh-base);
+}
+
+.pdv__modal-erro {
+  font-size: var(--fs-sm);   /* role: texto de erro/aviso auxiliar (era 14–18px) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__modal-aviso {
+  font-size: var(--fs-sm);   /* role: caixa de aviso (era 15–16px) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__modal-btn {
+  font-size: var(--fs-base);   /* role: botão de rodapé (era 17–18px) */
+  line-height: var(--lh-base);
+}
+
+.pdv__modal-close-btn {
+  font-size: var(--fs-lg);   /* role: glyph de fechar × (era 18px) */
+  line-height: var(--lh-lg);
+}
+
+/* Emoji grande em círculo — usado no modal de Cancelar Pedido (🗑️) e no
+   modal de Mesa (🪑). */
+.pdv__modal-emoji-circulo {
+  font-size: var(--fs-2xl);   /* role: emoji grande de destaque (era 20–22px) */
+  line-height: 1;
+}
+
+/* ── Modal Transferir Itens ──────────────────────────────────────── */
+
+.pdv__transfer-info {
+  font-size: var(--fs-base);   /* role: texto informativo/descrição (era 16–18px) */
+  line-height: var(--lh-base);
+}
+
+.pdv__transfer-item-emoji {
+  font-size: var(--fs-lg);   /* role: emoji inline do item (era 18px) */
+  line-height: 1;
+}
+
+.pdv__transfer-item-nome {
+  font-size: var(--fs-lg);   /* role: nome de item (era 16px) */
+  line-height: var(--lh-lg);
+}
+
+.pdv__transfer-item-disponivel {
+  font-size: var(--fs-sm);   /* role: texto de apoio "Disponível" (era 14px) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__transfer-qty-symbol {
+  font-size: var(--fs-base);   /* role: glyph -/+ do stepper (era 16px) */
+}
+
+.pdv__transfer-qty-valor {
+  font-size: var(--fs-base);   /* role: quantidade (era 17px) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv__transfer-todos-btn {
+  font-size: var(--fs-sm);   /* role: botão compacto "Todos" (era 14px) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__transfer-tab-btn {
+  font-size: var(--fs-base);   /* role: aba de modo de transferência (era 18px) */
+  line-height: var(--lh-base);
+}
+
+.pdv__transfer-avatar {
+  font-size: var(--fs-lg);   /* role: iniciais no avatar (era 17px) */
+  line-height: var(--lh-lg);
+}
+
+.pdv__transfer-card-nome {
+  font-size: var(--fs-lg);   /* role: nome de item/comanda no card (era 16px) */
+  line-height: var(--lh-lg);
+}
+
+.pdv__transfer-card-meta {
+  font-size: var(--fs-sm);   /* role: meta (garçom) (era 14px) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__transfer-card-valor {
+  font-size: var(--fs-lg);   /* role: valor money inline (era 16px) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv__transfer-preview-check {
+  font-size: var(--fs-lg);   /* role: glyph de confirmação ✓ (era 18px) */
+  line-height: 1;
+}
+
+/* ── SaldoModal (relatório de saldo do dia) ──────────────────────── */
+
+.pdv__saldo-titulo {
+  font-size: var(--fs-xl);   /* role: título de modal (era sz.fontBase + 1) */
+  line-height: var(--lh-xl);
+}
+
+.pdv__saldo-subtitulo {
+  font-size: var(--fs-sm);   /* role: subtítulo (data) (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__saldo-aviso {
+  font-size: var(--fs-sm);   /* role: caixa de aviso da senha (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__saldo-label {
+  font-size: var(--fs-xs);   /* role: rótulo em caixa alta "Senha" (era sz.fontSm) */
+  line-height: var(--lh-xs);
+  letter-spacing: var(--tracking-label);
+}
+
+.pdv__saldo-input {
+  font-size: var(--fs-base);   /* role: input de senha (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.pdv__saldo-erro {
+  font-size: var(--fs-sm);   /* role: texto de erro (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__saldo-modal-btn {
+  font-size: var(--fs-base);   /* role: botão de rodapé do modal (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+/* KPIs (Vendas Finalizadas / Em Aberto) — rótulo/valor/sub reusados também
+   pelo card de Cancelamentos e pela seção Por Método. */
+.pdv__saldo-kpi-label {
+  font-size: var(--fs-xs);   /* role: rótulo em caixa alta (era sz.fontSm) */
+  line-height: var(--lh-xs);
+  letter-spacing: var(--tracking-label);
+}
+
+.pdv__saldo-kpi-valor {
+  font-size: var(--fs-2xl);   /* role: número hero de destaque (era sz.fontLg) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv__saldo-kpi-sub {
+  font-size: var(--fs-sm);   /* role: texto de apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__saldo-pill {
+  font-size: var(--fs-xs);   /* role: selo pequeno de contagem (era 12px) */
+  line-height: var(--lh-xs);
+}
+
+.pdv__saldo-total-titulo {
+  font-size: var(--fs-base);   /* role: label do Total do Dia (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.pdv__saldo-total-valor {
+  font-size: var(--fs-2xl);   /* role: número hero de destaque (era sz.fontLg + 2) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv__saldo-metodo-pill {
+  font-size: var(--fs-sm);   /* role: selo do método de pagamento (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__saldo-metodo-valor {
+  font-size: var(--fs-lg);   /* role: valor money inline (era sz.fontBase) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv__saldo-accordion-contagem {
+  font-size: var(--fs-xs);   /* role: selo de contagem (era 11px) */
+  line-height: var(--lh-xs);
+}
+
+.pdv__saldo-accordion-total {
+  font-size: var(--fs-sm);   /* role: valor money compacto no cabeçalho (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv__saldo-item-nome {
+  font-size: var(--fs-sm);   /* role: nome do item cancelado (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__saldo-item-selo {
+  font-size: var(--fs-xs);   /* role: selo "comanda cancelada" (era 10px) */
+  line-height: var(--lh-xs);
+}
+
+.pdv__saldo-item-meta {
+  font-size: var(--fs-xs);   /* role: meta (motivo/quem cancelou) (era 11px) */
+  line-height: var(--lh-xs);
+}
+
+.pdv__saldo-item-preco {
+  font-size: var(--fs-sm);   /* role: valor money compacto na lista (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv__saldo-comanda-nome {
+  font-size: var(--fs-sm);   /* role: nome da comanda em aberto (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__saldo-comanda-meta {
+  font-size: var(--fs-sm);   /* role: garçom / contagem de itens (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.pdv__saldo-comanda-valor {
+  font-size: var(--fs-lg);   /* role: valor money inline (era sz.fontBase) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}

@@ -4,6 +4,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { LuUser, LuSearch, LuCheck, LuX } from "react-icons/lu";
 import { listarClientes, cadastrarCliente } from "@/lib/clientes";
+import "./ClienteFiadoSelector.css";
 
 /**
  * F010 — seleção/cadastro rápido de cliente para fiado, sem sair da
@@ -59,8 +60,8 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario })
       }}>
         <LuCheck size={16} color={varColor(C.accent)} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: varColor(C.text) }}>{cliente.nome}</div>
-          {cliente.telefone && <div style={{ fontSize: 12, color: varColor(C.muted) }}>{cliente.telefone}</div>}
+          <div className="cliente-fiado-selecionado__nome" style={{ color: varColor(C.text) }}>{cliente.nome}</div>
+          {cliente.telefone && <div className="cliente-fiado-selecionado__telefone" style={{ color: varColor(C.muted) }}>{cliente.telefone}</div>}
         </div>
         <button
           onClick={() => onSelecionar(null)}
@@ -84,16 +85,17 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario })
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Fiado exige cliente — busque por nome ou telefone"
+          className="cliente-fiado-busca__input"
           style={{
             flex: 1, border: "none", background: "none", outline: "none",
-            color: varColor(C.text), fontSize: 14, fontFamily: "inherit",
+            color: varColor(C.text),
           }}
         />
       </div>
 
-      {erro && <div style={{ fontSize: 13, color: varColor(C.red) }}>{erro}</div>}
+      {erro && <div className="cliente-fiado-estado__erro" style={{ color: varColor(C.red) }}>{erro}</div>}
 
-      {carregando && <div style={{ fontSize: 13, color: varColor(C.muted) }}>Buscando...</div>}
+      {carregando && <div className="cliente-fiado-estado__carregando" style={{ color: varColor(C.muted) }}>Buscando...</div>}
 
       {!carregando && busca.trim() && resultados.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 160, overflowY: "auto" }}>
@@ -109,8 +111,8 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario })
             >
               <LuUser size={14} color={varColor(C.muted)} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: varColor(C.text) }}>{c.nome}</div>
-                {c.telefone && <div style={{ fontSize: 12, color: varColor(C.muted) }}>{c.telefone}</div>}
+                <div className="cliente-fiado-resultado__nome" style={{ color: varColor(C.text) }}>{c.nome}</div>
+                {c.telefone && <div className="cliente-fiado-resultado__telefone" style={{ color: varColor(C.muted) }}>{c.telefone}</div>}
               </div>
             </button>
           ))}
@@ -120,10 +122,11 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario })
       {!carregando && busca.trim() && resultados.length === 0 && !mostrarCadastro && (
         <button
           onClick={() => setMostrarCadastro(true)}
+          className="cliente-fiado-acao__cadastro-rapido"
           style={{
             padding: "9px 12px", borderRadius: 8, border: `1.5px dashed ${alfa(C.accent, "66")}`,
-            background: "none", color: varColor(C.accent), cursor: "pointer", fontWeight: 700,
-            fontSize: 13, fontFamily: "inherit", textAlign: "left",
+            background: "none", color: varColor(C.accent), cursor: "pointer",
+            textAlign: "left",
           }}
         >
           + Cadastrar "{busca}" como novo cliente
@@ -135,22 +138,24 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario })
           display: "flex", flexDirection: "column", gap: 8,
           padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${alfa(C.accent, "44")}`, background: varColor(C.surface),
         }}>
-          <div style={{ fontSize: 12, color: varColor(C.muted) }}>Telefone de <strong>{busca}</strong> (obrigatório)</div>
+          <div className="cliente-fiado-cadastro__label" style={{ color: varColor(C.muted) }}>Telefone de <strong>{busca}</strong> (obrigatório)</div>
           <input
             value={novoTelefone}
             onChange={(e) => setNovoTelefone(e.target.value)}
             placeholder="(00) 00000-0000"
+            className="cliente-fiado-cadastro__input-telefone"
             style={{
               padding: "8px 10px", borderRadius: 8, border: `1.5px solid var(${C.border})`,
-              background: varColor(C.card), color: varColor(C.text), fontSize: 13, fontFamily: "inherit", outline: "none",
+              background: varColor(C.card), color: varColor(C.text), outline: "none",
             }}
           />
           <div style={{ display: "flex", gap: 8 }}>
             <button
               onClick={() => setMostrarCadastro(false)}
+              className="cliente-fiado-cadastro__botao"
               style={{
                 flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid var(${C.border})`,
-                background: "none", color: varColor(C.muted), cursor: "pointer", fontSize: 13, fontFamily: "inherit",
+                background: "none", color: varColor(C.muted), cursor: "pointer",
               }}
             >
               Cancelar
@@ -158,11 +163,11 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario })
             <button
               onClick={handleCadastrarRapido}
               disabled={salvando || !novoTelefone.trim()}
+              className="cliente-fiado-cadastro__botao-confirmar"
               style={{
                 flex: 2, padding: "8px", borderRadius: 8, border: "none",
                 background: (salvando || !novoTelefone.trim()) ? varColor(C.faint) : varColor(C.accent),
                 color: "#fff", cursor: (salvando || !novoTelefone.trim()) ? "not-allowed" : "pointer",
-                fontWeight: 700, fontSize: 13, fontFamily: "inherit",
               }}
             >
               {salvando ? "Salvando..." : "Cadastrar e usar"}

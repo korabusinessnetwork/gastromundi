@@ -110,9 +110,9 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
       {/* Header */}
       <div className="cart-panel__header" style={{ padding: `${sz.padSm + 4}px ${sz.pad - 4}px` }}>
-        <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>{fmtComanda(comanda?.comanda)}</div>
+        <div className="cart-panel__header-titulo" style={{ fontWeight: 800 }}>{fmtComanda(comanda?.comanda)}</div>
         {comanda?.garcom && (
-          <div className="cart-panel__garcom" style={{ fontSize: sz.fontBase - 1, color: varColor(C.muted), marginTop: 4 }}>
+          <div className="cart-panel__garcom" style={{ color: varColor(C.muted), marginTop: 4 }}>
             <LuUser size={12} /> {comanda.garcom}
           </div>
         )}
@@ -121,7 +121,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
       {/* Lista de itens */}
       <div className="cart-panel__lista">
         {!temItens ? (
-          <div className="cart-panel__vazio" style={{ color: varColor(C.muted), fontSize: sz.fontBase }}>
+          <div className="cart-panel__vazio" style={{ color: varColor(C.muted) }}>
             Clique nos produtos para adicionar
           </div>
         ) : (
@@ -129,7 +129,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
           {/* Itens já lançados */}
           {itensAcumulados.length > 0 && (
             <>
-              <div className="cart-panel__secao-titulo" style={{ fontSize: 18, color: varColor(C.muted), background: varColor(C.bg) }}>
+              <div className="cart-panel__secao-titulo" style={{ color: varColor(C.muted), background: varColor(C.bg) }}>
                 Lançados ({itensAtivos.reduce((s, i) => s + (i.qty ?? 1), 0)})
                 {itensAcumulados.some(i => i.cancelado) && (
                   <span style={{ color: varColor(C.red), marginLeft: 8 }}>
@@ -148,30 +148,29 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   }}>
                     <div className="cart-panel__item-linha">
                       {item.emoji && (
-                        <span style={{ fontSize: 22, flexShrink: 0, filter: cancelado ? "grayscale(1)" : "none" }}>
+                        <span className="cart-panel__item-emoji" style={{ flexShrink: 0, filter: cancelado ? "grayscale(1)" : "none" }}>
                           {item.emoji}
                         </span>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="cart-panel__item-nome-texto" style={{
-                          fontSize: sz.fontBase + 2,
                           textDecoration: cancelado ? "line-through" : "none",
                           color: cancelado ? varColor(C.muted) : varColor(C.text),
                         }}>
                           {item.name}
-                          <span style={{ fontWeight: 500 }}> × {qty}</span>
+                          <span className="cart-panel__item-qty-mult" style={{ fontWeight: 500 }}> × {qty}</span>
                         </div>
                         {resumoCombo(item) && (
-                          <div style={{ fontSize: 16, color: varColor(C.muted), marginTop: 2, textDecoration: cancelado ? "line-through" : "none" }}>
+                          <div className="cart-panel__combo-resumo" style={{ color: varColor(C.muted), marginTop: 2, textDecoration: cancelado ? "line-through" : "none" }}>
                             ↳ {resumoCombo(item)}
                           </div>
                         )}
                         {obsArr.map((obs, j) => (
-                          <div key={j} style={{ fontSize: 18, color: cancelado ? varColor(C.muted) : varColor(C.accent), marginTop: 2, textDecoration: cancelado ? "line-through" : "none" }}>↳ {obs}</div>
+                          <div key={j} className="cart-panel__obs-lancado" style={{ color: cancelado ? varColor(C.muted) : varColor(C.accent), marginTop: 2, textDecoration: cancelado ? "line-through" : "none" }}>↳ {obs}</div>
                         ))}
                         {cancelado && item.motivoCancelamento && (
-                          <div style={{
-                            fontSize: 14, color: varColor(C.red), marginTop: 4,
+                          <div className="cart-panel__motivo-cancelado" style={{
+                            color: varColor(C.red), marginTop: 4,
                             background: alfa(C.red, "14"), borderRadius: 6,
                             padding: "3px 8px", display: "inline-block", fontWeight: 600,
                           }}>
@@ -180,8 +179,8 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                         )}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                        <div style={{
-                          fontWeight: 800, fontSize: sz.fontBase + 2,
+                        <div className="cart-panel__item-preco-cancelado" style={{
+                          fontWeight: 800,
                           color: cancelado ? varColor(C.muted) : varColor(C.green),
                           textDecoration: cancelado ? "line-through" : "none",
                         }}>
@@ -200,10 +199,10 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                           </button>
                         )}
                         {cancelado && (
-                          <div style={{
-                            fontSize: 13, fontWeight: 800, color: varColor(C.red),
+                          <div className="cart-panel__badge-cancelado" style={{
+                            fontWeight: 800, color: varColor(C.red),
                             background: alfa(C.red, "14"), border: `1px solid ${alfa(C.red, "33")}`,
-                            borderRadius: 6, padding: "3px 8px", textTransform: "uppercase", letterSpacing: 0.5,
+                            borderRadius: 6, padding: "3px 8px", textTransform: "uppercase",
                           }}>
                             Cancelado
                           </div>
@@ -218,7 +217,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
           {/* Itens no carrinho (novos) */}
           {items.length > 0 && (
-            <div className="cart-panel__secao-titulo" style={{ fontSize: 18, color: varColor(C.muted), background: varColor(C.bg) }}>
+            <div className="cart-panel__secao-titulo" style={{ color: varColor(C.muted), background: varColor(C.bg) }}>
               Adicionando ({items.reduce((s, i) => s + i.qty, 0)})
             </div>
           )}
@@ -231,7 +230,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                 {/* Linha 1: nome + obs icon + qty + excluir */}
                 <div className="cart-panel__item-linha">
                   <div className="cart-panel__item-nome">
-                    <div className="cart-panel__item-nome-texto" style={{ fontSize: sz.fontBase + 2, minWidth: 0 }}>
+                    <div className="cart-panel__item-nome-texto" style={{ minWidth: 0 }}>
                       {item.name}
                     </div>
                     <button
@@ -245,7 +244,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   </div>
                   <div className="cart-panel__qty-controles">
                     <QtyBtn onClick={() => onChangeQty(i, item.qty - 1)} label="−" />
-                    <span className="cart-panel__qty-valor" style={{ fontSize: sz.fontBase + 2 }}>
+                    <span className="cart-panel__qty-valor">
                       {item.qty}
                     </span>
                     <QtyBtn onClick={() => onChangeQty(i, item.qty + 1)} label="+" />
@@ -263,17 +262,17 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                 </div>
 
                 {resumoCombo(item) && (
-                  <div style={{ fontSize: 16, color: varColor(C.muted), marginTop: -4 }}>
+                  <div className="cart-panel__combo-resumo" style={{ color: varColor(C.muted), marginTop: -4 }}>
                     ↳ {resumoCombo(item)}
                   </div>
                 )}
 
                 {/* Linha 2: preço · subtotal */}
                 <div className="cart-panel__preco-linha">
-                  <span style={{ fontSize: sz.fontSm + 2, color: varColor(C.muted), flex: 1 }}>
+                  <span className="cart-panel__preco-unitario" style={{ color: varColor(C.muted), flex: 1 }}>
                     R$ {Number(item.price).toFixed(2)} cada
                   </span>
-                  <span style={{ fontSize: sz.fontBase + 2, fontWeight: 800, color: varColor(C.text), flexShrink: 0 }}>
+                  <span className="cart-panel__subtotal-item" style={{ fontWeight: 800, color: varColor(C.text), flexShrink: 0 }}>
                     R$ {(item.price * item.qty).toFixed(2)}
                   </span>
                 </div>
@@ -281,7 +280,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                 {/* Observações confirmadas */}
                 {obsArr.map((obs, j) => (
                   <div key={j} className="cart-panel__obs-chip" style={{ background: "var(--gm-alow)", border: `1px solid ${alfa(C.accent, "44")}` }}>
-                    <span style={{ flex: 1, fontSize: sz.fontSm + 1, color: varColor(C.accent), fontWeight: 600, lineHeight: 1.4 }}>
+                    <span className="cart-panel__obs-chip-texto" style={{ flex: 1, color: varColor(C.accent), fontWeight: 600 }}>
                       {obs}
                     </span>
                     <button onClick={() => removeObs(i, j)} className="cart-panel__obs-remover" style={{ color: varColor(C.muted) }}>
@@ -301,7 +300,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                       placeholder="Observação do item..."
                       maxLength={120}
                       className="cart-panel__obs-input"
-                      style={{ border: `1px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontSize: sz.fontSm + 1 }}
+                      style={{ border: `1px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text) }}
                     />
                     <button onClick={() => confirmDraft(i)} className="cart-panel__obs-confirmar" style={{ background: varColor(C.green), color: "#fff" }}>
                       <LuCheck size={15} />
@@ -318,8 +317,8 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
       {/* Rodapé */}
       <div className="cart-panel__rodape" style={{ padding: `${sz.padSm + 2}px ${sz.pad - 4}px` }}>
         <div className="cart-panel__total-linha" style={{ marginBottom: sz.padSm }}>
-          <span style={{ fontSize: sz.fontBase + 1, fontWeight: 800 }}>Total</span>
-          <span style={{ fontSize: sz.fontLg, fontWeight: 900, color: varColor(C.green) }}>
+          <span className="cart-panel__total-label" style={{ fontWeight: 800 }}>Total</span>
+          <span className="cart-panel__total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>
             R$ {total.toFixed(2)}
           </span>
         </div>
@@ -331,7 +330,6 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
           style={{
             background: temItensNovos ? varColor(C.accent) : varColor(C.faint),
             cursor: temItensNovos ? "pointer" : "not-allowed",
-            fontSize: sz.fontBase + 1,
           }}
         >
           {salvando ? "Salvando..." : <><LuCheck size={15} style={{ marginRight: 6 }} />Lançar Pedido</>}
@@ -346,7 +344,6 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
             background: temItens ? alfa(C.green, "0f") : varColor(C.surface),
             color: temItens ? varColor(C.green) : varColor(C.muted),
             cursor: temItens ? "pointer" : "not-allowed",
-            fontSize: sz.fontBase + 1,
           }}
         >
           <LuWallet size={15} style={{ marginRight: 6 }} />
@@ -368,10 +365,10 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                 <LuTrash2 size={20} color={varColor(C.red)} />
               </div>
               <div>
-                <div style={{ fontWeight: 900, fontSize: 16 }}>
+                <div className="cart-panel__modal-titulo" style={{ fontWeight: 900 }}>
                   {confirmExcluir.tipo === "lancado" ? "Cancelar item?" : "Remover item?"}
                 </div>
-                <div className="cart-panel__modal-nome-item" style={{ fontSize: 16, color: varColor(C.muted), marginTop: 2 }}>
+                <div className="cart-panel__modal-nome-item" style={{ color: varColor(C.muted), marginTop: 2 }}>
                   {confirmExcluir.item.emoji} {confirmExcluir.item.name}
                 </div>
               </div>
@@ -380,7 +377,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
             {/* Seletor de quantidade (só se qty > 1) */}
             {confirmExcluir.qtyMax > 1 && (
               <div className="cart-panel__stepper" style={{ background: varColor(C.surface), border: `1px solid var(${C.border})` }}>
-                <div style={{ fontSize: 18, color: varColor(C.muted), marginBottom: 10, fontWeight: 600 }}>
+                <div className="cart-panel__stepper-legenda" style={{ color: varColor(C.muted), marginBottom: 10, fontWeight: 600 }}>
                   Quantos deseja {confirmExcluir.tipo === "lancado" ? "cancelar" : "remover"}? (total: {confirmExcluir.qtyMax})
                 </div>
                 <div className="cart-panel__stepper-linha">
@@ -413,7 +410,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                       setQtyInputStr(String(clamped));
                     }}
                     className="cart-panel__stepper-input"
-                    style={{ fontSize: 22, color: varColor(C.text), background: varColor(C.card), border: `1.5px solid var(${C.border})` }}
+                    style={{ color: varColor(C.text), background: varColor(C.card), border: `1.5px solid var(${C.border})` }}
                   />
                   <button
                     onClick={() => { setConfirmExcluir(prev => { const n = Math.min(prev.qtyMax, prev.qtySel + 1); setQtyInputStr(String(n)); return { ...prev, qtySel: n }; }); }}
@@ -425,7 +422,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   </button>
                 </div>
                 {confirmExcluir.qtySel === confirmExcluir.qtyMax && (
-                  <div style={{ fontSize: 14, color: varColor(C.red), textAlign: "center", marginTop: 8, fontWeight: 600 }}>
+                  <div className="cart-panel__stepper-aviso" style={{ color: varColor(C.red), textAlign: "center", marginTop: 8, fontWeight: 600 }}>
                     Todos os itens serão {confirmExcluir.tipo === "lancado" ? "cancelados" : "removidos"}
                   </div>
                 )}
@@ -435,7 +432,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
             {/* Motivo — apenas para itens lançados */}
             {confirmExcluir.tipo === "lancado" && (
               <div className="cart-panel__campo">
-                <label className="cart-panel__label" style={{ fontSize: 18, color: varColor(C.muted) }}>
+                <label className="cart-panel__label" style={{ color: varColor(C.muted) }}>
                   Motivo do cancelamento
                   <span style={{ color: varColor(C.red) }}>*</span>
                 </label>
@@ -449,12 +446,12 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   className="cart-panel__textarea"
                   style={{
                     border: `1.5px solid ${confirmExcluir.motivo ? alfa(C.accent, "88") : varColor(C.border)}`,
-                    background: varColor(C.surface), color: varColor(C.text), fontSize: 17,
+                    background: varColor(C.surface), color: varColor(C.text),
                   }}
                   onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
                   onBlur={e => e.currentTarget.style.borderColor = confirmExcluir.motivo ? alfa(C.accent, "88") : varColor(C.border)}
                 />
-                <div style={{ fontSize: 14, color: varColor(C.muted), textAlign: "right" }}>
+                <div className="cart-panel__contador" style={{ color: varColor(C.muted), textAlign: "right" }}>
                   {confirmExcluir.motivo.length}/200
                 </div>
               </div>
@@ -463,7 +460,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
             {/* Senha admin/gerente — apenas para itens lançados */}
             {confirmExcluir.tipo === "lancado" && (
               <div className="cart-panel__campo">
-                <label className="cart-panel__label" style={{ fontSize: 14, color: varColor(C.muted) }}>
+                <label className="cart-panel__label" style={{ color: varColor(C.muted) }}>
                   <LuLock size={13} /> Senha do administrador / gerente
                 </label>
                 <div className="cart-panel__senha-wrap">
@@ -476,7 +473,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                     className="cart-panel__senha-input"
                     style={{
                       border: `1.5px solid ${itemSenhaErro ? varColor(C.red) : itemSenhaOk ? varColor(C.green) : varColor(C.border)}`,
-                      background: varColor(C.surface), color: varColor(C.text), fontSize: 16,
+                      background: varColor(C.surface), color: varColor(C.text),
                     }}
                   />
                   <button onClick={() => setItemSenhaVis(v => !v)} className="cart-panel__senha-olho" style={{ color: varColor(C.muted) }}>
@@ -484,10 +481,10 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   </button>
                 </div>
                 {itemSenhaErro && (
-                  <div style={{ fontSize: 14, color: varColor(C.red), fontWeight: 600 }}>Senha incorreta. Apenas admin ou gerente pode cancelar itens.</div>
+                  <div className="cart-panel__senha-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>Senha incorreta. Apenas admin ou gerente pode cancelar itens.</div>
                 )}
                 {itemSenhaOk && (
-                  <div style={{ fontSize: 14, color: varColor(C.green), fontWeight: 600 }}>✓ Autorizado</div>
+                  <div className="cart-panel__senha-ok" style={{ color: varColor(C.green), fontWeight: 600 }}>✓ Autorizado</div>
                 )}
               </div>
             )}
@@ -497,7 +494,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
               <button
                 onClick={() => setConfirmExcluir(null)}
                 className="cart-panel__modal-botao"
-                style={{ border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontSize: 17 }}
+                style={{ border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer" }}
               >
                 Cancelar
               </button>
@@ -510,7 +507,6 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   background: (confirmExcluir.tipo === "lancado" && (!confirmExcluir.motivo.trim() || !itemSenha)) ? varColor(C.faint) : varColor(C.red),
                   color: "#fff",
                   cursor: (confirmExcluir.tipo === "lancado" && (!confirmExcluir.motivo.trim() || !itemSenha)) ? "not-allowed" : "pointer",
-                  fontSize: 17,
                 }}
               >
                 <LuTrash2 size={15} />
@@ -532,19 +528,19 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
           style={{ zIndex: 9000 }}
         >
           <div className="cart-panel__modal" style={{ gap: 0 }}>
-            <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 4 }}>Finalizar Comanda?</div>
-            <div style={{ fontSize: 16, color: varColor(C.muted), marginBottom: 20 }}>{fmtComanda(comanda?.comanda)}</div>
+            <div className="cart-panel__modal-titulo" style={{ fontWeight: 900, marginBottom: 4 }}>Finalizar Comanda?</div>
+            <div className="cart-panel__modal-subtexto" style={{ color: varColor(C.muted), marginBottom: 20 }}>{fmtComanda(comanda?.comanda)}</div>
 
             <div className="cart-panel__resumo-finalizar" style={{ background: varColor(C.surface), border: `1px solid var(${C.border})`, marginBottom: 20 }}>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: varColor(C.text), marginBottom: 4 }}>
+                <div className="cart-panel__resumo-linha-titulo" style={{ fontWeight: 700, color: varColor(C.text), marginBottom: 4 }}>
                   {qtdGeral} {qtdGeral === 1 ? "item" : "itens"} consumidos
                 </div>
-                <div style={{ fontSize: 18, color: varColor(C.muted) }}>Vai para a tela de pagamento</div>
+                <div className="cart-panel__resumo-linha-sub" style={{ color: varColor(C.muted) }}>Vai para a tela de pagamento</div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Total</div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: varColor(C.green), lineHeight: 1 }}>R$ {totalGeral.toFixed(2)}</div>
+                <div className="cart-panel__resumo-total-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", marginBottom: 4 }}>Total</div>
+                <div className="cart-panel__resumo-total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>R$ {totalGeral.toFixed(2)}</div>
               </div>
             </div>
 
@@ -552,14 +548,14 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
               <button
                 onClick={() => setConfirmando(false)}
                 className="cart-panel__modal-botao"
-                style={{ border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontSize: 17 }}
+                style={{ border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer" }}
               >
                 Cancelar
               </button>
               <button
                 onClick={() => { setConfirmando(false); onFinalizar(); }}
-                className="cart-panel__modal-botao"
-                style={{ border: "none", background: varColor(C.green), color: "#fff", cursor: "pointer", fontWeight: 800, fontSize: 18 }}
+                className="cart-panel__modal-botao cart-panel__modal-botao--destaque"
+                style={{ border: "none", background: varColor(C.green), color: "#fff", cursor: "pointer", fontWeight: 800 }}
               >
                 Sim, finalizar
               </button>
