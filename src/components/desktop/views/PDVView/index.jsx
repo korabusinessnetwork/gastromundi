@@ -66,6 +66,18 @@ export default function PDVView({ notify }) {
   const [mode,        setMode]        = useState("grid");
   // Modos de "painel" (com tab bar, alertas e ações de topo) — tudo que não é pedido/checkout
   const emPainel = mode === "grid" || mode === "mapa" || mode === "abertas";
+  // No celular a Frente de Caixa é só BUSCA + LISTA: cabeçalho, Saldo do Dia,
+  // Nova Comanda, alertas e abas saem da tela. Antes, tudo isso empilhado
+  // empurrava a primeira comanda para ~65% da altura — o operador abria o PDV
+  // e não via comanda nenhuma. Abrir comanda continua a um toque: o slot vazio
+  // da lista ("1 · Disponível") e o número digitado na busca chamam onOpenEmpty.
+  const painelEnxuto = isCel && emPainel;
+  // Sem abas no celular, "mapa"/"comandas abertas" viram becos sem saída (não há
+  // como voltar pra lista). Se a janela encolher nesses modos, volta pra lista.
+  useEffect(() => {
+    if (isCel && (mode === "mapa" || mode === "abertas")) setMode("grid");
+  }, [isCel, mode]);
+
   const [selected,    setSelected]    = useState(null);
   const [cartItems,   setCartItems]   = useState([]);
   const [salvando,    setSalvando]    = useState(false);
@@ -688,10 +700,14 @@ export default function PDVView({ notify }) {
   return (
     <div style={{ display: "flex", height: "100vh", background: varColor(C.bg), flexDirection: "column" }}>
 
-      {/* ── Header (oculto no checkout — ele tem o próprio) ─────── */}
-      {mode !== "checkout" && (
+      {/* ── Header (oculto no checkout — ele tem o próprio — e no painel
+             enxuto do celular, onde a tela é só busca + lista) ────────── */}
+      {mode !== "checkout" && !painelEnxuto && (
         <div style={{
-          padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})`,
+          // Faixa de topo compacta: header + alerta + abas + busca empilhados
+          // comiam ~240px antes do primeiro card. Cada bloco perdeu altura sem
+          // perder alvo de toque (ver comentários abaixo).
+          padding: `${sz.padSm - 3}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})`,
           ...(isCel
             ? { display: "flex", flexDirection: "column", alignItems: "stretch" }
             : { display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }),
@@ -749,7 +765,7 @@ export default function PDVView({ notify }) {
                   className="pdv__saldo-btn"
                   style={{
                     display: "flex", alignItems: "center", gap: 7,
-                    padding: `${sz.padSm - 2}px ${sz.pad - 4}px`, borderRadius: 10,
+                    padding: `${sz.padSm - 5}px ${sz.pad - 6}px`, borderRadius: 9,
                     border: `1px solid var(${C.border})`, background: varColor(C.surface),
                     color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
                     transition: "background 0.15s, color 0.15s, border-color 0.15s", whiteSpace: "nowrap",
@@ -789,7 +805,7 @@ export default function PDVView({ notify }) {
               disabled={!caixaAberto}
               className="pdv__nova-comanda-btn"
               style={{
-                padding: `${sz.padSm - 2}px ${sz.pad}px`, borderRadius: 10, border: "none",
+                padding: `${sz.padSm - 5}px ${sz.pad - 2}px`, borderRadius: 9, border: "none",
                 background: caixaAberto ? varColor(C.accent) : varColor(C.faint),
                 color: "#fff", fontWeight: 700,
                 cursor: caixaAberto ? "pointer" : "not-allowed",
@@ -966,8 +982,8 @@ export default function PDVView({ notify }) {
         </div>
       )}
 
-      {/* ── Alerta de estoque (mapa + lista) ───────────────────── */}
-      {emPainel && (() => {
+      {/* ── Alerta de estoque (mapa + lista; fora do painel enxuto) ─── */}
+      {emPainel && !painelEnxuto && (() => {
         const criticos = products.filter(p => {
           const q = estoque[p.id] ?? 0;
           return q === 0;
@@ -989,7 +1005,7 @@ export default function PDVView({ notify }) {
               onClick={() => setAlertaAberto(v => !v)}
               style={{
                 width: "100%", background: "none", border: "none",
-                cursor: "pointer", padding: "10px 24px",
+                cursor: "pointer", padding: "7px 24px",
                 display: "flex", alignItems: "center", gap: 10,
                 textAlign: "left",
               }}
@@ -1036,7 +1052,7 @@ export default function PDVView({ notify }) {
       })()}
 
       {/* ── Alerta de validade (C1) — mesmo padrão do alerta de estoque ── */}
-      {emPainel && (() => {
+      {emPainel && !painelEnxuto && (() => {
         const vencendo = produtosVencendo(products, diasAlertaValidade ?? 7);
         if (vencendo.length === 0) return null;
         const vencidos = vencendo.filter(v => v.vencido);
@@ -1050,7 +1066,7 @@ export default function PDVView({ notify }) {
               onClick={() => setAlertaValidadeAberto(v => !v)}
               style={{
                 width: "100%", background: "none", border: "none", cursor: "pointer",
-                padding: "10px 24px", display: "flex", alignItems: "center", gap: 10, textAlign: "left",
+                padding: "7px 24px", display: "flex", alignItems: "center", gap: 10, textAlign: "left",
               }}
             >
               <LuTriangleAlert size={16} color={varColor(C.red)} />
@@ -1082,8 +1098,8 @@ export default function PDVView({ notify }) {
         );
       })()}
 
-      {/* ── Tab Mapa / Lista ─────────────────────────────────────── */}
-      {emPainel && (
+      {/* ── Tab Mapa / Lista (celular fica só na lista) ───────────── */}
+      {emPainel && !painelEnxuto && (
         <div style={{
           flexShrink: 0,
           display: "flex",
@@ -1100,7 +1116,7 @@ export default function PDVView({ notify }) {
               onClick={() => setMode(key)}
               className="pdv__tab-btn"
               style={{
-                padding: `10px 18px`,
+                padding: `8px 16px`,
                 background: "none", border: "none",
                 borderBottom: `2px solid ${mode === key ? varColor(C.accent) : "transparent"}`,
                 color: mode === key ? varColor(C.accent) : varColor(C.muted),
@@ -1118,19 +1134,41 @@ export default function PDVView({ notify }) {
         </div>
       )}
 
+      {/* ── Toast "Pedido lançado!" no painel enxuto ──────────────
+             O toast normal mora no cabeçalho, que some no celular. Sem esta
+             versão flutuante, lançar pedido no celular não daria retorno. */}
+      {painelEnxuto && (
+        <div
+          className={`pdv__toast pdv__toast--flutuante${toast ? " pdv__toast--visivel" : ""}`}
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            // Fundo opaco (e não o tom translúcido do toast do cabeçalho):
+            // flutuando sobre a lista, o verde translúcido deixaria a comanda
+            // de baixo transparecer atrás do texto.
+            background: varColor(C.surface), border: `1px solid ${alfa(C.green, "44")}`,
+            color: varColor(C.green), borderRadius: 10, padding: "9px 16px",
+            fontWeight: 700,
+          }}
+        >
+          ✓ Pedido lançado!
+        </div>
+      )}
+
       {/* ── Busca de comandas (lista e comandas abertas) ─────────── */}
       {(mode === "grid" || mode === "abertas") && (
         <div style={{
           flexShrink: 0,
-          padding: "16px 24px",
+          // Era 16px de folga + input de 57px de altura = ~92px só para a busca.
+          // Campo numérico não precisa desse porte; 47px ainda passa do --tap-min.
+          padding: "10px 24px",
           borderBottom: `1px solid var(${C.border})`,
           display: "flex", justifyContent: "center",
         }}>
           <div style={{ position: "relative", width: "100%", maxWidth: 760 }}>
             <LuSearch
-              size={20}
+              size={18}
               color={buscaComanda ? varColor(C.accent) : varColor(C.muted)}
-              style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", transition: "color 0.15s" }}
+              style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", transition: "color 0.15s" }}
             />
             <input
               value={buscaComanda}
@@ -1140,8 +1178,8 @@ export default function PDVView({ notify }) {
               className="pdv__busca-input"
               style={{
                 width: "100%",
-                padding: "16px 52px",
-                borderRadius: 14,
+                padding: "11px 46px",
+                borderRadius: 12,
                 border: `1.5px solid ${buscaComanda ? varColor(C.accent) + "88" : varColor(C.border)}`,
                 background: varColor(C.surface),
                 color: varColor(C.text),

@@ -233,9 +233,9 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, onClick
         style={{
           background: hovered ? alfa(C.accent, "0a") : varColor(C.card),
           border: `1.5px ${hovered ? "solid" : "dashed"} ${hovered ? alfa(C.accent, "88") : varColor(C.border)}`,
-          padding: `${sz.pad}px ${sz.padSm + 4}px`,
+          padding: sz.padSm + 2,
           color: hovered ? varColor(C.text) : varColor(C.muted),
-          gap: sz.gap - 2,
+          gap: Math.max(4, sz.gap - 5),
           opacity: hovered ? 1 : 0.45,
         }}
       >
@@ -295,9 +295,9 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, onClick
       style={{
         background: bgColor,
         border: `1.5px solid ${hovered && !isSelected ? alfa(C.accent, "55") : borderColor}`,
-        padding: `${sz.pad}px ${sz.padSm + 4}px`,
+        padding: sz.padSm + 2,
         color: varColor(C.text),
-        gap: sz.gap - 2,
+        gap: Math.max(4, sz.gap - 5),
         boxShadow: shadow,
       }}
     >

@@ -179,7 +179,7 @@
 /* ── ComandaCard ── */
 
 .comanda-card {
-  border-radius: 16px;
+  border-radius: 14px;
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -187,8 +187,10 @@
   flex-direction: column;
   font-family: inherit;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.2s, opacity 0.15s, border-style 0.1s;
-  /* alvo de toque generoso (princípio nº 1 — PDV é tela de toque) */
-  min-height: 110px;
+  /* alvo de toque generoso (princípio nº 1 — PDV é tela de toque). 96px
+     ainda é mais que o dobro do --tap-min (44px), então encolher o card
+     não custa precisão de toque. */
+  min-height: 96px;
 }
 
 .comanda-card__topo {

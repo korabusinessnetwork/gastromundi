@@ -17,16 +17,24 @@
 
 :root {
   /* Escala (rem/px @ raiz 16px). De lg pra cima usa clamp(): fluido no lugar
-     da curva por breakpoint do getSizes. Comentário = faixa min → max. */
-  --fs-xs:   0.75rem;                                      /* 12 */
-  --fs-sm:   0.875rem;                                     /* 14 */
-  --fs-base: 1rem;                                         /* 16 */
-  --fs-lg:   clamp(1.0625rem, 1rem   + 0.25vw, 1.125rem);  /* 17 → 18 */
-  --fs-xl:   clamp(1.125rem,  1.05rem + 0.35vw, 1.25rem);  /* 18 → 20 */
-  --fs-2xl:  clamp(1.25rem,   1.1rem  + 0.6vw,  1.5rem);   /* 20 → 24 */
-  --fs-3xl:  clamp(1.5rem,    1.3rem  + 0.9vw,  1.875rem); /* 24 → 30 */
-  --fs-4xl:  clamp(1.75rem,   1.4rem  + 1.6vw,  2.25rem);  /* 28 → 36 */
-  --fs-5xl:  clamp(2rem,      1.5rem  + 2.4vw,  3rem);     /* 32 → 48 */
+     da curva por breakpoint do getSizes. Comentário = faixa min → max.
+
+     Compressão do topo da escala (2026-07-23): a escala anterior deixava o
+     sistema "grande demais" na prática — títulos e números de destaque
+     dominavam a tela e empurravam conteúdo para fora da dobra. O corte é
+     PROGRESSIVO: xs fica onde estava (piso de legibilidade — o PDV é lido
+     de pé, a distância de braço) e a redução cresce conforme o tamanho
+     sobe, de ~6% em base até ~18% em 5xl. Assim o texto de leitura
+     praticamente não muda e o que encolhe é o exagero dos títulos. */
+  --fs-xs:   0.75rem;                                        /* 12 (piso) */
+  --fs-sm:   0.8125rem;                                      /* 13 */
+  --fs-base: 0.9375rem;                                      /* 15 */
+  --fs-lg:   clamp(1rem,       0.94rem + 0.25vw, 1.0625rem); /* 16 → 17 */
+  --fs-xl:   clamp(1.03125rem, 0.96rem + 0.35vw, 1.125rem);  /* 16,5 → 18 */
+  --fs-2xl:  clamp(1.125rem,   0.99rem + 0.55vw, 1.3125rem); /* 18 → 21 */
+  --fs-3xl:  clamp(1.3125rem,  1.14rem + 0.8vw,  1.625rem);  /* 21 → 26 */
+  --fs-4xl:  clamp(1.5rem,     1.25rem + 1.3vw,  1.875rem);  /* 24 → 30 */
+  --fs-5xl:  clamp(1.6875rem,  1.3rem  + 1.9vw,  2.4375rem); /* 27 → 39 */
 
   /* Alturas de linha pareadas à escala (TIPOGRAFIA.md): corpo folgado,
      títulos justos. */

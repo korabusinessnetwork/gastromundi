@@ -55,6 +55,28 @@
   line-height: var(--lh-base);
 }
 
+/*
+ * Variante flutuante: no celular a Frente de Caixa esconde o cabeçalho (só
+ * busca + lista), e o toast morava lá dentro. Sem isto, lançar um pedido no
+ * celular não daria nenhum retorno visual. Flutua sobre a lista, centralizado.
+ */
+.pdv__toast--flutuante {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 60;
+  pointer-events: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translate(-50%, -6px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.pdv__toast--flutuante.pdv__toast--visivel {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 .pdv__nova-comanda-btn {
   font-size: var(--fs-base);   /* role: botão (era sem token) */
   line-height: var(--lh-base);
