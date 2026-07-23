@@ -1,0 +1,138 @@
+/**
+ * Decisão 018 (CSS separado do JSX) + tokens --gm-* (ADR-007). Cores,
+ * transições dinâmicas (border/background por diferença) e todo o layout
+ * (grid/padding/gap) seguem inline no JSX — só o que é tema/estilo fixo
+ * migra pra cá.
+ *
+ * TAMANHO DE FONTE vem da escala do design system (tokens --fs-* e --lh-*
+ * de src/styles/tipografia.css), por classe de componente — não mais literal
+ * via `fontSize` inline. `.fechamento-modal__*-valor` que exibem dinheiro
+ * usam font-variant-numeric: tabular-nums (este modal é de fechamento de
+ * caixa — números de dinheiro alinhados importam).
+ */
+
+.fechamento-modal__titulo {
+  font-size: var(--fs-xl);   /* role: título de modal (era 18px) */
+  line-height: var(--lh-xl);
+}
+
+.fechamento-modal__subtitulo {
+  font-size: var(--fs-sm);   /* role: texto secundário (era 13px) */
+  line-height: var(--lh-sm);
+}
+
+.fechamento-modal__tabela-cabecalho {
+  font-size: var(--fs-xs);   /* role: caption/cabeçalho de tabela (era 11px) */
+  line-height: var(--lh-xs);
+}
+
+.fechamento-modal__metodo-nome {
+  font-size: var(--fs-sm);   /* role: label da linha (era 14px) */
+  line-height: var(--lh-sm);
+}
+
+.fechamento-modal__fundo-nota {
+  font-size: var(--fs-xs);   /* role: caption/apoio (era 11px) */
+  line-height: var(--lh-xs);
+}
+
+.fechamento-modal__valor-sistema {
+  font-size: var(--fs-sm);   /* role: dinheiro secundário/muted (era 14px) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.fechamento-modal__input-conferido {
+  font-size: var(--fs-sm);   /* role: dinheiro editável (era 14px) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.fechamento-modal__diferenca-linha {
+  font-size: var(--fs-xs);   /* role: caption de dinheiro por linha (era 11px) */
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.fechamento-modal__banner-texto {
+  font-size: var(--fs-sm);   /* role: corpo dentro de banner de aviso (era 13px) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.fechamento-modal__total-esperado-label {
+  font-size: var(--fs-sm);   /* role: label do resumo (era 14px) */
+  line-height: var(--lh-sm);
+}
+
+.fechamento-modal__total-esperado-valor {
+  font-size: var(--fs-sm);   /* role: dinheiro secundário/muted (era 15px) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.fechamento-modal__total-conferido-label {
+  /* role: label de destaque — um degrau acima do label "esperado" acima
+     dele, pra manter a hierarquia visual que já existia (14px vs 15px). */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.fechamento-modal__total-conferido-valor {
+  /* role: dinheiro em destaque (era 17px), mas ainda um degrau abaixo do
+     hero da diferença total logo abaixo (que tem selo/box colorido). */
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.fechamento-modal__diferenca-label {
+  font-size: var(--fs-sm);   /* role: label dentro do box de destaque (era 13px) */
+  line-height: var(--lh-sm);
+}
+
+.fechamento-modal__diferenca-valor {
+  /* role: número hero/KPI — sobra/falta é o resultado final do fechamento
+     de caixa, com box de destaque próprio (era 18px). */
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.fechamento-modal__obs-label {
+  font-size: var(--fs-xs);   /* role: label uppercase (era 11px) */
+  line-height: var(--lh-xs);
+}
+
+.fechamento-modal__obs-textarea {
+  font-size: var(--fs-sm);   /* role: corpo de texto (era 13px) */
+  line-height: var(--lh-sm);
+}
+
+.fechamento-modal__obs-contador {
+  font-size: var(--fs-xs);   /* role: caption (era 11px) */
+  line-height: var(--lh-xs);
+}
+
+.fechamento-modal__btn-cancelar {
+  font-size: var(--fs-sm);   /* role: botão secundário (era 14px) */
+  line-height: var(--lh-sm);
+}
+
+.fechamento-modal__btn-confirmar {
+  /* role: botão primário/CTA — um degrau acima do botão secundário ao
+     lado, pra manter a hierarquia visual que já existia (14px vs 15px). */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.fechamento-modal__row-label {
+  font-size: var(--fs-sm);   /* role: label/apoio (era 13px) */
+  line-height: var(--lh-sm);
+}
+
+.fechamento-modal__row-valor {
+  font-size: var(--fs-sm);   /* role: dinheiro em linha de resumo (era 13px) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}

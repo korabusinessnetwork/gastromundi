@@ -13,6 +13,7 @@ import { totalLancamentosGarcom, radarOportunidades } from "@/lib/painelGarcom";
 import { criarEspera, adicionarEspera, removerEspera, totalEspera, qtdItensEspera, resumoEsperas } from "@/lib/pedidosEmEspera";
 import { useTravaComanda } from "@/hooks/useTravaComanda";
 import { travadaPorOutro, nomeTrava } from "@/lib/comandaLock";
+import "./MobilePage.css";
 
 const TOTAL_COMANDAS = 1000;
 const PAGE = 50;
@@ -280,11 +281,11 @@ export default function MobilePage() {
   // pedido nos primeiros segundos mesmo com o caixa fechado)
   if (bootstrapLoading) {
     return (
-      <div style={{
+      <div className="mobile-page__boot" style={{
         display: "flex", alignItems: "center", justifyContent: "center",
         height: "100dvh", background: varColor(C.bg),
         fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.muted),
-        fontSize: 15, fontWeight: 600, padding: 24,
+        fontWeight: 600, padding: 24,
       }}>
         Conectando ao caixa…
       </div>
@@ -303,8 +304,8 @@ export default function MobilePage() {
           <div style={{ background: `${alfa(C.accent, "1a")}`, borderRadius: "50%", width: 72, height: 72, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <LuLock size={32} color={varColor(C.accent)} />
           </div>
-          <div style={{ fontWeight: 900, fontSize: 22 }}>Caixa Fechado</div>
-          <div style={{ fontSize: 14, color: varColor(C.muted), lineHeight: 1.65 }}>
+          <div className="mobile-page__bloqueio-titulo" style={{ fontWeight: 900 }}>Caixa Fechado</div>
+          <div className="mobile-page__bloqueio-texto" style={{ color: varColor(C.muted) }}>
             O caixa está fechado. Para lançar pedidos, solicite ao responsável que abra o caixa.
           </div>
         </div>
@@ -330,10 +331,11 @@ export default function MobilePage() {
     {redeOnline === false && ponteEndereco && (
       <button
         onClick={() => { window.location.href = ponteEndereco; }}
+        className="mobile-page__offline-btn"
         style={{
           position: "fixed", top: 10, left: "50%", transform: "translateX(-50%)",
           zIndex: 300, border: "none", borderRadius: 999, padding: "10px 18px",
-          background: AMBER, color: "#1a1a1a", fontWeight: 800, fontSize: 14,
+          background: AMBER, color: "#1a1a1a", fontWeight: 800,
           fontFamily: "inherit", cursor: "pointer", boxShadow: "0 4px 14px #0006",
           display: "flex", alignItems: "center", gap: 8,
         }}
@@ -347,12 +349,12 @@ export default function MobilePage() {
         {/* Header */}
         <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}><LuLayoutGrid size={20} /> Comandas</div>
-            <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 2 }}>
+            <div className="mobile-page__header-titulo" style={{ fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}><LuLayoutGrid size={20} /> Comandas</div>
+            <div className="mobile-page__header-sub" style={{ color: varColor(C.muted), marginTop: 2 }}>
               {abertas.length} comanda{abertas.length !== 1 ? "s" : ""} em aberto
             </div>
           </div>
-          <button onClick={() => { setMode("pedido"); setLancComanda(""); setLancMesa(""); }} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: varColor(C.accent), border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, fontSize: 14, WebkitTapHighlightColor: "transparent" }}>
+          <button onClick={() => { setMode("pedido"); setLancComanda(""); setLancMesa(""); }} className="mobile-page__btn-voltar" style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: varColor(C.accent), border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, WebkitTapHighlightColor: "transparent" }}>
             <LuArrowLeft size={16} /> Voltar
           </button>
         </div>
@@ -360,7 +362,7 @@ export default function MobilePage() {
         <div style={{ padding: "10px 16px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0 }}>
           <div style={{ position: "relative" }}>
             <LuSearch size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }} />
-            <input value={buscaGrid} onChange={e => setBuscaGrid(e.target.value)} placeholder="Buscar comanda por nome ou número..." style={{ width: "100%", padding: "11px 36px 11px 36px", borderRadius: 12, border: `1.5px solid ${buscaGrid ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }} />
+            <input value={buscaGrid} onChange={e => setBuscaGrid(e.target.value)} placeholder="Buscar comanda por nome ou número..." className="mobile-page__busca-input" style={{ width: "100%", padding: "11px 36px 11px 36px", borderRadius: 12, border: `1.5px solid ${buscaGrid ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }} />
             {buscaGrid && <button onClick={() => setBuscaGrid("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", lineHeight: 0, padding: 2 }}><LuX size={16} /></button>}
           </div>
         </div>
@@ -370,7 +372,7 @@ export default function MobilePage() {
             resultadosGrid.length === 0 ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, gap: 10, color: varColor(C.muted) }}>
                 <LuSearch size={40} style={{ opacity: 0.3 }} />
-                <div style={{ fontWeight: 600, fontSize: 15 }}>Nenhuma comanda encontrada</div>
+                <div className="mobile-page__vazio" style={{ fontWeight: 600 }}>Nenhuma comanda encontrada</div>
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: sz.gridCols, gap: 12, padding: 16 }}>
@@ -383,11 +385,11 @@ export default function MobilePage() {
                   const bgColor     = isLancada ? `${AMBER}14` : hasItems ? `${alfa(C.blue, "0a")}` : varColor(C.card);
                   return (
                     <div key={order.id} onClick={() => selecionarComanda(order.comanda, order.mesa)} style={{ background: bgColor, border: `1.5px solid ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: varColor(C.text), display: "flex", flexDirection: "column", gap: 6, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                      <div style={{ fontWeight: 800, fontSize: 16 }}>{fmtComanda(order.comanda)}</div>
-                      {emUso && <div style={{ fontSize: 11, fontWeight: 700, color: AMBER, display: "flex", alignItems: "center", gap: 4 }}><LuLock size={10} /> Em uso · {nomeTrava(order)}</div>}
-                      {order.mesa && <div style={{ fontSize: 12, color: varColor(C.muted) }}>Mesa {order.mesa}</div>}
-                      {order.garcom && <div style={{ fontSize: 12, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
-                      <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
+                      <div className="mobile-page__comanda-nome" style={{ fontWeight: 800 }}>{fmtComanda(order.comanda)}</div>
+                      {emUso && <div className="mobile-page__comanda-uso" style={{ fontWeight: 700, color: AMBER, display: "flex", alignItems: "center", gap: 4 }}><LuLock size={10} /> Em uso · {nomeTrava(order)}</div>}
+                      {order.mesa && <div className="mobile-page__comanda-meta" style={{ color: varColor(C.muted) }}>Mesa {order.mesa}</div>}
+                      {order.garcom && <div className="mobile-page__comanda-meta" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
+                      <div className="mobile-page__comanda-total" style={{ fontWeight: 700, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
                     </div>
                   );
                 })}
@@ -405,16 +407,16 @@ export default function MobilePage() {
                   const bgColor     = isLancada ? `${AMBER}14` : hasItems ? `${alfa(C.blue, "0a")}` : varColor(C.card);
                   return (
                     <div key={num} onClick={() => selecionarComanda(num, order?.mesa)} style={{ background: bgColor, border: `1.5px ${order ? "solid" : "dashed"} ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: varColor(C.text), display: "flex", flexDirection: "column", gap: 6, opacity: !order ? 0.45 : 1, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                      <div style={{ fontWeight: 800, fontSize: 16 }}>Comanda {num}</div>
+                      <div className="mobile-page__comanda-nome" style={{ fontWeight: 800 }}>Comanda {num}</div>
                       {order ? (
                         <>
-                          {emUsoPorOutro(order) && <div style={{ fontSize: 11, fontWeight: 700, color: AMBER, display: "flex", alignItems: "center", gap: 4 }}><LuLock size={10} /> Em uso · {nomeTrava(order)}</div>}
-                          {order.mesa && <div style={{ fontSize: 12, color: varColor(C.muted) }}>Mesa {order.mesa}</div>}
-                          {order.garcom && <div style={{ fontSize: 12, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
-                          <div style={{ fontSize: 13, fontWeight: 700, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
+                          {emUsoPorOutro(order) && <div className="mobile-page__comanda-uso" style={{ fontWeight: 700, color: AMBER, display: "flex", alignItems: "center", gap: 4 }}><LuLock size={10} /> Em uso · {nomeTrava(order)}</div>}
+                          {order.mesa && <div className="mobile-page__comanda-meta" style={{ color: varColor(C.muted) }}>Mesa {order.mesa}</div>}
+                          {order.garcom && <div className="mobile-page__comanda-meta" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
+                          <div className="mobile-page__comanda-total" style={{ fontWeight: 700, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
                         </>
                       ) : (
-                        <div style={{ fontSize: 12, color: varColor(C.muted) }}>Disponível</div>
+                        <div className="mobile-page__comanda-meta" style={{ color: varColor(C.muted) }}>Disponível</div>
                       )}
                     </div>
                   );
@@ -422,7 +424,7 @@ export default function MobilePage() {
               </div>
               {limite < TOTAL_COMANDAS && (
                 <div style={{ padding: "0 16px 24px", display: "flex", justifyContent: "center" }}>
-                  <button onClick={() => setLimite(l => Math.min(l + PAGE, TOTAL_COMANDAS))} style={{ padding: "12px 32px", borderRadius: 12, border: `1px solid var(${C.border})`, background: varColor(C.card), color: varColor(C.muted), fontWeight: 600, fontSize: 14, cursor: "pointer", width: "100%" }}>
+                  <button onClick={() => setLimite(l => Math.min(l + PAGE, TOTAL_COMANDAS))} className="mobile-page__ver-mais" style={{ padding: "12px 32px", borderRadius: 12, border: `1px solid var(${C.border})`, background: varColor(C.card), color: varColor(C.muted), fontWeight: 600, cursor: "pointer", width: "100%" }}>
                     Ver mais · {limite}/{TOTAL_COMANDAS}
                   </button>
                 </div>
@@ -454,10 +456,10 @@ export default function MobilePage() {
           {/* Header */}
           <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div>
-              <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8 }}><LuChartBar size={20} /> Meu Painel</div>
-              <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 2 }}>{currentUser?.name?.split(" ")[0]} · caixa atual</div>
+              <div className="mobile-page__header-titulo" style={{ fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}><LuChartBar size={20} /> Meu Painel</div>
+              <div className="mobile-page__header-sub" style={{ color: varColor(C.muted), marginTop: 2 }}>{currentUser?.name?.split(" ")[0]} · caixa atual</div>
             </div>
-            <button onClick={() => setMode("pedido")} style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: varColor(C.accent), border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, fontSize: 14, WebkitTapHighlightColor: "transparent" }}>
+            <button onClick={() => setMode("pedido")} className="mobile-page__btn-voltar" style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: varColor(C.accent), border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, WebkitTapHighlightColor: "transparent" }}>
               <LuArrowLeft size={16} /> Voltar
             </button>
           </div>
@@ -465,14 +467,14 @@ export default function MobilePage() {
           <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 16, paddingBottom: "calc(24px + env(safe-area-inset-bottom))" }}>
             {/* Bloco 1 — Minhas vendas no caixa atual */}
             <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 16, padding: 20 }}>
-              <div style={{ fontSize: 13, color: varColor(C.muted), fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Meus lançamentos no caixa</div>
-              <div style={{ fontSize: 34, fontWeight: 900, color: varColor(C.green), marginTop: 8 }}>R$ {meu.total.toFixed(2)}</div>
+              <div className="mobile-page__kpi-label" style={{ color: varColor(C.muted), fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Meus lançamentos no caixa</div>
+              <div className="mobile-page__kpi-valor" style={{ fontWeight: 900, color: varColor(C.green), marginTop: 8 }}>R$ {meu.total.toFixed(2)}</div>
               <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
-                <div style={{ fontSize: 14, color: varColor(C.muted) }}><b style={{ color: varColor(C.text) }}>{meu.comandas}</b> comanda{meu.comandas !== 1 ? "s" : ""}</div>
-                <div style={{ fontSize: 14, color: varColor(C.muted) }}><b style={{ color: varColor(C.text) }}>{meu.itens}</b> {meu.itens === 1 ? "item" : "itens"}</div>
+                <div className="mobile-page__kpi-meta" style={{ color: varColor(C.muted) }}><b style={{ color: varColor(C.text) }}>{meu.comandas}</b> comanda{meu.comandas !== 1 ? "s" : ""}</div>
+                <div className="mobile-page__kpi-meta" style={{ color: varColor(C.muted) }}><b style={{ color: varColor(C.text) }}>{meu.itens}</b> {meu.itens === 1 ? "item" : "itens"}</div>
               </div>
               {!sessaoAbertaEm && (
-                <div style={{ marginTop: 10, fontSize: 12, color: varColor(C.muted) }}>
+                <div className="mobile-page__kpi-nota" style={{ marginTop: 10, color: varColor(C.muted) }}>
                   Total desde a abertura do caixa. Conta comandas abertas e vendas atribuídas a você.
                 </div>
               )}
@@ -482,11 +484,11 @@ export default function MobilePage() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <LuLightbulb size={18} color={AMBER} />
-                <span style={{ fontWeight: 800, fontSize: 16 }}>Oportunidades</span>
-                {cards.length > 0 && <span style={{ background: `${AMBER}22`, color: AMBER, borderRadius: 8, padding: "1px 8px", fontSize: 12, fontWeight: 800 }}>{cards.length}</span>}
+                <span className="mobile-page__secao-titulo" style={{ fontWeight: 800 }}>Oportunidades</span>
+                {cards.length > 0 && <span className="mobile-page__secao-badge" style={{ background: `${AMBER}22`, color: AMBER, borderRadius: 8, padding: "1px 8px", fontWeight: 800 }}>{cards.length}</span>}
               </div>
               {cards.length === 0 ? (
-                <div style={{ background: varColor(C.card), border: `1px dashed var(${C.border})`, borderRadius: 14, padding: 24, textAlign: "center", color: varColor(C.muted), fontSize: 14 }}>
+                <div className="mobile-page__radar-vazio" style={{ background: varColor(C.card), border: `1px dashed var(${C.border})`, borderRadius: 14, padding: 24, textAlign: "center", color: varColor(C.muted) }}>
                   {Object.keys(categoriaGrupoMap ?? {}).length === 0
                     ? "Configure os grupos de categoria (Configurações → Grupos de Categoria) para ver sugestões."
                     : "Nenhuma oportunidade agora. Tudo em dia! 🎉"}
@@ -510,10 +512,10 @@ export default function MobilePage() {
                           <LuLightbulb size={20} color={AMBER} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 800, fontSize: 15 }}>
+                          <div className="mobile-page__radar-titulo" style={{ fontWeight: 800 }}>
                             {fmtComanda(card.comanda)}{card.mesa ? ` · Mesa ${card.mesa}` : ""}
                           </div>
-                          <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 2 }}>{card.rotulo}</div>
+                          <div className="mobile-page__radar-rotulo" style={{ color: varColor(C.muted), marginTop: 2 }}>{card.rotulo}</div>
                         </div>
                         {order && <LuPlus size={18} color={AMBER} />}
                       </button>
@@ -548,20 +550,21 @@ export default function MobilePage() {
           >
             <LuLogOut size={16} />
           </button>
-          <div style={{ fontWeight: 900, fontSize: 18, display: "flex", alignItems: "center", gap: 8, minWidth: 0, whiteSpace: "nowrap" }}>
+          <div className="mobile-page__header-titulo" style={{ fontWeight: 900, display: "flex", alignItems: "center", gap: 8, minWidth: 0, whiteSpace: "nowrap" }}>
             <LuUtensils size={20} style={{ flexShrink: 0 }} /> Palm
-            <span style={{ fontSize: 13, fontWeight: 500, color: varColor(C.muted), minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {currentUser?.name?.split(" ")[0]}</span>
+            <span className="mobile-page__header-usuario" style={{ fontWeight: 500, color: varColor(C.muted), minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {currentUser?.name?.split(" ")[0]}</span>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <button
             onClick={() => setMode("painel")}
             title="Meu painel"
+            className="mobile-page__btn-topo"
             style={{
               display: "flex", alignItems: "center", gap: 6, flexShrink: 0, whiteSpace: "nowrap",
               background: varColor(C.surface), border: `1.5px solid var(${C.border})`, borderRadius: 12,
               color: varColor(C.muted), cursor: "pointer",
-              padding: "8px 10px", fontWeight: 600, fontSize: 13,
+              padding: "8px 10px", fontWeight: 600,
               WebkitTapHighlightColor: "transparent",
             }}
           >
@@ -569,15 +572,16 @@ export default function MobilePage() {
           </button>
           <button
             onClick={() => { setMode("grid"); setLancComanda(""); setLancMesa(""); }}
+            className="mobile-page__btn-topo"
             style={{
               display: "flex", alignItems: "center", gap: 6, flexShrink: 0, whiteSpace: "nowrap",
               background: varColor(C.surface), border: `1.5px solid var(${C.border})`, borderRadius: 12,
               color: varColor(C.muted), cursor: "pointer",
-              padding: "8px 12px", fontWeight: 600, fontSize: 13,
+              padding: "8px 12px", fontWeight: 600,
               WebkitTapHighlightColor: "transparent",
             }}
           >
-            <LuLayoutGrid size={14} /> Comandas {abertas.length > 0 && <span style={{ background: varColor(C.accent), color: "#fff", borderRadius: 8, padding: "1px 6px", fontSize: 11, fontWeight: 800 }}>{abertas.length}</span>}
+            <LuLayoutGrid size={14} /> Comandas {abertas.length > 0 && <span className="mobile-page__btn-topo-badge" style={{ background: varColor(C.accent), color: "#fff", borderRadius: 8, padding: "1px 6px", fontWeight: 800 }}>{abertas.length}</span>}
           </button>
         </div>
       </div>
@@ -590,11 +594,12 @@ export default function MobilePage() {
             value={buscaItens}
             onChange={e => setBuscaItens(e.target.value)}
             placeholder="Buscar item..."
+            className="mobile-page__busca-input"
             style={{
               width: "100%", padding: "11px 36px 11px 36px",
               borderRadius: 12, border: `1.5px solid ${buscaItens ? varColor(C.accent) : varColor(C.border)}`,
               background: varColor(C.surface), color: varColor(C.text),
-              fontSize: 15, fontFamily: "inherit", outline: "none",
+              fontFamily: "inherit", outline: "none",
               boxSizing: "border-box", transition: "border-color 0.15s",
             }}
           />
@@ -609,11 +614,11 @@ export default function MobilePage() {
       {/* Filtro categorias */}
       <div style={{ display: "flex", gap: 8, padding: "10px 16px", overflowX: "auto", flexShrink: 0, borderBottom: `1px solid var(${C.border})` }}>
         {categorias.map(cat => (
-          <button key={cat} onClick={() => setCatAtiva(cat)} style={{
+          <button key={cat} onClick={() => setCatAtiva(cat)} className="mobile-page__chip" style={{
             padding: "8px 16px", borderRadius: 20, border: "none",
             background: catAtiva === cat ? varColor(C.accent) : varColor(C.surface),
             color: catAtiva === cat ? "#fff" : varColor(C.muted),
-            cursor: "pointer", fontWeight: 600, fontSize: 13,
+            cursor: "pointer", fontWeight: 600,
             whiteSpace: "nowrap", flexShrink: 0,
             WebkitTapHighlightColor: "transparent",
           }}>
@@ -631,7 +636,7 @@ export default function MobilePage() {
             {visiveis.length === 0 ? (
               <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, gap: 10, color: varColor(C.muted) }}>
                 <LuSearch size={40} style={{ opacity: 0.3 }} />
-                <div style={{ fontWeight: 600, fontSize: 15 }}>Nenhum item encontrado</div>
+                <div className="mobile-page__vazio" style={{ fontWeight: 600 }}>Nenhum item encontrado</div>
               </div>
             ) : visiveis.map(product => {
               const qty = cartItems.find(i => i.id === product.id)?.qty ?? 0;
@@ -645,13 +650,13 @@ export default function MobilePage() {
                   position: "relative", WebkitTapHighlightColor: "transparent",
                 }}>
                   {qty > 0 && (
-                    <span style={{ position: "absolute", top: 8, right: 8, background: varColor(C.accent), color: "#fff", borderRadius: 10, padding: "2px 7px", fontSize: 11, fontWeight: 800 }}>
+                    <span className="mobile-page__produto-badge" style={{ position: "absolute", top: 8, right: 8, background: varColor(C.accent), color: "#fff", borderRadius: 10, padding: "2px 7px", fontWeight: 800 }}>
                       {qty}
                     </span>
                   )}
-                  {product.emoji && <span style={{ fontSize: 26 }}>{product.emoji}</span>}
-                  <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>{product.name}</div>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: varColor(C.green) }}>R$ {Number(product.price).toFixed(2)}</div>
+                  {product.emoji && <span className="mobile-page__produto-emoji">{product.emoji}</span>}
+                  <div className="mobile-page__produto-nome" style={{ fontWeight: 700 }}>{product.name}</div>
+                  <div className="mobile-page__produto-preco" style={{ fontWeight: 800, color: varColor(C.green) }}>R$ {Number(product.price).toFixed(2)}</div>
                 </button>
               );
             })}
@@ -678,10 +683,10 @@ export default function MobilePage() {
               cursor: "pointer", color: varColor(C.text), WebkitTapHighlightColor: "transparent",
             }}
           >
-            <span style={{ fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+            <span className="mobile-page__cart-resumo-itens" style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
               <LuShoppingCart size={16} /> {qtdTotal} {qtdTotal === 1 ? "item" : "itens"}
             </span>
-            <span style={{ fontWeight: 900, fontSize: 15, color: varColor(C.green), display: "flex", alignItems: "center", gap: 4 }}>
+            <span className="mobile-page__cart-resumo-total" style={{ fontWeight: 900, color: varColor(C.green), display: "flex", alignItems: "center", gap: 4 }}>
               R$ {total.toFixed(2)} {cartAberto ? <LuChevronDown size={14}/> : <LuChevronUp size={14}/>}
             </span>
           </button>
@@ -692,18 +697,19 @@ export default function MobilePage() {
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 14px 6px", borderBottom: `1px solid var(${C.border})` }}>
               <button
                 onClick={() => { setCartItems([]); setCartAberto(false); setLancComanda(""); setLancMesa(""); }}
-                style={{ background: "none", border: "none", color: varColor(C.red), cursor: "pointer", fontSize: 12, fontWeight: 700, padding: "4px 0", display: "flex", alignItems: "center", gap: 4, WebkitTapHighlightColor: "transparent" }}
+                className="mobile-page__cart-limpar"
+                style={{ background: "none", border: "none", color: varColor(C.red), cursor: "pointer", fontWeight: 700, padding: "4px 0", display: "flex", alignItems: "center", gap: 4, WebkitTapHighlightColor: "transparent" }}
               >
                 <LuX size={13} /> Limpar carrinho
               </button>
             </div>
             {cartItems.map((item, i) => (
               <div key={item._key ?? i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", borderBottom: i < cartItems.length - 1 ? `1px solid var(${C.border})` : "none" }}>
-                <span style={{ flex: 1, fontWeight: 600, fontSize: 13 }}>{item.name}</span>
+                <span className="mobile-page__cart-item-nome" style={{ flex: 1, fontWeight: 600 }}>{item.name}</span>
                 <button onClick={() => handleChangeQty(i, item.qty - 1)} style={{ background: `${alfa(C.red, "15")}`, border: `1px solid ${alfa(C.red, "44")}`, borderRadius: 6, width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.red) }}><LuMinus size={13}/></button>
-                <span style={{ fontWeight: 800, fontSize: 14, minWidth: 20, textAlign: "center" }}>{item.qty}</span>
+                <span className="mobile-page__cart-item-qtd" style={{ fontWeight: 800, minWidth: 20, textAlign: "center" }}>{item.qty}</span>
                 <button onClick={() => handleChangeQty(i, item.qty + 1)} style={{ background: `${alfa(C.green, "15")}`, border: `1px solid ${alfa(C.green, "44")}`, borderRadius: 6, width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.green) }}><LuPlus size={13}/></button>
-                <span style={{ fontWeight: 700, fontSize: 13, color: varColor(C.green), minWidth: 60, textAlign: "right" }}>R$ {(item.price * item.qty).toFixed(2)}</span>
+                <span className="mobile-page__cart-item-preco" style={{ fontWeight: 700, color: varColor(C.green), minWidth: 60, textAlign: "right" }}>R$ {(item.price * item.qty).toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -712,10 +718,11 @@ export default function MobilePage() {
         <button
           onClick={cartItems.length > 0 ? abrirModalLancar : undefined}
           disabled={cartItems.length === 0}
+          className="mobile-page__cta"
           style={{
             padding: "16px", borderRadius: 12, border: "none",
             background: cartItems.length > 0 ? varColor(C.accent) : varColor(C.faint),
-            color: "#fff", fontWeight: 800, fontSize: 16,
+            color: "#fff", fontWeight: 800,
             cursor: cartItems.length > 0 ? "pointer" : "not-allowed",
             WebkitTapHighlightColor: "transparent",
           }}
@@ -738,25 +745,25 @@ export default function MobilePage() {
         <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: "calc(24px + env(safe-area-inset-bottom))", width: "100%", maxHeight: "100dvh", overflowY: "auto", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 18, color: varColor(C.text) }}>{cartItems.length === 0 ? "Abrir Comanda" : "Lançar Pedido"}</div>
-              <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 2 }}>{cartItems.length === 0 ? "Sem itens por enquanto — dá pra lançar depois" : `${qtdTotal} ${qtdTotal === 1 ? "item" : "itens"} · R$ ${total.toFixed(2)}`}</div>
+              <div className="mobile-page__modal-titulo" style={{ fontWeight: 800, color: varColor(C.text) }}>{cartItems.length === 0 ? "Abrir Comanda" : "Lançar Pedido"}</div>
+              <div className="mobile-page__modal-sub" style={{ color: varColor(C.muted), marginTop: 2 }}>{cartItems.length === 0 ? "Sem itens por enquanto — dá pra lançar depois" : `${qtdTotal} ${qtdTotal === 1 ? "item" : "itens"} · R$ ${total.toFixed(2)}`}</div>
             </div>
             <button onClick={() => { if (!salvando) setShowLancar(false); }} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0 }}><LuX size={22} /></button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Número da Comanda *</div>
-              <input autoFocus value={lancComanda} onChange={e => { setLancComanda(e.target.value); setLancErro(""); }} onKeyDown={e => e.key === "Enter" && document.getElementById("palm-mesa")?.focus()} placeholder="Ex: 42 ou Mesa VIP" maxLength={40} style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${lancErro ? varColor(C.red) + "88" : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+              <div className="mobile-page__campo-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Número da Comanda *</div>
+              <input autoFocus value={lancComanda} onChange={e => { setLancComanda(e.target.value); setLancErro(""); }} onKeyDown={e => e.key === "Enter" && document.getElementById("palm-mesa")?.focus()} placeholder="Ex: 42 ou Mesa VIP" maxLength={40} className="mobile-page__campo-input" style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${lancErro ? varColor(C.red) + "88" : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
             </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Mesa <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span></div>
-              <input id="palm-mesa" value={lancMesa} onChange={e => setLancMesa(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLancar()} placeholder="Ex: 5" maxLength={20} style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontSize: 16, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+              <div className="mobile-page__campo-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Mesa <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span></div>
+              <input id="palm-mesa" value={lancMesa} onChange={e => setLancMesa(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLancar()} placeholder="Ex: 5" maxLength={20} className="mobile-page__campo-input" style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
             </div>
-            {lancErro && <div style={{ fontSize: 14, color: varColor(C.red), fontWeight: 600, padding: "8px 12px", background: `${alfa(C.red, "12")}`, borderRadius: 8, border: `1px solid ${alfa(C.red, "33")}` }}>{lancErro}</div>}
+            {lancErro && <div className="mobile-page__campo-erro" style={{ color: varColor(C.red), fontWeight: 600, padding: "8px 12px", background: `${alfa(C.red, "12")}`, borderRadius: 8, border: `1px solid ${alfa(C.red, "33")}` }}>{lancErro}</div>}
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => { if (!salvando) setShowLancar(false); }} style={{ flex: 1, padding: 14, borderRadius: 12, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 15, fontFamily: "inherit" }}>Cancelar</button>
-            <button onClick={handleLancar} disabled={!lancComanda.trim() || salvando} style={{ flex: 2, padding: 14, borderRadius: 12, border: "none", background: lancComanda.trim() && !salvando ? varColor(C.accent) : varColor(C.surface), color: lancComanda.trim() && !salvando ? "#fff" : varColor(C.muted), cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed", fontWeight: 800, fontSize: 15, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}>
+            <button onClick={() => { if (!salvando) setShowLancar(false); }} className="mobile-page__modal-btn" style={{ flex: 1, padding: 14, borderRadius: 12, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>Cancelar</button>
+            <button onClick={handleLancar} disabled={!lancComanda.trim() || salvando} className="mobile-page__modal-btn" style={{ flex: 2, padding: 14, borderRadius: 12, border: "none", background: lancComanda.trim() && !salvando ? varColor(C.accent) : varColor(C.surface), color: lancComanda.trim() && !salvando ? "#fff" : varColor(C.muted), cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed", fontWeight: 800, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}>
               {salvando ? "Enviando..."
                 : cartItems.length === 0 ? (mapa[lancComanda.trim()] ? "✓ Abrir Comanda" : "✓ Criar Comanda")
                 : esperas.length > 0 ? `✓ Revisar e lançar todos (${esperas.length + 1})`
@@ -769,6 +776,7 @@ export default function MobilePage() {
             <button
               onClick={porEmEspera}
               disabled={!lancComanda.trim() || salvando}
+              className="mobile-page__modal-btn"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 padding: 13, borderRadius: 12, marginTop: -4,
@@ -776,7 +784,7 @@ export default function MobilePage() {
                 background: lancComanda.trim() && !salvando ? `${AMBER}14` : "none",
                 color: lancComanda.trim() && !salvando ? AMBER : varColor(C.muted),
                 cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed",
-                fontWeight: 800, fontSize: 15, fontFamily: "inherit",
+                fontWeight: 800, fontFamily: "inherit",
                 WebkitTapHighlightColor: "transparent",
               }}
             >
@@ -797,13 +805,13 @@ export default function MobilePage() {
         <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", width: "100%", maxHeight: "80dvh", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "20px 20px 14px", borderBottom: `1px solid var(${C.border})`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
             <div>
-              <div style={{ fontWeight: 900, fontSize: 19, color: varColor(C.text), display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="mobile-page__sheet-titulo" style={{ fontWeight: 900, color: varColor(C.text), display: "flex", alignItems: "center", gap: 8 }}>
                 <LuPause size={18} color={AMBER} /> Pedidos em espera
               </div>
               {(() => {
                 const r = resumoEsperas(esperas);
                 return (
-                  <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 3 }}>
+                  <div className="mobile-page__sheet-sub" style={{ color: varColor(C.muted), marginTop: 3 }}>
                     {r.pedidos} pedido{r.pedidos !== 1 ? "s" : ""} · {r.itens} {r.itens === 1 ? "item" : "itens"} · R$ {r.total.toFixed(2)}
                   </div>
                 );
@@ -813,24 +821,24 @@ export default function MobilePage() {
           </div>
           <div style={{ flex: 1, overflowY: "auto" }}>
             {esperas.length === 0 ? (
-              <div style={{ padding: 40, textAlign: "center", color: varColor(C.muted), fontSize: 14 }}>Nenhum pedido em espera.</div>
+              <div className="mobile-page__vazio" style={{ padding: 40, textAlign: "center", color: varColor(C.muted) }}>Nenhum pedido em espera.</div>
             ) : esperas.map((esp, i) => (
               <div key={esp.comanda} style={{ padding: "14px 20px", borderBottom: i < esperas.length - 1 ? `1px solid var(${C.border})` : "none", display: "flex", alignItems: "flex-start", gap: 12 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 15, color: varColor(C.text) }}>
+                  <div className="mobile-page__espera-nome" style={{ fontWeight: 800, color: varColor(C.text) }}>
                     {fmtComanda(esp.comanda)}{esp.mesa ? <span style={{ fontWeight: 500, color: varColor(C.muted) }}> · Mesa {esp.mesa}</span> : null}
                   </div>
-                  <div style={{ fontSize: 13, color: varColor(C.muted), marginTop: 3, lineHeight: 1.5 }}>
+                  <div className="mobile-page__espera-itens" style={{ color: varColor(C.muted), marginTop: 3 }}>
                     {esp.items.map(it => `${it.qty ?? 1}× ${it.name}`).join(", ")}
                   </div>
                   {esp.erro && (
-                    <div style={{ fontSize: 12, color: AMBER, fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                    <div className="mobile-page__espera-erro" style={{ color: AMBER, fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
                       <LuLock size={11} style={{ flexShrink: 0 }} /> {esp.erro}
                     </div>
                   )}
                 </div>
                 <div style={{ flexShrink: 0, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-                  <div style={{ fontWeight: 800, fontSize: 15, color: varColor(C.green) }}>R$ {totalEspera(esp).toFixed(2)}</div>
+                  <div className="mobile-page__espera-total" style={{ fontWeight: 800, color: varColor(C.green) }}>R$ {totalEspera(esp).toFixed(2)}</div>
                   <button
                     onClick={() => setEsperas(prev => {
                       const depois = removerEspera(prev, esp.comanda);
@@ -850,10 +858,11 @@ export default function MobilePage() {
             <button
               onClick={enviarEsperas}
               disabled={salvando || esperas.length === 0}
+              className="mobile-page__cta"
               style={{
                 width: "100%", padding: 16, borderRadius: 12, border: "none",
                 background: !salvando && esperas.length > 0 ? varColor(C.accent) : varColor(C.faint),
-                color: "#fff", fontWeight: 800, fontSize: 16,
+                color: "#fff", fontWeight: 800,
                 cursor: !salvando && esperas.length > 0 ? "pointer" : "not-allowed",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 fontFamily: "inherit", WebkitTapHighlightColor: "transparent",
@@ -887,18 +896,18 @@ export default function MobilePage() {
                 </div>
                 <div style={{ padding: "8px 20px 14px", borderBottom: `1px solid var(${C.border})`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                   <div>
-                    <div style={{ fontWeight: 900, fontSize: 20, color: varColor(C.text) }}>{fmtComanda(order.comanda)}</div>
+                    <div className="mobile-page__sheet-titulo" style={{ fontWeight: 900, color: varColor(C.text) }}>{fmtComanda(order.comanda)}</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 4 }}>
-                      {order.mesa && <span style={{ fontSize: 13, color: varColor(C.muted) }}>Mesa {order.mesa}</span>}
-                      {order.garcom && <span style={{ fontSize: 13, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={12} /> {order.garcom}</span>}
-                      {hora && <span style={{ fontSize: 13, color: varColor(C.accent), display: "flex", alignItems: "center", gap: 4 }}><LuClock size={12} /> {data} às {hora}</span>}
+                      {order.mesa && <span className="mobile-page__detalhe-meta" style={{ color: varColor(C.muted) }}>Mesa {order.mesa}</span>}
+                      {order.garcom && <span className="mobile-page__detalhe-meta" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={12} /> {order.garcom}</span>}
+                      {hora && <span className="mobile-page__detalhe-hora" style={{ color: varColor(C.accent), display: "flex", alignItems: "center", gap: 4 }}><LuClock size={12} /> {data} às {hora}</span>}
                     </div>
                   </div>
                   <button onClick={fecharDetalhe} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0, flexShrink: 0 }}><LuX size={22} /></button>
                 </div>
                 {/* Trava de edição (Leva 14): outra pessoa está com esta comanda aberta */}
                 {(bloqueio || emUsoPorOutro(order)) && (
-                  <div style={{ margin: "10px 20px 0", padding: "10px 14px", borderRadius: 12, background: `${AMBER}14`, border: `1.5px solid ${AMBER}66`, color: AMBER, fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+                  <div className="mobile-page__aviso-trava" style={{ margin: "10px 20px 0", padding: "10px 14px", borderRadius: 12, background: `${AMBER}14`, border: `1.5px solid ${AMBER}66`, color: AMBER, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
                     <LuLock size={14} style={{ flexShrink: 0 }} />
                     Em uso por {bloqueio?.nome ?? nomeTrava(order)} — dá pra ver, mas não mexer até liberar.
                   </div>
@@ -918,27 +927,27 @@ export default function MobilePage() {
                           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                           lineHeight: 1,
                         }}>
-                          <span style={{ fontWeight: 900, fontSize: 18, color: varColor(C.accent) }}>{qty}</span>
-                          <span style={{ fontSize: 9, color: varColor(C.accent), opacity: 0.7, fontWeight: 700, letterSpacing: 0.3 }}>un</span>
+                          <span className="mobile-page__item-qtd" style={{ fontWeight: 900, color: varColor(C.accent) }}>{qty}</span>
+                          <span className="mobile-page__item-qtd-un" style={{ color: varColor(C.accent), opacity: 0.7, fontWeight: 700, letterSpacing: 0.3 }}>un</span>
                         </div>
                         {/* Nome + horário */}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 15, color: varColor(C.text), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          <div className="mobile-page__item-nome" style={{ fontWeight: 700, color: varColor(C.text), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {item.emoji ? `${item.emoji} ${item.name}` : item.name}
                           </div>
                           {lancHora && (
-                            <div style={{ fontSize: 11, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 3, marginTop: 3 }}>
+                            <div className="mobile-page__item-hora" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 3, marginTop: 3 }}>
                               <LuClock size={10} /> {lancHora}
                             </div>
                           )}
                         </div>
                         {/* Preço */}
                         <div style={{ flexShrink: 0, textAlign: "right" }}>
-                          <div style={{ fontWeight: 800, fontSize: 15, color: varColor(C.green) }}>
+                          <div className="mobile-page__item-preco" style={{ fontWeight: 800, color: varColor(C.green) }}>
                             R$ {((item.price ?? 0) * qty).toFixed(2)}
                           </div>
                           {qty > 1 && (
-                            <div style={{ fontSize: 10, color: varColor(C.muted), marginTop: 1 }}>
+                            <div className="mobile-page__item-unit" style={{ color: varColor(C.muted), marginTop: 1 }}>
                               {qty}× R$ {Number(item.price ?? 0).toFixed(2)}
                             </div>
                           )}
@@ -949,8 +958,8 @@ export default function MobilePage() {
                 </div>
                 <div style={{ padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", borderTop: `1px solid var(${C.border})`, display: "flex", gap: 10, alignItems: "center" }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, color: varColor(C.muted), fontWeight: 600 }}>Total</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: varColor(C.green) }}>R$ {totalOrder.toFixed(2)}</div>
+                    <div className="mobile-page__total-label" style={{ color: varColor(C.muted), fontWeight: 600 }}>Total</div>
+                    <div className="mobile-page__total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>R$ {totalOrder.toFixed(2)}</div>
                   </div>
                   {(() => {
                     const travada = !!(bloqueio || emUsoPorOutro(order));
@@ -965,7 +974,7 @@ export default function MobilePage() {
                           setMode("pedido");
                           // não abre o modal — usuário seleciona produtos primeiro
                         }, 320);
-                      }} style={{ display: "flex", alignItems: "center", gap: 8, background: travada ? varColor(C.surface) : varColor(C.accent), border: "none", borderRadius: 12, color: travada ? varColor(C.muted) : "#fff", cursor: travada ? "not-allowed" : "pointer", padding: "14px 20px", fontWeight: 800, fontSize: 15, WebkitTapHighlightColor: "transparent" }}>
+                      }} className="mobile-page__sheet-cta" style={{ display: "flex", alignItems: "center", gap: 8, background: travada ? varColor(C.surface) : varColor(C.accent), border: "none", borderRadius: 12, color: travada ? varColor(C.muted) : "#fff", cursor: travada ? "not-allowed" : "pointer", padding: "14px 20px", fontWeight: 800, WebkitTapHighlightColor: "transparent" }}>
                         {travada ? <LuLock size={16} /> : <LuPlus size={16} />} {travada ? "Em uso" : "Adicionar itens"}
                       </button>
                     );
@@ -998,10 +1007,10 @@ function BarraEsperas({ esperas, onClick }) {
         WebkitTapHighlightColor: "transparent",
       }}
     >
-      <span style={{ fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
+      <span className="mobile-page__espera-barra-texto" style={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
         <LuPause size={15} /> {r.pedidos} pedido{r.pedidos !== 1 ? "s" : ""} em espera · R$ {r.total.toFixed(2)}
       </span>
-      <span style={{ fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", gap: 5 }}>
+      <span className="mobile-page__espera-barra-acao" style={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 5 }}>
         Revisar e enviar <LuSend size={13} />
       </span>
     </button>
@@ -1014,12 +1023,12 @@ function ToastMsg({ msg }) {
   if (msg) ultima.current = msg;
   const visible = !!msg;
   return (
-    <div style={{
+    <div className="mobile-page__toast" style={{
       position: "fixed", top: 20, left: "50%",
       transform: `translateX(-50%) translateY(${visible ? 0 : -16}px)`,
       background: varColor(C.green), color: "#fff",
       padding: "12px 20px", borderRadius: 12,
-      fontWeight: 700, fontSize: 14,
+      fontWeight: 700,
       boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
       pointerEvents: "none", zIndex: 500,
       opacity: visible ? 1 : 0,

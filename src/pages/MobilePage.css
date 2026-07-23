@@ -1,0 +1,461 @@
+/**
+ * Palm (MobilePage) — decisão 018: o CSS sai do JSX e passa a viver ao lado
+ * da tela, para permitir edição de layout a longo prazo e customização
+ * visual por estabelecimento (white-label, decisão 017).
+ *
+ * ESCOPO DESTE ARQUIVO: apenas TAMANHO DE FONTE (e a altura de linha
+ * pareada). Os valores vêm da escala do design system definida em
+ * src/styles/tipografia.css — as variáveis --fs-* e --lh-* — em vez de
+ * números literais no `style={{}}` do JSX. Um tenant pode sobrescrever a
+ * escala em runtime (ADR-007) e a tela inteira acompanha.
+ *
+ * O resto do inline (cor, peso, padding, gap, borda, layout) permanece no
+ * JSX por enquanto — será migrado em levas seguintes. `sz`/getSizes segue
+ * no JSX só para layout (grid) e tamanho de ícone.
+ *
+ * Convenção: o token é escolhido pelo PAPEL do texto na tela (caption,
+ * label, corpo, nome/preço de item, título, número hero), não pelo pixel
+ * que estava ali antes. Dinheiro, quantidade e horário ganham
+ * `tabular-nums` para as colunas não dançarem.
+ *
+ * ATENÇÃO: CSS Custom Property não resolve dentro de @media — se precisar
+ * de ponto de quebra, use px literal. As clamp() dos tokens já entregam a
+ * fluidez.
+ */
+
+/* ── Guardas de tela cheia (bootstrap / caixa fechado) ─────────────── */
+
+.mobile-page__boot {
+  /* papel: corpo (era 15px) */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.mobile-page__bloqueio-titulo {
+  /* papel: título hero do aviso (era 22px) */
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+}
+
+.mobile-page__bloqueio-texto {
+  /* papel: texto de apoio (era 14px, line-height 1.65) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* ── Faixa "sem internet" ──────────────────────────────────────────── */
+
+.mobile-page__offline-btn {
+  /* papel: label de botão (era 14px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* ── Cabeçalhos (grade de comandas, painel, tela de pedido) ────────── */
+
+.mobile-page__header-titulo {
+  /* papel: título de seção (era 18px) */
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
+.mobile-page__header-sub {
+  /* papel: texto secundário sob o título (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__header-usuario {
+  /* papel: apoio dentro do título (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__btn-voltar {
+  /* papel: label de botão (era 14px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__btn-topo {
+  /* papel: label de botão compacto (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__btn-topo-badge {
+  /* papel: selo com contagem (era 11px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Busca ─────────────────────────────────────────────────────────── */
+
+.mobile-page__busca-input {
+  /* papel: corpo digitável (era 15px) */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* ── Estados vazios ────────────────────────────────────────────────── */
+
+.mobile-page__vazio {
+  /* papel: estado vazio (era 14/15px) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* ── Card de comanda (grade) ───────────────────────────────────────── */
+
+.mobile-page__comanda-nome {
+  /* papel: nome de item (era 16px) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.mobile-page__comanda-uso {
+  /* papel: selo "em uso" (era 11px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.mobile-page__comanda-meta {
+  /* papel: caption de apoio — mesa, garçom, "Disponível" (era 12px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.mobile-page__comanda-total {
+  /* papel: dinheiro no card (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__ver-mais {
+  /* papel: label de botão com contagem (era 14px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Painel do garçom ──────────────────────────────────────────────── */
+
+.mobile-page__kpi-label {
+  /* papel: label em caixa alta (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__kpi-valor {
+  /* papel: número hero do painel (era 34px) */
+  font-size: var(--fs-4xl);
+  line-height: var(--lh-4xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__kpi-meta {
+  /* papel: apoio com contagem (era 14px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__kpi-nota {
+  /* papel: caption explicativa (era 12px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.mobile-page__secao-titulo {
+  /* papel: título de bloco (era 16px) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.mobile-page__secao-badge {
+  /* papel: selo com contagem (era 12px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__radar-vazio {
+  /* papel: texto de apoio explicativo (era 14px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__radar-titulo {
+  /* papel: nome da comanda no card (era 15px) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.mobile-page__radar-rotulo {
+  /* papel: apoio do card (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* ── Tela de pedido: filtro + grade de produtos ────────────────────── */
+
+.mobile-page__chip {
+  /* papel: label de filtro (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__produto-badge {
+  /* papel: selo de quantidade no card (era 11px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__produto-emoji {
+  /* papel: glyph decorativo (era 26px). line-height 1 = reset de glyph */
+  font-size: var(--fs-2xl);
+  line-height: 1;
+}
+
+.mobile-page__produto-nome {
+  /* papel: nome de item (era 14px, line-height 1.3) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.mobile-page__produto-preco {
+  /* papel: preço de item (era 14px) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Barra inferior + carrinho ─────────────────────────────────────── */
+
+.mobile-page__cart-resumo-itens {
+  /* papel: label com quantidade (era 14px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__cart-resumo-total {
+  /* papel: dinheiro em destaque (era 15px) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__cart-limpar {
+  /* papel: ação secundária pequena (era 12px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.mobile-page__cart-item-nome {
+  /* papel: linha densa de lista (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__cart-item-qtd {
+  /* papel: quantidade (era 14px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__cart-item-preco {
+  /* papel: dinheiro da linha (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__cta {
+  /* papel: ação principal da tela (era 16px) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* ── Modal de lançamento ───────────────────────────────────────────── */
+
+.mobile-page__modal-titulo {
+  /* papel: título do modal (era 18px) */
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
+.mobile-page__modal-sub {
+  /* papel: apoio do título, com contagem e valor (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__campo-label {
+  /* papel: label de campo em caixa alta (era 12px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.mobile-page__campo-input {
+  /* papel: corpo digitável (era 16px) */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.mobile-page__campo-erro {
+  /* papel: mensagem de erro (era 14px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__modal-btn {
+  /* papel: label de botão do modal (era 15px) */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* ── Bottom sheets (pedidos em espera / detalhe da comanda) ────────── */
+
+.mobile-page__sheet-titulo {
+  /* papel: título do sheet (era 19/20px) */
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
+.mobile-page__sheet-sub {
+  /* papel: resumo de apoio com números (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__espera-nome {
+  /* papel: nome da comanda em espera (era 15px) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.mobile-page__espera-itens {
+  /* papel: apoio com a lista de itens (era 13px, line-height 1.5) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__espera-erro {
+  /* papel: caption de erro na fila (era 12px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.mobile-page__espera-total {
+  /* papel: dinheiro do pedido em espera (era 15px) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__detalhe-meta {
+  /* papel: apoio do cabeçalho — mesa, garçom (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__detalhe-hora {
+  /* papel: timestamp do cabeçalho (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__aviso-trava {
+  /* papel: aviso de comanda em uso (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__item-qtd {
+  /* papel: quantidade em destaque no selo (era 18px).
+     line-height 1 = reset de alinhamento dentro do selo de 44px */
+  font-size: var(--fs-xl);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__item-qtd-un {
+  /* papel: caption "un" sob a quantidade (era 9px — menor token é xs) */
+  font-size: var(--fs-xs);
+  line-height: 1;
+}
+
+.mobile-page__item-nome {
+  /* papel: nome de item lançado (era 15px) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.mobile-page__item-hora {
+  /* papel: timestamp do lançamento (era 11px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__item-preco {
+  /* papel: preço de item (era 15px) */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__item-unit {
+  /* papel: caption do preço unitário (era 10px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__total-label {
+  /* papel: label "Total" (era 12px) */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.mobile-page__total-valor {
+  /* papel: dinheiro hero do rodapé (era 20px) */
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__sheet-cta {
+  /* papel: ação do rodapé do sheet (era 15px) */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* ── Barra de pedidos em espera + toast ────────────────────────────── */
+
+.mobile-page__espera-barra-texto {
+  /* papel: label da barra com contagem e valor (era 14px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-page__espera-barra-acao {
+  /* papel: chamada de ação da barra (era 13px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.mobile-page__toast {
+  /* papel: mensagem de confirmação (era 14px) */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}

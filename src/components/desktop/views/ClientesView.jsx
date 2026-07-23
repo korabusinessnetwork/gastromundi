@@ -87,13 +87,13 @@ export default function ClientesView() {
       {/* Header */}
       <div className="clientes-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Clientes</div>
-          <div className="clientes-view__subtitulo" style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>Cadastro, histórico de compras e fiado</div>
+          <div className="clientes-view__titulo" style={{ fontWeight: 800 }}>Clientes</div>
+          <div className="clientes-view__subtitulo" style={{ color: varColor(C.muted) }}>Cadastro, histórico de compras e fiado</div>
         </div>
         <button
           onClick={abrirCadastro}
           className="clientes-view__btn-novo"
-          style={{ background: varColor(C.accent), fontSize: sz.fontBase, boxShadow: `0 4px 16px ${alfa(C.accent, "44")}` }}
+          style={{ background: varColor(C.accent), boxShadow: `0 4px 16px ${alfa(C.accent, "44")}` }}
         >
           <LuPlus size={16} /> Novo Cliente
         </button>
@@ -108,7 +108,6 @@ export default function ClientesView() {
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por nome ou telefone..."
             className="clientes-view__busca-input"
-            style={{ fontSize: sz.fontBase }}
           />
         </div>
       </div>
@@ -123,16 +122,16 @@ export default function ClientesView() {
 
         {carregando ? (
           <div className="clientes-view__estado">
-            <div style={{ fontSize: sz.fontBase }}>Carregando clientes...</div>
+            <div className="clientes-view__msg-estado">Carregando clientes...</div>
           </div>
         ) : clientes.length === 0 ? (
           <div className="clientes-view__estado">
             <LuUsers size={44} style={{ opacity: 0.3 }} />
-            <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>
+            <div className="clientes-view__titulo-estado" style={{ fontWeight: 600 }}>
               {busca.trim() ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado ainda"}
             </div>
             {!busca.trim() && (
-              <div style={{ fontSize: sz.fontSm }}>Clique em "Novo Cliente" para cadastrar o primeiro</div>
+              <div className="clientes-view__msg-vazio">Clique em "Novo Cliente" para cadastrar o primeiro</div>
             )}
           </div>
         ) : (
@@ -143,14 +142,14 @@ export default function ClientesView() {
                 onClick={() => setClienteAberto(c)}
                 className="clientes-view__card"
               >
-                <div className="clientes-view__card-nome" style={{ fontSize: sz.fontBase + 1 }}>{c.nome}</div>
+                <div className="clientes-view__card-nome">{c.nome}</div>
                 {c.telefone && (
-                  <div className="clientes-view__card-linha" style={{ fontSize: sz.fontSm }}>
+                  <div className="clientes-view__card-linha">
                     <LuPhone size={13} /> {c.telefone}
                   </div>
                 )}
                 {c.endereco && (
-                  <div className="clientes-view__card-linha" style={{ fontSize: sz.fontSm }}>
+                  <div className="clientes-view__card-linha">
                     <LuMapPin size={13} /> {c.endereco}
                   </div>
                 )}
@@ -326,7 +325,7 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
           )}
 
           {carregando ? (
-            <div style={{ color: varColor(C.muted), fontSize: 14, textAlign: "center", padding: 30 }}>Carregando histórico...</div>
+            <div className="cliente-detalhe__msg-carregando" style={{ color: varColor(C.muted), textAlign: "center", padding: 30 }}>Carregando histórico...</div>
           ) : (
             <>
               {/* Saldo devedor — destaque claro: quem deve, quanto */}
@@ -384,15 +383,15 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
               <div>
                 <div className="cliente-detalhe__secao-titulo">Histórico de compras</div>
                 {vendas.length === 0 ? (
-                  <div style={{ fontSize: 13, color: varColor(C.muted), padding: "10px 0" }}>Nenhuma venda registrada para este cliente ainda.</div>
+                  <div className="cliente-detalhe__msg-vendas-vazio" style={{ color: varColor(C.muted), padding: "10px 0" }}>Nenhuma venda registrada para este cliente ainda.</div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {vendas.map((v) => (
                       <div key={v.id} className="cliente-detalhe__venda">
-                        <div style={{ fontSize: 13, color: varColor(C.muted) }}>
+                        <div className="cliente-detalhe__venda-data" style={{ color: varColor(C.muted) }}>
                           {v.comanda ? `Comanda ${v.comanda}` : "Venda"} · {new Date(v.at).toLocaleDateString("pt-BR")}
                         </div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: varColor(C.text) }}>R$ {Number(v.total).toFixed(2)}</div>
+                        <div className="cliente-detalhe__venda-valor" style={{ fontWeight: 700, color: varColor(C.text) }}>R$ {Number(v.total).toFixed(2)}</div>
                       </div>
                     ))}
                   </div>

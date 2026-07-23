@@ -6,6 +6,7 @@ import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { LuPlus, LuPencil, LuTrash2, LuX, LuSave, LuTriangleAlert } from "react-icons/lu";
+import "./MesasAdmin.css";
 
 const CARD_W   = 110;
 const CARD_H   = 96;
@@ -212,7 +213,7 @@ export default function MesasAdmin({ sz }) {
 
   if (loading) {
     return (
-      <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: "40px 0", textAlign: "center" }}>
+      <div className="mesas-admin__loading" style={{ color: varColor(C.muted), padding: "40px 0", textAlign: "center" }}>
         Carregando…
       </div>
     );
@@ -224,8 +225,8 @@ export default function MesasAdmin({ sz }) {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Mesas</div>
-          <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2 }}>
+          <div className="mesas-admin__titulo" style={{ fontWeight: 700 }}>Mesas</div>
+          <div className="mesas-admin__subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
             {mesas.length} mesa{mesas.length !== 1 ? "s" : ""} cadastrada{mesas.length !== 1 ? "s" : ""}
             {mesas.length > 0 && " · arraste os cards para reposicionar"}
           </div>
@@ -235,12 +236,13 @@ export default function MesasAdmin({ sz }) {
             <button
               onClick={salvarLayout}
               disabled={salvandoLayout}
+              className="mesas-admin__botao-cabecalho"
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 padding: "9px 18px", borderRadius: 10, border: "none",
                 background: salvandoLayout ? varColor(C.faint) : varColor(C.green),
                 color: "#fff", cursor: salvandoLayout ? "not-allowed" : "pointer",
-                fontWeight: 700, fontSize: sz.fontSm, fontFamily: "inherit",
+                fontWeight: 700, fontFamily: "inherit",
                 boxShadow: salvandoLayout ? "none" : `0 2px 10px ${alfa(C.green, "44")}`,
                 transition: "background 0.15s",
               }}
@@ -250,11 +252,12 @@ export default function MesasAdmin({ sz }) {
           )}
           <button
             onClick={abrirNovo}
+            className="mesas-admin__botao-cabecalho"
             style={{
               display: "flex", alignItems: "center", gap: 6,
               background: varColor(C.accent), border: "none", borderRadius: 10,
               color: "#fff", cursor: "pointer", fontWeight: 700,
-              fontSize: sz.fontSm, padding: "10px 16px", fontFamily: "inherit",
+              padding: "10px 16px", fontFamily: "inherit",
               boxShadow: `0 2px 10px ${alfa(C.accent, "44")}`,
             }}
           >
@@ -265,10 +268,10 @@ export default function MesasAdmin({ sz }) {
 
       {/* Banner de erro */}
       {erro && (
-        <div style={{
+        <div className="mesas-admin__erro-texto" style={{
           padding: "10px 14px", borderRadius: 8,
           background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "33")}`,
-          color: varColor(C.red), fontSize: sz.fontSm,
+          color: varColor(C.red),
           display: "flex", gap: 8, alignItems: "center",
         }}>
           <LuTriangleAlert size={15} style={{ flexShrink: 0 }} /> {erro}
@@ -284,11 +287,11 @@ export default function MesasAdmin({ sz }) {
       }}>
         {mesas.length === 0 ? (
           <div style={{ padding: "60px 24px", textAlign: "center", color: varColor(C.muted) }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🪑</div>
-            <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.text), marginBottom: 4 }}>
+            <div className="mesas-admin__vazio-emoji" style={{ marginBottom: 12 }}>🪑</div>
+            <div className="mesas-admin__vazio-titulo" style={{ fontWeight: 700, color: varColor(C.text), marginBottom: 4 }}>
               Nenhuma mesa cadastrada
             </div>
-            <div style={{ fontSize: sz.fontSm }}>
+            <div className="mesas-admin__vazio-texto">
               Clique em "+ Nova Mesa" para cadastrar a primeira mesa.
             </div>
           </div>
@@ -354,7 +357,7 @@ export default function MesasAdmin({ sz }) {
           }}>
             {/* Título */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1, color: varColor(C.text) }}>
+              <div className="mesas-admin__modal-titulo" style={{ fontWeight: 800, color: varColor(C.text) }}>
                 {editando ? "Editar Mesa" : "Nova Mesa"}
               </div>
               <button
@@ -369,7 +372,7 @@ export default function MesasAdmin({ sz }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {/* Número / Nome */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+                <div className="mesas-admin__campo-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
                   Número / Nome *
                 </div>
                 <input
@@ -380,16 +383,17 @@ export default function MesasAdmin({ sz }) {
                   disabled={!!editando}
                   placeholder="Ex: 1, 2, Varanda A…"
                   maxLength={20}
+                  className="mesas-admin__campo-input"
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
                     border: `1.5px solid ${formErro && !form.numero.trim() && !editando ? varColor(C.red) + "88" : varColor(C.border)}`,
                     background: editando ? varColor(C.bg) : varColor(C.surface), color: varColor(C.text),
-                    fontSize: sz.fontBase, fontFamily: "inherit", outline: "none",
+                    fontFamily: "inherit", outline: "none",
                     boxSizing: "border-box", opacity: editando ? 0.55 : 1,
                   }}
                 />
                 {editando && (
-                  <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4 }}>
+                  <div className="mesas-admin__campo-ajuda" style={{ color: varColor(C.muted), marginTop: 4 }}>
                     O número é chave primária e não pode ser alterado.
                   </div>
                 )}
@@ -397,7 +401,7 @@ export default function MesasAdmin({ sz }) {
 
               {/* Capacidade */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+                <div className="mesas-admin__campo-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
                   Capacidade (pessoas)
                 </div>
                 <input
@@ -408,21 +412,22 @@ export default function MesasAdmin({ sz }) {
                   value={form.capacidade}
                   onChange={e => setForm(f => ({ ...f, capacidade: e.target.value }))}
                   onKeyDown={e => e.key === "Enter" && salvar()}
+                  className="mesas-admin__campo-input"
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
                     border: `1.5px solid var(${C.border})`,
                     background: varColor(C.surface), color: varColor(C.text),
-                    fontSize: sz.fontBase, fontFamily: "inherit", outline: "none",
+                    fontFamily: "inherit", outline: "none",
                     boxSizing: "border-box",
                   }}
                 />
               </div>
 
               {formErro && (
-                <div style={{
+                <div className="mesas-admin__erro-texto" style={{
                   padding: "8px 12px", borderRadius: 8,
                   background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "33")}`,
-                  color: varColor(C.red), fontSize: sz.fontSm,
+                  color: varColor(C.red),
                 }}>
                   {formErro}
                 </div>
@@ -434,11 +439,12 @@ export default function MesasAdmin({ sz }) {
               <button
                 onClick={fecharModal}
                 disabled={salvando}
+                className="mesas-admin__modal-botao"
                 style={{
                   flex: 1, padding: 12, borderRadius: 10,
                   border: `1px solid var(${C.border})`, background: "none",
                   color: varColor(C.muted), cursor: salvando ? "not-allowed" : "pointer",
-                  fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit",
+                  fontWeight: 600, fontFamily: "inherit",
                 }}
               >
                 Cancelar
@@ -446,12 +452,13 @@ export default function MesasAdmin({ sz }) {
               <button
                 onClick={salvar}
                 disabled={((!form.numero.trim() && !editando)) || salvando}
+                className="mesas-admin__modal-botao"
                 style={{
                   flex: 2, padding: 12, borderRadius: 10, border: "none",
                   background: (form.numero.trim() || editando) && !salvando ? varColor(C.accent) : varColor(C.surface),
                   color: (form.numero.trim() || editando) && !salvando ? "#fff" : varColor(C.muted),
                   cursor: (form.numero.trim() || editando) && !salvando ? "pointer" : "not-allowed",
-                  fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit",
+                  fontWeight: 700, fontFamily: "inherit",
                   transition: "background 0.15s",
                 }}
               >
@@ -488,10 +495,10 @@ export default function MesasAdmin({ sz }) {
                 <LuTrash2 size={20} color={varColor(C.red)} />
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: sz.fontBase, color: varColor(C.text) }}>
+                <div className="mesas-admin__modal-titulo" style={{ fontWeight: 800, color: varColor(C.text) }}>
                   Remover Mesa {confirmDelete.numero}?
                 </div>
-                <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4, lineHeight: 1.5 }}>
+                <div className="mesas-admin__confirm-descricao" style={{ color: varColor(C.muted), marginTop: 4 }}>
                   Esta ação não pode ser desfeita. Pedidos e vendas anteriores vinculados à mesa não serão afetados.
                 </div>
               </div>
@@ -499,11 +506,12 @@ export default function MesasAdmin({ sz }) {
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 onClick={() => setConfirmDelete(null)}
+                className="mesas-admin__modal-botao"
                 style={{
                   flex: 1, padding: 12, borderRadius: 10,
                   border: `1px solid var(${C.border})`, background: "none",
                   color: varColor(C.muted), cursor: "pointer",
-                  fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit",
+                  fontWeight: 600, fontFamily: "inherit",
                 }}
               >
                 Cancelar
@@ -511,11 +519,12 @@ export default function MesasAdmin({ sz }) {
               <button
                 onClick={executarDelete}
                 disabled={deletando}
+                className="mesas-admin__modal-botao"
                 style={{
                   flex: 2, padding: 12, borderRadius: 10, border: "none",
                   background: deletando ? varColor(C.faint) : varColor(C.red),
                   color: "#fff", cursor: deletando ? "not-allowed" : "pointer",
-                  fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit",
+                  fontWeight: 700, fontFamily: "inherit",
                 }}
               >
                 {deletando ? "Removendo…" : "Sim, remover"}
@@ -552,11 +561,11 @@ function CardMesaAdmin({ mesa, w, h, sz, onEdit, onDelete, onDragStart, onDragEn
         transition: "border-color 0.12s, background 0.12s",
       }}
     >
-      <div style={{ fontSize: sz.fontBase + 2, fontWeight: 900, color: varColor(C.text), lineHeight: 1 }}>
+      <div className="mesas-admin__mesa-numero" style={{ fontWeight: 900, color: varColor(C.text) }}>
         {mesa.numero}
       </div>
       {mesa.capacidade != null && (
-        <div style={{ fontSize: 11, color: varColor(C.muted), fontWeight: 600 }}>
+        <div className="mesas-admin__mesa-capacidade" style={{ color: varColor(C.muted), fontWeight: 600 }}>
           {mesa.capacidade}p
         </div>
       )}

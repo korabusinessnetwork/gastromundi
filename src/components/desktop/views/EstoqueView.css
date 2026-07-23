@@ -4,6 +4,12 @@
  * usam alfa() (src/constants/colorAlfa.js). `estoqueColor()` pode
  * devolver uma cor semântica fixa (laranja de "baixo", não é token de
  * marca) — alfa() cai pra cor literal nesse caso, como em outras telas.
+ *
+ * TAMANHO DE FONTE migrado para a escala do design system (--fs-* e --lh-*
+ * de src/styles/tipografia.css), por classe — não mais inline via sz.* do
+ * JSX (padrão já usado no PDV, ver ProductGrid.css). `sz` continua no JSX
+ * só para padding/gap/grid (layout). Quantidade/saldo/dinheiro usam
+ * font-variant-numeric: tabular-nums.
  */
 
 .estoque-view {
@@ -24,8 +30,16 @@
   flex-wrap: wrap;
 }
 
+/* Título da tela (era sz.fontLg). */
+.estoque-view__titulo {
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
 .estoque-view__subtitulo {
   margin-top: 2px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .estoque-view__btn-liberar {
@@ -41,6 +55,8 @@
   font-weight: 700;
   font-family: inherit;
   transition: all 0.15s;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .estoque-view__kpis {
@@ -59,11 +75,16 @@
 
 .estoque-view__kpi-valor {
   font-weight: 900;
+  font-size: var(--fs-2xl);   /* role: número hero/KPI (era sz.fontXl - 2) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
 }
 
 .estoque-view__kpi-label {
   color: var(--gm-muted);
   margin-top: 2px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .estoque-view__filtros {
@@ -81,6 +102,8 @@
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .estoque-view__categorias {
@@ -96,6 +119,8 @@
   cursor: pointer;
   font-weight: 600;
   transition: background 0.15s, color 0.15s;
+  font-size: var(--fs-sm);   /* role: label/apoio, chip (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 .estoque-view__tabela-area {
@@ -111,6 +136,17 @@
   gap: 10px;
   color: var(--gm-muted);
   padding: 60px;
+}
+
+/* Glyph decorativo do estado vazio (era 48px literal). */
+.estoque-view__vazio-emoji {
+  font-size: var(--fs-5xl);
+  line-height: 1;
+}
+
+.estoque-view__vazio-texto {
+  font-size: var(--fs-lg);   /* role: vazio (era sz.fontBase + 1) */
+  line-height: var(--lh-lg);
 }
 
 .estoque-view__tabela-moldura {
@@ -162,8 +198,16 @@
   gap: 10px;
 }
 
+/* Emoji do produto na linha da tabela — glyph decorativo (era 22px literal). */
+.estoque-view__produto-emoji {
+  font-size: var(--fs-2xl);
+  line-height: 1;
+}
+
 .estoque-view__produto-nome {
   font-weight: 700;
+  font-size: var(--fs-lg);   /* role: nome (era sz.fontBase) */
+  line-height: var(--lh-lg);
 }
 
 .estoque-view__produto-conversoes {
@@ -171,12 +215,23 @@
   margin-top: 2px;
   display: flex;
   gap: 8px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era 14px literal) */
+  line-height: var(--lh-sm);
 }
 
 .estoque-view__categoria-tag {
   font-weight: 600;
   padding: 3px 10px;
   border-radius: 20px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+/* Coluna "Preço" — mesmo papel de nome/preço item do design system. */
+.estoque-view__preco-cel {
+  font-size: var(--fs-lg);   /* role: preço (era sz.fontBase) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }
 
 .estoque-view__saldo {
@@ -188,21 +243,31 @@
 
 .estoque-view__saldo-valor {
   font-weight: 800;
+  font-size: var(--fs-lg);   /* role: quantidade/saldo prominente (era sz.fontBase + 2) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }
 
 .estoque-view__saldo-unidade {
   font-weight: 700;
   opacity: 0.8;
+  font-size: var(--fs-sm);   /* role: label/apoio (era 14px literal) */
+  line-height: var(--lh-sm);
 }
 
 .estoque-view__saldo-consumo {
   color: var(--gm-muted);
   margin-top: 1px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era 14px literal) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .estoque-view__saldo-status {
   margin-top: 2px;
   font-weight: 600;
+  font-size: var(--fs-xs);   /* role: caption/selo (era 13px literal) */
+  line-height: var(--lh-xs);
 }
 
 .estoque-view__minimo {
@@ -214,6 +279,8 @@
 
 .estoque-view__minimo-label {
   color: var(--gm-muted);
+  font-size: var(--fs-xs);   /* role: caption/label (era 12px literal) */
+  line-height: var(--lh-xs);
 }
 
 .estoque-view__minimo-input {
@@ -227,6 +294,9 @@
   text-align: center;
   -moz-appearance: textfield;
   appearance: textfield;
+  font-size: var(--fs-xs);   /* role: caption, quantidade mínima (era 12px literal) */
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .estoque-view__btn-cadeado {
@@ -262,6 +332,8 @@
   gap: 4px;
   font-family: inherit;
   white-space: nowrap;
+  font-size: var(--fs-sm);   /* role: label/apoio (era 14px literal) */
+  line-height: var(--lh-sm);
 }
 
 .estoque-view__entrada-input-wrap {
@@ -283,15 +355,23 @@
   text-align: center;
   -moz-appearance: textfield;
   appearance: textfield;
+  font-size: var(--fs-base);   /* role: corpo, quantidade (era sz.fontBase) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
 }
 
 .estoque-view__entrada-unidade {
   color: var(--gm-muted);
   font-weight: 600;
+  font-size: var(--fs-sm);   /* role: label/apoio (era 14px literal) */
+  line-height: var(--lh-sm);
 }
 
 .estoque-view__entrada-preview {
   color: var(--gm-blue);
+  font-size: var(--fs-sm);   /* role: label/apoio, quantidade convertida (era 14px literal) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .estoque-view__btn-adicionar {
@@ -301,6 +381,8 @@
   font-weight: 700;
   font-family: inherit;
   white-space: nowrap;
+  font-size: var(--fs-lg);   /* role: rótulo de ação em destaque (era 18px literal) */
+  line-height: var(--lh-lg);
 }
 
 .estoque-view__direto {
@@ -332,11 +414,16 @@
   outline: none;
   -moz-appearance: textfield;
   appearance: textfield;
+  font-size: var(--fs-lg);   /* role: quantidade/saldo prominente (era sz.fontBase + 1) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }
 
 .estoque-view__direto-unidade {
   color: var(--gm-muted);
   font-weight: 600;
+  font-size: var(--fs-sm);   /* role: label/apoio (era 13px literal) */
+  line-height: var(--lh-sm);
 }
 
 /* ── Modal de autenticação ── */
@@ -391,6 +478,8 @@
 .estoque-view__auth-ajuda {
   color: var(--gm-muted);
   margin-top: 2px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era 14px literal) */
+  line-height: var(--lh-sm);
 }
 
 .estoque-view__campo {
@@ -426,6 +515,8 @@
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s;
+  font-size: var(--fs-base);   /* role: corpo (era 16px literal) */
+  line-height: var(--lh-base);
 }
 
 .estoque-view__senha-olho {
@@ -462,6 +553,8 @@
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: corpo (era 16px literal) */
+  line-height: var(--lh-base);
 }
 
 .estoque-view__auth-confirmar {
@@ -476,4 +569,6 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  font-size: var(--fs-base);   /* role: corpo (era 16px literal) */
+  line-height: var(--lh-base);
 }

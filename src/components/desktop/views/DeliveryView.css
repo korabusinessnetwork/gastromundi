@@ -574,3 +574,87 @@
 .delivery-view__card-remover:hover {
   background: oklch(0.54 0.19 25);
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TIPOGRAFIA — migração JS→CSS (tokens --fs-* e --lh- de tipografia.css).
+   Antes o tamanho vinha inline via sz.* (getSizes por breakpoint); agora
+   sai da escala do design system por classe/role. `sz` segue no JSX só
+   para padding/gap/grid (layout). Só fonte aqui — cor, peso e layout
+   continuam inline/nas regras acima. Dinheiro/qtd/hora usam tabular-nums.
+   Comentário = role (era sz.X).
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Cabeçalho */
+.delivery-view__titulo    { font-size: var(--fs-xl);   line-height: var(--lh-xl); }   /* título da tela (era sz.fontLg) */
+.delivery-view__sub       { font-size: var(--fs-sm);   line-height: var(--lh-sm); }   /* apoio (era sz.fontSm) */
+.delivery-view__modo-tag  { font-size: var(--fs-xs);   line-height: var(--lh-xs); }   /* selo (era sz.fontSm) */
+.delivery-view__toggle-loja { font-size: var(--fs-sm); line-height: var(--lh-sm); }   /* botão (era sz.fontSm) */
+
+/* Abas / avisos / botões genéricos */
+.delivery-view__aba     { font-size: var(--fs-base); line-height: var(--lh-base); }   /* aba (era sz.fontBase) */
+.delivery-view__aviso   { font-size: var(--fs-sm);   line-height: var(--lh-sm); }     /* alerta (era sz.fontSm) */
+.delivery-view__btn     { font-size: var(--fs-base); line-height: var(--lh-base); }   /* botão padrão (era sz.fontBase) */
+.delivery-view__btn--sm { font-size: var(--fs-sm);   line-height: var(--lh-sm); }     /* botão compacto (era sz.fontSm) */
+
+/* Import (addon) */
+.delivery-view__import-titulo { font-size: var(--fs-base); line-height: var(--lh-base); } /* (era sz.fontBase) */
+.delivery-view__import-desc   { font-size: var(--fs-sm);   line-height: var(--lh-sm); }   /* (era sz.fontSm) */
+
+/* Cards do cardápio */
+.delivery-view__card-nome   { font-size: var(--fs-lg); line-height: var(--lh-lg); }   /* nome do item (era sz.fontLg) */
+.delivery-view__card-desc   { font-size: var(--fs-sm); line-height: var(--lh-sm); }   /* apoio (era sz.fontSm) */
+.delivery-view__card-preco  { font-size: var(--fs-lg); line-height: var(--lh-lg); font-variant-numeric: tabular-nums; } /* money (era sz.fontLg) */
+.delivery-view__card-editar { font-size: var(--fs-base); line-height: var(--lh-base); } /* botão (era sz.fontBase) */
+.delivery-view__pill        { font-size: var(--fs-xs); line-height: var(--lh-xs); }   /* selo (era sz.fontSm) */
+
+/* Formulário / modal */
+.delivery-view__label { font-size: var(--fs-sm); line-height: var(--lh-sm); }         /* label (era sz.fontSm) */
+.delivery-view__input,
+.delivery-view__textarea { font-size: var(--fs-base); line-height: var(--lh-base); }  /* corpo (era sz.fontBase, via inputStyle) */
+.delivery-view__switch { font-size: var(--fs-base); line-height: var(--lh-base); }    /* (era sz.fontBase) */
+.delivery-view__modal-titulo { font-size: var(--fs-xl);  line-height: var(--lh-xl); } /* título de modal (era sz.fontLg) */
+.delivery-view__modal-texto  { font-size: var(--fs-base); line-height: var(--lh-base); } /* corpo de modal (era sz.fontBase) */
+
+/* Faixas de taxa */
+.delivery-view__faixa-texto { font-size: var(--fs-base); line-height: var(--lh-base); } /* (era sz.fontBase) */
+
+/* Kanban / pedidos */
+.delivery-view__pedidos-resumo  { font-size: var(--fs-sm);   line-height: var(--lh-sm); }  /* apoio (era sz.fontSm) */
+.delivery-view__coluna-titulo   { font-size: var(--fs-sm);   line-height: var(--lh-sm); }  /* cabeçalho de coluna (era sz.fontSm) */
+.delivery-view__coluna-contador { font-size: var(--fs-xs);   line-height: var(--lh-xs); font-variant-numeric: tabular-nums; } /* contador (era sz.fontSm - 1) */
+.delivery-view__pedido-num      { font-size: var(--fs-base); line-height: var(--lh-base); font-variant-numeric: tabular-nums; } /* nº do pedido (era sz.fontBase) */
+.delivery-view__pedido-tempo    { font-size: var(--fs-xs);   line-height: var(--lh-xs); font-variant-numeric: tabular-nums; } /* timestamp (era sz.fontSm) */
+.delivery-view__pedido-cliente  { font-size: var(--fs-base); line-height: var(--lh-base); } /* nome do cliente (era sz.fontBase) */
+.delivery-view__pedido-linha    { font-size: var(--fs-sm);   line-height: var(--lh-sm); }  /* apoio (era sz.fontSm) */
+.delivery-view__zap             { font-size: var(--fs-sm);   line-height: var(--lh-sm); }  /* link (era sz.fontSm) */
+.delivery-view__pedido-itens-toggle { font-size: var(--fs-sm); line-height: var(--lh-sm); } /* (era sz.fontSm) */
+.delivery-view__pedido-itens    { font-size: var(--fs-sm);   line-height: var(--lh-sm); }  /* (era sz.fontSm) */
+.delivery-view__pedido-total    { font-size: var(--fs-base); line-height: var(--lh-base); font-variant-numeric: tabular-nums; } /* total/money (era sz.fontBase) */
+
+/* Estados vazio / carregando (reutilizáveis) */
+.delivery-view__vazio-emoji  { font-size: var(--fs-5xl); line-height: var(--lh-5xl); } /* emoji hero (era 40–44px) */
+.delivery-view__vazio-titulo { font-size: var(--fs-lg);  line-height: var(--lh-lg); }  /* título de estado-vazio (era sz.fontBase + 1) */
+.delivery-view__vazio-desc   { font-size: var(--fs-sm);  line-height: var(--lh-sm); }  /* apoio (era sz.fontSm) */
+.delivery-view__carregando   { font-size: var(--fs-base); line-height: var(--lh-base); } /* corpo (era sz.fontBase) */
+.delivery-view__hint         { font-size: var(--fs-sm);  line-height: var(--lh-sm); }  /* apoio/muted (era sz.fontSm / sz.fontSm - 1) */
+
+/* Biblioteca de grupos (aba Complementos) */
+.delivery-view__grupo-nome  { font-size: var(--fs-lg); line-height: var(--lh-lg); }   /* nome do grupo (era sz.fontBase + 1) */
+.delivery-view__grupo-selo  { font-size: var(--fs-xs); line-height: var(--lh-xs); }   /* selo (era sz.fontSm - 1) */
+.delivery-view__grupo-stats { font-size: var(--fs-sm); line-height: var(--lh-sm); font-variant-numeric: tabular-nums; } /* contagens (era sz.fontSm) */
+
+/* Menus de busca (dropdowns) */
+.delivery-view__opcao-emoji { font-size: var(--fs-lg); line-height: var(--lh-lg); }   /* emoji da opção (era sz.fontBase + 2) */
+.delivery-view__opcao-meta  { font-size: var(--fs-sm); line-height: var(--lh-sm); font-variant-numeric: tabular-nums; } /* preço/qtd à direita (era sz.fontSm) */
+
+/* Editor de grupo */
+.delivery-view__editor-titulo { font-size: var(--fs-lg); line-height: var(--lh-lg); } /* título do editor (era sz.fontBase + 2) */
+.delivery-view__editor-toggle { font-size: var(--fs-sm); line-height: var(--lh-sm); } /* toggle obrig/opcional (era sz.fontSm) */
+.delivery-view__secao-titulo  { font-size: var(--fs-sm); line-height: var(--lh-sm); } /* subtítulo de seção (era sz.fontSm) */
+.delivery-view__item-nome     { font-size: var(--fs-base); line-height: var(--lh-base); } /* item da lista (era sz.fontBase) */
+.delivery-view__item-preco    { font-size: var(--fs-sm); line-height: var(--lh-sm); font-variant-numeric: tabular-nums; } /* money (era sz.fontSm) */
+.delivery-view__selecionado   { font-size: var(--fs-base); line-height: var(--lh-base); } /* item escolhido (era sz.fontBase) */
+.delivery-view__chip-produto  { font-size: var(--fs-sm); line-height: var(--lh-sm); } /* chip (era sz.fontSm) */
+
+/* Entrega e taxas */
+.delivery-view__entrega-titulo { font-size: var(--fs-base); line-height: var(--lh-base); } /* subtítulo (era sz.fontBase) */

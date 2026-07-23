@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import "./Sidebar.css";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
@@ -131,7 +132,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
     width: "100%", padding: "12px 20px", background: isActive ? varColor(C.alow) : "none",
     border: "none", borderLeft: `3px solid ${isActive ? varColor(C.accent) : "transparent"}`,
     color: isActive ? varColor(C.accent) : varColor(C.muted),
-    cursor: "pointer", textAlign: "left", fontSize: sz.fontBase, fontWeight: 600,
+    cursor: "pointer", textAlign: "left", fontWeight: 600,
     display: "flex", alignItems: "center", gap: 10, transition: "all 0.15s",
     textDecoration: "none",
   });
@@ -145,6 +146,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
     return (
       <NavLink
         to={item.to}
+        className="sidebar__nav-item"
         style={linkStyle(isActive)}
         onClick={e => {
           e.preventDefault();
@@ -155,7 +157,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
         <Icon size={sz.fontBase} />
         <span style={{ flex: 1 }}>{item.label}</span>
         {item.badge ? (
-          <span style={{ background: varColor(C.red), color: "#fff", borderRadius: 10, padding: "2px 7px", fontSize: sz.fontSm, fontWeight: 800 }}>
+          <span className="sidebar__badge-contagem" style={{ background: varColor(C.red), color: "#fff", borderRadius: 10, padding: "2px 7px", fontWeight: 800 }}>
             {item.badge}
           </span>
         ) : null}
@@ -170,6 +172,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
     return (
       <button
         onClick={() => setUpgradeInfo({ label: item.label })}
+        className="sidebar__nav-item"
         style={{ ...linkStyle(false), opacity: 0.55, cursor: "pointer" }}
       >
         <Icon size={sz.fontBase} />
@@ -188,7 +191,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
       {/* Fechar drawer (mobile) */}
       {onClose && (
         <div style={{ padding: "10px 16px 0", display: "flex", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ background: "none", border: `1px solid var(${C.border})`, borderRadius: 8, color: varColor(C.muted), cursor: "pointer", padding: "4px 10px", fontSize: 17, fontWeight: 700 }}>
+          <button onClick={onClose} className="sidebar__btn-fechar" style={{ background: "none", border: `1px solid var(${C.border})`, borderRadius: 8, color: varColor(C.muted), cursor: "pointer", padding: "4px 10px", fontWeight: 700 }}>
             ✕
           </button>
         </div>
@@ -197,12 +200,12 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
       {/* Usuário */}
       <div style={{ padding: "12px 16px", borderBottom: `1px solid var(${C.border})`, display: "flex", alignItems: "center", gap: 10 }}>
 <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: sz.fontBase, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div className="sidebar__usuario-nome" style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {currentUser?.name}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-            <span style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>{currentUser?.username}</span>
-            <span style={{ fontSize: sz.fontSm - 1, padding: "1px 6px", borderRadius: 10, fontWeight: 700, background: caixaAberto ? `${alfa(C.green, "22")}` : `${alfa(C.red, "22")}`, color: caixaAberto ? varColor(C.green) : varColor(C.red), display: "flex", alignItems: "center", gap: 3 }}>
+            <span className="sidebar__usuario-handle" style={{ color: varColor(C.muted) }}>{currentUser?.username}</span>
+            <span className="sidebar__status-badge" style={{ padding: "1px 6px", borderRadius: 10, fontWeight: 700, background: caixaAberto ? `${alfa(C.green, "22")}` : `${alfa(C.red, "22")}`, color: caixaAberto ? varColor(C.green) : varColor(C.red), display: "flex", alignItems: "center", gap: 3 }}>
               <LuCircle size={5} fill="currentColor" /> {caixaAberto ? "Aberto" : "Fechado"}
             </span>
           </div>
@@ -229,6 +232,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
             {guardado ? (
               <button
                 onClick={openAuthRel}
+                className="sidebar__nav-item"
                 style={{ ...linkStyle(isActive), color: isActive ? varColor(C.accent) : varColor(C.muted) }}
               >
                 <LuChartBar size={17} />
@@ -244,11 +248,12 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
             {item.to === "/app/pdv" && fechadas.length > 0 && (
               <button
                 onClick={() => setShowFechadas(true)}
+                className="sidebar__subitem"
                 style={{
                   width: "100%", padding: "9px 20px 9px 44px",
                   background: "none", border: "none", borderLeft: "3px solid transparent",
                   color: varColor(C.muted), cursor: "pointer", textAlign: "left",
-                  fontSize: sz.fontBase, fontWeight: 600,
+                  fontWeight: 600,
                   display: "flex", alignItems: "center", gap: 8,
                   transition: "color 0.15s",
                 }}
@@ -257,9 +262,9 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
               >
                 <LuHistory size={14} />
                 <span style={{ flex: 1 }}>Comandas fechadas</span>
-                <span style={{
+                <span className="sidebar__badge-contagem" style={{
                   background: varColor(C.surface), color: varColor(C.muted), borderRadius: 10,
-                  padding: "1px 7px", fontSize: sz.fontSm, fontWeight: 700,
+                  padding: "1px 7px", fontWeight: 700,
                   border: `1px solid var(${C.border})`,
                 }}>
                   {fechadas.length}
@@ -298,8 +303,8 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                 <LuShieldAlert size={22} color={varColor(C.accent)} />
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 17 }}>Acesso Restrito</div>
-                <div style={{ fontSize: 16, color: varColor(C.muted), marginTop: 2 }}>
+                <div className="sidebar__modal-titulo" style={{ fontWeight: 800 }}>Acesso Restrito</div>
+                <div className="sidebar__modal-subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
                   Informe as credenciais de um administrador ou gerente
                 </div>
               </div>
@@ -308,7 +313,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
             {/* Campos */}
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Usuário</div>
+                <div className="sidebar__form-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Usuário</div>
                 <input
                   autoFocus
                   value={authUser}
@@ -316,16 +321,17 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                   onKeyDown={e => e.key === "Enter" && document.getElementById("auth-rel-pass")?.focus()}
                   placeholder="nome de usuário"
                   autoComplete="off"
+                  className="sidebar__input"
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
                     border: `1.5px solid ${authError ? varColor(C.red) + "88" : varColor(C.border)}`,
-                    background: varColor(C.surface), color: varColor(C.text), fontSize: 17,
+                    background: varColor(C.surface), color: varColor(C.text),
                     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                   }}
                 />
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Senha</div>
+                <div className="sidebar__form-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Senha</div>
                 <input
                   id="auth-rel-pass"
                   type="password"
@@ -334,16 +340,17 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                   onKeyDown={e => e.key === "Enter" && handleAuthRelatorio()}
                   placeholder="••••••••"
                   autoComplete="current-password"
+                  className="sidebar__input"
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
                     border: `1.5px solid ${authError ? varColor(C.red) + "88" : varColor(C.border)}`,
-                    background: varColor(C.surface), color: varColor(C.text), fontSize: 17,
+                    background: varColor(C.surface), color: varColor(C.text),
                     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                   }}
                 />
               </div>
               {authError && (
-                <div style={{ fontSize: 16, color: varColor(C.red), fontWeight: 600, padding: "8px 12px", background: `${alfa(C.red, "12")}`, borderRadius: 8, border: `1px solid ${alfa(C.red, "33")}` }}>
+                <div className="sidebar__alerta" style={{ color: varColor(C.red), fontWeight: 600, padding: "8px 12px", background: `${alfa(C.red, "12")}`, borderRadius: 8, border: `1px solid ${alfa(C.red, "33")}` }}>
                   {authError}
                 </div>
               )}
@@ -353,10 +360,11 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 onClick={() => setShowAuthRel(false)}
+                className="sidebar__modal-btn"
                 style={{
                   flex: 1, padding: 12, borderRadius: 10,
                   border: `1px solid var(${C.border})`, background: "none",
-                  color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 17,
+                  color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
                   fontFamily: "inherit",
                 }}
               >
@@ -365,12 +373,13 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
               <button
                 onClick={handleAuthRelatorio}
                 disabled={!authUser.trim() || !authPass || authLoading}
+                className="sidebar__modal-btn"
                 style={{
                   flex: 2, padding: 12, borderRadius: 10, border: "none",
                   background: authUser.trim() && authPass && !authLoading ? varColor(C.accent) : varColor(C.surface),
                   color: authUser.trim() && authPass && !authLoading ? "#fff" : varColor(C.muted),
                   cursor: authUser.trim() && authPass && !authLoading ? "pointer" : "not-allowed",
-                  fontWeight: 700, fontSize: 17, fontFamily: "inherit",
+                  fontWeight: 700, fontFamily: "inherit",
                   transition: "background 0.15s",
                 }}
               >
@@ -409,10 +418,11 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
               {fechadaDetalhe && (
                 <button
                   onClick={() => setFechadaDetalhe(null)}
+                  className="sidebar__modal-btn"
                   style={{
                     background: varColor(C.surface), border: `1px solid var(${C.border})`,
                     borderRadius: 8, color: varColor(C.text), cursor: "pointer",
-                    padding: "6px 12px", fontWeight: 600, fontSize: 16,
+                    padding: "6px 12px", fontWeight: 600,
                     display: "flex", alignItems: "center", gap: 6,
                   }}
                 >
@@ -420,12 +430,12 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                 </button>
               )}
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 900, fontSize: 17 }}>
+                <div className="sidebar__modal-titulo" style={{ fontWeight: 900 }}>
                   {fechadaDetalhe
                     ? (/^\d+$/.test(String(fechadaDetalhe.comanda ?? "").trim()) ? `Comanda ${fechadaDetalhe.comanda}` : fechadaDetalhe.comanda)
                     : "Comandas Fechadas"}
                 </div>
-                <div style={{ fontSize: 18, color: varColor(C.muted), marginTop: 2 }}>
+                <div className="sidebar__modal-subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
                   {fechadaDetalhe
                     ? new Date(fechadaDetalhe.at).toLocaleString("pt-BR")
                     : `${fechadas.length} comanda${fechadas.length !== 1 ? "s" : ""} encerrada${fechadas.length !== 1 ? "s" : ""}`}
@@ -445,12 +455,12 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                 <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ background: varColor(C.surface), borderRadius: 12, padding: "14px 16px", border: `1px solid var(${C.border})`, display: "flex", flexDirection: "column", gap: 8 }}>
                     {fechadaDetalhe.cashier && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 16, color: varColor(C.muted) }}>
+                      <div className="sidebar__cashier-info" style={{ display: "flex", alignItems: "center", gap: 6, color: varColor(C.muted) }}>
                         <LuUser size={13} /> {fechadaDetalhe.cashier}
                       </div>
                     )}
                     {normalizarPagamentos(fechadaDetalhe).map((p, i) => p.metodo ? (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 16, color: varColor(C.muted) }}>
+                      <div key={i} className="sidebar__cashier-info" style={{ display: "flex", alignItems: "center", gap: 6, color: varColor(C.muted) }}>
                         <LuReceipt size={13} />
                         Pagamento: <strong style={{ color: varColor(C.text) }}>
                           {rotuloMetodo(p.metodo)}
@@ -458,35 +468,35 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                       </div>
                     ) : null)}
                     {totalTroco(fechadaDetalhe) > 0 && (
-                      <div style={{ fontSize: 16, color: varColor(C.muted) }}>
+                      <div className="sidebar__cashier-info" style={{ color: varColor(C.muted) }}>
                         Troco: <strong style={{ color: varColor(C.text) }}>R$ {Number(totalTroco(fechadaDetalhe)).toFixed(2)}</strong>
                       </div>
                     )}
                   </div>
 
                   <div style={{ background: varColor(C.surface), borderRadius: 12, border: `1px solid var(${C.border})`, overflow: "hidden" }}>
-                    <div style={{ padding: "10px 16px", borderBottom: `1px solid var(${C.border})`, fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1 }}>
+                    <div className="sidebar__form-label" style={{ padding: "10px 16px", borderBottom: `1px solid var(${C.border})`, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1 }}>
                       Itens consumidos
                     </div>
                     {(Array.isArray(fechadaDetalhe.items) ? fechadaDetalhe.items : []).length === 0 ? (
-                      <div style={{ padding: 16, color: varColor(C.muted), fontSize: 16 }}>Nenhum item registrado.</div>
+                      <div className="sidebar__vazio" style={{ padding: 16, color: varColor(C.muted) }}>Nenhum item registrado.</div>
                     ) : (
                       (Array.isArray(fechadaDetalhe.items) ? fechadaDetalhe.items : []).map((it, idx, arr) => {
                         const obsArr = Array.isArray(it.obs) ? it.obs : (it.obs ? [it.obs] : []);
                         return (
                           <div key={idx} style={{ padding: "10px 16px", borderBottom: idx < arr.length - 1 ? `1px solid var(${C.border})` : "none" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <span style={{ fontWeight: 600, fontSize: 17 }}>
+                              <span className="sidebar__item-nome" style={{ fontWeight: 600 }}>
                                 {it.emoji && <span style={{ marginRight: 6 }}>{it.emoji}</span>}
                                 {it.name}
                                 {it.qty > 1 && <span style={{ color: varColor(C.muted), fontWeight: 500 }}> × {it.qty}</span>}
                               </span>
-                              <span style={{ fontWeight: 700, fontSize: 17, color: varColor(C.green) }}>
+                              <span className="sidebar__item-preco" style={{ fontWeight: 700, color: varColor(C.green) }}>
                                 R$ {(it.price * (it.qty ?? 1)).toFixed(2)}
                               </span>
                             </div>
                             {obsArr.map((obs, j) => (
-                              <div key={j} style={{ fontSize: 18, color: varColor(C.accent), marginTop: 3 }}>↳ {obs}</div>
+                              <div key={j} className="sidebar__item-obs" style={{ color: varColor(C.accent), marginTop: 3 }}>↳ {obs}</div>
                             ))}
                           </div>
                         );
@@ -495,18 +505,19 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                   </div>
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderRadius: 12, background: `${alfa(C.green, "10")}`, border: `1px solid ${alfa(C.green, "33")}` }}>
-                    <span style={{ fontWeight: 700, fontSize: 18 }}>Total</span>
-                    <span style={{ fontWeight: 900, fontSize: 22, color: varColor(C.green) }}>R$ {Number(fechadaDetalhe.total ?? 0).toFixed(2)}</span>
+                    <span className="sidebar__total-label" style={{ fontWeight: 700 }}>Total</span>
+                    <span className="sidebar__total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>R$ {Number(fechadaDetalhe.total ?? 0).toFixed(2)}</span>
                   </div>
 
                   {/* Leva 15.3 — cancelar venda fechada (ação destrutiva: motivo + senha) */}
                   <button
                     onClick={abrirCancelamento}
+                    className="sidebar__modal-btn"
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                       padding: "12px 16px", borderRadius: 12, cursor: "pointer",
                       background: alfa(varColor(C.red), "10"), border: `1.5px solid ${alfa(varColor(C.red), "55")}`,
-                      color: varColor(C.red), fontWeight: 700, fontSize: 16,
+                      color: varColor(C.red), fontWeight: 700,
                     }}
                   >
                     <LuTrash2 size={16} /> Cancelar venda
@@ -536,13 +547,13 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                           <LuReceipt size={18} color={varColor(C.muted)} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 17 }}>{nome || `#${String(o.id).slice(-6).toUpperCase()}`}</div>
-                          <div style={{ fontSize: 18, color: varColor(C.muted), marginTop: 2 }}>
+                          <div className="sidebar__fechada-nome" style={{ fontWeight: 700 }}>{nome || `#${String(o.id).slice(-6).toUpperCase()}`}</div>
+                          <div className="sidebar__fechada-meta" style={{ color: varColor(C.muted), marginTop: 2 }}>
                             {o.cashier && <><LuUser size={11} style={{ marginRight: 3 }} />{o.cashier} · </>}
                             {qtdTotal} {qtdTotal === 1 ? "item" : "itens"} · {new Date(o.at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                           </div>
                         </div>
-                        <div style={{ fontWeight: 800, fontSize: 18, color: varColor(C.green), flexShrink: 0 }}>
+                        <div className="sidebar__fechada-valor" style={{ fontWeight: 800, color: varColor(C.green), flexShrink: 0 }}>
                           R$ {Number(o.total ?? 0).toFixed(2)}
                         </div>
                       </button>
@@ -573,37 +584,38 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
             color: varColor(C.text), padding: 24, display: "flex", flexDirection: "column", gap: 14,
           }}>
             <div>
-              <div style={{ fontWeight: 900, fontSize: 18, color: varColor(C.red), display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="sidebar__modal-titulo" style={{ fontWeight: 900, color: varColor(C.red), display: "flex", alignItems: "center", gap: 8 }}>
                 <LuTrash2 size={18} /> Cancelar venda
               </div>
-              <div style={{ fontSize: 16, color: varColor(C.muted), marginTop: 4 }}>
+              <div className="sidebar__modal-subtitulo" style={{ color: varColor(C.muted), marginTop: 4 }}>
                 {(/^\d+$/.test(String(cancelVenda.comanda ?? "").trim()) ? `Comanda ${cancelVenda.comanda}` : cancelVenda.comanda) || `#${String(cancelVenda.id).slice(-6).toUpperCase()}`}
                 {" · "}R$ {Number(cancelVenda.total ?? 0).toFixed(2)}
               </div>
-              <div style={{ fontSize: 15, color: varColor(C.muted), marginTop: 8 }}>
+              <div className="sidebar__aviso-irreversivel" style={{ color: varColor(C.muted), marginTop: 8 }}>
                 A venda sai do saldo do dia, dos relatórios e do financeiro. Essa ação não pode ser desfeita.
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Motivo (obrigatório)</div>
+              <div className="sidebar__form-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Motivo (obrigatório)</div>
               <textarea
                 value={cancelMotivo}
                 onChange={e => setCancelMotivo(e.target.value)}
                 placeholder="Ex: cobrança duplicada, pagamento não confirmado..."
                 maxLength={200}
                 rows={2}
+                className="sidebar__input"
                 style={{
                   width: "100%", boxSizing: "border-box", resize: "none",
                   background: varColor(C.surface), border: `1px solid var(${C.border})`,
-                  borderRadius: 10, padding: "10px 12px", color: varColor(C.text), fontSize: 16,
+                  borderRadius: 10, padding: "10px 12px", color: varColor(C.text),
                   fontFamily: "inherit",
                 }}
               />
             </div>
 
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+              <div className="sidebar__form-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
                 <LuLock size={12} /> Senha de gerente ou admin
               </div>
               <input
@@ -612,32 +624,34 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                 onChange={e => { setCancelSenha(e.target.value); setCancelSenhaErro(false); }}
                 onKeyDown={e => { if (e.key === "Enter") confirmarCancelamento(); }}
                 placeholder="Senha"
+                className="sidebar__input"
                 style={{
                   width: "100%", boxSizing: "border-box",
                   background: varColor(C.surface),
                   border: `1.5px solid ${cancelSenhaErro ? varColor(C.red) : `var(${C.border})`}`,
-                  borderRadius: 10, padding: "10px 12px", color: varColor(C.text), fontSize: 16,
+                  borderRadius: 10, padding: "10px 12px", color: varColor(C.text),
                 }}
               />
               {cancelSenhaErro && (
-                <div style={{ color: varColor(C.red), fontSize: 14, marginTop: 6, fontWeight: 600 }}>
+                <div className="sidebar__campo-erro" style={{ color: varColor(C.red), marginTop: 6, fontWeight: 600 }}>
                   Senha incorreta. Apenas admin ou gerente pode cancelar vendas.
                 </div>
               )}
             </div>
 
             {cancelErro && (
-              <div role="alert" style={{ color: varColor(C.red), fontSize: 15, fontWeight: 600 }}>{cancelErro}</div>
+              <div role="alert" className="sidebar__erro-generico" style={{ color: varColor(C.red), fontWeight: 600 }}>{cancelErro}</div>
             )}
 
             <div style={{ display: "flex", gap: 10 }}>
               <button
                 onClick={() => { if (!cancelando) setCancelVenda(null); }}
                 disabled={cancelando}
+                className="sidebar__modal-btn"
                 style={{
                   flex: 1, padding: "12px 0", borderRadius: 10, cursor: cancelando ? "default" : "pointer",
                   background: varColor(C.surface), border: `1px solid var(${C.border})`,
-                  color: varColor(C.text), fontWeight: 700, fontSize: 16, opacity: cancelando ? 0.6 : 1,
+                  color: varColor(C.text), fontWeight: 700, opacity: cancelando ? 0.6 : 1,
                 }}
               >
                 Voltar
@@ -645,13 +659,14 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
               <button
                 onClick={confirmarCancelamento}
                 disabled={cancelando || !cancelMotivo.trim() || !cancelSenha.trim()}
+                className="sidebar__modal-btn"
                 style={{
                   flex: 2, padding: "12px 0", borderRadius: 10,
                   cursor: (cancelando || !cancelMotivo.trim() || !cancelSenha.trim()) ? "default" : "pointer",
                   background: (!cancelMotivo.trim() || !cancelSenha.trim()) ? varColor(C.surface) : varColor(C.red),
                   border: `1px solid ${(!cancelMotivo.trim() || !cancelSenha.trim()) ? `var(${C.border})` : varColor(C.red)}`,
                   color: (!cancelMotivo.trim() || !cancelSenha.trim()) ? varColor(C.muted) : "#fff",
-                  fontWeight: 800, fontSize: 16,
+                  fontWeight: 800,
                 }}
               >
                 {cancelando ? "Cancelando..." : "Cancelar venda"}
@@ -698,18 +713,19 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                 <LuSparkles size={22} color={varColor(C.accent)} />
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 17 }}>{upgradeInfo.label} não está no seu plano</div>
-                <div style={{ fontSize: 16, color: varColor(C.muted), marginTop: 2 }}>
+                <div className="sidebar__modal-titulo" style={{ fontWeight: 800 }}>{upgradeInfo.label} não está no seu plano</div>
+                <div className="sidebar__modal-subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
                   Fale com o suporte para habilitar esse recurso no seu plano.
                 </div>
               </div>
             </div>
             <button
               onClick={() => setUpgradeInfo(null)}
+              className="sidebar__modal-btn"
               style={{
                 padding: 12, borderRadius: 10, border: "none",
                 background: varColor(C.accent), color: "#fff", cursor: "pointer",
-                fontWeight: 700, fontSize: 16, fontFamily: "inherit",
+                fontWeight: 700, fontFamily: "inherit",
               }}
             >
               Entendi
@@ -724,7 +740,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
         {caixaAberto ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {abertas.length > 0 && (
-              <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.red), textAlign: "center", padding: "4px 8px", background: `${alfa(C.red, "12")}`, borderRadius: 8, border: `1px solid ${alfa(C.red, "33")}` }}>
+              <div className="sidebar__aviso-comandas-abertas" style={{ fontWeight: 600, color: varColor(C.red), textAlign: "center", padding: "4px 8px", background: `${alfa(C.red, "12")}`, borderRadius: 8, border: `1px solid ${alfa(C.red, "33")}` }}>
                 {abertas.length} comanda{abertas.length !== 1 ? "s" : ""} em aberto
               </div>
             )}
@@ -732,13 +748,14 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
               onClick={abertas.length === 0 ? onFechamento : undefined}
               disabled={abertas.length > 0}
               title={abertas.length > 0 ? `Feche as ${abertas.length} comanda(s) abertas antes de fechar o caixa` : "Fechar Caixa"}
+              className="sidebar__caixa-btn"
               style={{
                 width: "100%", padding: "11px 0", borderRadius: 10,
                 border: `1px solid ${abertas.length > 0 ? varColor(C.border) : `${alfa(C.red, "55")}`}`,
                 background: abertas.length > 0 ? varColor(C.surface) : `${alfa(C.red, "0f")}`,
                 color: abertas.length > 0 ? varColor(C.muted) : varColor(C.red),
                 cursor: abertas.length > 0 ? "not-allowed" : "pointer",
-                fontSize: sz.fontBase, fontWeight: 800,
+                fontWeight: 800,
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                 opacity: abertas.length > 0 ? 0.6 : 1,
               }}
@@ -747,7 +764,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
             </button>
           </div>
         ) : (
-          <button onClick={onAbertura} style={{ width: "100%", padding: "11px 0", borderRadius: 10, border: `1px solid ${alfa(C.green, "55")}`, background: `${alfa(C.green, "0f")}`, color: varColor(C.green), cursor: "pointer", fontSize: sz.fontBase, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+          <button onClick={onAbertura} className="sidebar__caixa-btn" style={{ width: "100%", padding: "11px 0", borderRadius: 10, border: `1px solid ${alfa(C.green, "55")}`, background: `${alfa(C.green, "0f")}`, color: varColor(C.green), cursor: "pointer", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
             <LuLockOpen size={15} /> Abrir Caixa
           </button>
         )}

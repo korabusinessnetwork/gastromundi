@@ -20,8 +20,16 @@
   gap: 12px;
 }
 
+/* Título principal da view (era sz.fontLg) */
+.cozinha-view__header-titulo {
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
 .cozinha-view__subtitulo {
   margin-top: 2px;
+  font-size: var(--fs-sm);   /* role: apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .cozinha-view__colunas {
@@ -58,10 +66,18 @@
   flex-shrink: 0;
 }
 
+/* Título da coluna (era sz.fontBase) */
+.cozinha-view__coluna-titulo {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
 .cozinha-view__coluna-contador {
   margin-left: auto;
   color: var(--gm-muted);
   font-weight: 700;
+  font-size: var(--fs-sm);   /* role: label (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .cozinha-view__cards {
@@ -77,6 +93,8 @@
   color: var(--gm-muted);
   text-align: center;
   padding: 24px;
+  font-size: var(--fs-lg);   /* role: estado-vazio (era sz.fontSm) */
+  line-height: var(--lh-lg);
 }
 
 /* ── PedidoCard ── */
@@ -96,8 +114,16 @@
   margin-bottom: 8px;
 }
 
+/* Número/ID da comanda (era sz.fontBase, elevado a --fs-lg por papel) */
+.pedido-card__comanda {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
 .pedido-card__mesa {
   color: var(--gm-muted);
+  font-size: var(--fs-sm);   /* role: label (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .pedido-card__tempo {
@@ -106,6 +132,8 @@
   gap: 4px;
   font-weight: 700;
   margin-left: auto;
+  font-size: var(--fs-sm);   /* role: label (era sz.fontSm - 1) */
+  line-height: var(--lh-sm);
 }
 
 .pedido-card__btn-imprimir {
@@ -129,11 +157,15 @@
 
 .pedido-card__item {
   color: var(--gm-text);
+  font-size: var(--fs-lg);   /* role: nome de item (era sz.fontSm) */
+  line-height: var(--lh-lg);
 }
 
 .pedido-card__item-obs {
   color: var(--gm-muted);
   padding-left: 16px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm - 1) */
+  line-height: var(--lh-sm);
 }
 
 .pedido-card__btn-acao {
@@ -150,4 +182,6 @@
   font-weight: 700;
   font-family: inherit;
   transition: background 0.15s;
+  font-size: var(--fs-base);   /* role: corpo/botão (era sz.fontSm + 1) */
+  line-height: var(--lh-base);
 }

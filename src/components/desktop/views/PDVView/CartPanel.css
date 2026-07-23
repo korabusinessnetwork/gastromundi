@@ -7,7 +7,7 @@
  * (CSS Custom Properties não suportam sufixo de alfa em hex; um
  * color-mix() mudaria a opacidade exata renderizada).
  *
- * TAMANHO DE FONTE agora vem da escala do design system (--fs-*/--lh-* de
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-* e --lh-* de
  * src/styles/tipografia.css), por classe de componente — não mais inline via
  * sz.* do JSX. `sz` continua no JSX só para padding/gap/largura (layout).
  * Dinheiro/quantidade usam font-variant-numeric: tabular-nums.
@@ -76,7 +76,7 @@
 .cart-panel__item-linha {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .cart-panel__item-nome {
@@ -154,7 +154,7 @@
 .cart-panel__qty-controles {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;   /* alvos de 44px na linha estreita — gap enxuto p/ o nome respirar */
   flex-shrink: 0;
 }
 
@@ -168,8 +168,8 @@
 }
 
 .cart-panel__qty-btn {
-  width: 32px;
-  height: 32px;
+  min-width: var(--tap-min);   /* alvo tátil mínimo — PDV é tela de toque (princípio nº 1) */
+  min-height: var(--tap-min);
   border-radius: 8px;
   border: 1px solid var(--gm-border);
   background: var(--gm-surface);
@@ -182,8 +182,8 @@
 }
 
 .cart-panel__btn-remover {
-  width: 34px;
-  height: 34px;
+  min-width: var(--tap-min);   /* alvo tátil mínimo — princípio nº 1 */
+  min-height: var(--tap-min);
   border-radius: 8px;
   cursor: pointer;
   display: flex;
@@ -256,8 +256,8 @@
 }
 
 .cart-panel__obs-confirmar {
-  width: 32px;
-  height: 32px;
+  min-width: var(--tap-min);   /* alvo tátil mínimo — princípio nº 1 */
+  min-height: var(--tap-min);
   border-radius: 8px;
   border: none;
   cursor: pointer;
@@ -399,8 +399,8 @@
 }
 
 .cart-panel__stepper-btn {
-  width: 36px;
-  height: 36px;
+  min-width: var(--tap-min);   /* alvo tátil mínimo — princípio nº 1 */
+  min-height: var(--tap-min);
   border-radius: 9px;
   display: flex;
   align-items: center;

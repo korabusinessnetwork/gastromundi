@@ -2,6 +2,12 @@
  * F018 — leva 3, sub-lote 3B. Decisão 018 (CSS separado do JSX) +
  * tokens --gm-* (ADR-007). Cores sólidas viram var(--gm-*); blends com
  * transparência usam alfa() (src/constants/colorAlfa.js).
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-* e --lh-* de
+ * src/styles/tipografia.css), por classe de componente — não mais inline via
+ * sz.* do JSX (mesmo padrão do PDV, ver ProductGrid.css). `sz` continua no
+ * JSX só para padding/gap/grid (layout). Dinheiro/quantidade usam
+ * font-variant-numeric: tabular-nums.
  */
 
 .combos-view {
@@ -31,6 +37,8 @@
 
 .combos-view__contagem {
   color: var(--gm-muted);
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 .combos-view__busca {
@@ -42,6 +50,8 @@
   outline: none;
   font-family: inherit;
   width: 220px;
+  font-size: var(--fs-base);   /* role: corpo/input (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .combos-view__btn-criar {
@@ -57,6 +67,8 @@
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: corpo/botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .combos-view__lista-area {
@@ -78,6 +90,12 @@
   gap: 10px;
   color: var(--gm-muted);
   padding: 60px;
+}
+
+/* Texto do estado vazio (era sz.fontBase) */
+.combos-view__vazio-texto {
+  font-size: var(--fs-lg);   /* role: vazio */
+  line-height: var(--lh-lg);
 }
 
 .combos-view__lista {
@@ -110,16 +128,23 @@
 
 .combos-view__card-nome {
   font-weight: 700;
+  font-size: var(--fs-lg);   /* role: nome item (era sz.fontBase) */
+  line-height: var(--lh-lg);
 }
 
 .combos-view__card-info {
   color: var(--gm-muted);
   margin-top: 2px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .combos-view__card-preco {
   font-weight: 800;
   white-space: nowrap;
+  font-size: var(--fs-lg);   /* role: preço item (era sz.fontBase + 1) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }
 
 .combos-view__badge {
@@ -128,6 +153,8 @@
   border-radius: 20px;
   border: none;
   white-space: nowrap;
+  font-size: var(--fs-xs);   /* role: caption/selo (era sz.fontSm - 1) */
+  line-height: var(--lh-xs);
 }
 
 .combos-view__badge-status {
@@ -137,6 +164,8 @@
   border: none;
   cursor: pointer;
   font-family: inherit;
+  font-size: var(--fs-xs);   /* role: caption/selo (era sz.fontSm - 1) */
+  line-height: var(--lh-xs);
 }
 
 .combos-view__btn-editar {
@@ -219,6 +248,12 @@
   line-height: 0;
 }
 
+/* Título do modal — Criar/Editar Combo (era sz.fontBase + 2) */
+.combos-view__modal-titulo {
+  font-size: var(--fs-xl);   /* role: título de seção */
+  line-height: var(--lh-xl);
+}
+
 .combos-view__label {
   font-size: 12px;
   font-weight: 700;
@@ -240,6 +275,8 @@
   box-sizing: border-box;
   font-family: inherit;
   outline: none;
+  font-size: var(--fs-base);   /* role: corpo/input (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .combos-view__principal-wrap {
@@ -260,10 +297,15 @@
 
 .combos-view__principal-nome {
   font-weight: 700;
+  font-size: var(--fs-lg);   /* role: nome item (era sz.fontBase) */
+  line-height: var(--lh-lg);
 }
 
 .combos-view__principal-preco {
   color: var(--gm-muted);
+  font-size: var(--fs-sm);   /* role: label/apoio · preço secundário (era sz.fontSm) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .combos-view__principal-remover {
@@ -319,10 +361,21 @@
 .combos-view__dropdown-item-nome {
   font-weight: 600;
   color: var(--gm-text);
+  font-size: var(--fs-lg);   /* role: nome item (era sz.fontBase) */
+  line-height: var(--lh-lg);
 }
 
 .combos-view__dropdown-item-preco {
   color: var(--gm-muted);
+  font-size: var(--fs-sm);   /* role: label/apoio · preço secundário (era sz.fontSm) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Emoji decorativo do item da busca de produto (era literal 18px) */
+.combos-view__dropdown-item-emoji {
+  font-size: var(--fs-lg);
+  line-height: 1;
 }
 
 .combos-view__modo-grid {
@@ -347,11 +400,14 @@
 
 .combos-view__modo-titulo {
   font-weight: 700;
+  font-size: var(--fs-lg);   /* role: subtítulo (era sz.fontBase) */
+  line-height: var(--lh-lg);
 }
 
 .combos-view__modo-desc {
   color: var(--gm-muted);
-  line-height: 1.4;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .combos-view__itens-lista {
@@ -376,10 +432,14 @@
 
 .combos-view__item-nome {
   font-weight: 700;
+  font-size: var(--fs-lg);   /* role: nome item (era sz.fontBase) */
+  line-height: var(--lh-lg);
 }
 
 .combos-view__item-info {
   color: var(--gm-muted);
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .combos-view__item-qtd-controles {
@@ -405,6 +465,9 @@
   font-weight: 700;
   min-width: 20px;
   text-align: center;
+  font-size: var(--fs-base);   /* role: corpo/quantidade (era sz.fontBase) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
 }
 
 .combos-view__item-custom-toggle {
@@ -415,6 +478,8 @@
 
 .combos-view__item-custom-label {
   color: var(--gm-muted);
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .combos-view__item-remover {
@@ -436,16 +501,26 @@
 
 .combos-view__preco-total-label {
   font-weight: 700;
+  font-size: var(--fs-base);   /* role: corpo/label (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
+/* Ambíguo: valor total calculado — usa 2xl (número de destaque/KPI do
+   modal), embora a origem (sz.fontLg) sugerisse algo mais próximo de lg/xl.
+   Sinalizar se o dono preferir --fs-xl. */
 .combos-view__preco-total-valor {
   font-weight: 900;
   color: var(--gm-green);
+  font-size: var(--fs-2xl);   /* role: número hero/KPI (era sz.fontLg) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
 }
 
 .combos-view__erro {
   color: var(--gm-red);
   font-weight: 600;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .combos-view__modal-botoes {
@@ -466,6 +541,8 @@
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: corpo/botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .combos-view__btn-salvar {
@@ -476,4 +553,6 @@
   color: #fff;
   font-weight: 700;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: corpo/botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }

@@ -47,7 +47,7 @@ export default function PonteLocalConfig({ sz }) {
   }, [endereco]);
 
   return (
-    <div className="ponte-config" style={{ fontSize: sz?.fontSm }}>
+    <div className="ponte-config">
       <div className="ponte-config__status">
         <span className={`ponte-config__dot ${status === "rodando" ? "ponte-config__dot--on" : "ponte-config__dot--off"}`} />
         {status === "procurando" && "Procurando a ponte neste computador…"}

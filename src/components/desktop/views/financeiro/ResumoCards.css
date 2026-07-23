@@ -19,9 +19,14 @@
 .resumo-cards__valor {
   font-weight: 900;
   white-space: nowrap;
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
 }
 
 .resumo-cards__label {
   color: var(--gm-muted);
   margin-top: 2px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
 }

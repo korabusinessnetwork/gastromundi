@@ -1,0 +1,11 @@
+/**
+ * F018 — Configuração de Impressão. Decisão 018 (CSS separado do JSX) +
+ * tokens --fs-* e --lh-* (ADR-007). Cores/transições/cursor/layout fixo
+ * são classe. Tamanho de fonte agora vem da escala do design system,
+ * por classe de componente — não mais inline via sz.* do JSX.
+ */
+
+.configuracao-impressao__aba {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}

@@ -4,6 +4,11 @@
  * transparência usam alfa() (src/constants/colorAlfa.js). O laranja de
  * "pendente" (#f59e0b) é cor semântica fixa, não de marca — segue
  * literal, como AMBER em ComandaGrid.jsx.
+ *
+ * TAMANHO DE FONTE migrado para a escala do design system (--fs-* e --lh-*
+ * de src/styles/tipografia.css), por classe — não mais inline via sz.*
+ * do JSX (`sz` seguiu no JSX só para padding/gap/layout, hoje sem uso
+ * neste arquivo). Alíquota/percentual/contador = tabular-nums; NCM = mono.
  */
 
 .impostos-admin__label {
@@ -66,6 +71,7 @@
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
+  font-variant-numeric: tabular-nums; /* alíquota — valor numérico */
 }
 
 .impostos-admin__pct-simbolo {
@@ -165,11 +171,15 @@
 .impostos-admin__modal-titulo {
   font-weight: 900;
   color: var(--gm-text);
+  font-size: var(--fs-xl);   /* role: título seção (era sz.fontLg) */
+  line-height: var(--lh-xl);
 }
 
 .impostos-admin__modal-sub {
   color: var(--gm-muted);
   margin-top: 2px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .impostos-admin__modal-fechar {
@@ -193,6 +203,8 @@
   cursor: pointer;
   font-family: inherit;
   border-radius: 8px 8px 0 0;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontSm + 1) */
+  line-height: var(--lh-base);
 }
 
 .impostos-admin__modal-corpo {
@@ -208,7 +220,8 @@
   padding: 10px 14px;
   border-radius: 10px;
   color: var(--gm-muted);
-  line-height: 1.5;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .impostos-admin__aviso--com-icone {
@@ -220,6 +233,8 @@
 .impostos-admin__aviso-ajuda {
   color: var(--gm-muted);
   margin-top: 4px;
+  font-size: var(--fs-xs);   /* role: caption (era 12px literal) */
+  line-height: var(--lh-xs);
 }
 
 .impostos-admin__modal-footer {
@@ -239,6 +254,15 @@
   display: flex;
   gap: 6px;
   align-items: center;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+/* Uso fora do modal (erro de carregamento em tela cheia) — mesma classe,
+   texto maior por contexto (era sz.fontBase nesse local). */
+.impostos-admin__erro--grande {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
 }
 
 .impostos-admin__modal-botoes {
@@ -257,6 +281,8 @@
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .impostos-admin__btn-salvar {
@@ -271,6 +297,14 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+/* Texto de status central de tela cheia (carregando configurações). */
+.impostos-admin__carregando {
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 /* ── View principal ── */
@@ -278,11 +312,15 @@
 .impostos-admin__cabecalho-titulo {
   font-weight: 800;
   color: var(--gm-text);
+  font-size: var(--fs-xl);   /* role: título seção (era sz.fontLg) */
+  line-height: var(--lh-xl);
 }
 
 .impostos-admin__cabecalho-sub {
   color: var(--gm-muted);
   margin-top: 3px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .impostos-admin__badges {
@@ -296,6 +334,9 @@
   font-weight: 700;
   padding: 4px 12px;
   border-radius: 20px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums; /* contador numérico */
 }
 
 .impostos-admin__filtros {
@@ -331,6 +372,8 @@
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontSm + 1) */
+  line-height: var(--lh-base);
 }
 
 .impostos-admin__busca-limpar {
@@ -359,12 +402,26 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontSm + 1) */
+  line-height: var(--lh-base);
 }
 
 .impostos-admin__vazio {
   text-align: center;
   padding: 60px;
   color: var(--gm-muted);
+}
+
+/* Ícone decorativo do estado vazio (era 40px literal, sem papel claro na
+   escala — ver nota de ambiguidade na entrega). */
+.impostos-admin__vazio-icone {
+  font-size: var(--fs-5xl);
+  line-height: var(--lh-5xl);
+}
+
+.impostos-admin__vazio-mensagem {
+  font-size: var(--fs-lg);   /* role: vazio (era sz.fontBase) */
+  line-height: var(--lh-lg);
 }
 
 .impostos-admin__grupos {
@@ -383,6 +440,8 @@
 .impostos-admin__grupo-titulo {
   font-weight: 800;
   color: var(--gm-text);
+  font-size: var(--fs-lg);   /* role: subtítulo (era sz.fontBase) */
+  line-height: var(--lh-lg);
 }
 
 .impostos-admin__grupo-contador {
@@ -393,6 +452,7 @@
   background: var(--gm-surface);
   color: var(--gm-muted);
   border: 1px solid var(--gm-border);
+  font-variant-numeric: tabular-nums; /* contador numérico */
 }
 
 .impostos-admin__grupo-linha {
@@ -436,12 +496,15 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: var(--fs-lg);   /* role: nome do item (era sz.fontBase) */
+  line-height: var(--lh-lg);
 }
 
 .impostos-admin__item-ncm {
   font-size: 12px;
   color: var(--gm-muted);
   margin-top: 2px;
+  font-family: var(--gm-font-mono); /* código NCM */
 }
 
 .impostos-admin__item-badge {
@@ -460,4 +523,6 @@
   font-weight: 700;
   font-family: inherit;
   flex-shrink: 0;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontSm + 1) */
+  line-height: var(--lh-base);
 }

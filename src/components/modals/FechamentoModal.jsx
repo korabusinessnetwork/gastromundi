@@ -6,6 +6,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { LuLock, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPencil, LuTriangleAlert } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
+import "./FechamentoModal.css";
 
 const METODOS_CATALOG = {
   dinheiro: { label: "Dinheiro", Icon: LuBanknote   },
@@ -103,8 +104,8 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             <LuLock size={22} color={varColor(C.accent)} />
           </div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 18 }}>Fechar Caixa</div>
-            <div style={{ color: varColor(C.muted), fontSize: 13, marginTop: 2 }}>
+            <div className="fechamento-modal__titulo" style={{ fontWeight: 800 }}>Fechar Caixa</div>
+            <div className="fechamento-modal__subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
               {hoje.length} venda{hoje.length !== 1 ? "s" : ""} hoje · confira e ajuste os valores se necessário
             </div>
           </div>
@@ -113,11 +114,11 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
         {/* Tabela de conferência */}
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {/* Cabeçalho da tabela */}
-          <div style={{
+          <div className="fechamento-modal__tabela-cabecalho" style={{
             display: "grid", gridTemplateColumns: "1fr 90px 106px",
             gap: 8, paddingBottom: 8, marginBottom: 2,
             borderBottom: `1px solid var(${C.border})`,
-            fontSize: 11, fontWeight: 700, color: varColor(C.muted),
+            fontWeight: 700, color: varColor(C.muted),
             textTransform: "uppercase", letterSpacing: 1,
           }}>
             <span>Método</span>
@@ -143,19 +144,19 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
                 }}>
                   {/* Nome do método */}
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600 }}>
+                    <div className="fechamento-modal__metodo-nome" style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
                       <Icon size={15} color={varColor(C.muted)} />
                       {label}
                     </div>
                     {metodo === "dinheiro" && (
-                      <div style={{ fontSize: 11, color: varColor(C.muted), marginTop: 3, paddingLeft: 23 }}>
+                      <div className="fechamento-modal__fundo-nota" style={{ color: varColor(C.muted), marginTop: 3, paddingLeft: 23 }}>
                         inclui fundo {fmtR(fundoAtual)}
                       </div>
                     )}
                   </div>
 
                   {/* Valor sistema (read-only) */}
-                  <div style={{ textAlign: "right", fontSize: 14, color: varColor(C.muted), fontWeight: 600 }}>
+                  <div className="fechamento-modal__valor-sistema" style={{ textAlign: "right", color: varColor(C.muted), fontWeight: 600 }}>
                     {fmtR(sistemaVal)}
                   </div>
 
@@ -166,12 +167,13 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
                     step="0.01"
                     value={conf[metodo]}
                     onChange={e => setMetodo(metodo, e.target.value)}
+                    className="fechamento-modal__input-conferido"
                     style={{
                       width: "100%", padding: "8px 10px",
                       borderRadius: 8, textAlign: "right",
                       border: `1.5px solid ${hasDiff ? (isPositive ? varColor(C.green) : varColor(C.red)) + "99" : varColor(C.border)}`,
                       background: hasDiff ? (isPositive ? `${alfa(C.green, "10")}` : `${alfa(C.red, "10")}`) : varColor(C.surface),
-                      color: varColor(C.text), fontSize: 14, fontWeight: 700,
+                      color: varColor(C.text), fontWeight: 700,
                       boxSizing: "border-box", fontFamily: "inherit", outline: "none",
                     }}
                   />
@@ -179,8 +181,8 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
 
                 {/* Diferença por linha */}
                 {hasDiff && (
-                  <div style={{
-                    textAlign: "right", fontSize: 11, fontWeight: 700, paddingBottom: 6,
+                  <div className="fechamento-modal__diferenca-linha" style={{
+                    textAlign: "right", fontWeight: 700, paddingBottom: 6,
                     color: isPositive ? varColor(C.green) : varColor(C.red),
                   }}>
                     {isPositive ? "+" : ""}{fmtR(diff)} {isPositive ? "sobra" : "falta"}
@@ -199,7 +201,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             background: "#f59e0b14", border: "1.5px solid #f59e0b55",
           }}>
             <LuTriangleAlert size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
-            <div style={{ fontSize: 13, color: "#f59e0b", lineHeight: 1.5 }}>
+            <div className="fechamento-modal__banner-texto" style={{ color: "#f59e0b" }}>
               <strong>
                 R$ {Object.values(naoMapeados).reduce((s, v) => s + v, 0).toFixed(2)} em métodos não configurados:
               </strong>{" "}
@@ -219,12 +221,12 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
           <Row label="Total de Vendas (sistema)" value={fmtR(totalVendas)} muted />
           <Row label={`Fundo de Caixa`} value={fmtR(fundoAtual)} muted />
           <div style={{ borderTop: `1px solid var(${C.border})`, paddingTop: 9, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>Total Esperado em Caixa</span>
-            <span style={{ fontWeight: 800, fontSize: 15, color: varColor(C.muted) }}>{fmtR(totalSistema)}</span>
+            <span className="fechamento-modal__total-esperado-label" style={{ fontWeight: 700 }}>Total Esperado em Caixa</span>
+            <span className="fechamento-modal__total-esperado-valor" style={{ fontWeight: 800, color: varColor(C.muted) }}>{fmtR(totalSistema)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 800, fontSize: 15 }}>Total Conferido</span>
-            <span style={{ fontWeight: 900, fontSize: 17, color: varColor(C.green) }}>{fmtR(totalConferido)}</span>
+            <span className="fechamento-modal__total-conferido-label" style={{ fontWeight: 800 }}>Total Conferido</span>
+            <span className="fechamento-modal__total-conferido-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>{fmtR(totalConferido)}</span>
           </div>
 
           {/* Diferença total */}
@@ -234,10 +236,10 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             border: `1.5px solid ${(diferencaTotal >= 0 ? varColor(C.green) : varColor(C.red))}55`,
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
-            <span style={{ fontWeight: 600, fontSize: 13, color: varColor(C.muted) }}>
+            <span className="fechamento-modal__diferenca-label" style={{ fontWeight: 600, color: varColor(C.muted) }}>
               {diferencaTotal >= 0 ? "Sobra no Caixa" : "Falta no Caixa"}
             </span>
-            <span style={{ fontWeight: 900, fontSize: 18, color: diferencaTotal >= 0 ? varColor(C.green) : varColor(C.red) }}>
+            <span className="fechamento-modal__diferenca-valor" style={{ fontWeight: 900, color: diferencaTotal >= 0 ? varColor(C.green) : varColor(C.red) }}>
               {diferencaTotal >= 0 ? "+" : ""}{fmtR(diferencaTotal)}
             </span>
           </div>
@@ -245,8 +247,8 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
 
         {/* Observação */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{
-            fontSize: 11, fontWeight: 700, color: varColor(C.muted),
+          <div className="fechamento-modal__obs-label" style={{
+            fontWeight: 700, color: varColor(C.muted),
             textTransform: "uppercase", letterSpacing: 1,
           }}>
             Observação (opcional)
@@ -257,18 +259,19 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             placeholder="Ex: sobra de R$ 10 devolvida ao caixa, cliente X pagou amanhã..."
             maxLength={400}
             rows={3}
+            className="fechamento-modal__obs-textarea"
             style={{
               width: "100%", padding: "10px 12px",
               borderRadius: 10, border: `1.5px solid ${observacao ? varColor(C.accent) + "66" : varColor(C.border)}`,
               background: varColor(C.surface), color: varColor(C.text),
-              fontSize: 13, fontFamily: "inherit", outline: "none",
-              resize: "none", lineHeight: 1.5,
+              fontFamily: "inherit", outline: "none",
+              resize: "none",
               boxSizing: "border-box",
               transition: "border-color 0.15s",
             }}
           />
           {observacao && (
-            <div style={{ fontSize: 11, color: varColor(C.muted), textAlign: "right" }}>
+            <div className="fechamento-modal__obs-contador" style={{ color: varColor(C.muted), textAlign: "right" }}>
               {observacao.length}/400
             </div>
           )}
@@ -278,10 +281,11 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
         <div style={{ display: "flex", gap: 10 }}>
           <button
             onClick={onClose}
+            className="fechamento-modal__btn-cancelar"
             style={{
               flex: 1, padding: 13, borderRadius: 10,
               border: `1px solid var(${C.border})`, background: "none",
-              color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 14,
+              color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
               fontFamily: "inherit",
             }}
           >
@@ -290,11 +294,12 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
           <button
             onClick={handleConfirm}
             disabled={salvando}
+            className="fechamento-modal__btn-confirmar"
             style={{
               flex: 2, padding: 13, borderRadius: 10, border: "none",
               background: salvando ? varColor(C.faint) : varColor(C.accent),
               color: "#fff", cursor: salvando ? "not-allowed" : "pointer",
-              fontWeight: 700, fontSize: 15, fontFamily: "inherit",
+              fontWeight: 700, fontFamily: "inherit",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
               transition: "background 0.2s",
             }}
@@ -310,8 +315,8 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
 function Row({ label, value, muted }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: 13, color: varColor(C.muted) }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 600, color: muted ? varColor(C.muted) : varColor(C.text) }}>{value}</span>
+      <span className="fechamento-modal__row-label" style={{ color: varColor(C.muted) }}>{label}</span>
+      <span className="fechamento-modal__row-valor" style={{ fontWeight: 600, color: muted ? varColor(C.muted) : varColor(C.text) }}>{value}</span>
     </div>
   );
 }

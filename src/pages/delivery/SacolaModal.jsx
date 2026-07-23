@@ -5,6 +5,7 @@
 // erro > mensagem de erro).
 // ──────────────────────────────────────────────────────────────────
 import { formatarPreco, precoLinha } from "@/lib/delivery";
+import "./SacolaModal.css";
 
 export default function SacolaModal({
   itens,
@@ -70,11 +71,11 @@ export default function SacolaModal({
                       <br />
                       <button
                         onClick={() => onRemover(item._linha)}
+                        className="sacola-modal__remover"
                         style={{
                           background: "none",
                           border: "none",
                           color: "var(--gm-red)",
-                          fontSize: 12,
                           fontWeight: 700,
                           cursor: "pointer",
                           marginTop: 8,

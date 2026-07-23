@@ -16,6 +16,7 @@ import {
   LuSettings, LuWifi, LuWifiOff, LuShieldCheck, LuLoader,
   LuPlay, LuSquareCheckBig, LuMonitor, LuNetwork,
 } from "react-icons/lu";
+import "./ImpressorasConfig.css";
 
 // ── Estado de conexão com QZ Tray ──────────────────────────────────
 
@@ -92,8 +93,8 @@ function ModalSelecionarImpressora({ local, impressoras, cfgAtual, onSalvar, onC
         {/* Título */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>Selecionar Impressora</div>
-            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2 }}>
+            <div className="impressoras-config__titulo-xl" style={{ fontWeight: 800 }}>Selecionar Impressora</div>
+            <div className="impressoras-config__texto-sm" style={{ color: varColor(C.muted), marginTop: 2 }}>
               Local: <strong>{local.nome}</strong>
             </div>
           </div>
@@ -116,7 +117,7 @@ function ModalSelecionarImpressora({ local, impressoras, cfgAtual, onSalvar, onC
             }}
           >
             <LuX size={18} color={selecionada === "" ? varColor(C.red) : varColor(C.muted)} />
-            <div style={{ fontWeight: 600, fontSize: sz.fontBase, color: selecionada === "" ? varColor(C.red) : varColor(C.muted) }}>
+            <div className="impressoras-config__titulo-lg" style={{ fontWeight: 600, color: selecionada === "" ? varColor(C.red) : varColor(C.muted) }}>
               Nenhuma (não imprimir neste local)
             </div>
           </button>
@@ -137,7 +138,7 @@ function ModalSelecionarImpressora({ local, impressoras, cfgAtual, onSalvar, onC
                 }}
               >
                 <LuPrinter size={18} color={ativo ? varColor(C.accent) : varColor(C.muted)} />
-                <div style={{ flex: 1, fontWeight: ativo ? 700 : 500, fontSize: sz.fontBase, color: ativo ? varColor(C.accent) : varColor(C.text), textAlign: "left" }}>
+                <div className="impressoras-config__titulo-lg" style={{ flex: 1, fontWeight: ativo ? 700 : 500, color: ativo ? varColor(C.accent) : varColor(C.text), textAlign: "left" }}>
                   {nome}
                 </div>
                 {ativo && (
@@ -150,7 +151,7 @@ function ModalSelecionarImpressora({ local, impressoras, cfgAtual, onSalvar, onC
 
         {/* Erro ao salvar */}
         {erro && (
-          <div style={{ padding: "10px 14px", borderRadius: 10, background: `${alfa(C.red, "0e")}`, border: `1px solid ${alfa(C.red, "33")}`, color: varColor(C.red), fontSize: sz.fontSm, display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="impressoras-config__texto-sm" style={{ padding: "10px 14px", borderRadius: 10, background: `${alfa(C.red, "0e")}`, border: `1px solid ${alfa(C.red, "33")}`, color: varColor(C.red), display: "flex", alignItems: "center", gap: 8 }}>
             <LuCircleAlert size={14} style={{ flexShrink: 0 }} /> {erro}
           </div>
         )}
@@ -160,14 +161,16 @@ function ModalSelecionarImpressora({ local, impressoras, cfgAtual, onSalvar, onC
           <button
             onClick={() => onClose(false)}
             disabled={salvando}
-            style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: salvando ? "not-allowed" : "pointer", fontWeight: 600, fontSize: sz.fontBase, fontFamily: "inherit" }}
+            className="impressoras-config__texto-base"
+            style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: salvando ? "not-allowed" : "pointer", fontWeight: 600, fontFamily: "inherit" }}
           >
             Cancelar
           </button>
           <button
             onClick={salvar}
             disabled={salvando}
-            style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700, fontSize: sz.fontBase, fontFamily: "inherit", opacity: salvando ? 0.75 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            className="impressoras-config__texto-base"
+            style={{ flex: 2, padding: 12, borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700, fontFamily: "inherit", opacity: salvando ? 0.75 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
           >
             {salvando && <LuLoader size={14} style={{ animation: "spin 1s linear infinite" }} />}
             {salvando ? "Salvando…" : "Confirmar"}
@@ -367,7 +370,7 @@ export default function ImpressorasConfig({ sz }) {
       return (
         <div style={{ padding: "16px 20px", borderRadius: 14, background: varColor(C.surface), border: `1px solid var(${C.border})`, display: "flex", alignItems: "center", gap: 14 }}>
           <LuLoader size={20} color={varColor(C.muted)} style={{ animation: "spin 1s linear infinite" }} />
-          <div style={{ fontSize: sz.fontBase, color: varColor(C.muted) }}>Carregando estações…</div>
+          <div className="impressoras-config__texto-base" style={{ color: varColor(C.muted) }}>Carregando estações…</div>
         </div>
       );
     }
@@ -377,8 +380,8 @@ export default function ImpressorasConfig({ sz }) {
         <div style={{ padding: "16px 20px", borderRadius: 14, background: `${alfa(C.red, "08")}`, border: `1px solid ${alfa(C.red, "33")}`, display: "flex", alignItems: "flex-start", gap: 14 }}>
           <LuCircleAlert size={20} color={varColor(C.red)} style={{ flexShrink: 0, marginTop: 2 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.red) }}>Não foi possível carregar as estações</div>
-            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4, lineHeight: 1.6 }}>{erroEstacoes}</div>
+            <div className="impressoras-config__titulo-lg" style={{ fontWeight: 700, color: varColor(C.red) }}>Não foi possível carregar as estações</div>
+            <div className="impressoras-config__texto-sm" style={{ color: varColor(C.muted), marginTop: 4 }}>{erroEstacoes}</div>
           </div>
         </div>
       );
@@ -390,9 +393,9 @@ export default function ImpressorasConfig({ sz }) {
         <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 14, padding: sz.pad, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <LuMonitor size={20} color={varColor(C.accent)} />
-            <div style={{ fontWeight: 800, fontSize: sz.fontBase }}>Qual é este computador?</div>
+            <div className="impressoras-config__titulo-lg" style={{ fontWeight: 800 }}>Qual é este computador?</div>
           </div>
-          <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), lineHeight: 1.5 }}>
+          <div className="impressoras-config__texto-sm" style={{ color: varColor(C.muted) }}>
             Escolha a estação deste computador para vincular as impressoras. O vínculo fica salvo no sistema, não só neste navegador.
           </div>
 
@@ -411,7 +414,7 @@ export default function ImpressorasConfig({ sz }) {
                   }}
                 >
                   <LuMonitor size={18} color={e.id === estacaoId ? varColor(C.accent) : varColor(C.muted)} />
-                  <div style={{ flex: 1, fontWeight: 600, fontSize: sz.fontBase, color: e.id === estacaoId ? varColor(C.accent) : varColor(C.text) }}>
+                  <div className="impressoras-config__titulo-lg" style={{ flex: 1, fontWeight: 600, color: e.id === estacaoId ? varColor(C.accent) : varColor(C.text) }}>
                     {e.nome}
                   </div>
                   {e.id === estacaoId && <LuShieldCheck size={16} color={varColor(C.accent)} />}
@@ -428,18 +431,21 @@ export default function ImpressorasConfig({ sz }) {
                 onChange={e => setNomeNovaEstacao(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") criarNovaEstacao(); }}
                 placeholder="Nome da estação (ex: Caixa 1, Cozinha)"
-                style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontSize: sz.fontBase, fontFamily: "inherit" }}
+                className="impressoras-config__texto-base"
+                style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontFamily: "inherit" }}
               />
               <button
                 onClick={criarNovaEstacao}
                 disabled={!nomeNovaEstacao.trim() || salvandoEstacao}
-                style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", fontWeight: 700, fontSize: sz.fontSm, cursor: (!nomeNovaEstacao.trim() || salvandoEstacao) ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: (!nomeNovaEstacao.trim() || salvandoEstacao) ? 0.6 : 1, whiteSpace: "nowrap" }}
+                className="impressoras-config__texto-sm"
+                style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", fontWeight: 700, cursor: (!nomeNovaEstacao.trim() || salvandoEstacao) ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: (!nomeNovaEstacao.trim() || salvandoEstacao) ? 0.6 : 1, whiteSpace: "nowrap" }}
               >
                 {salvandoEstacao ? "Criando…" : "Criar"}
               </button>
               <button
                 onClick={() => { setCriandoEstacao(false); setNomeNovaEstacao(""); }}
-                style={{ padding: "10px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontFamily: "inherit", fontSize: sz.fontSm }}
+                className="impressoras-config__texto-sm"
+                style={{ padding: "10px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontFamily: "inherit" }}
               >
                 Cancelar
               </button>
@@ -448,14 +454,16 @@ export default function ImpressorasConfig({ sz }) {
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={() => setCriandoEstacao(true)}
-                style={{ padding: "10px 16px", borderRadius: 10, border: `1.5px solid ${varColor(C.accent)}66`, background: `${alfa(C.accent, "08")}`, color: varColor(C.accent), fontWeight: 700, fontSize: sz.fontSm, cursor: "pointer", fontFamily: "inherit" }}
+                className="impressoras-config__texto-sm"
+                style={{ padding: "10px 16px", borderRadius: 10, border: `1.5px solid ${varColor(C.accent)}66`, background: `${alfa(C.accent, "08")}`, color: varColor(C.accent), fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
               >
                 + Criar nova estação
               </button>
               {estacaoAtual && trocandoEstacao && (
                 <button
                   onClick={() => setTrocandoEstacao(false)}
-                  style={{ padding: "10px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontFamily: "inherit", fontSize: sz.fontSm }}
+                  className="impressoras-config__texto-sm"
+                  style={{ padding: "10px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontFamily: "inherit" }}
                 >
                   Cancelar
                 </button>
@@ -470,12 +478,13 @@ export default function ImpressorasConfig({ sz }) {
     return (
       <div style={{ padding: "12px 20px", borderRadius: 14, background: varColor(C.surface), border: `1px solid var(${C.border})`, display: "flex", alignItems: "center", gap: 12 }}>
         <LuMonitor size={18} color={varColor(C.accent)} />
-        <div style={{ flex: 1, fontSize: sz.fontBase }}>
+        <div className="impressoras-config__texto-base" style={{ flex: 1 }}>
           Estação: <strong>{estacaoAtual.nome}</strong>
         </div>
         <button
           onClick={() => setTrocandoEstacao(true)}
-          style={{ padding: "7px 14px", borderRadius: 9, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit" }}
+          className="impressoras-config__texto-sm"
+          style={{ padding: "7px 14px", borderRadius: 9, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}
         >
           Trocar
         </button>
@@ -491,14 +500,15 @@ export default function ImpressorasConfig({ sz }) {
         <div style={{ padding: "16px 20px", borderRadius: 14, background: varColor(C.surface), border: `1px solid var(${C.border})`, display: "flex", alignItems: "center", gap: 14 }}>
           <LuWifi size={22} color={varColor(C.muted)} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Conectar ao QZ Tray</div>
-            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2, lineHeight: 1.5 }}>
+            <div className="impressoras-config__titulo-lg" style={{ fontWeight: 700 }}>Conectar ao QZ Tray</div>
+            <div className="impressoras-config__texto-sm" style={{ color: varColor(C.muted), marginTop: 2 }}>
               O QZ Tray lê as impressoras instaladas no Windows e as disponibiliza para o sistema. Certifique-se de que ele está em execução neste computador.
             </div>
           </div>
           <button
             onClick={conectar}
-            style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", fontWeight: 700, fontSize: sz.fontSm, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
+            className="impressoras-config__texto-sm"
+            style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: varColor(C.accent), color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}
           >
             Conectar
           </button>
@@ -510,7 +520,7 @@ export default function ImpressorasConfig({ sz }) {
       return (
         <div style={{ padding: "16px 20px", borderRadius: 14, background: `${alfa(C.accent, "08")}`, border: `1px solid ${alfa(C.accent, "33")}`, display: "flex", alignItems: "center", gap: 14 }}>
           <LuLoader size={20} color={varColor(C.accent)} style={{ animation: "spin 1s linear infinite" }} />
-          <div style={{ fontSize: sz.fontBase, color: varColor(C.accent), fontWeight: 600 }}>Conectando ao QZ Tray…</div>
+          <div className="impressoras-config__texto-base" style={{ color: varColor(C.accent), fontWeight: 600 }}>Conectando ao QZ Tray…</div>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       );
@@ -522,20 +532,21 @@ export default function ImpressorasConfig({ sz }) {
           <div style={{ padding: "16px 20px", borderRadius: 14, background: `${alfa(C.red, "08")}`, border: `1px solid ${alfa(C.red, "33")}`, display: "flex", alignItems: "flex-start", gap: 14 }}>
             <LuWifiOff size={22} color={varColor(C.red)} style={{ flexShrink: 0, marginTop: 2 }} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.red) }}>QZ Tray não encontrado</div>
-              <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4, lineHeight: 1.6 }}>{erroMsg}</div>
+              <div className="impressoras-config__titulo-lg" style={{ fontWeight: 700, color: varColor(C.red) }}>QZ Tray não encontrado</div>
+              <div className="impressoras-config__texto-sm" style={{ color: varColor(C.muted), marginTop: 4 }}>{erroMsg}</div>
             </div>
             <button
               onClick={conectar}
-              style={{ padding: "8px 16px", borderRadius: 9, border: `1px solid ${alfa(C.red, "44")}`, background: `${alfa(C.red, "10")}`, color: varColor(C.red), fontWeight: 600, fontSize: sz.fontSm, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}
+              className="impressoras-config__texto-sm"
+              style={{ padding: "8px 16px", borderRadius: 9, border: `1px solid ${alfa(C.red, "44")}`, background: `${alfa(C.red, "10")}`, color: varColor(C.red), fontWeight: 600, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}
             >
               <LuRefreshCw size={13} /> Tentar novamente
             </button>
           </div>
 
           {/* Instruções de instalação */}
-          <div style={{ padding: "16px 20px", borderRadius: 14, background: varColor(C.surface), border: `1px solid var(${C.border})`, fontSize: sz.fontSm, lineHeight: 1.7, color: varColor(C.muted) }}>
-            <div style={{ fontWeight: 700, color: varColor(C.text), marginBottom: 8, fontSize: sz.fontBase }}>Como instalar o QZ Tray</div>
+          <div className="impressoras-config__texto-sm" style={{ padding: "16px 20px", borderRadius: 14, background: varColor(C.surface), border: `1px solid var(${C.border})`, color: varColor(C.muted) }}>
+            <div className="impressoras-config__titulo-lg" style={{ fontWeight: 700, color: varColor(C.text), marginBottom: 8 }}>Como instalar o QZ Tray</div>
             <ol style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4 }}>
               <li>Acesse <strong style={{ color: varColor(C.accent) }}>qz.io</strong> e baixe o instalador para Windows</li>
               <li>Execute a instalação (não requer configuração)</li>
@@ -551,7 +562,7 @@ export default function ImpressorasConfig({ sz }) {
       return (
         <div style={{ padding: "12px 20px", borderRadius: 14, background: `${alfa(C.green, "08")}`, border: `1px solid ${alfa(C.green, "33")}`, display: "flex", alignItems: "center", gap: 12 }}>
           <LuWifi size={18} color={varColor(C.green)} />
-          <div style={{ flex: 1, fontSize: sz.fontBase, color: varColor(C.green), fontWeight: 600 }}>
+          <div className="impressoras-config__texto-base" style={{ flex: 1, color: varColor(C.green), fontWeight: 600 }}>
             QZ Tray conectado · {impressoras.length} impressora{impressoras.length !== 1 ? "s" : ""} encontrada{impressoras.length !== 1 ? "s" : ""}
           </div>
           <button
@@ -567,7 +578,7 @@ export default function ImpressorasConfig({ sz }) {
   };
 
   if (loading) {
-    return <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: 40, textAlign: "center" }}>Carregando…</div>;
+    return <div className="impressoras-config__texto-base" style={{ color: varColor(C.muted), padding: 40, textAlign: "center" }}>Carregando…</div>;
   }
 
   const conectado = status === "conectado";
@@ -585,13 +596,13 @@ export default function ImpressorasConfig({ sz }) {
           <LuNetwork size={19} color={emRede ? varColor(C.accent) : varColor(C.muted)} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: sz.fontBase }}>Impressão em rede</div>
-          <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4, lineHeight: 1.6 }}>
+          <div className="impressoras-config__titulo-lg" style={{ fontWeight: 800 }}>Impressão em rede</div>
+          <div className="impressoras-config__texto-sm" style={{ color: varColor(C.muted), marginTop: 4 }}>
             Quando ligado, cada computador imprime o que é dele: uma comanda do bar lançada no
             caixa sai sozinha na impressora do bar. Deixe desligado se só este computador imprime.
           </div>
           {erroRede && (
-            <div style={{ marginTop: 8, fontSize: sz.fontSm, color: varColor(C.red), display: "flex", alignItems: "center", gap: 6 }}>
+            <div className="impressoras-config__texto-sm" style={{ marginTop: 8, color: varColor(C.red), display: "flex", alignItems: "center", gap: 6 }}>
               <LuCircleAlert size={13} style={{ flexShrink: 0 }} /> {erroRede}
             </div>
           )}
@@ -622,14 +633,14 @@ export default function ImpressorasConfig({ sz }) {
 
       {/* Aviso de configuração por estação */}
       {conectado && (
-        <div style={{ padding: "10px 16px", borderRadius: 10, background: `${alfa(C.blue, "0e")}`, border: `1px solid ${alfa(C.blue, "22")}`, fontSize: sz.fontSm, color: varColor(C.muted) }}>
+        <div className="impressoras-config__texto-sm" style={{ padding: "10px 16px", borderRadius: 10, background: `${alfa(C.blue, "0e")}`, border: `1px solid ${alfa(C.blue, "22")}`, color: varColor(C.muted) }}>
           <strong style={{ color: varColor(C.blue) }}>ℹ Vínculos por estação</strong> — Ficam salvos no sistema (não neste navegador): sobrevivem a limpar o cache ou trocar de computador. Cada estação tem suas próprias impressoras.
         </div>
       )}
 
       {/* Erro ao remover vínculo */}
       {erroVinculo && (
-        <div style={{ padding: "10px 16px", borderRadius: 10, background: `${alfa(C.red, "0e")}`, border: `1px solid ${alfa(C.red, "33")}`, fontSize: sz.fontSm, color: varColor(C.red), display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="impressoras-config__texto-sm" style={{ padding: "10px 16px", borderRadius: 10, background: `${alfa(C.red, "0e")}`, border: `1px solid ${alfa(C.red, "33")}`, color: varColor(C.red), display: "flex", alignItems: "center", gap: 8 }}>
           <LuCircleAlert size={14} style={{ flexShrink: 0 }} /> {erroVinculo}
         </div>
       )}
@@ -638,8 +649,8 @@ export default function ImpressorasConfig({ sz }) {
       {locais.length === 0 ? (
         <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 14, padding: "40px 24px", textAlign: "center", color: varColor(C.muted) }}>
           <LuPrinter size={32} style={{ opacity: 0.3, marginBottom: 12 }} />
-          <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>Nenhum local de impressão cadastrado</div>
-          <div style={{ fontSize: sz.fontSm, marginTop: 4 }}>Crie locais na aba <strong>Locais de Impressão</strong> primeiro.</div>
+          <div className="impressoras-config__titulo-lg" style={{ fontWeight: 700 }}>Nenhum local de impressão cadastrado</div>
+          <div className="impressoras-config__texto-sm" style={{ marginTop: 4 }}>Crie locais na aba <strong>Locais de Impressão</strong> primeiro.</div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -664,11 +675,11 @@ export default function ImpressorasConfig({ sz }) {
 
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: sz.fontBase }}>
+                  <div className="impressoras-config__titulo-lg" style={{ fontWeight: 700 }}>
                     {local.nome}
-                    {!local.ativo && <span style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginLeft: 8, fontWeight: 400 }}>· inativo</span>}
+                    {!local.ativo && <span className="impressoras-config__texto-sm" style={{ color: varColor(C.muted), marginLeft: 8, fontWeight: 400 }}>· inativo</span>}
                   </div>
-                  <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div className="impressoras-config__texto-sm" style={{ color: varColor(C.muted), marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {cfg
                       ? <span style={{ color: varColor(C.accent), fontWeight: 600 }}>{cfg.nome}</span>
                       : !podeVincular
@@ -680,11 +691,11 @@ export default function ImpressorasConfig({ sz }) {
 
                 {/* Badge */}
                 {cfg ? (
-                  <span style={{ fontSize: sz.fontSm - 1, fontWeight: 700, background: `${alfa(C.green, "15")}`, border: `1px solid ${alfa(C.green, "44")}`, color: varColor(C.green), padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
+                  <span className="impressoras-config__badge" style={{ fontWeight: 700, background: `${alfa(C.green, "15")}`, border: `1px solid ${alfa(C.green, "44")}`, color: varColor(C.green), padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
                     Configurada
                   </span>
                 ) : (
-                  <span style={{ fontSize: sz.fontSm - 1, fontWeight: 700, background: varColor(C.surface), border: `1px solid var(${C.border})`, color: varColor(C.muted), padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
+                  <span className="impressoras-config__badge" style={{ fontWeight: 700, background: varColor(C.surface), border: `1px solid var(${C.border})`, color: varColor(C.muted), padding: "3px 10px", borderRadius: 20, whiteSpace: "nowrap" }}>
                     Pendente
                   </span>
                 )}
@@ -700,6 +711,7 @@ export default function ImpressorasConfig({ sz }) {
                         onClick={() => !ocupado && imprimirTeste(local, cfg.nome)}
                         disabled={ocupado}
                         title="Imprimir página de teste"
+                        className="impressoras-config__texto-sm"
                         style={{
                           display: "flex", alignItems: "center", gap: 6,
                           padding: "8px 13px", borderRadius: 9,
@@ -707,7 +719,7 @@ export default function ImpressorasConfig({ sz }) {
                           background: st === "ok" ? `${alfa(C.green, "0f")}` : st === "erro" ? `${alfa(C.red, "0f")}` : varColor(C.surface),
                           color: st === "ok" ? varColor(C.green) : st === "erro" ? varColor(C.red) : varColor(C.muted),
                           cursor: ocupado ? "not-allowed" : "pointer",
-                          fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit",
+                          fontWeight: 600, fontFamily: "inherit",
                           transition: "border-color 0.15s, background 0.15s",
                         }}
                       >
@@ -737,6 +749,7 @@ export default function ImpressorasConfig({ sz }) {
                     onClick={() => { if (!conectado) { conectar(); return; } if (!podeVincular) return; setModal(local); }}
                     disabled={status === "conectando" || (conectado && !podeVincular)}
                     title={conectado && !podeVincular ? "Escolha uma estação para vincular impressoras" : undefined}
+                    className="impressoras-config__texto-sm"
                     style={{
                       display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9,
                       border: `1.5px solid ${conectado ? varColor(C.border) : varColor(C.accent) + "66"}`,
@@ -744,7 +757,7 @@ export default function ImpressorasConfig({ sz }) {
                       color: conectado ? varColor(C.text) : varColor(C.accent),
                       cursor: (status === "conectando" || (conectado && !podeVincular)) ? "not-allowed" : "pointer",
                       opacity: (conectado && !podeVincular) ? 0.55 : 1,
-                      fontWeight: 600, fontSize: sz.fontSm, fontFamily: "inherit", transition: "border-color 0.15s",
+                      fontWeight: 600, fontFamily: "inherit", transition: "border-color 0.15s",
                     }}
                     onMouseEnter={e => { if (conectado && podeVincular) e.currentTarget.style.borderColor = varColor(C.accent) + "66"; }}
                     onMouseLeave={e => { if (conectado && podeVincular) e.currentTarget.style.borderColor = varColor(C.border); }}

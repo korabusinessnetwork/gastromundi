@@ -8,6 +8,7 @@ import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { LuSparkles, LuX, LuCheck, LuTrash2, LuArrowRight, LuSend } from "react-icons/lu";
+import "./JarvasPanel.css";
 
 /**
  * Jarvas — central de insights (fase 4 da spec JARVAS.md).
@@ -144,11 +145,11 @@ export default function JarvasPanel() {
       >
         <LuSparkles size={22} />
         {naoLidos > 0 && (
-          <span style={{
+          <span className="jarvas-bell__badge" style={{
             position: "absolute", top: -4, right: -4,
             minWidth: 20, height: 20, padding: "0 5px",
             borderRadius: 10, background: varColor(C.red), color: "#fff",
-            fontSize: 11, fontWeight: 800,
+            fontWeight: 800,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             {naoLidos > 99 ? "99+" : naoLidos}
@@ -176,9 +177,9 @@ export default function JarvasPanel() {
               padding: "16px 18px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0,
             }}>
               <LuSparkles size={18} color={varColor(C.accent)} />
-              <div style={{ flex: 1, fontWeight: 900, fontSize: 15, letterSpacing: "-0.3px" }}>
+              <div style={{ flex: 1, fontWeight: 900, letterSpacing: "-0.3px" }} className="jarvas-header__title">
                 Jarvas
-                <span style={{ color: varColor(C.muted), fontWeight: 400, fontSize: 12, marginLeft: 8 }}>
+                <span style={{ color: varColor(C.muted), fontWeight: 400, marginLeft: 8 }} className="jarvas-header__subtitle">
                   insights · alertas · sugestões
                 </span>
               </div>
@@ -197,9 +198,10 @@ export default function JarvasPanel() {
                   <button
                     key={id}
                     onClick={() => setAba(id)}
+                    className="jarvas-tabs__button"
                     style={{
                       flex: 1, padding: "8px 10px", borderRadius: 8, cursor: "pointer",
-                      fontSize: 12.5, fontWeight: 700,
+                      fontWeight: 700,
                       background: aba === id ? varColor(C.alow) : "none",
                       border: `1px solid ${aba === id ? `${alfa(C.accent, "55")}` : varColor(C.border)}`,
                       color: aba === id ? varColor(C.accent) : varColor(C.muted),
@@ -216,17 +218,17 @@ export default function JarvasPanel() {
               <>
                 <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
                   {mensagens.length === 0 && (
-                    <div style={{ color: varColor(C.muted), fontSize: 13, textAlign: "center", padding: 24, lineHeight: 1.6 }}>
+                    <div className="jarvas-chat__empty" style={{ color: varColor(C.muted), textAlign: "center", padding: 24 }}>
                       Pergunte sobre o negócio — vendas, estoque, caixa.<br />
-                      Ex.: “Como foram as vendas esta semana?”<br />
-                      <span style={{ fontSize: 11.5 }}>O Jarvas responde só com base nos seus dados reais.</span>
+                      Ex.: "Como foram as vendas esta semana?"<br />
+                      <span className="jarvas-chat__help" style={{ color: varColor(C.muted) }}>O Jarvas responde só com base nos seus dados reais.</span>
                     </div>
                   )}
                   {mensagens.map((m, idx) => (
                     <div key={idx} style={{ display: "flex", justifyContent: m.papel === "usuario" ? "flex-end" : "flex-start", marginBottom: 10 }}>
-                      <div style={{
+                      <div className="jarvas-message" style={{
                         maxWidth: "85%", padding: "9px 12px", borderRadius: 12,
-                        fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap",
+                        whiteSpace: "pre-wrap",
                         background: m.papel === "usuario" ? varColor(C.accent) : varColor(C.surface),
                         border: m.papel === "usuario" ? "none" : `1px solid var(${C.border})`,
                         color: m.papel === "usuario" ? "#fff" : varColor(C.text),
@@ -236,7 +238,7 @@ export default function JarvasPanel() {
                     </div>
                   ))}
                   {perguntando && (
-                    <div style={{ color: varColor(C.muted), fontSize: 12.5, padding: "4px 2px" }}>Jarvas está analisando…</div>
+                    <div className="jarvas-thinking" style={{ color: varColor(C.muted), padding: "4px 2px" }}>Jarvas está analisando…</div>
                   )}
                   <div ref={fimChatRef} />
                 </div>
@@ -250,10 +252,11 @@ export default function JarvasPanel() {
                     onKeyDown={(e) => { if (e.key === "Enter") enviarPergunta(); }}
                     placeholder="Pergunte ao Jarvas…"
                     maxLength={1000}
+                    className="jarvas-input"
                     style={{
                       flex: 1, background: varColor(C.surface), border: `1px solid var(${C.border})`,
                       borderRadius: 10, padding: "10px 12px", color: varColor(C.text),
-                      fontSize: 13, outline: "none", fontFamily: "inherit",
+                      outline: "none", fontFamily: "inherit",
                     }}
                   />
                   <button
@@ -276,10 +279,10 @@ export default function JarvasPanel() {
             {(aba === "insights" || !podeConversar) && (
             <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
               {carregando && insights.length === 0 && (
-                <div style={{ color: varColor(C.muted), fontSize: 13, textAlign: "center", padding: 24 }}>Carregando…</div>
+                <div className="jarvas-list__loading" style={{ color: varColor(C.muted), textAlign: "center", padding: 24 }}>Carregando…</div>
               )}
               {!carregando && insights.length === 0 && (
-                <div style={{ color: varColor(C.muted), fontSize: 13, textAlign: "center", padding: 24 }}>
+                <div className="jarvas-list__empty" style={{ color: varColor(C.muted), textAlign: "center", padding: 24 }}>
                   Tudo em ordem por aqui. O Jarvas avisa quando algo merecer atenção.
                 </div>
               )}
@@ -293,28 +296,29 @@ export default function JarvasPanel() {
                     opacity: i.status === "lido" ? 0.75 : 1,
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 800, textTransform: "uppercase",
+                      <span className="jarvas-insight__badge" style={{
+                        fontWeight: 800, textTransform: "uppercase",
                         color: cor, background: `${cor}22`,
                         padding: "2px 7px", borderRadius: 8, letterSpacing: "0.4px",
                       }}>
                         {LABEL_TIPO[i.tipo] ?? i.tipo}
                       </span>
-                      <span style={{ fontSize: 11, color: varColor(C.muted) }}>{i.modulo}</span>
+                      <span className="jarvas-insight__module" style={{ color: varColor(C.muted) }}>{i.modulo}</span>
                       <span style={{ flex: 1 }} />
-                      <span style={{ fontSize: 11, color: varColor(C.muted) }}>{tempoRelativo(i.created_at)}</span>
+                      <span className="jarvas-insight__time" style={{ color: varColor(C.muted) }}>{tempoRelativo(i.created_at)}</span>
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 4 }}>{i.titulo}</div>
-                    <div style={{ fontSize: 12.5, color: varColor(C.muted), lineHeight: 1.45, marginBottom: 10 }}>{i.descricao}</div>
+                    <div className="jarvas-insight__title" style={{ fontWeight: 700, marginBottom: 4 }}>{i.titulo}</div>
+                    <div className="jarvas-insight__description" style={{ color: varColor(C.muted), marginBottom: 10 }}>{i.descricao}</div>
                     <div style={{ display: "flex", gap: 8 }}>
                       {i.acao?.label && (
                         <button
                           onClick={() => executarAcao(i)}
+                          className="jarvas-insight__action-button"
                           style={{
                             display: "flex", alignItems: "center", gap: 6,
                             background: varColor(C.alow), border: `1px solid ${alfa(C.accent, "55")}`,
                             color: varColor(C.accent), borderRadius: 8, padding: "6px 10px",
-                            fontSize: 12, fontWeight: 700, cursor: "pointer",
+                            fontWeight: 700, cursor: "pointer",
                           }}
                         >
                           {i.acao.label} <LuArrowRight size={13} />

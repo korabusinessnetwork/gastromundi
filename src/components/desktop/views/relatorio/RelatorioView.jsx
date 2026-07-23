@@ -13,6 +13,7 @@ import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor, nomeExibicaoTenant } from "@/lib/tema";
 import DesempenhoReport from "./DesempenhoReport";
+import "./RelatorioView.css";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
   LuLock, LuTriangleAlert, LuPackage, LuClipboardList, LuShieldAlert,
@@ -86,18 +87,18 @@ function KpiCard({ label, value, color, Icon, sz }) {
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {Icon && <Icon size={sz.fontLg} color={color} />}
-        <span style={{ fontSize: sz.fontSm + 1, color: varColor(C.muted), fontWeight: 600 }}>{label}</span>
+        <span className="relatorio-view__kpi-label" style={{ color: varColor(C.muted), fontWeight: 600 }}>{label}</span>
       </div>
-      <div style={{ fontWeight: 900, fontSize: sz.fontXl, color }}>{value}</div>
+      <div className="relatorio-view__kpi-valor" style={{ fontWeight: 900, color }}>{value}</div>
     </div>
   );
 }
 
 function Th({ children, right }) {
   return (
-    <th style={{
+    <th className="relatorio-view__th" style={{
       padding: "12px 16px", textAlign: right ? "right" : "left",
-      fontSize: 14, fontWeight: 700, color: varColor(C.muted),
+      fontWeight: 700, color: varColor(C.muted),
       textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap",
     }}>
       {children}
@@ -107,8 +108,8 @@ function Th({ children, right }) {
 
 function Td({ children, right, muted, sz, nowrap, color }) {
   return (
-    <td style={{
-      padding: "14px 16px", fontSize: sz.fontBase,
+    <td className="relatorio-view__td" style={{
+      padding: "14px 16px",
       textAlign: right ? "right" : "left",
       color: color ?? (muted ? varColor(C.muted) : varColor(C.text)),
       whiteSpace: nowrap ? "nowrap" : undefined,
@@ -121,7 +122,7 @@ function Td({ children, right, muted, sz, nowrap, color }) {
 
 function Empty({ icon: Icon, msg, sz }) {
   const inner = typeof Icon === "string"
-    ? <span style={{ fontSize: 48 }}>{Icon}</span>
+    ? <span className="relatorio-view__empty-icon">{Icon}</span>
     : Icon ? <Icon size={48} /> : null;
   return (
     <div style={{
@@ -130,7 +131,7 @@ function Empty({ icon: Icon, msg, sz }) {
       gap: 10, color: varColor(C.muted), padding: 60,
     }}>
       <div style={{ opacity: 0.3 }}>{inner}</div>
-      <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>{msg}</div>
+      <div className="relatorio-view__empty-msg" style={{ fontWeight: 600 }}>{msg}</div>
     </div>
   );
 }
@@ -139,11 +140,12 @@ function ChipBtn({ active, onClick, children, sz }) {
   return (
     <button
       onClick={onClick}
+      className="relatorio-view__chip"
       style={{
         padding: "6px 14px", borderRadius: 20, border: "none",
         background: active ? varColor(C.accent) : varColor(C.surface),
         color: active ? "#fff" : varColor(C.muted),
-        cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
+        cursor: "pointer", fontWeight: 600,
         transition: "background 0.15s, color 0.15s",
         whiteSpace: "nowrap",
       }}
@@ -161,12 +163,13 @@ function ExportBar({ onPDF, onXLSX, sz }) {
       <button
         onClick={onPDF}
         title="Exportar PDF"
+        className="relatorio-view__export-btn"
         style={{
           display: "flex", alignItems: "center", gap: 5,
           padding: "6px 13px", borderRadius: 8,
           border: `1px solid var(${C.border})`, background: "none",
           color: varColor(C.muted), cursor: "pointer",
-          fontSize: sz.fontSm + 1, fontWeight: 600, whiteSpace: "nowrap",
+          fontWeight: 600, whiteSpace: "nowrap",
         }}
       >
         <LuPrinter size={13} /> PDF
@@ -174,12 +177,13 @@ function ExportBar({ onPDF, onXLSX, sz }) {
       <button
         onClick={onXLSX}
         title="Exportar Excel"
+        className="relatorio-view__export-btn"
         style={{
           display: "flex", alignItems: "center", gap: 5,
           padding: "6px 13px", borderRadius: 8,
           border: `1px solid var(${C.border})`, background: "none",
           color: varColor(C.muted), cursor: "pointer",
-          fontSize: sz.fontSm + 1, fontWeight: 600, whiteSpace: "nowrap",
+          fontWeight: 600, whiteSpace: "nowrap",
         }}
       >
         <LuDownload size={13} /> Excel
@@ -233,11 +237,11 @@ function FechamentoDetalheModal({ f, onClose }) {
               <LuLock size={22} color={varColor(C.accent)} />
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 18 }}>Fechamento de Caixa</div>
-              <div style={{ color: varColor(C.muted), fontSize: 16, marginTop: 2 }}>
+              <div className="relatorio-view__modal-titulo" style={{ fontWeight: 800 }}>Fechamento de Caixa</div>
+              <div className="relatorio-view__modal-data" style={{ color: varColor(C.muted), marginTop: 2 }}>
                 {fmtData(f.at)}
               </div>
-              <div style={{ color: varColor(C.muted), fontSize: 18, marginTop: 1 }}>
+              <div className="relatorio-view__modal-usuario" style={{ color: varColor(C.muted), marginTop: 1 }}>
                 {f.user ?? "—"}{f.role ? ` · ${f.role}` : ""}
               </div>
             </div>
@@ -257,11 +261,11 @@ function FechamentoDetalheModal({ f, onClose }) {
         {/* Tabela por método */}
         {f.conferidoPorMetodo && (
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            <div style={{
+            <div className="relatorio-view__modal-th" style={{
               display: "grid", gridTemplateColumns: "1fr 110px",
               gap: 8, paddingBottom: 8, marginBottom: 2,
               borderBottom: `1px solid var(${C.border})`,
-              fontSize: 14, fontWeight: 700, color: varColor(C.muted),
+              fontWeight: 700, color: varColor(C.muted),
               textTransform: "uppercase", letterSpacing: 1,
             }}>
               <span>Método</span>
@@ -278,16 +282,16 @@ function FechamentoDetalheModal({ f, onClose }) {
                   gap: 8, alignItems: "center", padding: "11px 0",
                   borderBottom: `1px solid var(${C.border})`,
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 17, fontWeight: 600 }}>
+                  <div className="relatorio-view__modal-metodo-label" style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
                     <Icon size={15} color={varColor(C.muted)} />
                     {label}
                     {id === "dinheiro" && f.fundo > 0 && (
-                      <span style={{ fontSize: 14, color: varColor(C.muted), fontWeight: 400 }}>
+                      <span className="relatorio-view__modal-fundo-nota" style={{ color: varColor(C.muted), fontWeight: 400 }}>
                         (inclui fundo {fmtR(f.fundo)})
                       </span>
                     )}
                   </div>
-                  <div style={{ textAlign: "right", fontWeight: 800, fontSize: 17 }}>
+                  <div className="relatorio-view__modal-metodo-valor" style={{ textAlign: "right", fontWeight: 800 }}>
                     {fmtR(val)}
                   </div>
                 </div>
@@ -303,10 +307,10 @@ function FechamentoDetalheModal({ f, onClose }) {
             borderRadius: 12, padding: "12px 14px",
             display: "flex", flexDirection: "column", gap: 4,
           }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: varColor(C.accent), textTransform: "uppercase", letterSpacing: 1 }}>
+            <div className="relatorio-view__modal-obs-label" style={{ fontWeight: 700, color: varColor(C.accent), textTransform: "uppercase", letterSpacing: 1 }}>
               Observação
             </div>
-            <div style={{ fontSize: 16, color: varColor(C.text), lineHeight: 1.6 }}>
+            <div className="relatorio-view__modal-obs-texto" style={{ color: varColor(C.text) }}>
               {f.observacao}
             </div>
           </div>
@@ -323,18 +327,18 @@ function FechamentoDetalheModal({ f, onClose }) {
             { label: "Fundo de Caixa",            value: fmtR(f.fundo)       },
           ].map(r => (
             <div key={r.label} style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 16, color: varColor(C.muted) }}>{r.label}</span>
-              <span style={{ fontSize: 16, fontWeight: 600, color: varColor(C.muted) }}>{r.value}</span>
+              <span className="relatorio-view__modal-resumo-label" style={{ color: varColor(C.muted) }}>{r.label}</span>
+              <span className="relatorio-view__modal-resumo-valor" style={{ fontWeight: 600, color: varColor(C.muted) }}>{r.value}</span>
             </div>
           ))}
 
           <div style={{ borderTop: `1px solid var(${C.border})`, paddingTop: 9, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 700, fontSize: 17 }}>Total Esperado em Caixa</span>
-            <span style={{ fontWeight: 800, fontSize: 18, color: varColor(C.muted) }}>{fmtR(totalEsperado)}</span>
+            <span className="relatorio-view__modal-total-label" style={{ fontWeight: 700 }}>Total Esperado em Caixa</span>
+            <span className="relatorio-view__modal-total-valor" style={{ fontWeight: 800, color: varColor(C.muted) }}>{fmtR(totalEsperado)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 800, fontSize: 18 }}>Total Conferido</span>
-            <span style={{ fontWeight: 900, fontSize: 17, color: varColor(C.green) }}>{fmtR(f.totalConferido)}</span>
+            <span className="relatorio-view__modal-total-label" style={{ fontWeight: 800 }}>Total Conferido</span>
+            <span className="relatorio-view__modal-total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>{fmtR(f.totalConferido)}</span>
           </div>
 
           <div style={{
@@ -343,10 +347,10 @@ function FechamentoDetalheModal({ f, onClose }) {
             border: `1.5px solid ${(diferenca >= 0 ? varColor(C.green) : varColor(C.red))}55`,
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
-            <span style={{ fontWeight: 600, fontSize: 16, color: varColor(C.muted) }}>
+            <span className="relatorio-view__modal-dif-label" style={{ fontWeight: 600, color: varColor(C.muted) }}>
               {diferenca >= 0 ? "Sobra no Caixa" : "Falta no Caixa"}
             </span>
-            <span style={{ fontWeight: 900, fontSize: 18, color: diferenca >= 0 ? varColor(C.green) : varColor(C.red) }}>
+            <span className="relatorio-view__modal-total-valor" style={{ fontWeight: 900, color: diferenca >= 0 ? varColor(C.green) : varColor(C.red) }}>
               {diferenca >= 0 ? "+" : ""}{fmtR(diferenca)}
             </span>
           </div>
@@ -354,10 +358,11 @@ function FechamentoDetalheModal({ f, onClose }) {
 
         <button
           onClick={onClose}
+          className="relatorio-view__modal-fechar"
           style={{
             padding: "11px", borderRadius: 10,
             border: `1px solid var(${C.border})`, background: "none",
-            color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontSize: 17,
+            color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
             fontFamily: "inherit",
           }}
         >
@@ -678,8 +683,8 @@ export default function RelatorioView() {
         flexShrink: 0, gap: 16, flexWrap: "wrap",
       }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Relatórios</div>
-          <div style={{ color: varColor(C.muted), fontSize: sz.fontSm, marginTop: 2 }}>
+          <div className="relatorio-view__titulo" style={{ fontWeight: 800 }}>Relatórios</div>
+          <div className="relatorio-view__subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
             Visão geral do movimento do estabelecimento
           </div>
         </div>
@@ -690,11 +695,12 @@ export default function RelatorioView() {
               <button
                 key={p.id}
                 onClick={() => setPeriodo(p.id)}
+                className="relatorio-view__periodo-btn"
                 style={{
                   padding: "8px 16px", borderRadius: 10, border: "none",
                   background: periodo === p.id ? varColor(C.accent) : varColor(C.surface),
                   color: periodo === p.id ? "#fff" : varColor(C.muted),
-                  cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
+                  cursor: "pointer", fontWeight: 600,
                   transition: "background 0.15s, color 0.15s",
                 }}
               >
@@ -721,11 +727,11 @@ export default function RelatorioView() {
                   padding: "7px 12px", borderRadius: 9,
                   border: `1.5px solid ${customInicio ? varColor(C.accent) : varColor(C.border)}`,
                   background: varColor(C.surface), color: varColor(C.text),
-                  fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none",
+                  fontFamily: "inherit", outline: "none",
                   cursor: "pointer", transition: "border-color 0.15s",
                 }}
               />
-              <span style={{ color: varColor(C.muted), fontWeight: 600, fontSize: sz.fontSm + 1 }}>até</span>
+              <span className="relatorio-view__date-sep" style={{ color: varColor(C.muted), fontWeight: 600 }}>até</span>
               <input
                 type="date"
                 className="relatorio-date-input"
@@ -736,7 +742,7 @@ export default function RelatorioView() {
                   padding: "7px 12px", borderRadius: 9,
                   border: `1.5px solid ${customFim ? varColor(C.accent) : varColor(C.border)}`,
                   background: varColor(C.surface), color: varColor(C.text),
-                  fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none",
+                  fontFamily: "inherit", outline: "none",
                   cursor: "pointer", transition: "border-color 0.15s",
                 }}
               />
@@ -769,11 +775,12 @@ export default function RelatorioView() {
           <button
             key={a}
             onClick={() => setAba(a)}
+            className="relatorio-view__aba"
             style={{
               padding: "14px 22px", border: "none", background: "none",
               color: aba === a ? varColor(C.accent) : varColor(C.muted),
               fontWeight: aba === a ? 700 : 500,
-              fontSize: sz.fontBase, cursor: "pointer",
+              cursor: "pointer",
               borderBottom: `2px solid ${aba === a ? varColor(C.accent) : "transparent"}`,
               marginBottom: -1, transition: "color 0.15s",
             }}
@@ -825,11 +832,12 @@ export default function RelatorioView() {
                       // em "Hoje", muda para os últimos 7 dias (default do B2).
                       if (id === "por-dia" && periodo === "hoje") setPeriodo("semana");
                     }}
+                    className="relatorio-view__toggle-btn"
                     style={{
                       padding: "6px 18px", borderRadius: 8, border: "none",
                       background: subVendas === id ? varColor(C.accent) : "transparent",
                       color: subVendas === id ? "#fff" : varColor(C.muted),
-                      cursor: "pointer", fontWeight: 600, fontSize: sz.fontSm + 1,
+                      cursor: "pointer", fontWeight: 600,
                       transition: "background 0.15s, color 0.15s",
                     }}
                   >
@@ -854,11 +862,12 @@ export default function RelatorioView() {
                 onChange={e => setBuscaComanda(e.target.value)}
                 placeholder="Buscar comanda..."
                 aria-label="Buscar por número da comanda"
+                className="relatorio-view__busca"
                 style={{
                   width: 170, boxSizing: "border-box",
                   background: varColor(C.surface), border: `1px solid var(${C.border})`,
                   borderRadius: 8, padding: "7px 12px", color: varColor(C.text),
-                  fontSize: sz.fontSm + 2, outline: "none",
+                  outline: "none",
                 }}
               />
 
@@ -897,8 +906,8 @@ export default function RelatorioView() {
                             {Array.isArray(v.items) ? v.items.reduce((s, it) => s + (it.qty ?? 1), 0) : "—"}
                           </Td>
                           <Td sz={sz} right>
-                            <span style={{
-                              fontSize: sz.fontSm + 1, fontWeight: 600,
+                            <span className="relatorio-view__metodo-badge" style={{
+                              fontWeight: 600,
                               background: varColor(C.surface), padding: "3px 10px",
                               borderRadius: 20, color: varColor(C.muted), whiteSpace: "nowrap",
                             }}>
@@ -952,26 +961,26 @@ export default function RelatorioView() {
                             gap: 12, flexWrap: "wrap",
                           }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                              <div style={{
+                              <div className="relatorio-view__comanda-icon" style={{
                                 width: 44, height: 44, borderRadius: 12,
                                 background: varColor(C.alow), border: `1.5px solid ${alfa(C.accent, "44")}`,
                                 display: "flex", alignItems: "center", justifyContent: "center",
-                                fontSize: 20, flexShrink: 0,
+                                flexShrink: 0,
                               }}>
                                 🧾
                               </div>
                               <div>
-                                <div style={{ fontWeight: 800, fontSize: sz.fontLg - 1 }}>
+                                <div className="relatorio-view__comanda-num" style={{ fontWeight: 800 }}>
                                   {v.comanda ?? "—"}
                                 </div>
-                                <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 2 }}>
+                                <div className="relatorio-view__comanda-meta" style={{ color: varColor(C.muted), marginTop: 2 }}>
                                   {fmtData(v.at)} · {v.cashier ?? "—"}
                                 </div>
                               </div>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                              <span style={{
-                                fontSize: sz.fontSm + 1, fontWeight: 600,
+                              <span className="relatorio-view__metodo-badge" style={{
+                                fontWeight: 600,
                                 background: varColor(C.surface), padding: "5px 14px",
                                 borderRadius: 20, color: varColor(C.muted),
                               }}>
@@ -987,10 +996,10 @@ export default function RelatorioView() {
                               })}
                               </span>
                               <div style={{ textAlign: "right" }}>
-                                <div style={{ fontWeight: 900, fontSize: sz.fontXl - 2, color: varColor(C.green) }}>
+                                <div className="relatorio-view__comanda-total" style={{ fontWeight: 900, color: varColor(C.green) }}>
                                   {fmtR(v.total)}
                                 </div>
-                                <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+                                <div className="relatorio-view__comanda-itens" style={{ color: varColor(C.muted) }}>
                                   {qtdTotal} {qtdTotal === 1 ? "item" : "itens"}
                                 </div>
                               </div>
@@ -999,23 +1008,23 @@ export default function RelatorioView() {
 
                           {/* Itens da comanda */}
                           {itens.length === 0 ? (
-                            <div style={{ padding: "14px 20px", color: varColor(C.muted), fontSize: sz.fontSm + 1 }}>
+                            <div className="relatorio-view__sem-itens" style={{ padding: "14px 20px", color: varColor(C.muted) }}>
                               Sem itens registrados
                             </div>
                           ) : (
                             <table style={{ width: "100%", borderCollapse: "collapse" }}>
                               <thead>
                                 <tr style={{ background: varColor(C.surface) }}>
-                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textAlign: "left", textTransform: "uppercase", letterSpacing: 1 }}>
+                                  <th className="relatorio-view__subtable-th" style={{ padding: "8px 20px", fontWeight: 700, color: varColor(C.muted), textAlign: "left", textTransform: "uppercase", letterSpacing: 1 }}>
                                     Produto
                                   </th>
-                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textAlign: "center", textTransform: "uppercase", letterSpacing: 1 }}>
+                                  <th className="relatorio-view__subtable-th" style={{ padding: "8px 20px", fontWeight: 700, color: varColor(C.muted), textAlign: "center", textTransform: "uppercase", letterSpacing: 1 }}>
                                     Qtd
                                   </th>
-                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textAlign: "right", textTransform: "uppercase", letterSpacing: 1 }}>
+                                  <th className="relatorio-view__subtable-th" style={{ padding: "8px 20px", fontWeight: 700, color: varColor(C.muted), textAlign: "right", textTransform: "uppercase", letterSpacing: 1 }}>
                                     Unit.
                                   </th>
-                                  <th style={{ padding: "8px 20px", fontSize: sz.fontSm, fontWeight: 700, color: varColor(C.muted), textAlign: "right", textTransform: "uppercase", letterSpacing: 1 }}>
+                                  <th className="relatorio-view__subtable-th" style={{ padding: "8px 20px", fontWeight: 700, color: varColor(C.muted), textAlign: "right", textTransform: "uppercase", letterSpacing: 1 }}>
                                     Subtotal
                                   </th>
                                 </tr>
@@ -1026,26 +1035,26 @@ export default function RelatorioView() {
                                     key={j}
                                     style={{ borderTop: `1px solid var(${C.border})` }}
                                   >
-                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, color: varColor(C.text) }}>
+                                    <td className="relatorio-view__item-cell" style={{ padding: "12px 20px", color: varColor(C.text) }}>
                                       <div style={{ fontWeight: 600 }}>
                                         {it.emoji ? `${it.emoji} ` : ""}{it.name ?? "—"}
                                       </div>
                                       {it.obs && (
-                                        <div style={{
-                                          marginTop: 4, fontSize: sz.fontSm,
+                                        <div className="relatorio-view__item-obs" style={{
+                                          marginTop: 4,
                                           color: varColor(C.accent), fontStyle: "italic",
                                         }}>
                                           📝 {it.obs}
                                         </div>
                                       )}
                                     </td>
-                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, textAlign: "center", fontWeight: 700, color: varColor(C.text) }}>
+                                    <td className="relatorio-view__item-cell" style={{ padding: "12px 20px", textAlign: "center", fontWeight: 700, color: varColor(C.text) }}>
                                       {it.qty ?? 1}
                                     </td>
-                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, textAlign: "right", color: varColor(C.muted) }}>
+                                    <td className="relatorio-view__item-cell" style={{ padding: "12px 20px", textAlign: "right", color: varColor(C.muted) }}>
                                       {fmtR(it.price)}
                                     </td>
-                                    <td style={{ padding: "12px 20px", fontSize: sz.fontBase, textAlign: "right", fontWeight: 800, color: varColor(C.text) }}>
+                                    <td className="relatorio-view__item-cell" style={{ padding: "12px 20px", textAlign: "right", fontWeight: 800, color: varColor(C.text) }}>
                                       {fmtR((it.price ?? 0) * (it.qty ?? 1))}
                                     </td>
                                   </tr>
@@ -1102,14 +1111,14 @@ export default function RelatorioView() {
                     </tbody>
                     <tfoot>
                       <tr style={{ borderTop: `2px solid var(${C.border})` }}>
-                        <td style={{ padding: "12px 16px", fontWeight: 800, fontSize: sz.fontBase }}>
+                        <td className="relatorio-view__tfoot-cell" style={{ padding: "12px 16px", fontWeight: 800 }}>
                           {vendasPorDia.length} dia(s)
                         </td>
-                        <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800, fontSize: sz.fontBase }}>
+                        <td className="relatorio-view__tfoot-cell" style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800 }}>
                           {vendasPorDia.reduce((s, d) => s + d.comandas, 0)}
                         </td>
                         <td colSpan={4} />
-                        <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, fontSize: sz.fontLg, color: varColor(C.green) }}>
+                        <td className="relatorio-view__tfoot-total" style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, color: varColor(C.green) }}>
                           {fmtR(vendasPorDia.reduce((s, d) => s + d.total, 0))}
                         </td>
                         <td />
@@ -1190,10 +1199,10 @@ export default function RelatorioView() {
                           </span>
                         </Td>
                         <Td sz={sz} right>
-                          <span style={{
+                          <span className="relatorio-view__qtd-badge" style={{
                             fontWeight: 800, color: varColor(C.red),
                             background: `${alfa(C.red, "14")}`, border: `1px solid ${alfa(C.red, "33")}`,
-                            borderRadius: 8, padding: "2px 10px", fontSize: sz.fontSm + 1,
+                            borderRadius: 8, padding: "2px 10px",
                           }}>
                             ×{c.qty}
                           </span>
@@ -1203,8 +1212,8 @@ export default function RelatorioView() {
                         </Td>
                         <Td sz={sz}>
                           {c.motivo !== "—" ? (
-                            <span style={{
-                              fontSize: sz.fontSm + 1, color: varColor(C.muted),
+                            <span className="relatorio-view__motivo-chip" style={{
+                              color: varColor(C.muted),
                               background: varColor(C.surface), borderRadius: 8,
                               padding: "3px 10px", display: "inline-block",
                               maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
@@ -1226,8 +1235,8 @@ export default function RelatorioView() {
                             : <span style={{ color: varColor(C.muted) }}>—</span>}
                         </Td>
                         <Td sz={sz}>
-                          <span style={{
-                            fontSize: sz.fontSm, fontWeight: 700,
+                          <span className="relatorio-view__origem-badge" style={{
+                            fontWeight: 700,
                             padding: "3px 10px", borderRadius: 20,
                             background: c.origem === "Em aberto" ? `${alfa(C.accent, "14")}` : `${alfa(C.green, "14")}`,
                             border: `1px solid ${c.origem === "Em aberto" ? varColor(C.accent) : varColor(C.green)}44`,
@@ -1242,10 +1251,10 @@ export default function RelatorioView() {
                   </tbody>
                   <tfoot>
                     <tr style={{ borderTop: `2px solid var(${C.border})` }}>
-                      <td colSpan={3} style={{ padding: "12px 16px", fontWeight: 700, fontSize: sz.fontBase, color: varColor(C.muted) }}>
+                      <td colSpan={3} className="relatorio-view__tfoot-cell" style={{ padding: "12px 16px", fontWeight: 700, color: varColor(C.muted) }}>
                         {kpisCancelamentos.qtd} item(ns) cancelado(s)
                       </td>
-                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, fontSize: sz.fontLg, color: varColor(C.red) }}>
+                      <td className="relatorio-view__tfoot-total" style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, color: varColor(C.red) }}>
                         - {fmtR(kpisCancelamentos.valor)}
                       </td>
                       <td colSpan={5} />
@@ -1306,8 +1315,8 @@ export default function RelatorioView() {
                               <span style={{ fontWeight: 800 }}>{dif >= 0 ? "+" : ""}{fmtR(dif)}</span>
                             </Td>
                             <Td sz={sz} right>
-                              <span style={{
-                                fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.accent),
+                              <span className="relatorio-view__ver-detalhes" style={{
+                                fontWeight: 600, color: varColor(C.accent),
                                 padding: "3px 10px", borderRadius: 20,
                                 background: `${alfa(C.accent, "10")}`, border: `1px solid ${alfa(C.accent, "33")}`,
                                 whiteSpace: "nowrap",
@@ -1322,13 +1331,12 @@ export default function RelatorioView() {
                               style={{ borderBottom: `1px solid var(${C.border})`, cursor: "pointer" }}
                             >
                               <td colSpan={7} style={{ padding: "0 16px 10px" }}>
-                                <div style={{
-                                  fontSize: sz.fontSm + 1, color: varColor(C.muted),
-                                  lineHeight: 1.5, fontStyle: "italic",
+                                <div className="relatorio-view__fech-obs" style={{
+                                  color: varColor(C.muted), fontStyle: "italic",
                                 }}>
-                                  <span style={{
+                                  <span className="relatorio-view__fech-obs-label" style={{
                                     fontStyle: "normal", fontWeight: 700,
-                                    color: varColor(C.accent), marginRight: 6, fontSize: sz.fontSm,
+                                    color: varColor(C.accent), marginRight: 6,
                                     textTransform: "uppercase", letterSpacing: 0.5,
                                   }}>
                                     Obs.:
@@ -1378,10 +1386,11 @@ export default function RelatorioView() {
                       .limit(2000)
                       .then(({ data }) => { setOpLogs(data ?? []); setLoadingLogs(false); });
                   }}
+                  className="relatorio-view__log-refresh"
                   style={{
                     padding: "6px 14px", borderRadius: 8,
                     border: `1px solid var(${C.border})`, background: "none",
-                    color: varColor(C.muted), cursor: "pointer", fontSize: sz.fontSm + 1, fontWeight: 600,
+                    color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -1420,8 +1429,8 @@ export default function RelatorioView() {
                         >
                           <Td sz={sz} muted nowrap>{fmtData(l.created_at)}</Td>
                           <Td sz={sz}>
-                            <span style={{
-                              fontSize: sz.fontSm, fontWeight: 700,
+                            <span className="relatorio-view__log-tipo" style={{
+                              fontWeight: 700,
                               background: `${tipo.color}18`,
                               border: `1px solid ${tipo.color}44`,
                               color: tipo.color,
@@ -1434,8 +1443,8 @@ export default function RelatorioView() {
                           <Td sz={sz}>{l.payload?.name ?? l.operator_id ?? "—"}</Td>
                           <Td sz={sz}>
                             {l.payload?.role ? (
-                              <span style={{
-                                fontSize: sz.fontSm, fontWeight: 600,
+                              <span className="relatorio-view__log-role" style={{
+                                fontWeight: 600,
                                 background: varColor(C.surface), padding: "2px 8px",
                                 borderRadius: 10, color: varColor(C.muted),
                               }}>
@@ -1463,10 +1472,10 @@ export default function RelatorioView() {
         {aba === "Credenciais" && isAdmin && (
           <div style={{ flex: 1, overflowY: "auto", padding: sz.pad }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: sz.pad }}>
-              <div style={{
+              <div className="relatorio-view__aviso" style={{
                 flex: 1, background: `${alfa(C.red, "10")}`, border: `1px solid ${alfa(C.red, "33")}`,
                 borderRadius: 12, padding: "12px 16px",
-                fontSize: sz.fontSm + 1, color: varColor(C.red), fontWeight: 600,
+                color: varColor(C.red), fontWeight: 600,
               }}>
                 <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
                 Área restrita — estas informações são confidenciais. Não compartilhe com terceiros.
@@ -1474,12 +1483,13 @@ export default function RelatorioView() {
               <button
                 onClick={exportCredenciais}
                 title="Exportar PDF"
+                className="relatorio-view__export-btn"
                 style={{
                   display: "flex", alignItems: "center", gap: 6,
                   padding: "10px 16px", borderRadius: 10, flexShrink: 0,
                   border: `1px solid var(${C.border})`, background: "none",
                   color: varColor(C.muted), cursor: "pointer",
-                  fontSize: sz.fontSm + 1, fontWeight: 600, whiteSpace: "nowrap",
+                  fontWeight: 600, whiteSpace: "nowrap",
                 }}
               >
                 <LuPrinter size={14} /> PDF
@@ -1507,11 +1517,11 @@ export default function RelatorioView() {
                       >
                         <Td sz={sz}>
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <div style={{
+                            <div className="relatorio-view__avatar" style={{
                               width: 32, height: 32, borderRadius: 16,
                               background: varColor(C.accent), color: "#fff",
                               display: "flex", alignItems: "center", justifyContent: "center",
-                              fontWeight: 800, fontSize: 18, flexShrink: 0,
+                              fontWeight: 800, flexShrink: 0,
                             }}>
                               {(u.name ?? "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
                             </div>
@@ -1520,8 +1530,8 @@ export default function RelatorioView() {
                         </Td>
                         <Td sz={sz} muted>@{u.username}</Td>
                         <Td sz={sz}>
-                          <span style={{
-                            fontSize: sz.fontSm, fontWeight: 700,
+                          <span className="relatorio-view__role-badge" style={{
+                            fontWeight: 700,
                             background: varColor(C.surface), padding: "3px 10px",
                             borderRadius: 20, color: varColor(C.muted),
                           }}>
@@ -1529,7 +1539,7 @@ export default function RelatorioView() {
                           </span>
                         </Td>
                         <Td sz={sz} right>
-                          <span style={{ color: varColor(C.muted), fontSize: sz.fontSm + 1, fontStyle: "italic" }}>
+                          <span className="relatorio-view__cred-hint" style={{ color: varColor(C.muted), fontStyle: "italic" }}>
                             redefinir em Configurações
                           </span>
                         </Td>
@@ -1540,7 +1550,7 @@ export default function RelatorioView() {
               </table>
             </div>
 
-            <div style={{ marginTop: 12, fontSize: sz.fontSm + 1, color: varColor(C.muted) }}>
+            <div className="relatorio-view__cred-nota" style={{ marginTop: 12, color: varColor(C.muted) }}>
               * Senhas marcadas como "não registrada" foram definidas antes desta funcionalidade. Redefina-as nas Configurações para que apareçam aqui.
             </div>
           </div>
@@ -1574,9 +1584,9 @@ export default function RelatorioView() {
 
             {/* Toolbar */}
             <div style={{ display: "flex", alignItems: "center", padding: `0 ${sz.pad}px ${sz.padSm}px`, flexShrink: 0, gap: 12 }}>
-              <div style={{
+              <div className="relatorio-view__aviso" style={{
                 flex: 1, background: `${alfa(C.accent, "10")}`, border: `1px solid ${alfa(C.accent, "33")}`,
-                borderRadius: 12, padding: "10px 14px", fontSize: sz.fontSm + 1, color: varColor(C.accent), fontWeight: 600,
+                borderRadius: 12, padding: "10px 14px", color: varColor(C.accent), fontWeight: 600,
               }}>
                 <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
                 Visão administrativa consolidada — inclui todos os operadores. Confidencial.
@@ -1618,13 +1628,13 @@ export default function RelatorioView() {
                   </tbody>
                   <tfoot>
                     <tr style={{ borderTop: `2px solid var(${C.border})` }}>
-                      <td style={{ padding: "12px 16px", fontWeight: 800, fontSize: sz.fontBase }}>
+                      <td className="relatorio-view__tfoot-cell" style={{ padding: "12px 16px", fontWeight: 800 }}>
                         {adminConsolidado.porOperador.length} operador(es)
                       </td>
-                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800, fontSize: sz.fontBase }}>
+                      <td className="relatorio-view__tfoot-cell" style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800 }}>
                         {adminConsolidado.count}
                       </td>
-                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, fontSize: sz.fontLg, color: varColor(C.green) }}>
+                      <td className="relatorio-view__tfoot-total" style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, color: varColor(C.green) }}>
                         {fmtR(adminConsolidado.totalAtual)}
                       </td>
                       <td colSpan={2} />

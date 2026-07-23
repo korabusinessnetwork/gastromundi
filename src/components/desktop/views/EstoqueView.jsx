@@ -165,8 +165,8 @@ export default function EstoqueView() {
       {/* Header */}
       <div className="estoque-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Estoque</div>
-          <div className="estoque-view__subtitulo" style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>Controle de quantidade dos produtos</div>
+          <div className="estoque-view__titulo" style={{ fontWeight: 800 }}>Estoque</div>
+          <div className="estoque-view__subtitulo" style={{ color: varColor(C.muted) }}>Controle de quantidade dos produtos</div>
         </div>
 
         {/* Botão de liberar / bloquear entrada */}
@@ -177,7 +177,7 @@ export default function EstoqueView() {
             style={{
               borderColor: alfa(C.green, "55"),
               background: alfa(C.green, "10"),
-              color: varColor(C.green), fontSize: sz.fontBase,
+              color: varColor(C.green),
             }}
           >
             <LuLockOpen size={15} /> Entrada liberada · Bloquear
@@ -189,7 +189,7 @@ export default function EstoqueView() {
             style={{
               borderColor: varColor(C.border),
               background: varColor(C.surface),
-              color: varColor(C.muted), fontSize: sz.fontBase,
+              color: varColor(C.muted),
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = alfa(C.accent, "88"); e.currentTarget.style.color = varColor(C.text); }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = varColor(C.border); e.currentTarget.style.color = varColor(C.muted); }}
@@ -209,8 +209,8 @@ export default function EstoqueView() {
           <div key={k.label} className="estoque-view__kpi" style={{ padding: `${sz.padSm + 2}px ${sz.pad - 4}px` }}>
             <k.Icon size={sz.fontXl - 4} color={k.color} />
             <div>
-              <div className="estoque-view__kpi-valor" style={{ fontSize: sz.fontXl - 2, color: k.color }}>{k.value}</div>
-              <div className="estoque-view__kpi-label" style={{ fontSize: sz.fontSm }}>{k.label}</div>
+              <div className="estoque-view__kpi-valor" style={{ color: k.color }}>{k.value}</div>
+              <div className="estoque-view__kpi-label">{k.label}</div>
             </div>
           </div>
         ))}
@@ -218,10 +218,10 @@ export default function EstoqueView() {
 
       {/* Busca + categorias */}
       <div className="estoque-view__filtros" style={{ padding: `0 ${sz.pad}px ${sz.padSm}px`, gap: sz.gap }}>
-        <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar produto..." className="estoque-view__busca" style={{ padding: "9px 14px", fontSize: sz.fontBase, width: Math.min(220, width - sz.pad * 2 - 32), minWidth: 120 }} />
+        <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar produto..." className="estoque-view__busca" style={{ padding: "9px 14px", width: Math.min(220, width - sz.pad * 2 - 32), minWidth: 120 }} />
         <div className="estoque-view__categorias">
           {categorias.map(cat => (
-            <button key={cat} onClick={() => setCategoria(cat)} className="estoque-view__categoria" style={{ background: categoria === cat ? varColor(C.accent) : varColor(C.surface), color: categoria === cat ? "#fff" : varColor(C.muted), fontSize: sz.fontSm + 1 }}>
+            <button key={cat} onClick={() => setCategoria(cat)} className="estoque-view__categoria" style={{ background: categoria === cat ? varColor(C.accent) : varColor(C.surface), color: categoria === cat ? "#fff" : varColor(C.muted) }}>
               {cat}
             </button>
           ))}
@@ -232,8 +232,8 @@ export default function EstoqueView() {
       <div className="estoque-view__tabela-area" style={{ padding: `0 ${sz.pad}px ${sz.pad}px` }}>
         {lista.length === 0 ? (
           <div className="estoque-view__vazio">
-            <div style={{ fontSize: 48, opacity: 0.3 }}>📦</div>
-            <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Nenhum produto encontrado</div>
+            <div className="estoque-view__vazio-emoji" style={{ opacity: 0.3 }}>📦</div>
+            <div className="estoque-view__vazio-texto" style={{ fontWeight: 600 }}>Nenhum produto encontrado</div>
           </div>
         ) : (
           <div className="estoque-view__tabela-moldura">
@@ -307,11 +307,11 @@ export default function EstoqueView() {
                       {/* Produto */}
                       <td className="estoque-view__td">
                         <div className="estoque-view__produto">
-                          <span style={{ fontSize: 22 }}>{p.emoji ?? "📦"}</span>
+                          <span className="estoque-view__produto-emoji">{p.emoji ?? "📦"}</span>
                           <div>
-                            <div className="estoque-view__produto-nome" style={{ fontSize: sz.fontBase }}>{p.name}</div>
+                            <div className="estoque-view__produto-nome">{p.name}</div>
                             {(temP || temC) && (
-                              <div className="estoque-view__produto-conversoes" style={{ fontSize: 14 }}>
+                              <div className="estoque-view__produto-conversoes">
                                 {temC && <span>consumo: {uc}</span>}
                                 {temP && <span>compra: {units.map(u => u.unidade).join(", ")}</span>}
                               </div>
@@ -323,37 +323,36 @@ export default function EstoqueView() {
                       {/* Categoria */}
                       <td className="estoque-view__td">
                         {p.category && (
-                          <span className="estoque-view__categoria-tag" style={{ fontSize: sz.fontSm, background: alfa(C.accent, "18"), color: varColor(C.accent) }}>{p.category}</span>
+                          <span className="estoque-view__categoria-tag" style={{ background: alfa(C.accent, "18"), color: varColor(C.accent) }}>{p.category}</span>
                         )}
                       </td>
 
                       {/* Preço */}
-                      <td className="estoque-view__td" style={{ fontSize: sz.fontBase, color: varColor(C.muted), whiteSpace: "nowrap" }}>
+                      <td className="estoque-view__td estoque-view__preco-cel" style={{ color: varColor(C.muted), whiteSpace: "nowrap" }}>
                         R$ {Number(p.price).toFixed(2)}
                       </td>
 
                       {/* Saldo atual */}
                       <td className="estoque-view__td" style={{ textAlign: "center" }}>
                         <div className="estoque-view__saldo">
-                          <div className="estoque-view__saldo-valor" style={{ fontSize: sz.fontBase + 2, color: cor }}>{fmtQtd(qty)}</div>
-                          <div className="estoque-view__saldo-unidade" style={{ fontSize: 14, color: cor }}>{ue}</div>
+                          <div className="estoque-view__saldo-valor" style={{ color: cor }}>{fmtQtd(qty)}</div>
+                          <div className="estoque-view__saldo-unidade" style={{ color: cor }}>{ue}</div>
                           {temC && qty > 0 && (
-                            <div className="estoque-view__saldo-consumo" style={{ fontSize: 14 }}>
+                            <div className="estoque-view__saldo-consumo">
                               ≈ {fmtQtd(estoqueParaConsumo(qty, p))} {uc}
                             </div>
                           )}
-                          <div className="estoque-view__saldo-status" style={{ fontSize: 13, color: cor }}>
+                          <div className="estoque-view__saldo-status" style={{ color: cor }}>
                             {qty === 0 ? "Sem estoque" : qty <= minimo ? "Baixo" : "OK"}
                           </div>
                           <div className="estoque-view__minimo">
-                            <span className="estoque-view__minimo-label" style={{ fontSize: 12 }}>mín:</span>
+                            <span className="estoque-view__minimo-label">mín:</span>
                             <input
                               type="number"
                               min="0"
                               value={minimo}
                               onChange={e => setMinimoEstoque(p.id, e.target.value)}
                               className="estoque-view__minimo-input"
-                              style={{ fontSize: 12 }}
                             />
                           </div>
                         </div>
@@ -383,7 +382,7 @@ export default function EstoqueView() {
                                   key={idx}
                                   onClick={() => setModo(p.id, idx)}
                                   className="estoque-view__entrada-tab"
-                                  style={{ background: modo === idx ? varColor(C.accent) : "none", color: modo === idx ? "#fff" : varColor(C.muted), fontSize: 14 }}
+                                  style={{ background: modo === idx ? varColor(C.accent) : "none", color: modo === idx ? "#fff" : varColor(C.muted) }}
                                 >
                                   <LuShoppingCart size={11} /> {u.unidade}
                                 </button>
@@ -391,7 +390,7 @@ export default function EstoqueView() {
                               <button
                                 onClick={() => setModo(p.id, "estoque")}
                                 className="estoque-view__entrada-tab"
-                                style={{ background: modo === "estoque" ? varColor(C.surface) : "none", color: modo === "estoque" ? varColor(C.text) : varColor(C.muted), fontSize: 14, borderRight: "none" }}
+                                style={{ background: modo === "estoque" ? varColor(C.surface) : "none", color: modo === "estoque" ? varColor(C.text) : varColor(C.muted), borderRight: "none" }}
                               >
                                 <LuBox size={11} /> {ue}
                               </button>
@@ -408,16 +407,15 @@ export default function EstoqueView() {
                                 onKeyDown={e => e.key === "Enter" && handleAdicionar(p)}
                                 placeholder="0"
                                 className="estoque-view__entrada-input"
-                                style={{ fontSize: sz.fontBase }}
                               />
-                              <span className="estoque-view__entrada-unidade" style={{ fontSize: 14 }}>
+                              <span className="estoque-view__entrada-unidade">
                                 {modo === "estoque" ? ue : (units[modo]?.unidade ?? ue)}
                               </span>
                             </div>
 
                             {/* Preview de conversão */}
                             {previewEst !== null && (
-                              <div className="estoque-view__entrada-preview" style={{ fontSize: 14 }}>
+                              <div className="estoque-view__entrada-preview">
                                 = {fmtQtd(previewEst)} {ue}
                               </div>
                             )}
@@ -426,7 +424,7 @@ export default function EstoqueView() {
                               onClick={() => handleAdicionar(p)}
                               disabled={busy || !rawInput || rawNum <= 0}
                               className="estoque-view__btn-adicionar"
-                              style={{ background: rawNum > 0 ? varColor(C.accent) : varColor(C.faint), color: rawNum > 0 ? "#fff" : varColor(C.muted), cursor: rawNum > 0 ? "pointer" : "not-allowed", fontSize: 18 }}
+                              style={{ background: rawNum > 0 ? varColor(C.accent) : varColor(C.faint), color: rawNum > 0 ? "#fff" : varColor(C.muted), cursor: rawNum > 0 ? "pointer" : "not-allowed" }}
                             >
                               {busy ? "..." : "+ Adicionar"}
                             </button>
@@ -444,9 +442,9 @@ export default function EstoqueView() {
                                 value={qty}
                                 onChange={e => handleDireto(p.id, parseFloat(e.target.value) || 0)}
                                 className="estoque-view__direto-input"
-                                style={{ border: `1.5px solid ${alfa(cor, "66")}`, background: alfa(cor, "12"), color: cor, fontSize: sz.fontBase + 1 }}
+                                style={{ border: `1.5px solid ${alfa(cor, "66")}`, background: alfa(cor, "12"), color: cor }}
                               />
-                              <span className="estoque-view__direto-unidade" style={{ fontSize: 13 }}>{ue}</span>
+                              <span className="estoque-view__direto-unidade">{ue}</span>
                             </div>
                             <button onClick={() => handleDireto(p.id, qty + 1)} disabled={busy} className="estoque-view__direto-btn" style={{ cursor: "pointer" }}>
                               <LuPlus size={14} />
@@ -478,7 +476,7 @@ export default function EstoqueView() {
               </div>
               <div>
                 <div className="estoque-view__auth-titulo">Liberar Entrada de Estoque</div>
-                <div className="estoque-view__auth-ajuda" style={{ fontSize: 14 }}>Requer senha de administrador ou gerente</div>
+                <div className="estoque-view__auth-ajuda">Requer senha de administrador ou gerente</div>
               </div>
             </div>
 
@@ -496,7 +494,7 @@ export default function EstoqueView() {
                   onKeyDown={e => { if (e.key === "Enter") confirmarSenha(); }}
                   placeholder="Digite a senha..."
                   className="estoque-view__senha-input"
-                  style={{ borderColor: senhaErro ? varColor(C.red) : varColor(C.border), fontSize: 16 }}
+                  style={{ borderColor: senhaErro ? varColor(C.red) : varColor(C.border) }}
                 />
                 <button
                   type="button"
@@ -518,7 +516,6 @@ export default function EstoqueView() {
               <button
                 onClick={() => setShowAuth(false)}
                 className="estoque-view__auth-cancelar"
-                style={{ fontSize: 16 }}
               >
                 Cancelar
               </button>
@@ -529,7 +526,6 @@ export default function EstoqueView() {
                 style={{
                   background: senha && !verificando ? varColor(C.accent) : varColor(C.faint),
                   cursor: senha && !verificando ? "pointer" : "not-allowed",
-                  fontSize: 16,
                 }}
               >
                 <LuLockOpen size={15} />

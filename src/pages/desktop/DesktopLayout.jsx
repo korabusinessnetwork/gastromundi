@@ -15,6 +15,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { nomeExibicaoTenant } from "@/lib/tema";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
+import "./DesktopLayout.css";
 
 export default function DesktopLayout() {
   const { currentUser, isMobile, mobileChoice, setMobileChoice, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant } = useApp();
@@ -132,23 +133,24 @@ export default function DesktopLayout() {
             background: varColor(C.card), borderBottom: `1px solid var(${C.border})`,
           }}>
             <button
+              className="desktop-layout__menu-btn"
               onClick={() => setMenuAberto(true)}
               style={{
                 background: "none", border: `1px solid var(${C.border})`,
                 borderRadius: 8, color: varColor(C.text), cursor: "pointer",
-                padding: "6px 10px", fontWeight: 700, fontSize: 17,
+                padding: "6px 10px", fontWeight: 700,
                 lineHeight: 1,
               }}
             >
               ☰
             </button>
-            <div style={{ flex: 1, fontWeight: 900, fontSize: 14, letterSpacing: "-0.3px", overflowWrap: "break-word" }}>
+            <div className="desktop-layout__name-tenant" style={{ flex: 1, fontWeight: 900, letterSpacing: "-0.3px", overflowWrap: "break-word" }}>
               {nomeEstabelecimento.toUpperCase()}
               {/* Assinatura da plataforma — aparece para todo tenant (white-label, decisão 017) */}
               <span style={{ color: varColor(C.muted), fontWeight: 400 }}> by Kora</span>
             </div>
-            <span style={{
-              fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 10,
+            <span className="desktop-layout__status-badge" style={{
+              fontWeight: 700, padding: "3px 8px", borderRadius: 10,
               background: caixaAberto ? `${alfa(C.green, "22")}` : `${alfa(C.red, "22")}`,
               color: caixaAberto ? varColor(C.green) : varColor(C.red),
             }}>

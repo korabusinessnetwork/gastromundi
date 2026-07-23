@@ -1,0 +1,75 @@
+/**
+ * F018 — login page. Decisão 018 (CSS separado do JSX) +
+ * tokens --gm-* (ADR-007). Cores/transições/layout vão em classe.
+ *
+ * TAMANHO DE FONTE vem da escala do design system (--fs-* e --lh-* de
+ * src/styles/tipografia.css), por papel semântico — não mais inline via
+ * sz.* do JSX. Migração de ~14 sites de fontSize para classes BEM.
+ */
+
+/* Tela de carregamento / validação de tenant */
+.login-page__loading {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Seção de erro (subdomínio inválido) */
+.login-page__error-title {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.login-page__error-text {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.login-page__error-caption {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.login-page__footer-text {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+/* Branding (marca do tenant na porta de entrada) */
+.login-page__brand-title {
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
+.login-page__brand-subtitle {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Formulário: labels e campos de entrada */
+.login-page__label {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.login-page__input {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Mensagem de erro do formulário */
+.login-page__error-message {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Botão de ação */
+.login-page__button {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Aviso de segurança (sessão, tentativas) */
+.login-page__security-notice {
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}

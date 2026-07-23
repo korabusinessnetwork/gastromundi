@@ -21,8 +21,15 @@
   flex-wrap: wrap;
 }
 
+.financeiro-view__titulo {
+  font-size: var(--fs-xl);  /* role: título de seção (era sz.fontLg) */
+  line-height: var(--lh-xl);
+}
+
 .financeiro-view__subtitulo {
   margin-top: 2px;
+  font-size: var(--fs-sm);  /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .financeiro-view__acoes {
@@ -39,6 +46,8 @@
   background: var(--gm-surface);
   color: var(--gm-text);
   font-family: inherit;
+  font-size: var(--fs-base);  /* role: body (era hardcoded 14px, ambíguo) */
+  line-height: var(--lh-base);
 }
 
 .financeiro-view__btn-novo {
@@ -55,4 +64,6 @@
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
+  font-size: var(--fs-base);  /* role: body (era hardcoded 14px, ambíguo) */
+  line-height: var(--lh-base);
 }

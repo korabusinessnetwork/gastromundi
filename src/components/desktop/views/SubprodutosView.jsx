@@ -112,7 +112,7 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
       <div className="subprodutos-view__modal">
 
         <div className="subprodutos-view__modal-topo">
-          <div style={{ fontWeight: 800, fontSize: sz.fontBase + 1 }}>{item ? "Editar Subproduto" : "Novo Subproduto"}</div>
+          <div className="subprodutos-view__modal-titulo" style={{ fontWeight: 800 }}>{item ? "Editar Subproduto" : "Novo Subproduto"}</div>
           <button onClick={onClose} className="subprodutos-view__modal-fechar"><LuX size={20} /></button>
         </div>
 
@@ -127,7 +127,6 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
             placeholder="Ex: Fritas P, Coca-Cola Lata..."
             maxLength={80}
             className="subprodutos-view__input"
-            style={{ fontSize: sz.fontBase }}
           />
         </div>
 
@@ -135,13 +134,13 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
         <div className="subprodutos-view__grid-dupla">
           <div>
             <div className="subprodutos-view__label">Categoria</div>
-            <select value={form.categoria} onChange={e => setF("categoria", e.target.value)} className="subprodutos-view__select" style={{ fontSize: sz.fontBase }}>
+            <select value={form.categoria} onChange={e => setF("categoria", e.target.value)} className="subprodutos-view__select">
               {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div>
             <div className="subprodutos-view__label">Unidade</div>
-            <select value={form.unidade_medida} onChange={e => setF("unidade_medida", e.target.value)} className="subprodutos-view__select" style={{ fontSize: sz.fontBase }}>
+            <select value={form.unidade_medida} onChange={e => setF("unidade_medida", e.target.value)} className="subprodutos-view__select">
               {UNIDADES.map(u => <option key={u}>{u}</option>)}
             </select>
           </div>
@@ -157,8 +156,7 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
             value={form.preco}
             onChange={e => setF("preco", e.target.value)}
             placeholder="0,00"
-            className="subprodutos-view__input"
-            style={{ fontSize: sz.fontBase }}
+            className="subprodutos-view__input subprodutos-view__input--num"
           />
         </div>
 
@@ -166,8 +164,8 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
         <div className="subprodutos-view__toggles">
           <div className="subprodutos-view__toggle-linha">
             <div>
-              <div className="subprodutos-view__toggle-titulo" style={{ fontSize: sz.fontBase }}>Controlar estoque</div>
-              <div className="subprodutos-view__toggle-ajuda" style={{ fontSize: sz.fontSm }}>Baixa estoque ao vender</div>
+              <div className="subprodutos-view__toggle-titulo">Controlar estoque</div>
+              <div className="subprodutos-view__toggle-ajuda">Baixa estoque ao vender</div>
             </div>
             <Toggle value={form.controla_estoque} onChange={v => setF("controla_estoque", v)} />
           </div>
@@ -182,8 +180,7 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
                   value={form.quantidade}
                   onChange={e => setF("quantidade", e.target.value)}
                   placeholder="0"
-                  className="subprodutos-view__input"
-                  style={{ fontSize: sz.fontBase }}
+                  className="subprodutos-view__input subprodutos-view__input--num"
                 />
               </div>
               <div>
@@ -195,23 +192,22 @@ function ModalSubproduto({ item, onClose, onSalvo, sz }) {
                   value={form.minimo}
                   onChange={e => setF("minimo", e.target.value)}
                   placeholder="0"
-                  className="subprodutos-view__input"
-                  style={{ fontSize: sz.fontBase }}
+                  className="subprodutos-view__input subprodutos-view__input--num"
                 />
               </div>
             </div>
           )}
           <div className="subprodutos-view__toggle-linha">
-            <div className="subprodutos-view__toggle-titulo" style={{ fontSize: sz.fontBase }}>Ativo</div>
+            <div className="subprodutos-view__toggle-titulo">Ativo</div>
             <Toggle value={form.ativo} onChange={v => setF("ativo", v)} />
           </div>
         </div>
 
-        {erro && <div className="subprodutos-view__erro" style={{ fontSize: sz.fontSm }}>⚠ {erro}</div>}
+        {erro && <div className="subprodutos-view__erro">⚠ {erro}</div>}
 
         <div className="subprodutos-view__modal-botoes">
-          <button onClick={onClose} className="subprodutos-view__btn-cancelar" style={{ fontSize: sz.fontBase }}>Cancelar</button>
-          <button onClick={salvar} disabled={salvando} className="subprodutos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
+          <button onClick={onClose} className="subprodutos-view__btn-cancelar">Cancelar</button>
+          <button onClick={salvar} disabled={salvando} className="subprodutos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}>
             {salvando ? "Salvando…" : item ? "Salvar alterações" : "Criar subproduto"}
           </button>
         </div>
@@ -261,13 +257,12 @@ export default function SubprodutosView({ sz }) {
 
       {/* Header */}
       <div className="subprodutos-view__header" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
-        <div className="subprodutos-view__contagem" style={{ fontSize: sz.fontSm + 1 }}>
+        <div className="subprodutos-view__contagem">
           {lista.length} subproduto{lista.length !== 1 ? "s" : ""}
         </div>
         <button
           onClick={abrirNovo}
           className="subprodutos-view__btn-novo"
-          style={{ fontSize: sz.fontBase }}
         >
           <LuPlus size={15} /> Novo Subproduto
         </button>
@@ -281,7 +276,7 @@ export default function SubprodutosView({ sz }) {
               key={cat}
               onClick={() => setCatFiltro(cat)}
               className="subprodutos-view__categoria-btn"
-              style={{ background: catFiltro === cat ? varColor(C.accent) : varColor(C.surface), color: catFiltro === cat ? "#fff" : varColor(C.muted), fontSize: sz.fontSm + 1 }}
+              style={{ background: catFiltro === cat ? varColor(C.accent) : varColor(C.surface), color: catFiltro === cat ? "#fff" : varColor(C.muted) }}
             >
               {cat}
             </button>
@@ -292,7 +287,6 @@ export default function SubprodutosView({ sz }) {
           onChange={e => setBusca(e.target.value)}
           placeholder="Buscar..."
           className="subprodutos-view__busca"
-          style={{ fontSize: sz.fontBase }}
         />
       </div>
 
@@ -303,7 +297,7 @@ export default function SubprodutosView({ sz }) {
         ) : listafiltrada.length === 0 ? (
           <div className="subprodutos-view__vazio">
             <LuPackage size={40} style={{ opacity: 0.2 }} />
-            <div style={{ fontWeight: 600, fontSize: sz.fontBase }}>{busca ? "Nenhum resultado" : "Nenhum subproduto cadastrado"}</div>
+            <div className="subprodutos-view__vazio-texto" style={{ fontWeight: 600 }}>{busca ? "Nenhum resultado" : "Nenhum subproduto cadastrado"}</div>
           </div>
         ) : (
           <div className="subprodutos-view__tabela-moldura">
@@ -324,12 +318,12 @@ export default function SubprodutosView({ sz }) {
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     style={{ opacity: s.ativo ? 1 : 0.5 }}
                   >
-                    <td className="subprodutos-view__td subprodutos-view__nome" style={{ fontSize: sz.fontBase }}>{s.nome}</td>
+                    <td className="subprodutos-view__td subprodutos-view__nome">{s.nome}</td>
                     <td className="subprodutos-view__td">
-                      <span className="subprodutos-view__tag-categoria" style={{ fontSize: sz.fontSm, background: alfa(C.accent, "15"), color: varColor(C.accent) }}>{s.categoria}</span>
+                      <span className="subprodutos-view__tag-categoria" style={{ background: alfa(C.accent, "15"), color: varColor(C.accent) }}>{s.categoria}</span>
                     </td>
-                    <td className="subprodutos-view__td subprodutos-view__unidade" style={{ fontSize: sz.fontBase }}>{s.unidade_medida}</td>
-                    <td className="subprodutos-view__td" style={{ textAlign: "center", fontWeight: 700, fontSize: sz.fontBase }}>R$ {Number(s.preco).toFixed(2)}</td>
+                    <td className="subprodutos-view__td subprodutos-view__unidade">{s.unidade_medida}</td>
+                    <td className="subprodutos-view__td subprodutos-view__preco" style={{ textAlign: "center" }}>R$ {Number(s.preco).toFixed(2)}</td>
                     <td className="subprodutos-view__td" style={{ textAlign: "center" }}>
                       {s.controla_estoque ? (() => {
                         const est    = estoqueDe(s);
@@ -337,19 +331,19 @@ export default function SubprodutosView({ sz }) {
                         const minimo = Number(est?.minimo ?? 0);
                         const baixo  = minimo > 0 && qtd <= minimo;
                         return (
-                          <span style={{ fontSize: sz.fontSm, fontWeight: 700, color: baixo ? varColor(C.red) : varColor(C.green), display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <span className="subprodutos-view__estoque-qtd" style={{ fontWeight: 700, color: baixo ? varColor(C.red) : varColor(C.green), display: "inline-flex", alignItems: "center", gap: 4 }}>
                             {baixo && <LuTriangleAlert size={13} />}{qtd}
                           </span>
                         );
                       })() : (
-                        <span style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.muted) }}>—</span>
+                        <span className="subprodutos-view__estoque-vazio" style={{ fontWeight: 600, color: varColor(C.muted) }}>—</span>
                       )}
                     </td>
                     <td className="subprodutos-view__td" style={{ textAlign: "center" }}>
                       <button
                         onClick={() => toggleAtivo(s)}
                         className="subprodutos-view__badge-status"
-                        style={{ fontSize: sz.fontSm - 1, padding: "3px 10px", background: s.ativo ? alfa(C.green, "18") : varColor(C.surface), color: s.ativo ? varColor(C.green) : varColor(C.muted) }}
+                        style={{ padding: "3px 10px", background: s.ativo ? alfa(C.green, "18") : varColor(C.surface), color: s.ativo ? varColor(C.green) : varColor(C.muted) }}
                       >
                         {s.ativo ? "Ativo" : "Inativo"}
                       </button>
@@ -358,7 +352,6 @@ export default function SubprodutosView({ sz }) {
                       <button
                         onClick={() => abrirEditar(s)}
                         className="subprodutos-view__btn-editar"
-                        style={{ fontSize: sz.fontSm }}
                       >
                         <LuPencil size={13} /> Editar
                       </button>

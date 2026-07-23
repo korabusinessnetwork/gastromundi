@@ -1,0 +1,12 @@
+/**
+ * F018 — Decisão 018 (CSS separado do JSX) + tokens --gm-* (ADR-007).
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-* e --lh-* de
+ * src/styles/tipografia.css), por classe de componente — não mais inline via
+ * style={{}}. Cores/transições/cursor/layout permanecem inline ou em padrão.
+ */
+
+.sacola-modal__remover {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}

@@ -36,7 +36,6 @@ function RoleBadge({ role, sz }) {
   const r = ROLE_MAP[role] ?? { label: role, color: varColor(C.muted) };
   return (
     <span className="cfg__badge-role" style={{
-      fontSize: (sz?.fontSm ?? 12),
       background: alfa(r.color, "18"), border: `1px solid ${alfa(r.color, "44")}`,
       color: r.color,
     }}>
@@ -78,7 +77,6 @@ function TextInput({ value, onChange, placeholder, type = "text", maxLength, dis
       maxLength={maxLength}
       disabled={disabled}
       className={`cfg__input${disabled ? " cfg__input--disabled" : ""}`}
-      style={{ fontSize: sz?.fontBase ?? 14 }}
     />
   );
 }
@@ -93,7 +91,7 @@ function StrengthBar({ pwd }) {
           <div key={i} className="usuarios-tab__strength-barra" style={{ background: i <= s.level ? s.color : varColor(C.border) }} />
         ))}
       </div>
-      <div style={{ fontSize: 14, color: s.color, fontWeight: 600 }}>{s.label}</div>
+      <div className="usuarios-tab__strength-label" style={{ color: s.color, fontWeight: 600 }}>{s.label}</div>
     </div>
   );
 }
@@ -243,7 +241,7 @@ function UsuariosTab({ sz }) {
 
       {/* Card de explicação de cargos e permissões */}
       <div className="usuarios-tab__guia" style={{ padding: sz.pad, gap: sz.pad - 4 }}>
-        <div className="usuarios-tab__guia-titulo" style={{ fontSize: sz.fontBase + 1 }}>
+        <div className="usuarios-tab__guia-titulo">
           Guia de Cargos e Permissões
         </div>
 
@@ -266,10 +264,10 @@ function UsuariosTab({ sz }) {
                   padding: `${sz.padSm}px ${sz.padSm + 4}px`,
                 }}>
                   <div className="usuarios-tab__cargo-topo">
-                    <span style={{ fontSize: sz.fontLg }}>{item.icon}</span>
+                    <span className="usuarios-tab__cargo-icone">{item.icon}</span>
                     <RoleBadge role={item.role} sz={sz} />
                   </div>
-                  <div className="usuarios-tab__cargo-desc" style={{ fontSize: sz.fontSm + 1 }}>
+                  <div className="usuarios-tab__cargo-desc">
                     {item.desc}
                   </div>
                 </div>
@@ -282,14 +280,13 @@ function UsuariosTab({ sz }) {
 
       {/* Header */}
       <div className="usuarios-tab__header">
-        <div className="usuarios-tab__contagem" style={{ fontSize: sz.fontSm + 1 }}>
+        <div className="usuarios-tab__contagem">
           {users.length} usuário{users.length !== 1 ? "s" : ""} ativo{users.length !== 1 ? "s" : ""}
         </div>
         {isAdmin && (
           <button
             onClick={abrirNovo}
             className="usuarios-tab__btn-novo"
-            style={{ fontSize: sz.fontBase }}
           >
             + Novo Usuário
           </button>
@@ -320,14 +317,14 @@ function UsuariosTab({ sz }) {
                   <Avatar name={u.name} size={36} />
                 </td>
                 <td className="usuarios-tab__td">
-                  <div className="usuarios-tab__nome" style={{ fontSize: sz.fontBase }}>
+                  <div className="usuarios-tab__nome">
                     {u.name}
                     {u.id === currentUser?.id && (
                       <span className="usuarios-tab__voce">você</span>
                     )}
                   </div>
                 </td>
-                <td className="usuarios-tab__td" style={{ color: varColor(C.muted), fontSize: sz.fontBase }}>
+                <td className="usuarios-tab__td usuarios-tab__username" style={{ color: varColor(C.muted) }}>
                   @{u.username}
                 </td>
                 <td className="usuarios-tab__td">
@@ -374,7 +371,7 @@ function UsuariosTab({ sz }) {
           className="cfg__overlay"
         >
           <div className="usuarios-tab__modal" style={{ padding: sz.pad + 4, gap: sz.padSm + 4 }}>
-            <div className="usuarios-tab__modal-titulo" style={{ fontSize: sz.fontLg }}>
+            <div className="usuarios-tab__modal-titulo">
               {modal === "novo" ? "Novo Usuário" : "Editar Usuário"}
             </div>
 
@@ -398,7 +395,6 @@ function UsuariosTab({ sz }) {
                       borderColor: form.role === r.id ? r.color : varColor(C.border),
                       background: form.role === r.id ? alfa(r.color, "18") : varColor(C.surface),
                       color: form.role === r.id ? r.color : varColor(C.muted),
-                      fontSize: sz.fontSm + 1,
                     }}
                   >
                     {r.label}
@@ -408,7 +404,7 @@ function UsuariosTab({ sz }) {
             </Field>
 
             <div className="usuarios-tab__senha-secao" style={{ paddingTop: sz.padSm }}>
-              <div className="usuarios-tab__senha-titulo" style={{ fontSize: sz.fontBase, marginBottom: sz.padSm }}>
+              <div className="usuarios-tab__senha-titulo" style={{ marginBottom: sz.padSm }}>
                 {modal === "novo" ? "Senha inicial *" : "Redefinir senha (deixe em branco para manter)"}
               </div>
 
@@ -456,12 +452,12 @@ function UsuariosTab({ sz }) {
             <ErrBox msg={erro} />
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={fechar} className="cfg__cancel-btn" style={{ fontSize: sz?.fontBase ?? 14 }}>Cancelar</button>
+              <button onClick={fechar} className="cfg__cancel-btn">Cancelar</button>
               <button
                 onClick={salvar}
                 disabled={salvando}
                 className="usuarios-tab__btn-salvar"
-                style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
+                style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}
               >
                 {salvando ? "Salvando..." : modal === "novo" ? "Criar Usuário" : "Salvar Alterações"}
               </button>
@@ -481,20 +477,20 @@ function UsuariosTab({ sz }) {
               const u = users.find(x => x.id === deleteId);
               return (
                 <>
-                  <div className="usuarios-tab__confirm-titulo" style={{ fontSize: sz.fontLg }}>Excluir usuário?</div>
-                  <div className="usuarios-tab__confirm-sub" style={{ fontSize: sz.fontBase }}>
+                  <div className="usuarios-tab__confirm-titulo">Excluir usuário?</div>
+                  <div className="usuarios-tab__confirm-sub">
                     <strong>{u?.name}</strong> · @{u?.username}
                   </div>
-                  <div className="usuarios-tab__confirm-ajuda" style={{ fontSize: sz.fontSm + 1 }}>
+                  <div className="usuarios-tab__confirm-ajuda">
                     O usuário será removido permanentemente do banco de dados. Esta ação não pode ser desfeita.
                   </div>
                   <div style={{ display: "flex", gap: 10 }}>
-                    <button onClick={() => setDeleteId(null)} className="cfg__cancel-btn" style={{ fontSize: sz?.fontBase ?? 14 }}>Cancelar</button>
+                    <button onClick={() => setDeleteId(null)} className="cfg__cancel-btn">Cancelar</button>
                     <button
                       onClick={confirmarDelete}
                       disabled={deletando}
                       className="usuarios-tab__btn-excluir"
-                      style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
+                      style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer" }}
                     >
                       {deletando ? "Excluindo..." : "Sim, excluir"}
                     </button>
@@ -513,12 +509,13 @@ function ToggleChip({ active, onClick, color, children, sz }) {
   return (
     <button
       onClick={onClick}
+      className="meios-pagamento-tab__toggle-chip"
       style={{
         padding: "8px 16px", borderRadius: 10,
         border: `1.5px solid ${active ? color : varColor(C.border)}`,
         background: active ? `${color}18` : varColor(C.surface),
         color: active ? color : varColor(C.muted),
-        cursor: "pointer", fontWeight: 600, fontSize: sz.fontBase,
+        cursor: "pointer", fontWeight: 600,
         transition: "border-color 0.15s, background 0.15s, color 0.15s",
       }}
     >
@@ -600,7 +597,7 @@ function MeiosPagamentoTab({ sz }) {
     <div style={{ display: "flex", flexDirection: "column", gap: sz.pad }}>
       <div className="meios-pagamento-tab__card" style={{ padding: sz.pad }}>
         <div className="meios-pagamento-tab__topo">
-          <div className="meios-pagamento-tab__titulo" style={{ fontSize: sz.fontBase + 1 }}>Meios de Pagamento</div>
+          <div className="meios-pagamento-tab__titulo">Meios de Pagamento</div>
           {isAdmin && (
             <button
               onClick={() => { setShowForm(v => !v); setNovoNome(""); }}
@@ -609,14 +606,13 @@ function MeiosPagamentoTab({ sz }) {
                 borderColor: varColor(C.accent),
                 background: showForm ? varColor(C.accent) : "transparent",
                 color: showForm ? "#fff" : varColor(C.accent),
-                fontSize: sz.fontSm,
               }}
             >
               <LuPlus size={15} /> Adicionar
             </button>
           )}
         </div>
-        <div className="meios-pagamento-tab__ajuda" style={{ fontSize: sz.fontSm + 1, marginBottom: sz.pad }}>
+        <div className="meios-pagamento-tab__ajuda" style={{ marginBottom: sz.pad }}>
           Ative ou desative as formas de pagamento disponíveis no checkout e no fechamento de caixa.
         </div>
 
@@ -631,7 +627,6 @@ function MeiosPagamentoTab({ sz }) {
               placeholder="Nome da forma de pagamento..."
               maxLength={40}
               className="meios-pagamento-tab__input-novo"
-              style={{ fontSize: sz.fontBase }}
               onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
               onBlur={e => e.currentTarget.style.borderColor = varColor(C.border)}
             />
@@ -639,14 +634,13 @@ function MeiosPagamentoTab({ sz }) {
               onClick={adicionarCustom}
               disabled={!novoNome.trim() || adicionando}
               className="meios-pagamento-tab__btn-confirmar"
-              style={{ background: novoNome.trim() ? varColor(C.accent) : varColor(C.faint), fontSize: sz.fontSm, cursor: novoNome.trim() ? "pointer" : "not-allowed" }}
+              style={{ background: novoNome.trim() ? varColor(C.accent) : varColor(C.faint), cursor: novoNome.trim() ? "pointer" : "not-allowed" }}
             >
               {adicionando ? "..." : "Confirmar"}
             </button>
             <button
               onClick={() => setShowForm(false)}
               className="meios-pagamento-tab__btn-cancelar-form"
-              style={{ fontSize: sz.fontSm }}
             >
               Cancelar
             </button>
@@ -672,10 +666,9 @@ function MeiosPagamentoTab({ sz }) {
                   }}
                 >
                   <m.Icon size={26} />
-                  <div className="meios-pagamento-tab__metodo-nome" style={{ fontSize: sz.fontBase }}>{m.label}</div>
-                  <div style={{ fontSize: sz.fontSm, color: ativo ? alfa(C.accent, "bb") : varColor(C.muted) }}>{m.desc}</div>
+                  <div className="meios-pagamento-tab__metodo-nome">{m.label}</div>
+                  <div className="meios-pagamento-tab__metodo-desc" style={{ color: ativo ? alfa(C.accent, "bb") : varColor(C.muted) }}>{m.desc}</div>
                   <div className="meios-pagamento-tab__status-tag" style={{
-                    fontSize: 14,
                     background: ativo ? alfa(C.green, "18") : varColor(C.faint),
                     color: ativo ? varColor(C.green) : varColor(C.muted),
                     border: `1px solid ${alfa(ativo ? varColor(C.green) : varColor(C.border), "44")}`,
@@ -709,10 +702,10 @@ function MeiosPagamentoTab({ sz }) {
           passa pela maquininha só cobra com internet; os demais podem
           fechar a comanda offline (a venda sobe sozinha quando voltar). */}
       <div className="meios-pagamento-tab__card" style={{ padding: sz.pad }}>
-        <div className="meios-pagamento-tab__titulo" style={{ fontSize: sz.fontBase + 1, marginBottom: 4 }}>
+        <div className="meios-pagamento-tab__titulo" style={{ marginBottom: 4 }}>
           Maquininha (TEF)
         </div>
-        <div className="meios-pagamento-tab__ajuda" style={{ fontSize: sz.fontSm + 1, marginBottom: sz.pad }}>
+        <div className="meios-pagamento-tab__ajuda" style={{ marginBottom: sz.pad }}>
           Marque quais formas de pagamento passam pela maquininha. Essas precisam de internet
           na hora de cobrar; as demais funcionam mesmo sem internet — a venda fica guardada e
           sobe sozinha quando a conexão voltar.
@@ -739,7 +732,7 @@ function MeiosPagamentoTab({ sz }) {
           })}
         </div>
         {!isAdmin && (
-          <div className="meios-pagamento-tab__ajuda" style={{ fontSize: sz.fontSm, marginTop: sz.padSm }}>
+          <div className="meios-pagamento-tab__ajuda" style={{ marginTop: sz.padSm }}>
             Somente o administrador pode alterar quais métodos usam a maquininha.
           </div>
         )}
@@ -756,7 +749,6 @@ function MeiosPagamentoTab({ sz }) {
             className="meios-pagamento-tab__btn-salvar"
             style={{
               background: (salvando || ativos.length === 0) ? varColor(C.faint) : varColor(C.accent),
-              fontSize: sz.fontBase,
               cursor: (salvando || ativos.length === 0) ? "not-allowed" : "pointer",
             }}
           >
@@ -860,7 +852,7 @@ function UnidadesMedidaTab({ sz }) {
   };
 
   if (loading) {
-    return <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: sz.pad }}>Carregando...</div>;
+    return <div className="unidades-medida-tab__carregando" style={{ color: varColor(C.muted), padding: sz.pad }}>Carregando...</div>;
   }
 
   return (
@@ -875,23 +867,23 @@ function UnidadesMedidaTab({ sz }) {
             {/* Cabeçalho */}
             <div className="unidades-medida-tab__grupo-header" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
               <div className="unidades-medida-tab__bolinha" style={{ background: color }} />
-              <span className="unidades-medida-tab__grupo-titulo" style={{ fontSize: sz.fontBase + 1 }}>{label}</span>
-              <span className="unidades-medida-tab__grupo-contagem" style={{ fontSize: sz.fontSm }}>{lista.length} cadastrada{lista.length !== 1 ? "s" : ""}</span>
+              <span className="unidades-medida-tab__grupo-titulo">{label}</span>
+              <span className="unidades-medida-tab__grupo-contagem">{lista.length} cadastrada{lista.length !== 1 ? "s" : ""}</span>
             </div>
 
             {/* Lista */}
             <div className="unidades-medida-tab__lista" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
               {lista.length === 0 && (
-                <div className="unidades-medida-tab__vazio" style={{ fontSize: sz.fontSm + 1 }}>
+                <div className="unidades-medida-tab__vazio">
                   Nenhuma unidade cadastrada.
                 </div>
               )}
               {lista.map(u => (
                 <div key={u.id} className="unidades-medida-tab__item">
-                  <span className="unidades-medida-tab__item-abbr" style={{ fontSize: sz.fontBase, color }}>
+                  <span className="unidades-medida-tab__item-abbr" style={{ color }}>
                     {u.abreviacao}
                   </span>
-                  <span className="unidades-medida-tab__item-nome" style={{ fontSize: sz.fontBase }}>{u.nome}</span>
+                  <span className="unidades-medida-tab__item-nome">{u.nome}</span>
                   {isAdmin && (
                     <button
                       onClick={() => iniciarRemover(u)}
@@ -917,7 +909,7 @@ function UnidadesMedidaTab({ sz }) {
                   placeholder="abrev."
                   maxLength={10}
                   className="unidades-medida-tab__input-abbr"
-                  style={{ borderColor: form.abbr ? alfa(color, "88") : varColor(C.border), fontSize: sz.fontBase }}
+                  style={{ borderColor: form.abbr ? alfa(color, "88") : varColor(C.border) }}
                 />
                 <input
                   value={form.nome}
@@ -926,13 +918,13 @@ function UnidadesMedidaTab({ sz }) {
                   placeholder="Nome completo"
                   maxLength={40}
                   className="unidades-medida-tab__input-nome"
-                  style={{ borderColor: form.nome ? alfa(color, "88") : varColor(C.border), fontSize: sz.fontBase }}
+                  style={{ borderColor: form.nome ? alfa(color, "88") : varColor(C.border) }}
                 />
                 <button
                   onClick={() => adicionar(tipo)}
                   disabled={!form.abbr.trim() || !form.nome.trim() || salvandoEste}
                   className="unidades-medida-tab__btn-add"
-                  style={{ background: form.abbr.trim() && form.nome.trim() ? color : varColor(C.faint), fontSize: sz.fontBase, cursor: form.abbr.trim() && form.nome.trim() ? "pointer" : "not-allowed" }}
+                  style={{ background: form.abbr.trim() && form.nome.trim() ? color : varColor(C.faint), cursor: form.abbr.trim() && form.nome.trim() ? "pointer" : "not-allowed" }}
                 >
                   <LuPlus size={14} />
                   {salvandoEste ? "..." : "Adicionar"}
@@ -952,21 +944,21 @@ function UnidadesMedidaTab({ sz }) {
               <LuTriangleAlert size={22} color={varColor(C.red)} />
             </div>
             <div>
-              <div className="unidades-medida-tab__delete-titulo" style={{ fontSize: sz.fontBase + 2 }}>Excluir unidade</div>
-              <div className="unidades-medida-tab__delete-ajuda" style={{ fontSize: sz.fontSm + 1 }}>Esta ação não pode ser desfeita.</div>
+              <div className="unidades-medida-tab__delete-titulo">Excluir unidade</div>
+              <div className="unidades-medida-tab__delete-ajuda">Esta ação não pode ser desfeita.</div>
             </div>
           </div>
 
           <div className="unidades-medida-tab__delete-info">
-            <div className="unidades-medida-tab__delete-nome" style={{ fontSize: sz.fontBase }}>
+            <div className="unidades-medida-tab__delete-nome">
               "{deleteInfo.nome}" ({deleteInfo.abbr})
             </div>
             {deleteInfo.afetados > 0 ? (
-              <div className="unidades-medida-tab__delete-aviso" style={{ fontSize: sz.fontSm + 1 }}>
+              <div className="unidades-medida-tab__delete-aviso">
                 ⚠ {deleteInfo.afetados} {deleteInfo.afetados === 1 ? "produto ficará" : "produtos ficarão"} sem essa unidade configurada após a exclusão.
               </div>
             ) : (
-              <div className="unidades-medida-tab__delete-sem-uso" style={{ fontSize: sz.fontSm + 1 }}>
+              <div className="unidades-medida-tab__delete-sem-uso">
                 Nenhum produto utiliza essa unidade.
               </div>
             )}
@@ -977,7 +969,7 @@ function UnidadesMedidaTab({ sz }) {
               onClick={() => setDeleteInfo(null)}
               disabled={deletando}
               className="unidades-medida-tab__delete-cancelar"
-              style={{ borderColor: varColor(C.border), cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase, opacity: deletando ? 0.5 : 1 }}
+              style={{ borderColor: varColor(C.border), cursor: deletando ? "not-allowed" : "pointer", opacity: deletando ? 0.5 : 1 }}
             >
               Cancelar
             </button>
@@ -985,7 +977,7 @@ function UnidadesMedidaTab({ sz }) {
               onClick={confirmarRemover}
               disabled={deletando}
               className="unidades-medida-tab__delete-confirmar"
-              style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}
+              style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer" }}
             >
               {deletando ? "Excluindo..." : "Sim, excluir"}
             </button>
@@ -1039,8 +1031,8 @@ function GeralTab({ sz }) {
     <div className="geral-tab">
       <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
         <div style={{ flex: 1 }}>
-          <div className="geral-tab__titulo" style={{ fontSize: sz.fontBase }}>Taxa de Serviço</div>
-          <div className="geral-tab__ajuda" style={{ fontSize: sz.fontSm }}>
+          <div className="geral-tab__titulo">Taxa de Serviço</div>
+          <div className="geral-tab__ajuda">
             Cobra automaticamente 10% de taxa de serviço no fechamento
           </div>
         </div>
@@ -1061,8 +1053,8 @@ function GeralTab({ sz }) {
       {/* C1 — janela de alerta de validade */}
       <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
         <div style={{ flex: 1 }}>
-          <div className="geral-tab__titulo" style={{ fontSize: sz.fontBase }}>Alerta de Validade</div>
-          <div className="geral-tab__ajuda" style={{ fontSize: sz.fontSm }}>
+          <div className="geral-tab__titulo">Alerta de Validade</div>
+          <div className="geral-tab__ajuda">
             Avisa no PDV quando um produto está a até esta quantidade de dias de vencer
           </div>
         </div>
@@ -1073,23 +1065,25 @@ function GeralTab({ sz }) {
             max="365"
             value={dias}
             onChange={e => setDias(e.target.value)}
+            className="geral-tab__input-dias"
             style={{
               width: 72, padding: "9px 12px", borderRadius: 10,
               border: `1.5px solid ${diasValido ? varColor(C.border) : varColor(C.red)}`,
               background: varColor(C.surface), color: varColor(C.text),
-              fontSize: sz.fontBase, fontFamily: "inherit", outline: "none", textAlign: "center",
+              fontFamily: "inherit", outline: "none", textAlign: "center",
             }}
           />
-          <span style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>dias</span>
+          <span className="geral-tab__label-dias" style={{ color: varColor(C.muted) }}>dias</span>
           <button
             onClick={handleSalvarDias}
             disabled={savingDias || !diasValido || !diasAlterado}
+            className="geral-tab__btn-salvar-dias"
             style={{
               padding: "9px 16px", borderRadius: 10, border: "none",
               background: (diasValido && diasAlterado && !savingDias) ? varColor(C.accent) : varColor(C.faint),
               color: (diasValido && diasAlterado && !savingDias) ? "#fff" : varColor(C.muted),
               cursor: (diasValido && diasAlterado && !savingDias) ? "pointer" : "not-allowed",
-              fontWeight: 700, fontSize: sz.fontSm + 1, fontFamily: "inherit",
+              fontWeight: 700, fontFamily: "inherit",
             }}
           >
             {savingDias ? "Salvando…" : "Salvar"}
@@ -1127,31 +1121,32 @@ function CategoriasGrupoTab({ sz }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: sz.padSm }}>
       <div className="geral-tab__card" style={{ padding: sz.pad, flexDirection: "column", alignItems: "stretch", gap: 4 }}>
-        <div className="geral-tab__titulo" style={{ fontSize: sz.fontBase }}>Grupos de Categoria</div>
-        <div className="geral-tab__ajuda" style={{ fontSize: sz.fontSm }}>
+        <div className="geral-tab__titulo">Grupos de Categoria</div>
+        <div className="geral-tab__ajuda">
           Associe cada categoria a um grupo. O Palm usa esses grupos para sugerir vendas
           (ex.: comanda com comida e sem bebida).
         </div>
       </div>
 
       {categorias.length === 0 ? (
-        <div style={{ padding: sz.pad, color: varColor(C.muted), fontSize: sz.fontBase }}>
+        <div className="categorias-grupo-tab__vazio" style={{ padding: sz.pad, color: varColor(C.muted) }}>
           Nenhuma categoria de produto cadastrada ainda.
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {categorias.map(cat => (
             <div key={cat} className="geral-tab__card" style={{ padding: sz.padSm + 4, gap: sz.padSm }}>
-              <div style={{ flex: 1, fontWeight: 700, fontSize: sz.fontBase }}>{cat}</div>
+              <div className="categorias-grupo-tab__cat-nome" style={{ flex: 1, fontWeight: 700 }}>{cat}</div>
               <select
                 value={grupoPorCategoria[cat] ?? ""}
                 onChange={e => handleChange(cat, e.target.value)}
                 disabled={salvandoCat === cat}
+                className="categorias-grupo-tab__select-grupo"
                 style={{
                   padding: "9px 12px", borderRadius: 10,
                   border: `1.5px solid ${grupoPorCategoria[cat] ? varColor(C.accent) : varColor(C.border)}`,
                   background: varColor(C.surface), color: varColor(C.text),
-                  fontSize: sz.fontSm + 1, fontFamily: "inherit", outline: "none", cursor: "pointer",
+                  fontFamily: "inherit", outline: "none", cursor: "pointer",
                 }}
               >
                 <option value="">— sem grupo —</option>
@@ -1182,8 +1177,8 @@ export default function ConfiguracoesView() {
 
       {/* Header */}
       <div className="configuracoes-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
-        <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Configurações</div>
-        <div className="configuracoes-view__subtitulo" style={{ fontSize: sz.fontSm }}>
+        <div className="configuracoes-view__titulo" style={{ fontWeight: 800 }}>Configurações</div>
+        <div className="configuracoes-view__subtitulo">
           Gerencie os usuários e configurações do sistema
         </div>
 
@@ -1197,7 +1192,6 @@ export default function ConfiguracoesView() {
               style={{
                 background: aba === a.id ? varColor(C.accent) : "transparent",
                 color: aba === a.id ? "#fff" : varColor(C.muted),
-                fontSize: sz.fontSm + 1,
               }}
             >
               {a.id === "impressao" && <LuPrinter size={13} />}

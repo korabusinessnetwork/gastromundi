@@ -1,0 +1,12 @@
+/**
+ * F018 — notificação toast. Decisão 018 (CSS separado do JSX).
+ *
+ * TAMANHO DE FONTE vem dos tokens --fs-* e --lh-* de
+ * src/styles/tipografia.css, por classe de componente.
+ * Layout e transições no JSX (sx.* para posicionamento).
+ */
+
+.notification {
+  font-size: var(--fs-sm);   /* role: corpo/notificação (era 14px inline) */
+  line-height: var(--lh-sm);
+}

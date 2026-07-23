@@ -29,6 +29,8 @@
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
@@ -39,10 +41,17 @@
   gap: 8px;
 }
 
+.desempenho__datas-ate {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
 .desempenho__date-input {
   padding: 7px 12px;
   border-radius: 9px;
   font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
   outline: none;
   cursor: pointer;
   transition: border-color 0.15s;
@@ -56,6 +65,8 @@
   cursor: pointer;
   user-select: none;
   font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
   white-space: nowrap;
 }
 
@@ -83,19 +94,23 @@
 }
 
 .kpi-card__label {
-  font-size: 13px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: var(--tracking-label);
 }
 
 .kpi-card__value {
-  font-size: 26px;
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
   font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 
 .kpi-card__variacao {
-  font-size: 13px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
   font-weight: 700;
   align-self: flex-start;
   padding: 2px 8px;
@@ -108,10 +123,11 @@
 }
 
 .desempenho__secao-titulo {
-  font-size: 14px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: var(--tracking-label);
   margin-bottom: 16px;
 }
 
@@ -145,7 +161,8 @@
 }
 
 .grafico-dias__label {
-  font-size: 11px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -162,7 +179,8 @@
 .barra-horizontal-linha__label {
   width: 120px;
   flex-shrink: 0;
-  font-size: 14px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -187,7 +205,9 @@
   flex-shrink: 0;
   text-align: right;
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
@@ -199,10 +219,11 @@
 .tabela-produtos th {
   padding: 10px 12px;
   text-align: left;
-  font-size: 12px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: var(--tracking-label);
   white-space: nowrap;
 }
 
@@ -213,12 +234,14 @@
 
 .tabela-produtos td {
   padding: 11px 12px;
-  font-size: 14px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
   vertical-align: middle;
 }
 
 .badge-sem-custo {
-  font-size: 12px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 20px;
@@ -242,6 +265,12 @@
 }
 
 .desempenho__estado-msg {
-  font-size: 16px;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
   font-weight: 600;
+}
+
+.desempenho__vazio-texto {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
 }

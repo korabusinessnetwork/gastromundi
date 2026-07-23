@@ -16,6 +16,13 @@
   letter-spacing: 1px;
 }
 
+/* Rótulo de seção reutilizado entre abas ("Ingredientes da receita",
+   "Itens do Estoque", "Itens") — role: label/apoio (era fontSize:14 fixo). */
+.admin__secao-label {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
 .admin__field {
   display: flex;
   flex-direction: column;
@@ -263,6 +270,8 @@
 
 .admin__aba-contagem {
   color: var(--gm-muted);
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 /* ── Tabela comum (Fornecedores/Compras) ── */
@@ -298,6 +307,28 @@
   padding: 13px 16px;
 }
 
+/* Coluna identificadora principal da linha (nome/fornecedor) — role: nome
+   (era sz.fontBase, mesmo valor de --td--simples hoje; separado por papel). */
+.admin__td--forte {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Coluna secundária/muted da linha (contato, telefone, data, contagem de
+   itens) — role: corpo (era sz.fontBase). Números tabulares (data/contagem). */
+.admin__td--simples {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Coluna de dinheiro (total da compra) — role: money (era sz.fontBase). */
+.admin__td--dinheiro {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
 .admin__tag {
   background: var(--gm-surface);
   border: 1px solid var(--gm-border);
@@ -305,6 +336,8 @@
   padding: 2px 10px;
   color: var(--gm-muted);
   font-weight: 600;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 .admin__acoes-linha {
@@ -338,12 +371,21 @@
   gap: 8px;
 }
 
+/* Emoji decorativo do card — role: hero glyph (era fontSize:22 fixo). */
+.fichas-tab__card-emoji {
+  font-size: var(--fs-2xl);
+  line-height: 1;
+}
+
 .fichas-tab__card-nome {
   font-weight: 800;
+  font-size: var(--fs-lg);   /* role: nome (era sz.fontBase + 2) */
+  line-height: var(--lh-lg);
 }
 
 .fichas-tab__card-categoria {
-  font-size: 15px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
   color: var(--gm-muted);
   margin-top: 2px;
 }
@@ -373,8 +415,14 @@
   letter-spacing: 0.8px;
 }
 
+/* Valor do KPI da ficha (rendimento / custo por porção) — role: número em
+   card compacto, não hero de dashboard (era sz.fontBase + 1; AMBÍGUO — ver
+   relatório final). */
 .fichas-tab__kpi-valor {
   font-weight: 800;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }
 
 .fichas-tab__ing-tabela {
@@ -401,6 +449,13 @@
   letter-spacing: 0.8px;
 }
 
+/* Cabeçalho da grade de ingredientes no formulário de edição — role:
+   caption/selo (era fontSize:13 fixo). */
+.fichas-tab__ing-col-header {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
 .fichas-tab__ing-linha {
   display: grid;
   grid-template-columns: 1fr 80px 60px;
@@ -421,6 +476,34 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Emoji do ingrediente na linha da tabela — role: ícone inline (era
+   fontSize:18 fixo). */
+.fichas-tab__ing-emoji {
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+
+/* Quantidade necessária — role: quantidade (era fontSize:14 fixo). */
+.fichas-tab__ing-qtd {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Conversão de unidade abaixo da quantidade — role: label/apoio (era
+   fontSize:13 fixo). */
+.fichas-tab__ing-qtd-conv {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+/* Aviso de estoque não cadastrado — role: label/apoio (era fontSize:14
+   fixo). */
+.fichas-tab__ing-estoque-vazio {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
 }
 
 .fichas-tab__ing-estoque-valor {
@@ -454,6 +537,18 @@
   border-radius: 9px;
   border: 1.5px solid var(--gm-accent);
   min-height: 40px;
+}
+
+/* Emoji do produto vinculado — role: ícone inline (era fontSize:18 fixo). */
+.fichas-tab__vinculado-emoji {
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+
+/* Nome do produto vinculado — role: nome (era fontSize:16 fixo). */
+.fichas-tab__vinculado-nome {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
 }
 
 .fichas-tab__categoria-preenchida {
@@ -495,6 +590,42 @@
   font-family: inherit;
 }
 
+/* Campo de busca do prato (autocomplete) — role: corpo (era fontSize:16
+   fixo). */
+.fichas-tab__input-busca-prato {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Mensagem "nenhum produto" do dropdown — role: label/apoio, contexto
+   compacto de lista suspensa (era fontSize:15 fixo; AMBÍGUO — ver relatório
+   final, mapa pediria --fs-lg para "vazio"). */
+.fichas-tab__dropdown-vazio {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Emoji do item do dropdown — role: ícone inline (era fontSize:17 fixo). */
+.fichas-tab__dropdown-emoji {
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+
+/* Nome do item do dropdown — role: label/apoio, contexto compacto de lista
+   suspensa (era fontSize:15 fixo; AMBÍGUO — ver relatório final, mapa
+   pediria --fs-lg para "nome"). */
+.fichas-tab__dropdown-nome {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Categoria do item do dropdown — role: caption/selo (era fontSize:13
+   fixo). */
+.fichas-tab__dropdown-categoria {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
 .fichas-tab__ing-chip {
   display: flex;
   align-items: center;
@@ -502,6 +633,27 @@
   border-radius: 8px;
   padding: 7px 10px;
   min-width: 0;
+}
+
+/* Emoji do chip de ingrediente selecionado — role: ícone inline (era
+   fontSize:18 fixo). */
+.fichas-tab__ing-chip-emoji {
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+
+/* Nome do chip de ingrediente selecionado — role: nome (era fontSize:16
+   fixo). */
+.fichas-tab__ing-chip-nome {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Unidade de rendimento ao lado do input — role: label/apoio (era
+   fontSize:15 fixo). */
+.fichas-tab__rendimento-unidade {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
 }
 
 .fichas-tab__ing-input {
@@ -555,6 +707,28 @@
   justify-content: space-between;
 }
 
+/* Linha do resumo de custo (custo total / por porção) — role: money (era
+   fontSize:18 fixo). */
+.fichas-tab__resumo-linha {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mensagem de lista de ingredientes vazia — role: vazio (era fontSize:16
+   fixo). */
+.fichas-tab__ing-vazio-msg {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Segunda linha ("ou adicione manualmente") — role: vazio (era fontSize:18
+   fixo). */
+.fichas-tab__ing-vazio-linha2 {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
 .fichas-tab__painel-estoque {
   display: flex;
   flex-direction: column;
@@ -563,6 +737,12 @@
   border-radius: 14px;
   border: 1px solid var(--gm-border);
   padding: 12px;
+}
+
+/* Campo de busca de itens do estoque — role: corpo (era fontSize:16 fixo). */
+.fichas-tab__input-busca-estoque {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
 }
 
 .fichas-tab__filtro-toggle {
@@ -613,6 +793,13 @@
   min-height: 0;
 }
 
+/* "Nenhum produto encontrado" na lista de estoque — role: vazio (era
+   fontSize:18 fixo). */
+.fichas-tab__lista-vazia {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
 .fichas-tab__produto-item {
   display: flex;
   align-items: center;
@@ -625,6 +812,13 @@
   width: 100%;
   transition: background 0.12s, border-color 0.12s;
   font-family: inherit;
+}
+
+/* Emoji do item de produto na lista de estoque — role: ícone inline (era
+   fontSize:17 fixo). */
+.fichas-tab__produto-item-emoji {
+  font-size: var(--fs-lg);
+  line-height: 1;
 }
 
 .fichas-tab__produto-item-nome {
@@ -650,11 +844,45 @@
 
 /* ── ComprasTab ── */
 
+/* Select de fornecedor no modal de compra — role: corpo (era fontSize:17
+   fixo). */
+.compras-tab__select-fornecedor {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Botão "Adicionar item" — role: nome/ação em destaque (era fontSize:18
+   fixo). */
+.compras-tab__btn-add-item {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
 .compras-tab__item-linha {
   display: grid;
   grid-template-columns: 1fr 70px 60px 90px 32px;
   gap: 6px;
   align-items: center;
+}
+
+/* "Nenhum item adicionado" — role: vazio (era fontSize:16 fixo). */
+.compras-tab__itens-vazio {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Rótulo "Total:" da compra — role: corpo (era fontSize:16 fixo). */
+.compras-tab__total-label {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Valor total da compra (dentro do <strong>) — role: money (era
+   fontSize:18 fixo). */
+.compras-tab__total-valor {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }
 
 .compras-tab__status-chip {
@@ -665,6 +893,8 @@
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 /* ── ImpostosTab ── */
@@ -733,13 +963,21 @@
   border-radius: 20px;
 }
 
+/* Nome do imposto no card — role: nome (era sz.fontBase + 1). */
+.impostos-tab__nome {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
 .impostos-tab__categorias {
-  font-size: 15px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm + 1 / 15px fixo) */
+  line-height: var(--lh-sm);
   color: var(--gm-muted);
 }
 
 .impostos-tab__observacoes {
-  font-size: 14px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm / 14px fixo) */
+  line-height: var(--lh-sm);
   color: var(--gm-muted);
   margin-top: 2px;
   font-style: italic;
@@ -754,6 +992,30 @@
   font-weight: 600;
   font-family: inherit;
   transition: all 0.15s;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+/* Input de alíquota (%) — role: money/número editável (era fontSize:18
+   fixo). */
+.impostos-tab__input-aliquota {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Símbolo "%" ao lado do input de alíquota — role: acompanha o valor (era
+   fontSize:17 fixo). */
+.impostos-tab__input-aliquota-simbolo {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Prévia "Sobre R$ 1.000,00 → ..." — role: money (era fontSize:18 fixo). */
+.impostos-tab__aliquota-preview {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── GradeInicial ── */
@@ -800,14 +1062,19 @@
   justify-content: center;
 }
 
+/* role: nome de card (era sz.fontBase; AMBÍGUO — ver relatório final, o
+   cheatsheet padrão pediria --fs-base). */
 .grade-inicial__titulo {
   font-weight: 800;
   margin-bottom: 4px;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
 }
 
 .grade-inicial__desc {
   color: var(--gm-muted);
-  line-height: 1.5;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .grade-inicial__rodape {
@@ -823,6 +1090,9 @@
   background: var(--gm-surface);
   color: var(--gm-muted);
   border: 1px solid var(--gm-border);
+  font-size: var(--fs-xs);   /* role: caption/contagem (era literal 13px) */
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── View principal ── */
@@ -858,15 +1128,21 @@
   gap: 6px;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 .admin-view__titulo {
   font-weight: 800;
+  font-size: var(--fs-xl);   /* role: título de seção (era sz.fontLg) */
+  line-height: var(--lh-xl);
 }
 
 .admin-view__subtitulo {
   color: var(--gm-muted);
   margin-top: 2px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .admin-view__conteudo {

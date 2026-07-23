@@ -38,8 +38,8 @@ export default function ResumoCards({ fluxo, lucro, width, sz }) {
         <div key={c.label} className="resumo-cards__card" style={{ padding: `${sz.padSm + 2}px ${sz.pad - 4}px` }}>
           <c.Icon size={sz.fontXl - 4} color={c.color} />
           <div style={{ minWidth: 0 }}>
-            <div className="resumo-cards__valor" style={{ fontSize: sz.fontXl - 10, color: c.color }}>{c.value}</div>
-            <div className="resumo-cards__label" style={{ fontSize: sz.fontSm }}>{c.label}</div>
+            <div className="resumo-cards__valor" style={{ color: c.color }}>{c.value}</div>
+            <div className="resumo-cards__label">{c.label}</div>
           </div>
         </div>
       ))}

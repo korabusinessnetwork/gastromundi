@@ -1,0 +1,194 @@
+/**
+ * Sidebar — migração de TIPOGRAFIA de JS inline para CSS (decisão 018).
+ * Tokens --fs-* e --lh-* vêm de src/styles/tipografia.css (design system).
+ * Cores/layout/padding/gap/grid seguem inline no JSX (sz.* por breakpoint);
+ * aqui só entra tamanho/altura de fonte, por classe de elemento.
+ */
+
+/* Item de navegação principal (link + variantes bloqueada/guardada) —
+   role: corpo/item de menu (era sz.fontBase). */
+.sidebar__nav-item {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Botão "Comandas fechadas" (subitem abaixo de Frente de Caixa) —
+   role: corpo/item de menu (era sz.fontBase). */
+.sidebar__subitem {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Selo de contagem numérica (comandas pendentes / comandas fechadas) —
+   role: caption/selo (era sz.fontSm). */
+.sidebar__badge-contagem {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Botão fechar drawer (✕, mobile) — glyph de ação, sem role exata no mapa;
+   mantido próximo ao valor original (era 17px). */
+.sidebar__btn-fechar {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Nome do usuário logado — role: nome destaque (era sz.fontBase). */
+.sidebar__usuario-nome {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* @usuario (login) — role: label/apoio (era sz.fontSm). */
+.sidebar__usuario-handle {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Selo Aberto/Fechado do caixa — role: label/apoio (era sz.fontSm - 1). */
+.sidebar__status-badge {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Título de modal (Acesso Restrito, Comandas Fechadas, Cancelar venda,
+   upgrade de plano) — role: título de seção (era 17-18px). */
+.sidebar__modal-titulo {
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
+/* Subtítulo/descrição logo abaixo do título do modal — role: subtítulo
+   (era 16-18px). */
+.sidebar__modal-subtitulo {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Rótulo de campo/seção em caixa alta (Usuário, Senha, Motivo, Itens
+   consumidos...) — role: label/apoio (era 14px). */
+.sidebar__form-label {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Texto digitado em input/textarea dos modais — role: corpo (era 16-17px). */
+.sidebar__input {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Mensagem de alerta encaixotada (erro de autenticação) — role: label/apoio
+   (era 16px). */
+.sidebar__alerta {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Texto de botão de ação dentro de modal (Cancelar, Acessar, Voltar,
+   Entendi...) — role: corpo (era 16-17px). */
+.sidebar__modal-btn {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Linha de info do caixa/pagamento no detalhe da comanda fechada —
+   role: label/apoio (era 16px). */
+.sidebar__cashier-info {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Estado vazio (nenhum item/nenhuma comanda) — role: vazio (era 16px). */
+.sidebar__vazio {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Nome do item consumido na comanda fechada — role: nome destaque
+   (era 17px). */
+.sidebar__item-nome {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Preço do item consumido — role: money (era 17px). */
+.sidebar__item-preco {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Observação do item ("↳ obs") — role: label/apoio (era 18px). */
+.sidebar__item-obs {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Rótulo "Total" no resumo da comanda fechada — role: subtítulo
+   (era 18px). */
+.sidebar__total-label {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Valor total da comanda fechada — role: número hero (era 22px). */
+.sidebar__total-valor {
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Nome da comanda na lista de comandas fechadas — role: nome destaque
+   (era 17px). */
+.sidebar__fechada-nome {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Meta (operador, itens, data/hora) na lista de comandas fechadas —
+   role: label/apoio (era 18px). */
+.sidebar__fechada-meta {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Valor total na lista de comandas fechadas — role: money (era 18px). */
+.sidebar__fechada-valor {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Aviso "ação não pode ser desfeita" — role: label/apoio (era 15px). */
+.sidebar__aviso-irreversivel {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Erro de senha incorreta abaixo do campo — role: label/apoio (era 14px). */
+.sidebar__campo-erro {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Erro genérico de cancelamento (role="alert") — role: label/apoio
+   (era 15px). */
+.sidebar__erro-generico {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Aviso "X comandas em aberto" antes de fechar o caixa — role: label/apoio
+   (era sz.fontSm). */
+.sidebar__aviso-comandas-abertas {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Texto do botão Abrir/Fechar Caixa — role: corpo (era sz.fontBase). */
+.sidebar__caixa-btn {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}

@@ -4,7 +4,87 @@
  * blends com transparência usam alfa() (src/constants/colorAlfa.js).
  * O laranja de aviso (#f59e0b, "não vinculado"/"fornecedor não
  * cadastrado") é cor semântica fixa, não de marca — segue literal.
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-* e --lh-* de
+ * src/styles/tipografia.css), por classe de componente — não mais inline
+ * via sz.* do JSX. `sz` continua no JSX só para padding/gap/grid (layout).
+ * Papéis de texto recorrentes têm classes semânticas (`nf-tab__cap`,
+ * `nf-tab__sub`, `nf-tab__body`, `nf-tab__title`…). Dinheiro/quantidade =
+ * tabular-nums; código/chave de nota = var(--gm-font-mono).
  */
+
+/* ── Escala tipográfica por papel (tokens de tipografia.css) ── */
+
+.nf-tab__cap {          /* caption/selo/unidade/label pequeno */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.nf-tab__num {          /* índice/sequência numérica */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.nf-tab__mono {         /* código do item / chave de acesso da nota */
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-family: var(--gm-font-mono);
+}
+
+.nf-tab__sub {          /* apoio/secundário/help/texto de linha */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.nf-tab__sub-num {      /* quantidade em tabela densa */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.nf-tab__body {         /* corpo/valor de célula/texto padrão */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.nf-tab__body-num {     /* dinheiro/quantidade destacada */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+
+.nf-tab__campo {        /* inputs do formulário manual */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.nf-tab__subtitle {     /* subtítulo de seção / estado-vazio */
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.nf-tab__title {        /* título de seção / página */
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
+.nf-tab__title-hero {   /* confirmação de sucesso (hero) */
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+}
+
+.nf-tab__emoji {        /* emoji inline (chip/dropdown) */
+  font-size: var(--fs-base);
+  line-height: 1;
+}
+
+.nf-tab__emoji-lg {     /* emoji inline maior (preview de entrada) */
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+
+/* ── Componentes ── */
 
 .nf-tab__voltar-btn {
   background: var(--gm-surface);
@@ -19,6 +99,8 @@
   gap: 6px;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--fs-sm);     /* role: apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 .nf-tab__card {
@@ -28,7 +110,8 @@
 }
 
 .nf-tab__label {
-  font-size: 12px;
+  font-size: var(--fs-xs);     /* role: caption/label (era 12px) */
+  line-height: var(--lh-xs);
   font-weight: 700;
   color: var(--gm-muted);
   text-transform: uppercase;
@@ -66,7 +149,8 @@
 
 .nf-tab__th {
   padding: 10px 12px;
-  font-size: 12px;
+  font-size: var(--fs-xs);     /* role: cabeçalho de coluna (era 12px) */
+  line-height: var(--lh-xs);
   font-weight: 700;
   color: var(--gm-muted);
   text-transform: uppercase;
@@ -121,6 +205,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .nf-tab__btn-primario {
@@ -131,6 +217,8 @@
   cursor: pointer;
   font-weight: 700;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .nf-tab__btn-secundario {
@@ -142,6 +230,8 @@
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 /* ── Stepper ── */
@@ -172,12 +262,14 @@
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 14px;
+  font-size: var(--fs-sm);     /* role: número do passo (era 14px) */
+  line-height: var(--lh-sm);
   transition: all 0.2s;
 }
 
 .nf-tab__stepper-label {
-  font-size: 12px;
+  font-size: var(--fs-xs);     /* role: caption (era 12px) */
+  line-height: var(--lh-xs);
   white-space: nowrap;
 }
 
@@ -200,7 +292,8 @@
 
 .nf-tab__vinculado-nome {
   flex: 1;
-  font-size: 13px;
+  font-size: var(--fs-sm);     /* role: nome vinculado em chip (era 13px) */
+  line-height: var(--lh-sm);
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -238,11 +331,15 @@
   font-weight: 700;
   text-align: center;
   margin-bottom: 6px;
+  font-size: var(--fs-lg);     /* role: prompt/subtítulo (era sz.fontLg - 1) */
+  line-height: var(--lh-lg);
 }
 
 .nf-tab__dropzone-ajuda {
   color: var(--gm-muted);
   text-align: center;
+  font-size: var(--fs-sm);     /* role: apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 /* ── Aviso (fornecedor não cadastrado / duplicada) ── */
@@ -262,11 +359,15 @@
 .nf-tab__aviso-titulo {
   font-weight: 700;
   margin-bottom: 4px;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .nf-tab__aviso-desc {
   color: var(--gm-muted);
   margin-bottom: 12px;
+  font-size: var(--fs-sm);     /* role: apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 /* ── Preview (step 4) ── */
@@ -279,12 +380,15 @@
 }
 
 .nf-tab__kpi-valor {
-  font-size: 24px;
+  font-size: var(--fs-2xl);    /* role: KPI hero (era 24px) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
   font-weight: 900;
 }
 
 .nf-tab__kpi-label {
-  font-size: 12px;
+  font-size: var(--fs-xs);     /* role: caption (era 12px) */
+  line-height: var(--lh-xs);
   color: var(--gm-muted);
   margin-top: 2px;
 }
@@ -322,7 +426,8 @@
 }
 
 .nf-tab__badge-status {
-  font-size: 12px;
+  font-size: var(--fs-xs);     /* role: selo/badge (era 12px) */
+  line-height: var(--lh-xs);
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 20px;

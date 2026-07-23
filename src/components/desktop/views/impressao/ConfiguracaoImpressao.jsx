@@ -8,6 +8,7 @@ import ImpressorasConfig from "./ImpressorasConfig";
 import PerfilImpressora from "./PerfilImpressora";
 import PonteLocalConfig from "./PonteLocalConfig";
 import HistoricoImpressao from "./HistoricoImpressao";
+import "./ConfiguracaoImpressao.css";
 
 const ABAS = [
   { id: "locais",       label: "Locais de Impressão"      },
@@ -29,12 +30,13 @@ export default function ConfiguracaoImpressao({ sz }) {
           <button
             key={a.id}
             onClick={() => setAba(a.id)}
+            className="configuracao-impressao__aba"
             style={{
               padding: "7px 16px", borderRadius: "8px 8px 0 0", border: "none",
               background: aba === a.id ? `${alfa(C.accent, "18")}` : "transparent",
               color: aba === a.id ? varColor(C.accent) : varColor(C.muted),
               cursor: "pointer", fontWeight: aba === a.id ? 700 : 500,
-              fontSize: sz.fontSm + 1, fontFamily: "inherit",
+              fontFamily: "inherit",
               transition: "background 0.15s, color 0.15s",
               borderBottom: aba === a.id ? `2px solid var(${C.accent})` : "2px solid transparent",
             }}

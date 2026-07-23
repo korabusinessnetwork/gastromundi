@@ -1,0 +1,82 @@
+/**
+ * F018 — leva 1 (núcleo do PDV). Decisão 018 (CSS separado do JSX) +
+ * tokens --gm-* (ADR-007). Roteamento de impressão por categoria.
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-* e --lh-*
+ * de src/styles/tipografia.css), por classe de componente — não mais inline.
+ * `sz` continua no JSX só para padding/gap/layout.
+ */
+
+.roteamento__loading {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.roteamento__header {
+  /* container — sem tipografia própria */
+}
+
+.roteamento__title {
+  font-size: var(--fs-lg);   /* role: título de seção (era sz.fontBase) */
+  line-height: var(--lh-lg);
+}
+
+.roteamento__description {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.roteamento__error {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.roteamento__warning {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.roteamento__empty {
+  /* container — sem tipografia própria */
+}
+
+.roteamento__empty-title {
+  font-size: var(--fs-lg);   /* role: título de seção (era sz.fontBase) */
+  line-height: var(--lh-lg);
+}
+
+.roteamento__empty-description {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.roteamento__table {
+  /* container — sem tipografia própria */
+}
+
+.roteamento__table-header {
+  /* container — sem tipografia própria */
+}
+
+.roteamento__table-header-cell {
+  font-size: var(--fs-xs);   /* role: caption/label de coluna (era 12px) */
+  line-height: 1;
+}
+
+.roteamento__table-row {
+  /* container — sem tipografia própria */
+}
+
+.roteamento__category-name {
+  font-size: var(--fs-base);   /* role: corpo/item (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.roteamento__select {
+  font-size: var(--fs-sm);   /* role: corpo de input (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.roteamento__feedback {
+  /* container — sem tipografia própria */
+}

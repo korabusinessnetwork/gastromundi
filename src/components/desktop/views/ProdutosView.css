@@ -2,6 +2,12 @@
  * F018 — leva 3, sub-lote 3A. Decisão 018 (CSS separado do JSX) +
  * tokens --gm-* (ADR-007). Cores sólidas viram var(--gm-*); blends com
  * transparência usam alfa() (src/constants/colorAlfa.js).
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-* e --lh-* de
+ * src/styles/tipografia.css), por classe de componente — não mais inline via
+ * sz.* do JSX. `sz` continua no JSX só para padding/gap/grid (layout), que
+ * seguem no sistema JS por breakpoint. tabular-nums = alinhamento de
+ * dinheiro/quantidade.
  */
 
 .produtos-view {
@@ -20,9 +26,16 @@
   gap: 16px;
 }
 
+.produtos-view__titulo {
+  font-size: var(--fs-xl);   /* role: título de tela (era sz.fontLg) */
+  line-height: var(--lh-xl);
+}
+
 .produtos-view__contagem {
   color: var(--gm-muted);
   margin-top: 2px;
+  font-size: var(--fs-sm);   /* role: subtítulo do header (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .produtos-view__acoes {
@@ -44,6 +57,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: var(--fs-base);   /* role: botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__btn-insumo,
@@ -55,6 +70,8 @@
   white-space: nowrap;
   /* alvo de toque generoso (princípio nº 1) */
   padding: 12px 16px;
+  font-size: var(--fs-base);   /* role: botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__btn-insumo {
@@ -89,6 +106,8 @@
   font-family: inherit;
   margin-bottom: -1px;
   transition: color 0.15s;
+  font-size: var(--fs-base);   /* role: aba (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 /* ── CategoriasComBusca ── */
@@ -119,6 +138,8 @@
   transition: background 0.15s, color 0.15s;
   text-align: left;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: chip de categoria (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .categorias-busca__mais-wrap {
@@ -151,6 +172,8 @@
   font-family: inherit;
   flex: 0 1 220px;
   min-width: 100px;
+  font-size: var(--fs-base);   /* role: input (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 /* ── Tabela de produtos ── */
@@ -170,6 +193,21 @@
   gap: 10px;
   color: var(--gm-muted);
   padding: 60px;
+}
+
+.produtos-view__vazio-emoji {
+  font-size: var(--fs-5xl);   /* role: emoji hero de estado vazio (era 48px literal) */
+  line-height: 1;
+}
+
+.produtos-view__vazio-titulo {
+  font-size: var(--fs-lg);   /* role: título/subtítulo de estado vazio (era sz.fontBase + 1) */
+  line-height: var(--lh-lg);
+}
+
+.produtos-view__vazio-texto {
+  font-size: var(--fs-sm);   /* role: texto de apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .produtos-view__tabela {
@@ -216,6 +254,8 @@
 
 .produtos-view__nome {
   font-weight: 700;
+  font-size: var(--fs-lg);   /* role: nome de item (era sz.fontBase + 1) */
+  line-height: var(--lh-lg);
 }
 
 .produtos-view__conversoes {
@@ -223,6 +263,8 @@
   margin-top: 2px;
   display: flex;
   gap: 8px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era 14px literal) */
+  line-height: var(--lh-sm);
 }
 
 .produtos-view__tag-categoria {
@@ -232,6 +274,8 @@
   border-radius: 20px;
   color: var(--gm-muted);
   border: 1px solid var(--gm-border);
+  font-size: var(--fs-sm);   /* role: tag/label (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 .produtos-view__tag-unidade {
@@ -239,11 +283,16 @@
   padding: 4px 12px;
   border-radius: 20px;
   color: var(--gm-accent);
+  font-size: var(--fs-sm);   /* role: tag/label (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 .produtos-view__preco {
   font-weight: 800;
   color: var(--gm-green);
+  font-size: var(--fs-lg);   /* role: money (era sz.fontBase + 2) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }
 
 .produtos-view__btn-editar {
@@ -255,6 +304,8 @@
   font-weight: 600;
   /* alvo de toque generoso */
   padding: 9px 16px;
+  font-size: var(--fs-sm);   /* role: botão compacto (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 .produtos-view__btn-excluir {
@@ -264,6 +315,8 @@
   cursor: pointer;
   font-weight: 600;
   padding: 9px 16px;
+  font-size: var(--fs-sm);   /* role: botão compacto (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 /* ── Modal Novo/Editar ── */
@@ -300,6 +353,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.produtos-view__modal-titulo {
+  font-size: var(--fs-xl);   /* role: título de modal (era literal/sz.fontLg) */
+  line-height: var(--lh-xl);
 }
 
 .produtos-view__modal-fechar {
@@ -380,6 +438,8 @@
   border-style: solid;
   cursor: pointer;
   font-weight: 600;
+  font-size: var(--fs-sm);   /* role: chip/tag (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .produtos-view__preco-wrap {
@@ -394,6 +454,8 @@
   transform: translateY(-50%);
   color: var(--gm-muted);
   font-weight: 600;
+  font-size: var(--fs-base);   /* role: body (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__preco-input {
@@ -407,6 +469,9 @@
   box-sizing: border-box;
   font-family: inherit;
   outline: none;
+  font-size: var(--fs-lg);   /* role: money input (era sz.fontLg) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }
 
 .produtos-view__secao-unidades {
@@ -425,6 +490,8 @@
   gap: 8px;
   font-weight: 800;
   color: var(--gm-text);
+  font-size: var(--fs-base);   /* role: título de subseção (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__bloco {
@@ -436,6 +503,8 @@
 .produtos-view__bloco-label {
   font-weight: 600;
   color: var(--gm-text);
+  font-size: var(--fs-base);   /* role: texto instrucional do bloco (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__bloco-vazio {
@@ -458,6 +527,8 @@
   font-weight: 700;
   font-family: inherit;
   transition: all 0.12s;
+  font-size: var(--fs-base);   /* role: botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__unidade-nome {
@@ -499,11 +570,15 @@
   font-weight: 700;
   font-family: inherit;
   outline: none;
+  font-size: var(--fs-base);   /* role: input (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__fornecedor-nome {
   flex: 1;
   font-weight: 700;
+  font-size: var(--fs-base);   /* role: body (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__fornecedor-btn-icone {
@@ -519,6 +594,8 @@
 
 .produtos-view__conversao-frase {
   color: var(--gm-text);
+  font-size: var(--fs-base);   /* role: body (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__conversao-fator {
@@ -535,6 +612,9 @@
   text-align: center;
   display: inline-block;
   vertical-align: middle;
+  font-size: var(--fs-base);   /* role: quantidade/fator numérico (era sz.fontBase) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
 }
 
 .produtos-view__conversao-preview {
@@ -559,6 +639,8 @@
   cursor: pointer;
   font-weight: 700;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__erro {
@@ -566,6 +648,8 @@
   border-radius: 8px;
   color: var(--gm-red);
   font-weight: 600;
+  font-size: var(--fs-sm);   /* role: mensagem de erro (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .produtos-view__modal-botoes {
@@ -584,6 +668,8 @@
   color: var(--gm-muted);
   cursor: pointer;
   font-weight: 600;
+  font-size: var(--fs-base);   /* role: botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__btn-salvar {
@@ -593,6 +679,8 @@
   border: none;
   color: #fff;
   font-weight: 700;
+  font-size: var(--fs-base);   /* role: botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 /* ── Modal Categorias ── */
@@ -612,6 +700,16 @@
   max-height: 85vh;
 }
 
+.produtos-view__cat-modal-titulo {
+  font-size: var(--fs-xl);   /* role: título de modal (era sz.fontLg) */
+  line-height: var(--lh-xl);
+}
+
+.produtos-view__cat-modal-subtitulo {
+  font-size: var(--fs-sm);   /* role: subtítulo do header (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
 .produtos-view__cat-lista {
   flex: 1;
   overflow-y: auto;
@@ -619,6 +717,11 @@
   flex-direction: column;
   gap: 6px;
   min-height: 0;
+}
+
+.produtos-view__cat-vazio {
+  font-size: var(--fs-lg);   /* role: estado vazio (era sz.fontBase + 1) */
+  line-height: var(--lh-lg);
 }
 
 .produtos-view__cat-item {
@@ -642,6 +745,8 @@
   font-weight: 600;
   font-family: inherit;
   outline: none;
+  font-size: var(--fs-lg);   /* role: nome (era 17px literal) */
+  line-height: var(--lh-lg);
 }
 
 .produtos-view__cat-btn-confirmar {
@@ -667,6 +772,8 @@
 .produtos-view__cat-nome {
   flex: 1;
   font-weight: 700;
+  font-size: var(--fs-lg);   /* role: nome (era 17px literal) */
+  line-height: var(--lh-lg);
 }
 
 .produtos-view__cat-badge-padrao {
@@ -674,6 +781,8 @@
   padding: 2px 8px;
   border-radius: 20px;
   color: var(--gm-accent);
+  font-size: var(--fs-xs);   /* role: badge (era 11px literal) */
+  line-height: var(--lh-xs);
 }
 
 .produtos-view__cat-badge-qtd {
@@ -683,6 +792,8 @@
   background: var(--gm-card);
   color: var(--gm-muted);
   border: 1px solid var(--gm-border);
+  font-size: var(--fs-xs);   /* role: badge/contagem (era 14px literal) */
+  line-height: var(--lh-xs);
 }
 
 .produtos-view__cat-btn-editar,
@@ -707,6 +818,8 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 10px;
+  font-size: var(--fs-xs);   /* role: label uppercase (era sz.fontSm - 1) */
+  line-height: var(--lh-xs);
 }
 
 .produtos-view__cat-nova-linha {
@@ -724,6 +837,8 @@
   color: var(--gm-text);
   font-family: inherit;
   outline: none;
+  font-size: var(--fs-lg);   /* role: input (era 17px literal) */
+  line-height: var(--lh-lg);
 }
 
 .produtos-view__cat-nova-btn {
@@ -732,11 +847,15 @@
   border: none;
   font-weight: 700;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: botão (era 17px literal, convenção botão) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__cat-aviso-existe {
   color: var(--gm-muted);
   margin-top: 6px;
+  font-size: var(--fs-sm);   /* role: aviso (era 18px literal) */
+  line-height: var(--lh-sm);
 }
 
 /* ── Modais de confirmação (excluir categoria/produto) ── */
@@ -788,6 +907,8 @@
 .produtos-view__confirm-sub {
   color: var(--gm-muted);
   margin-top: 2px;
+  font-size: var(--fs-sm);   /* role: subtítulo (era 15/16px literal, unificado) */
+  line-height: var(--lh-sm);
 }
 
 .produtos-view__confirm-aviso {
@@ -795,7 +916,8 @@
   border-radius: 10px;
   margin-bottom: 20px;
   color: var(--gm-muted);
-  line-height: 1.5;
+  font-size: var(--fs-sm);   /* role: aviso (era 15/16px literal, unificado) */
+  line-height: 1.5;   /* mantido: texto de aviso quebra em várias linhas, não é rótulo de 1 linha */
 }
 
 .produtos-view__confirm-botoes {
@@ -813,6 +935,8 @@
   color: var(--gm-muted);
   cursor: pointer;
   font-weight: 600;
+  font-size: var(--fs-base);   /* role: botão (era 16/17px literal, unificado) */
+  line-height: var(--lh-base);
 }
 
 .produtos-view__confirm-btn-excluir {
@@ -822,6 +946,8 @@
   border: none;
   color: #fff;
   font-weight: 800;
+  font-size: var(--fs-base);   /* role: botão (era 16/18px literal, unificado) */
+  line-height: var(--lh-base);
 }
 
 /* ── Label/Input helpers ── */

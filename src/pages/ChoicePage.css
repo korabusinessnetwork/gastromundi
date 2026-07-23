@@ -1,0 +1,63 @@
+/**
+ * F018 — leva 2 (ChoicePage). Decisão 018 (CSS separado do JSX) +
+ * tokens --fs-* e --lh-* (ADR-007). Cores/transições/cursor/layout fixo são classe.
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system (src/styles/tipografia.css),
+ * por classe de componente — não mais inline via sz.* do JSX. `sz` continua no JSX
+ * só para padding/gap/grid (layout), que seguem no sistema JS por breakpoint.
+ */
+
+/* Título do tenant — papel: título hero */
+.choice-page__titulo {
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+}
+
+/* Assinatura (by Kora) — papel: apoio */
+.choice-page__assinatura {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Glifo: letra inicial do avatar (era 15px literal) — arredondado para o corpo da
+   escala; line-height 1 literal porque é glifo, não texto corrido. */
+.choice-page__avatar-inicial {
+  font-size: var(--fs-base);
+  line-height: 1;
+}
+
+/* Nome do usuário — papel: corpo */
+.choice-page__nome-usuario {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Label da role (Admin, Gerente, etc.) — papel: caption */
+.choice-page__role-label {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+/* Pergunta "Como deseja usar o sistema?" — papel: label uppercase */
+.choice-page__pergunta {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+/* Título da opção (Tirar Pedidos, Frente de Caixa) — papel: nome de opção */
+.choice-page__titulo-opcao {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Descrição da opção — papel: label/apoio */
+.choice-page__descricao-opcao {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+/* Botão Sair da Conta (era 13px literal) — papel: label de ação secundária */
+.choice-page__logout-btn {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}

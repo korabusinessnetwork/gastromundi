@@ -82,8 +82,8 @@ export default function CozinhaView() {
       <div className="cozinha-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <LuChefHat size={sz.fontLg} color={varColor(C.accent)} />
         <div>
-          <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Cozinha</div>
-          <div className="cozinha-view__subtitulo" style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>Painel de preparo em tempo real</div>
+          <div className="cozinha-view__header-titulo" style={{ fontWeight: 800 }}>Cozinha</div>
+          <div className="cozinha-view__subtitulo" style={{ color: varColor(C.muted) }}>Painel de preparo em tempo real</div>
         </div>
       </div>
 
@@ -99,16 +99,16 @@ export default function CozinhaView() {
               {/* Cabeçalho da coluna */}
               <div className="cozinha-view__coluna-header">
                 <span className="cozinha-view__coluna-bolinha" style={{ background: coluna.cor }} />
-                <span style={{ fontWeight: 800, fontSize: sz.fontBase }}>{coluna.titulo}</span>
-                <span className="cozinha-view__coluna-contador" style={{ fontSize: sz.fontSm }}>{pedidosColuna.length}</span>
+                <span className="cozinha-view__coluna-titulo" style={{ fontWeight: 800 }}>{coluna.titulo}</span>
+                <span className="cozinha-view__coluna-contador">{pedidosColuna.length}</span>
               </div>
 
               {/* Cards */}
               <div className="cozinha-view__cards">
                 {loading ? (
-                  <div className="cozinha-view__vazio" style={{ fontSize: sz.fontSm }}>Carregando…</div>
+                  <div className="cozinha-view__vazio">Carregando…</div>
                 ) : pedidosColuna.length === 0 ? (
-                  <div className="cozinha-view__vazio" style={{ fontSize: sz.fontSm }}>Nenhum pedido aqui.</div>
+                  <div className="cozinha-view__vazio">Nenhum pedido aqui.</div>
                 ) : (
                   pedidosColuna.map((pedido) => (
                     <PedidoCard
@@ -144,9 +144,9 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto,
     }}>
       {/* Cabeçalho do card */}
       <div className="pedido-card__topo">
-        <span style={{ fontWeight: 800, fontSize: sz.fontBase }}>{fmtComanda(pedido.comanda)}</span>
-        {pedido.mesa && <span className="pedido-card__mesa" style={{ fontSize: sz.fontSm }}>🪑 {pedido.mesa}</span>}
-        <span className="pedido-card__tempo" style={{ fontSize: sz.fontSm - 1, color: atrasado ? varColor(C.red) : varColor(C.muted) }}>
+        <span className="pedido-card__comanda" style={{ fontWeight: 800 }}>{fmtComanda(pedido.comanda)}</span>
+        {pedido.mesa && <span className="pedido-card__mesa">🪑 {pedido.mesa}</span>}
+        <span className="pedido-card__tempo" style={{ color: atrasado ? varColor(C.red) : varColor(C.muted) }}>
           {atrasado ? <LuTriangleAlert size={12} /> : <LuClock size={12} />}
           {formatarTempoDecorrido(minutos)}
         </span>
@@ -163,10 +163,10 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto,
       {/* Itens */}
       <div className="pedido-card__itens">
         {itensAtivos.map((item, idx) => (
-          <div key={idx} className="pedido-card__item" style={{ fontSize: sz.fontSm }}>
+          <div key={idx} className="pedido-card__item">
             <span style={{ fontWeight: 700 }}>{item.qty ?? 1}x</span> {item.name}
             {Array.isArray(item.obs) && item.obs.length > 0 && (
-              <div className="pedido-card__item-obs" style={{ fontSize: sz.fontSm - 1 }}>
+              <div className="pedido-card__item-obs">
                 {item.obs.join(" · ")}
               </div>
             )}
@@ -182,7 +182,7 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto,
           className="pedido-card__btn-acao"
           style={{
             background: processando ? varColor(C.faint) : varColor(C.accent),
-            fontSize: sz.fontSm + 1, cursor: processando ? "not-allowed" : "pointer",
+            cursor: processando ? "not-allowed" : "pointer",
           }}
         >
           <LuPlay size={13} /> {processando ? "Iniciando..." : "Iniciar Preparo"}
@@ -195,7 +195,7 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto,
           className="pedido-card__btn-acao"
           style={{
             background: processando ? varColor(C.faint) : varColor(C.green),
-            fontSize: sz.fontSm + 1, cursor: processando ? "not-allowed" : "pointer",
+            cursor: processando ? "not-allowed" : "pointer",
           }}
         >
           <LuCheck size={13} /> {processando ? "Salvando..." : "Marcar Pronto"}

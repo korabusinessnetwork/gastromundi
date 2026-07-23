@@ -168,7 +168,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
 
         {/* Título */}
         <div className="combos-view__modal-topo">
-          <div style={{ fontWeight: 800, fontSize: sz.fontBase + 2 }}>{isEdit ? "Editar Combo" : "Criar Combo"}</div>
+          <div className="combos-view__modal-titulo" style={{ fontWeight: 800 }}>{isEdit ? "Editar Combo" : "Criar Combo"}</div>
           <button onClick={onClose} className="combos-view__modal-fechar"><LuX size={20} /></button>
         </div>
 
@@ -182,7 +182,6 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
             placeholder="Ex: Combo X-Burguer Clássico"
             maxLength={100}
             className="combos-view__input"
-            style={{ fontSize: sz.fontBase }}
           />
         </div>
 
@@ -193,8 +192,8 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
             <div className="combos-view__principal-selecionado" style={{ background: alfa(C.accent, "10"), border: `1.5px solid ${alfa(C.accent, "44")}` }}>
               <span className="combos-view__principal-emoji">{principal.emoji ?? "📦"}</span>
               <div style={{ flex: 1 }}>
-                <div className="combos-view__principal-nome" style={{ fontSize: sz.fontBase }}>{principal.name}</div>
-                <div className="combos-view__principal-preco" style={{ fontSize: sz.fontSm }}>R$ {Number(principal.price).toFixed(2)}</div>
+                <div className="combos-view__principal-nome">{principal.name}</div>
+                <div className="combos-view__principal-preco">R$ {Number(principal.price).toFixed(2)}</div>
               </div>
               <button onClick={() => setPrincipal(null)} className="combos-view__principal-remover"><LuX size={16} /></button>
             </div>
@@ -208,7 +207,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                   onFocus={() => setShowProd(true)}
                   placeholder="Buscar produto..."
                   className="combos-view__input"
-                  style={{ fontSize: sz.fontBase, paddingLeft: 36 }}
+                  style={{ paddingLeft: 36 }}
                 />
               </div>
               {showProd && prodsFiltrados.length > 0 && (
@@ -221,10 +220,10 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                       onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                       onMouseLeave={e => e.currentTarget.style.background = "none"}
                     >
-                      <span style={{ fontSize: 18 }}>{p.emoji ?? "📦"}</span>
+                      <span className="combos-view__dropdown-item-emoji">{p.emoji ?? "📦"}</span>
                       <div style={{ flex: 1 }}>
-                        <div className="combos-view__dropdown-item-nome" style={{ fontSize: sz.fontBase }}>{p.name}</div>
-                        <div className="combos-view__dropdown-item-preco" style={{ fontSize: sz.fontSm }}>R$ {Number(p.price).toFixed(2)}</div>
+                        <div className="combos-view__dropdown-item-nome">{p.name}</div>
+                        <div className="combos-view__dropdown-item-preco">R$ {Number(p.price).toFixed(2)}</div>
                       </div>
                     </button>
                   ))}
@@ -251,8 +250,8 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                   style={{ borderColor: ativo ? varColor(C.accent) : varColor(C.border), background: ativo ? alfa(C.accent, "10") : varColor(C.surface) }}
                 >
                   <m.icon size={20} color={ativo ? varColor(C.accent) : varColor(C.muted)} />
-                  <div className="combos-view__modo-titulo" style={{ fontSize: sz.fontBase, color: ativo ? varColor(C.accent) : varColor(C.text) }}>{m.title}</div>
-                  <div className="combos-view__modo-desc" style={{ fontSize: sz.fontSm }}>{m.desc}</div>
+                  <div className="combos-view__modo-titulo" style={{ color: ativo ? varColor(C.accent) : varColor(C.text) }}>{m.title}</div>
+                  <div className="combos-view__modo-desc">{m.desc}</div>
                 </button>
               );
             })}
@@ -270,18 +269,18 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                   <div className="combos-view__item-linha" style={{ marginBottom: it.usarCustom ? 8 : 0 }}>
                     {/* Nome */}
                     <div style={{ flex: 1 }}>
-                      <div className="combos-view__item-nome" style={{ fontSize: sz.fontBase }}>{it.subproduto.nome}</div>
-                      <div className="combos-view__item-info" style={{ fontSize: sz.fontSm }}>{it.subproduto.categoria} · {!it.usarCustom ? fmtBRL(it.subproduto.preco) : "preço custom"}</div>
+                      <div className="combos-view__item-nome">{it.subproduto.nome}</div>
+                      <div className="combos-view__item-info">{it.subproduto.categoria} · {!it.usarCustom ? fmtBRL(it.subproduto.preco) : "preço custom"}</div>
                     </div>
                     {/* Quantidade */}
                     <div className="combos-view__item-qtd-controles">
                       <button onClick={() => setQtd(idx, it.quantidade - 1)} className="combos-view__qtd-btn"><LuMinus size={11} /></button>
-                      <span className="combos-view__item-qtd-valor" style={{ fontSize: sz.fontBase }}>{it.quantidade}</span>
+                      <span className="combos-view__item-qtd-valor">{it.quantidade}</span>
                       <button onClick={() => setQtd(idx, it.quantidade + 1)} className="combos-view__qtd-btn"><LuPlus size={11} /></button>
                     </div>
                     {/* Toggle custom */}
                     <div className="combos-view__item-custom-toggle">
-                      <span className="combos-view__item-custom-label" style={{ fontSize: sz.fontSm }}>Custom</span>
+                      <span className="combos-view__item-custom-label">Custom</span>
                       <Toggle value={it.usarCustom} onChange={() => toggleCustom(idx)} />
                     </div>
                     {/* Remover */}
@@ -297,7 +296,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                       onChange={e => setCustom(idx, e.target.value)}
                       placeholder="Preço para este combo (R$)"
                       className="combos-view__input"
-                      style={{ fontSize: sz.fontBase, marginTop: 4 }}
+                      style={{ marginTop: 4 }}
                     />
                   )}
                 </div>
@@ -314,7 +313,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
               onFocus={() => setShowSub(true)}
               placeholder="Buscar e adicionar subproduto..."
               className="combos-view__input"
-              style={{ fontSize: sz.fontBase, paddingLeft: 36 }}
+              style={{ paddingLeft: 36 }}
             />
             {showSub && subsFiltrados.length > 0 && (
               <div className="combos-view__dropdown">
@@ -327,8 +326,8 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                     onMouseLeave={e => e.currentTarget.style.background = "none"}
                   >
                     <div style={{ flex: 1 }}>
-                      <div className="combos-view__dropdown-item-nome" style={{ fontSize: sz.fontBase }}>{s.nome}</div>
-                      <div className="combos-view__dropdown-item-preco" style={{ fontSize: sz.fontSm }}>{s.categoria} · {fmtBRL(s.preco)}</div>
+                      <div className="combos-view__dropdown-item-nome">{s.nome}</div>
+                      <div className="combos-view__dropdown-item-preco">{s.categoria} · {fmtBRL(s.preco)}</div>
                     </div>
                     <LuPlus size={14} color={varColor(C.accent)} />
                   </button>
@@ -340,15 +339,15 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
 
         {/* Preço total */}
         <div className="combos-view__preco-total" style={{ background: alfa(C.green, "0c"), border: `1px solid ${alfa(C.green, "33")}` }}>
-          <div className="combos-view__preco-total-label" style={{ fontSize: sz.fontBase }}>Preço total calculado</div>
-          <div className="combos-view__preco-total-valor" style={{ fontSize: sz.fontLg }}>{fmtBRL(precoTotal)}</div>
+          <div className="combos-view__preco-total-label">Preço total calculado</div>
+          <div className="combos-view__preco-total-valor">{fmtBRL(precoTotal)}</div>
         </div>
 
-        {erro && <div className="combos-view__erro" style={{ fontSize: sz.fontSm }}>⚠ {erro}</div>}
+        {erro && <div className="combos-view__erro">⚠ {erro}</div>}
 
         <div className="combos-view__modal-botoes">
-          <button onClick={onClose} className="combos-view__btn-cancelar" style={{ fontSize: sz.fontBase }}>Cancelar</button>
-          <button onClick={salvar} disabled={salvando} className="combos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
+          <button onClick={onClose} className="combos-view__btn-cancelar">Cancelar</button>
+          <button onClick={salvar} disabled={salvando} className="combos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}>
             {salvando ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar combo"}
           </button>
         </div>
@@ -404,19 +403,17 @@ export default function CombosView({ sz }) {
       {/* Header */}
       <div className="combos-view__header" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
         <div className="combos-view__header-esquerda">
-          <div className="combos-view__contagem" style={{ fontSize: sz.fontSm + 1 }}>{combos.length} combo{combos.length !== 1 ? "s" : ""}</div>
+          <div className="combos-view__contagem">{combos.length} combo{combos.length !== 1 ? "s" : ""}</div>
           <input
             value={busca}
             onChange={e => setBusca(e.target.value)}
             placeholder="Buscar combo..."
             className="combos-view__busca"
-            style={{ fontSize: sz.fontBase }}
           />
         </div>
         <button
           onClick={abrirNovo}
           className="combos-view__btn-criar"
-          style={{ fontSize: sz.fontBase }}
         >
           <LuPlus size={15} /> Criar Combo
         </button>
@@ -429,7 +426,7 @@ export default function CombosView({ sz }) {
         ) : listafiltrada.length === 0 ? (
           <div className="combos-view__vazio">
             <LuPackage size={40} style={{ opacity: 0.2 }} />
-            <div style={{ fontWeight: 600, fontSize: sz.fontBase }}>{busca ? "Nenhum resultado" : "Nenhum combo criado"}</div>
+            <div className="combos-view__vazio-texto" style={{ fontWeight: 600 }}>{busca ? "Nenhum resultado" : "Nenhum combo criado"}</div>
           </div>
         ) : (
           <div className="combos-view__lista">
@@ -449,19 +446,19 @@ export default function CombosView({ sz }) {
 
                   {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="combos-view__card-nome" style={{ fontSize: sz.fontBase }}>{c.nome}</div>
-                    <div className="combos-view__card-info" style={{ fontSize: sz.fontSm }}>
+                    <div className="combos-view__card-nome">{c.nome}</div>
+                    <div className="combos-view__card-info">
                       {prod?.name ?? "Produto removido"} · {qtdSubs} subproduto{qtdSubs !== 1 ? "s" : ""}
                     </div>
                   </div>
 
                   {/* Preço */}
-                  <div className="combos-view__card-preco" style={{ fontSize: sz.fontBase + 1 }}>
+                  <div className="combos-view__card-preco">
                     {fmtBRL(c.preco_total)}
                   </div>
 
                   {/* Modo badge */}
-                  <span className="combos-view__badge" style={{ fontSize: sz.fontSm - 1, background: c.modo === "substituir" ? alfa(C.blue, "18") : alfa(C.accent, "18"), color: c.modo === "substituir" ? varColor(C.blue) : varColor(C.accent) }}>
+                  <span className="combos-view__badge" style={{ background: c.modo === "substituir" ? alfa(C.blue, "18") : alfa(C.accent, "18"), color: c.modo === "substituir" ? varColor(C.blue) : varColor(C.accent) }}>
                     {c.modo === "substituir" ? "Substitui" : "Combo"}
                   </span>
 
@@ -469,7 +466,7 @@ export default function CombosView({ sz }) {
                   <button
                     onClick={() => toggleAtivo(c)}
                     className="combos-view__badge-status"
-                    style={{ fontSize: sz.fontSm - 1, background: c.ativo ? alfa(C.green, "18") : varColor(C.surface), color: c.ativo ? varColor(C.green) : varColor(C.muted) }}
+                    style={{ background: c.ativo ? alfa(C.green, "18") : varColor(C.surface), color: c.ativo ? varColor(C.green) : varColor(C.muted) }}
                   >
                     {c.ativo ? "Ativo" : "Inativo"}
                   </button>

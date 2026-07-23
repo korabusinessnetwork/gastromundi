@@ -229,8 +229,8 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
         <div className="impostos-admin__modal-header">
           <div className="impostos-admin__modal-topo">
             <div>
-              <div className="impostos-admin__modal-titulo" style={{ fontSize: sz.fontLg }}>{item.name}</div>
-              <div className="impostos-admin__modal-sub" style={{ fontSize: sz.fontSm }}>
+              <div className="impostos-admin__modal-titulo">{item.name}</div>
+              <div className="impostos-admin__modal-sub">
                 {item.category} · Configuração Fiscal
               </div>
             </div>
@@ -247,7 +247,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
                 className="impostos-admin__aba"
                 style={{
                   color: aba === a.id ? varColor(C.accent) : varColor(C.muted),
-                  fontWeight: aba === a.id ? 700 : 500, fontSize: sz.fontSm + 1,
+                  fontWeight: aba === a.id ? 700 : 500,
                   borderBottom: aba === a.id ? `2px solid var(${C.accent})` : "2px solid transparent",
                 }}
               >
@@ -340,7 +340,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
                 </div>
               </Grid2>
 
-              <div className="impostos-admin__aviso" style={{ background: alfa(C.accent, "0d"), border: `1px solid ${alfa(C.accent, "22")}`, fontSize: sz.fontSm }}>
+              <div className="impostos-admin__aviso" style={{ background: alfa(C.accent, "0d"), border: `1px solid ${alfa(C.accent, "22")}` }}>
                 {isSimples
                   ? "Empresas do Simples Nacional utilizam CSOSN. ICMS é recolhido pelo DAS — preencha a alíquota se houver ST."
                   : "Empresas de Lucro Presumido/Real utilizam CST. Preencha alíquota conforme tabela do estado."}
@@ -392,7 +392,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
           {/* ── Aba 4: Reforma 2026 ── */}
           {aba === "reforma" && (
             <>
-              <div className="impostos-admin__aviso impostos-admin__aviso--com-icone" style={{ background: alfa(C.blue, "0d"), border: `1px solid ${alfa(C.blue, "33")}`, fontSize: sz.fontSm }}>
+              <div className="impostos-admin__aviso impostos-admin__aviso--com-icone" style={{ background: alfa(C.blue, "0d"), border: `1px solid ${alfa(C.blue, "33")}` }}>
                 <LuReceiptText size={15} color={varColor(C.blue)} style={{ flexShrink: 0, marginTop: 1 }} />
                 Campos obrigatórios desde jan/2026 no layout NFC-e conforme Reforma Tributária. IBS substitui ICMS, CBS substitui PIS/COFINS.
               </div>
@@ -408,7 +408,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
               <div>
                 <FLabel>Alíquota IS — Imposto Seletivo</FLabel>
                 <FPct value={form.aliquota_is} onChange={v => set("aliquota_is", v)} />
-                <div className="impostos-admin__aviso-ajuda" style={{ fontSize: 12 }}>Aplicável a bebidas alcoólicas, cigarros e similares.</div>
+                <div className="impostos-admin__aviso-ajuda">Aplicável a bebidas alcoólicas, cigarros e similares.</div>
               </div>
             </>
           )}
@@ -417,15 +417,15 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
         {/* Footer */}
         <div className="impostos-admin__modal-footer">
           {erro && (
-            <div className="impostos-admin__erro" style={{ background: alfa(C.red, "12"), border: `1px solid ${alfa(C.red, "33")}`, fontSize: sz.fontSm }}>
+            <div className="impostos-admin__erro" style={{ background: alfa(C.red, "12"), border: `1px solid ${alfa(C.red, "33")}` }}>
               <LuTriangleAlert size={14} style={{ flexShrink: 0 }} /> {erro}
             </div>
           )}
           <div className="impostos-admin__modal-botoes">
-            <button onClick={onClose} disabled={salvando} className="impostos-admin__btn-cancelar" style={{ fontSize: sz.fontBase }}>
+            <button onClick={onClose} disabled={salvando} className="impostos-admin__btn-cancelar">
               Cancelar
             </button>
-            <button onClick={salvar} disabled={salvando} className="impostos-admin__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer", fontSize: sz.fontBase }}>
+            <button onClick={salvar} disabled={salvando} className="impostos-admin__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}>
               {salvando ? "Salvando..." : <><LuCheck size={15} /> Salvar configuração</>}
             </button>
           </div>
@@ -513,16 +513,16 @@ export default function ImpostosAdmin({ sz }) {
   const totalPend    = itens.length - totalConf;
 
   if (loading) {
-    return <div style={{ color: varColor(C.muted), textAlign: "center", padding: 60, fontSize: sz.fontBase }}>Carregando configurações fiscais...</div>;
+    return <div className="impostos-admin__carregando" style={{ color: varColor(C.muted), textAlign: "center", padding: 60 }}>Carregando configurações fiscais...</div>;
   }
 
   if (loadErro) {
     return (
       <div style={{ textAlign: "center", padding: 60, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-        <div className="impostos-admin__erro" style={{ background: alfa(C.red, "12"), border: `1px solid ${alfa(C.red, "33")}`, fontSize: sz.fontBase }}>
+        <div className="impostos-admin__erro impostos-admin__erro--grande" style={{ background: alfa(C.red, "12"), border: `1px solid ${alfa(C.red, "33")}` }}>
           <LuTriangleAlert size={16} style={{ flexShrink: 0 }} /> {loadErro}
         </div>
-        <button onClick={carregarFiscal} className="impostos-admin__btn-salvar" style={{ background: varColor(C.accent), fontSize: sz.fontBase }}>
+        <button onClick={carregarFiscal} className="impostos-admin__btn-salvar" style={{ background: varColor(C.accent) }}>
           Tentar de novo
         </button>
       </div>
@@ -533,8 +533,8 @@ export default function ImpostosAdmin({ sz }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {/* Cabeçalho */}
       <div style={{ marginBottom: 20 }}>
-        <div className="impostos-admin__cabecalho-titulo" style={{ fontSize: sz.fontLg }}>Configuração Fiscal dos Itens</div>
-        <div className="impostos-admin__cabecalho-sub" style={{ fontSize: sz.fontSm }}>
+        <div className="impostos-admin__cabecalho-titulo">Configuração Fiscal dos Itens</div>
+        <div className="impostos-admin__cabecalho-sub">
           Sincronizado com Cadastros · Produção e Insumos excluídos automaticamente
         </div>
       </div>
@@ -546,7 +546,7 @@ export default function ImpostosAdmin({ sz }) {
           { label: `${totalConf} configurado${totalConf !== 1 ? "s" : ""}`, color: varColor(C.green) },
           { label: `${totalPend} pendente${totalPend !== 1 ? "s" : ""}`, color: "#f59e0b" },
         ].map((b, i) => (
-          <span key={i} className="impostos-admin__badge" style={{ fontSize: sz.fontSm, background: alfa(b.color, "18"), color: b.color, border: `1px solid ${alfa(b.color, "33")}` }}>
+          <span key={i} className="impostos-admin__badge" style={{ background: alfa(b.color, "18"), color: b.color, border: `1px solid ${alfa(b.color, "33")}` }}>
             {b.label}
           </span>
         ))}
@@ -562,7 +562,7 @@ export default function ImpostosAdmin({ sz }) {
             onChange={e => setBusca(e.target.value)}
             placeholder="Buscar item..."
             className="impostos-admin__busca-input"
-            style={{ borderColor: busca ? varColor(C.accent) : varColor(C.border), fontSize: sz.fontSm + 1 }}
+            style={{ borderColor: busca ? varColor(C.accent) : varColor(C.border) }}
           />
           {busca && (
             <button onClick={() => setBusca("")} className="impostos-admin__busca-limpar">
@@ -576,7 +576,6 @@ export default function ImpostosAdmin({ sz }) {
           value={catFiltro}
           onChange={e => setCatFiltro(e.target.value)}
           className="impostos-admin__filtro-select"
-          style={{ fontSize: sz.fontSm + 1 }}
         >
           <option value="Todos">Todas as categorias</option>
           {categorias.map(c => <option key={c} value={c}>{c}</option>)}
@@ -587,7 +586,6 @@ export default function ImpostosAdmin({ sz }) {
           value={statusFiltro}
           onChange={e => setStatusFiltro(e.target.value)}
           className="impostos-admin__filtro-select"
-          style={{ fontSize: sz.fontSm + 1 }}
         >
           <option value="Todos">Todos os status</option>
           <option value="Configurados">Configurados</option>
@@ -598,8 +596,8 @@ export default function ImpostosAdmin({ sz }) {
       {/* Lista agrupada */}
       {grupos.length === 0 ? (
         <div className="impostos-admin__vazio">
-          <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.3 }}>📋</div>
-          <div style={{ fontWeight: 600, fontSize: sz.fontBase }}>
+          <div className="impostos-admin__vazio-icone" style={{ marginBottom: 12, opacity: 0.3 }}>📋</div>
+          <div className="impostos-admin__vazio-mensagem" style={{ fontWeight: 600 }}>
             {itens.length === 0 ? "Nenhum item cadastrado (excluindo Produção e Insumos)" : "Nenhum item encontrado para os filtros selecionados"}
           </div>
         </div>
@@ -609,7 +607,7 @@ export default function ImpostosAdmin({ sz }) {
             <div key={cat}>
               {/* Header do grupo */}
               <div className="impostos-admin__grupo-header">
-                <span className="impostos-admin__grupo-titulo" style={{ fontSize: sz.fontBase }}>{cat}</span>
+                <span className="impostos-admin__grupo-titulo">{cat}</span>
                 <span className="impostos-admin__grupo-contador">
                   {itensCat.length} {itensCat.length === 1 ? "item" : "itens"}
                 </span>
@@ -634,7 +632,7 @@ export default function ImpostosAdmin({ sz }) {
 
                       {/* Nome */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="impostos-admin__item-nome" style={{ fontSize: sz.fontBase }}>
+                        <div className="impostos-admin__item-nome">
                           {item.name}
                         </div>
                         {fiscal?.ncm && (
@@ -659,7 +657,6 @@ export default function ImpostosAdmin({ sz }) {
                           border: conf ? `1px solid var(${C.border})` : `1.5px solid var(${C.accent})`,
                           background: conf ? "none" : alfa(C.accent, "12"),
                           color: conf ? varColor(C.muted) : varColor(C.accent),
-                          fontSize: sz.fontSm + 1,
                         }}
                       >
                         {conf ? "Editar" : "Configurar"}

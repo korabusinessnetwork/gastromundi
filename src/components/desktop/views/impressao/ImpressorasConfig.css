@@ -1,0 +1,35 @@
+/**
+ * Impressão — Configuração de Impressoras. Decisão 018 (CSS separado do
+ * JSX) + tokens --gm-* (ADR-007).
+ *
+ * TAMANHO DE FONTE vem da escala do design system (--fs-* e --lh-* de
+ * src/styles/tipografia.css), por PAPEL do texto — não mais inline via
+ * sz.* do JSX. `sz` continua no JSX só para padding/gap/grid (layout),
+ * que seguem no sistema JS por breakpoint. Cor, peso e demais estilos
+ * permanecem inline (inalterados).
+ */
+
+.impressoras-config__titulo-xl {
+  font-size: var(--fs-xl);   /* papel: título de seção (título do modal) */
+  line-height: var(--lh-xl);
+}
+
+.impressoras-config__titulo-lg {
+  font-size: var(--fs-lg);   /* papel: subtítulo / nome de entidade / estado vazio */
+  line-height: var(--lh-lg);
+}
+
+.impressoras-config__texto-base {
+  font-size: var(--fs-base);   /* papel: corpo / controle */
+  line-height: var(--lh-base);
+}
+
+.impressoras-config__texto-sm {
+  font-size: var(--fs-sm);   /* papel: label / apoio */
+  line-height: var(--lh-sm);
+}
+
+.impressoras-config__badge {
+  font-size: var(--fs-xs);   /* papel: caption / selo / badge */
+  line-height: var(--lh-xs);
+}

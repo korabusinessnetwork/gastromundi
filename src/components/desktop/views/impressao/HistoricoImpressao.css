@@ -1,0 +1,203 @@
+/**
+ * F018 — leva 1 (núcleo do PDV). Decisão 018 (CSS separado do JSX) +
+ * tokens --gm-* (ADR-007). Cores/transições/cursor/layout fixo são classe.
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-* e --lh-* de
+ * src/styles/tipografia.css), por classe de componente — não mais inline via
+ * sz.* do JSX. `sz` continua no JSX só para padding/gap/layout, que seguem
+ * no sistema JS por breakpoint.
+ */
+
+.historico-impressao__cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.historico-impressao__titulo-wrapper {
+  flex: 1;
+}
+
+.historico-impressao__titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
+.historico-impressao__descricao {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  margin-top: 4px;
+}
+
+.historico-impressao__btn-atualizar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.historico-impressao__btn-atualizar:disabled {
+  cursor: wait;
+}
+
+.historico-impressao__erro {
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.historico-impressao__carregando {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--gm-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.historico-impressao__carregando-texto {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.historico-impressao__vazio {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--gm-muted);
+}
+
+.historico-impressao__vazio-titulo {
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.historico-impressao__vazio-descricao {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  margin-top: 4px;
+}
+
+.historico-impressao__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.historico-impressao__item {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.historico-impressao__item-icone {
+  width: 42px;
+  height: 42px;
+  border: 1px solid;
+  border-radius: 11px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.historico-impressao__item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.historico-impressao__item-titulo {
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historico-impressao__item-local {
+  font-weight: 500;
+  color: var(--gm-muted);
+}
+
+.historico-impressao__item-meta {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.historico-impressao__item-erro {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--gm-red);
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historico-impressao__badge-status {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  padding: 3px 10px;
+  border: 1px solid;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.historico-impressao__btn-reimprimir {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  border: 1.5px solid;
+  background: inherit;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.historico-impressao__btn-reimprimir:disabled {
+  cursor: not-allowed;
+}

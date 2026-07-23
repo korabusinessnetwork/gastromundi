@@ -1,0 +1,111 @@
+/**
+ * JarvasPanel — central de insights Jarvas (fase 4 da spec).
+ *
+ * TIPOGRAFIA: tokens --fs-* e --lh-* de src/styles/tipografia.css (design system).
+ * Cores, transições, cursor, layout: via style={{}} inline no JSX (simplicidade).
+ *
+ * Estrutura: sino flutuante (.jarvas-bell) e painel lateral (.jarvas-panel) com
+ * abas (insights e chat) e lista de insights com ações.
+ */
+
+/* Badge do sino — contador de não lidos (ex: "99+") */
+.jarvas-bell__badge {
+  font-size: var(--fs-xs);  /* role: caption/contador */
+  line-height: 1;
+}
+
+/* Cabeçalho — título "Jarvas" */
+.jarvas-header__title {
+  font-size: var(--fs-xl);  /* role: painel title */
+  line-height: var(--lh-xl);
+}
+
+/* Subtítulo — "insights · alertas · sugestões" */
+.jarvas-header__subtitle {
+  font-size: var(--fs-xs);  /* role: caption/apoio */
+  line-height: var(--lh-xs);
+}
+
+/* Botões de aba — "Insights" / "Perguntar ao Jarvas" */
+.jarvas-tabs__button {
+  font-size: var(--fs-sm);  /* role: label/button */
+  line-height: var(--lh-sm);
+}
+
+/* Mensagens no chat — texto do usuário e Jarvas */
+.jarvas-message {
+  font-size: var(--fs-sm);  /* role: body/chat */
+  line-height: var(--lh-sm);
+}
+
+/* Chat vazio — instrução inicial */
+.jarvas-chat__empty {
+  font-size: var(--fs-lg);  /* role: estado vazio */
+  line-height: var(--lh-lg);
+}
+
+/* Ajuda — "O Jarvas responde só com base..." */
+.jarvas-chat__help {
+  font-size: var(--fs-xs);  /* role: caption/suporte */
+  line-height: var(--lh-xs);
+}
+
+/* Status "Jarvas está analisando…" */
+.jarvas-thinking {
+  font-size: var(--fs-sm);  /* role: label/status */
+  line-height: var(--lh-sm);
+}
+
+/* Input do chat */
+.jarvas-input {
+  font-size: var(--fs-sm);  /* role: body/input */
+  line-height: var(--lh-sm);
+}
+
+/* Lista — "Carregando…" */
+.jarvas-list__loading {
+  font-size: var(--fs-lg);  /* role: estado vazio */
+  line-height: var(--lh-lg);
+}
+
+/* Lista — "Tudo em ordem…" */
+.jarvas-list__empty {
+  font-size: var(--fs-lg);  /* role: estado vazio */
+  line-height: var(--lh-lg);
+}
+
+/* Badge de tipo de insight — "INSIGHT" / "ALERTA" / "SUGESTÃO" */
+.jarvas-insight__badge {
+  font-size: var(--fs-xs);  /* role: caption/selo */
+  line-height: 1;
+}
+
+/* Módulo — ex: "Caixa", "Estoque" */
+.jarvas-insight__module {
+  font-size: var(--fs-xs);  /* role: label/apoio */
+  line-height: var(--lh-xs);
+}
+
+/* Tempo relativo — "10min", "2h", "1d" */
+.jarvas-insight__time {
+  font-size: var(--fs-xs);  /* role: label/apoio */
+  line-height: var(--lh-xs);
+}
+
+/* Título do insight — ex: "Caixa aberto há 4h" */
+.jarvas-insight__title {
+  font-size: var(--fs-lg);  /* role: título/subtitle */
+  line-height: var(--lh-lg);
+}
+
+/* Descrição do insight — corpo do texto */
+.jarvas-insight__description {
+  font-size: var(--fs-sm);  /* role: body */
+  line-height: var(--lh-sm);
+}
+
+/* Botão de ação — "Ir para estoque" */
+.jarvas-insight__action-button {
+  font-size: var(--fs-xs);  /* role: label */
+  line-height: var(--lh-xs);
+}

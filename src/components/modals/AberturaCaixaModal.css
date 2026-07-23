@@ -1,0 +1,53 @@
+/**
+ * F018 — Decisão 018 (CSS separado do JSX) + tokens --fs-* e --lh-* do design system.
+ *
+ * TAMANHO DE FONTE vem da escala tipográfica (src/styles/tipografia.css).
+ * Cores, font-weight, padding, gap, layout permanecem no JSX ou aqui conforme
+ * estrutura semântica. Dinheiro = tabular-nums para alinhamento de decimal.
+ */
+
+.abertura-caixa__icone-header {
+  font-size: var(--fs-2xl);
+  line-height: 1;
+}
+
+.abertura-caixa__titulo {
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
+.abertura-caixa__subtitulo {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.abertura-caixa__label {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.abertura-caixa__simbolo-moeda {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.abertura-caixa__input {
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.abertura-caixa__ajuda {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.abertura-caixa__botao-cancelar {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.abertura-caixa__botao-confirmar {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}

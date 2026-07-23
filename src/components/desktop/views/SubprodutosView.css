@@ -2,6 +2,11 @@
  * F018 — leva 3, sub-lote 3B. Decisão 018 (CSS separado do JSX) +
  * tokens --gm-* (ADR-007). Cores sólidas viram var(--gm-*); blends com
  * transparência usam alfa() (src/constants/colorAlfa.js).
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-* e --lh-* de
+ * src/styles/tipografia.css), por classe de componente — não mais inline via
+ * sz.* do JSX. `sz` continua no JSX só para padding/gap (layout), que segue
+ * no sistema JS por breakpoint. `--num` = tabular-nums em dinheiro/qtd.
  */
 
 .subprodutos-view {
@@ -24,6 +29,8 @@
 
 .subprodutos-view__contagem {
   color: var(--gm-muted);
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
 }
 
 .subprodutos-view__btn-novo {
@@ -39,6 +46,8 @@
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: corpo/botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .subprodutos-view__filtros {
@@ -67,6 +76,11 @@
   white-space: nowrap;
   flex-shrink: 0;
   font-family: inherit;
+  /* role: chip de filtro de categoria — mesmo papel do
+     .produto-grid__chip (ProductGrid.css), por consistência entre telas
+     (era sz.fontSm + 1, ambíguo pelo número; ver nota final da migração) */
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
 }
 
 .subprodutos-view__busca {
@@ -79,6 +93,8 @@
   font-family: inherit;
   width: 220px;
   flex-shrink: 0;
+  font-size: var(--fs-base);   /* role: corpo/campo de formulário (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .subprodutos-view__tabela-area {
@@ -100,6 +116,11 @@
   gap: 10px;
   color: var(--gm-muted);
   padding: 60px;
+}
+
+.subprodutos-view__vazio-texto {
+  font-size: var(--fs-lg);   /* role: vazio (era sz.fontBase) */
+  line-height: var(--lh-lg);
 }
 
 .subprodutos-view__tabela-moldura {
@@ -135,16 +156,40 @@
 
 .subprodutos-view__nome {
   font-weight: 700;
+  font-size: var(--fs-lg);   /* role: nome do item (era sz.fontBase) */
+  line-height: var(--lh-lg);
+}
+
+.subprodutos-view__preco {
+  font-weight: 700;
+  font-size: var(--fs-lg);   /* role: preço do item (era sz.fontBase) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
 }
 
 .subprodutos-view__tag-categoria {
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 20px;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .subprodutos-view__unidade {
   color: var(--gm-muted);
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.subprodutos-view__estoque-qtd {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.subprodutos-view__estoque-vazio {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .subprodutos-view__badge-status {
@@ -153,6 +198,8 @@
   border: none;
   cursor: pointer;
   font-family: inherit;
+  font-size: var(--fs-xs);   /* role: caption/selo/badge (era sz.fontSm - 1) */
+  line-height: var(--lh-xs);
 }
 
 .subprodutos-view__btn-editar {
@@ -166,6 +213,8 @@
   align-items: center;
   gap: 4px;
   font-family: inherit;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 /* ── Toggle ── */
@@ -236,6 +285,11 @@
   line-height: 0;
 }
 
+.subprodutos-view__modal-titulo {
+  font-size: var(--fs-lg);   /* role: título do modal (era sz.fontBase + 1) */
+  line-height: var(--lh-lg);
+}
+
 .subprodutos-view__label {
   font-size: 12px;
   font-weight: 700;
@@ -258,10 +312,17 @@
   box-sizing: border-box;
   font-family: inherit;
   outline: none;
+  font-size: var(--fs-base);   /* role: corpo/campo de formulário (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .subprodutos-view__select {
   cursor: pointer;
+}
+
+/* Campos numéricos (preço, quantidade, mínimo) — dinheiro/quantidade */
+.subprodutos-view__input--num {
+  font-variant-numeric: tabular-nums;
 }
 
 .subprodutos-view__grid-dupla {
@@ -288,15 +349,21 @@
 
 .subprodutos-view__toggle-titulo {
   font-weight: 600;
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .subprodutos-view__toggle-ajuda {
   color: var(--gm-muted);
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .subprodutos-view__erro {
   color: var(--gm-red);
   font-weight: 600;
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .subprodutos-view__modal-botoes {
@@ -317,6 +384,8 @@
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: corpo/botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }
 
 .subprodutos-view__btn-salvar {
@@ -327,4 +396,6 @@
   color: #fff;
   font-weight: 700;
   font-family: inherit;
+  font-size: var(--fs-base);   /* role: corpo/botão (era sz.fontBase) */
+  line-height: var(--lh-base);
 }

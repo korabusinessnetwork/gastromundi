@@ -1,0 +1,23 @@
+/**
+ * Layout desktop: migração tipografia JS → CSS (F018).
+ * Tamanho de fonte agora vem da escala do design system (--fs-* e --lh-* de
+ * src/styles/tipografia.css), por classe de componente.
+ */
+
+/* Botão de menu mobile */
+.desktop-layout__menu-btn {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+/* Nome do estabelecimento (header) */
+.desktop-layout__name-tenant {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Badge de status caixa (aberto/fechado) */
+.desktop-layout__status-badge {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}

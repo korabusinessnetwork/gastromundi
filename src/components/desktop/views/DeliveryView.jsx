@@ -249,10 +249,10 @@ export default function DeliveryView({ notify } = {}) {
       {/* Cabeçalho */}
       <div className="delivery-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div>
-          <div className="delivery-view__titulo" style={{ fontSize: sz.fontLg }}>
+          <div className="delivery-view__titulo">
             <LuBike size={20} color={varColor(C.accent)} /> Delivery
           </div>
-          <div className="delivery-view__sub" style={{ fontSize: sz.fontSm }}>
+          <div className="delivery-view__sub">
             {itensCardapio.length} item{itensCardapio.length !== 1 ? "s" : ""} no cardápio online
           </div>
         </div>
@@ -260,7 +260,6 @@ export default function DeliveryView({ notify } = {}) {
           <span
             className="delivery-view__modo-tag"
             style={{
-              fontSize: sz.fontSm,
               background: alfa(ehAddon ? C.blue : C.green, "15"),
               color: varColor(ehAddon ? C.blue : C.green),
               border: `1px solid ${alfa(ehAddon ? C.blue : C.green, "33")}`,
@@ -283,7 +282,6 @@ export default function DeliveryView({ notify } = {}) {
               className={`delivery-view__toggle-loja delivery-view__toggle-loja--${
                 configDelivery.aberto ? "aberta" : "fechada"
               }`}
-              style={{ fontSize: sz.fontSm }}
               title={
                 configDelivery.aberto
                   ? "A loja está aceitando pedidos. Clique para fechar."
@@ -314,7 +312,6 @@ export default function DeliveryView({ notify } = {}) {
                 borderBottom: ativo ? `2px solid var(${C.accent})` : "2px solid transparent",
                 color: ativo ? varColor(C.accent) : varColor(C.muted),
                 fontWeight: ativo ? 700 : 500,
-                fontSize: sz.fontBase,
               }}
             >
               {a.label}
@@ -327,7 +324,7 @@ export default function DeliveryView({ notify } = {}) {
         {erro && (
           <div
             className="delivery-view__aviso"
-            style={{ background: alfa(C.red, "12"), color: varColor(C.red), border: `1px solid ${alfa(C.red, "33")}`, marginBottom: 12, fontSize: sz.fontSm }}
+            style={{ background: alfa(C.red, "12"), color: varColor(C.red), border: `1px solid ${alfa(C.red, "33")}`, marginBottom: 12 }}
           >
             ⚠️ {erro}
           </div>
@@ -486,7 +483,7 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
     <>
       {/* Barra de topo: resumo + recarregar manual (fallback sem realtime) */}
       <div className="delivery-view__pedidos-topo">
-        <div className="delivery-view__pedidos-resumo" style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+        <div className="delivery-view__pedidos-resumo" style={{ color: varColor(C.muted) }}>
           {carregando
             ? "Carregando pedidos…"
             : abertos > 0
@@ -496,12 +493,11 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
         <div className="delivery-view__pedidos-acoes">
           <button
             onClick={alternarAvisos}
-            className="delivery-view__btn"
+            className="delivery-view__btn delivery-view__btn--sm"
             style={{
               background: avisosLigados ? alfa(C.green, "16") : alfa(C.muted, "12"),
               color: avisosLigados ? varColor(C.green) : varColor(C.muted),
               padding: "6px 12px",
-              fontSize: sz.fontSm,
             }}
             title={avisosLigados ? "Avisos de pedido novo ligados (som + alerta na tela). Toque para desligar." : "Ligar avisos de pedido novo (som + alerta na tela)."}
             aria-pressed={avisosLigados}
@@ -511,8 +507,8 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
           </button>
           <button
             onClick={recarregar}
-            className="delivery-view__btn"
-            style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "6px 12px", fontSize: sz.fontSm }}
+            className="delivery-view__btn delivery-view__btn--sm"
+            style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "6px 12px" }}
             title="Atualizar a lista de pedidos"
           >
             <LuRefreshCw size={13} /> Atualizar
@@ -522,20 +518,20 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
 
       {carregando ? (
         <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div style={{ fontSize: 40, opacity: 0.4 }}>⏳</div>
-          <div style={{ fontSize: sz.fontBase }}>Carregando pedidos…</div>
+          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.4 }}>⏳</div>
+          <div className="delivery-view__carregando">Carregando pedidos…</div>
         </div>
       ) : erro ? (
         <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div style={{ fontSize: 44, opacity: 0.3 }}>📡</div>
-          <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Não conseguimos carregar os pedidos</div>
-          <div style={{ fontSize: sz.fontSm }}>Verifique a conexão e toque em “Atualizar”.</div>
+          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.3 }}>📡</div>
+          <div className="delivery-view__vazio-titulo" style={{ fontWeight: 600 }}>Não conseguimos carregar os pedidos</div>
+          <div className="delivery-view__vazio-desc">Verifique a conexão e toque em “Atualizar”.</div>
         </div>
       ) : colunas.length === 0 ? (
         <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div style={{ fontSize: 44, opacity: 0.3 }}>🛵</div>
-          <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Nenhum pedido por aqui ainda</div>
-          <div style={{ fontSize: sz.fontSm }}>
+          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.3 }}>🛵</div>
+          <div className="delivery-view__vazio-titulo" style={{ fontWeight: 600 }}>Nenhum pedido por aqui ainda</div>
+          <div className="delivery-view__vazio-desc">
             Quando um cliente pedir pelo cardápio online, o pedido aparece aqui na hora.
           </div>
         </div>
@@ -547,13 +543,13 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
               <div key={col.status} className="delivery-view__coluna">
                 <div
                   className="delivery-view__coluna-titulo"
-                  style={{ fontSize: sz.fontSm, color: cssCor(base) }}
+                  style={{ color: cssCor(base) }}
                 >
                   <span className="delivery-view__coluna-bolinha" style={{ background: cssCor(base) }} />
                   {col.label}
                   <span
                     className="delivery-view__coluna-contador"
-                    style={{ background: alfa(base, "1f"), color: cssCor(base), fontSize: sz.fontSm - 1 }}
+                    style={{ background: alfa(base, "1f"), color: cssCor(base) }}
                   >
                     {col.pedidos.length}
                   </span>
@@ -612,22 +608,22 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
     >
       {/* Cabeçalho: número + tempo */}
       <div className="delivery-view__pedido-topo">
-        <span className="delivery-view__pedido-num" style={{ fontSize: sz.fontBase, color: varColor(C.text) }}>
+        <span className="delivery-view__pedido-num" style={{ color: varColor(C.text) }}>
           <LuClipboardList size={14} color={cssCor(base)} /> {pedido.numero}
         </span>
-        <span className="delivery-view__pedido-tempo" style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+        <span className="delivery-view__pedido-tempo" style={{ color: varColor(C.muted) }}>
           {tempoDecorrido(pedido.created_at)}
         </span>
       </div>
 
       {/* Cliente */}
-      <div className="delivery-view__pedido-cliente" style={{ fontSize: sz.fontBase, color: varColor(C.text) }}>
+      <div className="delivery-view__pedido-cliente" style={{ color: varColor(C.text) }}>
         {pedido.cliente_nome || "Cliente"}
       </div>
 
       {/* Telefone → WhatsApp (só toque; número é do cliente) */}
       {pedido.cliente_telefone && (
-        <div className="delivery-view__pedido-linha" style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+        <div className="delivery-view__pedido-linha" style={{ color: varColor(C.muted) }}>
           <LuPhone size={13} /> {formatarTelefone(pedido.cliente_telefone)}
           {zap && (
             <a
@@ -635,7 +631,7 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
               target="_blank"
               rel="noopener noreferrer"
               className="delivery-view__zap"
-              style={{ color: varColor(C.green), fontSize: sz.fontSm }}
+              style={{ color: varColor(C.green) }}
               title="Falar com o cliente no WhatsApp"
             >
               <LuMessageCircle size={13} /> WhatsApp
@@ -646,13 +642,13 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
 
       {/* Endereço */}
       {endereco && (
-        <div className="delivery-view__pedido-linha" style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+        <div className="delivery-view__pedido-linha" style={{ color: varColor(C.muted) }}>
           <LuMapPin size={13} /> {endereco}
         </div>
       )}
 
       {/* Pagamento */}
-      <div className="delivery-view__pedido-linha" style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+      <div className="delivery-view__pedido-linha" style={{ color: varColor(C.muted) }}>
         <LuBanknote size={13} /> {resumoPagamento(pedido)}
       </div>
 
@@ -660,13 +656,13 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
       <button
         onClick={toggleItens}
         className="delivery-view__pedido-itens-toggle"
-        style={{ fontSize: sz.fontSm, color: varColor(C.accent) }}
+        style={{ color: varColor(C.accent) }}
       >
         {aberto ? <LuChevronDown size={14} /> : <LuChevronRight size={14} />}
         {aberto ? "Ocultar itens" : "Ver itens"}
       </button>
       {aberto && (
-        <div className="delivery-view__pedido-itens" style={{ fontSize: sz.fontSm, color: varColor(C.text) }}>
+        <div className="delivery-view__pedido-itens" style={{ color: varColor(C.text) }}>
           {carregandoItens ? (
             <div style={{ color: varColor(C.muted) }}>Carregando itens…</div>
           ) : itens && itens.length > 0 ? (
@@ -683,7 +679,7 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
       )}
 
       {/* Total */}
-      <div className="delivery-view__pedido-total" style={{ fontSize: sz.fontBase, color: varColor(C.text) }}>
+      <div className="delivery-view__pedido-total" style={{ color: varColor(C.text) }}>
         Total <strong>{formatarReais(pedido.total)}</strong>
       </div>
 
@@ -693,8 +689,8 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
           {acao && (
             <button
               onClick={onAvancar}
-              className="delivery-view__btn"
-              style={{ background: cssCor(base), color: "#fff", padding: "8px 12px", fontSize: sz.fontSm, flex: 1 }}
+              className="delivery-view__btn delivery-view__btn--sm"
+              style={{ background: cssCor(base), color: "#fff", padding: "8px 12px", flex: 1 }}
             >
               {acao}
             </button>
@@ -704,15 +700,15 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
               <>
                 <button
                   onClick={onCancelar}
-                  className="delivery-view__btn"
-                  style={{ background: varColor(C.red), color: "#fff", padding: "8px 12px", fontSize: sz.fontSm }}
+                  className="delivery-view__btn delivery-view__btn--sm"
+                  style={{ background: varColor(C.red), color: "#fff", padding: "8px 12px" }}
                 >
                   Cancelar mesmo
                 </button>
                 <button
                   onClick={() => setConfirmarCancelar(false)}
-                  className="delivery-view__btn"
-                  style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "8px 12px", fontSize: sz.fontSm }}
+                  className="delivery-view__btn delivery-view__btn--sm"
+                  style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "8px 12px" }}
                 >
                   Voltar
                 </button>
@@ -720,8 +716,8 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
             ) : (
               <button
                 onClick={() => setConfirmarCancelar(true)}
-                className="delivery-view__btn"
-                style={{ background: alfa(C.red, "12"), color: varColor(C.red), padding: "8px 10px", fontSize: sz.fontSm }}
+                className="delivery-view__btn delivery-view__btn--sm"
+                style={{ background: alfa(C.red, "12"), color: varColor(C.red), padding: "8px 10px" }}
                 title="Cancelar este pedido"
               >
                 <LuX size={13} />
@@ -770,10 +766,10 @@ function AbaCardapio({
           style={{ background: alfa(C.blue, "0c"), border: `1px solid ${alfa(C.blue, "33")}`, marginBottom: 16 }}
         >
           <div className="delivery-view__import-texto">
-            <div className="delivery-view__import-titulo" style={{ fontSize: sz.fontBase }}>
+            <div className="delivery-view__import-titulo">
               <LuDownload size={16} color={varColor(C.blue)} /> Importar cardápio do PDV
             </div>
-            <div className="delivery-view__import-desc" style={{ fontSize: sz.fontSm }}>
+            <div className="delivery-view__import-desc">
               {faltamImportar.length > 0
                 ? `Traz de uma vez os ${faltamImportar.length} produto(s) do sistema que ainda não estão no delivery. Depois é só colocar foto e descrição.`
                 : "Tudo em dia — todos os produtos do PDV já estão no delivery."}
@@ -783,7 +779,7 @@ function AbaCardapio({
             onClick={importar}
             disabled={importando || faltamImportar.length === 0}
             className="delivery-view__btn"
-            style={{ background: varColor(C.blue), color: "#fff", padding: `10px ${sz.pad}px`, fontSize: sz.fontBase }}
+            style={{ background: varColor(C.blue), color: "#fff", padding: `10px ${sz.pad}px` }}
           >
             <LuDownload size={15} />
             {importando ? "Importando…" : faltamImportar.length > 0 ? `Importar ${faltamImportar.length}` : "Importado"}
@@ -796,7 +792,7 @@ function AbaCardapio({
           <button
             onClick={() => setModal({ modo: "novo" })}
             className="delivery-view__btn"
-            style={{ background: varColor(C.accent), color: "#fff", padding: `10px ${sz.pad}px`, fontSize: sz.fontBase }}
+            style={{ background: varColor(C.accent), color: "#fff", padding: `10px ${sz.pad}px` }}
           >
             <LuPlus size={15} /> Novo produto
           </button>
@@ -806,14 +802,14 @@ function AbaCardapio({
       {/* Lista / estados */}
       {carregando ? (
         <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div style={{ fontSize: 40, opacity: 0.4 }}>⏳</div>
-          <div style={{ fontSize: sz.fontBase }}>Carregando o cardápio…</div>
+          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.4 }}>⏳</div>
+          <div className="delivery-view__carregando">Carregando o cardápio…</div>
         </div>
       ) : itens.length === 0 ? (
         <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div style={{ fontSize: 44, opacity: 0.3 }}>🛵</div>
-          <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Nenhum produto no delivery ainda</div>
-          <div style={{ fontSize: sz.fontSm }}>
+          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.3 }}>🛵</div>
+          <div className="delivery-view__vazio-titulo" style={{ fontWeight: 600 }}>Nenhum produto no delivery ainda</div>
+          <div className="delivery-view__vazio-desc">
             {ehAddon
               ? "Use “Importar cardápio do PDV” acima para trazer seus produtos."
               : "Clique em “Novo produto” para começar seu cardápio online."}
@@ -888,11 +884,11 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
           <div className="delivery-view__card-emoji" style={{ background: alfa(C.accent, "12") }}>{emoji}</div>
         )}
         <div className="delivery-view__card-corpo">
-          <div className="delivery-view__card-nome" style={{ fontSize: sz.fontLg }}>{nome}</div>
+          <div className="delivery-view__card-nome">{nome}</div>
           {item.descricao ? (
-            <div className="delivery-view__card-desc" style={{ fontSize: sz.fontSm }}>{item.descricao}</div>
+            <div className="delivery-view__card-desc">{item.descricao}</div>
           ) : (
-            <div className="delivery-view__card-desc" style={{ fontSize: sz.fontSm, fontStyle: "italic", opacity: 0.6 }}>
+            <div className="delivery-view__card-desc" style={{ fontStyle: "italic", opacity: 0.6 }}>
               Sem descrição — clique em editar para caprichar.
             </div>
           )}
@@ -902,7 +898,7 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
       <div className="delivery-view__card-divisor" style={{ borderTop: `1px solid ${varColor(C.border)}` }} />
 
       <div className="delivery-view__card-preco-linha">
-        <span className="delivery-view__card-preco" style={{ fontSize: sz.fontLg }}>
+        <span className="delivery-view__card-preco">
           {preco != null ? formatarReais(preco) : "—"}
         </span>
         <button
@@ -910,7 +906,7 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
           disabled={!isAdmin}
           className="delivery-view__pill"
           style={{
-            border: "none", cursor: isAdmin ? "pointer" : "default", fontSize: sz.fontSm,
+            border: "none", cursor: isAdmin ? "pointer" : "default",
             background: alfa(item.disponivel ? C.green : C.muted, "15"),
             color: varColor(item.disponivel ? C.green : C.muted),
           }}
@@ -931,7 +927,6 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
               <button
                 onClick={onRemover}
                 className="delivery-view__card-editar delivery-view__card-editar--perigo"
-                style={{ fontSize: sz.fontBase }}
               >
                 <LuTrash2 size={15} /> Confirmar remoção
               </button>
@@ -948,7 +943,7 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
               <button
                 onClick={onEditar}
                 className="delivery-view__card-editar"
-                style={{ fontSize: sz.fontBase, borderColor: varColor(C.border), color: varColor(C.text) }}
+                style={{ borderColor: varColor(C.border), color: varColor(C.text) }}
               >
                 <LuPencil size={15} /> Editar
               </button>
@@ -1095,7 +1090,7 @@ function ModalProduto({
     <div className="delivery-view__overlay" {...fecharAoClicarFora(onFechar)}>
       <div className="delivery-view__modal" style={{ background: varColor(C.card), color: varColor(C.text) }}>
         <div className="delivery-view__modal-topo">
-          <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>
+          <div className="delivery-view__modal-titulo" style={{ fontWeight: 800 }}>
             {modo === "novo" ? "Novo produto do delivery" : "Editar produto do delivery"}
           </div>
           <button onClick={onFechar} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
@@ -1105,7 +1100,7 @@ function ModalProduto({
 
         {/* Standalone: dados do produto. Addon: só referência do PDV. */}
         {ehAddon ? (
-          <div className="delivery-view__aviso" style={{ background: alfa(C.blue, "0c"), border: `1px solid ${alfa(C.blue, "22")}`, fontSize: sz.fontSm }}>
+          <div className="delivery-view__aviso" style={{ background: alfa(C.blue, "0c"), border: `1px solid ${alfa(C.blue, "22")}` }}>
             <strong>{prod?.name || "Produto"}</strong>
             {prod?.price != null ? ` · ${formatarReais(prod.price)}` : ""} — nome e preço vêm do
             cadastro do PDV. Aqui você ajusta como ele aparece no delivery.
@@ -1113,21 +1108,21 @@ function ModalProduto({
         ) : (
           <>
             <div className="delivery-view__campo">
-              <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Nome *</label>
+              <label className="delivery-view__label">Nome *</label>
               <input className="delivery-view__input" style={inputStyle(sz)} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: X-Salada" maxLength={60} />
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <div className="delivery-view__campo" style={{ flex: 1 }}>
-                <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Preço (R$) *</label>
+                <label className="delivery-view__label">Preço (R$) *</label>
                 <input className="delivery-view__input" style={inputStyle(sz)} type="number" min="0" step="0.01" value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" />
               </div>
               <div className="delivery-view__campo" style={{ width: 88 }}>
-                <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Emoji</label>
+                <label className="delivery-view__label">Emoji</label>
                 <input className="delivery-view__input" style={{ ...inputStyle(sz), textAlign: "center" }} value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder="🍔" maxLength={4} />
               </div>
             </div>
             <div className="delivery-view__campo">
-              <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Categoria</label>
+              <label className="delivery-view__label">Categoria</label>
               <input className="delivery-view__input" style={inputStyle(sz)} value={categoria} onChange={(e) => setCategoria(e.target.value)} placeholder="Ex: Lanches" maxLength={40} list="delivery-cats" />
               <datalist id="delivery-cats">{categorias.map((c) => <option key={c} value={c} />)}</datalist>
             </div>
@@ -1136,7 +1131,7 @@ function ModalProduto({
 
         {/* Camada de delivery (ambos os modos) — foto do produto (upload) */}
         <div className="delivery-view__campo">
-          <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>
+          <label className="delivery-view__label">
             <LuImage size={13} style={{ verticalAlign: "-2px", marginRight: 4 }} />
             Foto do produto
           </label>
@@ -1159,8 +1154,8 @@ function ModalProduto({
               <button
                 type="button"
                 onClick={() => fotoInputRef.current?.click()}
-                className="delivery-view__btn"
-                style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "9px 14px", fontSize: sz.fontSm }}
+                className="delivery-view__btn delivery-view__btn--sm"
+                style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "9px 14px" }}
               >
                 <LuImage size={14} /> {temFoto ? "Trocar foto" : "Escolher foto"}
               </button>
@@ -1168,36 +1163,36 @@ function ModalProduto({
                 <button
                   type="button"
                   onClick={removerFoto}
-                  className="delivery-view__btn"
-                  style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "9px 14px", fontSize: sz.fontSm }}
+                  className="delivery-view__btn delivery-view__btn--sm"
+                  style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "9px 14px" }}
                 >
                   <LuTrash2 size={14} /> Remover
                 </button>
               )}
-              <span style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted) }}>
+              <span className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
                 Tire do celular ou escolha da galeria. Ajustamos o tamanho automaticamente.
               </span>
             </div>
           </div>
         </div>
         <div className="delivery-view__campo">
-          <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Descrição</label>
+          <label className="delivery-view__label">Descrição</label>
           <textarea className="delivery-view__textarea" style={inputStyle(sz)} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Pão, hambúrguer, queijo, alface e tomate." maxLength={280} />
         </div>
-        <label className="delivery-view__switch" style={{ fontSize: sz.fontBase }}>
+        <label className="delivery-view__switch">
           <span>Disponível no cardápio</span>
           <input type="checkbox" checked={disponivel} onChange={(e) => setDisponivel(e.target.checked)} style={{ width: 20, height: 20 }} />
         </label>
 
         {erro && (
-          <div className="delivery-view__aviso" style={{ background: alfa(C.red, "12"), color: varColor(C.red), border: `1px solid ${alfa(C.red, "33")}`, fontSize: sz.fontSm }}>
+          <div className="delivery-view__aviso" style={{ background: alfa(C.red, "12"), color: varColor(C.red), border: `1px solid ${alfa(C.red, "33")}` }}>
             ⚠️ {erro}
           </div>
         )}
 
         <div className="delivery-view__modal-botoes">
-          <button onClick={onFechar} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0", fontSize: sz.fontBase }}>Cancelar</button>
-          <button onClick={salvar} disabled={salvando} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "11px 0", fontSize: sz.fontBase }}>
+          <button onClick={onFechar} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0" }}>Cancelar</button>
+          <button onClick={salvar} disabled={salvando} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "11px 0" }}>
             {salvando ? "Salvando…" : "Salvar"}
           </button>
         </div>
@@ -1249,7 +1244,7 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
   };
 
   if (carregando) {
-    return <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: 16 }}>Carregando…</div>;
+    return <div className="delivery-view__carregando" style={{ color: varColor(C.muted), padding: 16 }}>Carregando…</div>;
   }
 
   // ── Editor aberto: mostra só o grupo escolhido, limpo, com "voltar" ──
@@ -1275,7 +1270,7 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 200, fontSize: sz.fontSm, color: varColor(C.muted) }}>
+        <div className="delivery-view__hint" style={{ flex: 1, minWidth: 200, color: varColor(C.muted) }}>
           Crie um grupo uma vez (ex.: “Adicionais”, “Molhos”) e marque em quais produtos ele aparece. Toque num card para editar.
         </div>
         {isAdmin && (
@@ -1289,7 +1284,7 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
               placeholder="Novo grupo (ex.: Adicionais)"
               maxLength={60}
             />
-            <button onClick={addGrupo} disabled={!novoGrupo.trim() || salvandoGrupo} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "10px 16px", fontSize: sz.fontBase, whiteSpace: "nowrap" }}>
+            <button onClick={addGrupo} disabled={!novoGrupo.trim() || salvandoGrupo} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "10px 16px", whiteSpace: "nowrap" }}>
               <LuPlus size={14} /> Grupo
             </button>
           </div>
@@ -1298,9 +1293,9 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
 
       {grupos.length === 0 ? (
         <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div style={{ fontSize: 44, opacity: 0.3 }}>🧩</div>
-          <div style={{ fontSize: sz.fontBase + 1, fontWeight: 600 }}>Nenhum grupo ainda</div>
-          <div style={{ fontSize: sz.fontSm }}>Crie o primeiro grupo (ex.: “Adicionais”) e escolha em quais produtos ele aparece.</div>
+          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.3 }}>🧩</div>
+          <div className="delivery-view__vazio-titulo" style={{ fontWeight: 600 }}>Nenhum grupo ainda</div>
+          <div className="delivery-view__vazio-desc">Crie o primeiro grupo (ex.: “Adicionais”) e escolha em quais produtos ele aparece.</div>
         </div>
       ) : (
         <div
@@ -1347,15 +1342,16 @@ function GrupoCardMini({ sz, grupo, onAbrir }) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ flex: 1, fontSize: sz.fontBase + 1, fontWeight: 700, color: varColor(C.text) }}>
+        <span className="delivery-view__grupo-nome" style={{ flex: 1, fontWeight: 700, color: varColor(C.text) }}>
           {grupo.nome}
         </span>
         <LuChevronRight size={18} style={{ color: varColor(C.muted), flexShrink: 0 }} />
       </div>
 
       <span
+        className="delivery-view__grupo-selo"
         style={{
-          alignSelf: "flex-start", fontSize: sz.fontSm - 1, fontWeight: 600,
+          alignSelf: "flex-start", fontWeight: 600,
           padding: "2px 8px", borderRadius: 999,
           background: obrigatorio ? alfa(C.accent, "15") : varColor(C.surface),
           color: obrigatorio ? varColor(C.accent) : varColor(C.muted),
@@ -1364,7 +1360,7 @@ function GrupoCardMini({ sz, grupo, onAbrir }) {
         {obrigatorio ? "Obrigatório" : "Opcional"} · {grupo.min_escolhas ?? 0}–{grupo.max_escolhas ?? 1}
       </span>
 
-      <div style={{ marginTop: "auto", display: "flex", gap: 12, fontSize: sz.fontSm, color: varColor(C.muted), flexWrap: "wrap" }}>
+      <div className="delivery-view__grupo-stats" style={{ marginTop: "auto", display: "flex", gap: 12, color: varColor(C.muted), flexWrap: "wrap" }}>
         <span>{nItens} {nItens === 1 ? "item" : "itens"}</span>
         <span>·</span>
         <span>{nProdutos} {nProdutos === 1 ? "produto" : "produtos"}</span>
@@ -1412,7 +1408,7 @@ function SeletorProdutoComplemento({ sz, products, idsExcluir, onEscolher }) {
           }}
         >
           {resultados.length === 0 ? (
-            <div style={{ padding: "10px 12px", fontSize: sz.fontSm, color: varColor(C.muted) }}>
+            <div className="delivery-view__hint" style={{ padding: "10px 12px", color: varColor(C.muted) }}>
               {(products || []).length === 0
                 ? "Nenhum produto criado ainda."
                 : "Nenhum item encontrado."}
@@ -1429,13 +1425,13 @@ function SeletorProdutoComplemento({ sz, products, idsExcluir, onEscolher }) {
                   display: "flex", alignItems: "center", gap: 8, width: "100%",
                   padding: "10px 12px", background: "transparent", border: "none",
                   borderBottom: `1px solid ${alfa(C.border, "60")}`,
-                  fontSize: sz.fontBase, color: varColor(C.text), textAlign: "left",
+                  color: varColor(C.text), textAlign: "left",
                   cursor: "pointer",
                 }}
               >
-                {p.emoji && <span style={{ fontSize: sz.fontBase + 2 }}>{p.emoji}</span>}
+                {p.emoji && <span className="delivery-view__opcao-emoji">{p.emoji}</span>}
                 <span style={{ flex: 1 }}>{p.name}</span>
-                <span style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+                <span className="delivery-view__opcao-meta" style={{ color: varColor(C.muted) }}>
                   {formatarReais(p.price)}
                 </span>
               </button>
@@ -1487,7 +1483,7 @@ function SeletorSubgrupo({ sz, candidatos, onEscolher }) {
           }}
         >
           {resultados.length === 0 ? (
-            <div style={{ padding: "10px 12px", fontSize: sz.fontSm, color: varColor(C.muted) }}>
+            <div className="delivery-view__hint" style={{ padding: "10px 12px", color: varColor(C.muted) }}>
               Nenhum grupo encontrado.
             </div>
           ) : (
@@ -1503,13 +1499,13 @@ function SeletorSubgrupo({ sz, candidatos, onEscolher }) {
                     display: "flex", alignItems: "center", gap: 8, width: "100%",
                     padding: "10px 12px", background: "transparent", border: "none",
                     borderBottom: `1px solid ${alfa(C.border, "60")}`,
-                    fontSize: sz.fontBase, color: varColor(C.text), textAlign: "left",
+                    color: varColor(C.text), textAlign: "left",
                     cursor: "pointer",
                   }}
                 >
                   <LuPlus size={13} style={{ color: varColor(C.accent), flexShrink: 0 }} />
                   <span style={{ flex: 1 }}>{g.nome}</span>
-                  <span style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+                  <span className="delivery-view__opcao-meta" style={{ color: varColor(C.muted) }}>
                     {nSub} {nSub === 1 ? "item" : "itens"}
                   </span>
                 </button>
@@ -1761,19 +1757,19 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
         <button
           type="button"
           onClick={tentarVoltar}
-          className="delivery-view__btn"
-          style={{ display: "flex", alignItems: "center", gap: 6, background: varColor(C.surface), color: varColor(C.text), padding: "8px 12px", fontSize: sz.fontSm, whiteSpace: "nowrap" }}
+          className="delivery-view__btn delivery-view__btn--sm"
+          style={{ display: "flex", alignItems: "center", gap: 6, background: varColor(C.surface), color: varColor(C.text), padding: "8px 12px", whiteSpace: "nowrap" }}
         >
           <LuArrowLeft size={15} /> Voltar
         </button>
-        <span style={{ flex: 1, fontSize: sz.fontBase + 2, fontWeight: 700, color: varColor(C.text) }}>
+        <span className="delivery-view__editor-titulo" style={{ flex: 1, fontWeight: 700, color: varColor(C.text) }}>
           <span style={{ fontWeight: 600, color: varColor(C.muted) }}>nome: </span>
           {nome || grupo.nome}
         </span>
         {isAdmin && (
           <>
             {sujo && (
-              <span style={{ fontSize: sz.fontSm - 1, color: varColor(C.red), fontWeight: 600, whiteSpace: "nowrap" }}>
+              <span className="delivery-view__hint" style={{ color: varColor(C.red), fontWeight: 600, whiteSpace: "nowrap" }}>
                 Alterações não salvas
               </span>
             )}
@@ -1781,8 +1777,8 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
               type="button"
               onClick={salvar}
               disabled={!sujo || salvando}
-              className="delivery-view__btn"
-              style={{ display: "flex", alignItems: "center", gap: 6, background: sujo ? varColor(C.accent) : alfa(C.muted, "20"), color: sujo ? "#fff" : varColor(C.muted), padding: "9px 16px", fontSize: sz.fontSm, fontWeight: 700, whiteSpace: "nowrap", cursor: sujo && !salvando ? "pointer" : "default" }}
+              className="delivery-view__btn delivery-view__btn--sm"
+              style={{ display: "flex", alignItems: "center", gap: 6, background: sujo ? varColor(C.accent) : alfa(C.muted, "20"), color: sujo ? "#fff" : varColor(C.muted), padding: "9px 16px", fontWeight: 700, whiteSpace: "nowrap", cursor: sujo && !salvando ? "pointer" : "default" }}
             >
               {salvando ? "Salvando…" : "Salvar"}
             </button>
@@ -1821,8 +1817,9 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
                 aria-pressed={ativo}
                 disabled={!isAdmin}
                 onClick={() => isAdmin && setMin(opt.obrig ? String(Math.max(1, Number(min) || 0)) : "0")}
+                className="delivery-view__editor-toggle"
                 style={{
-                  padding: "8px 14px", fontSize: sz.fontSm, fontWeight: 700, border: "none",
+                  padding: "8px 14px", fontWeight: 700, border: "none",
                   background: ativo ? varColor(C.accent) : "transparent",
                   color: ativo ? "#fff" : varColor(C.muted),
                   cursor: isAdmin ? "pointer" : "default", whiteSpace: "nowrap",
@@ -1833,7 +1830,7 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
             );
           })}
         </div>
-        <label style={{ fontSize: sz.fontSm, color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}>
+        <label className="delivery-view__hint" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}>
           máx
           <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 56 }} type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} disabled={!isAdmin} />
         </label>
@@ -1841,14 +1838,14 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
           <button
             onClick={() => setConfirmarRemover(true)}
             title="Remover grupo"
-            className="delivery-view__btn"
-            style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "8px 10px", fontSize: sz.fontSm }}
+            className="delivery-view__btn delivery-view__btn--sm"
+            style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "8px 10px" }}
           >
             <LuTrash2 size={13} />
           </button>
         )}
       </div>
-      <div style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted), marginTop: 4 }}>
+      <div className="delivery-view__hint" style={{ color: varColor(C.muted), marginTop: 4 }}>
         {Number(min) > 0
           ? `Obrigatório — o cliente precisa escolher ${Number(max) > 1 ? `de ${min || 1} a ${max}` : "1 opção"}`
           : `Opcional — o cliente pode escolher ${Number(max) > 1 ? `até ${max}` : "1, se quiser"}`}
@@ -1864,8 +1861,8 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
           renderItem={(it, { alca }) => (
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: varColor(C.surface), marginBottom: 6 }}>
               {isAdmin && <span {...alca}>⠿</span>}
-              <span style={{ flex: 1, fontSize: sz.fontBase }}>{it.nome}</span>
-              <span style={{ fontSize: sz.fontSm, color: varColor(C.accent), fontWeight: 600 }}>
+              <span className="delivery-view__item-nome" style={{ flex: 1 }}>{it.nome}</span>
+              <span className="delivery-view__item-preco" style={{ color: varColor(C.accent), fontWeight: 600 }}>
                 {Number(it.preco) > 0 ? `+ ${formatarReais(it.preco)}` : "Grátis"}
               </span>
               {isAdmin && (
@@ -1887,7 +1884,7 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
           {selecionadoProd ? (
             // Produto escolhido: mostra o item + preço (editável) + confirmar.
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 180, padding: "8px 10px", borderRadius: 8, background: alfa(C.accent, "12"), color: varColor(C.accent), fontSize: sz.fontBase, fontWeight: 600 }}>
+              <div className="delivery-view__selecionado" style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 180, padding: "8px 10px", borderRadius: 8, background: alfa(C.accent, "12"), color: varColor(C.accent), fontWeight: 600 }}>
                 {selecionadoProd.emoji && <span>{selecionadoProd.emoji}</span>}
                 <span style={{ flex: 1 }}>{selecionadoProd.name}</span>
                 <button
@@ -1901,7 +1898,7 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
                 </button>
               </div>
               <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 96 }} type="number" min="0" step="0.01" value={novoPreco} onChange={(e) => setNovoPreco(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addItem()} placeholder="R$ 0,00" />
-              <button onClick={addItem} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "8px 14px", fontSize: sz.fontSm }}>
+              <button onClick={addItem} className="delivery-view__btn delivery-view__btn--sm" style={{ background: varColor(C.accent), color: "#fff", padding: "8px 14px" }}>
                 <LuPlus size={13} /> Adicionar
               </button>
             </>
@@ -1922,10 +1919,10 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
           sozinho — aqui só se reaproveita. Arraste pela alça pra ordenar. */}
       {isAdmin && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${alfa(C.border, "60")}` }}>
-          <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.text), marginBottom: 2 }}>
+          <div className="delivery-view__secao-titulo" style={{ fontWeight: 600, color: varColor(C.text), marginBottom: 2 }}>
             <LuClipboardList size={12} style={{ verticalAlign: "-2px", marginRight: 4 }} /> Subgrupos deste grupo
           </div>
-          <div style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted), marginBottom: 8 }}>
+          <div className="delivery-view__hint" style={{ color: varColor(C.muted), marginBottom: 8 }}>
             Reaproveite grupos já criados aqui dentro. Cada subgrupo mantém suas próprias
             regras (obrigatório/opcional) e continua disponível sozinho em outros produtos.
           </div>
@@ -1943,10 +1940,10 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
                   return (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: varColor(C.surface), marginBottom: 6 }}>
                       <span {...alca}>⠿</span>
-                      <span style={{ flex: 1, fontSize: sz.fontBase, fontWeight: 600, color: varColor(C.text) }}>
+                      <span className="delivery-view__item-nome" style={{ flex: 1, fontWeight: 600, color: varColor(C.text) }}>
                         {sub?.nome || "(grupo removido)"}
                       </span>
-                      <span style={{ fontSize: sz.fontSm - 1, color: varColor(C.muted) }}>
+                      <span className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
                         {obrig ? "Obrigatório" : "Opcional"} · {nSub} {nSub === 1 ? "item" : "itens"}
                       </span>
                       <button
@@ -1967,7 +1964,7 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
           {candidatosSubgrupo.length > 0 ? (
             <SeletorSubgrupo sz={sz} candidatos={candidatosSubgrupo} onEscolher={addSubgrupo} />
           ) : (
-            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+            <div className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
               {biblioteca.length <= 1
                 ? "Crie outros grupos na biblioteca para reaproveitá-los aqui como subgrupos."
                 : "Nenhum outro grupo disponível para anexar aqui."}
@@ -1979,11 +1976,11 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
       {/* Onde este grupo aparece — busca multi-seleção dos produtos do cardápio. */}
       {isAdmin && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${alfa(C.border, "60")}` }}>
-          <div style={{ fontSize: sz.fontSm, fontWeight: 600, color: varColor(C.text), marginBottom: 6 }}>
+          <div className="delivery-view__secao-titulo" style={{ fontWeight: 600, color: varColor(C.text), marginBottom: 6 }}>
             <LuUtensils size={12} style={{ verticalAlign: "-2px", marginRight: 4 }} /> Aparece nestes produtos
           </div>
           {itensCardapio.length === 0 ? (
-            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>
+            <div className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
               Adicione produtos ao cardápio para vincular este grupo a eles.
             </div>
           ) : (
@@ -2004,19 +2001,19 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
         <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setConfirmarVoltar(false))}>
           <div className="delivery-view__modal" style={{ background: varColor(C.card), color: varColor(C.text), maxWidth: 420 }}>
             <div className="delivery-view__modal-topo">
-              <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Alterações não salvas</div>
+              <div className="delivery-view__modal-titulo" style={{ fontWeight: 800 }}>Alterações não salvas</div>
               <button onClick={() => setConfirmarVoltar(false)} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
                 <LuX size={18} />
               </button>
             </div>
-            <div style={{ fontSize: sz.fontBase, color: varColor(C.text), lineHeight: 1.5 }}>
+            <div className="delivery-view__modal-texto" style={{ color: varColor(C.text) }}>
               Você tem alterações não salvas neste grupo. Se sair agora, elas serão descartadas e o grupo continua como estava.
             </div>
             <div className="delivery-view__modal-botoes">
-              <button onClick={() => setConfirmarVoltar(false)} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0", fontSize: sz.fontBase }}>
+              <button onClick={() => setConfirmarVoltar(false)} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0" }}>
                 Continuar editando
               </button>
-              <button onClick={() => { setConfirmarVoltar(false); onVoltar(); }} className="delivery-view__btn" style={{ background: varColor(C.red), color: "#fff", padding: "11px 0", fontSize: sz.fontBase }}>
+              <button onClick={() => { setConfirmarVoltar(false); onVoltar(); }} className="delivery-view__btn" style={{ background: varColor(C.red), color: "#fff", padding: "11px 0" }}>
                 Descartar e sair
               </button>
             </div>
@@ -2030,19 +2027,19 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
         <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setConfirmarRemover(false))}>
           <div className="delivery-view__modal" style={{ background: varColor(C.card), color: varColor(C.text), maxWidth: 420 }}>
             <div className="delivery-view__modal-topo">
-              <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Remover grupo</div>
+              <div className="delivery-view__modal-titulo" style={{ fontWeight: 800 }}>Remover grupo</div>
               <button onClick={() => setConfirmarRemover(false)} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
                 <LuX size={18} />
               </button>
             </div>
-            <div style={{ fontSize: sz.fontBase, color: varColor(C.text), lineHeight: 1.5 }}>
+            <div className="delivery-view__modal-texto" style={{ color: varColor(C.text) }}>
               Remover o grupo <strong>{grupo.nome}</strong>? Ele deixará de aparecer em todos os produtos vinculados. Essa ação não pode ser desfeita.
             </div>
             <div className="delivery-view__modal-botoes">
-              <button onClick={() => setConfirmarRemover(false)} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0", fontSize: sz.fontBase }}>
+              <button onClick={() => setConfirmarRemover(false)} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0" }}>
                 Cancelar
               </button>
-              <button onClick={removerGrupo} className="delivery-view__btn" style={{ background: varColor(C.red), color: "#fff", padding: "11px 0", fontSize: sz.fontBase }}>
+              <button onClick={removerGrupo} className="delivery-view__btn" style={{ background: varColor(C.red), color: "#fff", padding: "11px 0" }}>
                 Remover grupo
               </button>
             </div>
@@ -2083,9 +2080,10 @@ function SeletorProdutosMulti({ sz, itens, produtoIds, vinculando, onAlternar })
           {selecionados.map((it) => (
             <span
               key={it.id}
+              className="delivery-view__chip-produto"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "5px 8px 5px 10px", borderRadius: 999, fontSize: sz.fontSm,
+                padding: "5px 8px 5px 10px", borderRadius: 999,
                 background: alfa(C.accent, "15"), color: varColor(C.accent),
                 border: `1px solid ${alfa(C.accent, "40")}`, fontWeight: 600,
               }}
@@ -2131,7 +2129,7 @@ function SeletorProdutosMulti({ sz, itens, produtoIds, vinculando, onAlternar })
             }}
           >
             {resultados.length === 0 ? (
-              <div style={{ padding: "10px 12px", fontSize: sz.fontSm, color: varColor(C.muted) }}>
+              <div className="delivery-view__hint" style={{ padding: "10px 12px", color: varColor(C.muted) }}>
                 {termo.trim() ? "Nenhum produto encontrado." : "Todos os produtos já estão neste combo."}
               </div>
             ) : (
@@ -2147,7 +2145,7 @@ function SeletorProdutosMulti({ sz, itens, produtoIds, vinculando, onAlternar })
                     display: "flex", alignItems: "center", gap: 8, width: "100%",
                     padding: "10px 12px", background: "transparent", border: "none",
                     borderBottom: `1px solid ${alfa(C.border, "60")}`,
-                    fontSize: sz.fontBase, color: varColor(C.text), textAlign: "left",
+                    color: varColor(C.text), textAlign: "left",
                     cursor: "pointer",
                   }}
                 >
@@ -2273,7 +2271,7 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
   };
 
   if (carregando || !config) {
-    return <div style={{ color: varColor(C.muted), fontSize: sz.fontBase, padding: 16 }}>Carregando…</div>;
+    return <div className="delivery-view__carregando" style={{ color: varColor(C.muted), padding: 16 }}>Carregando…</div>;
   }
 
   const readOnly = !isAdmin;
@@ -2293,18 +2291,18 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
       {/* Pedido mínimo + tempo de preparo */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <div className="delivery-view__campo" style={{ flex: "1 1 180px" }}>
-          <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Pedido mínimo (R$)</label>
+          <label className="delivery-view__label">Pedido mínimo (R$)</label>
           <input className="delivery-view__input" style={inputStyle(sz)} type="number" min="0" step="0.01" value={config.pedido_minimo ?? 0} disabled={readOnly} onChange={(e) => set({ pedido_minimo: e.target.value })} onBlur={() => salvar()} />
         </div>
         <div className="delivery-view__campo" style={{ flex: "1 1 180px" }}>
-          <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>Tempo de preparo (min)</label>
+          <label className="delivery-view__label">Tempo de preparo (min)</label>
           <input className="delivery-view__input" style={inputStyle(sz)} type="number" min="0" value={config.tempo_preparo_min ?? 30} disabled={readOnly} onChange={(e) => set({ tempo_preparo_min: e.target.value })} onBlur={() => salvar()} />
         </div>
       </div>
 
       {/* Taxa de entrega */}
       <div>
-        <div style={{ fontWeight: 700, fontSize: sz.fontBase, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+        <div className="delivery-view__entrega-titulo" style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
           <LuTruck size={16} color={varColor(C.accent)} /> Taxa de entrega
         </div>
 
@@ -2318,9 +2316,9 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
               <button
                 key={m.id}
                 onClick={() => setModoTaxa(m.id)}
-                className="delivery-view__btn"
+                className="delivery-view__btn delivery-view__btn--sm"
                 style={{
-                  padding: "8px 14px", fontSize: sz.fontSm,
+                  padding: "8px 14px",
                   background: modoTaxa === m.id ? varColor(C.accent) : alfa(C.muted, "12"),
                   color: modoTaxa === m.id ? "#fff" : varColor(C.muted),
                 }}
@@ -2331,7 +2329,7 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
           </div>
         )}
 
-        <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginBottom: 10 }}>
+        <div className="delivery-view__hint" style={{ color: varColor(C.muted), marginBottom: 10 }}>
           {modoTaxa === "km"
             ? "Marque no mapa de onde você entrega e crie anéis por distância (ex.: até 2 km R$ 5, até 5 km R$ 8). Fora do maior anel, o cliente não consegue pedir."
             : "Cobre por bairro ou por faixa de CEP. Quem estiver fora de todas as faixas não consegue pedir para entrega."}
@@ -2342,7 +2340,7 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
           <div style={{ marginBottom: 12 }}>
             {/* Endereço do estabelecimento → origem do mapa */}
             <div className="delivery-view__campo" style={{ marginBottom: 10 }}>
-              <label className="delivery-view__label" style={{ fontSize: sz.fontSm }}>
+              <label className="delivery-view__label">
                 Endereço do estabelecimento (ponto de partida das entregas)
               </label>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -2360,9 +2358,9 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
                   <button
                     onClick={localizarPeloEndereco}
                     disabled={geocodificando}
-                    className="delivery-view__btn"
+                    className="delivery-view__btn delivery-view__btn--sm"
                     style={{
-                      padding: "8px 16px", fontSize: sz.fontSm, whiteSpace: "nowrap",
+                      padding: "8px 16px", whiteSpace: "nowrap",
                       background: varColor(C.accent), color: "#fff",
                       opacity: geocodificando ? 0.7 : 1,
                     }}
@@ -2372,7 +2370,7 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
                 )}
               </div>
               {!readOnly && (
-                <div style={{ fontSize: sz.fontSm, color: varColor(C.muted), marginTop: 4 }}>
+                <div className="delivery-view__hint" style={{ color: varColor(C.muted), marginTop: 4 }}>
                   Digite o endereço e toque em "Localizar" — o pino vai para lá. Você ainda pode arrastá-lo para o ajuste fino.
                 </div>
               )}
@@ -2385,7 +2383,7 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
               readOnly={readOnly}
             />
             {!origem && (
-              <div style={{ fontSize: sz.fontSm, color: varColor(C.red), marginTop: 6 }}>
+              <div className="delivery-view__hint" style={{ color: varColor(C.red), marginTop: 6 }}>
                 Marque o ponto de partida no mapa — sem ele o cálculo por distância não funciona.
               </div>
             )}
@@ -2394,11 +2392,11 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
           {faixasVisiveis.length === 0 && (
-            <div style={{ fontSize: sz.fontSm, color: varColor(C.muted) }}>Nenhuma faixa cadastrada ainda.</div>
+            <div className="delivery-view__hint" style={{ color: varColor(C.muted) }}>Nenhuma faixa cadastrada ainda.</div>
           )}
           {faixasVisiveis.map((f, idx) => (
             <div key={idx} className="delivery-view__faixa" style={{ background: varColor(C.surface) }}>
-              <span className="delivery-view__faixa-texto" style={{ fontSize: sz.fontBase }}>{faixaResumo(f)}</span>
+              <span className="delivery-view__faixa-texto">{faixaResumo(f)}</span>
               {isAdmin && (
                 <button onClick={() => removerFaixa(idx)} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
                   <LuTrash2 size={14} />
@@ -2416,9 +2414,9 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
                   <button
                     key={t}
                     onClick={() => setFaixaTipo(t)}
-                    className="delivery-view__btn"
+                    className="delivery-view__btn delivery-view__btn--sm"
                     style={{
-                      padding: "7px 14px", fontSize: sz.fontSm,
+                      padding: "7px 14px",
                       background: faixaTipo === t ? varColor(C.accent) : alfa(C.muted, "12"),
                       color: faixaTipo === t ? "#fff" : varColor(C.muted),
                     }}
@@ -2440,7 +2438,7 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
                 </>
               )}
               <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 110 }} type="number" min="0" step="0.01" value={faixaTaxa} onChange={(e) => setFaixaTaxa(e.target.value)} placeholder="Taxa R$" />
-              <button onClick={addFaixa} disabled={salvando} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "10px 16px", fontSize: sz.fontBase }}>
+              <button onClick={addFaixa} disabled={salvando} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "10px 16px" }}>
                 <LuPlus size={14} /> Adicionar
               </button>
             </div>
@@ -2457,6 +2455,5 @@ function inputStyle(sz) {
     border: `1.5px solid ${varColor(C.border)}`,
     background: varColor(C.surface),
     color: varColor(C.text),
-    fontSize: sz.fontBase,
   };
 }

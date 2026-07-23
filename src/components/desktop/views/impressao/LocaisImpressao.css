@@ -1,0 +1,113 @@
+/**
+ * LocaisImpressao — aba de configuração de locais/estações de impressão
+ * (Cozinha, Bar, Caixa…). Decisão 018 (CSS separado do JSX) + tokens --gm-*
+ * (ADR-007). Cores/transições/cursor/layout fixo continuam no JSX (inline).
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-* e --lh-* de
+ * src/styles/tipografia.css), por classe de componente — não mais inline via
+ * sz.* do JSX. `sz` continua no JSX só para padding/gap (layout).
+ */
+
+.locais-impressao__titulo {
+  font-size: var(--fs-xl);   /* role: título de seção (era sz.fontBase) */
+  line-height: var(--lh-xl);
+}
+
+.locais-impressao__subtitulo {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.locais-impressao__btn-novo {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.locais-impressao__alerta {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.locais-impressao__carregando {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.locais-impressao__vazio-titulo {
+  font-size: var(--fs-lg);   /* role: estado vazio (era sz.fontBase) */
+  line-height: var(--lh-lg);
+}
+
+.locais-impressao__vazio-texto {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.locais-impressao__item-nome {
+  font-size: var(--fs-lg);   /* role: nome de local (era sz.fontBase) */
+  line-height: var(--lh-lg);
+}
+
+.locais-impressao__item-desc {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.locais-impressao__modal-titulo {
+  font-size: var(--fs-xl);   /* role: título de seção (era sz.fontBase + 1) */
+  line-height: var(--lh-xl);
+}
+
+.locais-impressao__campo-label {
+  font-size: var(--fs-xs);   /* role: caption/selo (era 12px literal) */
+  line-height: var(--lh-xs);
+}
+
+.locais-impressao__input {
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.locais-impressao__toggle-titulo {
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.locais-impressao__toggle-texto {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.locais-impressao__form-erro {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.locais-impressao__btn-secundario {
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.locais-impressao__btn-primario {
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+/* AMBÍGUO (ver relatório de entrega): é o título do modal de confirmar
+   exclusão, mas no original já usava o mesmo tamanho do corpo (sz.fontBase),
+   menor que o título do modal de criar/editar (que usava sz.fontBase + 1).
+   Mantido como corpo para preservar a hierarquia visual original. */
+.locais-impressao__delete-titulo {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.locais-impressao__delete-texto {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm, lineHeight 1.5) */
+  line-height: var(--lh-sm);
+}
+
+.locais-impressao__btn-confirmar-remocao {
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
+}

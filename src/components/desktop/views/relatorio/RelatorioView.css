@@ -1,0 +1,303 @@
+/**
+ * RelatorioView — migração da TIPOGRAFIA de JS inline para CSS. Decisão 018
+ * (CSS separado do JSX) + tokens --fs-* e --lh-* de src/styles/tipografia.css
+ * (fonte única de verdade do tamanho de fonte; ADR-007, sobreponível por tenant).
+ *
+ * TAMANHO DE FONTE agora vem da escala do design system por classe de
+ * componente — não mais inline via sz.* do JSX. `sz`/getSizes CONTINUA no JSX
+ * só para layout (padding/gap/grid) e para SIZE de ícones (props size=), que
+ * seguem no sistema JS por breakpoint.
+ *
+ * Relatório é denso em dinheiro/KPI/quantidade/hora → `font-variant-numeric:
+ * tabular-nums` em toda coluna/valor numérico, para os dígitos alinharem.
+ * Cor, font-weight, padding, gap, border PERMANECEM inline no JSX.
+ *
+ * ATENÇÃO: Custom Property não resolve em @media — se precisar de breakpoint
+ * literal, escrever o px direto (aqui não há @media).
+ */
+
+/* ── Componentes auxiliares compartilhados ───────────────────────── */
+
+/* KpiCard — rótulo de apoio + número hero do dashboard */
+.relatorio-view__kpi-label {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__kpi-valor {
+  font-size: var(--fs-2xl);  /* role: número hero de KPI (era sz.fontXl) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Th — cabeçalho de tabela em caixa alta */
+.relatorio-view__th {
+  font-size: var(--fs-sm);   /* role: label de coluna (era 14) */
+  line-height: var(--lh-sm);
+}
+
+/* Td — célula de corpo (dinheiro, contagem, data, texto) */
+.relatorio-view__td {
+  font-size: var(--fs-base); /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Empty — glyph decorativo grande + mensagem do estado vazio */
+.relatorio-view__empty-icon {
+  font-size: var(--fs-5xl);  /* role: hero decorativo (era 48) */
+  line-height: 1;
+}
+.relatorio-view__empty-msg {
+  font-size: var(--fs-lg);   /* role: estado-vazio (era sz.fontBase + 1) */
+  line-height: var(--lh-lg);
+}
+
+/* ChipBtn — filtro em pílula */
+.relatorio-view__chip {
+  font-size: var(--fs-sm);   /* role: label (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+/* ExportBar / botão de export (PDF, Excel) */
+.relatorio-view__export-btn {
+  font-size: var(--fs-sm);   /* role: label de botão (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+/* ── Modal de detalhe de fechamento ──────────────────────────────── */
+
+.relatorio-view__modal-titulo {
+  font-size: var(--fs-xl);   /* role: título do modal (era 18) */
+  line-height: var(--lh-xl);
+}
+.relatorio-view__modal-data {
+  font-size: var(--fs-base); /* role: data/hora secundária (era 16) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__modal-usuario {
+  font-size: var(--fs-lg);   /* role: nome do operador (era 18) */
+  line-height: var(--lh-lg);
+}
+.relatorio-view__modal-th {
+  font-size: var(--fs-sm);   /* role: cabeçalho da grade (era 14) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__modal-metodo-label {
+  font-size: var(--fs-lg);   /* role: rótulo de linha (era 17) */
+  line-height: var(--lh-lg);
+}
+.relatorio-view__modal-fundo-nota {
+  font-size: var(--fs-sm);   /* role: caption "(inclui fundo)" (era 14) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__modal-metodo-valor {
+  font-size: var(--fs-lg);   /* role: dinheiro conferido (era 17) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__modal-obs-label {
+  font-size: var(--fs-sm);   /* role: caption "Observação" (era 14) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__modal-obs-texto {
+  font-size: var(--fs-base); /* role: corpo da observação (era 16) */
+  line-height: var(--lh-base);
+}
+.relatorio-view__modal-resumo-label {
+  font-size: var(--fs-base); /* role: rótulo do resumo (era 16) */
+  line-height: var(--lh-base);
+}
+.relatorio-view__modal-resumo-valor {
+  font-size: var(--fs-base); /* role: dinheiro do resumo (era 16) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__modal-total-label {
+  font-size: var(--fs-lg);   /* role: rótulo de total (era 17/18) */
+  line-height: var(--lh-lg);
+}
+.relatorio-view__modal-total-valor {
+  font-size: var(--fs-lg);   /* role: dinheiro de total (era 17/18) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__modal-dif-label {
+  font-size: var(--fs-base); /* role: rótulo sobra/falta (era 16) */
+  line-height: var(--lh-base);
+}
+.relatorio-view__modal-fechar {
+  font-size: var(--fs-lg);   /* role: label de botão (era 17) */
+  line-height: var(--lh-lg);
+}
+
+/* ── View principal — cabeçalho e abas ───────────────────────────── */
+
+.relatorio-view__titulo {
+  font-size: var(--fs-xl);   /* role: título da página (era sz.fontLg) */
+  line-height: var(--lh-xl);
+}
+.relatorio-view__subtitulo {
+  font-size: var(--fs-sm);   /* role: apoio do título (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__periodo-btn {
+  font-size: var(--fs-sm);   /* role: label (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+/* inputs de data do período custom (className já existente no JSX) */
+.relatorio-date-input {
+  font-size: var(--fs-sm);   /* role: valor de input de data (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__date-sep {
+  font-size: var(--fs-sm);   /* role: label "até" (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__aba {
+  font-size: var(--fs-base); /* role: label de aba (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+.relatorio-view__toggle-btn {
+  font-size: var(--fs-sm);   /* role: label de toggle (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__busca {
+  font-size: var(--fs-base); /* role: input de busca (era sz.fontSm + 2) */
+  line-height: var(--lh-base);
+}
+
+/* ── Vendas: badges e cards ──────────────────────────────────────── */
+
+.relatorio-view__metodo-badge {
+  font-size: var(--fs-sm);   /* role: badge de método (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__comanda-icon {
+  font-size: var(--fs-xl);   /* role: glyph decorativo 🧾 (era 20) */
+  line-height: 1;
+}
+.relatorio-view__comanda-num {
+  font-size: var(--fs-lg);   /* role: número da comanda (era sz.fontLg - 1) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__comanda-meta {
+  font-size: var(--fs-sm);   /* role: caption data·caixa (era sz.fontSm) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__comanda-total {
+  font-size: var(--fs-xl);   /* role: total do card, dinheiro (era sz.fontXl - 2) */
+  line-height: var(--lh-xl);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__comanda-itens {
+  font-size: var(--fs-sm);   /* role: caption "X itens" (era sz.fontSm) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__sem-itens {
+  font-size: var(--fs-sm);   /* role: apoio "sem itens" (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+
+/* ── Vendas detalhado: sub-tabela de itens ───────────────────────── */
+
+.relatorio-view__subtable-th {
+  font-size: var(--fs-sm);   /* role: cabeçalho de coluna (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__item-cell {
+  font-size: var(--fs-base); /* role: célula de item (era sz.fontBase) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__item-obs {
+  font-size: var(--fs-sm);   /* role: caption de observação (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+/* ── Rodapés de tabela (tfoot) ───────────────────────────────────── */
+
+.relatorio-view__tfoot-cell {
+  font-size: var(--fs-base); /* role: célula de rodapé (era sz.fontBase) */
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__tfoot-total {
+  font-size: var(--fs-lg);   /* role: total do rodapé, dinheiro (era sz.fontLg) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Cancelamentos ───────────────────────────────────────────────── */
+
+.relatorio-view__qtd-badge {
+  font-size: var(--fs-sm);   /* role: badge de quantidade (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+.relatorio-view__motivo-chip {
+  font-size: var(--fs-sm);   /* role: chip de motivo (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__origem-badge {
+  font-size: var(--fs-sm);   /* role: badge de origem (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+/* ── Fechamentos ─────────────────────────────────────────────────── */
+
+.relatorio-view__ver-detalhes {
+  font-size: var(--fs-sm);   /* role: badge "ver detalhes" (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__fech-obs {
+  font-size: var(--fs-sm);   /* role: texto de observação (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__fech-obs-label {
+  font-size: var(--fs-sm);   /* role: caption "Obs.:" (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+/* ── Logs ────────────────────────────────────────────────────────── */
+
+.relatorio-view__log-refresh {
+  font-size: var(--fs-sm);   /* role: label de botão (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__log-tipo {
+  font-size: var(--fs-sm);   /* role: badge de tipo (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__log-role {
+  font-size: var(--fs-sm);   /* role: badge de cargo (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+/* ── Credenciais ─────────────────────────────────────────────────── */
+
+.relatorio-view__aviso {
+  font-size: var(--fs-sm);   /* role: banner de aviso (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__avatar {
+  font-size: var(--fs-lg);   /* role: iniciais no avatar (era 18) */
+  line-height: 1;
+}
+.relatorio-view__role-badge {
+  font-size: var(--fs-sm);   /* role: badge de cargo (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__cred-hint {
+  font-size: var(--fs-sm);   /* role: apoio "redefinir" (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}
+.relatorio-view__cred-nota {
+  font-size: var(--fs-sm);   /* role: nota de rodapé (era sz.fontSm + 1) */
+  line-height: var(--lh-sm);
+}

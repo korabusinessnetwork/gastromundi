@@ -188,7 +188,6 @@ export default function DesempenhoReport() {
               style={{
                 background: tipoPeriodo === p.id ? varColor(C.accent) : varColor(C.surface),
                 color: tipoPeriodo === p.id ? "#fff" : varColor(C.muted),
-                fontSize: sz.fontSm + 1,
               }}
             >
               {p.label}
@@ -203,21 +202,21 @@ export default function DesempenhoReport() {
               className="desempenho__date-input"
               value={customInicio}
               onChange={(e) => setCustomInicio(e.target.value)}
-              style={{ border: `1.5px solid ${customInicio ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontSize: sz.fontSm + 1 }}
+              style={{ border: `1.5px solid ${customInicio ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text) }}
             />
-            <span style={{ color: varColor(C.muted), fontWeight: 600, fontSize: sz.fontSm + 1 }}>até</span>
+            <span className="desempenho__datas-ate" style={{ color: varColor(C.muted), fontWeight: 600 }}>até</span>
             <input
               type="date"
               className="desempenho__date-input"
               value={customFim}
               min={customInicio || undefined}
               onChange={(e) => setCustomFim(e.target.value)}
-              style={{ border: `1.5px solid ${customFim ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontSize: sz.fontSm + 1 }}
+              style={{ border: `1.5px solid ${customFim ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text) }}
             />
           </div>
         )}
 
-        <label className="desempenho__comparar" style={{ color: varColor(C.muted), fontSize: sz.fontSm + 1 }}>
+        <label className="desempenho__comparar" style={{ color: varColor(C.muted) }}>
           <input type="checkbox" checked={comparar} onChange={(e) => setComparar(e.target.checked)} />
           Comparar com período anterior
         </label>
@@ -249,7 +248,7 @@ export default function DesempenhoReport() {
           <div className="desempenho__secao" style={{ background: varColor(C.card), border: `1px solid var(${C.border})` }}>
             <div className="desempenho__secao-titulo" style={{ color: varColor(C.muted) }}>Vendas por dia</div>
             {porDia.length === 0 ? (
-              <div style={{ color: varColor(C.muted), fontSize: sz.fontSm + 1 }}>Sem dados diários no período.</div>
+              <div className="desempenho__vazio-texto" style={{ color: varColor(C.muted) }}>Sem dados diários no período.</div>
             ) : (
               <GraficoDias porDia={porDia} />
             )}
@@ -260,7 +259,7 @@ export default function DesempenhoReport() {
             <div className="desempenho__secao" style={{ background: varColor(C.card), border: `1px solid var(${C.border})` }}>
               <div className="desempenho__secao-titulo" style={{ color: varColor(C.muted) }}>Faturamento por forma de pagamento</div>
               {porMetodo.length === 0 ? (
-                <div style={{ color: varColor(C.muted), fontSize: sz.fontSm + 1 }}>Sem pagamentos registrados no período.</div>
+                <div className="desempenho__vazio-texto" style={{ color: varColor(C.muted) }}>Sem pagamentos registrados no período.</div>
               ) : (
                 porMetodo.map((m) => (
                   <BarraHorizontal
@@ -278,7 +277,7 @@ export default function DesempenhoReport() {
             <div className="desempenho__secao" style={{ background: varColor(C.card), border: `1px solid var(${C.border})` }}>
               <div className="desempenho__secao-titulo" style={{ color: varColor(C.muted) }}>Produtos mais vendidos</div>
               {produtosComMargem.length === 0 ? (
-                <div style={{ color: varColor(C.muted), fontSize: sz.fontSm + 1 }}>Sem produtos vendidos no período.</div>
+                <div className="desempenho__vazio-texto" style={{ color: varColor(C.muted) }}>Sem produtos vendidos no período.</div>
               ) : (
                 <div style={{ overflowX: "auto" }}>
                   <table className="tabela-produtos">

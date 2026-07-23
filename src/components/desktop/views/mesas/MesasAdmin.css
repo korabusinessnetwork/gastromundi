@@ -1,0 +1,91 @@
+/**
+ * F018 — migração de tipografia (MesasAdmin). Decisão 018 (CSS separado do JSX) +
+ * tokens --fs-* e --lh-* (ADR-007). Cores/padding/gap/grid/layout continuam inline
+ * via `sz` (breakpoint) — só o TAMANHO DE FONTE migrou para a escala do design
+ * system (src/styles/tipografia.css), por classe de componente. `tabular-nums`
+ * em número de mesa e capacidade (quantidade).
+ */
+
+.mesas-admin__loading {
+  font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.mesas-admin__titulo {
+  font-size: var(--fs-xl);   /* role: título de seção (era sz.fontBase) */
+  line-height: var(--lh-xl);
+}
+
+.mesas-admin__subtitulo {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.mesas-admin__botao-cabecalho {
+  font-size: var(--fs-sm);   /* role: label/apoio — texto de botão (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.mesas-admin__erro-texto {
+  font-size: var(--fs-sm);   /* role: label/apoio — mensagem de erro (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+/* Emoji decorativo do estado vazio — line-height 1 literal (glyph, não texto). */
+.mesas-admin__vazio-emoji {
+  font-size: var(--fs-5xl);   /* role: hero/estado vazio (era 48px literal) */
+  line-height: 1;
+}
+
+.mesas-admin__vazio-titulo {
+  font-size: var(--fs-lg);   /* role: vazio (era sz.fontBase) */
+  line-height: var(--lh-lg);
+}
+
+.mesas-admin__vazio-texto {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.mesas-admin__modal-titulo {
+  font-size: var(--fs-xl);   /* role: título de modal (era sz.fontBase + 1 / sz.fontBase) */
+  line-height: var(--lh-xl);
+}
+
+.mesas-admin__campo-label {
+  font-size: var(--fs-xs);   /* role: caption/selo — label de campo maiúsculo (era 12px literal) */
+  line-height: var(--lh-xs);
+}
+
+.mesas-admin__campo-input {
+  font-size: var(--fs-base);   /* role: corpo — texto digitado (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+.mesas-admin__campo-ajuda {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.mesas-admin__confirm-descricao {
+  font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
+  line-height: var(--lh-sm);   /* 1.5 — igual ao literal anterior */
+}
+
+.mesas-admin__modal-botao {
+  font-size: var(--fs-base);   /* role: corpo — texto de botão de modal (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+/* Número da mesa no card do admin — número hero (ex. do design system). */
+.mesas-admin__mesa-numero {
+  font-size: var(--fs-2xl);   /* role: número hero (era sz.fontBase + 2) */
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.mesas-admin__mesa-capacidade {
+  font-size: var(--fs-xs);   /* role: caption — quantidade (era 11px literal) */
+  line-height: var(--lh-xs);
+  font-variant-numeric: tabular-nums;
+}

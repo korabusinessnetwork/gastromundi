@@ -116,8 +116,8 @@ export default function FinanceiroView() {
       {/* Header */}
       <div className="financeiro-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: sz.fontLg }}>Financeiro</div>
-          <div className="financeiro-view__subtitulo" style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>Lançamentos, contas e fluxo de caixa</div>
+          <div className="financeiro-view__titulo" style={{ fontWeight: 800 }}>Financeiro</div>
+          <div className="financeiro-view__subtitulo" style={{ color: varColor(C.muted) }}>Lançamentos, contas e fluxo de caixa</div>
         </div>
         <div className="financeiro-view__acoes">
           <input
@@ -126,12 +126,10 @@ export default function FinanceiroView() {
             value={periodo.de.slice(0, 7)}
             onChange={handleMesChange}
             className="financeiro-view__mes"
-            style={{ fontSize: 14 }}
           />
           <button
             onClick={() => setShowNovo(true)}
             className="financeiro-view__btn-novo"
-            style={{ fontSize: 14 }}
           >
             <LuPlus size={16} /> Novo lançamento
           </button>

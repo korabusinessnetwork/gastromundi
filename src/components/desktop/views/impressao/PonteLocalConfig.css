@@ -6,6 +6,8 @@
   flex-direction: column;
   gap: 16px;
   max-width: 720px;
+  font-size: var(--fs-sm);   /* role: body/instrução (era sz.fontSm) */
+  line-height: var(--lh-sm);
 }
 
 .ponte-config__status {
@@ -48,7 +50,7 @@
 }
 
 .ponte-config__endereco {
-  font-family: monospace;
+  font-family: var(--gm-font-mono);
   word-break: break-all;
   padding: 8px 10px;
   border-radius: 8px;
