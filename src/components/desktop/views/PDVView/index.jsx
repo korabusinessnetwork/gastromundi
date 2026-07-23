@@ -256,6 +256,9 @@ export default function PDVView() {
     } catch (err) {
       // não usar JSON.stringify: mascara Error como "{}"
       console.error("handleConfirmPayment error:", err?.message ?? err, err);
+      // B1 — re-lança pro CheckoutView resetar "Processando..." e avisar o
+      // operador; sem isso a falha era engolida e a venda parecia concluída.
+      throw err;
     } finally {
       setSalvando(false);
     }

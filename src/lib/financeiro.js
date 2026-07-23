@@ -110,8 +110,13 @@ export async function baixarConta(id, usuario) {
  * @param {"previsto"|"pago"|"recebido"|"vencido"} [opts.status]
  * @returns {Promise<{data: object[]|null, error: object|null}>}
  */
+// Colunas de negócio do lançamento — evita `select *` em tabela financeira
+// sensível (CLAUDE.md) e não expõe tenant_id (isolado por RLS).
+const COLUNAS_LANCAMENTO =
+  "id,tipo,categoria,descricao,valor,competencia,vencimento,status,origem,venda_id,cliente_id,retroativo,criado_por,baixado_por,baixado_em,created_at";
+
 export async function listarLancamentos({ de, ate, tipo, status } = {}) {
-  let query = supabase.from("lancamentos").select("*").order("competencia", { ascending: false });
+  let query = supabase.from("lancamentos").select(COLUNAS_LANCAMENTO).order("competencia", { ascending: false });
   if (de) query = query.gte("competencia", de);
   if (ate) query = query.lte("competencia", ate);
   if (tipo) query = query.eq("tipo", tipo);

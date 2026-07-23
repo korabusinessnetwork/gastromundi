@@ -8,6 +8,7 @@ import { imprimirDocumento } from "@/lib/impressao/drivers";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
+import Notification, { useNotification } from "@/components/shared/Notification";
 import { LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
 import "./CozinhaView.css";
 
@@ -30,11 +31,13 @@ const COLUNAS = [
  */
 export default function CozinhaView() {
   const { currentUser } = useApp();
-  const { pedidos, loading } = usePedidosCozinha();
+  const { pedidos, loading, erro } = usePedidosCozinha();
   const { width } = useResponsive();
   const sz = getSizes(width);
+  const { notif, notify } = useNotification();
 
   const [processando, setProcessando] = useState({});
+  const [imprimindo, setImprimindo] = useState({});
 
   // Recalcula tempo decorrido/atraso periodicamente (os dados não mudam, só o relógio)
   const [, forceTick] = useState(0);
@@ -50,7 +53,10 @@ export default function CozinhaView() {
     marcarProcessando(pedido.id, true);
     try {
       const { error } = await iniciarPreparo(pedido.id, currentUser?.username);
-      if (error) console.error("[cozinha] erro ao iniciar preparo:", error);
+      if (error) {
+        console.error("[cozinha] erro ao iniciar preparo:", error);
+        notify("Não foi possível iniciar o preparo. Tente novamente.", "err");
+      }
     } finally {
       marcarProcessando(pedido.id, false);
     }
@@ -61,7 +67,10 @@ export default function CozinhaView() {
     marcarProcessando(pedido.id, true);
     try {
       const { error } = await marcarPronto(pedido.id, currentUser?.username);
-      if (error) console.error("[cozinha] erro ao marcar pronto:", error);
+      if (error) {
+        console.error("[cozinha] erro ao marcar pronto:", error);
+        notify("Não foi possível marcar como pronto. Tente novamente.", "err");
+      }
     } finally {
       marcarProcessando(pedido.id, false);
     }
@@ -72,10 +81,18 @@ export default function CozinhaView() {
   // papel (58/80mm) vêm da config de impressão do estabelecimento.
   // Nunca lança: pop-up bloqueado/falha de driver vira um alerta simples.
   const handleImprimirVia = async (pedido) => {
-    const dados = montarViaProducao({ pedido });
-    const { data: configImpressao } = await buscarConfigImpressao();
-    const { error } = await imprimirDocumento(dados, configImpressao?.perfilImpressora);
-    if (error) window.alert(error.message);
+    // M10 — trava reentrância: sem o guard, cliques repetidos no ícone
+    // abriam várias janelas/enviavam várias vias pro mesmo pedido.
+    if (imprimindo[pedido.id]) return;
+    setImprimindo((prev) => ({ ...prev, [pedido.id]: true }));
+    try {
+      const dados = montarViaProducao({ pedido });
+      const { data: configImpressao } = await buscarConfigImpressao();
+      const { error } = await imprimirDocumento(dados, configImpressao?.perfilImpressora);
+      if (error) notify(error.message, "err");
+    } finally {
+      setImprimindo((prev) => ({ ...prev, [pedido.id]: false }));
+    }
   };
 
   return (
@@ -88,6 +105,19 @@ export default function CozinhaView() {
           <div className="cozinha-view__subtitulo" style={{ color: varColor(C.muted), fontSize: sz.fontSm }}>Painel de preparo em tempo real</div>
         </div>
       </div>
+
+      {/* A9 — falha ao carregar não pode virar "vazio" silencioso: o KDS
+          precisa deixar claro que os pedidos não chegaram. */}
+      {erro && (
+        <div className="cozinha-view__erro" style={{
+          margin: `0 ${sz.pad}px`, padding: "10px 14px", borderRadius: 8,
+          background: alfa(C.red, "12"), border: `1px solid ${alfa(C.red, "33")}`,
+          color: varColor(C.red), fontSize: sz.fontSm, display: "flex", gap: 8, alignItems: "center",
+        }}>
+          <LuTriangleAlert size={15} style={{ flexShrink: 0 }} />
+          Não foi possível carregar os pedidos. Verifique a conexão e recarregue a página.
+        </div>
+      )}
 
       {/* Colunas */}
       <div className="cozinha-view__colunas" style={{ gap: sz.gap, padding: sz.pad }}>
@@ -118,6 +148,7 @@ export default function CozinhaView() {
                       pedido={pedido}
                       sz={sz}
                       processando={!!processando[pedido.id]}
+                      imprimindo={!!imprimindo[pedido.id]}
                       onIniciarPreparo={() => handleIniciarPreparo(pedido)}
                       onMarcarPronto={() => handleMarcarPronto(pedido)}
                       onImprimirVia={() => handleImprimirVia(pedido)}
@@ -129,11 +160,13 @@ export default function CozinhaView() {
           );
         })}
       </div>
+
+      <Notification notif={notif} />
     </div>
   );
 }
 
-function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto, onImprimirVia }) {
+function PedidoCard({ pedido, sz, processando, imprimindo, onIniciarPreparo, onMarcarPronto, onImprimirVia }) {
   const referencia = pedido.status_cozinha === "em_preparo" ? pedido.em_preparo_em : pedido.created_at;
   const minutos = tempoDecorridoMin(referencia);
   const atrasado = estaAtrasado(pedido);
@@ -155,8 +188,10 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto,
         {/* F015 — via de produção, 1 clique */}
         <button
           onClick={onImprimirVia}
+          disabled={imprimindo}
           title="Imprimir via de produção"
           className="pedido-card__btn-imprimir"
+          style={{ cursor: imprimindo ? "wait" : "pointer", opacity: imprimindo ? 0.6 : 1 }}
         >
           <LuPrinter size={13} />
         </button>

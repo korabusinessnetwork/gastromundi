@@ -139,6 +139,7 @@ export function useMesas() {
 export function usePedidosCozinha() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(false);
 
   const CAMPOS = "id,comanda,mesa,apelido,items,status,status_cozinha,garcom,created_at,em_preparo_em,pronto_em";
 
@@ -147,8 +148,15 @@ export function usePedidosCozinha() {
       .from("pending")
       .select(CAMPOS)
       .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        setPedidos((data ?? []).filter(p => Array.isArray(p.items) && p.items.length > 0));
+      .then(({ data, error }) => {
+        // supabase-js não lança: sem checar .error, uma falha de RLS/rede
+        // deixava o KDS num "vazio" silencioso, como se não houvesse pedidos.
+        if (error) {
+          console.error("usePedidosCozinha load error:", error.message);
+          setErro(true);
+        } else {
+          setPedidos((data ?? []).filter(p => Array.isArray(p.items) && p.items.length > 0));
+        }
         setLoading(false);
       });
   }, []);
@@ -183,5 +191,5 @@ export function usePedidosCozinha() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  return { pedidos, loading };
+  return { pedidos, loading, erro };
 }

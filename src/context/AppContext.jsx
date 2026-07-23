@@ -275,12 +275,18 @@ export function AppProvider({ children }) {
     const channel = supabase
       .channel("pending-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "pending" }, (payload) => {
+        // B14 — consumidores (carrinho, cozinha, checkout) iteram `items`
+        // como array; um payload realtime com items nulo/malformado quebrava
+        // a renderização. Normaliza pra array antes de gravar no estado.
+        const normalizar = (row) => ({ ...row, items: Array.isArray(row?.items) ? row.items : [] });
         if (payload.eventType === "INSERT") {
+          const novo = normalizar(payload.new);
           setPendingLocal(prev =>
-            prev.find(p => p.id === payload.new.id) ? prev : [payload.new, ...prev]
+            prev.find(p => p.id === novo.id) ? prev : [novo, ...prev]
           );
         } else if (payload.eventType === "UPDATE") {
-          setPendingLocal(prev => prev.map(p => p.id === payload.new.id ? payload.new : p));
+          const atualizado = normalizar(payload.new);
+          setPendingLocal(prev => prev.map(p => p.id === atualizado.id ? atualizado : p));
         } else if (payload.eventType === "DELETE") {
           setPendingLocal(prev => prev.filter(p => p.id !== payload.old.id));
         }
@@ -359,10 +365,18 @@ export function AppProvider({ children }) {
 
   // ── Actions: Pending ──────────────────────────────────────────
   const addPending = async (order) => {
-    setPendingLocal(prev => [order, ...prev]);
+    setPendingLocal(prev => prev.find(o => o.id === order.id) ? prev : [order, ...prev]); // otimista, dedup por id
     const { id, comanda, mesa, apelido, items, status, note, total, garcom, created_by } = order;
-    await supabase.from("pending").insert({ id, comanda, mesa, apelido, items, status, note, total, garcom, created_by });
+    // supabase-js não lança em RLS/constraint — sem checar .error o pedido
+    // "abria" na tela e nunca chegava ao banco (furo silencioso).
+    const { error } = await supabase.from("pending").insert({ id, comanda, mesa, apelido, items, status, note, total, garcom, created_by });
+    if (error) {
+      console.error("addPending error:", JSON.stringify(error, null, 2));
+      setPendingLocal(prev => prev.filter(o => o.id !== id)); // reverte otimismo
+      return { error };
+    }
     emitirEvento("pedido.aberto", "pedidos", { pedido_id: id, comanda, mesa: mesa ?? null, total: total ?? null, garcom: garcom ?? null }, created_by ?? currentUser?.username);
+    return { error: null };
   };
 
   const removePending = async (id) => {
@@ -372,8 +386,21 @@ export function AppProvider({ children }) {
   };
 
   const updatePending = async (id, changes) => {
-    setPendingLocal(prev => prev.map(o => o.id === id ? { ...o, ...changes } : o));
-    await supabase.from("pending").update({ ...changes, updated_at: new Date().toISOString() }).eq("id", id);
+    const anterior = pending.find(o => o.id === id);
+    setPendingLocal(prev => prev.map(o => o.id === id ? { ...o, ...changes } : o)); // otimista
+    // .select() após update: PostgREST devolve 2xx com 0 linhas quando a RLS
+    // filtra tudo ou o id não bate — sem checar, a tela fingia sucesso.
+    const { data, error } = await supabase
+      .from("pending")
+      .update({ ...changes, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select();
+    if (error || !data || data.length === 0) {
+      if (error) console.error("updatePending error:", JSON.stringify(error, null, 2));
+      if (anterior) setPendingLocal(prev => prev.map(o => o.id === id ? anterior : o)); // reverte
+      return { error: error ?? { code: "no_rows_updated", message: "Nenhuma linha atualizada — comanda inexistente ou sem permissão." } };
+    }
+    return { error: null };
   };
 
   // ── Actions: Products ─────────────────────────────────────────
@@ -483,37 +510,59 @@ export function AppProvider({ children }) {
 
   // ── Actions: Fechamentos ──────────────────────────────────────
   const addFechamento = async (f) => {
-    setFechamentosLocal(prev => [f, ...prev]);
-    await supabase.from("fechamentos").insert({ data: f });
+    setFechamentosLocal(prev => [f, ...prev]); // otimista
+    // Fechamento de caixa é dado financeiro: sem checar .error, a UI marcava
+    // o caixa como fechado e emitia o evento sem nada gravado no banco.
+    const { error } = await supabase.from("fechamentos").insert({ data: f });
+    if (error) {
+      console.error("addFechamento error:", JSON.stringify(error, null, 2));
+      setFechamentosLocal(prev => prev.filter(x => x !== f)); // reverte
+      return { error };
+    }
     emitirEvento("caixa.fechado", "caixa", {
       total_vendas: f?.totalVendas ?? null,
       total_conferido: f?.totalConferido ?? null,
     }, currentUser?.username);
+    return { error: null };
   };
 
   // ── Actions: Estoque ──────────────────────────────────────────
   const updateEstoque = async (productId, qty) => {
+    const anterior = estoque[productId];
     const novaQtd = Math.max(0, qty);
-    setEstoqueLocal(prev => ({ ...prev, [productId]: novaQtd }));
-    await supabase.from("estoque").upsert(
+    setEstoqueLocal(prev => ({ ...prev, [productId]: novaQtd })); // otimista
+    const { error } = await supabase.from("estoque").upsert(
       { produto_id: productId, quantidade: novaQtd, updated_at: new Date().toISOString() },
       { onConflict: "produto_id" },
     );
+    if (error) {
+      console.error("updateEstoque error:", JSON.stringify(error, null, 2));
+      setEstoqueLocal(prev => ({ ...prev, [productId]: anterior })); // reverte
+      return { error };
+    }
     emitirEvento("estoque.ajustado", "estoque", { produto_id: productId, quantidade: novaQtd }, currentUser?.username);
+    return { error: null };
   };
 
   // Atualiza múltiplos produtos de uma vez (evita race condition em imports em lote)
   const bulkSetEstoque = async (newEstoque) => {
-    setEstoqueLocal(newEstoque);
+    const anterior = estoque;
+    setEstoqueLocal(newEstoque); // otimista
     const rows = Object.entries(newEstoque ?? {}).map(([produto_id, quantidade]) => ({
       produto_id,
       quantidade: Math.max(0, Number(quantidade) || 0),
       updated_at: new Date().toISOString(),
     }));
     if (rows.length > 0) {
-      await supabase.from("estoque").upsert(rows, { onConflict: "produto_id" });
+      const { error } = await supabase.from("estoque").upsert(rows, { onConflict: "produto_id" });
+      if (error) {
+        console.error("bulkSetEstoque error:", JSON.stringify(error, null, 2));
+        setEstoqueLocal(anterior); // reverte
+        return { error };
+      }
     }
     emitirEvento("estoque.ajuste_em_lote", "estoque", { itens: Object.keys(newEstoque ?? {}).length }, currentUser?.username);
+    return { error: null };
   };
 
   // Baixa atômica no servidor (evita race condition entre dispositivos descontando ao mesmo tempo).
@@ -539,49 +588,59 @@ export function AppProvider({ children }) {
   };
 
   const setMinimoEstoque = async (productId, minimo) => {
+    const anterior = estoqueMinimos[productId];
     const novoMinimo = Math.max(0, Number(minimo) || 0);
-    setEstoqueMinimosLocal(prev => ({ ...prev, [productId]: novoMinimo }));
-    await supabase.from("estoque").upsert(
+    setEstoqueMinimosLocal(prev => ({ ...prev, [productId]: novoMinimo })); // otimista
+    const { error } = await supabase.from("estoque").upsert(
       { produto_id: productId, minimo: novoMinimo, updated_at: new Date().toISOString() },
       { onConflict: "produto_id" },
     );
+    if (error) {
+      console.error("setMinimoEstoque error:", JSON.stringify(error, null, 2));
+      setEstoqueMinimosLocal(prev => ({ ...prev, [productId]: anterior })); // reverte
+      return { error };
+    }
+    return { error: null };
   };
 
-  const setFundoAtual = async (val) => {
-    setFundoAtualLocal(val);
-    await supabase.from("config").upsert({ key: "fundo_atual", value: val });
+  // Helper de config: aplica o estado otimista, persiste e reverte se o
+  // banco recusar (supabase-js não lança em RLS/constraint). Config guarda
+  // estado sensível do caixa — não pode fingir sucesso.
+  const salvarConfig = async (key, value, setLocal, anterior) => {
+    setLocal(value);
+    const { error } = await supabase.from("config").upsert({ key, value });
+    if (error) {
+      console.error(`salvarConfig(${key}) error:`, JSON.stringify(error, null, 2));
+      setLocal(anterior);
+      return { error };
+    }
+    return { error: null };
   };
+
+  const setFundoAtual = async (val) =>
+    salvarConfig("fundo_atual", val, setFundoAtualLocal, fundoAtual);
 
   const setCaixaAberto = async (val) => {
-    setCaixaAbertoLocal(val);
-    await supabase.from("config").upsert({ key: "caixa_aberto", value: val });
-    if (val) emitirEvento("caixa.aberto", "caixa", {}, currentUser?.username);
+    const res = await salvarConfig("caixa_aberto", val, setCaixaAbertoLocal, caixaAberto);
+    if (!res.error && val) emitirEvento("caixa.aberto", "caixa", {}, currentUser?.username);
+    return res;
   };
 
-  const setSessaoAbertaEm = async (val) => {
-    setSessaoAbertaEmLocal(val);
-    await supabase.from("config").upsert({ key: "sessao_aberta_em", value: val });
-  };
+  const setSessaoAbertaEm = async (val) =>
+    salvarConfig("sessao_aberta_em", val, setSessaoAbertaEmLocal, sessaoAbertaEm);
 
-  const setMeiosPagamento = async (val) => {
-    setMeiosPagamentoLocal(val);
-    await supabase.from("config").upsert({ key: "meios_pagamento", value: val });
-  };
+  const setMeiosPagamento = async (val) =>
+    salvarConfig("meios_pagamento", val, setMeiosPagamentoLocal, meiosPagamento);
 
-  const setMetodosCustom = async (val) => {
-    setMetodosCustomLocal(val);
-    await supabase.from("config").upsert({ key: "metodos_custom", value: val });
-  };
+  const setMetodosCustom = async (val) =>
+    salvarConfig("metodos_custom", val, setMetodosCustomLocal, metodosCustom);
 
-  const setTaxaServico = async (val) => {
-    setTaxaServicoLocal(!!val);
-    await supabase.from("config").upsert({ key: "taxa_servico", value: !!val });
-  };
+  const setTaxaServico = async (val) =>
+    salvarConfig("taxa_servico", !!val, setTaxaServicoLocal, taxaServico);
 
   const setDiasAlertaValidade = async (val) => {
     const n = Math.max(1, Math.min(365, Number(val) || 7));
-    setDiasAlertaValidadeLocal(n);
-    await supabase.from("config").upsert({ key: "dias_alerta_validade", value: n });
+    return salvarConfig("dias_alerta_validade", n, setDiasAlertaValidadeLocal, diasAlertaValidade);
   };
 
   // ── Actions: Grupos de categoria (C3) ─────────────────────────

@@ -50,22 +50,25 @@ export default function RoteamentoCategorias({ sz }) {
   }, []);
 
   async function handleChange(categoria, localId) {
-    setRoteamento(prev => ({ ...prev, [categoria]: localId }));
+    const anterior = roteamento[categoria] ?? "";
+    setRoteamento(prev => ({ ...prev, [categoria]: localId })); // otimista
     setSalvando(prev => ({ ...prev, [categoria]: true }));
     setSalvo(prev => ({ ...prev, [categoria]: false }));
+    setErro("");
     try {
-      if (localId) {
-        await supabase.from("categorias_roteamento").upsert(
-          { categoria, local_impressao_id: localId, updated_at: new Date().toISOString() },
-          { onConflict: "categoria" }
-        );
-      } else {
-        // "Não imprimir" → remove o roteamento
-        await supabase.from("categorias_roteamento").delete().eq("categoria", categoria);
-      }
+      // supabase-js não lança em RLS/constraint — precisa checar .error,
+      // senão o select fingia sucesso sem persistir.
+      const { error } = localId
+        ? await supabase.from("categorias_roteamento").upsert(
+            { categoria, local_impressao_id: localId, updated_at: new Date().toISOString() },
+            { onConflict: "categoria" }
+          )
+        : await supabase.from("categorias_roteamento").delete().eq("categoria", categoria); // "Não imprimir"
+      if (error) throw error;
       setSalvo(prev => ({ ...prev, [categoria]: true }));
       setTimeout(() => setSalvo(prev => ({ ...prev, [categoria]: false })), 1800);
     } catch {
+      setRoteamento(prev => ({ ...prev, [categoria]: anterior })); // reverte
       setErro(`Erro ao salvar roteamento de "${categoria}".`);
     } finally {
       setSalvando(prev => ({ ...prev, [categoria]: false }));

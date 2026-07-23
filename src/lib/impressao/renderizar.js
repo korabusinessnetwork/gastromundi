@@ -14,38 +14,65 @@ import estilosProducao from "./producao.css?raw";
 
 const METODOS_LABEL = { dinheiro: "Dinheiro", credito: "Crédito", debito: "Débito", pix: "Pix", fiado: "Fiado" };
 
+/**
+ * Escapa texto para interpolação segura em HTML — o HTML da impressão é
+ * montado por concatenação de string e injetado via document.write, então
+ * qualquer campo vindo do usuário (nome do item, obs, identidade do tenant,
+ * apelido de comanda/garçom) precisa ser neutralizado contra XSS (A4).
+ */
+export function escapeHtml(v) {
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Só aceita logo por https ou data:image — bloqueia javascript:/data:text
+ * e outros esquemas que virariam execução de script no src da <img>.
+ * Retorna "" (cai no fallback de nome-texto) quando o esquema não confere.
+ */
+export function logoUrlSeguro(url) {
+  const s = String(url ?? "").trim();
+  return (/^https:\/\//i.test(s) || /^data:image\//i.test(s)) ? s : "";
+}
+
 function fmtR(v) {
   return "R$ " + Number(v ?? 0).toFixed(2);
 }
 
 function fmtComanda(nome) {
-  return /^\d+$/.test(String(nome ?? "").trim()) ? `Comanda ${nome}` : (nome ?? "—");
+  const txt = String(nome ?? "").trim();
+  return /^\d+$/.test(txt) ? `Comanda ${txt}` : (txt ? escapeHtml(txt) : "—");
 }
 
 function linhasItensRecibo(itens) {
   return itens
     .map((it) => `
       <tr>
-        <td>${it.emoji ? `${it.emoji} ` : ""}${it.nome}</td>
-        <td style="text-align:center;">${it.qty}</td>
+        <td>${it.emoji ? `${escapeHtml(it.emoji)} ` : ""}${escapeHtml(it.nome)}</td>
+        <td style="text-align:center;">${Number(it.qty ?? 0)}</td>
         <td style="text-align:right;">${fmtR(it.preco)}</td>
         <td style="text-align:right;font-weight:bold;">${fmtR(it.preco * it.qty)}</td>
       </tr>
-      ${it.obs.map((o) => `<tr><td colspan="4" class="obs">📝 ${o}</td></tr>`).join("")}
+      ${(it.obs ?? []).map((o) => `<tr><td colspan="4" class="obs">📝 ${escapeHtml(o)}</td></tr>`).join("")}
     `)
     .join("");
 }
 
 function blocoCabecalhoIdentidade(identidade) {
+  const logo = logoUrlSeguro(identidade.logoUrl);
   return `
     <div class="cabecalho">
-      ${identidade.logoUrl ? `<img class="cabecalho__logo" src="${identidade.logoUrl}" alt="${identidade.nome}" />` : `<div class="cabecalho__nome">${identidade.nome}</div>`}
+      ${logo ? `<img class="cabecalho__logo" src="${escapeHtml(logo)}" alt="${escapeHtml(identidade.nome)}" />` : `<div class="cabecalho__nome">${escapeHtml(identidade.nome)}</div>`}
       <div class="cabecalho__linha">${new Date().toLocaleString("pt-BR")}</div>
     </div>
     ${(identidade.endereco || identidade.cnpj) ? `
       <div class="identidade-fiscal">
-        ${identidade.endereco ? `${identidade.endereco}<br/>` : ""}
-        ${identidade.cnpj ? `CNPJ: ${identidade.cnpj}` : ""}
+        ${identidade.endereco ? `${escapeHtml(identidade.endereco)}<br/>` : ""}
+        ${identidade.cnpj ? `CNPJ: ${escapeHtml(identidade.cnpj)}` : ""}
       </div>
     ` : ""}
   `;
@@ -64,7 +91,7 @@ export function renderizarRecibo(dados) {
 
   const linhasPagamento = (pagamentos ?? [])
     .filter((p) => p?.metodo)
-    .map((p) => `<div class="metodo">${pagamentos.length > 1 ? `${fmtR(p.valor)} · ` : ""}Pagamento: ${METODOS_LABEL[p.metodo] ?? p.metodo}</div>`)
+    .map((p) => `<div class="metodo">${pagamentos.length > 1 ? `${fmtR(p.valor)} · ` : ""}Pagamento: ${METODOS_LABEL[p.metodo] ?? escapeHtml(p.metodo)}</div>`)
     .join("");
 
   return `<!DOCTYPE html>
@@ -96,7 +123,7 @@ export function renderizarRecibo(dados) {
   ${linhasPagamento}
   ${naoFiscal ? `<div class="aviso-nao-fiscal">${avisoNaoFiscal}</div>` : ""}
   <hr/>
-  <div class="rodape">${identidade.rodape}</div>
+  <div class="rodape">${escapeHtml(identidade.rodape)}</div>
 </body>
 </html>`;
 }
@@ -114,8 +141,8 @@ export function renderizarViaProducao(dados) {
   const linhasItens = itens
     .map((it) => `
       <div class="item">
-        <div class="item__linha">${it.qty}x ${it.emoji ? `${it.emoji} ` : ""}${it.nome}</div>
-        ${it.obs.map((o) => `<div class="item__obs">📝 ${o}</div>`).join("")}
+        <div class="item__linha">${Number(it.qty ?? 0)}x ${it.emoji ? `${escapeHtml(it.emoji)} ` : ""}${escapeHtml(it.nome)}</div>
+        ${(it.obs ?? []).map((o) => `<div class="item__obs">📝 ${escapeHtml(o)}</div>`).join("")}
       </div>
     `)
     .join("");
@@ -131,7 +158,7 @@ export function renderizarViaProducao(dados) {
   <div class="cabecalho">
     <div class="cabecalho__titulo">${fmtComanda(comanda)}</div>
     <div class="cabecalho__linha">
-      ${mesa ? `Mesa ${mesa} · ` : ""}${garcom ? `${garcom} · ` : ""}${new Date(horario).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+      ${mesa ? `Mesa ${escapeHtml(mesa)} · ` : ""}${garcom ? `${escapeHtml(garcom)} · ` : ""}${new Date(horario).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
     </div>
   </div>
   <hr/>
@@ -151,10 +178,15 @@ export function renderizarViaProducao(dados) {
  */
 export function abrirJanelaImpressao(html) {
   try {
+    // noopener NÃO pode ir na feature string aqui: com ele window.open
+    // retorna null e perderíamos o handle usado p/ escrever/imprimir.
+    // Anulamos o opener manualmente — a janela filha (about:blank + nosso
+    // HTML já escapado) não deve reter referência à origem.
     const win = window.open("", "_blank", "width=360,height=600");
     if (!win) {
       return { error: { message: "Não foi possível abrir a janela de impressão. Verifique se o navegador bloqueou o pop-up." } };
     }
+    try { win.opener = null; } catch { /* alguns navegadores travam a escrita — ignorável */ }
     win.document.write(html);
     win.document.close();
     win.focus();

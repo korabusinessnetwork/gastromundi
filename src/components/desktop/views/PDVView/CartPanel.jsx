@@ -7,6 +7,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { useApp } from "@/context/AppContext";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
+import { sanitizeInput } from "@/utils/crypto";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 import "./CartPanel.css";
 
@@ -50,7 +51,9 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
   };
 
   const confirmDraft = (itemIdx) => {
-    const text = (drafts[itemIdx] ?? "").trim();
+    // Sanitiza na entrada: a obs vai para o banco e para o cupom/via impressa.
+    // Remove < > " ' ` (vetor de XSS na impressão) e limita o tamanho.
+    const text = sanitizeInput(drafts[itemIdx] ?? "", 120);
     if (!text) { setDrafts(prev => { const n = { ...prev }; delete n[itemIdx]; return n; }); return; }
     const arr = getObs(items[itemIdx]);
     onChangeObs(itemIdx, [...arr, text]);

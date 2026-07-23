@@ -374,11 +374,11 @@ CREATE INDEX jarvas_insights_created_at_idx ON public.jarvas_insights (created_a
 -- =============================================================
 -- FUNÇÕES (definições completas nas migrações indicadas)
 -- =============================================================
--- verificar_senha_admin(p_password text, p_username text)  → 20240106_rpc_verificar_senha.sql
+-- verificar_senha_admin(p_password text, p_username text)  → 20240106_rpc_verificar_senha.sql ; 20260733 (filtro de tenant)
 -- custom_access_token_hook(event jsonb)                    → 20240105 + 20240108 (claim `role` no JWT)
--- limpar_reserva_mesa(mesa_numero text)                    → 20260702_rpc_limpar_reserva_mesa.sql
--- baixar_estoque(p_produto_id bigint, p_qtd numeric)       → 20260705_estoque_tabela.sql ; 20260712_estoque_alerta_minimo.sql
---   (SECURITY DEFINER com checagem de role caixa/gerente/admin)
+-- limpar_reserva_mesa(mesa_numero text)                    → 20260702_rpc_limpar_reserva_mesa.sql ; 20260733 (guarda de role + tenant)
+-- baixar_estoque(p_produto_id bigint, p_qtd numeric)       → 20260705_estoque_tabela.sql ; 20260712_estoque_alerta_minimo.sql ; 20260733 (guarda NULL-safe + tenant)
+--   (SECURITY DEFINER; guarda NULL-safe de role caixa/gerente/admin + escopo por tenant_id — desde 20260733)
 --   RETURNS TABLE (quantidade numeric, minimo numeric) desde 20260712 — antes RETURNS void (F008)
 -- jarvas_resumo_vendas(p_desde timestamptz, p_limite_produtos int) → 20260709_jarvas_resumo_vendas.sql
 --   (agregação SQL de vendas 30d/top produtos para o assistente do Jarvas — TD009 etapa 2)

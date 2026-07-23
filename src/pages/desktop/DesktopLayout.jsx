@@ -168,8 +168,14 @@ export default function DesktopLayout() {
           sales={sales}
           fundoAtual={fundoAtual}
           sessaoAbertaEm={sessaoAbertaEm}
-          onConfirm={(data) => {
-            addFechamento({ id: Date.now(), at: new Date().toISOString(), user: currentUser.name, role: currentUser.role, fundo: fundoAtual, ...data });
+          onConfirm={async (data) => {
+            // Só fecha o caixa de verdade se o fechamento persistiu no banco —
+            // evita marcar caixa como fechado com o registro financeiro perdido.
+            const res = await addFechamento({ id: Date.now(), at: new Date().toISOString(), user: currentUser.name, role: currentUser.role, fundo: fundoAtual, ...data });
+            if (res?.error) {
+              notify("Não foi possível salvar o fechamento. Tente novamente.", "err");
+              return;
+            }
             logAction(currentUser.username, "caixa:fechar", { msg: `Caixa fechado · vendas R$ ${data.totalVendas.toFixed(2)} · conferido R$ ${data.totalConferido.toFixed(2)}`, name: currentUser.name, role: currentUser.role, conferido: data.totalConferido, totalVendas: data.totalVendas });
             setCaixaAberto(false);
             setShowFechamento(false);

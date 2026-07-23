@@ -118,40 +118,37 @@ export default function LocaisImpressao({ sz }) {
   }
 
   async function toggleAtivo(local) {
-    try {
-      await supabase
-        .from("locais_impressao")
-        .update({ ativo: !local.ativo })
-        .eq("id", local.id);
-      setLocais(prev => prev.map(l => l.id === local.id ? { ...l, ativo: !l.ativo } : l));
-    } catch {
+    setErro("");
+    // supabase-js não lança em RLS/constraint — precisa checar .error, senão
+    // o toggle "mudava" na tela e revertia sozinho no próximo fetch.
+    const { error } = await supabase
+      .from("locais_impressao")
+      .update({ ativo: !local.ativo })
+      .eq("id", local.id);
+    if (error) {
       setErro("Erro ao atualizar status.");
+      return;
     }
+    setLocais(prev => prev.map(l => l.id === local.id ? { ...l, ativo: !l.ativo } : l));
   }
 
   async function confirmarDelete() {
     if (!confirmDelete) return;
+    setErro("");
     try {
       // Verifica se tem roteamentos vinculados
-      const { data: rotas } = await supabase
+      const { data: rotas, error: eSel } = await supabase
         .from("categorias_roteamento")
         .select("id")
         .eq("local_impressao_id", confirmDelete.id)
         .limit(1);
+      if (eSel) throw eSel;
 
-      if (rotas?.length > 0) {
-        // Tem roteamentos — só desativa (soft delete)
-        await supabase
-          .from("locais_impressao")
-          .update({ ativo: false })
-          .eq("id", confirmDelete.id);
-      } else {
-        // Sem roteamentos — delete físico
-        await supabase
-          .from("locais_impressao")
-          .delete()
-          .eq("id", confirmDelete.id);
-      }
+      // supabase-js não lança em RLS/constraint — checa o .error de cada op.
+      const { error } = rotas?.length > 0
+        ? await supabase.from("locais_impressao").update({ ativo: false }).eq("id", confirmDelete.id) // soft delete (tem roteamentos)
+        : await supabase.from("locais_impressao").delete().eq("id", confirmDelete.id); // delete físico
+      if (error) throw error;
       setConfirmDelete(null);
       await fetchLocais();
     } catch {

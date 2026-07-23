@@ -230,7 +230,9 @@ export default function PerfilImpressora({ sz }) {
       <div className="perfil-impressora__preview-coluna">
         <div className="perfil-impressora__label" style={{ color: varColor(C.muted) }}>Pré-visualização ({perfil.larguraMm}mm)</div>
         <div className="perfil-impressora__preview-moldura" style={{ borderColor: varColor(C.border), background: varColor(C.surface) }}>
-          <iframe title="Pré-visualização de impressão" srcDoc={htmlPreview} className="perfil-impressora__preview-iframe" />
+          {/* sandbox="" → origem opaca e SEM execução de script: o preview é
+              só HTML/CSS estático do cupom, nunca deve rodar JS injetado. */}
+          <iframe title="Pré-visualização de impressão" srcDoc={htmlPreview} sandbox="" className="perfil-impressora__preview-iframe" />
         </div>
       </div>
     </div>

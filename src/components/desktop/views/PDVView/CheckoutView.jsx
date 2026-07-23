@@ -36,6 +36,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const [showDivisor,   setShowDivisor]   = useState(false);
   const [nPessoas,      setNPessoas]      = useState(2);
   const [confirmando,   setConfirmando]   = useState(false);
+  const [erroPagamento, setErroPagamento] = useState(null);
   const [aplicarTaxa,   setAplicarTaxa]   = useState(!!taxaServico);
 
   // Desconto / Acréscimo
@@ -123,15 +124,34 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
   const handleConfirm = async () => {
     if (!podeConfirmar || confirmando) return;
     setConfirmando(true);
+    setErroPagamento(null);
+    // B2 — a tolerância de ~1 centavo do split (Math.abs(faltaAlocar) < 0.015)
+    // deixava Σ(pagamentos) diferente do total; o último pagamento absorve a
+    // sobra pra fechar exatamente no total (evita divergência no caixa).
     const payloadPagamentos = isSplit
-      ? pagamentos.map(p => ({
-          metodo:   p.metodo,
-          valor:    p.valor,
-          recebido: p.metodo === "dinheiro" ? (p.recebido || 0) : 0,
-          troco:    p.metodo === "dinheiro" ? Math.max(0, (p.recebido || 0) - p.valor) : 0,
-        }))
+      ? pagamentos.map((p, i) => {
+          const somaAnteriores = pagamentos.slice(0, i).reduce((s, x) => s + (x.valor || 0), 0);
+          const valor = i === pagamentos.length - 1
+            ? parseFloat((total - somaAnteriores).toFixed(2))
+            : (p.valor || 0);
+          return {
+            metodo:   p.metodo,
+            valor,
+            recebido: p.metodo === "dinheiro" ? (p.recebido || 0) : 0,
+            troco:    p.metodo === "dinheiro" ? Math.max(0, (p.recebido || 0) - valor) : 0,
+          };
+        })
       : [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: Math.max(0, singleTroco) }];
-    await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste, clienteId: clienteFiado?.id ?? null });
+    try {
+      await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste, clienteId: clienteFiado?.id ?? null });
+      // Sucesso desmonta a tela (volta ao PDV) — não precisa resetar `confirmando`.
+    } catch (err) {
+      // B1 — sem propagar a falha, o botão ficava preso em "Processando..."
+      // e a venda parecia concluída. Reseta e avisa pra permitir nova tentativa.
+      console.error("[checkout] falha ao confirmar pagamento:", err?.message ?? err);
+      setErroPagamento("Não foi possível concluir o pagamento. Verifique a conexão e tente novamente.");
+      setConfirmando(false);
+    }
   };
 
   const buildPrintPagamentos = () => {
@@ -632,6 +652,15 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack }) {
                       ? `Distribua os R$ ${Math.abs(faltaAlocar).toFixed(2)} restantes`
                       : "Selecione a forma de cada pagamento"
                     : "Selecione a forma de pagamento acima"}
+                </div>
+              )}
+              {erroPagamento && (
+                <div className="checkout-view__erro-pagamento" style={{
+                  color: varColor(C.red), background: alfa(C.red, "12"),
+                  border: `1px solid ${alfa(C.red, "33")}`, borderRadius: 8,
+                  padding: "8px 12px", fontSize: 13, fontWeight: 600, marginBottom: 8,
+                }}>
+                  {erroPagamento}
                 </div>
               )}
               <button

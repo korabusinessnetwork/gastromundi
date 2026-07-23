@@ -48,7 +48,13 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
   );
 
   const totalVendas = hoje.reduce((s, v) => s + (v.total ?? 0), 0);
-  const totalSistema = totalVendas + fundoAtual;
+
+  // M3 — o esperado só pode conter o que é conferível: soma dos métodos em
+  // `meios` (fundo já embutido em sistema.dinheiro por buildSistema). Métodos
+  // não mapeados aparecem no banner à parte e não podem virar falta fantasma.
+  const totalSistema = meios.reduce((s, k) => s + (sistema[k] ?? 0), 0);
+  const fundoConferivel = meios.includes("dinheiro") ? fundoAtual : 0;
+  const totalVendasConferivel = totalSistema - fundoConferivel;
 
   const [conf, setConf] = useState(() => {
     const { m } = buildSistema(sales, fundoAtual, sessaoAbertaEm, meios);
@@ -60,7 +66,10 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
   const setMetodo = (k, v) => setConf(prev => ({ ...prev, [k]: v }));
 
   const totalConferido = meios.reduce((s, k) => s + parsVal(conf[k] ?? "0"), 0);
-  const diferencaTotal = totalConferido - totalSistema;
+  // B7 — resíduo de ponto flutuante (ex.: -1e-13) não pode rotular um caixa
+  // batido como "Falta"; abaixo de meio centavo é considerado zero.
+  const diferencaBruta = totalConferido - totalSistema;
+  const diferencaTotal = Math.abs(diferencaBruta) < 0.005 ? 0 : diferencaBruta;
 
   const handleConfirm = async () => {
     if (salvando) return;
@@ -210,8 +219,8 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
           border: `1px solid var(${C.border})`, padding: 16,
           display: "flex", flexDirection: "column", gap: 9,
         }}>
-          <Row label="Total de Vendas (sistema)" value={fmtR(totalVendas)} muted />
-          <Row label={`Fundo de Caixa`} value={fmtR(fundoAtual)} muted />
+          <Row label="Total de Vendas (conferível)" value={fmtR(totalVendasConferivel)} muted />
+          <Row label={`Fundo de Caixa`} value={fmtR(fundoConferivel)} muted />
           <div style={{ borderTop: `1px solid var(${C.border})`, paddingTop: 9, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: 700, fontSize: 14 }}>Total Esperado em Caixa</span>
             <span style={{ fontWeight: 800, fontSize: 15, color: varColor(C.muted) }}>{fmtR(totalSistema)}</span>

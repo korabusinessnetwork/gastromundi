@@ -14,8 +14,20 @@ function fmtR(v) {
   return "R$ " + Number(v ?? 0).toFixed(2);
 }
 
+/**
+ * Remove caracteres de controle (B12) — bytes ESC/POS injetados em campos
+ * livres (nome de item, obs, identidade do tenant, comanda/mesa/garçom)
+ * corromperiam o fluxo da impressora térmica (corte, guilhotina, encoding).
+ * Emojis e acentos (acima de \x7F) passam intactos; só some o controle.
+ */
+function limpar(v) {
+  // eslint-disable-next-line no-control-regex
+  return String(v ?? "").replace(/[\x00-\x1F\x7F]/g, "");
+}
+
 function fmtComanda(nome) {
-  return /^\d+$/.test(String(nome ?? "").trim()) ? `Comanda ${nome}` : (nome ?? "—");
+  const txt = limpar(nome).trim();
+  return /^\d+$/.test(txt) ? `Comanda ${txt}` : (txt || "—");
 }
 
 function centralizar(texto, colunas) {
@@ -47,19 +59,19 @@ export function formatarComprovanteEscpos(dados, colunas) {
   const { identidade, comanda, itens, subtotal, valorTaxa, ajuste, valorAjuste, total, pagamentos, trocoTotal, naoFiscal, avisoNaoFiscal } = dados;
   const linhas = [];
 
-  linhas.push(centralizar(identidade?.nome ?? "", colunas));
+  linhas.push(centralizar(limpar(identidade?.nome), colunas));
   linhas.push(centralizar(new Date().toLocaleString("pt-BR"), colunas));
-  if (identidade?.endereco) linhas.push(centralizar(identidade.endereco, colunas));
-  if (identidade?.cnpj) linhas.push(centralizar(`CNPJ: ${identidade.cnpj}`, colunas));
+  if (identidade?.endereco) linhas.push(centralizar(limpar(identidade.endereco), colunas));
+  if (identidade?.cnpj) linhas.push(centralizar(`CNPJ: ${limpar(identidade.cnpj)}`, colunas));
   linhas.push(centralizar(fmtComanda(comanda), colunas));
   linhas.push(linhaSeparadora(colunas));
 
   for (const it of (itens ?? [])) {
-    const nome = `${it.qty}x ${it.emoji ? `${it.emoji} ` : ""}${it.nome}`;
+    const nome = `${it.qty}x ${it.emoji ? `${limpar(it.emoji)} ` : ""}${limpar(it.nome)}`;
     quebrarLinha(nome, colunas).forEach(l => linhas.push(l));
     linhas.push(linhaValor("", fmtR(it.preco * it.qty), colunas));
     for (const obs of (it.obs ?? [])) {
-      quebrarLinha(`  📝 ${obs}`, colunas).forEach(l => linhas.push(l));
+      quebrarLinha(`  📝 ${limpar(obs)}`, colunas).forEach(l => linhas.push(l));
     }
   }
   linhas.push(linhaSeparadora(colunas));
@@ -92,7 +104,7 @@ export function formatarComprovanteEscpos(dados, colunas) {
 
   if (identidade?.rodape) {
     linhas.push(linhaSeparadora(colunas));
-    quebrarLinha(identidade.rodape, colunas).forEach(l => linhas.push(centralizar(l, colunas)));
+    quebrarLinha(limpar(identidade.rodape), colunas).forEach(l => linhas.push(centralizar(l, colunas)));
   }
 
   return linhas;
@@ -109,7 +121,7 @@ export function formatarViaProducaoEscpos(dados, colunas) {
 
   linhas.push(centralizar(fmtComanda(comanda), colunas));
   const horarioFmt = new Date(horario).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  const detalhe = [mesa ? `Mesa ${mesa}` : null, garcom, horarioFmt].filter(Boolean).join(" · ");
+  const detalhe = [mesa ? `Mesa ${limpar(mesa)}` : null, garcom ? limpar(garcom) : null, horarioFmt].filter(Boolean).join(" · ");
   linhas.push(centralizar(detalhe, colunas));
   linhas.push(linhaSeparadora(colunas));
 
@@ -119,10 +131,10 @@ export function formatarViaProducaoEscpos(dados, colunas) {
   }
 
   for (const it of itens) {
-    const nome = `${it.qty}x ${it.emoji ? `${it.emoji} ` : ""}${it.nome}`;
+    const nome = `${it.qty}x ${it.emoji ? `${limpar(it.emoji)} ` : ""}${limpar(it.nome)}`;
     quebrarLinha(nome, colunas).forEach(l => linhas.push(l));
     for (const obs of (it.obs ?? [])) {
-      quebrarLinha(`  📝 ${obs}`, colunas).forEach(l => linhas.push(l));
+      quebrarLinha(`  📝 ${limpar(obs)}`, colunas).forEach(l => linhas.push(l));
     }
   }
 
