@@ -4,3 +4,6 @@ dist/
 .env.local
 .env.*.local
 .env.migration
+
+# Scratchpad de trabalho da varredura/auditoria (artefatos temporarios)
+scratchpad/
