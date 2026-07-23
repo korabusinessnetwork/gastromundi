@@ -1,0 +1,82 @@
+#!/bin/sh
+# post-commit hook — cria uma nota no Obsidian a cada commit do gastromundi.
+#
+# Este é o hook VERSIONADO (fonte de verdade, rastreável em git). Ativado via
+#   git config core.hooksPath .githooks
+# que precisa ser rodado uma vez por máquina (core.hooksPath é config local e
+# não viaja no clone).
+#
+# NOTA: VAULT_DIR abaixo é o caminho do vault nesta máquina. Em outro PC onde
+# esse caminho não existir, a nota é criada sob mkdir -p — ajuste conforme o
+# ambiente ou deixe de ativar o hooksPath ali.
+
+# Não gera nota durante um rebase/cherry-pick/merge em andamento: nesses casos
+# o hook dispararia para cada commit replayado, poluindo o vault. Só queremos
+# nota em commit normal.
+if [ -d "$(git rev-parse --git-path rebase-merge 2>/dev/null)" ] || \
+   [ -d "$(git rev-parse --git-path rebase-apply 2>/dev/null)" ] || \
+   [ -f "$(git rev-parse --git-path CHERRY_PICK_HEAD 2>/dev/null)" ] || \
+   [ -f "$(git rev-parse --git-path MERGE_HEAD 2>/dev/null)" ]; then
+  exit 0
+fi
+
+VAULT_DIR="/d/Vault/kora/Commits"
+mkdir -p "$VAULT_DIR"
+
+HASH_FULL=$(git rev-parse HEAD)
+HASH_SHORT=$(git rev-parse --short HEAD)
+DATA=$(date '+%Y-%m-%d')
+HORA=$(date '+%H:%M:%S')
+AUTOR=$(git log -1 --pretty=format:'%an')
+MSG=$(git log -1 --pretty=format:'%s')
+CORPO=$(git log -1 --pretty=format:'%b')
+
+# Nome do repo a partir do remote origin (ex.: korabusinessnetwork/gastromundi),
+# com fallback para o nome curto se não houver remote configurado.
+REPO=$(git config --get remote.origin.url | sed -e 's,^.*github\.com[:/],,' -e 's,\.git$,,')
+[ -z "$REPO" ] && REPO="gastromundi"
+
+# Branch: symbolic-ref resolve normalmente; em HEAD destacado (ex.: durante um
+# rebase) cai no head-name do rebase para não gravar "HEAD".
+BRANCH=$(git symbolic-ref --short -q HEAD)
+if [ -z "$BRANCH" ]; then
+  RB_MERGE=$(git rev-parse --git-path rebase-merge/head-name 2>/dev/null)
+  RB_APPLY=$(git rev-parse --git-path rebase-apply/head-name 2>/dev/null)
+  if [ -f "$RB_MERGE" ]; then
+    BRANCH=$(sed 's,^refs/heads/,,' "$RB_MERGE")
+  elif [ -f "$RB_APPLY" ]; then
+    BRANCH=$(sed 's,^refs/heads/,,' "$RB_APPLY")
+  else
+    BRANCH="(detached)"
+  fi
+fi
+
+ARQUIVOS=$(git diff-tree --no-commit-id --name-status -r HEAD)
+
+FILE="$VAULT_DIR/$DATA-$HASH_SHORT.md"
+
+cat > "$FILE" <<EOF
+---
+tipo: commit
+repo: $REPO
+branch: $BRANCH
+hash: $HASH_FULL
+data: $DATA $HORA
+autor: $AUTOR
+---
+
+# $MSG
+
+**Commit:** \`$HASH_SHORT\` · **Branch:** \`$BRANCH\` · **Autor:** $AUTOR
+**Quando:** $DATA às $HORA
+
+$CORPO
+
+## Arquivos alterados
+
+\`\`\`
+$ARQUIVOS
+\`\`\`
+EOF
+
+echo "[obsidian] nota criada: $FILE"
