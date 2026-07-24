@@ -1,75 +1,240 @@
 /**
  * F018 — login page. Decisão 018 (CSS separado do JSX) +
- * tokens --gm-* (ADR-007). Cores/transições/layout vão em classe.
+ * tokens --gm-* (ADR-007). Cor/estado/profundidade/layout vivem aqui;
+ * só o que é dinâmico por breakpoint (maxWidth, padding lateral via sz.*)
+ * e as cores de erro/tentativa continuam inline no JSX.
  *
  * TAMANHO DE FONTE vem da escala do design system (--fs-* e --lh-* de
- * src/styles/tipografia.css), por papel semântico — não mais inline via
- * sz.* do JSX. Migração de ~14 sites de fontSize para classes BEM.
+ * src/styles/tipografia.css), por papel semântico.
+ *
+ * Repaginação (2026-07-24): o login estava "chapado" — card só com borda
+ * de 1px, campos sem foco (outline:none e nada no lugar), botão sem hover,
+ * fundo numa cor morta. Agora: brilho suave da cor da marca (--gm-alow,
+ * já tenant-aware) atrás do card, card elevado com sombra, foco com anel
+ * na cor do accent, hover no botão. Tudo por token → recolore por tenant.
  */
 
-/* Tela de carregamento / validação de tenant */
+/* ── Página: fundo com brilho suave da marca ─────────────────────── */
+.login-page {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 0;
+  box-sizing: border-box;
+  background: var(--gm-bg);
+  color: var(--gm-text);
+  font-family: var(--gm-font-texto);
+  overflow: hidden;
+}
+/* Glow radial da cor do accent (--gm-alow = accent em baixa opacidade,
+   definido por layout/tenant). Fica atrás de tudo, não captura clique. */
+.login-page::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  width: min(720px, 120vw);
+  height: min(720px, 120vw);
+  transform: translateX(-50%);
+  background: radial-gradient(circle, var(--gm-alow), transparent 62%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.login-page__container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Marca (topo) ────────────────────────────────────────────────── */
+.login-page__brand {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.login-page__brand-logo {
+  max-width: min(280px, 70%);
+  max-height: 72px;
+  object-fit: contain;
+  display: inline-block;
+}
+.login-page__brand-title {
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  font-family: var(--gm-font-titulo);
+}
+.login-page__brand-subtitle {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+  margin-top: 6px;
+}
+
+/* ── Card do formulário ──────────────────────────────────────────── */
+.login-page__card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  padding: 28px 24px;
+  /* elevação: tira o card do plano do fundo (o principal "feio" antes) */
+  box-shadow: 0 20px 48px -24px rgba(0, 0, 0, 0.55),
+              0 2px 8px -4px rgba(0, 0, 0, 0.3);
+}
+
+.login-page__field { margin-bottom: 16px; }
+.login-page__field--senha { margin-bottom: 22px; }
+
+.login-page__label {
+  display: block;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.login-page__input {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-family: inherit;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.login-page__input::placeholder { color: var(--gm-faint); }
+.login-page__input:hover:not(:disabled) { border-color: var(--gm-faint); }
+/* Foco visível: anel na cor do accent — some o outline:none sem substituto */
+.login-page__input:focus {
+  border-color: var(--gm-accent);
+  box-shadow: 0 0 0 3px var(--gm-alow);
+}
+.login-page__input:disabled { opacity: 0.6; cursor: not-allowed; }
+.login-page__input--senha { padding-right: 44px; }
+
+.login-page__senha-wrap { position: relative; }
+
+.login-page__olho {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+}
+.login-page__olho:hover { color: var(--gm-text); background: var(--gm-alow); }
+
+/* ── Indicador de tentativas ─────────────────────────────────────── */
+.login-page__attempts {
+  margin-bottom: 14px;
+  display: flex;
+  gap: 4px;
+}
+.login-page__attempt-pip {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+/* ── Mensagem de erro do formulário ──────────────────────────────── */
+.login-page__error-message {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: var(--gm-red);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* ── Botão de ação ───────────────────────────────────────────────── */
+.login-page__button {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-family: inherit;
+  box-shadow: 0 6px 18px -8px var(--gm-alow);
+  transition: filter 0.15s, transform 0.05s, box-shadow 0.15s;
+}
+.login-page__button:hover:not(:disabled) { filter: brightness(1.08); }
+.login-page__button:active:not(:disabled) { transform: translateY(1px); }
+.login-page__button:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── Aviso de segurança (sessão, tentativas) ─────────────────────── */
+.login-page__security {
+  margin-top: 16px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.login-page__security-icon {
+  color: var(--gm-muted);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.login-page__security-notice {
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+.login-page__security-notice strong { color: var(--gm-text); }
+
+/* ── Tela de carregamento / validação de tenant ──────────────────── */
 .login-page__loading {
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
 }
 
-/* Seção de erro (subdomínio inválido) */
+/* ── Seção de erro (subdomínio inválido) ─────────────────────────── */
 .login-page__error-title {
   font-size: var(--fs-lg);
   line-height: var(--lh-lg);
 }
-
 .login-page__error-text {
   font-size: var(--fs-base);
   line-height: var(--lh-base);
 }
-
 .login-page__error-caption {
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
 }
-
 .login-page__footer-text {
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
-}
-
-/* Branding (marca do tenant na porta de entrada) */
-.login-page__brand-title {
-  font-size: var(--fs-xl);
-  line-height: var(--lh-xl);
-}
-
-.login-page__brand-subtitle {
-  font-size: var(--fs-sm);
-  line-height: var(--lh-sm);
-}
-
-/* Formulário: labels e campos de entrada */
-.login-page__label {
-  font-size: var(--fs-xs);
-  line-height: var(--lh-xs);
-}
-
-.login-page__input {
-  font-size: var(--fs-base);
-  line-height: var(--lh-base);
-}
-
-/* Mensagem de erro do formulário */
-.login-page__error-message {
-  font-size: var(--fs-sm);
-  line-height: var(--lh-sm);
-}
-
-/* Botão de ação */
-.login-page__button {
-  font-size: var(--fs-base);
-  line-height: var(--lh-base);
-}
-
-/* Aviso de segurança (sessão, tentativas) */
-.login-page__security-notice {
-  font-size: var(--fs-xs);
-  line-height: 1.5;
 }

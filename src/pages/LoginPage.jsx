@@ -166,66 +166,64 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ background: varColor(C.bg), minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--gm-font-texto)", color: varColor(C.text) }}>
-      <div style={{ width: "100%", maxWidth: sz.checkoutResumo > 0 ? sz.checkoutResumo - 80 : 480, padding: `0 ${sz.pad}px`, boxSizing: "border-box" }}>
-        <div style={{ textAlign: "center", marginBottom: sz.pad + 8 }}>
+    <div className="login-page">
+      <div className="login-page__container" style={{ maxWidth: sz.checkoutResumo > 0 ? sz.checkoutResumo - 80 : 420, padding: `0 ${sz.pad}px` }}>
+        <div className="login-page__brand">
           {marca.logo ? (
-            <img src={marca.logo} alt={marca.nome} style={{ maxWidth: "min(280px, 70%)", maxHeight: 72, objectFit: "contain", display: "inline-block" }} />
+            <img src={marca.logo} alt={marca.nome} className="login-page__brand-logo" />
           ) : (
-            <div className="login-page__brand-title" style={{ fontWeight: 900, letterSpacing: "-0.5px", fontFamily: "var(--gm-font-titulo)" }}>{marca.nome}</div>
+            <div className="login-page__brand-title">{marca.nome}</div>
           )}
-          <div className="login-page__brand-subtitle" style={{ color: varColor(C.muted), marginTop: 4 }}>by Kora · Acesso ao Sistema</div>
+          <div className="login-page__brand-subtitle">by Kora · Acesso ao Sistema</div>
         </div>
 
-        <div style={{ background: varColor(C.card), borderRadius: 20, padding: sz.pad + 4, border: `1px solid var(${C.border})` }}>
-          <div style={{ marginBottom: 16 }}>
-            <label className="login-page__label" style={{ display: "block", fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Usuário</label>
+        <div className="login-page__card">
+          <div className="login-page__field">
+            <label className="login-page__label">Usuário</label>
             <input type="text" value={username} placeholder="Digite seu usuário" maxLength={30} autoComplete="username" disabled={loading}
               onChange={(e) => { setUsername(e.target.value); setError(""); }}
               onKeyDown={(e) => e.key === "Enter" && submit()}
               className="login-page__input"
-              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), boxSizing: "border-box", outline: "none", fontFamily: "inherit" }}
             />
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label className="login-page__label" style={{ display: "block", fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Senha</label>
-            <div style={{ position: "relative" }}>
+          <div className="login-page__field login-page__field--senha">
+            <label className="login-page__label">Senha</label>
+            <div className="login-page__senha-wrap">
               <input type={showPass ? "text" : "password"} value={password} placeholder="Digite sua senha" maxLength={100} autoComplete="current-password" disabled={loading}
                 onChange={(e) => { setPassword(e.target.value); setError(""); }}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
-                className="login-page__input"
-                style={{ width: "100%", padding: "12px 44px 12px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), boxSizing: "border-box", outline: "none", fontFamily: "inherit" }}
+                className="login-page__input login-page__input--senha"
               />
-              <button onClick={() => setShowPass(s => !s)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", display: "flex", alignItems: "center" }}>
+              <button type="button" aria-label={showPass ? "Ocultar senha" : "Mostrar senha"} onClick={() => setShowPass(s => !s)} className="login-page__olho">
                 {showPass ? <LuEyeOff size={18} /> : <LuEye size={18} />}
               </button>
             </div>
           </div>
 
           {attempts > 0 && (
-            <div style={{ marginBottom: 12, display: "flex", gap: 4 }}>
+            <div className="login-page__attempts">
               {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
-                <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i < attempts ? varColor(C.red) : varColor(C.border) }} />
+                <div key={i} className="login-page__attempt-pip" style={{ background: i < attempts ? varColor(C.red) : varColor(C.border) }} />
               ))}
             </div>
           )}
 
           {error && (
-            <div className="login-page__error-message" style={{ marginBottom: 14, padding: "10px 14px", borderRadius: 8, background: `${alfa(C.red, "15")}`, border: `1px solid ${alfa(C.red, "44")}`, color: varColor(C.red), fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="login-page__error-message" style={{ background: `${alfa(C.red, "15")}`, border: `1px solid ${alfa(C.red, "44")}` }}>
               <LuTriangleAlert size={15} style={{ flexShrink: 0 }} /> {error}
             </div>
           )}
 
-          <button onClick={submit} disabled={loading || dbLoading} className="login-page__button" style={{ width: "100%", padding: 14, borderRadius: 10, border: "none", background: (loading || dbLoading) ? varColor(C.faint) : varColor(C.accent), color: "#fff", fontWeight: 800, cursor: (loading || dbLoading) ? "not-allowed" : "pointer" }}>
+          <button onClick={submit} disabled={loading || dbLoading} className="login-page__button">
             {dbLoading ? "Conectando..." : loading ? "Verificando..." : "Entrar"}
           </button>
         </div>
 
-        <div style={{ marginTop: 16, padding: "10px 16px", borderRadius: 10, background: `${alfa(C.blue, "11")}`, border: `1px solid ${alfa(C.blue, "33")}`, display: "flex", gap: 8, alignItems: "flex-start" }}>
-          <LuShieldAlert size={15} style={{ color: varColor(C.muted), flexShrink: 0, marginTop: 1 }} />
-          <div className="login-page__security-notice" style={{ color: varColor(C.muted) }}>
-            Sessão expira após <strong style={{ color: varColor(C.text) }}>30 min</strong> de inatividade. Bloqueio após <strong style={{ color: varColor(C.text) }}>5 tentativas</strong>.
+        <div className="login-page__security" style={{ background: `${alfa(C.blue, "11")}`, border: `1px solid ${alfa(C.blue, "33")}` }}>
+          <LuShieldAlert size={15} className="login-page__security-icon" />
+          <div className="login-page__security-notice">
+            Sessão expira após <strong>30 min</strong> de inatividade. Bloqueio após <strong>5 tentativas</strong>.
           </div>
         </div>
       </div>
