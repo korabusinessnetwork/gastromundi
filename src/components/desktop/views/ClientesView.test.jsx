@@ -85,4 +85,49 @@ describe("ClientesView", () => {
     const eqCalls = mockSupabase.current.calls.filter((c) => c.table === "lancamentos" && c.method === "eq");
     expect(eqCalls.some((c) => c.args[0] === "id" && c.args[1] === "l1")).toBe(true);
   });
+
+  it("edita um cliente pelo detalhe: adiciona CPF e salva (atualizarCliente)", async () => {
+    const user = userEvent.setup();
+    mockSupabase.current.setTableResult("clientes", {
+      data: [{ id: "c1", nome: "João Silva", telefone: "11977776666", documento: null, documento_tipo: null, endereco: null, observacoes: null }],
+      error: null,
+    });
+    mockSupabase.current.setTableResult("vendas", { data: [], error: null });
+    mockSupabase.current.setTableResult("lancamentos", { data: [], error: null });
+
+    renderWithProviders(<ClientesView />);
+    await waitFor(() => expect(screen.getByText("João Silva")).toBeInTheDocument());
+
+    // abre o detalhe e entra na edição
+    await user.click(screen.getByText("João Silva"));
+    await waitFor(() => expect(screen.getByRole("button", { name: /editar/i })).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: /editar/i }));
+
+    // campos vêm preenchidos; CPF começa vazio e é mascarado ao digitar
+    const cpfInput = screen.getByPlaceholderText("000.000.000-00");
+    await user.type(cpfInput, "52998224725");
+    expect(cpfInput).toHaveValue("529.982.247-25");
+
+    // a linha atualizada volta pelo .single() do update
+    mockSupabase.current.setTableResult("clientes", {
+      data: { id: "c1", nome: "João Silva", telefone: "11977776666", documento: "52998224725", documento_tipo: "cpf", endereco: null, observacoes: null },
+      error: null,
+    });
+
+    await user.click(screen.getByRole("button", { name: /^salvar$/i }));
+
+    await waitFor(() => {
+      const updateCall = mockSupabase.current.calls.find((c) => c.table === "clientes" && c.method === "update");
+      expect(updateCall).toBeDefined();
+    });
+
+    // grava só os dígitos + o tipo escolhido, no id certo
+    const updateCall = mockSupabase.current.calls.find((c) => c.table === "clientes" && c.method === "update");
+    expect(updateCall.args[0]).toMatchObject({ documento: "52998224725", documento_tipo: "cpf" });
+    const eqCalls = mockSupabase.current.calls.filter((c) => c.table === "clientes" && c.method === "eq");
+    expect(eqCalls.some((c) => c.args[0] === "id" && c.args[1] === "c1")).toBe(true);
+
+    // some com o modal de edição depois de salvar
+    await waitFor(() => expect(screen.queryByRole("button", { name: /^salvar$/i })).not.toBeInTheDocument());
+  });
 });

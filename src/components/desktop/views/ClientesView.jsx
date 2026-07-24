@@ -9,11 +9,11 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import {
   LuUsers, LuSearch, LuPlus, LuPhone, LuMapPin, LuFileText,
-  LuX, LuCircleAlert, LuBadgeCheck, LuArrowLeft,
+  LuX, LuCircleAlert, LuBadgeCheck, LuArrowLeft, LuPencil,
 } from "react-icons/lu";
 import {
-  listarClientes, cadastrarCliente, buscarHistoricoCliente,
-  registrarPagamentoFiado, calcularSaldoDevedor,
+  listarClientes, cadastrarCliente, atualizarCliente, validarCadastroCliente,
+  buscarHistoricoCliente, registrarPagamentoFiado, calcularSaldoDevedor,
 } from "@/lib/clientes";
 import { apenasDigitos, validarDocumento, formatarDocumento } from "@/lib/documento";
 import "./ClientesView.css";
@@ -49,6 +49,7 @@ export default function ClientesView() {
   const [erroCadastro, setErroCadastro] = useState(null);
 
   const [clienteAberto, setClienteAberto] = useState(null);
+  const [clienteEditando, setClienteEditando] = useState(null);
 
   const carregar = async (termo) => {
     setCarregando(true);
@@ -219,43 +220,13 @@ export default function ClientesView() {
                   className="clientes-view__input"
                 />
               </div>
-              <div>
-                <div className="clientes-view__doc-topo">
-                  <label className="clientes-view__label">
-                    CPF / CNPJ <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span>
-                  </label>
-                  <div className="clientes-view__doc-toggle" role="group" aria-label="Tipo de documento">
-                    <button
-                      type="button"
-                      onClick={() => trocarDocTipo("cpf")}
-                      className={`clientes-view__doc-opt${novoDocTipo === "cpf" ? " clientes-view__doc-opt--ativo" : ""}`}
-                    >
-                      CPF
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => trocarDocTipo("cnpj")}
-                      className={`clientes-view__doc-opt${novoDocTipo === "cnpj" ? " clientes-view__doc-opt--ativo" : ""}`}
-                    >
-                      CNPJ
-                    </button>
-                  </div>
-                </div>
-                <input
-                  value={novoDocumento}
-                  onChange={(e) => setNovoDocumento(formatarDocumento(e.target.value, novoDocTipo))}
-                  placeholder={novoDocTipo === "cnpj" ? "00.000.000/0000-00" : "000.000.000-00"}
-                  inputMode="numeric"
-                  className="clientes-view__input"
-                  aria-invalid={docInvalido}
-                  style={docInvalido ? { borderColor: varColor(C.red) } : undefined}
-                />
-                {docInvalido && (
-                  <div className="clientes-view__doc-hint">
-                    {novoDocTipo === "cnpj" ? "CNPJ incompleto ou inválido." : "CPF incompleto ou inválido."}
-                  </div>
-                )}
-              </div>
+              <CampoDocumento
+                tipo={novoDocTipo}
+                valor={novoDocumento}
+                onTipo={trocarDocTipo}
+                onValor={setNovoDocumento}
+                invalido={docInvalido}
+              />
               <div>
                 <label className="clientes-view__label">Endereço <span style={{ fontWeight: 400, textTransform: "none" }}>(para delivery, opcional)</span></label>
                 <input
@@ -308,14 +279,29 @@ export default function ClientesView() {
           usuario={currentUser?.username}
           sz={sz}
           onClose={() => setClienteAberto(null)}
+          onEditar={() => setClienteEditando(clienteAberto)}
         />,
         document.body,
+      )}
+
+      {/* ── Modal: edição do cliente (abre por cima do detalhe) ── */}
+      {clienteEditando && (
+        <ClienteEdicao
+          cliente={clienteEditando}
+          usuario={currentUser?.username}
+          onClose={() => setClienteEditando(null)}
+          onSalvo={(atualizado) => {
+            setClienteEditando(null);
+            setClienteAberto(atualizado);
+            setClientes((prev) => prev.map((c) => (c.id === atualizado.id ? { ...c, ...atualizado } : c)));
+          }}
+        />
       )}
     </div>
   );
 }
 
-function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
+function ClienteDetalhe({ cliente, usuario, sz, onClose, onEditar }) {
   const [vendas, setVendas] = useState([]);
   const [lancamentosFiado, setLancamentosFiado] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -370,6 +356,9 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
               {cliente.endereco && <span><LuMapPin size={12} style={{ verticalAlign: -1 }} /> {cliente.endereco}</span>}
             </div>
           </div>
+          <button onClick={onEditar} className="cliente-detalhe__btn-editar">
+            <LuPencil size={14} /> Editar
+          </button>
           <button onClick={onClose} className="cliente-detalhe__btn-icone">
             <LuX size={18} />
           </button>
@@ -466,5 +455,178 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Campo CPF/CNPJ reutilizável (cadastro e edição): rótulo + toggle de tipo
+ * (recolore por tenant) + input com máscara progressiva. Documento é sempre
+ * opcional; o aviso de inválido só aparece quando `invalido` (preenchido e
+ * inconsistente com o tipo). Mantém a marcação/classes idênticas nas duas
+ * telas para consistência total (design system).
+ */
+function CampoDocumento({ tipo, valor, onTipo, onValor, invalido }) {
+  return (
+    <div>
+      <div className="clientes-view__doc-topo">
+        <label className="clientes-view__label">
+          CPF / CNPJ <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span>
+        </label>
+        <div className="clientes-view__doc-toggle" role="group" aria-label="Tipo de documento">
+          <button
+            type="button"
+            onClick={() => onTipo("cpf")}
+            className={`clientes-view__doc-opt${tipo === "cpf" ? " clientes-view__doc-opt--ativo" : ""}`}
+          >
+            CPF
+          </button>
+          <button
+            type="button"
+            onClick={() => onTipo("cnpj")}
+            className={`clientes-view__doc-opt${tipo === "cnpj" ? " clientes-view__doc-opt--ativo" : ""}`}
+          >
+            CNPJ
+          </button>
+        </div>
+      </div>
+      <input
+        value={valor}
+        onChange={(e) => onValor(formatarDocumento(e.target.value, tipo))}
+        placeholder={tipo === "cnpj" ? "00.000.000/0000-00" : "000.000.000-00"}
+        inputMode="numeric"
+        className="clientes-view__input"
+        aria-invalid={invalido}
+        style={invalido ? { borderColor: varColor(C.red) } : undefined}
+      />
+      {invalido && (
+        <div className="clientes-view__doc-hint">
+          {tipo === "cnpj" ? "CNPJ incompleto ou inválido." : "CPF incompleto ou inválido."}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Edição de um cliente já cadastrado — mesmos campos do cadastro rápido
+ * (nome + telefone obrigatórios; CPF/CNPJ, endereço e observações opcionais).
+ * Abre por cima do detalhe e, ao salvar, devolve a linha atualizada via
+ * `onSalvo` para a tela refletir na hora, sem recarregar a lista. Botão
+ * "Salvar" só habilita quando o cadastro é válido (previne erro, princípio nº 1).
+ */
+function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
+  const [nome, setNome] = useState(cliente.nome ?? "");
+  const [telefone, setTelefone] = useState(cliente.telefone ?? "");
+  const [docTipo, setDocTipo] = useState(cliente.documento_tipo === "cnpj" ? "cnpj" : "cpf");
+  const [documento, setDocumento] = useState(
+    cliente.documento ? formatarDocumento(cliente.documento, cliente.documento_tipo) : "",
+  );
+  const [endereco, setEndereco] = useState(cliente.endereco ?? "");
+  const [obs, setObs] = useState(cliente.observacoes ?? "");
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState(null);
+
+  // Ao trocar cpf↔cnpj, remascara os dígitos já digitados no novo formato.
+  const trocarDocTipo = (tipo) => {
+    setDocTipo(tipo);
+    setDocumento((atual) => formatarDocumento(atual, tipo));
+  };
+
+  const docInvalido = apenasDigitos(documento).length > 0 && !validarDocumento(documento, docTipo);
+  const { valido } = validarCadastroCliente({ nome, telefone, documento, documentoTipo: docTipo });
+  const bloqueado = salvando || !valido;
+
+  const handleSalvar = async () => {
+    if (bloqueado) return;
+    setSalvando(true);
+    setErro(null);
+    const { data, error } = await atualizarCliente(
+      cliente.id,
+      { nome, telefone, documento, documentoTipo: docTipo, endereco, observacoes: obs },
+      usuario,
+    );
+    setSalvando(false);
+    if (error) { setErro(error.message ?? "Não foi possível salvar as alterações."); return; }
+    onSalvo(data);
+  };
+
+  return createPortal(
+    <div {...fecharAoClicarFora(onClose)} className="clientes-view__overlay" style={{ zIndex: 9300 }}>
+      <div className="clientes-view__modal">
+        <div className="clientes-view__modal-topo">
+          <div className="clientes-view__modal-titulo">Editar cliente</div>
+          <button onClick={onClose} className="clientes-view__modal-fechar">
+            <LuX size={18} />
+          </button>
+        </div>
+
+        <div className="clientes-view__campos">
+          <div>
+            <label className="clientes-view__label">Nome</label>
+            <input
+              autoFocus
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Nome do cliente"
+              className="clientes-view__input"
+            />
+          </div>
+          <div>
+            <label className="clientes-view__label">Telefone</label>
+            <input
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              placeholder="(00) 00000-0000"
+              className="clientes-view__input"
+            />
+          </div>
+          <CampoDocumento
+            tipo={docTipo}
+            valor={documento}
+            onTipo={trocarDocTipo}
+            onValor={setDocumento}
+            invalido={docInvalido}
+          />
+          <div>
+            <label className="clientes-view__label">Endereço <span style={{ fontWeight: 400, textTransform: "none" }}>(para delivery, opcional)</span></label>
+            <input
+              value={endereco}
+              onChange={(e) => setEndereco(e.target.value)}
+              placeholder="Rua, número, bairro..."
+              className="clientes-view__input"
+            />
+          </div>
+          <div>
+            <label className="clientes-view__label">Observações <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span></label>
+            <input
+              value={obs}
+              onChange={(e) => setObs(e.target.value)}
+              placeholder="Ex: sem cebola, apto 302..."
+              className="clientes-view__input"
+            />
+          </div>
+        </div>
+
+        {erro && <div className="clientes-view__erro-form">{erro}</div>}
+
+        <div className="clientes-view__modal-botoes">
+          <button onClick={onClose} className="clientes-view__btn-cancelar">
+            Cancelar
+          </button>
+          <button
+            onClick={handleSalvar}
+            disabled={bloqueado}
+            className="clientes-view__btn-confirmar"
+            style={{
+              background: bloqueado ? varColor(C.faint) : varColor(C.accent),
+              cursor: bloqueado ? "not-allowed" : "pointer",
+            }}
+          >
+            {salvando ? "Salvando..." : "Salvar"}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

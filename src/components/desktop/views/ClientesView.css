@@ -344,6 +344,30 @@
   display: flex;
 }
 
+/* Ação de editar no cabeçalho do detalhe: pílula discreta que ganha o
+   accent do tenant no hover — alvo de toque generoso para o PDV. */
+.cliente-detalhe__btn-editar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+.cliente-detalhe__btn-editar:hover {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
 .cliente-detalhe__nome {
   font-weight: 900;
   font-size: var(--fs-lg);
