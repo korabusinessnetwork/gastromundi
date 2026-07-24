@@ -362,7 +362,7 @@ export default function MobilePage() {
         <div style={{ padding: "10px 16px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0 }}>
           <div style={{ position: "relative" }}>
             <LuSearch size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }} />
-            <input value={buscaGrid} onChange={e => setBuscaGrid(e.target.value)} placeholder="Buscar comanda por nome ou número..." className="mobile-page__busca-input" style={{ width: "100%", padding: "11px 36px 11px 36px", borderRadius: 12, border: `1.5px solid ${buscaGrid ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }} />
+            <input value={buscaGrid} onChange={e => setBuscaGrid(e.target.value)} placeholder="Buscar comanda por nome ou número..." className="mobile-page__busca-input" style={{ width: "100%", padding: "11px 36px 11px 36px", borderRadius: 12, border: `1.5px solid ${buscaGrid ? varColor(C.accent) : "var(--gm-input-border)"}`, background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }} />
             {buscaGrid && <button onClick={() => setBuscaGrid("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", lineHeight: 0, padding: 2 }}><LuX size={16} /></button>}
           </div>
         </div>
@@ -597,8 +597,8 @@ export default function MobilePage() {
             className="mobile-page__busca-input"
             style={{
               width: "100%", padding: "11px 36px 11px 36px",
-              borderRadius: 12, border: `1.5px solid ${buscaItens ? varColor(C.accent) : varColor(C.border)}`,
-              background: varColor(C.surface), color: varColor(C.text),
+              borderRadius: 12, border: `1.5px solid ${buscaItens ? varColor(C.accent) : "var(--gm-input-border)"}`,
+              background: "var(--gm-input-bg)", color: varColor(C.text),
               fontFamily: "inherit", outline: "none",
               boxSizing: "border-box", transition: "border-color 0.15s",
             }}
@@ -753,11 +753,11 @@ export default function MobilePage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
               <div className="mobile-page__campo-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Número da Comanda *</div>
-              <input autoFocus value={lancComanda} onChange={e => { setLancComanda(e.target.value); setLancErro(""); }} onKeyDown={e => e.key === "Enter" && document.getElementById("palm-mesa")?.focus()} placeholder="Ex: 42 ou Mesa VIP" maxLength={40} className="mobile-page__campo-input" style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${lancErro ? varColor(C.red) + "88" : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+              <input autoFocus value={lancComanda} onChange={e => { setLancComanda(e.target.value); setLancErro(""); }} onKeyDown={e => e.key === "Enter" && document.getElementById("palm-mesa")?.focus()} placeholder="Ex: 42 ou Mesa VIP" maxLength={40} className="mobile-page__campo-input" style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${lancErro ? varColor(C.red) + "88" : "var(--gm-input-border)"}`, background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
             </div>
             <div>
               <div className="mobile-page__campo-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Mesa <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span></div>
-              <input id="palm-mesa" value={lancMesa} onChange={e => setLancMesa(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLancar()} placeholder="Ex: 5" maxLength={20} className="mobile-page__campo-input" style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+              <input id="palm-mesa" value={lancMesa} onChange={e => setLancMesa(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLancar()} placeholder="Ex: 5" maxLength={20} className="mobile-page__campo-input" style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid var(--gm-input-border)`, background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
             </div>
             {lancErro && <div className="mobile-page__campo-erro" style={{ color: varColor(C.red), fontWeight: 600, padding: "8px 12px", background: `${alfa(C.red, "12")}`, borderRadius: 8, border: `1px solid ${alfa(C.red, "33")}` }}>{lancErro}</div>}
           </div>

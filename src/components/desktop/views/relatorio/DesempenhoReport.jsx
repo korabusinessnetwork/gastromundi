@@ -202,7 +202,7 @@ export default function DesempenhoReport() {
               className="desempenho__date-input"
               value={customInicio}
               onChange={(e) => setCustomInicio(e.target.value)}
-              style={{ border: `1.5px solid ${customInicio ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text) }}
+              style={{ border: `1.5px solid ${customInicio ? varColor(C.accent) : "var(--gm-input-border)"}`, background: "var(--gm-input-bg)", color: varColor(C.text) }}
             />
             <span className="desempenho__datas-ate" style={{ color: varColor(C.muted), fontWeight: 600 }}>até</span>
             <input
@@ -211,7 +211,7 @@ export default function DesempenhoReport() {
               value={customFim}
               min={customInicio || undefined}
               onChange={(e) => setCustomFim(e.target.value)}
-              style={{ border: `1.5px solid ${customFim ? varColor(C.accent) : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text) }}
+              style={{ border: `1.5px solid ${customFim ? varColor(C.accent) : "var(--gm-input-border)"}`, background: "var(--gm-input-bg)", color: varColor(C.text) }}
             />
           </div>
         )}

@@ -81,8 +81,8 @@ export default function AberturaCaixaModal({ onConfirm, onClose }) {
               placeholder="0,00"
               style={{
                 width: "100%", padding: "14px 16px 14px 48px",
-                borderRadius: 12, border: `1.5px solid var(${C.border})`,
-                background: varColor(C.surface), color: varColor(C.text),
+                borderRadius: 12, border: "1.5px solid var(--gm-input-border)",
+                background: "var(--gm-input-bg)", color: varColor(C.text),
                 fontWeight: 700,
                 boxSizing: "border-box", fontFamily: "inherit", outline: "none",
               }}

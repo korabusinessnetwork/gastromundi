@@ -324,8 +324,8 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                   className="sidebar__input"
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
-                    border: `1.5px solid ${authError ? varColor(C.red) + "88" : varColor(C.border)}`,
-                    background: varColor(C.surface), color: varColor(C.text),
+                    border: `1.5px solid ${authError ? varColor(C.red) + "88" : "var(--gm-input-border)"}`,
+                    background: "var(--gm-input-bg)", color: varColor(C.text),
                     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                   }}
                 />
@@ -343,8 +343,8 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                   className="sidebar__input"
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
-                    border: `1.5px solid ${authError ? varColor(C.red) + "88" : varColor(C.border)}`,
-                    background: varColor(C.surface), color: varColor(C.text),
+                    border: `1.5px solid ${authError ? varColor(C.red) + "88" : "var(--gm-input-border)"}`,
+                    background: "var(--gm-input-bg)", color: varColor(C.text),
                     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                   }}
                 />
@@ -607,7 +607,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                 className="sidebar__input"
                 style={{
                   width: "100%", boxSizing: "border-box", resize: "none",
-                  background: varColor(C.surface), border: `1px solid var(${C.border})`,
+                  background: "var(--gm-input-bg)", border: "1px solid var(--gm-input-border)",
                   borderRadius: 10, padding: "10px 12px", color: varColor(C.text),
                   fontFamily: "inherit",
                 }}
@@ -627,8 +627,8 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                 className="sidebar__input"
                 style={{
                   width: "100%", boxSizing: "border-box",
-                  background: varColor(C.surface),
-                  border: `1.5px solid ${cancelSenhaErro ? varColor(C.red) : `var(${C.border})`}`,
+                  background: "var(--gm-input-bg)",
+                  border: `1.5px solid ${cancelSenhaErro ? varColor(C.red) : "var(--gm-input-border)"}`,
                   borderRadius: 10, padding: "10px 12px", color: varColor(C.text),
                 }}
               />

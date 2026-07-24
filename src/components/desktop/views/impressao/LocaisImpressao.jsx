@@ -282,7 +282,7 @@ export default function LocaisImpressao({ sz }) {
                   placeholder="Ex: Cozinha, Bar, Caixa…"
                   maxLength={80}
                   className="locais-impressao__input"
-                  style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${formErro ? varColor(C.red) + "88" : varColor(C.border)}`, background: varColor(C.surface), color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${formErro ? varColor(C.red) + "88" : "var(--gm-input-border)"}`, background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
                 />
               </div>
 
@@ -294,7 +294,7 @@ export default function LocaisImpressao({ sz }) {
                   placeholder="Ex: Impressora na cozinha do restaurante"
                   maxLength={200}
                   className="locais-impressao__input"
-                  style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid var(--gm-input-border)", background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
                 />
               </div>
 

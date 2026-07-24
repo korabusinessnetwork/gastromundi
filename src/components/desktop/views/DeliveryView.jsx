@@ -2452,8 +2452,8 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
 // Estilo base de input, casado ao tema do tenant (var --gm-*).
 function inputStyle(sz) {
   return {
-    border: `1.5px solid ${varColor(C.border)}`,
-    background: varColor(C.surface),
+    border: `1.5px solid var(--gm-input-border)`,
+    background: "var(--gm-input-bg)",
     color: varColor(C.text),
   };
 }

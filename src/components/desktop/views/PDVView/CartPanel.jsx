@@ -300,7 +300,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                       placeholder="Observação do item..."
                       maxLength={120}
                       className="cart-panel__obs-input"
-                      style={{ border: `1px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text) }}
+                      style={{ border: `1px solid var(--gm-input-border)`, background: "var(--gm-input-bg)", color: varColor(C.text) }}
                     />
                     <button onClick={() => confirmDraft(i)} className="cart-panel__obs-confirmar" style={{ background: varColor(C.green), color: "#fff" }}>
                       <LuCheck size={15} />
@@ -410,7 +410,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                       setQtyInputStr(String(clamped));
                     }}
                     className="cart-panel__stepper-input"
-                    style={{ color: varColor(C.text), background: varColor(C.card), border: `1.5px solid var(${C.border})` }}
+                    style={{ color: varColor(C.text), background: "var(--gm-input-bg)", border: `1.5px solid var(--gm-input-border)` }}
                   />
                   <button
                     onClick={() => { setConfirmExcluir(prev => { const n = Math.min(prev.qtyMax, prev.qtySel + 1); setQtyInputStr(String(n)); return { ...prev, qtySel: n }; }); }}
@@ -445,11 +445,11 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   rows={3}
                   className="cart-panel__textarea"
                   style={{
-                    border: `1.5px solid ${confirmExcluir.motivo ? alfa(C.accent, "88") : varColor(C.border)}`,
-                    background: varColor(C.surface), color: varColor(C.text),
+                    border: `1.5px solid ${confirmExcluir.motivo ? alfa(C.accent, "88") : "var(--gm-input-border)"}`,
+                    background: "var(--gm-input-bg)", color: varColor(C.text),
                   }}
                   onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
-                  onBlur={e => e.currentTarget.style.borderColor = confirmExcluir.motivo ? alfa(C.accent, "88") : varColor(C.border)}
+                  onBlur={e => e.currentTarget.style.borderColor = confirmExcluir.motivo ? alfa(C.accent, "88") : "var(--gm-input-border)"}
                 />
                 <div className="cart-panel__contador" style={{ color: varColor(C.muted), textAlign: "right" }}>
                   {confirmExcluir.motivo.length}/200
@@ -472,8 +472,8 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                     placeholder="Digite a senha..."
                     className="cart-panel__senha-input"
                     style={{
-                      border: `1.5px solid ${itemSenhaErro ? varColor(C.red) : itemSenhaOk ? varColor(C.green) : varColor(C.border)}`,
-                      background: varColor(C.surface), color: varColor(C.text),
+                      border: `1.5px solid ${itemSenhaErro ? varColor(C.red) : itemSenhaOk ? varColor(C.green) : "var(--gm-input-border)"}`,
+                      background: "var(--gm-input-bg)", color: varColor(C.text),
                     }}
                   />
                   <button onClick={() => setItemSenhaVis(v => !v)} className="cart-panel__senha-olho" style={{ color: varColor(C.muted) }}>

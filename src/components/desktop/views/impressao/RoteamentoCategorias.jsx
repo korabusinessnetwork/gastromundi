@@ -139,8 +139,8 @@ export default function RoteamentoCategorias({ sz }) {
                 disabled={salvando[cat] || locais.length === 0}
                 style={{
                   width: "100%", padding: "8px 12px", borderRadius: 8,
-                  border: `1.5px solid var(${C.border})`,
-                  background: varColor(C.surface), color: varColor(C.text),
+                  border: "1.5px solid var(--gm-input-border)",
+                  background: "var(--gm-input-bg)", color: varColor(C.text),
                   fontFamily: "inherit",
                   cursor: locais.length === 0 ? "not-allowed" : "pointer",
                   outline: "none", appearance: "none",

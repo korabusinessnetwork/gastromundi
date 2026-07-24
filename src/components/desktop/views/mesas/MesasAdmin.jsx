@@ -491,8 +491,8 @@ export default function MesasAdmin({ sz }) {
                   className="mesas-admin__campo-input"
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
-                    border: `1.5px solid ${formErro && !form.numero.trim() && !editando ? varColor(C.red) + "88" : varColor(C.border)}`,
-                    background: editando ? varColor(C.bg) : varColor(C.surface), color: varColor(C.text),
+                    border: `1.5px solid ${formErro && !form.numero.trim() && !editando ? varColor(C.red) + "88" : "var(--gm-input-border)"}`,
+                    background: "var(--gm-input-bg)", color: varColor(C.text),
                     fontFamily: "inherit", outline: "none",
                     boxSizing: "border-box", opacity: editando ? 0.55 : 1,
                   }}
@@ -520,8 +520,8 @@ export default function MesasAdmin({ sz }) {
                   className="mesas-admin__campo-input"
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
-                    border: `1.5px solid var(${C.border})`,
-                    background: varColor(C.surface), color: varColor(C.text),
+                    border: "1.5px solid var(--gm-input-border)",
+                    background: "var(--gm-input-bg)", color: varColor(C.text),
                     fontFamily: "inherit", outline: "none",
                     boxSizing: "border-box",
                   }}

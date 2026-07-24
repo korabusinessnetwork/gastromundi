@@ -612,7 +612,7 @@ export default function ProdutosView() {
                           onChange={e => setCompra(idx, "fator", e.target.value)}
                           placeholder="0"
                           className="produtos-view__conversao-fator"
-                          style={{ borderColor: c.fator ? alfa(C.blue, "88") : varColor(C.border) }}
+                          style={{ borderColor: c.fator ? alfa(C.blue, "88") : "var(--gm-input-border)" }}
                         />
                         {" "}<span style={{ color: varColor(C.accent), fontWeight: 800 }}>{form.unidade_estoque || "…"}</span>{" "}de estoque
                       </div>
@@ -691,7 +691,7 @@ export default function ProdutosView() {
                         onChange={e => setField("fator_consumo", e.target.value)}
                         placeholder="1"
                         className="produtos-view__conversao-fator"
-                        style={{ borderColor: form.fator_consumo ? alfa(C.green, "88") : varColor(C.border) }}
+                        style={{ borderColor: form.fator_consumo ? alfa(C.green, "88") : "var(--gm-input-border)" }}
                       />
                       {" "}<span style={{ color: varColor(C.accent), fontWeight: 800 }}>{form.unidade_estoque}</span>{" "}do estoque
                     </div>
@@ -771,7 +771,7 @@ export default function ProdutosView() {
             <div className="produtos-view__cat-nova-secao">
               <div className="produtos-view__cat-nova-titulo">Nova Categoria</div>
               <div className="produtos-view__cat-nova-linha">
-                <input value={catNova} onChange={e => setCatNova(e.target.value)} onKeyDown={e => e.key === "Enter" && criarCategoria()} placeholder="Ex: Bebidas, Lanches..." maxLength={40} className="produtos-view__cat-nova-input" style={{ borderColor: catNova.trim() ? varColor(C.accent) : varColor(C.border) }} />
+                <input value={catNova} onChange={e => setCatNova(e.target.value)} onKeyDown={e => e.key === "Enter" && criarCategoria()} placeholder="Ex: Bebidas, Lanches..." maxLength={40} className="produtos-view__cat-nova-input" style={{ borderColor: catNova.trim() ? varColor(C.accent) : "var(--gm-input-border)" }} />
                 <button onClick={criarCategoria} disabled={!catNova.trim() || catOpLoading || categorias.includes(catNova.trim())} className="produtos-view__cat-nova-btn" style={{ background: catNova.trim() && !categorias.includes(catNova.trim()) ? varColor(C.accent) : varColor(C.surface), color: catNova.trim() && !categorias.includes(catNova.trim()) ? "#fff" : varColor(C.muted), cursor: catNova.trim() && !categorias.includes(catNova.trim()) ? "pointer" : "not-allowed" }}>
                   {catOpLoading ? "..." : "Adicionar"}
                 </button>

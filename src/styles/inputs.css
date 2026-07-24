@@ -1,0 +1,78 @@
+/**
+ * Baseline global de campos de formulário — decisões 017 (white-label) e 018.
+ *
+ * PROBLEMA: em temas claros de tenant, --gm-card e --gm-surface ficam quase
+ * iguais e a borda fica fraca, então o input "desaparece" no fundo do card
+ * (relato do dono, tema claro). A correção precisa valer para QUALQUER paleta
+ * — clara ou escura — sem hardcode: por isso o fundo/borda/anel saem dos
+ * tokens --gm-input-* (derivados por color-mix da marca, em tema.css).
+ *
+ * ESTRATÉGIA DE ESPECIFICIDADE (o ponto-chave):
+ *  - O FUNDO usa uma cadeia de :not([type=...]) só para SOMAR especificidade
+ *    e vencer as regras de classe por-tela que hoje pintam o input com
+ *    var(--gm-surface) (o que some no claro). Trocamos só background-color,
+ *    NÃO a cor da borda de repouso — assim bordas de erro (aria-invalid →
+ *    --gm-red) e variantes por-tela continuam mandando. Sem !important.
+ *  - A BORDA de repouso base entra via :where() (especificidade 0): só
+ *    preenche inputs "pelados" que não têm borda própria, sem atropelar as
+ *    bordas já definidas por classe.
+ *  - O ANEL DE FOCO (box-shadow) é universal: nenhuma regra por-tela nem
+ *    estilo inline define box-shadow em input, então ele aplica em todos,
+ *    inclusive nos inputs com estilo inline no JSX.
+ *
+ * Estilos INLINE no JSX ainda vencem por especificidade no que definem
+ * (background/border inline). Esses poucos são migrados nos próprios
+ * componentes para var(--gm-input-bg); mesmo antes disso, já ganham o anel
+ * de foco daqui. checkbox/radio/botões ficam de fora (aparência nativa).
+ */
+
+/* Fundo destacado — controles de texto (exclui checkbox/radio/botões/etc.).
+   A cadeia de :not() é intencional: eleva a especificidade para ~(0,8,1),
+   acima das regras de classe por-tela, sem recorrer a !important. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]),
+textarea,
+select {
+  background-color: var(--gm-input-bg);
+}
+
+/* Borda de repouso base (especificidade 0 via :where): só onde não há borda
+   própria; qualquer regra de classe/inline com borda continua vencendo. */
+:where(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  border: 1px solid var(--gm-input-border);
+}
+
+/* Foco: anel consistente em todo o sistema. box-shadow não é definido por
+   regras por-tela nem inline, então aplica universalmente (até nos inline). */
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--gm-input-ring);
+}
+
+/* No foco a borda vira accent — exceto em campo inválido, que mantém o
+   vermelho e ganha anel vermelho (feedback de erro > cor de foco). */
+input:not([aria-invalid="true"]):not([type="checkbox"]):not([type="radio"]):focus,
+textarea:not([aria-invalid="true"]):focus,
+select:not([aria-invalid="true"]):focus {
+  border-color: var(--gm-accent);
+}
+input[aria-invalid="true"]:focus,
+textarea[aria-invalid="true"]:focus,
+select[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gm-red) 35%, transparent);
+}
+
+/* Desabilitado: atenua e sinaliza que não dá pra editar. */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Placeholder legível em qualquer tema (classes específicas ainda vencem). */
+::placeholder {
+  color: var(--gm-muted);
+  opacity: 1;
+}

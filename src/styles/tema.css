@@ -29,6 +29,10 @@
    à parte por ser ortogonal à cor; ambos são tokens de tema. @import precede
    qualquer regra (só depois do comentário). */
 @import "./tipografia.css";
+/* Baseline global de campos de formulário (destaque + foco consistentes em
+   qualquer tema). Usa os tokens --gm-input-* definidos abaixo; @import resolve
+   custom properties em tempo de uso, então a ordem não é problema. */
+@import "./inputs.css";
 
 :root {
   --gm-bg: #070b14;
@@ -44,6 +48,18 @@
   --gm-faint: #323d58;
   /* Overlay translúcido do accent (estados ativo/pressionado) — F018 */
   --gm-alow: rgba(124, 58, 237, 0.13);
+  /* Campos de formulário (inputs/textarea/select) — derivados por color-mix
+     dos tokens de marca, então CONTRASTAM em qualquer paleta de tenant, clara
+     ou escura (decisão 017), sem hardcode de claro/escuro. O problema que
+     resolvem: em temas claros o card e a superfície ficam quase iguais e o
+     input "some" no fundo. Um tenant pode afinar sobrescrevendo estes tokens
+     (input_bg/input_border/input_ring), como qualquer outro --gm-*.
+     - input-bg:     fundo levemente destacado do card (mistura texto no card).
+     - input-border: borda de repouso derivada do texto (visível em fundo claro/escuro).
+     - input-ring:   halo de foco derivado do accent. */
+  --gm-input-bg:     color-mix(in srgb, var(--gm-text)  6%, var(--gm-card));
+  --gm-input-border: color-mix(in srgb, var(--gm-text) 26%, transparent);
+  --gm-input-ring:   color-mix(in srgb, var(--gm-accent) 35%, transparent);
   /* Fontes de marca (ADR-007). Default = system-ui: o GastroMundi não
      carrega webfont. Um tenant sobrescreve via `font_titulo`/`font_texto`
      no tema (ex.: Casa Coffee → Saira/Sora, carregadas em index.html). */

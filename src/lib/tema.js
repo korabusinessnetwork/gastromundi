@@ -36,6 +36,12 @@ const TOKENS_PERMITIDOS = {
   text: "--gm-text",
   muted: "--gm-muted",
   faint: "--gm-faint",
+  // Campos de formulário — por padrão derivam por color-mix da marca
+  // (src/styles/tema.css); um tenant pode afinar o contraste sobrescrevendo
+  // aqui, como qualquer outro token.
+  input_bg: "--gm-input-bg",
+  input_border: "--gm-input-border",
+  input_ring: "--gm-input-ring",
   // Fontes de marca (ADR-007). Valor = font-family stack; só renderiza se
   // a família estiver carregada (index.html). setProperty já sanitiza o
   // valor — nunca vira regra CSS arbitrária.

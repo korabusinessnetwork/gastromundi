@@ -254,7 +254,7 @@ export default function JarvasPanel() {
                     maxLength={1000}
                     className="jarvas-input"
                     style={{
-                      flex: 1, background: varColor(C.surface), border: `1px solid var(${C.border})`,
+                      flex: 1, background: "var(--gm-input-bg)", border: "1px solid var(--gm-input-border)",
                       borderRadius: 10, padding: "10px 12px", color: varColor(C.text),
                       outline: "none", fontFamily: "inherit",
                     }}

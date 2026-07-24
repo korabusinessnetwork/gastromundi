@@ -628,7 +628,7 @@ function MeiosPagamentoTab({ sz }) {
               maxLength={40}
               className="meios-pagamento-tab__input-novo"
               onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
-              onBlur={e => e.currentTarget.style.borderColor = varColor(C.border)}
+              onBlur={e => e.currentTarget.style.borderColor = "var(--gm-input-border)"}
             />
             <button
               onClick={adicionarCustom}
@@ -910,7 +910,7 @@ function UnidadesMedidaTab({ sz }) {
                   placeholder="abrev."
                   maxLength={10}
                   className="unidades-medida-tab__input-abbr"
-                  style={{ borderColor: form.abbr ? alfa(color, "88") : varColor(C.border) }}
+                  style={{ borderColor: form.abbr ? alfa(color, "88") : "var(--gm-input-border)" }}
                 />
                 <input
                   value={form.nome}
@@ -919,7 +919,7 @@ function UnidadesMedidaTab({ sz }) {
                   placeholder="Nome completo"
                   maxLength={40}
                   className="unidades-medida-tab__input-nome"
-                  style={{ borderColor: form.nome ? alfa(color, "88") : varColor(C.border) }}
+                  style={{ borderColor: form.nome ? alfa(color, "88") : "var(--gm-input-border)" }}
                 />
                 <button
                   onClick={() => adicionar(tipo)}
@@ -1069,8 +1069,8 @@ function GeralTab({ sz }) {
             className="geral-tab__input-dias"
             style={{
               width: 72, padding: "9px 12px", borderRadius: 10,
-              border: `1.5px solid ${diasValido ? varColor(C.border) : varColor(C.red)}`,
-              background: varColor(C.surface), color: varColor(C.text),
+              border: `1.5px solid ${diasValido ? "var(--gm-input-border)" : varColor(C.red)}`,
+              background: "var(--gm-input-bg)", color: varColor(C.text),
               fontFamily: "inherit", outline: "none", textAlign: "center",
             }}
           />
@@ -1145,8 +1145,8 @@ function CategoriasGrupoTab({ sz }) {
                 className="categorias-grupo-tab__select-grupo"
                 style={{
                   padding: "9px 12px", borderRadius: 10,
-                  border: `1.5px solid ${grupoPorCategoria[cat] ? varColor(C.accent) : varColor(C.border)}`,
-                  background: varColor(C.surface), color: varColor(C.text),
+                  border: `1.5px solid ${grupoPorCategoria[cat] ? varColor(C.accent) : "var(--gm-input-border)"}`,
+                  background: "var(--gm-input-bg)", color: varColor(C.text),
                   fontFamily: "inherit", outline: "none", cursor: "pointer",
                 }}
               >

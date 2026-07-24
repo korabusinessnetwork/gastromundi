@@ -145,7 +145,7 @@ function VinculaRow({ item, products, onChange }) {
                   className="nf-tab__sub"
                   style={{
                     width: "100%", padding: "7px 8px 7px 26px", borderRadius: 8,
-                    border: `1.5px solid var(${C.border})`, background: varColor(C.surface),
+                    border: "1.5px solid var(--gm-input-border)", background: "var(--gm-input-bg)",
                     color: varColor(C.text), fontFamily: "inherit",
                     outline: "none", boxSizing: "border-box",
                   }}
@@ -196,7 +196,7 @@ function VinculaRow({ item, products, onChange }) {
               className="nf-tab__sub"
               style={{
                 width: 64, padding: "5px 6px", borderRadius: 7,
-                border: `1.5px solid var(${C.border})`, background: varColor(C.surface),
+                border: "1.5px solid var(--gm-input-border)", background: "var(--gm-input-bg)",
                 color: varColor(C.text), fontFamily: "inherit",
                 outline: "none", textAlign: "center",
               }}
@@ -547,7 +547,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
     const inpStyle = {
       width: "100%", padding: "9px 12px", borderRadius: 10,
-      border: `1.5px solid var(${C.border})`, background: varColor(C.surface),
+      border: "1.5px solid var(--gm-input-border)", background: "var(--gm-input-bg)",
       color: varColor(C.text), fontFamily: "inherit",
       outline: "none", boxSizing: "border-box",
     };

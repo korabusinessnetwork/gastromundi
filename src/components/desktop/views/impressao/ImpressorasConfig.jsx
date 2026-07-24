@@ -432,7 +432,7 @@ export default function ImpressorasConfig({ sz }) {
                 onKeyDown={e => { if (e.key === "Enter") criarNovaEstacao(); }}
                 placeholder="Nome da estação (ex: Caixa 1, Cozinha)"
                 className="impressoras-config__texto-base"
-                style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `1px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontFamily: "inherit" }}
+                style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid var(--gm-input-border)", background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit" }}
               />
               <button
                 onClick={criarNovaEstacao}

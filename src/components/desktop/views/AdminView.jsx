@@ -425,7 +425,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                       onBlur={() => setTimeout(() => setShowPratoDD(false), 150)}
                       placeholder="Buscar produto..."
                       className="fichas-tab__input-busca-prato"
-                      style={{ width: "100%", padding: "8px 10px 8px 30px", borderRadius: 9, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                      style={{ width: "100%", padding: "8px 10px 8px 30px", borderRadius: 9, border: "1.5px solid var(--gm-input-border)", background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
                     />
                     {showPratoDD && (
                       <div className="fichas-tab__dropdown">
@@ -582,8 +582,8 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                   className="fichas-tab__input-busca-estoque"
                   style={{
                     width: "100%", padding: "8px 10px 8px 30px",
-                    borderRadius: 9, border: `1.5px solid var(${C.border})`,
-                    background: varColor(C.card), color: varColor(C.text),
+                    borderRadius: 9, border: "1.5px solid var(--gm-input-border)",
+                    background: "var(--gm-input-bg)", color: varColor(C.text),
                     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                   }}
                 />
@@ -885,7 +885,7 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="Fornecedor *">
               {fns.length > 0 ? (
-                <select value={form.fornecedor} onChange={e => setF("fornecedor", e.target.value)} className="compras-tab__select-fornecedor" style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: form.fornecedor ? varColor(C.text) : varColor(C.muted), fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+                <select value={form.fornecedor} onChange={e => setF("fornecedor", e.target.value)} className="compras-tab__select-fornecedor" style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid var(--gm-input-border)", background: "var(--gm-input-bg)", color: form.fornecedor ? varColor(C.text) : varColor(C.muted), fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
                   <option value="">Selecionar...</option>
                   {fns.map(n => <option key={n} value={n}>{n}</option>)}
                   <option value="__outro">Outro (digitar)</option>
@@ -1116,7 +1116,7 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
                 onChange={e => setF("aliquota", e.target.value)}
                 placeholder="0,00"
                 className="impostos-tab__input-aliquota"
-                style={{ width: "100%", padding: "10px 36px 10px 12px", borderRadius: 10, border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text), fontWeight: 700, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                style={{ width: "100%", padding: "10px 36px 10px 12px", borderRadius: 10, border: "1.5px solid var(--gm-input-border)", background: "var(--gm-input-bg)", color: varColor(C.text), fontWeight: 700, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
               />
               <span className="impostos-tab__input-aliquota-simbolo" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), fontWeight: 700 }}>%</span>
             </div>

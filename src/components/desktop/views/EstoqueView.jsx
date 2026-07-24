@@ -494,7 +494,7 @@ export default function EstoqueView() {
                   onKeyDown={e => { if (e.key === "Enter") confirmarSenha(); }}
                   placeholder="Digite a senha..."
                   className="estoque-view__senha-input"
-                  style={{ borderColor: senhaErro ? varColor(C.red) : varColor(C.border) }}
+                  style={{ borderColor: senhaErro ? varColor(C.red) : "var(--gm-input-border)" }}
                 />
                 <button
                   type="button"

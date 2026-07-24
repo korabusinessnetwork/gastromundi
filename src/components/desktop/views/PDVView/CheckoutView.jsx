@@ -638,11 +638,11 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                             onChange={e => updatePagamento(idx, { valor: parseFloat(e.target.value) || 0 })}
                             className="checkout-view__split-input"
                             style={{
-                              border: `1.5px solid var(${C.border})`,
-                              background: varColor(C.card), color: varColor(C.text),
+                              border: `1.5px solid var(--gm-input-border)`,
+                              background: "var(--gm-input-bg)", color: varColor(C.text),
                             }}
                             onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
-                            onBlur={e => e.currentTarget.style.borderColor = varColor(C.border)}
+                            onBlur={e => e.currentTarget.style.borderColor = "var(--gm-input-border)"}
                           />
                         </div>
                         <button
@@ -669,11 +669,11 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                               placeholder={p.valor.toFixed(2)}
                               className="checkout-view__recebido-input"
                               style={{
-                                border: `1.5px solid var(${C.border})`,
-                                background: varColor(C.card), color: varColor(C.text),
+                                border: `1.5px solid var(--gm-input-border)`,
+                                background: "var(--gm-input-bg)", color: varColor(C.text),
                               }}
                               onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
-                              onBlur={e => e.currentTarget.style.borderColor = varColor(C.border)}
+                              onBlur={e => e.currentTarget.style.borderColor = "var(--gm-input-border)"}
                             />
                           </div>
                           {(p.recebido || 0) > 0 && (
@@ -781,11 +781,11 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                         placeholder={total.toFixed(2)}
                         className="checkout-view__troco-input"
                         style={{
-                          border: `1.5px solid var(${C.border})`,
-                          background: varColor(C.surface), color: varColor(C.text),
+                          border: `1.5px solid var(--gm-input-border)`,
+                          background: "var(--gm-input-bg)", color: varColor(C.text),
                         }}
                         onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
-                        onBlur={e => e.currentTarget.style.borderColor = varColor(C.border)}
+                        onBlur={e => e.currentTarget.style.borderColor = "var(--gm-input-border)"}
                       />
                     </div>
 
@@ -937,10 +937,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     className="checkout-view__modal-input"
                     style={{
                       padding: `${sz.padSm}px ${sz.padSm}px ${sz.padSm}px 52px`,
-                      border: `2px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text),
+                      border: `2px solid var(--gm-input-border)`, background: "var(--gm-input-bg)", color: varColor(C.text),
                     }}
                     onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "99")}
-                    onBlur={e => e.currentTarget.style.borderColor = varColor(C.border)}
+                    onBlur={e => e.currentTarget.style.borderColor = "var(--gm-input-border)"}
                   />
                 </div>
               </div>
@@ -1056,7 +1056,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                         setRemocao(r => ({ ...r, qtySel: Math.min(r.qtyMax, Math.max(1, isNaN(v) ? 1 : v)) }));
                       }}
                       className="checkout-view__remocao-qty-input"
-                      style={{ border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text) }}
+                      style={{ border: `1.5px solid var(--gm-input-border)`, background: "var(--gm-input-bg)", color: varColor(C.text) }}
                     />
                     <button
                       onClick={() => setRemocao(r => ({ ...r, qtySel: Math.min(r.qtyMax, r.qtySel + 1) }))}
@@ -1090,7 +1090,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   maxLength={200}
                   rows={2}
                   className="checkout-view__remocao-motivo"
-                  style={{ border: `1.5px solid var(${C.border})`, background: varColor(C.surface), color: varColor(C.text) }}
+                  style={{ border: `1.5px solid var(--gm-input-border)`, background: "var(--gm-input-bg)", color: varColor(C.text) }}
                 />
                 <div className="checkout-view__remocao-contador" style={{ color: varColor(C.muted), textAlign: "right", marginTop: 2 }}>
                   {remocao.motivo.length}/200
@@ -1110,8 +1110,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     placeholder="Digite a senha"
                     className="checkout-view__remocao-senha"
                     style={{
-                      border: `1.5px solid ${remSenhaErro ? varColor(C.red) : varColor(C.border)}`,
-                      background: varColor(C.surface), color: varColor(C.text),
+                      border: `1.5px solid ${remSenhaErro ? varColor(C.red) : "var(--gm-input-border)"}`,
+                      background: "var(--gm-input-bg)", color: varColor(C.text),
                     }}
                   />
                   <button

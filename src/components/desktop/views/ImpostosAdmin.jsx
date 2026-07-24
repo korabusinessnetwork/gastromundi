@@ -562,7 +562,7 @@ export default function ImpostosAdmin({ sz }) {
             onChange={e => setBusca(e.target.value)}
             placeholder="Buscar item..."
             className="impostos-admin__busca-input"
-            style={{ borderColor: busca ? varColor(C.accent) : varColor(C.border) }}
+            style={{ borderColor: busca ? varColor(C.accent) : "var(--gm-input-border)" }}
           />
           {busca && (
             <button onClick={() => setBusca("")} className="impostos-admin__busca-limpar">

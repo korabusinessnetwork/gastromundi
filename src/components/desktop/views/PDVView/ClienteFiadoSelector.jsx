@@ -145,8 +145,8 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario })
             placeholder="(00) 00000-0000"
             className="cliente-fiado-cadastro__input-telefone"
             style={{
-              padding: "8px 10px", borderRadius: 8, border: `1.5px solid var(${C.border})`,
-              background: varColor(C.card), color: varColor(C.text), outline: "none",
+              padding: "8px 10px", borderRadius: 8, border: `1.5px solid var(--gm-input-border)`,
+              background: "var(--gm-input-bg)", color: varColor(C.text), outline: "none",
             }}
           />
           <div style={{ display: "flex", gap: 8 }}>
