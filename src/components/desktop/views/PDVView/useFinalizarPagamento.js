@@ -42,7 +42,7 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
 export function useFinalizarPagamento() {
   const { addSale, removePending, estoque, baixarEstoque, baixarEstoqueSubproduto, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
 
-  const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId, cliente }, { onNfce } = {}) => {
+  const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId, cliente, dest }, { onNfce } = {}) => {
     // TEF é só online: a maquininha precisa de comunicação em tempo real —
     // não dá pra "guardar pra depois" uma cobrança de cartão. Métodos sem
     // TEF (dinheiro, Pix etc.) podem fechar offline: a venda entra na fila
@@ -76,10 +76,11 @@ export function useFinalizarPagamento() {
       garcom:      selected.garcom     ?? null,
       created_by:  selected.created_by ?? null,
       clienteId:   clienteId ?? null, // F010 — vínculo opcional ao cliente
-      // Destinatário fiscal (CPF/CNPJ na nota): puxado AUTOMÁTICO do cliente
-      // vinculado à venda — o operador não redigita o documento. Sem cliente
-      // ou sem documento fica null e a NFC-e sai anônima (add-on `nfe`).
-      dest:        destDoCliente(cliente),
+      // Destinatário fiscal (CPF/CNPJ na nota). Quando a etapa "CPF na nota"
+      // resolve o documento (objeto informado ou null para anônima), ele manda.
+      // Sem esse passo (payload sem `dest`), cai no automático: puxa o documento
+      // do cliente vinculado — sem cliente/documento, null e a NFC-e sai anônima.
+      dest:        dest !== undefined ? dest : destDoCliente(cliente),
       at:          new Date().toISOString(),
     };
 

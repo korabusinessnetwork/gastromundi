@@ -226,52 +226,8 @@
   box-sizing: border-box;
 }
 
-/* Documento (CPF/CNPJ): rótulo à esquerda + toggle segmentado à direita, na
-   mesma linha; o toggle recolore por tenant (--gm-accent). */
-.clientes-view__doc-topo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.clientes-view__doc-toggle {
-  display: inline-flex;
-  flex-shrink: 0;
-  border: 1px solid var(--gm-border);
-  border-radius: 9px;
-  overflow: hidden;
-  background: var(--gm-surface);
-}
-
-.clientes-view__doc-opt {
-  padding: 5px 14px;
-  border: none;
-  background: transparent;
-  color: var(--gm-muted);
-  cursor: pointer;
-  font-family: inherit;
-  font-weight: 700;
-  font-size: var(--fs-xs);
-  line-height: var(--lh-xs);
-  letter-spacing: 0.4px;
-  transition: background 0.15s, color 0.15s;
-}
-.clientes-view__doc-opt + .clientes-view__doc-opt { border-left: 1px solid var(--gm-border); }
-.clientes-view__doc-opt:hover:not(.clientes-view__doc-opt--ativo) { color: var(--gm-text); }
-.clientes-view__doc-opt--ativo {
-  background: var(--gm-accent);
-  color: #fff;
-}
-
-/* Aviso de documento inválido — só aparece quando preenchido e inconsistente. */
-.clientes-view__doc-hint {
-  margin-top: 6px;
-  font-size: var(--fs-xs);
-  line-height: var(--lh-xs);
-  color: var(--gm-red);
-  font-weight: 600;
-}
+/* Documento (CPF/CNPJ): toggle + input agora vivem no componente
+   compartilhado src/components/shared/CampoDocumento (decisão 018). */
 
 .clientes-view__erro-form {
   font-size: var(--fs-sm);

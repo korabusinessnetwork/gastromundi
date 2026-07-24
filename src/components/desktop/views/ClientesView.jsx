@@ -16,6 +16,7 @@ import {
   buscarHistoricoCliente, registrarPagamentoFiado, calcularSaldoDevedor,
 } from "@/lib/clientes";
 import { apenasDigitos, validarDocumento, formatarDocumento } from "@/lib/documento";
+import CampoDocumento from "@/components/shared/CampoDocumento";
 import "./ClientesView.css";
 
 /**
@@ -454,55 +455,6 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose, onEditar }) {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-/**
- * Campo CPF/CNPJ reutilizável (cadastro e edição): rótulo + toggle de tipo
- * (recolore por tenant) + input com máscara progressiva. Documento é sempre
- * opcional; o aviso de inválido só aparece quando `invalido` (preenchido e
- * inconsistente com o tipo). Mantém a marcação/classes idênticas nas duas
- * telas para consistência total (design system).
- */
-function CampoDocumento({ tipo, valor, onTipo, onValor, invalido }) {
-  return (
-    <div>
-      <div className="clientes-view__doc-topo">
-        <label className="clientes-view__label">
-          CPF / CNPJ <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span>
-        </label>
-        <div className="clientes-view__doc-toggle" role="group" aria-label="Tipo de documento">
-          <button
-            type="button"
-            onClick={() => onTipo("cpf")}
-            className={`clientes-view__doc-opt${tipo === "cpf" ? " clientes-view__doc-opt--ativo" : ""}`}
-          >
-            CPF
-          </button>
-          <button
-            type="button"
-            onClick={() => onTipo("cnpj")}
-            className={`clientes-view__doc-opt${tipo === "cnpj" ? " clientes-view__doc-opt--ativo" : ""}`}
-          >
-            CNPJ
-          </button>
-        </div>
-      </div>
-      <input
-        value={valor}
-        onChange={(e) => onValor(formatarDocumento(e.target.value, tipo))}
-        placeholder={tipo === "cnpj" ? "00.000.000/0000-00" : "000.000.000-00"}
-        inputMode="numeric"
-        className="clientes-view__input"
-        aria-invalid={invalido}
-        style={invalido ? { borderColor: varColor(C.red) } : undefined}
-      />
-      {invalido && (
-        <div className="clientes-view__doc-hint">
-          {tipo === "cnpj" ? "CNPJ incompleto ou inválido." : "CPF incompleto ou inválido."}
-        </div>
-      )}
     </div>
   );
 }

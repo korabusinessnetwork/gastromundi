@@ -1,0 +1,155 @@
+/*
+ * Etapa "CPF na nota" ao finalizar a venda (add-on nfe). Mesmo visual dos
+ * demais modais do checkout (overlay escuro + card centralizado), em folha
+ * própria (decisão 018) e com tokens de tema (--gm-*) para white-label.
+ */
+
+.modal-cpf-nota__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9400; /* acima do checkout (9300) */
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal-cpf-nota__modal {
+  width: 100%;
+  max-width: 440px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-cpf-nota__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.modal-cpf-nota__titulo-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.modal-cpf-nota__icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--gm-accent) 16%, transparent);
+  color: var(--gm-accent);
+}
+
+.modal-cpf-nota__titulo {
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+  font-weight: 800;
+  color: var(--gm-text);
+}
+
+.modal-cpf-nota__subtitulo {
+  margin-top: 3px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.modal-cpf-nota__fechar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 6px;
+  border-radius: 8px;
+  color: var(--gm-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.modal-cpf-nota__fechar:hover {
+  background: var(--gm-surface);
+  color: var(--gm-text);
+}
+
+.modal-cpf-nota__corpo {
+  padding: 20px;
+}
+
+.modal-cpf-nota__consequencia {
+  margin-top: 10px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.modal-cpf-nota__acoes {
+  display: flex;
+  gap: 10px;
+  padding: 0 20px 20px;
+}
+
+.modal-cpf-nota__btn-voltar {
+  flex-shrink: 0;
+  padding: 0 20px;
+  min-height: 54px;
+  border-radius: 12px;
+  border: 1.5px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-text);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.modal-cpf-nota__btn-voltar:hover {
+  background: var(--gm-surface);
+}
+
+.modal-cpf-nota__btn-emitir {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+  border-radius: 12px;
+  border: none;
+  background: var(--gm-green);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  cursor: pointer;
+  transition: filter 0.15s, opacity 0.15s;
+}
+.modal-cpf-nota__btn-emitir:hover:not(:disabled) { filter: brightness(1.06); }
+.modal-cpf-nota__btn-emitir:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-cpf-nota__btn-total {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}

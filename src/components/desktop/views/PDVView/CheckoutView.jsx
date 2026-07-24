@@ -12,6 +12,7 @@ import { metodoUsaTef } from "@/lib/tef";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import ClienteFiadoSelector from "./ClienteFiadoSelector";
 import ImpressaoAcoes from "./ImpressaoAcoes";
+import ModalCpfNota from "./ModalCpfNota";
 import "./CheckoutView.css";
 
 const fmtComanda = (name) =>
@@ -51,6 +52,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
 
   // F010 — cliente do fiado (fiado exige cliente identificado)
   const [clienteFiado, setClienteFiado] = useState(null);
+
+  // Etapa "CPF na nota" — em toda venda com nota (add-on nfe), antes de emitir
+  // a NFC-e o operador informa o CPF/CNPJ do cliente ou deixa em branco.
+  const [cpfNotaAberto, setCpfNotaAberto] = useState(false);
 
   // Leva 15.1 — remover produto na finalização. `modoRemocao` mostra a
   // lixeira em cada item; `remocao` é o popup de confirmação (qty +
@@ -194,24 +199,30 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
     }
   };
 
-  const handleConfirm = async () => {
-    if (!podeConfirmar || confirmando) return;
+  const buildPayloadPagamentos = () => isSplit
+    ? pagamentos.map(p => ({
+        metodo:   p.metodo,
+        valor:    p.valor,
+        recebido: p.metodo === "dinheiro" ? (p.recebido || 0) : 0,
+        troco:    p.metodo === "dinheiro" ? Math.max(0, (p.recebido || 0) - p.valor) : 0,
+      }))
+    : [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: Math.max(0, singleTroco) }];
+
+  // Finaliza de fato a venda. `dest` é o destinatário fiscal (CPF/CNPJ na nota)
+  // resolvido na etapa "CPF na nota": objeto = documento informado, null = nota
+  // anônima. `undefined` (venda sem NFC-e) deixa o hook puxar o documento do
+  // cliente vinculado automaticamente, como antes.
+  const finalizar = async (dest) => {
+    if (confirmando) return;
     setConfirmando(true);
     setErroConfirmar("");
-    const payloadPagamentos = isSplit
-      ? pagamentos.map(p => ({
-          metodo:   p.metodo,
-          valor:    p.valor,
-          recebido: p.metodo === "dinheiro" ? (p.recebido || 0) : 0,
-          troco:    p.metodo === "dinheiro" ? Math.max(0, (p.recebido || 0) - p.valor) : 0,
-        }))
-      : [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: Math.max(0, singleTroco) }];
+    const payloadPagamentos = buildPayloadPagamentos();
     try {
       // clienteId = vínculo persistido da venda (Financeiro/fiado); cliente =
       // o objeto completo, usado só para puxar o CPF/CNPJ do destinatário da
       // NFC-e automaticamente (destDoCliente). Quando não há cliente, ambos
       // ficam nulos e a nota sai anônima, como antes.
-      const resultado = await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste, clienteId: clienteFiado?.id ?? null, cliente: clienteFiado ?? null });
+      const resultado = await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste, clienteId: clienteFiado?.id ?? null, cliente: clienteFiado ?? null, dest });
       if (resultado?.error) {
         setErroConfirmar(resultado.error?.message || "Não foi possível registrar o pagamento. Tente novamente.");
       }
@@ -223,6 +234,27 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
       // travar em "Processando..." para sempre.
       setConfirmando(false);
     }
+  };
+
+  const handleConfirm = () => {
+    if (!podeConfirmar || confirmando || cpfNotaAberto) return;
+    setErroConfirmar("");
+    // Toda venda com nota (add-on nfe) passa pela etapa "CPF na nota" antes de
+    // emitir — inclusive cartão/TEF. O operador informa o documento do cliente
+    // ou deixa em branco (nota anônima); só então a venda é finalizada.
+    if (addonHabilitado?.("nfe")) {
+      setCpfNotaAberto(true);
+      return;
+    }
+    // Sem NFC-e: finaliza direto (fluxo idêntico a antes desta etapa existir).
+    finalizar(undefined);
+  };
+
+  // Etapa "CPF na nota" concluída: fecha a etapa e finaliza com o dest resolvido
+  // (documento informado ou null para nota anônima).
+  const confirmarCpfNota = (dest) => {
+    setCpfNotaAberto(false);
+    finalizar(dest);
   };
 
   const buildPrintPagamentos = () => {
@@ -1143,6 +1175,17 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Etapa "CPF na nota" — abre ao confirmar quando o add-on nfe está ligado
+          (em toda venda com nota). Deixar em branco = NFC-e anônima. */}
+      {cpfNotaAberto && (
+        <ModalCpfNota
+          total={total}
+          cliente={clienteFiado}
+          onConfirmar={confirmarCpfNota}
+          onCancelar={() => setCpfNotaAberto(false)}
+        />
       )}
     </>
   );

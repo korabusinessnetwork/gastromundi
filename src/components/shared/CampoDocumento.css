@@ -1,0 +1,81 @@
+/*
+ * Campo CPF/CNPJ reutilizável — extraído de ClientesView (decisão 018) para
+ * servir também à etapa "CPF na nota" do PDV. Tokens de tema (--gm-*) para
+ * recolorir por estabelecimento (white-label, decisão 017).
+ */
+
+.campo-documento__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.campo-documento__label {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.campo-documento__opcional {
+  font-weight: 400;
+  text-transform: none;
+}
+
+/* Toggle CPF/CNPJ: segmentado; a opção ativa recolore por tenant (--gm-accent). */
+.campo-documento__toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--gm-border);
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--gm-surface);
+}
+
+.campo-documento__opt {
+  padding: 5px 14px;
+  border: none;
+  background: transparent;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  letter-spacing: 0.4px;
+  transition: background 0.15s, color 0.15s;
+}
+.campo-documento__opt + .campo-documento__opt { border-left: 1px solid var(--gm-border); }
+.campo-documento__opt:hover:not(.campo-documento__opt--ativo) { color: var(--gm-text); }
+.campo-documento__opt--ativo {
+  background: var(--gm-accent);
+  color: #fff;
+}
+
+.campo-documento__input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+.campo-documento__input[aria-invalid="true"] { border-color: var(--gm-red); }
+
+/* Aviso de documento inválido — só aparece quando preenchido e inconsistente. */
+.campo-documento__hint {
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--gm-red);
+  font-weight: 600;
+}

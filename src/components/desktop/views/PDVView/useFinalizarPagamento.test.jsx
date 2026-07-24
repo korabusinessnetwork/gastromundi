@@ -308,6 +308,35 @@ describe("useFinalizarPagamento — add-ons pagos (Fase 3, decisão 019)", () =>
     expect(emitirDocumentoFiscalMock.mock.calls[0][0].dest).toBeNull();
   });
 
+  it("etapa 'CPF na nota': o dest informado no payload tem prioridade sobre o cliente vinculado", async () => {
+    const { appMock, finalizarPagamento } = setup({ addonHabilitado: (a) => a === "nfe" });
+    const destManual = { cpf: "11144477735", xNome: "Cliente Digitado" };
+
+    await finalizarPagamento(selectedComanda, [], {
+      ...payload,
+      cliente: { id: "cli-9", nome: "João Silva", documento: "52998224725", documento_tipo: "cpf" },
+      dest: destManual,
+    });
+
+    const saleGravada = appMock.addSale.mock.calls[0][0];
+    expect(saleGravada.dest).toBe(destManual);
+    await waitFor(() => expect(emitirDocumentoFiscalMock).toHaveBeenCalledTimes(1));
+    expect(emitirDocumentoFiscalMock.mock.calls[0][0].dest).toBe(destManual);
+  });
+
+  it("etapa 'CPF na nota': dest null (operador deixou em branco) mantém a nota anônima mesmo com cliente vinculado", async () => {
+    const { appMock, finalizarPagamento } = setup({ addonHabilitado: (a) => a === "nfe" });
+
+    await finalizarPagamento(selectedComanda, [], {
+      ...payload,
+      cliente: { id: "cli-9", nome: "João Silva", documento: "52998224725", documento_tipo: "cpf" },
+      dest: null,
+    });
+
+    const saleGravada = appMock.addSale.mock.calls[0][0];
+    expect(saleGravada.dest).toBeNull();
+  });
+
   it("com o add-on 'tef' habilitado, processa pagamentos em cartão (crédito/débito)", async () => {
     const { finalizarPagamento } = setup({ addonHabilitado: (a) => a === "tef" });
 
