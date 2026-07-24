@@ -62,6 +62,7 @@ export default function LoginPage() {
   useEffect(() => {
     let ativo = true;
     (async () => {
+      try {
       const reivindicado = slugDoSubdominio();
       // Com subdomínio na URL e SEM cache, a aba fica neutra ("Kora") até
       // confirmar o tenant. Com cache, o script do index.html já pôs a
@@ -94,6 +95,13 @@ export default function LoginPage() {
       // Cache por origem: a próxima abertura deste endereço já pinta com
       // esta marca antes de qualquer requisição (script do index.html).
       salvarBrandingCache({ nome, logo: logoUrlTenant(data.tema), variaveis });
+      } catch (err) {
+        // Aplicar tema / gravar cache (localStorage) pode lançar em modos
+        // restritos do navegador. Nunca deixar virar unhandledrejection na
+        // porta de entrada: cai no branding padrão e o login segue normal.
+        if (ativo) setChecandoTenant(false);
+        console.error("[login] falha ao resolver branding do tenant:", err?.message ?? err);
+      }
     })();
     return () => { ativo = false; };
   }, []);
