@@ -31,6 +31,11 @@ const EMPTY_FORM = {
 
 const CATS_VISIVEIS = 6; // quantas categorias mostrar antes do "Mais"
 
+// Balde de fallback: ao excluir uma categoria que ainda tem produtos, eles são
+// movidos para cá em vez de bloquear a exclusão (nunca se perde produto). É uma
+// categoria automática — não pode ser renomeada nem excluída.
+const CAT_SEM_CATEGORIA = "Sem Categoria";
+
 function CategoriasComBusca({ categorias, catFiltro, setCatFiltro, busca, setBusca, sz }) {
   const todas = ["Todos", ...categorias];
   const visiveis = todas.slice(0, CATS_VISIVEIS);
@@ -172,9 +177,14 @@ export default function ProdutosView() {
   };
 
   const excluirCategoria = async (nome) => {
-    if (catOpLoading) return;
+    if (catOpLoading || nome === CAT_SEM_CATEGORIA) return;
     setCatOpLoading(true);
+    // Produtos dentro da categoria não são excluídos: caem no balde "Sem
+    // Categoria". Só depois removemos a categoria da lista de extras.
+    const afetados = products.filter(p => p.category === nome);
+    await Promise.all(afetados.map(p => updateProduct(p.id, { category: CAT_SEM_CATEGORIA })));
     await salvarCatExtra(catExtra.filter(c => c !== nome));
+    if (catFiltro === nome) setCatFiltro(afetados.length > 0 ? CAT_SEM_CATEGORIA : "Todos");
     setCatOpLoading(false);
   };
 
@@ -488,10 +498,16 @@ export default function ProdutosView() {
               <button onClick={fecharModal} className="produtos-view__modal-fechar"><LuXIcon size={16} /></button>
             </div>
 
-            {/* Nome */}
+            {/* Nome — exemplo adequado ao tipo: insumo = matéria-prima,
+                item de produção = preparo da casa, produto = item vendido */}
             <div>
               <Label>Nome *</Label>
-              <Input value={form.name} onChange={v => setField("name", v)} placeholder="Ex: Cerveja 600ml" maxLength={60} />
+              <Input
+                value={form.name}
+                onChange={v => setField("name", v)}
+                placeholder={isInsumo ? "Ex: Farinha de trigo" : isProducao ? "Ex: Molho da casa" : "Ex: Cerveja 600ml"}
+                maxLength={60}
+              />
             </div>
 
             {/* Código de barras — visível apenas quando FEATURE_BARCODE_SCANNER estiver ativo */}
@@ -745,7 +761,9 @@ export default function ProdutosView() {
                 const qtdProdutos = products.filter(p => p.category === cat).length;
                 const emEdicao    = catEditando?.name === cat;
                 const eCatFixa    = CATS_FIXAS.includes(cat);
-                const podeExcluir = !eCatFixa;
+                const eSemCategoria = cat === CAT_SEM_CATEGORIA;
+                const eProtegida  = eCatFixa || eSemCategoria;
+                const podeExcluir = !eProtegida;
                 return (
                   <div key={cat} className="produtos-view__cat-item" style={{ background: emEdicao ? "var(--gm-alow)" : varColor(C.surface), borderColor: emEdicao ? alfa(C.accent, "66") : varColor(C.border) }}>
                     {emEdicao ? (
@@ -758,8 +776,9 @@ export default function ProdutosView() {
                       <>
                         <span className="produtos-view__cat-nome">{cat}</span>
                         {eCatFixa && <span className="produtos-view__cat-badge-padrao" style={{ background: alfa(C.accent, "15"), border: `1px solid ${alfa(C.accent, "33")}` }}>padrão</span>}
+                        {eSemCategoria && <span className="produtos-view__cat-badge-padrao" style={{ background: alfa(C.blue, "15"), border: `1px solid ${alfa(C.blue, "33")}`, color: varColor(C.blue) }}>automática</span>}
                         <span className="produtos-view__cat-badge-qtd">{qtdProdutos} {qtdProdutos === 1 ? "produto" : "produtos"}</span>
-                        {!eCatFixa && <button onClick={() => setCatEditando({ name: cat, input: cat })} className="produtos-view__cat-btn-editar" style={{ borderColor: varColor(C.border), color: varColor(C.muted) }}><LuPencil size={14} /></button>}
+                        {!eProtegida && <button onClick={() => setCatEditando({ name: cat, input: cat })} className="produtos-view__cat-btn-editar" style={{ borderColor: varColor(C.border), color: varColor(C.muted) }}><LuPencil size={14} /></button>}
                         <button onClick={() => podeExcluir && setCatConfirmDelete(cat)} disabled={!podeExcluir || catOpLoading} className="produtos-view__cat-btn-excluir" style={{ borderColor: podeExcluir ? alfa(C.red, "55") : varColor(C.border), color: podeExcluir ? varColor(C.red) : varColor(C.border), cursor: podeExcluir ? "pointer" : "not-allowed", opacity: podeExcluir ? 1 : 0.4 }}><LuTrash2 size={14} /></button>
                       </>
                     )}
@@ -784,33 +803,45 @@ export default function ProdutosView() {
 
       {/* Modal Confirmar Exclusão de Categoria */}
       {catConfirmDelete && createPortal(
-        <div {...fecharAoClicarFora(() => setCatConfirmDelete(null))} className="produtos-view__confirm-overlay">
-          <div className="produtos-view__confirm-modal">
-            <div className="produtos-view__confirm-topo">
-              <div className="produtos-view__confirm-icone" style={{ background: alfa(C.red, "18"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
-                <LuTrash2 size={22} color={varColor(C.red)} />
+        (() => {
+          const qtd = products.filter(p => p.category === catConfirmDelete).length;
+          const temProdutos = qtd > 0;
+          return (
+            <div {...fecharAoClicarFora(() => setCatConfirmDelete(null))} className="produtos-view__confirm-overlay">
+              <div className="produtos-view__confirm-modal">
+                <div className="produtos-view__confirm-topo">
+                  <div className="produtos-view__confirm-icone" style={{ background: alfa(C.red, "18"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
+                    <LuTrash2 size={22} color={varColor(C.red)} />
+                  </div>
+                  <div>
+                    <div className="produtos-view__confirm-titulo">Excluir categoria?</div>
+                    <div className="produtos-view__confirm-sub">Categoria: <strong style={{ color: varColor(C.text) }}>{catConfirmDelete}</strong></div>
+                  </div>
+                </div>
+                {temProdutos ? (
+                  <div className="produtos-view__confirm-aviso" style={{ background: alfa(C.blue, "0d"), border: `1px solid ${alfa(C.blue, "33")}` }}>
+                    {qtd === 1 ? "O produto desta categoria será movido" : <>Os <strong style={{ color: varColor(C.blue) }}>{qtd} produtos</strong> desta categoria serão movidos</>} para <strong style={{ color: varColor(C.text) }}>{CAT_SEM_CATEGORIA}</strong>. Nenhum produto será excluído.
+                  </div>
+                ) : (
+                  <div className="produtos-view__confirm-aviso" style={{ background: alfa(C.red, "0d"), border: `1px solid ${alfa(C.red, "33")}` }}>
+                    A categoria está vazia e será removida.
+                  </div>
+                )}
+                <div className="produtos-view__confirm-botoes">
+                  <button onClick={() => setCatConfirmDelete(null)} className="produtos-view__confirm-btn-cancelar">Cancelar</button>
+                  <button
+                    onClick={async () => { await excluirCategoria(catConfirmDelete); setCatConfirmDelete(null); }}
+                    disabled={catOpLoading}
+                    className="produtos-view__confirm-btn-excluir"
+                    style={{ background: catOpLoading ? varColor(C.faint) : varColor(C.red), cursor: catOpLoading ? "not-allowed" : "pointer" }}
+                  >
+                    {catOpLoading ? "Excluindo..." : temProdutos ? "Mover e excluir" : "Sim, excluir"}
+                  </button>
+                </div>
               </div>
-              <div>
-                <div className="produtos-view__confirm-titulo">Excluir categoria?</div>
-                <div className="produtos-view__confirm-sub">Categoria: <strong style={{ color: varColor(C.text) }}>{catConfirmDelete}</strong></div>
-              </div>
             </div>
-            <div className="produtos-view__confirm-aviso" style={{ background: alfa(C.red, "0d"), border: `1px solid ${alfa(C.red, "33")}` }}>
-              Esta ação <strong style={{ color: varColor(C.red) }}>não pode ser desfeita</strong>. A categoria será removida permanentemente.
-            </div>
-            <div className="produtos-view__confirm-botoes">
-              <button onClick={() => setCatConfirmDelete(null)} className="produtos-view__confirm-btn-cancelar">Cancelar</button>
-              <button
-                onClick={async () => { await excluirCategoria(catConfirmDelete); setCatConfirmDelete(null); }}
-                disabled={catOpLoading}
-                className="produtos-view__confirm-btn-excluir"
-                style={{ background: catOpLoading ? varColor(C.faint) : varColor(C.red), cursor: catOpLoading ? "not-allowed" : "pointer" }}
-              >
-                {catOpLoading ? "Excluindo..." : "Sim, excluir"}
-              </button>
-            </div>
-          </div>
-        </div>,
+          );
+        })(),
         document.body
       )}
 
