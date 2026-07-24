@@ -129,7 +129,32 @@ export function useMesas() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  return { mesas, loading };
+  // Marca a mesa como livre/reservada/manutencao (aba "Reservas" do PDV).
+  // Update otimista: reflete na hora no mapa e na lista; se o Supabase
+  // falhar, desfaz. O realtime acima replica a mudança nos outros
+  // dispositivos — aqui só garantimos resposta imediata neste.
+  async function atualizarStatusMesa(numero, novoStatus) {
+    const PERMITIDOS = ["livre", "reservada", "manutencao"];
+    if (!numero || !PERMITIDOS.includes(novoStatus)) {
+      return { error: new Error("Status de mesa inválido.") };
+    }
+    let anterior = "livre";
+    setMesas(prev => prev.map(m => {
+      if (m.numero !== numero) return m;
+      anterior = m.status_manual ?? "livre";
+      return { ...m, status_manual: novoStatus };
+    }));
+    const { error } = await supabase
+      .from("mesas")
+      .update({ status_manual: novoStatus })
+      .eq("numero", numero);
+    if (error) {
+      setMesas(prev => prev.map(m => m.numero === numero ? { ...m, status_manual: anterior } : m));
+    }
+    return { error };
+  }
+
+  return { mesas, loading, atualizarStatusMesa };
 }
 
 /**

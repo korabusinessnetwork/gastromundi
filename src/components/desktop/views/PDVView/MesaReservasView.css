@@ -1,0 +1,249 @@
+/* Aba "Reservas" do PDV — controle de mesa reservada / manutenção.
+   Estilos separados do JSX (decisão 018). Cores estruturais via tokens
+   --gm-* (decisão 017 — white-label). As cores de STATUS (livre/reservada/
+   manutencao/aberta) vêm inline do JSX, fonte única em MesaMapView. */
+
+.reservas-view {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Cabeçalho + resumo ---- */
+.reservas-view__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.reservas-view__titulo {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.reservas-view__subtitulo {
+  font-size: 13px;
+  margin-top: 3px;
+  max-width: 460px;
+  line-height: 1.35;
+}
+
+.reservas-view__resumo {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reservas-view__resumo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ---- Busca ---- */
+.reservas-view__busca {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+  max-width: 320px;
+}
+
+.reservas-view__busca-icone {
+  position: absolute;
+  left: 11px;
+  pointer-events: none;
+}
+
+.reservas-view__busca-input {
+  width: 100%;
+  padding: 9px 34px 9px 34px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface, transparent);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.reservas-view__busca-input:focus {
+  border-color: var(--gm-accent);
+}
+.reservas-view__busca-input::placeholder {
+  color: var(--gm-muted);
+}
+
+.reservas-view__busca-limpar {
+  position: absolute;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.reservas-view__busca-limpar:hover {
+  background: color-mix(in srgb, var(--gm-muted) 16%, transparent);
+}
+
+/* ---- Erro ---- */
+.reservas-view__erro {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* ---- Lista de mesas ---- */
+.reservas-view__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reservas-view__mesa {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface, transparent);
+}
+
+.reservas-view__mesa-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.reservas-view__mesa-numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 19px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.reservas-view__mesa-detalhe {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reservas-view__mesa-badge {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.reservas-view__mesa-cap {
+  font-size: 12px;
+}
+
+/* ---- Controle segmentado ---- */
+.reservas-view__seg {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.reservas-view__seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.08s;
+  min-height: 40px; /* alvo de toque (PDV) */
+}
+.reservas-view__seg-btn:hover:not(.is-ativo):not(.is-off):not(:disabled) {
+  border-color: var(--gm-accent);
+}
+.reservas-view__seg-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.reservas-view__seg-btn.is-ativo {
+  border-width: 1.5px;
+  border-style: solid;
+}
+.reservas-view__seg-btn.is-off,
+.reservas-view__seg-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---- Nota "ocupada agora" ---- */
+.reservas-view__nota {
+  font-size: 12px;
+  font-weight: 700;
+  width: 100%;
+  padding-left: 2px;
+}
+
+/* ---- Vazio / sem resultado ---- */
+.reservas-view__vazio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  text-align: center;
+}
+.reservas-view__vazio-emoji {
+  font-size: 46px;
+}
+.reservas-view__vazio-titulo {
+  font-size: 16px;
+  font-weight: 800;
+}
+.reservas-view__vazio-texto {
+  font-size: 13px;
+  max-width: 340px;
+  line-height: 1.4;
+}
+
+.reservas-view__semresultado {
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* Empilha o controle abaixo da info em telas estreitas (tablet PDV) */
+@media (max-width: 640px) {
+  .reservas-view__mesa {
+    align-items: flex-start;
+  }
+  .reservas-view__seg {
+    width: 100%;
+  }
+  .reservas-view__seg-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}

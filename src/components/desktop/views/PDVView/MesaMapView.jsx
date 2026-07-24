@@ -5,7 +5,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import "./MesaMapView.css";
 
-function statusMesa(mesa, abertas) {
+export function statusMesa(mesa, abertas) {
   if (mesa.status_manual === "manutencao") return "manutencao";
   const temPedidoAtivo = abertas.some(
     (o) => String(o.mesa) === String(mesa.numero)
@@ -17,7 +17,7 @@ function statusMesa(mesa, abertas) {
   return "livre";
 }
 
-const STATUS = {
+export const STATUS = {
   livre:      { label: "Livre",      bg: `${alfa(C.green, "14")}`,  border: `${alfa(C.green, "44")}`,  cor: varColor(C.green)   },
   aberta:     { label: "Aberta",     bg: "#eab30814",     border: "#eab30855",     cor: "#eab308" },
   reservada:  { label: "Reservada",  bg: "#f59e0b14",     border: "#f59e0b55",     cor: "#f59e0b" },

@@ -11,7 +11,7 @@ import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
-import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList, LuReceipt, LuUser } from "react-icons/lu";
+import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList, LuReceipt, LuUser, LuCalendarCheck } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { produtosVencendo } from "@/lib/validade";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
@@ -30,6 +30,7 @@ import CartPanel     from "./CartPanel";
 import CheckoutView  from "./CheckoutView";
 import ClienteComandaModal from "./ClienteComandaModal";
 import MesaMapView   from "./MesaMapView";
+import MesaReservasView from "./MesaReservasView";
 import ModalCupomNfce from "@/components/fiscal/ModalCupomNfce";
 
 const fmtComanda = (name) =>
@@ -54,7 +55,7 @@ export default function PDVView({ notify }) {
   // em vez de usar o grid de 3 colunas do desktop, que espremia o título
   // ("Frente / de / Caixa") e cortava o botão "Nova Comanda" fora da tela.
   const isCel = width < 768;
-  const { mesas, loading: mesasLoading } = useMesas();
+  const { mesas, loading: mesasLoading, atualizarStatusMesa } = useMesas();
   const location = useLocation();
 
   // Reset to lista whenever the sidebar navigates to this page
@@ -67,7 +68,7 @@ export default function PDVView({ notify }) {
   // "grid" (lista) | "mapa" | "abertas" (só comandas pendentes) | "pedido" | "checkout" — abre direto na lista
   const [mode,        setMode]        = useState("grid");
   // Modos de "painel" (com tab bar, alertas e ações de topo) — tudo que não é pedido/checkout
-  const emPainel = mode === "grid" || mode === "mapa" || mode === "abertas";
+  const emPainel = mode === "grid" || mode === "mapa" || mode === "abertas" || mode === "reservas";
   // No celular a Frente de Caixa é só BUSCA + LISTA: cabeçalho, Saldo do Dia,
   // Nova Comanda, alertas e abas saem da tela. Antes, tudo isso empilhado
   // empurrava a primeira comanda para ~65% da altura — o operador abria o PDV
@@ -77,7 +78,7 @@ export default function PDVView({ notify }) {
   // Sem abas no celular, "mapa"/"comandas abertas" viram becos sem saída (não há
   // como voltar pra lista). Se a janela encolher nesses modos, volta pra lista.
   useEffect(() => {
-    if (isCel && (mode === "mapa" || mode === "abertas")) setMode("grid");
+    if (isCel && (mode === "mapa" || mode === "abertas" || mode === "reservas")) setMode("grid");
   }, [isCel, mode]);
 
   const [selected,    setSelected]    = useState(null);
@@ -1190,14 +1191,16 @@ export default function PDVView({ notify }) {
         <div style={{
           flexShrink: 0,
           display: "flex",
+          alignItems: "center",
           borderBottom: `1px solid var(${C.border})`,
           padding: `0 ${sz.pad}px`,
         }}>
           {[
-            { key: "grid",    label: "Lista",           Icon: LuList },
-            { key: "mapa",    label: "Mapa",            Icon: LuLayoutGrid },
-            { key: "abertas", label: "Comandas abertas", Icon: LuReceipt },
-          ].map(({ key, label, Icon }) => (
+            { key: "grid",     label: "Lista",            Icon: LuList },
+            { key: "mapa",     label: "Mapa",             Icon: LuLayoutGrid },
+            { key: "abertas",  label: "Comandas abertas", Icon: LuReceipt },
+            { key: "reservas", label: "Reservas",         Icon: LuCalendarCheck, alignRight: true },
+          ].map(({ key, label, Icon, alignRight }) => (
             <button
               key={key}
               onClick={() => setMode(key)}
@@ -1213,6 +1216,7 @@ export default function PDVView({ notify }) {
                 transition: "color 0.15s, border-color 0.15s",
                 marginBottom: -1,
                 fontFamily: "inherit",
+                ...(alignRight ? { marginLeft: "auto" } : null),
               }}
             >
               <Icon size={14} />{label}
@@ -1298,6 +1302,15 @@ export default function PDVView({ notify }) {
             abertas={abertas}
             onSelectComanda={handleSelectComanda}
             onOpenEmpty={handleOpenEmpty}
+          />
+        )}
+
+        {mode === "reservas" && (
+          <MesaReservasView
+            mesas={mesas}
+            loading={mesasLoading}
+            abertas={abertas}
+            atualizarStatus={atualizarStatusMesa}
           />
         )}
 
