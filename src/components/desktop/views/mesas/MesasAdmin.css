@@ -9,14 +9,93 @@
 /* Slot vazio da grade do mapa: contorno tracejado no lugar exato onde um
    card de mesa encaixa. Posição/tamanho vêm do JSX (dependem de CARD_W/H e
    do gap); aqui fica só a aparência. `pointer-events: none` para não roubar
-   o drop do container nem o clique dos botões do card. */
+   o drop do container nem o clique dos botões do card.
+   Reforçado (2026-07-24): borda mais grossa + preenchimento sutil da célula,
+   para o limite de uma mesa à outra ficar bem visível ("bandeja" de cada
+   card). */
 .mesas-admin__slot {
   position: absolute;
   box-sizing: border-box;
-  border: 1px dashed var(--gm-border);
+  border: 2px dashed var(--gm-border);
   border-radius: 14px;
+  background: var(--gm-surface);
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.6;
+}
+
+/* Card-fantasma da pré-visualização: mesma caixa do card real, mas tracejado
+   na cor do accent e clicável ("criar mesa aqui"). Posição/tamanho vêm do JSX.
+   Fica acima dos slots (sem pointer-events) e recebe o clique normalmente. */
+.mesas-admin__ghost {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 2px dashed var(--gm-accent);
+  border-radius: 14px;
+  background: var(--gm-alow);
+  color: var(--gm-accent);
+  cursor: pointer;
+  font-family: inherit;
+  opacity: 0.85;
+  transition: opacity 0.15s, transform 0.05s, box-shadow 0.15s;
+}
+.mesas-admin__ghost:hover {
+  opacity: 1;
+  box-shadow: 0 4px 14px -6px var(--gm-alow);
+}
+.mesas-admin__ghost:active { transform: translateY(1px); }
+.mesas-admin__ghost-texto {
+  font-size: var(--fs-xs);   /* role: caption — rótulo de ação */
+  line-height: var(--lh-xs);
+  font-weight: 700;
+}
+
+/* Campo "Planejar N mesas" no cabeçalho: grupo compacto (rótulo + input +
+   sufixo) na mesma altura dos botões. Só visual — dispara a pré-visualização. */
+.mesas-admin__preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 40px;
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  background: var(--gm-surface);
+}
+.mesas-admin__preview-label {
+  font-size: var(--fs-xs);   /* role: caption — rótulo do campo */
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.mesas-admin__preview-input {
+  width: 44px;
+  padding: 4px 0;
+  border: none;
+  border-bottom: 2px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: var(--fs-base);   /* role: corpo — número digitado */
+  line-height: var(--lh-base);
+  font-weight: 800;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.mesas-admin__preview-input:focus { border-bottom-color: var(--gm-accent); }
+.mesas-admin__preview-input::placeholder { color: var(--gm-faint); font-weight: 600; }
+.mesas-admin__preview-sufixo {
+  font-size: var(--fs-sm);   /* role: label/apoio — sufixo "mesas" */
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
 }
 
 .mesas-admin__loading {

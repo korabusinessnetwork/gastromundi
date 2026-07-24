@@ -29,6 +29,10 @@ export default function MesasAdmin({ sz }) {
   const [posicoesDirty,  setPosicoesDirty]  = useState(false);
   const [salvandoLayout, setSalvandoLayout] = useState(false);
 
+  // Pré-visualização: total de mesas que o operador planeja ter. Gera
+  // cards-fantasma no mapa (só visual — nada é gravado até criar cada mesa).
+  const [previewTotal,   setPreviewTotal]   = useState("");
+
   // Modal criar/editar
   const [modal,     setModal]     = useState(false);
   const [editando,  setEditando]  = useState(null);
@@ -66,6 +70,26 @@ export default function MesasAdmin({ sz }) {
     const pos = proximaPosicaoLivre(mesas);
     setEditando(null);
     setForm(EMPTY_FORM);
+    setFormPosX(pos.posicao_x);
+    setFormPosY(pos.posicao_y);
+    setFormErro("");
+    setModal(true);
+  }
+
+  // Próximo número inteiro livre — sugestão ao criar (mesas com nome de
+  // texto, ex. "Varanda", são ignoradas na conta).
+  function sugerirNumero() {
+    const nums = mesas.map(m => parseInt(m.numero, 10)).filter(Number.isFinite);
+    const base = nums.length ? Math.max(...nums) : 0;
+    return String(base + 1);
+  }
+
+  // Clique num card-fantasma da pré-visualização: abre "Nova Mesa" já
+  // posicionada naquela célula, com um número sugerido. Nada é gravado
+  // até o operador confirmar no modal.
+  function abrirNovoEm(pos) {
+    setEditando(null);
+    setForm({ numero: sugerirNumero(), capacidade: "4" });
     setFormPosX(pos.posicao_x);
     setFormPosY(pos.posicao_y);
     setFormErro("");
@@ -200,10 +224,38 @@ export default function MesasAdmin({ sz }) {
     }
   }
 
+  // ── Pré-visualização: cards-fantasma ──────────────────────────────
+  // O operador digita quantas mesas planeja ter (input ao lado de "Nova
+  // Mesa"). O mapa mostra esse total de cards: os que passam das mesas
+  // reais viram "fantasmas" tracejados nas células livres. Preenche em
+  // ordem de leitura e não reusa célula ocupada. Nada é gravado — clicar
+  // num fantasma abre o modal para criar a mesa ali.
+  const maxRealX  = mesas.length ? Math.max(...mesas.map(m => m.posicao_x ?? 1)) : 0;
+  const cols      = Math.max(MIN_COLS, maxRealX);
+  const alvoPreview = parseInt(previewTotal, 10);
+  const ghostCount  = Number.isFinite(alvoPreview)
+    ? Math.min(200, Math.max(0, alvoPreview - mesas.length))
+    : 0;
+
+  const ocupadas = new Set(mesas.map(m => `${m.posicao_x ?? 1},${m.posicao_y ?? 1}`));
+  const ghosts   = [];
+  for (let linha = 1; ghosts.length < ghostCount && linha <= 400; linha++) {
+    for (let coluna = 1; coluna <= cols && ghosts.length < ghostCount; coluna++) {
+      const chave = `${coluna},${linha}`;
+      if (ocupadas.has(chave)) continue;
+      ocupadas.add(chave);
+      ghosts.push({ posicao_x: coluna, posicao_y: linha });
+    }
+  }
+
   // ── Grid dimensions ───────────────────────────────────────────────
 
-  const maxX    = mesas.length ? Math.max(MIN_COLS, ...mesas.map(m => m.posicao_x ?? 1)) : MIN_COLS;
-  const maxY    = mesas.length ? Math.max(MIN_ROWS, ...mesas.map(m => m.posicao_y ?? 1)) : MIN_ROWS;
+  const maxX    = Math.max(MIN_COLS, cols);
+  const maxY    = Math.max(
+    MIN_ROWS,
+    ...mesas.map(m => m.posicao_y ?? 1),
+    ...ghosts.map(g => g.posicao_y),
+  );
   const gridCols = maxX + 1; // +1 de buffer para drops
   const gridRows = maxY + 1;
   const containerW = gridCols * (CARD_W + CARD_GAP) - CARD_GAP;
@@ -229,6 +281,7 @@ export default function MesasAdmin({ sz }) {
           <div className="mesas-admin__subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
             {mesas.length} mesa{mesas.length !== 1 ? "s" : ""} cadastrada{mesas.length !== 1 ? "s" : ""}
             {mesas.length > 0 && " · arraste os cards para reposicionar"}
+            {ghostCount > 0 && ` · ${ghostCount} em pré-visualização — clique num card tracejado para criar`}
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -250,6 +303,23 @@ export default function MesasAdmin({ sz }) {
               <LuSave size={14} /> {salvandoLayout ? "Salvando…" : "Salvar layout"}
             </button>
           )}
+          {/* Planejar N mesas: gera cards-fantasma no mapa para visualizar o
+              salão antes de criar. Só visual — nada é gravado. (Princípio nº 1:
+              o operador vê o layout que quer antes de cadastrar cada mesa.) */}
+          <div className="mesas-admin__preview" title="Mostra no mapa quantas mesas você planeja ter — nada é gravado até você criar cada uma">
+            <label htmlFor="mesas-preview-total" className="mesas-admin__preview-label">Planejar</label>
+            <input
+              id="mesas-preview-total"
+              type="text"
+              inputMode="numeric"
+              value={previewTotal}
+              onChange={e => setPreviewTotal(e.target.value.replace(/\D/g, ""))}
+              placeholder={String(mesas.length)}
+              maxLength={3}
+              className="mesas-admin__preview-input"
+            />
+            <span className="mesas-admin__preview-sufixo">mesas</span>
+          </div>
           <button
             onClick={abrirNovo}
             className="mesas-admin__botao-cabecalho"
@@ -285,7 +355,7 @@ export default function MesasAdmin({ sz }) {
         overflowX: "auto", overflowY: "auto",
         maxHeight: "calc(100vh - 280px)",
       }}>
-        {mesas.length === 0 ? (
+        {mesas.length === 0 && ghostCount === 0 ? (
           <div style={{ padding: "60px 24px", textAlign: "center", color: varColor(C.muted) }}>
             <div className="mesas-admin__vazio-emoji" style={{ marginBottom: 12 }}>🪑</div>
             <div className="mesas-admin__vazio-titulo" style={{ fontWeight: 700, color: varColor(C.text), marginBottom: 4 }}>
@@ -326,6 +396,25 @@ export default function MesasAdmin({ sz }) {
                 />
               ))
             )}
+
+            {/* Cards-fantasma da pré-visualização: mostram o total planejado
+                sem gravar nada. Clicar abre "Nova Mesa" já naquela célula. */}
+            {ghosts.map(g => {
+              const gx = (g.posicao_x - 1) * (CARD_W + CARD_GAP);
+              const gy = (g.posicao_y - 1) * (CARD_H + CARD_GAP);
+              return (
+                <button
+                  key={`ghost-${g.posicao_x}-${g.posicao_y}`}
+                  type="button"
+                  onClick={() => abrirNovoEm(g)}
+                  className="mesas-admin__ghost"
+                  style={{ left: gx, top: gy, width: CARD_W, height: CARD_H }}
+                >
+                  <LuPlus size={22} />
+                  <span className="mesas-admin__ghost-texto">criar mesa</span>
+                </button>
+              );
+            })}
 
             {mesas.map(m => {
               const x = ((m.posicao_x ?? 1) - 1) * (CARD_W + CARD_GAP);
