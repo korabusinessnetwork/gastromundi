@@ -86,10 +86,19 @@ export default function MapaRaioEntrega({ origem, aneis = [], onOrigemChange, re
 
     mapRef.current = map;
     // Leaflet precisa recalcular o tamanho quando o container aparece
-    // dentro de abas/flex — dá um empurrão no próximo frame.
-    setTimeout(() => map.invalidateSize(), 0);
+    // dentro de abas/flex — dá um empurrão no próximo frame. Guarda o
+    // timer e checa mapRef pra não rodar em mapa já removido (mesma
+    // corrida do zoom animado — ver cleanup).
+    const invalidateTimer = setTimeout(() => mapRef.current?.invalidateSize(), 0);
 
     return () => {
+      // Aborta pan/zoom em voo ANTES do remove(): uma animação de zoom
+      // agenda `_onZoomTransitionEnd` via setTimeout (~250ms) e o remove()
+      // não cancela esse timer. Se o container desmonta (fechar modal /
+      // trocar de aba) antes dos 250ms, o callback dispara contra o mapa
+      // destruído (`this._mapPane` = undefined) → TypeError _leaflet_pos.
+      clearTimeout(invalidateTimer);
+      map.stop();
       map.remove();
       mapRef.current = null;
       markerRef.current = null;
@@ -149,11 +158,14 @@ export default function MapaRaioEntrega({ origem, aneis = [], onOrigemChange, re
     });
 
     // Enquadra o maior anel (ou centraliza no pino se não há anel).
+    // `animate: false`: sem animação de zoom não há `_onZoomTransitionEnd`
+    // agendado por setTimeout — corta a corrida que quebrava ao fechar o
+    // modal no meio da transição (TypeError _leaflet_pos).
     if (ordenados.length > 0) {
       const maior = circlesRef.current[0];
-      map.fitBounds(maior.getBounds(), { padding: [24, 24], maxZoom: 15 });
+      map.fitBounds(maior.getBounds(), { padding: [24, 24], maxZoom: 15, animate: false });
     } else {
-      map.setView(centro, Math.max(map.getZoom(), ZOOM_COM_ORIGEM));
+      map.setView(centro, Math.max(map.getZoom(), ZOOM_COM_ORIGEM), { animate: false });
     }
   }, [origem, aneis, temOrigem, readOnly]);
 
