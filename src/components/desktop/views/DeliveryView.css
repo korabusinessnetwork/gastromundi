@@ -82,6 +82,32 @@
   border-color: oklch(0.72 0.17 150 / 0.35);
 }
 
+/* Badge "no automático" — só leitura: quem manda é o agendamento (config).
+   A COR reflete o ESTADO ATUAL (verde = aberto agora, cinza = fechado agora),
+   diferente do botão manual (cuja cor é a ação). O ícone de relógio deixa
+   claro que é o horário no comando. Ajuste fica em Configurações › Delivery. */
+.delivery-view__auto-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: default;
+}
+.delivery-view__auto-badge--aberta {
+  background: oklch(0.72 0.17 150 / 0.15);
+  color: oklch(0.5 0.15 150);
+  border-color: oklch(0.72 0.17 150 / 0.35);
+}
+.delivery-view__auto-badge--fechada {
+  background: color-mix(in srgb, var(--gm-muted) 15%, transparent);
+  color: var(--gm-muted);
+  border-color: color-mix(in srgb, var(--gm-muted) 33%, transparent);
+}
+
 /* Abas */
 .delivery-view__abas {
   display: flex;
@@ -589,6 +615,7 @@
 .delivery-view__sub       { font-size: var(--fs-sm);   line-height: var(--lh-sm); }   /* apoio (era sz.fontSm) */
 .delivery-view__modo-tag  { font-size: var(--fs-xs);   line-height: var(--lh-xs); }   /* selo (era sz.fontSm) */
 .delivery-view__toggle-loja { font-size: var(--fs-sm); line-height: var(--lh-sm); }   /* botão (era sz.fontSm) */
+.delivery-view__auto-badge  { font-size: var(--fs-sm); line-height: var(--lh-sm); }   /* badge "no automático" */
 
 /* Abas / avisos / botões genéricos */
 .delivery-view__aba     { font-size: var(--fs-base); line-height: var(--lh-base); }   /* aba (era sz.fontBase) */

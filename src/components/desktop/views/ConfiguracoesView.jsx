@@ -11,8 +11,18 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { createPortal } from "react-dom";
-import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter, LuBike } from "react-icons/lu";
 import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
+import { logAction } from "@/lib/logger";
+import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/deliveryAdmin";
+import {
+  DIAS_SEMANA,
+  HORARIO_PADRAO,
+  normalizarHorario,
+  horarioValido,
+  resumoHorario,
+  deliveryDeveEstarAberto,
+} from "@/lib/deliveryHorario";
 import ConfiguracaoImpressao from "./impressao/ConfiguracaoImpressao";
 import MesasAdmin from "./mesas/MesasAdmin";
 import ImportarExportarTab from "./ImportarExportarTab";
@@ -999,6 +1009,7 @@ const ABAS_CONFIG = [
   { id: "meios_pagamento",  label: "Meios de Pagamento",  adminOnly: false },
   { id: "unidades_medida",  label: "Unidades de Medida",  adminOnly: false },
   { id: "mesas",            label: "Mesas",               gerenteOnly: true },
+  { id: "delivery",         label: "Delivery",            gerenteOnly: true },
   { id: "categorias",       label: "Grupos de Categoria", gerenteOnly: true },
   { id: "impressao",        label: "Impressão",           adminOnly: true  },
   { id: "importar",         label: "Importar / Exportar", adminOnly: true  },
@@ -1090,6 +1101,208 @@ function GeralTab({ sz }) {
             {savingDias ? "Salvando…" : "Salvar"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Aba Delivery (abertura automática por horário) ────────────────
+// Centraliza a configuração do delivery nas Configurações. Por ora: o
+// AGENDAMENTO de abertura/fechamento automático (dias da semana + horário).
+// Mora em config_delivery.horario; quem reconcilia o flag `aberto` com o
+// horário é o app do operador aberto (ver DeliveryView) — sem cron no
+// servidor (fase de custo zero). Toda a lógica de horário é pura e testada
+// em src/lib/deliveryHorario.js.
+function DeliveryTab({ sz }) {
+  const { tenant, currentUser } = useApp();
+  const [config, setConfig] = useState(null);
+  const [horario, setHorario] = useState(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [okMsg, setOkMsg] = useState("");
+
+  // Carga inicial: lê a config do tenant e semeia o rascunho do horário.
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      setCarregando(true);
+      const { data, error } = await carregarConfigDelivery();
+      if (!ativo) return;
+      if (error) {
+        setErro("Não foi possível carregar a configuração do delivery.");
+        setCarregando(false);
+        return;
+      }
+      const base = data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
+      setConfig(base);
+      setHorario(normalizarHorario(base.horario));
+      setErro("");
+      setCarregando(false);
+    })();
+    return () => { ativo = false; };
+  }, []);
+
+  const setCampo = (patch) => { setHorario((h) => ({ ...h, ...patch })); setOkMsg(""); };
+
+  // Ligar o agendamento pela 1ª vez parte de um padrão amigável (todos os
+  // dias, 18:00–23:00) para o dono ajustar — nunca liga vazio.
+  const alternarAuto = () => {
+    setOkMsg("");
+    setHorario((h) => {
+      if (h.auto) return { ...h, auto: false };
+      const vazio = !h.abre && !h.fecha && h.dias.length === 0;
+      return vazio
+        ? { auto: true, abre: HORARIO_PADRAO.abre, fecha: HORARIO_PADRAO.fecha, dias: [...HORARIO_PADRAO.dias] }
+        : { ...h, auto: true };
+    });
+  };
+
+  const alternarDia = (id) =>
+    setCampo({
+      dias: horario.dias.includes(id)
+        ? horario.dias.filter((d) => d !== id)
+        : [...horario.dias, id].sort((a, b) => a - b),
+    });
+
+  const valido = horario ? horarioValido(horario) : false;
+  const alterado =
+    config && horario &&
+    JSON.stringify(normalizarHorario(config.horario)) !== JSON.stringify(normalizarHorario(horario));
+  const preview = horario ? resumoHorario(horario) : null;
+  const podeSalvar = !salvando && valido && alterado;
+
+  const salvar = async () => {
+    if (!tenant?.id) { setErro("Estabelecimento não identificado."); return; }
+    if (!podeSalvar) return;
+    setSalvando(true);
+    setErro("");
+    // Ao salvar com o agendamento ligado, já casa o flag `aberto` com o
+    // horário de agora (o operador vê o efeito na hora). Desligado/incompleto
+    // (null) preserva o controle manual.
+    const desejado = deliveryDeveEstarAberto(horario, new Date());
+    const proximo = { ...config, horario, aberto: desejado === null ? !!config.aberto : desejado };
+    const { data, error } = await salvarConfigDelivery(tenant.id, proximo);
+    setSalvando(false);
+    if (error) { setErro("Não foi possível salvar. Tente novamente."); return; }
+    const salvo = data || proximo;
+    setConfig(salvo);
+    setHorario(normalizarHorario(salvo.horario));
+    setOkMsg(horario.auto ? "Abertura automática salva." : "Abertura automática desligada.");
+    logAction(currentUser?.username, "delivery:horario", {
+      msg: horario.auto ? `Delivery automático: ${preview || "configurado"}` : "Delivery automático desligado",
+      name: currentUser?.name,
+      role: currentUser?.role,
+    });
+  };
+
+  if (carregando || !horario) {
+    return <div className="delivery-tab__estado" style={{ padding: sz.pad }}>Carregando…</div>;
+  }
+
+  return (
+    <div className="geral-tab">
+      {/* Liga/desliga o agendamento */}
+      <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
+        <div style={{ flex: 1 }}>
+          <div className="geral-tab__titulo">Abrir e fechar automaticamente</div>
+          <div className="geral-tab__ajuda">
+            O delivery abre e fecha sozinho nos dias e horários escolhidos.
+            Deixe desligado para controlar na mão pelo botão do delivery.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={alternarAuto}
+          className="geral-tab__toggle"
+          style={{ background: horario.auto ? varColor(C.green) : varColor(C.faint), cursor: "pointer" }}
+          aria-pressed={horario.auto}
+          aria-label="Abrir e fechar o delivery automaticamente"
+        >
+          <span className="geral-tab__toggle-bolinha" style={{ left: horario.auto ? 29 : 3 }} />
+        </button>
+      </div>
+
+      {horario.auto && (
+        <div className="geral-tab__card delivery-tab__detalhes" style={{ padding: sz.pad }}>
+          {/* Dias de atendimento */}
+          <div className="delivery-tab__bloco">
+            <div className="delivery-tab__rotulo">Dias de atendimento</div>
+            <div className="delivery-tab__dias">
+              {DIAS_SEMANA.map((d) => {
+                const on = horario.dias.includes(d.id);
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => alternarDia(d.id)}
+                    className={`delivery-tab__dia${on ? " delivery-tab__dia--on" : ""}`}
+                    title={d.label}
+                    aria-pressed={on}
+                  >
+                    {d.curto}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Horário de abertura e fechamento */}
+          <div className="delivery-tab__bloco">
+            <div className="delivery-tab__rotulo">Horário</div>
+            <div className="delivery-tab__horas">
+              <label className="delivery-tab__hora">
+                <span>Abre</span>
+                <input
+                  type="time"
+                  value={horario.abre || ""}
+                  onChange={(e) => setCampo({ abre: e.target.value })}
+                  className="delivery-tab__time"
+                />
+              </label>
+              <span className="delivery-tab__ate">às</span>
+              <label className="delivery-tab__hora">
+                <span>Fecha</span>
+                <input
+                  type="time"
+                  value={horario.fecha || ""}
+                  onChange={(e) => setCampo({ fecha: e.target.value })}
+                  className="delivery-tab__time"
+                />
+              </label>
+            </div>
+            <div className="delivery-tab__dica">
+              Fecha depois da meia-noite? Basta pôr uma hora menor
+              (ex.: abre 18:00, fecha 02:00).
+            </div>
+          </div>
+
+          {/* Prévia amigável / o que falta preencher */}
+          <div className={`delivery-tab__preview${preview ? "" : " delivery-tab__preview--pendente"}`}>
+            {preview
+              ? <>Vai abrir <strong>{preview}</strong>.</>
+              : "Escolha pelo menos um dia e horários de abrir e fechar diferentes."}
+          </div>
+        </div>
+      )}
+
+      {erro && <div className="delivery-tab__estado delivery-tab__estado--erro">{erro}</div>}
+      {okMsg && <div className="delivery-tab__estado delivery-tab__estado--ok">{okMsg}</div>}
+
+      <div className="delivery-tab__acoes">
+        <button
+          type="button"
+          onClick={salvar}
+          disabled={!podeSalvar}
+          className="delivery-tab__salvar"
+          style={{
+            background: podeSalvar ? varColor(C.accent) : varColor(C.faint),
+            color: podeSalvar ? "#fff" : varColor(C.muted),
+            cursor: podeSalvar ? "pointer" : "not-allowed",
+          }}
+        >
+          {salvando ? "Salvando…" : "Salvar"}
+        </button>
       </div>
     </div>
   );
@@ -1196,6 +1409,7 @@ export default function ConfiguracoesView() {
               }}
             >
               {a.id === "impressao" && <LuPrinter size={13} />}
+              {a.id === "delivery" && <LuBike size={13} />}
               {a.label}
             </button>
           ))}
@@ -1209,6 +1423,7 @@ export default function ConfiguracoesView() {
         {aba === "meios_pagamento" && <MeiosPagamentoTab sz={sz} />}
         {aba === "unidades_medida" && <UnidadesMedidaTab sz={sz} />}
         {aba === "mesas"     && isGerente && <MesasAdmin sz={sz} />}
+        {aba === "delivery"  && isGerente && <DeliveryTab sz={sz} />}
         {aba === "categorias" && isGerente && <CategoriasGrupoTab sz={sz} />}
         {aba === "impressao" && isAdmin && <ConfiguracaoImpressao sz={sz} />}
         {aba === "importar"  && isAdmin && <ImportarExportarTab />}

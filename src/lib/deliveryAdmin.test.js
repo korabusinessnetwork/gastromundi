@@ -202,7 +202,7 @@ describe("sanitizarConfig", () => {
       aberto: 1,
       pedido_minimo: "20",
       tempo_preparo_min: "35.6",
-      horario: { seg: "18-23" },
+      horario: { auto: true, abre: "8:00", fecha: "23:00", dias: [1, 1, 5] },
       faixas_taxa: [
         { tipo: "bairro", bairro: "Centro", taxa: 5 },
         { tipo: "bairro", bairro: "", taxa: 5 }, // inválida, cai fora
@@ -211,7 +211,7 @@ describe("sanitizarConfig", () => {
     expect(out.aberto).toBe(true);
     expect(out.pedido_minimo).toBe(20);
     expect(out.tempo_preparo_min).toBe(36);
-    expect(out.horario).toEqual({ seg: "18-23" });
+    expect(out.horario).toEqual({ auto: true, abre: "08:00", fecha: "23:00", dias: [1, 5] });
     expect(out.faixas_taxa).toEqual([{ tipo: "bairro", bairro: "Centro", taxa: 5 }]);
   });
 
@@ -221,7 +221,7 @@ describe("sanitizarConfig", () => {
       aberto: false,
       pedido_minimo: 0,
       tempo_preparo_min: 0,
-      horario: {},
+      horario: { auto: false, abre: null, fecha: null, dias: [] },
       faixas_taxa: [],
       origem_lat: null,
       origem_lng: null,
@@ -229,8 +229,10 @@ describe("sanitizarConfig", () => {
     });
   });
 
-  it("horario inválido vira objeto vazio", () => {
-    expect(sanitizarConfig({ horario: "qualquer coisa" }).horario).toEqual({});
+  it("horario inválido vira o agendamento desligado (forma completa)", () => {
+    expect(sanitizarConfig({ horario: "qualquer coisa" }).horario).toEqual({
+      auto: false, abre: null, fecha: null, dias: [],
+    });
   });
 
   it("guarda coordenadas de origem só quando são válidas", () => {

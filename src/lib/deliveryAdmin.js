@@ -22,6 +22,7 @@
 // ──────────────────────────────────────────────────────────────────
 import { supabase } from "@/lib/supabase";
 import { normalizarTexto } from "@/lib/importacao/planilha";
+import { normalizarHorario } from "@/lib/deliveryHorario";
 
 // ════════════════════════════════════════════════════════════════
 // FUNÇÕES PURAS (testadas) — nada de I/O aqui
@@ -206,7 +207,7 @@ export function sanitizarConfig(config) {
     aberto: !!config?.aberto,
     pedido_minimo: Math.max(0, Number(config?.pedido_minimo) || 0),
     tempo_preparo_min: Math.max(0, Math.round(Number(config?.tempo_preparo_min) || 0)),
-    horario: config?.horario && typeof config.horario === "object" ? config.horario : {},
+    horario: normalizarHorario(config?.horario),
     faixas_taxa: faixas,
     origem_lat: coordOuNull(config?.origem_lat, -90, 90),
     origem_lng: coordOuNull(config?.origem_lng, -180, 180),

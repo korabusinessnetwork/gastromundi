@@ -56,6 +56,7 @@ import {
   LuBellOff,
   LuPower,
   LuPowerOff,
+  LuClock,
 } from "react-icons/lu";
 import {
   statusLabel,
@@ -109,6 +110,7 @@ import {
   formatarCep,
   temFaixasKm,
 } from "@/lib/deliveryAdmin";
+import { ajusteAutomaticoAbertura, resumoHorario } from "@/lib/deliveryHorario";
 import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
 import ListaArrastavel from "@/components/shared/ListaArrastavel";
 import { geocodificarEndereco } from "@/lib/delivery";
@@ -244,6 +246,38 @@ export default function DeliveryView({ notify } = {}) {
     aviso(proximo.aberto ? "Delivery aberto." : "Delivery fechado.", "ok");
   }, [isAdmin, salvandoAberto, configDelivery, tenant, currentUser, aviso]);
 
+  // ── Reconciliação da abertura automática (config_delivery.horario) ──
+  // Sem cron no servidor (fase de custo zero): enquanto o agendamento
+  // governa (horario.auto), é o app do operador aberto que mantém o flag
+  // `aberto` casado com o horário. Roda ao montar e a cada 30s. Ref evita
+  // reiniciar o intervalo a cada re-render (só depende de auto ligar/desligar).
+  const configRef = useRef(configDelivery);
+  useEffect(() => { configRef.current = configDelivery; }, [configDelivery]);
+
+  const reconciliarAuto = useCallback(async () => {
+    const cfg = configRef.current;
+    if (!isAdmin || !tenant?.id || !cfg?.horario?.auto) return;
+    const { mudar, aberto } = ajusteAutomaticoAbertura(cfg, new Date());
+    if (!mudar) return;
+    const proximo = { ...cfg, aberto };
+    const { data, error } = await salvarConfigDelivery(tenant.id, proximo);
+    if (error) return; // silencioso: tenta de novo no próximo tick
+    setConfigDelivery(data || proximo);
+    logAction(currentUser?.username, "delivery:auto", {
+      msg: aberto ? "Delivery aberto automaticamente pelo horário" : "Delivery fechado automaticamente pelo horário",
+      name: currentUser?.name,
+      role: currentUser?.role,
+    });
+    aviso(aberto ? "Delivery aberto automaticamente pelo horário." : "Delivery fechado automaticamente pelo horário.", "info");
+  }, [isAdmin, tenant, currentUser, aviso]);
+
+  useEffect(() => {
+    if (!isAdmin || !tenant?.id) return;
+    reconciliarAuto(); // imediato ao montar / ao ligar o agendamento
+    const t = setInterval(reconciliarAuto, 30000);
+    return () => clearInterval(t);
+  }, [isAdmin, tenant?.id, configDelivery?.horario?.auto, reconciliarAuto]);
+
   return (
     <div className="delivery-view" style={{ background: varColor(C.bg), color: varColor(C.text) }}>
       {/* Cabeçalho */}
@@ -275,26 +309,44 @@ export default function DeliveryView({ notify } = {}) {
           </span>
 
           {isAdmin && configDelivery && (
-            <button
-              type="button"
-              onClick={alternarAberto}
-              disabled={salvandoAberto}
-              className={`delivery-view__toggle-loja delivery-view__toggle-loja--${
-                configDelivery.aberto ? "aberta" : "fechada"
-              }`}
-              title={
-                configDelivery.aberto
-                  ? "A loja está aceitando pedidos. Clique para fechar."
-                  : "A loja não está aceitando pedidos. Clique para abrir."
-              }
-            >
-              {configDelivery.aberto ? <LuPowerOff size={14} /> : <LuPower size={14} />}
-              {salvandoAberto
-                ? "Salvando…"
-                : configDelivery.aberto
-                  ? "Fechar delivery"
-                  : "Abrir delivery"}
-            </button>
+            configDelivery.horario?.auto ? (
+              // Agendamento no comando: badge de leitura (não brigar com a
+              // reconciliação). Para ajustar, o dono vai em Configurações › Delivery.
+              <span
+                className={`delivery-view__auto-badge delivery-view__auto-badge--${
+                  configDelivery.aberto ? "aberta" : "fechada"
+                }`}
+                title={
+                  resumoHorario(configDelivery.horario)
+                    ? `Abertura automática: ${resumoHorario(configDelivery.horario)}. Ajuste em Configurações › Delivery.`
+                    : "Abertura automática ligada. Ajuste em Configurações › Delivery."
+                }
+              >
+                <LuClock size={14} />
+                {configDelivery.aberto ? "Aberto no automático" : "Fechado no automático"}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={alternarAberto}
+                disabled={salvandoAberto}
+                className={`delivery-view__toggle-loja delivery-view__toggle-loja--${
+                  configDelivery.aberto ? "aberta" : "fechada"
+                }`}
+                title={
+                  configDelivery.aberto
+                    ? "A loja está aceitando pedidos. Clique para fechar."
+                    : "A loja não está aceitando pedidos. Clique para abrir."
+                }
+              >
+                {configDelivery.aberto ? <LuPowerOff size={14} /> : <LuPower size={14} />}
+                {salvandoAberto
+                  ? "Salvando…"
+                  : configDelivery.aberto
+                    ? "Fechar delivery"
+                    : "Abrir delivery"}
+              </button>
+            )
           )}
         </div>
       </div>

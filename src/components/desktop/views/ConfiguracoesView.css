@@ -972,6 +972,147 @@
   line-height: var(--lh-sm);
 }
 
+/* ── Aba Delivery (abertura automática por horário) ── */
+
+.delivery-tab__detalhes {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
+}
+
+.delivery-tab__bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.delivery-tab__rotulo {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.delivery-tab__dias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Chip de dia — alvo grande (toque/PDV) e estado on/off bem contrastado
+   (Princípio nº 1: estado sempre visível). */
+.delivery-tab__dia {
+  min-width: 48px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-muted);
+  font-weight: 700;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.delivery-tab__dia:hover {
+  border-color: var(--gm-accent);
+}
+.delivery-tab__dia--on {
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+  color: #fff;
+}
+
+.delivery-tab__horas {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.delivery-tab__hora {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+.delivery-tab__ate {
+  padding-bottom: 10px;
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+.delivery-tab__time {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.delivery-tab__time:focus {
+  border-color: var(--gm-accent);
+}
+
+.delivery-tab__dica {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.delivery-tab__preview {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.delivery-tab__preview--pendente {
+  color: var(--gm-muted);
+}
+
+.delivery-tab__acoes {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.delivery-tab__salvar {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.delivery-tab__estado {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.delivery-tab__estado--erro {
+  background: color-mix(in srgb, var(--gm-red) 12%, transparent);
+  color: var(--gm-red);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 33%, transparent);
+}
+.delivery-tab__estado--ok {
+  background: color-mix(in srgb, var(--gm-green) 12%, transparent);
+  color: var(--gm-green);
+  border: 1px solid color-mix(in srgb, var(--gm-green) 33%, transparent);
+}
+
 /* ── Header da view ── */
 
 .configuracoes-view__titulo {
