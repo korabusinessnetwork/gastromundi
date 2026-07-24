@@ -11,13 +11,14 @@ import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
-import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList, LuReceipt } from "react-icons/lu";
+import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList, LuReceipt, LuUser } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { produtosVencendo } from "@/lib/validade";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { supabase } from "@/lib/supabase";
 import { mesmoItemDeVenda } from "@/lib/combos";
+import { buscarClientePorId } from "@/lib/clientes";
 import "./PDVView.css";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
 import { useTravaComanda } from "@/hooks/useTravaComanda";
@@ -27,6 +28,7 @@ import ComandaGrid   from "./ComandaGrid";
 import ProductGrid   from "./ProductGrid";
 import CartPanel     from "./CartPanel";
 import CheckoutView  from "./CheckoutView";
+import ClienteComandaModal from "./ClienteComandaModal";
 import MesaMapView   from "./MesaMapView";
 import ModalCupomNfce from "@/components/fiscal/ModalCupomNfce";
 
@@ -122,6 +124,12 @@ export default function PDVView({ notify }) {
   const [apelidoInput,      setApelidoInput]      = useState("");
   const [mesaPendingOrder,  setMesaPendingOrder]  = useState(null);
   const [salvandoMesa,      setSalvandoMesa]      = useState(false);
+
+  // ── Vincular cliente à comanda (botão "Cliente") ──────────────
+  const [showCliente,          setShowCliente]          = useState(false);
+  const [clientePendingOrder,  setClientePendingOrder]  = useState(null);
+  const [clienteSel,           setClienteSel]           = useState(null); // cliente escolhido na modal
+  const [salvandoCliente,      setSalvandoCliente]      = useState(false);
 
   // ── Barcode scanner (FEATURE_BARCODE_SCANNER) ─────────────────
   const [barcodeInputOpen,  setBarcodeInputOpen]  = useState(false);
@@ -260,6 +268,61 @@ export default function PDVView({ notify }) {
       setMesaPendingOrder(null);
     } finally {
       setSalvandoMesa(false);
+    }
+  };
+
+  // ── Vincular cliente à comanda ────────────────────────────────
+  const abrirClienteComanda = async () => {
+    setClientePendingOrder(selected);
+    setShowCliente(true);
+    // Pré-carrega o cliente já vinculado (se houver) para exibir na modal
+    // e permitir trocar/remover. Fallback: só o nome guardado na comanda.
+    if (selected?.cliente_id) {
+      setClienteSel({ id: selected.cliente_id, nome: selected.cliente_nome || "Cliente" });
+      const { data } = await buscarClientePorId(selected.cliente_id);
+      if (data) setClienteSel(data);
+    } else {
+      setClienteSel(null);
+    }
+  };
+
+  const handleConfirmarClienteComanda = async () => {
+    if (!clientePendingOrder || salvandoCliente) return;
+    // Trava de edição (Leva 14): alguém abriu a comanda enquanto a modal estava aberta.
+    if (!clientePendingOrder._virtual) {
+      const fresca = pending.find(o => o.id === clientePendingOrder.id) ?? clientePendingOrder;
+      if (emUsoPorOutro(fresca)) {
+        notify?.(`${fmtComanda(fresca.comanda)} está em uso por ${nomeTrava(fresca)}. Aguarde liberar.`, "err");
+        setShowCliente(false);
+        setClientePendingOrder(null);
+        return;
+      }
+    }
+    const cliente_id   = clienteSel?.id ?? null;
+    const cliente_nome = clienteSel?.nome ?? null;
+    setSalvandoCliente(true);
+    try {
+      const order = { ...clientePendingOrder, cliente_id, cliente_nome };
+      if (!clientePendingOrder._virtual) {
+        const mudou = cliente_id !== (clientePendingOrder.cliente_id ?? null);
+        if (mudou) {
+          const { error } = await updatePending(order.id, { cliente_id, cliente_nome });
+          if (error) {
+            notify?.("Não foi possível vincular o cliente. Tente novamente.", "err");
+            return;
+          }
+        }
+      }
+      // Se virtual, mantém _virtual — o vínculo é persistido junto ao lançar (addPending).
+      if (selected?.id === order.id || clientePendingOrder._virtual) setSelected(order);
+      setShowCliente(false);
+      setClientePendingOrder(null);
+      notify?.(
+        cliente_id ? `${cliente_nome} vinculado à comanda.` : "Cliente desvinculado da comanda.",
+        "ok",
+      );
+    } finally {
+      setSalvandoCliente(false);
     }
   };
 
@@ -917,6 +980,30 @@ export default function PDVView({ notify }) {
                 >
                   <LuPencil size={sz.fontBase - 2} />
                   {selected?.mesa ? `Mesa ${selected.mesa}` : "Mesa"}
+                </button>
+
+                {/* Botão Cliente — vincula um cliente cadastrado à comanda */}
+                <button
+                  onClick={abrirClienteComanda}
+                  title="Vincular cliente à comanda"
+                  className="pdv__acao-btn"
+                  style={{
+                    padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
+                    border: `1px solid ${selected?.cliente_id ? varColor(C.accent) : `var(${C.border})`}`,
+                    background: selected?.cliente_id ? `${alfa(C.accent, "12")}` : varColor(C.surface),
+                    color: selected?.cliente_id ? varColor(C.accent) : varColor(C.muted), fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 6,
+                    transition: "background 0.15s, color 0.15s", whiteSpace: "nowrap",
+                    maxWidth: 200,
+                  }}
+                  onMouseEnter={e => { if (!selected?.cliente_id) { e.currentTarget.style.background = varColor(C.card); e.currentTarget.style.color = varColor(C.text); } }}
+                  onMouseLeave={e => { if (!selected?.cliente_id) { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.color = varColor(C.muted); } }}
+                >
+                  <LuUser size={sz.fontBase - 2} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {selected?.cliente_nome ? selected.cliente_nome : "Cliente"}
+                  </span>
                 </button>
 
                 {itensLancados.length > 0 ? (
@@ -2123,6 +2210,19 @@ export default function PDVView({ notify }) {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* ── Popup: Cliente da comanda ────────────────────────────── */}
+      {showCliente && clientePendingOrder && (
+        <ClienteComandaModal
+          comanda={clientePendingOrder}
+          clienteSel={clienteSel}
+          onSelecionar={setClienteSel}
+          onConfirmar={handleConfirmarClienteComanda}
+          onCancelar={() => { setShowCliente(false); setClientePendingOrder(null); }}
+          salvando={salvandoCliente}
+          usuario={currentUser?.username}
+        />
       )}
 
       {/* ── Popup: Saldo do Dia ──────────────────────────────────── */}

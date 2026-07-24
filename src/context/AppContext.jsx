@@ -199,7 +199,7 @@ export function AppProvider({ children }) {
   const lockIndisponivelRef = useRef(false);
 
   // Colunas base de pending (nunca select * em tabela sensível — CLAUDE.md).
-  const COLUNAS_PENDING = "id,comanda,items,status,note,total,garcom,created_by,created_at,updated_at,mesa,apelido,status_cozinha,em_preparo_em,pronto_em";
+  const COLUNAS_PENDING = "id,comanda,items,status,note,total,garcom,created_by,created_at,updated_at,mesa,apelido,cliente_id,cliente_nome,status_cozinha,em_preparo_em,pronto_em";
   const COLUNAS_TRAVA = "editando_por,editando_nome,editando_desde";
 
   // Busca pending tentando incluir as colunas da trava; se o banco ainda não
@@ -641,13 +641,13 @@ export function AppProvider({ children }) {
     // (Palm × PDV) feita no updatePending.
     order = { ...order, items: garantirUidItens(order.items) };
     setPendingLocal(prev => [order, ...prev]);
-    const { id, comanda, mesa, apelido, items, status, note, total, garcom, created_by } = order;
-    const { error } = await supabase.from("pending").insert({ id, comanda, mesa, apelido, items, status, note, total, garcom, created_by });
+    const { id, comanda, mesa, apelido, cliente_id, cliente_nome, items, status, note, total, garcom, created_by } = order;
+    const { error } = await supabase.from("pending").insert({ id, comanda, mesa, apelido, cliente_id, cliente_nome, items, status, note, total, garcom, created_by });
     if (error) {
       // Sem internet o pedido NÃO some (Leva 11): mantém o estado
       // otimista, guarda na fila local e reenvia quando a rede voltar.
       if (isErroDeRede(error)) {
-        setPendenciasOffline(filaOffline.enfileirar({ tipo: "insert", payload: { id, comanda, mesa, apelido, items, status, note, total, garcom, created_by } }));
+        setPendenciasOffline(filaOffline.enfileirar({ tipo: "insert", payload: { id, comanda, mesa, apelido, cliente_id, cliente_nome, items, status, note, total, garcom, created_by } }));
         return { error: null, offline: true };
       }
       console.error("addPending error:", error);

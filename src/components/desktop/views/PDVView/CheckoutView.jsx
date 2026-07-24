@@ -1,5 +1,5 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { metodoUsaTef } from "@/lib/tef";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
+import { buscarClientePorId } from "@/lib/clientes";
 import ClienteFiadoSelector from "./ClienteFiadoSelector";
 import ImpressaoAcoes from "./ImpressaoAcoes";
 import ModalCpfNota from "./ModalCpfNota";
@@ -52,6 +53,19 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
 
   // F010 — cliente do fiado (fiado exige cliente identificado)
   const [clienteFiado, setClienteFiado] = useState(null);
+
+  // Cliente vinculado à comanda (botão "Cliente" no PDV): pré-preenche o
+  // cliente do checkout — identifica a venda (histórico), pré-satisfaz o
+  // fiado e pré-preenche o CPF na nota. Busca o cadastro completo pelo id
+  // (pending guarda só id+nome); não sobrescreve uma escolha manual.
+  useEffect(() => {
+    if (!comanda?.cliente_id) return;
+    let ativo = true;
+    buscarClientePorId(comanda.cliente_id).then(({ data }) => {
+      if (ativo && data) setClienteFiado((prev) => prev ?? data);
+    });
+    return () => { ativo = false; };
+  }, [comanda?.cliente_id]);
 
   // Etapa "CPF na nota" — em toda venda com nota (add-on nfe), antes de emitir
   // a NFC-e o operador informa o CPF/CNPJ do cliente ou deixa em branco.

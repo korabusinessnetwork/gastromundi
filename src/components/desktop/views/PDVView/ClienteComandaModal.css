@@ -1,0 +1,104 @@
+/* Modal "Cliente na comanda" — vincula um cliente cadastrado à comanda.
+   Estilos separados do JSX (decisão 018); cores via tokens --gm-* para
+   adaptar a qualquer tema de tenant (decisão 017, white-label). */
+
+.cliente-comanda__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9100;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.cliente-comanda__modal {
+  background: var(--gm-card);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  color: var(--gm-text);
+  overflow: hidden;
+}
+
+.cliente-comanda__header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gm-border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cliente-comanda__emoji {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-accent) 18%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 44%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gm-accent);
+  flex-shrink: 0;
+}
+
+.cliente-comanda__titulo {
+  font-weight: 900;
+}
+
+.cliente-comanda__subtitulo {
+  color: var(--gm-muted);
+  margin-top: 1px;
+  font-size: 0.85rem;
+}
+
+.cliente-comanda__corpo {
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cliente-comanda__dica {
+  color: var(--gm-muted);
+  font-size: 0.82rem;
+}
+
+.cliente-comanda__acoes {
+  display: flex;
+  gap: 10px;
+  padding: 0 24px 22px;
+}
+
+.cliente-comanda__btn-cancelar {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: 11px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.cliente-comanda__btn-confirmar {
+  flex: 2;
+  padding: 12px 0;
+  border-radius: 11px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+  font-family: inherit;
+}
+
+.cliente-comanda__btn-confirmar:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

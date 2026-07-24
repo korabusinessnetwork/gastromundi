@@ -13,7 +13,7 @@ import "./ClienteFiadoSelector.css";
  * aparece quando o método "fiado" está em uso e bloqueia a confirmação
  * até um cliente ser escolhido ou cadastrado.
  */
-export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario }) {
+export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, placeholder = "Fiado exige cliente — busque por nome ou telefone" }) {
   const [busca, setBusca] = useState("");
   const [resultados, setResultados] = useState([]);
   const [carregando, setCarregando] = useState(false);
@@ -84,7 +84,7 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario })
         <input
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          placeholder="Fiado exige cliente — busque por nome ou telefone"
+          placeholder={placeholder}
           className="cliente-fiado-busca__input"
           style={{
             flex: 1, border: "none", background: "none", outline: "none",

@@ -16,6 +16,7 @@ import {
   validarCadastroCliente,
   cadastrarCliente,
   listarClientes,
+  buscarClientePorId,
   registrarPagamentoFiado,
   calcularSaldoDevedor,
 } from "./clientes";
@@ -92,6 +93,30 @@ describe("listarClientes", () => {
     const chamadasOr = mockSupabase.current.calls.filter((c) => c.method === "or");
     expect(chamadasOr.length).toBeGreaterThan(0);
     expect(chamadasOr[0].args[0]).toContain("ana");
+  });
+});
+
+describe("buscarClientePorId", () => {
+  it("não chama o Supabase quando o id é vazio", async () => {
+    const { data, error } = await buscarClientePorId("");
+    expect(data).toBeNull();
+    expect(error).toBeNull();
+    expect(mockSupabase.current.calls).toHaveLength(0);
+  });
+
+  it("busca o cliente pelo id com os campos do checkout (inclui documento)", async () => {
+    mockSupabase.current.setTableResult("clientes", {
+      data: { id: "c1", nome: "Ana", documento: "12345678909", documento_tipo: "cpf" },
+      error: null,
+    });
+
+    const { data } = await buscarClientePorId("c1");
+
+    expect(data.documento).toBe("12345678909");
+    const select = mockSupabase.current.calls.find((c) => c.table === "clientes" && c.method === "select");
+    expect(select.args[0]).toContain("documento");
+    const eqId = mockSupabase.current.calls.find((c) => c.method === "eq" && c.args[0] === "id");
+    expect(eqId.args[1]).toBe("c1");
   });
 });
 

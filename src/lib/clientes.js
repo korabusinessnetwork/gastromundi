@@ -141,6 +141,26 @@ export async function listarClientes({ busca } = {}) {
 }
 
 /**
+ * Busca um cliente pelo id, com os campos necessários para o checkout
+ * (documento/tipo p/ pré-preencher o CPF na nota). Usado ao vincular um
+ * cliente à comanda: o PDV guarda só id+nome em `pending`, o restante é
+ * lido aqui sob demanda. Retorna `{ data: null }` quando o id é vazio.
+ *
+ * @param {string} id
+ * @returns {Promise<{data: object|null, error: object|null}>}
+ */
+export async function buscarClientePorId(id) {
+  if (!id) return { data: null, error: null };
+  const { data, error } = await supabase
+    .from("clientes")
+    .select("id, nome, telefone, documento, documento_tipo, endereco, observacoes, created_at")
+    .eq("id", id)
+    .eq("anonimizado", false)
+    .maybeSingle();
+  return { data, error };
+}
+
+/**
  * Histórico do cliente: vendas anteriores + lançamentos de fiado
  * (Financeiro), buscados em paralelo com campos explícitos.
  *
