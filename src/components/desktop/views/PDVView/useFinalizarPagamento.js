@@ -6,7 +6,7 @@ import { emitirDocumentoFiscal } from "@/lib/fiscal";
 import { destDoCliente } from "@/lib/nfceVenda";
 import { processarPagamentoTef, metodoUsaTef } from "@/lib/tef";
 import { consumoParaEstoque } from "@/utils/conversaoUnidades";
-import { calcularBaixasSubprodutos } from "@/lib/combos";
+import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/lib/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { round2 } from "@/lib/vendas";
 import { reportarFalha } from "@/lib/observabilidade";
@@ -170,6 +170,13 @@ export function useFinalizarPagamento() {
     const delta = {};
     for (const item of itensAtivos) {
       delta[item.id] = (delta[item.id] ?? 0) + (item.qty ?? 1);
+    }
+    // Combos com múltiplos produtos: cada produto adicional (além do
+    // principal, que já entrou pelo id do item) baixa seu próprio estoque.
+    // Entram no mesmo delta para ganhar a conversão de unidade, a guarda
+    // `prodId in estoque` e a agregação com vendas avulsas do mesmo produto.
+    for (const b of calcularBaixasProdutosCombo(itensAtivos)) {
+      delta[b.produtoId] = (delta[b.produtoId] ?? 0) + b.qtd;
     }
     for (const [prodId, qty] of Object.entries(delta)) {
       // Produto sem entrada no mapa de estoque = sem controle de estoque.

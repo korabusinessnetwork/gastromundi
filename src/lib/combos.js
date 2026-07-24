@@ -50,7 +50,7 @@ export function calcularBaixasSubprodutos(itens) {
  * produto principal, o dual-write relacional (product_id) e a
  * transferência entre comandas continuam funcionando sem mudança.
  *
- * @param {object} combo - linha de `combos` com `combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque))`
+ * @param {object} combo - linha de `combos` com `combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque))` e `combo_produtos(quantidade, products(id, name))`
  * @returns {object|null} item pronto para o carrinho (sem qty/_key) ou null se inválido
  */
 export function montarItemCombo(combo) {
@@ -65,12 +65,60 @@ export function montarItemCombo(combo) {
       controla_estoque: !!cs.subprodutos.controla_estoque,
     }));
 
+  // Produtos adicionais do combo (além do principal): viajam no item
+  // para baixar seu próprio estoque na finalização — o principal já
+  // baixa por usar id = item_principal_id (ver calcularBaixasProdutosCombo).
+  const produtos = (combo.combo_produtos ?? [])
+    .filter((cp) => cp?.products?.id != null)
+    .map((cp) => ({
+      id: cp.products.id,
+      nome: cp.products.name ?? "",
+      quantidade: Number(cp.quantidade ?? 1) || 1,
+    }));
+
   return {
     id: combo.item_principal_id,
     name: combo.nome ?? "Combo",
     price: Number(combo.preco_total ?? 0) || 0,
-    combo: { comboId: combo.id, subprodutos },
+    combo: { comboId: combo.id, subprodutos, produtos },
   };
+}
+
+/**
+ * Agrega as baixas de estoque dos PRODUTOS adicionais dos combos (os que
+ * não são o principal). Cada produto adicional baixa seu próprio estoque,
+ * como um produto vendido — quem decide se de fato controla estoque é a
+ * finalização (guarda `prodId in estoque` + conversão de unidade), igual
+ * ao principal. Itens cancelados ficam de fora; quantidades somam por
+ * produto (quantidade no combo × qty do item no carrinho).
+ *
+ * @param {Array<object>} itens - itens do carrinho/comanda ({qty, cancelado, combo:{produtos:[{id, nome, quantidade}]}})
+ * @returns {Array<{produtoId: (number|string), nome: string, qtd: number}>}
+ */
+export function calcularBaixasProdutosCombo(itens) {
+  const porProduto = new Map();
+
+  for (const item of itens ?? []) {
+    if (!item || item.cancelado) continue;
+    const prods = item.combo?.produtos;
+    if (!Array.isArray(prods) || prods.length === 0) continue;
+
+    const qtyItem = Number(item.qty ?? 1) || 0;
+    if (qtyItem <= 0) continue;
+
+    for (const p of prods) {
+      if (!p || p.id == null) continue;
+      const qtdCombo = Number(p.quantidade ?? 1) || 0;
+      if (qtdCombo <= 0) continue;
+
+      const qtd = qtdCombo * qtyItem;
+      const atual = porProduto.get(p.id);
+      if (atual) atual.qtd += qtd;
+      else porProduto.set(p.id, { produtoId: p.id, nome: p.nome ?? "", qtd });
+    }
+  }
+
+  return [...porProduto.values()];
 }
 
 /**

@@ -12,6 +12,12 @@ import {
 } from "react-icons/lu";
 import "./CombosView.css";
 
+// Categorias que NÃO são produto de venda: insumo (matéria-prima) e item
+// de produção (preparo interno). O combo só pode ter um produto vendável
+// como principal, então esses ficam fora do picker (mesma convenção de
+// ImpostosAdmin/AdminView, onde essas categorias também são excluídas).
+const CATS_NAO_VENDAVEIS = ["Insumo", "Produção"];
+
 // ── Helpers ────────────────────────────────────────────────────────
 
 function Toggle({ value, onChange }) {
@@ -53,6 +59,11 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
   const [buscaSub,   setBuscaSub]  = useState("");
   const [showSub,    setShowSub]   = useState(false);
 
+  // outros produtos do catálogo (além do principal) — [{ cpId, produto, quantidade, precoCustom, usarCustom }]
+  const [itensProd,  setItensProd] = useState([]);
+  const [buscaComp,  setBuscaComp] = useState("");
+  const [showComp,   setShowComp]  = useState(false);
+
   // ao editar — carrega combo_subprodutos
   useEffect(() => {
     if (!combo) return;
@@ -72,10 +83,31 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
       });
   }, [combo]);
 
-  // produtos filtrados pela busca
+  // ao editar — carrega combo_produtos (produtos adicionais do catálogo)
+  useEffect(() => {
+    if (!combo) return;
+    supabase
+      .from("combo_produtos")
+      .select("*, products(id, name, price, emoji, category)")
+      .eq("combo_id", combo.id)
+      .then(({ data }) => {
+        if (!data) return;
+        setItensProd(data.filter(r => r.products).map(r => ({
+          cpId:       r.id,
+          produto:    r.products,
+          quantidade: r.quantidade,
+          precoCustom: r.preco_customizado != null ? String(r.preco_customizado) : "",
+          usarCustom:  r.preco_customizado != null,
+        })));
+      });
+  }, [combo]);
+
+  // produtos filtrados pela busca — só produtos vendáveis (sem insumos nem
+  // itens de produção), pois só eles podem ser o principal de um combo
   const prodsFiltrados = useMemo(() => {
     const q = buscaProd.toLowerCase();
-    return q ? products.filter(p => p.name.toLowerCase().includes(q)) : products;
+    const vendaveis = products.filter(p => !CATS_NAO_VENDAVEIS.includes(p.category));
+    return q ? vendaveis.filter(p => p.name.toLowerCase().includes(q)) : vendaveis;
   }, [products, buscaProd]);
 
   // subprodutos filtrados (excluindo já adicionados)
@@ -84,6 +116,48 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
     const q = buscaSub.toLowerCase();
     return subprodutos.filter(s => s.ativo && !adicionados.has(s.id) && (!q || s.nome.toLowerCase().includes(q)));
   }, [subprodutos, itens, buscaSub]);
+
+  // produtos do catálogo disponíveis como adicionais: vendáveis, que não
+  // sejam o principal nem já estejam na lista de adicionais
+  const compFiltrados = useMemo(() => {
+    const jaAdd = new Set(itensProd.map(i => i.produto.id));
+    const q = buscaComp.toLowerCase();
+    return products.filter(p =>
+      !CATS_NAO_VENDAVEIS.includes(p.category) &&
+      p.id !== principal?.id &&
+      !jaAdd.has(p.id) &&
+      (!q || p.name.toLowerCase().includes(q))
+    );
+  }, [products, itensProd, principal, buscaComp]);
+
+  // ao escolher o principal, ele sai da lista de produtos adicionais
+  // (não faz sentido o mesmo produto ser principal e adicional do combo)
+  const escolherPrincipal = (p) => {
+    setPrincipal(p);
+    setItensProd(prev => prev.filter(it => it.produto.id !== p.id));
+    setBuscaProd("");
+    setShowProd(false);
+  };
+
+  const addComp = (p) => {
+    setItensProd(prev => [...prev, { produto: p, quantidade: 1, precoCustom: "", usarCustom: false }]);
+    setBuscaComp("");
+    setShowComp(false);
+  };
+
+  const removeComp = (idx) => setItensProd(prev => prev.filter((_, i) => i !== idx));
+
+  const setQtdComp = (idx, v) => setItensProd(prev => prev.map((it, i) =>
+    i === idx ? { ...it, quantidade: Math.max(1, v) } : it
+  ));
+
+  const setCustomComp = (idx, v) => setItensProd(prev => prev.map((it, i) =>
+    i === idx ? { ...it, precoCustom: v } : it
+  ));
+
+  const toggleCustomComp = (idx) => setItensProd(prev => prev.map((it, i) =>
+    i === idx ? { ...it, usarCustom: !it.usarCustom, precoCustom: it.usarCustom ? "" : String(it.produto.price) } : it
+  ));
 
   const addSubproduto = (s) => {
     setItens(prev => [...prev, { subproduto: s, quantidade: 1, precoCustom: "", usarCustom: false }]);
@@ -112,13 +186,17 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
       const p = it.usarCustom ? parseFloat(String(it.precoCustom).replace(",", ".")) || 0 : Number(it.subproduto.preco);
       return acc + p * it.quantidade;
     }, 0);
-    return base + subs;
-  }, [principal, itens]);
+    const prods = itensProd.reduce((acc, it) => {
+      const p = it.usarCustom ? parseFloat(String(it.precoCustom).replace(",", ".")) || 0 : Number(it.produto.price);
+      return acc + p * it.quantidade;
+    }, 0);
+    return base + subs + prods;
+  }, [principal, itens, itensProd]);
 
   const salvar = async () => {
     if (!nome.trim())  { setErro("Informe o nome do combo.");         return; }
     if (!principal)    { setErro("Selecione o produto principal.");   return; }
-    if (itens.length === 0) { setErro("Adicione ao menos um subproduto."); return; }
+    if (itens.length + itensProd.length === 0) { setErro("Adicione ao menos um produto ou subproduto ao combo."); return; }
     setSalvando(true);
     setErro("");
     try {
@@ -134,22 +212,36 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
       if (isEdit) {
         const { error } = await supabase.from("combos").update(payload).eq("id", comboId);
         if (error) throw error;
-        // recria os subprodutos
+        // recria composição (subprodutos + produtos adicionais)
         await supabase.from("combo_subprodutos").delete().eq("combo_id", comboId);
+        await supabase.from("combo_produtos").delete().eq("combo_id", comboId);
       } else {
         const { data, error } = await supabase.from("combos").insert({ ...payload, ativo: true }).select().single();
         if (error) throw error;
         comboId = data.id;
       }
 
-      const subs = itens.map(it => ({
-        combo_id:          comboId,
-        subproduto_id:     it.subproduto.id,
-        quantidade:        it.quantidade,
-        preco_customizado: it.usarCustom ? (parseFloat(String(it.precoCustom).replace(",", ".")) || null) : null,
-      }));
-      const { error: errSubs } = await supabase.from("combo_subprodutos").insert(subs);
-      if (errSubs) throw errSubs;
+      if (itens.length > 0) {
+        const subs = itens.map(it => ({
+          combo_id:          comboId,
+          subproduto_id:     it.subproduto.id,
+          quantidade:        it.quantidade,
+          preco_customizado: it.usarCustom ? (parseFloat(String(it.precoCustom).replace(",", ".")) || null) : null,
+        }));
+        const { error: errSubs } = await supabase.from("combo_subprodutos").insert(subs);
+        if (errSubs) throw errSubs;
+      }
+
+      if (itensProd.length > 0) {
+        const prods = itensProd.map(it => ({
+          combo_id:          comboId,
+          produto_id:        Number(it.produto.id),
+          quantidade:        it.quantidade,
+          preco_customizado: it.usarCustom ? (parseFloat(String(it.precoCustom).replace(",", ".")) || null) : null,
+        }));
+        const { error: errProds } = await supabase.from("combo_produtos").insert(prods);
+        if (errProds) throw errProds;
+      }
 
       onSalvo();
     } catch (e) {
@@ -215,7 +307,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
                   {prodsFiltrados.slice(0, 20).map(p => (
                     <button
                       key={p.id}
-                      onClick={() => { setPrincipal(p); setBuscaProd(""); setShowProd(false); }}
+                      onClick={() => escolherPrincipal(p)}
                       className="combos-view__dropdown-item"
                       onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                       onMouseLeave={e => e.currentTarget.style.background = "none"}
@@ -231,6 +323,89 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
               )}
             </div>
           )}
+        </div>
+
+        {/* Outros produtos do combo (além do principal) */}
+        <div>
+          <div className="combos-view__label">Outros produtos <span style={{ color: varColor(C.muted), fontWeight: 400 }}>(opcional)</span></div>
+          <div className="combos-view__ajuda" style={{ color: varColor(C.muted), fontSize: 12, marginBottom: 8 }}>
+            Produtos do catálogo que também compõem o combo — cada um baixa o próprio estoque. Ex.: Hambúrguer (principal) + Coca Zero.
+          </div>
+
+          {itensProd.length > 0 && (
+            <div className="combos-view__itens-lista">
+              {itensProd.map((it, idx) => (
+                <div key={idx} className="combos-view__item-card">
+                  <div className="combos-view__item-linha" style={{ marginBottom: it.usarCustom ? 8 : 0 }}>
+                    {/* Nome */}
+                    <div style={{ flex: 1 }}>
+                      <div className="combos-view__item-nome">{it.produto.emoji ?? "📦"} {it.produto.name}</div>
+                      <div className="combos-view__item-info">{it.produto.category ?? "Produto"} · {!it.usarCustom ? fmtBRL(it.produto.price) : "preço custom"}</div>
+                    </div>
+                    {/* Quantidade */}
+                    <div className="combos-view__item-qtd-controles">
+                      <button onClick={() => setQtdComp(idx, it.quantidade - 1)} className="combos-view__qtd-btn"><LuMinus size={11} /></button>
+                      <span className="combos-view__item-qtd-valor">{it.quantidade}</span>
+                      <button onClick={() => setQtdComp(idx, it.quantidade + 1)} className="combos-view__qtd-btn"><LuPlus size={11} /></button>
+                    </div>
+                    {/* Toggle custom */}
+                    <div className="combos-view__item-custom-toggle">
+                      <span className="combos-view__item-custom-label">Custom</span>
+                      <Toggle value={it.usarCustom} onChange={() => toggleCustomComp(idx)} />
+                    </div>
+                    {/* Remover */}
+                    <button onClick={() => removeComp(idx)} className="combos-view__item-remover"><LuX size={15} /></button>
+                  </div>
+                  {/* Campo preço custom */}
+                  {it.usarCustom && (
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={it.precoCustom}
+                      onChange={e => setCustomComp(idx, e.target.value)}
+                      placeholder="Preço para este combo (R$)"
+                      className="combos-view__input"
+                      style={{ marginTop: 4 }}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Busca produto adicional */}
+          <div className="combos-view__busca-wrap">
+            <LuSearch size={15} className="combos-view__busca-icone" />
+            <input
+              value={buscaComp}
+              onChange={e => { setBuscaComp(e.target.value); setShowComp(true); }}
+              onFocus={() => setShowComp(true)}
+              placeholder="Buscar e adicionar produto..."
+              className="combos-view__input"
+              style={{ paddingLeft: 36 }}
+            />
+            {showComp && compFiltrados.length > 0 && (
+              <div className="combos-view__dropdown">
+                {compFiltrados.slice(0, 20).map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => addComp(p)}
+                    className="combos-view__dropdown-item"
+                    onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
+                    onMouseLeave={e => e.currentTarget.style.background = "none"}
+                  >
+                    <span className="combos-view__dropdown-item-emoji">{p.emoji ?? "📦"}</span>
+                    <div style={{ flex: 1 }}>
+                      <div className="combos-view__dropdown-item-nome">{p.name}</div>
+                      <div className="combos-view__dropdown-item-preco">R$ {Number(p.price).toFixed(2)}</div>
+                    </div>
+                    <LuPlus size={14} color={varColor(C.accent)} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Modo */}
@@ -260,7 +435,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
 
         {/* Subprodutos */}
         <div>
-          <div className="combos-view__label">Subprodutos *</div>
+          <div className="combos-view__label">Subprodutos <span style={{ color: varColor(C.muted), fontWeight: 400 }}>(opcional)</span></div>
 
           {itens.length > 0 && (
             <div className="combos-view__itens-lista">
@@ -371,7 +546,7 @@ export default function CombosView({ sz }) {
   const carregar = async () => {
     setLoading(true);
     const [{ data: c }, { data: s }] = await Promise.all([
-      supabase.from("combos").select("*, combo_subprodutos(quantidade, subprodutos(nome, preco))").order("created_at", { ascending: false }),
+      supabase.from("combos").select("*, combo_subprodutos(quantidade, subprodutos(nome, preco)), combo_produtos(quantidade, products(name))").order("created_at", { ascending: false }),
       supabase.from("subprodutos").select("*").eq("ativo", true).order("nome"),
     ]);
     setCombos(c ?? []);
@@ -433,6 +608,11 @@ export default function CombosView({ sz }) {
             {listafiltrada.map(c => {
               const prod = prodMap[c.item_principal_id];
               const qtdSubs = c.combo_subprodutos?.length ?? 0;
+              const qtdProds = c.combo_produtos?.length ?? 0;
+              const compParts = [];
+              if (qtdProds > 0) compParts.push(`${qtdProds} produto${qtdProds !== 1 ? "s" : ""}`);
+              if (qtdSubs > 0) compParts.push(`${qtdSubs} subproduto${qtdSubs !== 1 ? "s" : ""}`);
+              const composicao = compParts.join(" · ") || "só o principal";
               return (
                 <div
                   key={c.id}
@@ -448,7 +628,7 @@ export default function CombosView({ sz }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="combos-view__card-nome">{c.nome}</div>
                     <div className="combos-view__card-info">
-                      {prod?.name ?? "Produto removido"} · {qtdSubs} subproduto{qtdSubs !== 1 ? "s" : ""}
+                      {prod?.name ?? "Produto removido"} · {composicao}
                     </div>
                   </div>
 

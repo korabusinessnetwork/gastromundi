@@ -109,9 +109,15 @@ function ComboCard({ combo, produto, onAdd, sz }) {
     setTimeout(() => setPressed(false), 150);
   };
 
-  const itens = (combo.combo_subprodutos ?? [])
+  // Composição exibida: produtos adicionais do catálogo primeiro, depois
+  // subprodutos (acompanhamentos). O principal é prefixado no JSX.
+  const produtosAdd = (combo.combo_produtos ?? [])
+    .filter(cp => cp?.products?.name)
+    .map(cp => (Number(cp.quantidade ?? 1) > 1 ? `${cp.quantidade}× ${cp.products.name}` : cp.products.name));
+  const subs = (combo.combo_subprodutos ?? [])
     .filter(cs => cs?.subprodutos?.nome)
     .map(cs => (Number(cs.quantidade ?? 1) > 1 ? `${cs.quantidade}× ${cs.subprodutos.nome}` : cs.subprodutos.nome));
+  const itens = [...produtosAdd, ...subs];
 
   return (
     <button

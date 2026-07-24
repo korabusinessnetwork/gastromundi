@@ -148,7 +148,7 @@ export default function PDVView({ notify }) {
     let ativo = true;
     supabase
       .from("combos")
-      .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque))")
+      .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque)), combo_produtos(quantidade, products(id, name))")
       .eq("ativo", true)
       .then(({ data, error }) => {
         if (error) { console.error("[pdv] erro ao carregar combos:", error); return; }

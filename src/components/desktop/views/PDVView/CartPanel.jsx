@@ -46,12 +46,11 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
   // B4 — composição do combo visível no carrinho (o operador confere o que
   // acompanha sem precisar decorar a receita)
   const resumoCombo = (item) => {
-    const subs = item?.combo?.subprodutos;
-    if (!Array.isArray(subs) || subs.length === 0) return null;
-    return subs
-      .filter(s => s?.nome)
-      .map(s => (Number(s.quantidade ?? 1) > 1 ? `${s.quantidade}× ${s.nome}` : s.nome))
-      .join(" + ") || null;
+    const fmt = (x) => (Number(x?.quantidade ?? 1) > 1 ? `${x.quantidade}× ${x.nome}` : x.nome);
+    const prods = (item?.combo?.produtos ?? []).filter(p => p?.nome).map(fmt);
+    const subs  = (item?.combo?.subprodutos ?? []).filter(s => s?.nome).map(fmt);
+    const partes = [...prods, ...subs];
+    return partes.length ? partes.join(" + ") : null;
   };
 
   const addObsDraft = (i) => setDrafts(prev => ({ ...prev, [i]: prev[i] !== undefined ? prev[i] : "" }));
