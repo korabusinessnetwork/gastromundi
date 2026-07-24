@@ -207,7 +207,11 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
         }))
       : [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: Math.max(0, singleTroco) }];
     try {
-      const resultado = await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste, clienteId: clienteFiado?.id ?? null });
+      // clienteId = vínculo persistido da venda (Financeiro/fiado); cliente =
+      // o objeto completo, usado só para puxar o CPF/CNPJ do destinatário da
+      // NFC-e automaticamente (destDoCliente). Quando não há cliente, ambos
+      // ficam nulos e a nota sai anônima, como antes.
+      const resultado = await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste, clienteId: clienteFiado?.id ?? null, cliente: clienteFiado ?? null });
       if (resultado?.error) {
         setErroConfirmar(resultado.error?.message || "Não foi possível registrar o pagamento. Tente novamente.");
       }

@@ -3,6 +3,7 @@ import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { criarLancamento } from "@/lib/financeiro";
 import { emitirDocumentoFiscal } from "@/lib/fiscal";
+import { destDoCliente } from "@/lib/nfceVenda";
 import { processarPagamentoTef, metodoUsaTef } from "@/lib/tef";
 import { consumoParaEstoque } from "@/utils/conversaoUnidades";
 import { calcularBaixasSubprodutos } from "@/lib/combos";
@@ -41,7 +42,7 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
 export function useFinalizarPagamento() {
   const { addSale, removePending, estoque, baixarEstoque, baixarEstoqueSubproduto, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
 
-  const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId }, { onNfce } = {}) => {
+  const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId, cliente }, { onNfce } = {}) => {
     // TEF é só online: a maquininha precisa de comunicação em tempo real —
     // não dá pra "guardar pra depois" uma cobrança de cartão. Métodos sem
     // TEF (dinheiro, Pix etc.) podem fechar offline: a venda entra na fila
@@ -75,6 +76,10 @@ export function useFinalizarPagamento() {
       garcom:      selected.garcom     ?? null,
       created_by:  selected.created_by ?? null,
       clienteId:   clienteId ?? null, // F010 — vínculo opcional ao cliente
+      // Destinatário fiscal (CPF/CNPJ na nota): puxado AUTOMÁTICO do cliente
+      // vinculado à venda — o operador não redigita o documento. Sem cliente
+      // ou sem documento fica null e a NFC-e sai anônima (add-on `nfe`).
+      dest:        destDoCliente(cliente),
       at:          new Date().toISOString(),
     };
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { montarVendaFiscal, tPagDoMetodo } from "./nfceVenda";
+import { montarVendaFiscal, tPagDoMetodo, destDoCliente } from "./nfceVenda";
 
 describe("tPagDoMetodo", () => {
   it("mapeia os métodos comuns do PDV para o tPag da SEFAZ", () => {
@@ -69,5 +69,42 @@ describe("montarVendaFiscal — consumidor", () => {
     expect(montarVendaFiscal({}).dest).toBeNull();
     const dest = { cpf: "11122233344" };
     expect(montarVendaFiscal({ dest }).dest).toBe(dest);
+  });
+});
+
+describe("destDoCliente", () => {
+  it("monta o dest de CPF (só dígitos + nome) a partir do cliente", () => {
+    expect(destDoCliente({ documento: "52998224725", documento_tipo: "cpf", nome: "João Silva" }))
+      .toEqual({ cpf: "52998224725", xNome: "João Silva" });
+  });
+
+  it("monta o dest de CNPJ a partir do cliente", () => {
+    expect(destDoCliente({ documento: "11222333000181", documento_tipo: "cnpj", nome: "Empresa X" }))
+      .toEqual({ cnpj: "11222333000181", xNome: "Empresa X" });
+  });
+
+  it("descarta a máscara e guarda só os dígitos", () => {
+    expect(destDoCliente({ documento: "529.982.247-25", documento_tipo: "cpf", nome: "João" }))
+      .toEqual({ cpf: "52998224725", xNome: "João" });
+  });
+
+  it("sem documento_tipo assume CPF", () => {
+    expect(destDoCliente({ documento: "52998224725", nome: "João" }))
+      .toEqual({ cpf: "52998224725", xNome: "João" });
+  });
+
+  it("omite xNome quando o cliente não tem nome", () => {
+    expect(destDoCliente({ documento: "52998224725", documento_tipo: "cpf" }))
+      .toEqual({ cpf: "52998224725" });
+  });
+
+  it("retorna null sem cliente, sem documento ou com documento de tamanho errado", () => {
+    expect(destDoCliente(null)).toBeNull();
+    expect(destDoCliente(undefined)).toBeNull();
+    expect(destDoCliente({ nome: "Sem doc" })).toBeNull();
+    expect(destDoCliente({ documento: "", documento_tipo: "cpf" })).toBeNull();
+    // CPF com 10 dígitos (truncado) e CNPJ com 11 → não vaza documento errado
+    expect(destDoCliente({ documento: "5299822472", documento_tipo: "cpf" })).toBeNull();
+    expect(destDoCliente({ documento: "52998224725", documento_tipo: "cnpj" })).toBeNull();
   });
 });

@@ -19,6 +19,8 @@
  * — é só transformação de formato da venda.
  */
 
+import { apenasDigitos } from "./documento";
+
 // Método de pagamento do PDV → tPag da SEFAZ (NFC-e). O que não casar cai
 // em "99" (Outros) — nunca esconde nem perde um pagamento.
 const TPAG_POR_METODO = {
@@ -87,8 +89,38 @@ export function montarVendaFiscal(sale = {}) {
   return {
     itens,
     pagamentos,
-    // dest: consumidor identificado (CPF na nota). O PDV ainda não coleta —
-    // fica null (NFC-e anônima). Ponto de extensão: campo "CPF na nota".
+    // dest: consumidor identificado (CPF/CNPJ na nota). Vem preenchido quando a
+    // venda tem cliente vinculado com documento — ver destDoCliente, chamado em
+    // useFinalizarPagamento. Sem cliente/documento fica null (NFC-e anônima).
     dest: sale.dest ?? null,
   };
+}
+
+/**
+ * Destinatário (consumidor identificado) da NFC-e a partir do cliente
+ * vinculado à venda. Puxa AUTOMATICAMENTE o CPF/CNPJ já cadastrado do
+ * cliente — o operador não redigita nada e não há como errar o documento
+ * (intuitividade + prevenção de erro). Mapeia para o shape do `dest`
+ * (`{cpf|cnpj, xNome}`) que a Edge Function `emitir-nfce` espera.
+ *
+ * Retorna null quando não há cliente, não há documento, ou o documento
+ * salvo está com tamanho inválido — nesses casos a NFC-e sai anônima
+ * (comportamento padrão, nunca bloqueia a venda).
+ *
+ * @param {{ documento?: string|null, documento_tipo?: 'cpf'|'cnpj'|null, nome?: string|null } | null} [cliente]
+ * @returns {{ cpf?: string, cnpj?: string, xNome?: string } | null}
+ */
+export function destDoCliente(cliente) {
+  const doc = apenasDigitos(cliente?.documento);
+  if (!doc) return null;
+
+  const tipo = cliente?.documento_tipo === "cnpj" ? "cnpj" : "cpf";
+  // Guarda de comprimento: nunca manda um documento truncado/errado à SEFAZ
+  // (o dígito verificador já foi validado no cadastro/edição do cliente).
+  if (tipo === "cnpj" ? doc.length !== 14 : doc.length !== 11) return null;
+
+  const dest = tipo === "cnpj" ? { cnpj: doc } : { cpf: doc };
+  const nome = String(cliente?.nome ?? "").trim();
+  if (nome) dest.xNome = nome;
+  return dest;
 }

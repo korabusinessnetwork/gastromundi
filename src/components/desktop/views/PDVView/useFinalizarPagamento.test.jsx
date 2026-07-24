@@ -278,6 +278,36 @@ describe("useFinalizarPagamento — add-ons pagos (Fase 3, decisão 019)", () =>
     );
   });
 
+  it("puxa o CPF/CNPJ do cliente vinculado para o destinatário da NFC-e (dest)", async () => {
+    const { appMock, finalizarPagamento } = setup({ addonHabilitado: (a) => a === "nfe" });
+
+    await finalizarPagamento(selectedComanda, [], {
+      ...payload,
+      clienteId: "cli-9",
+      cliente: { id: "cli-9", nome: "João Silva", documento: "52998224725", documento_tipo: "cpf" },
+      pagamentos: [{ metodo: "fiado", valor: 30 }],
+    });
+
+    // a venda gravada já carrega o destinatário (audit trail em sales.data)
+    const saleGravada = appMock.addSale.mock.calls[0][0];
+    expect(saleGravada.dest).toEqual({ cpf: "52998224725", xNome: "João Silva" });
+
+    // e o documento fiscal é emitido com esse destinatário
+    await waitFor(() => expect(emitirDocumentoFiscalMock).toHaveBeenCalledTimes(1));
+    expect(emitirDocumentoFiscalMock.mock.calls[0][0].dest).toEqual({ cpf: "52998224725", xNome: "João Silva" });
+  });
+
+  it("sem cliente vinculado, a NFC-e segue anônima (dest null)", async () => {
+    const { appMock, finalizarPagamento } = setup({ addonHabilitado: (a) => a === "nfe" });
+
+    await finalizarPagamento(selectedComanda, [], payload);
+
+    const saleGravada = appMock.addSale.mock.calls[0][0];
+    expect(saleGravada.dest).toBeNull();
+    await waitFor(() => expect(emitirDocumentoFiscalMock).toHaveBeenCalledTimes(1));
+    expect(emitirDocumentoFiscalMock.mock.calls[0][0].dest).toBeNull();
+  });
+
   it("com o add-on 'tef' habilitado, processa pagamentos em cartão (crédito/débito)", async () => {
     const { finalizarPagamento } = setup({ addonHabilitado: (a) => a === "tef" });
 
