@@ -236,7 +236,6 @@ export default function ProdutosView() {
 
   const fecharModal = () => {
     setModal(null);
-    setShowEmojiPicker(false);
     setEditingCompra(null);
     setErro("");
   };
