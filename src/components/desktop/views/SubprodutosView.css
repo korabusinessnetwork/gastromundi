@@ -217,6 +217,27 @@
   line-height: var(--lh-sm);
 }
 
+/* Editar + Excluir lado a lado, alinhados à direita da linha. */
+.subprodutos-view__acoes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* Ação destrutiva — cor (vermelho translúcido) vem inline via alfa(); aqui só
+   o box model, alinhado à altura do botão editar. */
+.subprodutos-view__btn-excluir {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border-width: 1px;
+  border-style: solid;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
 /* ── Toggle ── */
 
 .subprodutos-view__toggle {
@@ -397,5 +418,100 @@
   font-weight: 700;
   font-family: inherit;
   font-size: var(--fs-base);   /* role: corpo/botão (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+/* ── Confirmação de exclusão ── (mesmo padrão de ProdutosView) */
+
+.subprodutos-view__confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9200;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.subprodutos-view__confirm-modal {
+  background: var(--gm-card);
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  color: var(--gm-text);
+}
+
+.subprodutos-view__confirm-topo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.subprodutos-view__confirm-icone {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subprodutos-view__confirm-titulo {
+  font-weight: 900;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.subprodutos-view__confirm-sub {
+  color: var(--gm-muted);
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.subprodutos-view__confirm-aviso {
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.subprodutos-view__confirm-botoes {
+  display: flex;
+  gap: 10px;
+}
+
+.subprodutos-view__confirm-btn-cancelar {
+  flex: 1;
+  padding: 15px 0;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.subprodutos-view__confirm-btn-excluir {
+  flex: 1;
+  padding: 15px 0;
+  border-radius: 12px;
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  font-family: inherit;
+  font-size: var(--fs-base);
   line-height: var(--lh-base);
 }

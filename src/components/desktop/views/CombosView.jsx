@@ -8,7 +8,7 @@ import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import {
   LuPlus, LuPencil, LuX, LuMinus, LuSearch, LuPackage,
-  LuLayers, LuToggleLeft, LuToggleRight,
+  LuLayers, LuToggleLeft, LuToggleRight, LuTrash2, LuTriangleAlert,
 } from "react-icons/lu";
 import "./CombosView.css";
 
@@ -542,6 +542,9 @@ export default function CombosView({ sz }) {
   const [modal,       setModal]       = useState(false);
   const [editando,    setEditando]    = useState(null);
   const [busca,       setBusca]       = useState("");
+  const [excluindo,   setExcluindo]   = useState(null); // combo pendente de exclusão
+  const [deletando,   setDeletando]   = useState(false);
+  const [erroDelete,  setErroDelete]  = useState("");
 
   const carregar = async () => {
     setLoading(true);
@@ -564,6 +567,24 @@ export default function CombosView({ sz }) {
   const toggleAtivo = async (c) => {
     await supabase.from("combos").update({ ativo: !c.ativo, updated_at: new Date().toISOString() }).eq("id", c.id);
     setCombos(prev => prev.map(x => x.id === c.id ? { ...x, ativo: !x.ativo } : x));
+  };
+
+  // Excluir combo — as junções (combo_subprodutos/combo_produtos) somem em
+  // cascata (FK ON DELETE CASCADE); os produtos/subprodutos do catálogo em si
+  // não são tocados. Ação destrutiva → confirmação obrigatória.
+  const confirmarExcluir = async () => {
+    if (!excluindo || deletando) return;
+    setDeletando(true);
+    setErroDelete("");
+    const { error } = await supabase.from("combos").delete().eq("id", excluindo.id);
+    if (error) {
+      setErroDelete(error.message ?? "Não foi possível excluir o combo.");
+      setDeletando(false);
+      return;
+    }
+    setCombos(prev => prev.filter(x => x.id !== excluindo.id));
+    setDeletando(false);
+    setExcluindo(null);
   };
 
   const listafiltrada = combos.filter(c =>
@@ -655,8 +676,19 @@ export default function CombosView({ sz }) {
                   <button
                     onClick={() => abrirEditar(c)}
                     className="combos-view__btn-editar"
+                    title="Editar combo"
                   >
                     <LuPencil size={15} />
+                  </button>
+
+                  {/* Excluir */}
+                  <button
+                    onClick={() => { setErroDelete(""); setExcluindo(c); }}
+                    className="combos-view__btn-excluir"
+                    style={{ borderColor: alfa(C.red, "33"), background: alfa(C.red, "0c"), color: varColor(C.red) }}
+                    title="Excluir combo"
+                  >
+                    <LuTrash2 size={15} />
                   </button>
                 </div>
               );
@@ -674,6 +706,32 @@ export default function CombosView({ sz }) {
           onSalvo={aoSalvar}
           sz={sz}
         />
+      )}
+
+      {/* Confirmação de exclusão */}
+      {excluindo && createPortal(
+        <div {...fecharAoClicarFora(() => !deletando && setExcluindo(null))} className="combos-view__confirm-overlay">
+          <div className="combos-view__confirm-modal">
+            <div className="combos-view__confirm-topo">
+              <div className="combos-view__confirm-icone" style={{ background: alfa(C.red, "18"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
+                <LuTriangleAlert size={22} color={varColor(C.red)} />
+              </div>
+              <div>
+                <div className="combos-view__confirm-titulo">Excluir combo?</div>
+                <div className="combos-view__confirm-sub">{prodMap[excluindo.item_principal_id]?.emoji ?? "🍽️"} <strong style={{ color: varColor(C.text) }}>{excluindo.nome}</strong></div>
+              </div>
+            </div>
+            <div className="combos-view__confirm-aviso" style={{ background: alfa(C.red, "0d"), border: `1px solid ${alfa(C.red, "33")}` }}>
+              Esta ação <strong style={{ color: varColor(C.red) }}>não pode ser desfeita</strong>. O combo será removido permanentemente. Os produtos e subprodutos do catálogo <strong>não</strong> são afetados.
+            </div>
+            {erroDelete && <div className="combos-view__erro" style={{ marginBottom: 12 }}>⚠ {erroDelete}</div>}
+            <div className="combos-view__confirm-botoes">
+              <button onClick={() => setExcluindo(null)} disabled={deletando} className="combos-view__confirm-btn-cancelar">Cancelar</button>
+              <button onClick={confirmarExcluir} disabled={deletando} className="combos-view__confirm-btn-excluir" style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer" }}>{deletando ? "Excluindo…" : "Sim, excluir"}</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

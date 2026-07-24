@@ -6,7 +6,7 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import {
-  LuPlus, LuPencil, LuX, LuTriangleAlert, LuPackage,
+  LuPlus, LuPencil, LuX, LuTriangleAlert, LuPackage, LuTrash2,
 } from "react-icons/lu";
 import "./SubprodutosView.css";
 
@@ -226,11 +226,25 @@ export default function SubprodutosView({ sz }) {
   const [editando,  setEditando]  = useState(null);
   const [busca,     setBusca]     = useState("");
   const [catFiltro, setCatFiltro] = useState("Todos");
+  const [excluindo, setExcluindo] = useState(null); // subproduto pendente de exclusão
+  const [deletando, setDeletando] = useState(false);
+  const [erroDelete, setErroDelete] = useState("");
+  const [usoCombo,  setUsoCombo]  = useState({});   // { subproduto_id: qtd de combos que o usam }
 
   const carregar = async () => {
     setLoading(true);
-    const { data } = await supabase.from("subprodutos").select("*, estoque_subprodutos(quantidade, minimo)").order("nome");
+    // Além dos subprodutos, carrega quantos combos usam cada um: a FK
+    // combo_subprodutos.subproduto_id é ON DELETE RESTRICT, então subproduto
+    // em uso NÃO pode ser excluído — prevenimos o erro (Princípio nº 1) em
+    // vez de deixar o banco recusar.
+    const [{ data }, { data: usos }] = await Promise.all([
+      supabase.from("subprodutos").select("*, estoque_subprodutos(quantidade, minimo)").order("nome"),
+      supabase.from("combo_subprodutos").select("subproduto_id"),
+    ]);
     setLista(data ?? []);
+    const mapa = {};
+    for (const u of usos ?? []) mapa[u.subproduto_id] = (mapa[u.subproduto_id] ?? 0) + 1;
+    setUsoCombo(mapa);
     setLoading(false);
   };
 
@@ -244,6 +258,24 @@ export default function SubprodutosView({ sz }) {
   const toggleAtivo = async (s) => {
     await supabase.from("subprodutos").update({ ativo: !s.ativo, updated_at: new Date().toISOString() }).eq("id", s.id);
     setLista(prev => prev.map(x => x.id === s.id ? { ...x, ativo: !x.ativo } : x));
+  };
+
+  // Excluir subproduto — o saldo em estoque_subprodutos some em cascata
+  // (FK ON DELETE CASCADE). Bloqueado quando o subproduto está em algum combo
+  // (checado antes de abrir o modal), então aqui é só o caminho liberado.
+  const confirmarExcluir = async () => {
+    if (!excluindo || deletando) return;
+    setDeletando(true);
+    setErroDelete("");
+    const { error } = await supabase.from("subprodutos").delete().eq("id", excluindo.id);
+    if (error) {
+      setErroDelete(error.message ?? "Não foi possível excluir o subproduto.");
+      setDeletando(false);
+      return;
+    }
+    setLista(prev => prev.filter(x => x.id !== excluindo.id));
+    setDeletando(false);
+    setExcluindo(null);
   };
 
   const cats = ["Todos", ...CATEGORIAS];
@@ -349,12 +381,22 @@ export default function SubprodutosView({ sz }) {
                       </button>
                     </td>
                     <td className="subprodutos-view__td" style={{ textAlign: "right" }}>
-                      <button
-                        onClick={() => abrirEditar(s)}
-                        className="subprodutos-view__btn-editar"
-                      >
-                        <LuPencil size={13} /> Editar
-                      </button>
+                      <div className="subprodutos-view__acoes">
+                        <button
+                          onClick={() => abrirEditar(s)}
+                          className="subprodutos-view__btn-editar"
+                        >
+                          <LuPencil size={13} /> Editar
+                        </button>
+                        <button
+                          onClick={() => { setErroDelete(""); setExcluindo(s); }}
+                          className="subprodutos-view__btn-excluir"
+                          style={{ borderColor: alfa(C.red, "33"), background: alfa(C.red, "0c"), color: varColor(C.red) }}
+                          title="Excluir subproduto"
+                        >
+                          <LuTrash2 size={13} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -367,6 +409,51 @@ export default function SubprodutosView({ sz }) {
       {modal && (
         <ModalSubproduto item={editando} onClose={fecharModal} onSalvo={aoSalvar} sz={sz} />
       )}
+
+      {/* Confirmação de exclusão */}
+      {excluindo && createPortal((() => {
+        const usos = usoCombo[excluindo.id] ?? 0;
+        const bloqueado = usos > 0;
+        const cor = bloqueado ? C.blue : C.red;
+        return (
+          <div {...fecharAoClicarFora(() => !deletando && setExcluindo(null))} className="subprodutos-view__confirm-overlay">
+            <div className="subprodutos-view__confirm-modal">
+              <div className="subprodutos-view__confirm-topo">
+                <div className="subprodutos-view__confirm-icone" style={{ background: alfa(cor, "18"), border: `1.5px solid ${alfa(cor, "44")}` }}>
+                  <LuTriangleAlert size={22} color={varColor(cor)} />
+                </div>
+                <div>
+                  <div className="subprodutos-view__confirm-titulo">{bloqueado ? "Não dá para excluir" : "Excluir subproduto?"}</div>
+                  <div className="subprodutos-view__confirm-sub"><strong style={{ color: varColor(C.text) }}>{excluindo.nome}</strong></div>
+                </div>
+              </div>
+
+              {bloqueado ? (
+                <div className="subprodutos-view__confirm-aviso" style={{ background: alfa(C.blue, "0d"), border: `1px solid ${alfa(C.blue, "33")}` }}>
+                  Este subproduto está em <strong style={{ color: varColor(C.text) }}>{usos} combo{usos !== 1 ? "s" : ""}</strong>. Remova-o desse{usos !== 1 ? "s" : ""} combo{usos !== 1 ? "s" : ""} antes de excluir. Enquanto isso, você pode deixá-lo <strong>inativo</strong> para que ele não apareça na venda.
+                </div>
+              ) : (
+                <div className="subprodutos-view__confirm-aviso" style={{ background: alfa(C.red, "0d"), border: `1px solid ${alfa(C.red, "33")}` }}>
+                  Esta ação <strong style={{ color: varColor(C.red) }}>não pode ser desfeita</strong>. O subproduto e o saldo de estoque dele serão removidos permanentemente.
+                </div>
+              )}
+
+              {erroDelete && <div className="subprodutos-view__erro" style={{ marginBottom: 12 }}>⚠ {erroDelete}</div>}
+
+              <div className="subprodutos-view__confirm-botoes">
+                {bloqueado ? (
+                  <button onClick={() => setExcluindo(null)} className="subprodutos-view__confirm-btn-cancelar" style={{ flex: 1 }}>Entendi</button>
+                ) : (
+                  <>
+                    <button onClick={() => setExcluindo(null)} disabled={deletando} className="subprodutos-view__confirm-btn-cancelar">Cancelar</button>
+                    <button onClick={confirmarExcluir} disabled={deletando} className="subprodutos-view__confirm-btn-excluir" style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer" }}>{deletando ? "Excluindo…" : "Sim, excluir"}</button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })(), document.body)}
     </div>
   );
 }

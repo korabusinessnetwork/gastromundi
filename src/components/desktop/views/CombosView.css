@@ -178,6 +178,17 @@
   line-height: 0;
 }
 
+/* Ação destrutiva — cor (vermelho translúcido) vem inline via alfa(), aqui só
+   o box model, no mesmo formato do botão editar. */
+.combos-view__btn-excluir {
+  padding: 9px 11px;
+  border-radius: 9px;
+  border-width: 1px;
+  border-style: solid;
+  cursor: pointer;
+  line-height: 0;
+}
+
 /* ── Toggle ── */
 
 .combos-view__toggle {
@@ -554,5 +565,100 @@
   font-weight: 700;
   font-family: inherit;
   font-size: var(--fs-base);   /* role: corpo/botão (era sz.fontBase) */
+  line-height: var(--lh-base);
+}
+
+/* ── Confirmação de exclusão ── (mesmo padrão de ProdutosView) */
+
+.combos-view__confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9200;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.combos-view__confirm-modal {
+  background: var(--gm-card);
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  color: var(--gm-text);
+}
+
+.combos-view__confirm-topo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.combos-view__confirm-icone {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.combos-view__confirm-titulo {
+  font-weight: 900;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.combos-view__confirm-sub {
+  color: var(--gm-muted);
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.combos-view__confirm-aviso {
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.combos-view__confirm-botoes {
+  display: flex;
+  gap: 10px;
+}
+
+.combos-view__confirm-btn-cancelar {
+  flex: 1;
+  padding: 15px 0;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.combos-view__confirm-btn-excluir {
+  flex: 1;
+  padding: 15px 0;
+  border-radius: 12px;
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  font-family: inherit;
+  font-size: var(--fs-base);
   line-height: var(--lh-base);
 }
