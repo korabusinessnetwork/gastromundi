@@ -11,35 +11,14 @@
  * que vai em claro no QR Code — não é segredo.
  */
 
+import { validarCnpj } from "./documento";
+
+// `validarCnpj` foi centralizado em ./documento (reúso entre o CPF/CNPJ do
+// cadastro de clientes e esta validação fiscal). Reexportado aqui por
+// compatibilidade com quem já importa de validarConfigFiscal.
+export { validarCnpj };
+
 const OBRIGATORIO = "Campo obrigatório.";
-
-/**
- * Valida um CNPJ pelos dígitos verificadores (módulo 11) — não só o
- * comprimento. Aceita com ou sem máscara. Função pura clássica.
- *
- * @param {string} cnpj
- * @returns {boolean}
- */
-export function validarCnpj(cnpj) {
-  const s = String(cnpj ?? "").replace(/\D/g, "");
-  if (s.length !== 14) return false;
-  if (/^(\d)\1{13}$/.test(s)) return false; // todos os dígitos iguais
-
-  const dv = (base) => {
-    let soma = 0;
-    let peso = base.length - 7; // 5 para os 12 primeiros; 6 para os 13
-    for (let i = 0; i < base.length; i++) {
-      soma += Number(base[i]) * peso;
-      peso = peso === 2 ? 9 : peso - 1;
-    }
-    const resto = soma % 11;
-    return resto < 2 ? 0 : 11 - resto;
-  };
-
-  if (dv(s.slice(0, 12)) !== Number(s[12])) return false;
-  if (dv(s.slice(0, 13)) !== Number(s[13])) return false;
-  return true;
-}
 
 /**
  * Valida os campos da configuração fiscal. Retorna `{ ok, erros }` com

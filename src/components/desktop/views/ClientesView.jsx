@@ -15,6 +15,7 @@ import {
   listarClientes, cadastrarCliente, buscarHistoricoCliente,
   registrarPagamentoFiado, calcularSaldoDevedor,
 } from "@/lib/clientes";
+import { apenasDigitos, validarDocumento, formatarDocumento } from "@/lib/documento";
 import "./ClientesView.css";
 
 /**
@@ -38,6 +39,10 @@ export default function ClientesView() {
   const [showCadastro, setShowCadastro] = useState(false);
   const [novoNome, setNovoNome] = useState("");
   const [novoTelefone, setNovoTelefone] = useState("");
+  // Documento é opcional; o toggle escolhe cpf/cnpj (default cpf) e a máscara
+  // segue o tipo. Guardamos o valor já mascarado só para exibir no input.
+  const [novoDocTipo, setNovoDocTipo] = useState("cpf");
+  const [novoDocumento, setNovoDocumento] = useState("");
   const [novoEndereco, setNovoEndereco] = useState("");
   const [novoObs, setNovoObs] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -62,16 +67,32 @@ export default function ClientesView() {
 
   const abrirCadastro = () => {
     setNovoNome(""); setNovoTelefone(""); setNovoEndereco(""); setNovoObs("");
+    setNovoDocTipo("cpf"); setNovoDocumento("");
     setErroCadastro(null);
     setShowCadastro(true);
   };
 
+  // Ao trocar cpf↔cnpj, remascara os dígitos já digitados no novo formato.
+  const trocarDocTipo = (tipo) => {
+    setNovoDocTipo(tipo);
+    setNovoDocumento((atual) => formatarDocumento(atual, tipo));
+  };
+
+  // Documento é opcional: só bloqueia o cadastro se foi preenchido e está inválido.
+  const docInvalido = apenasDigitos(novoDocumento).length > 0
+    && !validarDocumento(novoDocumento, novoDocTipo);
+  const cadastroBloqueado = salvando || !novoNome.trim() || !novoTelefone.trim() || docInvalido;
+
   const handleCadastrar = async () => {
-    if (salvando) return;
+    if (cadastroBloqueado) return;
     setSalvando(true);
     setErroCadastro(null);
     const { data, error } = await cadastrarCliente(
-      { nome: novoNome, telefone: novoTelefone, endereco: novoEndereco, observacoes: novoObs },
+      {
+        nome: novoNome, telefone: novoTelefone,
+        documento: novoDocumento, documentoTipo: novoDocTipo,
+        endereco: novoEndereco, observacoes: novoObs,
+      },
       currentUser?.username,
     );
     setSalvando(false);
@@ -148,6 +169,11 @@ export default function ClientesView() {
                     <LuPhone size={13} /> {c.telefone}
                   </div>
                 )}
+                {c.documento && (
+                  <div className="clientes-view__card-linha">
+                    <LuFileText size={13} /> {c.documento_tipo === "cnpj" ? "CNPJ" : "CPF"} {formatarDocumento(c.documento, c.documento_tipo)}
+                  </div>
+                )}
                 {c.endereco && (
                   <div className="clientes-view__card-linha">
                     <LuMapPin size={13} /> {c.endereco}
@@ -194,6 +220,43 @@ export default function ClientesView() {
                 />
               </div>
               <div>
+                <div className="clientes-view__doc-topo">
+                  <label className="clientes-view__label">
+                    CPF / CNPJ <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span>
+                  </label>
+                  <div className="clientes-view__doc-toggle" role="group" aria-label="Tipo de documento">
+                    <button
+                      type="button"
+                      onClick={() => trocarDocTipo("cpf")}
+                      className={`clientes-view__doc-opt${novoDocTipo === "cpf" ? " clientes-view__doc-opt--ativo" : ""}`}
+                    >
+                      CPF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => trocarDocTipo("cnpj")}
+                      className={`clientes-view__doc-opt${novoDocTipo === "cnpj" ? " clientes-view__doc-opt--ativo" : ""}`}
+                    >
+                      CNPJ
+                    </button>
+                  </div>
+                </div>
+                <input
+                  value={novoDocumento}
+                  onChange={(e) => setNovoDocumento(formatarDocumento(e.target.value, novoDocTipo))}
+                  placeholder={novoDocTipo === "cnpj" ? "00.000.000/0000-00" : "000.000.000-00"}
+                  inputMode="numeric"
+                  className="clientes-view__input"
+                  aria-invalid={docInvalido}
+                  style={docInvalido ? { borderColor: varColor(C.red) } : undefined}
+                />
+                {docInvalido && (
+                  <div className="clientes-view__doc-hint">
+                    {novoDocTipo === "cnpj" ? "CNPJ incompleto ou inválido." : "CPF incompleto ou inválido."}
+                  </div>
+                )}
+              </div>
+              <div>
                 <label className="clientes-view__label">Endereço <span style={{ fontWeight: 400, textTransform: "none" }}>(para delivery, opcional)</span></label>
                 <input
                   value={novoEndereco}
@@ -223,11 +286,11 @@ export default function ClientesView() {
               </button>
               <button
                 onClick={handleCadastrar}
-                disabled={salvando || !novoNome.trim() || !novoTelefone.trim()}
+                disabled={cadastroBloqueado}
                 className="clientes-view__btn-confirmar"
                 style={{
-                  background: (salvando || !novoNome.trim() || !novoTelefone.trim()) ? varColor(C.faint) : varColor(C.accent),
-                  cursor: (salvando || !novoNome.trim() || !novoTelefone.trim()) ? "not-allowed" : "pointer",
+                  background: cadastroBloqueado ? varColor(C.faint) : varColor(C.accent),
+                  cursor: cadastroBloqueado ? "not-allowed" : "pointer",
                 }}
               >
                 {salvando ? "Salvando..." : "Cadastrar"}
@@ -303,6 +366,7 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose }) {
             <div className="cliente-detalhe__nome">{cliente.nome}</div>
             <div className="cliente-detalhe__contato">
               {cliente.telefone && <span><LuPhone size={12} style={{ verticalAlign: -1 }} /> {cliente.telefone}</span>}
+              {cliente.documento && <span><LuFileText size={12} style={{ verticalAlign: -1 }} /> {formatarDocumento(cliente.documento, cliente.documento_tipo)}</span>}
               {cliente.endereco && <span><LuMapPin size={12} style={{ verticalAlign: -1 }} /> {cliente.endereco}</span>}
             </div>
           </div>

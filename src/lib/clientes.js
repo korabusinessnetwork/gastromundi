@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { emitirEvento } from "./jarvas";
 import { baixarConta } from "./financeiro";
+import { apenasDigitos, validarDocumento } from "./documento";
 
 /**
  * Clientes — F010 (docs/03_REGRAS_DE_NEGOCIO/CLIENTES.md).
@@ -19,7 +20,11 @@ import { baixarConta } from "./financeiro";
  * exposta separadamente para uso síncrono em formulários (ex.:
  * desabilitar o botão salvar sem round-trip ao banco).
  *
- * @param {{ nome?: string, telefone?: string }} dados
+ * Documento (CPF/CNPJ) é OPCIONAL — nome e telefone seguem sendo os
+ * obrigatórios. Quando preenchido, valida pelos dígitos verificadores
+ * conforme o tipo escolhido no toggle.
+ *
+ * @param {{ nome?: string, telefone?: string, documento?: string, documentoTipo?: 'cpf'|'cnpj' }} dados
  * @returns {{ valido: boolean, erro: string|null }}
  */
 export function validarCadastroCliente(dados) {
@@ -27,6 +32,16 @@ export function validarCadastroCliente(dados) {
   const telefone = String(dados?.telefone ?? "").trim();
   if (!nome) return { valido: false, erro: "Nome é obrigatório." };
   if (!telefone) return { valido: false, erro: "Telefone é obrigatório (contato mínimo para fiado/delivery)." };
+
+  const documento = apenasDigitos(dados?.documento);
+  if (documento) {
+    const tipo = dados?.documentoTipo === "cnpj" ? "cnpj" : "cpf";
+    if (!validarDocumento(documento, tipo))
+      return {
+        valido: false,
+        erro: tipo === "cnpj" ? "CNPJ inválido — confira os 14 dígitos." : "CPF inválido — confira os 11 dígitos.",
+      };
+  }
   return { valido: true, erro: null };
 }
 
@@ -35,7 +50,7 @@ export function validarCadastroCliente(dados) {
  * por telefone antes de inserir (CLIENTES.md: "não permitir
  * duplicidade óbvia — sugerir mesclagem").
  *
- * @param {{ nome: string, telefone: string, endereco?: string, observacoes?: string }} dados
+ * @param {{ nome: string, telefone: string, documento?: string, documentoTipo?: 'cpf'|'cnpj', endereco?: string, observacoes?: string }} dados
  * @param {string} [usuario]
  * @returns {Promise<{data: object|null, error: (object & { clienteExistente?: object })|null}>}
  */
@@ -45,6 +60,9 @@ export async function cadastrarCliente(dados, usuario) {
 
   const nome = String(dados.nome).trim();
   const telefone = String(dados.telefone).trim();
+  // Guarda só os dígitos (sem máscara); o tipo só faz sentido com documento.
+  const documento = apenasDigitos(dados.documento) || null;
+  const documento_tipo = documento ? (dados.documentoTipo === "cnpj" ? "cnpj" : "cpf") : null;
 
   const { data: existentes, error: eBusca } = await supabase
     .from("clientes")
@@ -63,6 +81,8 @@ export async function cadastrarCliente(dados, usuario) {
   const payload = {
     nome,
     telefone,
+    documento,
+    documento_tipo,
     endereco: dados.endereco?.trim() || null,
     observacoes: dados.observacoes?.trim() || null,
     criado_por: usuario ?? null,
@@ -79,7 +99,7 @@ export async function cadastrarCliente(dados, usuario) {
  * Atualiza campos de um cliente já cadastrado.
  *
  * @param {string} id
- * @param {{ nome?: string, telefone?: string, endereco?: string, observacoes?: string }} dados
+ * @param {{ nome?: string, telefone?: string, documento?: string, documentoTipo?: 'cpf'|'cnpj', endereco?: string, observacoes?: string }} dados
  * @param {string} [usuario]
  * @returns {Promise<{data: object|null, error: object|null}>}
  */
@@ -87,6 +107,11 @@ export async function atualizarCliente(id, dados, usuario) {
   const payload = { updated_at: new Date().toISOString() };
   if (dados.nome != null) payload.nome = String(dados.nome).trim();
   if (dados.telefone != null) payload.telefone = String(dados.telefone).trim();
+  if (dados.documento !== undefined) {
+    const doc = apenasDigitos(dados.documento) || null;
+    payload.documento = doc;
+    payload.documento_tipo = doc ? (dados.documentoTipo === "cnpj" ? "cnpj" : "cpf") : null;
+  }
   if (dados.endereco !== undefined) payload.endereco = dados.endereco?.trim() || null;
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes?.trim() || null;
 
@@ -105,7 +130,7 @@ export async function atualizarCliente(id, dados, usuario) {
 export async function listarClientes({ busca } = {}) {
   let query = supabase
     .from("clientes")
-    .select("id, nome, telefone, endereco, observacoes, created_at")
+    .select("id, nome, telefone, documento, documento_tipo, endereco, observacoes, created_at")
     .eq("anonimizado", false)
     .order("nome");
   const termo = busca?.trim();

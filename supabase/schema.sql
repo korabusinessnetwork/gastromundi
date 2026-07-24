@@ -154,19 +154,24 @@ CREATE INDEX lancamentos_cliente_id_idx   ON public.lancamentos (cliente_id);
 -- Cadastro, histórico de compras (via vendas.cliente_id) e fiado
 -- (via lancamentos.cliente_id — o fiado em si já existe como conta a
 -- receber no Financeiro; esta tabela só acrescenta o vínculo).
+-- documento/documento_tipo: CPF ou CNPJ opcional (só dígitos, sem máscara;
+-- o tipo é escolhido no toggle do cadastro). Ver migration 20260825.
 CREATE TABLE public.clientes (
-  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome         text        NOT NULL,
-  telefone     text,
-  endereco     text,
-  observacoes  text,
-  anonimizado  boolean     NOT NULL DEFAULT false,
-  criado_por   text,
-  created_at   timestamptz NOT NULL DEFAULT now(),
-  updated_at   timestamptz NOT NULL DEFAULT now()
+  id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome           text        NOT NULL,
+  telefone       text,
+  documento      text,
+  documento_tipo text        CHECK (documento_tipo IS NULL OR documento_tipo IN ('cpf','cnpj')),
+  endereco       text,
+  observacoes    text,
+  anonimizado    boolean     NOT NULL DEFAULT false,
+  criado_por     text,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX clientes_nome_idx     ON public.clientes (nome);
-CREATE INDEX clientes_telefone_idx ON public.clientes (telefone);
+CREATE INDEX clientes_nome_idx      ON public.clientes (nome);
+CREATE INDEX clientes_telefone_idx  ON public.clientes (telefone);
+CREATE INDEX clientes_documento_idx ON public.clientes (documento);
 
 -- ── fechamentos ───────────────────────────────────────────────
 CREATE TABLE public.fechamentos (
