@@ -286,7 +286,11 @@ export default function ProdutosView() {
     setSalvando(true);
     const ue = form.unidade_estoque.trim() || "un";
     const payload = {
-      name:                  form.name.trim().toUpperCase(),
+      // O nome vai pro banco como o usuário digitou (só sem espaço sobrando).
+      // Antes era forçado em CAIXA ALTA aqui, o que gritava no PDV, na comanda
+      // impressa e na nota — e contradizia o importador de cardápio, que já
+      // normaliza para Título (limparCategoria em lib/importacao/pdfCardapio.js).
+      name:                  form.name.trim(),
       price:                 isInsumo ? 0 : parseFloat(String(form.price).replace(",", ".")),
       category:              isInsumo ? "Insumo" : isProducao ? "Produção" : form.category.trim(),
       emoji:                 form.emoji || null,

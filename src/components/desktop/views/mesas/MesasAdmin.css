@@ -6,6 +6,19 @@
  * em número de mesa e capacidade (quantidade).
  */
 
+/* Slot vazio da grade do mapa: contorno tracejado no lugar exato onde um
+   card de mesa encaixa. Posição/tamanho vêm do JSX (dependem de CARD_W/H e
+   do gap); aqui fica só a aparência. `pointer-events: none` para não roubar
+   o drop do container nem o clique dos botões do card. */
+.mesas-admin__slot {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed var(--gm-border);
+  border-radius: 14px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 .mesas-admin__loading {
   font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
   line-height: var(--lh-base);

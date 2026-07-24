@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const emitirEvento = vi.fn();
 vi.mock("./jarvas", () => ({ emitirEvento: (...args) => emitirEvento(...args) }));
 
-import { isPagamentoCartao, processarPagamentoTef, metodoUsaTef, METODOS_TEF_PADRAO } from "./tef";
+import { isPagamentoCartao, processarPagamentoTef, metodoUsaTef, podeUsarTef, METODOS_TEF_PADRAO } from "./tef";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -62,6 +62,31 @@ describe("metodoUsaTef (Leva 12 — seleção por método)", () => {
 
   it("padrão exportado é crédito + débito", () => {
     expect(METODOS_TEF_PADRAO).toEqual(["credito", "debito"]);
+  });
+
+  it("dinheiro nunca usa TEF, mesmo se estiver numa config antiga", () => {
+    expect(metodoUsaTef("dinheiro", ["dinheiro", "credito"])).toBe(false);
+    expect(metodoUsaTef(" DINHEIRO ", ["dinheiro"])).toBe(false);
+  });
+});
+
+describe("podeUsarTef (quais métodos podem ser marcados como maquininha)", () => {
+  it("dinheiro não pode — espécie nunca passa por terminal", () => {
+    expect(podeUsarTef("dinheiro")).toBe(false);
+    expect(podeUsarTef(" Dinheiro ")).toBe(false);
+  });
+
+  it("cartão, pix e métodos personalizados podem", () => {
+    expect(podeUsarTef("credito")).toBe(true);
+    expect(podeUsarTef("debito")).toBe(true);
+    expect(podeUsarTef("pix")).toBe(true);
+    expect(podeUsarTef("vale_refeicao")).toBe(true);
+  });
+
+  it("false com segurança para método ausente", () => {
+    expect(podeUsarTef(undefined)).toBe(false);
+    expect(podeUsarTef(null)).toBe(false);
+    expect(podeUsarTef("")).toBe(false);
   });
 });
 

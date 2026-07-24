@@ -12,7 +12,7 @@ import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { createPortal } from "react-dom";
 import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter } from "react-icons/lu";
-import { METODOS_TEF_PADRAO } from "@/lib/tef";
+import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
 import ConfiguracaoImpressao from "./impressao/ConfiguracaoImpressao";
 import MesasAdmin from "./mesas/MesasAdmin";
 import ImportarExportarTab from "./ImportarExportarTab";
@@ -711,7 +711,8 @@ function MeiosPagamentoTab({ sz }) {
           sobe sozinha quando a conexão voltar.
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: sz.gap }}>
-          {todosMetodos.map((m) => {
+          {/* dinheiro fica de fora: espécie nunca passa por terminal (podeUsarTef) */}
+          {todosMetodos.filter((m) => podeUsarTef(m.id)).map((m) => {
             const listaTef = Array.isArray(metodosTef) ? metodosTef : METODOS_TEF_PADRAO;
             const usaTef = listaTef.includes(m.id);
             return (

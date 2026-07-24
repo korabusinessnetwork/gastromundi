@@ -24,6 +24,29 @@ const METODOS_CARTAO = new Set(["credito", "debito"]);
 export const METODOS_TEF_PADRAO = ["credito", "debito"];
 
 /**
+ * Métodos que NUNCA passam pela maquininha, por natureza do meio — não é
+ * regra de um estabelecimento (o produto é white-label, decisão 017): o
+ * dinheiro em espécie é entregue na mão do operador, nunca há terminal no
+ * meio. Oferecer "Dinheiro" como opção de TEF só criava a chance de o
+ * admin marcar algo que deixaria a venda em espécie dependente de internet.
+ */
+const METODOS_NUNCA_TEF = new Set(["dinheiro"]);
+
+/**
+ * Um método PODE ser configurado como TEF? Usado pela tela de
+ * Configurações para não nem listar o que não faz sentido (princípio nº 1
+ * — prevenir o erro antes de exibir mensagem de erro) e por
+ * `metodoUsaTef` como trava, caso uma config antiga já traga o método.
+ *
+ * @param {string} metodo
+ * @returns {boolean}
+ */
+export function podeUsarTef(metodo) {
+  const id = String(metodo ?? "").trim().toLowerCase();
+  return Boolean(id) && !METODOS_NUNCA_TEF.has(id);
+}
+
+/**
  * Verifica se um método de pagamento é elegível a TEF (cartão).
  * Função pura — sem side-effect, usada tanto pelo hook quanto pelos testes.
  *
@@ -46,7 +69,7 @@ export function isPagamentoCartao(metodo) {
  */
 export function metodoUsaTef(metodo, metodosTef) {
   const id = String(metodo ?? "").trim().toLowerCase();
-  if (!id) return false;
+  if (!podeUsarTef(id)) return false;
   const lista = Array.isArray(metodosTef) ? metodosTef : METODOS_TEF_PADRAO;
   return lista.some((m) => String(m ?? "").trim().toLowerCase() === id);
 }

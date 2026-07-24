@@ -304,13 +304,29 @@ export default function MesasAdmin({ sz }) {
               position: "relative",
               width: containerW,
               height: containerH,
-              // Grade visual pontilhada alinhada com as células
-              backgroundImage: `radial-gradient(circle, var(${C.border}) 1.5px, transparent 1.5px)`,
-              backgroundSize: `${CARD_W + CARD_GAP}px ${CARD_H + CARD_GAP}px`,
-              backgroundPosition: `${Math.round((CARD_W + CARD_GAP) / 2)}px ${Math.round((CARD_H + CARD_GAP) / 2)}px`,
               borderRadius: 8,
             }}
           >
+            {/* Grade de encaixe: um contorno por célula, do tamanho exato do
+                card. Antes era só um ponto no centro da célula — não dava para
+                ver onde uma mesa termina e a outra começa, e arrastar virava
+                adivinhação. Com o slot desenhado, o operador vê o alvo antes de
+                soltar (princípio nº 1: o próximo passo tem que ser óbvio). */}
+            {Array.from({ length: gridRows }).map((_, linha) =>
+              Array.from({ length: gridCols }).map((_, coluna) => (
+                <div
+                  key={`slot-${coluna}-${linha}`}
+                  className="mesas-admin__slot"
+                  style={{
+                    left:  coluna * (CARD_W + CARD_GAP),
+                    top:   linha  * (CARD_H + CARD_GAP),
+                    width: CARD_W,
+                    height: CARD_H,
+                  }}
+                />
+              ))
+            )}
+
             {mesas.map(m => {
               const x = ((m.posicao_x ?? 1) - 1) * (CARD_W + CARD_GAP);
               const y = ((m.posicao_y ?? 1) - 1) * (CARD_H + CARD_GAP);
