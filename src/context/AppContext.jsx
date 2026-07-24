@@ -104,6 +104,14 @@ export function AppProvider({ children }) {
       } else {
         setLoading(false);
       }
+    }).catch((err) => {
+      // Restaurar a sessão pode rejeitar (refresh de token expirado, falha de
+      // rede no getSession, throw dentro do bootstrap). Sem este catch a
+      // rejeição escapa como `unhandledrejection` global (Sentry KORA-2) na
+      // porta de entrada. Degrada para deslogado: a tela de login segue
+      // funcionando e a autenticação real continua protegida por Auth + RLS.
+      console.error("[auth] falha ao restaurar sessão:", err?.message ?? err);
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
