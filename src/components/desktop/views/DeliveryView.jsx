@@ -1233,7 +1233,12 @@ function ModalProduto({
         </div>
         <label className="delivery-view__switch">
           <span>Disponível no cardápio</span>
-          <input type="checkbox" checked={disponivel} onChange={(e) => setDisponivel(e.target.checked)} style={{ width: 20, height: 20 }} />
+          <span className="delivery-view__toggle">
+            <input type="checkbox" checked={disponivel} onChange={(e) => setDisponivel(e.target.checked)} />
+            <span className="delivery-view__toggle-trilho" aria-hidden="true">
+              <span className="delivery-view__toggle-botao" />
+            </span>
+          </span>
         </label>
 
         {erro && (

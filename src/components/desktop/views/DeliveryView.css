@@ -371,6 +371,54 @@
   cursor: pointer;
 }
 
+/* Toggle "Disponível no cardápio" — switch estilo iOS no lugar do checkbox nativo */
+.delivery-view__toggle {
+  position: relative;
+  flex-shrink: 0;
+  width: 46px;
+  height: 26px;
+}
+.delivery-view__toggle input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+.delivery-view__toggle-trilho {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gm-muted) 38%, transparent);
+  transition: background 0.18s ease;
+}
+.delivery-view__toggle-botao {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  /* Cor vem do tenant (--gm-text): knob claro no tema padrão, recolorido por
+     estabelecimento. Só a sombra (elevação) é neutra, não é cor de marca. */
+  background: var(--gm-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform 0.18s ease;
+}
+.delivery-view__toggle input:checked ~ .delivery-view__toggle-trilho {
+  background: var(--gm-accent);
+}
+.delivery-view__toggle input:checked ~ .delivery-view__toggle-trilho .delivery-view__toggle-botao {
+  transform: translateX(20px);
+}
+.delivery-view__toggle input:focus-visible ~ .delivery-view__toggle-trilho {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
+}
+
 /* Upload de foto do produto: prévia à esquerda, ações à direita.
    Quebra em bloco no mobile (foto por cima das ações). */
 .delivery-view__foto-upload {
@@ -410,6 +458,7 @@
 }
 .delivery-view__modal-botoes > button {
   flex: 1;
+  justify-content: center;
 }
 
 /* Faixas de taxa */
