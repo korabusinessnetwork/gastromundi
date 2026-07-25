@@ -1119,3 +1119,233 @@
   font-size: var(--fs-xl);   /* role: título de seção (era sz.fontLg) */
   line-height: var(--lh-xl);
 }
+
+/* ══ Permissões: matriz por cargo (editor do estabelecimento) ══════ */
+
+.perm-matriz {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.perm-matriz__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.perm-matriz__titulo {
+  font-weight: 800;
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
+.perm-matriz__nota {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* rolagem horizontal isolada: a página nunca rola de lado (telas estreitas) */
+.perm-matriz__scroll {
+  overflow-x: auto;
+}
+
+.perm-matriz__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+.perm-matriz__th-perm {
+  text-align: left;
+  padding: 8px 12px 8px 0;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.perm-matriz__th-cargo {
+  padding: 8px 6px;
+  text-align: center;
+  border-bottom: 1px solid var(--gm-border);
+  white-space: nowrap;
+}
+
+.perm-matriz__th-cargo-label {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.perm-matriz__row:not(:last-child) .perm-matriz__perm,
+.perm-matriz__row:not(:last-child) .perm-matriz__cell {
+  border-bottom: 1px solid color-mix(in srgb, var(--gm-border) 55%, transparent);
+}
+
+.perm-matriz__perm {
+  padding: 10px 12px 10px 0;
+  vertical-align: middle;
+}
+
+.perm-matriz__perm-label {
+  font-weight: 600;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.perm-matriz__perm-desc {
+  color: var(--gm-muted);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  margin-top: 2px;
+}
+
+.perm-matriz__cell {
+  padding: 8px 6px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Célula-toggle: alvo grande p/ toque (PDV), feedback de cor imediato. */
+.perm-check {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: transparent;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.perm-check--on {
+  color: var(--gm-accent);
+}
+
+.perm-check--disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+/* admin travado: marcado, sem cara de clicável */
+.perm-check--locked.perm-check--on {
+  border-color: color-mix(in srgb, var(--gm-muted) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-muted) 12%, transparent);
+  color: var(--gm-muted);
+  opacity: 1;
+}
+
+/* ══ Permissões: override por funcionário (dentro do modal) ════════ */
+
+.perm-override {
+  border-top: 1px solid var(--gm-border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.perm-override__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.perm-override__titulo {
+  font-weight: 700;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.perm-override__sub {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  margin-top: 2px;
+}
+
+.perm-override__reset {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.perm-override__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.perm-override__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.perm-override__item:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.perm-override__item--on {
+  border-color: color-mix(in srgb, var(--gm-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--gm-accent) 12%, transparent);
+  color: var(--gm-text);
+}
+
+/* borda de destaque quando o funcionário diverge do cargo (exceção) */
+.perm-override__item--custom {
+  border-color: var(--gm-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gm-accent) 40%, transparent);
+}
+
+.perm-override__check {
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.perm-override__item--on .perm-override__check {
+  color: var(--gm-accent);
+}
+
+.perm-override__label {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 600;
+}

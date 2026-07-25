@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { getPermissions } from "@/constants/roles";
+import { getPermissions, mesclarPermissoes, ROLES } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
 import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
@@ -40,6 +40,21 @@ const AppContext = createContext(null);
 // por todas as instâncias do provider (só existe uma no app real).
 const filaOffline = criarFila({ storage: window.localStorage });
 
+// Monta o mapa de permissões por cargo CIENTE do tenant: parte do default
+// do roles.js (fallback white-label, decisão 017) e mescla por cima as
+// linhas customizadas da tabela role_permissions daquele estabelecimento.
+// Cargo sem linha no banco = mantém o default. Puro e estável (nível de
+// módulo) para poder ser chamado no bootstrap com os dados recém-buscados.
+function montarMapaCargos(rows) {
+  const mapa = {};
+  for (const role of Object.keys(ROLES)) mapa[role] = { ...getPermissions(role) };
+  for (const row of rows || []) {
+    if (!row?.role) continue;
+    mapa[row.role] = mesclarPermissoes(getPermissions(row.role), row.permissions);
+  }
+  return mapa;
+}
+
 export function AppProvider({ children }) {
   // ── Estado local ─────────────────────────────────────────────
   const [products,    setProductsLocal]    = useState([]);
@@ -58,6 +73,10 @@ export function AppProvider({ children }) {
   const [estoque,         setEstoqueLocal]        = useState({});
   const [estoqueMinimos,  setEstoqueMinimosLocal] = useState({});
   const [tenant,          setTenantLocal]         = useState(null); // Fase 1 — camada de comercialização (ADR-005)
+  // Matriz de permissões por cargo do tenant (role → mapa efetivo, já
+  // mesclado sobre o default do roles.js). Vazio até o bootstrap carregar;
+  // enquanto isso, o resto do app cai no getPermissions(role) do roles.js.
+  const [rolePermissions, setRolePermissionsLocal] = useState({});
   const [gruposCategoria, setGruposCategoriaLocal] = useState([]); // C3 — grupos (comida/bebida/cafe)
   const [categoriaGrupos, setCategoriaGruposLocal] = useState([]); // C3 — mapa categoria→grupo_id (linhas cruas)
   const [loading,       setLoading]          = useState(true);
@@ -132,16 +151,27 @@ export function AppProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Busca nome, role e permissions do usuário pelo auth_id
+  // Busca nome, role e permissions do usuário pelo auth_id.
+  // No login a matriz do tenant ainda não carregou, então a base é o default
+  // do roles.js; o override do funcionário (users.permissions) é mesclado por
+  // cima. O efeito [users] refina para a matriz do tenant assim que o
+  // bootstrap termina. Resiliente à coluna ausente (migration 20260828 não
+  // aplicada, erro 42703): repete o select sem ela e desliga o override.
   async function buscarDadosUsuario(authId) {
-    const { data } = await supabase
-      .from("users")
-      .select("id,name,username,role,auth_id")
-      .eq("auth_id", authId)
-      .eq("active", true)
-      .single();
+    const selecionar = (cols) =>
+      supabase.from("users").select(cols).eq("auth_id", authId).eq("active", true).single();
+    let { data, error } = await selecionar("id,name,username,role,auth_id,permissions");
+    if (error?.code === "42703") {
+      permsColunaIndisponivelRef.current = true;
+      ({ data } = await selecionar("id,name,username,role,auth_id"));
+    }
     if (!data) return null;
-    return { ...data, permissions: getPermissions(data.role) };
+    const override = data.permissions ?? null;
+    return {
+      ...data,
+      permissoesOverride: override,
+      permissions: mesclarPermissoes(getPermissions(data.role), override),
+    };
   }
 
   // TD009 (etapa 2) — leituras agora vêm de vendas/venda_itens/venda_pagamentos
@@ -205,6 +235,17 @@ export function AppProvider({ children }) {
   // Leva 2 continua sendo a rede de segurança contra escrita concorrente).
   const lockIndisponivelRef = useRef(false);
 
+  // Fail-open p/ o override de permissão por funcionário (users.permissions):
+  // quando a migration 20260828 ainda não rodou no banco (coluna inexistente,
+  // erro 42703), a coluna some do select e é removida dos writes — os
+  // overrides ficam desligados e o app opera pelo cargo, sem quebrar.
+  const permsColunaIndisponivelRef = useRef(false);
+
+  // Mapa de permissões de um cargo, ciente do tenant. Fallback total no
+  // roles.js quando a matriz ainda não carregou (login) ou o cargo não foi
+  // customizado neste estabelecimento.
+  const mapaDoCargo = (role) => rolePermissions[role] || getPermissions(role);
+
   // Colunas base de pending (nunca select * em tabela sensível — CLAUDE.md).
   const COLUNAS_PENDING = "id,comanda,items,status,note,total,garcom,created_by,created_at,updated_at,mesa,apelido,cliente_id,cliente_nome,status_cozinha,em_preparo_em,pronto_em";
   const COLUNAS_TRAVA = "editando_por,editando_nome,editando_desde";
@@ -226,6 +267,34 @@ export function AppProvider({ children }) {
     return res;
   }
 
+  // Usuários do tenant. Tenta incluir a coluna de override (permissions); se
+  // a migration 20260828 ainda não rodou (42703), marca a coluna como
+  // indisponível e repete sem ela — o bootstrap não pode quebrar por causa
+  // de uma feature opcional (mesmo padrão de buscarPendingData/Leva 14).
+  const COLUNAS_USERS = "id,name,username,role,auth_id,active";
+  async function buscarUsers() {
+    const res = await supabase.from("users")
+      .select(`${COLUNAS_USERS},permissions`).eq("active", true);
+    if (res.error?.code === "42703") {
+      permsColunaIndisponivelRef.current = true;
+      return supabase.from("users").select(COLUNAS_USERS).eq("active", true);
+    }
+    return res;
+  }
+
+  // Matriz de permissões por cargo do tenant. Qualquer erro (tabela ausente
+  // antes da migration, RLS, rede) resolve para lista vazia → o app usa o
+  // default do roles.js. Nunca lança, nunca bloqueia o bootstrap.
+  async function buscarRolePermissions() {
+    try {
+      const res = await supabase.from("role_permissions").select("role,permissions");
+      if (res.error) return { data: [] };
+      return res;
+    } catch {
+      return { data: [] };
+    }
+  }
+
   // ── Fetch inicial do Supabase (só roda autenticado) ───────────
   async function bootstrap() {
       const [
@@ -239,12 +308,13 @@ export function AppProvider({ children }) {
         { data: tenantData,   error: eTenant   },
         { data: gruposData,   error: eGrupos   },
         { data: catGrupoData, error: eCatGrupo },
+        { data: rolePermsData },
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
         buscarPendingData(),
         // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
         buscarSalesData(),
-        supabase.from("users").select("id,name,username,role,auth_id,active").eq("active", true),
+        buscarUsers(),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
         supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","metodos_tef","dias_alerta_validade","ponte_endereco"]),
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
@@ -253,6 +323,8 @@ export function AppProvider({ children }) {
         // C3 — grupos de categoria (Radar de Oportunidades no Palm)
         supabase.from("grupos_categoria").select("id,nome").order("id"),
         supabase.from("categoria_grupo").select("category,grupo_id"),
+        // Permissões por cargo do tenant (matriz editável, decisão 017).
+        buscarRolePermissions(),
       ]);
 
       if (eUsers)    console.error("[bootstrap] users error:", eUsers);
@@ -294,9 +366,16 @@ export function AppProvider({ children }) {
       if (productsData?.length)    setProductsLocal(productsData);
       if (pendingData)             setPendingLocal(pendingData);
       if (salesData)               setSalesLocal(salesData);
+      // Matriz de permissões por cargo deste tenant (fallback no roles.js).
+      const mapaCargos = montarMapaCargos(rolePermsData);
+      setRolePermissionsLocal(mapaCargos);
       if (usersData?.length)       setUsersLocal(usersData.map(u => ({
         ...u,
-        permissions: getPermissions(u.role),
+        // permissoesOverride = override cru do funcionário (users.permissions);
+        // permissions = mapa EFETIVO (cargo do tenant ⊕ override). Consumidores
+        // (PrivateRoute/Sidebar/...) leem sempre o efetivo.
+        permissoesOverride: u.permissions ?? null,
+        permissions: mesclarPermissoes(mapaCargos[u.role] || getPermissions(u.role), u.permissions),
       })));
       if (fechamentosData)         setFechamentosLocal(fechamentosData.map(r => r.data));
 
@@ -376,13 +455,15 @@ export function AppProvider({ children }) {
   }
 
   // ── Atualiza currentUser quando a lista de usuários muda ──────
+  // A linha em `users` já traz o mapa EFETIVO (cargo do tenant ⊕ override do
+  // funcionário), calculado ao montar a lista. Preserva esse `permissions` —
+  // recomputar pelo roles.js aqui apagaria a matriz do tenant e o override.
   useEffect(() => {
     if (!currentUser) return;
     const updated = users.find(u => u.id === currentUser.id);
     if (updated) {
-      const refreshed = { ...updated, permissions: getPermissions(updated.role) };
-      setCurrentUser(refreshed);
-      saveSession(refreshed);
+      setCurrentUser(updated);
+      saveSession(updated);
     }
   }, [users]);
 
@@ -949,19 +1030,26 @@ export function AppProvider({ children }) {
 
   // ── Actions: Users ────────────────────────────────────────────
   const addUser = async (user) => {
-    // omite id (gerado pelo banco) e permissions (derivado do role no cliente)
-    const { id: _ignored, permissions: _perms, ...payload } = user;
+    // omite id (gerado pelo banco). `permissions` agora É persistido: é o
+    // OVERRIDE do funcionário (parcial; null = segue o cargo). Se a coluna
+    // ainda não existe (migration 20260828 pendente), some do payload
+    // (fail-open) e o usuário nasce seguindo o cargo.
+    const { id: _ignored, ...payload } = user;
+    if (permsColunaIndisponivelRef.current) delete payload.permissions;
     const { data, error } = await supabase.from("users").insert(payload).select().single();
     if (data) setUsersLocal(prev => [...prev, {
       ...data,
-      permissions: { ...getPermissions(data.role), ...(data.permissions || {}) },
+      permissoesOverride: data.permissions ?? null,
+      permissions: mesclarPermissoes(mapaDoCargo(data.role), data.permissions),
     }]);
     return { data, error };
   };
 
   const updateUser = async (id, changes) => {
-    // permissions não existe no banco — remove antes de enviar
-    const { permissions: _perms, ...payload } = changes;
+    // `permissions` (override do funcionário) É persistido — a menos que a
+    // coluna ainda não exista no banco (fail-open, migration pendente).
+    const payload = { ...changes };
+    if (permsColunaIndisponivelRef.current) delete payload.permissions;
     // .select() após o update: PostgREST retorna sucesso HTTP com 0 linhas
     // quando a RLS filtra tudo (ex.: editor aberto para gerente, mas a
     // policy users_update exige admin) OU quando o id não bate. Sem checar
@@ -985,9 +1073,15 @@ export function AppProvider({ children }) {
     setUsersLocal(prev => prev.map(u => {
       if (u.id !== id) return u;
       const merged = { ...u, ...changes };
+      // Se o override veio nesta edição, adota-o (null = volta a seguir o
+      // cargo); senão, preserva o override que o usuário já tinha.
+      const override = Object.prototype.hasOwnProperty.call(changes, "permissions")
+        ? (changes.permissions ?? null)
+        : u.permissoesOverride;
       return {
         ...merged,
-        permissions: { ...getPermissions(merged.role), ...(merged.permissions || {}) },
+        permissoesOverride: override,
+        permissions: mesclarPermissoes(mapaDoCargo(merged.role), override),
       };
     }));
     return { error: null, data };
@@ -1005,6 +1099,39 @@ export function AppProvider({ children }) {
       return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida — sem permissão (apenas admin remove usuários) ou usuário inexistente." } };
     }
     setUsersLocal(prev => prev.filter(u => u.id !== id));
+    return { error: null };
+  };
+
+  // Grava a matriz de permissões de UM cargo para este estabelecimento
+  // (upsert por tenant_id+role). `permissoesCompletas` é o mapa inteiro do
+  // cargo (todas as chaves booleanas). tenant_id explícito do tenant
+  // carregado; a RLS exige tenant_id = tenant_atual_id() (só admin, só o
+  // próprio tenant). Recalcula as permissões efetivas de todos os usuários
+  // daquele cargo (cargo ⊕ override de cada um) para refletir na hora.
+  const salvarPermissoesCargo = async (role, permissoesCompletas) => {
+    if (!ROLES[role]) return { error: { message: "Cargo inválido." } };
+    if (!tenant?.id) return { error: { message: "Estabelecimento ainda carregando — tente de novo." } };
+    const payload = {
+      tenant_id: tenant.id,
+      role,
+      permissions: permissoesCompletas,
+      updated_at: new Date().toISOString(),
+    };
+    const { data, error } = await supabase
+      .from("role_permissions")
+      .upsert(payload, { onConflict: "tenant_id,role" })
+      .select("role,permissions");
+    if (error) return { error };
+    if (!data || data.length === 0) {
+      reportarInconsistencia("write afetou 0 linhas", { acao: "salvarPermissoesCargo", tabela: "role_permissions", role });
+      return { error: { code: "no_rows_updated", message: "Nenhuma linha gravada — só um administrador edita permissões de cargo." } };
+    }
+    const efetivoCargo = mesclarPermissoes(getPermissions(role), permissoesCompletas);
+    const novoMapa = { ...rolePermissions, [role]: efetivoCargo };
+    setRolePermissionsLocal(novoMapa);
+    setUsersLocal(prev => prev.map(u => (
+      u.role !== role ? u : { ...u, permissions: mesclarPermissoes(efetivoCargo, u.permissoesOverride) }
+    )));
     return { error: null };
   };
 
@@ -1321,6 +1448,8 @@ export function AppProvider({ children }) {
     addSale, cancelarVendaFechada,
     // users
     addUser, updateUser, removeUser,
+    // permissões (matriz por cargo do tenant + editor)
+    rolePermissions, salvarPermissoesCargo,
     // outros
     addFechamento,
     setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque, baixarEstoque, baixarEstoqueSubproduto, setMinimoEstoque, recarregarEstoque,

@@ -6,7 +6,14 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { passwordStrength, sanitizeInput } from "@/utils";
 import { criarAuthUsuario, atualizarSenhaAuth, deletarAuthUsuario } from "@/lib/adminAuth";
-import { getPermissions } from "@/constants/roles";
+import {
+  getPermissions,
+  PERMISSION_KEYS,
+  PERMISSION_LABELS,
+  PERMISSION_DESCRICOES,
+  mesclarPermissoes,
+  calcularOverride,
+} from "@/constants/roles";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -37,8 +44,30 @@ const ROLES = [
 
 const ROLE_MAP = Object.fromEntries(ROLES.map(r => [r.id, r]));
 
+// Ordem dos cargos na matriz de permissões (do menor para o maior acesso).
+const CARGOS_MATRIZ = ["garcom", "caixa", "gerente", "admin"].map(id => ROLE_MAP[id]);
 
-const EMPTY_USER_FORM = { name: "", username: "", role: "caixa", password: "", confirmPassword: "" };
+// Célula-toggle da matriz de permissões (marcado/desmarcado). Alvo grande
+// para toque (PDV) e feedback de cor imediato (Princípio nº 1).
+function PermCheck({ on, color, disabled, locked, onClick, titulo }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={titulo}
+      aria-pressed={on}
+      className={`perm-check${on ? " perm-check--on" : ""}${disabled ? " perm-check--disabled" : ""}${locked ? " perm-check--locked" : ""}`}
+      style={on && !locked ? { borderColor: color, background: alfa(color, "1f"), color } : undefined}
+    >
+      {on ? "✓" : ""}
+    </button>
+  );
+}
+
+
+// `permissions` = OVERRIDE do funcionário (parcial ou null). null = segue o cargo.
+const EMPTY_USER_FORM = { name: "", username: "", role: "caixa", password: "", confirmPassword: "", permissions: null };
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -140,7 +169,7 @@ function traduzirErro(error) {
 // ── Aba Usuários ──────────────────────────────────────────────────
 
 function UsuariosTab({ sz }) {
-  const { users, currentUser, addUser, updateUser, removeUser } = useApp();
+  const { users, currentUser, addUser, updateUser, removeUser, rolePermissions, salvarPermissoesCargo } = useApp();
 
   const [modal,    setModal]    = useState(null); // null | "novo" | "editar" | "resetpw"
   const [editId,   setEditId]   = useState(null);
@@ -150,6 +179,8 @@ function UsuariosTab({ sz }) {
   const [verSenha, setVerSenha] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [deletando,setDeletando]= useState(false);
+  const [salvandoCargo, setSalvandoCargo] = useState(null); // `${role}:${key}` em voo
+  const [erroCargo, setErroCargo] = useState("");
 
   const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -165,6 +196,7 @@ function UsuariosTab({ sz }) {
     setForm({
       name: u.name, username: u.username, role: u.role,
       password: "", confirmPassword: "",
+      permissions: u.permissoesOverride ?? null,
     });
     setErro("");
     setVerSenha(false);
@@ -186,8 +218,9 @@ function UsuariosTab({ sz }) {
     const jaExiste = users.find(u => u.username === username && u.id !== editId);
     if (jaExiste) { setErro("Esse nome de usuário já está em uso."); return; }
 
-    // permissões derivam automaticamente do cargo
-    const permissions = getPermissions(form.role);
+    // Base = permissões do cargo; o funcionário grava só o OVERRIDE (diferença
+    // do cargo) ou null quando segue o cargo. O app mescla cargo ⊕ override.
+    const permissions = form.permissions ?? null;
 
     setSalvando(true);
     try {
@@ -245,6 +278,41 @@ function UsuariosTab({ sz }) {
   };
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+  // Só o admin de verdade grava permissões: a RLS de role_permissions e de
+  // users (override) exige gastro_role='admin'. Gerente vê, mas não edita
+  // (prevenção de erro — Princípio nº 1: não oferecer o que vai falhar).
+  const isAdminReal = currentUser?.role === "admin";
+
+  // Mapa EFETIVO de um cargo neste estabelecimento (matriz do tenant ⊕ default
+  // do roles.js). Base para o editor de cargo e para o override do funcionário.
+  const mapaDoCargo = (role) => rolePermissions?.[role] || getPermissions(role);
+
+  // Base do cargo escolhido no form + acesso efetivo do funcionário (cargo ⊕
+  // override). Usados no editor de override dentro do modal.
+  const baseCargoForm = mapaDoCargo(form.role);
+  const efetivoForm   = mesclarPermissoes(baseCargoForm, form.permissions);
+
+  // Liga/desliga uma permissão de um CARGO (persiste na matriz do tenant).
+  // Admin fica travado (acesso total); só o admin de verdade edita.
+  const toggleCargoPerm = async (role, key) => {
+    if (!isAdminReal || role === "admin") return;
+    const atual = mapaDoCargo(role);
+    const desejado = { ...atual, [key]: !atual[key] };
+    const marca = `${role}:${key}`;
+    setSalvandoCargo(marca);
+    setErroCargo("");
+    const { error } = await salvarPermissoesCargo(role, desejado);
+    setSalvandoCargo(null);
+    if (error) setErroCargo(traduzirErro(error));
+  };
+
+  // Liga/desliga uma permissão do FUNCIONÁRIO no form. Guarda só o override
+  // mínimo (diferença do cargo); volta a null quando iguala o cargo.
+  const toggleOverridePerm = (key) => {
+    if (!isAdminReal) return;
+    const desejado = { ...efetivoForm, [key]: !efetivoForm[key] };
+    setF("permissions", calcularOverride(desejado, baseCargoForm));
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: sz.padSm }}>
@@ -286,6 +354,62 @@ function UsuariosTab({ sz }) {
           </div>
         </div>
 
+      </div>
+
+      {/* Editor: Permissões por cargo (matriz do estabelecimento) */}
+      <div className="perm-matriz" style={{ padding: sz.pad, gap: sz.padSm }}>
+        <div className="perm-matriz__head">
+          <div className="perm-matriz__titulo">Permissões por cargo</div>
+          <div className="perm-matriz__nota">
+            {isAdminReal
+              ? "Marque o que cada cargo acessa neste estabelecimento. Vale para todos os funcionários do cargo — exceções por pessoa ficam no cadastro do usuário."
+              : "Só o administrador altera as permissões dos cargos. Aqui você confere o que cada um acessa."}
+          </div>
+        </div>
+        <ErrBox msg={erroCargo} />
+        <div className="perm-matriz__scroll">
+          <table className="perm-matriz__tabela">
+            <thead>
+              <tr>
+                <th className="perm-matriz__th-perm">Permissão</th>
+                {CARGOS_MATRIZ.map(r => (
+                  <th key={r.id} className="perm-matriz__th-cargo">
+                    <span className="perm-matriz__th-cargo-label" style={{ color: r.color }}>{r.label}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {PERMISSION_KEYS.map(key => (
+                <tr key={key} className="perm-matriz__row">
+                  <td className="perm-matriz__perm">
+                    <div className="perm-matriz__perm-label">{PERMISSION_LABELS[key]}</div>
+                    <div className="perm-matriz__perm-desc">{PERMISSION_DESCRICOES[key]}</div>
+                  </td>
+                  {CARGOS_MATRIZ.map(r => {
+                    const efetivo = mapaDoCargo(r.id);
+                    const on = !!efetivo[key];
+                    const travado = r.id === "admin"; // admin sempre acesso total
+                    const editavel = isAdminReal && !travado;
+                    const emVoo = salvandoCargo === `${r.id}:${key}`;
+                    return (
+                      <td key={r.id} className="perm-matriz__cell">
+                        <PermCheck
+                          on={on}
+                          color={r.color}
+                          disabled={!editavel || emVoo}
+                          locked={travado}
+                          onClick={() => toggleCargoPerm(r.id, key)}
+                          titulo={travado ? "O administrador tem acesso total (não editável)" : `${on ? "Remover" : "Dar"} acesso: ${PERMISSION_LABELS[key]}`}
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Header */}
@@ -412,6 +536,45 @@ function UsuariosTab({ sz }) {
                 ))}
               </div>
             </Field>
+
+            {/* Permissões específicas deste funcionário (override sobre o cargo) */}
+            <div className="perm-override">
+              <div className="perm-override__head">
+                <div>
+                  <div className="perm-override__titulo">Acesso deste funcionário</div>
+                  <div className="perm-override__sub">
+                    {form.permissions
+                      ? "Personalizado — difere do cargo em algumas permissões."
+                      : `Segue o cargo ${ROLE_MAP[form.role]?.label ?? form.role}. Ajuste abaixo só se precisar de exceções.`}
+                  </div>
+                </div>
+                {form.permissions && isAdminReal && (
+                  <button type="button" className="perm-override__reset" onClick={() => setF("permissions", null)}>
+                    Seguir o cargo
+                  </button>
+                )}
+              </div>
+              <div className="perm-override__grid">
+                {PERMISSION_KEYS.map(key => {
+                  const on = !!efetivoForm[key];
+                  const custom = !!form.permissions && Object.prototype.hasOwnProperty.call(form.permissions, key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      disabled={!isAdminReal}
+                      onClick={() => toggleOverridePerm(key)}
+                      title={PERMISSION_DESCRICOES[key]}
+                      aria-pressed={on}
+                      className={`perm-override__item${on ? " perm-override__item--on" : ""}${custom ? " perm-override__item--custom" : ""}`}
+                    >
+                      <span className="perm-override__check">{on ? "✓" : "—"}</span>
+                      <span className="perm-override__label">{PERMISSION_LABELS[key]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="usuarios-tab__senha-secao" style={{ paddingTop: sz.padSm }}>
               <div className="usuarios-tab__senha-titulo" style={{ marginBottom: sz.padSm }}>
