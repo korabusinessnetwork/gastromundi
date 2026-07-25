@@ -19,6 +19,7 @@ import {
   buscarClientePorId,
   registrarPagamentoFiado,
   calcularSaldoDevedor,
+  sanitizarTermoBusca,
 } from "./clientes";
 
 beforeEach(() => {
@@ -93,6 +94,42 @@ describe("listarClientes", () => {
     const chamadasOr = mockSupabase.current.calls.filter((c) => c.method === "or");
     expect(chamadasOr.length).toBeGreaterThan(0);
     expect(chamadasOr[0].args[0]).toContain("ana");
+  });
+
+  it("sanitiza o termo antes de montar o filtro .or() (não injeta no PostgREST)", async () => {
+    mockSupabase.current.setTableResult("clientes", { data: [], error: null });
+
+    // Termo malicioso: tenta fechar o ilike e injetar outro filtro.
+    await listarClientes({ busca: 'ana,id.eq.00000000-0000-0000-0000-000000000000)' });
+
+    const chamadasOr = mockSupabase.current.calls.filter((c) => c.method === "or");
+    expect(chamadasOr.length).toBeGreaterThan(0);
+    const filtro = chamadasOr[0].args[0];
+    // A injeção depende da vírgula (separa filtros no PostgREST) e do parêntese.
+    // Sanitizado, o `.or()` tem EXATAMENTE 2 segmentos, ambos ilike — o
+    // `id.eq...` vira texto literal dentro do ilike, não um filtro extra.
+    const segmentos = filtro.split(",");
+    expect(segmentos).toHaveLength(2);
+    expect(segmentos.every((s) => s.includes(".ilike."))).toBe(true);
+    expect(filtro).not.toContain("(");
+    expect(filtro).not.toContain(")");
+  });
+});
+
+describe("sanitizarTermoBusca", () => {
+  it("remove metacaracteres do PostgREST (, ( ) \" \\ * %)", () => {
+    expect(sanitizarTermoBusca('a,b(c)d"e\\f*g%h')).toBe("a b c d e f g h");
+  });
+
+  it("preserva letras, números, espaço e acentos", () => {
+    expect(sanitizarTermoBusca("João 123 São")).toBe("João 123 São");
+  });
+
+  it("faz trim e trata vazio/nullish", () => {
+    expect(sanitizarTermoBusca("  ana  ")).toBe("ana");
+    expect(sanitizarTermoBusca("")).toBe("");
+    expect(sanitizarTermoBusca(undefined)).toBe("");
+    expect(sanitizarTermoBusca(null)).toBe("");
   });
 });
 

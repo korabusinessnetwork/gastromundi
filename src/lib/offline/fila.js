@@ -49,13 +49,25 @@ export function criarFila({ storage, chave = CHAVE_FILA_PENDING }) {
 //   erro de rede   → para tudo e mantém o restante (a internet caiu de novo);
 //   erro definitivo→ sai da fila (repetir não resolve) e volta em `falhas`
 //                    para o chamador dar visibilidade.
-export async function drenarFila({ fila, executar, isErroDeRede }) {
+//
+// ISOLAMENTO MULTI-TENANT (hardening): `tenantAtual` (tenant_id do JWT da
+// sessão atual). Uma op carimbada com `__tenant` de OUTRO tenant nunca é
+// executada na sessão atual — é PULADA e MANTIDA na fila (sem executar, sem
+// remover), para ser drenada quando o tenant dono voltar a logar. Sem isso,
+// se dois tenants dividem a mesma origem (preview/IP/apex/localhost), as
+// escritas enfileiradas por A poderiam ser reenviadas na sessão de B. Ops
+// legadas sem `__tenant` seguem o fluxo normal (a RLS do banco ainda
+// valida o tenant de cada escrita no servidor).
+export async function drenarFila({ fila, executar, isErroDeRede, tenantAtual = undefined }) {
   const ops = fila.listar();
   const processadas = new Set();
   const falhas = [];
   let enviadas = 0;
 
   for (const op of ops) {
+    if (tenantAtual !== undefined && op.__tenant != null && op.__tenant !== tenantAtual) {
+      continue; // op de outro tenant — não replica aqui e preserva pro dono
+    }
     const { error } = await executar(op);
     if (!error) {
       processadas.add(op.uid);

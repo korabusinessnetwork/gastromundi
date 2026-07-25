@@ -103,15 +103,37 @@ export function nomeExibicaoTenant(tema, fallback = "GastroMundi") {
 }
 
 /**
- * URL do logo do estabelecimento, ou `null` quando não definido (o
- * chamador decide o fallback visual — ex.: exibir só o nome em texto).
+ * X2 — mesma política de `logoUrlSegura` (src/lib/impressao/renderizar.js):
+ * o logo vem do CADASTRO DO TENANT (white-label, decisão 017) e cai direto
+ * em `<img src>` (SidebarBranding, LoginPage, CardapioPage). Sem validar o
+ * esquema, um `javascript:`/`data:text/html` salvo ali vira XSS. Allowlist:
+ * só `http:`, `https:` (logo hospedado) ou `data:image/…` (logo embutido em
+ * base64) passam — duplicada aqui (em vez de importar de
+ * `lib/impressao/renderizar.js`) para não acoplar este módulo, usado no
+ * bootstrap do app inteiro, ao módulo de impressão.
+ *
+ * @param {any} url
+ * @returns {boolean}
+ */
+function logoUrlSeguraParaImg(url) {
+  const s = String(url ?? "").trim();
+  if (!s) return false;
+  return /^https?:/i.test(s) || /^data:image\//i.test(s);
+}
+
+/**
+ * URL do logo do estabelecimento, ou `null` quando não definido ou com
+ * esquema não permitido (o chamador decide o fallback visual — ex.: exibir
+ * só o nome em texto). Ver `logoUrlSeguraParaImg` para a política de
+ * validação.
  *
  * @param {object|null|undefined} tema
  * @returns {string|null}
  */
 export function logoUrlTenant(tema) {
   const url = tema?.logo_url;
-  return typeof url === "string" && url.trim() ? url.trim() : null;
+  const s = typeof url === "string" && url.trim() ? url.trim() : null;
+  return s && logoUrlSeguraParaImg(s) ? s : null;
 }
 
 /**

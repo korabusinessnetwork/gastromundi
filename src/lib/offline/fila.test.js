@@ -124,4 +124,42 @@ describe("drenarFila", () => {
     expect(resultado.enviadas).toBe(1);
     expect(fila.listar().map((op) => op.payload.id)).toEqual(["nova"]);
   });
+
+  it("pula e PRESERVA ops de outro tenant (isolamento em origem compartilhada)", async () => {
+    const fila = criarFila({ storage: criarStorage() });
+    fila.enfileirar({ tipo: "insert", payload: { id: "a" }, __tenant: "T1" });
+    fila.enfileirar({ tipo: "insert", payload: { id: "b" }, __tenant: "T2" });
+    fila.enfileirar({ tipo: "insert", payload: { id: "c" }, __tenant: "T1" });
+    const enviadas = [];
+    const resultado = await drenarFila({
+      fila,
+      isErroDeRede,
+      tenantAtual: "T1",
+      executar: async (op) => {
+        enviadas.push(op.payload.id);
+        return { error: null };
+      },
+    });
+    // Só as ops de T1 executam; a de T2 nunca é enviada.
+    expect(enviadas).toEqual(["a", "c"]);
+    // A op de T2 permanece na fila para quando o dono voltar a logar.
+    expect(fila.listar().map((op) => op.payload.id)).toEqual(["b"]);
+  });
+
+  it("ops legadas sem __tenant seguem o fluxo normal (RLS valida no servidor)", async () => {
+    const fila = criarFila({ storage: criarStorage() });
+    fila.enfileirar({ tipo: "insert", payload: { id: "legada" } });
+    const enviadas = [];
+    await drenarFila({
+      fila,
+      isErroDeRede,
+      tenantAtual: "T1",
+      executar: async (op) => {
+        enviadas.push(op.payload.id);
+        return { error: null };
+      },
+    });
+    expect(enviadas).toEqual(["legada"]);
+    expect(fila.tamanho()).toBe(0);
+  });
 });

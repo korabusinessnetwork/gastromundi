@@ -75,6 +75,11 @@ export function AppProvider({ children }) {
 
   // ── Auth ─────────────────────────────────────────────────────
   const [currentUser,  setCurrentUser]  = useState(() => loadSession());
+  // tenant_id do JWT da sessão atual — fonte confiável e disponível offline
+  // (o `currentUser` de `users` NÃO traz tenant_id). Usado para carimbar e
+  // validar os caches locais (snapshot/fila), isolando estabelecimentos que
+  // porventura dividam a mesma origem de navegador (preview/IP/apex).
+  const tenantIdRef = useRef(null);
   const [mobileChoice, setMobileChoice] = useState(null);
 
   const isMobile = useIsMobile();
@@ -88,6 +93,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
+        tenantIdRef.current = session.user?.app_metadata?.tenant_id ?? null;
         const userData = await buscarDadosUsuario(session.user.id);
         if (userData) {
           setCurrentUser(userData);
@@ -116,6 +122,7 @@ export function AppProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
+        tenantIdRef.current = null;
         setCurrentUser(null);
         setMobileChoice(null);
         clearSession();
@@ -261,7 +268,7 @@ export function AppProvider({ children }) {
       // ── Offline (Leva 11): sem internet, hidrata do último snapshot ──
       // e deixa o PDV operar; os pedidos entram na fila local.
       if (isErroDeRede(eProducts) || isErroDeRede(ePending)) {
-        const snapshot = lerSnapshot(window.localStorage);
+        const snapshot = lerSnapshot(window.localStorage, tenantIdRef.current);
         if (snapshot) {
           if (snapshot.products?.length) setProductsLocal(snapshot.products);
           if (snapshot.pending)          setPendingLocal(snapshot.pending);
@@ -362,7 +369,7 @@ export function AppProvider({ children }) {
             taxaServico: configMap.taxa_servico !== undefined ? !!configMap.taxa_servico : undefined,
             ponteEndereco: typeof configMap.ponte_endereco === "string" ? configMap.ponte_endereco : undefined,
           },
-        });
+        }, tenantData?.id ?? tenantIdRef.current);
       }
 
       setLoading(false);
@@ -555,13 +562,16 @@ export function AppProvider({ children }) {
 
   // Enfileira uma operação para reenvio quando a internet voltar e
   // atualiza o contador do badge — único caminho para fora do provider.
-  const enfileirarOffline = (op) => setPendenciasOffline(filaOffline.enfileirar(op));
+  // Carimba a op com o tenant da sessão (JWT). No drain, ops de outro tenant
+  // são puladas e preservadas (isolamento em origem compartilhada). Ver fila.js.
+  const enfileirarOffline = (op) =>
+    setPendenciasOffline(filaOffline.enfileirar({ ...op, __tenant: tenantIdRef.current }));
 
   const drenarPendenciasOffline = async () => {
     if (drenandoRef.current || filaOffline.tamanho() === 0) return;
     drenandoRef.current = true;
     try {
-      const { falhas } = await drenarFila({ fila: filaOffline, executar: executarOpOffline, isErroDeRede });
+      const { falhas } = await drenarFila({ fila: filaOffline, executar: executarOpOffline, isErroDeRede, tenantAtual: tenantIdRef.current });
       for (const { op, error } of falhas) {
         console.error("[offline] operação descartada no reenvio:", op.tipo, error?.message);
         // Falha NÃO-rede ao drenar: a op foi descartada (não é reenfileirada)
@@ -615,6 +625,7 @@ export function AppProvider({ children }) {
     }
 
     clearAttempts(clean);
+    tenantIdRef.current = authData.user?.app_metadata?.tenant_id ?? null;
     setCurrentUser(userData);
     saveSession(userData);
     logAction(userData.username, "auth:login", { msg: `Login realizado · ${userData.role}`, name: userData.name, role: userData.role });
@@ -647,7 +658,7 @@ export function AppProvider({ children }) {
       // Sem internet o pedido NÃO some (Leva 11): mantém o estado
       // otimista, guarda na fila local e reenvia quando a rede voltar.
       if (isErroDeRede(error)) {
-        setPendenciasOffline(filaOffline.enfileirar({ tipo: "insert", payload: { id, comanda, mesa, apelido, cliente_id, cliente_nome, items, status, note, total, garcom, created_by } }));
+        enfileirarOffline({ tipo: "insert", payload: { id, comanda, mesa, apelido, cliente_id, cliente_nome, items, status, note, total, garcom, created_by } });
         return { error: null, offline: true };
       }
       console.error("addPending error:", error);
@@ -668,7 +679,7 @@ export function AppProvider({ children }) {
     const { error } = await supabase.from("pending").delete().eq("id", id);
     if (error) {
       if (isErroDeRede(error)) {
-        setPendenciasOffline(filaOffline.enfileirar({ tipo: "delete", id }));
+        enfileirarOffline({ tipo: "delete", id });
         return { error: null, offline: true };
       }
       console.error("removePending error:", error);
@@ -710,7 +721,7 @@ export function AppProvider({ children }) {
     const { error } = await supabase.from("pending").update({ ...changes, updated_at: new Date().toISOString() }).eq("id", id);
     if (error) {
       if (isErroDeRede(error)) {
-        setPendenciasOffline(filaOffline.enfileirar({ tipo: "update", id, changes: { ...changes, updated_at: new Date().toISOString() } }));
+        enfileirarOffline({ tipo: "update", id, changes: { ...changes, updated_at: new Date().toISOString() } });
         return { error: null, offline: true };
       }
       console.error("updatePending error:", error);

@@ -85,7 +85,20 @@
       "PowerShell(npx vitest run src/lib/documento.test.js)",
       "PowerShell(git remote get-url origin)",
       "Bash(awk -F: '{s+=$2} END{print \"total input tags in jsx:\", s}')",
-      "Bash(sort -t: -k2 -rn)"
+      "Bash(sort -t: -k2 -rn)",
+      "Bash(git rebase *)",
+      "Bash(git remote *)",
+      "Bash(git reset *)",
+      "Bash(echo \"=== EXIT $? ===\")",
+      "mcp__visualize__read_me",
+      "mcp__visualize__show_widget",
+      "Bash(git --no-pager diff --cached --stat)",
+      "Bash(git --no-pager status --short)",
+      "Bash(ls -d /c/Users/bonas/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/*/*/skills/*/ 2>/dev/null; echo \"--- user skills ---\"; ls -d /c/Users/bonas/.claude/skills/*/ 2>/dev/null)",
+      "Bash(grep -iA3 security /c/Users/bonas/.claude/plugins/installed_plugins.json)",
+      "Bash(openssl rsa *)",
+      "Bash(openssl x509 *)",
+      "Bash(grep -nB2 -A6 -iE \"config_delivery.*\\(enable row|policy\\)|policy.*config_delivery|on public.config_delivery\" supabase/migrations/20260804_delivery_fundacao.sql)"
     ]
   }
 }

@@ -52,21 +52,48 @@ export const CONFIG_IMPRESSAO_PADRAO = {
 // Cache local da config de impressão — impressão local (window.print /
 // QZ Tray em localhost) não depende de internet; só a config dependia.
 // Guardando a última config lida, imprimir continua funcionando offline.
+//
+// ISOLAMENTO MULTI-TENANT (hardening): o cache é carimbado com o tenant_id
+// do JWT de quem gravou; na leitura, se o tenant atual não bater, o cache é
+// ignorado (evita usar a config de impressão de outro estabelecimento quando
+// dois tenants dividem a mesma origem de navegador). Formato legado (sem
+// carimbo) segue sendo lido — a config é convenience e é revalidada online.
 const CHAVE_CACHE_CONFIG_IMPRESSAO = "kora.cache.config_impressao.v1";
 
-function lerCacheConfigImpressao() {
+// tenant_id do JWT da sessão atual (disponível offline — vem do storage do
+// supabase-js, sem rede). Nunca lança: falha → null (cache fica sem carimbo).
+async function tenantIdAtual() {
   try {
-    const bruto = localStorage.getItem(CHAVE_CACHE_CONFIG_IMPRESSAO);
-    const valor = bruto ? JSON.parse(bruto) : null;
-    return valor && typeof valor === "object" ? valor : null;
+    const { data } = await supabase.auth.getSession();
+    return data?.session?.user?.app_metadata?.tenant_id ?? null;
   } catch {
     return null;
   }
 }
 
-function salvarCacheConfigImpressao(valor) {
+function lerCacheConfigImpressao(tenantId = undefined) {
   try {
-    localStorage.setItem(CHAVE_CACHE_CONFIG_IMPRESSAO, JSON.stringify(valor ?? {}));
+    const bruto = localStorage.getItem(CHAVE_CACHE_CONFIG_IMPRESSAO);
+    const parsed = bruto ? JSON.parse(bruto) : null;
+    if (!parsed || typeof parsed !== "object") return null;
+    // Formato novo: { __tenant, valor }. Legado: o próprio valor cru.
+    if (Object.prototype.hasOwnProperty.call(parsed, "__tenant")) {
+      if (tenantId !== undefined && (parsed.__tenant ?? null) !== (tenantId ?? null)) return null;
+      const valor = parsed.valor;
+      return valor && typeof valor === "object" ? valor : null;
+    }
+    return parsed; // legado (sem carimbo) — lenient
+  } catch {
+    return null;
+  }
+}
+
+function salvarCacheConfigImpressao(valor, tenantId = null) {
+  try {
+    localStorage.setItem(
+      CHAVE_CACHE_CONFIG_IMPRESSAO,
+      JSON.stringify({ __tenant: tenantId ?? null, valor: valor ?? {} })
+    );
   } catch {
     // cache é conveniência — sem espaço/permissão, segue sem ele
   }
@@ -90,6 +117,7 @@ function mesclarConfigImpressao(valor) {
  * @returns {Promise<{data: object, error: object|null}>}
  */
 export async function buscarConfigImpressao() {
+  const tid = await tenantIdAtual();
   try {
     const { data, error } = await supabase
       .from("config")
@@ -97,15 +125,15 @@ export async function buscarConfigImpressao() {
       .eq("key", "config_impressao")
       .maybeSingle();
     if (error) {
-      const cache = lerCacheConfigImpressao();
+      const cache = lerCacheConfigImpressao(tid);
       if (cache) return { data: mesclarConfigImpressao(cache), error: null };
       return { data: CONFIG_IMPRESSAO_PADRAO, error };
     }
     const valor = data?.value ?? {};
-    salvarCacheConfigImpressao(valor);
+    salvarCacheConfigImpressao(valor, tid);
     return { data: mesclarConfigImpressao(valor), error: null };
   } catch (err) {
-    const cache = lerCacheConfigImpressao();
+    const cache = lerCacheConfigImpressao(tid);
     if (cache) return { data: mesclarConfigImpressao(cache), error: null };
     return { data: CONFIG_IMPRESSAO_PADRAO, error: { message: err?.message ?? "Falha ao buscar configuração de impressão." } };
   }
@@ -120,7 +148,7 @@ export async function buscarConfigImpressao() {
 export async function salvarConfigImpressao(config) {
   try {
     const { error } = await supabase.from("config").upsert({ key: "config_impressao", value: config ?? {} });
-    if (!error) salvarCacheConfigImpressao(config ?? {});
+    if (!error) salvarCacheConfigImpressao(config ?? {}, await tenantIdAtual());
     return { error };
   } catch (err) {
     return { error: { message: err?.message ?? "Falha ao salvar configuração de impressão." } };

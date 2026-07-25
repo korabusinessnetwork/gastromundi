@@ -14,7 +14,18 @@
  * já filtrada por gerarVariaveisTema antes de chegar aqui).
  */
 
+import { resolverSlugTenant } from "@/lib/tenantSlug";
+
 export const BRANDING_CACHE_KEY = "kora_branding_v1";
+
+// Slug do tenant que a origem atual reivindica (subdomínio; fallback em
+// dev/preview). Carimbamos o cache com ele e, na leitura, descartamos o
+// cache carimbado com OUTRO slug — defesa extra caso dois tenants dividam
+// a mesma origem. Cache sem carimbo (legado) segue sendo lido (cosmético,
+// revalidado pela RPC logo em seguida). Nunca lança.
+function slugAtual() {
+  try { return resolverSlugTenant(); } catch { return null; }
+}
 
 // Mesmo formato de token aceito pelo script inline do index.html —
 // qualquer chave fora do padrão --gm-* é descartada (nunca CSS arbitrário).
@@ -53,7 +64,12 @@ export function lerBrandingCache(storage) {
   try {
     const s = storage ?? (typeof window !== "undefined" ? window.localStorage : null);
     if (!s) return null;
-    return normalizarBranding(JSON.parse(s.getItem(BRANDING_CACHE_KEY)));
+    const bruto = JSON.parse(s.getItem(BRANDING_CACHE_KEY));
+    // Descarta cache carimbado com outro slug (cross-tenant na mesma origem).
+    if (bruto && typeof bruto === "object" && bruto.__slug != null && bruto.__slug !== slugAtual()) {
+      return null;
+    }
+    return normalizarBranding(bruto);
   } catch {
     return null;
   }
@@ -72,7 +88,7 @@ export function salvarBrandingCache(branding, storage) {
     if (!s) return;
     const limpo = normalizarBranding(branding);
     if (!limpo) { s.removeItem(BRANDING_CACHE_KEY); return; }
-    s.setItem(BRANDING_CACHE_KEY, JSON.stringify(limpo));
+    s.setItem(BRANDING_CACHE_KEY, JSON.stringify({ ...limpo, __slug: slugAtual() }));
   } catch {
     /* storage cheio/indisponível: segue sem cache */
   }

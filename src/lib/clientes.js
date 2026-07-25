@@ -134,7 +134,10 @@ export async function listarClientes({ busca } = {}) {
     .eq("anonimizado", false)
     .order("nome");
   const termo = busca?.trim();
-  if (termo) query = query.or(`nome.ilike.%${termo}%,telefone.ilike.%${termo}%`);
+  if (termo) {
+    const termoSanitizado = sanitizarTermoBusca(termo);
+    query = query.or(`nome.ilike.%${termoSanitizado}%,telefone.ilike.%${termoSanitizado}%`);
+  }
 
   const { data, error } = await query;
   return { data, error };
@@ -204,6 +207,22 @@ export async function registrarPagamentoFiado(lancamentoId, usuario) {
 }
 
 // ── Funções puras (testadas em clientes.test.js) ────────────────────
+
+/**
+ * Sanitiza um termo de busca removendo caracteres com significado especial
+ * no filtro PostgREST (.or, .ilike) para prevenir manipulação de query.
+ *
+ * Remove: vírgula (,), parênteses ( ), aspas ("), backslash (\),
+ * e wildcards de ilike (*, %). Mantém letras, números, espaço e acentos.
+ *
+ * @param {string} termo
+ * @returns {string}
+ */
+export function sanitizarTermoBusca(termo) {
+  if (!termo) return "";
+  // Remove caracteres perigosos no PostgREST: , ( ) " \ * %
+  return String(termo).replace(/[,()"\\\*%]/g, " ").trim();
+}
 
 /**
  * Saldo devedor do cliente: soma dos lançamentos de fiado ainda não

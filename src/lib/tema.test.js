@@ -91,6 +91,32 @@ describe("logoUrlTenant", () => {
   it("retorna a URL do logo quando definida", () => {
     expect(logoUrlTenant({ logo_url: "https://cdn.exemplo.com/logo.png" })).toBe("https://cdn.exemplo.com/logo.png");
   });
+
+  it("aceita http: além de https:", () => {
+    expect(logoUrlTenant({ logo_url: "http://cdn.exemplo.com/logo.png" })).toBe("http://cdn.exemplo.com/logo.png");
+  });
+
+  it("aceita logo embutido em base64 (data:image/…)", () => {
+    const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==";
+    expect(logoUrlTenant({ logo_url: dataUrl })).toBe(dataUrl);
+  });
+
+  it("bloqueia esquema javascript: (XSS via <img src>)", () => {
+    expect(logoUrlTenant({ logo_url: "javascript:alert(1)" })).toBeNull();
+  });
+
+  it("bloqueia data:text/html (XSS disfarçado de data URL)", () => {
+    expect(logoUrlTenant({ logo_url: "data:text/html,<script>alert(1)</script>" })).toBeNull();
+  });
+
+  it("bloqueia esquema vbscript:", () => {
+    expect(logoUrlTenant({ logo_url: "vbscript:msgbox(1)" })).toBeNull();
+  });
+
+  it("bloqueia entrada vazia/só espaços", () => {
+    expect(logoUrlTenant({ logo_url: "" })).toBeNull();
+    expect(logoUrlTenant({ logo_url: "   " })).toBeNull();
+  });
 });
 
 describe("aplicarVariaveisTema (efeito no DOM)", () => {

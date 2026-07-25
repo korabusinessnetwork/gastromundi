@@ -100,4 +100,35 @@ describe("lerBrandingCache / salvarBrandingCache", () => {
     expect(lerBrandingCache(quebrado)).toBeNull();
     expect(() => salvarBrandingCache({ nome: "X" }, quebrado)).not.toThrow();
   });
+
+  it("descarta cache carimbado com OUTRO slug (cross-tenant na mesma origem)", () => {
+    // jsdom resolve slugAtual() = "gastromundi" (hostname=localhost).
+    const s = fakeStorage({
+      [BRANDING_CACHE_KEY]: JSON.stringify({ nome: "Casa Coffee", __slug: "casacoffee" }),
+    });
+    expect(lerBrandingCache(s)).toBeNull();
+  });
+
+  it("lê cache carimbado com o slug atual", () => {
+    const s = fakeStorage({
+      [BRANDING_CACHE_KEY]: JSON.stringify({ nome: "GastroMundi", __slug: "gastromundi" }),
+    });
+    expect(lerBrandingCache(s)).toEqual({ nome: "GastroMundi", logo: null, variaveis: {} });
+  });
+
+  it("cache legado sem __slug segue sendo lido (revalidado pela RPC)", () => {
+    const s = fakeStorage({
+      [BRANDING_CACHE_KEY]: JSON.stringify({ nome: "Legado" }),
+    });
+    expect(lerBrandingCache(s)).toEqual({ nome: "Legado", logo: null, variaveis: {} });
+  });
+
+  it("salvar carimba o slug atual no payload (não vaza a chave interna no retorno)", () => {
+    const s = fakeStorage();
+    salvarBrandingCache({ nome: "GastroMundi", variaveis: { "--gm-accent": "#c08a3e" } }, s);
+    const bruto = JSON.parse(s._dados[BRANDING_CACHE_KEY]);
+    expect(bruto.__slug).toBe("gastromundi");
+    // lerBrandingCache devolve shape limpo, sem __slug.
+    expect(lerBrandingCache(s)).not.toHaveProperty("__slug");
+  });
 });
