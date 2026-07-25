@@ -848,3 +848,69 @@
 
 /* Entrega e taxas */
 .delivery-view__entrega-titulo { font-size: var(--fs-base); line-height: var(--lh-base); } /* subtítulo (era sz.fontBase) */
+
+/* Autocomplete do endereço de origem (Nominatim) — wrapper relativo para a
+   lista flutuar logo abaixo do input, cobrindo o mapa (z-index acima dos
+   panes do Leaflet, ~400/700). */
+.delivery-view__autocomplete {
+  position: relative;
+  min-width: 0;
+}
+.delivery-view__sugestoes {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1200;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  max-height: 240px;
+  overflow-y: auto;
+}
+.delivery-view__sugestao {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--gm-text);
+  cursor: pointer;
+  padding: 9px 10px;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.delivery-view__sugestao:hover,
+.delivery-view__sugestao:focus-visible {
+  background: var(--gm-alow, rgba(124, 58, 237, 0.13));
+  color: var(--gm-accent);
+  outline: none;
+}
+.delivery-view__sugestao-vazia {
+  padding: 9px 10px;
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Cadeado — trava a edição do endereço depois de salvo (quadrado, mesmo alvo
+   de toque do input; ícone LuLock/LuLockOpen alterna o estado). */
+.delivery-view__cadeado {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.delivery-view__cadeado:active { transform: translateY(1px); }

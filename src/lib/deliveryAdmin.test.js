@@ -226,6 +226,7 @@ describe("sanitizarConfig", () => {
       origem_lat: null,
       origem_lng: null,
       endereco_origem: null,
+      endereco_origem_bloqueado: false,
     });
   });
 
@@ -241,6 +242,14 @@ describe("sanitizarConfig", () => {
     // fora do intervalo ou não-numérico → null
     expect(sanitizarConfig({ origem_lat: 200, origem_lng: -51 }).origem_lat).toBe(null);
     expect(sanitizarConfig({ origem_lat: "x", origem_lng: "y" }).origem_lat).toBe(null);
+  });
+
+  it("cadeado do endereço vira boolean (default false)", () => {
+    expect(sanitizarConfig({}).endereco_origem_bloqueado).toBe(false);
+    expect(sanitizarConfig({ endereco_origem_bloqueado: true }).endereco_origem_bloqueado).toBe(true);
+    // truthy/falsy do banco (1/0/null) são coeridos, nunca vazam como estão
+    expect(sanitizarConfig({ endereco_origem_bloqueado: 1 }).endereco_origem_bloqueado).toBe(true);
+    expect(sanitizarConfig({ endereco_origem_bloqueado: null }).endereco_origem_bloqueado).toBe(false);
   });
 
   it("guarda o endereço de origem em texto (trim) ou null", () => {

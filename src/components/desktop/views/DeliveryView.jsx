@@ -59,6 +59,8 @@ import {
   LuPower,
   LuPowerOff,
   LuClock,
+  LuLock,
+  LuLockOpen,
 } from "react-icons/lu";
 import {
   statusLabel,
@@ -115,7 +117,7 @@ import {
 import { ajusteAutomaticoAbertura, resumoHorario } from "@/lib/deliveryHorario";
 import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
 import ListaArrastavel from "@/components/shared/ListaArrastavel";
-import { geocodificarEndereco } from "@/lib/delivery";
+import { geocodificarEndereco, sugerirEnderecos } from "@/lib/delivery";
 import { enviarFotoProduto, listarFotosDelivery, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import "./DeliveryView.css";
@@ -2413,6 +2415,24 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
   const [enderecoOrigem, setEnderecoOrigem] = useState("");
   const [geocodificando, setGeocodificando] = useState(false);
 
+  // Autocomplete do endereço (Nominatim, grátis): enquanto digita, sugere
+  // opções para o dono escolher — sem precisar acertar o endereço exato.
+  // Debounce + AbortController respeitam o limite do Nominatim (1 req/s) e
+  // descartam buscas obsoletas. O cadeado (config.endereco_origem_bloqueado)
+  // trava a escrita depois de salvo: some o autocomplete, o campo vira
+  // somente-leitura e o pino para de arrastar — evita mexer na origem sem
+  // querer (prevenção de erro > mensagem de erro, Princípio nº 1).
+  const [sugestoes,         setSugestoes]         = useState([]);
+  const [buscandoSugestoes, setBuscandoSugestoes] = useState(false);
+  const [mostrarSugestoes,  setMostrarSugestoes]  = useState(false);
+  const debounceRef = useRef(null);
+  const abortRef    = useRef(null);
+
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+  }, []);
+
   // nova faixa em edição
   const [faixaTipo, setFaixaTipo] = useState("bairro");
   const [faixaBairro, setFaixaBairro] = useState("");
@@ -2505,11 +2525,55 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
     }
   };
 
+  // Autocomplete: a cada letra (com debounce) busca sugestões no Nominatim.
+  // AbortController cancela a busca anterior para não pintar resultado velho.
+  const aoDigitarEndereco = (valor) => {
+    setEnderecoOrigem(valor);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+    const texto = valor.trim();
+    if (texto.length < 4) {
+      setSugestoes([]); setMostrarSugestoes(false); setBuscandoSugestoes(false);
+      return;
+    }
+    setBuscandoSugestoes(true);
+    setMostrarSugestoes(true);
+    debounceRef.current = setTimeout(async () => {
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+      const { data } = await sugerirEnderecos(texto, { signal: ctrl.signal });
+      if (ctrl.signal.aborted) return;
+      setSugestoes(data || []);
+      setBuscandoSugestoes(false);
+    }, 450);
+  };
+
+  // Operador escolheu uma opção da lista: preenche o campo, posiciona o pino
+  // e salva de uma vez — não precisa clicar em "Localizar".
+  const escolherSugestao = (s) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+    setEnderecoOrigem(s.nome);
+    setSugestoes([]); setMostrarSugestoes(false); setBuscandoSugestoes(false);
+    salvar({ endereco_origem: s.nome, origem_lat: s.lat, origem_lng: s.lng });
+    aviso("Endereço marcado no mapa. Arraste o pino se quiser ajustar.", "ok");
+  };
+
+  // Cadeado: depois de salvo, trava a escrita do endereço (e o pino do mapa).
+  // Alterna o flag e persiste — some o autocomplete, o campo fica só-leitura.
+  const alternarBloqueio = () => {
+    const proximo = !config?.endereco_origem_bloqueado;
+    setSugestoes([]); setMostrarSugestoes(false);
+    salvar({ endereco_origem_bloqueado: proximo });
+    aviso(proximo ? "Endereço bloqueado para edição." : "Endereço liberado para edição.", "ok");
+  };
+
   if (carregando || !config) {
     return <div className="delivery-view__carregando" style={{ color: varColor(C.muted), padding: 16 }}>Carregando…</div>;
   }
 
   const readOnly = !isAdmin;
+  const bloqueado = !!config?.endereco_origem_bloqueado;
 
   // Só as faixas do modo atual aparecem na lista (não misturar — "só km").
   const faixasVisiveis = (config.faixas_taxa || []).filter((f) =>
@@ -2578,18 +2642,50 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
               <label className="delivery-view__label">
                 Endereço do estabelecimento (ponto de partida das entregas)
               </label>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <input
-                  className="delivery-view__input"
-                  style={{ ...inputStyle(sz), flex: "1 1 240px" }}
-                  type="text"
-                  placeholder="Rua, número, bairro, cidade"
-                  value={enderecoOrigem}
-                  disabled={readOnly || geocodificando}
-                  onChange={(e) => setEnderecoOrigem(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !readOnly) localizarPeloEndereco(); }}
-                />
-                {!readOnly && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+                {/* wrapper relativo: a lista de sugestões flutua abaixo do input */}
+                <div className="delivery-view__autocomplete" style={{ flex: "1 1 240px" }}>
+                  <input
+                    className="delivery-view__input"
+                    style={{ ...inputStyle(sz), width: "100%" }}
+                    type="text"
+                    placeholder="Rua, número, bairro, cidade"
+                    value={enderecoOrigem}
+                    disabled={readOnly || bloqueado || geocodificando}
+                    autoComplete="off"
+                    onChange={(e) => aoDigitarEndereco(e.target.value)}
+                    onFocus={() => { if (sugestoes.length) setMostrarSugestoes(true); }}
+                    onBlur={() => setTimeout(() => setMostrarSugestoes(false), 150)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !readOnly && !bloqueado) { setMostrarSugestoes(false); localizarPeloEndereco(); }
+                      if (e.key === "Escape") setMostrarSugestoes(false);
+                    }}
+                  />
+                  {!readOnly && !bloqueado && mostrarSugestoes && (
+                    <ul className="delivery-view__sugestoes">
+                      {buscandoSugestoes && sugestoes.length === 0 && (
+                        <li className="delivery-view__sugestao-vazia">Buscando endereços…</li>
+                      )}
+                      {!buscandoSugestoes && sugestoes.length === 0 && (
+                        <li className="delivery-view__sugestao-vazia">Nenhum endereço encontrado.</li>
+                      )}
+                      {sugestoes.map((s, i) => (
+                        <li key={`${s.lat},${s.lng},${i}`}>
+                          <button
+                            type="button"
+                            className="delivery-view__sugestao"
+                            // onMouseDown (não onClick) para disparar antes do onBlur do input
+                            onMouseDown={(e) => { e.preventDefault(); escolherSugestao(s); }}
+                          >
+                            {s.nome}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {!readOnly && !bloqueado && (
                   <button
                     onClick={localizarPeloEndereco}
                     disabled={geocodificando}
@@ -2603,10 +2699,30 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
                     {geocodificando ? "Localizando…" : "Localizar no mapa"}
                   </button>
                 )}
+
+                {/* Cadeado: trava a escrita do endereço depois de salvo */}
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={alternarBloqueio}
+                    className="delivery-view__cadeado"
+                    title={bloqueado ? "Endereço bloqueado — toque para liberar a edição" : "Bloquear edição do endereço"}
+                    aria-label={bloqueado ? "Liberar edição do endereço" : "Bloquear edição do endereço"}
+                    aria-pressed={bloqueado}
+                    style={{
+                      background: bloqueado ? varColor(C.accent) : alfa(C.muted, "12"),
+                      color: bloqueado ? "#fff" : varColor(C.muted),
+                    }}
+                  >
+                    {bloqueado ? <LuLock size={18} /> : <LuLockOpen size={18} />}
+                  </button>
+                )}
               </div>
               {!readOnly && (
                 <div className="delivery-view__hint" style={{ color: varColor(C.muted), marginTop: 4 }}>
-                  Digite o endereço e toque em "Localizar" — o pino vai para lá. Você ainda pode arrastá-lo para o ajuste fino.
+                  {bloqueado
+                    ? "Endereço bloqueado. Toque no cadeado para liberar a edição."
+                    : "Comece a digitar e escolha uma sugestão — o pino vai para lá. Você ainda pode arrastá-lo para o ajuste fino, ou travar com o cadeado."}
                 </div>
               )}
             </div>
@@ -2615,7 +2731,7 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
               origem={origem}
               aneis={aneisKm}
               onOrigemChange={definirOrigem}
-              readOnly={readOnly}
+              readOnly={readOnly || bloqueado}
             />
             {!origem && (
               <div className="delivery-view__hint" style={{ color: varColor(C.red), marginTop: 6 }}>

@@ -215,6 +215,9 @@ export function sanitizarConfig(config) {
       typeof config?.endereco_origem === "string"
         ? config.endereco_origem.trim() || null
         : null,
+    // Cadeado da UI: trava a edição do endereço de origem depois de salvo.
+    // Só afeta a escrita no painel — nada no cálculo da taxa.
+    endereco_origem_bloqueado: !!config?.endereco_origem_bloqueado,
   };
 }
 
@@ -346,7 +349,7 @@ function coordOuNull(bruto, min, max) {
 export async function carregarConfigDelivery() {
   const { data, error } = await supabase
     .from("config_delivery")
-    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, endereco_origem, updated_at")
+    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, endereco_origem, endereco_origem_bloqueado, updated_at")
     .maybeSingle();
   return { data, error };
 }

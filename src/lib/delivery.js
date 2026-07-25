@@ -372,3 +372,42 @@ export async function geocodificarEndereco(endereco) {
     return { data: null, error: null };
   }
 }
+
+/**
+ * Autocomplete de endereço: a partir de um texto parcial, sugere até 5
+ * opções (rótulo legível + coordenada) via Nominatim (OpenStreetMap) —
+ * grátis, sem chave. O dono escolhe a origem do delivery sem precisar
+ * digitar o endereço exato.
+ *
+ * Mesma degradação graciosa do geocodificarEndereco: nunca lança; rede,
+ * abort ou vazio → { data: [] }. Aceita um AbortSignal para cancelar buscas
+ * obsoletas enquanto o usuário continua digitando (debounce no chamador —
+ * respeita o limite de 1 req/s do Nominatim).
+ *
+ * @param {string} texto - endereço parcial digitado
+ * @param {{signal?: AbortSignal}} [opts]
+ * @returns {Promise<{data: Array<{nome:string, lat:number, lng:number}>, error: object|null}>}
+ */
+export async function sugerirEnderecos(texto, { signal } = {}) {
+  const q = String(texto ?? "").trim();
+  if (q.length < 4) return { data: [], error: null };
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=br&q=" +
+      encodeURIComponent(q);
+    const resp = await fetch(url, { headers: { Accept: "application/json" }, signal });
+    if (!resp.ok) return { data: [], error: null };
+    const json = await resp.json();
+    const lista = Array.isArray(json) ? json : [];
+    const data = lista
+      .map((it) => ({
+        nome: String(it?.display_name ?? "").trim(),
+        lat: Number(it?.lat),
+        lng: Number(it?.lon),
+      }))
+      .filter((it) => it.nome && Number.isFinite(it.lat) && Number.isFinite(it.lng));
+    return { data, error: null };
+  } catch {
+    return { data: [], error: null };
+  }
+}
