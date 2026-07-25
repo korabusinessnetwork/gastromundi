@@ -25,6 +25,7 @@ import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/deliveryAdmi
 import {
   DIAS_SEMANA,
   HORARIO_PADRAO,
+  FAIXA_PADRAO,
   normalizarHorario,
   horarioValido,
   resumoHorario,
@@ -1314,10 +1315,13 @@ function DeliveryTab({ sz }) {
     setOkMsg("");
     setHorario((h) => {
       if (h.auto) return { ...h, auto: false };
-      const vazio = !h.abre && !h.fecha && h.dias.length === 0;
-      return vazio
-        ? { auto: true, abre: HORARIO_PADRAO.abre, fecha: HORARIO_PADRAO.fecha, dias: [...HORARIO_PADRAO.dias] }
-        : { ...h, auto: true };
+      const vazio = h.faixas.length === 0 && h.dias.length === 0;
+      if (vazio) {
+        return { auto: true, dias: [...HORARIO_PADRAO.dias], faixas: [{ ...FAIXA_PADRAO }] };
+      }
+      // Já tinha algo configurado: religa preservando, mas garante ao menos
+      // uma faixa visível para o dono editar.
+      return { ...h, auto: true, faixas: h.faixas.length ? h.faixas : [{ ...FAIXA_PADRAO }] };
     });
   };
 
@@ -1327,6 +1331,13 @@ function DeliveryTab({ sz }) {
         ? horario.dias.filter((d) => d !== id)
         : [...horario.dias, id].sort((a, b) => a - b),
     });
+
+  // Faixas de horário: cada uma é uma janela abre/fecha; valem para todos os
+  // dias marcados. O dono pode ter várias no mesmo dia (ex.: almoço e jantar).
+  const setFaixa = (i, patch) =>
+    setCampo({ faixas: horario.faixas.map((f, idx) => (idx === i ? { ...f, ...patch } : f)) });
+  const addFaixa = () => setCampo({ faixas: [...horario.faixas, { ...FAIXA_PADRAO }] });
+  const removeFaixa = (i) => setCampo({ faixas: horario.faixas.filter((_, idx) => idx !== i) });
 
   const valido = horario ? horarioValido(horario) : false;
   const alterado =
@@ -1410,32 +1421,53 @@ function DeliveryTab({ sz }) {
             </div>
           </div>
 
-          {/* Horário de abertura e fechamento */}
+          {/* Horários de abertura e fechamento (uma ou mais janelas por dia) */}
           <div className="delivery-tab__bloco">
-            <div className="delivery-tab__rotulo">Horário</div>
-            <div className="delivery-tab__horas">
-              <label className="delivery-tab__hora">
-                <span>Abre</span>
-                <input
-                  type="time"
-                  value={horario.abre || ""}
-                  onChange={(e) => setCampo({ abre: e.target.value })}
-                  className="delivery-tab__time"
-                />
-              </label>
-              <span className="delivery-tab__ate">às</span>
-              <label className="delivery-tab__hora">
-                <span>Fecha</span>
-                <input
-                  type="time"
-                  value={horario.fecha || ""}
-                  onChange={(e) => setCampo({ fecha: e.target.value })}
-                  className="delivery-tab__time"
-                />
-              </label>
+            <div className="delivery-tab__rotulo">Horários</div>
+            <div className="delivery-tab__faixas">
+              {horario.faixas.map((f, i) => (
+                <div className="delivery-tab__faixa" key={i}>
+                  <div className="delivery-tab__horas">
+                    <label className="delivery-tab__hora">
+                      <span>Abre</span>
+                      <input
+                        type="time"
+                        value={f.abre || ""}
+                        onChange={(e) => setFaixa(i, { abre: e.target.value })}
+                        className="delivery-tab__time"
+                      />
+                    </label>
+                    <span className="delivery-tab__ate">às</span>
+                    <label className="delivery-tab__hora">
+                      <span>Fecha</span>
+                      <input
+                        type="time"
+                        value={f.fecha || ""}
+                        onChange={(e) => setFaixa(i, { fecha: e.target.value })}
+                        className="delivery-tab__time"
+                      />
+                    </label>
+                  </div>
+                  {horario.faixas.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeFaixa(i)}
+                      className="delivery-tab__faixa-remover"
+                      aria-label={`Remover o horário ${i + 1}`}
+                      title="Remover este horário"
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
+            <button type="button" onClick={addFaixa} className="delivery-tab__add-faixa">
+              + Adicionar horário
+            </button>
             <div className="delivery-tab__dica">
-              Fecha depois da meia-noite? Basta pôr uma hora menor
+              Pode ter vários horários no mesmo dia (ex.: 08:00–10:00, 11:00–14:00
+              e 18:00–00:00). Fecha depois da meia-noite? Basta pôr uma hora menor
               (ex.: abre 18:00, fecha 02:00).
             </div>
           </div>

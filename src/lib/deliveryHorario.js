@@ -1,17 +1,23 @@
 // ──────────────────────────────────────────────────────────────────
 // deliveryHorario — abertura automática do delivery (agendamento).
 //
-// O dono define, nas Configurações, os DIAS da semana e o HORÁRIO em que
-// o delivery deve abrir e fechar sozinho. Isso mora em
-// `config_delivery.horario` (JSONB) com a forma:
+// O dono define, nas Configurações, os DIAS da semana e uma ou mais
+// FAIXAS de horário em que o delivery deve abrir e fechar sozinho. Isso
+// mora em `config_delivery.horario` (JSONB) com a forma:
 //
-//   { auto: boolean, abre: "HH:MM"|null, fecha: "HH:MM"|null, dias: number[] }
+//   { auto: boolean, dias: number[], faixas: [{ abre:"HH:MM", fecha:"HH:MM" }] }
 //
-//   • auto  — liga/desliga o agendamento. Desligado ⇒ controle 100% manual.
-//   • abre  — hora que a loja abre (relógio local do operador).
-//   • fecha — hora que a loja fecha. Pode ser MENOR que `abre` (vira a noite,
-//             ex.: abre 18:00, fecha 02:00 do dia seguinte).
-//   • dias  — dias de atendimento no padrão Date.getDay(): 0=domingo … 6=sábado.
+//   • auto   — liga/desliga o agendamento. Desligado ⇒ controle 100% manual.
+//   • dias   — dias de atendimento no padrão Date.getDay(): 0=domingo … 6=sábado.
+//   • faixas — janelas de atendimento do dia. Cada faixa tem `abre`/`fecha`
+//              (relógio local do operador). Suporta VÁRIAS por dia, ex.:
+//              08:00–10:00, 11:00–14:00 e 18:00–00:00. `fecha` pode ser MENOR
+//              que `abre` (vira a noite: abre 18:00, fecha 02:00 do dia seguinte).
+//              As faixas valem para TODOS os dias selecionados em `dias`.
+//
+// Compatibilidade: configs antigas guardavam uma única janela em `abre`/`fecha`
+// no topo do objeto. `normalizarHorario` migra esse formato para `faixas`
+// automaticamente, então nada quebra ao ler dados já salvos.
 //
 // Sem servidor/cron (fase de bootstrap, custo zero): quem reconcilia o flag
 // `config_delivery.aberto` com o horário é o app do operador enquanto está
@@ -31,13 +37,16 @@ export const DIAS_SEMANA = [
   { id: 6, curto: "Sáb", label: "Sábado" },
 ];
 
+// Faixa sugerida ao adicionar a primeira janela: 18:00 às 23:00. Só um
+// ponto de partida amigável — o dono ajusta.
+export const FAIXA_PADRAO = Object.freeze({ abre: "18:00", fecha: "23:00" });
+
 // Sugestão inicial ao ligar o agendamento pela primeira vez: todos os dias,
-// 18:00 às 23:00. Só um ponto de partida amigável — o dono ajusta.
+// uma faixa 18:00 às 23:00. Só um ponto de partida amigável — o dono ajusta.
 export const HORARIO_PADRAO = Object.freeze({
   auto: false,
-  abre: "18:00",
-  fecha: "23:00",
   dias: [0, 1, 2, 3, 4, 5, 6],
+  faixas: [{ ...FAIXA_PADRAO }],
 });
 
 /**
@@ -64,12 +73,39 @@ function paraHHMM(min) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+// "HH:MM" (ou "H:M") → "HH:MM" zero-padded, ou null se inválido.
+function normalizarHora(bruto) {
+  const min = paraMinutos(bruto);
+  return min == null ? null : paraHHMM(min);
+}
+
+/**
+ * Extrai a lista de faixas de um objeto de horário, migrando o formato antigo
+ * (uma única janela em `abre`/`fecha` no topo) para a lista `faixas`. Cada
+ * faixa vira `{ abre, fecha }` com horas normalizadas ("H:M" → "HH:MM") ou
+ * null. Faixas totalmente vazias (abre e fecha ambos nulos) são descartadas —
+ * são ruído de edição, não janelas reais.
+ * @param {object} h
+ * @returns {{abre:string|null, fecha:string|null}[]}
+ */
+function normalizarFaixas(h) {
+  const brutas = Array.isArray(h.faixas)
+    ? h.faixas
+    : // Formato legado: janela única em abre/fecha no topo do objeto.
+      (h.abre != null || h.fecha != null ? [{ abre: h.abre, fecha: h.fecha }] : []);
+  return brutas
+    .filter((f) => f && typeof f === "object")
+    .map((f) => ({ abre: normalizarHora(f.abre), fecha: normalizarHora(f.fecha) }))
+    .filter((f) => f.abre != null || f.fecha != null);
+}
+
 /**
  * Sanitiza o objeto de horário vindo da UI ou do banco. Nunca confia direto:
- * garante os tipos, zera dias inválidos/duplicados e normaliza "H:M" → "HH:MM".
+ * garante os tipos, zera dias inválidos/duplicados, migra o formato legado de
+ * janela única para `faixas` e normaliza cada hora "H:M" → "HH:MM".
  * Sempre devolve a forma completa (nunca campos faltando).
  * @param {*} bruto
- * @returns {{auto:boolean, abre:string|null, fecha:string|null, dias:number[]}}
+ * @returns {{auto:boolean, dias:number[], faixas:{abre:string|null, fecha:string|null}[]}}
  */
 export function normalizarHorario(bruto) {
   const h = bruto && typeof bruto === "object" ? bruto : {};
@@ -78,20 +114,23 @@ export function normalizarHorario(bruto) {
         .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6)
         .sort((a, b) => a - b)
     : [];
-  const minAbre = paraMinutos(h.abre);
-  const minFecha = paraMinutos(h.fecha);
   return {
     auto: h.auto === true,
-    abre: minAbre == null ? null : paraHHMM(minAbre),
-    fecha: minFecha == null ? null : paraHHMM(minFecha),
     dias,
+    faixas: normalizarFaixas(h),
   };
+}
+
+// Uma faixa individual está completa (abre e fecha válidos e diferentes)?
+function faixaCompleta(f) {
+  return f.abre != null && f.fecha != null && f.abre !== f.fecha;
 }
 
 /**
  * O horário está completo o bastante para governar a abertura?
  * Desligado (auto:false) é sempre "válido" (não há o que preencher).
- * Ligado exige: abre e fecha válidos, diferentes entre si, e ao menos 1 dia.
+ * Ligado exige: ao menos 1 dia, ao menos 1 faixa, e TODAS as faixas completas
+ * (abre e fecha válidos e diferentes entre si).
  * Serve para habilitar o botão Salvar na UI (prevenção de erro, Princípio nº 1).
  * @param {*} horario
  * @returns {boolean}
@@ -99,19 +138,20 @@ export function normalizarHorario(bruto) {
 export function horarioValido(horario) {
   const h = normalizarHorario(horario);
   if (!h.auto) return true;
-  return h.abre != null && h.fecha != null && h.abre !== h.fecha && h.dias.length > 0;
+  return h.dias.length > 0 && h.faixas.length > 0 && h.faixas.every(faixaCompleta);
 }
 
 /**
  * Dado o horário e um instante `agora`, o delivery DEVERIA estar aberto?
  *   • null  ⇒ o agendamento não governa (desligado ou incompleto): não mexa
  *             no controle manual.
- *   • true  ⇒ dentro da janela de atendimento agora.
- *   • false ⇒ agendamento ativo e válido, mas fora da janela (dia/horário).
+ *   • true  ⇒ dentro de ALGUMA faixa de atendimento agora.
+ *   • false ⇒ agendamento ativo e válido, mas fora de todas as faixas.
  *
- * Janela que vira a noite (fecha < abre) é tratada corretamente: no dia ativo
+ * Faixa que vira a noite (fecha < abre) é tratada corretamente: no dia ativo
  * conta a partir de `abre`; a madrugada seguinte (o "rescaldo") só conta se o
- * dia ANTERIOR era um dia de atendimento.
+ * dia ANTERIOR era um dia de atendimento. Com múltiplas faixas, basta UMA
+ * estar aberta para o delivery estar aberto.
  *
  * @param {*} horario  objeto de config_delivery.horario
  * @param {Date} [agora]
@@ -120,24 +160,28 @@ export function horarioValido(horario) {
 export function deliveryDeveEstarAberto(horario, agora = new Date()) {
   const h = normalizarHorario(horario);
   if (!h.auto) return null;
-  const abre = paraMinutos(h.abre);
-  const fecha = paraMinutos(h.fecha);
   // Incompleto ⇒ não governa (não fecha a loja por engano).
-  if (abre == null || fecha == null || abre === fecha || h.dias.length === 0) return null;
+  if (!horarioValido(h)) return null;
 
   const dia = agora.getDay();
+  const diaAnterior = (dia + 6) % 7;
   const minutos = agora.getHours() * 60 + agora.getMinutes();
   const ativo = (d) => h.dias.includes(d);
 
-  if (fecha > abre) {
-    // Janela no mesmo dia: [abre, fecha).
-    return ativo(dia) && minutos >= abre && minutos < fecha;
-  }
-  // Janela noturna (vira a meia-noite).
-  const diaAnterior = (dia + 6) % 7;
-  const noturnoHoje = ativo(dia) && minutos >= abre; // trecho até a meia-noite
-  const rescaldoOntem = ativo(diaAnterior) && minutos < fecha; // madrugada seguinte
-  return noturnoHoje || rescaldoOntem;
+  const faixaAberta = (f) => {
+    const abre = paraMinutos(f.abre);
+    const fecha = paraMinutos(f.fecha);
+    if (fecha > abre) {
+      // Janela no mesmo dia: [abre, fecha).
+      return ativo(dia) && minutos >= abre && minutos < fecha;
+    }
+    // Janela noturna (vira a meia-noite).
+    const noturnoHoje = ativo(dia) && minutos >= abre; // trecho até a meia-noite
+    const rescaldoOntem = ativo(diaAnterior) && minutos < fecha; // madrugada seguinte
+    return noturnoHoje || rescaldoOntem;
+  };
+
+  return h.faixas.some(faixaAberta);
 }
 
 /**
@@ -168,17 +212,26 @@ function resumoDias(dias) {
   return d.map((n) => DIAS_SEMANA[n].curto).join(", ");
 }
 
+// Uma faixa → "18:00 às 23:00" (ou "… (do dia seguinte)" quando vira a noite).
+// Fecha às 00:00 (meia-noite) é o fim natural do dia, não vira a madrugada —
+// coerente com deliveryDeveEstarAberto, que não gera rescaldo quando fecha=0.
+function resumoFaixa(f) {
+  const fecha = paraMinutos(f.fecha);
+  const vira = fecha < paraMinutos(f.abre) && fecha !== 0;
+  return `${f.abre} às ${f.fecha}${vira ? " (do dia seguinte)" : ""}`;
+}
+
 /**
  * Frase amigável do agendamento para a tela, ex.:
  *   "Seg a Sex · 18:00 às 23:00"
- *   "todos os dias · 18:00 às 02:00 (do dia seguinte)"
+ *   "todos os dias · 08:00 às 10:00, 11:00 às 14:00, 18:00 às 00:00"
+ *   "Dom, Sáb · 18:00 às 02:00 (do dia seguinte)"
  * Retorna null quando não há agendamento válido para descrever.
  * @param {*} horario
  * @returns {string|null}
  */
 export function resumoHorario(horario) {
   const h = normalizarHorario(horario);
-  if (!horarioValido(h) || !h.auto) return null;
-  const vira = paraMinutos(h.fecha) < paraMinutos(h.abre);
-  return `${resumoDias(h.dias)} · ${h.abre} às ${h.fecha}${vira ? " (do dia seguinte)" : ""}`;
+  if (!h.auto || !horarioValido(h)) return null;
+  return `${resumoDias(h.dias)} · ${h.faixas.map(resumoFaixa).join(", ")}`;
 }

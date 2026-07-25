@@ -1062,6 +1062,53 @@
   border-color: var(--gm-accent);
 }
 
+/* Lista de faixas de horário (uma ou mais janelas por dia) */
+.delivery-tab__faixas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.delivery-tab__faixa {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.delivery-tab__faixa-remover {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-muted);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.delivery-tab__faixa-remover:hover {
+  border-color: var(--gm-red);
+  color: var(--gm-red);
+}
+.delivery-tab__add-faixa {
+  align-self: flex-start;
+  margin-top: 10px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--gm-border);
+  background: transparent;
+  color: var(--gm-accent);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+.delivery-tab__add-faixa:hover {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+}
+
 .delivery-tab__dica {
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
