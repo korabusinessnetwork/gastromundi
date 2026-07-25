@@ -1039,12 +1039,14 @@ function ModalProduto({
   // slot do produto só no salvar, mantendo os produtos independentes.
   const [fotoGaleriaOrigem, setFotoGaleriaOrigem] = useState(null);
   const fotoInputRef = useRef(null);
+  const fotoAlvoRef = useRef(null);
   const [disponivel, setDisponivel] = useState(item?.disponivel ?? true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
 
   // Menu de escolha (clicar na foto) + modal da galeria.
   const [menuFotoAberto, setMenuFotoAberto] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
   const [galeriaAberta, setGaleriaAberta] = useState(false);
   const [galeriaFotos, setGaleriaFotos] = useState([]);
   const [galeriaCarregando, setGaleriaCarregando] = useState(false);
@@ -1073,6 +1075,24 @@ function ModalProduto({
     setFotoFile(null);
     setFotoUrl("");
     setFotoGaleriaOrigem(null);
+  };
+
+  // Abre/fecha o menu de escolha da foto. O menu é posicionado por coordenadas
+  // (position:fixed via getBoundingClientRect) para NÃO ser recortado pelo
+  // overflow-y do modal — bug real: em tela mais baixa ou com o modal rolado o
+  // menu abria para fora da área visível e parecia "não abrir". Clamp na
+  // viewport garante que ele apareça inteiro em qualquer tela.
+  const alternarMenuFoto = () => {
+    if (menuFotoAberto) return setMenuFotoAberto(false);
+    const r = fotoAlvoRef.current?.getBoundingClientRect();
+    if (r) {
+      const LARG = 210, ALT = 168, M = 8; // dimensões aprox. do menu + margem
+      setMenuPos({
+        top: Math.max(M, Math.min(r.bottom + 6, window.innerHeight - ALT - M)),
+        left: Math.max(M, Math.min(r.left, window.innerWidth - LARG - M)),
+      });
+    }
+    setMenuFotoAberto(true);
   };
 
   // Abre a galeria e carrega as fotos já enviadas por este estabelecimento.
@@ -1252,9 +1272,10 @@ function ModalProduto({
             {/* Clicar na foto abre o menu de escolha (enviar nova / galeria). */}
             <div className="delivery-view__foto-alvo-wrap">
               <button
+                ref={fotoAlvoRef}
                 type="button"
                 className="delivery-view__foto-alvo"
-                onClick={() => setMenuFotoAberto((v) => !v)}
+                onClick={alternarMenuFoto}
                 aria-haspopup="menu"
                 aria-expanded={menuFotoAberto}
                 title="Clique para trocar a foto"
@@ -1274,7 +1295,7 @@ function ModalProduto({
               {menuFotoAberto && (
                 <>
                   <div className="delivery-view__foto-menu-fundo" onClick={() => setMenuFotoAberto(false)} />
-                  <div className="delivery-view__foto-menu" role="menu" style={{ background: varColor(C.card), border: `1px solid ${alfa(C.muted, "22")}` }}>
+                  <div className="delivery-view__foto-menu" role="menu" style={{ top: menuPos?.top, left: menuPos?.left, background: varColor(C.card), border: `1px solid ${alfa(C.muted, "22")}` }}>
                     <button
                       type="button"
                       role="menuitem"

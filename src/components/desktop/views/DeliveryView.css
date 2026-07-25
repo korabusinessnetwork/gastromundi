@@ -478,11 +478,11 @@
   inset: 0;
   z-index: 5;
 }
+/* position:fixed + top/left inline (via getBoundingClientRect) para o menu
+   escapar do overflow-y do modal — senão ele era recortado/some em telas baixas. */
 .delivery-view__foto-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 6;
+  position: fixed;
+  z-index: 6; /* acima do fundo invisível (5) dentro do overlay do modal */
   min-width: 190px;
   padding: 6px;
   border-radius: 12px;
