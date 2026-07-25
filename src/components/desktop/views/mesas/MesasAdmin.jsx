@@ -383,18 +383,45 @@ export default function MesasAdmin({ sz }) {
                 adivinhação. Com o slot desenhado, o operador vê o alvo antes de
                 soltar (princípio nº 1: o próximo passo tem que ser óbvio). */}
             {Array.from({ length: gridRows }).map((_, linha) =>
-              Array.from({ length: gridCols }).map((_, coluna) => (
-                <div
-                  key={`slot-${coluna}-${linha}`}
-                  className="mesas-admin__slot"
-                  style={{
-                    left:  coluna * (CARD_W + CARD_GAP),
-                    top:   linha  * (CARD_H + CARD_GAP),
-                    width: CARD_W,
-                    height: CARD_H,
-                  }}
-                />
-              ))
+              Array.from({ length: gridCols }).map((_, coluna) => {
+                const cx = coluna + 1, cy = linha + 1;
+                const estiloSlot = {
+                  left:  coluna * (CARD_W + CARD_GAP),
+                  top:   linha  * (CARD_H + CARD_GAP),
+                  width: CARD_W,
+                  height: CARD_H,
+                };
+                // Célula ocupada (mesa real ou fantasma da pré-visualização):
+                // slot só decorativo, sem clique. Célula livre — inclusive a
+                // coluna/linha-buffer do drop, que antes só exibia um card
+                // "morto" que não pegava mesa: vira um alvo clicável "criar
+                // mesa aqui" (princípio nº 1: todo card vazio no mapa deve
+                // permitir criar uma mesa naquela posição). onDragOver mantido
+                // para o reposicionamento por arrasto continuar caindo aqui.
+                if (ocupadas.has(`${cx},${cy}`)) {
+                  return (
+                    <div
+                      key={`slot-${coluna}-${linha}`}
+                      className="mesas-admin__slot"
+                      style={estiloSlot}
+                    />
+                  );
+                }
+                return (
+                  <button
+                    key={`slot-${coluna}-${linha}`}
+                    type="button"
+                    className="mesas-admin__slot mesas-admin__slot--livre"
+                    style={estiloSlot}
+                    onClick={() => abrirNovoEm({ posicao_x: cx, posicao_y: cy })}
+                    onDragOver={handleDragOver}
+                    title="Criar mesa aqui"
+                    aria-label={`Criar mesa na posição ${cx}, ${cy}`}
+                  >
+                    <LuPlus size={18} />
+                  </button>
+                );
+              })
             )}
 
             {/* Cards-fantasma da pré-visualização: mostram o total planejado

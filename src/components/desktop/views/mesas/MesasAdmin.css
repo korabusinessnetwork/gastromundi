@@ -23,6 +23,30 @@
   opacity: 0.6;
 }
 
+/* Slot de célula LIVRE: clicável para criar uma mesa naquela posição — inclui
+   a coluna/linha-buffer do drop, que antes só mostrava um card "morto" que não
+   pegava mesa. Reativa pointer-events (o base tem none) e mostra um "+" discreto
+   em repouso, virando alvo accent no hover. Tocável no PDV: o clique cria mesa
+   mesmo sem estado de hover. */
+.mesas-admin__slot--livre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  color: var(--gm-faint);
+  font-family: inherit;
+  opacity: 0.7;
+  transition: opacity 0.15s, border-color 0.15s, background 0.15s, color 0.15s;
+}
+.mesas-admin__slot--livre:hover {
+  opacity: 1;
+  border-color: var(--gm-accent);
+  background: var(--gm-alow);
+  color: var(--gm-accent);
+}
+.mesas-admin__slot--livre:active { transform: translateY(1px); }
+
 /* Card-fantasma da pré-visualização: mesma caixa do card real, mas tracejado
    na cor do accent e clicável ("criar mesa aqui"). Posição/tamanho vêm do JSX.
    Fica acima dos slots (sem pointer-events) e recebe o clique normalmente. */
