@@ -2579,11 +2579,22 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
   const faixasVisiveis = (config.faixas_taxa || []).filter((f) =>
     modoTaxa === "km" ? f?.tipo === "km" : f?.tipo !== "km"
   );
-  const aneisKm = (config.faixas_taxa || []).filter((f) => f?.tipo === "km");
-  const origem =
-    Number.isFinite(Number(config.origem_lat)) && Number.isFinite(Number(config.origem_lng))
-      ? { lat: Number(config.origem_lat), lng: Number(config.origem_lng) }
-      : null;
+  // origem e aneisKm são PROPS do mapa (Leaflet). Memoizados por valor para
+  // manter a referência estável entre renders — sem isso, cada re-render do
+  // AbaEntrega (digitar, salvar, tick do pai) recria os objetos, o efeito do
+  // mapa dispara e o fitBounds re-enquadra o mapa "toda hora". Só mudam quando
+  // as coordenadas ou as faixas realmente mudam.
+  const aneisKm = useMemo(
+    () => (config.faixas_taxa || []).filter((f) => f?.tipo === "km"),
+    [config.faixas_taxa]
+  );
+  const origem = useMemo(
+    () =>
+      Number.isFinite(Number(config.origem_lat)) && Number.isFinite(Number(config.origem_lng))
+        ? { lat: Number(config.origem_lat), lng: Number(config.origem_lng) }
+        : null,
+    [config.origem_lat, config.origem_lng]
+  );
 
   return (
     <div style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 18 }}>

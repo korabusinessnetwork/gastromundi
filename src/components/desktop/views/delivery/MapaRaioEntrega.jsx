@@ -59,6 +59,7 @@ export default function MapaRaioEntrega({ origem, aneis = [], onOrigemChange, re
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const circlesRef = useRef([]);
+  const ultimoFitRef = useRef(null);
   const onChangeRef = useRef(onOrigemChange);
   onChangeRef.current = onOrigemChange;
 
@@ -121,6 +122,7 @@ export default function MapaRaioEntrega({ origem, aneis = [], onOrigemChange, re
         markerRef.current.remove();
         markerRef.current = null;
       }
+      ultimoFitRef.current = null; // origem sumiu: força re-enquadre se voltar
       return;
     }
 
@@ -157,15 +159,25 @@ export default function MapaRaioEntrega({ origem, aneis = [], onOrigemChange, re
       circlesRef.current.push(circ);
     });
 
-    // Enquadra o maior anel (ou centraliza no pino se não há anel).
+    // Enquadra o maior anel, MAS só quando faz sentido: os anéis mudaram
+    // (assinatura de raios) OU a origem saiu da área visível (ex.: digitar um
+    // endereço em outra cidade). Sem essa trava, todo re-render/arrasto do
+    // pino re-chamava fitBounds e o mapa pulava/re-zoomava "toda hora",
+    // roubando o pan/zoom manual do dono. Arrastar o pino com ele ainda à
+    // vista recentraliza os círculos (acima), mas não re-enquadra.
     // `animate: false`: sem animação de zoom não há `_onZoomTransitionEnd`
     // agendado por setTimeout — corta a corrida que quebrava ao fechar o
     // modal no meio da transição (TypeError _leaflet_pos).
-    if (ordenados.length > 0) {
-      const maior = circlesRef.current[0];
-      map.fitBounds(maior.getBounds(), { padding: [24, 24], maxZoom: 15, animate: false });
-    } else {
-      map.setView(centro, Math.max(map.getZoom(), ZOOM_COM_ORIGEM), { animate: false });
+    const assinaturaRaios = ordenados.map((f) => f.km_ate).join(",");
+    const foraDaVista = !map.getBounds().contains(L.latLng(centro[0], centro[1]));
+    if (ultimoFitRef.current !== assinaturaRaios || foraDaVista) {
+      ultimoFitRef.current = assinaturaRaios;
+      if (ordenados.length > 0) {
+        const maior = circlesRef.current[0];
+        map.fitBounds(maior.getBounds(), { padding: [24, 24], maxZoom: 15, animate: false });
+      } else {
+        map.setView(centro, Math.max(map.getZoom(), ZOOM_COM_ORIGEM), { animate: false });
+      }
     }
   }, [origem, aneis, temOrigem, readOnly]);
 
