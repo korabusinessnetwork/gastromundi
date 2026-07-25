@@ -39,6 +39,8 @@ import {
   LuPlus,
   LuCheck,
   LuImage,
+  LuImages,
+  LuUpload,
   LuUtensils,
   LuTruck,
   LuStore,
@@ -114,7 +116,7 @@ import { ajusteAutomaticoAbertura, resumoHorario } from "@/lib/deliveryHorario";
 import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
 import ListaArrastavel from "@/components/shared/ListaArrastavel";
 import { geocodificarEndereco } from "@/lib/delivery";
-import { enviarFotoProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
+import { enviarFotoProduto, listarFotosDelivery, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import "./DeliveryView.css";
 
@@ -1033,10 +1035,20 @@ function ModalProduto({
   const [fotoUrl, setFotoUrl] = useState(item?.foto_url || "");
   const [fotoFile, setFotoFile] = useState(null);
   const [fotoPreview, setFotoPreview] = useState("");
+  // Foto escolhida da GALERIA (path de origem no bucket). Copiamos para o
+  // slot do produto só no salvar, mantendo os produtos independentes.
+  const [fotoGaleriaOrigem, setFotoGaleriaOrigem] = useState(null);
   const fotoInputRef = useRef(null);
   const [disponivel, setDisponivel] = useState(item?.disponivel ?? true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+
+  // Menu de escolha (clicar na foto) + modal da galeria.
+  const [menuFotoAberto, setMenuFotoAberto] = useState(false);
+  const [galeriaAberta, setGaleriaAberta] = useState(false);
+  const [galeriaFotos, setGaleriaFotos] = useState([]);
+  const [galeriaCarregando, setGaleriaCarregando] = useState(false);
+  const [galeriaErro, setGaleriaErro] = useState("");
 
   // Libera o object URL da prévia ao trocar/fechar (evita vazamento).
   useEffect(() => {
@@ -1050,6 +1062,7 @@ function ModalProduto({
     if (!file.type?.startsWith("image/")) return setErro("Escolha um arquivo de imagem.");
     setErro("");
     if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+    setFotoGaleriaOrigem(null); // enviar arquivo novo cancela escolha da galeria
     setFotoFile(file);
     setFotoPreview(URL.createObjectURL(file));
   };
@@ -1059,6 +1072,34 @@ function ModalProduto({
     setFotoPreview("");
     setFotoFile(null);
     setFotoUrl("");
+    setFotoGaleriaOrigem(null);
+  };
+
+  // Abre a galeria e carrega as fotos já enviadas por este estabelecimento.
+  const abrirGaleria = async () => {
+    setMenuFotoAberto(false);
+    setGaleriaAberta(true);
+    setGaleriaErro("");
+    setGaleriaCarregando(true);
+    const { fotos, error } = await listarFotosDelivery(tenant?.id);
+    if (error) {
+      setGaleriaErro(error.message || "Não foi possível carregar a galeria.");
+      setGaleriaCarregando(false);
+      return;
+    }
+    setGaleriaFotos(fotos);
+    setGaleriaCarregando(false);
+  };
+
+  // Escolhe uma foto da galeria: mostra na prévia e marca para copiar no salvar.
+  const selecionarDaGaleria = (foto) => {
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+    setFotoPreview("");
+    setFotoFile(null);
+    setFotoUrl(foto.url);
+    setFotoGaleriaOrigem(foto.path);
+    setGaleriaAberta(false);
+    setErro("");
   };
 
   const temFoto = !!(fotoPreview || fotoUrl);
@@ -1119,6 +1160,18 @@ function ModalProduto({
         return setErro(eFoto.message || "Não foi possível enviar a foto.");
       }
       fotoFinal = url;
+    } else if (fotoGaleriaOrigem) {
+      // Escolheu da galeria: copia para o slot próprio do produto (independência).
+      const { url, error: eCopy } = await copiarFotoParaProduto({
+        tenantId: tenant?.id,
+        produtoId,
+        origemPath: fotoGaleriaOrigem,
+      });
+      if (eCopy) {
+        setSalvando(false);
+        return setErro(eCopy.message || "Não foi possível usar a foto da galeria.");
+      }
+      fotoFinal = url;
     }
 
     // Camada de delivery (sempre).
@@ -1139,6 +1192,7 @@ function ModalProduto({
   };
 
   return createPortal(
+    <>
     <div className="delivery-view__overlay" {...fecharAoClicarFora(onFechar)}>
       <div className="delivery-view__modal" style={{ background: varColor(C.card), color: varColor(C.text) }}>
         <div className="delivery-view__modal-topo">
@@ -1188,43 +1242,76 @@ function ModalProduto({
             Foto do produto
           </label>
           <div className="delivery-view__foto-upload">
-            {temFoto ? (
-              <img className="delivery-view__foto-preview" src={fotoPreview || fotoUrl} alt="Prévia da foto do produto" style={{ border: `1px solid ${alfa(C.muted, "22")}` }} />
-            ) : (
-              <div className="delivery-view__foto-vazia" style={{ background: alfa(C.muted, "10"), color: varColor(C.muted) }}>
-                <LuImage size={26} />
-              </div>
-            )}
-            <div className="delivery-view__foto-acoes">
-              <input
-                ref={fotoInputRef}
-                type="file"
-                accept={ACCEPT_IMAGEM}
-                onChange={escolherFoto}
-                style={{ display: "none" }}
-              />
+            <input
+              ref={fotoInputRef}
+              type="file"
+              accept={ACCEPT_IMAGEM}
+              onChange={escolherFoto}
+              style={{ display: "none" }}
+            />
+            {/* Clicar na foto abre o menu de escolha (enviar nova / galeria). */}
+            <div className="delivery-view__foto-alvo-wrap">
               <button
                 type="button"
-                onClick={() => fotoInputRef.current?.click()}
-                className="delivery-view__btn delivery-view__btn--sm"
-                style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "9px 14px" }}
+                className="delivery-view__foto-alvo"
+                onClick={() => setMenuFotoAberto((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={menuFotoAberto}
+                title="Clique para trocar a foto"
               >
-                <LuImage size={14} /> {temFoto ? "Trocar foto" : "Escolher foto"}
+                {temFoto ? (
+                  <img className="delivery-view__foto-preview" src={fotoPreview || fotoUrl} alt="Prévia da foto do produto" style={{ border: `1px solid ${alfa(C.muted, "22")}` }} />
+                ) : (
+                  <div className="delivery-view__foto-vazia" style={{ background: alfa(C.muted, "10"), color: varColor(C.muted) }}>
+                    <LuImage size={26} />
+                  </div>
+                )}
+                <span className="delivery-view__foto-editar" style={{ background: varColor(C.accent) }}>
+                  <LuPencil size={12} color="#fff" />
+                </span>
               </button>
-              {temFoto && (
-                <button
-                  type="button"
-                  onClick={removerFoto}
-                  className="delivery-view__btn delivery-view__btn--sm"
-                  style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "9px 14px" }}
-                >
-                  <LuTrash2 size={14} /> Remover
-                </button>
+
+              {menuFotoAberto && (
+                <>
+                  <div className="delivery-view__foto-menu-fundo" onClick={() => setMenuFotoAberto(false)} />
+                  <div className="delivery-view__foto-menu" role="menu" style={{ background: varColor(C.card), border: `1px solid ${alfa(C.muted, "22")}` }}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="delivery-view__foto-menu-item"
+                      onClick={() => { setMenuFotoAberto(false); fotoInputRef.current?.click(); }}
+                      style={{ color: varColor(C.text) }}
+                    >
+                      <LuUpload size={15} color={varColor(C.accent)} /> Enviar nova foto
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="delivery-view__foto-menu-item"
+                      onClick={abrirGaleria}
+                      style={{ color: varColor(C.text) }}
+                    >
+                      <LuImages size={15} color={varColor(C.accent)} /> Escolher da galeria
+                    </button>
+                    {temFoto && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="delivery-view__foto-menu-item"
+                        onClick={() => { removerFoto(); setMenuFotoAberto(false); }}
+                        style={{ color: varColor(C.red) }}
+                      >
+                        <LuTrash2 size={15} /> Remover foto
+                      </button>
+                    )}
+                  </div>
+                </>
               )}
-              <span className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
-                Tire do celular ou escolha da galeria. Ajustamos o tamanho automaticamente.
-              </span>
             </div>
+
+            <span className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
+              Clique na foto para enviar do celular ou escolher da galeria. Ajustamos o tamanho automaticamente.
+            </span>
           </div>
         </div>
         <div className="delivery-view__campo">
@@ -1254,7 +1341,77 @@ function ModalProduto({
           </button>
         </div>
       </div>
-    </div>,
+    </div>
+
+    {/* Galeria: todas as fotos já enviadas por este estabelecimento. */}
+    {galeriaAberta && (
+      <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setGaleriaAberta(false))}>
+        <div className="delivery-view__modal delivery-view__galeria" style={{ background: varColor(C.card), color: varColor(C.text) }}>
+          <div className="delivery-view__modal-topo">
+            <div className="delivery-view__modal-titulo" style={{ fontWeight: 800 }}>
+              <LuImages size={16} style={{ verticalAlign: "-3px", marginRight: 6 }} />
+              Galeria de fotos
+            </div>
+            <button onClick={() => setGaleriaAberta(false)} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+              <LuX size={18} />
+            </button>
+          </div>
+
+          {galeriaCarregando ? (
+            <div className="delivery-view__galeria-estado" style={{ color: varColor(C.muted) }}>
+              <LuRefreshCw size={22} className="delivery-view__girando" />
+              Carregando as fotos…
+            </div>
+          ) : galeriaErro ? (
+            <div className="delivery-view__galeria-estado">
+              <div className="delivery-view__aviso" style={{ background: alfa(C.red, "12"), color: varColor(C.red), border: `1px solid ${alfa(C.red, "33")}` }}>
+                ⚠️ {galeriaErro}
+              </div>
+              <button
+                type="button"
+                onClick={abrirGaleria}
+                className="delivery-view__btn delivery-view__btn--sm"
+                style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "9px 14px" }}
+              >
+                <LuRefreshCw size={14} /> Tentar de novo
+              </button>
+            </div>
+          ) : galeriaFotos.length === 0 ? (
+            <div className="delivery-view__galeria-estado" style={{ color: varColor(C.muted) }}>
+              <LuImage size={30} />
+              <div style={{ fontWeight: 700 }}>Nenhuma foto ainda</div>
+              <div className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
+                Envie a primeira foto de um produto e ela aparecerá aqui para reusar.
+              </div>
+            </div>
+          ) : (
+            <div className="delivery-view__galeria-grade">
+              {galeriaFotos.map((foto) => {
+                const selecionada = fotoGaleriaOrigem === foto.path;
+                return (
+                  <button
+                    key={foto.path}
+                    type="button"
+                    className={`delivery-view__galeria-item${selecionada ? " is-sel" : ""}`}
+                    onClick={() => selecionarDaGaleria(foto)}
+                    style={{ borderColor: selecionada ? varColor(C.accent) : alfa(C.muted, "22") }}
+                    title="Usar esta foto"
+                  >
+                    <img src={foto.url} alt="Foto do delivery" loading="lazy" />
+                    {selecionada && (
+                      <span className="delivery-view__galeria-check" style={{ background: varColor(C.accent) }}>
+                        <LuCheck size={14} color="#fff" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+    </>,
     document.body
   );
 }

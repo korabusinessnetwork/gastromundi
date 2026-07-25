@@ -419,13 +419,32 @@
   outline-offset: 2px;
 }
 
-/* Upload de foto do produto: prévia à esquerda, ações à direita.
-   Quebra em bloco no mobile (foto por cima das ações). */
+/* Foto do produto: clicar na miniatura abre um menu (enviar nova / galeria).
+   Miniatura à esquerda, dica embaixo; quebra em bloco no mobile. */
 .delivery-view__foto-upload {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   flex-wrap: wrap;
+}
+.delivery-view__foto-alvo-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+/* A própria foto é o botão — alvo grande e óbvio (intuitividade). */
+.delivery-view__foto-alvo {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 12px;
+  line-height: 0;
+}
+.delivery-view__foto-alvo:focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
 }
 .delivery-view__foto-preview,
 .delivery-view__foto-vazia {
@@ -440,17 +459,112 @@
   align-items: center;
   justify-content: center;
 }
-.delivery-view__foto-acoes {
-  flex: 1;
-  min-width: 160px;
+/* Selo de "editar" no canto da foto — sinaliza que é clicável. */
+.delivery-view__foto-editar {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
-.delivery-view__foto-acoes > span {
-  flex-basis: 100%;
+/* Fundo invisível que fecha o menu ao clicar fora. */
+.delivery-view__foto-menu-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
 }
+.delivery-view__foto-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 6;
+  min-width: 190px;
+  padding: 6px;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.delivery-view__foto-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.delivery-view__foto-menu-item:hover {
+  background: rgba(128, 128, 128, 0.12);
+}
+.delivery-view__hint { flex-basis: 100%; }
+
+/* ── Galeria de fotos ── */
+.delivery-view__galeria { max-width: 620px; }
+.delivery-view__galeria-estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 32px 16px;
+}
+.delivery-view__galeria-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 2px;
+}
+.delivery-view__galeria-item {
+  position: relative;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  aspect-ratio: 1 / 1;
+  background: none;
+  line-height: 0;
+}
+.delivery-view__galeria-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.delivery-view__galeria-item:hover { transform: translateY(-1px); }
+.delivery-view__galeria-item:focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
+}
+.delivery-view__galeria-item.is-sel { border-width: 2px; }
+.delivery-view__galeria-check {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+.delivery-view__girando { animation: delivery-view-girar 0.9s linear infinite; }
+@keyframes delivery-view-girar { to { transform: rotate(360deg); } }
 .delivery-view__modal-botoes {
   display: flex;
   gap: 10px;

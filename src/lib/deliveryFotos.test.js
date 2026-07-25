@@ -12,6 +12,9 @@ import {
   caminhoFotoProduto,
   calcularDimensoes,
   urlComVersao,
+  pastaTenant,
+  ehArquivoDeFoto,
+  versaoDoArquivo,
   MAX_LADO_PX,
 } from "./deliveryFotos";
 
@@ -85,5 +88,54 @@ describe("urlComVersao", () => {
   it("devolve a entrada crua quando vazia", () => {
     expect(urlComVersao("")).toBe("");
     expect(urlComVersao(null)).toBe(null);
+  });
+});
+
+describe("pastaTenant", () => {
+  it("apara e devolve a pasta do tenant", () => {
+    expect(pastaTenant("t1")).toBe("t1");
+    expect(pastaTenant("  abc-uuid ")).toBe("abc-uuid");
+  });
+  it("devolve null sem tenant", () => {
+    expect(pastaTenant("")).toBe(null);
+    expect(pastaTenant("   ")).toBe(null);
+    expect(pastaTenant(null)).toBe(null);
+    expect(pastaTenant(undefined)).toBe(null);
+  });
+});
+
+describe("ehArquivoDeFoto", () => {
+  it("aceita extensões de imagem (case-insensitive)", () => {
+    expect(ehArquivoDeFoto("42.jpg")).toBe(true);
+    expect(ehArquivoDeFoto("42.jpeg")).toBe(true);
+    expect(ehArquivoDeFoto("foto.PNG")).toBe(true);
+    expect(ehArquivoDeFoto("x.webp")).toBe(true);
+  });
+  it("recusa placeholders/pastas e lixo", () => {
+    expect(ehArquivoDeFoto(".emptyFolderPlaceholder")).toBe(false);
+    expect(ehArquivoDeFoto("subpasta")).toBe(false);
+    expect(ehArquivoDeFoto("nota.pdf")).toBe(false);
+    expect(ehArquivoDeFoto("")).toBe(false);
+    expect(ehArquivoDeFoto(null)).toBe(false);
+  });
+});
+
+describe("versaoDoArquivo", () => {
+  it("usa updated_at como carimbo estável", () => {
+    const t = versaoDoArquivo({ updated_at: "2026-01-02T03:04:05.000Z" });
+    expect(t).toBe(Date.parse("2026-01-02T03:04:05.000Z"));
+  });
+  it("cai para created_at e depois metadata.lastModified", () => {
+    expect(versaoDoArquivo({ created_at: "2026-01-01T00:00:00.000Z" })).toBe(
+      Date.parse("2026-01-01T00:00:00.000Z")
+    );
+    expect(versaoDoArquivo({ metadata: { lastModified: "2026-01-01T00:00:00.000Z" } })).toBe(
+      Date.parse("2026-01-01T00:00:00.000Z")
+    );
+  });
+  it("devolve 0 sem data ou com lixo", () => {
+    expect(versaoDoArquivo(null)).toBe(0);
+    expect(versaoDoArquivo({})).toBe(0);
+    expect(versaoDoArquivo({ updated_at: "não-é-data" })).toBe(0);
   });
 });

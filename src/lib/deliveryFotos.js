@@ -74,6 +74,28 @@ export function urlComVersao(url, versao = Date.now()) {
   return `${url}${sep}v=${versao}`;
 }
 
+/** Pasta do tenant no bucket (prefixo do .list()). Null se faltar tenant. */
+export function pastaTenant(tenantId) {
+  const t = String(tenantId ?? "").trim();
+  return t || null;
+}
+
+/** É um arquivo de foto? (ignora placeholders/pastas que o Storage devolve). */
+export function ehArquivoDeFoto(name) {
+  return /\.(jpe?g|png|webp)$/i.test(String(name || ""));
+}
+
+/**
+ * Versão estável (cache-friendly) de um item do Storage: usa a data de
+ * atualização como carimbo, então a URL só muda quando a foto muda de fato.
+ * Cai para 0 quando não há data (a URL fica sem ?v=, mas ainda válida).
+ */
+export function versaoDoArquivo(arquivo) {
+  const quando = arquivo?.updated_at || arquivo?.created_at || arquivo?.metadata?.lastModified;
+  const t = quando ? Date.parse(quando) : NaN;
+  return Number.isFinite(t) ? t : 0;
+}
+
 // ════════════════════════════════════════════════════════════════
 // NAVEGADOR (<canvas>) + I/O (Storage) — guardadas
 // ════════════════════════════════════════════════════════════════
@@ -149,5 +171,63 @@ export async function enviarFotoProduto({ file, tenantId, produtoId }) {
   if (upErr) return { url: null, error: upErr };
 
   const { data } = supabase.storage.from(BUCKET_FOTOS).getPublicUrl(caminho);
+  return { url: urlComVersao(data?.publicUrl), error: null };
+}
+
+/**
+ * Lista TODAS as fotos já enviadas pelo tenant (galeria do Delivery).
+ * A policy de SELECT do bucket é escopada por tenant, então isto só
+ * enxerga a PRÓPRIA pasta. Devolve itens prontos para exibir:
+ *   { path, nome, url } — `url` pública e versionada (cache-friendly).
+ * Nunca lança — sempre { fotos, error }.
+ * @param {string} tenantId
+ */
+export async function listarFotosDelivery(tenantId) {
+  const pasta = pastaTenant(tenantId);
+  if (!pasta) return { fotos: [], error: new Error("Estabelecimento não identificado.") };
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET_FOTOS)
+    .list(pasta, { limit: 1000, sortBy: { column: "updated_at", order: "desc" } });
+  if (error) return { fotos: [], error };
+
+  const fotos = (data || [])
+    .filter((arq) => ehArquivoDeFoto(arq?.name))
+    .map((arq) => {
+      const path = `${pasta}/${arq.name}`;
+      const { data: pub } = supabase.storage.from(BUCKET_FOTOS).getPublicUrl(path);
+      return { path, nome: arq.name, url: urlComVersao(pub?.publicUrl, versaoDoArquivo(arq)) };
+    });
+  return { fotos, error: null };
+}
+
+/**
+ * Reaproveita uma foto já existente na galeria para o produto atual,
+ * COPIANDO-a para o slot próprio `{tenant}/{produto}.jpg`. Copiar (em vez
+ * de só apontar a URL) mantém os produtos INDEPENDENTES: trocar a foto de
+ * um depois não mexe no outro. Devolve a URL nova versionada.
+ * Nunca lança — sempre { url, error }.
+ * @param {{ tenantId: string, produtoId: string|number, origemPath: string }} args
+ */
+export async function copiarFotoParaProduto({ tenantId, produtoId, origemPath }) {
+  const destino = caminhoFotoProduto(tenantId, produtoId);
+  if (!destino) return { url: null, error: new Error("Estabelecimento ou produto não identificado.") };
+  if (!origemPath) return { url: null, error: new Error("Nenhuma foto selecionada.") };
+
+  // Já é a foto deste produto? Nada a copiar — só devolve a URL atual.
+  if (origemPath === destino) {
+    const { data } = supabase.storage.from(BUCKET_FOTOS).getPublicUrl(destino);
+    return { url: urlComVersao(data?.publicUrl), error: null };
+  }
+
+  const { data: blob, error: dlErr } = await supabase.storage.from(BUCKET_FOTOS).download(origemPath);
+  if (dlErr) return { url: null, error: dlErr };
+
+  const { error: upErr } = await supabase.storage
+    .from(BUCKET_FOTOS)
+    .upload(destino, blob, { contentType: "image/jpeg", upsert: true, cacheControl: "3600" });
+  if (upErr) return { url: null, error: upErr };
+
+  const { data } = supabase.storage.from(BUCKET_FOTOS).getPublicUrl(destino);
   return { url: urlComVersao(data?.publicUrl), error: null };
 }
