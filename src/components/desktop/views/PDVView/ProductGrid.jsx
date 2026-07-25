@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { montarItemCombo } from "@/lib/combos";
@@ -9,6 +9,32 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
   const sz = getSizes(width);
   const categorias = ["Todos", ...new Set(products.map(p => p.category))];
   const [catAtiva, setCatAtiva] = useState("Todos");
+
+  // Arrastar-para-rolar a barra de categorias: quando há categorias demais
+  // elas transbordam e somem à direita (ex. nomes longos). No mouse não dá
+  // para rolar na horizontal, então o operador não alcança as escondidas.
+  // Aqui, segurar e arrastar a barra rola até elas. Só mouse — no toque o
+  // scroll nativo já resolve. `moveu` distingue arrasto de clique para não
+  // trocar de categoria sem querer ao arrastar.
+  const filtroRef = useRef(null);
+  const arrasto   = useRef({ ativo: false, startX: 0, startScroll: 0, moveu: false });
+
+  const iniciarArrasto = (e) => {
+    if (e.pointerType !== "mouse" || !filtroRef.current) return;
+    arrasto.current = {
+      ativo: true, moveu: false,
+      startX: e.clientX, startScroll: filtroRef.current.scrollLeft,
+    };
+  };
+  const moverArrasto = (e) => {
+    const a = arrasto.current;
+    if (!a.ativo || !filtroRef.current) return;
+    const dx = e.clientX - a.startX;
+    if (Math.abs(dx) > 4) a.moveu = true;
+    filtroRef.current.scrollLeft = a.startScroll - dx;
+  };
+  const fimArrasto = () => { arrasto.current.ativo = false; };
+  const selecionarCat = (cat) => { if (!arrasto.current.moveu) setCatAtiva(cat); };
 
   const filtrados = catAtiva === "Todos"
     ? products
@@ -31,12 +57,20 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
   return (
     <div className="produto-grid">
 
-      {/* Filtro de categorias */}
-      <div className="produto-grid__filtro" style={{ gap: sz.gap - 4, padding: `${sz.padSm}px ${sz.pad}px` }}>
+      {/* Filtro de categorias — arrastável para alcançar as que transbordam */}
+      <div
+        ref={filtroRef}
+        className="produto-grid__filtro"
+        style={{ gap: sz.gap - 4, padding: `${sz.padSm}px ${sz.pad}px` }}
+        onPointerDown={iniciarArrasto}
+        onPointerMove={moverArrasto}
+        onPointerUp={fimArrasto}
+        onPointerLeave={fimArrasto}
+      >
         {categorias.map(cat => (
           <button
             key={cat}
-            onClick={() => setCatAtiva(cat)}
+            onClick={() => selecionarCat(cat)}
             className={`produto-grid__chip${catAtiva === cat ? " produto-grid__chip--ativo" : ""}`}
             style={{ padding: `${sz.padSm - 4}px ${sz.pad - 4}px` }}
           >

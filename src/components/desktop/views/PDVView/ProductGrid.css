@@ -18,8 +18,23 @@
 .produto-grid__filtro {
   display: flex;
   overflow-x: auto;
+  overflow-y: hidden;
   flex-shrink: 0;
   border-bottom: 1px solid var(--gm-border);
+  /* arrastar-para-rolar (JS): pega e arrasta a barra para alcançar categorias
+     escondidas. cursor grab dá a dica visual; grabbing enquanto arrasta. */
+  cursor: grab;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+  /* não deixa o arrasto virar seleção de texto dos rótulos */
+  user-select: none;
+}
+.produto-grid__filtro:active { cursor: grabbing; }
+/* barra de rolagem fina só como pista de que há mais categorias (webkit) */
+.produto-grid__filtro::-webkit-scrollbar { height: 6px; }
+.produto-grid__filtro::-webkit-scrollbar-thumb {
+  background: var(--gm-border);
+  border-radius: 3px;
 }
 
 .produto-grid__chip {
