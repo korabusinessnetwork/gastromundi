@@ -17,6 +17,22 @@
   color: var(--gm-text);
   font-family: var(--gm-font-texto, "Inter", system-ui, sans-serif);
   overflow: hidden;
+  /* Mata o "double-tap para dar zoom" em todo o Palm (tela + sheets + teclado
+     na tela). O garçom bate rápido nas telinhas e teclas; sem isso, dois toques
+     seguidos no mesmo ponto disparavam zoom no meio do lançamento. Mantém a
+     rolagem e o pinça-para-zoom — só remove o gesto de zoom por toque duplo. */
+  touch-action: manipulation;
+}
+
+/* Evita o zoom automático do iOS ao focar um campo de texto: o Safari dá zoom
+   sempre que o input tem fonte < 16px. A tipografia base do app é 15px
+   (--fs-base), então aqui só garantimos um piso de 16px nos campos de texto do
+   Palm — sem tocar na tipografia global nem no visual das telinhas/teclas
+   (que são <button>, não <input>). `max()` nunca encolhe um campo maior. */
+.mobile-page input,
+.mobile-page textarea,
+.mobile-page select {
+  font-size: max(16px, var(--fs-base));
 }
 
 /* Área que troca de aba. Rola por dentro; o padding inferior reserva o
