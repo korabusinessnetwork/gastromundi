@@ -1,0 +1,254 @@
+/* ──────────────────────────────────────────────────────────────────
+   PainelTab — painel pessoal do garçom (aba "Painel" do /palm).
+   Tela 1f do redesign mobile. Dark por padrão, funciona em claro:
+   só tokens --gm-* (decisão 017/018 — nada de cor de tenant hardcoded).
+   ────────────────────────────────────────────────────────────────── */
+
+.painelTab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  color: var(--gm-text);
+  font-family: var(--gm-font-texto, system-ui, sans-serif);
+}
+
+/* ── Cabeçalho ──────────────────────────────────────────────────── */
+.painelTab__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.painelTab__headerIcone {
+  width: 22px;
+  height: 22px;
+  color: var(--gm-text);
+  flex-shrink: 0;
+}
+
+.painelTab__titulo {
+  margin: 0;
+  font-family: var(--gm-font-titulo, inherit);
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-3xl);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight);
+}
+
+/* ── KPI: meus lançamentos no caixa ────────────────────────────── */
+.painelTab__kpiCard {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.painelTab__kpiLabel {
+  margin: 0;
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 600;
+}
+
+.painelTab__kpiValor {
+  margin: 6px 0 0;
+  color: var(--gm-green);
+  font-size: var(--fs-5xl);
+  line-height: var(--lh-5xl);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.painelTab__kpiSecundarios {
+  display: flex;
+  gap: 24px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--gm-border);
+}
+
+.painelTab__kpiItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.painelTab__kpiItemValor {
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.painelTab__kpiItemLabel {
+  color: var(--gm-muted);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+/* ── Radar de oportunidades ────────────────────────────────────── */
+.painelTab__radar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.painelTab__radarTitulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.painelTab__radarIcone {
+  width: 18px;
+  height: 18px;
+  color: var(--gm-warn);
+  flex-shrink: 0;
+}
+
+.painelTab__radarTexto {
+  margin: 0;
+  color: var(--gm-warn);
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+  font-weight: 800;
+}
+
+.painelTab__radarVazio {
+  background: var(--gm-card);
+  border: 1px dashed var(--gm-border);
+  border-radius: 14px;
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--gm-muted);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.painelTab__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.painelTab__oportunidadeItem {
+  margin: 0;
+}
+
+/* Cartão inteiro é o alvo de toque (abre o detalhe da comanda). */
+.painelTab__oportunidadeCard {
+  width: 100%;
+  min-height: var(--tap-min);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  text-align: left;
+  background: color-mix(in srgb, var(--gm-warn) 8%, var(--gm-card));
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 30%, transparent);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: var(--gm-text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 150ms ease, background-color 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.painelTab__oportunidadeCard:active {
+  transform: scale(0.98);
+  background: color-mix(in srgb, var(--gm-warn) 14%, var(--gm-card));
+}
+
+.painelTab__oportunidadeCard:focus-visible {
+  outline: 2px solid var(--gm-warn);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .painelTab__oportunidadeCard {
+    transition: none;
+  }
+  .painelTab__oportunidadeCard:active {
+    transform: none;
+  }
+}
+
+.painelTab__oportunidadeTopo {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.painelTab__oportunidadeBadge {
+  font-family: var(--gm-font-mono, monospace);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--gm-muted);
+  background: color-mix(in srgb, var(--gm-text) 8%, transparent);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.painelTab__oportunidadeComanda {
+  font-family: var(--gm-font-mono, monospace);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.painelTab__oportunidadeMesa {
+  font-size: var(--fs-sm);
+  color: var(--gm-muted);
+}
+
+.painelTab__oportunidadeRotulo {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.painelTab__oportunidadeCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  align-self: flex-start;
+  min-height: 36px;
+  margin-top: 2px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gm-warn) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 40%, transparent);
+  color: var(--gm-warn);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+}
+
+.painelTab__oportunidadeCta svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Telas bem estreitas: reduz o respiro lateral pra caber os KPIs sem quebrar. */
+@media (max-width: 340px) {
+  .painelTab {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .painelTab__kpiSecundarios {
+    gap: 16px;
+  }
+}

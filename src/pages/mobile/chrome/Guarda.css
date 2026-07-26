@@ -1,0 +1,162 @@
+/**
+ * Guarda — Full-screen guard states (loading, caixa fechado, sem internet).
+ * Tokens: --gm-bg (fundo), --gm-accent (botão), --gm-green (check), --gm-warn (wifi).
+ */
+
+.guarda {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gm-bg);
+  padding: 24px;
+}
+
+.guarda__conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  text-align: center;
+  max-width: 360px;
+}
+
+.guarda__spinner-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+}
+
+/* Spinner: anel girante (responde a prefers-reduced-motion) */
+.guarda__spinner {
+  width: 64px;
+  height: 64px;
+  border: 3px solid var(--gm-faint);
+  border-top-color: var(--gm-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guarda__spinner {
+    animation: none;
+    border: 3px solid var(--gm-accent);
+  }
+}
+
+/* Ícone container (check ou wifi-off) */
+.guarda__icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--gm-green) 14%, transparent);
+  color: var(--gm-green);
+}
+
+.guarda__icon-container--green {
+  background: color-mix(in srgb, var(--gm-green) 14%, transparent);
+  color: var(--gm-green);
+}
+
+.guarda__icon-container--warn {
+  background: color-mix(in srgb, var(--gm-warn) 20%, transparent);
+  color: var(--gm-warn);
+}
+
+.guarda__titulo {
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  line-height: var(--lh-2xl);
+  color: var(--gm-text);
+  margin: 0;
+  margin-top: 8px;
+}
+
+.guarda__subtexto {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+  margin: 0;
+}
+
+/* Botão — ação (refresh) */
+.guarda__botao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap-min);
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 100ms cubic-bezier(0.2, 0, 0, 1);
+  padding: 12px 16px;
+}
+
+.guarda__botao:active {
+  transform: scale(0.98);
+}
+
+/* Botão de ação (Verificar de novo) — outline com muted */
+.guarda__botao--acao {
+  background: transparent;
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+}
+
+.guarda__botao--acao:hover {
+  border-color: var(--gm-muted);
+}
+
+/* Botão de ação (Lançar pelo WiFi) — accent */
+.guarda__botao--accent {
+  background: var(--gm-accent);
+  color: var(--gm-card);
+  margin-top: 8px;
+}
+
+.guarda__botao--accent:hover {
+  background: color-mix(in srgb, var(--gm-accent) 110%, transparent);
+}
+
+.guarda__rodape {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--gm-muted);
+  margin: 0;
+  margin-top: 8px;
+}
+
+/* Respeita reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .guarda__botao {
+    transition: none;
+  }
+
+  .guarda__botao:active {
+    transform: none;
+  }
+}
