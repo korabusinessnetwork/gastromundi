@@ -6,9 +6,10 @@
 // Funções puras — a tela (MobilePage) cuida de estado e persistência.
 
 /** Cria uma entrada de espera a partir do carrinho atual. */
-export const criarEspera = ({ comanda, mesa = "", items = [] }) => ({
+export const criarEspera = ({ comanda, mesa = "", apelido = "", items = [] }) => ({
   comanda: String(comanda ?? "").trim(),
   mesa:    String(mesa ?? "").trim(),
+  apelido: String(apelido ?? "").trim(),
   items:   (Array.isArray(items) ? items : []).map(i => ({ ...i })),
 });
 
@@ -35,7 +36,12 @@ export const adicionarEspera = (lista, nova) => {
     if (j >= 0) itens[j] = { ...itens[j], qty: (itens[j].qty ?? 1) + (item.qty ?? 1) };
     else        itens.push({ ...item });
   }
-  const fundida = { ...existente, mesa: existente.mesa || nova.mesa, items: itens };
+  const fundida = {
+    ...existente,
+    mesa: existente.mesa || nova.mesa,
+    apelido: existente.apelido || nova.apelido,
+    items: itens,
+  };
   return fila.map((e, n) => (n === idx ? fundida : e));
 };
 

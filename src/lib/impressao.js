@@ -260,6 +260,10 @@ export function montarViaProducao({ pedido } = {}) {
   return {
     tipo: "via_producao",
     comanda: pedido?.comanda ?? null,
+    // Complemento opcional da comanda (o "nome" que o garçom digita no
+    // /palm, ex.: "Mesa VIP", "João da esquina"). Separado do número da
+    // comanda: sai impresso como referência, sem se misturar com ele.
+    apelido: pedido?.apelido ?? null,
     mesa: pedido?.mesa ?? null,
     garcom: pedido?.garcom ?? null,
     // Horário de LANÇAMENTO (B1): mais recente launched_at entre os itens

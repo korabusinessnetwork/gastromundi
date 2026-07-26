@@ -26,6 +26,11 @@ describe("criarEspera", () => {
     expect(e.mesa).toBe("");
     expect(e.items).toEqual([]);
   });
+
+  it("normaliza o apelido (complemento) e aceita ausente", () => {
+    expect(criarEspera({ comanda: "7", apelido: " Mesa VIP " }).apelido).toBe("Mesa VIP");
+    expect(criarEspera({ comanda: "7" }).apelido).toBe("");
+  });
 });
 
 describe("adicionarEspera", () => {
@@ -56,6 +61,14 @@ describe("adicionarEspera", () => {
     expect(fila[0].mesa).toBe("8");
     fila = adicionarEspera(fila, criarEspera({ comanda: "1", mesa: "9", items: [] }));
     expect(fila[0].mesa).toBe("8");
+  });
+
+  it("preserva o apelido na fusão; preenche se estava vazio, não sobrescreve", () => {
+    let fila = adicionarEspera([], criarEspera({ comanda: "1", apelido: "", items: [item("a", 10)] }));
+    fila = adicionarEspera(fila, criarEspera({ comanda: "1", apelido: "Mesa VIP", items: [item("b", 5)] }));
+    expect(fila[0].apelido).toBe("Mesa VIP");
+    fila = adicionarEspera(fila, criarEspera({ comanda: "1", apelido: "Outro", items: [item("c", 3)] }));
+    expect(fila[0].apelido).toBe("Mesa VIP");
   });
 
   it("ignora espera sem comanda e lista não-array", () => {

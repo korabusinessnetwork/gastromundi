@@ -98,7 +98,11 @@
       "Bash(grep -iA3 security /c/Users/bonas/.claude/plugins/installed_plugins.json)",
       "Bash(openssl rsa *)",
       "Bash(openssl x509 *)",
-      "Bash(grep -nB2 -A6 -iE \"config_delivery.*\\(enable row|policy\\)|policy.*config_delivery|on public.config_delivery\" supabase/migrations/20260804_delivery_fundacao.sql)"
+      "Bash(grep -nB2 -A6 -iE \"config_delivery.*\\(enable row|policy\\)|policy.*config_delivery|on public.config_delivery\" supabase/migrations/20260804_delivery_fundacao.sql)",
+      "Bash(cd \"C:/Users/bonas/OneDrive/Documentos/Projetos/gastromundi\" && cp \"/c/Users/bonas/AppData/Local/Temp/claude/C--Users-bonas-OneDrive-Documentos-Projetos-gastromundi/3a6924a3-83ca-422b-9d9b-e6bdb9baaf55/scratchpad/repro-foto-menu.html\" \"./_repro_foto_menu.html\" && echo \"copiado\")",
+      "PowerShell(npx vitest run src/constants/roles.test.js 2>&1)",
+      "Bash(node --test)",
+      "Bash(git rm *)"
     ]
   }
 }

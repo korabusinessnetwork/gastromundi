@@ -12,7 +12,10 @@
 .detalhe-comanda-sheet {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  /* Acima da BottomNav (z-index 100) e do restante da chrome do /palm —
+     toda folha que abre fica por cima, nunca escondida atrás da barra
+     inferior. Mesmo nível das sheets de lançamento (lancamento.css). */
+  z-index: 9000;
   display: flex;
   align-items: flex-end;
   justify-content: center;

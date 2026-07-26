@@ -114,6 +114,7 @@ export default function MobilePage() {
   const [showLancar, setShowLancar] = useState(false);
   const [lancComanda, setLancComanda] = useState("");
   const [lancMesa, setLancMesa] = useState("");
+  const [lancApelido, setLancApelido] = useState(""); // nome/complemento opcional (sai impresso, separado do nº)
   const [lancErro, setLancErro] = useState("");
   const [detalheComanda, setDetalheComanda] = useState(null);
   const [detalheVisible, setDetalheVisible] = useState(false);
@@ -184,17 +185,19 @@ export default function MobilePage() {
   const abrirModalLancar = () => {
     setLancComanda((prev) => prev || "");
     setLancMesa((prev) => prev || "");
+    setLancApelido((prev) => prev || "");
     setLancErro("");
     setShowLancar(true);
   };
 
-  const selecionarComanda = (comanda, mesa = "") => {
+  const selecionarComanda = (comanda, mesa = "", apelido = "") => {
     const order = mapa[String(comanda)];
     if (order) {
       abrirDetalhe(order);
     } else {
       setLancComanda(String(comanda));
       setLancMesa(mesa || "");
+      setLancApelido(apelido || "");
       setLancErro("");
       setAba("pedido");
       setShowLancar(true);
@@ -205,7 +208,7 @@ export default function MobilePage() {
    * Persiste um lançamento: cria a comanda se não existir, atualiza a mesa
    * se veio nova, e acumula os itens do carrinho. Retorna a order final.
    */
-  const persistirLancamento = async (nomeComanda, mesa, itensCarrinho) => {
+  const persistirLancamento = async (nomeComanda, mesa, itensCarrinho, apelido = "") => {
     let order = mapa[nomeComanda];
 
     if (!order) {
@@ -214,6 +217,7 @@ export default function MobilePage() {
         id: crypto.randomUUID(),
         comanda: nomeComanda,
         mesa,
+        apelido: apelido || null,
         items: [],
         status: "open",
         total: 0,
@@ -225,10 +229,17 @@ export default function MobilePage() {
       const { error } = await addPending(order);
       if (error) throw error;
       logAction("comanda:abrir", { comanda: nomeComanda, mesa });
-    } else if (mesa && !order.mesa) {
-      const { error } = await updatePending(order.id, { mesa });
-      if (error) throw error;
-      order = { ...order, mesa };
+    } else {
+      // Preenche mesa/apelido só se ainda estiverem vazios na comanda — não
+      // sobrescreve o que já foi definido antes (mesmo critério dos dois).
+      const patch = {};
+      if (mesa && !order.mesa) patch.mesa = mesa;
+      if (apelido && !order.apelido) patch.apelido = apelido;
+      if (Object.keys(patch).length > 0) {
+        const { error } = await updatePending(order.id, patch);
+        if (error) throw error;
+        order = { ...order, ...patch };
+      }
     }
 
     let updatedOrder = order;
@@ -269,6 +280,7 @@ export default function MobilePage() {
   const handleLancar = async () => {
     const nomeComanda = lancComanda.trim();
     const mesa = lancMesa.trim();
+    const apelido = lancApelido.trim();
     if (!nomeComanda) {
       setLancErro("Informe o número ou nome da comanda.");
       return;
@@ -287,11 +299,12 @@ export default function MobilePage() {
     // manda para a folha de esperas (o garçom revisa e envia todos juntos).
     if (cartItems.length > 0 && esperas.length > 0) {
       setEsperas((prev) =>
-        adicionarEspera(prev, { comanda: nomeComanda, mesa, items: cartItems })
+        adicionarEspera(prev, { comanda: nomeComanda, mesa, apelido, items: cartItems })
       );
       setCartItems([]);
       setLancComanda("");
       setLancMesa("");
+      setLancApelido("");
       setLancErro("");
       setShowLancar(false);
       setShowEsperas(true);
@@ -303,7 +316,8 @@ export default function MobilePage() {
       const updatedOrder = await persistirLancamento(
         nomeComanda,
         mesa,
-        cartItems
+        cartItems,
+        apelido
       );
       if (cartItems.length > 0) {
         setToast("✓ Pedido enviado com sucesso!");
@@ -312,6 +326,7 @@ export default function MobilePage() {
       setCartItems([]);
       setLancComanda("");
       setLancMesa("");
+      setLancApelido("");
       setLancErro("");
       setShowLancar(false);
       setAba("comandas");
@@ -327,17 +342,19 @@ export default function MobilePage() {
   const porEmEspera = () => {
     const nomeComanda = lancComanda.trim();
     const mesa = lancMesa.trim();
+    const apelido = lancApelido.trim();
     if (!nomeComanda) {
       setLancErro("Informe o número ou nome da comanda.");
       return;
     }
     if (cartItems.length === 0) return;
     setEsperas((prev) =>
-      adicionarEspera(prev, { comanda: nomeComanda, mesa, items: cartItems })
+      adicionarEspera(prev, { comanda: nomeComanda, mesa, apelido, items: cartItems })
     );
     setCartItems([]);
     setLancComanda("");
     setLancMesa("");
+    setLancApelido("");
     setLancErro("");
     setShowLancar(false);
     setToast(`Comanda ${nomeComanda} em espera — siga com a próxima`);
@@ -359,7 +376,7 @@ export default function MobilePage() {
         continue;
       }
       try {
-        await persistirLancamento(esp.comanda, esp.mesa || "", esp.items || []);
+        await persistirLancamento(esp.comanda, esp.mesa || "", esp.items || [], esp.apelido || "");
         enviados++;
       } catch (e) {
         console.error("Erro ao enviar espera:", e);
@@ -431,7 +448,7 @@ export default function MobilePage() {
           emUso: emUsoPorOutro(order),
           nomeTrava: nomeTrava(order),
           total: order.total ?? 0,
-          onClick: () => selecionarComanda(order.comanda, order.mesa),
+          onClick: () => selecionarComanda(order.comanda, order.mesa, order.apelido),
         }))
       : Array.from({ length: limite }, (_, i) => i + 1).map((num) => {
           const order = mapa[String(num)];
@@ -441,7 +458,7 @@ export default function MobilePage() {
             emUso: order ? emUsoPorOutro(order) : false,
             nomeTrava: order ? nomeTrava(order) : "",
             total: order?.total ?? 0,
-            onClick: () => selecionarComanda(num, order?.mesa),
+            onClick: () => selecionarComanda(num, order?.mesa, order?.apelido),
           };
         });
   const temMais = resultadosGrid === null && limite < TOTAL_COMANDAS;
@@ -622,6 +639,7 @@ export default function MobilePage() {
           setCartAberto(false);
           setLancComanda("");
           setLancMesa("");
+          setLancApelido("");
         }}
         onLancar={() => {
           setCartAberto(false);
@@ -637,11 +655,13 @@ export default function MobilePage() {
         titulo={cartItems.length === 0 ? "Abrir Comanda" : "Lançar Pedido"}
         comanda={lancComanda}
         mesa={lancMesa}
+        nome={lancApelido}
         onComanda={(v) => {
           setLancComanda(v);
           setLancErro("");
         }}
         onMesa={setLancMesa}
+        onNome={setLancApelido}
         onConfirmar={handleLancar}
         onEspera={porEmEspera}
         onFechar={() => {
@@ -682,6 +702,7 @@ export default function MobilePage() {
           setTimeout(() => {
             setLancComanda(String(o.comanda));
             setLancMesa(o.mesa || "");
+            setLancApelido(o.apelido || "");
             setLancErro("");
             setAba("pedido");
           }, 320);

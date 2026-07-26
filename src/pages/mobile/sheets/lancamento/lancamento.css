@@ -481,15 +481,58 @@
   color: var(--gm-muted);
 }
 
+/* Rótulo + toggle 123/ABC na mesma linha, alinhados na base. */
+.lancar-sheet__rotulo-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 20px;
+}
+
+/* Segmentado 123 / ABC — alterna o teclado da mesa sem sumir com a
+   telinha. Mesmo desenho de "pílula" do resto do app. */
+.lancar-sheet__toggle {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+}
+
+.lancar-sheet__toggle-opcao {
+  min-width: 34px;
+  min-height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gm-muted);
+  font-family: var(--gm-font-texto);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.lancar-sheet__toggle-opcao--ativa {
+  background: var(--gm-accent);
+  color: var(--gm-text);
+}
+
+/* Telinha de exibição — comanda e mesa compartilham o mesmo estilo. É um
+   botão: tocar escolhe qual campo o teclado edita. Inativa fica em tom
+   neutro; a ativa acende no accent (feedback de foco, previne erro). */
 .lancar-sheet__display {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-height: 56px;
   padding: 0 12px;
   border-radius: 14px;
-  border: 2px solid var(--gm-accent);
-  background: color-mix(in srgb, var(--gm-accent) 12%, var(--gm-card));
+  border: 2px solid var(--gm-border);
+  background: var(--gm-surface);
   color: var(--gm-text);
   font-family: var(--gm-font-mono);
   font-size: var(--fs-3xl);
@@ -498,6 +541,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.lancar-sheet__display--ativo {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 12%, var(--gm-card));
 }
 
 .lancar-sheet__display-placeholder {
@@ -568,6 +618,55 @@
 .lancar-sheet__tecla--apagar svg {
   width: 24px;
   height: 24px;
+}
+
+/* Teclado ABC da mesa — QWERTY em linhas, mesmas teclas do numérico só
+   que mais baixas (cabem 10 numa linha). Só aparece no modo ABC. */
+.lancar-sheet__teclado-abc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lancar-sheet__abc-linha {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.lancar-sheet__tecla--abc {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 48px;
+  font-size: var(--fs-lg);
+  padding: 0;
+}
+
+.lancar-sheet__abc-linha--acoes .lancar-sheet__tecla {
+  min-height: 48px;
+}
+
+.lancar-sheet__abc-linha--acoes .lancar-sheet__tecla--texto {
+  flex: 1 1 0;
+}
+
+.lancar-sheet__tecla--espaco {
+  flex: 2 1 0;
+  font-family: var(--gm-font-texto);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--gm-muted);
+}
+
+.lancar-sheet__abc-linha--acoes .lancar-sheet__tecla--apagar {
+  flex: 1 1 0;
+}
+
+.lancar-sheet__ajuda {
+  font-family: var(--gm-font-texto);
+  font-size: var(--fs-xs);
+  color: var(--gm-muted);
+  line-height: 1.35;
 }
 
 .lancar-sheet__erro {

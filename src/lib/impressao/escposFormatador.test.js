@@ -83,4 +83,18 @@ describe("formatarViaProducaoEscpos", () => {
     const linhas = formatarViaProducaoEscpos({ ...pedido, itens: [] }, colunas);
     expect(linhas.join("\n")).toContain("Nenhum item produzível");
   });
+
+  it("inclui o apelido (complemento) quando presente, respeitando as colunas", () => {
+    const colunas = colunasPorLargura(58, 15);
+    const linhas = formatarViaProducaoEscpos({ ...pedido, apelido: "Mesa VIP" }, colunas);
+    expect(linhas.join("\n")).toContain("Mesa VIP");
+    for (const linha of linhas) expect(linha.length).toBeLessThanOrEqual(colunas);
+  });
+
+  it("sem apelido, não adiciona linha de complemento", () => {
+    const colunas = colunasPorLargura(80, 15);
+    const semApelido = formatarViaProducaoEscpos(pedido, colunas);
+    const comApelido = formatarViaProducaoEscpos({ ...pedido, apelido: "Zé" }, colunas);
+    expect(comApelido.length).toBe(semApelido.length + 1);
+  });
 });

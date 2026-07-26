@@ -103,10 +103,13 @@ export function formatarComprovanteEscpos(dados, colunas) {
  * @returns {string[]}
  */
 export function formatarViaProducaoEscpos(dados, colunas) {
-  const { comanda, mesa, garcom, horario, itens } = dados;
+  const { comanda, apelido, mesa, garcom, horario, itens } = dados;
   const linhas = [];
 
   linhas.push(centralizar(fmtComanda(comanda), colunas));
+  // Complemento opcional (o "nome" digitado no /palm) — linha própria,
+  // logo abaixo do número da comanda, sem se misturar com ele.
+  if (apelido) quebrarLinha(apelido, colunas).forEach(l => linhas.push(centralizar(l, colunas)));
   const horarioFmt = new Date(horario).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const detalhe = [mesa ? `Mesa ${mesa}` : null, garcom, horarioFmt].filter(Boolean).join(" · ");
   linhas.push(centralizar(detalhe, colunas));

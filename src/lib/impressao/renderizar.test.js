@@ -126,4 +126,33 @@ describe("renderizarViaProducao", () => {
 
     expect(html).toContain("Nenhum item produzível");
   });
+
+  it("imprime o apelido (complemento) como linha própria quando presente", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", apelido: "Mesa VIP", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "X", qty: 1, emoji: "", obs: [] }],
+    });
+
+    expect(html).toContain("cabecalho__apelido");
+    expect(html).toContain("Mesa VIP");
+  });
+
+  it("não renderiza a linha de apelido quando ele está ausente", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "X", qty: 1, emoji: "", obs: [] }],
+    });
+
+    expect(html).not.toContain("cabecalho__apelido");
+  });
+
+  it("escapa apelido malicioso na via de produção", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", apelido: "<img src=x onerror=alert(1)>", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "X", qty: 1, emoji: "", obs: [] }],
+    });
+
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+  });
 });

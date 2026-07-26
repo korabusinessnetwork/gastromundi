@@ -143,7 +143,7 @@ export function renderizarRecibo(dados) {
  * @returns {string} HTML completo do documento
  */
 export function renderizarViaProducao(dados) {
-  const { comanda, mesa, garcom, horario, itens } = dados;
+  const { comanda, apelido, mesa, garcom, horario, itens } = dados;
 
   const linhasItens = itens
     .map((it) => `
@@ -164,6 +164,7 @@ export function renderizarViaProducao(dados) {
 <body>
   <div class="cabecalho">
     <div class="cabecalho__titulo">${esc(fmtComanda(comanda))}</div>
+    ${apelido ? `<div class="cabecalho__apelido">${esc(apelido)}</div>` : ""}
     <div class="cabecalho__linha">
       ${mesa ? `Mesa ${esc(mesa)} · ` : ""}${garcom ? `${esc(garcom)} · ` : ""}${new Date(horario).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
     </div>
