@@ -118,15 +118,19 @@ export default function MaisTab({
         ))}
       </div>
 
-      <button
-        type="button"
-        className="mais-tab__configuracoes"
-        onClick={onConfiguracoes}
-      >
-        <LuSettings aria-hidden="true" />
-        <span className="mais-tab__configuracoesTexto">Configurações</span>
-        <LuChevronRight aria-hidden="true" />
-      </button>
+      {/* Configurações só aparece para quem tem a permissão: o shell passa o
+          handler apenas nesse caso (sem handler = sem botão). */}
+      {onConfiguracoes ? (
+        <button
+          type="button"
+          className="mais-tab__configuracoes"
+          onClick={onConfiguracoes}
+        >
+          <LuSettings aria-hidden="true" />
+          <span className="mais-tab__configuracoesTexto">Configurações</span>
+          <LuChevronRight aria-hidden="true" />
+        </button>
+      ) : null}
     </div>
   );
 }

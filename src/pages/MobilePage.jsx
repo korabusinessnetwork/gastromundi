@@ -505,6 +505,10 @@ export default function MobilePage() {
     desde: formatHoraCurta(sessaoAbertaEm),
     operador: undefined,
   };
+  // Configurações segue a mesma regra dos módulos: só aparece para quem tem a
+  // permissão. Sem ela, o botão some (prevenção > erro) — antes ele aparecia
+  // sempre e a rota expulsava o usuário sem permissão.
+  const podeConfiguracoes = !!currentUser?.permissions?.configuracoes;
   const modulosMais = MODULOS_MAIS.filter(
     (m) =>
       currentUser?.permissions?.[m.perm] &&
@@ -621,7 +625,9 @@ export default function MobilePage() {
             usuarioIniciais={usuarioIniciais}
             caixa={caixaInfo}
             modulos={modulosMais}
-            onConfiguracoes={() => navigate("/app/configuracoes")}
+            onConfiguracoes={
+              podeConfiguracoes ? () => navigate("/app/configuracoes") : undefined
+            }
           />
         )}
       </div>
