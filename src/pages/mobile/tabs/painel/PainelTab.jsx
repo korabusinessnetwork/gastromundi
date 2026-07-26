@@ -57,9 +57,6 @@ export default function PainelTab({ meu, ticketMedio, oportunidades }) {
                   onClick={op.onClick}
                 >
                   <div className="painelTab__oportunidadeTopo">
-                    {op.comandaId != null && (
-                      <span className="painelTab__oportunidadeBadge">#{op.comandaId}</span>
-                    )}
                     <span className="painelTab__oportunidadeComanda">{fmtComanda(op.comanda)}</span>
                     {op.mesa && (
                       <span className="painelTab__oportunidadeMesa">· Mesa {op.mesa}</span>

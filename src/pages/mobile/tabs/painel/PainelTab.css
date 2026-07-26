@@ -188,17 +188,6 @@
   gap: 6px;
 }
 
-.painelTab__oportunidadeBadge {
-  font-family: var(--gm-font-mono, monospace);
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  color: var(--gm-muted);
-  background: color-mix(in srgb, var(--gm-text) 8%, transparent);
-  border-radius: 6px;
-  padding: 2px 6px;
-  font-variant-numeric: tabular-nums;
-}
-
 .painelTab__oportunidadeComanda {
   font-family: var(--gm-font-mono, monospace);
   font-size: var(--fs-sm);
