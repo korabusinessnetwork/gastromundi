@@ -111,7 +111,10 @@
 
 .comandas-tab__grade {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* minmax(0, 1fr): sem o piso 0, o 1fr respeita o min-content da celula e um
+     nome de comanda longo alarga sua coluna roubando largura da outra (colunas
+     desiguais no iOS). Com o piso 0 as duas metades ficam sempre iguais. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -120,6 +123,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+  min-width: 0;
   min-height: 96px;
   padding: 14px;
   border-radius: 16px;
@@ -141,6 +145,7 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
+  min-width: 0;
 }
 
 .comandas-tab__numero {
@@ -149,6 +154,11 @@
   font-weight: 700;
   color: var(--gm-text);
   font-variant-numeric: tabular-nums;
+  /* Nome longo trunca com reticencias em vez de forcar a coluna a crescer. */
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .comandas-tab__badge {
