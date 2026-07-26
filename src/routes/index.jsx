@@ -2,7 +2,6 @@ import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import PrivateRoute   from "./PrivateRoute";
 import ConsoleRoute   from "./ConsoleRoute";
-import MobileRoute    from "./MobileRoute";
 import InicioApp      from "./InicioApp";
 import { ehApexInstitucional } from "@/lib/apex";
 import { consoleAtivo, ehConsoleHost } from "@/lib/consoleHost";
@@ -135,9 +134,7 @@ const rotasApp = [
     path: "/app",
     element: (
       <PrivateRoute>
-        <MobileRoute>
-          <DesktopLayout />
-        </MobileRoute>
+        <DesktopLayout />
       </PrivateRoute>
     ),
     children: [
