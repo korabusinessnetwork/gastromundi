@@ -1,0 +1,224 @@
+.mais-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 16px calc(96px + env(safe-area-inset-bottom, 0px));
+  min-height: 100%;
+  background: var(--gm-bg);
+  color: var(--gm-text);
+  font-family: var(--gm-font-texto);
+}
+
+/* Header */
+.mais-tab__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mais-tab__headerTextos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mais-tab__titulo {
+  margin: 0;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-xl, 1.5rem);
+  line-height: var(--lh-tight, 1.2);
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.mais-tab__subtitulo {
+  margin: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mais-tab__avatar {
+  flex-shrink: 0;
+  width: var(--tap-min, 44px);
+  height: var(--tap-min, 44px);
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--gm-accent) 22%, transparent);
+  color: var(--gm-accent);
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide, 0.02em);
+}
+
+/* Caixa status pill */
+.mais-tab__caixaPill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-blue);
+  min-height: var(--tap-min, 44px);
+}
+
+.mais-tab__caixaPill svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.mais-tab__caixaPill--fechado {
+  color: var(--gm-muted);
+}
+
+.mais-tab__caixaTexto {
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+}
+
+.mais-tab__caixaPill--fechado .mais-tab__caixaTexto {
+  font-weight: 500;
+}
+
+/* Module grid */
+.mais-tab__grade {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.mais-tab__cartao {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  min-height: 128px;
+  border-radius: 14px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  text-align: left;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.mais-tab__cartao:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mais-tab__cartao {
+    transition: none;
+  }
+
+  .mais-tab__cartao:active {
+    transform: none;
+  }
+}
+
+.mais-tab__cartaoIcone {
+  width: 26px;
+  height: 26px;
+  color: var(--gm-accent);
+}
+
+.mais-tab__cartaoRotulo {
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-md, 1rem);
+  font-weight: 700;
+  line-height: var(--lh-tight, 1.2);
+  color: var(--gm-text);
+}
+
+.mais-tab__cartaoDescricao {
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+  line-height: var(--lh-normal, 1.4);
+}
+
+.mais-tab__cartao--dimmed {
+  opacity: 0.55;
+}
+
+.mais-tab__cartao--dimmed .mais-tab__cartaoIcone,
+.mais-tab__cartao--dimmed .mais-tab__cartaoRotulo {
+  color: var(--gm-muted);
+}
+
+.mais-tab__cartaoAviso {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--gm-faint);
+  margin-top: auto;
+}
+
+.mais-tab__cartaoAviso svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* Configurações row */
+.mais-tab__configuracoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  min-height: var(--tap-min, 44px);
+  border-radius: 14px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  transition: transform 0.15s ease;
+}
+
+.mais-tab__configuracoes:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mais-tab__configuracoes {
+    transition: none;
+  }
+
+  .mais-tab__configuracoes:active {
+    transform: none;
+  }
+}
+
+.mais-tab__configuracoes svg:first-child {
+  width: 18px;
+  height: 18px;
+  color: var(--gm-muted);
+  flex-shrink: 0;
+}
+
+.mais-tab__configuracoesTexto {
+  flex: 1;
+  text-align: left;
+  font-size: var(--fs-md, 1rem);
+  font-weight: 600;
+}
+
+.mais-tab__configuracoes svg:last-child {
+  width: 18px;
+  height: 18px;
+  color: var(--gm-faint);
+  flex-shrink: 0;
+}

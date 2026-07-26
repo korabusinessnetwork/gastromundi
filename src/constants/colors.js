@@ -21,6 +21,7 @@ const C = {
   green:   "--gm-green",
   red:     "--gm-red",
   blue:    "--gm-blue",
+  warn:    "--gm-warn",
   text:    "--gm-text",
   muted:   "--gm-muted",
   faint:   "--gm-faint",

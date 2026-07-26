@@ -1,0 +1,361 @@
+/**
+ * DetalheComandaSheet.css — folha inferior com os itens lançados de uma
+ * comanda, no /palm (garçom). Decisão 018: CSS separado do JSX. Só tokens
+ * --gm, --fs, --lh (ADR-007) — nenhuma cor hardcoded, pra funcionar em
+ * qualquer tema de tenant (decisão 017). Translucidez via color-mix(),
+ * nunca rgba()/hex.
+ *
+ * ATENÇÃO: custom properties não resolvem dentro de @media — breakpoints
+ * usam px literal quando necessário.
+ */
+
+.detalhe-comanda-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.detalhe-comanda-sheet--visivel {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* ---------- Backdrop ---------- */
+
+.detalhe-comanda-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  margin: 0;
+  padding: 0;
+  background: color-mix(in srgb, var(--gm-bg) 72%, transparent);
+  opacity: 0;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .detalhe-comanda-sheet__backdrop {
+    transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
+
+.detalhe-comanda-sheet--visivel .detalhe-comanda-sheet__backdrop {
+  opacity: 1;
+}
+
+/* ---------- Painel ---------- */
+
+.detalhe-comanda-sheet__painel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  max-height: min(86vh, 680px);
+  border-radius: 20px 20px 0 0;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-bottom: none;
+  box-shadow: 0 -8px 30px color-mix(in srgb, var(--gm-bg) 45%, transparent);
+  transform: translateY(100%);
+  font-family: var(--gm-font-texto);
+  color: var(--gm-text);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .detalhe-comanda-sheet__painel {
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+}
+
+.detalhe-comanda-sheet--visivel .detalhe-comanda-sheet__painel {
+  transform: translateY(0);
+}
+
+.detalhe-comanda-sheet__alca {
+  width: 40px;
+  height: 4px;
+  margin: 0.625rem auto 0.25rem;
+  border-radius: 999px;
+  background: var(--gm-border);
+  flex-shrink: 0;
+}
+
+/* ---------- Header ---------- */
+
+.detalhe-comanda-sheet__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.375rem 0.75rem 0.875rem 1.25rem;
+  flex-shrink: 0;
+}
+
+.detalhe-comanda-sheet__header-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.detalhe-comanda-sheet__numero {
+  margin: 0;
+  font-family: var(--gm-font-mono);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+
+.detalhe-comanda-sheet__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.75rem;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.detalhe-comanda-sheet__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.detalhe-comanda-sheet__meta-item--hora {
+  color: var(--gm-accent);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.detalhe-comanda-sheet__fechar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  flex-shrink: 0;
+  border: none;
+  border-radius: 12px;
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  font-size: var(--fs-lg);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .detalhe-comanda-sheet__fechar {
+    transition: transform 0.15s, color 0.15s;
+  }
+}
+
+.detalhe-comanda-sheet__fechar:active {
+  transform: scale(0.92);
+  color: var(--gm-text);
+}
+
+/* ---------- Aviso de trava ---------- */
+
+.detalhe-comanda-sheet__trava {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 1.25rem 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 40%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-warn) 14%, transparent);
+  color: var(--gm-warn);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ---------- Lista de itens ---------- */
+
+.detalhe-comanda-sheet__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0 1.25rem 0.75rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  min-height: 0;
+}
+
+.detalhe-comanda-sheet__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  background: var(--gm-surface);
+}
+
+.detalhe-comanda-sheet__item-qtd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--gm-alow);
+  color: var(--gm-accent);
+}
+
+.detalhe-comanda-sheet__item-qtd-num {
+  font-size: var(--fs-lg);
+  line-height: 1.1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.detalhe-comanda-sheet__item-qtd-un {
+  font-size: var(--fs-xs);
+  line-height: 1.1;
+  text-transform: lowercase;
+}
+
+.detalhe-comanda-sheet__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.detalhe-comanda-sheet__item-nome {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 600;
+  color: var(--gm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detalhe-comanda-sheet__item-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--gm-muted);
+}
+
+.detalhe-comanda-sheet__item-hora {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.detalhe-comanda-sheet__item-unitario {
+  font-variant-numeric: tabular-nums;
+}
+
+.detalhe-comanda-sheet__item-preco {
+  flex-shrink: 0;
+  font-family: var(--gm-font-mono);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 700;
+  color: var(--gm-green);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- Footer ---------- */
+
+.detalhe-comanda-sheet__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+  padding: 0.75rem 1.25rem calc(0.875rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--gm-border);
+}
+
+.detalhe-comanda-sheet__total {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.detalhe-comanda-sheet__total-rotulo {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.detalhe-comanda-sheet__total-valor {
+  font-family: var(--gm-font-mono);
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+  font-weight: 700;
+  color: var(--gm-green);
+  font-variant-numeric: tabular-nums;
+}
+
+.detalhe-comanda-sheet__adicionar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  min-height: var(--tap-min);
+  padding: 0 1.25rem;
+  border: none;
+  border-radius: 14px;
+  background: var(--gm-accent);
+  color: #fff;
+  font-family: var(--gm-font-texto);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .detalhe-comanda-sheet__adicionar {
+    transition: opacity 0.15s, transform 0.15s, background 0.15s, color 0.15s;
+  }
+}
+
+.detalhe-comanda-sheet__adicionar:active {
+  transform: scale(0.98);
+}
+
+.detalhe-comanda-sheet__adicionar--travado {
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: not-allowed;
+}
+
+.detalhe-comanda-sheet__adicionar--travado:active {
+  transform: none;
+}
+
+/* Breakpoint literal (custom properties não resolvem em @media) */
+@media (max-width: 340px) {
+  .detalhe-comanda-sheet__adicionar {
+    padding: 0 0.875rem;
+    font-size: var(--fs-sm);
+  }
+}

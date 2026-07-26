@@ -1,70 +1,126 @@
-import { fecharAoClicarFora } from "@/lib/overlayFechar";
-import { useState, useRef } from "react";
-import { createPortal } from "react-dom";
+/**
+ * MobilePage — o /palm do garçom, reconstruído sobre o design mobile
+ * (telas 1a–1h). Este arquivo é o SHELL: guarda todo o estado e as regras
+ * de negócio (que vêm intactas da versão anterior) e apenas orquestra os
+ * componentes puramente apresentacionais em `src/pages/mobile/`.
+ *
+ * Navegação por abas fixas na base (Pedido · Comandas · Painel · Mais),
+ * no lugar do antigo `mode` de três telas. Toda a lógica de lançamento,
+ * espera, trava de comanda e guardas de caixa/offline foi preservada.
+ *
+ * Intuitividade (princípio nº 1): as quatro ações do garçom viram quatro
+ * abas sempre visíveis com o polegar; nada fica escondido atrás de menu.
+ * O caminho feliz — escolher itens, lançar na comanda — continua em poucos
+ * toques, agora com teclado numérico grande e carrinho em folha inferior.
+ */
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { LuWifiOff } from "react-icons/lu";
+
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
-import { getSizes } from "@/constants/sizes";
-import { useResponsive } from "@/utils/hooks";
-import { LuUtensils, LuUser, LuShoppingCart, LuArrowLeft, LuCheck, LuMinus, LuPlus, LuChevronUp, LuChevronDown, LuX, LuSearch, LuLock, LuLayoutGrid, LuLogOut, LuClock, LuChartBar, LuLightbulb, LuPause, LuSend, LuTrash2 } from "react-icons/lu";
-import { totalLancamentosGarcom, radarOportunidades } from "@/lib/painelGarcom";
-import { criarEspera, adicionarEspera, removerEspera, totalEspera, qtdItensEspera, resumoEsperas } from "@/lib/pedidosEmEspera";
+import { nomeExibicaoTenant } from "@/lib/tema";
+import {
+  totalLancamentosGarcom,
+  radarOportunidades,
+} from "@/lib/painelGarcom";
+import {
+  adicionarEspera,
+  removerEspera,
+  totalEspera,
+  resumoEsperas,
+} from "@/lib/pedidosEmEspera";
 import { useTravaComanda } from "@/hooks/useTravaComanda";
 import { travadaPorOutro, nomeTrava } from "@/lib/comandaLock";
+import MODULOS from "@/constants/modulos";
+
+import { fmtComanda, fmtDinheiro } from "@/pages/mobile/fmt";
+import { BottomNav, Guarda, Toast } from "@/pages/mobile/chrome";
+import PedidoTab from "@/pages/mobile/tabs/pedido/PedidoTab";
+import ComandasTab from "@/pages/mobile/tabs/comandas/ComandasTab";
+import PainelTab from "@/pages/mobile/tabs/painel/PainelTab";
+import MaisTab from "@/pages/mobile/tabs/mais/MaisTab";
+import CarrinhoSheet from "@/pages/mobile/sheets/lancamento/CarrinhoSheet";
+import LancarSheet from "@/pages/mobile/sheets/lancamento/LancarSheet";
+import EsperasSheet from "@/pages/mobile/sheets/comanda/EsperasSheet";
+import DetalheComandaSheet from "@/pages/mobile/sheets/comanda/DetalheComandaSheet";
+
 import "./MobilePage.css";
 
 const TOTAL_COMANDAS = 1000;
 const PAGE = 50;
-const AMBER = "#f59e0b";
 
-const fmtComanda = (name) =>
-  /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
+/**
+ * Módulos oferecidos na aba "Mais" — atalhos para telas que existem hoje
+ * mas são melhores no computador (por isso `melhorNoComputador`). Nada
+ * hardcodado por cliente: a lista é filtrada por permissão do usuário e
+ * pelo plano do tenant (`moduloHabilitado`).
+ */
+const MODULOS_MAIS = [
+  { chave: "pdv", perm: "pdv", modulo: MODULOS.PDV, rota: "/app/pdv", icone: "pdv", rotulo: "PDV", descricao: "Caixa e cobrança" },
+  { chave: "produtos", perm: "produtos", modulo: MODULOS.CARDAPIO, rota: "/app/produtos", icone: "cardapio", rotulo: "Cardápio", descricao: "Produtos e preços" },
+  { chave: "estoque", perm: "estoque", modulo: MODULOS.ESTOQUE, rota: "/app/estoque", icone: "estoque", rotulo: "Estoque", descricao: "Insumos e validade" },
+  { chave: "cozinha", perm: "cozinha", modulo: MODULOS.COZINHA, rota: "/app/cozinha", icone: "cozinha", rotulo: "Cozinha", descricao: "Painel de produção" },
+  { chave: "delivery", perm: "produtos", modulo: MODULOS.DELIVERY, rota: "/app/delivery", icone: "delivery", rotulo: "Delivery", descricao: "Pedidos para entrega" },
+  { chave: "financeiro", perm: "financeiro", modulo: MODULOS.FINANCEIRO, rota: "/app/financeiro", icone: "financeiro", rotulo: "Financeiro", descricao: "Contas e fluxo de caixa" },
+  { chave: "relatorio", perm: "relatorio", modulo: MODULOS.RELATORIOS, rota: "/app/relatorio", icone: "relatorios", rotulo: "Relatórios", descricao: "Vendas e desempenho" },
+  { chave: "clientes", perm: "clientes", modulo: MODULOS.CLIENTES, rota: "/app/clientes", icone: "clientes", rotulo: "Clientes", descricao: "Cadastro e histórico" },
+];
 
-// ── Tela Principal ────────────────────────────────────────────────
+/** "HH:MM" a partir de um ISO; undefined se não der para interpretar. */
+function formatHoraCurta(iso) {
+  if (!iso) return undefined;
+  const data = new Date(iso);
+  if (Number.isNaN(data.getTime())) return undefined;
+  const hora = String(data.getHours()).padStart(2, "0");
+  const min = String(data.getMinutes()).padStart(2, "0");
+  return `${hora}:${min}`;
+}
+
 export default function MobilePage() {
+  const navigate = useNavigate();
   const {
-    pending, products, currentUser, estoque, caixaAberto,
+    pending,
+    products,
+    currentUser,
+    caixaAberto,
     loading: bootstrapLoading,
-    addPending, updatePending,
-    lancadas, addLancada,
+    addPending,
+    updatePending,
+    lancadas,
+    addLancada,
     logout,
-    sales, sessaoAbertaEm, categoriaGrupoMap,
-    redeOnline, ponteEndereco,
+    sales,
+    sessaoAbertaEm,
+    categoriaGrupoMap,
+    redeOnline,
+    ponteEndereco,
+    moduloHabilitado,
+    tenant,
   } = useApp();
 
-  const { width } = useResponsive();
-  const sz = getSizes(width);
-
-  const [mode,       setMode]       = useState("pedido"); // "pedido" | "grid" | "painel"
-  const [cartItems,  setCartItems]  = useState([]);
-  const [salvando,   setSalvando]   = useState(false);
-  const [limite,     setLimite]     = useState(PAGE);
-  const [catAtiva,   setCatAtiva]   = useState("Todos");
+  // ── Estado de UI ──────────────────────────────────────────────
+  const [aba, setAba] = useState("pedido"); // pedido | comandas | painel | mais
+  const [cartItems, setCartItems] = useState([]);
+  const [salvando, setSalvando] = useState(false);
+  const [limite, setLimite] = useState(PAGE);
+  const [catAtiva, setCatAtiva] = useState("Todos");
   const [cartAberto, setCartAberto] = useState(false);
-  const [toast,      setToast]      = useState("");
-  const [buscaGrid,  setBuscaGrid]  = useState("");
+  const [toast, setToast] = useState("");
+  const [buscaGrid, setBuscaGrid] = useState("");
   const [buscaItens, setBuscaItens] = useState("");
-
-  // Pedidos em espera: fila local de pedidos montados mas ainda não
-  // enviados — o garçom atende várias mesas e envia tudo de uma vez.
-  const [esperas,     setEsperas]     = useState([]);
+  const [esperas, setEsperas] = useState([]);
   const [showEsperas, setShowEsperas] = useState(false);
-
-  // Modal de lançamento
-  const [showLancar,    setShowLancar]    = useState(false);
-  const [lancComanda,   setLancComanda]   = useState("");
-  const [lancMesa,      setLancMesa]      = useState("");
-  const [lancErro,      setLancErro]      = useState("");
-
-  // Detalhe da comanda (bottom sheet)
-  const [detalheComanda, setDetalheComanda] = useState(null); // order object
+  const [showLancar, setShowLancar] = useState(false);
+  const [lancComanda, setLancComanda] = useState("");
+  const [lancMesa, setLancMesa] = useState("");
+  const [lancErro, setLancErro] = useState("");
+  const [detalheComanda, setDetalheComanda] = useState(null);
   const [detalheVisible, setDetalheVisible] = useState(false);
   const detalheTimer = useRef(null);
 
+  // ── Detalhe da comanda (folha inferior) ───────────────────────
   const abrirDetalhe = (order) => {
-    // cancela qualquer close em andamento para evitar race condition
     if (detalheTimer.current) clearTimeout(detalheTimer.current);
     setDetalheComanda(order);
     setDetalheVisible(true);
@@ -74,43 +130,60 @@ export default function MobilePage() {
     detalheTimer.current = setTimeout(() => setDetalheComanda(null), 300);
   };
 
-  const abertas = pending.filter(o => o.status !== "closed");
-  const mapa    = {};
-  abertas.forEach(o => { mapa[String(o.comanda)] = o; });
+  // ── Índice de comandas abertas ────────────────────────────────
+  const abertas = pending.filter((o) => o.status !== "closed");
+  const mapa = {};
+  abertas.forEach((o) => {
+    mapa[String(o.comanda)] = o;
+  });
 
-  // ── Trava de edição (Leva 14): enquanto EU estou com uma comanda aberta
-  // (detalhe ou tela de pedido apontando pra ela), ninguém mais mexe nela —
-  // e vice-versa. Usa detalheComanda (não detalheVisible) pra trava
-  // sobreviver à transição "Adicionar itens" → tela de pedido sem soltar.
+  // Comanda "em edição" (para a trava): a que está aberta em detalhe, ou
+  // a que o garçom está digitando no fluxo de lançamento.
   const comandaEmEdicao = detalheComanda
-    ? (mapa[String(detalheComanda.comanda)] ?? detalheComanda)
-    : (mode === "pedido" && lancComanda.trim() ? mapa[lancComanda.trim()] : null);
+    ? mapa[String(detalheComanda.comanda)] ?? detalheComanda
+    : aba === "pedido" && lancComanda.trim()
+    ? mapa[lancComanda.trim()]
+    : null;
   const { bloqueio } = useTravaComanda(comandaEmEdicao, true);
   const emUsoPorOutro = (order) => travadaPorOutro(order, currentUser?.username);
 
-  const categorias = ["Todos", ...new Set(products.map(p => p.category).filter(Boolean))];
-  const filtrados  = catAtiva === "Todos" ? products : products.filter(p => p.category === catAtiva);
+  // ── Cardápio ──────────────────────────────────────────────────
+  const categorias = [
+    "Todos",
+    ...new Set(products.map((p) => p.category).filter(Boolean)),
+  ];
+  const filtrados =
+    catAtiva === "Todos"
+      ? products
+      : products.filter((p) => p.category === catAtiva);
 
-  const total    = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
+  // ── Totais do carrinho ────────────────────────────────────────
+  const total = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
   const qtdTotal = cartItems.reduce((s, i) => s + i.qty, 0);
 
   const handleAddProduct = (product) => {
-    setCartItems(prev => {
-      const idx = prev.findIndex(i => i.id === product.id);
-      if (idx >= 0) return prev.map((it, n) => n === idx ? { ...it, qty: it.qty + 1 } : it);
+    setCartItems((prev) => {
+      const idx = prev.findIndex((i) => i.id === product.id);
+      if (idx >= 0) {
+        return prev.map((it, i) => (i === idx ? { ...it, qty: it.qty + 1 } : it));
+      }
       return [...prev, { ...product, qty: 1, _key: Date.now() + Math.random() }];
     });
   };
 
   const handleChangeQty = (index, qty) => {
-    if (qty <= 0) setCartItems(prev => prev.filter((_, i) => i !== index));
-    else          setCartItems(prev => prev.map((it, i) => i === index ? { ...it, qty } : it));
+    if (qty <= 0) {
+      setCartItems((prev) => prev.filter((_, i) => i !== index));
+    } else {
+      setCartItems((prev) =>
+        prev.map((it, i) => (i === index ? { ...it, qty } : it))
+      );
+    }
   };
 
   const abrirModalLancar = () => {
-    // preserva comanda pré-preenchida (ex.: vinda de "Adicionar itens")
-    setLancComanda(prev => prev || "");
-    setLancMesa(prev => prev || "");
+    setLancComanda((prev) => prev || "");
+    setLancMesa((prev) => prev || "");
     setLancErro("");
     setShowLancar(true);
   };
@@ -118,133 +191,159 @@ export default function MobilePage() {
   const selecionarComanda = (comanda, mesa = "") => {
     const order = mapa[String(comanda)];
     if (order) {
-      // comanda já existe → sempre mostra o detalhe (mesmo sem itens)
       abrirDetalhe(order);
     } else {
-      // slot vazio → fluxo rápido de lançamento
       setLancComanda(String(comanda));
       setLancMesa(mesa || "");
       setLancErro("");
-      setMode("pedido");
+      setAba("pedido");
       setShowLancar(true);
     }
   };
 
-  // Núcleo compartilhado entre "Lançar Pedido" e "Enviar todos" (em espera):
-  // cria a comanda se não existe, registra a mesa e acumula os itens.
-  // Lança em caso de erro — o chamador decide como avisar o usuário.
+  /**
+   * Persiste um lançamento: cria a comanda se não existir, atualiza a mesa
+   * se veio nova, e acumula os itens do carrinho. Retorna a order final.
+   */
   const persistirLancamento = async (nomeComanda, mesa, itensCarrinho) => {
     let order = mapa[nomeComanda];
+
     if (!order) {
+      const agora = new Date().toISOString();
       order = {
-        id:         crypto.randomUUID(),
-        comanda:    nomeComanda,
+        id: crypto.randomUUID(),
+        comanda: nomeComanda,
         mesa,
-        items:      [],
-        status:     "open",
-        total:      0,
-        garcom:     currentUser?.name     || "",
+        items: [],
+        status: "open",
+        total: 0,
+        garcom: currentUser?.name || "",
         created_by: currentUser?.username || "",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: agora,
+        updated_at: agora,
       };
       const { error } = await addPending(order);
       if (error) throw error;
-      logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta (palm): ${nomeComanda}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, via: "palm" });
+      logAction("comanda:abrir", { comanda: nomeComanda, mesa });
     } else if (mesa && !order.mesa) {
       const { error } = await updatePending(order.id, { mesa });
       if (error) throw error;
       order = { ...order, mesa };
     }
 
-    // order atualizado localmente — não depende do Supabase sync
     let updatedOrder = order;
 
     if (itensCarrinho.length > 0) {
+      const agora = new Date().toISOString();
       const anteriores = Array.isArray(order.items) ? order.items : [];
-      const agora      = new Date().toISOString();
-      const novos      = itensCarrinho.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
+      const novos = itensCarrinho.map(({ _key, ...resto }) => ({
+        ...resto,
+        launched_at: agora,
+      }));
       const acumulados = [...anteriores, ...novos];
-      const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
-      const { error } = await updatePending(order.id, { items: acumulados, total: novoTotal }, { baseItems: anteriores });
-      if (error) throw error;
+      const novoTotal = acumulados.reduce(
+        (s, it) => s + (it.price || 0) * (it.qty || 0),
+        0
+      );
+      await updatePending(
+        order.id,
+        { items: acumulados, total: novoTotal },
+        { baseItems: anteriores }
+      );
       addLancada(order.id);
-      logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados (palm) na Comanda ${nomeComanda} · ${novos.length} tipo(s) · R$ ${novoTotal.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: nomeComanda, tipos: novos.length, total: novoTotal, via: "palm" });
-      updatedOrder = { ...order, items: acumulados, total: novoTotal, updated_at: agora };
+      logAction("itens:lancar", {
+        comanda: nomeComanda,
+        qtd: novos.length,
+      });
+      updatedOrder = {
+        ...order,
+        items: acumulados,
+        total: novoTotal,
+        updated_at: agora,
+      };
     }
+
     return updatedOrder;
   };
 
   const handleLancar = async () => {
     const nomeComanda = lancComanda.trim();
-    if (!nomeComanda) { setLancErro("Informe o número ou nome da comanda."); return; }
-    if (salvando) return;
-    // Trava de edição (Leva 14): comanda aberta em outro aparelho → não mexe.
-    const existente = mapa[nomeComanda];
-    if (existente && (emUsoPorOutro(existente) || (bloqueio && comandaEmEdicao?.id === existente.id))) {
-      setLancErro(`Em uso por ${bloqueio?.nome ?? nomeTrava(existente)}. Aguarde fechar a comanda.`);
+    const mesa = lancMesa.trim();
+    if (!nomeComanda) {
+      setLancErro("Informe o número ou nome da comanda.");
       return;
     }
-    // Já tem pedido em espera na fila? O pedido atual se junta a eles e a
-    // tela de revisão abre com TODOS — o garçom lança tudo num toque só,
-    // em vez de enviar um agora e esquecer os que ficaram esperando.
+    if (salvando) return;
+
+    const existente = mapa[nomeComanda];
+    if (existente && emUsoPorOutro(existente)) {
+      setLancErro(
+        `Em uso por ${bloqueio?.nome ?? nomeTrava(existente)}. Aguarde fechar a comanda.`
+      );
+      return;
+    }
+
+    // Se já há esperas acumuladas, este vira mais um da fila: acumula e
+    // manda para a folha de esperas (o garçom revisa e envia todos juntos).
     if (cartItems.length > 0 && esperas.length > 0) {
-      setEsperas(prev => adicionarEspera(prev, criarEspera({ comanda: nomeComanda, mesa: lancMesa, items: cartItems })));
-      setShowLancar(false);
+      setEsperas((prev) =>
+        adicionarEspera(prev, { comanda: nomeComanda, mesa, items: cartItems })
+      );
+      setCartItems([]);
       setLancComanda("");
       setLancMesa("");
       setLancErro("");
-      setCartItems([]);
-      setCartAberto(false);
+      setShowLancar(false);
       setShowEsperas(true);
       return;
     }
+
     setSalvando(true);
     try {
-      const updatedOrder = await persistirLancamento(nomeComanda, lancMesa.trim(), cartItems);
-
+      const updatedOrder = await persistirLancamento(
+        nomeComanda,
+        mesa,
+        cartItems
+      );
       if (cartItems.length > 0) {
         setToast("✓ Pedido enviado com sucesso!");
         setTimeout(() => setToast(""), 3000);
       }
-
-      setShowLancar(false);
+      setCartItems([]);
       setLancComanda("");
       setLancMesa("");
-      setCartItems([]);
-      setCartAberto(false);
-      setMode("grid");
-      // reabre o detalhe imediatamente com os dados locais
+      setLancErro("");
+      setShowLancar(false);
+      setAba("comandas");
       setTimeout(() => abrirDetalhe(updatedOrder), 80);
     } catch (e) {
-      console.error(e);
-      setLancErro("Erro ao lançar pedido. Tente novamente.");
+      console.error("Erro ao lançar pedido:", e);
+      setLancErro("Erro ao lançar. Tente de novo.");
     } finally {
       setSalvando(false);
     }
   };
 
-  // ── Pedidos em espera ─────────────────────────────────────────
-  // Guarda o pedido atual na fila local (nada vai ao servidor ainda)
-  // e libera a tela para o garçom seguir com a próxima comanda.
   const porEmEspera = () => {
     const nomeComanda = lancComanda.trim();
-    if (!nomeComanda) { setLancErro("Informe o número ou nome da comanda."); return; }
+    const mesa = lancMesa.trim();
+    if (!nomeComanda) {
+      setLancErro("Informe o número ou nome da comanda.");
+      return;
+    }
     if (cartItems.length === 0) return;
-    setEsperas(prev => adicionarEspera(prev, criarEspera({ comanda: nomeComanda, mesa: lancMesa, items: cartItems })));
-    setShowLancar(false);
+    setEsperas((prev) =>
+      adicionarEspera(prev, { comanda: nomeComanda, mesa, items: cartItems })
+    );
+    setCartItems([]);
     setLancComanda("");
     setLancMesa("");
     setLancErro("");
-    setCartItems([]);
-    setCartAberto(false);
+    setShowLancar(false);
     setToast(`Comanda ${nomeComanda} em espera — siga com a próxima`);
     setTimeout(() => setToast(""), 2500);
   };
 
-  // Envia todos os pedidos da fila de uma vez. Quem falhar (comanda em
-  // uso em outro aparelho, erro de rede) permanece na fila com o motivo
-  // à vista — nada se perde silenciosamente.
   const enviarEsperas = async () => {
     if (salvando || esperas.length === 0) return;
     setSalvando(true);
@@ -253,789 +352,347 @@ export default function MobilePage() {
     for (const esp of esperas) {
       const existente = mapa[esp.comanda];
       if (existente && emUsoPorOutro(existente)) {
-        restantes.push({ ...esp, erro: `Em uso por ${nomeTrava(existente)}. Aguarde liberar e envie de novo.` });
+        restantes.push({
+          ...esp,
+          erro: `Em uso por ${nomeTrava(existente)}. Aguarde liberar e envie de novo.`,
+        });
         continue;
       }
       try {
-        await persistirLancamento(esp.comanda, esp.mesa, esp.items);
+        await persistirLancamento(esp.comanda, esp.mesa || "", esp.items || []);
         enviados++;
       } catch (e) {
-        console.error(e);
+        console.error("Erro ao enviar espera:", e);
         restantes.push({ ...esp, erro: "Erro ao enviar. Tente de novo." });
       }
     }
     setEsperas(restantes);
     setSalvando(false);
     if (enviados > 0) {
-      setToast(`✓ ${enviados} pedido${enviados !== 1 ? "s" : ""} enviado${enviados !== 1 ? "s" : ""} com sucesso!`);
+      setToast(`✓ ${enviados} comanda(s) enviada(s)!`);
       setTimeout(() => setToast(""), 3000);
     }
     if (restantes.length === 0) {
       setShowEsperas(false);
-      setMode("grid");
+      setAba("comandas");
     }
   };
 
-  // ── Guard: bootstrap ainda carregando o estado real do caixa ─
-  // (o default local é "aberto" — sem este gate dava para lançar
-  // pedido nos primeiros segundos mesmo com o caixa fechado)
+  // ── Guardas de tela cheia ─────────────────────────────────────
   if (bootstrapLoading) {
-    return (
-      <div className="mobile-page__boot" style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        height: "100dvh", background: varColor(C.bg),
-        fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.muted),
-        fontWeight: 600, padding: 24,
-      }}>
-        Conectando ao caixa…
-      </div>
-    );
+    return <Guarda tipo="loading" />;
   }
-
-  // ── Guard: caixa fechado ──────────────────────────────────────
   if (!caixaAberto) {
-    return (
-      <div style={{
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        height: "100dvh", background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text),
-        padding: 24, gap: 16,
-      }}>
-        <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 20, padding: "40px 28px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, width: "100%", maxWidth: 340, textAlign: "center", boxSizing: "border-box" }}>
-          <div style={{ background: `${alfa(C.accent, "1a")}`, borderRadius: "50%", width: 72, height: 72, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <LuLock size={32} color={varColor(C.accent)} />
-          </div>
-          <div className="mobile-page__bloqueio-titulo" style={{ fontWeight: 900 }}>Caixa Fechado</div>
-          <div className="mobile-page__bloqueio-texto" style={{ color: varColor(C.muted) }}>
-            O caixa está fechado. Para lançar pedidos, solicite ao responsável que abra o caixa.
-          </div>
-        </div>
-      </div>
-    );
+    return <Guarda tipo="caixaFechado" onAcao={() => window.location.reload()} />;
   }
 
-  const qGrid = buscaGrid.trim().toLowerCase();
-  const resultadosGrid = qGrid
-    ? abertas.filter(o => {
-        const nome = String(o.comanda).toLowerCase();
-        return nome.includes(qGrid) || fmtComanda(o.comanda).toLowerCase().includes(qGrid) || (o.garcom ?? "").toLowerCase().includes(qGrid);
-      })
+  // ── Adaptadores de dados para as abas ─────────────────────────
+
+  // Barra de esperas (compartilhada por Pedido e Comandas).
+  const resumo = resumoEsperas(esperas);
+  const barraEsperas = esperas.length
+    ? { qtd: resumo.pedidos, total: resumo.total, onClick: () => setShowEsperas(true) }
     : null;
 
-  // ── PEDIDO (tela de produtos) ─────────────────────────────────
-  return (
-    <>
-    {/* ── Leva 13: sem internet + ponte configurada → oferece o modo local.
-        Um toque leva à página servida pela ponte no Wi-Fi do caixa, onde o
-        pedido continua saindo na impressora. Botão só aparece quando faz
-        sentido (prevenção > erro). ── */}
-    {redeOnline === false && ponteEndereco && (
-      <button
-        onClick={() => { window.location.href = ponteEndereco; }}
-        className="mobile-page__offline-btn"
-        style={{
-          position: "fixed", top: 10, left: "50%", transform: "translateX(-50%)",
-          zIndex: 300, border: "none", borderRadius: 999, padding: "10px 18px",
-          background: AMBER, color: "#1a1a1a", fontWeight: 800,
-          fontFamily: "inherit", cursor: "pointer", boxShadow: "0 4px 14px #0006",
-          display: "flex", alignItems: "center", gap: 8,
-        }}
-      >
-        Sem internet? Tocar pedido pelo Wi-Fi do caixa
-      </button>
-    )}
-    {/* ── GRID de comandas ── */}
-    {mode === "grid" && (
-      <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text) }}>
-        {/* Header */}
-        <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div>
-            <div className="mobile-page__header-titulo" style={{ fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}><LuLayoutGrid size={20} /> Comandas</div>
-            <div className="mobile-page__header-sub" style={{ color: varColor(C.muted), marginTop: 2 }}>
-              {abertas.length} comanda{abertas.length !== 1 ? "s" : ""} em aberto
-            </div>
-          </div>
-          <button onClick={() => { setMode("pedido"); setLancComanda(""); setLancMesa(""); }} className="mobile-page__btn-voltar" style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: varColor(C.accent), border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, WebkitTapHighlightColor: "transparent" }}>
-            <LuArrowLeft size={16} /> Voltar
-          </button>
-        </div>
-        {/* Busca */}
-        <div style={{ padding: "10px 16px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0 }}>
-          <div style={{ position: "relative" }}>
-            <LuSearch size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }} />
-            <input value={buscaGrid} onChange={e => setBuscaGrid(e.target.value)} placeholder="Buscar comanda por nome ou número..." className="mobile-page__busca-input" style={{ width: "100%", padding: "11px 36px 11px 36px", borderRadius: 12, border: `1.5px solid ${buscaGrid ? varColor(C.accent) : "var(--gm-input-border)"}`, background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box", transition: "border-color 0.15s" }} />
-            {buscaGrid && <button onClick={() => setBuscaGrid("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", lineHeight: 0, padding: 2 }}><LuX size={16} /></button>}
-          </div>
-        </div>
-        {/* Grid */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          {resultadosGrid !== null ? (
-            resultadosGrid.length === 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, gap: 10, color: varColor(C.muted) }}>
-                <LuSearch size={40} style={{ opacity: 0.3 }} />
-                <div className="mobile-page__vazio" style={{ fontWeight: 600 }}>Nenhuma comanda encontrada</div>
-              </div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: sz.gridCols, gap: 12, padding: 16 }}>
-                {resultadosGrid.map(order => {
-                  const isLancada = lancadas.has(order.id);
-                  const items     = Array.isArray(order.items) ? order.items : [];
-                  const hasItems  = items.reduce((s, it) => s + (it.qty || 1), 0) > 0;
-                  const emUso     = emUsoPorOutro(order);
-                  const borderColor = isLancada ? AMBER : hasItems ? `${alfa(C.blue, "66")}` : varColor(C.border);
-                  const bgColor     = isLancada ? `${AMBER}14` : hasItems ? `${alfa(C.blue, "0a")}` : varColor(C.card);
-                  return (
-                    <div key={order.id} onClick={() => selecionarComanda(order.comanda, order.mesa)} style={{ background: bgColor, border: `1.5px solid ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: varColor(C.text), display: "flex", flexDirection: "column", gap: 6, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                      <div className="mobile-page__comanda-nome" style={{ fontWeight: 800 }}>{fmtComanda(order.comanda)}</div>
-                      {emUso && <div className="mobile-page__comanda-uso" style={{ fontWeight: 700, color: AMBER, display: "flex", alignItems: "center", gap: 4 }}><LuLock size={10} /> Em uso · {nomeTrava(order)}</div>}
-                      {order.mesa && <div className="mobile-page__comanda-meta" style={{ color: varColor(C.muted) }}>Mesa {order.mesa}</div>}
-                      {order.garcom && <div className="mobile-page__comanda-meta" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
-                      <div className="mobile-page__comanda-total" style={{ fontWeight: 700, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            )
-          ) : (
-            <>
-              <div style={{ display: "grid", gridTemplateColumns: sz.gridCols, gap: 12, padding: 16 }}>
-                {Array.from({ length: limite }, (_, i) => i + 1).map(num => {
-                  const order     = mapa[String(num)];
-                  const isLancada = order ? lancadas.has(order.id) : false;
-                  const items     = order ? (Array.isArray(order.items) ? order.items : []) : [];
-                  const hasItems  = items.reduce((s, it) => s + (it.qty || 1), 0) > 0;
-                  const borderColor = isLancada ? AMBER : hasItems ? `${alfa(C.blue, "66")}` : varColor(C.border);
-                  const bgColor     = isLancada ? `${AMBER}14` : hasItems ? `${alfa(C.blue, "0a")}` : varColor(C.card);
-                  return (
-                    <div key={num} onClick={() => selecionarComanda(num, order?.mesa)} style={{ background: bgColor, border: `1.5px ${order ? "solid" : "dashed"} ${borderColor}`, borderRadius: 16, padding: "18px 14px", color: varColor(C.text), display: "flex", flexDirection: "column", gap: 6, opacity: !order ? 0.45 : 1, cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
-                      <div className="mobile-page__comanda-nome" style={{ fontWeight: 800 }}>Comanda {num}</div>
-                      {order ? (
-                        <>
-                          {emUsoPorOutro(order) && <div className="mobile-page__comanda-uso" style={{ fontWeight: 700, color: AMBER, display: "flex", alignItems: "center", gap: 4 }}><LuLock size={10} /> Em uso · {nomeTrava(order)}</div>}
-                          {order.mesa && <div className="mobile-page__comanda-meta" style={{ color: varColor(C.muted) }}>Mesa {order.mesa}</div>}
-                          {order.garcom && <div className="mobile-page__comanda-meta" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={11} /> {order.garcom}</div>}
-                          <div className="mobile-page__comanda-total" style={{ fontWeight: 700, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>{hasItems ? `R$ ${(order.total ?? 0).toFixed(2)}` : "Vazio"}</div>
-                        </>
-                      ) : (
-                        <div className="mobile-page__comanda-meta" style={{ color: varColor(C.muted) }}>Disponível</div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {limite < TOTAL_COMANDAS && (
-                <div style={{ padding: "0 16px 24px", display: "flex", justifyContent: "center" }}>
-                  <button onClick={() => setLimite(l => Math.min(l + PAGE, TOTAL_COMANDAS))} className="mobile-page__ver-mais" style={{ padding: "12px 32px", borderRadius: 12, border: `1px solid var(${C.border})`, background: varColor(C.card), color: varColor(C.muted), fontWeight: 600, cursor: "pointer", width: "100%" }}>
-                    Ver mais · {limite}/{TOTAL_COMANDAS}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-        {/* Fila de espera visível também na grade — o garçom nunca "esquece"
-            pedidos guardados no aparelho */}
-        {esperas.length > 0 && (
-          <div style={{ padding: "10px 16px", paddingBottom: "calc(10px + env(safe-area-inset-bottom))", borderTop: `1px solid var(${C.border})`, flexShrink: 0, background: varColor(C.card) }}>
-            <BarraEsperas esperas={esperas} onClick={() => setShowEsperas(true)} />
-          </div>
-        )}
-      </div>
-    )}
+  // (a) PedidoTab
+  const qItens = buscaItens.trim().toLowerCase();
+  const produtosFiltrados = qItens
+    ? filtrados.filter((p) => p.name.toLowerCase().includes(qItens))
+    : filtrados;
+  const qtdPorId = cartItems.reduce((acc, i) => {
+    acc[i.id] = i.qty;
+    return acc;
+  }, {});
 
-    {/* ── PAINEL DO GARÇOM (C3) ── */}
-    {mode === "painel" && (() => {
-      const comandasEVendas = [...abertas, ...(Array.isArray(sales) ? sales : [])];
-      const meu = totalLancamentosGarcom(comandasEVendas, {
-        nome: currentUser?.name,
-        username: currentUser?.username,
-        desde: sessaoAbertaEm,
-      });
-      const cards = radarOportunidades(abertas, categoriaGrupoMap, products);
-      return (
-        <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text) }}>
-          {/* Header */}
-          <div style={{ padding: "16px 20px 14px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <div className="mobile-page__header-titulo" style={{ fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}><LuChartBar size={20} /> Meu Painel</div>
-              <div className="mobile-page__header-sub" style={{ color: varColor(C.muted), marginTop: 2 }}>{currentUser?.name?.split(" ")[0]} · caixa atual</div>
-            </div>
-            <button onClick={() => setMode("pedido")} className="mobile-page__btn-voltar" style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, background: varColor(C.accent), border: "none", borderRadius: 12, color: "#fff", cursor: "pointer", padding: "10px 16px", fontWeight: 700, WebkitTapHighlightColor: "transparent" }}>
-              <LuArrowLeft size={16} /> Voltar
-            </button>
-          </div>
-
-          <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 16, paddingBottom: "calc(24px + env(safe-area-inset-bottom))" }}>
-            {/* Bloco 1 — Minhas vendas no caixa atual */}
-            <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 16, padding: 20 }}>
-              <div className="mobile-page__kpi-label" style={{ color: varColor(C.muted), fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Meus lançamentos no caixa</div>
-              <div className="mobile-page__kpi-valor" style={{ fontWeight: 900, color: varColor(C.green), marginTop: 8 }}>R$ {meu.total.toFixed(2)}</div>
-              <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
-                <div className="mobile-page__kpi-meta" style={{ color: varColor(C.muted) }}><b style={{ color: varColor(C.text) }}>{meu.comandas}</b> comanda{meu.comandas !== 1 ? "s" : ""}</div>
-                <div className="mobile-page__kpi-meta" style={{ color: varColor(C.muted) }}><b style={{ color: varColor(C.text) }}>{meu.itens}</b> {meu.itens === 1 ? "item" : "itens"}</div>
-              </div>
-              {!sessaoAbertaEm && (
-                <div className="mobile-page__kpi-nota" style={{ marginTop: 10, color: varColor(C.muted) }}>
-                  Total desde a abertura do caixa. Conta comandas abertas e vendas atribuídas a você.
-                </div>
-              )}
-            </div>
-
-            {/* Bloco 2 — Radar de oportunidades */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <LuLightbulb size={18} color={AMBER} />
-                <span className="mobile-page__secao-titulo" style={{ fontWeight: 800 }}>Oportunidades</span>
-                {cards.length > 0 && <span className="mobile-page__secao-badge" style={{ background: `${AMBER}22`, color: AMBER, borderRadius: 8, padding: "1px 8px", fontWeight: 800 }}>{cards.length}</span>}
-              </div>
-              {cards.length === 0 ? (
-                <div className="mobile-page__radar-vazio" style={{ background: varColor(C.card), border: `1px dashed var(${C.border})`, borderRadius: 14, padding: 24, textAlign: "center", color: varColor(C.muted) }}>
-                  {Object.keys(categoriaGrupoMap ?? {}).length === 0
-                    ? "Configure os grupos de categoria (Configurações → Grupos de Categoria) para ver sugestões."
-                    : "Nenhuma oportunidade agora. Tudo em dia! 🎉"}
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {cards.map((card, i) => {
-                    const order = mapa[String(card.comanda)];
-                    return (
-                      <button
-                        key={`${card.comandaId}-${card.regraId}-${i}`}
-                        onClick={() => order && abrirDetalhe(order)}
-                        style={{
-                          textAlign: "left", background: `${AMBER}0f`, border: `1.5px solid ${AMBER}44`,
-                          borderRadius: 14, padding: "14px 16px", cursor: order ? "pointer" : "default",
-                          display: "flex", alignItems: "center", gap: 12, color: varColor(C.text),
-                          WebkitTapHighlightColor: "transparent",
-                        }}
-                      >
-                        <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: `${AMBER}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <LuLightbulb size={20} color={AMBER} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="mobile-page__radar-titulo" style={{ fontWeight: 800 }}>
-                            {fmtComanda(card.comanda)}{card.mesa ? ` · Mesa ${card.mesa}` : ""}
-                          </div>
-                          <div className="mobile-page__radar-rotulo" style={{ color: varColor(C.muted), marginTop: 2 }}>{card.rotulo}</div>
-                        </div>
-                        {order && <LuPlus size={18} color={AMBER} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      );
-    })()}
-
-    {/* ── PEDIDO ── */}
-    {mode === "pedido" && <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text) }}>
-
-      {/* Header */}
-      <div style={{
-        padding: "14px 16px", borderBottom: `1px solid var(${C.border})`,
-        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexShrink: 0,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, overflow: "hidden" }}>
-          <button
-            onClick={logout}
-            title="Sair"
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: "none", border: `1.5px solid var(${C.border})`, borderRadius: 10,
-              color: varColor(C.muted), cursor: "pointer", padding: 7, lineHeight: 0,
-              WebkitTapHighlightColor: "transparent", flexShrink: 0,
-            }}
-          >
-            <LuLogOut size={16} />
-          </button>
-          <div className="mobile-page__header-titulo" style={{ fontWeight: 900, display: "flex", alignItems: "center", gap: 8, minWidth: 0, whiteSpace: "nowrap" }}>
-            <LuUtensils size={20} style={{ flexShrink: 0 }} /> Palm
-            <span className="mobile-page__header-usuario" style={{ fontWeight: 500, color: varColor(C.muted), minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {currentUser?.name?.split(" ")[0]}</span>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <button
-            onClick={() => setMode("painel")}
-            title="Meu painel"
-            className="mobile-page__btn-topo"
-            style={{
-              display: "flex", alignItems: "center", gap: 6, flexShrink: 0, whiteSpace: "nowrap",
-              background: varColor(C.surface), border: `1.5px solid var(${C.border})`, borderRadius: 12,
-              color: varColor(C.muted), cursor: "pointer",
-              padding: "8px 10px", fontWeight: 600,
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            <LuChartBar size={14} /> Painel
-          </button>
-          <button
-            onClick={() => { setMode("grid"); setLancComanda(""); setLancMesa(""); }}
-            className="mobile-page__btn-topo"
-            style={{
-              display: "flex", alignItems: "center", gap: 6, flexShrink: 0, whiteSpace: "nowrap",
-              background: varColor(C.surface), border: `1.5px solid var(${C.border})`, borderRadius: 12,
-              color: varColor(C.muted), cursor: "pointer",
-              padding: "8px 12px", fontWeight: 600,
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            <LuLayoutGrid size={14} /> Comandas {abertas.length > 0 && <span className="mobile-page__btn-topo-badge" style={{ background: varColor(C.accent), color: "#fff", borderRadius: 8, padding: "1px 6px", fontWeight: 800 }}>{abertas.length}</span>}
-          </button>
-        </div>
-      </div>
-
-      {/* Busca de item */}
-      <div style={{ padding: "10px 16px 0", flexShrink: 0 }}>
-        <div style={{ position: "relative" }}>
-          <LuSearch size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }} />
-          <input
-            value={buscaItens}
-            onChange={e => setBuscaItens(e.target.value)}
-            placeholder="Buscar item..."
-            className="mobile-page__busca-input"
-            style={{
-              width: "100%", padding: "11px 36px 11px 36px",
-              borderRadius: 12, border: `1.5px solid ${buscaItens ? varColor(C.accent) : "var(--gm-input-border)"}`,
-              background: "var(--gm-input-bg)", color: varColor(C.text),
-              fontFamily: "inherit", outline: "none",
-              boxSizing: "border-box", transition: "border-color 0.15s",
-            }}
-          />
-          {buscaItens && (
-            <button onClick={() => setBuscaItens("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", lineHeight: 0, padding: 2 }}>
-              <LuX size={16} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Filtro categorias */}
-      <div style={{ display: "flex", gap: 8, padding: "10px 16px", overflowX: "auto", flexShrink: 0, borderBottom: `1px solid var(${C.border})` }}>
-        {categorias.map(cat => (
-          <button key={cat} onClick={() => setCatAtiva(cat)} className="mobile-page__chip" style={{
-            padding: "8px 16px", borderRadius: 20, border: "none",
-            background: catAtiva === cat ? varColor(C.accent) : varColor(C.surface),
-            color: catAtiva === cat ? "#fff" : varColor(C.muted),
-            cursor: "pointer", fontWeight: 600,
-            whiteSpace: "nowrap", flexShrink: 0,
-            WebkitTapHighlightColor: "transparent",
-          }}>
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Grid de produtos */}
-      {(() => {
-        const qItens = buscaItens.trim().toLowerCase();
-        const visiveis = qItens ? filtrados.filter(p => p.name.toLowerCase().includes(qItens)) : filtrados;
+  // (b) ComandasTab
+  const estadoDaOrder = (order) => {
+    if (!order) return "vazia";
+    if (lancadas.has(order.id)) return "lancada";
+    const itens = Array.isArray(order.items) ? order.items : [];
+    const qtd = itens.reduce((s, it) => s + (it.qty || 1), 0);
+    return qtd > 0 ? "comItens" : "vazia";
+  };
+  const qGrid = buscaGrid.trim().toLowerCase();
+  const resultadosGrid = qGrid
+    ? abertas.filter((o) => {
+        const nome = String(o.comanda).toLowerCase();
         return (
-          <div style={{ flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: sz.gridCols, gap: 10, padding: 14, alignContent: "start", paddingBottom: "calc(120px + env(safe-area-inset-bottom))" }}>
-            {visiveis.length === 0 ? (
-              <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, gap: 10, color: varColor(C.muted) }}>
-                <LuSearch size={40} style={{ opacity: 0.3 }} />
-                <div className="mobile-page__vazio" style={{ fontWeight: 600 }}>Nenhum item encontrado</div>
-              </div>
-            ) : visiveis.map(product => {
-              const qty = cartItems.find(i => i.id === product.id)?.qty ?? 0;
-              return (
-                <button key={product.id} onClick={() => handleAddProduct(product)} style={{
-                  background: qty > 0 ? varColor(C.alow) : varColor(C.card),
-                  border: `1.5px solid ${qty > 0 ? varColor(C.accent) : varColor(C.border)}`,
-                  borderRadius: 14, padding: "16px 12px",
-                  cursor: "pointer", textAlign: "left", color: varColor(C.text),
-                  display: "flex", flexDirection: "column", gap: 6,
-                  position: "relative", WebkitTapHighlightColor: "transparent",
-                }}>
-                  {qty > 0 && (
-                    <span className="mobile-page__produto-badge" style={{ position: "absolute", top: 8, right: 8, background: varColor(C.accent), color: "#fff", borderRadius: 10, padding: "2px 7px", fontWeight: 800 }}>
-                      {qty}
-                    </span>
-                  )}
-                  {product.emoji && <span className="mobile-page__produto-emoji">{product.emoji}</span>}
-                  <div className="mobile-page__produto-nome" style={{ fontWeight: 700 }}>{product.name}</div>
-                  <div className="mobile-page__produto-preco" style={{ fontWeight: 800, color: varColor(C.green) }}>R$ {Number(product.price).toFixed(2)}</div>
-                </button>
-              );
-            })}
-          </div>
+          nome.includes(qGrid) ||
+          fmtComanda(o.comanda).toLowerCase().includes(qGrid) ||
+          (o.garcom ?? "").toLowerCase().includes(qGrid)
         );
-      })()}
+      })
+    : null;
+  const comandasGrade =
+    resultadosGrid !== null
+      ? resultadosGrid.map((order) => ({
+          numero: order.comanda,
+          estado: estadoDaOrder(order),
+          emUso: emUsoPorOutro(order),
+          nomeTrava: nomeTrava(order),
+          total: order.total ?? 0,
+          onClick: () => selecionarComanda(order.comanda, order.mesa),
+        }))
+      : Array.from({ length: limite }, (_, i) => i + 1).map((num) => {
+          const order = mapa[String(num)];
+          return {
+            numero: num,
+            estado: estadoDaOrder(order),
+            emUso: order ? emUsoPorOutro(order) : false,
+            nomeTrava: order ? nomeTrava(order) : "",
+            total: order?.total ?? 0,
+            onClick: () => selecionarComanda(num, order?.mesa),
+          };
+        });
+  const temMais = resultadosGrid === null && limite < TOTAL_COMANDAS;
 
-      {/* Bottom bar fixa */}
-      <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
-        background: varColor(C.card), borderTop: `1px solid var(${C.border})`,
-        padding: "12px 16px",
-        paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
-        display: "flex", flexDirection: "column", gap: 8, zIndex: 100,
-      }}>
-        {esperas.length > 0 && <BarraEsperas esperas={esperas} onClick={() => setShowEsperas(true)} />}
-        {cartItems.length > 0 && (
-          <button
-            onClick={() => setCartAberto(v => !v)}
-            style={{
-              background: varColor(C.surface), border: `1px solid var(${C.border})`,
-              borderRadius: 10, padding: "10px 16px",
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              cursor: "pointer", color: varColor(C.text), WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            <span className="mobile-page__cart-resumo-itens" style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-              <LuShoppingCart size={16} /> {qtdTotal} {qtdTotal === 1 ? "item" : "itens"}
-            </span>
-            <span className="mobile-page__cart-resumo-total" style={{ fontWeight: 900, color: varColor(C.green), display: "flex", alignItems: "center", gap: 4 }}>
-              R$ {total.toFixed(2)} {cartAberto ? <LuChevronDown size={14}/> : <LuChevronUp size={14}/>}
-            </span>
-          </button>
-        )}
+  // (c) PainelTab
+  const comandasEVendas = [
+    ...abertas,
+    ...(Array.isArray(sales) ? sales : []),
+  ];
+  const meu = totalLancamentosGarcom(comandasEVendas, {
+    nome: currentUser?.name,
+    username: currentUser?.username,
+    desde: sessaoAbertaEm,
+  });
+  const ticketMedio = meu.comandas > 0 ? meu.total / meu.comandas : 0;
+  const oportunidades = radarOportunidades(
+    abertas,
+    categoriaGrupoMap,
+    products
+  ).map((card) => ({
+    ...card,
+    onClick: () => {
+      const o = mapa[String(card.comanda)];
+      if (o) abrirDetalhe(o);
+    },
+  }));
 
-        {cartAberto && cartItems.length > 0 && (
-          <div style={{ background: varColor(C.surface), borderRadius: 12, border: `1px solid var(${C.border})`, maxHeight: 200, overflowY: "auto", padding: "8px 0" }}>
-            <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 14px 6px", borderBottom: `1px solid var(${C.border})` }}>
-              <button
-                onClick={() => { setCartItems([]); setCartAberto(false); setLancComanda(""); setLancMesa(""); }}
-                className="mobile-page__cart-limpar"
-                style={{ background: "none", border: "none", color: varColor(C.red), cursor: "pointer", fontWeight: 700, padding: "4px 0", display: "flex", alignItems: "center", gap: 4, WebkitTapHighlightColor: "transparent" }}
-              >
-                <LuX size={13} /> Limpar carrinho
-              </button>
-            </div>
-            {cartItems.map((item, i) => (
-              <div key={item._key ?? i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", borderBottom: i < cartItems.length - 1 ? `1px solid var(${C.border})` : "none" }}>
-                <span className="mobile-page__cart-item-nome" style={{ flex: 1, fontWeight: 600 }}>{item.name}</span>
-                <button onClick={() => handleChangeQty(i, item.qty - 1)} style={{ background: `${alfa(C.red, "15")}`, border: `1px solid ${alfa(C.red, "44")}`, borderRadius: 6, width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.red) }}><LuMinus size={13}/></button>
-                <span className="mobile-page__cart-item-qtd" style={{ fontWeight: 800, minWidth: 20, textAlign: "center" }}>{item.qty}</span>
-                <button onClick={() => handleChangeQty(i, item.qty + 1)} style={{ background: `${alfa(C.green, "15")}`, border: `1px solid ${alfa(C.green, "44")}`, borderRadius: 6, width: 28, height: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.green) }}><LuPlus size={13}/></button>
-                <span className="mobile-page__cart-item-preco" style={{ fontWeight: 700, color: varColor(C.green), minWidth: 60, textAlign: "right" }}>R$ {(item.price * item.qty).toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-        )}
+  // (d) MaisTab
+  const tenantNome = nomeExibicaoTenant(tenant?.tema, tenant?.nome);
+  const usuarioIniciais =
+    (currentUser?.name || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() || "")
+      .join("") || "?";
+  const caixaInfo = {
+    aberto: caixaAberto,
+    desde: formatHoraCurta(sessaoAbertaEm),
+    operador: undefined,
+  };
+  const modulosMais = MODULOS_MAIS.filter(
+    (m) =>
+      currentUser?.permissions?.[m.perm] &&
+      (!m.modulo || moduloHabilitado(m.modulo))
+  ).map((m) => ({
+    chave: m.chave,
+    rotulo: m.rotulo,
+    descricao: m.descricao,
+    icone: m.icone,
+    habilitado: true,
+    melhorNoComputador: true,
+    onClick: () => navigate(m.rota),
+  }));
 
+  // (e) EsperasSheet
+  const esperasAdaptadas = esperas.map((esp) => ({
+    id: esp.comanda,
+    nome: esp.comanda,
+    itensTexto: (Array.isArray(esp.items) ? esp.items : [])
+      .map((it) => `${it.qty ?? 1}× ${it.name}`)
+      .join(", "),
+    total: totalEspera(esp),
+    erro: esp.erro,
+  }));
+  const resumoEsperasTexto = `${resumo.pedidos} pedido(s) · ${resumo.itens} item(ns) · ${fmtDinheiro(
+    resumo.total
+  )}`;
+
+  // ── Wiring das sheets de lançamento ───────────────────────────
+  const nomeLanc = lancComanda.trim();
+  const existeLanc = mapa[nomeLanc];
+  const textoConfirmarLancar =
+    cartItems.length === 0
+      ? existeLanc
+        ? "Abrir Comanda"
+        : "Criar Comanda"
+      : esperas.length > 0
+      ? `Revisar e lançar todos (${esperas.length + 1})`
+      : existeLanc
+      ? "Adicionar à Comanda"
+      : "Criar e Lançar";
+
+  const orderDetalhe = detalheComanda
+    ? mapa[String(detalheComanda.comanda)] ?? detalheComanda
+    : null;
+
+  return (
+    <div className="mobile-page">
+      {/* ── Sem internet + ponte configurada → oferece o modo local.
+          Pill não-bloqueante: um toque leva à página servida pela ponte
+          no Wi-Fi do caixa, onde o pedido continua saindo na impressora.
+          Só aparece quando faz sentido (prevenção > erro). ── */}
+      {redeOnline === false && ponteEndereco ? (
         <button
-          onClick={cartItems.length > 0 ? abrirModalLancar : undefined}
-          disabled={cartItems.length === 0}
-          className="mobile-page__cta"
-          style={{
-            padding: "16px", borderRadius: 12, border: "none",
-            background: cartItems.length > 0 ? varColor(C.accent) : varColor(C.faint),
-            color: "#fff", fontWeight: 800,
-            cursor: cartItems.length > 0 ? "pointer" : "not-allowed",
-            WebkitTapHighlightColor: "transparent",
+          type="button"
+          className="mobile-page__offline-pill"
+          onClick={() => {
+            window.location.href = ponteEndereco;
           }}
         >
-          <LuCheck size={16} style={{ marginRight: 6 }} />Lançar Pedido
+          <LuWifiOff aria-hidden="true" />
+          <span>Sem internet — lançar pelo Wi-Fi do caixa</span>
         </button>
+      ) : null}
+
+      <div className="mobile-page__conteudo">
+        {aba === "pedido" && (
+          <PedidoTab
+            usuarioNome={currentUser?.name?.split(" ")[0]}
+            onLogout={logout}
+            categorias={categorias}
+            catAtiva={catAtiva}
+            onCategoria={setCatAtiva}
+            busca={buscaItens}
+            onBusca={setBuscaItens}
+            produtos={produtosFiltrados}
+            qtdPorId={qtdPorId}
+            onAddProduto={handleAddProduct}
+            carrinhoQtd={qtdTotal}
+            carrinhoTotal={total}
+            onAbrirCarrinho={() => setCartAberto(true)}
+            barraEsperas={barraEsperas}
+          />
+        )}
+
+        {aba === "comandas" && (
+          <ComandasTab
+            busca={buscaGrid}
+            onBusca={setBuscaGrid}
+            onVoltar={() => setAba("pedido")}
+            comandas={comandasGrade}
+            temMais={temMais}
+            limite={limite}
+            total={TOTAL_COMANDAS}
+            onVerMais={() =>
+              setLimite((l) => Math.min(l + PAGE, TOTAL_COMANDAS))
+            }
+            barraEsperas={barraEsperas}
+          />
+        )}
+
+        {aba === "painel" && (
+          <PainelTab
+            meu={meu}
+            ticketMedio={ticketMedio}
+            oportunidades={oportunidades}
+          />
+        )}
+
+        {aba === "mais" && (
+          <MaisTab
+            tenantNome={tenantNome}
+            usuarioNome={currentUser?.name}
+            usuarioIniciais={usuarioIniciais}
+            caixa={caixaInfo}
+            modulos={modulosMais}
+            onConfiguracoes={() => navigate("/app/configuracoes")}
+          />
+        )}
       </div>
 
-    </div>}
+      <BottomNav
+        ativa={aba}
+        onNavegar={setAba}
+        comandasBadge={abertas.length}
+      />
 
-    {/* Toast — sempre visível independente do mode */}
-    <ToastMsg msg={toast} />
+      {/* ── Sheets (fixas, sobrepõem tudo) ── */}
+      <CarrinhoSheet
+        aberto={cartAberto}
+        itens={cartItems}
+        onFechar={() => setCartAberto(false)}
+        onQtd={handleChangeQty}
+        onLimpar={() => {
+          setCartItems([]);
+          setCartAberto(false);
+          setLancComanda("");
+          setLancMesa("");
+        }}
+        onLancar={() => {
+          setCartAberto(false);
+          abrirModalLancar();
+        }}
+        total={total}
+        podeConfirmar={cartItems.length > 0}
+        textoConfirmar="Lançar pedido"
+      />
 
-    {/* Modal Lançar */}
-    {showLancar && createPortal(
-      <div
-        {...fecharAoClicarFora(() => setShowLancar(false), !salvando)}
-        style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif" }}
-      >
-        <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: "calc(24px + env(safe-area-inset-bottom))", width: "100%", maxHeight: "100dvh", overflowY: "auto", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div className="mobile-page__modal-titulo" style={{ fontWeight: 800, color: varColor(C.text) }}>{cartItems.length === 0 ? "Abrir Comanda" : "Lançar Pedido"}</div>
-              <div className="mobile-page__modal-sub" style={{ color: varColor(C.muted), marginTop: 2 }}>{cartItems.length === 0 ? "Sem itens por enquanto — dá pra lançar depois" : `${qtdTotal} ${qtdTotal === 1 ? "item" : "itens"} · R$ ${total.toFixed(2)}`}</div>
-            </div>
-            <button onClick={() => { if (!salvando) setShowLancar(false); }} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0 }}><LuX size={22} /></button>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div>
-              <div className="mobile-page__campo-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Número da Comanda *</div>
-              <input autoFocus value={lancComanda} onChange={e => { setLancComanda(e.target.value); setLancErro(""); }} onKeyDown={e => e.key === "Enter" && document.getElementById("palm-mesa")?.focus()} placeholder="Ex: 42 ou Mesa VIP" maxLength={40} className="mobile-page__campo-input" style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid ${lancErro ? varColor(C.red) + "88" : "var(--gm-input-border)"}`, background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
-            </div>
-            <div>
-              <div className="mobile-page__campo-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Mesa <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span></div>
-              <input id="palm-mesa" value={lancMesa} onChange={e => setLancMesa(e.target.value)} onKeyDown={e => e.key === "Enter" && handleLancar()} placeholder="Ex: 5" maxLength={20} className="mobile-page__campo-input" style={{ width: "100%", padding: "14px 16px", borderRadius: 12, border: `1.5px solid var(--gm-input-border)`, background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
-            </div>
-            {lancErro && <div className="mobile-page__campo-erro" style={{ color: varColor(C.red), fontWeight: 600, padding: "8px 12px", background: `${alfa(C.red, "12")}`, borderRadius: 8, border: `1px solid ${alfa(C.red, "33")}` }}>{lancErro}</div>}
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => { if (!salvando) setShowLancar(false); }} className="mobile-page__modal-btn" style={{ flex: 1, padding: 14, borderRadius: 12, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>Cancelar</button>
-            <button onClick={handleLancar} disabled={!lancComanda.trim() || salvando} className="mobile-page__modal-btn" style={{ flex: 2, padding: 14, borderRadius: 12, border: "none", background: lancComanda.trim() && !salvando ? varColor(C.accent) : varColor(C.surface), color: lancComanda.trim() && !salvando ? "#fff" : varColor(C.muted), cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed", fontWeight: 800, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}>
-              {salvando ? "Enviando..."
-                : cartItems.length === 0 ? (mapa[lancComanda.trim()] ? "✓ Abrir Comanda" : "✓ Criar Comanda")
-                : esperas.length > 0 ? `✓ Revisar e lançar todos (${esperas.length + 1})`
-                : mapa[lancComanda.trim()] ? "✓ Adicionar à Comanda" : "✓ Criar e Lançar"}
-            </button>
-          </div>
-          {/* Em espera: segura este pedido no aparelho e libera a tela para a
-              próxima comanda — tudo é enviado junto depois, num toque só. */}
-          {cartItems.length > 0 && (
-            <button
-              onClick={porEmEspera}
-              disabled={!lancComanda.trim() || salvando}
-              className="mobile-page__modal-btn"
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                padding: 13, borderRadius: 12, marginTop: -4,
-                border: `1.5px solid ${lancComanda.trim() && !salvando ? `${AMBER}88` : varColor(C.border)}`,
-                background: lancComanda.trim() && !salvando ? `${AMBER}14` : "none",
-                color: lancComanda.trim() && !salvando ? AMBER : varColor(C.muted),
-                cursor: lancComanda.trim() && !salvando ? "pointer" : "not-allowed",
-                fontWeight: 800, fontFamily: "inherit",
-                WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              <LuPause size={15} /> Deixar em espera e ir pra próxima
-            </button>
-          )}
-        </div>
-      </div>,
-      document.body
-    )}
+      <LancarSheet
+        aberto={showLancar}
+        titulo={cartItems.length === 0 ? "Abrir Comanda" : "Lançar Pedido"}
+        comanda={lancComanda}
+        mesa={lancMesa}
+        onComanda={(v) => {
+          setLancComanda(v);
+          setLancErro("");
+        }}
+        onMesa={setLancMesa}
+        onConfirmar={handleLancar}
+        onEspera={porEmEspera}
+        onFechar={() => {
+          if (!salvando) setShowLancar(false);
+        }}
+        erro={lancErro}
+        salvando={salvando}
+        textoConfirmar={textoConfirmarLancar}
+        mostrarEspera={cartItems.length > 0}
+      />
 
-    {/* Bottom sheet — pedidos em espera (revisar e enviar todos) */}
-    {showEsperas && createPortal(
-      <div
-        {...fecharAoClicarFora(() => setShowEsperas(false), !salvando)}
-        style={{ position: "fixed", inset: 0, zIndex: 9200, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif" }}
-      >
-        <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", width: "100%", maxHeight: "80dvh", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "20px 20px 14px", borderBottom: `1px solid var(${C.border})`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <div className="mobile-page__sheet-titulo" style={{ fontWeight: 900, color: varColor(C.text), display: "flex", alignItems: "center", gap: 8 }}>
-                <LuPause size={18} color={AMBER} /> Pedidos em espera
-              </div>
-              {(() => {
-                const r = resumoEsperas(esperas);
-                return (
-                  <div className="mobile-page__sheet-sub" style={{ color: varColor(C.muted), marginTop: 3 }}>
-                    {r.pedidos} pedido{r.pedidos !== 1 ? "s" : ""} · {r.itens} {r.itens === 1 ? "item" : "itens"} · R$ {r.total.toFixed(2)}
-                  </div>
-                );
-              })()}
-            </div>
-            <button onClick={() => { if (!salvando) setShowEsperas(false); }} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0, flexShrink: 0 }}><LuX size={22} /></button>
-          </div>
-          <div style={{ flex: 1, overflowY: "auto" }}>
-            {esperas.length === 0 ? (
-              <div className="mobile-page__vazio" style={{ padding: 40, textAlign: "center", color: varColor(C.muted) }}>Nenhum pedido em espera.</div>
-            ) : esperas.map((esp, i) => (
-              <div key={esp.comanda} style={{ padding: "14px 20px", borderBottom: i < esperas.length - 1 ? `1px solid var(${C.border})` : "none", display: "flex", alignItems: "flex-start", gap: 12 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="mobile-page__espera-nome" style={{ fontWeight: 800, color: varColor(C.text) }}>
-                    {fmtComanda(esp.comanda)}{esp.mesa ? <span style={{ fontWeight: 500, color: varColor(C.muted) }}> · Mesa {esp.mesa}</span> : null}
-                  </div>
-                  <div className="mobile-page__espera-itens" style={{ color: varColor(C.muted), marginTop: 3 }}>
-                    {esp.items.map(it => `${it.qty ?? 1}× ${it.name}`).join(", ")}
-                  </div>
-                  {esp.erro && (
-                    <div className="mobile-page__espera-erro" style={{ color: AMBER, fontWeight: 700, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
-                      <LuLock size={11} style={{ flexShrink: 0 }} /> {esp.erro}
-                    </div>
-                  )}
-                </div>
-                <div style={{ flexShrink: 0, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-                  <div className="mobile-page__espera-total" style={{ fontWeight: 800, color: varColor(C.green) }}>R$ {totalEspera(esp).toFixed(2)}</div>
-                  <button
-                    onClick={() => setEsperas(prev => {
-                      const depois = removerEspera(prev, esp.comanda);
-                      if (depois.length === 0) setShowEsperas(false);
-                      return depois;
-                    })}
-                    title="Descartar este pedido"
-                    style={{ background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "33")}`, borderRadius: 8, color: varColor(C.red), cursor: "pointer", padding: 6, lineHeight: 0, WebkitTapHighlightColor: "transparent" }}
-                  >
-                    <LuTrash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{ padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", borderTop: `1px solid var(${C.border})` }}>
-            <button
-              onClick={enviarEsperas}
-              disabled={salvando || esperas.length === 0}
-              className="mobile-page__cta"
-              style={{
-                width: "100%", padding: 16, borderRadius: 12, border: "none",
-                background: !salvando && esperas.length > 0 ? varColor(C.accent) : varColor(C.faint),
-                color: "#fff", fontWeight: 800,
-                cursor: !salvando && esperas.length > 0 ? "pointer" : "not-allowed",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                fontFamily: "inherit", WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              <LuSend size={16} /> {salvando ? "Enviando..." : `Enviar todos (${esperas.length})`}
-            </button>
-          </div>
-        </div>
-      </div>,
-      document.body
-    )}
+      <EsperasSheet
+        aberto={showEsperas}
+        esperas={esperasAdaptadas}
+        resumo={resumoEsperasTexto}
+        onFechar={() => setShowEsperas(false)}
+        onRemover={(id) =>
+          setEsperas((prev) => {
+            const depois = removerEspera(prev, id);
+            if (depois.length === 0) setShowEsperas(false);
+            return depois;
+          })
+        }
+        onEnviarTodos={enviarEsperas}
+        enviando={salvando}
+      />
 
-    {/* Bottom sheet — detalhe da comanda */}
-    {createPortal(
-      <div {...fecharAoClicarFora(fecharDetalhe)} style={{ position: "fixed", inset: 0, zIndex: 9100, background: detalheVisible ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0)", display: "flex", alignItems: "flex-end", fontFamily: "'Inter',system-ui,sans-serif", pointerEvents: detalheComanda ? "auto" : "none", transition: "background 0.3s" }}>
-        <div style={{ background: varColor(C.card), borderRadius: "20px 20px 0 0", width: "100%", maxHeight: "80dvh", border: `1px solid var(${C.border})`, boxShadow: "0 -8px 32px rgba(0,0,0,0.5)", boxSizing: "border-box", display: "flex", flexDirection: "column", transform: detalheVisible ? "translateY(0)" : "translateY(100%)", transition: "transform 0.3s cubic-bezier(0.32,0.72,0,1)" }}>
-          {detalheComanda && (() => {
-            // sempre usa dados frescos do pending; fallback para o snapshot local (ex: logo após lançamento)
-            const order = mapa[String(detalheComanda.comanda)] ?? detalheComanda;
-            const items = Array.isArray(order.items) ? order.items : [];
-            const totalOrder = items.reduce((s, it) => s + (it.price ?? 0) * (it.qty ?? 1), 0);
-            const hora = order.updated_at
-              ? new Date(order.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-              : order.created_at ? new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
-            const data = order.updated_at ? new Date(order.updated_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : null;
-            return (
-              <>
-                <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
-                  <div style={{ width: 40, height: 4, borderRadius: 2, background: varColor(C.border) }} />
-                </div>
-                <div style={{ padding: "8px 20px 14px", borderBottom: `1px solid var(${C.border})`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-                  <div>
-                    <div className="mobile-page__sheet-titulo" style={{ fontWeight: 900, color: varColor(C.text) }}>{fmtComanda(order.comanda)}</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", marginTop: 4 }}>
-                      {order.mesa && <span className="mobile-page__detalhe-meta" style={{ color: varColor(C.muted) }}>Mesa {order.mesa}</span>}
-                      {order.garcom && <span className="mobile-page__detalhe-meta" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}><LuUser size={12} /> {order.garcom}</span>}
-                      {hora && <span className="mobile-page__detalhe-hora" style={{ color: varColor(C.accent), display: "flex", alignItems: "center", gap: 4 }}><LuClock size={12} /> {data} às {hora}</span>}
-                    </div>
-                  </div>
-                  <button onClick={fecharDetalhe} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, lineHeight: 0, flexShrink: 0 }}><LuX size={22} /></button>
-                </div>
-                {/* Trava de edição (Leva 14): outra pessoa está com esta comanda aberta */}
-                {(bloqueio || emUsoPorOutro(order)) && (
-                  <div className="mobile-page__aviso-trava" style={{ margin: "10px 20px 0", padding: "10px 14px", borderRadius: 12, background: `${AMBER}14`, border: `1.5px solid ${AMBER}66`, color: AMBER, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-                    <LuLock size={14} style={{ flexShrink: 0 }} />
-                    Em uso por {bloqueio?.nome ?? nomeTrava(order)} — dá pra ver, mas não mexer até liberar.
-                  </div>
-                )}
-                <div style={{ flex: 1, overflowY: "auto" }}>
-                  {items.map((item, i) => {
-                    const qty = item.qty ?? 1;
-                    const lancHora = item.launched_at
-                      ? new Date(item.launched_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-                      : null;
-                    return (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderBottom: i < items.length - 1 ? `1px solid var(${C.border})` : "none" }}>
-                        {/* Badge de quantidade — destaque visual */}
-                        <div style={{
-                          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                          background: `${alfa(C.accent, "18")}`, border: `1.5px solid ${alfa(C.accent, "44")}`,
-                          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                          lineHeight: 1,
-                        }}>
-                          <span className="mobile-page__item-qtd" style={{ fontWeight: 900, color: varColor(C.accent) }}>{qty}</span>
-                          <span className="mobile-page__item-qtd-un" style={{ color: varColor(C.accent), opacity: 0.7, fontWeight: 700, letterSpacing: 0.3 }}>un</span>
-                        </div>
-                        {/* Nome + horário */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="mobile-page__item-nome" style={{ fontWeight: 700, color: varColor(C.text), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {item.emoji ? `${item.emoji} ${item.name}` : item.name}
-                          </div>
-                          {lancHora && (
-                            <div className="mobile-page__item-hora" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 3, marginTop: 3 }}>
-                              <LuClock size={10} /> {lancHora}
-                            </div>
-                          )}
-                        </div>
-                        {/* Preço */}
-                        <div style={{ flexShrink: 0, textAlign: "right" }}>
-                          <div className="mobile-page__item-preco" style={{ fontWeight: 800, color: varColor(C.green) }}>
-                            R$ {((item.price ?? 0) * qty).toFixed(2)}
-                          </div>
-                          {qty > 1 && (
-                            <div className="mobile-page__item-unit" style={{ color: varColor(C.muted), marginTop: 1 }}>
-                              {qty}× R$ {Number(item.price ?? 0).toFixed(2)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{ padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", borderTop: `1px solid var(${C.border})`, display: "flex", gap: 10, alignItems: "center" }}>
-                  <div style={{ flex: 1 }}>
-                    <div className="mobile-page__total-label" style={{ color: varColor(C.muted), fontWeight: 600 }}>Total</div>
-                    <div className="mobile-page__total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>R$ {totalOrder.toFixed(2)}</div>
-                  </div>
-                  {(() => {
-                    const travada = !!(bloqueio || emUsoPorOutro(order));
-                    return (
-                      <button disabled={travada} onClick={() => {
-                        if (travada) return;
-                        fecharDetalhe();
-                        setTimeout(() => {
-                          setLancComanda(String(order.comanda));
-                          setLancMesa(order.mesa || "");
-                          setLancErro("");
-                          setMode("pedido");
-                          // não abre o modal — usuário seleciona produtos primeiro
-                        }, 320);
-                      }} className="mobile-page__sheet-cta" style={{ display: "flex", alignItems: "center", gap: 8, background: travada ? varColor(C.surface) : varColor(C.accent), border: "none", borderRadius: 12, color: travada ? varColor(C.muted) : "#fff", cursor: travada ? "not-allowed" : "pointer", padding: "14px 20px", fontWeight: 800, WebkitTapHighlightColor: "transparent" }}>
-                        {travada ? <LuLock size={16} /> : <LuPlus size={16} />} {travada ? "Em uso" : "Adicionar itens"}
-                      </button>
-                    );
-                  })()}
-                </div>
-              </>
-            );
-          })()}
-        </div>
-      </div>,
-      document.body
-    )}
-    </>
-  );
-}
+      <DetalheComandaSheet
+        order={orderDetalhe}
+        visivel={detalheVisible}
+        onFechar={fecharDetalhe}
+        onAdicionar={() => {
+          const o = detalheComanda
+            ? mapa[String(detalheComanda.comanda)] ?? detalheComanda
+            : null;
+          if (!o) return;
+          fecharDetalhe();
+          setTimeout(() => {
+            setLancComanda(String(o.comanda));
+            setLancMesa(o.mesa || "");
+            setLancErro("");
+            setAba("pedido");
+          }, 320);
+        }}
+        travada={!!(bloqueio || (orderDetalhe && emUsoPorOutro(orderDetalhe)))}
+        nomeTrava={
+          bloqueio?.nome ?? (orderDetalhe ? nomeTrava(orderDetalhe) : "")
+        }
+      />
 
-// Barra âmbar "N pedidos em espera" — mesma cara na tela de pedido e na
-// grade, sempre levando ao mesmo lugar (revisar e enviar todos).
-function BarraEsperas({ esperas, onClick }) {
-  const r = resumoEsperas(esperas);
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: "100%", boxSizing: "border-box",
-        background: `${AMBER}14`, border: `1.5px solid ${AMBER}88`,
-        borderRadius: 12, padding: "12px 16px",
-        display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
-        cursor: "pointer", color: AMBER, fontFamily: "inherit",
-        WebkitTapHighlightColor: "transparent",
-      }}
-    >
-      <span className="mobile-page__espera-barra-texto" style={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
-        <LuPause size={15} /> {r.pedidos} pedido{r.pedidos !== 1 ? "s" : ""} em espera · R$ {r.total.toFixed(2)}
-      </span>
-      <span className="mobile-page__espera-barra-acao" style={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 5 }}>
-        Revisar e enviar <LuSend size={13} />
-      </span>
-    </button>
-  );
-}
-
-function ToastMsg({ msg }) {
-  // guarda a última mensagem para o texto não sumir durante o fade-out
-  const ultima = useRef("");
-  if (msg) ultima.current = msg;
-  const visible = !!msg;
-  return (
-    <div className="mobile-page__toast" style={{
-      position: "fixed", top: 20, left: "50%",
-      transform: `translateX(-50%) translateY(${visible ? 0 : -16}px)`,
-      background: varColor(C.green), color: "#fff",
-      padding: "12px 20px", borderRadius: 12,
-      fontWeight: 700,
-      boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-      pointerEvents: "none", zIndex: 500,
-      opacity: visible ? 1 : 0,
-      transition: "opacity 0.3s, transform 0.3s",
-      whiteSpace: "nowrap",
-    }}>
-      {msg || ultima.current}
+      <Toast msg={toast} />
     </div>
   );
 }

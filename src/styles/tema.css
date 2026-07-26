@@ -43,6 +43,11 @@
   --gm-green: #10b981;
   --gm-red: #ef4444;
   --gm-blue: #3b82f6;
+  /* Âmbar de ATENÇÃO (não-crítico): comanda "em uso" por outro garçom,
+     pedidos em espera, banner de sem-internet/rede local. Token de marca
+     como os demais — customizável por tenant. Substitui o AMBER hardcoded
+     ("#f59e0b") que existia inline no palm/mobile. */
+  --gm-warn: #f59e0b;
   --gm-text: #eef2f7;
   --gm-muted: #9aa8c4;
   --gm-faint: #323d58;

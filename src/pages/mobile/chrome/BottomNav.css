@@ -1,0 +1,87 @@
+/**
+ * BottomNav — Tab bar fixa no rodapé, 4 abas.
+ * Tokens: --gm-card (bg), --gm-accent (ativa), --gm-muted (inativa).
+ */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  height: var(--tap-min);
+  background: var(--gm-card);
+  border-top: 1px solid var(--gm-border);
+  padding-bottom: max(0, env(safe-area-inset-bottom));
+  /* Força o container a contar com safe-area na altura total */
+  min-height: calc(var(--tap-min) + env(safe-area-inset-bottom, 0px));
+}
+
+.bottom-nav__aba {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--gm-muted);
+  cursor: pointer;
+  padding: 8px 0;
+  transition: color 100ms cubic-bezier(0.2, 0, 0, 1);
+  /* Feedback de toque */
+}
+
+.bottom-nav__aba:active {
+  transform: scale(0.98);
+}
+
+.bottom-nav__aba--ativa {
+  color: var(--gm-accent);
+}
+
+.bottom-nav__aba-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.bottom-nav__badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gm-accent);
+  color: var(--gm-card);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.bottom-nav__aba-label {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: var(--tracking-normal);
+}
+
+/* Respeita reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .bottom-nav__aba {
+    transition: none;
+  }
+
+  .bottom-nav__aba:active {
+    transform: none;
+  }
+}

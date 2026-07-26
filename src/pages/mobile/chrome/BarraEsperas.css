@@ -1,0 +1,76 @@
+/**
+ * BarraEsperas — Pill de aviso para pedidos em espera.
+ * Fundo suave warn (14%), ícones e affordance visível, tappable inteiro.
+ */
+
+.barra-esperas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gm-warn) 14%, transparent);
+  color: var(--gm-warn);
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  line-height: var(--lh-sm);
+  transition: all 100ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.barra-esperas:active {
+  transform: scale(0.98);
+}
+
+.barra-esperas:hover {
+  background: color-mix(in srgb, var(--gm-warn) 20%, transparent);
+}
+
+.barra-esperas__conteudo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.barra-esperas__texto {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.barra-esperas__valor {
+  font-family: var(--gm-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.barra-esperas__acao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid color-mix(in srgb, var(--gm-warn) 30%, transparent);
+  flex-shrink: 0;
+}
+
+.barra-esperas__acao span {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Respeita reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .barra-esperas {
+    transition: none;
+  }
+
+  .barra-esperas:active {
+    transform: none;
+  }
+}
