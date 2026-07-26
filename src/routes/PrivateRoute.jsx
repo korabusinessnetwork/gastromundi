@@ -1,8 +1,10 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { assinaturaPermiteOperacao } from "@/lib/assinatura";
+import { rotaInicialPermitida } from "@/lib/navegacaoInicial";
 import UpgradeNecessario from "@/components/desktop/UpgradeNecessario";
 import AssinaturaBloqueada from "@/components/desktop/AssinaturaBloqueada";
+import SemAcesso from "@/components/desktop/SemAcesso";
 
 /**
  * PrivateRoute — redireciona para /login se não autenticado.
@@ -37,7 +39,16 @@ export default function PrivateRoute({ children, requiredPermission, requiredMod
   }
 
   if (requiredPermission && !currentUser.permissions?.[requiredPermission]) {
-    return <Navigate to="/app/pdv" replace />;
+    // Manda o usuário para a PRIMEIRA rota que ele realmente pode acessar
+    // (mesma permissão/módulo da rota de destino), nunca fixo em /app/pdv:
+    // um garçom sem 'pdv' era jogado no PDV, que ele também não tinha,
+    // gerando laço de redirecionamento infinito. Se não há destino, ou o
+    // destino é a própria rota atual, mostra "sem acesso" em vez de redirecionar.
+    const destino = rotaInicialPermitida(currentUser.permissions, moduloHabilitado);
+    if (!destino || destino === location.pathname) {
+      return <SemAcesso />;
+    }
+    return <Navigate to={destino} replace />;
   }
 
   if (requiredModulo && !moduloHabilitado?.(requiredModulo)) {

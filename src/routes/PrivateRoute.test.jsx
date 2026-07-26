@@ -72,3 +72,43 @@ describe("PrivateRoute — Fase 5 (bloqueio total por assinatura, ADR-006 §4)",
     expect(screen.getByText("Tela de login")).toBeInTheDocument();
   });
 });
+
+// Rotas suficientes para observar PARA ONDE a negação de permissão redireciona.
+function renderComDestinos(overrides = {}, routeProps = {}) {
+  setAppMock({ currentUser: gerente, moduloHabilitado: () => true, ...overrides });
+  return renderWithProviders(
+    <Routes>
+      <Route path="/app/clientes" element={<PrivateRoute {...routeProps}><div>Conteúdo protegido</div></PrivateRoute>} />
+      <Route path="/app/pdv" element={<div>Frente de Caixa</div>} />
+      <Route path="/palm" element={<div>Tela do Palm</div>} />
+      <Route path="/login" element={<div>Tela de login</div>} />
+    </Routes>,
+    { route: "/app/clientes" },
+  );
+}
+
+describe("PrivateRoute — negação de permissão manda para casa acessível (anti-laço)", () => {
+  it("gerente (pdv) sem a permissão da rota vai para o PDV, sua primeira casa", () => {
+    renderComDestinos({}, { requiredPermission: "clientes" });
+
+    expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
+    expect(screen.getByText("Frente de Caixa")).toBeInTheDocument();
+  });
+
+  it("garçom (palm, sem pdv) sem a permissão da rota vai para o Palm, não para o PDV (o laço antigo)", () => {
+    const garcom = { id: 2, name: "Garçom", username: "garcom1", role: "garcom", permissions: { palm: true } };
+    renderComDestinos({ currentUser: garcom }, { requiredPermission: "clientes" });
+
+    expect(screen.getByText("Tela do Palm")).toBeInTheDocument();
+    expect(screen.queryByText("Frente de Caixa")).not.toBeInTheDocument();
+  });
+
+  it("usuário sem nenhuma permissão de navegação vê 'sem acesso' em vez de entrar em laço de redirecionamento", () => {
+    const semNada = { id: 3, name: "Sem Acesso", username: "vazio", role: "garcom", permissions: {} };
+    renderComDestinos({ currentUser: semNada }, { requiredPermission: "clientes" });
+
+    expect(screen.getByText(/ainda não tem acesso/i)).toBeInTheDocument();
+    expect(screen.queryByText("Frente de Caixa")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tela do Palm")).not.toBeInTheDocument();
+  });
+});
