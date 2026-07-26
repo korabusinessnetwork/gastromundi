@@ -18,7 +18,6 @@ const CardapioPage = lazy(() => import("@/pages/delivery/CardapioPage"));
 
 // Pages
 import LoginPage        from "@/pages/LoginPage";
-import ChoicePage       from "@/pages/ChoicePage";
 import MobilePage       from "@/pages/MobilePage";
 import DesktopLayout    from "@/pages/desktop/DesktopLayout";
 import PDVPage          from "@/pages/desktop/PDVPage";
@@ -118,16 +117,6 @@ const rotasApp = [
           <ConsolePage />
         </ConsoleRoute>
       ),
-  },
-
-  // Tela de escolha de modo (admin no mobile)
-  {
-    path: "/escolha",
-    element: (
-      <PrivateRoute>
-        <ChoicePage />
-      </PrivateRoute>
-    ),
   },
 
   // Palm — tirar pedidos

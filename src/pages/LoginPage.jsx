@@ -121,8 +121,11 @@ export default function LoginPage() {
       return;
     }
     const p = currentUser.permissions;
-    if (isMobile && p.palm && !p.pdv) { navigate("/palm",    { replace: true }); return; }
-    if (isMobile && p.pdv  && p.palm) { navigate("/escolha", { replace: true }); return; }
+    // No mobile, quem tira pedido (palm) entra DIRETO no Palm — sem tela de
+    // escolha (decisão do dono, 2026-07-26). A Frente de Caixa é operação de
+    // balcão/desktop; no celular até o admin cai no Palm. Quem só tem PDV
+    // (caixa, sem palm) segue o fluxo normal pro /app.
+    if (isMobile && p.palm) { navigate("/palm", { replace: true }); return; }
     navigate(from, { replace: true });
   }, [currentUser]);
 
@@ -135,7 +138,7 @@ export default function LoginPage() {
     const result = await login(u, p);
     setLoading(false);
     if (result?.error) { setError(result.error); setAttempts((a) => a + 1); setPassword(""); return; }
-    // A rota final (Console p/ plataforma, app/palm/escolha p/ demais) é
+    // A rota final (Console p/ plataforma, app/palm p/ demais) é
     // decidida pelo efeito acima quando currentUser muda — evita bounce.
   };
 

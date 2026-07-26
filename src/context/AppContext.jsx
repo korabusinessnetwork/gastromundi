@@ -99,7 +99,6 @@ export function AppProvider({ children }) {
   // validar os caches locais (snapshot/fila), isolando estabelecimentos que
   // porventura dividam a mesma origem de navegador (preview/IP/apex).
   const tenantIdRef = useRef(null);
-  const [mobileChoice, setMobileChoice] = useState(null);
 
   const isMobile = useIsMobile();
 
@@ -143,7 +142,6 @@ export function AppProvider({ children }) {
       if (event === "SIGNED_OUT") {
         tenantIdRef.current = null;
         setCurrentUser(null);
-        setMobileChoice(null);
         clearSession();
       }
     });
@@ -717,7 +715,6 @@ export function AppProvider({ children }) {
   const logout = async () => {
     if (currentUser) logAction(currentUser.username, "auth:logout", { msg: "Sessão encerrada", name: currentUser.name, role: currentUser.role });
     setCurrentUser(null);
-    setMobileChoice(null);
     clearSession();
     await supabase.auth.signOut();
   };
@@ -1432,10 +1429,8 @@ export function AppProvider({ children }) {
     // Fase 4 — camada de comercialização (ADR-006): status calculado, só
     // exibição nesta fase — nenhuma escrita é bloqueada por causa disso.
     assinatura: tenant?.assinatura ?? null,
-    currentUser, isMobile, mobileChoice,
+    currentUser, isMobile,
     lancadas, addLancada,
-    // setter simples (sem persistência)
-    setMobileChoice,
     // auth
     login, logout,
     // pending

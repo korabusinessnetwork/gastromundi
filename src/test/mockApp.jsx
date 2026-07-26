@@ -66,8 +66,6 @@ export function createAppMockValue(overrides = {}) {
     estoqueMinimos: {},
     currentUser: { id: 1, name: "Operador Teste", username: "teste", role: "admin", permissions: {} },
     isMobile: false,
-    mobileChoice: null,
-    setMobileChoice: vi.fn(),
     lancadas: new Set(),
     addLancada: vi.fn(),
     login: vi.fn(),

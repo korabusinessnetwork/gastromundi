@@ -2,24 +2,19 @@ import { Navigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 
 /**
- * MobileRoute — decide se o usuário vai para palm ou desktop
- * baseado no dispositivo, role e escolha do admin.
+ * MobileRoute — guarda do app de balcão (/app) no mobile.
+ *
+ * No celular, quem tem permissão de Palm (tirar pedidos) entra DIRETO no
+ * Palm — sem tela de escolha (decisão do dono, 2026-07-26). A Frente de
+ * Caixa é operação de desktop/balcão; num celular o Palm é o modo certo.
+ * Quem NÃO tem Palm (ex.: caixa puro) segue normalmente pro /app.
  */
 export default function MobileRoute({ children }) {
-  const { currentUser, isMobile, mobileChoice } = useApp();
+  const { currentUser, isMobile } = useApp();
 
   if (!currentUser) return <Navigate to="/login" replace />;
 
-  const p = currentUser.permissions;
-  const hasBoth = isMobile && p.pdv && p.palm;
-
-  // Admin/usuários com pdv+palm no mobile sem escolha → tela de escolha
-  if (hasBoth && !mobileChoice) {
-    return <Navigate to="/escolha" replace />;
-  }
-
-  // Usuário palm-only → força rota palm
-  if (isMobile && !p.pdv && p.palm && mobileChoice !== "pdv") {
+  if (isMobile && currentUser.permissions.palm) {
     return <Navigate to="/palm" replace />;
   }
 

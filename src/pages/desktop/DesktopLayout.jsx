@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
@@ -18,12 +18,11 @@ import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import "./DesktopLayout.css";
 
 export default function DesktopLayout() {
-  const { currentUser, isMobile, mobileChoice, setMobileChoice, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant } = useApp();
+  const { currentUser, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant } = useApp();
   const nomeEstabelecimento = nomeExibicaoTenant(tenant?.tema);
   const { width } = useResponsive();
   const sz = getSizes(width);
   const { notif, notify } = useNotification();
-  const navigate = useNavigate();
 
   const [showFechamento, setShowFechamento] = useState(false);
   const [showAbertura,   setShowAbertura]   = useState(false);
@@ -33,10 +32,6 @@ export default function DesktopLayout() {
   const [sidebarRecolhida, setSidebarRecolhida] = useState(false);
   // Largura do drawer: mínimo 200, máximo 260, nunca mais de 85% da tela
   const drawerWidth = Math.min(260, Math.max(200, Math.floor(width * 0.85)));
-
-  const handleBackToChoice = isMobile && mobileChoice === "pdv"
-    ? () => { setMobileChoice(null); navigate("/escolha", { replace: true }); }
-    : null;
 
   return (
     <div style={{
@@ -61,7 +56,6 @@ export default function DesktopLayout() {
               onFechamento={() => setShowFechamento(true)}
               onAbertura={() => setShowAbertura(true)}
               onLogout={logout}
-              onBackToChoice={handleBackToChoice}
             />
           </div>
 
@@ -114,7 +108,6 @@ export default function DesktopLayout() {
               onFechamento={() => { setShowFechamento(true); setMenuAberto(false); }}
               onAbertura={() => { setShowAbertura(true); setMenuAberto(false); }}
               onLogout={logout}
-              onBackToChoice={handleBackToChoice}
               onClose={() => setMenuAberto(false)}
             />
           </div>
