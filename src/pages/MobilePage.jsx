@@ -183,9 +183,13 @@ export default function MobilePage() {
   };
 
   const abrirModalLancar = () => {
-    setLancComanda((prev) => prev || "");
-    setLancMesa((prev) => prev || "");
-    setLancApelido((prev) => prev || "");
+    // Todo lançamento novo começa do zero: comanda, mesa e nome sempre em
+    // branco ao abrir a sheet, independente do lançamento anterior ter sido
+    // concluído, deixado em espera ou abandonado. Evita reaproveitar por engano
+    // o número/mesa/nome da comanda anterior no próximo pedido.
+    setLancComanda("");
+    setLancMesa("");
+    setLancApelido("");
     setLancErro("");
     setShowLancar(true);
   };
