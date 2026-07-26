@@ -47,6 +47,29 @@
   gap: 8px;
 }
 
+/* "Ver cardápio do cliente" — prévia da vitrine pública (ação secundária,
+   contorno com a cor de destaque; não compete com abrir/fechar a loja). */
+.delivery-view__ver-cardapio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-accent);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.delivery-view__ver-cardapio:hover {
+  background: var(--gm-surface);
+  border-color: var(--gm-accent);
+}
+
 /* Botão abrir/fechar delivery — verde quando aberto (pode fechar),
    vermelho quando fechado (pode abrir). Ação clara, um toque. */
 .delivery-view__toggle-loja {

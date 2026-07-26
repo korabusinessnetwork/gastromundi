@@ -61,6 +61,7 @@ import {
   LuClock,
   LuLock,
   LuLockOpen,
+  LuExternalLink,
 } from "react-icons/lu";
 import {
   statusLabel,
@@ -295,6 +296,19 @@ export default function DeliveryView({ notify } = {}) {
           </div>
         </div>
         <div className="delivery-view__header-acoes">
+          {/* Prévia clicável: abre o MESMO cardápio que o cliente final vê
+              (rota pública /cardapio, por slug), em nova aba. Padrão "ver
+              minha loja" — o dono confere na hora o resultado do cadastro. */}
+          <button
+            type="button"
+            className="delivery-view__ver-cardapio"
+            onClick={() => window.open("/cardapio", "_blank", "noopener,noreferrer")}
+            title="Abre, em uma nova aba, o cardápio exatamente como o cliente vê."
+          >
+            <LuExternalLink size={14} />
+            Ver cardápio do cliente
+          </button>
+
           <span
             className="delivery-view__modo-tag"
             style={{
