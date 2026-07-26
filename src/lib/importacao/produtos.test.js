@@ -46,6 +46,19 @@ describe("planejarImportacaoProdutos (idempotência por nome no tenant)", () => 
     expect(plano.iguais).toHaveLength(1);
   });
 
+  it("unidade editada na planilha entra no UPDATE (round-trip export→editar→reimportar)", () => {
+    const existente = { id: 7, name: "X-Salada", price: 24.9, category: "Lanches", emoji: "🍔", active: true, unidade_estoque: "un" };
+    const plano = planejarImportacaoProdutos([itemPlanilha({ unidade: "kg" })], [existente]);
+    expect(plano.atualizar).toEqual([{ id: 7, nome: "X-Salada", changes: { unidade_estoque: "kg" } }]);
+  });
+
+  it("unidade não informada (null) nunca sobrescreve a unidade existente", () => {
+    const existente = { id: 7, name: "X-Salada", price: 24.9, category: "Lanches", emoji: "🍔", active: true, unidade_estoque: "kg" };
+    const plano = planejarImportacaoProdutos([itemPlanilha({ unidade: null })], [existente]);
+    expect(plano.atualizar).toEqual([]);
+    expect(plano.iguais).toHaveLength(1);
+  });
+
   it("categoria nova só entra uma vez mesmo repetida", () => {
     const plano = planejarImportacaoProdutos(
       [itemPlanilha(), itemPlanilha({ nome: "Outro", categoria: "lanches" })],

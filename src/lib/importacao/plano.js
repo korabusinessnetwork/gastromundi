@@ -54,6 +54,13 @@ export function planejarImportacaoProdutos(produtosPlanilha, produtosExistentes)
     if ((existente.category || "") !== item.categoria) changes.category = item.categoria;
     if (item.emoji && (existente.emoji || null) !== item.emoji) changes.emoji = item.emoji;
     if (Boolean(existente.active) !== item.ativo) changes.active = item.ativo;
+    // Unidade só entra no UPDATE quando a planilha realmente traz uma (item.unidade
+    // != null). Assim o export→editar unidade→reimportar aplica a mudança, mas um
+    // import mínimo (sem a coluna) não zera a unidade existente. Fallback "un" no
+    // lado existente cobre linha antiga sem unidade_estoque gravada.
+    if (item.unidade && (existente.unidade_estoque || "un") !== item.unidade) {
+      changes.unidade_estoque = item.unidade;
+    }
 
     if (Object.keys(changes).length === 0) iguais.push(item);
     else atualizar.push({ id: existente.id, nome: item.nome, changes });

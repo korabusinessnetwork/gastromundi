@@ -271,7 +271,11 @@ export function validarPlanilhaProdutos(texto) {
       categoria,
       emoji: pegar("emoji").slice(0, 8) || null,
       ativo: ativoFinal,
-      unidade: pegar("unidade").slice(0, 10) || "un",
+      // null = "não informado" (coluna ausente ou célula vazia). Mantido
+      // separado de um valor real pra que um import mínimo (sem a coluna
+      // unidade) NUNCA sobrescreva a unidade já cadastrada — mesmo cuidado
+      // do emoji. No CREATE, paraPayloadProduto aplica o default "un".
+      unidade: pegar("unidade").slice(0, 10) || null,
     });
   }
 

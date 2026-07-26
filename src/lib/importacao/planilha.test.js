@@ -131,7 +131,10 @@ describe("validarPlanilhaProdutos", () => {
   it("cabeçalho tolerante (Preço, ordem trocada) e opcionais com default", () => {
     const r = validarPlanilhaProdutos("Categoria;Nome;Preço\nBebidas;Suco;9,00");
     expect(r.erros).toEqual([]);
-    expect(r.produtos[0]).toMatchObject({ nome: "Suco", preco: 9, categoria: "Bebidas", ativo: true, unidade: "un" });
+    // Coluna unidade ausente ⇒ null ("não informado"), não "un" — assim um
+    // import mínimo não sobrescreve a unidade já cadastrada. O default "un"
+    // é aplicado no CREATE (paraPayloadProduto), não aqui.
+    expect(r.produtos[0]).toMatchObject({ nome: "Suco", preco: 9, categoria: "Bebidas", ativo: true, unidade: null });
   });
 
   it("aponta erro por linha, com número visível do Excel, sem derrubar as boas", () => {

@@ -1,0 +1,25 @@
+{
+  "name": "importador-cardapio-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bot standalone (fora do app) que importa cardapio (produtos) de planilhas CSV/XLSX para o KORA, vigiando uma pasta. Reusa a MESMA validacao e idempotencia do sistema (src/lib/importacao).",
+  "bin": {
+    "importador-cardapio": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "once": "node src/index.js --once",
+    "test": "node --test",
+    "build:exe": "pkg . --targets node18-win-x64 --output dist/importador-cardapio.exe"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "chokidar": "^4.0.3",
+    "dotenv": "^16.4.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.3.0"
+  }
+}

@@ -1,0 +1,9 @@
+# Segredos e login — NUNCA versionar
+.env
+
+# Dependencias e build do executavel
+node_modules/
+dist/
+
+# Pastas de trabalho do watcher (planilhas do cliente)
+entrada/
