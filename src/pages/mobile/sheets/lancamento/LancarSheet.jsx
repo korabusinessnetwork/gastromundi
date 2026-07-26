@@ -124,7 +124,9 @@ export default function LancarSheet({
         <div className="lancar-sheet__corpo">
           <div className="lancar-sheet__campos">
             <div className="lancar-sheet__campo">
-              <span className="lancar-sheet__rotulo">Número da Comanda *</span>
+              <div className="lancar-sheet__rotulo-linha">
+                <span className="lancar-sheet__rotulo">Nº da Comanda *</span>
+              </div>
               <button
                 type="button"
                 className={
@@ -146,7 +148,7 @@ export default function LancarSheet({
 
             <div className="lancar-sheet__campo">
               <div className="lancar-sheet__rotulo-linha">
-                <span className="lancar-sheet__rotulo">Mesa (opcional)</span>
+                <span className="lancar-sheet__rotulo">Mesa</span>
                 <div
                   className="lancar-sheet__toggle"
                   role="group"

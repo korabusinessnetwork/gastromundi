@@ -481,13 +481,23 @@
   color: var(--gm-muted);
 }
 
-/* Rótulo + toggle 123/ABC na mesma linha, alinhados na base. */
+/* Rótulo (+ toggle 123/ABC na mesa) numa linha só. As DUAS colunas usam
+   este mesmo cabeçalho de altura fixa: assim as telinhas de comanda e mesa
+   ficam no mesmo nível, mesmo que um rótulo seja maior que o outro. O
+   rótulo nunca quebra (nowrap + ellipsis) pra não empurrar a telinha. */
 .lancar-sheet__rotulo-linha {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 20px;
+  min-height: 30px;
+}
+
+.lancar-sheet__rotulo-linha .lancar-sheet__rotulo {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* Segmentado 123 / ABC — alterna o teclado da mesa sem sumir com a
@@ -501,9 +511,9 @@
 }
 
 .lancar-sheet__toggle-opcao {
-  min-width: 34px;
+  min-width: 30px;
   min-height: 24px;
-  padding: 0 8px;
+  padding: 0 6px;
   border: none;
   border-radius: 999px;
   background: transparent;
