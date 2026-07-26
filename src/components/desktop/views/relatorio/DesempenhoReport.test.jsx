@@ -77,6 +77,25 @@ describe("DesempenhoReport", () => {
     await waitFor(() => expect(screen.getByText(/não foi possível carregar o relatório/i)).toBeInTheDocument());
   });
 
+  it("permite escolher a janela de comparação e nomeia a variação no selo do KPI", async () => {
+    const user = userEvent.setup();
+    mockSupabase.current.setRpcResult("relatorio_vendas", { data: RESUMO_PADRAO, error: null });
+    mockSupabase.current.setTableResult("config", { data: { key: "fichas_tecnicas", value: [] }, error: null });
+
+    render(<DesempenhoReport />);
+    await waitFor(() => expect(screen.getByText("R$ 500.00")).toBeInTheDocument());
+
+    // Comparação ligada por padrão -> selo nomeia a janela ("vs. ontem")
+    expect(screen.getAllByText(/vs\. ontem/i).length).toBeGreaterThan(0);
+
+    // Abre o popover pelo botão e escolhe "30 dias"
+    await user.click(screen.getByRole("button", { name: /ontem/i }));
+    await user.click(screen.getByRole("menuitemradio", { name: "30 dias" }));
+
+    // Selo passa a nomear a nova janela
+    await waitFor(() => expect(screen.getAllByText(/vs\. 30 dias anteriores/i).length).toBeGreaterThan(0));
+  });
+
   it("período 'Período' (intervalo) exige as duas datas antes de buscar", async () => {
     const user = userEvent.setup();
     mockSupabase.current.setRpcResult("relatorio_vendas", { data: RESUMO_PADRAO, error: null });

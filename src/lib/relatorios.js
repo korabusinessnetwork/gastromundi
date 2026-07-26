@@ -52,6 +52,57 @@ export function calcularPeriodoAnterior(inicio, fim) {
 }
 
 /**
+ * Janela de comparação ESCOLHIDA pelo usuário (F011 — comparar com
+ * período anterior). Diferente de calcularPeriodoAnterior (que sempre
+ * assume mesma duração), aqui o dono decide contra o quê comparar:
+ * "ontem", "7 dias" ou "30 dias" anteriores, ou um "período" custom no
+ * calendário. As janelas nomeadas são ancoradas no INÍCIO do período
+ * atual e vão para trás — nunca se sobrepõem ao período em análise
+ * (ex.: período atual "7 dias" comparado com "7 dias" pega os 7 dias
+ * ANTES, não os mesmos).
+ *
+ * @param {"ontem"|"7dias"|"30dias"|"intervalo"} tipo
+ * @param {Date|string} inicioPeriodoAtual — âncora (início do período em análise)
+ * @param {{inicio?: string, fim?: string}} [custom] — datas (YYYY-MM-DD) quando tipo="intervalo"
+ * @returns {{inicio: Date, fim: Date}|null} null quando o intervalo custom está incompleto
+ */
+export function calcularPeriodoComparacao(tipo, inicioPeriodoAtual, custom = {}) {
+  if (tipo === "intervalo") {
+    if (!custom.inicio || !custom.fim) return null;
+    const inicio = new Date(custom.inicio + "T00:00:00");
+    // fim exclusivo: dia final inteiro (mesma convenção do período custom da tela)
+    const fim = new Date(new Date(custom.fim + "T00:00:00").getTime() + DIA_MS);
+    return { inicio, fim };
+  }
+
+  const ancora = new Date(inicioPeriodoAtual).getTime();
+  const dias = tipo === "ontem" ? 1 : tipo === "7dias" ? 7 : tipo === "30dias" ? 30 : null;
+  if (dias == null) throw new Error(`Comparação desconhecida: ${tipo}`);
+  return { inicio: new Date(ancora - dias * DIA_MS), fim: new Date(ancora) };
+}
+
+/**
+ * Rótulo humano da janela de comparação, exibido no selo do KPI
+ * ("+12% vs. ontem") e no botão. Deixa sempre explícito CONTRA O QUÊ a
+ * variação é medida — sem isso "período anterior" é ambíguo.
+ *
+ * @param {"ontem"|"7dias"|"30dias"|"intervalo"} tipo
+ * @param {{inicio?: string, fim?: string}} [custom]
+ * @returns {string}
+ */
+export function rotuloComparacao(tipo, custom = {}) {
+  if (tipo === "ontem") return "ontem";
+  if (tipo === "7dias") return "7 dias anteriores";
+  if (tipo === "30dias") return "30 dias anteriores";
+  if (tipo === "intervalo") {
+    if (!custom.inicio || !custom.fim) return "período";
+    const f = (s) => new Date(s + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    return `${f(custom.inicio)}–${f(custom.fim)}`;
+  }
+  return "período anterior";
+}
+
+/**
  * Variação percentual entre dois valores, para a comparação de
  * período. Retorna null quando não há base de comparação (anterior
  * zerado) para o chamador exibir "—" em vez de um percentual

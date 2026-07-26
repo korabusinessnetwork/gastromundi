@@ -10,6 +10,8 @@ vi.mock("./supabase", async () => {
 import {
   calcularPeriodo,
   calcularPeriodoAnterior,
+  calcularPeriodoComparacao,
+  rotuloComparacao,
   calcularVariacaoPercentual,
   calcularMargemProdutos,
   calcularCustoVendas,
@@ -54,6 +56,59 @@ describe("calcularPeriodoAnterior", () => {
 
     expect(anterior.fim.getTime()).toBe(inicio.getTime());
     expect(anterior.fim.getTime() - anterior.inicio.getTime()).toBe(fim.getTime() - inicio.getTime());
+  });
+});
+
+describe("calcularPeriodoComparacao", () => {
+  const inicioAtual = new Date("2026-07-08T00:00:00Z"); // início do período em análise
+
+  it("'ontem' pega o único dia antes do período atual", () => {
+    const { inicio, fim } = calcularPeriodoComparacao("ontem", inicioAtual);
+    expect(fim.getTime()).toBe(inicioAtual.getTime());
+    expect(fim.getTime() - inicio.getTime()).toBe(24 * 60 * 60 * 1000);
+  });
+
+  it("'7dias'/'30dias' pegam a janela anterior ancorada no início do período (sem sobrepor)", () => {
+    const semana = calcularPeriodoComparacao("7dias", inicioAtual);
+    expect(semana.fim.getTime()).toBe(inicioAtual.getTime());
+    expect((semana.fim.getTime() - semana.inicio.getTime()) / (24 * 60 * 60 * 1000)).toBe(7);
+
+    const mes = calcularPeriodoComparacao("30dias", inicioAtual);
+    expect((mes.fim.getTime() - mes.inicio.getTime()) / (24 * 60 * 60 * 1000)).toBe(30);
+  });
+
+  it("'intervalo' usa as datas custom com o dia final inteiro (fim exclusivo)", () => {
+    const { inicio, fim } = calcularPeriodoComparacao("intervalo", inicioAtual, { inicio: "2026-06-01", fim: "2026-06-30" });
+    expect(inicio.getFullYear()).toBe(2026);
+    expect(inicio.getMonth()).toBe(5); // junho
+    expect(inicio.getDate()).toBe(1);
+    // 30 dias de junho, dia final inteiro incluído
+    expect((fim.getTime() - inicio.getTime()) / (24 * 60 * 60 * 1000)).toBe(30);
+  });
+
+  it("'intervalo' incompleto retorna null (não busca comparação pela metade)", () => {
+    expect(calcularPeriodoComparacao("intervalo", inicioAtual, { inicio: "2026-06-01" })).toBeNull();
+    expect(calcularPeriodoComparacao("intervalo", inicioAtual, {})).toBeNull();
+  });
+
+  it("rejeita tipo desconhecido", () => {
+    expect(() => calcularPeriodoComparacao("ano", inicioAtual)).toThrow();
+  });
+});
+
+describe("rotuloComparacao", () => {
+  it("nomeia as janelas fixas", () => {
+    expect(rotuloComparacao("ontem")).toBe("ontem");
+    expect(rotuloComparacao("7dias")).toBe("7 dias anteriores");
+    expect(rotuloComparacao("30dias")).toBe("30 dias anteriores");
+  });
+
+  it("formata o intervalo custom em dd/mm–dd/mm", () => {
+    expect(rotuloComparacao("intervalo", { inicio: "2026-06-01", fim: "2026-06-30" })).toBe("01/06–30/06");
+  });
+
+  it("cai para 'período' quando o intervalo custom está incompleto", () => {
+    expect(rotuloComparacao("intervalo", { inicio: "2026-06-01" })).toBe("período");
   });
 });
 

@@ -57,17 +57,85 @@
   transition: border-color 0.15s;
 }
 
-.desempenho__comparar {
+.desempenho__comparar-area {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-left: auto;
+}
+
+.desempenho__comparar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
   user-select: none;
   font-weight: 600;
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
   white-space: nowrap;
+}
+
+/* Botão + popover de escolha da janela de comparação (F011) */
+.desempenho__comp-wrap {
+  position: relative;
+  display: flex;
+}
+
+.desempenho__comp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.desempenho__comp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.desempenho__comp-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 41;
+  min-width: 200px;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+.desempenho__comp-popover-titulo {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+
+.desempenho__comp-chips {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.desempenho__comp-datas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .desempenho__body {

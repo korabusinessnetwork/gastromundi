@@ -5,9 +5,9 @@ import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
 import { rotuloMetodo } from "@/utils/pagamentos";
 import { getSizes } from "@/constants/sizes";
-import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrendingDown } from "react-icons/lu";
+import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrendingDown, LuChevronDown } from "react-icons/lu";
 import {
-  calcularPeriodo, calcularPeriodoAnterior, calcularVariacaoPercentual,
+  calcularPeriodo, calcularPeriodoComparacao, rotuloComparacao, calcularVariacaoPercentual,
   calcularMargemProdutos, buscarRelatorioVendas, buscarFichasTecnicas,
 } from "@/lib/relatorios";
 import "./DesempenhoReport.css";
@@ -19,10 +19,19 @@ const PERIODOS = [
   { id: "intervalo", label: "Período" },
 ];
 
+// Janelas de comparação que o dono pode escolher (F011). Espelham a
+// escolha de período do relatório, mas definem CONTRA O QUÊ comparar.
+const COMPARACOES = [
+  { id: "ontem",     label: "Ontem"   },
+  { id: "7dias",     label: "7 dias"  },
+  { id: "30dias",    label: "30 dias" },
+  { id: "intervalo", label: "Período" },
+];
+
 
 const fmtR = (v) => "R$ " + Number(v ?? 0).toFixed(2);
 
-function KpiCard({ label, value, color, Icon, variacao }) {
+function KpiCard({ label, value, color, Icon, variacao, rotuloVs }) {
   return (
     <div className="kpi-card" style={{ background: varColor(C.card), border: `1px solid var(${C.border})` }}>
       <div className="kpi-card__label" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 8 }}>
@@ -39,7 +48,7 @@ function KpiCard({ label, value, color, Icon, variacao }) {
           }}
         >
           {variacao >= 0 ? <LuTrendingUp size={12} /> : <LuTrendingDown size={12} />}
-          {variacao >= 0 ? "+" : ""}{variacao.toFixed(1)}% vs. período anterior
+          {variacao >= 0 ? "+" : ""}{variacao.toFixed(1)}% vs. {rotuloVs}
         </span>
       )}
     </div>
@@ -108,6 +117,12 @@ export default function DesempenhoReport() {
   const [customFim, setCustomFim] = useState("");
   const [comparar, setComparar] = useState(true);
 
+  // Janela de comparação escolhida pelo dono (popover "Comparar com").
+  const [tipoComparacao, setTipoComparacao] = useState("ontem");
+  const [compInicio, setCompInicio] = useState("");
+  const [compFim, setCompFim] = useState("");
+  const [popoverComp, setPopoverComp] = useState(false);
+
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
   const [atual, setAtual] = useState(null);
@@ -139,8 +154,10 @@ export default function DesempenhoReport() {
 
       let resAnterior = { data: null, error: null };
       if (comparar) {
-        const periodoAnterior = calcularPeriodoAnterior(inicio, fim);
-        resAnterior = await buscarRelatorioVendas(periodoAnterior);
+        // Janela de comparação escolhida pelo dono; null = intervalo custom
+        // incompleto -> não busca comparação, mas o período atual carrega.
+        const periodoComp = calcularPeriodoComparacao(tipoComparacao, inicio, { inicio: compInicio, fim: compFim });
+        if (periodoComp) resAnterior = await buscarRelatorioVendas(periodoComp);
       }
 
       if (cancelado) return;
@@ -155,7 +172,7 @@ export default function DesempenhoReport() {
     carregar();
     return () => { cancelado = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipoPeriodo, customInicio, customFim, comparar, periodoValido]);
+  }, [tipoPeriodo, customInicio, customFim, comparar, tipoComparacao, compInicio, compFim, periodoValido]);
 
   const faturamento = atual?.faturamento ?? 0;
   const numeroVendas = atual?.numero_vendas ?? 0;
@@ -168,6 +185,12 @@ export default function DesempenhoReport() {
   const varFaturamento = comparar && anterior ? calcularVariacaoPercentual(faturamento, faturamentoAnterior) : null;
   const varVendas = comparar && anterior ? calcularVariacaoPercentual(numeroVendas, numeroVendasAnterior) : null;
   const varTicket = comparar && anterior ? calcularVariacaoPercentual(ticketMedio, ticketMedioAnterior) : null;
+
+  // Rótulo da janela de comparação: no selo do KPI ("vs. ontem") e no botão.
+  const rotuloVs = rotuloComparacao(tipoComparacao, { inicio: compInicio, fim: compFim });
+  const rotuloBotaoComp = tipoComparacao === "intervalo"
+    ? (compInicio && compFim ? rotuloVs : "Período")
+    : (COMPARACOES.find((c) => c.id === tipoComparacao)?.label ?? "Ontem");
 
   const porDia = atual?.por_dia ?? [];
   const porMetodo = atual?.por_metodo ?? [];
@@ -216,10 +239,89 @@ export default function DesempenhoReport() {
           </div>
         )}
 
-        <label className="desempenho__comparar" style={{ color: varColor(C.muted) }}>
-          <input type="checkbox" checked={comparar} onChange={(e) => setComparar(e.target.checked)} />
-          Comparar com período anterior
-        </label>
+        <div className="desempenho__comparar-area">
+          <label className="desempenho__comparar" style={{ color: varColor(C.muted) }}>
+            <input type="checkbox" checked={comparar} onChange={(e) => setComparar(e.target.checked)} />
+            Comparar com
+          </label>
+
+          {comparar && (
+            <div className="desempenho__comp-wrap">
+              <button
+                type="button"
+                className="desempenho__comp-btn"
+                onClick={() => setPopoverComp((v) => !v)}
+                aria-haspopup="true"
+                aria-expanded={popoverComp}
+                style={{
+                  border: `1.5px solid ${varColor(C.accent)}`,
+                  background: varColor(C.surface),
+                  color: varColor(C.text),
+                }}
+              >
+                {rotuloBotaoComp}
+                <LuChevronDown size={14} style={{ transform: popoverComp ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+              </button>
+
+              {popoverComp && (
+                <>
+                  <div className="desempenho__comp-backdrop" onClick={() => setPopoverComp(false)} />
+                  <div
+                    className="desempenho__comp-popover"
+                    role="menu"
+                    style={{ background: varColor(C.card), border: `1px solid var(${C.border})` }}
+                  >
+                    <div className="desempenho__comp-popover-titulo" style={{ color: varColor(C.muted) }}>
+                      Comparar com
+                    </div>
+                    <div className="desempenho__comp-chips">
+                      {COMPARACOES.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={tipoComparacao === c.id}
+                          className="desempenho__chip"
+                          onClick={() => {
+                            setTipoComparacao(c.id);
+                            if (c.id !== "intervalo") setPopoverComp(false);
+                          }}
+                          style={{
+                            background: tipoComparacao === c.id ? varColor(C.accent) : varColor(C.surface),
+                            color: tipoComparacao === c.id ? "#fff" : varColor(C.muted),
+                          }}
+                        >
+                          {c.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {tipoComparacao === "intervalo" && (
+                      <div className="desempenho__comp-datas">
+                        <input
+                          type="date"
+                          className="desempenho__date-input"
+                          value={compInicio}
+                          onChange={(e) => setCompInicio(e.target.value)}
+                          style={{ border: `1.5px solid ${compInicio ? varColor(C.accent) : "var(--gm-input-border)"}`, background: "var(--gm-input-bg)", color: varColor(C.text) }}
+                        />
+                        <span className="desempenho__datas-ate" style={{ color: varColor(C.muted), fontWeight: 600 }}>até</span>
+                        <input
+                          type="date"
+                          className="desempenho__date-input"
+                          value={compFim}
+                          min={compInicio || undefined}
+                          onChange={(e) => setCompFim(e.target.value)}
+                          style={{ border: `1.5px solid ${compFim ? varColor(C.accent) : "var(--gm-input-border)"}`, background: "var(--gm-input-bg)", color: varColor(C.text) }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Conteúdo */}
@@ -239,9 +341,9 @@ export default function DesempenhoReport() {
         <div className="desempenho__body">
           {/* KPIs */}
           <div className="desempenho__kpis">
-            <KpiCard label="Faturamento" value={fmtR(faturamento)} color={varColor(C.green)} Icon={LuBanknote} variacao={varFaturamento} />
-            <KpiCard label="Vendas Realizadas" value={numeroVendas} color={varColor(C.blue)} Icon={LuReceipt} variacao={varVendas} />
-            <KpiCard label="Ticket Médio" value={fmtR(ticketMedio)} color={varColor(C.accent)} Icon={LuChartBar} variacao={varTicket} />
+            <KpiCard label="Faturamento" value={fmtR(faturamento)} color={varColor(C.green)} Icon={LuBanknote} variacao={varFaturamento} rotuloVs={rotuloVs} />
+            <KpiCard label="Vendas Realizadas" value={numeroVendas} color={varColor(C.blue)} Icon={LuReceipt} variacao={varVendas} rotuloVs={rotuloVs} />
+            <KpiCard label="Ticket Médio" value={fmtR(ticketMedio)} color={varColor(C.accent)} Icon={LuChartBar} variacao={varTicket} rotuloVs={rotuloVs} />
           </div>
 
           {/* Vendas por dia */}
