@@ -201,7 +201,7 @@ const METODOS_DETALHE = [
   { id: "pix",      label: "Pix",      Icon: LuZap        },
 ];
 
-function FechamentoDetalheModal({ f, onClose }) {
+function FechamentoDetalheModal({ f, customLabels, onClose }) {
   const metodos = f.conferidoPorMetodo
     ? Object.keys(f.conferidoPorMetodo)
     : METODOS_DETALHE.map(m => m.id);
@@ -274,7 +274,7 @@ function FechamentoDetalheModal({ f, onClose }) {
             {metodos.map(id => {
               const cat = METODOS_DETALHE.find(m => m.id === id);
               const Icon = cat?.Icon ?? LuBanknote;
-              const label = cat?.label ?? id;
+              const label = cat?.label ?? rotuloMetodo(id, customLabels);
               const val = f.conferidoPorMetodo[id] ?? 0;
               return (
                 <div key={id} style={{
@@ -377,9 +377,16 @@ function FechamentoDetalheModal({ f, onClose }) {
 // ── View principal ────────────────────────────────────────────────
 
 export default function RelatorioView() {
-  const { sales: salesBrutas, fechamentos, pending, users, currentUser, tenant } = useApp();
+  const { sales: salesBrutas, fechamentos, pending, users, currentUser, tenant, metodosCustom } = useApp();
   // Leva 15.3 — vendas canceladas ficam fora de todos os relatórios
   const sales = useMemo(() => (salesBrutas ?? []).filter(s => s && !s.cancelada), [salesBrutas]);
+  // Rótulos de método configurados pelo tenant (white-label, decisão 017):
+  // garante que o nome amigável ("Cielo") apareça em vez do id cru
+  // (custom_cielo_1783…) em toda a tela de relatórios.
+  const customLabels = useMemo(
+    () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),
+    [metodosCustom]
+  );
   const { width } = useResponsive();
   const sz = getSizes(width);
 
@@ -577,7 +584,7 @@ export default function RelatorioView() {
       const headers = ["Comanda", "Caixa", "Itens", "Método", "Total (R$)", "Data/Hora"];
       const rows = vendasFiltradas.map(v => [
         v.comanda ?? "—", v.cashier ?? "—", totalItens(v),
-        normalizarPagamentos(v).map(p => rotuloMetodo(p.metodo)).join(" + "),
+        normalizarPagamentos(v).map(p => rotuloMetodo(p.metodo, customLabels)).join(" + "),
         Number(v.total ?? 0).toFixed(2), fmtData(v.at),
       ]);
       const totais = `Total: R$ ${kpis.total.toFixed(2)} · ${kpis.count} venda(s)`;
@@ -588,7 +595,7 @@ export default function RelatorioView() {
       const rows = vendasFiltradas.flatMap(v =>
         (Array.isArray(v.items) && v.items.length > 0 ? v.items : [{ name: "—", qty: 0, price: 0 }]).map(it => [
           v.comanda ?? "—", v.cashier ?? "—",
-          normalizarPagamentos(v).map(p => rotuloMetodo(p.metodo)).join(" + "),
+          normalizarPagamentos(v).map(p => rotuloMetodo(p.metodo, customLabels)).join(" + "),
           (it.emoji ? `${it.emoji} ` : "") + (it.name ?? "—"),
           it.qty ?? 1, Number(it.price ?? 0).toFixed(2),
           Number((it.price ?? 0) * (it.qty ?? 1)).toFixed(2),
@@ -917,7 +924,7 @@ export default function RelatorioView() {
                                   <Fragment key={pi}>
                                     {pi > 0 && <span style={{ color: varColor(C.muted), margin: "0 4px" }}>+</span>}
                                     {MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}
-                                    {rotuloMetodo(p.metodo)}
+                                    {rotuloMetodo(p.metodo, customLabels)}
                                   </Fragment>
                                 );
                               })}
@@ -990,7 +997,7 @@ export default function RelatorioView() {
                                   <Fragment key={pi}>
                                     {pi > 0 && <span style={{ color: varColor(C.muted), margin: "0 4px" }}>+</span>}
                                     {MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}
-                                    {rotuloMetodo(p.metodo)}
+                                    {rotuloMetodo(p.metodo, customLabels)}
                                   </Fragment>
                                 );
                               })}
@@ -1649,7 +1656,7 @@ export default function RelatorioView() {
       </div>
 
       {fechDetalhe && (
-        <FechamentoDetalheModal f={fechDetalhe} onClose={() => setFechDetalhe(null)} />
+        <FechamentoDetalheModal f={fechDetalhe} customLabels={customLabels} onClose={() => setFechDetalhe(null)} />
       )}
     </div>
   );

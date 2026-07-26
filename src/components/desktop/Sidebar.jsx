@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useMemo, useState } from "react";
 import "./Sidebar.css";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
@@ -37,7 +37,12 @@ const NAV_ICONS = {
 };
 
 export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogout, onBackToChoice, onClose }) {
-  const { currentUser, pending, sales, sessaoAbertaEm, users, moduloHabilitado, cancelarVendaFechada } = useApp();
+  const { currentUser, pending, sales, sessaoAbertaEm, users, moduloHabilitado, cancelarVendaFechada, metodosCustom } = useApp();
+  // Rótulos de método configurados pelo tenant (white-label, decisão 017).
+  const customLabels = useMemo(
+    () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),
+    [metodosCustom]
+  );
   const [upgradeInfo, setUpgradeInfo] = useState(null); // { label } — módulo bloqueado pelo plano atual
   const { width } = useResponsive();
   const sz = getSizes(width);
@@ -463,7 +468,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                       <div key={i} className="sidebar__cashier-info" style={{ display: "flex", alignItems: "center", gap: 6, color: varColor(C.muted) }}>
                         <LuReceipt size={13} />
                         Pagamento: <strong style={{ color: varColor(C.text) }}>
-                          {rotuloMetodo(p.metodo)}
+                          {rotuloMetodo(p.metodo, customLabels)}
                         </strong>
                       </div>
                     ) : null)}

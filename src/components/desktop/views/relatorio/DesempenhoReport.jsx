@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import C from "@/constants/colors";
+import { useApp } from "@/context/AppContext";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
@@ -111,6 +112,13 @@ function Estado({ icon, msg }) {
 export default function DesempenhoReport() {
   const { width } = useResponsive();
   const sz = getSizes(width);
+  // Rótulos de método configurados pelo tenant (white-label, decisão 017):
+  // o gráfico "por forma de pagamento" mostra "Cielo", não o id cru.
+  const { metodosCustom } = useApp();
+  const customLabels = useMemo(
+    () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),
+    [metodosCustom]
+  );
 
   const [tipoPeriodo, setTipoPeriodo] = useState("semana");
   const [customInicio, setCustomInicio] = useState("");
@@ -366,7 +374,7 @@ export default function DesempenhoReport() {
                 porMetodo.map((m) => (
                   <BarraHorizontal
                     key={m.metodo}
-                    label={rotuloMetodo(m.metodo)}
+                    label={rotuloMetodo(m.metodo, customLabels)}
                     valor={Number(m.total) || 0}
                     max={maxMetodo}
                     cor={varColor(C.accent)}

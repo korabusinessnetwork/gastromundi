@@ -10,6 +10,13 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: mockSupabase.current };
 });
 
+// DesempenhoReport lê metodosCustom do AppContext para rotular formas de
+// pagamento custom (white-label). O teste não monta o AppProvider, então
+// mockamos o useApp com uma lista vazia (métodos nativos bastam aqui).
+vi.mock("@/context/AppContext", () => ({
+  useApp: () => ({ metodosCustom: [] }),
+}));
+
 import DesempenhoReport from "./DesempenhoReport";
 
 beforeEach(() => {
