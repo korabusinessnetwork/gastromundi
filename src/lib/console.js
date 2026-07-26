@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { LAYOUT_PADRAO_NOVOS } from "@/layouts";
 import { geocodificarEndereco } from "@/lib/delivery";
+import { calcularStatusAssinatura, calcularDiasParaVencimento } from "./assinatura";
 
 /**
  * Console da Plataforma (S1-2, ADR-008 §7) — camada de dados.
@@ -59,6 +60,128 @@ export async function listarPlanos() {
   } catch (err) {
     return { data: [], error: { message: err?.message ?? "Falha ao buscar os planos." } };
   }
+}
+
+/**
+ * Lista as assinaturas de TODOS os tenants — leitura cross-tenant do
+ * Console. Só o super-admin `plataforma` enxerga mais de uma: a policy
+ * `assinaturas_select_auth` (20260726) filtra por
+ * `tenant_id = tenant_atual_id() OR is_super_admin()`, e um `plataforma`
+ * (tenant_id NULL) cai no segundo ramo e vê todas. Campos explícitos
+ * (nunca `select *` em tabela sensível de billing).
+ *
+ * O `status` que vem aqui é só o CACHE do banco (pode estar defasado sem
+ * pg_cron) — quem decide o status exibido é `resumirPlataforma`, que o
+ * recalcula com `calcularStatusAssinatura` a partir de data/carência.
+ *
+ * Nunca lança: falha de rede/RLS volta como { data: [], error }.
+ *
+ * @returns {Promise<{data: Array<{tenant_id:string, valor_mensal:number, data_vencimento:string, carencia_dias:number, status:string}>, error: object|null}>}
+ */
+export async function listarAssinaturas() {
+  try {
+    const { data, error } = await supabase
+      .from("assinaturas")
+      .select("tenant_id, valor_mensal, data_vencimento, carencia_dias, status");
+    if (error) return { data: [], error };
+    return { data: data ?? [], error: null };
+  } catch (err) {
+    return { data: [], error: { message: err?.message ?? "Falha ao listar as assinaturas." } };
+  }
+}
+
+// Ordem de urgência para o "alerta de validade" do Console: bloqueado
+// primeiro (já perdeu acesso), depois carência (atrasado, ainda no prazo),
+// depois ativo vencendo em breve. Fora desses, ordena por dias a vencer.
+const URGENCIA_STATUS = { bloqueado: 0, carencia: 1, ativo: 2 };
+
+/**
+ * Função PURA — agrega tenants + planos + assinaturas na visão da
+ * plataforma (dashboard do Console): status recalculado por tenant, KPIs,
+ * o "alerta de validade" (quem precisa de ação) e a distribuição por
+ * plano. Não faz I/O — testável isoladamente (CLAUDE.md: função pura
+ * nasce com teste).
+ *
+ * O status NÃO vem do cache do banco: é recalculado com
+ * `calcularStatusAssinatura` (mesma fonte de verdade da Fase 4), exceto
+ * 'cancelado', que é manual e nunca recalculado (espelha o SQL). Tenant
+ * sem linha de assinatura vira status 'sem_assinatura' (não é erro).
+ *
+ * MRR = soma das mensalidades da base que efetivamente paga (ativo +
+ * carência); bloqueado/cancelado/sem_assinatura não contam como receita.
+ *
+ * @param {Array<{id:string, nome:string, plano_codigo?:string}>} tenants
+ * @param {Array<{codigo:string, nome:string}>} planos
+ * @param {Array<{tenant_id:string, valor_mensal:number, data_vencimento:string, carencia_dias:number, status:string}>} assinaturas
+ * @param {Date} [hoje]
+ * @returns {{linhas:Array<object>, kpis:object, precisamAtencao:Array<object>, distribuicaoPlano:Array<object>}}
+ */
+export function resumirPlataforma(tenants = [], planos = [], assinaturas = [], hoje = new Date()) {
+  const VENCE_EM_DIAS = 5; // janela do "vencendo em breve" (espelha o banner do tenant)
+
+  const porTenant = new Map((assinaturas ?? []).map((a) => [a.tenant_id, a]));
+  const nomePlano = new Map((planos ?? []).map((p) => [p.codigo, p.nome]));
+
+  const linhas = (tenants ?? []).map((t) => {
+    const a = porTenant.get(t.id) ?? null;
+    let status = "sem_assinatura";
+    let diasParaVencer = null;
+    if (a) {
+      status = a.status === "cancelado"
+        ? "cancelado"
+        : calcularStatusAssinatura(a.data_vencimento, a.carencia_dias, hoje);
+      diasParaVencer = calcularDiasParaVencimento(a.data_vencimento, hoje);
+    }
+    return {
+      tenantId: t.id,
+      nome: t.nome,
+      planoCodigo: t.plano_codigo ?? null,
+      planoNome: t.plano_codigo ? (nomePlano.get(t.plano_codigo) ?? t.plano_codigo) : null,
+      valorMensal: a ? (Number(a.valor_mensal) || 0) : 0,
+      dataVencimento: a?.data_vencimento ?? null,
+      diasParaVencer,
+      status, // ativo | carencia | bloqueado | cancelado | sem_assinatura
+    };
+  });
+
+  const contar = (s) => linhas.filter((l) => l.status === s).length;
+
+  const kpis = {
+    totalTenants: linhas.length,
+    ativos: contar("ativo"),
+    emCarencia: contar("carencia"),
+    bloqueados: contar("bloqueado"),
+    cancelados: contar("cancelado"),
+    semAssinatura: contar("sem_assinatura"),
+    mrr: linhas
+      .filter((l) => l.status === "ativo" || l.status === "carencia")
+      .reduce((soma, l) => soma + l.valorMensal, 0),
+  };
+
+  // Alerta de validade — o "alerta" que saiu do banner do tenant e passou
+  // a viver no Console: quem precisa de ação da plataforma AGORA.
+  const precisamAtencao = linhas
+    .filter((l) =>
+      l.status === "bloqueado" ||
+      l.status === "carencia" ||
+      (l.status === "ativo" && l.diasParaVencer != null && l.diasParaVencer <= VENCE_EM_DIAS)
+    )
+    .sort((a, b) =>
+      (URGENCIA_STATUS[a.status] ?? 9) - (URGENCIA_STATUS[b.status] ?? 9) ||
+      (a.diasParaVencer ?? 0) - (b.diasParaVencer ?? 0)
+    );
+
+  // Distribuição por plano, na ordem do catálogo; só planos com ao menos
+  // um tenant (não polui a tela com planos vazios).
+  const distribuicaoPlano = (planos ?? [])
+    .map((p) => ({
+      codigo: p.codigo,
+      nome: p.nome,
+      quantidade: linhas.filter((l) => l.planoCodigo === p.codigo).length,
+    }))
+    .filter((d) => d.quantidade > 0);
+
+  return { linhas, kpis, precisamAtencao, distribuicaoPlano };
 }
 
 /**

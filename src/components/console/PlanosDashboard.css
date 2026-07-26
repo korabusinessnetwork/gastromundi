@@ -1,0 +1,184 @@
+/**
+ * Dashboard de Planos e Assinaturas (Console da Plataforma, S1-2).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * Cores de STATUS (verde/âmbar/vermelho) são semânticas, não de marca —
+ * mesmo critério do AssinaturaBanner do tenant (o âmbar de carência não
+ * tem token --gm-*, então segue como literal #f59e0b, como lá).
+ */
+
+.pdash {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ── Alerta de validade ───────────────────────────────────────────── */
+.pdash__alerta {
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.pdash__alerta-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #f59e0b;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.pdash__alerta-topo strong { color: var(--gm-text); font-weight: 800; }
+
+.pdash__alerta-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pdash__alerta-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 11px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+}
+.pdash__alerta-item--bloqueado { border-color: rgba(239, 68, 68, 0.45); }
+.pdash__alerta-item--carencia { border-color: rgba(245, 158, 11, 0.45); }
+.pdash__alerta-nome {
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── KPIs ─────────────────────────────────────────────────────────── */
+.pdash__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.pdash__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  background: var(--gm-card);
+}
+.pdash__kpi-icone { color: var(--gm-muted); }
+.pdash__kpi-valor { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.1; }
+.pdash__kpi-rotulo { font-size: 12px; color: var(--gm-muted); font-weight: 600; }
+
+.pdash__kpi--verde .pdash__kpi-icone { color: var(--gm-green); }
+.pdash__kpi--ambar .pdash__kpi-icone { color: #f59e0b; }
+.pdash__kpi--vermelho .pdash__kpi-icone { color: var(--gm-red); }
+.pdash__kpi--accent .pdash__kpi-icone { color: var(--gm-accent); }
+
+/* Receita mensal — cartão-herói (a métrica que mais importa no negócio). */
+.pdash__kpi--destaque {
+  background: var(--gm-alow);
+  border-color: rgba(124, 58, 237, 0.4);
+}
+.pdash__kpi--destaque .pdash__kpi-valor { color: var(--gm-accent); }
+
+/* ── Blocos genéricos ─────────────────────────────────────────────── */
+.pdash__bloco {
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: var(--gm-card);
+  padding: 18px;
+}
+.pdash__bloco-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gm-text);
+}
+.pdash__bloco-titulo svg { color: var(--gm-muted); }
+
+/* ── Distribuição por plano ───────────────────────────────────────── */
+.pdash__planos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pdash__plano-cab {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.pdash__plano-nome { font-size: 13px; font-weight: 700; }
+.pdash__plano-qtd { font-size: 13px; font-weight: 800; color: var(--gm-accent); }
+.pdash__barra {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--gm-surface);
+  overflow: hidden;
+}
+.pdash__barra-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gm-accent);
+  min-width: 6px;
+}
+
+/* ── Tabela ───────────────────────────────────────────────────────── */
+.pdash__tabela-scroll { overflow-x: auto; }
+.pdash__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.pdash__tabela th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gm-muted);
+  border-bottom: 1px solid var(--gm-border);
+  white-space: nowrap;
+}
+.pdash__tabela td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--gm-surface);
+  white-space: nowrap;
+}
+.pdash__tabela tr:last-child td { border-bottom: none; }
+.pdash__td-nome { font-weight: 700; }
+.pdash__col-num { text-align: right; }
+
+/* ── Selo de situação ─────────────────────────────────────────────── */
+.pdash__selo {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pdash__selo--ativo { background: rgba(16, 185, 129, 0.14); color: var(--gm-green); }
+.pdash__selo--vencendo { background: var(--gm-alow); color: var(--gm-accent); }
+.pdash__selo--carencia { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.pdash__selo--bloqueado { background: rgba(239, 68, 68, 0.14); color: var(--gm-red); }
+.pdash__selo--cancelado { background: var(--gm-surface); color: var(--gm-muted); }
+.pdash__selo--sem { background: var(--gm-surface); color: var(--gm-muted); }
+
+@media (max-width: 560px) {
+  .pdash__kpi-valor { font-size: 22px; }
+}
