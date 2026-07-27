@@ -137,6 +137,7 @@ export default function HistoricoNfce() {
         </div>
       </header>
 
+      <div className="historico-nfce__corpo">
       {/* Carregando (primeira página) */}
       {carregando && linhas.length === 0 && (
         <div className="historico-nfce__estado">
@@ -192,6 +193,7 @@ export default function HistoricoNfce() {
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }

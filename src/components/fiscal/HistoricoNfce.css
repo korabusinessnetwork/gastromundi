@@ -2,22 +2,36 @@
    tokens do design system (--gm-*) com fallback, como as telas irmãs fiscais. */
 
 .historico-nfce {
+  /* A tela ocupa a altura disponível e NÃO rola como um todo: o cabeçalho
+     (título + filtros) fica parado no topo e só o corpo (a lista) rola. Antes
+     o overflow-y ficava no root, então os filtros subiam junto e sumiam. */
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px;
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
   font-family: "Inter", system-ui, sans-serif;
   color: var(--gm-text, #1a1a1a);
   background: var(--gm-bg, #f6f7f9);
 }
 
-/* ── Cabeçalho + filtros ─────────────────────────────────────────── */
+/* ── Cabeçalho + filtros (parado no topo) ────────────────────────── */
 .historico-nfce__cabecalho {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--gm-border, #d0d3d9);
+}
+
+/* ── Corpo rolável (a lista e os estados vazio/erro) ─────────────── */
+.historico-nfce__corpo {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
 }
 
 .historico-nfce__titulo {

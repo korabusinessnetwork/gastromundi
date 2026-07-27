@@ -6,13 +6,19 @@
    ────────────────────────────────────────────────────────────────── */
 
 .delivery-view {
-  min-height: 100%;
+  /* Padrão de scroll do app: a view ocupa a altura do <main> e NÃO rola como
+     um todo — quem rola é só a área de conteúdo (.delivery-view__area). Assim
+     o header e as abas ficam parados no topo. (Antes: min-height:100% sem
+     overflow, o que deixava o cabeçalho subir junto com o conteúdo.) */
+  flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-/* Cabeçalho */
+/* Cabeçalho — parado no topo (não rola com o conteúdo). */
 .delivery-view__header {
+  flex-shrink: 0;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -133,6 +139,7 @@
 
 /* Abas */
 .delivery-view__abas {
+  flex-shrink: 0;
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--gm-border, #e5e7eb);
