@@ -106,11 +106,13 @@
   background: var(--gm-surface);
 }
 
-/* O ícone nativo de calendário do type=date segue o tema por color-scheme
-   (inputs.css); aqui só damos um alvo de clique confortável. */
+/* Ícone nativo de calendário do type=date forçado a PRETO (pedido do dono).
+   Como o color-scheme escuro o desenharia claro, brightness(0) zera a
+   luminância e o deixa preto sólido, independentemente do tema. */
 .periodo-selector__data::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  opacity: 0.75;
+  filter: brightness(0);
+  opacity: 0.85;
 }
 .periodo-selector__data::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
