@@ -32,6 +32,7 @@ import {
 } from "@/lib/pedidosEmEspera";
 import { useTravaComanda } from "@/hooks/useTravaComanda";
 import { travadaPorOutro, nomeTrava } from "@/lib/comandaLock";
+import { cancelarItemComanda, totalItensAtivos } from "@/lib/comandaItens";
 import MODULOS from "@/constants/modulos";
 
 import { fmtComanda, fmtDinheiro } from "@/pages/mobile/fmt";
@@ -716,6 +717,33 @@ export default function MobilePage() {
             setLancErro("");
             setAba("pedido");
           }, 320);
+        }}
+        onExcluirItem={async (indice, motivo) => {
+          // A comanda viva (mapa) é a fonte — o snapshot detalheComanda pode
+          // estar defasado de lançamentos de outro dispositivo.
+          const o = orderDetalhe;
+          if (!o) return;
+          const anteriores = Array.isArray(o.items) ? o.items : [];
+          const alvo = anteriores[indice];
+          const por = currentUser?.name || currentUser?.username || "";
+          const novos = cancelarItemComanda(anteriores, indice, { motivo, por });
+          if (novos === anteriores) return; // nada mudou (índice/estado inválido)
+          const { error } = await updatePending(
+            o.id,
+            { items: novos, total: totalItensAtivos(novos) },
+            { baseItems: anteriores }
+          );
+          if (error) {
+            setToast("Não foi possível excluir o item. Tente de novo.");
+            return;
+          }
+          logAction(currentUser?.username, "item:cancelar", {
+            comanda: o.comanda,
+            item: alvo?.name,
+            motivo: motivo.trim(),
+            por,
+          });
+          setToast("Item excluído da comanda.");
         }}
         travada={!!(bloqueio || (orderDetalhe && emUsoPorOutro(orderDetalhe)))}
         nomeTrava={

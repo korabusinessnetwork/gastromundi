@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "./comandaItens";
+import { garantirUidItens, mesclarItensComanda, totalItensAtivos, cancelarItemComanda } from "./comandaItens";
 
 describe("garantirUidItens", () => {
   it("adiciona uid a itens sem uid e preserva os existentes", () => {
@@ -71,6 +71,44 @@ describe("mesclarItensComanda", () => {
     const { items, houveMescla } = mesclarItensComanda({ base: [cafe], propostos: [cafe], banco: null });
     expect(houveMescla).toBe(false);
     expect(items).toEqual([cafe]);
+  });
+});
+
+describe("cancelarItemComanda", () => {
+  const cafe = { uid: "u1", name: "Café", price: 5, qty: 1 };
+  const pao  = { uid: "u2", name: "Pão",  price: 3, qty: 2 };
+
+  it("marca o item alvo como cancelado com motivo e responsável", () => {
+    const out = cancelarItemComanda([cafe, pao], 1, { motivo: "  cliente desistiu ", por: "Ana" });
+    expect(out[0]).toEqual(cafe); // outros itens intactos
+    expect(out[1]).toEqual({ ...pao, cancelado: true, motivoCancelamento: "cliente desistiu", canceladoPor: "Ana" });
+  });
+
+  it("preserva o uid do item cancelado (base do merge multi-dispositivo)", () => {
+    const out = cancelarItemComanda([cafe, pao], 0, { motivo: "erro", por: "Ana" });
+    expect(out[0].uid).toBe("u1");
+  });
+
+  it("não sai da conta antes, sai depois (integra com totalItensAtivos)", () => {
+    const out = cancelarItemComanda([cafe, pao], 1, { motivo: "x", por: "Ana" });
+    expect(totalItensAtivos(out)).toBe(5); // só o café
+  });
+
+  it("idempotente: item já cancelado devolve a mesma referência", () => {
+    const lista = [cafe, { ...pao, cancelado: true }];
+    expect(cancelarItemComanda(lista, 1, { motivo: "de novo", por: "Bruno" })).toBe(lista);
+  });
+
+  it("índice inválido devolve a mesma referência", () => {
+    const lista = [cafe];
+    expect(cancelarItemComanda(lista, 9, { motivo: "x", por: "Ana" })).toBe(lista);
+    expect(cancelarItemComanda(lista, -1, { motivo: "x", por: "Ana" })).toBe(lista);
+  });
+
+  it("tolera valores não-array e contexto ausente", () => {
+    expect(cancelarItemComanda(null, 0)).toBe(null);
+    const out = cancelarItemComanda([cafe], 0);
+    expect(out[0]).toEqual({ ...cafe, cancelado: true, motivoCancelamento: "", canceladoPor: "" });
   });
 });
 

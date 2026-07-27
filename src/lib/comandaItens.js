@@ -44,6 +44,32 @@ export function mesclarItensComanda({ base, propostos, banco }) {
   return { items: [...propostos, ...remotos], houveMescla: true };
 }
 
+/**
+ * Cancela (soft-cancel) o item de índice `indice` — mesma convenção do PDV
+ * (useCancelarComanda): o item permanece na lista para a trilha de auditoria,
+ * mas sai da conta (totalItensAtivos o ignora). Grava motivo + responsável.
+ *
+ * Puro e idempotente: índice inválido ou item já cancelado devolvem a MESMA
+ * referência da lista (sem alteração). Os demais itens e seus uids ficam
+ * intactos, então o merge multi-dispositivo (mesclarItensComanda) segue
+ * reconhecendo o cancelamento pelo uid.
+ *
+ * @param {Array<object>} items
+ * @param {number} indice
+ * @param {{motivo?:string, por?:string}} [ctx]
+ * @returns {Array<object>} nova lista (ou a original quando nada muda)
+ */
+export function cancelarItemComanda(items, indice, { motivo = "", por = "" } = {}) {
+  if (!Array.isArray(items)) return items;
+  const alvo = items[indice];
+  if (!alvo || alvo.cancelado) return items;
+  return items.map((it, i) =>
+    i === indice
+      ? { ...it, cancelado: true, motivoCancelamento: String(motivo).trim(), canceladoPor: por }
+      : it,
+  );
+}
+
 /** Total da conta: soma apenas itens não cancelados. */
 export function totalItensAtivos(items) {
   return (Array.isArray(items) ? items : [])
