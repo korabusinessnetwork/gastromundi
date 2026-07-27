@@ -1505,7 +1505,9 @@ function DeliveryTab({ sz }) {
 
 // ── Aba Grupos de Categoria (C3) ──────────────────────────────────
 // Mapeia cada categoria de produto (texto livre) a um grupo (comida/bebida/
-// cafe…). O Palm usa isso no Radar de Oportunidades. Padrão das outras tabs.
+// sobremesa/cafe…). O Palm usa isso no Radar de Oportunidades para sugerir a
+// venda que falta (comida sem bebida, comida sem sobremesa). Padrão das outras
+// tabs. Os grupos disponíveis vêm de grupos_categoria (semeados por tenant).
 function CategoriasGrupoTab({ sz }) {
   const { products, gruposCategoria, categoriaGrupos, setCategoriaGrupo } = useApp();
   const [salvandoCat, setSalvandoCat] = useState(null);
@@ -1532,8 +1534,9 @@ function CategoriasGrupoTab({ sz }) {
       <div className="geral-tab__card" style={{ padding: sz.pad, flexDirection: "column", alignItems: "stretch", gap: 4 }}>
         <div className="geral-tab__titulo">Grupos de Categoria</div>
         <div className="geral-tab__ajuda">
-          Associe cada categoria a um grupo. O Palm usa esses grupos para sugerir vendas
-          (ex.: comanda com comida e sem bebida).
+          Defina o que é comida, bebida e sobremesa: associe cada categoria a um grupo.
+          O Palm usa esses grupos no Radar de Oportunidades para sugerir a venda que
+          falta (ex.: comanda com comida e sem bebida, ou com comida e sem sobremesa).
         </div>
       </div>
 

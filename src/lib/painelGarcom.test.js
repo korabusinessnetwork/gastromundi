@@ -69,6 +69,7 @@ describe("gruposDaComanda / radar", () => {
     "Lanches": "comida",
     "Refrigerantes": "bebida",
     "Cafés": "cafe",
+    "Doces": "sobremesa",
   };
 
   it("coleta grupos presentes pela categoria dos itens", () => {
@@ -77,38 +78,53 @@ describe("gruposDaComanda / radar", () => {
     expect([...g].sort()).toEqual(["bebida", "comida"]);
   });
 
-  it("gera card quando tem comida e falta bebida e café", () => {
+  it("comida sozinha gera os dois cards: sem bebida e sem sobremesa", () => {
     const comanda = { id: 1, comanda: "5", mesa: "3", items: [{ category: "Lanches" }] };
     const cards = oportunidadesDaComanda(comanda, categoriaGrupo);
-    expect(cards).toHaveLength(1);
-    expect(cards[0].rotulo).toBe("pediu comida, sem bebida");
-    expect(cards[0].comanda).toBe("5");
+    expect(cards.map((c) => c.rotulo).sort()).toEqual([
+      "pediu comida, sem bebida",
+      "pediu comida, sem sobremesa",
+    ]);
+    expect(cards.every((c) => c.comanda === "5")).toBe(true);
   });
 
-  it("não gera card se já tem bebida", () => {
+  it("com bebida some o card de bebida, mas ainda sugere sobremesa", () => {
     const comanda = { id: 1, items: [{ category: "Lanches" }, { category: "Refrigerantes" }] };
+    const cards = oportunidadesDaComanda(comanda, categoriaGrupo);
+    expect(cards.map((c) => c.regraId)).toEqual(["comida-sem-sobremesa"]);
+  });
+
+  it("café cobre a lacuna de bebida (sobremesa ainda falta)", () => {
+    const comanda = { id: 1, items: [{ category: "Lanches" }, { category: "Cafés" }] };
+    const cards = oportunidadesDaComanda(comanda, categoriaGrupo);
+    expect(cards.map((c) => c.regraId)).toEqual(["comida-sem-sobremesa"]);
+  });
+
+  it("comida com sobremesa (e bebida) não gera card", () => {
+    const comanda = { id: 1, items: [{ category: "Lanches" }, { category: "Refrigerantes" }, { category: "Doces" }] };
     expect(oportunidadesDaComanda(comanda, categoriaGrupo)).toHaveLength(0);
   });
 
-  it("não gera card se já tem café (cobre a lacuna)", () => {
-    const comanda = { id: 1, items: [{ category: "Lanches" }, { category: "Cafés" }] };
+  it("sobremesa sozinha não dispara nada (a regra exige comida)", () => {
+    const comanda = { id: 1, items: [{ category: "Doces" }] };
     expect(oportunidadesDaComanda(comanda, categoriaGrupo)).toHaveLength(0);
   });
 
   it("radar ignora comandas sem itens", () => {
     const comandas = [
       { id: 1, comanda: "1", items: [] },
-      { id: 2, comanda: "2", items: [{ category: "Lanches" }] },
+      { id: 2, comanda: "2", items: [{ category: "Lanches" }, { category: "Refrigerantes" }] },
     ];
     const cards = radarOportunidades(comandas, categoriaGrupo);
     expect(cards).toHaveLength(1);
     expect(cards[0].comandaId).toBe(2);
+    expect(cards[0].regraId).toBe("comida-sem-sobremesa");
   });
 
   it("usa lookup por produto quando o item não traz category", () => {
-    const comanda = { id: 1, comanda: "7", items: [{ id: 42 }] };
-    const products = [{ id: 42, category: "Lanches" }];
+    const comanda = { id: 1, comanda: "7", items: [{ id: 42 }, { id: 43 }] };
+    const products = [{ id: 42, category: "Lanches" }, { id: 43, category: "Refrigerantes" }];
     const cards = radarOportunidades([comanda], categoriaGrupo, products);
-    expect(cards).toHaveLength(1);
+    expect(cards.map((c) => c.regraId)).toEqual(["comida-sem-sobremesa"]);
   });
 });

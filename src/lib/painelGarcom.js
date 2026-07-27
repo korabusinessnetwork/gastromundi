@@ -69,6 +69,12 @@ export const REGRAS_OPORTUNIDADE = [
     seFaltamTodos: ["bebida", "cafe"],
     rotulo: "pediu comida, sem bebida",
   },
+  {
+    id: "comida-sem-sobremesa",
+    seTem: ["comida"],
+    seFaltamTodos: ["sobremesa"],
+    rotulo: "pediu comida, sem sobremesa",
+  },
 ];
 
 /**
