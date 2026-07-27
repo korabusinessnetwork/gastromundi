@@ -88,7 +88,9 @@
   padding: 0 10px;
   border-radius: 8px;
   border: 1.5px solid var(--gm-border, #d0d3d9);
-  background: var(--gm-card, #fff);
+  /* Fundo = --gm-input-bg (mesmo tom do <input> interno pintado pelo baseline
+     de inputs.css): pílula e campo num tom só, sem retângulo destoante. */
+  background: var(--gm-input-bg);
   min-width: 240px;
   flex: 1 1 240px;
 }

@@ -58,7 +58,10 @@
   border: 1px solid var(--gm-border);
   border-radius: 10px;
   padding: 9px 14px;
-  background: var(--gm-surface);
+  /* Fundo = --gm-input-bg (o MESMO tom que o <input> interno recebe do baseline
+     de inputs.css). Assim a pílula e o campo ficam num tom só — sem o retângulo
+     azulado "a mais" dentro da busca. */
+  background: var(--gm-input-bg);
   max-width: 380px;
 }
 

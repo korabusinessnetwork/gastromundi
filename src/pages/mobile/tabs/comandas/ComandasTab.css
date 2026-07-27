@@ -82,7 +82,9 @@
   padding: 0 14px;
   border-radius: 14px;
   border: 1px solid var(--gm-border);
-  background: var(--gm-surface);
+  /* Fundo casado com o --gm-input-bg do <input> interno (baseline inputs.css):
+     pílula e campo no mesmo tom, sem retângulo destoante dentro da busca. */
+  background: var(--gm-input-bg);
 }
 
 .comandas-tab__busca svg {
