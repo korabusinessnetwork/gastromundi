@@ -24,7 +24,7 @@
  * Quando o shell passa `onFechar`, um "×" discreto aparece no cabeçalho —
  * útil para desistir do lançamento sem confirmar. Backward compatible.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LuCheck, LuDelete, LuLoaderCircle, LuPause, LuX } from "react-icons/lu";
 import "./lancamento.css";
 
@@ -65,6 +65,17 @@ export default function LancarSheet({
   // em modo número ou ABC. Estado só de UI: não sobe pro shell.
   const [campoAtivo, setCampoAtivo] = useState("comanda"); // "comanda" | "mesa"
   const [modoMesa, setModoMesa] = useState("num"); // "num" | "abc"
+
+  // A sheet fica montada e só alterna `aberto`, então o campo ativo persistiria
+  // entre lançamentos. A cada abertura, o teclado volta pra Comanda (o campo
+  // primário do fluxo) e ao modo numérico — sem herdar a Mesa/ABC do lançamento
+  // anterior. Assim o garçom sempre começa digitando o número da comanda.
+  useEffect(() => {
+    if (aberto) {
+      setCampoAtivo("comanda");
+      setModoMesa("num");
+    }
+  }, [aberto]);
 
   const editandoComanda = campoAtivo === "comanda";
   const valorAtivo = editandoComanda ? valorComanda : valorMesa;
