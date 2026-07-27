@@ -15,14 +15,42 @@
   flex-wrap: wrap;
 }
 
+/* Envólucro do select para posicionar o chevron custom por cima (a seta
+   nativa some com appearance:none). O ícone é decorativo e não intercepta
+   o clique (pointer-events:none), então o select continua abrindo normal. */
+.lancamentos-list__campo {
+  position: relative;
+  display: inline-flex;
+}
+
 .lancamentos-list__select {
-  padding: 8px 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 10px 36px 10px 12px;  /* espaço à direita para o chevron */
   border-radius: 10px;
   border: 1px solid var(--gm-border);
   background: var(--gm-surface);
   color: var(--gm-text);
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.lancamentos-list__select:hover {
+  border-color: var(--gm-faint);
+  background: var(--gm-card);
+}
+
+.lancamentos-list__chevron {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gm-muted);
+  pointer-events: none;
 }
 
 .lancamentos-list__estado {

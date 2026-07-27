@@ -1,0 +1,117 @@
+/**
+ * Seletor de período (De/Até + atalhos) do Financeiro.
+ * Decisão 018 (CSS separado do JSX) + só tokens --gm-* (ADR-007).
+ */
+
+.periodo-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Atalhos (chips) ─────────────────────────────────────────── */
+.periodo-selector__presets {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.periodo-selector__chip {
+  border: none;
+  background: transparent;
+  color: var(--gm-muted);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.periodo-selector__chip:hover {
+  color: var(--gm-text);
+  background: var(--gm-alow);
+}
+
+.periodo-selector__chip--ativo,
+.periodo-selector__chip--ativo:hover {
+  color: #fff;
+  background: var(--gm-accent);
+}
+
+.periodo-selector__chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--gm-input-ring);
+}
+
+/* ── Intervalo livre De/Até ──────────────────────────────────── */
+.periodo-selector__intervalo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 10px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.periodo-selector__icone {
+  color: var(--gm-muted);
+  flex-shrink: 0;
+}
+
+.periodo-selector__campo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.periodo-selector__campo-label {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+  color: var(--gm-muted);
+}
+
+.periodo-selector__tra {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.periodo-selector__data {
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  color: var(--gm-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+/* Repouso sem moldura (fica limpo dentro da "pílula"); a borda/anel só
+   aparecem no foco, herdando o baseline de foco de inputs.css. */
+.periodo-selector__data:hover {
+  background: var(--gm-surface);
+}
+
+/* O ícone nativo de calendário do type=date segue o tema por color-scheme
+   (inputs.css); aqui só damos um alvo de clique confortável. */
+.periodo-selector__data::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.75;
+}
+.periodo-selector__data::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}

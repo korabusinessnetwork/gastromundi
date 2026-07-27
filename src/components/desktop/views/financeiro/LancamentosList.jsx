@@ -1,7 +1,7 @@
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
-import { LuCheck } from "react-icons/lu";
+import { LuCheck, LuChevronDown } from "react-icons/lu";
 import "./LancamentosList.css";
 
 const STATUS_COLOR = { recebido: varColor(C.green), pago: varColor(C.green), previsto: varColor(C.blue), vencido: varColor(C.red) };
@@ -22,18 +22,24 @@ export default function LancamentosList({
     <div className="lancamentos-list" style={{ padding: `0 ${sz.pad}px ${sz.pad}px` }}>
       {/* Filtros */}
       <div className="lancamentos-list__filtros" style={{ marginBottom: sz.gap }}>
-        <select aria-label="Filtrar por tipo" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="lancamentos-list__select">
-          <option value="todos">Todos os tipos</option>
-          <option value="receita">Receita</option>
-          <option value="despesa">Despesa</option>
-        </select>
-        <select aria-label="Filtrar por status" value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="lancamentos-list__select">
-          <option value="todos">Todos os status</option>
-          <option value="previsto">Previsto</option>
-          <option value="pago">Pago</option>
-          <option value="recebido">Recebido</option>
-          <option value="vencido">Vencido</option>
-        </select>
+        <div className="lancamentos-list__campo">
+          <select aria-label="Filtrar por tipo" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="lancamentos-list__select">
+            <option value="todos">Todos os tipos</option>
+            <option value="receita">Receita</option>
+            <option value="despesa">Despesa</option>
+          </select>
+          <LuChevronDown className="lancamentos-list__chevron" size={16} aria-hidden="true" />
+        </div>
+        <div className="lancamentos-list__campo">
+          <select aria-label="Filtrar por status" value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="lancamentos-list__select">
+            <option value="todos">Todos os status</option>
+            <option value="previsto">Previsto</option>
+            <option value="pago">Pago</option>
+            <option value="recebido">Recebido</option>
+            <option value="vencido">Vencido</option>
+          </select>
+          <LuChevronDown className="lancamentos-list__chevron" size={16} aria-hidden="true" />
+        </div>
       </div>
 
       {loading ? (

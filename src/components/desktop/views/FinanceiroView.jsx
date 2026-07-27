@@ -7,8 +7,10 @@ import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { LuPlus } from "react-icons/lu";
+import { intervaloDoMes } from "@/lib/periodos";
 import ResumoCards from "./financeiro/ResumoCards";
 import LancamentosList from "./financeiro/LancamentosList";
+import PeriodoSelector from "./financeiro/PeriodoSelector";
 import NovoLancamentoModal from "./financeiro/NovoLancamentoModal";
 import "./FinanceiroView.css";
 
@@ -18,19 +20,12 @@ import "./FinanceiroView.css";
  * receber, baixa de contas e fluxo de caixa previsto vs realizado.
  */
 
-function boundsDoMes(referencia) {
-  const de  = new Date(referencia.getFullYear(), referencia.getMonth(), 1);
-  const ate = new Date(referencia.getFullYear(), referencia.getMonth() + 1, 0);
-  const fmt = (d) => d.toISOString().slice(0, 10);
-  return { de: fmt(de), ate: fmt(ate) };
-}
-
 export default function FinanceiroView() {
   const { currentUser, sales } = useApp();
   const { width } = useResponsive();
   const sz = getSizes(width);
 
-  const [periodo, setPeriodo]   = useState(() => boundsDoMes(new Date()));
+  const [periodo, setPeriodo]   = useState(() => intervaloDoMes(new Date()));
   const [lancamentos, setLancamentos] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [filtroTipo, setFiltroTipo]     = useState("todos");
@@ -105,12 +100,6 @@ export default function FinanceiroView() {
     setShowNovo(false);
   };
 
-  const handleMesChange = (e) => {
-    const [ano, mes] = e.target.value.split("-").map(Number);
-    if (!ano || !mes) return;
-    setPeriodo(boundsDoMes(new Date(ano, mes - 1, 1)));
-  };
-
   return (
     <div className="financeiro-view" style={{ background: varColor(C.bg) }}>
       {/* Header */}
@@ -120,13 +109,6 @@ export default function FinanceiroView() {
           <div className="financeiro-view__subtitulo" style={{ color: varColor(C.muted) }}>Lançamentos, contas e fluxo de caixa</div>
         </div>
         <div className="financeiro-view__acoes">
-          <input
-            type="month"
-            aria-label="Período"
-            value={periodo.de.slice(0, 7)}
-            onChange={handleMesChange}
-            className="financeiro-view__mes"
-          />
           <button
             onClick={() => setShowNovo(true)}
             className="financeiro-view__btn-novo"
@@ -134,6 +116,10 @@ export default function FinanceiroView() {
             <LuPlus size={16} /> Novo lançamento
           </button>
         </div>
+      </div>
+
+      <div className="financeiro-view__toolbar" style={{ padding: `${sz.padSm}px ${sz.pad}px 0` }}>
+        <PeriodoSelector periodo={periodo} onChange={setPeriodo} />
       </div>
 
       <ResumoCards fluxo={fluxo} lucro={lucro} width={width} sz={sz} />

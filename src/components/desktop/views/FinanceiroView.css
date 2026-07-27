@@ -17,7 +17,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  /* telas estreitas: header não deve espremer seletor de mês + botão */
+  /* telas estreitas: título e botão "Novo lançamento" quebram em vez de espremer */
   flex-wrap: wrap;
 }
 
@@ -39,15 +39,11 @@
   flex-wrap: wrap;
 }
 
-.financeiro-view__mes {
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--gm-border);
-  background: var(--gm-surface);
-  color: var(--gm-text);
-  font-family: inherit;
-  font-size: var(--fs-base);  /* role: body (era hardcoded 14px, ambíguo) */
-  line-height: var(--lh-base);
+/* Toolbar do período: linha própria abaixo do header, para o seletor De/Até
+   e os atalhos respirarem sem espremer o botão "Novo lançamento". */
+.financeiro-view__toolbar {
+  flex-shrink: 0;
+  display: flex;
 }
 
 .financeiro-view__btn-novo {

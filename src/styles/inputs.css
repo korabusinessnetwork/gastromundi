@@ -33,6 +33,9 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="
 textarea,
 select {
   background-color: var(--gm-input-bg);
+  /* Controles nativos (calendário do type=date, dropdown do select) seguem o
+     tema em vez do claro padrão do browser — ver --gm-color-scheme em tema.css. */
+  color-scheme: var(--gm-color-scheme);
 }
 
 /* Borda de repouso base (especificidade 0 via :where): só onde não há borda

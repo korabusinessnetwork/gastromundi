@@ -51,6 +51,14 @@
   --gm-text: #eef2f7;
   --gm-muted: #9aa8c4;
   --gm-faint: #323d58;
+  /* Esquema de cor dos controles NATIVOS (date/time picker, dropdown do
+     <select>, scrollbar). O default da marca é escuro, então sem esta
+     declaração o browser desenha o calendário nativo em CLARO (fundo branco
+     berrante, ícone quase invisível) sobre a UI escura — era a "feiura" do
+     calendário no Financeiro. Token como qualquer --gm-*: um tenant de tema
+     CLARO sobrescreve para `light` e os mesmos controles se ajustam, sem
+     hardcode de claro/escuro (decisão 017). Aplicado no baseline de inputs. */
+  --gm-color-scheme: dark;
   /* Overlay translúcido do accent (estados ativo/pressionado) — F018 */
   --gm-alow: rgba(124, 58, 237, 0.13);
   /* Campos de formulário (inputs/textarea/select) — derivados por color-mix
