@@ -1174,7 +1174,7 @@ const ABAS_CONFIG = [
   { id: "unidades_medida",  label: "Unidades de Medida",  adminOnly: false },
   { id: "mesas",            label: "Mesas",               gerenteOnly: true },
   { id: "delivery",         label: "Delivery",            gerenteOnly: true },
-  { id: "categorias",       label: "Grupos de Categoria", gerenteOnly: true },
+  { id: "categorias",       label: "Radar de Oportunidades", gerenteOnly: true },
   { id: "impressao",        label: "Impressão",           adminOnly: true  },
   { id: "importar",         label: "Importar / Exportar", adminOnly: true  },
 ];
@@ -1532,11 +1532,12 @@ function CategoriasGrupoTab({ sz }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: sz.padSm }}>
       <div className="geral-tab__card" style={{ padding: sz.pad, flexDirection: "column", alignItems: "stretch", gap: 4 }}>
-        <div className="geral-tab__titulo">Grupos de Categoria</div>
+        <div className="geral-tab__titulo">Radar de Oportunidades</div>
         <div className="geral-tab__ajuda">
           Defina o que é comida, bebida e sobremesa: associe cada categoria a um grupo.
-          O Palm usa esses grupos no Radar de Oportunidades para sugerir a venda que
-          falta (ex.: comanda com comida e sem bebida, ou com comida e sem sobremesa).
+          O Palm usa isso no Painel do garçom para avisar a venda que falta (ex.:
+          "pediu comida e não pediu bebida e sobremesa"). Categoria sem grupo é
+          ignorada pelo radar.
         </div>
       </div>
 

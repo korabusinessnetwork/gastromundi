@@ -32,7 +32,7 @@ Um tenant vazio **opera sem quebrar** — os defaults do app cobrem o essencial:
 | Meios de pagamento | dinheiro · crédito · débito · pix | Configurações → **Meios de Pagamento** |
 | Taxa de serviço | desligada | Configurações → **Meios de Pagamento** |
 | Caixa | fechado (abre no início do dia) | **Frente de Caixa** |
-| Grupos de categoria | comida · bebida · cafe (já semeados) | Configurações → **Grupos de Categoria** |
+| Grupos de categoria | comida · bebida · cafe · sobremesa (já semeados) | Configurações → **Radar de Oportunidades** |
 | Alerta de validade | padrão do sistema | Configurações |
 
 Ou seja: o dono **não precisa mexer em nada disso** para começar. Só o cardápio
@@ -58,9 +58,10 @@ Ou seja: o dono **não precisa mexer em nada disso** para começar. Só o cardá
   pode pular e trabalhar por comanda/pedido avulso.
 - Define número, capacidade e posição no salão.
 
-### 4. (Opcional) Agrupar categorias — "Configurações" → aba "Grupos de Categoria" *(gerente)*
-- Mapeia cada categoria do cardápio a um grupo (`comida`/`bebida`/`cafe`). Alimenta
-  o **Radar de Oportunidades** e o agrupamento no Palm. Não afeta a venda em si.
+### 4. (Opcional) Agrupar categorias — "Configurações" → aba "Radar de Oportunidades" *(gerente)*
+- Mapeia cada categoria do cardápio a um grupo (`comida`/`bebida`/`cafe`/`sobremesa`).
+  Alimenta o **Radar de Oportunidades** no Painel do Palm ("pediu comida e não pediu
+  bebida e sobremesa"). Não afeta a venda em si.
 
 ### 5. (Opcional) Convidar a equipe — menu "Área Admin"
 - Criar usuários `caixa` / `garcom` / `cozinha` com as permissões certas. O garçom

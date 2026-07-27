@@ -67,15 +67,23 @@ export const REGRAS_OPORTUNIDADE = [
     id: "comida-sem-bebida",
     seTem: ["comida"],
     seFaltamTodos: ["bebida", "cafe"],
-    rotulo: "pediu comida, sem bebida",
+    tem: "comida",
+    falta: "bebida",
   },
   {
     id: "comida-sem-sobremesa",
     seTem: ["comida"],
     seFaltamTodos: ["sobremesa"],
-    rotulo: "pediu comida, sem sobremesa",
+    tem: "comida",
+    falta: "sobremesa",
   },
 ];
+
+/** "bebida" · "bebida e sobremesa" · "bebida, sobremesa e café" */
+function juntarEmLista(itens) {
+  if (itens.length <= 1) return itens[0] ?? "";
+  return `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}`;
+}
 
 /**
  * Grupos presentes numa comanda, a partir da categoria de cada item e do
@@ -101,26 +109,38 @@ export function gruposDaComanda(comanda, categoriaGrupo = {}, produtosPorId = {}
 /**
  * Cards de oportunidade de uma comanda aberta, aplicando REGRAS_OPORTUNIDADE.
  *
- * @returns {Array<{comandaId, comanda, mesa, regraId, rotulo}>}
+ * As lacunas que partem do mesmo "já pediu" viram UM card só — a comanda 8
+ * não aparece duas vezes (uma por bebida, outra por sobremesa); vira
+ * "pediu comida e não pediu bebida e sobremesa". Menos cards repetidos =
+ * o garçom lê o radar de relance.
+ *
+ * @returns {Array<{comandaId, comanda, mesa, regraId, faltas, rotulo}>}
  */
 export function oportunidadesDaComanda(comanda, categoriaGrupo = {}, produtosPorId = {}, regras = REGRAS_OPORTUNIDADE) {
   const grupos = gruposDaComanda(comanda, categoriaGrupo, produtosPorId);
   if (grupos.size === 0) return [];
-  const cards = [];
+
+  // agrupa as regras que dispararam pelo que a comanda JÁ tem
+  const porTem = new Map();
   for (const regra of regras) {
     const temTodos = regra.seTem.every((g) => grupos.has(g));
     const faltamTodos = regra.seFaltamTodos.every((g) => !grupos.has(g));
-    if (temTodos && faltamTodos) {
-      cards.push({
-        comandaId: comanda.id,
-        comanda: comanda.comanda,
-        mesa: comanda.mesa ?? null,
-        regraId: regra.id,
-        rotulo: regra.rotulo,
-      });
-    }
+    if (!temTodos || !faltamTodos) continue;
+    const tem = regra.tem ?? regra.seTem.join(" e ");
+    if (!porTem.has(tem)) porTem.set(tem, { ids: [], faltas: [] });
+    const acc = porTem.get(tem);
+    acc.ids.push(regra.id);
+    acc.faltas.push(regra.falta ?? regra.seFaltamTodos[0]);
   }
-  return cards;
+
+  return [...porTem.entries()].map(([tem, { ids, faltas }]) => ({
+    comandaId: comanda.id,
+    comanda: comanda.comanda,
+    mesa: comanda.mesa ?? null,
+    regraId: ids.join("+"),
+    faltas,
+    rotulo: `pediu ${tem} e não pediu ${juntarEmLista(faltas)}`,
+  }));
 }
 
 /**

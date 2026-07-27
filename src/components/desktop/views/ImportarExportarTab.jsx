@@ -136,7 +136,7 @@ export default function ImportarExportarTab() {
       nota: (plano) =>
         plano.bruto.categoriasNovas?.length > 0
           ? `Categorias novas que serão criadas: ${plano.bruto.categoriasNovas.join(", ")}. ` +
-            `Depois associe cada uma a um grupo na aba "Grupos de Categoria" pra tudo aparecer certo no PDV e no Palm.`
+            `Depois associe cada uma a um grupo na aba "Radar de Oportunidades" pra tudo aparecer certo no PDV e no Palm.`
           : null,
     },
 

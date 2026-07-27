@@ -78,20 +78,21 @@ describe("gruposDaComanda / radar", () => {
     expect([...g].sort()).toEqual(["bebida", "comida"]);
   });
 
-  it("comida sozinha gera os dois cards: sem bebida e sem sobremesa", () => {
+  it("comida sozinha gera UM card juntando as duas lacunas", () => {
     const comanda = { id: 1, comanda: "5", mesa: "3", items: [{ category: "Lanches" }] };
     const cards = oportunidadesDaComanda(comanda, categoriaGrupo);
-    expect(cards.map((c) => c.rotulo).sort()).toEqual([
-      "pediu comida, sem bebida",
-      "pediu comida, sem sobremesa",
-    ]);
-    expect(cards.every((c) => c.comanda === "5")).toBe(true);
+    expect(cards).toHaveLength(1);
+    expect(cards[0].rotulo).toBe("pediu comida e não pediu bebida e sobremesa");
+    expect(cards[0].faltas).toEqual(["bebida", "sobremesa"]);
+    expect(cards[0].comanda).toBe("5");
+    expect(cards[0].mesa).toBe("3");
   });
 
-  it("com bebida some o card de bebida, mas ainda sugere sobremesa", () => {
+  it("com bebida some a lacuna de bebida, e o card fala só da sobremesa", () => {
     const comanda = { id: 1, items: [{ category: "Lanches" }, { category: "Refrigerantes" }] };
     const cards = oportunidadesDaComanda(comanda, categoriaGrupo);
     expect(cards.map((c) => c.regraId)).toEqual(["comida-sem-sobremesa"]);
+    expect(cards[0].rotulo).toBe("pediu comida e não pediu sobremesa");
   });
 
   it("café cobre a lacuna de bebida (sobremesa ainda falta)", () => {
