@@ -46,7 +46,9 @@ function CartaoModulo({ modulo }) {
     onClick,
   } = modulo;
   const Icone = iconeDoModulo(icone);
-  const dimmed = habilitado === false || melhorNoComputador === true;
+  // Só apaga módulo de fato indisponível (plano/permissão). "Melhor no
+  // computador" continua aceso e clicável — é só um aviso, não um bloqueio.
+  const dimmed = habilitado === false;
 
   return (
     <button

@@ -37,4 +37,32 @@ describe("MaisTab — hub de módulos do Palm", () => {
     render(<MaisTab {...baseProps} onConfiguracoes={undefined} />);
     expect(screen.queryByRole("button", { name: /configurações/i })).toBeNull();
   });
+
+  it('mantém o card ACESO (não apagado) quando é só "melhor no computador"', () => {
+    render(
+      <MaisTab
+        {...baseProps}
+        modulos={[
+          { chave: "pdv", rotulo: "PDV", icone: "pdv", habilitado: true, melhorNoComputador: true, onClick: vi.fn() },
+        ]}
+      />,
+    );
+    const botao = screen.getByRole("button", { name: /PDV/i });
+    expect(botao.className).not.toContain("mais-tab__cartao--dimmed");
+    // o aviso continua visível, só não apaga o card
+    expect(screen.getByText(/melhor no computador/i)).toBeInTheDocument();
+  });
+
+  it("apaga o card apenas quando o módulo está de fato desabilitado", () => {
+    render(
+      <MaisTab
+        {...baseProps}
+        modulos={[
+          { chave: "financeiro", rotulo: "Financeiro", icone: "financeiro", habilitado: false, onClick: vi.fn() },
+        ]}
+      />,
+    );
+    const botao = screen.getByRole("button", { name: /Financeiro/i });
+    expect(botao.className).toContain("mais-tab__cartao--dimmed");
+  });
 });
