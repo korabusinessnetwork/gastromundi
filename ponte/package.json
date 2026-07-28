@@ -5,7 +5,19 @@
   "type": "module",
   "description": "Ponte KORA — leva o pedido do celular até o caixa/impressora pela rede local, mesmo sem internet.",
   "main": "servidor.js",
+  "bin": "servidor.js",
   "scripts": {
-    "start": "node servidor.js"
+    "start": "node servidor.js",
+    "build:exe": "pkg . --targets node22-win-x64 --output dist/KoraPonte.exe"
+  },
+  "pkg": {
+    "assets": [
+      "palm.html",
+      "painel.html"
+    ],
+    "outputPath": "dist"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.3.0"
   }
 }

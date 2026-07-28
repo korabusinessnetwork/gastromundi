@@ -1,3 +1,10 @@
-# Dados locais da ponte (token, fila de pedidos, snapshot do catálogo) —
-# são do estabelecimento onde ela roda, nunca vão para o repositório.
+# Dados locais da ponte (token, fila de pedidos, snapshot do catálogo,
+# vínculo com o estabelecimento) — são do estabelecimento onde ela roda,
+# nunca vão para o repositório.
 dados/
+
+# Empacotamento do KoraPonte.exe. O .exe passa de 40 MB (leva o Node
+# inteiro dentro) e é gerado na hora com `npm run build:exe` — versionar
+# binário só incha o repositório.
+dist/
+node_modules/

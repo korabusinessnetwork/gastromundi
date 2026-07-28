@@ -16,7 +16,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   pingPonte, buscarInfoPonte, enviarSnapshotPonte,
-  buscarPedidosPonte, confirmarPedidosPonte, montarEnderecoPalm,
+  buscarPedidosPonte, confirmarPedidosPonte, montarEnderecoPalm, vincularPonte,
 } from "@/lib/ponte";
 import { enviarViaProducao } from "@/lib/impressao/despacho";
 
@@ -42,13 +42,13 @@ export function pedidoPonteParaComanda(pedido, { agora } = {}) {
   };
 }
 
-export function usePonteLocal({ ativo, products, pending, addPending, ponteEndereco, setPonteEndereco, redeOnline }) {
+export function usePonteLocal({ ativo, products, pending, addPending, ponteEndereco, setPonteEndereco, redeOnline, estabelecimento }) {
   const [disponivel, setDisponivel] = useState(false);
   const [info, setInfo] = useState(null);
 
   // Refs para o ciclo enxergar o estado atual sem reiniciar o interval.
   const estadoRef = useRef({});
-  estadoRef.current = { products, pending, addPending, ponteEndereco, setPonteEndereco, redeOnline };
+  estadoRef.current = { products, pending, addPending, ponteEndereco, setPonteEndereco, redeOnline, estabelecimento };
 
   const cicloAtivoRef = useRef(false);
   const snapshotEnviadoEmRef = useRef(0);
@@ -77,6 +77,20 @@ export function usePonteLocal({ ativo, products, pending, addPending, ponteEnder
         if (dadosInfo) {
           setInfo(dadosInfo);
           const atual = estadoRef.current;
+
+          // A Ponte é o MESMO .exe para qualquer cliente — quem diz de quem
+          // ela é somos nós, na primeira vez que a encontramos. É isso que
+          // faz o programa "se vincular sozinho": o dono não digita nada.
+          const meuTenant = atual.estabelecimento?.id;
+          if (meuTenant && dadosInfo.estabelecimento?.tenantId !== meuTenant) {
+            // Fire-and-forget: falhar aqui não pode parar pedido nem impressão.
+            const { error: erroVinculo } = await vincularPonte({
+              tenantId: meuTenant,
+              nome: atual.estabelecimento?.nome,
+            });
+            if (erroVinculo) console.error("[ponte] falha ao vincular ao estabelecimento:", erroVinculo);
+          }
+
           const endereco = montarEnderecoPalm(dadosInfo);
           // Endereço mudou (IP/token novo)? Grava em config — o Palm usa
           // esse valor para achar a ponte quando a internet cair.

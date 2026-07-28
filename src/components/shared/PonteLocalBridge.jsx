@@ -13,7 +13,7 @@ import { usePonteLocal } from "@/hooks/usePonteLocal";
 const PONTE_LOCAL_ATIVA = import.meta.env.VITE_PONTE_LOCAL_ATIVA === "true";
 
 export default function PonteLocalBridge() {
-  const { isMobile, currentUser, products, pending, addPending, ponteEndereco, setPonteEndereco, redeOnline } = useApp();
+  const { isMobile, currentUser, products, pending, addPending, ponteEndereco, setPonteEndereco, redeOnline, tenant } = useApp();
 
   usePonteLocal({
     ativo: PONTE_LOCAL_ATIVA && !isMobile && !!currentUser,
@@ -23,6 +23,9 @@ export default function PonteLocalBridge() {
     ponteEndereco,
     setPonteEndereco,
     redeOnline,
+    // Identidade do estabelecimento — é com ela que a Ponte se vincula
+    // sozinha ao abrir o sistema neste computador (nada de digitar código).
+    estabelecimento: tenant ? { id: tenant.id, nome: tenant.nome } : null,
   });
 
   return null;

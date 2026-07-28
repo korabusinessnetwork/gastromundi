@@ -13,29 +13,48 @@ Celular (Wi-Fi) ──► Ponte (PC do caixa) ◄── App do caixa (localhost)
 
 ## Instalação (uma vez só)
 
-1. **Instale o Node.js** no PC do caixa (grátis): https://nodejs.org — baixe
-   a versão LTS e clique em avançar até o fim.
-2. Copie a pasta `ponte/` para o PC do caixa (por exemplo em `C:\kora-ponte`).
-3. Abra o terminal (Prompt de Comando) nessa pasta e rode:
+É **um arquivo só**: `KoraPonte.exe`. Não precisa instalar Node, nem copiar
+pasta, nem digitar comando — o Node vai dentro do próprio programa.
 
-   ```
-   node servidor.js
-   ```
-
-4. Vai aparecer algo assim:
+1. Copie o `KoraPonte.exe` para o PC do caixa (pode ser pen drive, e-mail,
+   pasta de Downloads — tanto faz).
+2. **Dois cliques** nele. Abre uma janela preta e o painel no navegador:
 
    ```
    ┌────────────────────────────────────────────────┐
-   │  KORA Ponte — pedidos sem internet             │
+   │  KORA Ponte — pedidos sem internet e impressão │
    └────────────────────────────────────────────────┘
-     No PC do caixa:  http://localhost:8123
+     Estabelecimento: aguardando — abra o sistema KORA neste PC.
+     Painel:          http://localhost:8123
      No celular:      http://192.168.0.42:8123/palm?t=a1b2c3...
-     Deixe esta janela aberta. Para parar: Ctrl+C.
+     Deixe esta janela aberta (pode minimizar). Para parar: Ctrl+C.
    ```
 
-**Deixe essa janela aberta** enquanto o caixa estiver funcionando.
-Dica: crie um atalho para não precisar digitar o comando todo dia
-(no Windows, um arquivo `ponte.bat` com `node servidor.js` dentro da pasta).
+3. No painel, clique em **Instalar neste computador**. A ponte se copia para
+   a pasta do usuário e cria dois atalhos: um na Área de Trabalho e outro na
+   Inicialização do Windows — a partir daí ela **abre sozinha** toda vez que
+   o PC liga. Não pede senha de administrador.
+4. Abra o sistema KORA nesse mesmo PC e faça login. **Pronto**: a ponte se
+   vincula sozinha ao estabelecimento, sem ninguém digitar código nenhum.
+
+> **Aviso do Windows na primeira vez.** Como o programa não tem certificado
+> de assinatura (custa caro e não muda nada no funcionamento), pode aparecer
+> "O Windows protegeu o seu computador". Clique em **Mais informações** →
+> **Executar assim mesmo**. Só acontece na primeira execução.
+
+Passo a passo completo, com o que fazer quando dá errado: [`INSTALACAO.md`](INSTALACAO.md).
+
+### Como gerar o `.exe` (só quem desenvolve)
+
+```
+cd ponte
+npm install
+npm run build:exe
+```
+
+Sai em `ponte/dist/KoraPonte.exe` (~58 MB — leva o Node inteiro dentro).
+O `palm.html` e o `painel.html` entram **dentro** do executável (`pkg.assets`),
+por isso ele roda sozinho numa pasta vazia.
 
 ## Como usar no dia a dia
 
@@ -49,8 +68,13 @@ Dica: crie um atalho para não precisar digitar o comando todo dia
 
 ## Perguntas frequentes
 
-**Precisa pagar alguma coisa?** Não. Zero custo, zero certificado, zero
-mensalidade — é só o Node.js (grátis) rodando no PC que já existe.
+**Precisa pagar alguma coisa?** Não. Zero custo, zero mensalidade — é um
+programa gratuito rodando no PC que já existe.
+
+**Preciso digitar algum código para ligar ao meu estabelecimento?** Não. É o
+mesmo `KoraPonte.exe` para todo mundo; quem diz de quem ele é são as
+Configurações do sistema KORA aberto naquele PC. Se o PC mudar de dono ou de
+loja, é só abrir o sistema com o novo login — a ponte se revincula sozinha.
 
 **O celular precisa de internet?** Não — só precisa estar no **mesmo Wi-Fi**
 do PC do caixa.
@@ -60,15 +84,17 @@ continua funcionando mesmo sem internet. Se o próprio roteador desligar,
 aí não há rede — religue o roteador.
 
 **Qualquer pessoa no Wi-Fi consegue mandar pedido?** Não. O link tem um
-**código secreto** (o `?t=...`) que nasce no primeiro uso e fica só no PC
-do caixa (`dados/config.json`). Sem o código, a ponte recusa.
+**código secreto** (o `?t=...`) que nasce no primeiro uso e fica só no PC do
+caixa. E as telas de gerência (painel, vínculo, instalação, impressão) só
+respondem no próprio PC — de outro aparelho da rede, a ponte devolve 403.
 
-**A porta 8123 está ocupada?** Rode com outra porta:
-`KORA_PONTE_PORTA=8200 node servidor.js` (e o app do caixa encontra…
-não — nesse caso avise o suporte, o app procura a ponte na porta padrão).
+**A porta 8123 está ocupada?** O app do caixa só procura a ponte na porta
+padrão, então trocar a porta é coisa de desenvolvimento
+(`KORA_PONTE_PORTA=8200`). Se der conflito no PC do caixa, avise o suporte.
 
-**Onde ficam os pedidos?** Em `dados/pedidos.json`, no próprio PC. Pedidos
-já confirmados são apagados automaticamente depois de 24 horas.
+**Onde ficam os pedidos?** No próprio PC, em
+`%LOCALAPPDATA%\KORA\Ponte\dados\pedidos.json`. Pedidos já confirmados são
+apagados automaticamente depois de 24 horas.
 
 ## Impressão (a ponte imprime sozinha)
 
@@ -120,12 +146,22 @@ Exemplos de `destino`:
 - Zero dependências — só Node puro (`node:http`, `node:fs`, `node:net` etc.).
   A impressão RAW no Windows usa o PowerShell que já vem no sistema.
 - Lógica pura em `lib/` com testes (`npx vitest run ponte/lib` na raiz do repo):
-  `pedidos.js`, `http.js`, `escpos.js` (bytes ESC/POS + acentuação CP850) e
-  `filaImpressao.js` (fila, tentativas, poda). `lib/impressoras.js` é a única
-  parte com I/O de sistema.
+  `pedidos.js`, `http.js`, `escpos.js` (bytes ESC/POS + acentuação CP850),
+  `filaImpressao.js` (fila, tentativas, poda) e `vinculo.js` (validação do
+  vínculo com o tenant). `lib/impressoras.js` e `lib/instalacao.js` são as
+  únicas partes com I/O de sistema.
 - Endpoints: `GET /saude`, `GET /palm`, `GET /catalogo` e `POST /pedido`
   (token), `GET /info`, `POST /snapshot`, `GET /pedidos`,
   `POST /pedidos/confirmar`, `GET /impressoras`, `POST /imprimir`,
-  `GET /impressao`, `POST /impressao/limpar` (só localhost).
-- Dados locais em `dados/` (ignorado pelo git): `config.json` (token),
-  `snapshot.json` (catálogo), `pedidos.json` e `impressao.json`.
+  `GET /impressao`, `POST /impressao/limpar`, `GET /` (painel),
+  `GET /painel/estado`, `POST /vincular`, `POST /instalar` (só localhost).
+- **Onde ficam os dados depende de como a ponte roda.** Pelo código
+  (`node servidor.js`), em `ponte/dados/` — como sempre foi. Como
+  `KoraPonte.exe`, em `%LOCALAPPDATA%\KORA\Ponte\dados\`, porque o sistema de
+  arquivos embutido no executável é **somente leitura** e ele pode estar
+  rodando de um pen drive. Quem decide é `lib/instalacao.js` (`dirDados`).
+  Arquivos: `config.json` (token + vínculo), `snapshot.json` (catálogo),
+  `pedidos.json` e `impressao.json`.
+- O `.exe` **não guarda credencial nenhuma** — nem chave do Supabase, nem
+  senha. Do estabelecimento ele só conhece o UUID e o nome, que chegam pela
+  rota `POST /vincular` a partir do app aberto no mesmo PC.

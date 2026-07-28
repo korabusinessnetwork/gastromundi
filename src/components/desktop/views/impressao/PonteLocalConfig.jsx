@@ -15,6 +15,7 @@ export default function PonteLocalConfig({ sz }) {
   const [status, setStatus] = useState("procurando"); // procurando | rodando | ausente
   const [endereco, setEndereco] = useState(null);
   const [qrDataUrl, setQrDataUrl] = useState(null);
+  const [vinculo, setVinculo] = useState(null); // a ponte já sabe de quem é?
 
   useEffect(() => {
     let vivo = true;
@@ -30,6 +31,7 @@ export default function PonteLocalConfig({ sz }) {
       const { data: info } = await buscarInfoPonte();
       if (!vivo) return;
       setEndereco(montarEnderecoPalm(info));
+      setVinculo(info?.estabelecimento ?? null);
     };
     verificar();
     const timer = setInterval(verificar, INTERVALO_MS);
@@ -51,7 +53,9 @@ export default function PonteLocalConfig({ sz }) {
       <div className="ponte-config__status">
         <span className={`ponte-config__dot ${status === "rodando" ? "ponte-config__dot--on" : "ponte-config__dot--off"}`} />
         {status === "procurando" && "Procurando a ponte neste computador…"}
-        {status === "rodando"    && "Ponte rodando neste computador — pedidos funcionam mesmo sem internet."}
+        {status === "rodando"    && (vinculo?.vinculado
+          ? `Ponte ligada e vinculada a ${vinculo.nome} — pedidos e impressão funcionam mesmo sem internet.`
+          : "Ponte rodando neste computador — pedidos funcionam mesmo sem internet.")}
         {status === "ausente"    && "Ponte não encontrada neste computador."}
       </div>
 
@@ -86,11 +90,14 @@ export default function PonteLocalConfig({ sz }) {
             </p>
             <p><strong>Para ligar:</strong></p>
             <ol className="ponte-config__passos">
-              <li>Instale o Node.js (grátis, em nodejs.org) — uma vez só.</li>
-              <li>Abra a pasta <code>ponte</code> do sistema e rode <code>node servidor.js</code>.</li>
-              <li>Deixe a janela aberta — esta tela detecta a ponte sozinha em segundos.</li>
+              <li>Copie o arquivo <code>KoraPonte.exe</code> para este computador e dê dois cliques nele.</li>
+              <li>No painel que abrir, clique em <strong>Instalar neste computador</strong> — ela passa a abrir sozinha junto com o Windows.</li>
+              <li>Pronto: ela se vincula sozinha ao seu estabelecimento e esta tela a encontra em segundos.</li>
             </ol>
-            <p className="ponte-config__muted">O passo a passo completo está no arquivo <code>ponte/README.md</code>.</p>
+            <p className="ponte-config__muted">
+              Não precisa instalar mais nada, nem digitar código ou endereço. O passo a passo
+              completo está no arquivo <code>ponte/INSTALACAO.md</code>.
+            </p>
           </div>
         </div>
       )}

@@ -20,6 +20,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
+import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import {
   validarPedido, adicionarPedido, pedidosPendentes, confirmarPedidos, podarConfirmados,
@@ -33,14 +34,20 @@ import {
 } from "./lib/filaImpressao.js";
 import { montarBytes } from "./lib/escpos.js";
 import { listarImpressoras, enviarBytes } from "./lib/impressoras.js";
+import { EMPACOTADO, dirDados, estadoInstalacao, instalar } from "./lib/instalacao.js";
+import { validarVinculo, aplicarVinculo, resumoVinculo } from "./lib/vinculo.js";
 
 const RAIZ = path.dirname(fileURLToPath(import.meta.url));
-const DIR_DADOS = path.join(RAIZ, "dados");
+// Como .exe, a pasta ao lado do programa é somente leitura (e ele pode estar
+// rodando de um pen drive) — os dados vão para a pasta do usuário. Rodando
+// pelo código (node servidor.js), continua sendo ponte/dados, como sempre foi.
+const DIR_DADOS = dirDados(RAIZ);
 const ARQ_CONFIG = path.join(DIR_DADOS, "config.json");
 const ARQ_SNAPSHOT = path.join(DIR_DADOS, "snapshot.json");
 const ARQ_PEDIDOS = path.join(DIR_DADOS, "pedidos.json");
 const ARQ_IMPRESSAO = path.join(DIR_DADOS, "impressao.json");
 const ARQ_PALM = path.join(RAIZ, "palm.html");
+const ARQ_PAINEL = path.join(RAIZ, "painel.html");
 
 const PORTA = Number(process.env.KORA_PONTE_PORTA) || 8123;
 const VERSAO = "1.0.0";
@@ -122,6 +129,26 @@ function lerCorpoJson(req) {
   });
 }
 
+/** Endereço que o garçom abre no celular (primeiro IP da rede local). */
+function enderecoPalm() {
+  const ip = enderecosLan(os.networkInterfaces())[0];
+  return ip ? `http://${ip}:${PORTA}/palm?t=${config.token}` : null;
+}
+
+/**
+ * Abre o painel no navegador do PC do caixa.
+ *
+ * Só no .exe: quem dá duplo clique no programa espera VER alguma coisa —
+ * uma janela preta de console não diz se funcionou. Rodando pelo código,
+ * abrir o navegador a cada reinício durante o desenvolvimento só atrapalha.
+ */
+function abrirPainelNoNavegador() {
+  if (!EMPACOTADO || process.platform !== "win32") return;
+  // Argumentos vão como lista (nunca concatenados), e o "" é o título da
+  // janela que o `start` exige antes da URL.
+  execFile("cmd", ["/c", "start", "", `http://localhost:${PORTA}/`], { timeout: 5000 }, () => {});
+}
+
 // ── Worker da impressão ────────────────────────────────────────────────
 //
 // Um trabalho por vez, sempre: duas comandas saindo ao mesmo tempo na
@@ -191,7 +218,21 @@ const servidor = http.createServer(async (req, res) => {
       versao: VERSAO,
       pendentes: pedidosPendentes(filaPedidos).length,
       impressoesPendentes: contarPendentes(filaImpressao),
+      estabelecimento: resumoVinculo(config),
     });
+  }
+
+  if (rota === "GET /" || rota === "GET /painel") {
+    // Painel do caixa — só no próprio PC. É a tela que o dono vê quando
+    // dá duplo clique no programa: estado, estabelecimento e instalação.
+    if (!local) return responderJson(res, 403, { erro: "Painel disponível apenas no PC do caixa." });
+    try {
+      const html = fs.readFileSync(ARQ_PAINEL);
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+      return res.end(html);
+    } catch {
+      return responderJson(res, 500, { erro: "painel.html não encontrado ao lado do servidor." });
+    }
   }
 
   if (rota === "GET /palm") {
@@ -238,7 +279,55 @@ const servidor = http.createServer(async (req, res) => {
       enderecos: enderecosLan(os.networkInterfaces()),
       snapshotEm: snapshot?.atualizadoEm ?? null,
       pendentes: pedidosPendentes(filaPedidos).length,
+      estabelecimento: resumoVinculo(config),
+      instalacao: estadoInstalacao(),
     });
+  }
+
+  // ── Vínculo com o estabelecimento ────────────────────────────────────
+  //
+  // O mesmo .exe serve qualquer cliente: ele nasce sem dono. Quem diz de
+  // quem ele é é o app do caixa, que já procura a ponte no localhost — por
+  // isso ninguém digita código, token nem IP. Só chega aqui o UUID e o nome
+  // do estabelecimento; credencial de banco NUNCA passa por aqui.
+  if (rota === "POST /vincular") {
+    const { dados, erro } = await lerCorpoJson(req);
+    if (erro) return responderJson(res, 400, { erro: "Não deu para ler o vínculo. Tente de novo." });
+
+    const validacao = validarVinculo(dados);
+    if (!validacao.ok) return responderJson(res, 400, { erro: validacao.erro });
+
+    const jaEra = config.estabelecimento?.tenantId;
+    config = aplicarVinculo(config, validacao.vinculo);
+    gravarJson(ARQ_CONFIG, config);
+    console.log(
+      jaEra && jaEra !== validacao.vinculo.tenantId
+        ? `[ponte] estabelecimento TROCADO para ${validacao.vinculo.nome}`
+        : `[ponte] vinculada ao estabelecimento ${validacao.vinculo.nome}`,
+    );
+    return responderJson(res, 200, { ok: true, estabelecimento: resumoVinculo(config) });
+  }
+
+  // ── Painel e instalação (só o PC do caixa) ───────────────────────────
+  if (rota === "GET /painel/estado") {
+    return responderJson(res, 200, {
+      versao: VERSAO,
+      porta: PORTA,
+      estabelecimento: resumoVinculo(config),
+      enderecoPalm: enderecoPalm(),
+      pendentes: pedidosPendentes(filaPedidos).length,
+      impressoesPendentes: contarPendentes(filaImpressao),
+      instalacao: estadoInstalacao(),
+    });
+  }
+
+  if (rota === "POST /instalar") {
+    // Instalação por usuário (sem admin, sem UAC): copia o programa para a
+    // pasta do usuário e cria os atalhos. Nunca derruba a ponte se falhar.
+    const resultado = await instalar();
+    if (resultado.ok) console.log(`[ponte] instalada em ${resultado.caminho}`);
+    else console.warn(`[ponte] instalação não concluída: ${resultado.erro}`);
+    return responderJson(res, 200, resultado);
   }
 
   if (rota === "POST /snapshot") {
@@ -310,12 +399,24 @@ const servidor = http.createServer(async (req, res) => {
 
 servidor.listen(PORTA, "0.0.0.0", () => {
   const ips = enderecosLan(os.networkInterfaces());
+  const vinculo = resumoVinculo(config);
+  const instalacao = estadoInstalacao();
+
   console.log("┌────────────────────────────────────────────────┐");
-  console.log("│  KORA Ponte — pedidos sem internet             │");
+  console.log("│  KORA Ponte — pedidos sem internet e impressão │");
   console.log("└────────────────────────────────────────────────┘");
-  console.log(`  No PC do caixa:  http://localhost:${PORTA}`);
+  console.log(vinculo.vinculado
+    ? `  Estabelecimento: ${vinculo.nome}`
+    : "  Estabelecimento: aguardando — abra o sistema KORA neste PC.");
+  console.log(`  Painel:          http://localhost:${PORTA}`);
   for (const ip of ips) console.log(`  No celular:      http://${ip}:${PORTA}/palm?t=${config.token}`);
-  console.log("  Deixe esta janela aberta. Para parar: Ctrl+C.");
+  if (instalacao.empacotado && !instalacao.instalado) {
+    console.log("  → Clique em \"Instalar neste computador\" no painel para");
+    console.log("    ela abrir sozinha junto com o Windows.");
+  }
+  console.log("  Deixe esta janela aberta (pode minimizar). Para parar: Ctrl+C.");
+
+  abrirPainelNoNavegador();
 });
 
 servidor.on("error", (err) => {

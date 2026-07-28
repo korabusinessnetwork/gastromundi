@@ -1,0 +1,367 @@
+<!doctype html>
+<!--
+  Ponte KORA — painel de status, servido em GET / só para o localhost
+  (quem está no Wi-Fi do estabelecimento não vê essa tela, só o Palm).
+
+  Autossuficiente de propósito, igual ao palm.html: zero dependências,
+  zero CDN, zero fonte/imagem externa. Este é o ponto inteiro da Ponte —
+  ela roda num PC do caixa que pode nunca ter tocado a internet depois
+  de instalada, então a própria tela de status não pode depender dela.
+
+  Não faz parte do app React (sem os tokens --gm-* do tema): define suas
+  próprias variáveis de tema em :root e usa só elas.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>KORA Ponte</title>
+<style>
+  :root {
+    --fundo: #0f0f10;
+    --card: #1a1a1c;
+    --borda: #2a2a2e;
+    --texto: #f2f2f2;
+    --mudo: #9a9aa2;
+    --accent: #e8863a;
+    --verde: #34c05f;
+    --vermelho: #e5484d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--fundo);
+    color: var(--texto);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100%;
+  }
+
+  body {
+    padding: 28px 20px 40px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* ── Estado grande no topo ─────────────────────────────────────────── */
+  .status-topo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 20px;
+    background: var(--card);
+    border: 1px solid var(--borda);
+    border-radius: 16px;
+  }
+  .ponto {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: var(--mudo);
+  }
+  .ponto.ligada { background: var(--verde); box-shadow: 0 0 0 6px rgba(52, 192, 95, 0.18); }
+  .ponto.parada { background: var(--vermelho); box-shadow: 0 0 0 6px rgba(229, 72, 77, 0.18); }
+  .status-topo h1 { font-size: 24px; font-weight: 800; line-height: 1.25; }
+  .status-topo .sub { display: block; font-size: 14px; font-weight: 600; color: var(--mudo); margin-top: 2px; }
+
+  /* ── Cartões ────────────────────────────────────────────────────────── */
+  .cartoes { display: flex; flex-direction: column; gap: 16px; margin-top: 20px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--borda);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .card h2 {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--mudo);
+    margin-bottom: 10px;
+  }
+  .card p { font-size: 17px; line-height: 1.5; }
+  .card p.discreto { font-size: 14px; color: var(--mudo); margin-top: 10px; }
+  .card p.aviso-instalacao { font-size: 14px; color: var(--accent); margin-top: 10px; }
+
+  /* ── Botão (alvo grande, touch no caixa) ───────────────────────────── */
+  .botao {
+    display: block;
+    width: 100%;
+    margin-top: 14px;
+    padding: 18px;
+    font-size: 17px;
+    font-weight: 800;
+    border: none;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #1a1204;
+    cursor: pointer;
+  }
+  .botao:disabled { opacity: 0.55; cursor: default; }
+  .botao:active:not(:disabled) { transform: scale(0.99); }
+
+  .resultado { margin-top: 14px; font-size: 15px; font-weight: 700; line-height: 1.5; }
+  .resultado.sucesso { color: var(--verde); }
+  .resultado.erro { color: var(--vermelho); }
+
+  /* ── Endereço do Palm — monoespaçado, selecionável ─────────────────── */
+  .endereco {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 16px;
+    background: var(--fundo);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 10px;
+    word-break: break-all;
+    -webkit-user-select: all;
+    user-select: all;
+  }
+
+  /* ── Contadores ─────────────────────────────────────────────────────── */
+  .contadores { display: flex; gap: 14px; }
+  .contador {
+    flex: 1;
+    text-align: center;
+    background: var(--card);
+    border: 1px solid var(--borda);
+    border-radius: 16px;
+    padding: 22px 12px;
+  }
+  .contador .numero { display: block; font-size: 40px; font-weight: 800; }
+  .contador .rotulo { display: block; margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--mudo); line-height: 1.35; }
+
+  /* ── Erro de conexão com a própria ponte ───────────────────────────── */
+  .erro-bloco {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 16px;
+    background: var(--card);
+    border: 1px solid var(--vermelho);
+    color: var(--texto);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  footer {
+    margin-top: 28px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--mudo);
+  }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<section class="status-topo">
+  <span class="ponto" id="ponto"></span>
+  <div>
+    <h1 id="statusTexto">Verificando a ponte…</h1>
+    <span class="sub" id="statusSub">Só um instante.</span>
+  </div>
+</section>
+
+<div class="cartoes" id="cartoes" hidden>
+
+  <section class="card" id="cardEstabelecimento">
+    <h2>Estabelecimento</h2>
+    <p id="estabelecimentoTexto">—</p>
+  </section>
+
+  <section class="card" id="cardInstalacao" hidden>
+    <h2>Instalação</h2>
+    <p>Deixar a Ponte instalada faz ela abrir sozinha todo dia, sem precisar clicar em nada.</p>
+    <button class="botao" id="btnInstalar" type="button">Instalar neste computador</button>
+    <p class="resultado" id="instalacaoResultado" hidden></p>
+    <p class="discreto" id="instalacaoDiscreta" hidden></p>
+  </section>
+
+  <section class="card" id="cardPalm" hidden>
+    <h2>Celular / Palm</h2>
+    <p>Nesse endereço, o celular do garçom monta e envia o pedido quando a internet cair:</p>
+    <p class="endereco" id="enderecoPalm"></p>
+  </section>
+
+  <section class="contadores">
+    <div class="contador">
+      <span class="numero" id="numPendentes">0</span>
+      <span class="rotulo">pedido(s) esperando o caixa</span>
+    </div>
+    <div class="contador">
+      <span class="numero" id="numImpressao">0</span>
+      <span class="rotulo">comanda(s) na fila de impressão</span>
+    </div>
+  </section>
+
+</div>
+
+<p class="erro-bloco" id="blocoErro" hidden>
+  Não deu para falar com a Ponte agora. Confira se a janela dela ainda está
+  aberta neste computador — assim que ela voltar, esta tela se atualiza sozinha.
+</p>
+
+<footer id="rodape"></footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var INTERVALO_MS = 3000;
+
+  var elPonto = document.getElementById("ponto");
+  var elStatusTexto = document.getElementById("statusTexto");
+  var elStatusSub = document.getElementById("statusSub");
+  var elCartoes = document.getElementById("cartoes");
+  var elBlocoErro = document.getElementById("blocoErro");
+
+  var elEstabelecimentoTexto = document.getElementById("estabelecimentoTexto");
+
+  var elCardInstalacao = document.getElementById("cardInstalacao");
+  var elBtnInstalar = document.getElementById("btnInstalar");
+  var elInstalacaoResultado = document.getElementById("instalacaoResultado");
+  var elInstalacaoDiscreta = document.getElementById("instalacaoDiscreta");
+
+  var elCardPalm = document.getElementById("cardPalm");
+  var elEnderecoPalm = document.getElementById("enderecoPalm");
+
+  var elNumPendentes = document.getElementById("numPendentes");
+  var elNumImpressao = document.getElementById("numImpressao");
+
+  var elRodape = document.getElementById("rodape");
+
+  var instalando = false; // trava o polling de sobrescrever o botão no meio da instalação
+
+  function mostrarLigada() {
+    elPonto.className = "ponto ligada";
+    elStatusTexto.textContent = "Ponte ligada";
+    elStatusSub.textContent = "Tudo certo neste computador.";
+    elCartoes.hidden = false;
+    elBlocoErro.hidden = true;
+  }
+
+  function mostrarParada() {
+    elPonto.className = "ponto parada";
+    elStatusTexto.textContent = "Ponte parada";
+    elStatusSub.textContent = "Sem resposta deste computador.";
+    // Some com tudo que seria dado velho — nada de mostrar número antigo
+    // como se fosse o de agora.
+    elCartoes.hidden = true;
+    elBlocoErro.hidden = false;
+  }
+
+  function textoEstabelecimento(estabelecimento) {
+    if (estabelecimento && estabelecimento.vinculado) {
+      return "Vinculada a " + estabelecimento.nome;
+    }
+    return "Aguardando — abra o sistema KORA neste computador e a ponte se vincula sozinha.";
+  }
+
+  function aplicarInstalacao(instalacao) {
+    var info = instalacao || {};
+    if (!info.empacotado) {
+      // Rodando direto do Node (ambiente de desenvolvimento) — instalar
+      // não faz sentido aqui, então o cartão nem aparece.
+      elCardInstalacao.hidden = true;
+      return;
+    }
+
+    elCardInstalacao.hidden = false;
+
+    if (info.instalado) {
+      elBtnInstalar.hidden = true;
+      elInstalacaoDiscreta.hidden = false;
+      elInstalacaoDiscreta.className = info.autoStart === false ? "aviso-instalacao" : "discreto";
+      elInstalacaoDiscreta.textContent = info.autoStart === false
+        ? "Instalada, mas não abre sozinha com o Windows — vale reinstalar."
+        : "Instalada e abre junto com o Windows.";
+    } else {
+      elBtnInstalar.hidden = false;
+      elInstalacaoDiscreta.hidden = true;
+      if (!instalando) {
+        elBtnInstalar.disabled = false;
+        elBtnInstalar.textContent = "Instalar neste computador";
+      }
+    }
+  }
+
+  function aplicarPalm(enderecoPalm) {
+    if (enderecoPalm) {
+      elCardPalm.hidden = false;
+      elEnderecoPalm.textContent = enderecoPalm;
+    } else {
+      elCardPalm.hidden = true;
+    }
+  }
+
+  function aplicarRodape(estado) {
+    elRodape.textContent = "KORA Ponte" + (estado.versao ? " · versão " + estado.versao : "") + (estado.porta ? " · porta " + estado.porta : "");
+  }
+
+  function aplicarEstado(estado) {
+    mostrarLigada();
+    elEstabelecimentoTexto.textContent = textoEstabelecimento(estado.estabelecimento);
+    aplicarInstalacao(estado.instalacao);
+    aplicarPalm(estado.enderecoPalm);
+    elNumPendentes.textContent = Number(estado.pendentes) || 0;
+    elNumImpressao.textContent = Number(estado.impressoesPendentes) || 0;
+    aplicarRodape(estado);
+  }
+
+  function buscarEstado() {
+    fetch("/painel/estado", { cache: "no-store" })
+      .then(function (resp) {
+        if (!resp.ok) throw new Error("resposta " + resp.status);
+        return resp.json();
+      })
+      .then(aplicarEstado)
+      .catch(mostrarParada);
+  }
+
+  elBtnInstalar.addEventListener("click", function () {
+    instalando = true;
+    elBtnInstalar.disabled = true;
+    elBtnInstalar.textContent = "Instalando…";
+    elInstalacaoResultado.hidden = true;
+
+    fetch("/instalar", { method: "POST" })
+      .then(function (resp) { return resp.json(); })
+      .then(function (r) {
+        instalando = false;
+        elInstalacaoResultado.hidden = false;
+        if (r && r.ok) {
+          if (r.reiniciar) {
+            elInstalacaoResultado.className = "resultado sucesso";
+            elInstalacaoResultado.textContent = "Instalada! Pode fechar esta janela e usar o atalho \"KORA Ponte\" da Área de Trabalho.";
+          } else {
+            elInstalacaoResultado.className = "resultado sucesso";
+            elInstalacaoResultado.textContent = r.jaEstava ? "Já estava instalada neste computador." : "Instalada com sucesso.";
+          }
+        } else {
+          elInstalacaoResultado.className = "resultado erro";
+          elInstalacaoResultado.textContent = (r && r.erro) || "Não deu para instalar agora. Tente de novo.";
+          elBtnInstalar.disabled = false;
+          elBtnInstalar.textContent = "Instalar neste computador";
+        }
+        buscarEstado(); // atualiza o cartão (instalado, autoStart, etc.) na hora
+      })
+      .catch(function () {
+        instalando = false;
+        elInstalacaoResultado.hidden = false;
+        elInstalacaoResultado.className = "resultado erro";
+        elInstalacaoResultado.textContent = "Não deu para falar com a Ponte para instalar. Tente de novo.";
+        elBtnInstalar.disabled = false;
+        elBtnInstalar.textContent = "Instalar neste computador";
+      });
+  });
+
+  buscarEstado();
+  setInterval(buscarEstado, INTERVALO_MS);
+})();
+</script>
+
+</body>
+</html>

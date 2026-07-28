@@ -103,6 +103,19 @@ export async function buscarFilaImpressaoPonte() {
   return { data, error: erroAmigavelPonte(error) };
 }
 
+// --- Vínculo com o estabelecimento -----------------------------------
+// A Ponte nasce genérica (é o mesmo .exe para qualquer cliente). Quem diz
+// a que estabelecimento ela pertence é o app do caixa: assim que encontra
+// a Ponte no localhost, manda o tenant. Ninguém digita código, token ou IP.
+//
+// Só vai o UUID e o nome — NUNCA chave do Supabase. O .exe não guarda
+// credencial nenhuma, e a rota só aceita chamada do próprio PC.
+
+/** Diz à Ponte de qual estabelecimento ela é. (POST /vincular) */
+export async function vincularPonte({ tenantId, nome }) {
+  return chamarPonte("/vincular", { metodo: "POST", corpo: { tenantId, nome } });
+}
+
 /** Monta o link que o Palm abre (página servida pela própria ponte). */
 export function montarEnderecoPalm(info) {
   const ip = info?.enderecos?.[0];
