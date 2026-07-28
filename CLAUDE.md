@@ -25,29 +25,6 @@ elegância técnica. Regras práticas:
 - **Jarvas** (IA transversal): spec em `docs/03_REGRAS_DE_NEGOCIO/JARVAS.md` — insight/alerta/sugestão orientados a eventos, nunca executa ações sem confirmação humana.
 - **Produto = SaaS multi-estabelecimento white-label** (decisão 017). Hoje atende o estabelecimento GastroMundi, mas o alvo é vender em escala para vários estabelecimentos. Todo código novo deve assumir **múltiplos tenants** e ser **adaptável por estabelecimento**: nada de marca, nome, cor, logo ou regra específica de um cliente hardcodada — identidade e configurações vêm do tenant. Combina com o sistema de planos (F013) e o multi-tenancy por RLS (decisão 002).
 
-## Processo de trabalho — orquestração multi-modelo (regra do dono, 2026-07-16)
-
-**REGRA ABSOLUTA (dono, 2026-07-21): a CADA prompt do dono, sem exceção, começar
-invocando a skill `multi-model-orchestrator` (`Skill(multi-model-orchestrator)`) e
-operar no modo dela.** Isso vale até para tarefas pequenas — nesse caso a regra 4
-manda o orquestrador fazer direto, sem fan-out, mas o modo é sempre o de orquestração.
-Reforço mecânico: hook `UserPromptSubmit` em `.claude/settings.json` injeta esse
-lembrete a cada prompt (não depende de memória de sessão).
-
-**Sempre operar no modo da skill `multi-model-orchestrator`** (skill do claude.ai do dono;
-quando o corpo dela não carregar no ambiente, seguir o padrão abaixo, que a codifica):
-
-1. **Planejar TUDO antes de executar** — escopo fechado, peças definidas, sem retrabalho.
-2. **Builds multi-parte → fan-out paralelo** de até 10 subagentes, com **dono exclusivo
-   por diretório/arquivo** (dois agentes nunca tocam o mesmo arquivo). Modelo casado ao
-   peso da peça: **Opus/Sonnet nas peças críticas** (lógica, telas, segurança),
-   **Haiku nas menores** (seeds, docs, boilerplate).
-3. **Sintetizar e VALIDAR no fim** — o orquestrador revisa cada entrega dos modelos
-   inferiores, integra os pontos compartilhados (rotas, índices), roda testes e build.
-4. **Tarefa de peça única não ganha fan-out** — o orquestrador faz direto (casar o
-   modelo ao tamanho da tarefa vale também para não fragmentar o que é pequeno).
-5. Subagentes **não commitam/nem fazem push** — integração e commit são do orquestrador.
-
 ## Custo — priorizar o gratuito (fase de bootstrap)
 
 Enquanto o projeto está em construção/pré-receita, **use sempre meios gratuitos**. Toda
@@ -85,3 +62,62 @@ recomendação de investir **agora** ou **mais pra frente** — o dono decide. D
 - React Router v6
 - Context API (sem Redux)
 - Deploy: Vercel
+
+## Operação
+
+Estas regras existem porque o custo de uma sessão agêntica se concentra em turnos
+e subagentes, não em tokens de resposta. Entenda o motivo e aplique com julgamento;
+não são checklist.
+
+### Subagentes
+
+Cada subagente refaz contexto do zero, explora, reporta, e eu releio o relatório —
+o custo se multiplica e a latência também.
+
+- Delegue apenas para investigação ampla genuinamente paralela em vários arquivos,
+  ou trilhas independentes de tamanho real.
+- Não delegue trabalho que se resolve em algumas chamadas de ferramenta.
+- Nunca delegue para verificar o próprio trabalho: verificação pertence ao loop
+  principal.
+- Se um subagente resolve, use um. Mantenha a contagem baixa e não redo o trabalho
+  dele depois que ele reporta.
+- Ao disparar vários para trabalho independente, mande todos no mesmo bloco para
+  rodarem em paralelo.
+
+### Verificação
+
+Você já verifica seu próprio trabalho por padrão. Não adicione um passo separado de
+verificação nem revise duas vezes por precaução — isso duplica custo sem achar mais
+nada. Verifique quando houver motivo concreto (teste falhou, resultado inesperado),
+não por ritual.
+
+### Escopo
+
+Entregue o que foi pedido, no escopo pedido. Interprete ambiguidade como um colega
+cuidadoso faria: decisões pequenas (nome de variável, valor default, qual de duas
+abordagens equivalentes) você toma e menciona; mudança de escopo ou ação destrutiva
+você pergunta antes.
+
+Se achar que o pedido está errado ou que existe caminho melhor, diga em uma frase e
+siga com o pedido — não estreite, alargue nem transforme por conta própria. Termine a
+tarefa inteira; se algo ficou de fora, diga o que e por quê em vez de reportar
+"pronto".
+
+Não adicione features, refactor, abstração, error handling ou fallback além do que a
+tarefa exige. Correção de bug não pede faxina em volta.
+
+### Comunicação
+
+Seu texto entre chamadas de ferramenta é o que eu leio — eu não vejo seu raciocínio
+nem os resultados crus.
+
+- Antes da primeira ferramenta, uma frase do que você vai fazer.
+- Durante, atualize só quando achar algo que importa ou mudar de direção.
+- Não narre ação rotineira ("agora vou...", "deixa eu ver...").
+- Ao terminar, abra pelo resultado — a primeira frase responde "o que aconteceu".
+  Detalhe depois.
+- Legível vale mais que curto. Encurte cortando o que não muda minha decisão, não
+  comprimindo em fragmentos, setas (`A → B → falha`) ou abreviação. Escreva frases
+  completas com os termos por extenso.
+- Se corrigir um erro seu, corrija e siga. Só comente quando o erro muda o que eu
+  faria; sem pedido de desculpas, sem ruminar.
