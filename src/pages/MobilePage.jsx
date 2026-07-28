@@ -13,7 +13,7 @@
  * O caminho feliz — escolher itens, lançar na comanda — continua em poucos
  * toques, agora com teclado numérico grande e carrinho em folha inferior.
  */
-import { useRef, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LuWifiOff } from "react-icons/lu";
 
@@ -45,6 +45,7 @@ import CarrinhoSheet from "@/pages/mobile/sheets/lancamento/CarrinhoSheet";
 import LancarSheet from "@/pages/mobile/sheets/lancamento/LancarSheet";
 import EsperasSheet from "@/pages/mobile/sheets/comanda/EsperasSheet";
 import DetalheComandaSheet from "@/pages/mobile/sheets/comanda/DetalheComandaSheet";
+import { TELAS_MODULO, temTelaMobile } from "@/pages/mobile/modulos/registro";
 
 import "./MobilePage.css";
 
@@ -52,10 +53,13 @@ const TOTAL_COMANDAS = 1000;
 const PAGE = 50;
 
 /**
- * Módulos oferecidos na aba "Mais" — atalhos para telas que existem hoje
- * mas são melhores no computador (por isso `melhorNoComputador`). Nada
- * hardcodado por cliente: a lista é filtrada por permissão do usuário e
- * pelo plano do tenant (`moduloHabilitado`).
+ * Módulos oferecidos na aba "Mais".
+ *
+ * Os que já têm tela nativa de celular (`registro.js`) abrem aqui mesmo,
+ * dentro do Palm, sem sair para o desktop. Os que ainda não têm continuam
+ * levando para `rota` com o aviso "melhor no computador" — daí `rota` seguir
+ * obrigatória em todos. Nada hardcodado por cliente: a lista é filtrada por
+ * permissão do usuário e pelo plano do tenant (`moduloHabilitado`).
  */
 const MODULOS_MAIS = [
   { chave: "pdv", perm: "pdv", modulo: MODULOS.PDV, rota: "/app/pdv", icone: "pdv", rotulo: "PDV", descricao: "Caixa e cobrança" },
@@ -76,6 +80,21 @@ function formatHoraCurta(iso) {
   const hora = String(data.getHours()).padStart(2, "0");
   const min = String(data.getMinutes()).padStart(2, "0");
   return `${hora}:${min}`;
+}
+
+/**
+ * Renderiza a tela nativa de um módulo dentro do Palm. Cada tela é
+ * auto-suficiente (lê o próprio dado do contexto/lib) e só recebe o
+ * `onVoltar` — o shell não intermedia a regra de negócio de cada módulo.
+ */
+function TelaModulo({ chave, onVoltar }) {
+  const Tela = TELAS_MODULO[chave];
+  if (!Tela) return null;
+  return (
+    <Suspense fallback={<p className="mod-carregando">Abrindo…</p>}>
+      <Tela onVoltar={onVoltar} />
+    </Suspense>
+  );
 }
 
 export default function MobilePage() {
@@ -102,6 +121,8 @@ export default function MobilePage() {
 
   // ── Estado de UI ──────────────────────────────────────────────
   const [aba, setAba] = useState("pedido"); // pedido | comandas | painel | mais
+  // Módulo aberto por cima da aba "Mais" (chave de MODULOS_MAIS) ou null.
+  const [moduloAberto, setModuloAberto] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [salvando, setSalvando] = useState(false);
   const [limite, setLimite] = useState(PAGE);
@@ -514,15 +535,21 @@ export default function MobilePage() {
     (m) =>
       currentUser?.permissions?.[m.perm] &&
       (!m.modulo || moduloHabilitado(m.modulo))
-  ).map((m) => ({
-    chave: m.chave,
-    rotulo: m.rotulo,
-    descricao: m.descricao,
-    icone: m.icone,
-    habilitado: true,
-    melhorNoComputador: true,
-    onClick: () => navigate(m.rota),
-  }));
+  ).map((m) => {
+    // Tela nativa abre dentro do Palm; sem tela nativa, cai na rota de
+    // desktop e o cartão avisa. O aviso é derivado, nunca fixo — assim ele
+    // some sozinho no dia em que a tela do módulo nascer.
+    const nativa = temTelaMobile(m.chave);
+    return {
+      chave: m.chave,
+      rotulo: m.rotulo,
+      descricao: m.descricao,
+      icone: m.icone,
+      habilitado: true,
+      melhorNoComputador: !nativa,
+      onClick: () => (nativa ? setModuloAberto(m.chave) : navigate(m.rota)),
+    };
+  });
 
   // (e) EsperasSheet
   const esperasAdaptadas = esperas.map((esp) => ({
@@ -619,23 +646,35 @@ export default function MobilePage() {
           />
         )}
 
-        {aba === "mais" && (
-          <MaisTab
-            tenantNome={tenantNome}
-            usuarioNome={currentUser?.name}
-            usuarioIniciais={usuarioIniciais}
-            caixa={caixaInfo}
-            modulos={modulosMais}
-            onConfiguracoes={
-              podeConfiguracoes ? () => navigate("/app/configuracoes") : undefined
-            }
-          />
-        )}
+        {aba === "mais" &&
+          (moduloAberto ? (
+            <TelaModulo
+              chave={moduloAberto}
+              onVoltar={() => setModuloAberto(null)}
+            />
+          ) : (
+            <MaisTab
+              tenantNome={tenantNome}
+              usuarioNome={currentUser?.name}
+              usuarioIniciais={usuarioIniciais}
+              caixa={caixaInfo}
+              modulos={modulosMais}
+              onConfiguracoes={
+                podeConfiguracoes ? () => navigate("/app/configuracoes") : undefined
+              }
+            />
+          ))}
       </div>
 
       <BottomNav
         ativa={aba}
-        onNavegar={setAba}
+        // Trocar de aba fecha o módulo aberto: as abas continuam sendo o
+        // caminho de volta ao trabalho do garçom, nunca ficam "presas"
+        // atrás de uma tela de módulo.
+        onNavegar={(destino) => {
+          setModuloAberto(null);
+          setAba(destino);
+        }}
         comandasBadge={abertas.length}
       />
 

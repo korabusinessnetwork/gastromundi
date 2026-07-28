@@ -1,0 +1,77 @@
+/* ──────────────────────────────────────────────────────────────────
+   FinanceiroModulo — resumo de bolso do Financeiro no Palm.
+
+   Só o que é EXCLUSIVO desta tela mora aqui: tela, header, chips,
+   cartão, badge, linha, carregando e erro vêm de ../modulos.css.
+
+   Regras (iguais às do resto do Palm):
+   - Zero hex/rgb: só tokens --gm-* (ADR-007) + color-mix, para o
+     white-label por estabelecimento funcionar (decisão 017).
+   - Alvo de toque mínimo --tap-min em tudo clicável.
+   - Números grandes e legíveis a distância — é o que o dono confere
+     de relance no celular, não uma planilha.
+   ────────────────────────────────────────────────────────────────── */
+
+/* ── Números grandes dos cartões-resumo ────────────────────────── */
+
+.financeiro-modulo__valor {
+  margin-top: 2px;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-4xl);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight, normal);
+  font-variant-numeric: tabular-nums;
+}
+
+.financeiro-modulo__valor--green {
+  color: var(--gm-green);
+}
+
+.financeiro-modulo__valor--red {
+  color: var(--gm-red);
+}
+
+.financeiro-modulo__valor--accent {
+  color: var(--gm-accent);
+}
+
+/* ── Seção "Próximos lançamentos" ──────────────────────────────── */
+
+.financeiro-modulo__secaoTitulo {
+  margin: 4px 0 10px;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.financeiro-modulo__vazioTexto {
+  margin: 0;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px dashed var(--gm-border);
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--gm-muted);
+}
+
+/* ── Aviso de rodapé: isto é o resumo, não o módulo inteiro ───────
+   Fica sempre por último, discreto — não compete com os números. */
+
+.financeiro-modulo__aviso {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 12px 0 4px;
+  font-size: var(--fs-xs);
+  color: var(--gm-faint);
+}
+
+.financeiro-modulo__aviso svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}

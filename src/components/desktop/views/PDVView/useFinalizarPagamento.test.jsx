@@ -499,6 +499,36 @@ describe("useFinalizarPagamento — Leva 12 (offline-first no checkout)", () => 
   });
 });
 
+describe("useFinalizarPagamento — venda de balcão (semComanda)", () => {
+  it("não tenta remover pending quando a venda não veio de comanda", async () => {
+    const { appMock, finalizarPagamento } = setup();
+
+    await expect(
+      finalizarPagamento(selectedComanda, [], payload, { semComanda: true }),
+    ).resolves.toBeDefined();
+    expect(appMock.addSale).toHaveBeenCalledTimes(1);
+    expect(appMock.removePending).not.toHaveBeenCalled();
+  });
+
+  it("falha de remoção não existe no balcão: não lança nem alarma cobrança dupla", async () => {
+    const { appMock, finalizarPagamento } = setup();
+    // Mesmo com a remoção quebrada, o balcão nem chega a chamá-la.
+    appMock.removePending.mockResolvedValue({ error: { message: "network error" } });
+
+    await expect(
+      finalizarPagamento(selectedComanda, [], payload, { semComanda: true }),
+    ).resolves.toBeDefined();
+    expect(appMock.removePending).not.toHaveBeenCalled();
+  });
+
+  it("sem a opção, a remoção da comanda continua acontecendo (desktop intacto)", async () => {
+    const { appMock, finalizarPagamento } = setup();
+
+    await expect(finalizarPagamento(selectedComanda, [], payload)).resolves.toBeDefined();
+    expect(appMock.removePending).toHaveBeenCalledWith("pend-1");
+  });
+});
+
 describe("useFinalizarPagamento — Fase 4 (billing) NÃO bloqueia nenhuma escrita", () => {
   it("finaliza a venda normalmente mesmo com a assinatura 'bloqueada' (enforcement é só na Fase 5)", async () => {
     const { appMock, finalizarPagamento } = setup({

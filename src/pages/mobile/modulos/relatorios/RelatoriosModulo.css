@@ -1,0 +1,110 @@
+/* ──────────────────────────────────────────────────────────────────
+   RelatoriosModulo — resumo de bolso de Vendas no Palm.
+
+   Só o que é EXCLUSIVO desta tela mora aqui: tela, header, chips,
+   cartão, linha, vazio, carregando e erro vêm de ../modulos.css.
+
+   Regras (iguais às do resto do Palm):
+   - Zero hex/rgb: só tokens --gm-* (ADR-007) + color-mix, para o
+     white-label por estabelecimento funcionar (decisão 017).
+   - Alvo de toque mínimo --tap-min em tudo clicável.
+   - O faturamento é o número que importa: fica maior que tudo.
+   ────────────────────────────────────────────────────────────────── */
+
+/* ── Cartão principal: faturamento ─────────────────────────────── */
+
+.relatorios-modulo__faturamento {
+  margin-top: 2px;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-5xl);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight, normal);
+  color: var(--gm-green);
+  font-variant-numeric: tabular-nums;
+}
+
+.relatorios-modulo__variacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.relatorios-modulo__variacao svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.relatorios-modulo__variacao--alta {
+  color: var(--gm-green);
+  background: color-mix(in srgb, var(--gm-green) 16%, transparent);
+}
+
+.relatorios-modulo__variacao--baixa {
+  color: var(--gm-red);
+  background: color-mix(in srgb, var(--gm-red) 16%, transparent);
+}
+
+/* ── Cartões secundários: vendas e ticket médio ────────────────── */
+
+.relatorios-modulo__secundarios {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.relatorios-modulo__valorSecundario {
+  margin-top: 2px;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Seção "Mais vendidos" ──────────────────────────────────────── */
+
+.relatorios-modulo__secaoTitulo {
+  margin: 4px 0 10px;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.relatorios-modulo__vazioTexto {
+  margin: 0;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px dashed var(--gm-border);
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--gm-muted);
+}
+
+/* ── Aviso de rodapé: isto é o resumo, não o módulo inteiro ───────
+   Fica sempre por último, discreto — não compete com os números. */
+
+.relatorios-modulo__aviso {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 12px 0 4px;
+  font-size: var(--fs-xs);
+  color: var(--gm-faint);
+}
+
+.relatorios-modulo__aviso svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}

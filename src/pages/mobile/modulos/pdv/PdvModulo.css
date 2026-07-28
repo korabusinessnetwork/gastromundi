@@ -1,0 +1,455 @@
+/**
+ * PdvModulo.css — estilos da tela "PDV rápido" (venda de balcão) do Palm.
+ *
+ * Decisão 018: CSS fora do JSX. Só o que é EXCLUSIVO desta tela mora aqui —
+ * header, chips, busca, lista, botões, estado vazio e rodapé fixo vêm de
+ * `../modulos.css` e não são redefinidos.
+ *
+ * Regras: zero hex/rgb (só tokens `--gm-*` + `color-mix`, ADR-007), alvo de
+ * toque mínimo `--tap-min`, e o total legível de longe (é o número que o
+ * operador confere com o cliente do outro lado do balcão).
+ *
+ * ATENÇÃO: custom properties não resolvem dentro de @media — o único
+ * breakpoint aqui usa px literal (ver .pdv-modulo__grade).
+ */
+
+.pdv-modulo__secao {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pdv-modulo__secaoTitulo {
+  margin: 0;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-sm, 0.875rem);
+  line-height: var(--lh-sm, 1.3);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label, 0.02em);
+  text-transform: uppercase;
+  color: var(--gm-muted);
+}
+
+/* ── Passo 1 · grade de produtos ────────────────────────────────── */
+
+.pdv-modulo__grade {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+/* Breakpoint literal (custom properties não resolvem em @media) */
+@media (max-width: 360px) {
+  .pdv-modulo__grade {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pdv-modulo__produto {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+  min-height: 92px;
+  padding: 14px 16px;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  background: var(--gm-card);
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.pdv-modulo__produto:active {
+  transform: scale(0.98);
+}
+
+.pdv-modulo__produto--ativo {
+  border-color: var(--gm-accent);
+  background: var(--gm-alow, color-mix(in srgb, var(--gm-accent) 12%, transparent));
+}
+
+.pdv-modulo__produtoBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  border: 2px solid var(--gm-accent);
+  background: var(--gm-card);
+  color: var(--gm-accent);
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv-modulo__produtoEmoji {
+  font-size: var(--fs-2xl, 1.75rem);
+  line-height: 1;
+}
+
+.pdv-modulo__produtoNome {
+  font-size: var(--fs-base, 1rem);
+  line-height: var(--lh-base, 1.4);
+  font-weight: 600;
+  color: var(--gm-text);
+}
+
+.pdv-modulo__produtoPreco {
+  font-family: var(--gm-font-mono);
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--gm-green);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Passo 1 · itens no carrinho ────────────────────────────────── */
+
+.pdv-modulo__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  background: var(--gm-card);
+}
+
+.pdv-modulo__itemTextos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pdv-modulo__itemNome {
+  font-size: var(--fs-base, 1rem);
+  font-weight: 600;
+  color: var(--gm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdv-modulo__itemPreco {
+  font-family: var(--gm-font-mono);
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-green);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv-modulo__stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.pdv-modulo__stepperBotao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min, 44px);
+  height: var(--tap-min, 44px);
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface, var(--gm-card));
+  color: var(--gm-text);
+  transition: transform 0.15s ease;
+}
+
+.pdv-modulo__stepperBotao:active {
+  transform: scale(0.94);
+}
+
+.pdv-modulo__stepperBotao svg {
+  width: 18px;
+  height: 18px;
+}
+
+.pdv-modulo__stepperQtd {
+  min-width: 28px;
+  text-align: center;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-lg, 1.125rem);
+  font-weight: 700;
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Passo 2 · total a cobrar (o número lido de longe) ──────────── */
+
+.pdv-modulo__total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 22px 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 40%, var(--gm-border));
+  background: color-mix(in srgb, var(--gm-accent) 10%, var(--gm-card));
+  text-align: center;
+}
+
+.pdv-modulo__totalRotulo {
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label, 0.02em);
+  text-transform: uppercase;
+  color: var(--gm-muted);
+}
+
+.pdv-modulo__totalValor {
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-5xl, 2.4375rem);
+  line-height: var(--lh-5xl, 1.1);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight, -0.02em);
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv-modulo__totalItens {
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Passo 2 · forma de pagamento (2 por linha) ─────────────────── */
+
+.pdv-modulo__metodos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.pdv-modulo__metodo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 84px;
+  padding: 12px 10px;
+  border-radius: 16px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.pdv-modulo__metodo:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pdv-modulo__metodo:disabled {
+  opacity: 0.45;
+}
+
+.pdv-modulo__metodo--ativo {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 14%, var(--gm-card));
+  color: var(--gm-accent);
+}
+
+.pdv-modulo__metodoIcone {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.pdv-modulo__metodoLabel {
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-base, 1rem);
+  font-weight: 700;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.pdv-modulo__metodoAviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--gm-warn);
+}
+
+.pdv-modulo__metodoAviso svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* ── Passo 2 · recebido e troco (duas colunas) ──────────────────── */
+
+.pdv-modulo__troco {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  border-radius: 16px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-border);
+  overflow: hidden;
+}
+
+.pdv-modulo__trocoCampo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--gm-card);
+}
+
+.pdv-modulo__trocoCampo--saida {
+  background: color-mix(in srgb, var(--gm-green) 10%, var(--gm-card));
+}
+
+.pdv-modulo__trocoRotulo {
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label, 0.02em);
+  text-transform: uppercase;
+  color: var(--gm-muted);
+}
+
+.pdv-modulo__trocoInput {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--tap-min, 44px);
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--gm-text);
+  font-family: var(--gm-font-mono);
+  font-size: var(--fs-2xl, 1.75rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv-modulo__trocoInput::placeholder {
+  color: var(--gm-faint);
+}
+
+.pdv-modulo__trocoCampo--saida .pdv-modulo__trocoValor,
+.pdv-modulo__trocoValor {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap-min, 44px);
+  font-family: var(--gm-font-mono);
+  font-size: var(--fs-2xl, 1.75rem);
+  font-weight: 700;
+  color: var(--gm-green);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv-modulo__falta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--gm-warn);
+}
+
+.pdv-modulo__falta svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ── Passo 3 · venda concluída ──────────────────────────────────── */
+
+.pdv-modulo__sucesso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--gm-green) 40%, var(--gm-border));
+  background: color-mix(in srgb, var(--gm-green) 10%, var(--gm-card));
+  text-align: center;
+}
+
+.pdv-modulo__sucessoIcone {
+  width: 44px;
+  height: 44px;
+  color: var(--gm-green);
+}
+
+.pdv-modulo__sucessoTitulo {
+  margin: 0;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-lg, 1.125rem);
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.pdv-modulo__sucessoValor {
+  margin: 0;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-3xl, 2rem);
+  line-height: var(--lh-3xl, 1.15);
+  font-weight: 700;
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdv-modulo__sucessoSub {
+  margin: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+}
+
+.pdv-modulo__trocoDestaque {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--gm-green) 40%, var(--gm-border));
+  background: var(--gm-card);
+}
+
+.pdv-modulo__trocoDestaqueRotulo {
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label, 0.02em);
+  text-transform: uppercase;
+  color: var(--gm-muted);
+}
+
+.pdv-modulo__trocoDestaqueValor {
+  font-family: var(--gm-font-mono);
+  font-size: var(--fs-2xl, 1.75rem);
+  font-weight: 700;
+  color: var(--gm-green);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdv-modulo__produto,
+  .pdv-modulo__metodo,
+  .pdv-modulo__stepperBotao {
+    transition: none;
+  }
+
+  .pdv-modulo__produto:active,
+  .pdv-modulo__metodo:active:not(:disabled),
+  .pdv-modulo__stepperBotao:active {
+    transform: none;
+  }
+}

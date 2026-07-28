@@ -1,0 +1,208 @@
+/* Aba/painel de agendamento de demonstração (modal acessível). */
+
+.apex-agendamento__fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: oklch(0.2 0.03 280 / 0.55);
+  backdrop-filter: blur(3px);
+  animation: apex-agendamento-fade 0.15s ease;
+}
+
+@keyframes apex-agendamento-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.apex-agendamento__painel {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 22px;
+  padding: 32px 28px 28px;
+  box-shadow: 0 24px 70px oklch(0.3 0.1 280 / 0.35);
+  animation: apex-agendamento-subir 0.2s ease;
+}
+
+@keyframes apex-agendamento-subir {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.apex-agendamento__fechar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: var(--kora-fundo);
+  color: var(--kora-nevoa);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.apex-agendamento__fechar:hover {
+  background: var(--kora-linha);
+  color: var(--kora-tinta);
+}
+
+.apex-agendamento__cabecalho {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.apex-agendamento__titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--kora-tinta);
+  margin: 0;
+  text-wrap: balance;
+}
+
+.apex-agendamento__subtitulo {
+  font-size: 14px;
+  color: var(--kora-nevoa);
+  margin: 0;
+}
+
+.apex-agendamento__plano {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px dashed var(--kora-linha);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  color: var(--kora-nevoa);
+}
+
+.apex-agendamento__plano strong {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--kora-roxo);
+  font-variant-numeric: tabular-nums;
+}
+
+.apex-agendamento__plano strong span {
+  font-family: var(--kora-font-texto);
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--kora-nevoa);
+  margin-left: 2px;
+}
+
+.apex-agendamento__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.apex-agendamento__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.apex-agendamento__campo > span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--kora-tinta);
+}
+
+.apex-agendamento__campo input {
+  width: 100%;
+  border: 1.5px solid var(--kora-linha);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--kora-tinta);
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.apex-agendamento__campo input::placeholder {
+  color: var(--kora-nevoa);
+}
+
+.apex-agendamento__campo input:focus {
+  outline: none;
+  border-color: var(--kora-roxo);
+  box-shadow: 0 0 0 3px oklch(0.5 0.14 280 / 0.15);
+}
+
+.apex-agendamento__campo input[aria-invalid="true"] {
+  border-color: oklch(0.6 0.2 25);
+}
+
+.apex-agendamento__erro {
+  font-size: 12.5px;
+  color: oklch(0.55 0.2 25);
+}
+
+.apex-agendamento__enviar {
+  width: 100%;
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+/* ── Sucesso: mensagem de parabéns/boas-vindas ──────────────── */
+
+.apex-agendamento__sucesso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.apex-agendamento__sucesso-icone {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: oklch(0.9 0.11 150);
+  color: oklch(0.45 0.14 150);
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.apex-agendamento__sucesso .apex-agendamento__subtitulo {
+  max-width: 360px;
+}
+
+.apex-agendamento__sucesso .apex-agendamento__enviar {
+  margin-top: 8px;
+}
+
+@media (max-width: 480px) {
+  .apex-agendamento__painel {
+    padding: 28px 20px 22px;
+  }
+
+  .apex-agendamento__titulo {
+    font-size: 20px;
+  }
+}

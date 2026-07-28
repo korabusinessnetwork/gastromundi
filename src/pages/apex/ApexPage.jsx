@@ -44,7 +44,7 @@ export default function ApexPage() {
         <ApexInimigo />
         <ApexFuncionalidades contatoUrl={CONTATO_URL} />
         <ApexComoFunciona />
-        <ApexPlanos contatoUrl={CONTATO_URL} />
+        <ApexPlanos />
         <ApexFaq />
         <ApexDemo contatoUrl={CONTATO_URL} />
       </main>

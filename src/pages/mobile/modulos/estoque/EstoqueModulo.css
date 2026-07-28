@@ -1,0 +1,170 @@
+/**
+ * EstoqueModulo.css — tela "Estoque" do hub mobile (Palm).
+ *
+ * Usa a base compartilhada de src/pages/mobile/modulos/modulos.css
+ * (.mod-tela, .mod-header, .mod-busca, .mod-lista, .mod-cartao,
+ * .mod-badge, .mod-botao, .mod-vazio, .mod-carregando, .mod-rodape).
+ * Aqui só o que é específico desta tela — sempre com o prefixo
+ * `.estoque-modulo__*` (decisão 018, zero hex/rgb — só tokens `--gm-*`
+ * e `color-mix`).
+ */
+
+/* ── Cartão: duas colunas (nome/SKU à esquerda, quantidade/situação à direita) ── */
+
+.estoque-modulo__linha {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.estoque-modulo__col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.estoque-modulo__col--esq {
+  flex: 1;
+  min-width: 0;
+}
+
+.estoque-modulo__col--dir {
+  flex-shrink: 0;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.estoque-modulo__sku {
+  font-family: var(--gm-font-mono);
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--gm-faint);
+}
+
+.estoque-modulo__qtd {
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-lg, 1.125rem);
+  font-weight: 700;
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.estoque-modulo__qtd--erro {
+  color: var(--gm-red);
+}
+
+.estoque-modulo__qtd--warn {
+  color: var(--gm-warn);
+}
+
+/* ── Modo contagem: campo numérico por item ───────────────────── */
+
+.estoque-modulo__atual {
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+
+.estoque-modulo__input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.estoque-modulo__input {
+  width: 84px;
+  min-height: var(--tap-min, 44px);
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-input-border, var(--gm-border));
+  background: var(--gm-input-bg, var(--gm-card));
+  color: var(--gm-text);
+  font-family: var(--gm-font-mono);
+  font-size: var(--fs-md, 1rem);
+  text-align: right;
+}
+
+.estoque-modulo__input:focus {
+  outline: none;
+  border-color: var(--gm-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gm-accent) 35%, transparent);
+}
+
+.estoque-modulo__unidade {
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+
+.estoque-modulo__diff {
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.estoque-modulo__diff--pos {
+  color: var(--gm-green);
+}
+
+.estoque-modulo__diff--neg {
+  color: var(--gm-red);
+}
+
+/* ── Revisão: texto de ajuda acima da lista de diferenças ─────── */
+
+.estoque-modulo__revisaoAjuda {
+  margin: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+  line-height: var(--lh-normal, 1.4);
+}
+
+/* ── Banners de sucesso / erro ─────────────────────────────────── */
+
+.estoque-modulo__sucesso,
+.estoque-modulo__erro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+  line-height: var(--lh-normal, 1.4);
+}
+
+.estoque-modulo__sucesso {
+  background: color-mix(in srgb, var(--gm-green) 14%, transparent);
+  color: var(--gm-green);
+}
+
+.estoque-modulo__erro {
+  background: color-mix(in srgb, var(--gm-red) 14%, transparent);
+  color: var(--gm-red);
+}
+
+.estoque-modulo__sucesso svg,
+.estoque-modulo__erro svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Rodapé com dois botões lado a lado (Cancelar/Revisar, Voltar/Confirmar) ── */
+
+.estoque-modulo__botoes {
+  display: flex;
+  gap: 10px;
+}
+
+.estoque-modulo__botoes .mod-botao {
+  flex: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .estoque-modulo__input {
+    transition: none;
+  }
+}

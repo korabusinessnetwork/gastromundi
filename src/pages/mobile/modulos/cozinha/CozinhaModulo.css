@@ -1,0 +1,99 @@
+/* ──────────────────────────────────────────────────────────────────
+   CozinhaModulo — tela mobile da Cozinha/KDS no Palm (tela 1i).
+
+   Só o que é EXCLUSIVO desta tela mora aqui: o resto (tela, header,
+   chips, lista, cartão, badge, botões, vazio, carregando, erro) vem
+   de ../modulos.css e não é recriado.
+
+   Regras (iguais às do resto do Palm):
+   - Zero hex/rgb: só tokens --gm-* (ADR-007) + color-mix, para o
+     white-label por estabelecimento funcionar (decisão 017).
+   - Alvo de toque mínimo --tap-min em tudo clicável.
+   - Legível a distância: é PDV na mão do cozinheiro.
+   ────────────────────────────────────────────────────────────────── */
+
+/* ── Topo do cartão ────────────────────────────────────────────── */
+
+/* Mesa vem colada ao número da comanda, em peso menor: o olho lê
+   "#42" primeiro e "Mesa 7" como complemento. */
+.cozinha-modulo__mesa {
+  margin-left: 6px;
+  font-family: var(--gm-font-texto);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--gm-muted);
+}
+
+/* Tempo decorrido na fila — azul, o mesmo azul de "aguardando". */
+.cozinha-modulo__tempo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--gm-blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.cozinha-modulo__tempo svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Atraso (estaAtrasado): destaque discreto — só a cor do tempo e o
+   ícone de alerta mudam, o cartão continua o mesmo. */
+.cozinha-modulo__tempo--atrasado {
+  color: var(--gm-red);
+}
+
+.cozinha-modulo__badge--atrasado {
+  background: color-mix(in srgb, var(--gm-red) 16%, transparent);
+  color: var(--gm-red);
+}
+
+/* ── Itens do pedido ───────────────────────────────────────────── */
+
+.cozinha-modulo__itens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cozinha-modulo__item {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  color: var(--gm-text);
+}
+
+.cozinha-modulo__itemQtd {
+  font-family: var(--gm-font-mono);
+  font-weight: 800;
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.cozinha-modulo__itemNome {
+  font-weight: 700;
+}
+
+/* Observação apagada: é detalhe do item, não pode competir com o
+   nome do prato na leitura rápida. */
+.cozinha-modulo__itemObs {
+  color: var(--gm-muted);
+  font-weight: 500;
+}
+
+/* ── Cartão de pedido pronto ───────────────────────────────────── */
+
+/* Já saiu da cozinha: ocupa menos espaço e não tem botão, para a
+   fila e o preparo continuarem dominando a tela. */
+.cozinha-modulo__cartao--compacto {
+  gap: 6px;
+  padding: 12px 16px;
+}

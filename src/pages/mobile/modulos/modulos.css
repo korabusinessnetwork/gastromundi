@@ -1,0 +1,447 @@
+/**
+ * modulos.css — base visual compartilhada das telas de módulo do Palm.
+ *
+ * Cada módulo do hub "Mais" (Cozinha, PDV rápido, Estoque, Delivery,
+ * Cardápio, Clientes, Financeiro, Relatórios) tem a sua tela mobile
+ * própria, com JSX e CSS separados (decisão 018). Este arquivo guarda
+ * o que TODAS elas compartilham — header com voltar, chips de filtro,
+ * busca, cartão de lista, badge de status, botões, estado vazio e a
+ * barra de ação fixa do rodapé — para que as telas fiquem idênticas
+ * entre si sem cada uma reinventar o mesmo componente.
+ *
+ * Regras (as mesmas do resto do Palm):
+ * - Zero hex/rgb: só tokens `--gm-*` (ADR-007) + `color-mix`, para o
+ *   white-label por estabelecimento funcionar (decisão 017).
+ * - Alvo de toque mínimo `--tap-min` (44px) em tudo que é clicável.
+ * - Cada tela adiciona SÓ as classes com o seu próprio prefixo
+ *   (`.cozinha-modulo__*`, `.estoque-modulo__*`, …) neste namespace.
+ *
+ * Mapa de cor de status (fixo, igual em todas as telas):
+ *   azul  `--gm-blue`  → aguardando / na fila / recebido
+ *   ambar `--gm-warn`  → em andamento / atenção / estoque baixo
+ *   verde `--gm-green` → concluído / pronto / pago / ok
+ *   vermelho `--gm-red`→ erro / cancelado / ruptura
+ */
+
+/* ── Tela ──────────────────────────────────────────────────────── */
+
+.mod-tela {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100%;
+  padding: 20px 16px calc(96px + env(safe-area-inset-bottom, 0px));
+  background: var(--gm-bg);
+  color: var(--gm-text);
+  font-family: var(--gm-font-texto);
+}
+
+/* Quando a tela tem barra de ação fixa no rodapé, sobra espaço para ela. */
+.mod-tela--comRodape {
+  padding-bottom: calc(152px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+
+.mod-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mod-header__textos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mod-header__titulo {
+  margin: 0;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-xl, 1.5rem);
+  line-height: var(--lh-tight, 1.2);
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.mod-header__subtitulo {
+  margin: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mod-header__voltar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min, 44px);
+  height: var(--tap-min, 44px);
+  border-radius: 14px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  transition: transform 0.15s ease;
+}
+
+.mod-header__voltar:active {
+  transform: scale(0.94);
+}
+
+.mod-header__voltar svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── Chips de filtro ───────────────────────────────────────────── */
+
+.mod-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* o :focus-visible do chip não pode ser cortado pelo overflow */
+  padding: 2px;
+  margin: -2px;
+}
+
+.mod-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.mod-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-muted);
+  font-family: inherit;
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 0.15s ease;
+}
+
+.mod-chip:active {
+  transform: scale(0.96);
+}
+
+.mod-chip--ativo {
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+  color: var(--gm-bg);
+}
+
+.mod-chip__contador {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+/* ── Busca ─────────────────────────────────────────────────────── */
+
+.mod-busca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap-min, 44px);
+  padding: 0 14px;
+  border-radius: 14px;
+  background: var(--gm-input-bg, var(--gm-card));
+  border: 1px solid var(--gm-input-border, var(--gm-border));
+}
+
+.mod-busca:focus-within {
+  border-color: var(--gm-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gm-accent) 35%, transparent);
+}
+
+.mod-busca svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--gm-faint);
+}
+
+.mod-busca input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: var(--fs-md, 1rem);
+}
+
+.mod-busca input::placeholder {
+  color: var(--gm-faint);
+}
+
+/* ── Lista e cartão ────────────────────────────────────────────── */
+
+.mod-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mod-cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  text-align: left;
+  width: 100%;
+}
+
+/* Faixa lateral de status — a cor conta a situação antes da leitura. */
+.mod-cartao--azul {
+  border-left: 4px solid var(--gm-blue);
+}
+
+.mod-cartao--warn {
+  border-left: 4px solid var(--gm-warn);
+}
+
+.mod-cartao--green {
+  border-left: 4px solid var(--gm-green);
+}
+
+.mod-cartao--red {
+  border-left: 4px solid var(--gm-red);
+}
+
+/* Cartão clicável (botão) ganha o feedback de toque. */
+.mod-cartao--tocavel {
+  transition: transform 0.15s ease;
+}
+
+.mod-cartao--tocavel:active {
+  transform: scale(0.99);
+}
+
+.mod-cartao__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mod-cartao__titulo {
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-md, 1rem);
+  font-weight: 700;
+  color: var(--gm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mod-cartao__sub {
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+}
+
+/* Linha rótulo → valor, usada nos resumos. */
+.mod-linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+}
+
+.mod-linha strong {
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-md, 1rem);
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Badge de status ───────────────────────────────────────────── */
+
+.mod-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mod-badge svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.mod-badge--info {
+  background: color-mix(in srgb, var(--gm-blue) 16%, transparent);
+  color: var(--gm-blue);
+}
+
+.mod-badge--warn {
+  background: color-mix(in srgb, var(--gm-warn) 16%, transparent);
+  color: var(--gm-warn);
+}
+
+.mod-badge--ok {
+  background: color-mix(in srgb, var(--gm-green) 16%, transparent);
+  color: var(--gm-green);
+}
+
+.mod-badge--erro {
+  background: color-mix(in srgb, var(--gm-red) 16%, transparent);
+  color: var(--gm-red);
+}
+
+/* ── Botões ────────────────────────────────────────────────────── */
+
+.mod-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-md, 1rem);
+  font-weight: 700;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.mod-botao:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.mod-botao:disabled {
+  opacity: 0.5;
+}
+
+.mod-botao svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.mod-botao--bloco {
+  width: 100%;
+}
+
+.mod-botao--primario {
+  background: var(--gm-accent);
+  color: var(--gm-bg);
+}
+
+/* Confirmação (marcar pronto, dar baixa): verde contornado, para não
+   competir com o primário roxo na mesma tela. */
+.mod-botao--ok {
+  background: color-mix(in srgb, var(--gm-green) 14%, transparent);
+  border-color: var(--gm-green);
+  color: var(--gm-green);
+}
+
+.mod-botao--fantasma {
+  background: transparent;
+  border-color: var(--gm-border);
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+
+/* ── Estado vazio ──────────────────────────────────────────────── */
+
+.mod-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 24px;
+  border-radius: 14px;
+  border: 1px dashed var(--gm-border);
+  text-align: center;
+}
+
+.mod-vazio svg {
+  width: 30px;
+  height: 30px;
+  color: var(--gm-faint);
+}
+
+.mod-vazio__titulo {
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-md, 1rem);
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.mod-vazio__texto {
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+  line-height: var(--lh-normal, 1.4);
+}
+
+/* ── Carregando / erro ─────────────────────────────────────────── */
+
+.mod-carregando,
+.mod-erro {
+  padding: 24px;
+  text-align: center;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+}
+
+.mod-erro {
+  color: var(--gm-red);
+}
+
+/* ── Barra de ação fixa ────────────────────────────────────────── */
+
+.mod-rodape {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tap-min, 44px) + env(safe-area-inset-bottom, 0px));
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--gm-surface, var(--gm-card));
+  border-top: 1px solid var(--gm-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mod-header__voltar,
+  .mod-chip,
+  .mod-cartao--tocavel,
+  .mod-botao {
+    transition: none;
+  }
+
+  .mod-header__voltar:active,
+  .mod-chip:active,
+  .mod-cartao--tocavel:active,
+  .mod-botao:active:not(:disabled) {
+    transform: none;
+  }
+}

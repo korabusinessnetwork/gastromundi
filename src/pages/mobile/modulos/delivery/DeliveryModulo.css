@@ -1,0 +1,278 @@
+/**
+ * DeliveryModulo.css — só o que a tela de Delivery do Palm acrescenta ao
+ * namespace .mod-* de modulos.css (header, chips, cartão, badge, botão,
+ * vazio/carregando/erro já vêm de lá). Aqui: ações extras do cabeçalho,
+ * endereço/itens do pedido, ações secundárias do cartão (WhatsApp, cancelar)
+ * e a mensagem de feedback pós-ação.
+ *
+ * Mesmas regras do resto do Palm: zero hex/rgb (só tokens --gm-*, ADR-007,
+ * para o white-label por estabelecimento funcionar — decisão 017) e alvo de
+ * toque mínimo --tap-min em tudo clicável.
+ */
+
+/* ── Ações do header (atualizar + voltar) ─────────────────────────── */
+
+.delivery-modulo__headerAcoes {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delivery-modulo__atualizar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min, 44px);
+  height: var(--tap-min, 44px);
+  border-radius: 14px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.delivery-modulo__atualizar:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.delivery-modulo__atualizar:disabled {
+  opacity: 0.6;
+}
+
+.delivery-modulo__atualizar svg {
+  width: 18px;
+  height: 18px;
+}
+
+.delivery-modulo__girando {
+  animation: delivery-modulo-girar 0.9s linear infinite;
+}
+
+@keyframes delivery-modulo-girar {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Mensagem de feedback (sucesso/erro pós-ação) ─────────────────── */
+
+.delivery-modulo__mensagem {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+}
+
+.delivery-modulo__mensagem--ok {
+  background: color-mix(in srgb, var(--gm-green) 14%, transparent);
+  color: var(--gm-green);
+}
+
+.delivery-modulo__mensagem--erro {
+  background: color-mix(in srgb, var(--gm-red) 14%, transparent);
+  color: var(--gm-red);
+}
+
+/* ── Erro ao carregar a lista ──────────────────────────────────────── */
+
+.delivery-modulo__erroCarga {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Área tocável do cartão (expande os itens) ────────────────────── */
+
+.delivery-modulo__toque {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.delivery-modulo__toque:active {
+  opacity: 0.75;
+}
+
+.delivery-modulo__endereco {
+  margin: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+}
+
+.delivery-modulo__rodapeCartao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.delivery-modulo__toggleItens {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--gm-faint);
+}
+
+.delivery-modulo__toggleItens svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Itens do pedido (carregados sob demanda) ─────────────────────── */
+
+.delivery-modulo__itens {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-border) 35%, transparent);
+}
+
+.delivery-modulo__itensEstado {
+  margin: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+}
+
+.delivery-modulo__item {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-text);
+}
+
+.delivery-modulo__itemObs {
+  color: var(--gm-muted);
+}
+
+/* ── Ações do cartão ───────────────────────────────────────────────── */
+
+.delivery-modulo__acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.delivery-modulo__secundarias {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.delivery-modulo__zap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap-min, 44px);
+  padding: 0 12px;
+  border-radius: 12px;
+  color: var(--gm-green);
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.15s ease;
+}
+
+.delivery-modulo__zap:active {
+  transform: scale(0.97);
+}
+
+.delivery-modulo__zap svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.delivery-modulo__cancelar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap-min, 44px);
+  padding: 0 12px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: var(--gm-faint);
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+}
+
+.delivery-modulo__cancelar svg {
+  width: 15px;
+  height: 15px;
+}
+
+.delivery-modulo__confirmarCancelar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delivery-modulo__confirmarCancelar .mod-botao {
+  min-height: var(--tap-min, 44px);
+  padding: 0 14px;
+}
+
+.delivery-modulo__cancelarConfirmar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min, 44px);
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-red);
+  background: color-mix(in srgb, var(--gm-red) 14%, transparent);
+  color: var(--gm-red);
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 700;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.delivery-modulo__cancelarConfirmar:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.delivery-modulo__cancelarConfirmar:disabled {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .delivery-modulo__girando {
+    animation: none;
+  }
+
+  .delivery-modulo__atualizar,
+  .delivery-modulo__toque,
+  .delivery-modulo__zap,
+  .delivery-modulo__cancelarConfirmar {
+    transition: none;
+  }
+
+  .delivery-modulo__atualizar:active:not(:disabled),
+  .delivery-modulo__toque:active,
+  .delivery-modulo__zap:active,
+  .delivery-modulo__cancelarConfirmar:active:not(:disabled) {
+    transform: none;
+  }
+}

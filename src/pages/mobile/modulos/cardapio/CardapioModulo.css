@@ -1,0 +1,72 @@
+/* ──────────────────────────────────────────────────────────────────
+   CardapioModulo — tela mobile do Cardápio no Palm.
+
+   Só o que é EXCLUSIVO desta tela mora aqui: o resto (tela, header,
+   busca, chips, lista, cartão, badge, botões, vazio, carregando, erro)
+   vem de ../modulos.css e não é recriado.
+
+   Regras (iguais às do resto do Palm):
+   - Zero hex/rgb: só tokens --gm-* (ADR-007) + color-mix, para o
+     white-label por estabelecimento funcionar (decisão 017).
+   - Alvo de toque mínimo --tap-min em tudo clicável.
+   - O propósito da tela é achar o preço rápido: o preço tem que ser a
+     coisa mais fácil de enxergar no cartão.
+   ────────────────────────────────────────────────────────────────── */
+
+/* ── Corpo do cartão: emoji + nome/categoria à esquerda, preço à
+      direita — o layout de "duas colunas" pedido para consulta rápida. */
+
+.cardapio-modulo__info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cardapio-modulo__emoji {
+  flex-shrink: 0;
+  font-size: var(--fs-2xl);
+  line-height: 1;
+}
+
+.cardapio-modulo__nomes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Preço em destaque: é a informação que o garçom veio buscar, então é o
+   elemento mais forte do cartão — maior e mais pesado que o nome. */
+.cardapio-modulo__preco {
+  flex-shrink: 0;
+  font-family: var(--gm-font-mono);
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  color: var(--gm-green);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Produto pausado: card apagado, para não competir na leitura com
+      os produtos que ainda estão à venda. */
+.cardapio-modulo__cartao--indisponivel {
+  opacity: 0.55;
+}
+
+.cardapio-modulo__cartao--indisponivel .cardapio-modulo__preco {
+  color: var(--gm-muted);
+}
+
+/* ── Rodapé do cartão: badge "Indisponível" à esquerda, botão de
+      pausar/reativar à direita (quando o papel do usuário permite). */
+.cardapio-modulo__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cardapio-modulo__rodape .mod-badge {
+  margin-right: auto;
+}

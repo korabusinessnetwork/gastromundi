@@ -36,388 +36,407 @@
   margin: 0;
 }
 
-.apex-planos__grade {
+.apex-planos__urgencia {
+  font-size: 13px;
+  color: var(--kora-nevoa);
+  text-align: center;
+}
+
+/* ── Construtor ─────────────────────────────────────────────── */
+
+.apex-construtor {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 280px));
-  justify-content: center;
-  gap: 20px;
+  grid-template-columns: 1fr 320px;
+  gap: 32px;
   width: 100%;
-  max-width: 1560px;
+  max-width: 1100px;
+  align-items: start;
 }
 
-.apex-planos__card {
-  border: 1px solid var(--kora-linha);
-  border-radius: 18px;
-  padding: 28px;
+.apex-construtor__modulos {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  position: relative;
+  gap: 14px;
+  min-width: 0;
 }
 
-.apex-planos__card--destaque {
-  border: 2px solid var(--kora-roxo);
-  /* oklch cravado no protótipo (sombra roxa translúcida, sem token equivalente) */
-  box-shadow: 0 12px 40px oklch(0.4 0.14 280 / 0.15);
+.apex-construtor__essencial {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px dashed var(--kora-linha);
+  border-radius: 16px;
+  padding: 20px 22px;
+  background: var(--kora-fundo);
 }
 
-.apex-planos__card--em-breve {
-  /* gradiente suave cravado no protótipo, sem token equivalente */
-  background: linear-gradient(180deg, oklch(0.97 0.015 280), #fff);
-}
-
-.apex-planos__badge {
-  position: absolute;
-  top: -13px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #fff;
-  font-size: 12px;
+.apex-construtor__essencial-selo {
+  align-self: flex-start;
+  font-size: 11px;
   font-weight: 700;
-  padding: 5px 16px;
-  border-radius: 999px;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--kora-verde);
 }
 
-.apex-planos__badge--destaque {
-  background: var(--kora-roxo);
-}
-
-.apex-planos__badge--em-breve {
-  background: linear-gradient(90deg, var(--kora-roxo), var(--kora-azul));
-}
-
-.apex-planos__identidade {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.apex-planos__nome {
+.apex-construtor__essencial-nome {
   font-family: var(--kora-font-titulo);
   font-weight: 700;
-  font-size: 18px;
+  font-size: 17px;
   color: var(--kora-tinta);
 }
 
-.apex-planos__tier {
+.apex-construtor__essencial-itens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 13px;
+  color: var(--kora-grafite);
+}
+
+.apex-construtor__essencial-preco {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--kora-tinta);
+}
+
+.apex-construtor__essencial-preco span {
+  font-family: var(--kora-font-texto);
   font-weight: 400;
+  font-size: 13px;
+  color: var(--kora-nevoa);
+  margin-left: 2px;
+}
+
+.apex-construtor__secao-titulo {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--kora-nevoa);
+  margin-top: 10px;
+}
+
+/* ── Planos prontos (presets) + selecionar todos ────────────── */
+
+.apex-construtor__planos-prontos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.apex-construtor__planos-prontos-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.apex-construtor__planos-prontos-topo .apex-construtor__secao-titulo {
+  margin-top: 0;
+}
+
+.apex-construtor__selecionar-todos {
+  flex: none;
+  border: 1px solid var(--kora-roxo);
+  background: #fff;
+  color: var(--kora-roxo);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.apex-construtor__selecionar-todos:hover {
+  background: var(--kora-roxo);
+  color: #fff;
+}
+
+.apex-construtor__presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.apex-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  border: 1px solid var(--kora-linha);
+  border-radius: 14px;
+  padding: 16px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+}
+
+.apex-preset:hover {
+  border-color: var(--kora-roxo);
+}
+
+.apex-preset--ativo {
+  border-color: var(--kora-roxo);
+  box-shadow: 0 0 0 1px var(--kora-roxo) inset;
+}
+
+.apex-preset__selo {
+  align-self: flex-start;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #7a4f12;
+  background: linear-gradient(135deg, oklch(0.92 0.05 300), oklch(0.9 0.09 85));
+}
+
+.apex-preset__nome {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--kora-tinta);
+}
+
+.apex-preset__resumo {
+  font-size: 12.5px;
+  color: var(--kora-nevoa);
+  flex: 1;
+}
+
+.apex-preset__preco {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--kora-roxo);
+  font-variant-numeric: tabular-nums;
+}
+
+.apex-preset__preco span {
+  font-family: var(--kora-font-texto);
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--kora-nevoa);
+  margin-left: 2px;
+}
+
+/* Premium ("Kora Total" — o último plano): borda e texto roxo → dourado. */
+.apex-preset--premium {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, var(--kora-roxo) 0%, #a45fd6 40%, #d9a441 100%) border-box;
+}
+
+.apex-preset--premium:hover {
+  box-shadow: 0 10px 30px oklch(0.6 0.11 70 / 0.22);
+}
+
+.apex-preset--premium.apex-preset--ativo {
+  box-shadow: 0 0 0 1px #d9a441 inset, 0 10px 30px oklch(0.6 0.11 70 / 0.25);
+}
+
+.apex-preset--premium .apex-preset__nome,
+.apex-preset--premium .apex-preset__preco {
+  background: linear-gradient(135deg, var(--kora-roxo) 0%, #d9a441 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.apex-preset--premium .apex-preset__preco span {
+  -webkit-text-fill-color: var(--kora-nevoa);
+  color: var(--kora-nevoa);
+}
+
+.apex-construtor__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.apex-construtor__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+  border: 1px solid var(--kora-linha);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+}
+
+.apex-construtor__item:hover {
+  border-color: var(--kora-roxo);
+}
+
+.apex-construtor__item--ativo {
+  border-color: var(--kora-roxo);
+  background: oklch(0.97 0.02 280);
+}
+
+.apex-construtor__item--destaque .apex-construtor__item-nome {
+  color: var(--kora-roxo);
+}
+
+.apex-construtor__item-check {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border-radius: 6px;
+  border: 1.5px solid var(--kora-linha);
+  background: #fff;
+  position: relative;
+}
+
+.apex-construtor__item--ativo .apex-construtor__item-check {
+  background: var(--kora-roxo);
+  border-color: var(--kora-roxo);
+}
+
+.apex-construtor__item--ativo .apex-construtor__item-check::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.apex-construtor__item-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.apex-construtor__item-nome {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--kora-tinta);
+}
+
+.apex-construtor__item-descricao {
+  font-size: 12.5px;
+  color: var(--kora-nevoa);
+}
+
+.apex-construtor__item-preco {
+  flex: none;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--kora-grafite);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Resumo (coluna fixa) ───────────────────────────────────── */
+
+.apex-construtor__resumo {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 2px solid var(--kora-roxo);
+  border-radius: 18px;
+  padding: 24px;
+  background: #fff;
+  box-shadow: 0 12px 40px oklch(0.4 0.14 280 / 0.15);
+}
+
+.apex-construtor__resumo-titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--kora-tinta);
+}
+
+.apex-construtor__resumo-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.apex-construtor__resumo-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--kora-grafite);
+}
+
+.apex-construtor__resumo-linha span:last-child {
+  font-variant-numeric: tabular-nums;
+  color: var(--kora-nevoa);
+  white-space: nowrap;
+}
+
+.apex-construtor__resumo-vazio {
+  font-size: 12.5px;
+  color: var(--kora-nevoa);
+  font-style: italic;
+}
+
+.apex-construtor__resumo-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid var(--kora-linha);
+  padding-top: 14px;
   font-size: 13px;
   color: var(--kora-nevoa);
 }
 
-.apex-planos__descricao {
-  font-size: 14px;
-  color: var(--kora-nevoa);
-}
-
-.apex-planos__preco-linha {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.apex-planos__preco {
+.apex-construtor__resumo-total-valor {
   font-family: var(--kora-font-titulo);
   font-weight: 800;
-  font-size: 36px;
-  color: var(--kora-tinta);
+  font-size: 30px;
+  color: var(--kora-roxo);
   font-variant-numeric: tabular-nums;
 }
 
-.apex-planos__card--destaque .apex-planos__preco {
-  color: var(--kora-roxo);
-}
-
-.apex-planos__periodo {
-  font-size: 14px;
+.apex-construtor__resumo-total-valor span {
+  font-family: var(--kora-font-texto);
+  font-weight: 400;
+  font-size: 13px;
   color: var(--kora-nevoa);
+  margin-left: 2px;
 }
 
-.apex-planos__features {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  font-size: 14px;
-  color: var(--kora-grafite);
-}
-
-.apex-planos__cta {
-  margin-top: auto;
+.apex-construtor__cta {
   width: 100%;
 }
 
-.apex-planos__card--em-breve .apex-planos__cta {
-  border-color: var(--kora-nevoa);
-  color: var(--kora-grafite);
-}
-
-.apex-planos__card--em-breve .apex-planos__cta:hover {
-  border-color: var(--kora-roxo);
-  color: var(--kora-roxo);
-  background: #fff;
-}
-
-/* ── Cabeçalho tocável (planos que não são o destaque) ─────────────
-   Em telas ≥768px isto reproduz exatamente o bloco identidade + preço
-   de sempre (empilhado, mesmo gap) — só que dentro de um <button> por
-   causa da interação de expandir do mobile. Reset total do "botão"
-   pra não ter nenhuma diferença visual no desktop/tablet. */
-.apex-planos__cabecalho-toque {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  width: 100%;
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-/* "display: contents" faz o preço e o chevron se comportarem como
-   filhos diretos do cabeçalho (mesmo empilhamento de sempre) — só o
-   mobile precisa dessa div como agrupador real, pra virar uma linha. */
-.apex-planos__cabecalho-toque-direita {
-  display: contents;
-}
-
-.apex-planos__resumo-compacto {
-  display: none;
-}
-
-.apex-planos__chevron {
-  display: none;
-}
-
-/* Corpo colapsável (features + CTA). Fora do mobile ele fica sempre
-   visível — o "aberto" já vem `true` por padrão pra quem não é o
-   destaque também, então nada muda visualmente em telas maiores. */
-.apex-planos__corpo {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.apex-planos__addons {
-  background: var(--kora-fundo);
-  border: 1px solid var(--kora-linha);
-  border-radius: 14px;
-  padding: 20px 28px;
-  display: grid;
-  grid-template-columns: auto 1fr 1fr;
-  align-items: center;
-  gap: 16px 32px;
-  max-width: 900px;
-  width: 100%;
-}
-
-.apex-planos__addons-titulo {
-  font-family: var(--kora-font-titulo);
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--kora-tinta);
-  white-space: nowrap;
-}
-
-.apex-planos__addon {
-  font-size: 14px;
-  color: var(--kora-grafite);
-  line-height: 1.5;
-}
-
-.apex-planos__addon strong {
-  color: var(--kora-roxo);
-}
-
-.apex-planos__urgencia {
-  font-size: 14px;
+.apex-construtor__resumo-nota {
+  font-size: 11.5px;
   color: var(--kora-nevoa);
-  font-style: italic;
   text-align: center;
 }
 
-/* ── Tablet (≤1023px) ───────────────────────────────────────────── */
-@media (max-width: 1023px) {
-  .apex-planos {
-    padding: 80px 32px;
-  }
-
-  .apex-planos__grade {
-    grid-template-columns: 1fr 1fr;
-    max-width: 720px;
-  }
-
-  /* Piloto vira card largo (grid-column 1/-1) com o preço à direita:
-     reflow só com flex/order, sem mexer no JSX — os 4 primeiros tiers
-     não mudam de estrutura, só de grid. */
-  .apex-planos__card--em-breve {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: space-between;
-    row-gap: 12px;
-    column-gap: 24px;
-  }
-
-  .apex-planos__card--em-breve .apex-planos__cabecalho-toque {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    flex: 1 1 100%;
-    gap: 12px 24px;
-  }
-
-  .apex-planos__card--em-breve .apex-planos__identidade {
-    flex: 1 1 260px;
-    order: 1;
-  }
-
-  .apex-planos__card--em-breve .apex-planos__cabecalho-toque-direita {
-    display: flex;
-    align-items: center;
-    order: 2;
-  }
-
-  .apex-planos__card--em-breve .apex-planos__corpo {
-    flex: 1 1 100%;
-  }
-}
-
-/* ── Mobile (≤767px) ────────────────────────────────────────────── */
-@media (max-width: 767px) {
-  .apex-planos {
-    padding: 56px 20px;
-  }
-
-  .apex-planos .apex-kicker {
-    font-size: 11px;
-  }
-
-  .apex-planos__titulo {
-    font-size: 22px;
-  }
-
-  /* Empilhado, com o destaque (Casa Cheia) primeiro e completo — os
-     demais mantêm a ordem entre si, igual ao desktop (o `order` só
-     tira o destaque da posição original, não embaralha o resto). */
-  .apex-planos__grade {
-    display: flex;
-    flex-direction: column;
-    max-width: 100%;
-    gap: 12px;
-  }
-
-  .apex-planos__card {
-    padding: 18px;
-    gap: 10px;
-  }
-
-  .apex-planos__card--destaque {
-    order: -1;
-    gap: 14px;
-  }
-
-  /* Desfaz o layout "card largo em linha" do tablet: no mobile o
-     Piloto volta a ser um card compacto igual aos outros. */
-  .apex-planos__card--em-breve {
-    grid-column: auto;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-    row-gap: 0;
-  }
-
-  .apex-planos__card--em-breve .apex-planos__cabecalho-toque {
-    flex-direction: row;
-  }
-
-  .apex-planos__card--em-breve .apex-planos__identidade {
-    flex: 1 1 auto;
-  }
-
-  /* Cabeçalho tocável vira linha compacta: nome + resumo à esquerda,
-     preço à direita, com chevron indicando que é expansível. Alvo de
-     toque ≥44px pro dono do restaurante abrir sem errar no celular. */
-  .apex-planos__card:not(.apex-planos__card--destaque)
-    .apex-planos__cabecalho-toque {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 44px;
-  }
-
-  .apex-planos__card:not(.apex-planos__card--destaque)
-    .apex-planos__identidade {
-    gap: 3px;
-  }
-
-  .apex-planos__card:not(.apex-planos__card--destaque)
-    .apex-planos__cabecalho-toque-direita {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-  }
-
-  .apex-planos__card:not(.apex-planos__card--destaque)
-    .apex-planos__preco {
-    font-size: 20px;
-  }
-
-  .apex-planos__descricao--completa {
-    display: none;
-  }
-
-  .apex-planos__resumo-compacto {
-    display: block;
-    font-size: 12px;
-    color: var(--kora-nevoa);
-  }
-
-  /* Chevron: seta simples que gira 180° quando o card está aberto —
-     indicador visual óbvio de "isso expande", sem precisar de texto. */
-  .apex-planos__chevron {
-    display: block;
-    width: 9px;
-    height: 9px;
-    border-right: 2px solid var(--kora-nevoa);
-    border-bottom: 2px solid var(--kora-nevoa);
-    transform: rotate(45deg);
-    transition: transform 0.2s ease;
-    flex-shrink: 0;
-  }
-
-  .apex-planos__cabecalho-toque[aria-expanded="true"] .apex-planos__chevron {
-    transform: rotate(-135deg);
-  }
-
-  /* Corpo (features + CTA) só aparece quando o card não-destaque está
-     expandido. display:none em vez de max-height: sem gap fantasma
-     quando fechado e sem custo de transição — simples e previsível. */
-  .apex-planos__card:not(.apex-planos__card--destaque) .apex-planos__corpo {
-    display: none;
-    margin-top: 14px;
-  }
-
-  .apex-planos__cabecalho-toque[aria-expanded="true"] ~ .apex-planos__corpo {
-    display: flex;
-  }
-
-  .apex-planos__addons {
-    padding: 18px 20px;
-    max-width: 100%;
+@media (max-width: 860px) {
+  .apex-construtor {
     grid-template-columns: 1fr;
   }
 
-  .apex-planos__addons-titulo {
-    white-space: normal;
+  .apex-construtor__resumo {
+    position: static;
+    order: -1;
   }
 }

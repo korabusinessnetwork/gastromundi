@@ -1,0 +1,144 @@
+/* ──────────────────────────────────────────────────────────────────
+   ClientesModulo — tela mobile de Clientes no Palm.
+
+   Só o que é EXCLUSIVO desta tela mora aqui: o resto (tela, header,
+   busca, lista, cartão, badge, botões, vazio, carregando, erro) vem
+   de ../modulos.css e não é recriado.
+
+   Regras (iguais às do resto do Palm):
+   - Zero hex/rgb: só tokens --gm-* (ADR-007) + color-mix, para o
+     white-label por estabelecimento funcionar (decisão 017).
+   - Alvo de toque mínimo --tap-min em tudo clicável.
+   - Quem deve aparece primeiro e em vermelho — o garçom não precisa
+     abrir o cliente para saber se pode fechar a conta.
+   ────────────────────────────────────────────────────────────────── */
+
+/* ── Cartão da lista ───────────────────────────────────────────── */
+
+.clientes-modulo__identidade {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.clientes-modulo__telefone {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.clientes-modulo__telefone svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  color: var(--gm-faint);
+}
+
+.clientes-modulo__saldo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.clientes-modulo__valor {
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-md, 1rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.clientes-modulo__valor--devedor {
+  color: var(--gm-red);
+}
+
+/* ── Detalhe — linhas de dados ────────────────────────────────── */
+
+.clientes-modulo__iconeLinha {
+  width: 13px;
+  height: 13px;
+  margin-right: 5px;
+  vertical-align: -2px;
+  color: var(--gm-faint);
+}
+
+.clientes-modulo__valorTexto {
+  font-family: var(--gm-font-texto);
+  font-weight: 600;
+  text-align: right;
+}
+
+.clientes-modulo__saldoValor {
+  font-variant-numeric: tabular-nums;
+}
+
+.clientes-modulo__saldoValor--devedor {
+  color: var(--gm-red);
+}
+
+.clientes-modulo__saldoValor--ok {
+  color: var(--gm-green);
+}
+
+/* ── Seções (contas em aberto / histórico) ────────────────────── */
+
+.clientes-modulo__secaoTitulo {
+  margin: 0 0 10px;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.clientes-modulo__contas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.clientes-modulo__conta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.clientes-modulo__conta:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.clientes-modulo__vencido {
+  color: var(--gm-red);
+  font-weight: 700;
+}
+
+.clientes-modulo__vendas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.clientes-modulo__vazioTexto {
+  margin: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+}
+
+/* ── Confirmação antes de registrar pagamento ─────────────────── */
+/* Mexe em dinheiro: nunca um toque só. O botão inicial vira dois —
+   cancelar (neutro) e confirmar (verde) — lado a lado. */
+
+.clientes-modulo__confirmarLinha {
+  display: flex;
+  gap: 8px;
+}
+
+.clientes-modulo__confirmarLinha .mod-botao {
+  flex: 1;
+}

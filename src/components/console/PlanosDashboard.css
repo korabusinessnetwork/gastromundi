@@ -61,7 +61,7 @@
 /* ── KPIs ─────────────────────────────────────────────────────────── */
 .pdash__kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
   gap: 12px;
 }
 .pdash__kpi {
@@ -72,9 +72,19 @@
   border: 1px solid var(--gm-border);
   border-radius: 14px;
   background: var(--gm-card);
+  /* item de grid não encolhe abaixo do conteúdo sem isto — era o que
+     deixava o valor vazar para fora do cartão. */
+  min-width: 0;
 }
 .pdash__kpi-icone { color: var(--gm-muted); }
-.pdash__kpi-valor { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.1; }
+.pdash__kpi-valor {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .pdash__kpi-rotulo { font-size: 12px; color: var(--gm-muted); font-weight: 600; }
 
 .pdash__kpi--verde .pdash__kpi-icone { color: var(--gm-green); }
@@ -87,7 +97,13 @@
   background: var(--gm-alow);
   border-color: rgba(124, 58, 237, 0.4);
 }
-.pdash__kpi--destaque .pdash__kpi-valor { color: var(--gm-accent); }
+/* "R$ 300,00" é bem mais largo que uma contagem ("2", "0"): num corpo de
+   26px ele estourava a largura do cartão. Um passo menor cabe inteiro e
+   o cartão continua sendo o herói pelo fundo roxo e pela cor do número. */
+.pdash__kpi--destaque .pdash__kpi-valor {
+  color: var(--gm-accent);
+  font-size: 21px;
+}
 
 /* ── Blocos genéricos ─────────────────────────────────────────────── */
 .pdash__bloco {
@@ -181,4 +197,5 @@
 
 @media (max-width: 560px) {
   .pdash__kpi-valor { font-size: 22px; }
+  .pdash__kpi--destaque .pdash__kpi-valor { font-size: 19px; }
 }

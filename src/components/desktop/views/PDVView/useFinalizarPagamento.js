@@ -38,11 +38,18 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
  *
  * O chamador (PDVView) continua responsável por setSalvando/try-catch
  * e por voltar para a grade de comandas (handleBack) após concluir.
+ *
+ * `semComanda` (venda de balcão, PDV rápido do Palm): a venda não nasceu
+ * de uma linha em `pending`, então não há o que remover nem risco de
+ * cobrança dupla por comanda que "não sai da grade". Com a opção ligada
+ * o passo de remoção é PULADO por inteiro — sem DELETE inútil e sem o
+ * erro de remoção, que no balcão seria um alarme falso. Chamador que não
+ * passa nada (todo o PDV de desktop) segue idêntico a antes.
  */
 export function useFinalizarPagamento() {
   const { addSale, removePending, estoque, baixarEstoque, baixarEstoqueSubproduto, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
 
-  const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId, cliente, dest }, { onNfce } = {}) => {
+  const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId, cliente, dest }, { onNfce, semComanda = false } = {}) => {
     // TEF é só online: a maquininha precisa de comunicação em tempo real —
     // não dá pra "guardar pra depois" uma cobrança de cartão. Métodos sem
     // TEF (dinheiro, Pix etc.) podem fechar offline: a venda entra na fila
@@ -155,7 +162,9 @@ export function useFinalizarPagamento() {
     // reaparece na grade e o operador cobra DE NOVO (cobrança dupla).
     // Tenta uma segunda vez e, se ainda falhar, avisa alto no fim do fluxo.
     let remocaoFalhou = null;
-    {
+    // Venda de balcão não tem linha em `pending`: não há remoção a fazer
+    // nem cobrança dupla possível — o passo inteiro não se aplica.
+    if (!semComanda) {
       let { error } = await removePending(selected.id);
       if (error) ({ error } = await removePending(selected.id));
       remocaoFalhou = error ?? null;
