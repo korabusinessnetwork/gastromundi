@@ -1,11 +1,36 @@
 /**
  * F018 — Configuração de Impressão. Decisão 018 (CSS separado do JSX) +
- * tokens --fs-* e --lh-* (ADR-007). Cores/transições/cursor/layout fixo
- * são classe. Tamanho de fonte agora vem da escala do design system,
- * por classe de componente — não mais inline via sz.* do JSX.
+ * tokens --fs-*/--lh-*/--gm-* (ADR-007). Cores/transições/cursor/layout
+ * fixo são classe, nunca style={{}} inline.
  */
 
+.configuracao-impressao__abas {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--gm-border);
+  padding-bottom: 8px;
+}
+
 .configuracao-impressao__aba {
+  padding: 7px 16px;
+  border-radius: 8px 8px 0 0;
+  border: none;
+  background: transparent;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
   font-size: var(--fs-base);
   line-height: var(--lh-base);
+  min-height: var(--tap-min);
+  border-bottom: 2px solid transparent;
+  transition: background 0.15s, color 0.15s;
+}
+
+.configuracao-impressao__aba--ativa {
+  background: color-mix(in srgb, var(--gm-accent) 18%, transparent);
+  color: var(--gm-accent);
+  font-weight: 700;
+  border-bottom: 2px solid var(--gm-accent);
 }

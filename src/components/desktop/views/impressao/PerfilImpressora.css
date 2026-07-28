@@ -1,15 +1,27 @@
 /**
- * F020 — perfil de impressora (largura/margem/corte/fonte/driver).
- * Decisão 018 (CSS separado do JSX) + tokens --gm-* (ADR-007).
+ * F020 — Layout da comanda (era "Perfil de Impressão"). Leva "Impressão do
+ * zero, sem QZ Tray": impressora agora é escolhida via Ponte KORA (Windows
+ * ou rede), não mais QZ Tray. Decisão 018 (CSS separado do JSX, zero
+ * style={{}} inline) + tokens --gm-*/--fs-*/--lh-* (ADR-007) — cor só por
+ * variável, variação por color-mix. Cores de icone passadas via prop
+ * `color={varColor(C.x)}` no JSX não são inline style: são apenas props
+ * de componente, resolvidas para os mesmos tokens --gm-*.
  */
 
 .perfil-impressora__carregando {
   padding: 40px;
   text-align: center;
+  color: var(--gm-muted);
 }
 
 .perfil-impressora {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.perfil-impressora__colunas {
   display: flex;
+  gap: 32px;
   max-width: 920px;
 }
 
@@ -18,21 +30,52 @@
   min-width: 320px;
   display: flex;
   flex-direction: column;
+  gap: 28px;
+}
+
+.perfil-impressora__secao {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.perfil-impressora__titulo-secao {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gm-border);
+  font-size: var(--fs-lg, 17px);
+  font-weight: 800;
+  color: var(--gm-text);
+}
+
+.perfil-impressora__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .perfil-impressora__label {
   font-weight: 700;
   font-size: 15px;
-  margin-bottom: 8px;
+  color: var(--gm-muted);
+  margin-bottom: 4px;
+}
+
+.perfil-impressora__label--inline {
+  margin-bottom: 0;
 }
 
 .perfil-impressora__ajuda {
   font-size: 13px;
   line-height: 1.5;
+  color: var(--gm-muted);
 }
 
-.perfil-impressora__opcoes-largura,
-.perfil-impressora__opcoes-driver {
+.perfil-impressora__ajuda--slider {
+  margin-bottom: 4px;
+}
+
+.perfil-impressora__opcoes-largura {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -40,26 +83,64 @@
 
 .perfil-impressora__opcao-larga {
   padding: 10px 22px;
+  min-height: var(--tap-min);
   border-radius: 10px;
-  border-width: 1.5px;
-  border-style: solid;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
   cursor: pointer;
   font-weight: 700;
   font-family: inherit;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.perfil-impressora__opcao-larga--ativa {
+  border-color: var(--gm-accent);
+  background: var(--gm-alow);
+  color: var(--gm-accent);
+}
+
+.perfil-impressora__opcoes-driver {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .perfil-impressora__opcao-driver {
-  padding: 10px 16px;
-  border-radius: 10px;
-  border-width: 1.5px;
-  border-style: solid;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: var(--tap-min);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
   cursor: pointer;
-  font-weight: 600;
-  font-size: 14px;
   font-family: inherit;
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
+}
+
+.perfil-impressora__opcao-driver--ativa {
+  border-color: var(--gm-accent);
+  background: var(--gm-alow);
+}
+
+.perfil-impressora__opcao-driver-titulo {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--gm-text);
+}
+
+.perfil-impressora__opcao-driver--ativa .perfil-impressora__opcao-driver-titulo {
+  color: var(--gm-accent);
+}
+
+.perfil-impressora__opcao-driver-ajuda {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--gm-muted);
 }
 
 .perfil-impressora__linha-toggle {
@@ -78,12 +159,18 @@
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
+  background: var(--gm-faint);
   transition: background 0.2s;
+}
+
+.perfil-impressora__toggle--on {
+  background: var(--gm-green);
 }
 
 .perfil-impressora__toggle-bolinha {
   position: absolute;
   top: 50%;
+  left: 3px;
   transform: translateY(-50%);
   width: 20px;
   height: 20px;
@@ -92,6 +179,10 @@
   display: block;
   transition: left 0.2s;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.perfil-impressora__toggle--on .perfil-impressora__toggle-bolinha {
+  left: 25px;
 }
 
 .perfil-impressora__slider {
@@ -106,14 +197,18 @@
   font-weight: 600;
   font-family: inherit;
   padding: 4px 0;
+  color: var(--gm-accent);
+  align-self: flex-start;
 }
 
-.perfil-impressora__qz {
-  margin-top: 12px;
+/* ── Impressora via Ponte KORA (Windows + rede) ─────────────────────── */
+
+.perfil-impressora__ponte {
+  margin-top: 4px;
   padding: 14px 16px;
   border-radius: 12px;
-  border-width: 1px;
-  border-style: solid;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -124,53 +219,163 @@
   align-items: center;
   gap: 8px;
   align-self: flex-start;
-  padding: 8px 14px;
+  min-height: var(--tap-min);
+  padding: 8px 16px;
   border-radius: 8px;
-  border-width: 1px;
-  border-style: solid;
+  border: 1px solid var(--gm-border);
   background: none;
+  color: var(--gm-text);
   cursor: pointer;
   font-weight: 600;
   font-size: 13px;
   font-family: inherit;
 }
 
-.perfil-impressora__lista-qz {
+.perfil-impressora__btn-detectar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.perfil-impressora__lista-impressoras {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.perfil-impressora__opcao-qz {
-  padding: 8px 12px;
+.perfil-impressora__opcao-impressora {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap-min);
+  padding: 9px 12px;
   border-radius: 8px;
-  border-width: 1.5px;
-  border-style: solid;
+  border: 1.5px solid var(--gm-border);
   background: none;
+  color: var(--gm-text);
   cursor: pointer;
   text-align: left;
   font-weight: 600;
   font-size: 13px;
   font-family: inherit;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
+
+.perfil-impressora__opcao-impressora--ativa {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+  background: var(--gm-alow);
+}
+
+.perfil-impressora__tag-padrao {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.perfil-impressora__separador {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.perfil-impressora__rede {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.perfil-impressora__input {
+  min-height: var(--tap-min);
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.perfil-impressora__input--host {
+  flex: 2;
+  min-width: 170px;
+}
+
+.perfil-impressora__input--porta {
+  flex: 1;
+  min-width: 90px;
+}
+
+.perfil-impressora__btn-usar-rede {
+  min-height: var(--tap-min);
+  padding: 10px 16px;
+  border-radius: 9px;
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 66%, transparent);
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  color: var(--gm-accent);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.perfil-impressora__btn-usar-rede:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Ações (testar / salvar) e status ────────────────────────────────── */
 
 .perfil-impressora__acoes {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
   padding-top: 4px;
 }
 
+.perfil-impressora__btn-teste {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap-min);
+  padding: 10px 18px;
+  border-radius: 9px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+.perfil-impressora__btn-teste:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .perfil-impressora__btn-salvar {
+  min-height: var(--tap-min);
   padding: 11px 24px;
   border-radius: 10px;
   border: none;
+  background: var(--gm-accent);
   color: #fff;
   cursor: pointer;
   font-weight: 700;
   font-size: 14px;
   font-family: inherit;
+}
+
+.perfil-impressora__btn-salvar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .perfil-impressora__status {
@@ -183,20 +388,24 @@
 
 .perfil-impressora__status--sucesso { color: var(--gm-green); }
 .perfil-impressora__status--erro { color: var(--gm-red); }
+.perfil-impressora__status--atencao { color: var(--gm-warn); }
 
 .perfil-impressora__spin { animation: perfil-impressora-spin 1s linear infinite; }
 @keyframes perfil-impressora-spin { to { transform: rotate(360deg); } }
+
+/* ── Preview ao vivo ─────────────────────────────────────────────────── */
 
 .perfil-impressora__preview-coluna {
   flex-shrink: 0;
   width: 340px;
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 .perfil-impressora__preview-moldura {
-  border-width: 1px;
-  border-style: solid;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
   border-radius: 14px;
   padding: 16px;
   display: flex;
@@ -215,7 +424,7 @@
 /* Celular: o form e a coluna de preview (340px) não cabem lado a lado,
    então empilham em coluna e o preview passa a ocupar a largura toda. */
 @media (max-width: 767px) {
-  .perfil-impressora {
+  .perfil-impressora__colunas {
     flex-direction: column;
   }
   .perfil-impressora__form {

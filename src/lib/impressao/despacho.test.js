@@ -1,11 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockSupabase, imprimirDocumento, enfileirarTrabalho, registrarImpressaoLocal } = vi.hoisted(() => ({
+const { mockSupabase, imprimirDocumento } = vi.hoisted(() => ({
   mockSupabase: { current: null },
   imprimirDocumento: vi.fn(async () => ({ error: null })),
-  enfileirarTrabalho: vi.fn(async () => ({ data: { id: "trab-1" }, error: null })),
-  registrarImpressaoLocal: vi.fn(async () => ({ error: null })),
 }));
 vi.mock("../supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
@@ -13,238 +11,106 @@ vi.mock("../supabase", async () => {
   return { supabase: mockSupabase.current };
 });
 
-// Captura as impressões sem tocar em driver real (window.print / QZ Tray).
+// Captura as impressões sem tocar em driver real (window.print / Ponte).
 vi.mock("./drivers", () => ({ imprimirDocumento }));
 
-// Captura o enfileiramento (Fase 3) sem tocar no banco.
-vi.mock("./fila", () => ({ enfileirarTrabalho }));
+import { enviarViaProducao } from "./despacho";
 
-// Captura o registro de auditoria (Fase 4) sem tocar no banco.
-vi.mock("./historico", () => ({ registrarImpressaoLocal }));
-
-import { imprimirViaProducaoRoteada } from "./despacho";
-
-const CONFIG_VALUE = {
-  perfilImpressora: { larguraMm: 80, driver: "browser-raster", impressoraQz: null },
+const PERFIL_TERMICA = {
+  larguraMm: 58,
+  driver: "escpos-ponte",
+  impressora: { tipo: "windows", nome: "EPSON-COZINHA" },
 };
 
-function configurarConfig(value = CONFIG_VALUE) {
+function configurarConfig(value) {
   mockSupabase.current.setTableResult("config", { data: { value }, error: null });
 }
-function configurarRoteamento(roteamento, locais) {
-  mockSupabase.current.setTableResult("categorias_roteamento", { data: roteamento, error: null });
-  mockSupabase.current.setTableResult("locais_impressao", { data: locais, error: null });
-}
+
+const pedido = {
+  comanda: "12",
+  mesa: "3",
+  garcom: "joao",
+  created_at: "2026-07-26T18:00:00.000Z",
+  items: [
+    { name: "X-Burguer", qty: 2, category: "Lanches", obs: ["sem cebola"] },
+    { name: "Refrigerante", qty: 1, category: "Bebidas", produzivel: false },
+    { name: "Batata", qty: 1, category: "Lanches", cancelado: true },
+  ],
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockSupabase.current.reset();
   localStorage.clear();
   imprimirDocumento.mockResolvedValue({ error: null });
-  enfileirarTrabalho.mockResolvedValue({ data: { id: "trab-1" }, error: null });
-  registrarImpressaoLocal.mockResolvedValue({ error: null });
 });
 
-describe("imprimirViaProducaoRoteada (Fase 1 — orquestração)", () => {
-  it("roteia em N vias, uma por local, cada uma no perfil vinculado nesta máquina", async () => {
-    configurarConfig();
-    configurarRoteamento(
-      [
-        { categoria: "Comidas", local_impressao_id: "loc-cozinha" },
-        { categoria: "Bebidas", local_impressao_id: "loc-bar" },
-      ],
-      [
-        { id: "loc-cozinha", nome: "Cozinha" },
-        { id: "loc-bar", nome: "Bar" },
-      ],
-    );
-    // Bar tem impressora térmica vinculada nesta máquina; cozinha não.
-    localStorage.setItem(
-      "gastromundi:impressoras_config_v2",
-      JSON.stringify({ "loc-bar": { nome: "EPSON-BAR" } }),
-    );
+describe("enviarViaProducao", () => {
+  it("imprime uma única via, no perfil do estabelecimento", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
 
-    const pedido = {
-      comanda: "5",
-      items: [
-        { name: "Hambúrguer", qty: 1, category: "Comidas" },
-        { name: "Cerveja", qty: 2, category: "Bebidas" },
-      ],
-    };
-
-    const { error } = await imprimirViaProducaoRoteada(pedido);
-
-    expect(error).toBeNull();
-    expect(imprimirDocumento).toHaveBeenCalledTimes(2);
-
-    const [docCozinha, perfilCozinha] = imprimirDocumento.mock.calls[0];
-    expect(docCozinha.itens.map((i) => i.nome)).toEqual(["Hambúrguer"]);
-    expect(perfilCozinha.driver).toBe("browser-raster"); // sem vínculo → perfil global
-
-    const [docBar, perfilBar] = imprimirDocumento.mock.calls[1];
-    expect(docBar.itens.map((i) => i.nome)).toEqual(["Cerveja"]);
-    expect(perfilBar).toMatchObject({ driver: "escpos-qztray", impressoraQz: "EPSON-BAR" });
-  });
-
-  it("sem roteamento configurado → fallback: 1 via única no perfil global (sem regressão)", async () => {
-    configurarConfig();
-    configurarRoteamento([], []);
-
-    const pedido = { comanda: "9", items: [{ name: "Cerveja", qty: 1, category: "Bebidas" }] };
-
-    const { error } = await imprimirViaProducaoRoteada(pedido);
+    const { error } = await enviarViaProducao(pedido);
 
     expect(error).toBeNull();
     expect(imprimirDocumento).toHaveBeenCalledTimes(1);
-    const [doc, perfil] = imprimirDocumento.mock.calls[0];
-    expect(doc.tipo).toBe("via_producao");
-    expect(doc.itens.map((i) => i.nome)).toEqual(["Cerveja"]);
-    // buscarConfigImpressao mescla os defaults do perfil — o fallback usa
-    // o perfil global (browser-raster), sem impressora física vinculada.
-    expect(perfil).toMatchObject({ driver: "browser-raster", impressoraQz: null });
+    const [, perfil] = imprimirDocumento.mock.calls[0];
+    expect(perfil).toMatchObject(PERFIL_TERMICA);
   });
 
-  it("agrega erros de impressão por local numa mensagem só", async () => {
-    configurarConfig();
-    configurarRoteamento(
-      [
-        { categoria: "Comidas", local_impressao_id: "loc-cozinha" },
-        { categoria: "Bebidas", local_impressao_id: "loc-bar" },
-      ],
-      [
-        { id: "loc-cozinha", nome: "Cozinha" },
-        { id: "loc-bar", nome: "Bar" },
-      ],
-    );
-    imprimirDocumento
-      .mockResolvedValueOnce({ error: null })
-      .mockResolvedValueOnce({ error: { message: "impressora offline" } });
+  it("monta a via de produção com comanda/mesa/garçom e só os itens produzíveis", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
 
-    const pedido = {
-      items: [
-        { name: "Fritas", qty: 1, category: "Comidas" },
-        { name: "Suco", qty: 1, category: "Bebidas" },
-      ],
-    };
+    await enviarViaProducao(pedido);
 
-    const { error } = await imprimirViaProducaoRoteada(pedido);
-
-    expect(error).not.toBeNull();
-    expect(error.message).toContain("Bar");
-    expect(error.message).toContain("impressora offline");
-  });
-});
-
-// Vincula locais NESTA máquina pelo cache da estação (Fase 2).
-function vincularNestaMaquina(impressoras) {
-  localStorage.setItem(
-    "gastromundi:estacao_bindings.v1",
-    JSON.stringify({ estacaoId: "est-1", impressoras }),
-  );
-}
-
-describe("imprimirViaProducaoRoteada (Fase 3 — impressão em rede)", () => {
-  const roteamentoCozinhaBar = () =>
-    configurarRoteamento(
-      [
-        { categoria: "Comidas", local_impressao_id: "loc-cozinha" },
-        { categoria: "Bebidas", local_impressao_id: "loc-bar" },
-      ],
-      [
-        { id: "loc-cozinha", nome: "Cozinha" },
-        { id: "loc-bar", nome: "Bar" },
-      ],
-    );
-  const pedidoCozinhaBar = () => ({
-    comanda: "7",
-    items: [
-      { name: "Fritas", qty: 1, category: "Comidas" },
-      { name: "Cerveja", qty: 2, category: "Bebidas" },
-    ],
+    const [documento] = imprimirDocumento.mock.calls[0];
+    expect(documento.tipo).toBe("via_producao");
+    expect(documento.comanda).toBe("12");
+    expect(documento.mesa).toBe("3");
+    expect(documento.garcom).toBe("joao");
+    expect(documento.itens.map((i) => i.nome)).toEqual(["X-Burguer"]);
+    expect(documento.itens[0].obs).toEqual(["sem cebola"]);
   });
 
-  it("rede ligada: local vinculado aqui imprime na hora; local de outro PC vai pra fila", async () => {
-    configurarConfig({ ...CONFIG_VALUE, impressaoEmRede: true });
-    roteamentoCozinhaBar();
-    vincularNestaMaquina({ "loc-cozinha": { nome: "EPSON-COZINHA" } }); // bar NÃO é desta máquina
+  it("sem config gravada, usa o perfil padrão em vez de deixar a comanda sem sair", async () => {
+    mockSupabase.current.setTableResult("config", { data: null, error: null });
 
-    const { error } = await imprimirViaProducaoRoteada(pedidoCozinhaBar());
+    const { error } = await enviarViaProducao(pedido);
 
     expect(error).toBeNull();
-    // Cozinha (vinculada aqui) imprimiu; bar (de outro PC) não imprimiu aqui.
+    const [, perfil] = imprimirDocumento.mock.calls[0];
+    expect(perfil.driver).toBe("browser-raster");
+  });
+
+  it("banco fora do ar não impede a impressão (config cai nos defaults)", async () => {
+    mockSupabase.current.setTableError("config", { message: "falha de rede" });
+
+    const { error } = await enviarViaProducao(pedido);
+
+    expect(error).toBeNull();
     expect(imprimirDocumento).toHaveBeenCalledTimes(1);
-    const [docCozinha, perfilCozinha] = imprimirDocumento.mock.calls[0];
-    expect(docCozinha.itens.map((i) => i.nome)).toEqual(["Fritas"]);
-    expect(perfilCozinha).toMatchObject({ driver: "escpos-qztray", impressoraQz: "EPSON-COZINHA" });
-    // Bar foi enfileirado para o PC dono do local.
-    expect(enfileirarTrabalho).toHaveBeenCalledTimes(1);
-    const [arg] = enfileirarTrabalho.mock.calls[0];
-    expect(arg.localImpressaoId).toBe("loc-bar");
-    expect(arg.documento.itens.map((i) => i.nome)).toEqual(["Cerveja"]);
   });
 
-  it("rede DESLIGADA (padrão): local não vinculado imprime no perfil global aqui, sem fila (zero regressão)", async () => {
-    configurarConfig(); // sem impressaoEmRede → default false
-    roteamentoCozinhaBar();
-    // nada vinculado nesta máquina
+  it("propaga o erro do driver pra quem chamou (o caixa precisa saber que não saiu)", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+    imprimirDocumento.mockResolvedValue({ error: { message: "A Ponte KORA não está rodando neste computador." } });
 
-    const { error } = await imprimirViaProducaoRoteada(pedidoCozinhaBar());
+    const { error } = await enviarViaProducao(pedido);
 
-    expect(error).toBeNull();
-    expect(enfileirarTrabalho).not.toHaveBeenCalled();
-    expect(imprimirDocumento).toHaveBeenCalledTimes(2); // as duas vias saem aqui
+    expect(error?.message).toMatch(/Ponte KORA não está rodando/);
   });
 
-  it("rede ligada + falha ao enfileirar → erro agregado avisa que não entrou na fila", async () => {
-    configurarConfig({ ...CONFIG_VALUE, impressaoEmRede: true });
-    roteamentoCozinhaBar();
-    vincularNestaMaquina({ "loc-cozinha": { nome: "EPSON-COZINHA" } });
-    enfileirarTrabalho.mockResolvedValueOnce({ data: null, error: { message: "sem rede" } });
-
-    const { error } = await imprimirViaProducaoRoteada(pedidoCozinhaBar());
-
-    expect(error).not.toBeNull();
-    expect(error.message).toContain("Bar");
-    expect(error.message.toLowerCase()).toContain("fila");
-  });
-});
-
-describe("imprimirViaProducaoRoteada (Fase 4 — auditoria da impressão local)", () => {
-  it("cada via impressa aqui vira um registro de histórico (fire-and-forget)", async () => {
-    configurarConfig();
-    configurarRoteamento(
-      [
-        { categoria: "Comidas", local_impressao_id: "loc-cozinha" },
-        { categoria: "Bebidas", local_impressao_id: "loc-bar" },
-      ],
-      [
-        { id: "loc-cozinha", nome: "Cozinha" },
-        { id: "loc-bar", nome: "Bar" },
-      ],
-    );
-
-    await imprimirViaProducaoRoteada({
-      items: [
-        { name: "Fritas", qty: 1, category: "Comidas" },
-        { name: "Suco", qty: 1, category: "Bebidas" },
-      ],
+  it("config antiga com impressoraQz não quebra — o campo legado é ignorado", async () => {
+    configurarConfig({
+      impressaoEmRede: true,
+      perfilImpressora: { larguraMm: 80, driver: "escpos-qztray", impressoraQz: "EPSON-ANTIGA" },
     });
 
-    expect(registrarImpressaoLocal).toHaveBeenCalledTimes(2);
-    const locaisRegistrados = registrarImpressaoLocal.mock.calls.map((c) => c[0].localImpressaoId);
-    expect(locaisRegistrados).toEqual(expect.arrayContaining(["loc-cozinha", "loc-bar"]));
-  });
+    const { error } = await enviarViaProducao(pedido);
 
-  it("via que FALHOU ao imprimir não é registrada no histórico", async () => {
-    configurarConfig();
-    configurarRoteamento(
-      [{ categoria: "Bebidas", local_impressao_id: "loc-bar" }],
-      [{ id: "loc-bar", nome: "Bar" }],
-    );
-    imprimirDocumento.mockResolvedValueOnce({ error: { message: "impressora offline" } });
-
-    await imprimirViaProducaoRoteada({ items: [{ name: "Suco", qty: 1, category: "Bebidas" }] });
-
-    expect(registrarImpressaoLocal).not.toHaveBeenCalled();
+    expect(error).toBeNull();
+    const [, perfil] = imprimirDocumento.mock.calls[0];
+    expect(perfil).not.toHaveProperty("impressoraQz");
+    expect(perfil.driver).toBe("browser-raster");
+    expect(perfil.larguraMm).toBe(80);
   });
 });

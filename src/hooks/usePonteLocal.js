@@ -18,7 +18,7 @@ import {
   pingPonte, buscarInfoPonte, enviarSnapshotPonte,
   buscarPedidosPonte, confirmarPedidosPonte, montarEnderecoPalm,
 } from "@/lib/ponte";
-import { imprimirViaProducaoRoteada } from "@/lib/impressao/despacho";
+import { enviarViaProducao } from "@/lib/impressao/despacho";
 
 const INTERVALO_MS = 5000;
 const SNAPSHOT_MIN_MS = 60 * 1000; // catálogo reenviado no máximo a cada 60s
@@ -118,10 +118,9 @@ export function usePonteLocal({ ativo, products, pending, addPending, ponteEnder
           }
           processadosRef.current.add(pedido.id);
           confirmar.push(registro.id);
-          // Impressão no fluxo já existente do app (mesmo da Cozinha):
-          // via de produção roteada por local (Fase 1).
+          // Impressão no fluxo já existente do app (mesmo da Cozinha).
           try {
-            const { error: erroImpressao } = await imprimirViaProducaoRoteada(order);
+            const { error: erroImpressao } = await enviarViaProducao(order);
             if (erroImpressao) console.error("[ponte] falha ao imprimir pedido do Palm:", erroImpressao);
           } catch (err) {
             console.error("[ponte] falha ao imprimir pedido do Palm:", err);

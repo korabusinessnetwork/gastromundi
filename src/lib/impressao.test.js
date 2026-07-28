@@ -272,6 +272,42 @@ describe("buscarConfigImpressao", () => {
     expect(data).toEqual(CONFIG_IMPRESSAO_PADRAO);
   });
 
+  it("ignora campos de versões antigas (impressoraQz / impressaoEmRede) sem quebrar", async () => {
+    mockSupabase.current.setTableResult("config", {
+      data: {
+        key: "config_impressao",
+        value: {
+          impressaoEmRede: true,
+          perfilImpressora: { larguraMm: 58, driver: "escpos-qztray", impressoraQz: "EPSON-ANTIGA" },
+        },
+      },
+      error: null,
+    });
+
+    const { data, error } = await buscarConfigImpressao();
+
+    expect(error).toBeNull();
+    expect(data).not.toHaveProperty("impressaoEmRede");
+    expect(data.perfilImpressora).not.toHaveProperty("impressoraQz");
+    // driver que não existe mais volta pro default; o resto do papel é preservado
+    expect(data.perfilImpressora.driver).toBe("browser-raster");
+    expect(data.perfilImpressora.larguraMm).toBe(58);
+    expect(data.perfilImpressora.impressora).toBeNull();
+  });
+
+  it("preserva o destino novo da impressora (Ponte) quando gravado", async () => {
+    const impressora = { tipo: "rede", host: "192.168.0.50", porta: 9100 };
+    mockSupabase.current.setTableResult("config", {
+      data: { key: "config_impressao", value: { perfilImpressora: { driver: "escpos-ponte", impressora } } },
+      error: null,
+    });
+
+    const { data } = await buscarConfigImpressao();
+
+    expect(data.perfilImpressora.driver).toBe("escpos-ponte");
+    expect(data.perfilImpressora.impressora).toEqual(impressora);
+  });
+
   it("retorna os defaults (nunca quebra a impressão) se o Supabase falhar", async () => {
     mockSupabase.current.setTableError("config", { message: "falha de rede" });
 

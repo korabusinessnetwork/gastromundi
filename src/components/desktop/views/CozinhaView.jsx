@@ -3,7 +3,7 @@ import { useApp } from "@/context/AppContext";
 import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido } from "@/lib/cozinha";
-import { imprimirViaProducaoRoteada } from "@/lib/impressao/despacho";
+import { enviarViaProducao } from "@/lib/impressao/despacho";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -66,13 +66,12 @@ export default function CozinhaView() {
     }
   };
 
-  // F015/F020 — via de produção roteada por LOCAL (Fase 1): 1 clique
-  // gera uma via por local de destino (cozinha, bar…), cada uma na
-  // impressora vinculada ao local nesta máquina; sem roteamento
-  // configurado, cai numa via única no perfil global (sem regressão).
+  // Via de produção: 1 clique imprime a comanda no destino do perfil —
+  // impressora térmica pela Ponte KORA (que enfileira e reimprime sozinha
+  // se estiver ocupada/desligada) ou a janela do navegador.
   // Nunca lança: pop-up bloqueado/falha de driver vira um alerta simples.
   const handleImprimirVia = async (pedido) => {
-    const { error } = await imprimirViaProducaoRoteada(pedido);
+    const { error } = await enviarViaProducao(pedido);
     if (error) window.alert(error.message);
   };
 

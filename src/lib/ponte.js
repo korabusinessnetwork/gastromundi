@@ -61,6 +61,48 @@ export async function confirmarPedidosPonte(ids) {
   return chamarPonte("/pedidos/confirmar", { metodo: "POST", corpo: { ids } });
 }
 
+// --- Impressão (Tarefa I) --------------------------------------------
+// A Ponte é quem fala com a impressora: o app só manda LINHAS de texto
+// e o destino; ela monta os bytes ESC/POS, grava a fila em disco e
+// reimprime sozinha se a impressora estiver ocupada/desligada.
+
+// Quando a Ponte não responde, quem lê a mensagem é o dono do
+// restaurante no meio do serviço — precisa saber o que fazer, não o
+// nome do erro de rede. Erro HTTP da própria Ponte (que já vem em
+// português) passa direto.
+const AVISO_PONTE_FORA = "A Ponte KORA não está rodando neste computador. Abra a Ponte e tente imprimir de novo.";
+
+function erroAmigavelPonte(error) {
+  if (!error) return null;
+  // AbortError (timeout) e TypeError (connection refused) = ponte fora do ar.
+  const nome = error.name ?? "";
+  const foraDoAr = nome === "AbortError" || nome === "TypeError" || /failed to fetch|networkerror|load failed/i.test(error.message ?? "");
+  return foraDoAr ? new Error(AVISO_PONTE_FORA) : error;
+}
+
+/** Impressoras que a Ponte enxerga neste PC. (GET /impressoras) */
+export async function listarImpressorasPonte() {
+  const { data, error } = await chamarPonte("/impressoras");
+  return { data, error: erroAmigavelPonte(error) };
+}
+
+/**
+ * Enfileira um trabalho de impressão na Ponte. (POST /imprimir)
+ *
+ * @param {{destino: object, linhas: string[], cortaPapel?: boolean, copias?: number}} trabalho
+ * @returns {Promise<{data: {id: string, estado: string}|null, error: Error|null}>}
+ */
+export async function enviarImpressaoPonte(trabalho) {
+  const { data, error } = await chamarPonte("/imprimir", { metodo: "POST", corpo: trabalho });
+  return { data, error: erroAmigavelPonte(error) };
+}
+
+/** Estado da fila de impressão da Ponte. (GET /impressao) */
+export async function buscarFilaImpressaoPonte() {
+  const { data, error } = await chamarPonte("/impressao");
+  return { data, error: erroAmigavelPonte(error) };
+}
+
 /** Monta o link que o Palm abre (página servida pela própria ponte). */
 export function montarEnderecoPalm(info) {
   const ip = info?.enderecos?.[0];

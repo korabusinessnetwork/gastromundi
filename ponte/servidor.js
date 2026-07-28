@@ -27,17 +27,25 @@ import {
 import {
   ehEnderecoLocal, cabecalhosCors, tokenDaRequisicao, tokenValido, enderecosLan,
 } from "./lib/http.js";
+import {
+  criarTrabalho, proximoTrabalho, marcarImprimindo, marcarConcluido, marcarFalha,
+  destravarImprimindo, contarPendentes, podarFila, limparFinalizados,
+} from "./lib/filaImpressao.js";
+import { montarBytes } from "./lib/escpos.js";
+import { listarImpressoras, enviarBytes } from "./lib/impressoras.js";
 
 const RAIZ = path.dirname(fileURLToPath(import.meta.url));
 const DIR_DADOS = path.join(RAIZ, "dados");
 const ARQ_CONFIG = path.join(DIR_DADOS, "config.json");
 const ARQ_SNAPSHOT = path.join(DIR_DADOS, "snapshot.json");
 const ARQ_PEDIDOS = path.join(DIR_DADOS, "pedidos.json");
+const ARQ_IMPRESSAO = path.join(DIR_DADOS, "impressao.json");
 const ARQ_PALM = path.join(RAIZ, "palm.html");
 
 const PORTA = Number(process.env.KORA_PONTE_PORTA) || 8123;
 const VERSAO = "1.0.0";
 const MAX_CORPO = 1024 * 1024; // 1 MiB — snapshot de catálogo cabe com folga
+const INTERVALO_IMPRESSAO_MS = 3000; // de quanto em quanto a fila é olhada
 
 // ── Persistência simples em disco (sobrevive a reiniciar o PC) ─────────
 fs.mkdirSync(DIR_DADOS, { recursive: true });
@@ -70,6 +78,14 @@ let snapshot = lerJson(ARQ_SNAPSHOT, null);
 function salvarFila() {
   filaPedidos = podarConfirmados(filaPedidos);
   gravarJson(ARQ_PEDIDOS, filaPedidos);
+}
+
+// Fila de impressão: trabalho que estava "imprimindo" quando a ponte foi
+// fechada (ou faltou luz) volta para a fila — aquela comanda não saiu.
+let filaImpressao = podarFila(destravarImprimindo(lerJson(ARQ_IMPRESSAO, [])));
+
+function salvarImpressao() {
+  gravarJson(ARQ_IMPRESSAO, filaImpressao);
 }
 
 // ── Helpers de resposta ────────────────────────────────────────────────
@@ -106,6 +122,54 @@ function lerCorpoJson(req) {
   });
 }
 
+// ── Worker da impressão ────────────────────────────────────────────────
+//
+// Um trabalho por vez, sempre: duas comandas saindo ao mesmo tempo na
+// mesma bobina viram uma salada de texto. Se a impressora estiver ocupada
+// ou desligada, a falha só agenda a próxima tentativa — o pedido fica
+// guardado em disco e sai sozinho quando ela voltar.
+let imprimindo = false;
+
+async function ciclarImpressao() {
+  if (imprimindo) return;
+
+  const trabalho = proximoTrabalho(filaImpressao);
+  if (!trabalho) return;
+
+  imprimindo = true;
+  filaImpressao = marcarImprimindo(filaImpressao, trabalho.id);
+  salvarImpressao();
+
+  try {
+    // Cópias viram um único envio: o spooler trata como um trabalho só e
+    // não corre o risco de outra comanda entrar no meio das vias.
+    const umaVia = montarBytes(trabalho.linhas, { cortaPapel: trabalho.cortaPapel });
+    const bytes = trabalho.copias > 1
+      ? Buffer.concat(Array.from({ length: trabalho.copias }, () => umaVia))
+      : umaVia;
+
+    await enviarBytes(trabalho.destino, bytes);
+    filaImpressao = marcarConcluido(filaImpressao, trabalho.id);
+    console.log(`[ponte] impressão ${trabalho.id} concluída (${trabalho.linhas.length} linha(s))`);
+  } catch (e) {
+    filaImpressao = marcarFalha(filaImpressao, trabalho.id, e);
+    const atual = filaImpressao.find((t) => t.id === trabalho.id);
+    console.warn(`[ponte] impressão ${trabalho.id} ${atual?.estado === "falhou" ? "DESISTIU" : "vai tentar de novo"}: ${e.message}`);
+  } finally {
+    filaImpressao = podarFila(filaImpressao);
+    salvarImpressao();
+    imprimindo = false;
+  }
+}
+
+function agendarImpressao() {
+  // Sem await de propósito: quem pediu a impressão recebe o 202 na hora,
+  // a impressora leva o tempo que levar.
+  ciclarImpressao().catch((e) => console.error("[ponte] erro inesperado na fila de impressão:", e.message));
+}
+
+setInterval(agendarImpressao, INTERVALO_IMPRESSAO_MS);
+
 // ── Servidor ───────────────────────────────────────────────────────────
 const servidor = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
@@ -121,7 +185,13 @@ const servidor = http.createServer(async (req, res) => {
 
   // ── Público na rede local ────────────────────────────────────────────
   if (rota === "GET /saude") {
-    return responderJson(res, 200, { ok: true, nome: "KORA Ponte", versao: VERSAO, pendentes: pedidosPendentes(filaPedidos).length });
+    return responderJson(res, 200, {
+      ok: true,
+      nome: "KORA Ponte",
+      versao: VERSAO,
+      pendentes: pedidosPendentes(filaPedidos).length,
+      impressoesPendentes: contarPendentes(filaImpressao),
+    });
   }
 
   if (rota === "GET /palm") {
@@ -190,6 +260,49 @@ const servidor = http.createServer(async (req, res) => {
     filaPedidos = resultado.fila;
     if (resultado.confirmados > 0) salvarFila();
     return responderJson(res, 200, { ok: true, confirmados: resultado.confirmados });
+  }
+
+  // ── Impressão (só localhost, pelo gate acima) ────────────────────────
+  //
+  // Ficam DEPOIS do gate de propósito: quem está no Wi-Fi manda pedido,
+  // nunca aciona a impressora. Quem imprime é o app do caixa, no PC.
+  if (rota === "GET /impressoras") {
+    try {
+      return responderJson(res, 200, { impressoras: await listarImpressoras() });
+    } catch (e) {
+      // Sem lista o caixa ainda consegue digitar o nome ou usar impressora
+      // de rede — por isso avisa em vez de derrubar a tela.
+      return responderJson(res, 200, { impressoras: [], aviso: e.message });
+    }
+  }
+
+  if (rota === "POST /imprimir") {
+    const { dados, erro } = await lerCorpoJson(req);
+    if (erro) return responderJson(res, 400, { erro: "Não deu para ler o pedido de impressão. Tente de novo." });
+
+    const validacao = criarTrabalho(dados, { id: crypto.randomUUID() });
+    if (!validacao.ok) return responderJson(res, 400, { erro: validacao.erro });
+
+    filaImpressao = podarFila([...filaImpressao, validacao.trabalho]);
+    salvarImpressao();
+    agendarImpressao(); // não espera a impressora para responder
+
+    console.log(`[ponte] impressão na fila — ${validacao.trabalho.linhas.length} linha(s), destino ${validacao.trabalho.destino.tipo}`);
+    return responderJson(res, 202, { ok: true, id: validacao.trabalho.id, estado: validacao.trabalho.estado });
+  }
+
+  if (rota === "GET /impressao") {
+    return responderJson(res, 200, {
+      trabalhos: filaImpressao,
+      pendentes: contarPendentes(filaImpressao),
+    });
+  }
+
+  if (rota === "POST /impressao/limpar") {
+    const resultado = limparFinalizados(filaImpressao);
+    filaImpressao = resultado.fila;
+    if (resultado.removidos > 0) salvarImpressao();
+    return responderJson(res, 200, { ok: true, removidos: resultado.removidos });
   }
 
   return responderJson(res, 404, { erro: "rota desconhecida" });

@@ -8,6 +8,9 @@ import {
   buscarPedidosPonte,
   confirmarPedidosPonte,
   montarEnderecoPalm,
+  listarImpressorasPonte,
+  enviarImpressaoPonte,
+  buscarFilaImpressaoPonte,
 } from "./ponte.js";
 
 const respostaJson = (corpo, { status = 200 } = {}) => ({
@@ -83,6 +86,74 @@ describe("buscarPedidosPonte / confirmarPedidosPonte", () => {
     const { data, error } = await enviarSnapshotPonte(null);
     expect(data).toBeNull();
     expect(error.message).toBe("snapshot inválido");
+  });
+});
+
+describe("impressão pela Ponte", () => {
+  it("lista as impressoras do PC (GET /impressoras)", async () => {
+    fetch.mockResolvedValue(respostaJson({ impressoras: [{ nome: "EPSON TM-T20", padrao: true }] }));
+
+    const { data, error } = await listarImpressorasPonte();
+
+    expect(error).toBeNull();
+    expect(data.impressoras[0].nome).toBe("EPSON TM-T20");
+    expect(fetch.mock.calls[0][0]).toBe(`${PONTE_URL}/impressoras`);
+  });
+
+  it("envia o trabalho de impressão (POST /imprimir) com destino e linhas", async () => {
+    fetch.mockResolvedValue(respostaJson({ id: "a1b2", estado: "na_fila" }, { status: 202 }));
+    const trabalho = {
+      destino: { tipo: "windows", nome: "EPSON TM-T20" },
+      linhas: ["Comanda 12", "1x X-Burguer"],
+      cortaPapel: true,
+      copias: 1,
+    };
+
+    const { data, error } = await enviarImpressaoPonte(trabalho);
+
+    expect(error).toBeNull();
+    expect(data).toEqual({ id: "a1b2", estado: "na_fila" });
+    const [url, opts] = fetch.mock.calls[0];
+    expect(url).toBe(`${PONTE_URL}/imprimir`);
+    expect(opts.method).toBe("POST");
+    expect(JSON.parse(opts.body)).toEqual(trabalho);
+  });
+
+  it("lê a fila de impressão (GET /impressao)", async () => {
+    fetch.mockResolvedValue(respostaJson({ trabalhos: [{ id: "a1b2" }], pendentes: 1 }));
+
+    const { data } = await buscarFilaImpressaoPonte();
+
+    expect(data.pendentes).toBe(1);
+    expect(fetch.mock.calls[0][0]).toBe(`${PONTE_URL}/impressao`);
+  });
+
+  it("Ponte fechada vira instrução do que fazer, não erro técnico de rede", async () => {
+    fetch.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    const { data, error } = await enviarImpressaoPonte({ destino: {}, linhas: [] });
+
+    expect(data).toBeNull();
+    expect(error.message).toContain("Ponte KORA não está rodando");
+    expect(error.message).not.toMatch(/fetch|TypeError/i);
+  });
+
+  it("timeout (AbortError) também vira a mesma instrução", async () => {
+    const abortado = new Error("aborted");
+    abortado.name = "AbortError";
+    fetch.mockRejectedValue(abortado);
+
+    const { error } = await listarImpressorasPonte();
+
+    expect(error.message).toContain("Ponte KORA não está rodando");
+  });
+
+  it("erro que a própria Ponte explicou passa direto (já está em português)", async () => {
+    fetch.mockResolvedValue(respostaJson({ erro: "destino de impressão inválido" }, { status: 400 }));
+
+    const { error } = await enviarImpressaoPonte({ destino: null, linhas: [] });
+
+    expect(error.message).toBe("destino de impressão inválido");
   });
 });
 

@@ -20,19 +20,26 @@ import { nomeExibicaoTenant, logoUrlTenant } from "./tema";
 
 // F020 — perfil de impressora: driver trocável (decisão 025) + papel
 // físico (largura/margem/corte/fonte). `driver: "browser-raster"` é o
-// default gratuito (window.print); `"escpos-qztray"` é substituível,
-// nunca obrigatório (QZ Tray exige certificado pago pra imprimir sem
-// aviso — Restrições de Custo). `fonteBase: null` = usa o tamanho
+// default gratuito (window.print); `"escpos-ponte"` manda o texto pra
+// Ponte KORA (Node local, já instalado no PC do caixa), que monta os
+// bytes ESC/POS e reimprime sozinha — sem QZ Tray e sem certificado
+// pago (Restrições de Custo). `fonteBase: null` = usa o tamanho
 // default de cada template (comprovante 13px, via de produção 15px);
 // só é sobrescrito se o estabelecimento pedir letra maior (impressora
 // que "corta" texto pequeno).
+//
+// `impressora` é o destino que a Ponte entende — dois formatos:
+//   { tipo: "windows", nome: "EPSON TM-T20" }        → fila do Windows
+//   { tipo: "rede", host: "192.168.0.50", porta: 9100 } → socket RAW
+// `null` = ainda não escolhida (o driver da Ponte recusa com mensagem
+// clara em vez de imprimir no vazio).
 export const PERFIL_IMPRESSORA_PADRAO = {
   larguraMm: 80,
   margemMm: 2,
   cortaPapel: true,
   fonteBase: null,
   driver: "browser-raster",
-  impressoraQz: null,
+  impressora: null,
 };
 
 export const CONFIG_IMPRESSAO_PADRAO = {
@@ -42,15 +49,10 @@ export const CONFIG_IMPRESSAO_PADRAO = {
   cnpj: "",
   rodapePersonalizado: "Obrigado pela preferência!",
   perfilImpressora: PERFIL_IMPRESSORA_PADRAO,
-  // Fase 3 — impressão em rede (fila `trabalhos_impressao`): quando ligada,
-  // uma via roteada para um local NÃO vinculado nesta máquina vai pra fila e
-  // o PC dono do local a imprime. Desligada por padrão → comportamento das
-  // Fases 1/2 (cada máquina imprime só o que está vinculado nela).
-  impressaoEmRede: false,
 };
 
 // Cache local da config de impressão — impressão local (window.print /
-// QZ Tray em localhost) não depende de internet; só a config dependia.
+// Ponte KORA em localhost) não depende de internet; só a config dependia.
 // Guardando a última config lida, imprimir continua funcionando offline.
 //
 // ISOLAMENTO MULTI-TENANT (hardening): o cache é carimbado com o tenant_id
@@ -99,13 +101,32 @@ function salvarCacheConfigImpressao(valor, tenantId = null) {
   }
 }
 
+// Campos que existiram em versões anteriores da impressão (QZ Tray,
+// fila no banco) e hoje não significam nada. Ficam gravados em `config`
+// de quem já usava o sistema — a leitura só os IGNORA, sem quebrar e
+// sem exigir migration destrutiva no banco do estabelecimento.
+const CAMPOS_LEGADOS_CONFIG = ["impressaoEmRede"];
+const CAMPOS_LEGADOS_PERFIL = ["impressoraQz"];
+const DRIVERS_LEGADOS = ["escpos-qztray"];
+
+function semCamposLegados(objeto, campos) {
+  const limpo = { ...(objeto ?? {}) };
+  for (const campo of campos) delete limpo[campo];
+  return limpo;
+}
+
 // Merge próprio pro perfil (aninhado) — senão salvar só 1 campo
 // do perfil apagaria os demais defaults (largura, driver etc.).
 function mesclarConfigImpressao(valor) {
+  const perfilGravado = semCamposLegados(valor?.perfilImpressora, CAMPOS_LEGADOS_PERFIL);
+  // Driver que não existe mais volta pro default gratuito — senão a tela
+  // de perfil mostraria uma opção fantasma e a impressão cairia em
+  // fallback silencioso.
+  if (DRIVERS_LEGADOS.includes(perfilGravado.driver)) delete perfilGravado.driver;
   return {
     ...CONFIG_IMPRESSAO_PADRAO,
-    ...valor,
-    perfilImpressora: { ...PERFIL_IMPRESSORA_PADRAO, ...(valor?.perfilImpressora ?? {}) },
+    ...semCamposLegados(valor, CAMPOS_LEGADOS_CONFIG),
+    perfilImpressora: { ...PERFIL_IMPRESSORA_PADRAO, ...perfilGravado },
   };
 }
 

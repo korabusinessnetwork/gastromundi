@@ -1,5 +1,5 @@
 import * as browserRaster from "./browserRaster";
-import * as escposQzTray from "./escposQzTray";
+import * as escposPonte from "./escposPonte";
 
 /**
  * F020 — registro de drivers de impressão (decisão 025). Cada driver
@@ -7,7 +7,7 @@ import * as escposQzTray from "./escposQzTray";
  * Promise<{error}> }` — então templates (src/lib/impressao.js,
  * renderizar.js) e UI (PerfilImpressora.jsx) nunca falam com um driver
  * específico, só com essa interface. Um driver novo (WebUSB/
- * WebSerial, agente local, etc.) só precisa:
+ * WebSerial, outro agente local, etc.) só precisa:
  *   1. implementar `imprimir(documento, perfil)`;
  *   2. entrar no mapa `DRIVERS` abaixo com uma chave nova;
  * nada mais muda — nem os templates, nem a tela de perfil.
@@ -16,12 +16,23 @@ export const DRIVER_PADRAO = "browser-raster";
 
 const DRIVERS = {
   "browser-raster": browserRaster,
-  "escpos-qztray": escposQzTray,
+  "escpos-ponte": escposPonte,
 };
 
+// Rótulos são lidos pelo dono do restaurante na tela de Configurações —
+// nada de nome técnico de protocolo. `ajuda` responde a única pergunta
+// que ele tem ali: "qual dos dois é o meu caso?".
 export const OPCOES_DRIVER = [
-  { id: "browser-raster", label: "Impressão do navegador (gratuito)" },
-  { id: "escpos-qztray", label: "QZ Tray (ESC/POS, impressora térmica dedicada)" },
+  {
+    id: "browser-raster",
+    label: "Janela de impressão do navegador",
+    ajuda: "Funciona em qualquer impressora já instalada no computador. Abre a janela de impressão para você confirmar.",
+  },
+  {
+    id: "escpos-ponte",
+    label: "Impressora térmica (Ponte KORA)",
+    ajuda: "Imprime direto na térmica, sem janela e sem confirmar. Precisa da Ponte KORA aberta neste computador.",
+  },
 ];
 
 /**

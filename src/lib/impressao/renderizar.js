@@ -9,8 +9,8 @@ import { rotuloMetodo } from "@/utils/pagamentos";
  * navegador para imprimir (`window.print()`) — mesmo mecanismo que já
  * existia em `CheckoutView.jsx`, generalizado para os 3 templates.
  * Sem serviço/SDK de impressão pago (Restrições de Custo) — impressão
- * térmica "de verdade" continua disponível via QZ Tray
- * (`src/lib/qztray.js`, `ImpressorasConfig.jsx`), não substituída aqui.
+ * térmica "de verdade" continua disponível pelo driver da Ponte KORA
+ * (`drivers/escposPonte.js`), não substituída aqui.
  */
 
 /**
