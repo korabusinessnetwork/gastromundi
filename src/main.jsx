@@ -7,10 +7,16 @@ import router from "@/routes";
 import "@/styles/tema.css";
 import { registerSW } from "virtual:pwa-register";
 import { initObservabilidade } from "@/lib/observabilidade";
+import { instalarRecuperacaoDeploy } from "@/lib/recuperacaoDeploy";
 
 // PWA (Leva 11): registra o service worker que deixa o app disponível
 // offline. `immediate` atualiza a versão em segundo plano sem prompt.
 registerSW({ immediate: true });
+
+// Deploy novo com a aba já aberta: os pedaços antigos do app somem do servidor
+// e a tela quebraria em branco. Antes de qualquer render, deixamos armada a
+// recuperação — recarrega uma vez e volta com a versão nova.
+instalarRecuperacaoDeploy();
 
 // Observabilidade (Sentry): "luz do painel" do runtime. Env-gated e só em
 // produção — sem VITE_SENTRY_DSN o app roda idêntico (fail-open). Precede o
