@@ -74,10 +74,11 @@ export function instalarRecuperacaoDeploy({
   };
 
   janela?.addEventListener?.("vite:preloadError", (evento) => {
-    // preventDefault evita que o Vite deixe o erro escalar sozinho: quem manda
-    // no que acontece a seguir é este recarregamento.
-    evento?.preventDefault?.();
-    recuperar();
+    // O preventDefault só vale quando o recarregamento REALMENTE vai acontecer:
+    // ele engole o erro (o Vite deixa de relançar), e engolir sem recarregar
+    // deixaria a rota pendurada em silêncio, sem nem o aviso "Algo deu errado".
+    // Barrado pela trava anti-loop, o erro segue seu caminho de propósito.
+    if (recuperar()) evento?.preventDefault?.();
   });
 
   return recuperar;

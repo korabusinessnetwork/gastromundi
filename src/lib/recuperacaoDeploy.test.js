@@ -79,6 +79,20 @@ describe("instalarRecuperacaoDeploy", () => {
     expect(janela.location.reload).not.toHaveBeenCalled();
   });
 
+  it("sem recarregar, o erro NÃO é engolido — a tela de aviso precisa aparecer", () => {
+    const janela = janelaFake();
+    const armazenamento = armazenamentoFake({ [CHAVE_ULTIMA_RECUPERACAO]: "499000" });
+
+    instalarRecuperacaoDeploy({ janela, armazenamento, agora: () => 500_000 });
+    const evento = { preventDefault: vi.fn() };
+    janela.ouvintes["vite:preloadError"](evento);
+
+    // O Vite só relança o erro quando o evento NÃO foi cancelado. Cancelar sem
+    // recarregar deixaria a rota pendurada em branco, sem erro nenhum.
+    expect(evento.preventDefault).not.toHaveBeenCalled();
+    expect(janela.location.reload).not.toHaveBeenCalled();
+  });
+
   it("sessionStorage indisponível não derruba o app — recarrega assim mesmo", () => {
     const janela = janelaFake();
     const armazenamento = {
