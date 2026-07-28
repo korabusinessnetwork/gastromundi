@@ -20,6 +20,23 @@ body {
   padding: 16px var(--print-padding-h, 8px);
 }
 .cabecalho { text-align: center; margin-bottom: 10px; }
+/* Nome do ponto de impressão (Cozinha, Bar…). Só aparece quando há mais
+   de um ponto configurado: aí o mesmo pedido sai em papéis diferentes e
+   quem pega o ticket precisa saber, de longe, se aquela via é dele.
+   Invertido (fundo preto) porque é o que a térmica renderiza com mais
+   contraste — lê-se antes do número da comanda. */
+.cabecalho__ponto {
+  font-size: 1.06em;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: #111;
+  color: #fff;
+  padding: 2px 4px;
+  margin-bottom: 4px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 .cabecalho__titulo { font-size: 1.33em; font-weight: bold; }
 .cabecalho__apelido { font-size: 1.06em; font-weight: bold; margin-top: 2px; }
 .cabecalho__linha { font-size: 0.93em; color: #333; margin-top: 4px; }

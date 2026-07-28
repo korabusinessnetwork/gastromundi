@@ -34,8 +34,9 @@ import {
 } from "./lib/filaImpressao.js";
 import { montarBytes } from "./lib/escpos.js";
 import { listarImpressoras, enviarBytes } from "./lib/impressoras.js";
-import { EMPACOTADO, dirDados, estadoInstalacao, instalar } from "./lib/instalacao.js";
+import { EMPACOTADO, ARG_AUTOSTART, dirDados, estadoInstalacao, instalar } from "./lib/instalacao.js";
 import { validarVinculo, aplicarVinculo, resumoVinculo } from "./lib/vinculo.js";
+import { configurarLog, caminhoLog, logar, logarErro } from "./lib/log.js";
 
 const RAIZ = path.dirname(fileURLToPath(import.meta.url));
 // Como .exe, a pasta ao lado do programa é somente leitura (e ele pode estar
@@ -48,6 +49,11 @@ const ARQ_PEDIDOS = path.join(DIR_DADOS, "pedidos.json");
 const ARQ_IMPRESSAO = path.join(DIR_DADOS, "impressao.json");
 const ARQ_PALM = path.join(RAIZ, "palm.html");
 const ARQ_PAINEL = path.join(RAIZ, "painel.html");
+const ARQ_AVISO = path.join(DIR_DADOS, "ponte-nao-abriu.html");
+
+// A ponte subiu junto com o Windows (atalho da Inicialização) ou alguém
+// clicou nela agora? Só o clique merece abrir o navegador — ver ARG_AUTOSTART.
+const AUTOSTART = process.argv.includes(ARG_AUTOSTART);
 
 const PORTA = Number(process.env.KORA_PONTE_PORTA) || 8123;
 const VERSAO = "1.0.0";
@@ -56,6 +62,11 @@ const INTERVALO_IMPRESSAO_MS = 3000; // de quanto em quanto a fila é olhada
 
 // ── Persistência simples em disco (sobrevive a reiniciar o PC) ─────────
 fs.mkdirSync(DIR_DADOS, { recursive: true });
+
+// Empacotada, a ponte roda SEM janela de console (ver lib/pe.js): não existe
+// mais tela para onde mandar mensagem. Tudo que antes ia para o console passa
+// a ir para <dados>/ponte.log, que é onde se descobre o que aconteceu.
+configurarLog({ dir: DIR_DADOS });
 
 function lerJson(arquivo, padrao) {
   try {
@@ -136,17 +147,70 @@ function enderecoPalm() {
 }
 
 /**
+ * Abre alguma coisa (URL ou arquivo) no programa padrão do Windows.
+ * Argumentos vão como lista (nunca concatenados), e o "" é o título da
+ * janela que o `start` exige antes do endereço.
+ */
+function abrirNoWindows(alvo) {
+  if (process.platform !== "win32") return;
+  execFile("cmd", ["/c", "start", "", alvo], { timeout: 5000, windowsHide: true }, () => {});
+}
+
+/**
  * Abre o painel no navegador do PC do caixa.
  *
- * Só no .exe: quem dá duplo clique no programa espera VER alguma coisa —
- * uma janela preta de console não diz se funcionou. Rodando pelo código,
- * abrir o navegador a cada reinício durante o desenvolvimento só atrapalha.
+ * Desde a Leva 15 a ponte roda SEM janela nenhuma. O painel abrindo virou o
+ * ÚNICO sinal visível de que o programa subiu — por isso ele abre em todo
+ * duplo clique (ou atalho da Área de Trabalho).
+ *
+ * Duas exceções, de propósito:
+ * - `--autostart` (atalho da Inicialização): ninguém quer o navegador pulando
+ *   na tela toda vez que liga o PC do caixa. Sobe calada.
+ * - Fora do empacotado (`node servidor.js`): abrir o navegador a cada reinício
+ *   durante o desenvolvimento só atrapalha.
  */
 function abrirPainelNoNavegador() {
-  if (!EMPACOTADO || process.platform !== "win32") return;
-  // Argumentos vão como lista (nunca concatenados), e o "" é o título da
-  // janela que o `start` exige antes da URL.
-  execFile("cmd", ["/c", "start", "", `http://localhost:${PORTA}/`], { timeout: 5000 }, () => {});
+  if (!EMPACOTADO || AUTOSTART) return;
+  abrirNoWindows(`http://localhost:${PORTA}/`);
+}
+
+/**
+ * Último recurso quando a ponte NÃO conseguiu subir.
+ *
+ * Sem console e sem servidor no ar, não sobrou nenhum canal para falar com o
+ * dono — ele daria dois cliques e não aconteceria absolutamente nada. Então
+ * escrevemos um aviso em HTML na pasta de dados e mandamos o Windows abrir no
+ * navegador padrão. Escolhemos essa via (em vez de `msg.exe`, que não existe
+ * nas edições Home do Windows, ou de uma caixa de diálogo, que exigiria
+ * dependência gráfica) porque usa exatamente o mesmo mecanismo do painel:
+ * zero dependência nova e funciona em qualquer Windows.
+ *
+ * Nunca lança: se nem isso der, ainda fica o registro no ponte.log.
+ */
+function avisarErroFatal(titulo, detalhe) {
+  const escapar = (t) => String(t).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8" />
+<title>KORA Ponte não abriu</title>
+<style>body{background:#0f0f10;color:#f2f2f2;font-family:system-ui,"Segoe UI",sans-serif;max-width:640px;margin:0 auto;padding:40px 20px;line-height:1.5}
+h1{font-size:24px;margin:0 0 16px}p{font-size:17px;margin:0 0 14px}code{background:#1a1a1c;border:1px solid #2a2a2e;border-radius:8px;padding:10px 12px;display:block;word-break:break-all;font-size:14px}</style>
+</head><body>
+<h1>A KORA Ponte não conseguiu abrir</h1>
+<p>${escapar(titulo)}</p>
+<p><strong>O que aconteceu:</strong></p>
+<code>${escapar(detalhe)}</code>
+<p>Tente abrir de novo pelo atalho <strong>KORA Ponte</strong> da Área de Trabalho. Se continuar assim, mande esta tela e o arquivo abaixo para o suporte:</p>
+<code>${escapar(caminhoLog() ?? "")}</code>
+</body></html>`;
+
+  try {
+    fs.writeFileSync(ARQ_AVISO, html, "utf8");
+    // O arquivo é sempre gravado (serve de prova para o suporte), mas só o
+    // .exe abre a página: no desenvolvimento existe terminal, e o erro já
+    // apareceu lá — abrir navegador a cada tentativa só atrapalharia.
+    if (EMPACOTADO) abrirNoWindows(ARQ_AVISO);
+  } catch (e) {
+    logarErro("não deu nem para mostrar o aviso de erro na tela", e);
+  }
 }
 
 // ── Worker da impressão ────────────────────────────────────────────────
@@ -177,11 +241,11 @@ async function ciclarImpressao() {
 
     await enviarBytes(trabalho.destino, bytes);
     filaImpressao = marcarConcluido(filaImpressao, trabalho.id);
-    console.log(`[ponte] impressão ${trabalho.id} concluída (${trabalho.linhas.length} linha(s))`);
+    logar(`impressão ${trabalho.id} concluída (${trabalho.linhas.length} linha(s))`);
   } catch (e) {
     filaImpressao = marcarFalha(filaImpressao, trabalho.id, e);
     const atual = filaImpressao.find((t) => t.id === trabalho.id);
-    console.warn(`[ponte] impressão ${trabalho.id} ${atual?.estado === "falhou" ? "DESISTIU" : "vai tentar de novo"}: ${e.message}`);
+    logarErro(`impressão ${trabalho.id} ${atual?.estado === "falhou" ? "DESISTIU" : "vai tentar de novo"}`, e);
   } finally {
     filaImpressao = podarFila(filaImpressao);
     salvarImpressao();
@@ -192,7 +256,7 @@ async function ciclarImpressao() {
 function agendarImpressao() {
   // Sem await de propósito: quem pediu a impressão recebe o 202 na hora,
   // a impressora leva o tempo que levar.
-  ciclarImpressao().catch((e) => console.error("[ponte] erro inesperado na fila de impressão:", e.message));
+  ciclarImpressao().catch((e) => logarErro("erro inesperado na fila de impressão", e));
 }
 
 setInterval(agendarImpressao, INTERVALO_IMPRESSAO_MS);
@@ -263,7 +327,7 @@ const servidor = http.createServer(async (req, res) => {
     const resultado = adicionarPedido(filaPedidos, validacao.pedido, { gerarId: () => crypto.randomUUID() });
     filaPedidos = resultado.fila;
     if (!resultado.duplicado) salvarFila();
-    console.log(`[ponte] pedido ${resultado.duplicado ? "repetido (ignorado)" : "recebido"} — comanda ${validacao.pedido.comanda}, ${validacao.pedido.items.length} item(ns)`);
+    logar(`pedido ${resultado.duplicado ? "repetido (ignorado)" : "recebido"} — comanda ${validacao.pedido.comanda}, ${validacao.pedido.items.length} item(ns)`);
     return responderJson(res, resultado.duplicado ? 200 : 201, { ok: true, id: resultado.registro.id, duplicado: resultado.duplicado });
   }
 
@@ -300,10 +364,10 @@ const servidor = http.createServer(async (req, res) => {
     const jaEra = config.estabelecimento?.tenantId;
     config = aplicarVinculo(config, validacao.vinculo);
     gravarJson(ARQ_CONFIG, config);
-    console.log(
+    logar(
       jaEra && jaEra !== validacao.vinculo.tenantId
-        ? `[ponte] estabelecimento TROCADO para ${validacao.vinculo.nome}`
-        : `[ponte] vinculada ao estabelecimento ${validacao.vinculo.nome}`,
+        ? `estabelecimento TROCADO para ${validacao.vinculo.nome}`
+        : `vinculada ao estabelecimento ${validacao.vinculo.nome}`,
     );
     return responderJson(res, 200, { ok: true, estabelecimento: resumoVinculo(config) });
   }
@@ -325,9 +389,31 @@ const servidor = http.createServer(async (req, res) => {
     // Instalação por usuário (sem admin, sem UAC): copia o programa para a
     // pasta do usuário e cria os atalhos. Nunca derruba a ponte se falhar.
     const resultado = await instalar();
-    if (resultado.ok) console.log(`[ponte] instalada em ${resultado.caminho}`);
-    else console.warn(`[ponte] instalação não concluída: ${resultado.erro}`);
+    if (resultado.ok) logar(`instalada em ${resultado.caminho}`);
+    else logar(`instalação não concluída: ${resultado.erro}`);
     return responderJson(res, 200, resultado);
+  }
+
+  // ── Parar a ponte (só o PC do caixa) ─────────────────────────────────
+  //
+  // Sem janela de console não existe Ctrl+C: se não houvesse este botão, o
+  // dono não teria nenhuma forma de fechar o programa. Responde ANTES de
+  // encerrar — o painel precisa receber o 200 para mostrar "ponte parada"
+  // em vez de um erro de rede sem explicação.
+  if (rota === "POST /parar") {
+    logar("parada pedida no painel — encerrando a ponte");
+    res.once("finish", () => {
+      // Fecha o servidor (para de aceitar conexão nova) e sai logo em
+      // seguida: a fila de pedidos e a de impressão já estão em disco, e o
+      // que estava imprimindo volta para a fila no próximo início.
+      try {
+        servidor.close();
+      } catch {
+        // Já estava fechando — o exit abaixo resolve de qualquer jeito.
+      }
+      setTimeout(() => process.exit(0), 100);
+    });
+    return responderJson(res, 200, { ok: true, mensagem: "A ponte está sendo parada." });
   }
 
   if (rota === "POST /snapshot") {
@@ -376,7 +462,7 @@ const servidor = http.createServer(async (req, res) => {
     salvarImpressao();
     agendarImpressao(); // não espera a impressora para responder
 
-    console.log(`[ponte] impressão na fila — ${validacao.trabalho.linhas.length} linha(s), destino ${validacao.trabalho.destino.tipo}`);
+    logar(`impressão na fila — ${validacao.trabalho.linhas.length} linha(s), destino ${validacao.trabalho.destino.tipo}`);
     return responderJson(res, 202, { ok: true, id: validacao.trabalho.id, estado: validacao.trabalho.estado });
   }
 
@@ -402,28 +488,43 @@ servidor.listen(PORTA, "0.0.0.0", () => {
   const vinculo = resumoVinculo(config);
   const instalacao = estadoInstalacao();
 
-  console.log("┌────────────────────────────────────────────────┐");
-  console.log("│  KORA Ponte — pedidos sem internet e impressão │");
-  console.log("└────────────────────────────────────────────────┘");
-  console.log(vinculo.vinculado
-    ? `  Estabelecimento: ${vinculo.nome}`
-    : "  Estabelecimento: aguardando — abra o sistema KORA neste PC.");
-  console.log(`  Painel:          http://localhost:${PORTA}`);
-  for (const ip of ips) console.log(`  No celular:      http://${ip}:${PORTA}/palm?t=${config.token}`);
+  // O antigo banner na tela morreu junto com a janela de console. O mesmo
+  // conteúdo agora fica no ponte.log — com o token do Palm MASCARADO, porque
+  // arquivo de log qualquer um no PC lê (ver lib/log.js).
+  logar(`KORA Ponte no ar — versão ${VERSAO}, porta ${PORTA}${AUTOSTART ? ", subiu junto com o Windows" : ""}`);
+  logar(vinculo.vinculado
+    ? `estabelecimento: ${vinculo.nome}`
+    : "estabelecimento: aguardando — abra o sistema KORA neste computador.");
+  logar(`painel: http://localhost:${PORTA}`);
+  for (const ip of ips) logar(`no celular: http://${ip}:${PORTA}/palm?t=${config.token}`);
   if (instalacao.empacotado && !instalacao.instalado) {
-    console.log("  → Clique em \"Instalar neste computador\" no painel para");
-    console.log("    ela abrir sozinha junto com o Windows.");
+    logar("ainda não instalada — use \"Instalar neste computador\" no painel para ela abrir sozinha com o Windows.");
   }
-  console.log("  Deixe esta janela aberta (pode minimizar). Para parar: Ctrl+C.");
+  logar("para parar, use o botão \"Parar a ponte\" no painel.");
 
   abrirPainelNoNavegador();
 });
 
 servidor.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
-    console.error(`A porta ${PORTA} já está em uso — a ponte já está rodando? (defina KORA_PONTE_PORTA para trocar)`);
-  } else {
-    console.error("Erro no servidor da ponte:", err.message);
+    // A ponte já está aberta neste computador (o dono clicou duas vezes no
+    // ícone, ou o atalho da Inicialização já a subiu). Sem janela, o segundo
+    // clique morreria calado e ele acharia que nada funciona — então abrimos
+    // o painel da instância que JÁ está rodando, que é a resposta certa, e
+    // saímos em paz (código 0: isso não é defeito).
+    logar(`a porta ${PORTA} já está em uso — a ponte já estava aberta. Abrindo o painel dela.`);
+    abrirPainelNoNavegador();
+    // Um instante para o navegador ser lançado antes de o processo sumir.
+    setTimeout(() => process.exit(0), 1500);
+    return;
   }
-  process.exit(1);
+
+  logarErro("a ponte não conseguiu subir", err);
+  if (!AUTOSTART) {
+    avisarErroFatal(
+      "O programa abriu, mas não conseguiu ficar no ar neste computador.",
+      err.message ?? String(err),
+    );
+  }
+  setTimeout(() => process.exit(1), 1500);
 });

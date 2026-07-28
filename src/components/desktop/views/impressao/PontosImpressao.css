@@ -1,0 +1,581 @@
+/**
+ * Leva "Pontos de impressão" (2026-07-28). Decisão 018 (CSS separado do
+ * JSX, zero style={{}} inline) + tokens --gm-*/--fs-*/--lh-*/--tap-min
+ * (ADR-007) — cor só por variável, variação por color-mix. Mesmo padrão
+ * visual de PerfilImpressora.css (impressora via Ponte KORA), só que
+ * repetido por card em vez de uma seção única.
+ */
+
+.pontos-impressao__carregando {
+  padding: 40px;
+  text-align: center;
+  color: var(--gm-muted);
+}
+
+.pontos-impressao {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 720px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.pontos-impressao__secao {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pontos-impressao__titulo-secao {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gm-border);
+  font-size: var(--fs-lg, 17px);
+  font-weight: 800;
+  color: var(--gm-text);
+}
+
+.pontos-impressao__intro {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
+.pontos-impressao__ajuda {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
+/* ── Cards de ponto ──────────────────────────────────────────────────── */
+
+.pontos-impressao__lista-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pontos-impressao__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+}
+
+.pontos-impressao__card-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pontos-impressao__input-nome {
+  flex: 1;
+  min-width: 180px;
+  min-height: var(--tap-min);
+  padding: 10px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pontos-impressao__tag-padrao {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-green);
+  border: 1px solid color-mix(in srgb, var(--gm-green) 45%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 12%, transparent);
+  border-radius: 20px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+.pontos-impressao__btn-tornar-padrao {
+  flex-shrink: 0;
+  min-height: var(--tap-min);
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.pontos-impressao__ajuda-padrao {
+  margin: -4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--gm-muted);
+}
+
+/* ── Impressora via Ponte KORA (Windows + rede) — por card ──────────── */
+
+.pontos-impressao__impressora {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-faint);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pontos-impressao__btn-detectar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  min-height: var(--tap-min);
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-text);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.pontos-impressao__btn-detectar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pontos-impressao__lista-impressoras {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pontos-impressao__opcao-impressora {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap-min);
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  cursor: pointer;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.pontos-impressao__opcao-impressora--ativa {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+  background: var(--gm-alow);
+}
+
+.pontos-impressao__tag-padrao-windows {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.pontos-impressao__separador {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.pontos-impressao__rede {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pontos-impressao__input {
+  min-height: var(--tap-min);
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.pontos-impressao__input--host {
+  flex: 2;
+  min-width: 170px;
+}
+
+.pontos-impressao__input--porta {
+  flex: 1;
+  min-width: 90px;
+}
+
+.pontos-impressao__btn-usar-rede {
+  min-height: var(--tap-min);
+  padding: 10px 16px;
+  border-radius: 9px;
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 66%, transparent);
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  color: var(--gm-accent);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.pontos-impressao__btn-usar-rede:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Rodapé do card (remover / confirmar) ────────────────────────────── */
+
+.pontos-impressao__card-rodape {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pontos-impressao__btn-remover {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap-min);
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 45%, transparent);
+  background: none;
+  color: var(--gm-red);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.pontos-impressao__btn-remover:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  color: var(--gm-muted);
+  border-color: var(--gm-border);
+}
+
+.pontos-impressao__confirma-exclusao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gm-red) 10%, transparent);
+  color: var(--gm-text);
+  font-size: 13px;
+}
+
+.pontos-impressao__confirma-botoes {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.pontos-impressao__btn-confirmar-exclusao {
+  min-height: var(--tap-min);
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--gm-red);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.pontos-impressao__btn-cancelar {
+  min-height: var(--tap-min);
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-text);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+/* ── Botão "adicionar ponto" — a ação que o dono pediu por nome ──────── */
+
+.pontos-impressao__btn-adicionar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  align-self: flex-start;
+  min-height: var(--tap-min);
+  padding: 12px 22px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--gm-accent);
+  background: var(--gm-alow);
+  color: var(--gm-accent);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+/* ── Para onde vai cada item — tabela de categorias ───────────────────── */
+
+.pontos-impressao__vazio {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px dashed var(--gm-border);
+  color: var(--gm-muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* Aviso de ponto ainda não salvo: o Salvar é por seção, então dá pra
+   rotear pra um ponto que ainda não existe no banco. Faixa lateral em
+   --gm-warn (não fundo colorido) pra chamar atenção sem competir com os
+   selects logo abaixo, que são a ação principal da seção. */
+.pontos-impressao__aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  border-left: 3px solid var(--gm-warn);
+  color: var(--gm-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.pontos-impressao__aviso-icone {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pontos-impressao__tabela-categorias {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pontos-impressao__linha-categoria {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+}
+
+.pontos-impressao__nome-categoria {
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.pontos-impressao__select {
+  min-height: var(--tap-min);
+  min-width: 190px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+/* ── Exceções por produto — recolhido por padrão ─────────────────────── */
+
+.pontos-impressao__btn-expandir {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  min-height: var(--tap-min);
+  padding: 6px 4px;
+  border: none;
+  background: none;
+  color: var(--gm-accent);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.pontos-impressao__chevron {
+  transition: transform 0.15s;
+}
+
+.pontos-impressao__chevron--aberto {
+  transform: rotate(180deg);
+}
+
+.pontos-impressao__excecoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-faint);
+}
+
+.pontos-impressao__nova-excecao {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pontos-impressao__btn-adicionar-excecao {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap-min);
+  padding: 8px 16px;
+  border-radius: 9px;
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 66%, transparent);
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  color: var(--gm-accent);
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.pontos-impressao__btn-adicionar-excecao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pontos-impressao__lista-excecoes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pontos-impressao__linha-excecao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  font-size: 13px;
+}
+
+.pontos-impressao__nome-produto-excecao {
+  font-weight: 600;
+  color: var(--gm-text);
+}
+
+.pontos-impressao__seta {
+  color: var(--gm-muted);
+}
+
+.pontos-impressao__btn-remover-excecao {
+  margin-left: auto;
+  min-height: 32px;
+  min-width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: none;
+  background: none;
+  color: var(--gm-red);
+  cursor: pointer;
+}
+
+/* ── Ações (salvar) e status — mesmo padrão de PerfilImpressora.css ──── */
+
+.pontos-impressao__acoes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.pontos-impressao__btn-salvar {
+  min-height: var(--tap-min);
+  padding: 11px 24px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.pontos-impressao__btn-salvar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pontos-impressao__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pontos-impressao__status--sucesso { color: var(--gm-green); }
+.pontos-impressao__status--erro { color: var(--gm-red); }
+.pontos-impressao__status--atencao { color: var(--gm-warn); }
+
+.pontos-impressao__spin { animation: pontos-impressao-spin 1s linear infinite; }
+@keyframes pontos-impressao-spin { to { transform: rotate(360deg); } }
+
+/* Celular: linha de categoria e formulário de exceção empilham em vez de
+   espremer select/inputs numa faixa estreita demais pra tocar direito. */
+@media (max-width: 599px) {
+  .pontos-impressao__linha-categoria {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pontos-impressao__select {
+    width: 100%;
+  }
+  .pontos-impressao__nova-excecao {
+    flex-direction: column;
+  }
+  .pontos-impressao__confirma-botoes {
+    margin-left: 0;
+  }
+}

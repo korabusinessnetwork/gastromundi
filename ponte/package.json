@@ -8,7 +8,7 @@
   "bin": "servidor.js",
   "scripts": {
     "start": "node servidor.js",
-    "build:exe": "pkg . --targets node22-win-x64 --output dist/KoraPonte.exe"
+    "build:exe": "pkg . --targets node22-win-x64 --output dist/KoraPonte.exe && node scripts/semJanela.mjs dist/KoraPonte.exe"
   },
   "pkg": {
     "assets": [

@@ -102,6 +102,21 @@
   .botao:disabled { opacity: 0.55; cursor: default; }
   .botao:active:not(:disabled) { transform: scale(0.99); }
 
+  /* Parar a ponte não é uma ação "positiva" como instalar: fica em vermelho,
+     de contorno, para não competir com o botão principal da tela. Só quando o
+     dono confirma é que ele se pinta por inteiro. */
+  .botao.perigo {
+    background: transparent;
+    color: var(--vermelho);
+    border: 2px solid var(--vermelho);
+  }
+  .botao.perigo.confirmando { background: var(--vermelho); color: #fff; }
+
+  /* Cartão de encerrar: fica por último e mais apagado que os outros — é a
+     saída, não o caminho normal de quem abre o painel. */
+  .card-encerrar { background: transparent; }
+  .card-encerrar p { font-size: 15px; color: var(--mudo); }
+
   .resultado { margin-top: 14px; font-size: 15px; font-weight: 700; line-height: 1.5; }
   .resultado.sucesso { color: var(--verde); }
   .resultado.erro { color: var(--vermelho); }
@@ -197,11 +212,27 @@
     </div>
   </section>
 
+  <section class="card card-encerrar">
+    <h2>Encerrar</h2>
+    <p>
+      A Ponte trabalha em segundo plano, sem janela. Parar aqui fecha o
+      programa: enquanto estiver parada, o celular não manda pedido e nada é
+      impresso.
+    </p>
+    <button class="botao perigo" id="btnParar" type="button">Parar a ponte</button>
+  </section>
+
 </div>
 
 <p class="erro-bloco" id="blocoErro" hidden>
-  Não deu para falar com a Ponte agora. Confira se a janela dela ainda está
-  aberta neste computador — assim que ela voltar, esta tela se atualiza sozinha.
+  Não deu para falar com a Ponte agora. Confira se ela ainda está aberta neste
+  computador — assim que ela voltar, esta tela se atualiza sozinha.
+</p>
+
+<p class="erro-bloco" id="blocoParada" hidden>
+  <strong>A ponte foi parada.</strong><br />
+  Para usar de novo, abra o <strong>KORA Ponte</strong> pelo atalho da Área de
+  Trabalho. Assim que ela voltar, esta tela se atualiza sozinha.
 </p>
 
 <footer id="rodape"></footer>
@@ -217,6 +248,8 @@
   var elStatusSub = document.getElementById("statusSub");
   var elCartoes = document.getElementById("cartoes");
   var elBlocoErro = document.getElementById("blocoErro");
+  var elBlocoParada = document.getElementById("blocoParada");
+  var elBtnParar = document.getElementById("btnParar");
 
   var elEstabelecimentoTexto = document.getElementById("estabelecimentoTexto");
 
@@ -235,22 +268,61 @@
 
   var instalando = false; // trava o polling de sobrescrever o botão no meio da instalação
 
+  // Quando o dono mandou parar (0 = nunca). A ponte responde 200 e só depois
+  // encerra, então uma consulta que já estava no ar pode voltar "ligada" logo
+  // após o pedido de parada — por isso a marca é o HORÁRIO, e uma resposta
+  // que chega nos primeiros segundos não apaga a intenção do dono.
+  var pedidoDeParadaEm = 0;
+  var TOLERANCIA_PARADA_MS = 5000;
+
+  function pediuParar() {
+    return pedidoDeParadaEm > 0;
+  }
+
+  // Confirmação do "Parar a ponte": o primeiro clique só pergunta. Passado
+  // este tempo sem confirmar, o botão volta ao normal — clique sem querer
+  // não pode virar programa fechado.
+  var MS_CONFIRMACAO = 6000;
+  var confirmandoParada = false;
+  var relogioConfirmacao = null;
+
   function mostrarLigada() {
     elPonto.className = "ponto ligada";
     elStatusTexto.textContent = "Ponte ligada";
-    elStatusSub.textContent = "Tudo certo neste computador.";
+    elStatusSub.textContent = "Trabalhando em segundo plano neste computador.";
     elCartoes.hidden = false;
     elBlocoErro.hidden = true;
+    elBlocoParada.hidden = true;
+    // Chegou aqui quer dizer que ela respondeu bem FORA da janela de parada
+    // (ver aplicarEstado) ⇒ está mesmo de volta no ar, porque o dono reabriu
+    // pelo atalho. A tela deixa de falar em parada.
+    pedidoDeParadaEm = 0;
   }
 
   function mostrarParada() {
     elPonto.className = "ponto parada";
     elStatusTexto.textContent = "Ponte parada";
-    elStatusSub.textContent = "Sem resposta deste computador.";
+    elStatusSub.textContent = pediuParar()
+      ? "Você parou a ponte neste computador."
+      : "Sem resposta deste computador.";
     // Some com tudo que seria dado velho — nada de mostrar número antigo
     // como se fosse o de agora.
     elCartoes.hidden = true;
-    elBlocoErro.hidden = false;
+    // Parada porque o dono mandou parar é uma coisa; parada sem explicação é
+    // outra. Cada caso ganha o seu texto, senão o painel vira "deu erro".
+    elBlocoErro.hidden = pediuParar();
+    elBlocoParada.hidden = !pediuParar();
+  }
+
+  function voltarBotaoParar() {
+    confirmandoParada = false;
+    if (relogioConfirmacao) {
+      clearTimeout(relogioConfirmacao);
+      relogioConfirmacao = null;
+    }
+    elBtnParar.className = "botao perigo";
+    elBtnParar.textContent = "Parar a ponte";
+    elBtnParar.disabled = false;
   }
 
   function textoEstabelecimento(estabelecimento) {
@@ -302,6 +374,12 @@
   }
 
   function aplicarEstado(estado) {
+    // A ponte responde 200 ao "parar" e só encerra logo depois: uma consulta
+    // que já estava no ar pode voltar dizendo "ligada" segundos após o dono
+    // mandar parar. Nesses primeiros segundos a resposta é ignorada, senão a
+    // tela pisca "Ponte ligada" bem depois de o dono ter parado.
+    if (pediuParar() && Date.now() - pedidoDeParadaEm <= TOLERANCIA_PARADA_MS) return;
+
     mostrarLigada();
     elEstabelecimentoTexto.textContent = textoEstabelecimento(estado.estabelecimento);
     aplicarInstalacao(estado.instalacao);
@@ -355,6 +433,39 @@
         elInstalacaoResultado.textContent = "Não deu para falar com a Ponte para instalar. Tente de novo.";
         elBtnInstalar.disabled = false;
         elBtnInstalar.textContent = "Instalar neste computador";
+      });
+  });
+
+  elBtnParar.addEventListener("click", function () {
+    // Primeiro clique: só pergunta. Parar a ponte no meio do movimento
+    // deixaria o salão sem pedido e sem comanda — pergunta antes.
+    if (!confirmandoParada) {
+      confirmandoParada = true;
+      elBtnParar.className = "botao perigo confirmando";
+      elBtnParar.textContent = "Tem certeza? Parar mesmo";
+      relogioConfirmacao = setTimeout(voltarBotaoParar, MS_CONFIRMACAO);
+      return;
+    }
+
+    // Segundo clique: agora vai.
+    if (relogioConfirmacao) clearTimeout(relogioConfirmacao);
+    relogioConfirmacao = null;
+    elBtnParar.disabled = true;
+    elBtnParar.textContent = "Parando…";
+
+    fetch("/parar", { method: "POST" })
+      .then(function () {
+        pedidoDeParadaEm = Date.now();
+        mostrarParada();
+      })
+      .catch(function () {
+        // Se a conexão caiu no meio, provavelmente ela parou mesmo — o
+        // polling logo abaixo confirma qual das duas coisas aconteceu.
+        pedidoDeParadaEm = Date.now();
+        mostrarParada();
+      })
+      .then(function () {
+        voltarBotaoParar();
       });
   });
 

@@ -139,11 +139,18 @@ export function renderizarRecibo(dados) {
  * Monta o HTML da via de produção (ticket de cozinha) — enxuto, sem
  * preço, sem forma de pagamento.
  *
+ * `pontoNome` (opcional) é o nome do ponto de impressão dono desta via
+ * — com vários pontos configurados, o mesmo pedido sai fatiado em mais
+ * de um papel e quem está na bancada precisa ver de quem é o ticket na
+ * primeira olhada. O template é burro de propósito: quem decide se
+ * manda o nome (e qual) é `despacho.js`; com um ponto só, nada é
+ * passado e o cabeçalho fica idêntico ao de hoje.
+ *
  * @param {object} dados - retorno de montarViaProducao
  * @returns {string} HTML completo do documento
  */
 export function renderizarViaProducao(dados) {
-  const { comanda, apelido, mesa, garcom, horario, itens } = dados;
+  const { comanda, apelido, mesa, garcom, horario, itens, pontoNome } = dados;
 
   const linhasItens = itens
     .map((it) => `
@@ -163,6 +170,7 @@ export function renderizarViaProducao(dados) {
 </head>
 <body>
   <div class="cabecalho">
+    ${pontoNome ? `<div class="cabecalho__ponto">${esc(pontoNome)}</div>` : ""}
     <div class="cabecalho__titulo">${esc(fmtComanda(comanda))}</div>
     ${apelido ? `<div class="cabecalho__apelido">${esc(apelido)}</div>` : ""}
     <div class="cabecalho__linha">

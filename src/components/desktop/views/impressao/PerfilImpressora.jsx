@@ -37,8 +37,15 @@ export default function PerfilImpressora({ sz }) {
   const [perfil, setPerfil] = useState(PERFIL_IMPRESSORA_PADRAO);
   const [configCompleta, setConfigCompleta] = useState(null);
   const [carregando, setCarregando] = useState(true);
-  const [salvando, setSalvando] = useState(false);
-  const [status, setStatus] = useState(null); // null | "sucesso" | "erro"
+
+  // Salvar por seção (não um botão global): cada seção grava só os campos
+  // que ela mostra, por cima do que já está salvo — assim salvar a
+  // impressora não descarta uma mudança de layout ainda não salva, e
+  // vice-versa. Estado e feedback também são independentes por seção.
+  const [salvandoImpressora, setSalvandoImpressora] = useState(false);
+  const [statusImpressora, setStatusImpressora] = useState(null); // null | "sucesso" | "erro"
+  const [salvandoLayout, setSalvandoLayout] = useState(false);
+  const [statusLayout, setStatusLayout] = useState(null); // null | "sucesso" | "erro"
 
   // Detecção de impressoras via Ponte KORA — só entra em jogo quando o
   // driver escolhido é o ESC/POS (Ponte). "ausente" é diferente de "erro":
@@ -102,18 +109,46 @@ export default function PerfilImpressora({ sz }) {
     atualizarCampo("impressora", { tipo: "rede", host, porta });
   };
 
-  const salvar = async () => {
-    if (salvando) return;
-    setSalvando(true);
-    setStatus(null);
+  // Cada seção grava só a própria fatia do perfil por cima da última config
+  // lida (`configCompleta`) — nunca do `perfil` inteiro, senão salvar a
+  // impressora empurraria pro banco um ajuste de fonte/largura que o dono
+  // ainda não confirmou na outra seção (e vice-versa).
+  const salvarImpressora = async () => {
+    if (salvandoImpressora) return;
+    setSalvandoImpressora(true);
+    setStatusImpressora(null);
     try {
-      const config = { ...(configCompleta ?? {}), perfilImpressora: perfil };
+      const perfilAnterior = configCompleta?.perfilImpressora ?? PERFIL_IMPRESSORA_PADRAO;
+      const perfilImpressora = { ...perfilAnterior, driver: perfil.driver, impressora: perfil.impressora };
+      const config = { ...(configCompleta ?? {}), perfilImpressora };
       const { error } = await salvarConfigImpressao(config);
-      setStatus(error ? "erro" : "sucesso");
+      setStatusImpressora(error ? "erro" : "sucesso");
       if (!error) setConfigCompleta(config);
     } finally {
-      setSalvando(false);
-      setTimeout(() => setStatus((s) => (s === "sucesso" ? null : s)), 2500);
+      setSalvandoImpressora(false);
+      setTimeout(() => setStatusImpressora((s) => (s === "sucesso" ? null : s)), 2500);
+    }
+  };
+
+  const salvarLayout = async () => {
+    if (salvandoLayout) return;
+    setSalvandoLayout(true);
+    setStatusLayout(null);
+    try {
+      const perfilAnterior = configCompleta?.perfilImpressora ?? PERFIL_IMPRESSORA_PADRAO;
+      const perfilImpressora = {
+        ...perfilAnterior,
+        larguraMm: perfil.larguraMm,
+        cortaPapel: perfil.cortaPapel,
+        fonteBase: perfil.fonteBase,
+      };
+      const config = { ...(configCompleta ?? {}), perfilImpressora };
+      const { error } = await salvarConfigImpressao(config);
+      setStatusLayout(error ? "erro" : "sucesso");
+      if (!error) setConfigCompleta(config);
+    } finally {
+      setSalvandoLayout(false);
+      setTimeout(() => setStatusLayout((s) => (s === "sucesso" ? null : s)), 2500);
     }
   };
 
@@ -189,8 +224,8 @@ export default function PerfilImpressora({ sz }) {
 
                 {statusPonte === "ausente" && (
                   <div className="perfil-impressora__status perfil-impressora__status--atencao">
-                    <LuCircleAlert size={13} color={varColor(C.warn)} /> A Ponte não está rodando neste computador. Abra a pasta
-                    "ponte" e rode "node servidor.js" — depois é só procurar de novo.
+                    <LuCircleAlert size={13} color={varColor(C.warn)} /> A Ponte não está rodando neste computador. Dê dois
+                    cliques no KoraPonte.exe — ele trabalha em segundo plano, sem abrir janela — e procure de novo.
                   </div>
                 )}
                 {statusPonte === "erro" && (
@@ -275,6 +310,19 @@ export default function PerfilImpressora({ sz }) {
                 <span className="perfil-impressora__ajuda">Escolha uma impressora acima para poder testar</span>
               )}
             </div>
+
+            {/* Salvar desta seção — grava só driver + impressora, não mexe no layout */}
+            <div className="perfil-impressora__acoes">
+              <button type="button" onClick={salvarImpressora} disabled={salvandoImpressora} className="perfil-impressora__btn-salvar">
+                {salvandoImpressora ? "Salvando…" : "Salvar impressora"}
+              </button>
+              {statusImpressora === "sucesso" && (
+                <span className="perfil-impressora__status perfil-impressora__status--sucesso"><LuCircleCheck size={13} /> Salvo</span>
+              )}
+              {statusImpressora === "erro" && (
+                <span className="perfil-impressora__status perfil-impressora__status--erro"><LuCircleAlert size={13} /> Falha ao salvar</span>
+              )}
+            </div>
           </section>
 
           {/* ── Seção 2 — Layout da comanda ─────────────────────────── */}
@@ -338,20 +386,20 @@ export default function PerfilImpressora({ sz }) {
                 </button>
               )}
             </div>
-          </section>
 
-          {/* Salvar */}
-          <div className="perfil-impressora__acoes">
-            <button type="button" onClick={salvar} disabled={salvando} className="perfil-impressora__btn-salvar">
-              {salvando ? "Salvando…" : "Salvar"}
-            </button>
-            {status === "sucesso" && (
-              <span className="perfil-impressora__status perfil-impressora__status--sucesso"><LuCircleCheck size={13} /> Salvo</span>
-            )}
-            {status === "erro" && (
-              <span className="perfil-impressora__status perfil-impressora__status--erro"><LuCircleAlert size={13} /> Falha ao salvar</span>
-            )}
-          </div>
+            {/* Salvar desta seção — grava só largura/corte/fonte, não mexe na impressora escolhida */}
+            <div className="perfil-impressora__acoes">
+              <button type="button" onClick={salvarLayout} disabled={salvandoLayout} className="perfil-impressora__btn-salvar">
+                {salvandoLayout ? "Salvando…" : "Salvar layout"}
+              </button>
+              {statusLayout === "sucesso" && (
+                <span className="perfil-impressora__status perfil-impressora__status--sucesso"><LuCircleCheck size={13} /> Salvo</span>
+              )}
+              {statusLayout === "erro" && (
+                <span className="perfil-impressora__status perfil-impressora__status--erro"><LuCircleAlert size={13} /> Falha ao salvar</span>
+              )}
+            </div>
+          </section>
         </div>
 
         {/* Preview ao vivo — é o que torna a tela intuitiva: o dono vê a

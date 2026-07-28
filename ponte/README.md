@@ -18,22 +18,15 @@ pasta, nem digitar comando — o Node vai dentro do próprio programa.
 
 1. Copie o `KoraPonte.exe` para o PC do caixa (pode ser pen drive, e-mail,
    pasta de Downloads — tanto faz).
-2. **Dois cliques** nele. Abre uma janela preta e o painel no navegador:
-
-   ```
-   ┌────────────────────────────────────────────────┐
-   │  KORA Ponte — pedidos sem internet e impressão │
-   └────────────────────────────────────────────────┘
-     Estabelecimento: aguardando — abra o sistema KORA neste PC.
-     Painel:          http://localhost:8123
-     No celular:      http://192.168.0.42:8123/palm?t=a1b2c3...
-     Deixe esta janela aberta (pode minimizar). Para parar: Ctrl+C.
-   ```
-
+2. **Dois cliques** nele. A ponte **não abre janela nenhuma**: ela fica
+   trabalhando em segundo plano, como uma impressora que fica ligada. O que
+   aparece é o **painel no navegador** — é ele a janela de controle da ponte
+   (endereço `http://localhost:8123`).
 3. No painel, clique em **Instalar neste computador**. A ponte se copia para
    a pasta do usuário e cria dois atalhos: um na Área de Trabalho e outro na
    Inicialização do Windows — a partir daí ela **abre sozinha** toda vez que
-   o PC liga. Não pede senha de administrador.
+   o PC liga (aí sim, caladinha, sem abrir o navegador). Não pede senha de
+   administrador.
 4. Abra o sistema KORA nesse mesmo PC e faça login. **Pronto**: a ponte se
    vincula sozinha ao estabelecimento, sem ninguém digitar código nenhum.
 
@@ -56,8 +49,26 @@ Sai em `ponte/dist/KoraPonte.exe` (~58 MB — leva o Node inteiro dentro).
 O `palm.html` e o `painel.html` entram **dentro** do executável (`pkg.assets`),
 por isso ele roda sozinho numa pasta vazia.
 
+O `build:exe` tem **dois passos**: o `pkg` gera o `.exe` e, em seguida,
+`node scripts/semJanela.mjs dist/KoraPonte.exe` troca 2 bytes do cabeçalho do
+executável (campo `Subsystem` do PE: `3` = console → `2` = janela) para que ele
+**não abra a janela preta**. Sem esse passo o `pkg` sempre entrega um programa
+de console. O script confere a assinatura do arquivo antes de escrever, é
+idempotente (rodar de novo não faz nada) e falha alto se o arquivo não for um
+`.exe` 64-bit — a lógica pura fica em `lib/pe.js`, com testes.
+
 ## Como usar no dia a dia
 
+- **A ponte é invisível.** Ela roda em segundo plano; não tem janela preta,
+  não fica na barra de tarefas. Se o PC está ligado e ela foi instalada, ela
+  está trabalhando.
+- **O painel é a janela de controle.** Clique no atalho **KORA Ponte** da Área
+  de Trabalho a qualquer momento: ele abre `http://localhost:8123` no
+  navegador e mostra se está ligada, a qual estabelecimento está vinculada,
+  quantos pedidos e quantas impressões estão na fila. Se a ponte já estiver
+  aberta, o atalho só traz o painel dela — nunca abre uma segunda cópia.
+- **Para parar**, use o botão **Parar a ponte** no fim do painel (ele pergunta
+  "Tem certeza?" antes). Para voltar, é o mesmo atalho da Área de Trabalho.
 - **Com internet**: nada muda. O app do caixa detecta a ponte sozinho e
   mantém o catálogo dela atualizado.
 - **No app do caixa**: em *Configurações → Impressão → Pedidos sem Internet*
@@ -92,9 +103,23 @@ respondem no próprio PC — de outro aparelho da rede, a ponte devolve 403.
 padrão, então trocar a porta é coisa de desenvolvimento
 (`KORA_PONTE_PORTA=8200`). Se der conflito no PC do caixa, avise o suporte.
 
+**Como sei que ela está rodando, se não tem janela?** Clique no atalho **KORA
+Ponte** da Área de Trabalho: se o painel abrir dizendo *Ponte ligada*, está
+tudo certo. Se abrir dizendo *Ponte parada*, clique no atalho de novo.
+
+**Fechei sem querer / preciso parar.** Só dá para parar pelo botão **Parar a
+ponte**, no fim do painel — e ele pergunta antes de parar mesmo. Não tem mais
+janela para fechar por engano.
+
 **Onde ficam os pedidos?** No próprio PC, em
 `%LOCALAPPDATA%\KORA\Ponte\dados\pedidos.json`. Pedidos já confirmados são
 apagados automaticamente depois de 24 horas.
+
+**E se eu precisar mostrar ao suporte o que aconteceu?** Na mesma pasta fica o
+`ponte.log` (`%LOCALAPPDATA%\KORA\Ponte\dados\ponte.log`): é o diário da ponte
+— o que ela imprimiu, o que falhou, quando ligou e quando parou. Ele se limita
+sozinho a ~256 KB (a geração anterior vira `ponte.log.1`) e **nunca guarda o
+código secreto** do link do celular.
 
 ## Impressão (a ponte imprime sozinha)
 
@@ -147,21 +172,37 @@ Exemplos de `destino`:
   A impressão RAW no Windows usa o PowerShell que já vem no sistema.
 - Lógica pura em `lib/` com testes (`npx vitest run ponte/lib` na raiz do repo):
   `pedidos.js`, `http.js`, `escpos.js` (bytes ESC/POS + acentuação CP850),
-  `filaImpressao.js` (fila, tentativas, poda) e `vinculo.js` (validação do
-  vínculo com o tenant). `lib/impressoras.js` e `lib/instalacao.js` são as
-  únicas partes com I/O de sistema.
+  `filaImpressao.js` (fila, tentativas, poda), `vinculo.js` (validação do
+  vínculo com o tenant) e `pe.js` (onde fica o campo `Subsystem` no cabeçalho
+  do `.exe` — usado pelo `scripts/semJanela.mjs`). `lib/impressoras.js`,
+  `lib/instalacao.js` e `lib/log.js` são as partes com I/O de sistema.
+- **Sem console.** O `.exe` é GUI subsystem: `console.log` não vai para lugar
+  nenhum. Todo registro passa por `lib/log.js` (`logar` / `logarErro`), que
+  grava em `<dirDados>/ponte.log`, mascara segredos (`?t=…`, hex longo) antes
+  de escrever e nunca lança exceção. Rodando pelo Node (dev), ele também ecoa
+  no terminal.
+- **Como se para/reabre**: `POST /parar` (só localhost) responde 200 e encerra
+  logo depois; é o botão *Parar a ponte* do painel. Abrir o `.exe` com a porta
+  já ocupada (`EADDRINUSE`) não é erro: ele registra no log, abre o painel da
+  instância que já estava no ar e sai com código 0. Já um erro fatal de
+  verdade, quando o programa foi aberto **na mão**, gera
+  `<dirDados>/ponte-nao-abriu.html` e abre essa página no navegador — sem essa
+  página o dono não veria nada, já que não há janela. Com `--autostart` (só o
+  atalho da Inicialização leva esse argumento) nada é aberto no navegador,
+  nem o painel nem o aviso.
 - Endpoints: `GET /saude`, `GET /palm`, `GET /catalogo` e `POST /pedido`
   (token), `GET /info`, `POST /snapshot`, `GET /pedidos`,
   `POST /pedidos/confirmar`, `GET /impressoras`, `POST /imprimir`,
   `GET /impressao`, `POST /impressao/limpar`, `GET /` (painel),
-  `GET /painel/estado`, `POST /vincular`, `POST /instalar` (só localhost).
+  `GET /painel/estado`, `POST /vincular`, `POST /instalar`, `POST /parar`
+  (só localhost).
 - **Onde ficam os dados depende de como a ponte roda.** Pelo código
   (`node servidor.js`), em `ponte/dados/` — como sempre foi. Como
   `KoraPonte.exe`, em `%LOCALAPPDATA%\KORA\Ponte\dados\`, porque o sistema de
   arquivos embutido no executável é **somente leitura** e ele pode estar
   rodando de um pen drive. Quem decide é `lib/instalacao.js` (`dirDados`).
   Arquivos: `config.json` (token + vínculo), `snapshot.json` (catálogo),
-  `pedidos.json` e `impressao.json`.
+  `pedidos.json`, `impressao.json` e `ponte.log` (+ `ponte.log.1`).
 - O `.exe` **não guarda credencial nenhuma** — nem chave do Supabase, nem
   senha. Do estabelecimento ele só conhece o UUID e o nome, que chegam pela
   rota `POST /vincular` a partir do app aberto no mesmo PC.

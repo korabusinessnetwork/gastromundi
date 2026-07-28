@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PerfilImpressora from "./PerfilImpressora";
+import PontosImpressao from "./PontosImpressao";
 import PonteLocalConfig from "./PonteLocalConfig";
 import "./ConfiguracaoImpressao.css";
 
@@ -10,8 +11,16 @@ import "./ConfiguracaoImpressao.css";
 // (agora falando com a Ponte KORA em vez do QZ Tray) e a Ponte em si
 // (que não é sistema de impressão — é o QR/token do Palm pra pedido
 // offline, uma feature viva e separada).
+//
+// Leva "Pontos de impressão" (2026-07-28): volta a existir mais de um
+// destino de impressão (cozinha, bar, chapa…), mas agora do jeito certo —
+// multi-tenant, sem tabela órfã, com um ponto padrão que nunca deixa o
+// dono sem impressão. O rótulo da aba já diz o que ela resolve ("onde
+// cada item imprime"), não como ela resolve ("roteamento") — é o mesmo
+// motivo do Princípio nº1: a tela fala a língua do restaurante.
 const ABAS = [
   { id: "comanda", label: "Layout da comanda" },
+  { id: "pontos",  label: "Onde cada item imprime" },
   { id: "ponte",   label: "Pedidos sem Internet" },
 ];
 
@@ -33,6 +42,7 @@ export default function ConfiguracaoImpressao({ sz }) {
       </div>
 
       {aba === "comanda" && <PerfilImpressora sz={sz} />}
+      {aba === "pontos"  && <PontosImpressao sz={sz} />}
       {aba === "ponte"   && <PonteLocalConfig sz={sz} />}
     </div>
   );

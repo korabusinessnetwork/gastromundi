@@ -103,9 +103,16 @@ export function formatarComprovanteEscpos(dados, colunas) {
  * @returns {string[]}
  */
 export function formatarViaProducaoEscpos(dados, colunas) {
-  const { comanda, apelido, mesa, garcom, horario, itens } = dados;
+  const { comanda, apelido, mesa, garcom, horario, itens, pontoNome } = dados;
   const linhas = [];
 
+  // Nome do ponto de impressão (Cozinha, Bar…), quando há mais de um
+  // configurado — é a via térmica, a que realmente sai na bancada. Vem
+  // ANTES da comanda e em CAIXA ALTA: quem pega o papel precisa saber
+  // primeiro se aquilo é dele. Quem decide se manda é o despacho.
+  if (pontoNome) {
+    quebrarLinha(String(pontoNome).toUpperCase(), colunas).forEach(l => linhas.push(centralizar(l, colunas)));
+  }
   linhas.push(centralizar(fmtComanda(comanda), colunas));
   // Complemento opcional (o "nome" digitado no /palm) — linha própria,
   // logo abaixo do número da comanda, sem se misturar com ele.

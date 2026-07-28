@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { nomeExibicaoTenant, logoUrlTenant } from "./tema";
+import { normalizarPontos } from "./impressao/pontos";
 
 /**
  * Impressão — F015 (docs/09_BACKLOG/features.md).
@@ -33,6 +34,17 @@ import { nomeExibicaoTenant, logoUrlTenant } from "./tema";
 //   { tipo: "rede", host: "192.168.0.50", porta: 9100 } → socket RAW
 // `null` = ainda não escolhida (o driver da Ponte recusa com mensagem
 // clara em vez de imprimir no vazio).
+//
+// DIVISÃO (Leva 15): o perfil é PAPEL/LAYOUT (largura, margem, corte,
+// fonte, driver) + a impressora DO CAIXA — comprovante, cupom/pré-nota,
+// pré-conta, tudo que sai perto de quem cobra. A impressora da PRODUÇÃO
+// deixou de morar aqui e passou a ser POR PONTO (`pontosImpressao`),
+// porque um restaurante tem um caixa e pode ter várias estações
+// (cozinha, chapa, bar). O papel continua único e compartilhado: quem
+// tem duas térmicas usa o mesmo rolo nas duas, e obrigar a reconfigurar
+// largura/fonte em cada ponto seria repetição sem ganho. `impressora`
+// do perfil segue sendo a semente do primeiro ponto (ver
+// `mesclarConfigImpressao`) — é o que faz quem já usava não perder nada.
 export const PERFIL_IMPRESSORA_PADRAO = {
   larguraMm: 80,
   margemMm: 2,
@@ -42,6 +54,13 @@ export const PERFIL_IMPRESSORA_PADRAO = {
   impressora: null,
 };
 
+// Roteamento — para onde vai cada item da produção (Leva 15, decisão do
+// dono 2026-07-28). `categorias` mapeia `products.category` (texto livre)
+// → id do ponto; `produtos` mapeia `String(product.id)` → id do ponto e
+// funciona como EXCEÇÃO: vence a categoria por ser a regra mais
+// específica. Item sem entrada em nenhum dos dois sai no ponto padrão.
+export const ROTEAMENTO_PADRAO = { categorias: {}, produtos: {} };
+
 export const CONFIG_IMPRESSAO_PADRAO = {
   mostrarLogo: true,
   mostrarEnderecoCnpj: false,
@@ -49,6 +68,11 @@ export const CONFIG_IMPRESSAO_PADRAO = {
   cnpj: "",
   rodapePersonalizado: "Obrigado pela preferência!",
   perfilImpressora: PERFIL_IMPRESSORA_PADRAO,
+  // Vazio no default e SEMPRE preenchido pela normalização da leitura —
+  // ninguém consome a config sem pelo menos um ponto (ver
+  // `mesclarConfigImpressao`).
+  pontosImpressao: [],
+  roteamento: ROTEAMENTO_PADRAO,
 };
 
 // Cache local da config de impressão — impressão local (window.print /
@@ -115,6 +139,13 @@ function semCamposLegados(objeto, campos) {
   return limpo;
 }
 
+function mapaDeRotas(valor) {
+  // O que vem do banco é JSON livre: um `roteamento.categorias` que não
+  // seja objeto (string, array, número) seria espalhado em índices e
+  // viraria rota fantasma. Fora do formato = mapa vazio.
+  return valor && typeof valor === "object" && !Array.isArray(valor) ? { ...valor } : {};
+}
+
 // Merge próprio pro perfil (aninhado) — senão salvar só 1 campo
 // do perfil apagaria os demais defaults (largura, driver etc.).
 function mesclarConfigImpressao(valor) {
@@ -123,10 +154,22 @@ function mesclarConfigImpressao(valor) {
   // de perfil mostraria uma opção fantasma e a impressão cairia em
   // fallback silencioso.
   if (DRIVERS_LEGADOS.includes(perfilGravado.driver)) delete perfilGravado.driver;
+  const perfilImpressora = { ...PERFIL_IMPRESSORA_PADRAO, ...perfilGravado };
   return {
     ...CONFIG_IMPRESSAO_PADRAO,
     ...semCamposLegados(valor, CAMPOS_LEGADOS_CONFIG),
-    perfilImpressora: { ...PERFIL_IMPRESSORA_PADRAO, ...perfilGravado },
+    perfilImpressora,
+    // Quem já usava o sistema tem `pontosImpressao` ausente/vazio: a
+    // normalização sintetiza o ponto padrão a partir da impressora do
+    // perfil, então a comanda continua saindo na mesma impressora depois
+    // de atualizar — sem migration, sem susto, sem reconfigurar nada.
+    // Também é aqui que dado sujo (dois padrões, id repetido) é reparado
+    // antes de chegar na tela ou no despacho.
+    pontosImpressao: normalizarPontos(valor?.pontosImpressao, perfilImpressora),
+    roteamento: {
+      categorias: mapaDeRotas(valor?.roteamento?.categorias),
+      produtos: mapaDeRotas(valor?.roteamento?.produtos),
+    },
   };
 }
 
@@ -134,6 +177,11 @@ function mesclarConfigImpressao(valor) {
  * Busca as preferências de impressão do estabelecimento. Nunca lança:
  * falha cai no cache local (última config lida com sucesso — mantém a
  * impressão local funcionando offline) e, sem cache, nos defaults.
+ *
+ * O retorno passa SEMPRE por `mesclarConfigImpressao`, inclusive nos
+ * caminhos de erro: assim `data.pontosImpressao` nunca chega vazio em
+ * quem imprime, e o despacho não precisa saber se a config veio do
+ * banco, do cache ou do default.
  *
  * @returns {Promise<{data: object, error: object|null}>}
  */
@@ -148,7 +196,7 @@ export async function buscarConfigImpressao() {
     if (error) {
       const cache = lerCacheConfigImpressao(tid);
       if (cache) return { data: mesclarConfigImpressao(cache), error: null };
-      return { data: CONFIG_IMPRESSAO_PADRAO, error };
+      return { data: mesclarConfigImpressao({}), error };
     }
     const valor = data?.value ?? {};
     salvarCacheConfigImpressao(valor, tid);
@@ -156,7 +204,7 @@ export async function buscarConfigImpressao() {
   } catch (err) {
     const cache = lerCacheConfigImpressao(tid);
     if (cache) return { data: mesclarConfigImpressao(cache), error: null };
-    return { data: CONFIG_IMPRESSAO_PADRAO, error: { message: err?.message ?? "Falha ao buscar configuração de impressão." } };
+    return { data: mesclarConfigImpressao({}), error: { message: err?.message ?? "Falha ao buscar configuração de impressão." } };
   }
 }
 
@@ -272,6 +320,12 @@ export function montarViaProducao({ pedido } = {}) {
   const itens = (Array.isArray(pedido?.items) ? pedido.items : [])
     .filter((i) => !i?.cancelado && i?.produzivel !== false)
     .map((i) => ({
+      // `id` (do produto) e `category` não são impressos — são o que o
+      // roteamento por ponto de impressão consulta (src/lib/impressao/
+      // pontos.js). Sem eles aqui, a via chegaria no despacho sem como
+      // saber em qual estação cada item sai e tudo cairia no padrão.
+      id: i.id ?? null,
+      category: typeof i.category === "string" ? i.category : "",
       nome: i.name ?? "",
       qty: Number(i.qty) || 1,
       emoji: i.emoji ?? "",

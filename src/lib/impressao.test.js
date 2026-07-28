@@ -204,6 +204,22 @@ describe("montarViaProducao (só itens produzíveis, sem preço/pagamento)", () 
     expect(via.itens[0].obs).toEqual(["sem cebola"]);
   });
 
+  it("preserva id e categoria do item (é deles que o roteamento por ponto vive)", () => {
+    const pedido = { items: [{ id: 17, name: "Caipirinha", qty: 1, category: "Bebidas" }] };
+
+    const via = montarViaProducao({ pedido });
+
+    expect(via.itens[0].id).toBe(17);
+    expect(via.itens[0].category).toBe("Bebidas");
+  });
+
+  it("item sem id/categoria não inventa valor (cai no ponto padrão depois)", () => {
+    const via = montarViaProducao({ pedido: { items: [{ name: "Avulso", qty: 1 }] } });
+
+    expect(via.itens[0].id).toBeNull();
+    expect(via.itens[0].category).toBe("");
+  });
+
   it("pedido sem itens não lança e retorna lista vazia", () => {
     expect(() => montarViaProducao({ pedido: {} })).not.toThrow();
     expect(montarViaProducao({ pedido: {} }).itens).toEqual([]);
@@ -250,6 +266,15 @@ describe("horarioLancamentoPedido", () => {
   });
 });
 
+// O que `buscarConfigImpressao` devolve para quem NÃO tem nada gravado:
+// os defaults + o ponto de impressão sintetizado (Leva 15). A síntese é o
+// que faz uma instalação antiga continuar imprimindo sem migration, então
+// `pontosImpressao` nunca chega vazio em quem consome a config.
+const PADRAO_MESCLADO = {
+  ...CONFIG_IMPRESSAO_PADRAO,
+  pontosImpressao: [{ id: "p1", nome: "Cozinha", impressora: null, padrao: true }],
+};
+
 describe("buscarConfigImpressao", () => {
   it("retorna a config mesclada com os defaults quando a linha existe", async () => {
     mockSupabase.current.setTableResult("config", {
@@ -260,7 +285,7 @@ describe("buscarConfigImpressao", () => {
     const { data, error } = await buscarConfigImpressao();
 
     expect(error).toBeNull();
-    expect(data).toEqual({ ...CONFIG_IMPRESSAO_PADRAO, mostrarEnderecoCnpj: true, cnpj: "00.000.000/0001-00" });
+    expect(data).toEqual({ ...PADRAO_MESCLADO, mostrarEnderecoCnpj: true, cnpj: "00.000.000/0001-00" });
   });
 
   it("retorna os defaults quando não há linha (caso normal, não erro)", async () => {
@@ -269,7 +294,7 @@ describe("buscarConfigImpressao", () => {
     const { data, error } = await buscarConfigImpressao();
 
     expect(error).toBeNull();
-    expect(data).toEqual(CONFIG_IMPRESSAO_PADRAO);
+    expect(data).toEqual(PADRAO_MESCLADO);
   });
 
   it("ignora campos de versões antigas (impressoraQz / impressaoEmRede) sem quebrar", async () => {
@@ -308,12 +333,58 @@ describe("buscarConfigImpressao", () => {
     expect(data.perfilImpressora.impressora).toEqual(impressora);
   });
 
+  it("sem pontos gravados, sintetiza o ponto padrão com a impressora do perfil (instalação antiga não perde a impressão)", async () => {
+    const impressora = { tipo: "windows", nome: "EPSON-COZINHA" };
+    mockSupabase.current.setTableResult("config", {
+      data: { key: "config_impressao", value: { perfilImpressora: { driver: "escpos-ponte", impressora } } },
+      error: null,
+    });
+
+    const { data } = await buscarConfigImpressao();
+
+    expect(data.pontosImpressao).toEqual([{ id: "p1", nome: "Cozinha", impressora, padrao: true }]);
+    expect(data.roteamento).toEqual({ categorias: {}, produtos: {} });
+  });
+
+  it("preserva os pontos e o roteamento gravados", async () => {
+    mockSupabase.current.setTableResult("config", {
+      data: {
+        key: "config_impressao",
+        value: {
+          pontosImpressao: [
+            { id: "p1", nome: "Cozinha", impressora: null, padrao: true },
+            { id: "p2", nome: "Bar", impressora: { tipo: "rede", host: "192.168.0.9", porta: 9100 }, padrao: false },
+          ],
+          roteamento: { categorias: { Bebidas: "p2" }, produtos: { 17: "p1" } },
+        },
+      },
+      error: null,
+    });
+
+    const { data } = await buscarConfigImpressao();
+
+    expect(data.pontosImpressao.map((p) => p.nome)).toEqual(["Cozinha", "Bar"]);
+    expect(data.roteamento.categorias).toEqual({ Bebidas: "p2" });
+    expect(data.roteamento.produtos).toEqual({ 17: "p1" });
+  });
+
+  it("roteamento gravado como lixo não derruba a leitura da config", async () => {
+    mockSupabase.current.setTableResult("config", {
+      data: { key: "config_impressao", value: { roteamento: "isso não é um objeto" } },
+      error: null,
+    });
+
+    const { data } = await buscarConfigImpressao();
+
+    expect(data.roteamento).toEqual({ categorias: {}, produtos: {} });
+  });
+
   it("retorna os defaults (nunca quebra a impressão) se o Supabase falhar", async () => {
     mockSupabase.current.setTableError("config", { message: "falha de rede" });
 
     const { data, error } = await buscarConfigImpressao();
 
-    expect(data).toEqual(CONFIG_IMPRESSAO_PADRAO);
+    expect(data).toEqual(PADRAO_MESCLADO);
     expect(error.message).toBe("falha de rede");
   });
 });

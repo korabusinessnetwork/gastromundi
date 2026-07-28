@@ -97,4 +97,25 @@ describe("formatarViaProducaoEscpos", () => {
     const comApelido = formatarViaProducaoEscpos({ ...pedido, apelido: "Zé" }, colunas);
     expect(comApelido.length).toBe(semApelido.length + 1);
   });
+
+  it("imprime o nome do ponto acima da comanda quando informado", () => {
+    const colunas = colunasPorLargura(58, 15);
+    const linhas = formatarViaProducaoEscpos({ ...pedido, pontoNome: "Bar" }, colunas);
+    expect(linhas[0]).toContain("BAR");
+    expect(linhas[1]).toContain("Comanda 7");
+    for (const linha of linhas) expect(linha.length).toBeLessThanOrEqual(colunas);
+  });
+
+  it("nome de ponto longo não estoura a largura do papel", () => {
+    const colunas = colunasPorLargura(58, 15);
+    const linhas = formatarViaProducaoEscpos({ ...pedido, pontoNome: "Cozinha Quente do Segundo Andar Lado B" }, colunas);
+    for (const linha of linhas) expect(linha.length).toBeLessThanOrEqual(colunas);
+  });
+
+  it("sem ponto informado, a via sai igual à de antes", () => {
+    const colunas = colunasPorLargura(80, 15);
+    const semPonto = formatarViaProducaoEscpos(pedido, colunas);
+    const comPonto = formatarViaProducaoEscpos({ ...pedido, pontoNome: "Bar" }, colunas);
+    expect(comPonto.length).toBe(semPonto.length + 1);
+  });
 });

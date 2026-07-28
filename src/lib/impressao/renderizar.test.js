@@ -155,4 +155,32 @@ describe("renderizarViaProducao", () => {
     expect(html).not.toContain("<img src=x");
     expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
   });
+
+  it("mostra o nome do ponto de impressão quando a via é de um ponto específico", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", pontoNome: "Bar", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "Caipirinha", qty: 1, emoji: "", obs: [] }],
+    });
+
+    expect(html).toContain('<div class="cabecalho__ponto">Bar</div>');
+  });
+
+  it("sem ponto informado, o cabeçalho fica igual ao de antes (um ponto só)", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "X", qty: 1, emoji: "", obs: [] }],
+    });
+
+    expect(html).not.toContain("cabecalho__ponto");
+  });
+
+  it("escapa nome de ponto malicioso (o nome é digitado na configuração)", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", pontoNome: "<img src=x onerror=alert(1)>", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "X", qty: 1, emoji: "", obs: [] }],
+    });
+
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+  });
 });

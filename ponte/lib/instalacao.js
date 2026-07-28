@@ -42,6 +42,17 @@ export const NOME_EXE = "KoraPonte.exe";
 export const NOME_ATALHO = "KORA Ponte.lnk";
 export const DESCRICAO_ATALHO = "KORA Ponte — pedidos e impressão sem internet";
 
+/**
+ * Argumento que só o atalho da INICIALIZAÇÃO do Windows carrega.
+ *
+ * A partir da Leva 15 a ponte roda sem janela, e o único sinal de que ela
+ * subiu passou a ser o painel abrindo no navegador. Isso é ótimo no duplo
+ * clique — e péssimo toda vez que o Windows liga: ninguém quer o navegador
+ * pulando na cara ao ligar o PC do caixa. Com este argumento, a ponte sobe
+ * calada; sem ele (Área de Trabalho, duplo clique), abre o painel.
+ */
+export const ARG_AUTOSTART = "--autostart";
+
 export const TIMEOUT_ATALHOS_MS = 20000;
 
 const POWERSHELL_BASE = ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass"];
@@ -256,6 +267,9 @@ foreach ($item in @($cfg.atalhos)) {
     $atalho.WorkingDirectory = $item.trabalho
     $atalho.IconLocation = $item.alvo
     $atalho.Description = $item.descricao
+    # Só o atalho da Inicialização traz argumento (--autostart). Vem do mesmo
+    # JSON, como DADO — nunca concatenado no comando.
+    if ($null -ne $item.argumentos) { $atalho.Arguments = [string]$item.argumentos }
     $atalho.Save()
   } catch {
     # Só a causa raiz — o embrulho do PowerShell não ajuda quem lê a tela.
@@ -288,18 +302,32 @@ function rodarPowershell(args, { timeout, env }) {
 }
 
 /**
+ * Monta o que o PowerShell vai ler para criar os dois atalhos. Versão pura
+ * (nada de disco, nada de ambiente) — é por aqui que o teste garante que o
+ * `--autostart` fica SÓ na Inicialização.
+ *
+ * @param {{alvo: string, startup: string, areaTrabalho: string}} ctx
+ * @returns {{atalhos: Array<{lnk: string, alvo: string, trabalho: string, argumentos: string, descricao: string}>}}
+ */
+export function montarConfigAtalhos({ alvo, startup, areaTrabalho }) {
+  const trabalho = path.dirname(alvo);
+  return {
+    atalhos: [
+      // Inicialização do Windows: sobe calada junto com o PC.
+      { lnk: startup, alvo, trabalho, argumentos: ARG_AUTOSTART, descricao: DESCRICAO_ATALHO },
+      // Área de Trabalho: é o dono clicando de propósito — abre o painel.
+      { lnk: areaTrabalho, alvo, trabalho, argumentos: "", descricao: DESCRICAO_ATALHO },
+    ],
+  };
+}
+
+/**
  * Cria (ou refaz) os dois atalhos apontando para o exe instalado.
  * @returns {Promise<{ok: true} | {ok: false, erro: string}>}
  */
 async function criarAtalhos(alvo) {
   const { startup, areaTrabalho } = caminhosAtalhos();
-  const trabalho = path.dirname(alvo);
-  const config = {
-    atalhos: [
-      { lnk: startup, alvo, trabalho, descricao: DESCRICAO_ATALHO },
-      { lnk: areaTrabalho, alvo, trabalho, descricao: DESCRICAO_ATALHO },
-    ],
-  };
+  const config = montarConfigAtalhos({ alvo, startup, areaTrabalho });
 
   // Nomes só com hexadecimal: o que vai para a linha de comando é gerado
   // aqui, nunca vem de fora.

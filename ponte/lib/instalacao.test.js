@@ -30,6 +30,9 @@ import {
   resolverCaminhosAtalhos,
   montarEstado,
   mesmoCaminho,
+  montarConfigAtalhos,
+  ARG_AUTOSTART,
+  DESCRICAO_ATALHO,
 } from "./instalacao.js";
 
 const EH_WINDOWS = process.platform === "win32";
@@ -150,6 +153,38 @@ describe("resolverCaminhosAtalhos", () => {
   it("sem APPDATA no ambiente, monta o caminho a partir do perfil do usuário", () => {
     const { startup } = resolverCaminhosAtalhos({ env: {}, homedir: HOME_FALSO, existe: () => false });
     expect(startup).toContain(path.join("AppData", "Roaming", "Microsoft"));
+  });
+});
+
+describe("montarConfigAtalhos", () => {
+  const alvo = path.join(HOME_FALSO, "AppData", "Local", "KORA", "Ponte", NOME_EXE);
+  const startup = path.join(HOME_FALSO, "Startup", NOME_ATALHO);
+  const areaTrabalho = path.join(HOME_FALSO, "Desktop", NOME_ATALHO);
+
+  function config() {
+    return montarConfigAtalhos({ alvo, startup, areaTrabalho });
+  }
+
+  it("cria exatamente dois atalhos, ambos apontando para o exe instalado", () => {
+    const { atalhos } = config();
+    expect(atalhos).toHaveLength(2);
+    for (const a of atalhos) {
+      expect(a.alvo).toBe(alvo);
+      expect(a.trabalho).toBe(path.dirname(alvo));
+      expect(a.descricao).toBe(DESCRICAO_ATALHO);
+    }
+  });
+
+  it("só o atalho da Inicialização leva --autostart (senão o navegador abriria a cada boot)", () => {
+    const { atalhos } = config();
+    const naInicializacao = atalhos.find((a) => a.lnk === startup);
+    const naAreaDeTrabalho = atalhos.find((a) => a.lnk === areaTrabalho);
+    expect(naInicializacao.argumentos).toBe(ARG_AUTOSTART);
+    expect(naAreaDeTrabalho.argumentos).toBe("");
+  });
+
+  it("o campo argumentos existe sempre (o PowerShell não pode receber propriedade faltando)", () => {
+    for (const a of config().atalhos) expect(typeof a.argumentos).toBe("string");
   });
 });
 

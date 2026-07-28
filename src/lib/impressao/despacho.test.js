@@ -99,6 +99,20 @@ describe("enviarViaProducao", () => {
     expect(error?.message).toMatch(/Ponte KORA não está rodando/);
   });
 
+  it("um ponto configurado imprime um papel só, sem carimbar o nome do ponto", async () => {
+    configurarConfig({
+      perfilImpressora: PERFIL_TERMICA,
+      pontosImpressao: [{ id: "p1", nome: "Cozinha", impressora: PERFIL_TERMICA.impressora, padrao: true }],
+    });
+
+    const { error } = await enviarViaProducao(pedido);
+
+    expect(error).toBeNull();
+    expect(imprimirDocumento).toHaveBeenCalledTimes(1);
+    const [documento] = imprimirDocumento.mock.calls[0];
+    expect(documento).not.toHaveProperty("pontoNome");
+  });
+
   it("config antiga com impressoraQz não quebra — o campo legado é ignorado", async () => {
     configurarConfig({
       impressaoEmRede: true,
@@ -112,5 +126,172 @@ describe("enviarViaProducao", () => {
     expect(perfil).not.toHaveProperty("impressoraQz");
     expect(perfil.driver).toBe("browser-raster");
     expect(perfil.larguraMm).toBe(80);
+  });
+});
+
+describe("enviarViaProducao com vários pontos de impressão", () => {
+  const COZINHA = { tipo: "windows", nome: "EPSON-COZINHA" };
+  const BAR = { tipo: "rede", host: "192.168.0.9", porta: 9100 };
+
+  const DOIS_PONTOS = [
+    { id: "p1", nome: "Cozinha", impressora: COZINHA, padrao: true },
+    { id: "p2", nome: "Bar", impressora: BAR, padrao: false },
+  ];
+
+  const pedidoMisto = {
+    comanda: "12",
+    created_at: "2026-07-26T18:00:00.000Z",
+    items: [
+      { id: 1, name: "X-Burguer", qty: 2, category: "Lanches" },
+      { id: 2, name: "Caipirinha", qty: 1, category: "Bebidas" },
+      { id: 3, name: "Chocolate Quente", qty: 1, category: "Bebidas" },
+      { id: 4, name: "Petisco Sem Categoria", qty: 1 },
+    ],
+  };
+
+  // Facilita ler as asserções: nome do ponto → nomes dos itens que saíram nele.
+  function viasImpressas() {
+    return imprimirDocumento.mock.calls.map(([documento, perfil]) => ({
+      pontoNome: documento.pontoNome,
+      impressora: perfil.impressora,
+      itens: documento.itens.map((i) => i.nome),
+    }));
+  }
+
+  it("separa os itens por categoria: cada ponto recebe só o que é dele", async () => {
+    configurarConfig({
+      perfilImpressora: PERFIL_TERMICA,
+      pontosImpressao: DOIS_PONTOS,
+      roteamento: { categorias: { Bebidas: "p2" }, produtos: {} },
+    });
+
+    const { error } = await enviarViaProducao(pedidoMisto);
+
+    expect(error).toBeNull();
+    expect(imprimirDocumento).toHaveBeenCalledTimes(2);
+    expect(viasImpressas()).toEqual([
+      { pontoNome: "Cozinha", impressora: COZINHA, itens: ["X-Burguer", "Petisco Sem Categoria"] },
+      { pontoNome: "Bar", impressora: BAR, itens: ["Caipirinha", "Chocolate Quente"] },
+    ]);
+  });
+
+  it("exceção por produto vence a categoria (bebida que é feita na cozinha)", async () => {
+    configurarConfig({
+      perfilImpressora: PERFIL_TERMICA,
+      pontosImpressao: DOIS_PONTOS,
+      roteamento: { categorias: { Bebidas: "p2" }, produtos: { 3: "p1" } },
+    });
+
+    await enviarViaProducao(pedidoMisto);
+
+    expect(viasImpressas()).toEqual([
+      { pontoNome: "Cozinha", impressora: COZINHA, itens: ["X-Burguer", "Chocolate Quente", "Petisco Sem Categoria"] },
+      { pontoNome: "Bar", impressora: BAR, itens: ["Caipirinha"] },
+    ]);
+  });
+
+  it("todo item sai em exatamente um papel — nenhum se perde, nenhum duplica", async () => {
+    configurarConfig({
+      perfilImpressora: PERFIL_TERMICA,
+      pontosImpressao: DOIS_PONTOS,
+      roteamento: { categorias: { Bebidas: "p2", Sobremesas: "p9" }, produtos: {} },
+    });
+
+    await enviarViaProducao(pedidoMisto);
+
+    const todos = imprimirDocumento.mock.calls.flatMap(([doc]) => doc.itens.map((i) => i.nome));
+    expect(todos.slice().sort()).toEqual(
+      ["X-Burguer", "Caipirinha", "Chocolate Quente", "Petisco Sem Categoria"].sort()
+    );
+  });
+
+  it("rota apontando pra ponto apagado cai no padrão (nada some da cozinha)", async () => {
+    configurarConfig({
+      perfilImpressora: PERFIL_TERMICA,
+      pontosImpressao: DOIS_PONTOS,
+      roteamento: { categorias: { Bebidas: "p7" }, produtos: {} },
+    });
+
+    await enviarViaProducao(pedidoMisto);
+
+    expect(imprimirDocumento).toHaveBeenCalledTimes(1);
+    expect(viasImpressas()[0].pontoNome).toBe("Cozinha");
+    expect(viasImpressas()[0].itens).toHaveLength(4);
+  });
+
+  it("ponto sem item não gasta papel", async () => {
+    configurarConfig({
+      perfilImpressora: PERFIL_TERMICA,
+      pontosImpressao: DOIS_PONTOS,
+      roteamento: { categorias: { Sushi: "p2" }, produtos: {} },
+    });
+
+    await enviarViaProducao(pedidoMisto);
+
+    expect(imprimirDocumento).toHaveBeenCalledTimes(1);
+  });
+
+  it("comanda sem item produzível ainda gera a via no ponto padrão", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA, pontosImpressao: DOIS_PONTOS });
+
+    const { error } = await enviarViaProducao({ comanda: "12", items: [] });
+
+    expect(error).toBeNull();
+    expect(imprimirDocumento).toHaveBeenCalledTimes(1);
+    const [, perfil] = imprimirDocumento.mock.calls[0];
+    expect(perfil.impressora).toEqual(COZINHA);
+  });
+
+  it("cada ponto usa a própria impressora, mas o mesmo papel/layout do perfil", async () => {
+    configurarConfig({
+      perfilImpressora: PERFIL_TERMICA,
+      pontosImpressao: DOIS_PONTOS,
+      roteamento: { categorias: { Bebidas: "p2" }, produtos: {} },
+    });
+
+    await enviarViaProducao(pedidoMisto);
+
+    imprimirDocumento.mock.calls.forEach(([, perfil]) => {
+      expect(perfil.larguraMm).toBe(58);
+      expect(perfil.driver).toBe("escpos-ponte");
+    });
+  });
+
+  it("falha em um ponto não impede o outro de imprimir, e o erro diz qual não saiu", async () => {
+    configurarConfig({
+      perfilImpressora: PERFIL_TERMICA,
+      pontosImpressao: DOIS_PONTOS,
+      roteamento: { categorias: { Bebidas: "p2" }, produtos: {} },
+    });
+    imprimirDocumento.mockImplementation(async (documento) =>
+      documento.pontoNome === "Bar"
+        ? { error: { message: "A Ponte KORA não está rodando neste computador." } }
+        : { error: null }
+    );
+
+    const { error } = await enviarViaProducao(pedidoMisto);
+
+    expect(imprimirDocumento).toHaveBeenCalledTimes(2);
+    expect(error?.message).toMatch(/Bar/);
+    expect(error?.message).not.toMatch(/Cozinha/);
+    expect(error?.message).toMatch(/Ponte KORA não está rodando/);
+  });
+
+  it("driver que lança em um ponto não derruba os outros", async () => {
+    configurarConfig({
+      perfilImpressora: PERFIL_TERMICA,
+      pontosImpressao: DOIS_PONTOS,
+      roteamento: { categorias: { Bebidas: "p2" }, produtos: {} },
+    });
+    imprimirDocumento.mockImplementation(async (documento) => {
+      if (documento.pontoNome === "Cozinha") throw new Error("impressora sumiu");
+      return { error: null };
+    });
+
+    const { error } = await enviarViaProducao(pedidoMisto);
+
+    expect(imprimirDocumento).toHaveBeenCalledTimes(2);
+    expect(error?.message).toMatch(/Cozinha/);
+    expect(error?.message).toMatch(/impressora sumiu/);
   });
 });

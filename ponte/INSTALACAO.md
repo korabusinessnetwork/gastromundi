@@ -30,7 +30,7 @@ Dê um duplo clique no arquivo `KoraPonte.exe`.
 
 ### 3. Instalar no computador
 
-Vai abrir uma janelinha com a opção **Instalar neste computador**. Clique nela.
+A Ponte **não abre janela nenhuma** — ela trabalha em segundo plano, como uma impressora que fica ligada. O que abre é o **painel no navegador**. Nele, clique em **Instalar neste computador**.
 
 O programa vai:
 - Copiar a Ponte para a pasta do seu usuário (não pede senha).
@@ -43,11 +43,20 @@ O programa vai:
 
 ## Como usar no dia a dia
 
-### Ligar a Ponte
+### Ver se a Ponte está ligada
 
-Clique no atalho **"Ponte KORA"** na Área de Trabalho (ou ele já abre sozinho se o PC foi reiniciado).
+Clique no atalho **"KORA Ponte"** na Área de Trabalho. Ele abre o **painel** no navegador:
 
-Vai aparecer uma **janela preta** com mensagens — deixe-a aberta enquanto o caixa funcionar. Não feche essa janela, apenas minimize se quiser tirar de vista.
+- **"Ponte ligada"** — está tudo certo, ela está trabalhando em segundo plano. Pode fechar a aba do navegador à vontade: fechar o painel **não** para a Ponte.
+- **"Ponte parada"** — clique no atalho da Área de Trabalho de novo para ligá-la.
+
+Depois que o PC reinicia, ela sobe sozinha, sem abrir nada na tela.
+
+### Parar a Ponte
+
+No fim do painel tem o botão **Parar a ponte**. Ele pergunta *"Tem certeza?"* antes — só o segundo clique para de verdade. Para voltar, use o atalho da Área de Trabalho.
+
+Enquanto o caixa estiver funcionando, o normal é **nunca** parar a Ponte.
 
 ---
 
@@ -85,26 +94,38 @@ Os celulares dos garçons precisam acessar a Ponte pelo Wi-Fi quando a internet 
 
 R: Clique em "Mais informações" e depois "Executar assim mesmo". Isso é normal na primeira vez — o Windows avisa porque o arquivo é novo. Não é vírus.
 
-**P: Abri o programa, mas sumiu a janela preta**
+**P: Cliquei no atalho e não aconteceu nada**
 
-R: A Ponte vai parar de funcionar. Clique no atalho na Área de Trabalho novamente para reabrir a janela preta. Você pode minimizar a janela, mas não feche.
+R: Aconteceu sim — a Ponte não tem janela, ela trabalha em segundo plano. O painel deve abrir no navegador em alguns segundos. Se não abrir, digite `localhost:8123` no navegador.
+
+**P: Como sei se ela está mesmo ligada?**
+
+R: Clique no atalho **KORA Ponte** da Área de Trabalho. O painel abre dizendo **"Ponte ligada"** ou **"Ponte parada"**. Fechar a aba do navegador não para a Ponte.
 
 **P: Não está imprimindo a comanda**
 
 R: Verifique:
-1. A janela preta da Ponte está aberta (não fechada)?
+1. O painel diz "Ponte ligada"? (atalho da Área de Trabalho)
 2. A impressora está ligada e tem papel?
 3. Você escolheu a impressora certa em "Configurações → Impressão"?
 
-Se tudo estiver OK, reinicie a Ponte: feche a janela preta, clique no atalho para abrir de novo, e tente imprimir de novo.
+Se tudo estiver OK, reinicie a Ponte: no painel, **Parar a ponte**; depois clique no atalho da Área de Trabalho para abrir de novo e tente imprimir.
+
+**P: O suporte pediu o "log" da Ponte. Onde está?**
+
+R: Aperte as teclas **Windows + R**, cole `%LOCALAPPDATA%\KORA\Ponte\dados` e dê Enter. O arquivo é o **`ponte.log`** — pode mandar por e-mail; ele não guarda senha nem código secreto nenhum.
 
 **P: O painel do sistema não abre**
 
 R: Reinicie o PC. Se continuar, entre em contato com o responsável do sistema.
 
-**P: Diz "A porta 8123 está em uso"**
+**P: Cliquei duas vezes no atalho. Abriu duas Pontes?**
 
-R: Isso significa que outro programa já está usando o mesmo "endereço" que a Ponte precisa. Pode ser raro, mas se acontecer, entre em contato com o suporte — há uma forma de trocar, mas é para técnico.
+R: Não. A segunda percebe que a primeira já está trabalhando e apenas mostra o painel dela. Nunca há duas Pontes ao mesmo tempo.
+
+**P: Apareceu uma página dizendo que a Ponte não conseguiu abrir**
+
+R: É o aviso dela quando algo impediu de subir neste PC (normalmente outro programa ocupando o endereço `8123`). A própria página diz onde fica o arquivo `ponte.log` — mande esse arquivo para o responsável do sistema.
 
 **P: Instalei e abri o sistema, mas não aparece "Vinculada a <nome do estabelecimento>"**
 
