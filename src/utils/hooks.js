@@ -217,15 +217,14 @@ export function usePedidosCozinha() {
  * com sincronização ao vivo. Fonte da lista: `delivery_pedidos` (histórico
  * próprio do delivery). A RLS já filtra por tenant; admin lê direto.
  *
- * Duas assinaturas de realtime, de propósito:
- *  • `delivery_pedidos`: mudança de status ao vivo entre dispositivos. SÓ
- *    funciona depois que o dono habilitar Realtime nessa tabela (Database →
- *    Replication) — passo manual reservado. Sem isso, o painel ainda vive de
- *    fetch + refetch por ação.
- *  • `pending` filtrado em created_by='delivery' (INSERT): a tabela `pending`
- *    JÁ tem Realtime, então um pedido novo do cliente aparece na hora HOJE.
- *    Como o INSERT do `pending` não traz a linha de `delivery_pedidos`, aqui
- *    só disparamos um recarregar() — barato e sempre correto.
+ * Duas assinaturas de realtime, de propósito (ambas as tabelas já estão com
+ * Realtime habilitado em produção):
+ *  • `delivery_pedidos`: mudança de status ao vivo entre dispositivos — o
+ *    entregador marca "saiu para entrega" e o balcão vê na hora.
+ *  • `pending` filtrado em created_by='delivery' (INSERT): pedido novo do
+ *    cliente. Como o INSERT do `pending` não traz a linha de
+ *    `delivery_pedidos`, aqui só disparamos um recarregar() — barato e sempre
+ *    correto.
  *
  * Expõe { pedidos, carregando, erro, recarregar }.
  */
@@ -243,7 +242,7 @@ export function usePedidosDelivery() {
 
   useEffect(() => { recarregar(); }, [recarregar]);
 
-  // Status ao vivo — só ativo após habilitar Realtime em `delivery_pedidos`.
+  // Status ao vivo entre dispositivos.
   useEffect(() => {
     const channel = supabase
       .channel("delivery-pedidos-realtime")

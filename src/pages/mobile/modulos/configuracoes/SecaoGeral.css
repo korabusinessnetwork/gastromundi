@@ -1,0 +1,28 @@
+/**
+ * SecaoGeral.css — só o que é próprio da seção Geral.
+ *
+ * O resto (cartão, input, interruptor, aviso de salvo) vem da base
+ * compartilhada em ConfiguracoesModulo.css, e os botões de modulos.css.
+ */
+
+.cfg-geral__linhaDias {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* O campo de dias é curto de propósito: cabe "365" e nada mais, o que já
+   comunica o tamanho esperado da resposta sem precisar de texto de ajuda. */
+.cfg-geral__dias {
+  width: 84px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.cfg-geral__unidade {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+}

@@ -1,0 +1,189 @@
+/**
+ * SecaoPagamentos.css — só o que é NOVO nesta aba (catálogo de métodos,
+ * confirmação de remoção, chips de maquininha). O resto (cartão, título,
+ * ajuda, interruptor, campo, input, nota, aviso de sucesso) é da base do
+ * hub de Configurações (.cfg-*) e da base de módulo (.mod-*, em
+ * modulos.css) — não redefinido aqui (decisão 018 + base compartilhada).
+ *
+ * Cores só por tokens --gm-* (ADR-007) + color-mix, zero hex/rgb — para o
+ * white-label por estabelecimento funcionar (decisão 017). Alvo de toque
+ * mínimo var(--tap-min) em tudo que é clicável (é PDV no celular).
+ */
+
+.cfg-pagamentos__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cfg-pagamentos__btnAdicionar {
+  flex-shrink: 0;
+  min-height: var(--tap-min, 44px);
+  padding: 0 14px;
+}
+
+/* ── Formulário inline de método personalizado ────────────────────── */
+
+.cfg-pagamentos__formNovo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cfg-pagamentos__formNovo .cfg-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.cfg-pagamentos__formNovo .mod-botao {
+  flex-shrink: 0;
+}
+
+/* ── Lista de métodos ──────────────────────────────────────────────── */
+
+.cfg-pagamentos__lista {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+
+.cfg-pagamentos__linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap-min, 44px);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.cfg-pagamentos__linha:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.cfg-pagamentos__icone {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-muted) 12%, transparent);
+  color: var(--gm-muted);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cfg-pagamentos__icone svg {
+  width: 20px;
+  height: 20px;
+}
+
+.cfg-pagamentos__icone--ativo {
+  background: color-mix(in srgb, var(--gm-accent) 14%, transparent);
+  color: var(--gm-accent);
+}
+
+.cfg-pagamentos__textos {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cfg-pagamentos__nome {
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-base, 1rem);
+  font-weight: 700;
+  color: var(--gm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cfg-pagamentos__desc {
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cfg-pagamentos__btnRemover {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min, 44px);
+  height: var(--tap-min, 44px);
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 44%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 14%, transparent);
+  color: var(--gm-red);
+  transition: transform 0.15s ease;
+}
+
+.cfg-pagamentos__btnRemover:active {
+  transform: scale(0.94);
+}
+
+.cfg-pagamentos__btnRemover svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ── Confirmação inline de remoção ─────────────────────────────────── */
+
+.cfg-pagamentos__confirmar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cfg-pagamentos__confirmarTexto {
+  min-width: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--gm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cfg-pagamentos__confirmarBotoes {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Chips de maquininha (TEF) ──────────────────────────────────────
+   Wrap em vez de rolagem horizontal (a lista é curta: 2 a 5 métodos) —
+   assim tudo fica visível de uma vez, sem esconder opção fora da tela. */
+.cfg-pagamentos__tefChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ── Espaçador para a barra fixa do rodapé (.mod-rodape) ───────────── */
+
+.cfg-pagamentos__espacoRodape {
+  height: calc(var(--tap-min, 44px) + 24px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfg-pagamentos__icone,
+  .cfg-pagamentos__btnRemover {
+    transition: none;
+  }
+
+  .cfg-pagamentos__btnRemover:active {
+    transform: none;
+  }
+}

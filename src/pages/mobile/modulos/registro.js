@@ -27,6 +27,10 @@ export const TELAS_MODULO = {
   financeiro: lazy(() => import("./financeiro/FinanceiroModulo")),
   relatorio: lazy(() => import("./relatorios/RelatoriosModulo")),
   clientes: lazy(() => import("./clientes/ClientesModulo")),
+  // Configurações não é um cartão de `MODULOS_MAIS`: entra pela engrenagem do
+  // hub "Mais". Mora aqui mesmo assim porque obedece ao mesmo contrato
+  // (`{ onVoltar }`) e usa o mesmo `<Suspense>` do shell.
+  configuracoes: lazy(() => import("./configuracoes/ConfiguracoesModulo")),
 };
 
 /**

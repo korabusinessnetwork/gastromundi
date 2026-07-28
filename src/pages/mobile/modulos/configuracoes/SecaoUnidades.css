@@ -1,0 +1,97 @@
+/**
+ * SecaoUnidades.css — só o que é NOVO em relação a modulos.css (base) e ao
+ * CSS do hub de Configurações (.cfg-card, .cfg-input, .cfg-nota, .cfg-ok…).
+ * Namespace próprio `cfg-unidades__*` (decisão 018 — CSS separado do JSX).
+ *
+ * Zero hex/rgb: só tokens `--gm-*` (ADR-007) + color-mix, para o white-label
+ * por estabelecimento funcionar (decisão 017).
+ */
+
+/* ── Cartão da unidade (modo normal) ─────────────────────────────── */
+
+.cfg-unidades__info {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cfg-unidades__abbr {
+  flex-shrink: 0;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 700;
+  color: var(--gm-accent);
+}
+
+/* Botão de remover: alvo de toque mínimo mesmo sendo só um ícone. */
+.cfg-unidades__btnRemover {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min, 44px);
+  height: var(--tap-min, 44px);
+  margin: -10px -10px -10px 0;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--gm-muted);
+  transition: transform 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.cfg-unidades__btnRemover:active {
+  transform: scale(0.94);
+  border-color: color-mix(in srgb, var(--gm-red) 40%, transparent);
+  color: var(--gm-red);
+}
+
+.cfg-unidades__btnRemover svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Formulário de adição ─────────────────────────────────────────── */
+
+.cfg-unidades__addCampos {
+  display: flex;
+  gap: 8px;
+}
+
+.cfg-unidades__inputAbbr {
+  flex: 0 0 96px;
+  min-width: 0;
+}
+
+.cfg-unidades__inputNome {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Confirmação inline de exclusão ──────────────────────────────── */
+
+.cfg-unidades__aviso {
+  margin: 0;
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--gm-warn);
+}
+
+.cfg-unidades__confirmBotoes {
+  display: flex;
+  gap: 8px;
+}
+
+.cfg-unidades__confirmBotoes .mod-botao {
+  flex: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfg-unidades__btnRemover {
+    transition: none;
+  }
+
+  .cfg-unidades__btnRemover:active {
+    transform: none;
+  }
+}

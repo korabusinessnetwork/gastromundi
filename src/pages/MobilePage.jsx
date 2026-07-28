@@ -659,8 +659,11 @@ export default function MobilePage() {
               usuarioIniciais={usuarioIniciais}
               caixa={caixaInfo}
               modulos={modulosMais}
+              // Configurações tem tela nativa como qualquer outro módulo: a
+              // engrenagem abre dentro do Palm, não joga mais o celular na
+              // tela de computador.
               onConfiguracoes={
-                podeConfiguracoes ? () => navigate("/app/configuracoes") : undefined
+                podeConfiguracoes ? () => setModuloAberto("configuracoes") : undefined
               }
             />
           ))}

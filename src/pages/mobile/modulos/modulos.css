@@ -360,6 +360,14 @@
   color: var(--gm-green);
 }
 
+/* Ação destrutiva confirmada (excluir unidade, remover meio de pagamento):
+   vermelho cheio, para não parecer com o "ok" verde de confirmar. Só aparece
+   DEPOIS da pergunta de confirmação, nunca como primeiro toque. */
+.mod-botao--perigo {
+  background: var(--gm-red);
+  color: var(--gm-bg);
+}
+
 .mod-botao--fantasma {
   background: transparent;
   border-color: var(--gm-border);

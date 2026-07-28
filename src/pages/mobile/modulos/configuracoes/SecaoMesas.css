@@ -1,0 +1,63 @@
+/**
+ * SecaoMesas.css — só o que é NOVO nesta aba (linha de ações do cartão,
+ * bloco de edição inline, confirmação de remoção inline). O resto (cartão,
+ * título, badge, campo, input, nota, botão, aviso de sucesso, busca, vazio)
+ * é da base do hub de Configurações (.cfg-*, em ConfiguracoesModulo.css) e
+ * da base de módulo (.mod-*, em modulos.css) — não redefinido aqui
+ * (decisão 018 + base compartilhada).
+ *
+ * Cores só por tokens --gm-* (ADR-007) + color-mix, zero hex/rgb. Alvo de
+ * toque mínimo var(--tap-min) em todo botão.
+ */
+
+/* Linha de botões (Editar/Remover, Cancelar/Salvar, Cancelar/Sim remover) —
+   cada botão ocupa metade da largura, fácil de mirar com o polegar. */
+.cfg-mesas__acoes {
+  display: flex;
+  gap: 10px;
+}
+
+.cfg-mesas__acoes .mod-botao {
+  flex: 1;
+}
+
+/* Formulário "nova mesa": mesmo espaçamento do bloco de edição inline. */
+.cfg-mesas__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Edição inline dentro do próprio cartão da mesa. */
+.cfg-mesas__edicao {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cfg-mesas__ajuda {
+  margin: -4px 0 0;
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--gm-faint);
+  line-height: var(--lh-snug, 1.35);
+}
+
+/* Confirmação de remoção inline — sem modal, o aviso mora no próprio
+   cartão da mesa (padrão do Palm: ver DeliveryModulo.jsx). */
+.cfg-mesas__confirmar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cfg-mesas__confirmarTexto {
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+  line-height: var(--lh-snug, 1.35);
+}
+
+/* O botão "Sim, remover" usa `.mod-botao--perigo` (vermelho cheio) da base de
+   módulo — mesmo vermelho da exclusão de unidade e de meio de pagamento, para
+   que ação destrutiva tenha sempre a mesma cara no Palm inteiro. Só aparece
+   depois do toque em "Remover": a cor de alerta entra em cena quando a ação
+   já está prestes a acontecer (prevenção de erro > mensagem de erro). */

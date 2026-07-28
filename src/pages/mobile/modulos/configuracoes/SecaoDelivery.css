@@ -1,0 +1,163 @@
+/**
+ * SecaoDelivery.css — só o que é NOVO nesta aba (dias da semana, faixas de
+ * horário). O resto (cartão, título, toggle, campo, nota, texto de sucesso)
+ * é da base do hub de Configurações (.cfg-*) e da base de módulo (.mod-*,
+ * em modulos.css) — não redefinido aqui (decisão 018 + base compartilhada).
+ *
+ * Cores só por tokens --gm-* (ADR-007), zero hex/rgb. Alvo de toque mínimo
+ * var(--tap-min) nos botões de dia — no desktop eles são pequenos porque o
+ * mouse mira fácil; no celular precisam ser tocáveis com o polegar.
+ */
+
+.cfg-delivery__linhaToggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cfg-delivery__textoToggle {
+  flex: 1;
+  min-width: 0;
+}
+
+.cfg-delivery__detalhes {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cfg-delivery__rotulo {
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+/* ── Dias da semana ────────────────────────────────────────────── */
+
+.cfg-delivery__dias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cfg-delivery__dia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap-min, 44px);
+  min-height: var(--tap-min, 44px);
+  padding: 0 4px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-muted);
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 700;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.cfg-delivery__dia:active {
+  transform: scale(0.94);
+}
+
+.cfg-delivery__dia--on {
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+  color: var(--gm-bg);
+}
+
+/* ── Faixas de horário ─────────────────────────────────────────── */
+
+.cfg-delivery__faixas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cfg-delivery__faixa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-card) 60%, transparent);
+  border: 1px solid var(--gm-border);
+}
+
+.cfg-delivery__horas {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cfg-delivery__hora {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+
+.cfg-delivery__time {
+  min-height: var(--tap-min, 44px);
+  width: 100%;
+}
+
+.cfg-delivery__ate {
+  padding-bottom: 12px;
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-faint);
+}
+
+.cfg-delivery__faixaRemover {
+  flex-shrink: 0;
+  min-height: var(--tap-min, 44px);
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-red);
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 700;
+}
+
+.cfg-delivery__faixaRemover:active {
+  transform: scale(0.96);
+}
+
+.cfg-delivery__addFaixa {
+  align-self: flex-start;
+  min-height: var(--tap-min, 44px);
+  margin-top: 4px;
+}
+
+/* ── Espaçador para a barra fixa do rodapé (.mod-rodape) ──────────
+   O botão Salvar mora no rodapé fixo (fora do fluxo normal), então
+   o conteúdo rolável precisa de uma folga extra no fim para o último
+   card não ficar escondido atrás da barra. */
+.cfg-delivery__espacoRodape {
+  height: calc(var(--tap-min, 44px) + 24px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfg-delivery__dia,
+  .cfg-delivery__faixaRemover {
+    transition: none;
+  }
+
+  .cfg-delivery__dia:active,
+  .cfg-delivery__faixaRemover:active {
+    transform: none;
+  }
+}

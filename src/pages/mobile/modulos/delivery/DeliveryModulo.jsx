@@ -44,8 +44,8 @@ import "./DeliveryModulo.css";
  * src/utils/hooks.js): pedido novo do cliente e mudança feita por outro
  * operador chegam sozinhos, sem o garçom precisar tocar em nada — no celular
  * isso importa mais ainda, porque a tela fica no bolso. O botão de atualizar
- * no header continua ali como rede de segurança: o canal de
- * `delivery_pedidos` depende de o Realtime estar habilitado no Supabase.
+ * no header fica como rede de segurança para o celular que perdeu sinal e
+ * voltou — reconexão de websocket não repõe o que passou enquanto caiu.
  */
 
 const ROTULOS_CHIP = {

@@ -1,0 +1,23 @@
+/**
+ * SecaoRadar.css — só o que é próprio do Radar de Oportunidades.
+ *
+ * Cartão, select e nota vêm da base compartilhada (ConfiguracoesModulo.css);
+ * busca e estado vazio vêm de modulos.css.
+ */
+
+.cfg-radar__item {
+  gap: 8px;
+}
+
+.cfg-radar__nome {
+  font-size: var(--fs-base, 1rem);
+  font-weight: 700;
+  line-height: var(--lh-tight, 1.2);
+  overflow-wrap: anywhere;
+}
+
+/* Categoria já classificada ganha borda de destaque: dá para varrer a lista
+   e ver o que falta sem ler cada select. */
+.cfg-radar__select--definido {
+  border-color: var(--gm-accent);
+}

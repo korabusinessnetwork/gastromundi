@@ -1,0 +1,279 @@
+/**
+ * ConfiguracoesModulo.css — hub de Configurações do Palm + base compartilhada
+ * das seções.
+ *
+ * Duas responsabilidades, de propósito:
+ *  1. `.cfg-hub__*` — a lista de seções (só o hub usa).
+ *  2. `.cfg-*` — os controles de formulário que TODA seção de configuração
+ *     precisa (interruptor, campo, input, select, nota, aviso de sucesso).
+ *     Ficam aqui, e não em cada seção, porque o hub está sempre montado: a
+ *     seção carrega sob demanda e já encontra a base pronta, sem piscar sem
+ *     estilo. Cada seção acrescenta só o seu prefixo (`.cfg-mesas__*`, …).
+ *
+ * Regras (as mesmas do resto do Palm):
+ * - Zero hex/rgb: só tokens `--gm-*` (ADR-007) + `color-mix`, para o
+ *   white-label por estabelecimento funcionar (decisão 017).
+ * - Alvo de toque mínimo `--tap-min` (44px) em tudo que é clicável.
+ */
+
+/* ── Hub: lista de seções ──────────────────────────────────────── */
+
+.cfg-hub__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cfg-hub__grupoTitulo {
+  margin: 4px 0 0;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide, 0.06em);
+  text-transform: uppercase;
+  color: var(--gm-muted);
+}
+
+.cfg-hub__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--tap-min, 44px);
+  padding: 14px;
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+  text-align: left;
+  transition: transform 0.15s ease;
+}
+
+.cfg-hub__item:active {
+  transform: scale(0.98);
+}
+
+.cfg-hub__icone {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-accent) 12%, transparent);
+  color: var(--gm-accent);
+}
+
+.cfg-hub__icone svg {
+  width: 20px;
+  height: 20px;
+}
+
+.cfg-hub__textos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cfg-hub__rotulo {
+  font-size: var(--fs-base, 1rem);
+  font-weight: 700;
+  line-height: var(--lh-tight, 1.2);
+}
+
+.cfg-hub__descricao {
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+  line-height: var(--lh-snug, 1.35);
+}
+
+/* Seta de "abre outra tela": some do fluxo de leitura, mas diz para onde vai. */
+.cfg-hub__seta {
+  flex-shrink: 0;
+  color: var(--gm-muted);
+}
+
+.cfg-hub__seta svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Base compartilhada das seções ─────────────────────────────── */
+
+.cfg-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+}
+
+/* Empilha título/ajuda quando o cartão é só explicação (sem controle ao lado). */
+.cfg-card--coluna {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.cfg-card__textos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cfg-card__titulo {
+  font-size: var(--fs-base, 1rem);
+  font-weight: 700;
+  line-height: var(--lh-tight, 1.2);
+}
+
+.cfg-card__ajuda {
+  font-size: var(--fs-sm, 0.875rem);
+  color: var(--gm-muted);
+  line-height: var(--lh-snug, 1.35);
+}
+
+/* Interruptor: alvo de 44px por fora, trilho de 52px por dentro. O tamanho
+   visual não pode encolher a área de toque — é dedo em salão, não mouse. */
+.cfg-toggle {
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 56px;
+  height: var(--tap-min, 44px);
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.cfg-toggle::before {
+  content: "";
+  position: absolute;
+  inset: 10px 0;
+  border-radius: 999px;
+  background: var(--gm-border);
+  transition: background 0.2s ease;
+}
+
+.cfg-toggle--on::before {
+  background: var(--gm-green);
+}
+
+.cfg-toggle:disabled {
+  opacity: 0.6;
+}
+
+.cfg-toggle__bolinha {
+  position: absolute;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--gm-card);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--gm-text) 25%, transparent);
+  transition: left 0.2s ease;
+}
+
+.cfg-toggle--on .cfg-toggle__bolinha {
+  left: 34px;
+}
+
+.cfg-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cfg-campo__rotulo {
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--gm-muted);
+}
+
+.cfg-input,
+.cfg-select {
+  width: 100%;
+  min-height: var(--tap-min, 44px);
+  padding: 10px 12px;
+  border: 1.5px solid var(--gm-input-border);
+  border-radius: 12px;
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: var(--fs-base, 1rem);
+  outline: none;
+}
+
+.cfg-input:focus,
+.cfg-select:focus {
+  border-color: var(--gm-accent);
+}
+
+/* Estado inválido: a borda avisa antes de o usuário tocar em Salvar. */
+.cfg-input--invalido {
+  border-color: var(--gm-red);
+}
+
+.cfg-select {
+  cursor: pointer;
+}
+
+/* Nota honesta: "isso aqui é melhor no computador", limite conhecido etc. */
+.cfg-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px dashed var(--gm-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--gm-muted) 6%, transparent);
+  color: var(--gm-muted);
+  font-size: var(--fs-sm, 0.875rem);
+  line-height: var(--lh-snug, 1.35);
+}
+
+.cfg-nota svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.cfg-ok {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--gm-green) 12%, transparent);
+  color: var(--gm-green);
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 600;
+}
+
+.cfg-ok svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfg-hub__item,
+  .cfg-toggle::before,
+  .cfg-toggle__bolinha {
+    transition: none;
+  }
+
+  .cfg-hub__item:active {
+    transform: none;
+  }
+}
