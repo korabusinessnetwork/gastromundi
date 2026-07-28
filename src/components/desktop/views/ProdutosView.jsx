@@ -9,6 +9,7 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
+import { CATS_FIXAS, chaveCategoria, ehCategoriaFixa } from "@/lib/categoriasProduto";
 import { labelEstoque, getUnidadesCompra, fmtQtd } from "@/utils/conversaoUnidades";
 import { LuTriangleAlert, LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon, LuRuler } from "react-icons/lu";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
@@ -188,12 +189,18 @@ export default function ProdutosView() {
     setCatOpLoading(false);
   };
 
-  const CATS_FIXAS = ["Insumo", "Produção"];
-
   const categorias = useMemo(() => {
     const fromProducts = products.map(p => p.category).filter(Boolean);
     return [...new Set([...CATS_FIXAS, ...catExtra, ...fromProducts])].sort();
   }, [products, catExtra]);
+
+  // O que o cadastro de PRODUTO pode escolher: tudo menos as categorias de
+  // sistema. Quem quer cadastrar insumo ou item de produção usa o botão
+  // próprio — não existe caminho torto até lá.
+  const categoriasProduto = useMemo(
+    () => categorias.filter(cat => !ehCategoriaFixa(cat)),
+    [categorias],
+  );
 
   const produtosFiltrados = useMemo(() => {
     return products
@@ -278,6 +285,13 @@ export default function ProdutosView() {
       if (isNaN(p) || p <= 0)        return "Preço deve ser maior que zero.";
     }
     if (!form.category.trim())        return "Informe a categoria.";
+    // Rede de segurança do bloqueio acima: nem o chip nem o campo livre levam
+    // um produto comum para as categorias de sistema. A porta é o botão certo.
+    if (!isInsumo && !isProducao && ehCategoriaFixa(form.category)) {
+      return chaveCategoria(form.category) === "insumo"
+        ? 'Para cadastrar um insumo, use o botão "+ Novo Insumo".'
+        : 'Para cadastrar um item de produção, use o botão "+ Item de Produção".';
+    }
     if (!form.unidade_estoque.trim()) return "Selecione a unidade de estoque.";
     for (const c of form.compras) {
       if (c.unidade && !c.fator) return `Informe o fator de conversão do fornecedor "${c.nome || "sem nome"}".`;
@@ -523,13 +537,23 @@ export default function ProdutosView() {
               <div>
                 <Label>Categoria *</Label>
                 <div className="produtos-view__categorias-form">
-                  {categorias.map(cat => (
+                  {categoriasProduto.map(cat => (
                     <button key={cat} onClick={() => setField("category", cat)} className="produtos-view__categoria-chip" style={{ borderColor: form.category === cat ? varColor(C.accent) : varColor(C.border), background: form.category === cat ? "var(--gm-alow)" : varColor(C.surface), color: form.category === cat ? varColor(C.accent) : varColor(C.muted) }}>
                       {cat}
                     </button>
                   ))}
                 </div>
                 <Input value={form.category} onChange={v => setField("category", v)} placeholder="Ou digite uma nova categoria" maxLength={40} style={{ marginTop: 8 }} />
+                {/* Prevenção de erro > mensagem de erro: se o usuário digitar
+                    "insumo"/"produção" à mão, o aviso já aparece enquanto ele
+                    digita e diz qual botão usar — não espera o Salvar falhar. */}
+                {ehCategoriaFixa(form.category) && (
+                  <div className="produtos-view__cat-aviso-existe">
+                    "{form.category.trim()}" é uma categoria do sistema. Para cadastrar um item
+                    assim, feche esta janela e use o botão
+                    "{chaveCategoria(form.category) === "insumo" ? "+ Novo Insumo" : "+ Item de Produção"}".
+                  </div>
+                )}
               </div>
             )}
 
