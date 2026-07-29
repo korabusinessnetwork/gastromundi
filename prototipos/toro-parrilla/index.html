@@ -1,0 +1,1023 @@
+<title>Toro Parrilla e Bar — protótipo de site</title>
+
+<style>
+  /* ============================================================
+     TORO PARRILLA E BAR — protótipo de redesign
+     Identidade: preto + dourado (marca atual da casa)
+     Tokens: cor, tipo, espaço. Fundo preto em qualquer tema — a casa
+     é preta e dourada, então o protótipo não tem variante clara.
+     ============================================================ */
+
+  :root {
+    /* cor — preto da marca; bandas e cards sobem a partir do preto */
+    --bg:        #000000;
+    --bg-deep:   #070605;
+    --surface:   #141110;
+    --surface-2: #1D1815;
+    --ink:       #F6F0E6;
+    --ink-soft:  #CFC3B2;
+    --muted:     #9C8F7E;
+    --gold:      #D9A73F;
+    --gold-soft: #E8C878;
+    --on-gold:   #17120C;
+    --ember:     #E0762A;
+    --line:      rgba(217,167,63,.20);
+    --line-soft: rgba(246,240,230,.10);
+    --ok:        #6FB86B;
+
+    /* tipo */
+    --display: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+    /* escala de tipo */
+    --t-xs: .75rem;
+    --t-sm: .875rem;
+    --t-md: 1rem;
+    --t-lg: 1.125rem;
+    --t-xl: 1.375rem;
+    --t-2xl: clamp(1.5rem, 1.1rem + 1.6vw, 2.125rem);
+    --t-3xl: clamp(1.9rem, 1.2rem + 3vw, 3rem);
+    --t-hero: clamp(2.1rem, 1.1rem + 5.2vw, 4.25rem);
+
+    /* espaço e forma */
+    --gut: clamp(1.25rem, 4vw, 2.5rem);
+    --wrap: 1120px;
+    --radius: 2px;
+    --shadow: 0 24px 60px -28px rgba(0,0,0,.85);
+  }
+
+  /* Tema único: a sala é preta com dourado. Nenhuma variante clara —
+     nem por preferência do sistema, nem pelo toggle do leitor. */
+  :root,
+  :root[data-theme="dark"],
+  :root[data-theme="light"] {
+    color-scheme: dark;
+    --bg:        #000000;
+    --bg-deep:   #070605;
+    --surface:   #141110;
+    --surface-2: #1D1815;
+    --ink:       #F6F0E6;
+    --ink-soft:  #CFC3B2;
+    --muted:     #9C8F7E;
+    --gold:      #D9A73F;
+    --gold-soft: #E8C878;
+    --on-gold:   #17120C;
+    --ember:     #E0762A;
+    --line:      rgba(217,167,63,.20);
+    --line-soft: rgba(246,240,230,.10);
+    --ok:        #6FB86B;
+    --shadow: 0 24px 60px -28px rgba(0,0,0,.85);
+  }
+
+  /* Fundo preto no html E no body, sem depender de JS nem de classe:
+     o <body> é gerado no publish, então a regra tem que valer para
+     qualquer body. #000 literal como rede de segurança caso um token falhe. */
+  html, body {
+    background: #000000;
+    background: var(--bg);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: var(--t-md);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0; }
+
+  a { color: var(--gold); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+  :focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+    border-radius: var(--radius);
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: var(--wrap);
+    margin-inline: auto;
+    padding-inline: var(--gut);
+  }
+
+  /* ---------- rótulos e microtipografia ---------- */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: var(--t-xs);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0;
+  }
+  .lede { color: var(--ink-soft); font-size: var(--t-lg); max-width: 62ch; }
+  .fine { color: var(--muted); font-size: var(--t-sm); }
+
+  /* grade da parrilla — divisor estrutural, vem do objeto da casa */
+  .grate {
+    height: 10px;
+    background:
+      repeating-linear-gradient(90deg, var(--line) 0 2px, transparent 2px 13px),
+      linear-gradient(var(--line-soft), var(--line-soft)) center/100% 1px no-repeat;
+    opacity: .9;
+  }
+
+  /* ---------- aviso de protótipo ---------- */
+  .proto {
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: var(--t-xs);
+    font-family: var(--mono);
+    letter-spacing: .04em;
+  }
+  .proto .wrap { display: flex; gap: .75rem; align-items: baseline; padding-block: .5rem; flex-wrap: wrap; }
+  .proto b { color: var(--ink-soft); font-weight: 600; }
+
+  /* ---------- topo ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: rgba(0,0,0,.88);
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .topbar .wrap {
+    display: flex; align-items: center; gap: 1.5rem;
+    min-height: 68px;
+  }
+  .brand { display: flex; align-items: center; gap: .6rem; text-decoration: none; color: var(--ink); }
+  .brand svg { width: 42px; height: auto; fill: var(--gold); flex: none; }
+  .brand span {
+    font-family: var(--display);
+    font-size: var(--t-lg);
+    letter-spacing: .34em;
+    text-transform: uppercase;
+  }
+  .nav { margin-left: auto; display: flex; gap: 1.5rem; align-items: center; }
+  .nav a {
+    color: var(--ink-soft); text-decoration: none;
+    font-size: var(--t-sm); letter-spacing: .02em;
+    padding-block: .5rem;
+    border-bottom: 1px solid transparent;
+  }
+  .nav a:hover { color: var(--gold); border-bottom-color: var(--gold); }
+  @media (max-width: 900px) { .nav { display: none; } }
+
+  /* ---------- botões ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    padding: .8rem 1.35rem;
+    font-size: var(--t-sm); font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; text-decoration: none;
+    border-radius: var(--radius);
+    border: 1px solid var(--gold);
+    background: var(--gold); color: var(--on-gold);
+    cursor: pointer;
+    transition: transform .16s ease, filter .16s ease, background .16s ease, color .16s ease;
+  }
+  .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn.ghost { background: transparent; color: var(--gold); }
+  .btn.ghost:hover { background: color-mix(in srgb, var(--gold) 14%, transparent); }
+  .btn.quiet { background: transparent; color: var(--ink-soft); border-color: var(--line-soft); }
+  .btn.quiet:hover { color: var(--gold); border-color: var(--gold); }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; filter: none; }
+  .btn svg { width: 17px; height: 17px; fill: currentColor; flex: none; }
+
+  /* ---------- estado aberto/fechado ---------- */
+  .status {
+    display: inline-flex; align-items: center; gap: .55rem;
+    font-family: var(--mono); font-size: var(--t-xs); letter-spacing: .1em;
+    text-transform: uppercase;
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: .4rem .8rem;
+    color: var(--ink-soft);
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .status[data-open="true"] .dot { background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 22%, transparent); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    position: relative;
+    background: var(--bg-deep);
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .hero::after {
+    /* brilho de brasa sob o nome */
+    content: "";
+    position: absolute; inset: auto -10% -45% -10%; height: 70%;
+    background: radial-gradient(50% 100% at 50% 100%, color-mix(in srgb, var(--ember) 34%, transparent) 0%, transparent 72%);
+    z-index: -1; pointer-events: none;
+  }
+  #embers { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+  .hero .wrap {
+    padding-block: clamp(3rem, 8vw, 6rem) clamp(2.5rem, 6vw, 4.5rem);
+    display: grid; gap: 1.6rem; justify-items: start;
+  }
+  .hero h1 {
+    font-size: var(--t-hero);
+    line-height: 1.04;
+    letter-spacing: -.01em;
+    max-width: 22ch;
+  }
+  .hero h1 em { font-style: normal; color: var(--gold); }
+  .hero-name {
+    font-family: var(--display);
+    font-size: var(--t-sm);
+    letter-spacing: .42em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+
+  /* ---------- seções ---------- */
+  section { padding-block: clamp(3rem, 7vw, 5.5rem); }
+  .section-head { display: grid; gap: .6rem; margin-bottom: clamp(1.75rem, 4vw, 2.75rem); }
+  .section-head h2 { font-size: var(--t-3xl); line-height: 1.1; }
+  .band { background: var(--bg-deep); border-block: 1px solid var(--line-soft); }
+
+  /* ---------- três respostas rápidas ---------- */
+  .quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line-soft); border: 1px solid var(--line-soft); }
+  .quick > article {
+    background: var(--surface);
+    padding: clamp(1.25rem, 3vw, 1.9rem);
+    display: grid; gap: .5rem; align-content: start;
+  }
+  .quick h3 { font-size: var(--t-xl); }
+  .quick p { margin: 0; color: var(--ink-soft); font-size: var(--t-sm); }
+  .quick .btn { margin-top: .75rem; justify-self: start; }
+  @media (max-width: 820px) { .quick { grid-template-columns: 1fr; } }
+
+  /* ---------- fotos (slots do protótipo) ---------- */
+  .shots { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 1rem; }
+  .shot {
+    aspect-ratio: 4 / 5;
+    border: 1px solid var(--line);
+    background:
+      repeating-linear-gradient(90deg, var(--line-soft) 0 1px, transparent 1px 12px),
+      linear-gradient(160deg, var(--surface-2), var(--surface));
+    display: grid; place-content: center; text-align: center; gap: .35rem;
+    padding: 1rem;
+    color: var(--muted);
+    font-family: var(--mono); font-size: var(--t-xs); letter-spacing: .08em; text-transform: uppercase;
+  }
+  .shot:first-child { aspect-ratio: 4 / 5; }
+  .shot svg { width: 26px; height: 26px; fill: var(--gold); opacity: .55; justify-self: center; }
+  @media (max-width: 820px) { .shots { grid-template-columns: 1fr 1fr; } .shots .shot:first-child { grid-column: 1 / -1; aspect-ratio: 16 / 10; } }
+
+  /* ---------- cardápio ---------- */
+  .filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem; align-items: center; }
+  .filters .fine { width: 100%; margin: 0 0 .25rem; }
+  .chip {
+    font: inherit; font-size: var(--t-sm);
+    padding: .45rem .9rem;
+    border: 1px solid var(--line); border-radius: 999px;
+    background: transparent; color: var(--ink-soft);
+    cursor: pointer;
+    transition: background .16s ease, color .16s ease, border-color .16s ease;
+  }
+  .chip:hover { border-color: var(--gold); color: var(--gold); }
+  .chip[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--on-gold); font-weight: 600; }
+
+  .menu-group { margin-bottom: 2.5rem; }
+  .menu-group > h3 {
+    font-family: var(--mono); font-size: var(--t-xs); letter-spacing: .18em; text-transform: uppercase;
+    color: var(--gold); font-weight: 400;
+    padding-bottom: .6rem; margin-bottom: .25rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: .25rem 1.5rem;
+    padding: 1.05rem 0;
+    border-bottom: 1px solid var(--line-soft);
+    transition: opacity .2s ease;
+  }
+  .item.dim { opacity: .28; }
+  .item h4 { margin: 0; font-family: var(--body); font-size: var(--t-lg); font-weight: 600; letter-spacing: -.005em; }
+  .item p { margin: .15rem 0 0; color: var(--ink-soft); font-size: var(--t-sm); max-width: 58ch; }
+  .item .price {
+    font-family: var(--mono); font-size: var(--t-sm);
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    white-space: nowrap;
+    align-self: start;
+    padding-top: .3rem;
+  }
+  .tag {
+    display: inline-block; vertical-align: middle;
+    margin-left: .6rem;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--on-gold); background: var(--gold);
+    padding: .2rem .45rem; border-radius: var(--radius);
+  }
+  .tag.outline { background: transparent; color: var(--gold); border: 1px solid var(--line); }
+
+  /* ---------- horários ---------- */
+  .hours { display: grid; gap: 1px; background: var(--line-soft); border: 1px solid var(--line-soft); }
+  .hours .row {
+    display: grid; grid-template-columns: 6rem 1fr;
+    gap: 1rem; align-items: baseline;
+    background: var(--surface); padding: .85rem 1.1rem;
+    font-size: var(--t-sm);
+  }
+  .hours .row[aria-current="date"] { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--gold); }
+  .hours .day { font-family: var(--mono); text-transform: uppercase; letter-spacing: .12em; font-size: var(--t-xs); color: var(--muted); }
+  .hours .row[aria-current="date"] .day { color: var(--gold); }
+  .hours .slots { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+  .hours .closed { color: var(--muted); }
+
+  /* ---------- localização ---------- */
+  .place { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1.25rem, 3vw, 2.5rem); align-items: start; }
+  @media (max-width: 820px) { .place { grid-template-columns: 1fr; } }
+  .map {
+    aspect-ratio: 4 / 3;
+    border: 1px solid var(--line);
+    background:
+      repeating-linear-gradient(0deg, var(--line-soft) 0 1px, transparent 1px 34px),
+      repeating-linear-gradient(90deg, var(--line-soft) 0 1px, transparent 1px 34px),
+      var(--surface);
+    display: grid; place-content: center; gap: .5rem; text-align: center;
+    color: var(--muted); font-family: var(--mono); font-size: var(--t-xs);
+    letter-spacing: .08em; text-transform: uppercase;
+  }
+  .map .pin { width: 30px; height: 30px; fill: var(--ember); justify-self: center; }
+  .addr { display: grid; gap: 1.25rem; align-content: start; }
+  .addr address { font-style: normal; font-size: var(--t-lg); line-height: 1.5; }
+  .addr .row { display: grid; gap: .2rem; }
+  .addr .label { font-family: var(--mono); font-size: var(--t-xs); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .addr a.big { font-size: var(--t-xl); font-family: var(--mono); font-variant-numeric: tabular-nums; text-decoration: none; }
+  .addr a.big:hover { text-decoration: underline; }
+
+  /* ---------- reserva ---------- */
+  .book { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
+  @media (max-width: 820px) { .book { grid-template-columns: 1fr; } }
+  .form { display: grid; gap: 1rem; }
+  .field { display: grid; gap: .35rem; }
+  .field label { font-family: var(--mono); font-size: var(--t-xs); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .field input, .field select {
+    font: inherit; font-size: var(--t-md);
+    color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line-soft); border-radius: var(--radius);
+    padding: .75rem .85rem;
+    min-height: 48px;
+  }
+  .field input:hover, .field select:hover { border-color: var(--line); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .preview {
+    background: var(--surface); border: 1px solid var(--line);
+    padding: clamp(1.1rem, 3vw, 1.6rem);
+    display: grid; gap: .75rem; align-content: start;
+  }
+  .preview .label { font-family: var(--mono); font-size: var(--t-xs); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .preview .msg {
+    font-size: var(--t-md); line-height: 1.55; color: var(--ink);
+    background: var(--surface-2); border-left: 2px solid var(--gold);
+    padding: .9rem 1rem; margin: 0;
+    white-space: pre-wrap;
+  }
+
+  /* ---------- rodapé ---------- */
+  .foot { background: var(--bg-deep); border-top: 1px solid var(--line); padding-block: clamp(2.5rem, 5vw, 3.5rem) 6.5rem; }
+  .foot .cols { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 2rem; }
+  @media (max-width: 820px) { .foot .cols { grid-template-columns: 1fr; } }
+  .foot h3 { font-family: var(--mono); font-size: var(--t-xs); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 400; margin-bottom: .75rem; }
+  .foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; font-size: var(--t-sm); }
+  .foot a { color: var(--ink-soft); text-decoration: none; }
+  .foot a:hover { color: var(--gold); text-decoration: underline; }
+  .foot .brand { margin-bottom: 1rem; }
+
+  /* ---------- barra fixa no celular ---------- */
+  .mobilebar {
+    position: fixed; inset: auto 0 0 0; z-index: 50;
+    display: none;
+    background: rgba(7,6,5,.94);
+    background: color-mix(in srgb, var(--bg-deep) 94%, transparent);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+    padding: .6rem var(--gut) calc(.6rem + env(safe-area-inset-bottom));
+    gap: .5rem;
+  }
+  .mobilebar .btn { flex: 1; padding-inline: .5rem; font-size: var(--t-xs); }
+  @media (max-width: 900px) { .mobilebar { display: flex; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+    html { scroll-behavior: auto; }
+  }
+  html { scroll-behavior: smooth; }
+</style>
+
+<div class="proto">
+  <div class="wrap">
+    <b>Protótipo de redesign</b>
+    <span>Não é o site oficial. Conteúdo vindo do site atual e de fontes públicas — preços, fotos e horários devem ser confirmados com a casa.</span>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#topo" aria-label="Toro Parrilla e Bar — início">
+      <svg viewBox="0 0 48 22" aria-hidden="true">
+        <path d="M24 21.2c-7.6 0-15.3-3.9-19.8-11.2-.5-.8.5-1.6 1.2-1 4.9 4.2 11.6 5.6 18.6 5.1 7 .5 13.7-.9 18.6-5.1.7-.6 1.7.2 1.2 1C39.3 17.3 31.6 21.2 24 21.2Z"/>
+        <path d="M6.8 6.4C5.1 5.2 3.2 4.6 1.2 4.5.4 4.5.2 3.4 1 3.2 4.2 2.4 7.6 3 10.2 5c.7.5.2 1.7-.6 1.5-.9-.2-1.9-.2-2.8-.1Zm34.4 0c1.7-1.2 3.6-1.8 5.6-1.9.8 0 1-1.1.2-1.3-3.2-.8-6.6-.2-9.2 1.8-.7.5-.2 1.7.6 1.5.9-.2 1.9-.2 2.8-.1Z"/>
+      </svg>
+      <span>Toro</span>
+    </a>
+    <nav class="nav" aria-label="Seções">
+      <a href="#cardapio">Cardápio</a>
+      <a href="#horarios">Horários</a>
+      <a href="#localizacao">Como chegar</a>
+      <a href="#reserva">Reservar</a>
+    </nav>
+  </div>
+</header>
+
+<main id="topo" class="toro-main">
+
+  <!-- ================= HERO ================= -->
+  <div class="hero">
+    <canvas id="embers" aria-hidden="true"></canvas>
+    <div class="wrap">
+      <p class="hero-name">Toro Parrilla e Bar · Novo Hamburgo</p>
+      <h1>Carnes nobres e certificadas, no ponto perfeito, <em>assadas na parrilla</em>.</h1>
+      <p class="status" id="status" data-open="false">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="status-text">Verificando horário…</span>
+      </p>
+      <div class="hero-actions">
+        <a class="btn" href="#reserva">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7Zm12 8v9H5v-9h14Z"/></svg>
+          Reservar mesa
+        </a>
+        <a class="btn ghost" href="#cardapio">Ver o cardápio</a>
+        <a class="btn quiet" href="https://maps.google.com/?q=R.+Jo%C3%A3o+Ant%C3%B4nio+da+Silveira,+180,+Novo+Hamburgo+RS" target="_blank" rel="noopener">Como chegar</a>
+      </div>
+    </div>
+  </div>
+  <div class="grate" aria-hidden="true"></div>
+
+  <!-- ================= TRÊS RESPOSTAS RÁPIDAS ================= -->
+  <section aria-labelledby="rapido">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Antes de qualquer coisa</p>
+        <h2 id="rapido">O que você quer fazer agora?</h2>
+        <p class="lede">Três coisas resolvem 90% das visitas: garantir mesa, saber o que vai comer e chegar até a porta.</p>
+      </div>
+
+      <div class="quick">
+        <article>
+          <h3>Reservar uma mesa</h3>
+          <p>Você escolhe dia, horário e número de pessoas — a gente monta a mensagem e você só envia no WhatsApp.</p>
+          <a class="btn" href="#reserva">Reservar</a>
+        </article>
+        <article>
+          <h3>Ver os cortes e os preços</h3>
+          <p>Onze cortes na parrilla, uruguaios e gaúchos certificados, com acompanhamentos e entradas.</p>
+          <a class="btn ghost" href="#cardapio">Abrir cardápio</a>
+        </article>
+        <article>
+          <h3>Chegar até o Toro</h3>
+          <p>R. João Antônio da Silveira, 180 — Centro de Novo Hamburgo. Estacione por perto e venha com fome.</p>
+          <a class="btn quiet" href="https://maps.google.com/?q=R.+Jo%C3%A3o+Ant%C3%B4nio+da+Silveira,+180,+Novo+Hamburgo+RS" target="_blank" rel="noopener">Abrir no Google Maps</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= A CASA ================= -->
+  <section class="band" aria-labelledby="casa">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">A casa</p>
+        <h2 id="casa">Fogo, ferro e sal. O resto é a carne que fala.</h2>
+        <p class="lede">Aconchegante e rústico no ambiente, rigoroso na brasa: a parrilla é o centro da casa e o cardápio ganha receitas novas a cada seis meses.</p>
+      </div>
+      <div class="shots">
+        <div class="shot">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 11 4-5 3 4 2-2 4 5H5Zm11-7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/></svg>
+          Foto — fachada ao anoitecer
+        </div>
+        <div class="shot">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 11 4-5 3 4 2-2 4 5H5Zm11-7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/></svg>
+          Foto — corte na brasa
+        </div>
+        <div class="shot">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm1 11 4-5 3 4 2-2 4 5H5Zm11-7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/></svg>
+          Foto — salão
+        </div>
+      </div>
+      <p class="fine" style="margin-top:1rem">As fotos que a casa já usa entram nesses espaços — o layout foi feito para elas.</p>
+    </div>
+  </section>
+
+  <!-- ================= CARDÁPIO ================= -->
+  <section id="cardapio" aria-labelledby="cardapio-h">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Cardápio</p>
+        <h2 id="cardapio-h">Onze cortes na parrilla</h2>
+        <p class="lede">Não sabe qual pedir? Escolha pelo que você gosta e a lista se ajusta.</p>
+      </div>
+
+      <div class="filters" role="group" aria-label="Filtrar cortes pelo que você gosta">
+        <p class="fine">Eu gosto de carne…</p>
+        <button class="chip" type="button" data-filter="todos" aria-pressed="true">Ver todos</button>
+        <button class="chip" type="button" data-filter="macio" aria-pressed="false">Bem macia</button>
+        <button class="chip" type="button" data-filter="suculento" aria-pressed="false">Suculenta, com gordura</button>
+        <button class="chip" type="button" data-filter="marcante" aria-pressed="false">De sabor marcante</button>
+      </div>
+
+      <div class="menu-group">
+        <h3>Cortes na parrilla</h3>
+        <div class="item" data-perfil="suculento">
+          <div>
+            <h4>Entrecot <span class="tag">Mais pedido</span></h4>
+            <p>Corte do contrafilé com a capa de gordura preservada — a gordura derrete na brasa e mantém a carne suculenta.</p>
+          </div>
+          <div class="price">R$ ——</div>
+        </div>
+        <div class="item" data-perfil="suculento">
+          <div>
+            <h4>Picanha</h4>
+            <p>A clássica da churrasqueira gaúcha, com a capa de gordura dourada por fora e macia por dentro.</p>
+          </div>
+          <div class="price">R$ ——</div>
+        </div>
+        <div class="item" data-perfil="marcante">
+          <div>
+            <h4>Assado de tiras</h4>
+            <p>Costela cortada em tiras, assada devagar até a carne soltar do osso. Sabor de churrasco de verdade.</p>
+          </div>
+          <div class="price">R$ ——</div>
+        </div>
+        <div class="item" data-perfil="macio">
+          <div>
+            <h4>Filé mignon</h4>
+            <p>O corte mais macio do boi, magro e delicado — para quem prefere carne sem gordura aparente.</p>
+          </div>
+          <div class="price">R$ ——</div>
+        </div>
+        <div class="item" data-perfil="marcante">
+          <div>
+            <h4>Chorizo</h4>
+            <p>Contrafilé no estilo argentino, encorpado e com sabor firme. Vai bem no ponto para mal passado.</p>
+          </div>
+          <div class="price">R$ ——</div>
+        </div>
+        <div class="item" data-perfil="marcante">
+          <div>
+            <h4>Entranha uruguaia <span class="tag outline">Uruguai</span></h4>
+            <p>Corte fino e fibroso, de sabor intenso, feito rápido na brasa alta. Para quem já conhece parrilla.</p>
+          </div>
+          <div class="price">R$ ——</div>
+        </div>
+        <div class="item" data-perfil="todos">
+          <div>
+            <h4>+ 5 cortes da casa</h4>
+            <p>A parrilla trabalha com onze cortes certificados, uruguaios e gaúchos. Os cinco restantes entram aqui com nome e descrição.</p>
+          </div>
+          <div class="price">a definir</div>
+        </div>
+      </div>
+
+      <div class="menu-group">
+        <h3>Para acompanhar</h3>
+        <div class="item"><div><h4>Salada Toro</h4><p>A salada da casa, para dividir na mesa.</p></div><div class="price">R$ ——</div></div>
+        <div class="item"><div><h4>Batata rústica</h4><p>Em gomos, com casca, assada.</p></div><div class="price">R$ ——</div></div>
+        <div class="item"><div><h4>Batata frita</h4><p>Porção para dividir.</p></div><div class="price">R$ ——</div></div>
+        <div class="item"><div><h4>Arroz branco</h4><p>Simples, do jeito que combina com a brasa.</p></div><div class="price">R$ ——</div></div>
+      </div>
+
+      <p class="fine">Os valores entram aqui a partir do cardápio da casa — deixamos os espaços prontos em vez de inventar preço.</p>
+
+      <div class="hero-actions" style="margin-top:1.5rem">
+        <a class="btn ghost" href="#reserva">Reservar mesa</a>
+        <a class="btn quiet" id="wa-pedido" href="#">Pedir para viagem no WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ADEGA ================= -->
+  <section class="band" aria-labelledby="adega">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Adega e bar</p>
+        <h2 id="adega">Um vinho para cada corte</h2>
+        <p class="lede">A carta reúne rótulos da Europa, da América do Sul e de parceiros da casa. Se estiver em dúvida, diga o corte que escolheu — a equipe indica a garrafa.</p>
+      </div>
+      <div class="filters" aria-label="Regiões da carta de vinhos">
+        <span class="chip" aria-hidden="true">Argentina</span>
+        <span class="chip" aria-hidden="true">Chile</span>
+        <span class="chip" aria-hidden="true">Uruguai</span>
+        <span class="chip" aria-hidden="true">Brasil</span>
+        <span class="chip" aria-hidden="true">Portugal</span>
+        <span class="chip" aria-hidden="true">Itália</span>
+        <span class="chip" aria-hidden="true">França</span>
+        <span class="chip" aria-hidden="true">Espanha</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= HORÁRIOS ================= -->
+  <section id="horarios" aria-labelledby="horarios-h">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Horários</p>
+        <h2 id="horarios-h">Quando a brasa está acesa</h2>
+        <p class="lede">Jantar de quarta a sábado; almoço no fim de semana. O dia de hoje aparece marcado.</p>
+      </div>
+      <div class="hours" id="hours"></div>
+      <p class="fine" style="margin-top:1rem">Feriados podem alterar o funcionamento — confirme no WhatsApp antes de sair de casa.</p>
+    </div>
+  </section>
+
+  <!-- ================= LOCALIZAÇÃO ================= -->
+  <section class="band" id="localizacao" aria-labelledby="local-h">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Como chegar</p>
+        <h2 id="local-h">No Centro de Novo Hamburgo</h2>
+      </div>
+      <div class="place">
+        <div class="map">
+          <svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>
+          Mapa — R. João Antônio da Silveira, 180
+        </div>
+        <div class="addr">
+          <div class="row">
+            <span class="label">Endereço</span>
+            <address>R. João Antônio da Silveira, 180<br>Centro — Novo Hamburgo, RS</address>
+          </div>
+          <div class="row">
+            <span class="label">Telefone e WhatsApp</span>
+            <a class="big" href="tel:+5551999507788">(51) 99950-7788</a>
+          </div>
+          <div class="hero-actions">
+            <a class="btn" href="https://maps.google.com/?q=R.+Jo%C3%A3o+Ant%C3%B4nio+da+Silveira,+180,+Novo+Hamburgo+RS" target="_blank" rel="noopener">Traçar rota</a>
+            <a class="btn quiet" href="tel:+5551999507788">Ligar para a casa</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= RESERVA ================= -->
+  <section id="reserva" aria-labelledby="reserva-h">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Reserva</p>
+        <h2 id="reserva-h">Reserve em três campos</h2>
+        <p class="lede">Preencha, confira a mensagem pronta e envie. Sem cadastro, sem senha, sem espera.</p>
+      </div>
+
+      <div class="book">
+        <form class="form" id="form-reserva" novalidate>
+          <div class="pair">
+            <div class="field">
+              <label for="dia">Dia</label>
+              <input type="date" id="dia" name="dia" required>
+            </div>
+            <div class="field">
+              <label for="hora">Horário</label>
+              <select id="hora" name="hora"></select>
+            </div>
+          </div>
+          <div class="pair">
+            <div class="field">
+              <label for="pessoas">Pessoas</label>
+              <select id="pessoas" name="pessoas">
+                <option value="1">1 pessoa</option>
+                <option value="2" selected>2 pessoas</option>
+                <option value="3">3 pessoas</option>
+                <option value="4">4 pessoas</option>
+                <option value="5">5 pessoas</option>
+                <option value="6">6 pessoas</option>
+                <option value="8">7 a 8 pessoas</option>
+                <option value="10">mais de 8 pessoas</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="nome">Seu nome</label>
+              <input type="text" id="nome" name="nome" placeholder="Como chamamos você?" autocomplete="name" required>
+            </div>
+          </div>
+          <button class="btn" type="submit" id="enviar" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.2 1.2-1.7 1.2-.4 0-1 0-1.8-.3-2-.8-4.4-2.9-5.5-5-.5-.9-.8-1.7-.8-2.4 0-.7.4-1.4.8-1.8.3-.3.6-.3.8-.3h.6c.2 0 .4.1.6.5l.7 1.7c.1.2.1.4 0 .6l-.4.5c-.2.2-.2.3-.1.5.5 1 1.5 2 2.6 2.5.2.1.4.1.5-.1l.6-.7c.2-.2.3-.2.6-.1l1.6.8c.3.2.4.3.4.5 0 .2 0 .8-.1 1.2Z"/></svg>
+            Enviar reserva no WhatsApp
+          </button>
+          <p class="fine" id="dica">Preencha seu nome para liberar o envio.</p>
+        </form>
+
+        <div class="preview" aria-live="polite">
+          <span class="label">A mensagem que vai ser enviada</span>
+          <p class="msg" id="msg">Olá! Gostaria de reservar uma mesa.</p>
+          <p class="fine">Nada é enviado antes de você tocar no botão. A confirmação vem pelo WhatsApp da casa.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <a class="brand" href="#topo" aria-label="Toro Parrilla e Bar">
+          <svg viewBox="0 0 48 22" aria-hidden="true">
+            <path d="M24 21.2c-7.6 0-15.3-3.9-19.8-11.2-.5-.8.5-1.6 1.2-1 4.9 4.2 11.6 5.6 18.6 5.1 7 .5 13.7-.9 18.6-5.1.7-.6 1.7.2 1.2 1C39.3 17.3 31.6 21.2 24 21.2Z"/>
+            <path d="M6.8 6.4C5.1 5.2 3.2 4.6 1.2 4.5.4 4.5.2 3.4 1 3.2 4.2 2.4 7.6 3 10.2 5c.7.5.2 1.7-.6 1.5-.9-.2-1.9-.2-2.8-.1Zm34.4 0c1.7-1.2 3.6-1.8 5.6-1.9.8 0 1-1.1.2-1.3-3.2-.8-6.6-.2-9.2 1.8-.7.5-.2 1.7.6 1.5.9-.2 1.9-.2 2.8-.1Z"/>
+          </svg>
+          <span>Toro</span>
+        </a>
+        <p class="fine">Parrilla e bar no Centro de Novo Hamburgo. Carnes nobres e certificadas, assadas na brasa.</p>
+      </div>
+      <div>
+        <h3>Ir para</h3>
+        <ul>
+          <li><a href="#cardapio">Cardápio</a></li>
+          <li><a href="#horarios">Horários</a></li>
+          <li><a href="#localizacao">Como chegar</a></li>
+          <li><a href="#reserva">Reservar mesa</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Falar com a casa</h3>
+        <ul>
+          <li><a href="tel:+5551999507788">(51) 99950-7788</a></li>
+          <li><a id="wa-foot" href="#">WhatsApp</a></li>
+          <li><a href="https://www.instagram.com/toroparrillaebar/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.facebook.com/p/Toro-Parrilla-e-Bar-NH-61553913310816/" target="_blank" rel="noopener">Facebook</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="mobilebar">
+  <a class="btn" href="#reserva">Reservar</a>
+  <a class="btn quiet" href="tel:+5551999507788">Ligar</a>
+  <a class="btn quiet" href="https://maps.google.com/?q=R.+Jo%C3%A3o+Ant%C3%B4nio+da+Silveira,+180,+Novo+Hamburgo+RS" target="_blank" rel="noopener">Rota</a>
+</div>
+
+<script>
+(function () {
+  var WHATS = '5551999507788';
+
+  /* ---------- horários da casa ----------
+     jantar: quarta a sábado, 19h–23h
+     almoço: sábado e domingo, 11h30–15h            */
+  var JANTAR = { de: '19:00', ate: '23:00', nome: 'Jantar' };
+  var ALMOCO = { de: '11:30', ate: '15:00', nome: 'Almoço' };
+  var AGENDA = {
+    0: [ALMOCO],
+    1: [],
+    2: [],
+    3: [JANTAR],
+    4: [JANTAR],
+    5: [JANTAR],
+    6: [ALMOCO, JANTAR]
+  };
+  var DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+  function emMinutos(hhmm) {
+    var p = hhmm.split(':');
+    return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+  }
+  function humano(hhmm) {
+    var p = hhmm.split(':');
+    return p[1] === '00' ? p[0] + 'h' : p[0] + 'h' + p[1];
+  }
+
+  /* ---------- tabela de horários ---------- */
+  var hoje = new Date().getDay();
+  var hours = document.getElementById('hours');
+  var ordem = [1, 2, 3, 4, 5, 6, 0];
+  ordem.forEach(function (d) {
+    var slots = AGENDA[d];
+    var row = document.createElement('div');
+    row.className = 'row';
+    if (d === hoje) { row.setAttribute('aria-current', 'date'); }
+    var texto = slots.length
+      ? slots.map(function (s) { return s.nome + ' ' + humano(s.de) + '–' + humano(s.ate); }).join('  ·  ')
+      : 'Fechado';
+    row.innerHTML = '<span class="day">' + DIAS[d] + (d === hoje ? ' · hoje' : '') + '</span>' +
+      '<span class="slots' + (slots.length ? '' : ' closed') + '">' + texto + '</span>';
+    hours.appendChild(row);
+  });
+
+  /* ---------- aberto agora / próxima abertura ---------- */
+  function atualizarStatus() {
+    var agora = new Date();
+    var minutos = agora.getHours() * 60 + agora.getMinutes();
+    var dia = agora.getDay();
+    var aberto = null;
+
+    AGENDA[dia].forEach(function (s) {
+      if (minutos >= emMinutos(s.de) && minutos < emMinutos(s.ate)) { aberto = s; }
+    });
+
+    var el = document.getElementById('status');
+    var txt = document.getElementById('status-text');
+
+    if (aberto) {
+      el.setAttribute('data-open', 'true');
+      txt.textContent = 'Aberto agora · fecha às ' + humano(aberto.ate);
+      return;
+    }
+
+    el.setAttribute('data-open', 'false');
+    for (var i = 0; i < 8; i++) {
+      var d = (dia + i) % 7;
+      var slots = AGENDA[d];
+      for (var j = 0; j < slots.length; j++) {
+        var abre = emMinutos(slots[j].de);
+        if (i > 0 || abre > minutos) {
+          var quando = i === 0 ? 'hoje' : (i === 1 ? 'amanhã' : DIAS[d].toLowerCase());
+          txt.textContent = 'Fechado · abre ' + quando + ' às ' + humano(slots[j].de);
+          return;
+        }
+      }
+    }
+    txt.textContent = 'Fechado';
+  }
+  atualizarStatus();
+  setInterval(atualizarStatus, 60000);
+
+  /* ---------- filtro de cortes ---------- */
+  var chips = document.querySelectorAll('.chip[data-filter]');
+  var itens = document.querySelectorAll('#cardapio .item[data-perfil]');
+  chips.forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      var alvo = chip.getAttribute('data-filter');
+      chips.forEach(function (c) { c.setAttribute('aria-pressed', String(c === chip)); });
+      itens.forEach(function (item) {
+        var perfil = item.getAttribute('data-perfil');
+        var mostra = alvo === 'todos' || perfil === alvo || perfil === 'todos';
+        item.classList.toggle('dim', !mostra);
+      });
+    });
+  });
+
+  /* ---------- horários possíveis para reserva ---------- */
+  var selHora = document.getElementById('hora');
+  var inpDia = document.getElementById('dia');
+
+  function preencherHoras() {
+    var valor = inpDia.value;
+    var d = valor ? new Date(valor + 'T12:00:00').getDay() : new Date().getDay();
+    var slots = AGENDA[d];
+    selHora.innerHTML = '';
+    if (!slots.length) {
+      var op = document.createElement('option');
+      op.textContent = 'A casa não abre nesse dia';
+      op.value = '';
+      selHora.appendChild(op);
+      selHora.disabled = true;
+      return;
+    }
+    selHora.disabled = false;
+    slots.forEach(function (s) {
+      var t = emMinutos(s.de);
+      var fim = emMinutos(s.ate) - 30;
+      while (t <= fim) {
+        var h = String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+        var op2 = document.createElement('option');
+        op2.value = h;
+        op2.textContent = humano(h) + ' · ' + s.nome.toLowerCase();
+        selHora.appendChild(op2);
+        t += 30;
+      }
+    });
+  }
+
+  function dataBR(valor) {
+    if (!valor) { return ''; }
+    var p = valor.split('-');
+    return p[2] + '/' + p[1];
+  }
+
+  function mensagem() {
+    var nome = document.getElementById('nome').value.trim();
+    var pessoas = document.getElementById('pessoas');
+    var partes = ['Olá! Gostaria de reservar uma mesa no Toro.'];
+    partes.push('Pessoas: ' + pessoas.options[pessoas.selectedIndex].text);
+    if (inpDia.value) { partes.push('Dia: ' + dataBR(inpDia.value)); }
+    if (selHora.value) { partes.push('Horário: ' + humano(selHora.value)); }
+    if (nome) { partes.push('Nome: ' + nome); }
+    return partes.join('\n');
+  }
+
+  var msg = document.getElementById('msg');
+  var enviar = document.getElementById('enviar');
+  var dica = document.getElementById('dica');
+
+  function atualizarPreview() {
+    msg.textContent = mensagem();
+    var temNome = document.getElementById('nome').value.trim().length > 1;
+    var temHora = !!selHora.value;
+    enviar.disabled = !(temNome && temHora);
+    if (!temHora) {
+      dica.textContent = 'Escolha um dia em que a casa abre.';
+    } else if (!temNome) {
+      dica.textContent = 'Preencha seu nome para liberar o envio.';
+    } else {
+      dica.textContent = 'Tudo pronto — o WhatsApp abre com a mensagem escrita.';
+    }
+  }
+
+  /* data mínima é hoje; começa em hoje */
+  var agoraISO = new Date();
+  var iso = agoraISO.getFullYear() + '-' +
+    String(agoraISO.getMonth() + 1).padStart(2, '0') + '-' +
+    String(agoraISO.getDate()).padStart(2, '0');
+  inpDia.min = iso;
+  inpDia.value = iso;
+
+  preencherHoras();
+  atualizarPreview();
+
+  inpDia.addEventListener('change', function () { preencherHoras(); atualizarPreview(); });
+  ['input', 'change'].forEach(function (ev) {
+    document.getElementById('form-reserva').addEventListener(ev, atualizarPreview);
+  });
+
+  document.getElementById('form-reserva').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (enviar.disabled) { return; }
+    window.open('https://wa.me/' + WHATS + '?text=' + encodeURIComponent(mensagem()), '_blank', 'noopener');
+  });
+
+  /* links diretos de WhatsApp */
+  var pedido = 'https://wa.me/' + WHATS + '?text=' + encodeURIComponent('Olá! Gostaria de fazer um pedido para viagem.');
+  document.getElementById('wa-pedido').href = pedido;
+  document.getElementById('wa-foot').href = 'https://wa.me/' + WHATS;
+
+  /* ---------- brasa no hero ---------- */
+  var canvas = document.getElementById('embers');
+  var reduz = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (canvas && canvas.getContext && !reduz.matches) {
+    var ctx = canvas.getContext('2d');
+    var particulas = [];
+    var w = 0, h = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    function medir() {
+      var r = canvas.getBoundingClientRect();
+      w = r.width; h = r.height;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    medir();
+    window.addEventListener('resize', medir);
+
+    function nova() {
+      return {
+        x: Math.random() * w,
+        y: h + Math.random() * 40,
+        r: 0.6 + Math.random() * 1.8,
+        v: 0.2 + Math.random() * 0.7,
+        drift: (Math.random() - 0.5) * 0.3,
+        vida: 0,
+        max: 180 + Math.random() * 220
+      };
+    }
+    for (var i = 0; i < 46; i++) {
+      var p = nova();
+      p.y = Math.random() * h;
+      p.vida = Math.random() * p.max;
+      particulas.push(p);
+    }
+
+    function quadro() {
+      ctx.clearRect(0, 0, w, h);
+      particulas.forEach(function (p, idx) {
+        p.y -= p.v;
+        p.x += p.drift;
+        p.vida += 1;
+        if (p.vida > p.max || p.y < -10) { particulas[idx] = nova(); return; }
+        var fade = 1 - p.vida / p.max;
+        ctx.beginPath();
+        ctx.fillStyle = 'rgba(224,118,42,' + (fade * 0.55).toFixed(3) + ')';
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      requestAnimationFrame(quadro);
+    }
+    quadro();
+  }
+})();
+</script>
