@@ -19,6 +19,8 @@ import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { supabase } from "@/lib/supabase";
 import { mesmoItemDeVenda } from "@/lib/combos";
 import { buscarClientePorId } from "@/lib/clientes";
+import { imprimirLancamento } from "@/lib/impressao/despacho";
+import { chaveLancamento, registroLancamentos } from "@/lib/impressao/lancamentos";
 import "./PDVView.css";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
 import { useTravaComanda } from "@/hooks/useTravaComanda";
@@ -390,9 +392,23 @@ export default function PDVView({ notify }) {
       const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
       const acumulados = [...anteriores, ...novos];
       const total      = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+      // Este lançamento saiu daqui e é impresso logo abaixo: marca ANTES de
+      // gravar para o vigia do realtime (ImpressaoLancamentosBridge) não
+      // mandar o mesmo papel de novo ao ver a comanda mudar. Marcar um
+      // lançamento que acabe falhando não custa nada — não há o que imprimir.
+      registroLancamentos.marcar(chaveLancamento(ordem.id, agora));
       const { error } = await updatePending(ordem.id, { items: acumulados, total }, { baseItems: anteriores });
       if (error) throw error;
       addLancada(ordem.id);
+      // Papel na produção sai sozinho ao lançar (se a chave estiver ligada
+      // em Configurações → Impressão). Fire-and-forget de propósito: o
+      // pedido JÁ está gravado, então impressora fora do ar não pode
+      // travar a tela nem sugerir que o lançamento falhou — só avisa.
+      imprimirLancamento({ ...ordem, items: novos })
+        .then(({ error: erroImpressao }) => {
+          if (erroImpressao) notify?.(`Pedido lançado, mas não saiu na produção: ${erroImpressao.message}`, "err");
+        })
+        .catch(() => {});
       logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados na ${fmtComanda(ordem.comanda)} · ${novos.length} tipo(s) · R$ ${total.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: ordem.comanda, tipos: novos.length, total });
       setToast(true);
       setTimeout(() => setToast(false), 6000);

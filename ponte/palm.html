@@ -95,6 +95,10 @@
     border: 1px solid var(--border); background: var(--card); color: var(--texto); outline: none;
   }
   .linha2 { display: flex; gap: 10px; } .linha2 .campo { flex: 1; }
+  /* Dica embaixo do campo da comanda: avisa que existe lista de abertas.
+     Some sozinha quando não há nenhuma (textContent vazio). */
+  .dica { font-size: 12px; line-height: 1.4; color: var(--muted); margin-top: 6px; }
+  .dica:empty { display: none; }
   .total { display: flex; justify-content: space-between; font-size: 17px; font-weight: 800; margin-top: 16px; }
   .msg-erro { color: var(--erro); font-size: 14px; font-weight: 700; margin-top: 12px; display: none; }
 
@@ -130,7 +134,9 @@
     <div class="linha2">
       <div class="campo">
         <label for="comanda">Comanda *</label>
-        <input id="comanda" inputmode="numeric" placeholder="Nº ou nome" />
+        <input id="comanda" inputmode="numeric" placeholder="Nº ou nome" list="comandasAbertas" />
+        <datalist id="comandasAbertas"></datalist>
+        <div class="dica" id="dicaComanda"></div>
       </div>
       <div class="campo">
         <label for="mesa">Mesa</label>
@@ -167,6 +173,7 @@
   "use strict";
   var token = new URLSearchParams(location.search).get("t") || "";
   var produtos = [];
+  var comandasAbertas = []; // { comanda, mesa, apelido } — vem do caixa no snapshot
   var carrinho = []; // { id, name, price, qty, emoji, category, produzivel }
   var catAtiva = "Todos";
   var idPedido = null; // gerado uma vez por pedido — reenvio não duplica
@@ -195,9 +202,11 @@
           return;
         }
         produtos = Array.isArray(res.j.products) ? res.j.products : [];
+        comandasAbertas = Array.isArray(res.j.comandas) ? res.j.comandas : [];
         setStatus(true, "Conectado ao caixa · " + produtos.length + " produtos");
         mostrarAviso(null);
         montarCategorias();
+        montarComandasAbertas();
         desenharGrid();
       })
       .catch(function () {
@@ -228,6 +237,21 @@
     Array.prototype.forEach.call($("cats").children, function (b) {
       b.onclick = function () { catAtiva = b.getAttribute("data-cat"); montarCategorias(); desenharGrid(); };
     });
+  }
+
+  // Comandas que o caixa já tem abertas. O garçom escolhe em vez de digitar
+  // de cabeça: é o que impede o pedido de abrir uma SEGUNDA comanda 5 e
+  // partir a conta do cliente em duas. Mesmo escapar de sempre — o valor
+  // vem do caixa pela rede local, que nunca é confiável.
+  function montarComandasAbertas() {
+    $("comandasAbertas").innerHTML = comandasAbertas.map(function (c) {
+      var rotulo = [c.mesa ? "Mesa " + c.mesa : "", c.apelido || ""].filter(Boolean).join(" · ");
+      return "<option value=\"" + escapar(String(c.comanda)) + "\"" +
+        (rotulo ? " label=\"" + escapar(rotulo) + "\"" : "") + "></option>";
+    }).join("");
+    $("dicaComanda").textContent = comandasAbertas.length > 0
+      ? "Toque no campo para ver as " + comandasAbertas.length + " comandas abertas no caixa."
+      : "";
   }
 
   function desenharGrid() {

@@ -14,7 +14,7 @@ vi.mock("../supabase", async () => {
 // Captura as impressões sem tocar em driver real (window.print / Ponte).
 vi.mock("./drivers", () => ({ imprimirDocumento }));
 
-import { enviarViaProducao } from "./despacho";
+import { enviarViaProducao, imprimirLancamento } from "./despacho";
 
 const PERFIL_TERMICA = {
   larguraMm: 58,
@@ -293,5 +293,68 @@ describe("enviarViaProducao com vários pontos de impressão", () => {
     expect(imprimirDocumento).toHaveBeenCalledTimes(2);
     expect(error?.message).toMatch(/Cozinha/);
     expect(error?.message).toMatch(/impressora sumiu/);
+  });
+});
+
+describe("imprimirLancamento", () => {
+  it("imprime quando a chave está ligada", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA, imprimirAoLancar: true });
+
+    const { error, impresso } = await imprimirLancamento(pedido);
+
+    expect(error).toBeNull();
+    expect(impresso).toBe(true);
+    expect(imprimirDocumento).toHaveBeenCalledTimes(1);
+  });
+
+  it("imprime em instalação antiga, que não tem a chave gravada", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+
+    const { impresso } = await imprimirLancamento(pedido);
+
+    expect(impresso).toBe(true);
+    expect(imprimirDocumento).toHaveBeenCalledTimes(1);
+  });
+
+  it("não imprime nada quando a chave está desligada", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA, imprimirAoLancar: false });
+
+    const { error, impresso } = await imprimirLancamento(pedido);
+
+    expect(error).toBeNull();
+    expect(impresso).toBe(false);
+    expect(imprimirDocumento).not.toHaveBeenCalled();
+  });
+
+  it("não gasta papel quando nada do lançamento vai para a produção", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+
+    const soBebidaPronta = {
+      comanda: "12",
+      items: [{ name: "Refrigerante", qty: 1, category: "Bebidas", produzivel: false }],
+    };
+    const { impresso } = await imprimirLancamento(soBebidaPronta);
+
+    expect(impresso).toBe(false);
+    expect(imprimirDocumento).not.toHaveBeenCalled();
+  });
+
+  it("devolve o erro do driver sem lançar — o pedido já está gravado", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+    imprimirDocumento.mockResolvedValue({ error: { message: "Ponte KORA fechada." } });
+
+    const { error, impresso } = await imprimirLancamento(pedido);
+
+    expect(impresso).toBe(true);
+    expect(error?.message).toBe("Ponte KORA fechada.");
+  });
+
+  it("imprime só os itens que recebeu, não a comanda inteira", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+
+    await imprimirLancamento({ comanda: "12", items: [{ name: "Pudim", qty: 1, category: "Sobremesas" }] });
+
+    const [documento] = imprimirDocumento.mock.calls[0];
+    expect(documento.itens.map((i) => i.nome ?? i.name)).toEqual(["Pudim"]);
   });
 });

@@ -54,10 +54,12 @@ function consolidarErros(falhas, totalDestinos) {
 
 /**
  * @param {object} order - shape do pedido/`pending` (comanda, mesa, garçom, items[])
+ * @param {object} [configPreLida] - config já lida por quem chamou; evita uma
+ *   segunda ida ao banco no caminho do lançamento (ver `imprimirLancamento`).
  * @returns {Promise<{ error: {message: string}|null }>}
  */
-export async function enviarViaProducao(order) {
-  const { data: configImpressao } = await buscarConfigImpressao();
+export async function enviarViaProducao(order, configPreLida) {
+  const configImpressao = configPreLida ?? (await buscarConfigImpressao()).data;
   const documento = montarViaProducao({ pedido: order });
 
   // Normaliza uma vez só (é idempotente — a config lida já vem normalizada)
@@ -105,4 +107,40 @@ export async function enviarViaProducao(order) {
   }
 
   return { error: consolidarErros(falhas, grupos.length) };
+}
+
+/**
+ * Impressão automática no LANÇAMENTO do pedido (decisão do dono
+ * 2026-07-29). O garçom lança e o papel sai na produção sozinho, sem
+ * ninguém precisar lembrar de apertar "Via de produção" na Cozinha.
+ *
+ * Só imprime se o estabelecimento deixou a chave ligada
+ * (`config_impressao.imprimirAoLancar`, ligada por padrão). Quem corrige
+ * lançamento no balcão desliga e não gasta bobina — por isso a chave
+ * mora AQUI e não dentro de `enviarViaProducao`: o botão manual da
+ * Cozinha tem que continuar imprimindo sempre, ligado ou desligado.
+ *
+ * `order.items` deve trazer APENAS os itens recém-lançados. Passar a
+ * comanda inteira faria o segundo lançamento reimprimir o que a cozinha
+ * já fez.
+ *
+ * Nunca lança e nunca deve ser esperado por quem lança: falha de
+ * impressão não pode desfazer nem travar um pedido que já está gravado.
+ *
+ * @param {object} order - pedido com só os itens novos em `items`
+ * @returns {Promise<{ error: {message: string}|null, impresso: boolean }>}
+ */
+export async function imprimirLancamento(order) {
+  const { data: configImpressao } = await buscarConfigImpressao();
+  if (!configImpressao?.imprimirAoLancar) return { error: null, impresso: false };
+
+  // Lançamento só de item que não vai pra produção (ou tudo cancelado)
+  // não rende papel. Sem esta guarda sairia a via "Nenhum item produzível
+  // nesta comanda" — que faz sentido quando alguém PEDE a via na Cozinha,
+  // e nenhum quando o papel aparece sozinho.
+  const documento = montarViaProducao({ pedido: order });
+  if (documento.itens.length === 0) return { error: null, impresso: false };
+
+  const { error } = await enviarViaProducao(order, configImpressao);
+  return { error, impresso: true };
 }

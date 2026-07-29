@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LuPrinter, LuReceipt, LuCircleCheck, LuCircleAlert } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import { montarComprovantePagamento, montarCupomPreNota, buscarConfigImpressao } from "@/lib/impressao";
@@ -21,6 +21,7 @@ export default function ImpressaoAcoes({ montarVenda }) {
   const { tenant } = useApp();
   const [status, setStatus] = useState(null); // null | "imprimindo" | "erro" | "sucesso"
   const [mensagemErro, setMensagemErro] = useState("");
+  const contaAutomaticaRef = useRef(false);
 
   const imprimir = async (tipo) => {
     if (status === "imprimindo") return;
@@ -44,6 +45,24 @@ export default function ImpressaoAcoes({ montarVenda }) {
       setStatus("erro");
     }
   };
+
+  // Conta do cliente sozinha ao abrir o fechamento (opcional — decisão do
+  // dono 2026-07-29). Este componente só existe enquanto o checkout está
+  // aberto, então "montou" é exatamente "abriu o fechamento". A trava é ref
+  // e não estado para o StrictMode não render dois papéis em desenvolvimento.
+  useEffect(() => {
+    if (contaAutomaticaRef.current) return;
+    contaAutomaticaRef.current = true;
+    let vivo = true;
+    (async () => {
+      const { data: configImpressao } = await buscarConfigImpressao();
+      // Se o operador voltou do fechamento antes da config chegar, não sai
+      // papel de uma conta que ele desistiu de fechar.
+      if (!vivo || !configImpressao?.imprimirContaNoCheckout) return;
+      imprimir("cupom");
+    })();
+    return () => { vivo = false; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="impressao-acoes">

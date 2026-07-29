@@ -26,6 +26,7 @@ import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 import { useStatusRede } from "@/hooks/useStatusRede";
 import IndicadorRede from "@/components/shared/IndicadorRede";
 import PonteLocalBridge from "@/components/shared/PonteLocalBridge";
+import ImpressaoLancamentosBridge from "@/components/shared/ImpressaoLancamentosBridge";
 import {
   saveSession, loadSession, clearSession,
   getAttempts, setAttempts, clearAttempts,
@@ -1464,6 +1465,7 @@ export function AppProvider({ children }) {
       {children}
       <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
       <PonteLocalBridge />
+      <ImpressaoLancamentosBridge />
     </AppContext.Provider>
   );
 }

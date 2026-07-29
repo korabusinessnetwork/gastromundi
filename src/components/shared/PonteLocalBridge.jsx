@@ -13,13 +13,14 @@ import { usePonteLocal } from "@/hooks/usePonteLocal";
 const PONTE_LOCAL_ATIVA = import.meta.env.VITE_PONTE_LOCAL_ATIVA === "true";
 
 export default function PonteLocalBridge() {
-  const { isMobile, currentUser, products, pending, addPending, ponteEndereco, setPonteEndereco, redeOnline, tenant } = useApp();
+  const { isMobile, currentUser, products, pending, addPending, updatePending, ponteEndereco, setPonteEndereco, redeOnline, tenant } = useApp();
 
   usePonteLocal({
     ativo: PONTE_LOCAL_ATIVA && !isMobile && !!currentUser,
     products,
     pending,
     addPending,
+    updatePending,
     ponteEndereco,
     setPonteEndereco,
     redeOnline,

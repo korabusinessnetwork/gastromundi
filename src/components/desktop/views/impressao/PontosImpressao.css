@@ -85,6 +85,79 @@
   color: var(--gm-muted);
 }
 
+/* ── "Quando imprimir" — chave liga/desliga da impressão ao lançar ──── */
+
+.pontos-impressao__linha-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Uma chave por linha, separadas por um fio: são decisões independentes e
+   ler três interruptores colados vira um bloco só. */
+.pontos-impressao__linha-toggle + .pontos-impressao__linha-toggle {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gm-border);
+}
+
+/* Aviso da chave por aparelho — precisa vir logo abaixo dela, não no rodapé
+   da seção, para ninguém ligar em dois caixas sem ler. */
+.pontos-impressao__aviso-aparelho {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--gm-muted);
+}
+
+.pontos-impressao__label-toggle {
+  margin-bottom: 4px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--gm-text);
+}
+
+.pontos-impressao__toggle {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 13px;
+  background: var(--gm-faint);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pontos-impressao__toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pontos-impressao__toggle--on {
+  background: var(--gm-green);
+}
+
+.pontos-impressao__toggle-bolinha {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  transform: translateY(-50%);
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: left 0.2s;
+}
+
+.pontos-impressao__toggle--on .pontos-impressao__toggle-bolinha {
+  left: 25px;
+}
+
 .pontos-impressao__ajuda {
   font-size: 13px;
   line-height: 1.5;

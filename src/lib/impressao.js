@@ -67,6 +67,18 @@ export const CONFIG_IMPRESSAO_PADRAO = {
   endereco: "",
   cnpj: "",
   rodapePersonalizado: "Obrigado pela preferência!",
+  // Imprimir a via de produção sozinho, assim que o garçom lança o
+  // pedido (decisão do dono 2026-07-29). LIGADO por padrão porque é o
+  // que todo mundo espera de um PDV de restaurante: lançou, saiu papel
+  // na cozinha. Quem corrige lançamento no balcão e não quer gastar
+  // bobina desliga aqui, por estabelecimento (decisão 017).
+  imprimirAoLancar: true,
+  // Imprimir a conta do cliente (pré-nota) sozinho ao abrir o fechamento
+  // da comanda (decisão do dono 2026-07-29). DESLIGADO por padrão: o dono
+  // pediu como opção, e casa que fecha muita conta no cartão sem mostrar
+  // extrato não quer gastar bobina em toda venda. Os botões manuais
+  // "Comprovante" e "Pré-nota" do checkout continuam existindo dos dois jeitos.
+  imprimirContaNoCheckout: false,
   perfilImpressora: PERFIL_IMPRESSORA_PADRAO,
   // Vazio no default e SEMPRE preenchido pela normalização da leitura —
   // ninguém consome a config sem pelo menos um ponto (ver
@@ -158,6 +170,13 @@ function mesclarConfigImpressao(valor) {
   return {
     ...CONFIG_IMPRESSAO_PADRAO,
     ...semCamposLegados(valor, CAMPOS_LEGADOS_CONFIG),
+    // O que vem do banco é JSON livre e o campo é novo: instalação antiga
+    // não tem a chave. Só `false` explícito desliga — qualquer outra coisa
+    // (ausente, null, lixo) cai no ligado, que é o default acordado.
+    imprimirAoLancar: valor?.imprimirAoLancar !== false,
+    // Espelho invertido da chave acima: esta nasce DESLIGADA, então só
+    // `true` explícito liga. Instalação antiga não imprime conta sozinha.
+    imprimirContaNoCheckout: valor?.imprimirContaNoCheckout === true,
     perfilImpressora,
     // Quem já usava o sistema tem `pontosImpressao` ausente/vazio: a
     // normalização sintetiza o ponto padrão a partir da impressora do
