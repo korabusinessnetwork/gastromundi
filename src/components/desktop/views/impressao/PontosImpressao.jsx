@@ -3,7 +3,10 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { useApp } from "@/context/AppContext";
 import { buscarConfigImpressao, salvarConfigImpressao } from "@/lib/impressao";
-import { normalizarPontos, novoPonto, removerPonto, definirPadrao } from "@/lib/impressao/pontos";
+import {
+  normalizarPontos, novoPonto, removerPonto, definirPadrao,
+  destinoDaCategoria, definirRotaCategoria, categoriasOrfas,
+} from "@/lib/impressao/pontos";
 import { listarImpressorasPonte } from "@/lib/ponte";
 import {
   LuCircleCheck, LuCircleAlert, LuLoader, LuRefreshCw, LuPrinter,
@@ -34,18 +37,35 @@ export default function PontosImpressao({ sz }) {
   const [pontos, setPontos] = useState([]);
   const [roteamento, setRoteamento] = useState({ categorias: {}, produtos: {} });
   const [carregando, setCarregando] = useState(true);
+  const [erroCarga, setErroCarga] = useState(null);
+
+  // Se a leitura falhar, a tela NÃO pode abrir: sem config no lugar ela
+  // sintetizaria o ponto padrão e mostraria a configuração de fábrica como
+  // se fosse a salva — e um Salvar em cima disso apagaria a de verdade.
+  // Então erro de leitura vira tela de erro com "Tentar de novo".
+  const carregar = useCallback(() => {
+    setCarregando(true);
+    setErroCarga(null);
+    buscarConfigImpressao()
+      .then(({ data, error }) => {
+        if (error || !data) throw error ?? new Error("Não deu para ler a configuração de impressão.");
+        setConfigCompleta(data);
+        setPontos(normalizarPontos(data.pontosImpressao, data.perfilImpressora));
+        setRoteamento({
+          categorias: data.roteamento?.categorias ?? {},
+          produtos: data.roteamento?.produtos ?? {},
+        });
+        setCarregando(false);
+      })
+      .catch((e) => {
+        setErroCarga(e?.message || "Não deu para ler a configuração de impressão.");
+        setCarregando(false);
+      });
+  }, []);
 
   useEffect(() => {
-    buscarConfigImpressao().then(({ data }) => {
-      setConfigCompleta(data);
-      setPontos(normalizarPontos(data.pontosImpressao, data.perfilImpressora));
-      setRoteamento({
-        categorias: data.roteamento?.categorias ?? {},
-        produtos: data.roteamento?.produtos ?? {},
-      });
-      setCarregando(false);
-    });
-  }, []);
+    carregar();
+  }, [carregar]);
 
   const adicionarPonto = () => {
     setPontos((prev) => [...prev, novoPonto(prev)]);
@@ -79,6 +99,22 @@ export default function PontosImpressao({ sz }) {
 
   if (carregando) {
     return <div className="pontos-impressao__carregando">Carregando…</div>;
+  }
+
+  if (erroCarga) {
+    return (
+      <div className="pontos-impressao__erro-carga">
+        <LuCircleAlert size={20} />
+        <div>
+          <strong>Não deu para carregar a configuração de impressão.</strong>
+          <p>{erroCarga}</p>
+          <p>Nada foi alterado. Verifique a internet e tente de novo.</p>
+        </div>
+        <button type="button" className="pontos-impressao__botao-recarregar" onClick={carregar}>
+          <LuRefreshCw size={16} /> Tentar de novo
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -191,7 +227,9 @@ function CardPonto({ ponto, somenteUm, confirmando, onAtualizar, onMarcarPadrao,
     setErroPonte("");
     const { data, error } = await listarImpressorasPonte();
     if (error) {
-      const semConexao = error.name === "AbortError" || /failed to fetch|network|fetch/i.test(error.message || "");
+      // Marca posta por `erroAmigavelPonte` em @/lib/ponte — ver o mesmo
+      // trecho em PerfilImpressora.jsx.
+      const semConexao = error.foraDoAr === true;
       setImpressorasPonte([]);
       if (semConexao) {
         setStatusPonte("ausente");
@@ -371,12 +409,29 @@ function SecaoRoteamento({ pontos, roteamento, setRoteamento, categorias, produc
     return pontos.filter((p) => !salvos.has(p.id));
   }, [pontos, configCompleta]);
 
+  // Escreve pela lib para converger a grafia: "Bebida" renomeada para
+  // "Bebidas" no cardápio deixaria as duas chaves no mapa, e a antiga
+  // ficaria órfã pra sempre porque a tela não a lista mais.
   const definirCategoria = (categoria, pontoId) => {
+    setRoteamento((prev) => ({
+      ...prev,
+      categorias: definirRotaCategoria(prev.categorias, categoria, pontoId),
+    }));
+  };
+
+  // Rota gravada para categoria que não existe mais no cardápio: o item
+  // voltou calado pro ponto padrão. A tabela não a mostra (não há linha),
+  // então o único jeito de o dono saber é este aviso.
+  const orfas = useMemo(
+    () => categoriasOrfas(roteamento.categorias, categorias),
+    [roteamento.categorias, categorias]
+  );
+
+  const limparOrfas = () => {
     setRoteamento((prev) => {
-      const proximasCategorias = { ...prev.categorias };
-      if (!pontoId) delete proximasCategorias[categoria];
-      else proximasCategorias[categoria] = pontoId;
-      return { ...prev, categorias: proximasCategorias };
+      let categoriasLimpas = prev.categorias;
+      for (const orfa of orfas) categoriasLimpas = definirRotaCategoria(categoriasLimpas, orfa, "");
+      return { ...prev, categorias: categoriasLimpas };
     });
   };
 
@@ -449,6 +504,21 @@ function SecaoRoteamento({ pontos, roteamento, setRoteamento, categorias, produc
         </div>
       )}
 
+      {orfas.length > 0 && (
+        <div className="pontos-impressao__aviso">
+          <LuCircleAlert size={14} color={varColor(C.warn)} className="pontos-impressao__aviso-icone" />
+          <span>
+            {orfas.length === 1
+              ? `A categoria "${orfas[0]}" tinha um ponto escolhido, mas não existe mais no cardápio.`
+              : `Estas categorias tinham ponto escolhido e não existem mais no cardápio: ${orfas.join(", ")}.`}{" "}
+            {orfas.length === 1 ? "O que era dela sai" : "O que era delas sai"} no ponto padrão.
+            <button type="button" onClick={limparOrfas} className="pontos-impressao__btn-limpar-orfas">
+              Remover {orfas.length === 1 ? "essa escolha" : "essas escolhas"}
+            </button>
+          </span>
+        </div>
+      )}
+
       {categorias.length === 0 ? (
         <div className="pontos-impressao__vazio">Nenhuma categoria cadastrada no cardápio ainda.</div>
       ) : (
@@ -457,7 +527,7 @@ function SecaoRoteamento({ pontos, roteamento, setRoteamento, categorias, produc
             <div key={categoria} className="pontos-impressao__linha-categoria">
               <span className="pontos-impressao__nome-categoria">{categoria}</span>
               <select
-                value={roteamento.categorias?.[categoria] ?? ""}
+                value={destinoDaCategoria(roteamento.categorias, categoria) ?? ""}
                 onChange={(e) => definirCategoria(categoria, e.target.value)}
                 className="pontos-impressao__select"
               >

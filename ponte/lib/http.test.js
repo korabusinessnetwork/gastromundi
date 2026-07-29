@@ -2,11 +2,48 @@
 import { describe, it, expect } from "vitest";
 import {
   ehEnderecoLocal,
+  hostEhLocal,
+  normalizarOrigem,
+  origemAceita,
   cabecalhosCors,
   tokenDaRequisicao,
   tokenValido,
   enderecosLan,
 } from "./http.js";
+
+describe("hostEhLocal", () => {
+  it("aceita os nomes por onde o app do caixa e o painel realmente chegam", () => {
+    expect(hostEhLocal("localhost:8123", 8123)).toBe(true);
+    expect(hostEhLocal("127.0.0.1:8123", 8123)).toBe(true);
+    expect(hostEhLocal("[::1]:8123", 8123)).toBe(true);
+    expect(hostEhLocal("LOCALHOST:8123", 8123)).toBe(true);
+    expect(hostEhLocal(" localhost:8123 ", 8123)).toBe(true);
+  });
+
+  it("recusa domínio de fora apontado para 127.0.0.1 (DNS rebinding)", () => {
+    // O ataque: a conexão chega mesmo de loopback e passa em ehEnderecoLocal.
+    // Quem denuncia é o Host, que carrega o domínio do atacante.
+    expect(hostEhLocal("evil.com:8123", 8123)).toBe(false);
+    expect(hostEhLocal("ponte.evil.com:8123", 8123)).toBe(false);
+    expect(hostEhLocal("localhost.evil.com:8123", 8123)).toBe(false);
+    expect(hostEhLocal("evil.com", 8123)).toBe(false);
+  });
+
+  it("recusa host apontando para outra porta e entradas inválidas", () => {
+    expect(hostEhLocal("localhost:9999", 8123)).toBe(false);
+    expect(hostEhLocal("localhost", 8123)).toBe(false);
+    expect(hostEhLocal("", 8123)).toBe(false);
+    expect(hostEhLocal(undefined, 8123)).toBe(false);
+    expect(hostEhLocal(null, 8123)).toBe(false);
+    expect(hostEhLocal(8123, 8123)).toBe(false);
+  });
+
+  it("aceita host sem porta quando a ponte ouve na 80", () => {
+    expect(hostEhLocal("localhost", 80)).toBe(true);
+    expect(hostEhLocal("localhost:80", 80)).toBe(true);
+    expect(hostEhLocal("localhost:8123", 80)).toBe(false);
+  });
+});
 
 describe("ehEnderecoLocal", () => {
   it("reconhece loopback IPv4, IPv6 e IPv4-mapeado", () => {
@@ -25,13 +62,77 @@ describe("ehEnderecoLocal", () => {
   });
 });
 
+describe("normalizarOrigem", () => {
+  it("deixa em forma comparável e trata os casos vazios", () => {
+    expect(normalizarOrigem("HTTPS://App.Kora.com/")).toBe("https://app.kora.com");
+    expect(normalizarOrigem("  https://app.kora.com  ")).toBe("https://app.kora.com");
+    // Origem opaca (sandbox, redirecionamento) chega como a string "null".
+    expect(normalizarOrigem("null")).toBe("");
+    expect(normalizarOrigem("")).toBe("");
+    expect(normalizarOrigem(undefined)).toBe("");
+  });
+});
+
+describe("origemAceita", () => {
+  const HOST = "localhost:8123";
+  const DONA = "https://app.gastromundi.com";
+
+  it("aceita qualquer origem enquanto a ponte não foi vinculada", () => {
+    // Instalação nova: sem dono gravado, o primeiro vínculo tem que entrar.
+    expect(origemAceita({ origem: DONA, host: HOST })).toBe(true);
+    expect(origemAceita({ origem: "https://qualquer.com", host: HOST, fixada: "" })).toBe(true);
+  });
+
+  it("depois de fixada, só atende a origem do estabelecimento", () => {
+    expect(origemAceita({ origem: DONA, host: HOST, fixada: DONA })).toBe(true);
+    expect(origemAceita({ origem: `${DONA}/`, host: HOST, fixada: DONA })).toBe(true);
+    expect(origemAceita({ origem: "https://site-do-atacante.com", host: HOST, fixada: DONA })).toBe(false);
+    // Sufixo parecido não vale: "app.gastromundi.com.evil.com" é outro domínio.
+    expect(origemAceita({ origem: `${DONA}.evil.com`, host: HOST, fixada: DONA })).toBe(false);
+  });
+
+  it("pedido sem Origin passa (não é navegador falando de outro site)", () => {
+    expect(origemAceita({ host: HOST, fixada: DONA })).toBe(true);
+    expect(origemAceita({ origem: "", host: HOST, fixada: DONA })).toBe(true);
+  });
+
+  it("mesma origem passa sempre — é o painel e é o Palm", () => {
+    // Sem isso, fixar a origem trancaria o próprio painel pra fora e não
+    // haveria como liberar outro endereço.
+    expect(origemAceita({ origem: "http://localhost:8123", host: HOST, fixada: DONA })).toBe(true);
+    expect(origemAceita({ origem: "http://192.168.0.42:8123", host: "192.168.0.42:8123", fixada: DONA })).toBe(true);
+  });
+});
+
 describe("cabecalhosCors", () => {
-  it("libera origem, métodos, cabeçalho do token e rede privada", () => {
-    const h = cabecalhosCors();
-    expect(h["Access-Control-Allow-Origin"]).toBe("*");
+  const DONA = "https://app.gastromundi.com";
+
+  it("ecoa a origem aceita e libera rede privada", () => {
+    const h = cabecalhosCors({ origem: DONA, host: "localhost:8123", fixada: DONA });
+    expect(h["Access-Control-Allow-Origin"]).toBe(DONA);
     expect(h["Access-Control-Allow-Methods"]).toContain("POST");
     expect(h["Access-Control-Allow-Headers"]).toContain("X-Ponte-Token");
     expect(h["Access-Control-Allow-Private-Network"]).toBe("true");
+    expect(h.Vary).toBe("Origin");
+  });
+
+  it("origem recusada não recebe Allow-Origin nenhum", () => {
+    // É o cerne da correção: sem esse cabeçalho o navegador barra a LEITURA
+    // da resposta, e /info deixa de entregar o token pra qualquer site aberto.
+    const h = cabecalhosCors({ origem: "https://site-do-atacante.com", host: "localhost:8123", fixada: DONA });
+    expect(h["Access-Control-Allow-Origin"]).toBeUndefined();
+    expect(h["Access-Control-Allow-Private-Network"]).toBeUndefined();
+    expect(h.Vary).toBe("Origin");
+  });
+
+  it("sem Origin não manda Allow-Origin (não há nada a liberar)", () => {
+    const h = cabecalhosCors({ host: "localhost:8123", fixada: DONA });
+    expect(h["Access-Control-Allow-Origin"]).toBeUndefined();
+    expect(h["Access-Control-Allow-Methods"]).toContain("POST");
+  });
+
+  it("sem argumento nenhum não devolve o curinga que existia antes", () => {
+    expect(cabecalhosCors()["Access-Control-Allow-Origin"]).toBeUndefined();
   });
 });
 

@@ -23,6 +23,10 @@
  * mesma função rodar na tela de configuração e no despacho da cozinha.
  */
 
+// Import relativo (não alias): este módulo é puro e roda também fora do
+// bundler do Vite — nos testes de nó e em quem consumir a lib direto.
+import { chaveCategoria } from "../categoriasProduto";
+
 /** Id do primeiro ponto — o que é sintetizado para quem já usava o sistema. */
 export const PONTO_PADRAO_ID = "p1";
 
@@ -237,7 +241,34 @@ function montarContexto({ pontos, roteamento } = {}) {
     porId: new Map(lista.map((p) => [p.id, p])),
     padrao: lista.find((p) => p.padrao) ?? lista[0],
     roteamento: roteamento ?? null,
+    categoriasPorChave: indexarCategorias(roteamento?.categorias),
   };
+}
+
+/**
+ * Índice tolerante do roteamento por categoria.
+ *
+ * `products.category` é texto livre digitado no cadastro: "Bebidas",
+ * "bebidas" e "Bebidas " são a mesma categoria para quem digitou, mas seriam
+ * chaves diferentes numa comparação exata — e o item cairia calado no ponto
+ * padrão, que é exatamente o tipo de falha que ninguém percebe até a comanda
+ * sair no lugar errado. O índice é só de LEITURA: o que está gravado no banco
+ * continua como está, então nada de migration e nada quebra ao voltar versão.
+ *
+ * Empate entre duas grafias da mesma categoria: vence a primeira gravada.
+ * São a mesma categoria para o usuário, então qualquer critério estável
+ * serve; o que não pode é depender da ordem de leitura de cada render.
+ */
+function indexarCategorias(mapa) {
+  const indice = new Map();
+  const origem = objetoOuVazio(mapa);
+  for (const chave of Object.keys(origem)) {
+    const destino = lerRota(origem, chave);
+    if (!destino) continue;
+    const canonica = chaveCategoria(chave);
+    if (canonica && !indice.has(canonica)) indice.set(canonica, destino);
+  }
+  return indice;
 }
 
 function resolverPonto(item, ctx) {
@@ -246,14 +277,79 @@ function resolverPonto(item, ctx) {
   const porProduto = idProduto ? lerRota(ctx.roteamento?.produtos, idProduto) : null;
   if (porProduto && ctx.porId.has(porProduto)) return ctx.porId.get(porProduto);
 
-  const categoria = typeof item?.category === "string" ? item.category : "";
-  const porCategoria = categoria ? lerRota(ctx.roteamento?.categorias, categoria) : null;
+  const categoria = typeof item?.category === "string" ? chaveCategoria(item.category) : "";
+  const porCategoria = categoria ? ctx.categoriasPorChave.get(categoria) ?? null : null;
   if (porCategoria && ctx.porId.has(porCategoria)) return ctx.porId.get(porCategoria);
 
   // Sem rota, ou rota apontando pra ponto apagado: o padrão. Nunca lança,
   // nunca devolve undefined — um item sem destino seria um item que a
   // cozinha nunca vê.
   return ctx.padrao;
+}
+
+/**
+ * Para onde vai esta categoria, na mesma tolerância que o despacho usa.
+ * A tela de configuração precisa consultar exatamente como o roteamento
+ * consulta — senão o select mostraria "vai pro ponto padrão" para uma
+ * categoria que na prática está roteada, e o dono configuraria no escuro.
+ *
+ * @param {object} categorias - roteamento.categorias
+ * @param {string} categoria - nome como está no cardápio
+ * @returns {string|null} id do ponto, ou null
+ */
+export function destinoDaCategoria(categorias, categoria) {
+  const chave = chaveCategoria(categoria);
+  if (!chave) return null;
+  return indexarCategorias(categorias).get(chave) ?? null;
+}
+
+/**
+ * Grava o destino de uma categoria apagando as outras grafias dela.
+ *
+ * Renomear a categoria no cardápio ("Bebida" → "Bebidas") deixa a chave
+ * antiga órfã no roteamento: some da tela e ninguém mais a apaga. Escrever
+ * por aqui converge — a grafia atual do cardápio fica, as outras saem.
+ *
+ * @param {object} categorias - roteamento.categorias
+ * @param {string} categoria
+ * @param {string} pontoId - vazio remove a rota
+ * @returns {object} novo mapa
+ */
+export function definirRotaCategoria(categorias, categoria, pontoId) {
+  const chave = chaveCategoria(categoria);
+  const origem = objetoOuVazio(categorias);
+  const novo = {};
+  for (const existente of Object.keys(origem)) {
+    if (chaveCategoria(existente) === chave) continue;
+    const destino = lerRota(origem, existente);
+    if (destino) novo[existente] = destino;
+  }
+  if (chave && pontoId) novo[String(categoria)] = String(pontoId);
+  return novo;
+}
+
+/**
+ * Rotas gravadas para categorias que não existem mais no cardápio.
+ * São invisíveis na tela (a tabela só lista categoria existente), então o
+ * item que era roteado passou a sair no ponto padrão sem avisar ninguém.
+ *
+ * @param {object} categorias - roteamento.categorias
+ * @param {Array<string>} categoriasDoCardapio
+ * @returns {Array<string>} nomes como foram gravados
+ */
+export function categoriasOrfas(categorias, categoriasDoCardapio) {
+  const vivas = new Set((Array.isArray(categoriasDoCardapio) ? categoriasDoCardapio : []).map(chaveCategoria));
+  const origem = objetoOuVazio(categorias);
+  const orfas = [];
+  const vistas = new Set();
+  for (const chave of Object.keys(origem)) {
+    if (!lerRota(origem, chave)) continue;
+    const canonica = chaveCategoria(chave);
+    if (!canonica || vivas.has(canonica) || vistas.has(canonica)) continue;
+    vistas.add(canonica);
+    orfas.push(chave);
+  }
+  return orfas;
 }
 
 /**

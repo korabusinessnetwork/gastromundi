@@ -50,18 +50,27 @@ describe("validarVinculo", () => {
     expect(r.erro).toMatch(/grande/i);
   });
 
-  it("aceita tenantId com exatamente 64 caracteres válidos", () => {
-    const limite = "a1".repeat(32);
-    expect(limite.length).toBe(64);
-    const r = validarVinculo({ tenantId: limite }, relogio);
+  it("aceita UUID em maiúsculas (o formato não é sensível a caixa)", () => {
+    const r = validarVinculo({ tenantId: UUID.toUpperCase() }, relogio);
     expect(r.ok).toBe(true);
+    expect(r.vinculo.tenantId).toBe(UUID.toUpperCase());
   });
 
-  it("recusa tenantId com caracteres fora de [0-9a-fA-F-]", () => {
+  it("recusa tenantId com caracteres fora do alfabeto de UUID", () => {
     expect(validarVinculo({ tenantId: "abc123; DROP TABLE" }, relogio).ok).toBe(false);
     expect(validarVinculo({ tenantId: "<script>" }, relogio).ok).toBe(false);
     expect(validarVinculo({ tenantId: "abc_123" }, relogio).ok).toBe(false);
     expect(validarVinculo({ tenantId: "abc 123" }, relogio).ok).toBe(false);
+  });
+
+  it("recusa hex solto que não tem o formato de UUID", () => {
+    // Antes o regex era só o ALFABETO de um UUID, então tudo abaixo passava.
+    expect(validarVinculo({ tenantId: "-" }, relogio).ok).toBe(false);
+    expect(validarVinculo({ tenantId: "aaaa" }, relogio).ok).toBe(false);
+    expect(validarVinculo({ tenantId: "a1".repeat(32) }, relogio).ok).toBe(false);
+    expect(validarVinculo({ tenantId: UUID.replace(/-/g, "") }, relogio).ok).toBe(false);
+    expect(validarVinculo({ tenantId: `${UUID}-` }, relogio).ok).toBe(false);
+    expect(validarVinculo({ tenantId: UUID.slice(0, -1) }, relogio).ok).toBe(false);
   });
 
   it("remove caracteres de controle do nome e corta em 80", () => {

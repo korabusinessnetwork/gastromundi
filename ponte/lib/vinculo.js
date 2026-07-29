@@ -11,10 +11,12 @@
 // - Aqui só a regra (validar o pedido de vínculo, aplicar sobre o config,
 //   resumir para exibição); quem persiste em disco é servidor.js.
 
-// UUID "de boa vontade": só o alfabeto de um UUID, sem exigir os hífens nas
-// posições exatas — o de-para de tenant pode mudar de formato um dia e o
-// importante aqui é nunca deixar passar lixo (script, caminho, etc.).
-const TENANT_ID_REGEX = /^[0-9a-fA-F-]+$/;
+// UUID de verdade, com os hífens nas posições certas. Era um regex frouxo
+// ("só o alfabeto de um UUID"), que aceitava "-" e "aaaa" como código de
+// estabelecimento. `public.tenants.id` é `uuid` no banco, então nada que
+// não seja UUID pode chegar aqui de forma legítima — e o dia em que este
+// id virar chave de roteamento ou de autorização, frouxidão vira brecha.
+const TENANT_ID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const TENANT_ID_MAX = 64;
 const NOME_MAX = 80;
 const NOME_PADRAO = "Estabelecimento";

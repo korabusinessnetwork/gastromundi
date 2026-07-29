@@ -16,10 +16,12 @@ vi.mock("@/lib/impressao", () => ({
   salvarConfigImpressao: (...args) => salvarConfigImpressaoMock(...args),
 }));
 
-// A Ponte não roda no ambiente de teste — o botão "Procurar impressoras"
-// não é o assunto aqui, mas o módulo precisa existir para o import resolver.
+// A Ponte não roda no ambiente de teste — o módulo precisa existir para o
+// import resolver, e cada teste decide o que ela responde.
+let respostaImpressoras = { data: { impressoras: [] }, error: null };
+const listarImpressorasPonteMock = vi.fn(() => Promise.resolve(respostaImpressoras));
 vi.mock("@/lib/ponte", () => ({
-  listarImpressorasPonte: vi.fn(() => Promise.resolve({ data: [], error: null })),
+  listarImpressorasPonte: (...args) => listarImpressorasPonteMock(...args),
 }));
 
 import { setAppMock } from "@/test/mockApp";
@@ -33,6 +35,7 @@ const DOIS_PONTOS_SALVOS = [
 beforeEach(() => {
   vi.clearAllMocks();
   configNoBanco = {};
+  respostaImpressoras = { data: { impressoras: [] }, error: null };
   setAppMock({
     products: [
       { id: 1, name: "Picanha", category: "Pratos" },
@@ -106,5 +109,31 @@ describe("PontosImpressao — aviso de ponto ainda não salvo", () => {
     await userEvent.click(adicionar);
 
     expect(screen.getByText(/Estes pontos ainda não foram salvos: Ponto 3, Ponto 4/i)).toBeInTheDocument();
+  });
+});
+
+describe("PontosImpressao — Ponte fechada x Ponte com erro", () => {
+  it("Ponte fechada mostra a orientação de abrir o KoraPonte.exe", async () => {
+    // `erroAmigavelPonte` (src/lib/ponte.js) já traduziu o erro de rede para
+    // português e marcou `foraDoAr`. A tela tem que ramificar por essa marca:
+    // farejar "failed to fetch" na mensagem nunca acertaria.
+    const fora = new Error("A Ponte KORA não está rodando neste computador. Abra a Ponte e tente imprimir de novo.");
+    fora.foraDoAr = true;
+    respostaImpressoras = { data: null, error: fora };
+    await renderizarPronto();
+
+    await userEvent.click(screen.getByRole("button", { name: /procurar impressoras/i }));
+
+    await waitFor(() => expect(screen.getByText(/Dê dois cliques no KoraPonte\.exe/i)).toBeInTheDocument());
+  });
+
+  it("erro da própria Ponte mostra a mensagem dela, não a orientação", async () => {
+    respostaImpressoras = { data: null, error: new Error("spooler do Windows não respondeu") };
+    await renderizarPronto();
+
+    await userEvent.click(screen.getByRole("button", { name: /procurar impressoras/i }));
+
+    await waitFor(() => expect(screen.getByText(/spooler do Windows não respondeu/i)).toBeInTheDocument());
+    expect(screen.queryByText(/Dê dois cliques no KoraPonte\.exe/i)).not.toBeInTheDocument();
   });
 });

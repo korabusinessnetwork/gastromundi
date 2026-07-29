@@ -77,7 +77,14 @@ function erroAmigavelPonte(error) {
   // AbortError (timeout) e TypeError (connection refused) = ponte fora do ar.
   const nome = error.name ?? "";
   const foraDoAr = nome === "AbortError" || nome === "TypeError" || /failed to fetch|networkerror|load failed/i.test(error.message ?? "");
-  return foraDoAr ? new Error(AVISO_PONTE_FORA) : error;
+  if (!foraDoAr) return error;
+  // Marca estruturada: a tela precisa distinguir "Ponte fechada" (aviso
+  // amarelo, com o que fazer) de "Ponte respondeu errado" (erro vermelho).
+  // Sem a flag ela teria que farejar a mensagem — e a mensagem daqui é em
+  // português, então farejar por "failed to fetch" nunca acertaria.
+  const amigavel = new Error(AVISO_PONTE_FORA);
+  amigavel.foraDoAr = true;
+  return amigavel;
 }
 
 /** Impressoras que a Ponte enxerga neste PC. (GET /impressoras) */

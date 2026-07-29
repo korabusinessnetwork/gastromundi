@@ -7,6 +7,9 @@ import {
   definirPadrao,
   pontoDoItem,
   agruparItensPorPonto,
+  destinoDaCategoria,
+  definirRotaCategoria,
+  categoriasOrfas,
 } from "./pontos";
 
 const COZINHA = { id: "p1", nome: "Cozinha", impressora: { tipo: "windows", nome: "EPSON-COZINHA" }, padrao: true };
@@ -276,6 +279,97 @@ describe("pontoDoItem", () => {
   it("categoria não-string (null, número) cai no padrão", () => {
     expect(pontoDoItem({ id: 3, category: null }, ctx).id).toBe("p1");
     expect(pontoDoItem({ id: 3, category: 5 }, ctx).id).toBe("p1");
+  });
+
+  // O cardápio guarda a categoria como o dono digitou; a rota foi gravada em
+  // outro momento, com outra grafia. Comparar cru mandava o item pro padrão
+  // calado — que é exatamente a falha que este achado corrigiu.
+  it("acha a rota mesmo com acento, caixa e espaço diferentes entre o cardápio e o mapa", () => {
+    const solto = { categorias: { "  BEBIDAS  ": "p2" }, produtos: {} };
+    const comAcento = { categorias: { Refeições: "p2" }, produtos: {} };
+
+    expect(pontoDoItem({ id: 3, category: "bebidas" }, { pontos: DOIS_PONTOS, roteamento: solto }).id).toBe("p2");
+    expect(pontoDoItem({ id: 3, category: "refeicoes" }, { pontos: DOIS_PONTOS, roteamento: comAcento }).id).toBe("p2");
+  });
+});
+
+describe("destinoDaCategoria", () => {
+  it("acha a rota pela grafia canônica, não pela literal", () => {
+    expect(destinoDaCategoria({ Bebidas: "p2" }, "bebidas")).toBe("p2");
+    expect(destinoDaCategoria({ "  Refeições ": "p2" }, "REFEICOES")).toBe("p2");
+  });
+
+  it("categoria sem rota devolve null (a tela mostra o select vazio)", () => {
+    expect(destinoDaCategoria({ Bebidas: "p2" }, "Sobremesas")).toBeNull();
+    expect(destinoDaCategoria({}, "Bebidas")).toBeNull();
+  });
+
+  it("mapa ou categoria inválidos não lançam", () => {
+    expect(destinoDaCategoria(undefined, "Bebidas")).toBeNull();
+    expect(destinoDaCategoria(null, null)).toBeNull();
+    expect(destinoDaCategoria({ Bebidas: "p2" }, "   ")).toBeNull();
+  });
+
+  it("chave herdada do prototype não vira rota", () => {
+    expect(destinoDaCategoria({}, "constructor")).toBeNull();
+    expect(destinoDaCategoria({}, "toString")).toBeNull();
+  });
+});
+
+describe("definirRotaCategoria", () => {
+  it("grava a rota da categoria sem tocar nas outras", () => {
+    const saida = definirRotaCategoria({ Bebidas: "p2" }, "Lanches", "p1");
+
+    expect(saida).toEqual({ Bebidas: "p2", Lanches: "p1" });
+  });
+
+  // Sem isto, renomear "Bebida" para "Bebidas" no cardápio deixaria as duas
+  // chaves no mapa e a antiga ficaria órfã pra sempre.
+  it("substitui a grafia antiga em vez de acumular uma chave nova", () => {
+    const saida = definirRotaCategoria({ " bebidas ": "p1" }, "Bebidas", "p2");
+
+    expect(saida).toEqual({ Bebidas: "p2" });
+  });
+
+  it("ponto vazio remove a rota", () => {
+    expect(definirRotaCategoria({ Bebidas: "p2", Lanches: "p1" }, "Bebidas", "")).toEqual({ Lanches: "p1" });
+    expect(definirRotaCategoria({ Bebidas: "p2" }, "bebidas", null)).toEqual({});
+  });
+
+  it("não muda o objeto recebido (o setState compara referência)", () => {
+    const original = { Bebidas: "p2" };
+    const saida = definirRotaCategoria(original, "Lanches", "p1");
+
+    expect(original).toEqual({ Bebidas: "p2" });
+    expect(saida).not.toBe(original);
+  });
+
+  it("entrada inválida não lança e devolve mapa utilizável", () => {
+    expect(definirRotaCategoria(undefined, "Bebidas", "p2")).toEqual({ Bebidas: "p2" });
+    expect(definirRotaCategoria(null, "  ", "p2")).toEqual({});
+  });
+});
+
+describe("categoriasOrfas", () => {
+  it("lista a rota gravada para categoria que sumiu do cardápio", () => {
+    expect(categoriasOrfas({ Bebidas: "p2", Narguilé: "p1" }, ["Bebidas", "Lanches"])).toEqual(["Narguilé"]);
+  });
+
+  it("categoria viva com grafia diferente NÃO é órfã (senão o aviso mentiria)", () => {
+    expect(categoriasOrfas({ " BEBIDAS ": "p2" }, ["Bebidas"])).toEqual([]);
+  });
+
+  it("devolve a chave como está gravada, para o aviso mostrar o que o dono vai remover", () => {
+    expect(categoriasOrfas({ "  Narguilé  ": "p1" }, [])).toEqual(["  Narguilé  "]);
+  });
+
+  it("chave sem ponto de destino não conta como órfã", () => {
+    expect(categoriasOrfas({ Narguilé: "" }, [])).toEqual([]);
+  });
+
+  it("sem rota nenhuma ou sem cardápio carregado não lança", () => {
+    expect(categoriasOrfas({}, ["Bebidas"])).toEqual([]);
+    expect(categoriasOrfas(undefined, undefined)).toEqual([]);
   });
 });
 

@@ -20,17 +20,99 @@ export function ehEnderecoLocal(remoteAddress) {
 }
 
 /**
- * Cabeçalhos CORS da ponte. Origem liberada ("*") de propósito:
- * autorização vem do token e do gate de localhost, não da origem —
- * e o app do caixa pode estar em qualquer domínio (white-label).
+ * O cabeçalho `Host` do pedido aponta mesmo para esta ponte?
+ *
+ * Por que isso importa: o gate das rotas de gestão olha só o IP de origem da
+ * conexão (`ehEnderecoLocal`). Num ataque de DNS rebinding, um site aponta o
+ * próprio domínio para 127.0.0.1 — a conexão chega de "localhost" e passa no
+ * gate, mas o `Host` entrega o domínio do atacante. Nenhum cliente legítimo
+ * alcança a ponte por outro nome que não localhost/127.0.0.1, então exigir
+ * isso não custa nada e fecha o rebinding.
+ *
+ * Só vale para as rotas de gestão: o Palm chega pela LAN, com o IP da
+ * máquina no `Host`, e já é separado pelo token.
+ *
+ * @param {string|undefined} host - req.headers.host, como veio
+ * @param {number} porta - porta em que a ponte está ouvindo
  */
-export function cabecalhosCors() {
-  return {
-    "Access-Control-Allow-Origin": "*",
+export function hostEhLocal(host, porta) {
+  if (typeof host !== "string" || !host) return false;
+  const limpo = host.trim().toLowerCase();
+  const separador = limpo.lastIndexOf(":");
+  // `[::1]:8123` — o ':' do IPv6 mora dentro dos colchetes, só conta o de fora.
+  const temPorta = separador > limpo.lastIndexOf("]");
+  const nome = temPorta ? limpo.slice(0, separador) : limpo;
+  const portaDoHost = temPorta ? limpo.slice(separador + 1) : "";
+
+  if (temPorta ? portaDoHost !== String(porta) : porta !== 80) return false;
+  return nome === "localhost" || nome === "127.0.0.1" || nome === "[::1]";
+}
+
+/** Origem em forma comparável: minúscula, sem espaço, sem barra no fim. */
+export function normalizarOrigem(origem) {
+  if (typeof origem !== "string") return "";
+  const limpa = origem.trim().toLowerCase().replace(/\/+$/, "");
+  return limpa === "null" ? "" : limpa;
+}
+
+/**
+ * A ponte deve atender esta origem?
+ *
+ * O modelo é fixação no vínculo: a ponte nasce sem dono e aceita qualquer
+ * origem, mas o primeiro POST /vincular grava de qual endereço veio o app do
+ * caixa. Dali em diante é só ele. Isso fecha o buraco de "qualquer site
+ * aberto no navegador do caixa fala com a ponte" sem quebrar o white-label,
+ * porque o endereço não é escolhido por nós — é aprendido de quem vinculou.
+ *
+ * Três passagens livres, todas necessárias:
+ * - Sem `Origin`: não é navegador falando de outro site (curl, o próprio
+ *   painel num GET). Quem manda o pedido de fora do navegador já está dentro
+ *   da máquina, e aí a origem não protege mais nada.
+ * - Mesma origem do pedido: é o painel ou o Palm, servidos pela própria
+ *   ponte. É também a porta de saída se o endereço fixado ficar errado — o
+ *   painel continua alcançável para liberar de novo.
+ * - Nada fixado ainda: instalação nova, o primeiro vínculo precisa entrar.
+ *
+ * @param {{origem?: string, host?: string, fixada?: string}} req
+ */
+export function origemAceita({ origem, host, fixada } = {}) {
+  const daVez = normalizarOrigem(origem);
+  if (!daVez) return true;
+
+  const proprio = typeof host === "string" ? host.trim().toLowerCase() : "";
+  if (proprio && (daVez === `http://${proprio}` || daVez === `https://${proprio}`)) return true;
+
+  const dona = normalizarOrigem(fixada);
+  if (!dona) return true;
+  return daVez === dona;
+}
+
+/**
+ * Cabeçalhos CORS da ponte, decididos por origem.
+ *
+ * Era `Access-Control-Allow-Origin: *`, o que deixava qualquer site aberto no
+ * navegador do caixa LER a resposta de /info — e /info entrega o token. Agora
+ * o cabeçalho só sai (e só ecoando a origem de quem pediu) quando a origem
+ * passa em `origemAceita`. Origem recusada não recebe `Allow-Origin` nenhum:
+ * o navegador barra a leitura antes de o site ver um byte.
+ *
+ * `Vary: Origin` sempre, porque a resposta agora depende do pedido.
+ *
+ * @param {{origem?: string, host?: string, fixada?: string}} [req]
+ */
+export function cabecalhosCors({ origem, host, fixada } = {}) {
+  const base = {
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-Ponte-Token",
-    "Access-Control-Allow-Private-Network": "true",
     "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  };
+  const daVez = normalizarOrigem(origem);
+  if (!daVez || !origemAceita({ origem, host, fixada })) return base;
+  return {
+    ...base,
+    "Access-Control-Allow-Origin": daVez,
+    "Access-Control-Allow-Private-Network": "true",
   };
 }
 

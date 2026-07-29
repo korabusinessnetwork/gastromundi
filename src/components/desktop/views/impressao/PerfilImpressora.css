@@ -14,6 +14,47 @@
   color: var(--gm-muted);
 }
 
+/* Falha ao LER a configuração: a tela não abre com o perfil de fábrica,
+   porque salvar por cima apagaria a configuração real que só não foi lida. */
+.perfil-impressora__erro-carga {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 720px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  border-left: 3px solid var(--gm-red);
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.perfil-impressora__erro-carga p {
+  margin: 6px 0 0;
+  color: var(--gm-muted);
+}
+
+.perfil-impressora__botao-recarregar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+  min-height: var(--tap-min, 40px);
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.perfil-impressora__botao-recarregar:hover {
+  background: color-mix(in srgb, var(--gm-text) 6%, var(--gm-surface));
+}
+
 .perfil-impressora {
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);

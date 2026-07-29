@@ -12,6 +12,48 @@
   color: var(--gm-muted);
 }
 
+/* Falha ao LER a configuração: a tela inteira vira este bloco, porque abrir
+   os cards com valores de fábrica faria o dono acreditar que aquela é a
+   configuração salva — e um Salvar em cima apagaria a de verdade. */
+.pontos-impressao__erro-carga {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 720px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  border-left: 3px solid var(--gm-red);
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.pontos-impressao__erro-carga p {
+  margin: 6px 0 0;
+  color: var(--gm-muted);
+}
+
+.pontos-impressao__botao-recarregar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+  min-height: var(--tap-min, 40px);
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pontos-impressao__botao-recarregar:hover {
+  background: color-mix(in srgb, var(--gm-text) 6%, var(--gm-surface));
+}
+
 .pontos-impressao {
   display: flex;
   flex-direction: column;
@@ -379,6 +421,22 @@
 .pontos-impressao__aviso-icone {
   flex-shrink: 0;
   margin-top: 2px;
+}
+
+/* Fica no meio da frase do aviso, então é botão-texto: some como botão e
+   lê-se como continuação da explicação ("...sai no ponto padrão. Remover
+   essa escolha"), que é a única ação possível ali. */
+.pontos-impressao__btn-limpar-orfas {
+  margin-left: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--gm-accent);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .pontos-impressao__tabela-categorias {

@@ -136,6 +136,9 @@ describe("impressão pela Ponte", () => {
     expect(data).toBeNull();
     expect(error.message).toContain("Ponte KORA não está rodando");
     expect(error.message).not.toMatch(/fetch|TypeError/i);
+    // A tela ramifica por esta marca, não pela mensagem: a mensagem daqui é
+    // em português e nenhum farejo de "failed to fetch" acertaria nela.
+    expect(error.foraDoAr).toBe(true);
   });
 
   it("timeout (AbortError) também vira a mesma instrução", async () => {
@@ -146,6 +149,7 @@ describe("impressão pela Ponte", () => {
     const { error } = await listarImpressorasPonte();
 
     expect(error.message).toContain("Ponte KORA não está rodando");
+    expect(error.foraDoAr).toBe(true);
   });
 
   it("erro que a própria Ponte explicou passa direto (já está em português)", async () => {
@@ -154,6 +158,17 @@ describe("impressão pela Ponte", () => {
     const { error } = await enviarImpressaoPonte({ destino: null, linhas: [] });
 
     expect(error.message).toBe("destino de impressão inválido");
+  });
+
+  it("erro da própria Ponte NÃO é marcado como fora do ar", async () => {
+    // Ponte de pé respondendo 500: a tela tem que mostrar erro vermelho com
+    // o texto dela, não a orientação amarela de "abra o KoraPonte.exe".
+    fetch.mockResolvedValue(respostaJson({ erro: "spooler do Windows não respondeu" }, { status: 500 }));
+
+    const { error } = await listarImpressorasPonte();
+
+    expect(error.message).toBe("spooler do Windows não respondeu");
+    expect(error.foraDoAr).toBeUndefined();
   });
 });
 

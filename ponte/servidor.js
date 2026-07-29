@@ -26,7 +26,8 @@ import {
   validarPedido, adicionarPedido, pedidosPendentes, confirmarPedidos, podarConfirmados,
 } from "./lib/pedidos.js";
 import {
-  ehEnderecoLocal, cabecalhosCors, tokenDaRequisicao, tokenValido, enderecosLan,
+  ehEnderecoLocal, hostEhLocal, normalizarOrigem, origemAceita, cabecalhosCors,
+  tokenDaRequisicao, tokenValido, enderecosLan,
 } from "./lib/http.js";
 import {
   criarTrabalho, proximoTrabalho, marcarImprimindo, marcarConcluido, marcarFalha,
@@ -107,10 +108,15 @@ function salvarImpressao() {
 }
 
 // ── Helpers de resposta ────────────────────────────────────────────────
+//
+// Os cabeçalhos CORS dependem da origem do pedido, então são calculados uma
+// vez por requisição e pendurados no `res` (`res.corsKora`). Guardar isso em
+// variável de módulo criaria corrida: há `await` no meio do tratamento e dois
+// pedidos simultâneos trocariam de cabeçalho no meio do caminho.
 function responderJson(res, status, corpo) {
   const dados = JSON.stringify(corpo);
   res.writeHead(status, {
-    ...cabecalhosCors(),
+    ...(res.corsKora ?? cabecalhosCors()),
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
   });
@@ -151,9 +157,14 @@ function enderecoPalm() {
  * Argumentos vão como lista (nunca concatenados), e o "" é o título da
  * janela que o `start` exige antes do endereço.
  */
+// `rundll32 url.dll,FileProtocolHandler` em vez de `cmd /c start`: abre URL
+// e arquivo do mesmo jeito, mas sem passar por cmd.exe. O alvo do aviso de
+// erro fatal é um caminho dentro da pasta do usuário do Windows — um nome de
+// usuário com `&` ou `^` seria interpretado como comando pelo cmd. Aqui não
+// há shell nenhum no meio: o argumento vai direto para o processo.
 function abrirNoWindows(alvo) {
   if (process.platform !== "win32") return;
-  execFile("cmd", ["/c", "start", "", alvo], { timeout: 5000, windowsHide: true }, () => {});
+  execFile("rundll32", ["url.dll,FileProtocolHandler", alvo], { timeout: 5000, windowsHide: true }, () => {});
 }
 
 /**
@@ -268,9 +279,16 @@ const servidor = http.createServer(async (req, res) => {
   const local = ehEnderecoLocal(req.socket.remoteAddress);
   const comToken = tokenValido(tokenDaRequisicao({ headers: req.headers, url }), config.token);
 
+  // Origem do pedido, decidida uma vez e carregada no `res` para todas as
+  // respostas desta requisição. `config.origemPermitida` é o endereço do app
+  // do caixa, aprendido no primeiro vínculo — ver `origemAceita` em lib/http.
+  const origem = normalizarOrigem(req.headers.origin);
+  const daCasa = origemAceita({ origem, host: req.headers.host, fixada: config.origemPermitida });
+  res.corsKora = cabecalhosCors({ origem, host: req.headers.host, fixada: config.origemPermitida });
+
   // Preflight CORS (o app HTTPS do caixa chega aqui via localhost).
   if (req.method === "OPTIONS") {
-    res.writeHead(204, cabecalhosCors());
+    res.writeHead(204, res.corsKora);
     return res.end();
   }
 
@@ -332,7 +350,24 @@ const servidor = http.createServer(async (req, res) => {
   }
 
   // ── Só o PC do caixa (localhost) ─────────────────────────────────────
+  //
+  // Dois filtros, não um: o IP de origem diz de qual MÁQUINA veio, o `Host`
+  // diz por qual NOME a ponte foi chamada. Sem o segundo, um domínio de fora
+  // apontado para 127.0.0.1 (DNS rebinding) entra por aqui como se fosse o
+  // app do caixa.
   if (!local) return responderJson(res, 403, { erro: "Rota disponível apenas no PC do caixa." });
+  if (!hostEhLocal(req.headers.host, PORTA)) {
+    return responderJson(res, 403, { erro: "Rota disponível apenas no PC do caixa." });
+  }
+  // Terceiro filtro, e é o que fecha o ataque de verdade: o `Origin` diz de
+  // qual SITE aberto no navegador partiu o pedido. Um site qualquer aberto no
+  // navegador do caixa passa nos dois filtros acima (a conexão sai mesmo da
+  // máquina, com Host localhost) — só a origem o denuncia. Não basta negar o
+  // cabeçalho de CORS: sem esta linha o pedido ainda EXECUTA (a resposta é
+  // que seria escondida), e /instalar ou /parar não precisam de resposta.
+  if (!daCasa) {
+    return responderJson(res, 403, { erro: "Este endereço não é o do estabelecimento vinculado a esta ponte." });
+  }
 
   if (rota === "GET /info") {
     return responderJson(res, 200, {
@@ -363,6 +398,15 @@ const servidor = http.createServer(async (req, res) => {
 
     const jaEra = config.estabelecimento?.tenantId;
     config = aplicarVinculo(config, validacao.vinculo);
+    // Aprende o endereço do app do caixa junto com o vínculo — daqui em
+    // diante é o único site do navegador que esta ponte atende. Só grava
+    // origem de fora: a própria ponte (painel/Palm) não é o app do caixa e
+    // não pode virar dona do vínculo.
+    const daPropriaPonte = origem === `http://${req.headers.host}` || origem === `https://${req.headers.host}`;
+    if (origem && !daPropriaPonte && normalizarOrigem(config.origemPermitida) !== origem) {
+      config.origemPermitida = origem;
+      logar(`endereço do app fixado: ${origem}`);
+    }
     gravarJson(ARQ_CONFIG, config);
     logar(
       jaEra && jaEra !== validacao.vinculo.tenantId
@@ -372,12 +416,25 @@ const servidor = http.createServer(async (req, res) => {
     return responderJson(res, 200, { ok: true, estabelecimento: resumoVinculo(config) });
   }
 
+  // Saída de emergência do modelo de origem fixada: o estabelecimento trocou
+  // de domínio (white-label), ou alguém vinculou do endereço errado. Só o
+  // painel alcança esta rota — ele é servido pela própria ponte, então passa
+  // pelo filtro de origem mesmo quando o endereço fixado está errado.
+  if (rota === "POST /origem/esquecer") {
+    const anterior = config.origemPermitida ?? "";
+    delete config.origemPermitida;
+    gravarJson(ARQ_CONFIG, config);
+    logar(anterior ? `endereço do app liberado (era ${anterior})` : "endereço do app já estava livre");
+    return responderJson(res, 200, { ok: true, origemPermitida: null });
+  }
+
   // ── Painel e instalação (só o PC do caixa) ───────────────────────────
   if (rota === "GET /painel/estado") {
     return responderJson(res, 200, {
       versao: VERSAO,
       porta: PORTA,
       estabelecimento: resumoVinculo(config),
+      origemPermitida: config.origemPermitida ?? null,
       enderecoPalm: enderecoPalm(),
       pendentes: pedidosPendentes(filaPedidos).length,
       impressoesPendentes: contarPendentes(filaImpressao),

@@ -37,6 +37,7 @@ export default function PerfilImpressora({ sz }) {
   const [perfil, setPerfil] = useState(PERFIL_IMPRESSORA_PADRAO);
   const [configCompleta, setConfigCompleta] = useState(null);
   const [carregando, setCarregando] = useState(true);
+  const [erroCarga, setErroCarga] = useState(null);
 
   // Salvar por seção (não um botão global): cada seção grava só os campos
   // que ela mostra, por cima do que já está salvo — assim salvar a
@@ -65,17 +66,32 @@ export default function PerfilImpressora({ sz }) {
   const [teste, setTeste] = useState(null); // null | "testando" | "ok" | "erro"
   const [erroTeste, setErroTeste] = useState("");
 
-  useEffect(() => {
-    buscarConfigImpressao().then(({ data }) => {
-      setConfigCompleta(data);
-      setPerfil(data.perfilImpressora);
-      if (data.perfilImpressora?.impressora?.tipo === "rede") {
-        setRedeHost(data.perfilImpressora.impressora.host ?? "");
-        setRedePorta(String(data.perfilImpressora.impressora.porta ?? 9100));
-      }
-      setCarregando(false);
-    });
+  // Falha na LEITURA não pode virar tela normal com o perfil de fábrica: o
+  // dono veria "impressora: nenhuma" e, ao salvar por cima, apagaria a
+  // configuração real que só não foi lida. Erro de leitura tranca a tela.
+  const carregar = useCallback(() => {
+    setCarregando(true);
+    setErroCarga(null);
+    buscarConfigImpressao()
+      .then(({ data, error }) => {
+        if (error || !data) throw error ?? new Error("Não deu para ler a configuração de impressão.");
+        setConfigCompleta(data);
+        setPerfil(data.perfilImpressora);
+        if (data.perfilImpressora?.impressora?.tipo === "rede") {
+          setRedeHost(data.perfilImpressora.impressora.host ?? "");
+          setRedePorta(String(data.perfilImpressora.impressora.porta ?? 9100));
+        }
+        setCarregando(false);
+      })
+      .catch((e) => {
+        setErroCarga(e?.message || "Não deu para ler a configuração de impressão.");
+        setCarregando(false);
+      });
   }, []);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
 
   const atualizarCampo = (campo, valor) => setPerfil((prev) => ({ ...prev, [campo]: valor }));
 
@@ -86,7 +102,9 @@ export default function PerfilImpressora({ sz }) {
     if (error) {
       // Timeout/conexão recusada é o caso comum (Ponte fechada) — mensagem
       // de ação, não de erro técnico. Qualquer outra coisa é erro mesmo.
-      const semConexao = error.name === "AbortError" || /failed to fetch|network|fetch/i.test(error.message || "");
+      // Quem classifica é o cliente da Ponte (`erroAmigavelPonte`), que já
+      // traduz o erro de rede: aqui só lemos a marca que ele deixou.
+      const semConexao = error.foraDoAr === true;
       setImpressorasPonte([]);
       if (semConexao) {
         setStatusPonte("ausente");
@@ -171,6 +189,22 @@ export default function PerfilImpressora({ sz }) {
   };
 
   const htmlPreview = useMemo(() => gerarHtmlComPerfil(DOCUMENTO_EXEMPLO, perfil), [perfil]);
+
+  if (erroCarga) {
+    return (
+      <div className="perfil-impressora__erro-carga">
+        <LuCircleAlert size={20} />
+        <div>
+          <strong>Não deu para carregar a configuração de impressão.</strong>
+          <p>{erroCarga}</p>
+          <p>Nada foi alterado. Verifique a internet e tente de novo.</p>
+        </div>
+        <button type="button" className="perfil-impressora__botao-recarregar" onClick={carregar}>
+          <LuRefreshCw size={16} /> Tentar de novo
+        </button>
+      </div>
+    );
+  }
 
   if (carregando) {
     return <div className="perfil-impressora__carregando">Carregando…</div>;

@@ -117,6 +117,18 @@
   .card-encerrar { background: transparent; }
   .card-encerrar p { font-size: 15px; color: var(--mudo); }
 
+  /* Liberar o endereço é ação rara (trocou o site do estabelecimento) e sem
+     volta automática: fica discreto, abaixo do texto do vínculo, para não
+     disputar atenção com o que o dono abre o painel para fazer. */
+  .botao.discreto-acao {
+    background: transparent;
+    color: var(--mudo);
+    border: 2px solid var(--borda);
+    margin-top: 12px;
+    font-size: 15px;
+    padding: 10px 16px;
+  }
+
   .resultado { margin-top: 14px; font-size: 15px; font-weight: 700; line-height: 1.5; }
   .resultado.sucesso { color: var(--verde); }
   .resultado.erro { color: var(--vermelho); }
@@ -185,6 +197,9 @@
   <section class="card" id="cardEstabelecimento">
     <h2>Estabelecimento</h2>
     <p id="estabelecimentoTexto">—</p>
+    <p class="discreto" id="origemTexto" hidden></p>
+    <button class="botao discreto-acao" id="btnLiberarOrigem" type="button" hidden>Liberar para outro endereço</button>
+    <p class="resultado" id="origemResultado" hidden></p>
   </section>
 
   <section class="card" id="cardInstalacao" hidden>
@@ -252,6 +267,9 @@
   var elBtnParar = document.getElementById("btnParar");
 
   var elEstabelecimentoTexto = document.getElementById("estabelecimentoTexto");
+  var elOrigemTexto = document.getElementById("origemTexto");
+  var elBtnLiberarOrigem = document.getElementById("btnLiberarOrigem");
+  var elOrigemResultado = document.getElementById("origemResultado");
 
   var elCardInstalacao = document.getElementById("cardInstalacao");
   var elBtnInstalar = document.getElementById("btnInstalar");
@@ -267,6 +285,7 @@
   var elRodape = document.getElementById("rodape");
 
   var instalando = false; // trava o polling de sobrescrever o botão no meio da instalação
+  var liberandoOrigem = false; // idem, para o botão de liberar o endereço
 
   // Quando o dono mandou parar (0 = nunca). A ponte responde 200 e só depois
   // encerra, então uma consulta que já estava no ar pode voltar "ligada" logo
@@ -332,6 +351,25 @@
     return "Aguardando — abra o sistema KORA neste computador e a ponte se vincula sozinha.";
   }
 
+  // Endereço fixado: a ponte só atende o site do estabelecimento que a
+  // vinculou. Mostrar qual é serve para duas coisas — o dono confere que é o
+  // endereço certo (vínculo sequestrado apareceria aqui) e sabe onde clicar
+  // se o estabelecimento trocar de endereço.
+  function aplicarOrigem(origemPermitida) {
+    if (!origemPermitida) {
+      elOrigemTexto.hidden = true;
+      elBtnLiberarOrigem.hidden = true;
+      return;
+    }
+    elOrigemTexto.hidden = false;
+    elOrigemTexto.textContent = "Atendendo somente o endereço " + origemPermitida + ".";
+    elBtnLiberarOrigem.hidden = false;
+    if (!liberandoOrigem) {
+      elBtnLiberarOrigem.disabled = false;
+      elBtnLiberarOrigem.textContent = "Liberar para outro endereço";
+    }
+  }
+
   function aplicarInstalacao(instalacao) {
     var info = instalacao || {};
     if (!info.empacotado) {
@@ -382,6 +420,7 @@
 
     mostrarLigada();
     elEstabelecimentoTexto.textContent = textoEstabelecimento(estado.estabelecimento);
+    aplicarOrigem(estado.origemPermitida);
     aplicarInstalacao(estado.instalacao);
     aplicarPalm(estado.enderecoPalm);
     elNumPendentes.textContent = Number(estado.pendentes) || 0;
@@ -398,6 +437,37 @@
       .then(aplicarEstado)
       .catch(mostrarParada);
   }
+
+  elBtnLiberarOrigem.addEventListener("click", function () {
+    liberandoOrigem = true;
+    elBtnLiberarOrigem.disabled = true;
+    elBtnLiberarOrigem.textContent = "Liberando…";
+    elOrigemResultado.hidden = true;
+
+    fetch("/origem/esquecer", { method: "POST" })
+      .then(function (resp) { return resp.json(); })
+      .then(function (r) {
+        liberandoOrigem = false;
+        elOrigemResultado.hidden = false;
+        if (r && r.ok) {
+          elOrigemResultado.className = "resultado sucesso";
+          elOrigemResultado.textContent = "Liberado. Abra o sistema KORA no endereço novo e a ponte se fixa nele sozinha.";
+        } else {
+          elOrigemResultado.className = "resultado erro";
+          elOrigemResultado.textContent = "Não deu para liberar agora. Tente de novo.";
+          elBtnLiberarOrigem.disabled = false;
+          elBtnLiberarOrigem.textContent = "Liberar para outro endereço";
+        }
+      })
+      .catch(function () {
+        liberandoOrigem = false;
+        elOrigemResultado.hidden = false;
+        elOrigemResultado.className = "resultado erro";
+        elOrigemResultado.textContent = "Não deu para liberar agora. Tente de novo.";
+        elBtnLiberarOrigem.disabled = false;
+        elBtnLiberarOrigem.textContent = "Liberar para outro endereço";
+      });
+  });
 
   elBtnInstalar.addEventListener("click", function () {
     instalando = true;
