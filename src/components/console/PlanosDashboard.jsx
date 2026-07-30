@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   LuTriangleAlert, LuCircleCheck, LuClock, LuBan, LuBuilding2, LuWallet,
   LuChartPie,
 } from "react-icons/lu";
 import { resumirPlataforma } from "@/lib/console";
 import { formatarReais } from "@/lib/deliveryPedidos";
+import DefinirMensalidadeModal from "./DefinirMensalidadeModal";
 import "./PlanosDashboard.css";
 
 /**
@@ -17,23 +18,31 @@ import "./PlanosDashboard.css";
  * o bloco do topo lista quem está vencendo/atrasado/bloqueado, ordenado
  * por urgência — o que a plataforma precisa cobrar AGORA.
  *
- * Só leitura (nenhuma escrita nova): a troca de plano continua no card de
- * estabelecimento; a renovação de assinatura tem RPC própria (Fase 4) e
- * entra numa fatia seguinte. Autorização é do banco — o super-admin lê
- * `assinaturas` de todos via `is_super_admin()` (20260726); a casca aqui
- * não decide acesso.
+ * A única escrita daqui é a MENSALIDADE (20260911): a troca de plano continua
+ * no card de estabelecimento e a renovação de assinatura tem RPC própria
+ * (20260909). Autorização é do banco — o super-admin lê `assinaturas` de todos
+ * via `is_super_admin()` (20260726) e a RPC revalida o papel na escrita; a
+ * casca aqui não decide acesso.
+ *
+ * Por que a mensalidade mora nesta tela: `valor_mensal` nasce em 0 e até a
+ * 20260911 nenhum caminho do sistema o escrevia, então o cartão "Receita
+ * mensal" era estruturalmente R$ 0,00 e nada dizia por quê. O preço é
+ * definido no MESMO lugar onde ele é somado — a célula que mostra "—" é o
+ * botão que resolve o "—".
  *
  * Por que é intuitivo (Princípio nº1): o que exige ação vem primeiro e em
  * cor de alerta; os números-chave (clientes, base ativa, receita mensal)
- * ficam em cartões grandes e legíveis; a tabela detalha por estabelecimento
- * com um selo de status humano (Ativo / Vence em X dias / Em atraso /
- * Bloqueado). Sem jargão de billing solto na tela.
+ * ficam em cartões grandes e legíveis; a nota embaixo dos cartões explica em
+ * uma frase por que a receita pode estar menor do que a real; a tabela detalha
+ * por estabelecimento com um selo de status humano (Ativo / Vence em X dias /
+ * Em atraso / Bloqueado). Sem jargão de billing solto na tela.
  */
-export default function PlanosDashboard({ tenants, planos, assinaturas }) {
+export default function PlanosDashboard({ tenants, planos, assinaturas, onAtualizado }) {
   const { kpis, precisamAtencao, distribuicaoPlano, linhas } = useMemo(
     () => resumirPlataforma(tenants ?? [], planos ?? [], assinaturas ?? []),
     [tenants, planos, assinaturas]
   );
+  const [linhaPreco, setLinhaPreco] = useState(null);
 
   return (
     <div className="pdash">
@@ -67,6 +76,19 @@ export default function PlanosDashboard({ tenants, planos, assinaturas }) {
         <CartaoKpi icone={<LuBan size={18} />} rotulo="Bloqueados" valor={kpis.bloqueados} tom={kpis.bloqueados > 0 ? "vermelho" : undefined} />
         <CartaoKpi icone={<LuWallet size={18} />} rotulo="Receita mensal" valor={formatarReais(kpis.mrr)} tom="accent" destaque />
       </section>
+
+      {/* A receita mensal é a soma das mensalidades. Como todo
+          estabelecimento nasce com mensalidade 0, sem esta nota o número
+          acima passaria por fato consumado — e não há como distinguir "não
+          fatura nada" de "ninguém preencheu o preço ainda". */}
+      {kpis.semPreco > 0 && (
+        <p className="pdash__nota" role="status">
+          {kpis.semPreco === 1
+            ? "1 estabelecimento ativo está sem mensalidade definida e não entra na receita mensal."
+            : `${kpis.semPreco} estabelecimentos ativos estão sem mensalidade definida e não entram na receita mensal.`}
+          {" "}Clique no “—” da coluna Mensalidade para definir.
+        </p>
+      )}
 
       {/* ── Distribuição por plano ───────────────────────────────────── */}
       {distribuicaoPlano.length > 0 && (
@@ -110,7 +132,24 @@ export default function PlanosDashboard({ tenants, planos, assinaturas }) {
                 <tr key={l.tenantId}>
                   <td className="pdash__td-nome">{l.nome}</td>
                   <td>{l.planoNome ?? "—"}</td>
-                  <td className="pdash__col-num">{l.valorMensal > 0 ? formatarReais(l.valorMensal) : "—"}</td>
+                  <td className="pdash__col-num">
+                    {/* Sem linha de assinatura não há mensalidade para definir
+                        (a RPC recusaria com "não tem assinatura"), então a
+                        célula não é clicável — a coluna Situação da mesma linha
+                        já diz "Sem assinatura". Prevenção de erro > erro. */}
+                    {l.status === "sem_assinatura" ? "—" : (
+                      <button
+                        type="button"
+                        className={`pdash__preco${l.valorMensal > 0 ? "" : " pdash__preco--vazio"}`}
+                        onClick={() => setLinhaPreco(l)}
+                        aria-label={l.valorMensal > 0
+                          ? `Alterar mensalidade de ${l.nome} (hoje ${formatarReais(l.valorMensal)})`
+                          : `Definir mensalidade de ${l.nome}`}
+                      >
+                        {l.valorMensal > 0 ? formatarReais(l.valorMensal) : "—"}
+                      </button>
+                    )}
+                  </td>
                   <td>{formatarData(l.dataVencimento)}</td>
                   <td><SeloStatus status={l.status} dias={l.diasParaVencer} /></td>
                 </tr>
@@ -119,6 +158,17 @@ export default function PlanosDashboard({ tenants, planos, assinaturas }) {
           </table>
         </div>
       </section>
+
+      {linhaPreco && (
+        <DefinirMensalidadeModal
+          linha={linhaPreco}
+          onFechar={() => setLinhaPreco(null)}
+          onDefinido={() => {
+            setLinhaPreco(null);
+            onAtualizado?.();
+          }}
+        />
+      )}
     </div>
   );
 }

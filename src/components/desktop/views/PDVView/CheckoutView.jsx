@@ -77,7 +77,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
   const [modoRemocao, setModoRemocao] = useState(false);
   const [remocao,     setRemocao]     = useState(null); // { item, qtyMax, qtySel, motivo }
   const [remSenha,     setRemSenha]     = useState("");
-  const [remSenhaErro, setRemSenhaErro] = useState(false);
+  // Texto: "senha errada" e "não deu para verificar agora" são coisas diferentes.
+  const [remSenhaErro, setRemSenhaErro] = useState("");
   const [remSenhaVis,  setRemSenhaVis]  = useState(false);
   const [remErro,      setRemErro]      = useState("");
   const [removendo,    setRemovendo]    = useState(false);
@@ -179,7 +180,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
   const abrirRemocao = (item) => {
     setRemocao({ item, qtyMax: item.qty, qtySel: 1, motivo: "" });
     setRemSenha("");
-    setRemSenhaErro(false);
+    setRemSenhaErro("");
     setRemSenhaVis(false);
     setRemErro("");
   };
@@ -190,9 +191,9 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
     setRemovendo(true);
     setRemErro("");
     try {
-      const autorizado = await verificarSenhaAdmin(remSenha);
-      if (!autorizado) {
-        setRemSenhaErro(true);
+      const { ok, erro } = await verificarSenhaAdmin(remSenha);
+      if (!ok) {
+        setRemSenhaErro(erro || "Senha incorreta. Apenas admin ou gerente pode cancelar itens.");
         return;
       }
       const { error } = await onRemoverItem(
@@ -1120,7 +1121,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   <input
                     type={remSenhaVis ? "text" : "password"}
                     value={remSenha}
-                    onChange={e => { setRemSenha(e.target.value); setRemSenhaErro(false); }}
+                    onChange={e => { setRemSenha(e.target.value); setRemSenhaErro(""); }}
                     placeholder="Digite a senha"
                     className="checkout-view__remocao-senha"
                     style={{
@@ -1138,8 +1139,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   </button>
                 </div>
                 {remSenhaErro && (
-                  <div className="checkout-view__remocao-senha-erro" style={{ color: varColor(C.red), fontWeight: 600, marginTop: 6 }}>
-                    Senha incorreta. Apenas admin ou gerente pode cancelar itens.
+                  <div role="alert" className="checkout-view__remocao-senha-erro" style={{ color: varColor(C.red), fontWeight: 600, marginTop: 6 }}>
+                    {remSenhaErro}
                   </div>
                 )}
               </div>

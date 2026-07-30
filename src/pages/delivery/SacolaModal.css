@@ -10,3 +10,27 @@
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
 }
+
+/* Run 6, leva 4 — a linha que não bate mais com o cardápio.
+   O selo diz o que houve NA LINHA, junto do nome do item; o aviso do
+   rodapé diz o que fazer. Sem os dois, o cliente lia "Item indisponível"
+   do servidor e não tinha como saber qual item era. */
+.linha-sacola__selo {
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  color: var(--gm-muted);
+}
+
+.linha-sacola__selo--fora {
+  color: var(--gm-red);
+}
+
+/* Item fora do ar fica visivelmente apagado, mas o botão "Remover"
+   (a única ação que resolve) continua com contraste cheio. */
+.linha-sacola--fora .linha-sacola__nome,
+.linha-sacola--fora .linha-sacola__extra,
+.linha-sacola--fora .linha-sacola__preco {
+  opacity: 0.5;
+}

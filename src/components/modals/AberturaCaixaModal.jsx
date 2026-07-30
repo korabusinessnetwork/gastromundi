@@ -15,7 +15,15 @@ export default function AberturaCaixaModal({ onConfirm, onClose }) {
   const handleConfirm = async () => {
     if (!pode || salvando) return;
     setSalvando(true);
-    await onConfirm(valor);
+    try {
+      await onConfirm(valor);
+    } finally {
+      // Quem chama mantém o modal aberto quando a gravação falha, para o
+      // operador saber que o caixa NÃO abriu. Sem liberar o botão aqui, o
+      // "tente novamente" do aviso era impossível: travava em "Abrindo..."
+      // e só saía fechando o modal e começando de novo.
+      setSalvando(false);
+    }
   };
 
   return (

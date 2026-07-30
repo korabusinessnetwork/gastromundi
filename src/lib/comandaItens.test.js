@@ -125,4 +125,22 @@ describe("totalItensAtivos", () => {
     expect(totalItensAtivos([])).toBe(0);
     expect(totalItensAtivos(null)).toBe(0);
   });
+
+  it("arredonda: o retorno é gravado em pending.total e mostrado na tela", () => {
+    // 16.1 * 3 = 48.300000000000004 em ponto flutuante. Sem arredondar, é esse
+    // número que ia para o banco e aparecia na comanda do Palm.
+    expect(totalItensAtivos([{ price: 16.1, qty: 3 }])).toBe(48.3);
+    // 39.9 + 8.7 = 48.599999999999994 somando item por item.
+    expect(totalItensAtivos([{ price: 39.9, qty: 1 }, { price: 8.7, qty: 1 }])).toBe(48.6);
+  });
+
+  it("item sem price não contamina o total com NaN", () => {
+    expect(totalItensAtivos([{ qty: 2 }, { price: 7, qty: 1 }])).toBe(7);
+  });
+
+  it("item sem qty vale 1, não zero (Palm e PDV precisam do mesmo total)", () => {
+    // O Palm somava com `qty || 0`: o mesmo item valia 0 no celular e 1 no
+    // desktop, então a mesma comanda tinha dois totais diferentes.
+    expect(totalItensAtivos([{ price: 12.5 }])).toBe(12.5);
+  });
 });

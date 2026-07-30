@@ -27,7 +27,9 @@ import {
   carregarCardapio,
   enviarPedido,
   formatarPreco,
+  mensagemDeErroDoPedido,
   montarPayloadPedido,
+  revisarSacola,
 } from "@/lib/delivery";
 import { useCarrinho } from "./useCarrinho";
 import CardapioLista from "./CardapioLista";
@@ -63,6 +65,9 @@ export default function CardapioPage() {
   const [cardapio, setCardapio] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  // Contador de tentativas do carregamento — o "Tentar de novo" da tela de
+  // falha só incrementa isto, e o efeito abaixo roda de novo por causa dele.
+  const [tentativa, setTentativa] = useState(0);
 
   // Fluxo (bottom-sheets sobre o cardápio): produto | sacola | entrega |
   // pagamento | confirmacao. `produtoAberto` guarda o produto em edição.
@@ -73,8 +78,7 @@ export default function CardapioPage() {
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
 
-  const { itens, adicionar, remover, alterarQtd, limpar, subtotal, quantidade } =
-    useCarrinho(slug);
+  const { itens, adicionar, remover, alterarQtd, limpar, quantidade } = useCarrinho(slug);
 
   // ── White-label: aplica o tema do tenant (--gm-*) e a marca, igual ao
   //    pré-login. A vitrine toda usa var(--gm-*), então se recolore sozinha.
@@ -124,9 +128,17 @@ export default function CardapioPage() {
     return () => {
       ativo = false;
     };
-  }, [slug]);
+  }, [slug, tentativa]);
 
   const aberto = !!cardapio?.aberto;
+
+  // A sacola vive em sessionStorage e sobrevive à aba recarregada; o cardápio
+  // é carregado uma vez e não se atualiza sozinho. Se o dono mexer no cardápio
+  // no meio da compra, o que está guardado deixa de bater com o que está no ar
+  // — e quem descobria isso era o servidor, no último clique. Aqui a sacola é
+  // conferida contra o cardápio que temos, e é ELA que manda no preço mostrado.
+  const revisao = useMemo(() => revisarSacola(itens, cardapio), [itens, cardapio]);
+  const subtotal = revisao.subtotal;
 
   function onAdicionar(item) {
     adicionar(item);
@@ -136,6 +148,9 @@ export default function CardapioPage() {
   async function confirmarPedido() {
     if (enviando) return;
     setEnviando(true);
+    // Tentativa nova começa sem a mensagem da anterior, senão o cliente
+    // corrige o problema, dá certo, e a tela segue acusando o erro velho.
+    setErro("");
     const payload = montarPayloadPedido({
       cliente: { nome: entrega.nome, telefone: entrega.telefone },
       entrega,
@@ -145,17 +160,25 @@ export default function CardapioPage() {
     const { data, error } = await enviarPedido(slug, payload);
     setEnviando(false);
     if (error || !data?.ok) {
-      setErro(error?.message || "Não foi possível enviar o pedido. Tente novamente.");
+      // A recusa escrita pelo servidor passa inteira; falha de infraestrutura
+      // vira frase em português (o cliente não pode ler stack em inglês).
+      setErro(mensagemDeErroDoPedido(error));
       setTela("pagamento");
       return;
     }
     setResultado(data);
     setTela("confirmacao");
+    // A sacola morre AQUI, no aceite — não no "Voltar ao cardápio". Ela vive
+    // em sessionStorage: quem fechava a aba (ou recarregava) na tela de
+    // sucesso reencontrava os mesmos itens na barra da sacola, achava que o
+    // pedido não tinha ido e mandava tudo de novo. Pedido duplicado, entrega
+    // duplicada, cobrança duplicada — e o estabelecimento sem saber qual vale.
+    limpar();
   }
 
   function fecharConfirmacao() {
-    // Sucesso: limpa sacola e volta ao cardápio zerado para um novo pedido.
-    limpar();
+    // Volta ao cardápio zerado para um novo pedido (a sacola já foi limpa
+    // no aceite do pedido, não aqui).
     setEntrega(ENTREGA_INICIAL);
     setPagamento(PAGAMENTO_INICIAL);
     setResultado(null);
@@ -187,6 +210,21 @@ export default function CardapioPage() {
               {erro ||
                 "Este endereço ainda não tem delivery disponível. Confira o link do estabelecimento."}
             </p>
+            {/* A frase mandava tentar de novo e não havia como: a porta de
+                entrada do estabelecimento só saía dali recarregando o
+                navegador — num celular, com a conexão oscilando, que é
+                exatamente quando esta tela aparece. Só a FALHA é retentável;
+                endereço sem delivery daria o mesmo nada, e um botão que não
+                resolve nada é pior que botão nenhum. */}
+            {erro && (
+              <button
+                type="button"
+                className="vitrine__aviso-acao"
+                onClick={() => setTentativa((n) => n + 1)}
+              >
+                Tentar de novo
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -219,7 +257,9 @@ export default function CardapioPage() {
           </div>
         )}
 
-        {erro && aberto && <div className="vitrine__aviso vitrine__aviso--erro">{erro}</div>}
+        {/* A falha de envio é mostrada dentro da folha de pagamento, onde o
+            cliente está olhando. Aqui ela ficava atrás do modal e continuava
+            na tela depois, acusando um erro que já passou. */}
 
         <CardapioLista cardapio={cardapio} onAbrirProduto={setProdutoAberto} />
 
@@ -246,6 +286,7 @@ export default function CardapioPage() {
       {produtoAberto && (
         <ProdutoModal
           produto={produtoAberto}
+          lojaAberta={aberto}
           onFechar={() => setProdutoAberto(null)}
           onAdicionar={onAdicionar}
         />
@@ -253,9 +294,11 @@ export default function CardapioPage() {
 
       {tela === "sacola" && (
         <SacolaModal
-          itens={itens}
+          itens={revisao.linhas}
           subtotal={subtotal}
           pedidoMinimo={cardapio.pedido_minimo}
+          temFora={revisao.temFora}
+          temPrecoNovo={revisao.temPrecoNovo}
           onFechar={() => setTela(null)}
           onAlterarQtd={alterarQtd}
           onRemover={remover}
@@ -282,6 +325,7 @@ export default function CardapioPage() {
           onVoltar={() => setTela("entrega")}
           onConfirmar={confirmarPedido}
           enviando={enviando}
+          erro={erro}
         />
       )}
 

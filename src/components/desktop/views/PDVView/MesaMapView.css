@@ -32,6 +32,21 @@
   letter-spacing: var(--tracking-label);
 }
 
+/* Faixa das mesas sem coordenada no mapa (não entram no layout posicionado). */
+.mesa-map__sem-posicao-titulo {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  margin-bottom: 10px;
+}
+
+.mesa-map__sem-posicao-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
 .card-mesa {
   /* container: cores/layout via inline */
 }

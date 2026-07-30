@@ -2,6 +2,7 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { LuCheck, LuChevronDown } from "react-icons/lu";
+import { contaEmAberto } from "@/lib/financeiro";
 import "./LancamentosList.css";
 
 const STATUS_COLOR = { recebido: varColor(C.green), pago: varColor(C.green), previsto: varColor(C.blue), vencido: varColor(C.red) };
@@ -13,7 +14,7 @@ function fmtR(v) {
 }
 
 export default function LancamentosList({
-  lancamentos, loading,
+  lancamentos, loading, erro,
   filtroTipo, setFiltroTipo,
   filtroStatus, setFiltroStatus,
   onBaixar, sz,
@@ -44,6 +45,10 @@ export default function LancamentosList({
 
       {loading ? (
         <div className="lancamentos-list__estado">Carregando…</div>
+      ) : erro ? (
+        /* Lista vazia porque a leitura falhou não é "não tem lançamento":
+           dizer que não tem faz o dono acreditar que o mês está limpo. */
+        <div className="lancamentos-list__estado">Não foi possível carregar os lançamentos.</div>
       ) : lancamentos.length === 0 ? (
         <div className="lancamentos-list__estado">Nenhum lançamento no período.</div>
       ) : (
@@ -78,7 +83,9 @@ export default function LancamentosList({
                     </span>
                   </td>
                   <td className="lancamentos-list__td">
-                    {l.status === "previsto" && (
+                    {/* Vencida também é conta em aberto: sem isso, a conta que
+                        atrasa perde o botão e não há como marcá-la como paga. */}
+                    {contaEmAberto(l) && (
                       <button
                         onClick={() => onBaixar(l.id)}
                         className="lancamentos-list__btn-baixar"

@@ -1,3 +1,5 @@
+import { round2 } from "./vendas";
+
 // Reconciliação de itens de comanda entre dispositivos (Palm × PDV).
 //
 // O `pending.items` é um jsonb gravado inteiro a cada update — sem isto,
@@ -70,9 +72,17 @@ export function cancelarItemComanda(items, indice, { motivo = "", por = "" } = {
   );
 }
 
-/** Total da conta: soma apenas itens não cancelados. */
+/**
+ * Total da conta: soma apenas itens não cancelados, arredondado.
+ *
+ * O round2 não é enfeite: o retorno daqui é gravado em `pending.total` e é
+ * ele que o Palm e a lista de destino da transferência mostram na tela. Sem
+ * arredondar, três cervejas de R$ 16,10 viram R$ 48,300000000000004 no banco.
+ */
 export function totalItensAtivos(items) {
-  return (Array.isArray(items) ? items : [])
-    .filter((i) => !i?.cancelado)
-    .reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0);
+  return round2(
+    (Array.isArray(items) ? items : [])
+      .filter((i) => !i?.cancelado)
+      .reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0),
+  );
 }

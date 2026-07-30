@@ -25,6 +25,7 @@ import "./PDVView.css";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
 import { useTravaComanda } from "@/hooks/useTravaComanda";
 import { travadaPorOutro, nomeTrava } from "@/lib/comandaLock";
+import { totalItensAtivos } from "@/lib/comandaItens";
 import { useCancelarComanda } from "./useCancelarComanda";
 import ComandaGrid   from "./ComandaGrid";
 import ProductGrid   from "./ProductGrid";
@@ -105,7 +106,8 @@ export default function PDVView({ notify }) {
   const [showTransferir,    setShowTransferir]    = useState(false);
   const [showSaldo,         setShowSaldo]         = useState(false);
   const [saldoSenha,        setSaldoSenha]        = useState("");
-  const [saldoSenhaErro,    setSaldoSenhaErro]    = useState(false);
+  // Texto: "senha errada" e "não deu para verificar agora" são coisas diferentes.
+  const [saldoSenhaErro,    setSaldoSenhaErro]    = useState("");
   const [saldoAutorizado,   setSaldoAutorizado]   = useState(false);
   const [saldoSenhaVis,     setSaldoSenhaVis]     = useState(false);
   const [transQtds,         setTransQtds]         = useState({});         // { [itemIdx]: qty }
@@ -117,7 +119,7 @@ export default function PDVView({ notify }) {
   const [transferindo,      setTransferindo]      = useState(false);
   const [showCancelarComanda,    setShowCancelarComanda]    = useState(false);
   const [cancelarSenha,          setCancelarSenha]          = useState("");
-  const [cancelarSenhaErro,      setCancelarSenhaErro]      = useState(false);
+  const [cancelarSenhaErro,      setCancelarSenhaErro]      = useState("");
   const [cancelarSenhaVis,       setCancelarSenhaVis]       = useState(false);
   const [cancelarAutorizado,     setCancelarAutorizado]     = useState(false);
   const [cancelarMotivo,         setCancelarMotivo]         = useState("");
@@ -391,7 +393,10 @@ export default function PDVView({ notify }) {
       const agora      = new Date().toISOString();
       const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
       const acumulados = [...anteriores, ...novos];
-      const total      = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+      // Item cancelado não entra: senão a cerveja cancelada volta ao total
+      // gravado no próximo lançamento e a comanda passa a mostrar um valor
+      // que o checkout não vai cobrar.
+      const total      = totalItensAtivos(acumulados);
       // Este lançamento saiu daqui e é impresso logo abaixo: marca ANTES de
       // gravar para o vigia do realtime (ImpressaoLancamentosBridge) não
       // mandar o mesmo papel de novo ao ver a comanda mudar. Marcar um
@@ -435,7 +440,7 @@ export default function PDVView({ notify }) {
         const anteriores = Array.isArray(ordem.items) ? ordem.items : [];
         const novos      = cartItems.map(({ _key, ...rest }) => rest);
         const acumulados = [...anteriores, ...novos];
-        const novoTotal  = acumulados.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+        const novoTotal  = totalItensAtivos(acumulados);
         const { error } = await updatePending(ordem.id, { items: acumulados, total: novoTotal }, { baseItems: anteriores });
         if (error) throw error;
         setSelected(prev => ({ ...prev, items: acumulados, total: novoTotal }));
@@ -495,7 +500,7 @@ export default function PDVView({ notify }) {
       restante = 0;
       return [{ ...it, qty: qtyIt - cancelar }, marcar(it, cancelar)];
     }).flat();
-    const novoTotal = novos.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+    const novoTotal = totalItensAtivos(novos);
     const { error } = await updatePending(selected.id, { items: novos, total: novoTotal }, { baseItems: selected.items });
     if (error) return { error };
     setSelected(prev => ({ ...prev, items: novos, total: novoTotal }));
@@ -557,6 +562,10 @@ export default function PDVView({ notify }) {
   const handleTransferir = async () => {
     const algumSelecionado = Object.values(transQtds).some(q => q > 0);
     if (!algumSelecionado || transferindo) return;
+    // Mesma trava de lançar e finalizar: transferir reescreve `items` inteiro,
+    // então mexer numa comanda que outro aparelho tem aberta é exatamente o
+    // conflito que a trava existe para impedir.
+    if (bloqueio) { notify?.(`${fmtComanda(selected?.comanda)} está em uso por ${bloqueio.nome}.`, "err"); return; }
 
     const itens = Array.isArray(selected?.items) ? selected.items : [];
 
@@ -597,7 +606,7 @@ export default function PDVView({ notify }) {
         const novaQty = (it.qty ?? 1) - qRemover;
         return novaQty > 0 ? { ...it, qty: novaQty } : null;
       }).filter(Boolean);
-      const totalOrigem = novosOrigem.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+      const totalOrigem = totalItensAtivos(novosOrigem);
 
       // ── Transferência resiliente (sem Promise.all) ──────────────
       // O supabase-js NÃO lança em erro — resolve `{ error }`. Se as duas
@@ -609,7 +618,7 @@ export default function PDVView({ notify }) {
       if (transMode === "nova") {
         // Cria nova comanda com os itens transferidos.
         const itensNova = aTransferir.map(({ it, qty }) => ({ ...it, qty }));
-        const totalNova = itensNova.reduce((s, i) => s + i.price * i.qty, 0);
+        const totalNova = totalItensAtivos(itensNova);
         const novaOrder = {
           id:         crypto.randomUUID(),
           comanda:    transNomeNova.trim(),
@@ -648,6 +657,14 @@ export default function PDVView({ notify }) {
       } else {
         // Destino existente.
         const destino          = abertas.find(o => o.id === destinoId);
+        // O caixa pode ter fechado a comanda de destino entre a abertura desta
+        // modal e o clique. Sem esta checagem, `destino.items` estourava
+        // TypeError: a modal ficava aberta, sem mensagem, e o clique de novo
+        // repetia o erro.
+        if (!destino) {
+          notify?.("A comanda de destino não está mais aberta. Nada foi alterado — escolha outra.", "err");
+          return;
+        }
         const itensDestinoOrig = Array.isArray(destino.items) ? destino.items : [];
         const novosDestino     = [...itensDestinoOrig];
         aTransferir.forEach(({ it, qty }) => {
@@ -658,7 +675,7 @@ export default function PDVView({ notify }) {
             novosDestino.push({ ...it, qty });
           }
         });
-        const totalDestino = novosDestino.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+        const totalDestino = totalItensAtivos(novosDestino);
 
         // 1º passo — adiciona no destino. Origem ainda intacta.
         const { error: erroDestino } = await updatePending(
@@ -678,7 +695,7 @@ export default function PDVView({ notify }) {
           // destino ao estado original (compensação). Se a reversão falhar,
           // os itens podem ficar duplicados (visível/recuperável), nunca
           // sumidos.
-          const totalDestinoOrig = itensDestinoOrig.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+          const totalDestinoOrig = totalItensAtivos(itensDestinoOrig);
           const { error: erroCompensacao } = await updatePending(
             destinoId, { items: itensDestinoOrig, total: totalDestinoOrig }, { baseItems: novosDestino },
           );
@@ -840,7 +857,7 @@ export default function PDVView({ notify }) {
               </div>
               {emPainel && (
                 <button
-                  onClick={() => { setShowSaldo(true); setSaldoSenha(""); setSaldoSenhaErro(false); setSaldoAutorizado(false); setSaldoSenhaVis(false); }}
+                  onClick={() => { setShowSaldo(true); setSaldoSenha(""); setSaldoSenhaErro(""); setSaldoAutorizado(false); setSaldoSenhaVis(false); }}
                   title="Saldo do dia"
                   className="pdv__saldo-btn"
                   style={{
@@ -1043,7 +1060,7 @@ export default function PDVView({ notify }) {
                     <LuArrowLeftRight size={sz.fontBase - 1} /> Transferir
                   </button>
                   <button
-                    onClick={() => { setShowCancelarComanda(true); setCancelarSenha(""); setCancelarSenhaErro(false); setCancelarAutorizado(false); setCancelarMotivo(""); }}
+                    onClick={() => { setShowCancelarComanda(true); setCancelarSenha(""); setCancelarSenhaErro(""); setCancelarAutorizado(false); setCancelarMotivo(""); }}
                     className="pdv__acao-btn"
                     style={{
                       padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
@@ -1423,7 +1440,7 @@ export default function PDVView({ notify }) {
                     }
                     return { ...it, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "" };
                   }).flat();
-                  const novoTotal = novos.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
+                  const novoTotal = totalItensAtivos(novos);
                   const { error } = await updatePending(selected.id, { items: novos, total: novoTotal }, { baseItems: selected.items });
                   if (error) {
                     notify?.("Não foi possível cancelar o item. Tente novamente.", "err");
@@ -1570,12 +1587,12 @@ export default function PDVView({ notify }) {
                       autoFocus
                       type={cancelarSenhaVis ? "text" : "password"}
                       value={cancelarSenha}
-                      onChange={e => { setCancelarSenha(e.target.value); setCancelarSenhaErro(false); }}
+                      onChange={e => { setCancelarSenha(e.target.value); setCancelarSenhaErro(""); }}
                       onKeyDown={async e => {
                         if (e.key === "Enter") {
-                          const ok = await verificarSenhaAdmin(cancelarSenha);
-                          if (ok) { setCancelarAutorizado(true); setCancelarSenhaErro(false); }
-                          else setCancelarSenhaErro(true);
+                          const { ok, erro } = await verificarSenhaAdmin(cancelarSenha);
+                          if (ok) { setCancelarAutorizado(true); setCancelarSenhaErro(""); }
+                          else setCancelarSenhaErro(erro || "Senha incorreta.");
                         }
                       }}
                       placeholder="Senha de admin ou gerente"
@@ -1593,12 +1610,12 @@ export default function PDVView({ notify }) {
                       {cancelarSenhaVis ? <LuEyeOff size={18} /> : <LuEye size={18} />}
                     </button>
                   </div>
-                  {cancelarSenhaErro && <div className="pdv__modal-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>Senha incorreta.</div>}
+                  {cancelarSenhaErro && <div role="alert" className="pdv__modal-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>{cancelarSenhaErro}</div>}
                   <button
                     onClick={async () => {
-                      const ok = await verificarSenhaAdmin(cancelarSenha);
-                      if (ok) { setCancelarAutorizado(true); setCancelarSenhaErro(false); }
-                      else setCancelarSenhaErro(true);
+                      const { ok, erro } = await verificarSenhaAdmin(cancelarSenha);
+                      if (ok) { setCancelarAutorizado(true); setCancelarSenhaErro(""); }
+                      else setCancelarSenhaErro(erro || "Senha incorreta.");
                     }}
                     disabled={!cancelarSenha}
                     className="pdv__modal-btn"
@@ -1717,7 +1734,14 @@ export default function PDVView({ notify }) {
                 <div className="pdv__modal-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", marginBottom: 10 }}>
                   Selecione os itens e quantidades
                 </div>
-                {(Array.isArray(selected?.items) ? selected.items : []).map((item, idx) => {
+                {/* Item cancelado não pode ser transferido: no destino ele se
+                    funde com a linha ativa do mesmo produto (mesmoItemDeVenda)
+                    e volta a ser cobrável. O `idx` original é preservado porque
+                    `transQtds` é indexado por posição na lista de `selected`. */}
+                {(Array.isArray(selected?.items) ? selected.items : [])
+                  .map((item, idx) => ({ item, idx }))
+                  .filter(({ item }) => !item?.cancelado)
+                  .map(({ item, idx }) => {
                   const qty    = item.qty ?? 1;
                   const qSel   = transQtds[idx] ?? 0;
                   const ativo  = qSel > 0;
@@ -2335,9 +2359,9 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   const METODOS_COLOR = { dinheiro: "#10b981", credito: "#3b82f6", debito: "#8b5cf6", pix: "#f59e0b" };
 
   const verificarSenha = async () => {
-    const match = await verificarSenhaAdmin(senha);
-    if (match) { setAutorizado(true); setSenhaErro(false); }
-    else        { setSenhaErro(true); }
+    const { ok, erro } = await verificarSenhaAdmin(senha);
+    if (ok) { setAutorizado(true); setSenhaErro(""); }
+    else    { setSenhaErro(erro || "Senha incorreta. Apenas administradores e gerentes têm acesso."); }
   };
 
   return (
@@ -2410,7 +2434,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   autoFocus
                   type={senhaVis ? "text" : "password"}
                   value={senha}
-                  onChange={e => { setSenha(e.target.value); setSenhaErro(false); }}
+                  onChange={e => { setSenha(e.target.value); setSenhaErro(""); }}
                   onKeyDown={e => e.key === "Enter" && verificarSenha()}
                   placeholder="Digite a senha de acesso"
                   className="pdv__saldo-input"
@@ -2430,8 +2454,8 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                 </button>
               </div>
               {senhaErro && (
-                <div className="pdv__saldo-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>
-                  Senha incorreta. Apenas administradores e gerentes têm acesso.
+                <div role="alert" className="pdv__saldo-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>
+                  {senhaErro}
                 </div>
               )}
             </div>

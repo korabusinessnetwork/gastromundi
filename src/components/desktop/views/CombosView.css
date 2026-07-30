@@ -82,6 +82,20 @@
   text-align: center;
 }
 
+/* Falha de carga/gravação: precisa aparecer ANTES do estado vazio, que é o
+   que a tela mostrava por engano quando a leitura falhava. */
+.combos-view__erro {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--gm-red);
+  border-radius: 10px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
 .combos-view__vazio {
   display: flex;
   flex-direction: column;

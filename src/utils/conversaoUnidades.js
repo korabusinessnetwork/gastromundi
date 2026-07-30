@@ -18,12 +18,43 @@ export function getUnidadesCompra(insumo) {
 }
 
 /**
+ * Arredonda uma quantidade de estoque para 3 casas, sem o viés de ponto
+ * flutuante (0.1 + 0.2 !== 0.3).
+ *
+ * Toda multiplicação de fator produz sujeira binária: 3 garrafas de 0,35 L dá
+ * 1.0499999999999998 L, e era esse número que ia para o banco. O saldo
+ * acumulava a sujeira lançamento após lançamento, e a tela — que formata com
+ * 3 casas — mostrava um valor diferente do que estava gravado.
+ *
+ * 3 casas é de propósito: é exatamente o que `fmtQtd` mostra, então o saldo
+ * gravado é sempre igual ao saldo que o operador lê. Em quilo dá 1 grama, em
+ * litro dá 1 mililitro — suficiente para cozinha.
+ *
+ * Quantidade inválida (texto, null, NaN, Infinity) devolve 0: quem chama nunca
+ * recebe NaN para gravar.
+ *
+ * @param {any} v
+ * @returns {number}
+ */
+export function arredondarQtd(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  return Math.round((n + Number.EPSILON) * 1000) / 1000;
+}
+
+/**
  * Converte quantidade de uma unidade de compra para unidade de estoque.
  * Aceita um objeto de unidade {fator} ou um produto (backward compat).
+ *
+ * Unidade ausente (produto editado em outro aparelho enquanto esta tela estava
+ * aberta, índice de aba que não existe mais) devolve 0 em vez de estourar
+ * TypeError no meio do lançamento — quem chama trata 0 como "não dá para
+ * converter".
  */
 export function compraParaEstoque(qtdCompra, unitObj) {
+  if (!unitObj || typeof unitObj !== "object") return 0;
   const fator = unitObj.fator ?? unitObj.fator_compra_estoque ?? 1;
-  return qtdCompra * Number(fator);
+  return arredondarQtd(Number(qtdCompra) * Number(fator));
 }
 
 /**
@@ -31,8 +62,8 @@ export function compraParaEstoque(qtdCompra, unitObj) {
  * Usado ao dar baixa via ficha técnica.
  */
 export function consumoParaEstoque(qtdConsumo, insumo) {
-  const fator = insumo.fator_consumo_estoque ?? 1;
-  return qtdConsumo * fator;
+  const fator = insumo?.fator_consumo_estoque ?? 1;
+  return arredondarQtd(Number(qtdConsumo) * Number(fator));
 }
 
 /**
@@ -40,9 +71,9 @@ export function consumoParaEstoque(qtdConsumo, insumo) {
  * Usado para exibir "≈ 120 garrafas" na página de estoque.
  */
 export function estoqueParaConsumo(saldoEstoque, insumo) {
-  const fator = insumo.fator_consumo_estoque ?? 1;
-  if (!fator || fator === 0) return 0;
-  return saldoEstoque / fator;
+  const fator = Number(insumo?.fator_consumo_estoque ?? 1);
+  if (!Number.isFinite(fator) || fator === 0) return 0;
+  return arredondarQtd(Number(saldoEstoque) / fator);
 }
 
 /**

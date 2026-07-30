@@ -15,7 +15,7 @@ import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
 import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
 import { criarLancamento } from "@/lib/financeiro";
 import { METODOS_TEF_PADRAO } from "@/lib/tef";
-import { processarBaixaEstoque } from "@/lib/estoque";
+import { processarBaixaEstoque, isRpcAusente } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
@@ -29,6 +29,7 @@ import PonteLocalBridge from "@/components/shared/PonteLocalBridge";
 import ImpressaoLancamentosBridge from "@/components/shared/ImpressaoLancamentosBridge";
 import {
   saveSession, loadSession, clearSession,
+  lerSessao, atualizarUsuarioSessao, msRestantesDaSessao, esquecerTokenAuthLocal,
   getAttempts, setAttempts, clearAttempts,
   IDLE_MS, MAX_ATTEMPTS, LOCKOUT_MS,
 } from "@/utils/session";
@@ -53,6 +54,29 @@ function montarMapaCargos(rows) {
     mapa[row.role] = mesclarPermissoes(getPermissions(row.role), row.permissions);
   }
   return mapa;
+}
+
+/**
+ * Aplica sobre um mapa local (`{ produtoId: número }`) um valor que chegou do
+ * realtime. Valor que não é número finito é IGNORADO: devolve o mapa anterior
+ * intacto, e o dispositivo continua com o que já tinha.
+ *
+ * Antes o código fazia `Number(payload.new.minimo)` cru, e `Number` não avisa
+ * quando não tem número: `Number(null)` é 0 e `Number(undefined)` é NaN. Um
+ * evento sem a coluna `minimo` zerava o mínimo em TODOS os outros aparelhos e
+ * desligava o alerta de estoque baixo sem ninguém tocar em nada. Um NaN em
+ * `quantidade` era pior: a tela mostrava saldo 0 pintado de verde e escrito
+ * "OK", porque nenhuma comparação com NaN é verdadeira.
+ */
+export function aplicarNumeroRemoto(mapa, produtoId, valor) {
+  // `numeric` do Postgres chega como número ou como string no JSON do evento.
+  // Qualquer outra coisa é ruído: `Number(null)` é 0 e `Number([])` também.
+  if (typeof valor !== "number" && typeof valor !== "string") return mapa;
+  if (typeof valor === "string" && valor.trim() === "") return mapa;
+  const n = Number(valor);
+  if (!Number.isFinite(n)) return mapa;
+  if (mapa[produtoId] === n) return mapa; // nada mudou: não re-renderiza
+  return { ...mapa, [produtoId]: n };
 }
 
 export function AppProvider({ children }) {
@@ -93,7 +117,11 @@ export function AppProvider({ children }) {
   const [ponteEndereco, setPonteEnderecoLocal] = useState(null);
 
   // ── Auth ─────────────────────────────────────────────────────
-  const [currentUser,  setCurrentUser]  = useState(() => loadSession());
+  // `lerSessao` em vez de `loadSession` porque um inicializador de estado não
+  // deve ter efeito colateral: quem apaga a sessão vencida é o efeito de
+  // restauração abaixo, que também precisa SABER que ela venceu para derrubar
+  // a sessão do Supabase Auth junto.
+  const [currentUser,  setCurrentUser]  = useState(() => lerSessao().user);
   // tenant_id do JWT da sessão atual — fonte confiável e disponível offline
   // (o `currentUser` de `users` NÃO traz tenant_id). Usado para carimbar e
   // validar os caches locais (snapshot/fila), isolando estabelecimentos que
@@ -102,20 +130,53 @@ export function AppProvider({ children }) {
 
   const isMobile = useIsMobile();
 
-  const logoutCallback = useCallback(() => {
-    if (currentUser) logout();
-  }, [currentUser]);
+  // Os dois cronômetros de segurança abaixo precisam de um callback com
+  // identidade ESTÁVEL: quando ela troca, o efeito remonta e a contagem volta
+  // ao zero. O callback antigo dependia de `currentUser`, que troca de
+  // identidade a cada refresh da lista de usuários (efeito [users]) — então num
+  // turno movimentado os 30 minutos de inatividade nunca chegavam ao fim.
+  // O ref sempre aponta para o `logout` da última renderização.
+  const logoutRef = useRef(null);
+  const logoutCallback = useCallback(() => { logoutRef.current?.(); }, []);
   useIdleTimer(logoutCallback, IDLE_MS, !!currentUser);
+
+  // Teto absoluto da sessão: 8 horas contadas do login. O `lerSessao` só é
+  // consultado ao carregar a página, então numa aba aberta o turno inteiro — o
+  // caso normal do PDV — o teto nunca chegava a valer. Aqui ele corre em
+  // memória e desloga na hora. Depende do `id`, não do objeto, para que o
+  // refresh da lista de usuários não reagende nada.
+  useEffect(() => {
+    if (!currentUser) return;
+    const restante = msRestantesDaSessao();
+    if (restante === null) return;
+    if (restante === 0) { logoutRef.current?.(); return; }
+    const t = setTimeout(() => logoutRef.current?.(), restante);
+    return () => clearTimeout(t);
+  }, [currentUser?.id]);
 
   // ── Restaura sessão do Supabase Auth ao carregar ─────────────
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session && lerSessao().estado === "expirada") {
+        // Teto de 8 horas vencido. O refresh token do Supabase vive muito mais
+        // que isso, então sem este ramo bastava dar F5 para o `saveSession`
+        // logo abaixo carimbar um `at` novo e o teto nunca valer nada. Derruba
+        // a sessão do Auth também, senão o próximo carregamento reabre tudo.
+        tenantIdRef.current = null;
+        setCurrentUser(null);
+        clearSession();
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
       if (session) {
         tenantIdRef.current = session.user?.app_metadata?.tenant_id ?? null;
         const userData = await buscarDadosUsuario(session.user.id);
         if (userData) {
           setCurrentUser(userData);
-          saveSession(userData);
+          // Preserva o relógio quando esta aba já tem sessão; só carimba um
+          // `at` novo quando é aba nova (aí é começo de sessão de verdade).
+          if (!atualizarUsuarioSessao(userData)) saveSession(userData);
           await bootstrap();
         } else if (loadSession() && typeof navigator !== "undefined" && navigator.onLine === false) {
           // Sem internet a busca do usuário falha mesmo com sessão válida.
@@ -125,7 +186,22 @@ export function AppProvider({ children }) {
         } else {
           setLoading(false);
         }
+      } else if (loadSession() && typeof navigator !== "undefined" && navigator.onLine === false) {
+        // Offline: o getSession pode devolver null só porque não conseguiu
+        // renovar o token. A sessão local é justamente o que mantém o PDV
+        // operando do snapshot, então ela fica e o bootstrap hidrata do cache.
+        await bootstrap();
       } else {
+        // Sem sessão no Supabase Auth e com rede: o `currentUser` semeado do
+        // sessionStorage (linha 119, para a tela abrir sem piscar) está morto.
+        // Sem JWT nenhuma leitura passa pela RLS, então o app renderizava
+        // "logado" com tudo vazio — e ninguém limpava esse estado, porque num
+        // carregamento sem sessão o supabase-js emite `INITIAL_SESSION`, e o
+        // onAuthStateChange abaixo só reage a `SIGNED_OUT`. Limpar aqui joga
+        // a pessoa de volta ao login, que é o estado verdadeiro.
+        tenantIdRef.current = null;
+        setCurrentUser(null);
+        clearSession();
         setLoading(false);
       }
     }).catch((err) => {
@@ -461,7 +537,10 @@ export function AppProvider({ children }) {
     const updated = users.find(u => u.id === currentUser.id);
     if (updated) {
       setCurrentUser(updated);
-      saveSession(updated);
+      // Atualiza os dados SEM tocar no relógio: com `saveSession` aqui, todo
+      // refresh da lista de usuários renovava a sessão e o teto de 8 horas
+      // nunca vencia numa aba aberta o dia inteiro.
+      atualizarUsuarioSessao(updated);
     }
   }, [users]);
 
@@ -550,13 +629,16 @@ export function AppProvider({ children }) {
       .channel("estoque-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "estoque" }, (payload) => {
         const produtoId = payload.new?.produto_id ?? payload.old?.produto_id;
+        // Sem produto no evento não há o que aplicar. Antes entrava uma chave
+        // "undefined" no mapa de estoque de todo mundo.
+        if (produtoId === null || produtoId === undefined) return;
         if (payload.eventType === "DELETE") {
           setEstoqueLocal(prev => { const { [produtoId]: _omit, ...rest } = prev; return rest; });
           setEstoqueMinimosLocal(prev => { const { [produtoId]: _omit, ...rest } = prev; return rest; });
           return;
         }
-        setEstoqueLocal(prev => ({ ...prev, [produtoId]: Number(payload.new.quantidade) }));
-        setEstoqueMinimosLocal(prev => ({ ...prev, [produtoId]: Number(payload.new.minimo) }));
+        setEstoqueLocal(prev => aplicarNumeroRemoto(prev, produtoId, payload.new?.quantidade));
+        setEstoqueMinimosLocal(prev => aplicarNumeroRemoto(prev, produtoId, payload.new?.minimo));
       })
       .subscribe();
 
@@ -603,11 +685,15 @@ export function AppProvider({ children }) {
     // não duplica. Evento + gravação dupla só acontecem aqui, no reenvio
     // que confirmou (addSale offline pula os dois de propósito).
     if (op.tipo === "insert_venda") return reenviarVendaOffline(op);
+    // O opId veio junto da operação original: reenviar com ele faz a RPC
+    // reconhecer a baixa já aplicada em vez de descontar o item de novo.
+    // Operação antiga (guardada antes desta versão) não tem opId — vai como
+    // null e se comporta como antes, sem quebrar o dreno da fila.
     if (op.tipo === "rpc_baixar_estoque") {
-      return supabase.rpc("baixar_estoque", { p_produto_id: op.produtoId, p_qtd: op.qtd });
+      return supabase.rpc("baixar_estoque", { p_produto_id: op.produtoId, p_qtd: op.qtd, p_op_id: op.opId ?? null });
     }
     if (op.tipo === "rpc_baixar_estoque_subproduto") {
-      return supabase.rpc("baixar_estoque_subproduto", { p_subproduto_id: op.subprodutoId, p_qtd: op.qtd });
+      return supabase.rpc("baixar_estoque_subproduto", { p_subproduto_id: op.subprodutoId, p_qtd: op.qtd, p_op_id: op.opId ?? null });
     }
     if (op.tipo === "insert_lancamento") return criarLancamento(op.dados, op.usuario);
     return Promise.resolve({ error: null }); // tipo desconhecido — descarta
@@ -684,6 +770,11 @@ export function AppProvider({ children }) {
     // mesmo username em tenants diferentes. Fallback 'gastromundi' quando
     // não há subdomínio (dev/preview/domínio nu) — inerte por design.
     const email = emailDoLogin(clean);
+    // Endereço de acesso que não forma um namespace válido (subdomínio com
+    // caractere estranho, fallback mal configurado): não é erro de senha, então
+    // não consome tentativa nem vai à rede — e a mensagem fala do endereço, não
+    // da credencial.
+    if (!email) return { error: "Endereço de acesso inválido. Confira o link do estabelecimento." };
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password: sanitizeInput(password, 100),
@@ -714,10 +805,23 @@ export function AppProvider({ children }) {
 
   const logout = async () => {
     if (currentUser) logAction(currentUser.username, "auth:logout", { msg: "Sessão encerrada", name: currentUser.name, role: currentUser.role });
+    // A tela volta para o login na hora — quem clicou em "Sair" não deve
+    // esperar a rede para ver que saiu.
     setCurrentUser(null);
     clearSession();
-    await supabase.auth.signOut();
+    // Mas o que autoriza qualquer leitura no banco é o token do Supabase, no
+    // localStorage deste navegador. Sem internet ou com o servidor fora, o
+    // `signOut` devolve { error } e sai ANTES de apagar o token: o próximo
+    // carregamento usaria o refresh token para religar a sessão sem pedir
+    // senha, e num PDV compartilhado isso é o próximo turno entrando como o
+    // anterior. Então, se o servidor não confirmou, apagamos na mão.
+    const { error } = await supabase.auth.signOut();
+    if (error) esquecerTokenAuthLocal();
+    return { error: error ?? null };
   };
+  // É por aqui que os cronômetros de inatividade e do teto de 8h chamam o
+  // logout: eles guardam um callback estável e leem sempre a versão atual.
+  logoutRef.current = logout;
 
   // ── Actions: Pending ──────────────────────────────────────────
   // O supabase-js NÃO lança em erro de RLS/constraint — resolve com
@@ -936,8 +1040,14 @@ export function AppProvider({ children }) {
       // o reenvio confirmado (executarOpOffline), senão duplicariam.
       if (isErroDeRede(error)) {
         enfileirarOffline({ tipo: "insert_venda", payload: { id: sale.id, data: sale } });
-        return { offline: true };
+        return { error: null, offline: true };
       }
+      // A2 da auditoria — a venda NÃO existe no banco (RLS, constraint...).
+      // Sem desfazer o otimista ela continuava somando no Saldo do Dia até
+      // alguém recarregar a página: o caixa fechava o dia com dinheiro que
+      // nunca foi gravado. addPending/updatePending/removePending já
+      // desfaziam; a única ação que mexe em dinheiro era a que não desfazia.
+      setSalesLocal(prev => prev.filter(v => v.id !== sale.id));
       console.error("addSale error:", JSON.stringify(error, null, 2));
       reportarFalha(error, { acao: "addSale", tabela: "sales", venda_id: sale.id });
       throw error;
@@ -966,6 +1076,9 @@ export function AppProvider({ children }) {
         }, currentUser?.username);
       },
     });
+
+    // Mesmo contrato das demais actions: { error } sempre presente.
+    return { error: null };
   };
 
   // Leva 15.3 — cancela uma venda já fechada (comanda fechada).
@@ -1151,7 +1264,19 @@ export function AppProvider({ children }) {
 
   // ── Actions: Estoque ──────────────────────────────────────────
   const updateEstoque = async (productId, qty) => {
-    const novaQtd = Math.max(0, qty);
+    // Quantidade não numérica virava NaN aqui (`Math.max(0, undefined)` é NaN):
+    // a tela passava a mostrar "NaN" no saldo e o banco recusava a gravação com
+    // um erro que ninguém lia. Recusa antes de encostar no estado.
+    // E `Number(null)` e `Number("")` são 0: um valor perdido no caminho zerava
+    // o saldo do produto em silêncio. Zerar é operação legítima, mas só quando
+    // alguém manda o número 0.
+    const vazio = qty === null || qty === undefined || (typeof qty === "string" && qty.trim() === "");
+    const numero = vazio ? NaN : Number(qty);
+    if (!Number.isFinite(numero)) {
+      return { error: { message: "Quantidade inválida." } };
+    }
+    const novaQtd = Math.max(0, numero);
+    const tinhaLinha = estoque[productId] !== undefined;
     const anterior = estoque[productId];
     setEstoqueLocal(prev => ({ ...prev, [productId]: novaQtd }));
     const { error } = await supabase.from("estoque").upsert(
@@ -1161,32 +1286,18 @@ export function AppProvider({ children }) {
     if (error) {
       console.error("updateEstoque error:", error);
       reportarFalha(error, { acao: "updateEstoque", tabela: "estoque", produto_id: productId });
-      setEstoqueLocal(prev => ({ ...prev, [productId]: anterior ?? 0 }));
+      setEstoqueLocal(prev => {
+        const next = { ...prev };
+        // Produto que ainda não tinha linha de estoque volta a NÃO ter. Deixar a
+        // chave valendo 0 fazia a tela e o Jarvas tratarem como ruptura um
+        // produto que simplesmente não controla estoque.
+        if (tinhaLinha) next[productId] = anterior;
+        else delete next[productId];
+        return next;
+      });
       return { error };
     }
     emitirEvento("estoque.ajustado", "estoque", { produto_id: productId, quantidade: novaQtd }, currentUser?.username);
-    return { error: null };
-  };
-
-  // Atualiza múltiplos produtos de uma vez (evita race condition em imports em lote)
-  const bulkSetEstoque = async (newEstoque) => {
-    const anterior = estoque;
-    setEstoqueLocal(newEstoque);
-    const rows = Object.entries(newEstoque ?? {}).map(([produto_id, quantidade]) => ({
-      produto_id,
-      quantidade: Math.max(0, Number(quantidade) || 0),
-      updated_at: new Date().toISOString(),
-    }));
-    if (rows.length > 0) {
-      const { error } = await supabase.from("estoque").upsert(rows, { onConflict: "produto_id" });
-      if (error) {
-        console.error("bulkSetEstoque error:", error);
-        reportarFalha(error, { acao: "bulkSetEstoque", tabela: "estoque", itens: rows.length });
-        setEstoqueLocal(anterior);
-        return { error };
-      }
-    }
-    emitirEvento("estoque.ajuste_em_lote", "estoque", { itens: Object.keys(newEstoque ?? {}).length }, currentUser?.username);
     return { error: null };
   };
 
@@ -1196,6 +1307,10 @@ export function AppProvider({ children }) {
     const anterior = Number(estoque[productId] ?? 0);
     setEstoqueLocal(prev => ({ ...prev, [productId]: Math.max(0, anterior - qty) })); // otimista
 
+    // Identidade desta baixa. Gerada UMA vez aqui e repetida no reenvio:
+    // é o que faz a RPC reconhecer "já apliquei essa" quando a primeira
+    // tentativa gravou mas a resposta se perdeu na queda de conexão.
+    const opId = crypto.randomUUID();
     const produto = products.find(p => String(p.id) === String(productId));
     const { quantidade, error } = await processarBaixaEstoque({
       produtoId: productId,
@@ -1204,16 +1319,14 @@ export function AppProvider({ children }) {
       nomeProduto: produto?.name ?? `Produto ${productId}`,
       minimoFallback: estoqueMinimos[productId] ?? 10,
       usuario: currentUser?.username,
-      chamarRpc: (id, q) => supabase.rpc("baixar_estoque", { p_produto_id: id, p_qtd: q }),
+      chamarRpc: (id, q) => supabase.rpc("baixar_estoque", { p_produto_id: id, p_qtd: q, p_op_id: opId }),
     });
     if (error) {
       // Sem internet: mantém o desconto otimista e agenda a RPC para quando
-      // a conexão voltar. Caveat conhecido: a RPC não é idempotente — se a
-      // baixa gravou mas a resposta se perdeu, o reenvio desconta de novo
-      // (janela rara; corrigível com chave de idempotência na RPC).
+      // a conexão voltar, carregando o MESMO opId — reenviar não desconta
+      // duas vezes (migration 20260830_idempotencia_baixa_estoque.sql).
       if (isErroDeRede(error)) {
-        // DÍVIDA (auditoria P3/P4): reenvio pode reaplicar efeitos — precisa de chave de idempotência na RPC
-        enfileirarOffline({ tipo: "rpc_baixar_estoque", produtoId: productId, qtd: qty });
+        enfileirarOffline({ tipo: "rpc_baixar_estoque", produtoId: productId, qtd: qty, opId });
         return { error: null, offline: true };
       }
       // Baixa não confirmada no servidor: desfaz o desconto otimista e deixa
@@ -1233,25 +1346,95 @@ export function AppProvider({ children }) {
     return { error: null };
   };
 
+  // Entrada de mercadoria atômica no servidor (Run 4, leva 4).
+  //
+  // Antes a tela somava no saldo que ELA tinha em memória e gravava o
+  // TOTAL absoluto por upsert. Dois aparelhos conferindo a mesma nota ao
+  // mesmo tempo perdiam mercadoria: saldo 40, um lança 5 e grava 45, o
+  // outro (que ainda via 40) lança 3 e grava 43 — os 5 do primeiro somem
+  // sem nenhum erro na tela. Agora quem soma é o banco
+  // (migration 20260901_entrada_estoque_atomica.sql) e a tela manda só o
+  // quanto entrou. O opId impede que um reenvio some duas vezes.
+  const entradaEstoque = async (productId, delta) => {
+    const quantoEntrou = Number(delta);
+    if (!Number.isFinite(quantoEntrou) || quantoEntrou <= 0) {
+      return { error: { message: "Quantidade de entrada inválida." } };
+    }
+    const tinhaLinha = estoque[productId] !== undefined;
+    const anterior = Number(estoque[productId] ?? 0);
+    setEstoqueLocal(prev => ({ ...prev, [productId]: anterior + quantoEntrou })); // otimista
+
+    const opId = crypto.randomUUID();
+    let data = null, error = null;
+    try {
+      ({ data, error } = await supabase.rpc("entrada_estoque", {
+        p_produto_id: productId,
+        p_delta: quantoEntrou,
+        p_op_id: opId,
+      }));
+    } catch (err) {
+      error = { message: err?.message ?? String(err) };
+    }
+
+    // Banco ainda sem a função (app publicado antes da migration rodar):
+    // usa o caminho antigo em vez de impedir o recebimento de mercadoria.
+    // Volta a ser um read-modify-write nessa janela — é o comportamento
+    // que já existia, não uma piora.
+    if (error && isRpcAusente(error)) {
+      return updateEstoque(productId, anterior + quantoEntrou);
+    }
+    if (error) {
+      setEstoqueLocal(prev => {
+        const next = { ...prev };
+        // Produto que ainda não tinha linha de estoque volta a NÃO ter. Deixar
+        // a chave valendo 0 faria a tela e o Jarvas tratarem como ruptura um
+        // produto que simplesmente não controla estoque.
+        if (tinhaLinha) next[productId] = anterior;
+        else delete next[productId];
+        return next;
+      });
+      reportarFalha(error, { acao: "entradaEstoque", tabela: "estoque", produto_id: productId, quantidade: quantoEntrou });
+      emitirEvento("estoque.entrada.falhou", "estoque", {
+        produto_id: productId,
+        quantidade: quantoEntrou,
+        erro: error?.message ?? error?.code ?? String(error),
+      }, currentUser?.username);
+      return { error };
+    }
+
+    // Saldo que o banco confirmou — pode diferir do otimista quando outro
+    // aparelho mexeu no mesmo produto, e é ele que vale.
+    const linha = Array.isArray(data) ? data[0] : data;
+    if (linha?.quantidade != null) {
+      setEstoqueLocal(prev => ({ ...prev, [productId]: Number(linha.quantidade) }));
+    }
+    if (linha?.minimo != null) {
+      setEstoqueMinimosLocal(prev => ({ ...prev, [productId]: Number(linha.minimo) }));
+    }
+    emitirEvento("estoque.entrada", "estoque", { produto_id: productId, quantidade: quantoEntrou }, currentUser?.username);
+    return { error: null };
+  };
+
   // B4 — baixa atômica de subproduto (componentes de combo). Sem estado
   // otimista local: o saldo de subproduto não aparece no PDV, só no
   // cadastro (SubprodutosView recarrega do banco). Nunca deve travar a
   // venda: erro vira evento para o Jarvas, não bloqueio.
   const baixarEstoqueSubproduto = async (subprodutoId, qtd, nome) => {
+    // Mesma chave de idempotência da baixa de produto (ver acima).
+    const opId = crypto.randomUUID();
     let error = null;
     try {
       ({ error } = await supabase.rpc("baixar_estoque_subproduto", {
         p_subproduto_id: subprodutoId,
         p_qtd: qtd,
+        p_op_id: opId,
       }));
     } catch (err) {
       error = { message: err?.message ?? String(err) };
     }
     if (error) {
-      // Mesmo caveat de idempotência da baixa de produto (ver acima).
       if (isErroDeRede(error)) {
-        // DÍVIDA (auditoria P3/P4): reenvio pode reaplicar efeitos — precisa de chave de idempotência na RPC
-        enfileirarOffline({ tipo: "rpc_baixar_estoque_subproduto", subprodutoId, qtd });
+        enfileirarOffline({ tipo: "rpc_baixar_estoque_subproduto", subprodutoId, qtd, opId });
         return { error: null, offline: true };
       }
       reportarFalha(error, { acao: "baixarEstoqueSubproduto", tabela: "estoque", subproduto_id: subprodutoId, quantidade: qtd });
@@ -1406,10 +1589,22 @@ export function AppProvider({ children }) {
   // Fase 2 — camada de comercialização (ADR-005): única fonte de gating por
   // plano no front. Sidebar/rotas/telas novas devem checar por aqui, nunca
   // comparar tenant.planoCodigo diretamente.
-  const moduloHabilitadoNoPlano = (modulo) => moduloHabilitado(tenant?.modulosDisponiveis, modulo);
+  //
+  // Enquanto o plano NÃO é conhecido (`tenant` ainda null: bootstrap em voo,
+  // erro ao ler `tenants`/RLS, ou abertura sem internet — o snapshot offline
+  // não guarda o plano) a resposta é "pode". Responder "não" aqui mentia para
+  // quem paga: toda rota com `requiredModulo` virava "não está no seu plano",
+  // a Sidebar escondia os módulos e o hub do Palm perdia os cartões — inclusive
+  // a Cozinha, justo no cenário offline que o app promete atender. É a mesma
+  // escolha já feita para a assinatura (PrivateRoute só bloqueia quando ela
+  // está carregada). Com o plano em mãos, o gating volta a valer normalmente.
+  const moduloHabilitadoNoPlano = (modulo) =>
+    tenant ? moduloHabilitado(tenant.modulosDisponiveis, modulo) : true;
   // Fase 3 — add-ons pagos (decisão 019): equivalente para NF-e/TEF, que não
   // dependem de plano. Hooks de add-on devem checar por aqui, nunca ler
-  // tenant.addonsAtivos diretamente.
+  // tenant.addonsAtivos diretamente. Add-on segue fail-CLOSED sem tenant: ao
+  // contrário de um módulo, emitir NF-e/passar TEF depende do servidor de
+  // qualquer jeito, e liberar por engano geraria documento fiscal indevido.
   const addonHabilitadoNoTenant = (addon) => addonHabilitado(tenant?.addonsAtivos, addon);
 
   // C3 — mapa derivado categoria(texto) → nome do grupo, para o radar do Palm.
@@ -1447,7 +1642,7 @@ export function AppProvider({ children }) {
     rolePermissions, salvarPermissoesCargo,
     // outros
     addFechamento,
-    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, bulkSetEstoque, baixarEstoque, baixarEstoqueSubproduto, setMinimoEstoque, recarregarEstoque,
+    setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, baixarEstoque, entradaEstoque, baixarEstoqueSubproduto, setMinimoEstoque, recarregarEstoque,
     taxaServico, setTaxaServico,
     diasAlertaValidade, setDiasAlertaValidade,
     // C3 — grupos de categoria (radar do Palm + mapeamento em Configurações)

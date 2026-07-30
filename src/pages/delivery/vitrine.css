@@ -84,6 +84,32 @@
   border-color: var(--gm-red);
 }
 
+/* Saída do beco sem saída: o aviso de falha carrega o próprio "tentar de
+   novo", em alvo grande o suficiente para o dedo no PDV/celular. */
+.vitrine__aviso-acao {
+  display: block;
+  margin-top: 10px;
+  min-height: 40px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-red);
+  background: transparent;
+  color: var(--gm-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.vitrine__aviso-acao:hover {
+  background: rgba(239, 68, 68, 0.16);
+}
+/* No estado de página inteira o texto é centralizado, mas `display: block`
+   não obedece ao text-align do pai — sem isto o botão encosta na esquerda,
+   fora do eixo da mensagem que ele responde. */
+.vitrine__estado .vitrine__aviso-acao {
+  display: inline-block;
+  margin-top: 16px;
+}
+
 /* ── Categorias ─────────────────────────────────────────────────── */
 .vitrine__categoria {
   font-family: var(--gm-font-titulo, inherit);
@@ -342,6 +368,14 @@
   border-color: var(--gm-accent);
   color: #fff;
 }
+/* No máximo do grupo, as opções ainda não escolhidas saem de alcance.
+   Antes o toque simplesmente não fazia nada — o cliente batia de novo
+   achando que a tela travou. Apagada e sem cursor de clique, a opção
+   diz sozinha que não dá; o rótulo do grupo diz como trocar. */
+.opcao--bloqueada {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .opcao__nome { flex: 1; font-size: 14px; }
 .opcao__preco { font-size: 14px; font-weight: 700; color: var(--gm-green); }
 
@@ -486,20 +520,33 @@
 }
 
 /* ── Formas de pagamento ────────────────────────────────────────── */
+/* É <button>: sem isso não há foco nem tecla, e o teclado não consegue
+   escolher como pagar. As três linhas de reset (largura, alinhamento e
+   fonte) só desfazem o padrão do agente do usuário — o desenho é o mesmo. */
 .forma {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding: 15px;
   border-radius: 12px;
   border: 1px solid var(--gm-border);
   background: var(--gm-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
   margin-bottom: 10px;
 }
 .forma--ativa { border-color: var(--gm-accent); background: var(--gm-alow, rgba(124,58,237,0.12)); }
+.forma--toggle { margin-top: 4px; }
 .forma__emoji { font-size: 22px; }
 .forma__nome { font-weight: 700; font-size: 15px; }
+.opcao__marca--marcada {
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+  color: #fff;
+}
 
 /* ── Confirmação ────────────────────────────────────────────────── */
 .confirma { text-align: center; padding: 24px 8px; }

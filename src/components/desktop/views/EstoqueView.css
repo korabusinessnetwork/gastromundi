@@ -59,6 +59,41 @@
   line-height: var(--lh-base);
 }
 
+/* Aviso de gravação que falhou (leva 3 da Run 4). Fica logo abaixo do header,
+   antes dos KPIs, para o operador ver na hora que o número que ele digitou não
+   entrou no banco. */
+.estoque-view__erro {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 16px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--gm-red);
+  background: color-mix(in srgb, var(--gm-red) 10%, transparent);
+  color: var(--gm-red);
+  font-weight: 600;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.estoque-view__erro-texto {
+  flex: 1;
+}
+
+.estoque-view__erro-fechar {
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--fs-xl);
+  line-height: 1;
+  /* alvo de toque generoso (princípio nº 1) */
+  padding: 4px 10px;
+}
+
 .estoque-view__kpis {
   display: grid;
   flex-shrink: 0;

@@ -1,10 +1,14 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { MARCA_PLATAFORMA } from "@/lib/tema";
 
 // Fallback quando o chamador não informa a identidade do tenant
-// (white-label, decisão 017): nunca assumir a marca de um cliente.
-const EMPRESA_FALLBACK = "GASTROMUNDI by Kora";
+// (white-label, decisão 017): nunca assumir a marca de um cliente. Ele
+// mesmo era a marca de um cliente ("GASTROMUNDI by Kora"), então qualquer
+// export sem `opts.empresa` carimbava o nome de outra empresa no PDF/planilha
+// que o estabelecimento manda para o contador. Agora cai na plataforma.
+const EMPRESA_FALLBACK = MARCA_PLATAFORMA;
 const DARK    = [10, 17, 34];   // header fill
 const LIGHT   = [245, 247, 250]; // alternate row
 

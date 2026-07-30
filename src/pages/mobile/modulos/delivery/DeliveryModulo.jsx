@@ -219,12 +219,16 @@ export default function DeliveryModulo({ onVoltar }) {
       }
       return novo;
     });
-    if (!itensCache[pedido.id]) {
-      setItensCache((prev) => ({ ...prev, [pedido.id]: { carregando: true, dados: null } }));
+    // Refaz a busca quando a anterior falhou: sem isso o erro ficava em cache
+    // e o pedido mostrava "Sem itens detalhados." para sempre — um pedido com
+    // itens parecia um pedido vazio, e o entregador saía sem a comida certa.
+    const cache = itensCache[pedido.id];
+    if (!cache || cache.erro) {
+      setItensCache((prev) => ({ ...prev, [pedido.id]: { carregando: true, dados: null, erro: false } }));
       const { data, error } = await carregarItensPedido(pedido.id);
       setItensCache((prev) => ({
         ...prev,
-        [pedido.id]: { carregando: false, dados: error ? [] : data ?? [] },
+        [pedido.id]: { carregando: false, dados: error ? null : data ?? [], erro: Boolean(error) },
       }));
     }
   };
@@ -282,7 +286,7 @@ export default function DeliveryModulo({ onVoltar }) {
 
       {carregando ? (
         <p className="mod-carregando">Carregando pedidos…</p>
-      ) : erroCarga ? (
+      ) : erroCarga && pedidos.length === 0 ? (
         <div className="delivery-modulo__erroCarga">
           <p className="mod-erro" role="alert">
             {erroCarga}
@@ -296,26 +300,51 @@ export default function DeliveryModulo({ onVoltar }) {
             {atualizando ? "Tentando…" : "Tentar de novo"}
           </button>
         </div>
-      ) : lista.length === 0 ? (
-        <Vazio filtro={filtro} />
       ) : (
-        <div className="mod-lista">
-          {lista.map((pedido) => (
-            <CartaoPedido
-              key={pedido.id}
-              pedido={pedido}
-              expandido={expandidos.has(pedido.id)}
-              itensInfo={itensCache[pedido.id]}
-              processando={Boolean(processando[pedido.id])}
-              confirmandoCancelar={confirmandoCancelarId === pedido.id}
-              onToggle={() => toggleItens(pedido)}
-              onAvancar={() => avancar(pedido)}
-              onPedirCancelar={() => pedirCancelar(pedido)}
-              onConfirmarCancelar={() => confirmarCancelar(pedido)}
-              onVoltarCancelar={voltarCancelar}
-            />
-          ))}
-        </div>
+        <>
+          {/* Falha COM pedidos carregados: faixa em cima, lista intacta. A
+              tela de erro cheia trocava a lista por um aviso — o entregador
+              perdia de vista os pedidos em rota por uma piscada de rede. A
+              decisão olha `pedidos`, não `lista`: o chip pode estar
+              legitimamente vazio (nenhum pedido naquela etapa). */}
+          {erroCarga && (
+            <div className="delivery-modulo__faixaErro" role="alert">
+              <span className="delivery-modulo__faixaErro-texto">
+                Não conseguimos atualizar agora. Estes são os pedidos da última
+                atualização que deu certo.
+              </span>
+              <button
+                type="button"
+                className="mod-botao mod-botao--fantasma"
+                onClick={atualizar}
+                disabled={ocupado}
+              >
+                {atualizando ? "Tentando…" : "Tentar de novo"}
+              </button>
+            </div>
+          )}
+          {lista.length === 0 ? (
+            <Vazio filtro={filtro} />
+          ) : (
+            <div className="mod-lista">
+              {lista.map((pedido) => (
+                <CartaoPedido
+                  key={pedido.id}
+                  pedido={pedido}
+                  expandido={expandidos.has(pedido.id)}
+                  itensInfo={itensCache[pedido.id]}
+                  processando={Boolean(processando[pedido.id])}
+                  confirmandoCancelar={confirmandoCancelarId === pedido.id}
+                  onToggle={() => toggleItens(pedido)}
+                  onAvancar={() => avancar(pedido)}
+                  onPedirCancelar={() => pedirCancelar(pedido)}
+                  onConfirmarCancelar={() => confirmarCancelar(pedido)}
+                  onVoltarCancelar={voltarCancelar}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -388,6 +417,10 @@ function CartaoPedido({
         <div className="delivery-modulo__itens">
           {itensInfo?.carregando ? (
             <p className="delivery-modulo__itensEstado">Carregando itens…</p>
+          ) : itensInfo?.erro ? (
+            <p className="mod-erro" role="alert">
+              Não deu para carregar os itens. Feche e abra o pedido para tentar de novo.
+            </p>
           ) : itensInfo?.dados?.length ? (
             itensInfo.dados.map((item) => (
               <div key={item.id} className="delivery-modulo__item">

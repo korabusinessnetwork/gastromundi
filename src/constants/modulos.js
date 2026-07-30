@@ -24,4 +24,30 @@ const MODULOS = {
   DELIVERY:            "delivery",
 };
 
+/**
+ * Nome de cada módulo em português do dia a dia — para quando a tela
+ * precisa NOMEAR módulos para uma pessoa (ex.: o que um estabelecimento
+ * perde ao trocar de plano). Nunca mostre o código cru: `fiscal_integracoes`
+ * na tela é jargão técnico (CLAUDE.md, Princípio nº1).
+ *
+ * A ordem das chaves é a ordem de exibição — a mesma do registro central.
+ */
+export const ROTULOS_MODULO = {
+  [MODULOS.CARDAPIO]:           "Cardápio e produtos",
+  [MODULOS.PDV]:                "Frente de caixa",
+  [MODULOS.CAIXA]:              "Caixa (abertura e fechamento)",
+  [MODULOS.ESTOQUE]:            "Estoque",
+  [MODULOS.PEDIDOS]:            "Pedidos",
+  [MODULOS.MESAS_COMANDAS]:     "Mesas e comandas",
+  [MODULOS.COZINHA]:            "Tela da cozinha",
+  [MODULOS.ALERTAS]:            "Alertas",
+  [MODULOS.FINANCEIRO]:         "Financeiro",
+  [MODULOS.CLIENTES]:           "Clientes",
+  [MODULOS.RELATORIOS]:         "Relatórios",
+  [MODULOS.JARVAS]:             "Jarvas (inteligência artificial)",
+  [MODULOS.MULTILOJA]:          "Multiloja (mais de uma unidade)",
+  [MODULOS.FISCAL_INTEGRACOES]: "Fiscal e integrações",
+  [MODULOS.DELIVERY]:           "Delivery (site de pedidos)",
+};
+
 export default MODULOS;

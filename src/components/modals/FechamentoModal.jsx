@@ -1,6 +1,8 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useMemo } from "react";
 import { totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
+import { round2 } from "@/lib/vendas";
+import { TOLERANCIA_CENTAVO, situacaoCaixa, ROTULO_SITUACAO } from "@/lib/caixa";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
@@ -18,10 +20,32 @@ const METODOS_CATALOG = {
 function fmtR(v) { return "R$ " + Number(v ?? 0).toFixed(2); }
 function parsVal(s) { return Math.max(0, parseFloat(String(s ?? "").replace(",", ".")) || 0); }
 
+/**
+ * Início da conferência: a hora em que o caixa foi aberto. Sem sessão
+ * registrada — ou com um valor ilegível guardado na config — cai no começo
+ * do dia local.
+ *
+ * O guarda é o ponto: `new Date("qualquer coisa").getTime()` devolve NaN, e
+ * toda comparação `>= NaN` é false. Uma abertura ilegível fazia o filtro
+ * descartar TODAS as vendas — o modal dizia "0 vendas hoje", gravava
+ * totalVendas 0 no fechamento e mostrava o caixa cheio como sobra.
+ *
+ * @param {string|number|null|undefined} sessaoAbertaEm
+ * @param {number} [agora] timestamp de referência (injetável para teste)
+ * @returns {number} timestamp em ms
+ */
+export function inicioSessao(sessaoAbertaEm, agora = Date.now()) {
+  const abertura = sessaoAbertaEm == null || sessaoAbertaEm === ""
+    ? NaN
+    : new Date(sessaoAbertaEm).getTime();
+  if (Number.isFinite(abertura)) return abertura;
+  const inicioDoDia = new Date(agora);
+  inicioDoDia.setHours(0, 0, 0, 0);
+  return inicioDoDia.getTime();
+}
+
 function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios) {
-  const inicio = sessaoAbertaEm
-    ? new Date(sessaoAbertaEm).getTime()
-    : new Date(new Date().toDateString()).getTime();
+  const inicio = inicioSessao(sessaoAbertaEm);
   // Leva 15.3 — vendas canceladas ficam fora do fechamento
   const hoje = (sales ?? []).filter(s => s && !s.cancelada && new Date(s.at).getTime() >= inicio);
   const m = {};
@@ -54,27 +78,52 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
     [sales, fundoAtual, sessaoAbertaEm, meios]
   );
 
-  const totalVendas = hoje.reduce((s, v) => s + (v.total ?? 0), 0);
-  const totalSistema = totalVendas + fundoAtual;
+  const totalVendas = round2(hoje.reduce((s, v) => s + (v.total ?? 0), 0));
 
-  const [conf, setConf] = useState(() => {
-    const { m } = buildSistema(sales, fundoAtual, sessaoAbertaEm, meios);
-    const r = {};
-    meios.forEach(k => { r[k] = m[k].toFixed(2); });
-    return r;
-  });
+  // Método ainda não digitado mostra o valor do sistema. Derivado na hora, e
+  // não congelado num `useState`, para acompanhar meio de pagamento que só
+  // apareceu depois de o modal abrir (config chega por realtime): com o
+  // retrato antigo a linha nova ficava vazia e o total conferido acusava uma
+  // falta que não existia. String vazia é escolha do operador e vale zero.
+  const [conf, setConf] = useState({});
+  const confDe = (k) => conf[k] ?? (sistema[k] ?? 0).toFixed(2);
 
   const setMetodo = (k, v) => setConf(prev => ({ ...prev, [k]: v }));
 
-  const totalConferido = meios.reduce((s, k) => s + parsVal(conf[k] ?? "0"), 0);
-  const diferencaTotal = totalConferido - totalSistema;
+  // O esperado em caixa é a soma da coluna "Sistema" — só entra o que tem
+  // linha para conferir. Antes era `totalVendas + fundo`, que incluía o valor
+  // de método NÃO configurado (fiado, método removido da config): esse valor
+  // não tem campo onde ser digitado, então o caixa exato era acusado de falta
+  // pelo valor inteiro do método, e a falsa falta ficava gravada no
+  // fechamento. round2 em toda ponta: sem ele, 16.10 × 3 dá 48.300000000000004
+  // e o caixa conferido no centavo aparecia em vermelho como "Falta R$ 0.00".
+  const totalSistema   = round2(meios.reduce((s, k) => s + (sistema[k] ?? 0), 0));
+  const totalConferido = round2(meios.reduce((s, k) => s + parsVal(confDe(k)), 0));
+  const diferencaTotal = round2(totalConferido - totalSistema);
+  const situacao       = situacaoCaixa(diferencaTotal);
+  const semDiferenca   = situacao === "conferido";
+  const corDiferenca   = situacao === "falta" ? C.red : C.green;
+  const totalNaoMapeado = round2(Object.values(naoMapeados).reduce((s, v) => s + v, 0));
 
   const handleConfirm = async () => {
     if (salvando) return;
     setSalvando(true);
     const conferidoPorMetodo = {};
-    meios.forEach(k => { conferidoPorMetodo[k] = parsVal(conf[k] ?? "0"); });
-    await onConfirm({ totalVendas, totalConferido, conferidoPorMetodo, observacao: observacao.trim() || null });
+    meios.forEach(k => { conferidoPorMetodo[k] = parsVal(confDe(k)); });
+    try {
+      // `totalEsperado` é o que o relatório, a exportação e o Jarvas precisam
+      // para não recalcularem `totalVendas + fundo` e ressuscitarem a falsa
+      // falta dos métodos sem linha de conferência.
+      await onConfirm({
+        totalVendas, totalEsperado: totalSistema, totalConferido, conferidoPorMetodo,
+        observacao: observacao.trim() || null,
+      });
+    } finally {
+      // Quem chama mantém o modal aberto quando a gravação falha, para o
+      // operador saber que NÃO registrou. Sem liberar o botão aqui, o "tente
+      // novamente" do aviso era impossível: travava em "Fechando..." de vez.
+      setSalvando(false);
+    }
   };
 
   return (
@@ -131,9 +180,9 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
           {meios.map(metodo => {
             const { Icon, label } = METODOS_CATALOG[metodo] ?? { label: rotuloMetodo(metodo, customLabels), Icon: LuBanknote };
             const sistemaVal = sistema[metodo] ?? 0;
-            const confVal    = parsVal(conf[metodo]);
-            const diff       = confVal - sistemaVal;
-            const hasDiff    = Math.abs(diff) > 0.004;
+            const confVal    = parsVal(confDe(metodo));
+            const diff       = round2(confVal - sistemaVal);
+            const hasDiff    = Math.abs(diff) > TOLERANCIA_CENTAVO;
             const isPositive = diff >= 0;
 
             return (
@@ -165,7 +214,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
                     type="number"
                     min="0"
                     step="0.01"
-                    value={conf[metodo]}
+                    value={confDe(metodo)}
                     onChange={e => setMetodo(metodo, e.target.value)}
                     className="fechamento-modal__input-conferido"
                     style={{
@@ -203,11 +252,17 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             <LuTriangleAlert size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
             <div className="fechamento-modal__banner-texto" style={{ color: "#f59e0b" }}>
               <strong>
-                R$ {Object.values(naoMapeados).reduce((s, v) => s + v, 0).toFixed(2)} em métodos não configurados:
+                R$ {totalNaoMapeado.toFixed(2)} em métodos não configurados:
               </strong>{" "}
               {Object.entries(naoMapeados).map(([metodo, valor], i, arr) =>
                 `${rotuloMetodo(metodo, customLabels)} (R$ ${valor.toFixed(2)})${i < arr.length - 1 ? ", " : ""}`
               ).join("")}
+              {/* Sem esta frase o operador via o aviso e não entendia por que a
+                  diferença não fechava — agora fica claro que o valor está
+                  fora da conferência, e o que fazer para trazê-lo para dentro. */}
+              <div style={{ marginTop: 4 }}>
+                Fica fora da conferência do caixa. Ative o método em Configurações para conferi-lo aqui.
+              </div>
             </div>
           </div>
         )}
@@ -232,15 +287,15 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
           {/* Diferença total */}
           <div style={{
             padding: "12px 16px", borderRadius: 10, marginTop: 4,
-            background: diferencaTotal >= 0 ? `${alfa(C.green, "14")}` : `${alfa(C.red, "14")}`,
-            border: `1.5px solid ${(diferencaTotal >= 0 ? varColor(C.green) : varColor(C.red))}55`,
+            background: `${alfa(corDiferenca, "14")}`,
+            border: `1.5px solid ${varColor(corDiferenca)}55`,
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <span className="fechamento-modal__diferenca-label" style={{ fontWeight: 600, color: varColor(C.muted) }}>
-              {diferencaTotal >= 0 ? "Sobra no Caixa" : "Falta no Caixa"}
+              {ROTULO_SITUACAO[situacao]}
             </span>
-            <span className="fechamento-modal__diferenca-valor" style={{ fontWeight: 900, color: diferencaTotal >= 0 ? varColor(C.green) : varColor(C.red) }}>
-              {diferencaTotal >= 0 ? "+" : ""}{fmtR(diferencaTotal)}
+            <span className="fechamento-modal__diferenca-valor" style={{ fontWeight: 900, color: varColor(corDiferenca) }}>
+              {situacao === "sobra" ? "+" : ""}{fmtR(diferencaTotal)}
             </span>
           </div>
         </div>

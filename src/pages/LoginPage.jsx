@@ -5,13 +5,13 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
-import { varColor, gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
+import { varColor, gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant, MARCA_PLATAFORMA } from "@/lib/tema";
 import { layoutDoTema, varianteDoHorario, variaveisDoLayout } from "@/layouts";
 import { resolverSlugTenant, slugDoSubdominio } from "@/lib/tenantSlug";
 import { consoleAtivo } from "@/lib/consoleHost";
 import { buscarBrandingPorSlug } from "@/lib/tenant";
 import { lerBrandingCache, salvarBrandingCache } from "@/lib/brandingCache";
-import { sanitizeInput, MAX_ATTEMPTS } from "@/utils";
+import { sanitizeInput, MAX_ATTEMPTS, getAttempts } from "@/utils";
 import { LuEye, LuEyeOff, LuShieldAlert, LuTriangleAlert, LuSearchX } from "react-icons/lu";
 import "./LoginPage.css";
 
@@ -33,10 +33,17 @@ export default function LoginPage() {
   // Pré-login não há JWT/tenant carregado; a marca vem por slug via RPC.
   // O cache por origem (brandingCache) dá a marca certa já na 1ª pintura —
   // sem ele, a tela abria com a marca do fallback até a RPC responder.
+  //
+  // Sem cache e sem tenant resolvido, o fallback é a marca da PLATAFORMA —
+  // era a marca de um cliente específico, ou seja: todo estabelecimento novo
+  // via o nome de outro na própria porta de entrada (decisão 017).
+  // `doTenant` diz se o que está na tela é a marca de um estabelecimento:
+  // é ela que decide mostrar a assinatura "by Kora" embaixo, para a tela
+  // neutra nunca ler "KORA / by Kora".
   const [marca, setMarca] = useState(() => {
     const cache = lerBrandingCache();
-    if (cache?.nome || cache?.logo) return { nome: (cache.nome ?? "").toUpperCase(), logo: cache.logo };
-    return { nome: "GASTROMUNDI", logo: null };
+    if (cache?.nome || cache?.logo) return { nome: (cache.nome ?? "").toUpperCase(), logo: cache.logo, doTenant: true };
+    return { nome: MARCA_PLATAFORMA.toUpperCase(), logo: null, doTenant: false };
   });
   // Subdomínio digitado que NÃO corresponde a nenhum estabelecimento —
   // mostra a tela de "endereço não encontrado" em vez do login (nunca
@@ -89,12 +96,19 @@ export default function LoginPage() {
         limparVariaveisTema();
         aplicarVariaveisTema(variaveis);
       }
-      const nome = nomeExibicaoTenant(data.tema, data.nome || "GastroMundi");
-      setMarca({ nome: nome.toUpperCase(), logo: logoUrlTenant(data.tema) });
+      // Sem `nome_exibicao` e sem nome cadastrado, cai na marca da PLATAFORMA
+      // (nunca na de outro cliente). `temNomeProprio` separa "este tenant tem
+      // nome" de "ainda não sei o nome dele": no segundo caso a tela não
+      // assina "by Kora" embaixo de "KORA", e o cache não grava a plataforma
+      // como se fosse o nome do estabelecimento.
+      const nome = nomeExibicaoTenant(data.tema, data.nome || MARCA_PLATAFORMA);
+      const temNomeProprio = nome !== MARCA_PLATAFORMA;
+      const logo = logoUrlTenant(data.tema);
+      setMarca({ nome: nome.toUpperCase(), logo, doTenant: temNomeProprio || !!logo });
       aplicarTituloDocumento(nome); // aba do navegador com a marca do tenant
       // Cache por origem: a próxima abertura deste endereço já pinta com
       // esta marca antes de qualquer requisição (script do index.html).
-      salvarBrandingCache({ nome, logo: logoUrlTenant(data.tema), variaveis });
+      salvarBrandingCache({ nome: temNomeProprio ? nome : null, logo, variaveis });
       } catch (err) {
         // Aplicar tema / gravar cache (localStorage) pode lançar em modos
         // restritos do navegador. Nunca deixar virar unhandledrejection na
@@ -113,10 +127,22 @@ export default function LoginPage() {
       // Console em subdomínio próprio LIGADO: a plataforma NÃO entra pela
       // porta do estabelecimento. Uma sessão `plataforma` aqui só é possível
       // enquanto a credencial ainda estiver no namespace de tenant (transição
-      // de go-live) — encerra a sessão em vez de abrir o Console neste host,
-      // sem revelar a existência/URL do painel. Com o switch desligado,
-      // comportamento de sempre (vai ao Console no mesmo host).
-      if (consoleAtivo()) { logout(); return; }
+      // de go-live) — encerra a sessão em vez de abrir o Console neste host.
+      // Com o switch desligado, comportamento de sempre (vai ao Console no
+      // mesmo host).
+      //
+      // A recusa PRECISA aparecer na tela: sem mensagem, quem digitou a senha
+      // CERTA via o botão voltar de "Verificando..." para "Entrar" e mais
+      // nada — nenhum erro, nenhuma tentativa gasta, nenhuma pista do que
+      // fazer. Só quem já se autenticou como plataforma chega aqui, então a
+      // mensagem não revela nada a quem não deveria saber; o que ela não diz
+      // é a URL do painel.
+      if (consoleAtivo()) {
+        setError("Esta conta é da plataforma e não opera estabelecimento. Entre pelo endereço da plataforma.");
+        setPassword("");
+        logout();
+        return;
+      }
       navigate("/console", { replace: true });
       return;
     }
@@ -129,6 +155,15 @@ export default function LoginPage() {
     navigate(from, { replace: true });
   }, [currentUser]);
 
+  // O contador de tentativas não é desta aba: mora no navegador (localStorage),
+  // que é onde o bloqueio realmente conta. Os pips têm que mostrar o que ele
+  // está contando para o usuário digitado — senão a tela diz "nenhuma
+  // tentativa" e o clique seguinte responde "conta bloqueada".
+  useEffect(() => {
+    const u = sanitizeInput(username, 30);
+    setAttempts(u ? (getAttempts(u).count || 0) : 0);
+  }, [username]);
+
   const submit = async () => {
     if (loading || dbLoading) return;
     const u = sanitizeInput(username, 30);
@@ -137,7 +172,9 @@ export default function LoginPage() {
     setLoading(true); setError("");
     const result = await login(u, p);
     setLoading(false);
-    if (result?.error) { setError(result.error); setAttempts((a) => a + 1); setPassword(""); return; }
+    // Lê o contador em vez de somar um: nem todo erro é tentativa gasta (link do
+    // estabelecimento torto, por exemplo, nem chega à senha).
+    if (result?.error) { setError(result.error); setAttempts(getAttempts(u).count || 0); setPassword(""); return; }
     // A rota final (Console p/ plataforma, app/palm p/ demais) é
     // decidida pelo efeito acima quando currentUser muda — evita bounce.
   };
@@ -185,7 +222,11 @@ export default function LoginPage() {
           ) : (
             <div className="login-page__brand-title">{marca.nome}</div>
           )}
-          <div className="login-page__brand-subtitle">by Kora · Acesso ao Sistema</div>
+          {/* "by Kora" é a assinatura da PLATAFORMA embaixo da marca do
+              estabelecimento. Sem estabelecimento resolvido a própria marca
+              exibida já é a da plataforma — assinar de novo leria
+              "KORA / by Kora". */}
+          <div className="login-page__brand-subtitle">{marca.doTenant ? "by Kora · Acesso ao Sistema" : "Acesso ao Sistema"}</div>
         </div>
 
         <div className="login-page__card">
@@ -215,7 +256,7 @@ export default function LoginPage() {
           {attempts > 0 && (
             <div className="login-page__attempts">
               {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
-                <div key={i} className="login-page__attempt-pip" style={{ background: i < attempts ? varColor(C.red) : varColor(C.border) }} />
+                <div key={i} className={`login-page__attempt-pip${i < attempts ? " login-page__attempt-pip--usada" : ""}`} />
               ))}
             </div>
           )}

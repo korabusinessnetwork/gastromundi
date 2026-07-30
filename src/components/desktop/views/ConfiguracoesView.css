@@ -392,6 +392,20 @@
   transition: background 0.2s;
 }
 
+/* Aviso de caracteres que a senha perde ao ser gravada (Run 5, leva 3). */
+.usuarios-tab__strength-aviso {
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  color: var(--gm-muted);
+}
+
+.usuarios-tab__strength-aviso code {
+  font-family: inherit;
+  letter-spacing: 1px;
+  color: var(--gm-warn);
+}
+
 .usuarios-tab__btn-salvar {
   flex: 2;
   padding: 14px;
@@ -680,6 +694,18 @@
 .unidades-medida-tab__vazio {
   color: var(--gm-muted);
   padding: 8px 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Falha de carga/gravação nas unidades — a tela nunca deve seguir em silêncio. */
+.unidades-medida-tab__erro {
+  padding: 10px 14px;
+  border: 1px solid var(--gm-red);
+  border-radius: 10px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font-weight: 600;
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
 }

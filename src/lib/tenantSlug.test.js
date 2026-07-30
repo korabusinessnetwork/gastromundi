@@ -56,6 +56,34 @@ describe("slugDoSubdominio", () => {
   it("normaliza caixa alta e espaços", () => {
     expect(slugDoSubdominio(" CasaCoffee.Kora.Codes ", "kora.codes")).toBe("casacoffee");
   });
+
+  // Run 5, leva 7 — rótulo vazio voltava "" em vez de null. String vazia não é
+  // nullish, então furava o `??` de `emailDoLogin` (e-mail `usuario@.local`)
+  // enquanto o `!!` da tela de login a tratava como "sem reivindicação" e
+  // pintava a marca do fallback: URL de um estabelecimento, tela de outro.
+  it("rótulo vazio não é reivindicação nenhuma — volta null, nunca string vazia", () => {
+    for (const host of [".kora.codes", "..kora.codes", ".a.kora.codes"]) {
+      expect(slugDoSubdominio(host), host).toBe(null);
+    }
+  });
+
+  it("nunca devolve string vazia — só um rótulo ou null", () => {
+    for (const host of ["", "  ", ".", "..", "localhost", ".kora.codes", "kora.codes", "casacoffee.kora.codes"]) {
+      const r = slugDoSubdominio(host);
+      expect(r === null || (typeof r === "string" && r.length > 0), `host "${host}" devolveu ${JSON.stringify(r)}`).toBe(true);
+    }
+  });
+
+  it("rótulo vazio também volta null com rootDomain configurado", () => {
+    expect(slugDoSubdominio(".kora.codes", "kora.codes")).toBe(null);
+  });
+
+  it("rótulo estranho CONTINUA sendo reivindicação — não pode cair no fallback", () => {
+    // Sem isso a tela deixaria entrar no tenant do fallback em vez de mostrar
+    // "endereço não encontrado".
+    expect(slugDoSubdominio("casa_coffee.kora.codes")).toBe("casa_coffee");
+    expect(slugDoSubdominio("-casa.kora.codes", "kora.codes")).toBe("-casa");
+  });
 });
 
 describe("emailDoLogin", () => {
@@ -69,5 +97,26 @@ describe("emailDoLogin", () => {
 
   it("subdomínio errado NÃO cai no namespace do fallback", () => {
     expect(emailDoLogin("admin", "gastrumundi.kora.codes")).toBe("admin@gastrumundi.local");
+  });
+
+  // Run 5, leva 7 — antes montava o e-mail com qualquer slug. O servidor
+  // respondia "Unable to validate email address: invalid format" e a tela de
+  // login mostrava isso como se fosse erro de senha.
+  it("slug que não forma endereço válido devolve null em vez de e-mail torto", () => {
+    expect(emailDoLogin("admin", "casa_coffee.kora.codes")).toBeNull();
+    expect(emailDoLogin("admin", "-casa.kora.codes")).toBeNull();
+    expect(emailDoLogin("admin", "casa-.kora.codes")).toBeNull();
+  });
+
+  it("rótulo vazio não vira `admin@.local` — cai no fallback do resolver", () => {
+    // Aqui não há reivindicação de verdade, então o namespace de sempre serve.
+    expect(emailDoLogin("admin", ".kora.codes")).toBe("admin@gastromundi.local");
+  });
+
+  it("nunca devolve um e-mail com domínio vazio", () => {
+    for (const host of ["", ".", "..", ".kora.codes", "..kora.codes", "casacoffee.kora.codes", "localhost"]) {
+      const e = emailDoLogin("admin", host);
+      if (e !== null) expect(e, `host "${host}"`).not.toMatch(/@\.local$/);
+    }
   });
 });

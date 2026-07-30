@@ -3,6 +3,7 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { normalizarPagamentos, totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { agruparVendasPorDia, rotuloDiaBR, intervaloPeriodo, agruparVendasPorOperador } from "@/utils/datas";
 import { calcularVariacaoPercentual } from "@/lib/relatorios";
+import { esperadoEmCaixa, diferencaCaixa, situacaoCaixa, ROTULO_SITUACAO } from "@/lib/caixa";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
@@ -11,7 +12,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
-import { varColor, nomeExibicaoTenant } from "@/lib/tema";
+import { varColor, nomeExibicaoTenant, marcaComAssinatura } from "@/lib/tema";
 import DesempenhoReport from "./DesempenhoReport";
 import "./RelatorioView.css";
 import {
@@ -205,8 +206,13 @@ function FechamentoDetalheModal({ f, customLabels, onClose }) {
   const metodos = f.conferidoPorMetodo
     ? Object.keys(f.conferidoPorMetodo)
     : METODOS_DETALHE.map(m => m.id);
-  const totalEsperado = (f.totalVendas ?? 0) + (f.fundo ?? 0);
-  const diferenca     = (f.totalConferido ?? 0) - totalEsperado;
+  // Conta única em @/lib/caixa: só entra no esperado o que tinha linha de
+  // conferência. Recalcular `vendas + fundo` aqui fazia o mesmo fechamento
+  // aparecer "Conferido" no caixa e "Falta" no relatório.
+  const totalEsperado = esperadoEmCaixa(f);
+  const diferenca     = diferencaCaixa(f);
+  const situacao      = situacaoCaixa(diferenca);
+  const corSituacao   = situacao === "falta" ? C.red : C.green;
 
   return createPortal(
     <div
@@ -343,15 +349,15 @@ function FechamentoDetalheModal({ f, customLabels, onClose }) {
 
           <div style={{
             padding: "12px 16px", borderRadius: 10, marginTop: 4,
-            background: diferenca >= 0 ? `${alfa(C.green, "14")}` : `${alfa(C.red, "14")}`,
-            border: `1.5px solid ${(diferenca >= 0 ? varColor(C.green) : varColor(C.red))}55`,
+            background: `${alfa(corSituacao, "14")}`,
+            border: `1.5px solid ${varColor(corSituacao)}55`,
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <span className="relatorio-view__modal-dif-label" style={{ fontWeight: 600, color: varColor(C.muted) }}>
-              {diferenca >= 0 ? "Sobra no Caixa" : "Falta no Caixa"}
+              {ROTULO_SITUACAO[situacao]}
             </span>
-            <span className="relatorio-view__modal-total-valor" style={{ fontWeight: 900, color: diferenca >= 0 ? varColor(C.green) : varColor(C.red) }}>
-              {diferenca >= 0 ? "+" : ""}{fmtR(diferenca)}
+            <span className="relatorio-view__modal-total-valor" style={{ fontWeight: 900, color: varColor(corSituacao) }}>
+              {situacao === "sobra" ? "+" : ""}{fmtR(diferenca)}
             </span>
           </div>
         </div>
@@ -391,8 +397,10 @@ export default function RelatorioView() {
   const sz = getSizes(width);
 
   // Cabeçalho dos exports com a identidade do tenant (white-label,
-  // decisão 017); "by Kora" é a assinatura da plataforma.
-  const empresaExport = `${nomeExibicaoTenant(tenant?.tema).toUpperCase()} by Kora`;
+  // decisão 017); "by Kora" é a assinatura da plataforma. Sem tema custom
+  // cai no nome CADASTRADO do estabelecimento — antes caía na marca de um
+  // cliente específico, que ia impressa no PDF e na planilha de todo mundo.
+  const empresaExport = marcaComAssinatura(nomeExibicaoTenant(tenant?.tema, tenant?.nome));
   const exportToPDF  = (titulo, headers, rows, periodo, opts = {}) =>
     exportToPDFBase(titulo, headers, rows, periodo, { empresa: empresaExport, ...opts });
   const exportToXLSX = (titulo, headers, rows, periodo) =>
@@ -608,16 +616,16 @@ export default function RelatorioView() {
   };
 
   const exportFechamentos = (fmt) => {
-    const headers = ["Data/Hora", "Usuário", "Fundo (R$)", "Total Vendas (R$)", "Conferido (R$)", "Diferença (R$)"];
+    const headers = ["Data/Hora", "Usuário", "Fundo (R$)", "Total Vendas (R$)", "Esperado em Caixa (R$)", "Conferido (R$)", "Diferença (R$)"];
     const rows = fechsFiltrados.map(f => {
-      // Diferença real: conferido inclui o fundo, então compara contra vendas + fundo
-      const dif = (f.totalConferido ?? 0) - (f.totalVendas ?? 0) - (f.fundo ?? 0);
+      const dif = diferencaCaixa(f);
       return [
         fmtData(f.at), f.user ?? "—",
         Number(f.fundo ?? 0).toFixed(2),
         Number(f.totalVendas ?? 0).toFixed(2),
+        esperadoEmCaixa(f).toFixed(2),
         Number(f.totalConferido ?? 0).toFixed(2),
-        (dif >= 0 ? "+" : "") + dif.toFixed(2),
+        (dif > 0 ? "+" : "") + dif.toFixed(2),
       ];
     });
     if (fmt === "pdf") exportToPDF("Fechamentos de Caixa", headers, rows, periodo);
@@ -1299,8 +1307,8 @@ export default function RelatorioView() {
                   </thead>
                   <tbody>
                     {fechsFiltrados.map((f, i) => {
-                      // Mesma conta do detalhe: conferido inclui o fundo
-                      const dif = (f.totalConferido ?? 0) - (f.totalVendas ?? 0) - (f.fundo ?? 0);
+                      const dif = diferencaCaixa(f);
+                      const corDif = situacaoCaixa(dif) === "falta" ? C.red : C.green;
                       const hasObs = !!f.observacao;
                       return (
                         <Fragment key={f.id ?? i}>
@@ -1318,8 +1326,8 @@ export default function RelatorioView() {
                             <Td sz={sz} right>{fmtR(f.fundo)}</Td>
                             <Td sz={sz} right><span style={{ fontWeight: 700 }}>{fmtR(f.totalVendas)}</span></Td>
                             <Td sz={sz} right color={varColor(C.green)}><span style={{ fontWeight: 700 }}>{fmtR(f.totalConferido)}</span></Td>
-                            <Td sz={sz} right color={dif >= 0 ? varColor(C.green) : varColor(C.red)}>
-                              <span style={{ fontWeight: 800 }}>{dif >= 0 ? "+" : ""}{fmtR(dif)}</span>
+                            <Td sz={sz} right color={varColor(corDif)}>
+                              <span style={{ fontWeight: 800 }}>{dif > 0 ? "+" : ""}{fmtR(dif)}</span>
                             </Td>
                             <Td sz={sz} right>
                               <span className="relatorio-view__ver-detalhes" style={{

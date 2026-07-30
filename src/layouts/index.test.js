@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
+import { join } from "path";
 import {
   LAYOUTS,
   LAYOUT_PADRAO_NOVOS,
@@ -159,5 +161,37 @@ describe("msAteProximaTroca", () => {
   it("sempre positivo, com 1s de folga além da fronteira", () => {
     expect(ms(19, 0)).toBeGreaterThan(0);
     expect(msAteProximaTroca(new Date(2026, 6, 18, 18, 59, 59, 500))).toBe(1500);
+  });
+});
+
+// R7L8 (segundo furo da mesma superfície): a lista fechada de layouts existe
+// DUAS vezes — este catálogo e o ARRAY dentro de `alterar_layout_tenant`
+// (20260801). Nada amarrava as duas cópias: um 7º layout adicionado só aqui
+// apareceria no dropdown do Console e o banco recusaria com "Layout inválido"
+// na hora de salvar — erro que só aparece depois do clique, com o nome do
+// modelo já escolhido na tela. Esta é a amarra.
+describe("catálogo de layouts × lista fechada da RPC (20260801)", () => {
+  const sql = readFileSync(
+    join(__dirname, "../../supabase/migrations/20260801_alterar_layout_tenant.sql"),
+    "utf8"
+  );
+
+  it("a RPC aceita exatamente os layouts que o catálogo oferece", () => {
+    const m = sql.match(/p_layout\s*<>\s*ALL\s*\(ARRAY\[([^\]]+)\]\)/);
+    expect(m).not.toBeNull();
+    const doBanco = m[1]
+      .split(",")
+      .map((s) => s.trim().replace(/^'|'$/g, ""))
+      .sort();
+    expect(doBanco).toEqual(Object.keys(LAYOUTS).sort());
+  });
+
+  it("cada layout tem o próprio código como chave do catálogo", () => {
+    // A tela manda `codigo` para a RPC, mas quem monta a lista de opções
+    // percorre as CHAVES. Divergir aqui manda para o banco um valor que a
+    // lista fechada nem examina.
+    for (const [chave, layout] of Object.entries(LAYOUTS)) {
+      expect(layout.codigo).toBe(chave);
+    }
   });
 });

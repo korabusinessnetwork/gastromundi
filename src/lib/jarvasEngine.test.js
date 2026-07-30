@@ -31,6 +31,7 @@ import {
   regraContasVencidas,
   regraCancelamentos,
 } from "./jarvasEngine";
+import { hojeLocalISO } from "@/utils/datas";
 
 const dias = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
 
@@ -104,6 +105,30 @@ describe("regraDivergenciaCaixa", () => {
 
     expect(registrarInsight).toHaveBeenCalledWith(
       expect.objectContaining({ tipo: "alerta", severidade: "danger" }),
+    );
+  });
+
+  it("Run 1 — fechamento com fiado não gera alerta de falta", async () => {
+    // R$ 70 vendidos, R$ 20 em fiado: só R$ 50 podiam ser contados. O caixa
+    // fechou exato, mas a conta antiga (conferido − vendas − fundo) acusava
+    // falta de R$ 20 e o dono recebia alerta de divergência todo dia.
+    const fechamentos = [{ id: 10, totalVendas: 70, totalEsperado: 50, fundo: 0, totalConferido: 50 }];
+    await regraDivergenciaCaixa({ fechamentos, jaExiste: () => false });
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("Run 1 — divergência real de caixa com fiado no meio continua alertando", async () => {
+    // O guarda do guarda: R$ 20 de fiado e R$ 10 faltando de verdade na gaveta.
+    const fechamentos = [{ id: 11, totalVendas: 70, totalEsperado: 50, fundo: 0, totalConferido: 40 }];
+    await regraDivergenciaCaixa({ fechamentos, jaExiste: () => false });
+
+    expect(registrarInsight).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tipo: "alerta",
+        titulo: expect.stringContaining("-10.00"),
+        origem: expect.objectContaining({ dados: expect.objectContaining({ totalEsperado: 50 }) }),
+      }),
     );
   });
 
@@ -328,7 +353,7 @@ describe("regraCancelamentos", () => {
 
     await regraCancelamentos({ jaExiste: () => false });
 
-    const semana = new Date().toISOString().slice(0, 10);
+    const semana = hojeLocalISO();
     expect(registrarInsight).toHaveBeenCalledTimes(1);
     expect(registrarInsight).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -387,4 +412,100 @@ describe("regraCancelamentos", () => {
     await expect(regraCancelamentos({ jaExiste: () => false })).resolves.toBeUndefined();
     expect(registrarInsight).not.toHaveBeenCalled();
   });
+});
+
+// Leva D da auditoria: as chaves de deduplicação são "o dia de hoje". Com o dia
+// UTC, às 21h de Brasília a chave já virava para amanhã e o mesmo alerta era
+// registrado duas vezes na mesma noite de operação — justo no horário de pico.
+describe("chave de deduplicação usa o dia do estabelecimento, não o dia UTC", () => {
+  // 2026-07-16T00:30:00Z = 15/07 às 21h30 em São Paulo.
+  const NOITE = new Date("2026-07-16T00:30:00.000Z");
+  const DIA_LOCAL = "2026-07-15";
+
+  // Um caso por regra que carimba a data na chave — cobre as seis chamadas a
+  // hojeLocalISO() de jarvasEngine.js.
+  const casos = [
+    {
+      nome: "regraEstoque",
+      chave: `estoque:ruptura:${DIA_LOCAL}`,
+      rodar: () =>
+        regraEstoque({
+          products: [{ id: 1, name: "Suco", active: true }],
+          estoque: { 1: 0 },
+          estoqueMinimos: {},
+          jaExiste: () => false,
+        }),
+    },
+    {
+      nome: "regraTendenciaVendas",
+      chave: `vendas:alta:${DIA_LOCAL}`,
+      rodar: () =>
+        regraTendenciaVendas({
+          sales: [
+            { at: dias(1), items: [{ name: "Hambúrguer", qty: 14 }] },
+            { at: dias(10), items: [{ name: "Hambúrguer", qty: 10 }] },
+          ],
+          jaExiste: () => false,
+        }),
+    },
+    {
+      nome: "regraPrevisaoRuptura",
+      chave: `estoque:previsao_ruptura:${DIA_LOCAL}`,
+      rodar: () =>
+        regraPrevisaoRuptura({
+          products: [{ id: 1, name: "Suco", active: true }],
+          estoque: { 1: 5 },
+          sales: [{ at: dias(1), items: [{ id: 1, qty: 28 }] }],
+          jaExiste: () => false,
+        }),
+    },
+    {
+      nome: "regraPrevisaoFaturamento",
+      chave: `financeiro:previsao_semana:${DIA_LOCAL}`,
+      rodar: () =>
+        regraPrevisaoFaturamento({
+          sales: [{ at: dias(8), total: 100 }, { at: dias(15), total: 200 }],
+          jaExiste: () => false,
+        }),
+    },
+    {
+      nome: "regraContasVencidas",
+      chave: `financeiro:vencidas:${DIA_LOCAL}`,
+      rodar: () => {
+        setLancamentosResult({ data: [{ id: "a", valor: 100 }], error: null });
+        return regraContasVencidas({ jaExiste: () => false });
+      },
+    },
+    {
+      nome: "regraCancelamentos",
+      chave: `pedidos:cancelamentos:joao:${DIA_LOCAL}`,
+      rodar: () => {
+        setLancamentosResult({
+          data: [1, 2, 3, 4, 5].map((i) => ({
+            id: `ev${i}`,
+            operator_id: "joao",
+            payload: {},
+            created_at: dias(1),
+          })),
+          error: null,
+        });
+        return regraCancelamentos({ jaExiste: () => false });
+      },
+    },
+  ];
+
+  for (const caso of casos) {
+    it(`${caso.nome} às 21h30 carimba o dia de hoje, não o de amanhã`, async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(NOITE);
+        await caso.rodar();
+
+        expect(registrarInsight).toHaveBeenCalled();
+        expect(registrarInsight.mock.calls[0][0].origem.chave).toBe(caso.chave);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  }
 });

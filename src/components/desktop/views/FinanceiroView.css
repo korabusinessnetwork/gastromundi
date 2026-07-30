@@ -46,6 +46,53 @@
   display: flex;
 }
 
+/* Aviso neutro (Run 2): lançamento salvo fora do período visível, falha ao
+   baixar uma conta. Não é o estado de erro da tela inteira — é uma linha
+   que explica por que a ação não apareceu do jeito esperado. */
+.financeiro-view__aviso {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* Leitura do financeiro falhou (Run 2): ocupa o lugar dos cards de resumo,
+   porque R$ 0,00 em tudo seria uma informação falsa sobre o caixa. */
+.financeiro-view__erro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-red);
+  background: var(--gm-surface);
+}
+
+.financeiro-view__erro-texto {
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.financeiro-view__btn-tentar {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
 .financeiro-view__btn-novo {
   display: flex;
   align-items: center;

@@ -78,12 +78,16 @@ export function useIdleTimer(callback, delay, enabled = true) {
 
     let timer = setTimeout(callback, delay);
     const reset = () => { clearTimeout(timer); timer = setTimeout(callback, delay); };
-    const events = ["mousemove", "keydown", "click", "touchstart"];
+    // `wheel` e `scroll` contam como atividade: ler um relatório longo rolando
+    // a página é gente na frente da tela, e sem eles dava logout no meio da
+    // leitura. `scroll` de elemento não borbulha, então tudo entra na fase de
+    // captura — que também impede um `stopPropagation` de escondê-los.
+    const events = ["mousemove", "keydown", "click", "touchstart", "wheel", "scroll"];
 
-    events.forEach((e) => window.addEventListener(e, reset));
+    events.forEach((e) => window.addEventListener(e, reset, true));
     return () => {
       clearTimeout(timer);
-      events.forEach((e) => window.removeEventListener(e, reset));
+      events.forEach((e) => window.removeEventListener(e, reset, true));
     };
   }, [callback, delay, enabled]);
 }
@@ -161,23 +165,37 @@ export function useMesas() {
  * usePedidosCozinha — busca as comandas com itens lançados (o "pedido"
  * desta base, ver src/lib/cozinha.js) e sincroniza via realtime.
  * Usado pelo KDS (F007 — docs/03_REGRAS_DE_NEGOCIO/COZINHA.md).
+ *
+ * Expõe `erro` de propósito: se a busca falha, uma cozinha cheia vê a mesma
+ * tela de cozinha vazia e simplesmente para de produzir. Painel vazio e
+ * painel quebrado precisam ser distinguíveis a metros de distância.
+ * Expõe `recarregar` para o cozinheiro tentar de novo sem sair da tela.
  */
+const CAMPOS_COZINHA = "id,comanda,mesa,apelido,items,status,status_cozinha,garcom,created_at,em_preparo_em,pronto_em";
+
 export function usePedidosCozinha() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(null);
 
-  const CAMPOS = "id,comanda,mesa,apelido,items,status,status_cozinha,garcom,created_at,em_preparo_em,pronto_em";
-
-  useEffect(() => {
-    supabase
+  const recarregar = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
       .from("pending")
-      .select(CAMPOS)
-      .order("created_at", { ascending: true })
-      .then(({ data }) => {
-        setPedidos((data ?? []).filter(p => Array.isArray(p.items) && p.items.length > 0));
-        setLoading(false);
-      });
+      .select(CAMPOS_COZINHA)
+      .order("created_at", { ascending: true });
+    if (error) {
+      // Mantém o que já estava na tela: é melhor a lista de 1 minuto atrás do
+      // que apagar pedidos reais que a cozinha ainda precisa fazer.
+      setErro(error);
+    } else {
+      setErro(null);
+      setPedidos((data ?? []).filter(p => Array.isArray(p.items) && p.items.length > 0));
+    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => { recarregar(); }, [recarregar]);
 
   // Requer Realtime habilitado na tabela `pending` (Database → Replication).
   useEffect(() => {
@@ -209,7 +227,7 @@ export function usePedidosCozinha() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  return { pedidos, loading };
+  return { pedidos, loading, erro, recarregar };
 }
 
 /**
@@ -235,8 +253,19 @@ export function usePedidosDelivery() {
 
   const recarregar = useCallback(async () => {
     const { data, error } = await listarPedidosDelivery();
-    setPedidos(data);
-    setErro(error);
+    if (error) {
+      // Mantém a lista que já estava na tela — mesma regra de
+      // usePedidosCozinha. `listarPedidosDelivery` devolve data: [] em
+      // qualquer falha, então gravar `data` aqui apagava TODOS os pedidos em
+      // andamento por uma piscada de rede. E não era só no botão
+      // "Atualizar": `avancar` e `cancelar` chamam recarregar() logo depois
+      // de mudar o status com sucesso, então uma falha nesse recarregar
+      // fazia o pedido que acabou de ser aceito desaparecer da tela.
+      setErro(error);
+    } else {
+      setErro(null);
+      setPedidos(data ?? []);
+    }
     setCarregando(false);
   }, []);
 

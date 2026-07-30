@@ -944,3 +944,42 @@
   transition: background 0.15s, color 0.15s;
 }
 .delivery-view__cadeado:active { transform: translateY(1px); }
+
+/* Faixa de falha de atualização — aparece POR CIMA do kanban, sem trocar a
+   lista por um cartaz. A tela de erro cheia só sobra quando não há nenhum
+   pedido para mostrar; com pedidos na tela, apagá-los por uma piscada de
+   rede é pior que o erro (decisão: estados sempre visíveis, sem mentir). */
+.delivery-view__faixa-erro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-warn, #f59e0b);
+  background: color-mix(in srgb, var(--gm-warn, #f59e0b) 12%, transparent);
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.delivery-view__faixa-erro-texto { flex: 1 1 240px; }
+.delivery-view__faixa-erro-acao {
+  flex: 0 0 auto;
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+  cursor: pointer;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 600;
+}
+.delivery-view__faixa-erro-acao:hover,
+.delivery-view__faixa-erro-acao:focus-visible {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+  outline: none;
+}

@@ -121,9 +121,14 @@ function TextInput({ value, onChange, placeholder, type = "text", maxLength, dis
   );
 }
 
+// A senha que vai para o Auth passa por `sanitizeInput`, que remove < > " ' `
+// e apara espaços das pontas. A barra tem que medir ESSA senha, não a que
+// está no campo: medindo a crua ela mostrava "Forte" para `Ab1<<<<`, que na
+// prática é `Ab1`. E o aviso existe para o admin não descobrir isso depois.
 function StrengthBar({ pwd }) {
   if (!pwd) return null;
-  const s = passwordStrength(pwd);
+  const efetiva = sanitizeInput(pwd, 100);
+  const s = passwordStrength(efetiva);
   return (
     <div style={{ marginTop: 8 }}>
       <div className="usuarios-tab__strength-barras">
@@ -132,6 +137,12 @@ function StrengthBar({ pwd }) {
         ))}
       </div>
       <div className="usuarios-tab__strength-label" style={{ color: s.color, fontWeight: 600 }}>{s.label}</div>
+      {efetiva !== pwd && (
+        <div className="usuarios-tab__strength-aviso">
+          Os caracteres <code>&lt; &gt; " ' `</code> e os espaços das pontas não entram na senha.
+          {efetiva ? ` A senha será: ${efetiva.length} caractere${efetiva.length > 1 ? "s" : ""}.` : " Assim ela ficaria vazia."}
+        </div>
+      )}
     </div>
   );
 }
@@ -162,6 +173,8 @@ function traduzirErro(error) {
     return "Campo obrigatório não preenchido.";
   if (error?.code === "no_rows_updated")
     return "Não foi possível salvar: só um administrador pode editar usuários.";
+  if (error?.code === "no_rows_deleted")
+    return "Não foi possível excluir: só um administrador pode remover usuários.";
   if (msg.includes("permission denied") || msg.includes("policy"))
     return "Sem permissão para realizar esta ação.";
   return "Erro ao salvar: " + msg;
@@ -169,7 +182,7 @@ function traduzirErro(error) {
 
 // ── Aba Usuários ──────────────────────────────────────────────────
 
-function UsuariosTab({ sz }) {
+export function UsuariosTab({ sz }) {
   const { users, currentUser, addUser, updateUser, removeUser, rolePermissions, salvarPermissoesCargo } = useApp();
 
   const [modal,    setModal]    = useState(null); // null | "novo" | "editar" | "resetpw"
@@ -180,6 +193,7 @@ function UsuariosTab({ sz }) {
   const [verSenha, setVerSenha] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [deletando,setDeletando]= useState(false);
+  const [deleteErro, setDeleteErro] = useState("");
   const [salvandoCargo, setSalvandoCargo] = useState(null); // `${role}:${key}` em voo
   const [erroCargo, setErroCargo] = useState("");
 
@@ -226,11 +240,15 @@ function UsuariosTab({ sz }) {
     setSalvando(true);
     try {
       if (modal === "novo") {
-        if (!form.password) { setErro("Informe uma senha inicial."); setSalvando(false); return; }
-        if (form.password !== form.confirmPassword) { setErro("As senhas não coincidem."); setSalvando(false); return; }
-        if (passwordStrength(form.password).level < 2) { setErro("Senha muito fraca."); setSalvando(false); return; }
-
+        // Sanitiza ANTES de validar: quem vai para o Auth é `plainPwd`, então é
+        // ele que precisa passar pela força mínima e pela confirmação. Validando
+        // a senha crua, `Ab1<<<<` passava como "Forte" e o Auth recebia `Ab1` —
+        // o insert em `users` ia, a conta de Auth era recusada por senha curta e
+        // sobrava um funcionário que nunca conseguia entrar.
         const plainPwd = sanitizeInput(form.password, 100);
+        if (!plainPwd) { setErro("Informe uma senha inicial."); setSalvando(false); return; }
+        if (plainPwd !== sanitizeInput(form.confirmPassword, 100)) { setErro("As senhas não coincidem."); setSalvando(false); return; }
+        if (passwordStrength(plainPwd).level < 2) { setErro("Senha muito fraca."); setSalvando(false); return; }
 
         // Cria na tabela users primeiro
         const { error } = await addUser({
@@ -244,9 +262,10 @@ function UsuariosTab({ sz }) {
       } else {
         const changes = { name, username, role: form.role, permissions };
         if (form.password) {
-          if (form.password !== form.confirmPassword) { setErro("As senhas não coincidem."); setSalvando(false); return; }
-          if (passwordStrength(form.password).level < 2) { setErro("Senha muito fraca."); setSalvando(false); return; }
+          // Mesma regra do cadastro: valida a senha que realmente vai ao Auth.
           const plainPwd = sanitizeInput(form.password, 100);
+          if (plainPwd !== sanitizeInput(form.confirmPassword, 100)) { setErro("As senhas não coincidem."); setSalvando(false); return; }
+          if (passwordStrength(plainPwd).level < 2) { setErro("Senha muito fraca."); setSalvando(false); return; }
           // Atualiza senha no Supabase Auth
           const editUser = users.find(u => u.id === editId);
           if (editUser?.auth_id) {
@@ -269,13 +288,40 @@ function UsuariosTab({ sz }) {
   const confirmarDelete = async () => {
     if (!deleteId || deletando) return;
     setDeletando(true);
-    const userDel = users.find(u => u.id === deleteId);
-    await removeUser(deleteId);
-    if (userDel?.auth_id) {
-      await deletarAuthUsuario(userDel.auth_id);
+    setDeleteErro("");
+    try {
+      const userDel = users.find(u => u.id === deleteId);
+      // A RLS só deixa admin remover usuário, e o gerente também vê este botão.
+      // Os dois retornos eram jogados fora: o modal fechava, o funcionário
+      // continuava na lista e ninguém dizia que nada tinha acontecido.
+      const { error } = await removeUser(deleteId);
+      if (error) { setDeleteErro(traduzirErro(error)); return; }
+      // A linha já foi. Se o acesso no Auth não cair junto, sobra um órfão: esse
+      // mesmo usuário não pode ser recriado depois (o Auth recusa o e-mail já
+      // cadastrado), então isso tem que aparecer em vez de sumir.
+      if (userDel?.auth_id) {
+        const { error: authErr } = await deletarAuthUsuario(userDel.auth_id);
+        if (authErr) {
+          setDeleteErro(
+            `${userDel.name} saiu da lista, mas o acesso ao sistema não pôde ser apagado (${authErr}) ` +
+            "Anote este aviso: para cadastrar esse mesmo usuário de novo, o acesso antigo precisa ser removido primeiro."
+          );
+        }
+      }
+    } catch (e) {
+      // Nenhuma das duas chamadas deveria rejeitar. Se rejeitar, o `finally`
+      // abaixo fecha o modal — e sem esta mensagem a pessoa não veria nada:
+      // nem sucesso, nem erro, com o funcionário talvez já removido.
+      setDeleteErro(
+        `Não foi possível concluir a exclusão: ${e?.message || "erro inesperado"}. ` +
+        "Confira a lista antes de tentar de novo."
+      );
+    } finally {
+      // Solta o botão sempre — com o `finally` no lugar, uma falha no meio não
+      // deixa mais o "Excluindo..." travado para sempre.
+      setDeletando(false);
+      setDeleteId(null);
     }
-    setDeletando(false);
-    setDeleteId(null);
   };
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
@@ -428,6 +474,14 @@ function UsuariosTab({ sz }) {
         )}
       </div>
 
+      {/* Aviso da última exclusão que não deu certo — fica em cima da lista,
+          que é onde a pessoa olha para saber se o funcionário saiu ou não. */}
+      {deleteErro && (
+        <div role="alert">
+          <ErrBox msg={deleteErro} />
+        </div>
+      )}
+
       {/* Tabela */}
       <div className="usuarios-tab__tabela-moldura">
         <table className="usuarios-tab__tabela">
@@ -483,7 +537,7 @@ function UsuariosTab({ sz }) {
                       </button>
                       {u.id !== currentUser?.id && (
                         <button
-                          onClick={() => setDeleteId(u.id)}
+                          onClick={() => { setDeleteErro(""); setDeleteId(u.id); }}
                           className="usuarios-tab__action-btn"
                           style={{ border: `1px solid ${alfa(C.red, "44")}`, background: alfa(C.red, "0f"), color: varColor(C.red) }}
                         >
@@ -945,7 +999,9 @@ const TIPOS_UNIDADE = [
 
 const EMPTY_ADD = { abbr: "", nome: "" };
 
-function UnidadesMedidaTab({ sz }) {
+// Exportada para teste: a exclusão em cascata é destrutiva e precisa ser
+// exercitada sozinha, sem arrastar as outras abas de Configurações.
+export function UnidadesMedidaTab({ sz }) {
   const { currentUser } = useApp();
   const [unidades,    setUnidades]    = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -953,12 +1009,19 @@ function UnidadesMedidaTab({ sz }) {
   const [salvando,    setSalvando]    = useState({ estoque: false, compra: false, consumo: false });
   const [deleteInfo,  setDeleteInfo]  = useState(null); // { id, nome, abbr, afetados }
   const [deletando,   setDeletando]   = useState(false);
+  const [erro,        setErro]        = useState("");
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
 
   useEffect(() => {
     supabase.from("unidades_medida").select("*").order("ordem").order("nome")
-      .then(({ data }) => { setUnidades(data ?? []); setLoading(false); });
+      .then(({ data, error }) => {
+        // Sem checar o erro, a aba dizia "Nenhuma unidade cadastrada" para uma
+        // base cheia — e o usuário recadastrava tudo em cima do que já existe.
+        if (error) setErro("Não deu para carregar as unidades. Recarregue a página.");
+        else setUnidades(data ?? []);
+        setLoading(false);
+      });
   }, []);
 
   const setAddField = (tipo, field, value) =>
@@ -968,23 +1031,37 @@ function UnidadesMedidaTab({ sz }) {
     const { abbr, nome } = addForms[tipo];
     if (!abbr.trim() || !nome.trim()) return;
     setSalvando(s => ({ ...s, [tipo]: true }));
+    setErro("");
     const { data, error } = await supabase
       .from("unidades_medida")
       .insert({ abreviacao: abbr.trim(), nome: nome.trim(), tipo, ordem: 99 })
       .select()
       .single();
-    if (!error && data) {
+    if (error || !data) {
+      setErro("Não deu para adicionar a unidade. Tente de novo.");
+    } else {
       setUnidades(prev => [...prev, data]);
       setAddForms(f => ({ ...f, [tipo]: EMPTY_ADD }));
     }
     setSalvando(s => ({ ...s, [tipo]: false }));
   };
 
+  /**
+   * Abre a confirmação já com a contagem de produtos afetados. Se a contagem
+   * falha, NÃO abrimos: o diálogo diria "Nenhum produto utiliza essa unidade"
+   * para uma unidade usada no cardápio inteiro, e o usuário confirmaria uma
+   * exclusão em cascata achando que não mexia em nada.
+   */
   const iniciarRemover = async (unidade) => {
     const abbr = unidade.abreviacao;
-    const { data: produtos } = await supabase
+    setErro("");
+    const { data: produtos, error } = await supabase
       .from("products")
       .select("id, unidade_estoque, unidade_consumo, unidades_compra");
+    if (error) {
+      setErro("Não deu para verificar quais produtos usam esta unidade. Tente de novo antes de excluir.");
+      return;
+    }
     const afetados = (produtos || []).filter(p =>
       p.unidade_estoque === abbr ||
       p.unidade_consumo === abbr ||
@@ -993,34 +1070,53 @@ function UnidadesMedidaTab({ sz }) {
     setDeleteInfo({ id: unidade.id, nome: unidade.nome, abbr, afetados });
   };
 
+  /**
+   * Exclusão em cascata: desvincula a unidade dos produtos e só então apaga a
+   * própria unidade. Cada passo é conferido e o primeiro erro interrompe a
+   * cascata — antes, nenhum dos quatro comandos era checado, então uma falha
+   * de permissão deixava produtos apontando para uma unidade que a tela
+   * dizia ter excluído (a linha sumia da lista mesmo sem ter sumido do banco).
+   */
   const confirmarRemover = async () => {
     if (!deleteInfo || deletando) return;
     setDeletando(true);
+    setErro("");
     const { abbr } = deleteInfo;
+    const falhar = (mensagem) => {
+      setErro(mensagem);
+      setDeletando(false);
+      return false;
+    };
 
     // 1. Desvincula unidade_estoque → volta para string vazia (field not null, mas produtos sem unidade ficam sem config)
-    await supabase.from("products").update({ unidade_estoque: "" }).eq("unidade_estoque", abbr);
+    const r1 = await supabase.from("products").update({ unidade_estoque: "" }).eq("unidade_estoque", abbr);
+    if (r1.error) return falhar("Não deu para desvincular a unidade de estoque dos produtos. Nada foi excluído.");
 
     // 2. Limpa unidade_consumo
-    await supabase.from("products").update({ unidade_consumo: null }).eq("unidade_consumo", abbr);
+    const r2 = await supabase.from("products").update({ unidade_consumo: null }).eq("unidade_consumo", abbr);
+    if (r2.error) return falhar("Não deu para limpar a unidade de consumo dos produtos. A exclusão foi interrompida.");
 
     // 3. Remove entradas de unidades_compra que usam essa abreviação
-    const { data: comCompra } = await supabase
+    const { data: comCompra, error: erroCompra } = await supabase
       .from("products")
       .select("id, unidades_compra")
       .not("unidades_compra", "eq", "[]");
+    if (erroCompra) return falhar("Não deu para ler as unidades de compra dos produtos. A exclusão foi interrompida.");
     const afetadosCompra = (comCompra || []).filter(p =>
       Array.isArray(p.unidades_compra) && p.unidades_compra.some(c => c.unidade === abbr)
     );
     for (const p of afetadosCompra) {
-      await supabase
+      const { error } = await supabase
         .from("products")
         .update({ unidades_compra: p.unidades_compra.filter(c => c.unidade !== abbr) })
         .eq("id", p.id);
+      if (error) return falhar("Não deu para atualizar as unidades de compra de todos os produtos. A exclusão foi interrompida.");
     }
 
     // 4. Exclui a unidade
-    await supabase.from("unidades_medida").delete().eq("id", deleteInfo.id);
+    const { error: erroDelete } = await supabase.from("unidades_medida").delete().eq("id", deleteInfo.id);
+    if (erroDelete) return falhar("Os produtos foram desvinculados, mas a unidade não pôde ser excluída. Tente de novo.");
+
     setUnidades(prev => prev.filter(u => u.id !== deleteInfo.id));
     setDeleteInfo(null);
     setDeletando(false);
@@ -1033,6 +1129,10 @@ function UnidadesMedidaTab({ sz }) {
   return (
     <>
     <div style={{ display: "flex", flexDirection: "column", gap: sz.pad }}>
+      {/* Fora do diálogo: falhas de carga, de adição e da checagem pré-exclusão. */}
+      {erro && !deleteInfo && (
+        <div className="unidades-medida-tab__erro" role="alert">{erro}</div>
+      )}
       {TIPOS_UNIDADE.map(({ tipo, label, color }) => {
         const lista   = unidades.filter(u => u.tipo === tipo);
         const form    = addForms[tipo];
@@ -1138,6 +1238,10 @@ function UnidadesMedidaTab({ sz }) {
               </div>
             )}
           </div>
+
+          {erro && (
+            <div className="unidades-medida-tab__erro" role="alert">{erro}</div>
+          )}
 
           <div className="unidades-medida-tab__delete-botoes">
             <button

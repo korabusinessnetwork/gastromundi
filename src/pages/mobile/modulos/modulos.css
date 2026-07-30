@@ -312,6 +312,12 @@
   color: var(--gm-red);
 }
 
+/* Estado informativo, nao alerta: usado por "Nao controla" no estoque. */
+.mod-badge--neutro {
+  background: color-mix(in srgb, var(--gm-muted) 16%, transparent);
+  color: var(--gm-muted);
+}
+
 /* ── Botões ────────────────────────────────────────────────────── */
 
 .mod-botao {
@@ -420,6 +426,48 @@
 
 .mod-erro {
   color: var(--gm-red);
+}
+
+/**
+ * Faixa de "não consegui carregar a lista" com botão de tentar de novo.
+ * Diferente do `.mod-erro` (que é aviso de uma ação que falhou), esta avisa
+ * que a TELA pode estar mentindo — lista vazia por falha parece lista vazia
+ * de verdade, e na cozinha isso significa parar de produzir.
+ */
+.mod-falha-carga {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 16px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--gm-red);
+  border-radius: 12px;
+  background: var(--gm-card);
+}
+
+.mod-falha-carga__texto {
+  flex: 1;
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 700;
+  color: var(--gm-text);
+  line-height: var(--lh-normal, 1.4);
+}
+
+.mod-falha-carga__btn {
+  flex-shrink: 0;
+  min-height: var(--tap-min, 44px);
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--gm-red);
+  color: #fff;
+  font-family: inherit;
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 700;
+}
+
+.mod-falha-carga__btn:disabled {
+  opacity: 0.6;
 }
 
 /* ── Barra de ação fixa ────────────────────────────────────────── */

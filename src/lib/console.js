@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { LAYOUT_PADRAO_NOVOS } from "@/layouts";
 import { geocodificarEndereco } from "@/lib/delivery";
 import { calcularStatusAssinatura, calcularDiasParaVencimento } from "./assinatura";
+import { ROTULOS_MODULO } from "@/constants/modulos";
 
 /**
  * Console da Plataforma (S1-2, ADR-008 §7) — camada de dados.
@@ -90,10 +91,12 @@ export async function listarAssinaturas() {
   }
 }
 
-// Ordem de urgência para o "alerta de validade" do Console: bloqueado
-// primeiro (já perdeu acesso), depois carência (atrasado, ainda no prazo),
-// depois ativo vencendo em breve. Fora desses, ordena por dias a vencer.
-const URGENCIA_STATUS = { bloqueado: 0, carencia: 1, ativo: 2 };
+// Ordem de urgência para o "alerta de validade" do Console: sem assinatura
+// primeiro (o pior caso comercial — o estabelecimento opera e a plataforma
+// não cobra nada por ele), depois bloqueado (já perdeu acesso), carência
+// (atrasado, ainda no prazo) e por fim ativo vencendo em breve. Dentro do
+// mesmo status, ordena por dias a vencer.
+const URGENCIA_STATUS = { sem_assinatura: 0, bloqueado: 1, carencia: 2, ativo: 3 };
 
 /**
  * Função PURA — agrega tenants + planos + assinaturas na visão da
@@ -156,12 +159,30 @@ export function resumirPlataforma(tenants = [], planos = [], assinaturas = [], h
     mrr: linhas
       .filter((l) => l.status === "ativo" || l.status === "carencia")
       .reduce((soma, l) => soma + l.valorMensal, 0),
+    // Quantos da base que PAGA estão sem mensalidade definida. Existe porque
+    // `valor_mensal` nasce em 0 (20260719/20260908) e por muito tempo nada no
+    // sistema o escrevia: o MRR acima somava zero com clientes reais na base e
+    // a tela afirmava "Receita mensal R$ 0,00" como se fosse fato. Este número
+    // é o que permite à tela dizer POR QUE o MRR está baixo.
+    semPreco: linhas.filter(
+      (l) => (l.status === "ativo" || l.status === "carencia") && l.valorMensal <= 0
+    ).length,
   };
 
   // Alerta de validade — o "alerta" que saiu do banner do tenant e passou
   // a viver no Console: quem precisa de ação da plataforma AGORA.
+  //
+  // 'sem_assinatura' entra e vem primeiro: é o único estado em que o
+  // estabelecimento opera sem NUNCA ser cobrado — não bloqueia (as policies
+  // de 20260720 liberam quem não tem linha), não conta no MRR e não aparece
+  // em nenhum outro lugar da tela. Ficar fora daqui era justamente o que
+  // fazia um cliente vendido operar de graça para sempre em silêncio.
+  //
+  // 'cancelado' continua fora de propósito: é decisão manual da plataforma
+  // (já resolvido), não pendência.
   const precisamAtencao = linhas
     .filter((l) =>
+      l.status === "sem_assinatura" ||
       l.status === "bloqueado" ||
       l.status === "carencia" ||
       (l.status === "ativo" && l.diasParaVencer != null && l.diasParaVencer <= VENCE_EM_DIAS)
@@ -333,6 +354,45 @@ export async function alterarPlano(tenantId, planoCodigo) {
 }
 
 /**
+ * Função PURA — compara os módulos de dois planos e diz, em português, o
+ * que o estabelecimento PERDE e o que GANHA na troca.
+ *
+ * Existe porque trocar de plano tem efeito imediato e silencioso: o tenant
+ * deixa de ver o módulo na hora, e desde 20260906 um plano sem `delivery`
+ * derruba o site público de pedidos do cliente. A tela precisa nomear a
+ * perda antes de a pessoa clicar (CLAUDE.md: prevenção de erro > mensagem
+ * de erro; confirmar ações destrutivas).
+ *
+ * A ordem de saída é a do registro central de módulos, não a ordem em que
+ * o banco devolveu as linhas — lista estável entre duas aberturas do modal.
+ * Código sem rótulo cadastrado sai com o próprio código (não some da lista:
+ * é melhor mostrar um código do que esconder uma perda).
+ *
+ * @param {string[]} modulosAtuais códigos do plano atual
+ * @param {string[]} modulosNovos  códigos do plano escolhido
+ * @returns {{perdidos: Array<{codigo:string,nome:string}>, ganhos: Array<{codigo:string,nome:string}>}}
+ */
+export function compararModulosDoPlano(modulosAtuais, modulosNovos) {
+  // `new Set(null)` já nasce vazio: tolerar lista ausente é de graça aqui, e a
+  // tela chama isto antes de a leitura dos módulos voltar.
+  const atuais = new Set(modulosAtuais);
+  const novos = new Set(modulosNovos);
+  const ordenar = (conjunto, fora) => {
+    const conhecidos = Object.keys(ROTULOS_MODULO);
+    const codigos = [...conjunto].filter((c) => !fora.has(c));
+    return codigos
+      .sort((a, b) => {
+        const ia = conhecidos.indexOf(a);
+        const ib = conhecidos.indexOf(b);
+        // Desconhecido vai para o fim, mas nunca desaparece.
+        return (ia === -1 ? conhecidos.length : ia) - (ib === -1 ? conhecidos.length : ib);
+      })
+      .map((codigo) => ({ codigo, nome: ROTULOS_MODULO[codigo] ?? codigo }));
+  };
+  return { perdidos: ordenar(atuais, novos), ganhos: ordenar(novos, atuais) };
+}
+
+/**
  * Troca o LAYOUT de um estabelecimento via RPC `alterar_layout_tenant`
  * (20260801). Mesmo desenho do alterarPlano: a autorização real é do
  * banco (SECURITY DEFINER + is_super_admin()); a RPC grava
@@ -356,5 +416,39 @@ export async function alterarLayout(tenantId, layoutCodigo) {
     return { data, error: null };
   } catch (err) {
     return { data: null, error: { message: err?.message ?? "Falha ao alterar o layout." } };
+  }
+}
+
+/** Teto de sanidade da mensalidade — o MESMO `c_teto` da RPC (20260911). */
+export const MENSALIDADE_MAXIMA = 100000;
+
+/**
+ * Define quanto a plataforma cobra por mês deste estabelecimento.
+ *
+ * `assinaturas.valor_mensal` nasce em 0 e NÃO tem policy de UPDATE — a
+ * escrita é só pela RPC `definir_mensalidade_tenant` (20260911, SECURITY
+ * DEFINER + is_super_admin()). Antes dela nenhum caminho do sistema gravava
+ * este campo: o único jeito era um UPDATE cru no SQL Editor, e o cartão
+ * "Receita mensal" do Console era estruturalmente R$ 0,00.
+ *
+ * Zero é aceito de propósito (cortesia, piloto) — a tela mostra que está sem
+ * mensalidade definida em vez de esconder.
+ *
+ * Nunca lança: falha de rede/RLS volta como { data: null, error }.
+ *
+ * @param {string} tenantId id do estabelecimento
+ * @param {number} valor    mensalidade em reais (>= 0)
+ * @returns {Promise<{data: object|null, error: object|null}>}
+ */
+export async function definirMensalidade(tenantId, valor) {
+  try {
+    const { data, error } = await supabase.rpc("definir_mensalidade_tenant", {
+      p_tenant_id: tenantId,
+      p_valor: valor,
+    });
+    if (error) return { data: null, error };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao definir a mensalidade." } };
   }
 }

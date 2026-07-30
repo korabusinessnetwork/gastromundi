@@ -42,6 +42,27 @@ export function formatarPreco(valor) {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
 }
 
+/**
+ * Lê o que o cliente DIGITOU num campo de dinheiro. O teclado brasileiro
+ * escreve "50,00", e `Number("50,00")` é NaN — era por isso que o "troco
+ * para" sumia sem aviso nenhum entre a tela e o servidor.
+ * Devolve null quando não há número (campo vazio ou rabisco).
+ * @param {string|number|null|undefined} texto
+ * @returns {number|null}
+ */
+export function valorDigitado(texto) {
+  if (texto === null || texto === undefined) return null;
+  const bruto = String(texto).trim();
+  if (!bruto) return null;
+  // Com vírgula, ela é o decimal e o ponto é separador de milhar
+  // ("1.234,56" → 1234.56). Sem vírgula, o ponto é o próprio decimal.
+  const normalizado = bruto.includes(",")
+    ? bruto.replace(/\./g, "").replace(",", ".")
+    : bruto;
+  const n = Number(normalizado);
+  return Number.isFinite(n) ? n : null;
+}
+
 // ── Carrinho (cálculo só para exibição) ────────────────────────────
 
 /**
@@ -79,7 +100,7 @@ export function totalItens(itens) {
  * receber "troco para" abaixo do total — a UI trata como sem troco).
  */
 export function calcularTroco(trocoPara, total) {
-  const t = Number(trocoPara) || 0;
+  const t = valorDigitado(trocoPara) ?? 0;
   const tot = Number(total) || 0;
   if (t <= tot) return 0;
   return t - tot;
@@ -153,12 +174,52 @@ export function produtoPodeAdicionar(produto, selecoesPorGrupo) {
 }
 
 /**
+ * Um grupo é IMPOSSÍVEL quando escolha nenhuma consegue satisfazê-lo. Dá
+ * pra chegar nesse estado com dados perfeitamente salvos, de dois jeitos:
+ *
+ *  · o grupo exige mais opções do que existem para escolher. O dono marca
+ *    "acabou o bacon" e o grupo "Escolha 1" fica sem nenhuma opção — a RPC
+ *    do cardápio esconde o complemento indisponível, mas o mínimo do grupo
+ *    continua valendo;
+ *  · o máximo é menor que o mínimo, regra que se contradiz sozinha.
+ *
+ * Sem enxergar isso, o produto sai do ar em silêncio: o botão trava em
+ * "Escolha os obrigatórios" para sempre e não há o que escolher. E o
+ * servidor recusaria de qualquer forma (criar_pedido_delivery cobra o
+ * min_escolhas do grupo), então insistir só gasta o tempo do cliente.
+ * @param {{min?: number, max?: number, itens?: Array}} grupo
+ * @returns {boolean}
+ */
+export function grupoImpossivel(grupo) {
+  const min = Math.max(0, Number(grupo?.min) || 0);
+  if (min === 0) return false; // grupo opcional nunca trava nada
+  const maxRaw = Number(grupo?.max);
+  const max = Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : 0; // 0 = sem limite
+  if (max > 0 && min > max) return true;
+  return min > (grupo?.itens?.length ?? 0);
+}
+
+/**
+ * O produto tem algum grupo impossível na árvore? Varre raiz e subgrupos em
+ * qualquer profundidade — a mesma varredura que grupoArvoreSatisfeita faz,
+ * porque um subgrupo obrigatório trava o produto mesmo pendurado num pai
+ * opcional.
+ * @param {{grupos?: Array}} produto
+ * @returns {boolean}
+ */
+export function produtoImpossivel(produto) {
+  return achatarGrupos(produto?.grupos ?? []).some(grupoImpossivel);
+}
+
+/**
  * Rótulo humano da regra de um grupo — linguagem do dia a dia, não jargão
  * (Princípio nº 1). Ex.: "Escolha 1", "Escolha de 1 a 3", "Opcional · até 3".
  * @param {{min?: number, max?: number}} grupo
  * @returns {string}
  */
 export function rotuloRegraGrupo(grupo) {
+  // Pedir "Escolha 1" num grupo sem opção é mandar fazer o impossível.
+  if (grupoImpossivel(grupo)) return "Indisponível no momento";
   const min = Math.max(0, Number(grupo?.min) || 0);
   const maxRaw = Number(grupo?.max);
   const max = Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : 0; // 0 = sem limite
@@ -189,7 +250,123 @@ export function primeiroGrupoPendente(produto, selecoesPorGrupo) {
   return null;
 }
 
+// ── Sacola velha × cardápio de agora ───────────────────────────────
+
+/**
+ * Dinheiro em centavos inteiros. Os dois lados da comparação vêm de JSONs
+ * diferentes (um do sessionStorage, outro da RPC de agora), então 12.30 de
+ * um lado e 12.299999999999999 do outro apareceriam como "preço mudou" sem
+ * nada ter mudado. Comparar em centavos mata o ruído de ponto flutuante.
+ */
+function centavos(valor) {
+  return Math.round((Number(valor) || 0) * 100);
+}
+
+/** Ids atravessam JSON como bigint ou uuid — comparar sempre como texto. */
+function mesmoId(a, b) {
+  if (a === null || a === undefined || b === null || b === undefined) return false;
+  return String(a) === String(b);
+}
+
+/**
+ * Confere a sacola guardada contra o cardápio que está no ar AGORA.
+ *
+ * A sacola vive em sessionStorage e sobrevive a recarregar a aba; o cardápio
+ * é carregado uma vez e não se atualiza sozinho. Quando o dono tira um
+ * produto do ar (ou marca um complemento como indisponível) no meio da
+ * compra, o servidor recusa o pedido inteiro no ÚLTIMO clique com um seco
+ * "Item indisponível." que não diz QUAL item. O cliente volta pra sacola,
+ * não vê nada de errado, tenta de novo e leva a mesma recusa — beco sem
+ * saída, só sai fechando a aba. Preço é a mesma história por outro caminho:
+ * a linha guarda o preço de quando foi escolhida, o servidor cobra o de
+ * agora, e o cliente descobre que pagou diferente só na confirmação.
+ *
+ * Aqui a divergência aparece ANTES, na sacola, com o nome do item e o preço
+ * novo na tela (prevenção de erro > mensagem de erro, Princípio nº 1).
+ *
+ * @param {Array} itens linhas da sacola (useCarrinho)
+ * @param {{produtos?: Array, combos?: Array}|null} cardapio resposta de cardapio_publico
+ * @returns {{linhas: Array, temFora: boolean, temPrecoNovo: boolean, subtotal: number}}
+ *   cada linha é o item + `situacao`: "ok" | "fora" | "preco". Nas linhas que
+ *   sobrevivem, `preco` e `complementosEscolhidos` já vêm com o valor de agora.
+ */
+export function revisarSacola(itens, cardapio) {
+  const lista = itens ?? [];
+  // Sem cardápio na mão (RPC ainda carregando, ou falhou) não dá para
+  // afirmar nada. Acusar "saiu do cardápio" aqui seria apagar a sacola do
+  // cliente por causa de uma falha nossa de rede.
+  if (!cardapio) {
+    const linhas = lista.map((item) => ({ ...item, situacao: "ok" }));
+    return { linhas, temFora: false, temPrecoNovo: false, subtotal: calcularSubtotal(linhas) };
+  }
+
+  const produtos = cardapio.produtos ?? [];
+  const combos = cardapio.combos ?? [];
+
+  const linhas = lista.map((item) => {
+    const ehCombo = item?.combo_id !== null && item?.combo_id !== undefined;
+    const atual = ehCombo
+      ? combos.find((c) => mesmoId(c?.combo_id, item.combo_id))
+      : produtos.find((p) => mesmoId(p?.produto_id, item?.produto_id));
+
+    // Sumiu do cardápio: desativado, esgotado ou fora do delivery.
+    if (!atual) return { ...item, situacao: "fora" };
+
+    // Complementos: a RPC já esconde os indisponíveis, então "não está mais
+    // na árvore de grupos" é exatamente "não dá mais para pedir".
+    const disponiveis = new Map();
+    for (const g of achatarGrupos(atual.grupos ?? [])) {
+      for (const c of g?.itens ?? []) disponiveis.set(String(c?.id), c);
+    }
+
+    const escolhidos = item?.complementosEscolhidos ?? [];
+    let algumSumiu = false;
+    let complementoMudouPreco = false;
+    const complementosAtuais = escolhidos.map((c) => {
+      const vivo = disponiveis.get(String(c?.id));
+      if (!vivo) {
+        algumSumiu = true;
+        return c;
+      }
+      if (centavos(vivo.preco) !== centavos(c?.preco)) complementoMudouPreco = true;
+      return { ...c, preco: Number(vivo.preco) || 0 };
+    });
+
+    if (algumSumiu) return { ...item, situacao: "fora" };
+
+    const precoMudou = centavos(atual.preco) !== centavos(item?.preco);
+    return {
+      ...item,
+      preco: Number(atual.preco) || 0,
+      complementosEscolhidos: complementosAtuais,
+      situacao: precoMudou || complementoMudouPreco ? "preco" : "ok",
+    };
+  });
+
+  return {
+    linhas,
+    temFora: linhas.some((l) => l.situacao === "fora"),
+    temPrecoNovo: linhas.some((l) => l.situacao === "preco"),
+    // O subtotal soma TODAS as linhas, inclusive as que saíram do cardápio:
+    // ele tem que bater com o que está desenhado na tela. Nenhum pedido
+    // errado escapa por isso — o avanço fica bloqueado até a linha sair.
+    subtotal: calcularSubtotal(linhas),
+  };
+}
+
 // ── Payload do pedido (o que a RPC criar_pedido_delivery espera) ────
+
+/**
+ * Coordenada só é coordenada quando é número de verdade. `Number(null)` é
+ * 0 — e um 0 aceito aqui joga o cliente no meio do Atlântico (0,0), fazendo
+ * o servidor cobrar (ou recusar) a entrega por uma distância inventada.
+ * A tela grava `lat: null` sempre que a taxa foi resolvida por bairro/CEP.
+ */
+function coordenada(valor) {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : null;
+}
 
 /**
  * Monta o payload jsonb do pedido. NÃO envia preço/total: o servidor
@@ -197,6 +374,9 @@ export function primeiroGrupoPendente(produto, selecoesPorGrupo) {
  * @param {{cliente: object, entrega: object, pagamento: object, itens: Array}} dados
  */
 export function montarPayloadPedido({ cliente, entrega, pagamento, itens }) {
+  const lat = coordenada(entrega?.lat);
+  const lng = coordenada(entrega?.lng);
+  const trocoPara = valorDigitado(pagamento?.trocoPara);
   return {
     cliente: {
       nome: (cliente?.nome ?? "").trim(),
@@ -210,16 +390,12 @@ export function montarPayloadPedido({ cliente, entrega, pagamento, itens }) {
       // Coordenadas só entram quando o modo é por km e o navegador
       // conseguiu geocodificar o endereço. O servidor recalcula a taxa a
       // partir delas (haversine); quando ausentes, cai no fluxo CEP/bairro.
-      ...(Number.isFinite(Number(entrega?.lat)) && Number.isFinite(Number(entrega?.lng))
-        ? { lat: Number(entrega.lat), lng: Number(entrega.lng) }
-        : {}),
+      ...(lat !== null && lng !== null ? { lat, lng } : {}),
     },
     pagamento: {
       forma: pagamento?.forma ?? null,
       troco_para:
-        pagamento?.forma === "dinheiro" && Number(pagamento?.trocoPara) > 0
-          ? Number(pagamento.trocoPara)
-          : null,
+        pagamento?.forma === "dinheiro" && trocoPara > 0 ? trocoPara : null,
       levar_maquininha:
         pagamento?.forma === "cartao" ? !!pagamento?.levarMaquininha : false,
     },
@@ -282,6 +458,38 @@ export async function calcularTaxaEntrega(slug, cep, bairro, lat, lng) {
   }
 }
 
+// Os dois únicos códigos em que o texto do erro foi ESCRITO PARA SER LIDO
+// por um cliente: todo `RAISE EXCEPTION 'texto'` do plpgsql sai como P0001,
+// e os limites de entrada (20260905) e o guard de status (20260815) usam
+// `USING ERRCODE = 'check_violation'`, que é 23514. Qualquer outro código é
+// falha de infraestrutura, e o texto dela vem em inglês técnico.
+const CODIGOS_COM_RECADO_HUMANO = new Set(["P0001", "23514"]);
+
+const RECADO_GENERICO = "Não foi possível enviar o pedido. Tente novamente.";
+
+/**
+ * Traduz o erro do envio para algo que uma pessoa comum entenda.
+ *
+ * A vitrine é a única tela do produto que um anônimo vê, e ela mostrava o
+ * `error.message` cru. Quando o problema era do servidor e não do pedido, o
+ * cliente lia coisas como "TypeError: Failed to fetch", "Could not find the
+ * function public.criar_pedido_delivery in the schema cache" ou "new row
+ * violates row-level security policy" — jargão técnico em inglês na tela de
+ * quem só queria pedir um lanche.
+ *
+ * As recusas de propósito (endereço vazio, pedido mínimo, muitos pedidos em
+ * sequência) continuam passando na íntegra: são elas que dizem ao cliente o
+ * que ele precisa corrigir.
+ *
+ * @param {{code?: string, message?: string}|null|undefined} error
+ * @returns {string} sempre uma frase em português, nunca vazia
+ */
+export function mensagemDeErroDoPedido(error) {
+  const texto = typeof error?.message === "string" ? error.message.trim() : "";
+  if (!texto) return RECADO_GENERICO;
+  return CODIGOS_COM_RECADO_HUMANO.has(error?.code) ? texto : RECADO_GENERICO;
+}
+
 /**
  * Envia o pedido. O servidor revalida preço/taxa e grava; devolve
  * { ok, numero, status, total } ou lança (RAISE) com mensagem humana.
@@ -304,6 +512,54 @@ export async function enviarPedido(slug, payload) {
   }
 }
 
+// ── Terceiros (ViaCEP / Nominatim) — prazo para responder ──────────
+
+/**
+ * Prazo máximo para um serviço de terceiro responder. Nem o `fetch` nem o
+ * navegador impõem um limite curto: um socket que abre e não responde fica
+ * pendurado por minutos.
+ *
+ * Sem prazo, o Nominatim (grátis, limite de 1 req/s, sujeito a engasgar)
+ * deixava o checkout MORTO no modo "por distância": a tela ficava em
+ * "Calculando a taxa de entrega…" para sempre, o "Ir para o pagamento"
+ * nunca liberava e o "Tentar de novo" nem aparecia — os dois dependem de a
+ * busca ter TERMINADO. A única saída era recarregar a página no meio da
+ * compra. O ViaCEP pendurado deixava o "Buscando endereço…" colado na tela
+ * pelo resto da sessão.
+ */
+const PRAZO_TERCEIRO_MS = 8000;
+
+/**
+ * Busca JSON num terceiro com prazo. Estourado o prazo, o abort estoura no
+ * `catch` de quem chamou e vira a mesma degradação graciosa de qualquer
+ * falha de rede — nunca travar por terceiro é regra da spec.
+ *
+ * O prazo cobre a leitura do corpo também, não só os cabeçalhos: um corpo
+ * que começa a chegar e para no meio pendura igual.
+ *
+ * AbortController em vez de AbortSignal.timeout: o Safari só ganhou o
+ * timeout na 16, e a vitrine roda no celular do cliente (mesmo cuidado do
+ * crypto.randomUUID em useCarrinho.js). Um `signal` de fora continua
+ * valendo — quem cancela busca obsoleta (autocomplete) não perde nada.
+ *
+ * @returns {Promise<any|null>} JSON, ou null se a resposta não vier ok.
+ */
+async function jsonComPrazo(url, { signal, ...opcoes } = {}, ms = PRAZO_TERCEIRO_MS) {
+  const controle = new AbortController();
+  const alarme = setTimeout(() => controle.abort(), ms);
+  const repassar = () => controle.abort();
+  if (signal?.aborted) controle.abort();
+  else signal?.addEventListener("abort", repassar);
+  try {
+    const resp = await fetch(url, { ...opcoes, signal: controle.signal });
+    if (!resp.ok) return null;
+    return await resp.json();
+  } finally {
+    clearTimeout(alarme);
+    signal?.removeEventListener("abort", repassar);
+  }
+}
+
 // ── ViaCEP (grátis, frontend) — degradação graciosa ────────────────
 
 /**
@@ -317,10 +573,8 @@ export async function buscarEnderecoViaCep(cep) {
   const d = apenasDigitosCep(cep);
   if (d.length !== 8) return { data: null, error: null };
   try {
-    const resp = await fetch(`https://viacep.com.br/ws/${d}/json/`);
-    if (!resp.ok) return { data: null, error: null };
-    const json = await resp.json();
-    if (json?.erro) return { data: null, error: null };
+    const json = await jsonComPrazo(`https://viacep.com.br/ws/${d}/json/`);
+    if (!json || json.erro) return { data: null, error: null };
     return {
       data: {
         bairro: json.bairro ?? "",
@@ -357,9 +611,7 @@ export async function geocodificarEndereco(endereco) {
     const url =
       "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=" +
       encodeURIComponent(q);
-    const resp = await fetch(url, { headers: { Accept: "application/json" } });
-    if (!resp.ok) return { data: null, error: null };
-    const json = await resp.json();
+    const json = await jsonComPrazo(url, { headers: { Accept: "application/json" } });
     const primeiro = Array.isArray(json) ? json[0] : null;
     if (!primeiro) return { data: null, error: null };
     const lat = Number(primeiro.lat);
@@ -395,9 +647,7 @@ export async function sugerirEnderecos(texto, { signal } = {}) {
     const url =
       "https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=br&q=" +
       encodeURIComponent(q);
-    const resp = await fetch(url, { headers: { Accept: "application/json" }, signal });
-    if (!resp.ok) return { data: [], error: null };
-    const json = await resp.json();
+    const json = await jsonComPrazo(url, { headers: { Accept: "application/json" }, signal });
     const lista = Array.isArray(json) ? json : [];
     const data = lista
       .map((it) => ({

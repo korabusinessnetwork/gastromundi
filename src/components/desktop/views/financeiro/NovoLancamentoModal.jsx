@@ -3,6 +3,9 @@ import { useState } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { criarLancamento } from "@/lib/financeiro";
+// O dia UTC vira às 21h de Brasília: quem lançava depois disso via o campo já
+// preenchido com a data de amanhã e gravava a competência no mês errado.
+import { hojeLocalISO } from "@/utils/datas";
 import "./NovoLancamentoModal.css";
 
 const CATEGORIAS = ["aluguel", "insumos", "salarios", "outros"];
@@ -12,7 +15,7 @@ export default function NovoLancamentoModal({ usuario, onCreated, onClose }) {
   const [categoria,   setCategoria]   = useState(CATEGORIAS[0]);
   const [descricao,   setDescricao]   = useState("");
   const [valor,        setValor]       = useState("");
-  const [competencia, setCompetencia] = useState(() => new Date().toISOString().slice(0, 10));
+  const [competencia, setCompetencia] = useState(() => hojeLocalISO());
   const [vencimento,  setVencimento]  = useState("");
   const [status,       setStatus]      = useState("previsto");
   const [salvando,    setSalvando]    = useState(false);

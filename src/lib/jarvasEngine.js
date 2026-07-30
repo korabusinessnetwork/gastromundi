@@ -1,5 +1,10 @@
 import { supabase } from "./supabase";
 import { registrarInsight, buscarInsights } from "./jarvas";
+// As chaves de deduplicação são "o dia de hoje". Com o dia UTC, às 21h de
+// Brasília a chave já virava para amanhã e o mesmo alerta era registrado duas
+// vezes na mesma noite de operação — justo no horário de pico.
+import { hojeLocalISO } from "@/utils/datas";
+import { esperadoEmCaixa, diferencaCaixa } from "./caixa";
 
 /**
  * Jarvas — motor de regras (fase 3).
@@ -74,7 +79,7 @@ export async function regraEstoque({ products, estoque, estoqueMinimos, jaExiste
     return q > 0 && q <= min;
   });
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeLocalISO();
 
   if (zerados.length > 0 && !jaExiste(`estoque:ruptura:${hoje}`)) {
     const nomes = zerados.slice(0, 10).map((p) => p.name);
@@ -111,10 +116,13 @@ export async function regraDivergenciaCaixa({ fechamentos, jaExiste }) {
   const d = ultimo?.data ?? ultimo;
   if (!d || typeof d.totalVendas !== "number" || typeof d.totalConferido !== "number") return;
 
-  // Crítico 8 — o conferido inclui o fundo de caixa (o dinheiro contado
-  // na gaveta começa com o fundo dentro); a divergência real é contra
-  // vendas + fundo, senão todo fechamento aparece com "sobra" do fundo.
-  const diff = d.totalConferido - d.totalVendas - (d.fundo ?? 0);
+  // Crítico 8 — o conferido inclui o fundo de caixa (o dinheiro contado na
+  // gaveta começa com o fundo dentro), então a divergência é contra o esperado,
+  // não contra as vendas. Run 1 — o esperado vem de @/lib/caixa: só o que tinha
+  // linha de conferência. Com `vendas + fundo`, todo fechamento que teve fiado
+  // ou voucher gerava alerta de falta que não existia.
+  const esperado = esperadoEmCaixa(d);
+  const diff = diferencaCaixa(d);
   const chave = `caixa:divergencia:${ultimo.id ?? ultimo.created_at ?? "ultimo"}`;
   if (Math.abs(diff) <= TOLERANCIA_CAIXA || jaExiste(chave)) return;
 
@@ -124,9 +132,9 @@ export async function regraDivergenciaCaixa({ fechamentos, jaExiste }) {
     visibilidade: "estrategico",
     modulo: "caixa",
     titulo: `Divergência de caixa: R$ ${diff.toFixed(2)}`,
-    descricao: `Último fechamento: esperado R$ ${(d.totalVendas + (d.fundo ?? 0)).toFixed(2)} (vendas + fundo) vs conferido R$ ${d.totalConferido.toFixed(2)} (${diff > 0 ? "sobra" : "falta"}).`,
+    descricao: `Último fechamento: esperado R$ ${esperado.toFixed(2)} em caixa vs conferido R$ ${d.totalConferido.toFixed(2)} (${diff > 0 ? "sobra" : "falta"}).`,
     acao: { label: "Revisar fechamento", tipo: "abrir_fechamentos", params: {} },
-    origem: { chave, dados: { fechamento_id: ultimo.id ?? null, totalVendas: d.totalVendas, totalConferido: d.totalConferido, fundo: d.fundo ?? 0 } },
+    origem: { chave, dados: { fechamento_id: ultimo.id ?? null, totalVendas: d.totalVendas, totalEsperado: esperado, totalConferido: d.totalConferido, fundo: d.fundo ?? 0 } },
   });
 }
 
@@ -148,7 +156,7 @@ export async function regraTendenciaVendas({ sales, jaExiste }) {
     }
   }
 
-  const semana = new Date().toISOString().slice(0, 10);
+  const semana = hojeLocalISO();
   let melhor = null, pior = null;
   for (const [nome, { rec, ant }] of Object.entries(porProduto)) {
     if (rec + ant < MIN_UNIDADES_TENDENCIA || ant === 0) continue;
@@ -210,7 +218,7 @@ export async function regraPrevisaoRuptura({ products, estoque, sales, jaExiste 
   if (emRisco.length === 0) return;
 
   emRisco.sort((a, b) => a.diasRestantes - b.diasRestantes);
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeLocalISO();
   const chave = `estoque:previsao_ruptura:${hoje}`;
   if (jaExiste(chave)) return;
 
@@ -243,7 +251,7 @@ export async function regraPrevisaoFaturamento({ sales, jaExiste }) {
   if (semanasComVenda < 2) return; // histórico insuficiente para estimar
 
   const media = somaSemana.reduce((a, b) => a + b, 0) / semanasComVenda;
-  const chaveSemana = new Date().toISOString().slice(0, 10);
+  const chaveSemana = hojeLocalISO();
   const chave = `financeiro:previsao_semana:${chaveSemana}`;
   if (jaExiste(chave)) return;
 
@@ -270,7 +278,7 @@ export async function regraContasVencidas({ jaExiste }) {
     .limit(500);
   if (error || !vencidas?.length) return;
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = hojeLocalISO();
   const chave = `financeiro:vencidas:${hoje}`;
   if (jaExiste(chave)) return;
 
@@ -304,7 +312,7 @@ export async function regraCancelamentos({ jaExiste }) {
     porOperador[op].push(e.id);
   }
 
-  const semana = new Date().toISOString().slice(0, 10);
+  const semana = hojeLocalISO();
   for (const [op, ids] of Object.entries(porOperador)) {
     if (ids.length < CANCELAMENTOS_LIMITE) continue;
     const chave = `pedidos:cancelamentos:${op}:${semana}`;

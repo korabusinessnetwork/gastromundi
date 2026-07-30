@@ -25,9 +25,29 @@ import { supabase } from "./supabase";
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
-// Normaliza para "dia" em UTC — evita que fuso/horário do dia mude o
-// resultado da comparação (mesma semântica de `date` no Postgres).
-function inicioDoDiaUTC(data) {
+// "YYYY-MM-DD" e nada mais — é exatamente o formato em que uma coluna `date`
+// do Postgres chega pelo PostgREST.
+const SO_DATA = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * Reduz uma data ao DIA de calendário a que ela pertence, para a comparação
+ * ser entre dois dias e não entre dois instantes.
+ *
+ * A armadilha que isto resolve: `data_vencimento` é `date` e chega como
+ * "2026-08-15", que `new Date()` interpreta como meia-noite em UTC — no
+ * Brasil (UTC-3) os getters locais dessa data devolvem dia 14. Já `hoje`
+ * chega como `new Date()`, cujo dia local é o certo. Ler os dois com getters
+ * locais jogava todo vencimento um dia para trás: no próprio dia de vencer o
+ * sistema já dizia "atrasado" e no último dia de carência já mostrava a tela
+ * de bloqueio. Aqui uma data-só-dia é lida como data de calendário (é o que
+ * `date` significa no Postgres) e um instante é lido pelo calendário local de
+ * quem está operando.
+ */
+function diaDoCalendario(data) {
+  if (typeof data === "string") {
+    const partes = SO_DATA.exec(data);
+    if (partes) return Date.UTC(Number(partes[1]), Number(partes[2]) - 1, Number(partes[3]));
+  }
   const d = new Date(data);
   return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
 }
@@ -47,8 +67,8 @@ function inicioDoDiaUTC(data) {
  * @returns {"ativo"|"carencia"|"bloqueado"}
  */
 export function calcularStatusAssinatura(dataVencimento, carenciaDias, hoje = new Date()) {
-  const vencimento = inicioDoDiaUTC(dataVencimento);
-  const agora = inicioDoDiaUTC(hoje);
+  const vencimento = diaDoCalendario(dataVencimento);
+  const agora = diaDoCalendario(hoje);
   const diffDias = Math.round((agora - vencimento) / MS_POR_DIA);
 
   if (diffDias <= 0) return "ativo";
@@ -65,8 +85,8 @@ export function calcularStatusAssinatura(dataVencimento, carenciaDias, hoje = ne
  * @returns {number}
  */
 export function calcularDiasParaVencimento(dataVencimento, hoje = new Date()) {
-  const vencimento = inicioDoDiaUTC(dataVencimento);
-  const agora = inicioDoDiaUTC(hoje);
+  const vencimento = diaDoCalendario(dataVencimento);
+  const agora = diaDoCalendario(hoje);
   return Math.round((vencimento - agora) / MS_POR_DIA);
 }
 
@@ -140,8 +160,18 @@ export async function sincronizarStatusAssinatura(tenantId) {
 /**
  * Confirma a renovação manual da assinatura (pagamento fora do sistema
  * — Pix/transferência; nenhum gateway pago integrado nesta fase,
- * Restrições de Custo). Restrito a gerente/admin (checagem de role
- * dentro da função SQL, `SECURITY DEFINER`).
+ * Restrições de Custo).
+ *
+ * Restrito à PLATAFORMA (`is_super_admin()`, checado dentro da função
+ * SQL `SECURITY DEFINER` — `20260909_renovacao_assinatura_so_plataforma.sql`).
+ * Uma tela de estabelecimento que chame isto recebe 42501: quem paga a
+ * mensalidade não dá baixa nela. Antes desse ajuste gerente/admin
+ * renovava o próprio estabelecimento de graça e sem limite.
+ *
+ * `competencia` é o MÊS de referência: o banco normaliza para o dia 1 e
+ * aceita uma única confirmação por mês (índice único em
+ * (tenant_id, competencia)) — repetir devolve erro `23505`, então um
+ * duplo-clique não vale um ciclo de graça.
  *
  * @param {{tenantId: string, competencia: string, valor: number, metodo: string, confirmadoPor: string}} params
  * @returns {Promise<{data: object|null, error: object|null}>}

@@ -244,19 +244,25 @@ export async function salvarConfigImpressao(config) {
 }
 
 /**
- * Resolve a identidade do estabelecimento para um cabeçalho de
- * impressão — nome/logo sempre de `tenant.tema` (com fallback
- * "GastroMundi"); endereço/CNPJ só aparecem se a config do
- * estabelecimento pedir explicitamente. Função pura.
+ * Resolve a identidade do estabelecimento para um cabeçalho de impressão —
+ * nome/logo de `tenant.tema`, caindo no nome CADASTRADO do estabelecimento
+ * (`tenant.nome`) e, em último caso, na marca neutra da plataforma;
+ * endereço/CNPJ só aparecem se a config do estabelecimento pedir
+ * explicitamente. Função pura.
  *
- * @param {{tema?: object}|null|undefined} tenant
+ * O cupom é a saída mais séria desta cadeia: é papel que vai para a mão do
+ * cliente. Enquanto o último degrau era a marca de um cliente específico,
+ * qualquer tenant sem `nome_exibicao` imprimia o nome de outra empresa no
+ * cabeçalho do próprio cupom (decisão 017).
+ *
+ * @param {{tema?: object, nome?: string}|null|undefined} tenant
  * @param {object} [configImpressao]
  * @returns {{nome: string, logoUrl: string|null, endereco: string, cnpj: string, rodape: string}}
  */
 export function resolverIdentidadeTenant(tenant, configImpressao) {
   const cfg = { ...CONFIG_IMPRESSAO_PADRAO, ...(configImpressao ?? {}) };
   return {
-    nome: nomeExibicaoTenant(tenant?.tema),
+    nome: nomeExibicaoTenant(tenant?.tema, tenant?.nome),
     logoUrl: cfg.mostrarLogo ? logoUrlTenant(tenant?.tema) : null,
     endereco: cfg.mostrarEnderecoCnpj ? (cfg.endereco || "") : "",
     cnpj: cfg.mostrarEnderecoCnpj ? (cfg.cnpj || "") : "",

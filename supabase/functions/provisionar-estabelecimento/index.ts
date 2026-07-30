@@ -28,12 +28,24 @@
  * e o tenant são removidos. Nunca deixa meio-usuário (o bug que a tela
  * "Criar Usuário" do app produzia).
  *
+ * A compensação é a RPC `remover_tenant_provisionado` (20260910), NÃO um
+ * `from("tenants").delete()`: o tenant nasce com linha em
+ * `public.assinaturas` (20260908) e essa FK não tem ON DELETE CASCADE, então
+ * o delete cru falhava com 23503 — e o erro era descartado, deixando órfão
+ * exatamente no caminho que esta função promete cobrir. A RPC apaga o que o
+ * provisionamento semeia, se recusa a apagar estabelecimento que já tenha
+ * usuário ou pagamento, e devolve erro. Se ela falhar, o erro devolvido ao
+ * Console diz que o estabelecimento ficou criado e precisa ser removido à
+ * mão — silêncio nunca.
+ *
  * Deploy:
  *   supabase functions deploy provisionar-estabelecimento --no-verify-jwt
  *   (o JWT é verificado manualmente abaixo para checar o papel plataforma)
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { compensarProvisionamento, removerCredencialOrfa } from "../_shared/provisionamento.ts";
+import { coordenada, validarEntradaProvisionamento } from "../_shared/validacaoProvisionamento.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -73,20 +85,19 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => null);
     if (!body) return json({ error: "Corpo inválido." }, 400);
 
-    const nome = (body.nome ?? "").trim();
-    const slug = (body.slug ?? "").trim().toLowerCase();  // opcional; RPC deriva do nome se vazio
-    const planoCodigo = (body.plano_codigo ?? "avancado").trim();
-    const tema = body.tema ?? {};
-    const admin = body.admin ?? {};
-    const username = (admin.username ?? "").trim().toLowerCase();
-    const password = admin.password ?? "";
-    const adminName = (admin.name ?? "").trim();
-
-    if (!nome) return json({ error: "O nome do estabelecimento é obrigatório." }, 400);
-    if (!username || !password) {
-      return json({ error: "username e password do admin são obrigatórios." }, 400);
+    // A validação mora em `_shared/validacaoProvisionamento.ts` para poder ser
+    // testada de verdade (aqui não dá: este arquivo chama Deno.serve ao ser
+    // importado). Ela é a fronteira real — o cliente que chama esta função é
+    // só um dos possíveis. Em especial, normaliza o username com a MESMA regra
+    // que a tela de login consegue reproduzir: gravar um username com
+    // `< > " ' \`` (que o `sanitizeInput` do login remove) ou com mais de 60
+    // caracteres (que ele corta) criava um estabelecimento cujo admin NUNCA
+    // consegue entrar, e esta função respondia sucesso.
+    const validacao = validarEntradaProvisionamento(body);
+    if (validacao.erro || !validacao.dados) {
+      return json({ error: validacao.erro ?? "Corpo inválido." }, 400);
     }
-    if (!adminName) return json({ error: "O nome do admin é obrigatório." }, 400);
+    const { nome, slug, planoCodigo, tema, username, password, adminName } = validacao.dados;
 
     // ── 3. Cria o tenant via RPC (reconfirma super-admin pelo JWT) ────
     // provisionar_tenant retorna RETURNS public.tenants (uma linha
@@ -95,7 +106,7 @@ Deno.serve(async (req) => {
     const { data: tenant, error: eTenant } = await supabaseCaller
       .rpc("provisionar_tenant", {
         p_nome: nome,
-        p_slug: slug || null,
+        p_slug: slug,
         p_plano_codigo: planoCodigo,
         p_tema: tema,
       });
@@ -135,8 +146,12 @@ Deno.serve(async (req) => {
     });
 
     if (eAuth || !authCreated?.user) {
-      await supabaseAdmin.from("tenants").delete().eq("id", tenant.id);
-      return json({ error: eAuth?.message ?? "Falha ao criar a credencial do admin." }, 400);
+      // Compensação com o JWT do CHAMADOR (já confirmado `plataforma` no item
+      // 1) — a mesma via da criação, então a guarda `is_super_admin()` da RPC
+      // passa. Com o service_role ela reprovaria.
+      const aviso = await compensarProvisionamento(supabaseCaller, tenant);
+      const motivo = eAuth?.message ?? "Falha ao criar a credencial do admin.";
+      return json({ error: `${motivo}${aviso}` }, 400);
     }
 
     // ── 6. Cria o PERFIL do admin já vinculado ao tenant novo ────────
@@ -153,10 +168,13 @@ Deno.serve(async (req) => {
     });
 
     if (ePerfil) {
-      // Compensação total: sem perfil, o auth e o tenant não servem.
-      await supabaseAdmin.auth.admin.deleteUser(authCreated.user.id);
-      await supabaseAdmin.from("tenants").delete().eq("id", tenant.id);
-      return json({ error: ePerfil.message ?? "Falha ao criar o perfil do admin." }, 400);
+      // Compensação total: sem perfil, o auth e o tenant não servem. A
+      // credencial sai PRIMEIRO — enquanto ela existir o e-mail segue ocupado
+      // e uma nova tentativa com o mesmo username colidiria de novo.
+      const avisoAuth = await removerCredencialOrfa(supabaseAdmin, authCreated.user.id, email);
+      const aviso = await compensarProvisionamento(supabaseCaller, tenant);
+      const motivo = ePerfil.message ?? "Falha ao criar o perfil do admin.";
+      return json({ error: `${motivo}${avisoAuth}${aviso}` }, 400);
     }
 
     // ── 7. (Opcional) Semeia a origem do delivery ────────────────────
@@ -167,11 +185,13 @@ Deno.serve(async (req) => {
     const delivery = body.delivery ?? null;
     const enderecoOrigem = (delivery?.endereco_origem ?? "").trim();
     if (enderecoOrigem) {
-      const lat = Number(delivery?.origem_lat);
-      const lng = Number(delivery?.origem_lng);
-      const temCoord =
-        Number.isFinite(lat) && lat >= -90 && lat <= 90 &&
-        Number.isFinite(lng) && lng >= -180 && lng <= 180;
+      // `Number(null)` e `Number("")` valem 0, e 0 passa em qualquer teste de
+      // faixa — a origem do delivery era semeada em (0, 0) e toda taxa por
+      // quilômetro daquele estabelecimento saía errada. `coordenada` só aceita
+      // número ou texto numérico não vazio.
+      const lat = coordenada(delivery?.origem_lat, 90);
+      const lng = coordenada(delivery?.origem_lng, 180);
+      const temCoord = lat !== null && lng !== null;
       const { error: eDelivery } = await supabaseAdmin.from("config_delivery").upsert({
         tenant_id: tenant.id,
         endereco_origem: enderecoOrigem,

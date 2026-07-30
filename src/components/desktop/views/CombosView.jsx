@@ -212,9 +212,14 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
       if (isEdit) {
         const { error } = await supabase.from("combos").update(payload).eq("id", comboId);
         if (error) throw error;
-        // recria composição (subprodutos + produtos adicionais)
-        await supabase.from("combo_subprodutos").delete().eq("combo_id", comboId);
-        await supabase.from("combo_produtos").delete().eq("combo_id", comboId);
+        // Recria a composição (subprodutos + produtos adicionais). O delete
+        // PRECISA ser conferido: se ele falha e os inserts seguem, o combo
+        // fica com a composição antiga somada à nova — o cliente recebe (e o
+        // estoque baixa) o dobro dos itens.
+        const { error: errDelSubs } = await supabase.from("combo_subprodutos").delete().eq("combo_id", comboId);
+        if (errDelSubs) throw errDelSubs;
+        const { error: errDelProds } = await supabase.from("combo_produtos").delete().eq("combo_id", comboId);
+        if (errDelProds) throw errDelProds;
       } else {
         const { data, error } = await supabase.from("combos").insert({ ...payload, ativo: true }).select().single();
         if (error) throw error;
@@ -545,15 +550,23 @@ export default function CombosView({ sz }) {
   const [excluindo,   setExcluindo]   = useState(null); // combo pendente de exclusão
   const [deletando,   setDeletando]   = useState(false);
   const [erroDelete,  setErroDelete]  = useState("");
+  const [erroTela,    setErroTela]    = useState("");
 
   const carregar = async () => {
     setLoading(true);
-    const [{ data: c }, { data: s }] = await Promise.all([
+    setErroTela("");
+    const [{ data: c, error: erroCombos }, { data: s, error: erroSubs }] = await Promise.all([
       supabase.from("combos").select("*, combo_subprodutos(quantidade, subprodutos(nome, preco)), combo_produtos(quantidade, products(name))").order("created_at", { ascending: false }),
       supabase.from("subprodutos").select("*").eq("ativo", true).order("nome"),
     ]);
-    setCombos(c ?? []);
-    setSubprodutos(s ?? []);
+    // Sem isto, uma falha de leitura virava "Nenhum combo cadastrado" — e o
+    // usuário recriava combos que já existem.
+    if (erroCombos || erroSubs) {
+      setErroTela("Não deu para carregar os combos. Recarregue a página.");
+    } else {
+      setCombos(c ?? []);
+      setSubprodutos(s ?? []);
+    }
     setLoading(false);
   };
 
@@ -564,9 +577,17 @@ export default function CombosView({ sz }) {
   const fecharModal = () => { setModal(false); setEditando(null); };
   const aoSalvar    = () => { fecharModal(); carregar(); };
 
+  // Otimista com desfazer: o toggle responde na hora, mas se o banco recusa a
+  // chave volta para onde estava. Antes ela ficava mostrando "ativo" para um
+  // combo que continuava desativado no cardápio do cliente.
   const toggleAtivo = async (c) => {
-    await supabase.from("combos").update({ ativo: !c.ativo, updated_at: new Date().toISOString() }).eq("id", c.id);
+    setErroTela("");
     setCombos(prev => prev.map(x => x.id === c.id ? { ...x, ativo: !x.ativo } : x));
+    const { error } = await supabase.from("combos").update({ ativo: !c.ativo, updated_at: new Date().toISOString() }).eq("id", c.id);
+    if (error) {
+      setCombos(prev => prev.map(x => x.id === c.id ? { ...x, ativo: c.ativo } : x));
+      setErroTela("Não deu para mudar a situação do combo. Tente de novo.");
+    }
   };
 
   // Excluir combo — as junções (combo_subprodutos/combo_produtos) somem em
@@ -617,8 +638,15 @@ export default function CombosView({ sz }) {
 
       {/* Lista */}
       <div className="combos-view__lista-area" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
+        {erroTela && (
+          <div className="combos-view__erro" role="alert">{erroTela}</div>
+        )}
         {loading ? (
           <div className="combos-view__estado">Carregando…</div>
+        ) : erroTela && combos.length === 0 ? (
+          // Lista vazia por falha de leitura não é lista vazia: o aviso acima
+          // já explica. Dizer "Nenhum combo criado" aqui contradiz o aviso.
+          null
         ) : listafiltrada.length === 0 ? (
           <div className="combos-view__vazio">
             <LuPackage size={40} style={{ opacity: 0.2 }} />

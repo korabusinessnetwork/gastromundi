@@ -61,21 +61,23 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
   const [cancelVenda,     setCancelVenda]     = useState(null);
   const [cancelMotivo,    setCancelMotivo]    = useState("");
   const [cancelSenha,     setCancelSenha]     = useState("");
-  const [cancelSenhaErro, setCancelSenhaErro] = useState(false);
+  // Texto, não booleano: a verificação sabe distinguir "senha errada" de
+  // "não deu para verificar agora" (rate-limit, sem rede) e a tela mostra qual.
+  const [cancelSenhaErro, setCancelSenhaErro] = useState("");
   const [cancelErro,      setCancelErro]      = useState("");
   const [cancelando,      setCancelando]      = useState(false);
 
   const abrirCancelamento = () => {
     setCancelVenda(fechadaDetalhe);
-    setCancelMotivo(""); setCancelSenha(""); setCancelSenhaErro(false); setCancelErro("");
+    setCancelMotivo(""); setCancelSenha(""); setCancelSenhaErro(""); setCancelErro("");
   };
 
   const confirmarCancelamento = async () => {
     if (cancelando || !cancelMotivo.trim() || !cancelSenha.trim()) return;
-    setCancelando(true); setCancelErro(""); setCancelSenhaErro(false);
+    setCancelando(true); setCancelErro(""); setCancelSenhaErro("");
     try {
-      const autorizado = await verificarSenhaAdmin(cancelSenha);
-      if (!autorizado) { setCancelSenhaErro(true); return; }
+      const { ok, erro } = await verificarSenhaAdmin(cancelSenha);
+      if (!ok) { setCancelSenhaErro(erro || "Senha incorreta. Apenas admin ou gerente pode cancelar vendas."); return; }
       const { error } = await cancelarVendaFechada(cancelVenda.id, cancelMotivo.trim());
       if (error) { setCancelErro("Não foi possível cancelar a venda. Tente novamente."); return; }
       setCancelVenda(null);
@@ -97,8 +99,8 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
     const username = authUser.trim().toLowerCase();
     setAuthLoading(true);
     try {
-      const ok = await verificarSenhaUsuario(username, authPass);
-      if (!ok) { setAuthError("Usuário, senha ou permissão incorretos."); return; }
+      const { ok, erro } = await verificarSenhaUsuario(username, authPass);
+      if (!ok) { setAuthError(erro || "Usuário, senha ou permissão incorretos."); return; }
       setShowAuthRel(false);
       navigate("/app/relatorio", { state: { ts: Date.now() } });
       onClose?.();
@@ -626,7 +628,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
               <input
                 type="password"
                 value={cancelSenha}
-                onChange={e => { setCancelSenha(e.target.value); setCancelSenhaErro(false); }}
+                onChange={e => { setCancelSenha(e.target.value); setCancelSenhaErro(""); }}
                 onKeyDown={e => { if (e.key === "Enter") confirmarCancelamento(); }}
                 placeholder="Senha"
                 className="sidebar__input"
@@ -638,8 +640,8 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
                 }}
               />
               {cancelSenhaErro && (
-                <div className="sidebar__campo-erro" style={{ color: varColor(C.red), marginTop: 6, fontWeight: 600 }}>
-                  Senha incorreta. Apenas admin ou gerente pode cancelar vendas.
+                <div role="alert" className="sidebar__campo-erro" style={{ color: varColor(C.red), marginTop: 6, fontWeight: 600 }}>
+                  {cancelSenhaErro}
                 </div>
               )}
             </div>

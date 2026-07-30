@@ -24,33 +24,57 @@ import {
 export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvancar }) {
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [taxa, setTaxa] = useState(null); // { ok, taxa, motivo, km }
+  const [erroTaxa, setErroTaxa] = useState("");
   const [calculandoTaxa, setCalculandoTaxa] = useState(false);
+  const [tentativa, setTentativa] = useState(0);
   const cepAnterior = useRef("");
+
+  // O que está nos campos AGORA, para as respostas que chegam atrasadas. A
+  // closure do efeito congela `dados` no instante em que ele foi agendado.
+  const dadosRef = useRef(dados);
+  useEffect(() => {
+    dadosRef.current = dados;
+  });
 
   // Quando o CEP fica completo: ViaCEP preenche bairro/rua (uma vez por CEP).
   useEffect(() => {
     const cep = apenasDigitosCep(dados.cep);
     if (!cepCompleto(cep) || cep === cepAnterior.current) return;
-    cepAnterior.current = cep;
 
     let ativo = true;
+    setBuscandoCep(true);
     (async () => {
-      setBuscandoCep(true);
       const { data } = await buscarEnderecoViaCep(cep);
       if (!ativo) return;
-      // Preenche o que veio do ViaCEP (sem sobrescrever o que o cliente digitou).
+      setBuscandoCep(false);
+      // Só marca o CEP como resolvido quando o ViaCEP REALMENTE respondeu.
+      // Marcar antes de perguntar transformava uma queda de rede (ou o
+      // ViaCEP fora do ar) em "esse CEP não preenche nada" para sempre:
+      // redigitar o mesmo CEP não tentava de novo, e o cliente acabava
+      // digitando bairro e rua à mão sem entender por quê.
+      if (!data) return;
+      cepAnterior.current = cep;
+      // O que o cliente digitou ENQUANTO o ViaCEP respondia tem que valer.
+      // Lendo da closure, o bairro capturado era o de antes da busca (vazio)
+      // — e a resposta passava por cima do bairro que o cliente tinha
+      // acabado de corrigir, na frente dele.
+      const atual = dadosRef.current;
       onMudar({
-        bairro: dados.bairro || data?.bairro || "",
+        bairro: atual.bairro || data.bairro || "",
         endereco:
-          dados.endereco ||
-          [data?.logradouro, data?.cidade && `${data.cidade}/${data.uf}`]
+          atual.endereco ||
+          [data.logradouro, data.cidade && `${data.cidade}/${data.uf}`]
             .filter(Boolean)
             .join(" - "),
       });
-      setBuscandoCep(false);
     })();
     return () => {
       ativo = false;
+      // Desligar aqui, e não só no caminho feliz: bastava apagar um dígito
+      // enquanto o ViaCEP respondia para o "Buscando endereço…" ficar colado
+      // na tela pelo resto da sessão, anunciando uma busca que não existia
+      // mais. O cliente esperava por ela.
+      setBuscandoCep(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dados.cep, slug]);
@@ -62,15 +86,22 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
     const cep = apenasDigitosCep(dados.cep);
     if (!cepCompleto(cep)) {
       setTaxa(null);
+      setErroTaxa("");
+      setCalculandoTaxa(false);
       return;
     }
     const bairro = dados.bairro || "";
     const endereco = dados.endereco || "";
 
+    // JÁ marca como recalculando — não daqui a 700 ms, quando o debounce
+    // dispara. Nessa janela a taxa na tela era a do endereço ANTERIOR e o
+    // botão continuava liberado: dava tempo de trocar o bairro e avançar
+    // pagando R$ 5 de um endereço que custa R$ 20 (ou que nem é atendido).
+    // O servidor recalcula no fim, então o cliente só descobria no último
+    // clique — cobrado a mais ou recusado depois de preencher tudo.
     let ativo = true;
+    setCalculandoTaxa(true);
     const t = setTimeout(async () => {
-      setCalculandoTaxa(true);
-
       // 1ª tentativa sem coordenada — o modo por área (bairro/CEP) resolve aqui.
       let { data: res } = await calcularTaxaEntrega(slug, cep, bairro);
 
@@ -89,6 +120,15 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
 
       if (!ativo) return;
       setTaxa(res);
+      // Sem resposta nenhuma (rede caída, RPC fora do ar, estabelecimento sem
+      // entrega configurada) a tela não dizia UMA palavra: nenhum aviso,
+      // nenhuma taxa, e o "Ir para o pagamento" desabilitado sem motivo
+      // visível. O cliente preenchia tudo e ficava clicando num botão morto.
+      setErroTaxa(
+        res
+          ? ""
+          : "Não conseguimos calcular a taxa de entrega agora. Confira sua conexão e tente de novo."
+      );
       if (res?.ok) {
         onMudar({
           taxa: Number(res.taxa) || 0,
@@ -104,7 +144,7 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
       clearTimeout(t);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dados.cep, dados.bairro, dados.endereco, slug]);
+  }, [dados.cep, dados.bairro, dados.endereco, slug, tentativa]);
 
   const semCoordenada = taxa?.motivo === "sem_coordenada";
   const indisponivelKm = taxa?.motivo === "origem_indefinida";
@@ -220,6 +260,18 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
 
           {calculandoTaxa && (
             <div className="vitrine__aviso">Calculando a taxa de entrega…</div>
+          )}
+          {!calculandoTaxa && erroTaxa && (
+            <div className="vitrine__aviso vitrine__aviso--erro" role="alert">
+              <span>{erroTaxa}</span>
+              <button
+                type="button"
+                className="vitrine__aviso-acao"
+                onClick={() => setTentativa((n) => n + 1)}
+              >
+                Tentar de novo
+              </button>
+            </div>
           )}
           {!calculandoTaxa && semCoordenada && (
             <div className="vitrine__aviso vitrine__aviso--erro">

@@ -7,7 +7,7 @@ const { registrarInsight, buscarInsights } = vi.hoisted(() => ({
 
 vi.mock("./jarvas", () => ({ registrarInsight, buscarInsights }));
 
-import { verificarEstoqueMinimo, verificarOversell, gerarAlertaEstoque, gerarAlertaOversell, processarBaixaEstoque } from "./estoque";
+import { verificarEstoqueMinimo, verificarOversell, gerarAlertaEstoque, gerarAlertaOversell, processarBaixaEstoque, isRpcAusente } from "./estoque";
 
 describe("verificarEstoqueMinimo", () => {
   it("detecta quando a baixa cruza o mínimo (estava acima, ficou em/abaixo)", () => {
@@ -236,5 +236,28 @@ describe("processarBaixaEstoque", () => {
 
     await vi.waitFor(() => expect(registrarInsight).toHaveBeenCalledTimes(1));
     expect(registrarInsight.mock.calls[0][0].origem.dados.minimo).toBe(5);
+  });
+});
+
+describe("isRpcAusente", () => {
+  it("reconhece a função que o banco ainda não tem", () => {
+    // Resposta real do PostgREST quando o app subiu antes da migration.
+    expect(isRpcAusente({
+      code: "PGRST202",
+      message: "Could not find the function public.entrada_estoque(p_delta, p_op_id, p_produto_id) in the schema cache",
+    })).toBe(true);
+    // Mesma situação chegando pelo Postgres, sem o code do PostgREST.
+    expect(isRpcAusente({ message: 'function public.entrada_estoque(bigint, numeric, uuid) does not exist' })).toBe(true);
+    expect(isRpcAusente({ code: "42883", message: "erro" })).toBe(true);
+  });
+
+  it("não confunde com erro de rede, de permissão ou de dado", () => {
+    expect(isRpcAusente(null)).toBe(false);
+    expect(isRpcAusente(undefined)).toBe(false);
+    expect(isRpcAusente({ message: "TypeError: Failed to fetch" })).toBe(false);
+    expect(isRpcAusente({ code: "42501", message: "Sem permissão para dar entrada em estoque." })).toBe(false);
+    expect(isRpcAusente({ code: "P0001", message: "Quantidade de entrada inválida: -3" })).toBe(false);
+    // "does not exist" sobre uma COLUNA não é função faltando.
+    expect(isRpcAusente({ code: "42703", message: 'column "tipo" does not exist' })).toBe(false);
   });
 });

@@ -278,15 +278,20 @@ export default function MobilePage() {
         launched_at: agora,
       }));
       const acumulados = [...anteriores, ...novos];
-      const novoTotal = acumulados.reduce(
-        (s, it) => s + (it.price || 0) * (it.qty || 0),
-        0
-      );
-      await updatePending(
+      // Mesma conta do resto do sistema: só itens ativos, arredondada. A soma
+      // inline daqui usava `qty || 0`, então item sem qty valia zero no Palm e
+      // 1 no PDV — a mesma comanda tinha dois totais.
+      const novoTotal = totalItensAtivos(acumulados);
+      const { error } = await updatePending(
         order.id,
         { items: acumulados, total: novoTotal },
         { baseItems: anteriores }
       );
+      // Sem isto o erro era engolido: o garçom via "Pedido enviado com
+      // sucesso", o carrinho era limpo e a cozinha nunca recebia o papel.
+      // Em `enviarEsperas` era pior — a espera contava como enviada e saía
+      // da fila para sempre.
+      if (error) throw error;
       addLancada(order.id);
       logAction("itens:lancar", {
         comanda: nomeComanda,

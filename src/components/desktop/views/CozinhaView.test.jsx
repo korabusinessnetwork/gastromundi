@@ -49,7 +49,9 @@ const pedidoEmPreparo = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockSupabase.current?.calls?.splice(0);
+  // reset() (e não só limpar `calls`): resultados e erros de tabela ficam no
+  // mock entre os testes, e um erro esquecido vazaria para o teste seguinte.
+  mockSupabase.current?.reset?.();
   setAppMock({ currentUser: { name: "Cozinheiro", username: "cozinha1", role: "caixa" } });
 });
 
@@ -113,5 +115,60 @@ describe("CozinhaView", () => {
     renderWithProviders(<CozinhaView />);
 
     await waitFor(() => expect(screen.getAllByText("Nenhum pedido aqui.")).toHaveLength(3));
+  });
+
+  // A3 da auditoria — antes disso o erro era descartado e a cozinha via a
+  // MESMA tela de "nenhum pedido aqui": ninguém percebia que o painel tinha
+  // quebrado, e os pedidos ficavam parados no salão.
+  describe("falha ao carregar (A3)", () => {
+    it("avisa a cozinha em vez de fingir que não há pedidos", async () => {
+      mockSupabase.current.setTableError("pending", { code: "PGRST301", message: "JWT expired" });
+
+      renderWithProviders(<CozinhaView />);
+
+      const alerta = await screen.findByRole("alert");
+      expect(alerta).toHaveTextContent(/não deu para carregar os pedidos/i);
+      expect(alerta).toHaveTextContent(/pode haver pedidos esperando/i);
+    });
+
+    it("oferece tentar de novo e refaz a busca ao clicar", async () => {
+      mockSupabase.current.setTableError("pending", { message: "network error" });
+      const user = userEvent.setup();
+
+      renderWithProviders(<CozinhaView />);
+      const botao = await screen.findByRole("button", { name: /tentar de novo/i });
+
+      const antes = mockSupabase.current.calls.filter((c) => c.table === "pending" && c.method === "select").length;
+      await user.click(botao);
+
+      await waitFor(() => {
+        const depois = mockSupabase.current.calls.filter((c) => c.table === "pending" && c.method === "select").length;
+        expect(depois).toBeGreaterThan(antes);
+      });
+    });
+
+    it("busca que volta a funcionar tira o aviso e mostra os pedidos", async () => {
+      mockSupabase.current.setTableError("pending", { message: "network error" });
+      const user = userEvent.setup();
+
+      renderWithProviders(<CozinhaView />);
+      const botao = await screen.findByRole("button", { name: /tentar de novo/i });
+
+      mockSupabase.current.setTableError("pending", null);
+      mockSupabase.current.setTableResult("pending", { data: [pedidoAguardando], error: null });
+      await user.click(botao);
+
+      await waitFor(() => expect(screen.getByText("Comanda 5")).toBeInTheDocument());
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("carga com sucesso não mostra aviso nenhum", async () => {
+      mockSupabase.current.setTableResult("pending", { data: [pedidoAguardando], error: null });
+
+      renderWithProviders(<CozinhaView />);
+
+      await waitFor(() => expect(screen.getByText("Comanda 5")).toBeInTheDocument());
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
   });
 });

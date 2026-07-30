@@ -13,6 +13,16 @@ function chaveStorage(slug) {
   return `kora.delivery.sacola.${slug || "default"}`;
 }
 
+// crypto.randomUUID só existe em contexto seguro, e nem isso basta: o
+// Safari do iPhone só ganhou a função na 15.4. Chamar direto derrubava o
+// "Adicionar" com TypeError num domínio próprio sem https ou num iPhone
+// mais velho — e a vitrine inteira ficava inutilizável, sem mensagem
+// nenhuma. Mesmo recurso já usado em src/lib/offline/fila.js.
+const idLinha = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 function lerInicial(slug) {
   try {
     const bruto = sessionStorage.getItem(chaveStorage(slug));
@@ -42,7 +52,7 @@ export function useCarrinho(slug) {
   const adicionar = useCallback((item) => {
     // Cada linha é única (id local) — dois "mesmo produto" com complementos
     // diferentes coexistem sem se fundir.
-    setItens((prev) => [...prev, { ...item, _linha: crypto.randomUUID() }]);
+    setItens((prev) => [...prev, { ...item, _linha: idLinha() }]);
   }, []);
 
   const remover = useCallback((linhaId) => {

@@ -53,6 +53,7 @@ export default function SecaoPagamentos() {
   const [novoNome, setNovoNome] = useState("");
   const [adicionando, setAdicionando] = useState(false);
   const [removendoId, setRemovendoId] = useState(null);
+  const [erro, setErro] = useState("");
 
   const todosMetodos = useMemo(
     () => [
@@ -73,18 +74,33 @@ export default function SecaoPagamentos() {
     if (!isAdmin) return;
     setAtivos((prev) => (prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]));
     setOkMsg(false);
+    setErro("");
   };
 
-  const toggleTef = (id) => {
+  // Todas as escritas abaixo checam o `{ error }` que o AppContext devolve.
+  // Sem isso a tela dizia "Configurações salvas" mesmo quando a RLS de
+  // `config` recusava a gravação (o papel caixa falhava em silêncio), e o
+  // operador só descobria no checkout seguinte, com o método antigo de volta.
+  const toggleTef = async (id) => {
     if (!isAdmin) return;
-    setMetodosTef(listaTef.includes(id) ? listaTef.filter((m) => m !== id) : [...listaTef, id]);
+    setErro("");
+    const { error } = await setMetodosTef(
+      listaTef.includes(id) ? listaTef.filter((m) => m !== id) : [...listaTef, id],
+    );
+    if (error) setErro("Não deu para mudar quais métodos passam pela maquininha. Tente de novo.");
   };
 
   const salvar = async () => {
     if (ativos.length === 0 || salvando) return;
     setSalvando(true);
-    await setMeiosPagamento(ativos);
+    setErro("");
+    const { error } = await setMeiosPagamento(ativos);
     setSalvando(false);
+    if (error) {
+      setOkMsg(false);
+      setErro("Não deu para salvar os meios de pagamento. Nada foi alterado — tente de novo.");
+      return;
+    }
     setOkMsg(true);
   };
 
@@ -92,27 +108,51 @@ export default function SecaoPagamentos() {
     const nome = novoNome.trim();
     if (!nome || adicionando) return;
     setAdicionando(true);
+    setErro("");
+    setOkMsg(false);
     const id = `custom_${nome.toLowerCase().replace(/\s+/g, "_")}_${Date.now()}`;
     const novo = { id, label: nome };
     const novosCustom = [...(metodosCustom ?? []), novo];
     const novosAtivos = [...ativos, id];
-    await setMetodosCustom(novosCustom);
-    await setMeiosPagamento(novosAtivos);
+
+    const { error: erroCustom } = await setMetodosCustom(novosCustom);
+    if (erroCustom) {
+      setAdicionando(false);
+      setErro("Não deu para criar a forma de pagamento. Tente de novo.");
+      return;
+    }
+    // O método já existe no banco; falta só ativá-lo. A mensagem diz
+    // exatamente isso para o operador não recriar um método duplicado.
+    const { error: erroAtivos } = await setMeiosPagamento(novosAtivos);
+    if (erroAtivos) {
+      setAdicionando(false);
+      setErro(`"${nome}" foi criada, mas não deu para ativá-la. Ative na lista e salve de novo.`);
+      return;
+    }
     setAtivos(novosAtivos);
     setNovoNome("");
     setShowForm(false);
     setAdicionando(false);
-    setOkMsg(false);
   };
 
   const confirmarRemocao = async (id) => {
+    setErro("");
+    setOkMsg(false);
     const novosCustom = (metodosCustom ?? []).filter((m) => m.id !== id);
     const novosAtivos = ativos.filter((a) => a !== id);
-    await setMetodosCustom(novosCustom);
-    await setMeiosPagamento(novosAtivos);
+
+    const { error: erroCustom } = await setMetodosCustom(novosCustom);
+    if (erroCustom) {
+      setErro("Não deu para remover a forma de pagamento. Ela continua disponível.");
+      return;
+    }
+    const { error: erroAtivos } = await setMeiosPagamento(novosAtivos);
+    if (erroAtivos) {
+      setErro("A forma de pagamento foi removida, mas não deu para atualizar a lista de ativos. Salve de novo.");
+      return;
+    }
     setAtivos(novosAtivos);
     setRemovendoId(null);
-    setOkMsg(false);
   };
 
   return (
@@ -270,6 +310,10 @@ export default function SecaoPagamentos() {
           <p className="cfg-nota">Somente o administrador pode alterar quais métodos usam a maquininha.</p>
         )}
       </div>
+
+      {erro ? (
+        <p className="mod-erro" role="alert">{erro}</p>
+      ) : null}
 
       {okMsg ? (
         <p className="cfg-ok" role="status">

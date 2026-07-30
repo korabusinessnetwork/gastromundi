@@ -79,7 +79,7 @@ function statusDe(pedido) {
 
 export default function CozinhaModulo({ onVoltar }) {
   const { currentUser } = useApp();
-  const { pedidos, loading } = usePedidosCozinha();
+  const { pedidos, loading, erro: erroCarga, recarregar } = usePedidosCozinha();
 
   const [filtro, setFiltro] = useState("aguardando");
   const [processando, setProcessando] = useState({});
@@ -171,6 +171,18 @@ export default function CozinhaModulo({ onVoltar }) {
         <p className="mod-erro" role="alert">
           {erro}
         </p>
+      ) : null}
+
+      {/* Falha na carga: a lista pode estar incompleta, e a cozinha precisa saber. */}
+      {erroCarga ? (
+        <div className="mod-falha-carga" role="alert">
+          <span className="mod-falha-carga__texto">
+            Não deu para carregar os pedidos. Pode haver pedido esperando fora desta lista.
+          </span>
+          <button type="button" className="mod-falha-carga__btn" onClick={recarregar} disabled={loading}>
+            {loading ? "Tentando…" : "Tentar de novo"}
+          </button>
+        </div>
       ) : null}
 
       {loading ? (

@@ -1155,3 +1155,17 @@
   text-align: center;
   padding: 60px;
 }
+
+.admin-view__erro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--gm-red);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gm-red) 10%, transparent);
+  color: var(--gm-red);
+  font-size: 13px;
+  font-weight: 600;
+}

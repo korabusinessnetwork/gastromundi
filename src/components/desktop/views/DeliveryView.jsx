@@ -591,56 +591,79 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
           <div className="delivery-view__vazio-emoji" style={{ opacity: 0.4 }}>⏳</div>
           <div className="delivery-view__carregando">Carregando pedidos…</div>
         </div>
-      ) : erro ? (
+      ) : erro && pedidos.length === 0 ? (
         <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
           <div className="delivery-view__vazio-emoji" style={{ opacity: 0.3 }}>📡</div>
           <div className="delivery-view__vazio-titulo" style={{ fontWeight: 600 }}>Não conseguimos carregar os pedidos</div>
           <div className="delivery-view__vazio-desc">Verifique a conexão e toque em “Atualizar”.</div>
         </div>
-      ) : colunas.length === 0 ? (
-        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.3 }}>🛵</div>
-          <div className="delivery-view__vazio-titulo" style={{ fontWeight: 600 }}>Nenhum pedido por aqui ainda</div>
-          <div className="delivery-view__vazio-desc">
-            Quando um cliente pedir pelo cardápio online, o pedido aparece aqui na hora.
-          </div>
-        </div>
       ) : (
-        <div className="delivery-view__kanban">
-          {colunas.map((col) => {
-            const base = baseCorStatus(col.status);
-            return (
-              <div key={col.status} className="delivery-view__coluna">
-                <div
-                  className="delivery-view__coluna-titulo"
-                  style={{ color: cssCor(base) }}
-                >
-                  <span className="delivery-view__coluna-bolinha" style={{ background: cssCor(base) }} />
-                  {col.label}
-                  <span
-                    className="delivery-view__coluna-contador"
-                    style={{ background: alfa(base, "1f"), color: cssCor(base) }}
-                  >
-                    {col.pedidos.length}
-                  </span>
-                </div>
-                <div className="delivery-view__coluna-cards">
-                  {col.pedidos.map((p) => (
-                    <CardPedido
-                      key={p.id}
-                      sz={sz}
-                      pedido={p}
-                      isAdmin={isAdmin}
-                      ehAddon={ehAddon}
-                      onAvancar={() => avancar(p)}
-                      onCancelar={() => cancelar(p)}
-                    />
-                  ))}
-                </div>
+        <>
+          {/* Falha COM pedidos na tela: aviso por cima, lista intacta. A tela
+              de erro cheia trocava o kanban inteiro por um cartaz — o
+              operador perdia de vista todos os pedidos em andamento por uma
+              piscada de rede, inclusive o que ele acabou de aceitar. */}
+          {erro && (
+            <div className="delivery-view__faixa-erro" role="alert">
+              <span className="delivery-view__faixa-erro-texto">
+                Não conseguimos atualizar agora. Estes são os pedidos da última
+                atualização que deu certo.
+              </span>
+              <button
+                type="button"
+                onClick={recarregar}
+                className="delivery-view__faixa-erro-acao"
+              >
+                Tentar de novo
+              </button>
+            </div>
+          )}
+          {colunas.length === 0 ? (
+            <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
+              <div className="delivery-view__vazio-emoji" style={{ opacity: 0.3 }}>🛵</div>
+              <div className="delivery-view__vazio-titulo" style={{ fontWeight: 600 }}>Nenhum pedido por aqui ainda</div>
+              <div className="delivery-view__vazio-desc">
+                Quando um cliente pedir pelo cardápio online, o pedido aparece aqui na hora.
               </div>
-            );
-          })}
-        </div>
+            </div>
+          ) : (
+            <div className="delivery-view__kanban">
+              {colunas.map((col) => {
+                const base = baseCorStatus(col.status);
+                return (
+                  <div key={col.status} className="delivery-view__coluna">
+                    <div
+                      className="delivery-view__coluna-titulo"
+                      style={{ color: cssCor(base) }}
+                    >
+                      <span className="delivery-view__coluna-bolinha" style={{ background: cssCor(base) }} />
+                      {col.label}
+                      <span
+                        className="delivery-view__coluna-contador"
+                        style={{ background: alfa(base, "1f"), color: cssCor(base) }}
+                      >
+                        {col.pedidos.length}
+                      </span>
+                    </div>
+                    <div className="delivery-view__coluna-cards">
+                      {col.pedidos.map((p) => (
+                        <CardPedido
+                          key={p.id}
+                          sz={sz}
+                          pedido={p}
+                          isAdmin={isAdmin}
+                          ehAddon={ehAddon}
+                          onAvancar={() => avancar(p)}
+                          onCancelar={() => cancelar(p)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </>
   );

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { diaLocalISO, rotuloDiaBR, agruparVendasPorDia, intervaloPeriodo, agruparVendasPorOperador } from "./datas";
+import { diaLocalISO, hojeLocalISO, diaLocalDaqui, rotuloDiaBR, agruparVendasPorDia, intervaloPeriodo, agruparVendasPorOperador } from "./datas";
 import { totalPorMetodo } from "./pagamentos";
 
 describe("diaLocalISO", () => {
@@ -21,6 +21,50 @@ describe("diaLocalISO", () => {
     expect(diaLocalISO(null)).toBeNull();
     expect(diaLocalISO("")).toBeNull();
     expect(diaLocalISO("não-é-data")).toBeNull();
+  });
+});
+
+describe("hojeLocalISO", () => {
+  it("comanda fechada às 21h30 fica no dia local, não no dia UTC", () => {
+    // 2026-07-16T00:30:00Z = 21:30 de 15/07 em São Paulo.
+    const noite = Date.parse("2026-07-16T00:30:00.000Z");
+    expect(hojeLocalISO(noite)).toBe("2026-07-15");
+    // É exatamente aqui que o toISOString().slice(0,10) errava:
+    expect(new Date(noite).toISOString().slice(0, 10)).toBe("2026-07-16");
+  });
+
+  it("aceita Date além de epoch em ms", () => {
+    const d = new Date("2026-07-16T00:30:00.000Z");
+    expect(hojeLocalISO(d)).toBe("2026-07-15");
+  });
+
+  it("meio-dia local resolve o próprio dia", () => {
+    expect(hojeLocalISO(Date.parse("2026-07-21T15:00:00.000Z"))).toBe("2026-07-21");
+  });
+
+  it("sem argumento devolve uma chave YYYY-MM-DD válida", () => {
+    expect(hojeLocalISO()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe("diaLocalDaqui", () => {
+  it("vencimento de fiado em 30 dias parte do dia LOCAL", () => {
+    const noite = Date.parse("2026-07-16T00:30:00.000Z"); // 15/07 21:30 BRT
+    expect(diaLocalDaqui(30, noite)).toBe("2026-08-14");
+  });
+
+  it("zero dias é o mesmo que hoje local", () => {
+    const noite = Date.parse("2026-07-16T00:30:00.000Z");
+    expect(diaLocalDaqui(0, noite)).toBe(hojeLocalISO(noite));
+  });
+
+  it("aceita deslocamento negativo", () => {
+    expect(diaLocalDaqui(-1, Date.parse("2026-07-21T15:00:00.000Z"))).toBe("2026-07-20");
+  });
+
+  it("dias inválido conta como zero", () => {
+    const noite = Date.parse("2026-07-16T00:30:00.000Z");
+    expect(diaLocalDaqui(undefined, noite)).toBe("2026-07-15");
   });
 });
 

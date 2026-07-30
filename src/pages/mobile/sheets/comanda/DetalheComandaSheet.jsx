@@ -127,7 +127,8 @@ export default function DetalheComandaSheet({
   const [motivo, setMotivo] = useState("");
   const [senha, setSenha] = useState("");
   const [senhaVis, setSenhaVis] = useState(false);
-  const [senhaErro, setSenhaErro] = useState(false);
+  // Texto: "senha errada" e "não deu para verificar agora" são coisas diferentes.
+  const [senhaErro, setSenhaErro] = useState("");
   const [verificando, setVerificando] = useState(false);
 
   // Ao fechar a folha, descarta qualquer confirmação pela metade — abrir
@@ -138,7 +139,7 @@ export default function DetalheComandaSheet({
       setMotivo("");
       setSenha("");
       setSenhaVis(false);
-      setSenhaErro(false);
+      setSenhaErro("");
       setVerificando(false);
     }
   }, [visivel]);
@@ -153,7 +154,7 @@ export default function DetalheComandaSheet({
     setMotivo("");
     setSenha("");
     setSenhaVis(false);
-    setSenhaErro(false);
+    setSenhaErro("");
     setVerificando(false);
   };
 
@@ -168,9 +169,9 @@ export default function DetalheComandaSheet({
   const confirmarExclusao = async () => {
     if (!excluindo || confirmarDesabilitado) return;
     setVerificando(true);
-    const autorizado = await verificarSenhaAdmin(senha);
-    if (!autorizado) {
-      setSenhaErro(true);
+    const { ok, erro } = await verificarSenhaAdmin(senha);
+    if (!ok) {
+      setSenhaErro(erro || "Senha incorreta. Só admin ou gerente pode excluir itens.");
       setVerificando(false);
       return;
     }
@@ -344,7 +345,7 @@ export default function DetalheComandaSheet({
                       : "detalhe-comanda-sheet__excluir-input"
                   }
                   value={senha}
-                  onChange={(e) => { setSenha(e.target.value); setSenhaErro(false); }}
+                  onChange={(e) => { setSenha(e.target.value); setSenhaErro(""); }}
                   autoComplete="off"
                 />
                 <button
@@ -358,7 +359,7 @@ export default function DetalheComandaSheet({
               </div>
               {senhaErro ? (
                 <p className="detalhe-comanda-sheet__excluir-erro" role="alert">
-                  Senha incorreta. Só admin ou gerente pode excluir itens.
+                  {senhaErro}
                 </p>
               ) : null}
 

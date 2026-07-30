@@ -28,6 +28,36 @@ export function diaLocalISO(iso, tz = TZ_PADRAO) {
 }
 
 /**
+ * Hoje no fuso do estabelecimento ("YYYY-MM-DD").
+ *
+ * Existe para NUNCA mais aparecer `new Date().toISOString().slice(0, 10)` em
+ * caminho de negócio. Aquilo é o dia UTC: às 21h de Brasília o UTC já virou,
+ * então uma comanda fechada às 21h30 gravava competência do dia SEGUINTE — a
+ * noite inteira de um restaurante caía na data errada do Financeiro.
+ *
+ * @param {number|Date} [agora] - epoch ms ou Date de referência
+ * @param {string} [tz]
+ * @returns {string} "YYYY-MM-DD"
+ */
+export function hojeLocalISO(agora = Date.now(), tz = TZ_PADRAO) {
+  return diaLocalISO(agora instanceof Date ? agora : new Date(agora), tz);
+}
+
+/**
+ * Dia local daqui a N dias ("YYYY-MM-DD"). Usado em vencimento de fiado.
+ * Aceita negativo para olhar para trás.
+ *
+ * @param {number} dias
+ * @param {number|Date} [agora] - epoch ms ou Date de referência
+ * @param {string} [tz]
+ * @returns {string} "YYYY-MM-DD"
+ */
+export function diaLocalDaqui(dias, agora = Date.now(), tz = TZ_PADRAO) {
+  const base = agora instanceof Date ? agora.getTime() : agora;
+  return diaLocalISO(new Date(base + (Number(dias) || 0) * 24 * 60 * 60 * 1000), tz);
+}
+
+/**
  * Rótulo pt-BR (dd/mm/aaaa) a partir de uma chave "YYYY-MM-DD".
  * Não reinterpreta fuso — só reordena os campos da chave já resolvida.
  *

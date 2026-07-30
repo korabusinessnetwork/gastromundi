@@ -55,8 +55,16 @@ export const ROLE_FEATURES = {
   admin:   ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Configurações", "Financeiro", "Cozinha (KDS)", "Clientes"],
 };
 
+// Cargo desconhecido não herda permissão de ninguém (fail-closed). Antes o
+// fallback era garçom, então um cargo com typo, um cargo novo que ainda não
+// tem linha na matriz do tenant, ou o papel `plataforma` do Console entravam
+// num estabelecimento já com palm + cozinha + clientes liberados.
+const PERMISSOES_ZERO = Object.freeze(
+  Object.fromEntries(Object.keys(ROLES.admin.permissions).map((k) => [k, false])),
+);
+
 export const getPermissions = (role) =>
-  ROLES[role]?.permissions || ROLES.garcom.permissions;
+  Object.prototype.hasOwnProperty.call(ROLES, role) ? ROLES[role].permissions : PERMISSOES_ZERO;
 
 // ── Permissões editáveis (por cargo e por funcionário) ─────────────
 // Fonte única das chaves de permissão e seus rótulos para a UI. A ordem

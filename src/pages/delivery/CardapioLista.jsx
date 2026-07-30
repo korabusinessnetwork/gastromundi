@@ -3,10 +3,18 @@
 // preço). Card inteiro é clicável (alvo grande — uso majoritário em
 // celular). Combos "monte seu" entram como uma categoria própria.
 // ──────────────────────────────────────────────────────────────────
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatarPreco } from "@/lib/delivery";
 
 function CardProduto({ item, onAbrir }) {
+  // O emoji de reserva já existia, mas só entrava quando NÃO havia foto —
+  // nunca quando havia uma foto que não carrega (arquivo apagado do bucket,
+  // permissão do Storage, link velho). Nesses casos a primeira tela que o
+  // cliente vê enchia de ícone de imagem quebrada. Como o card é remontado
+  // por produto (key), este estado é por produto e não vaza para os outros.
+  const [fotoFalhou, setFotoFalhou] = useState(false);
+  const mostrarFoto = Boolean(item.foto_url) && !fotoFalhou;
+
   return (
     <button className="card-produto" onClick={() => onAbrir(item)}>
       <div className="card-produto__texto">
@@ -14,12 +22,13 @@ function CardProduto({ item, onAbrir }) {
         {item.descricao && <p className="card-produto__desc">{item.descricao}</p>}
         <span className="card-produto__preco">{formatarPreco(item.preco)}</span>
       </div>
-      {item.foto_url ? (
+      {mostrarFoto ? (
         <img
           className="card-produto__foto"
           src={item.foto_url}
           alt={item.nome}
           loading="lazy"
+          onError={() => setFotoFalhou(true)}
         />
       ) : (
         <div className="card-produto__foto card-produto__foto--emoji" aria-hidden="true">

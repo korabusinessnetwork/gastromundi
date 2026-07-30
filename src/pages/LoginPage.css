@@ -154,6 +154,11 @@
   height: 3px;
   border-radius: 2px;
   transition: background 0.2s;
+  background: var(--gm-border);
+}
+/* Tentativa já gasta do bloqueio — o vermelho é o aviso de que o limite chega. */
+.login-page__attempt-pip--usada {
+  background: var(--gm-red);
 }
 
 /* ── Mensagem de erro do formulário ──────────────────────────────── */

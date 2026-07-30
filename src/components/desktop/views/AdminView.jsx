@@ -8,6 +8,9 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
+// O dia UTC vira às 21h de Brasília: a compra aberta à noite já nascia datada
+// de amanhã.
+import { hojeLocalISO } from "@/utils/datas";
 import { getSizes } from "@/constants/sizes";
 import {
   LuPlus, LuPencil, LuTrash2, LuX, LuClipboardList,
@@ -239,13 +242,17 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
     if (!form?.produtoId) return;
     setSaving(true);
     const nova = [...fichas.filter(f => f.id !== form.id), { ...form }];
-    await onSave("fichas_tecnicas", nova);
+    // Fecha só quando gravou. Antes o modal fechava mesmo com o banco
+    // recusando, e a ficha inteira que o usuário digitou ia embora com ele.
+    const { error } = await onSave("fichas_tecnicas", nova);
     setSaving(false);
+    if (error) return;
     fechar();
   };
 
   const excluir = async () => {
-    await onDelete("fichas_tecnicas", fichas.filter(f => f.id !== deleteId));
+    const { error } = await onDelete("fichas_tecnicas", fichas.filter(f => f.id !== deleteId));
+    if (error) return;
     setDeleteId(null);
   };
 
@@ -714,13 +721,15 @@ function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
     if (!form?.nome?.trim()) return;
     setSaving(true);
     const nova = [...fornecedores.filter(f => f.id !== form.id), { ...form, nome: form.nome.trim() }];
-    await onSave("fornecedores", nova);
+    const { error } = await onSave("fornecedores", nova);
     setSaving(false);
+    if (error) return;
     fechar();
   };
 
   const excluir = async () => {
-    await onDelete("fornecedores", fornecedores.filter(f => f.id !== deleteId));
+    const { error } = await onDelete("fornecedores", fornecedores.filter(f => f.id !== deleteId));
+    if (error) return;
     setDeleteId(null);
   };
 
@@ -802,7 +811,7 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
   const [saving,   setSaving]   = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
-  const abrirNova   = () => setForm({ ...COMPRA_VAZIA, id: uid(), data: new Date().toISOString().slice(0, 10) });
+  const abrirNova   = () => setForm({ ...COMPRA_VAZIA, id: uid(), data: hojeLocalISO() });
   const abrirEditar = (c) => setForm({ ...c });
   const fechar      = () => setForm(null);
   const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -821,13 +830,15 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
     const { _fornecedorCustom, ...rest } = form;
     const atualizada = [...compras.filter(c => c.id !== form.id), { ...rest, fornecedor: forn, total }]
       .sort((a, b) => new Date(b.data) - new Date(a.data));
-    await onSave("compras", atualizada);
+    const { error } = await onSave("compras", atualizada);
     setSaving(false);
+    if (error) return;
     fechar();
   };
 
   const excluir = async () => {
-    await onDelete("compras", compras.filter(c => c.id !== deleteId));
+    const { error } = await onDelete("compras", compras.filter(c => c.id !== deleteId));
+    if (error) return;
     setDeleteId(null);
   };
 
@@ -982,13 +993,15 @@ function ImpostosTab({ sz, impostos, onSave, onDelete }) {
     if (!form?.nome?.trim()) return;
     setSaving(true);
     const nova = [...impostos.filter(i => i.id !== form.id), { ...form, nome: form.nome.trim() }];
-    await onSave("impostos", nova);
+    const { error } = await onSave("impostos", nova);
     setSaving(false);
+    if (error) return;
     fechar();
   };
 
   const excluir = async () => {
-    await onDelete("impostos", impostos.filter(i => i.id !== deleteId));
+    const { error } = await onDelete("impostos", impostos.filter(i => i.id !== deleteId));
+    if (error) return;
     setDeleteId(null);
   };
 
@@ -1220,14 +1233,20 @@ export default function AdminView() {
   const [impostos,           setImpostos]           = useState([]);
   const [notasFiscaisCount,  setNotasFiscaisCount]  = useState(0);
   const [loading,            setLoading]            = useState(true);
+  const [erroTela,           setErroTela]           = useState("");
 
   useEffect(() => {
     Promise.all([
       supabase.from("config").select("key, value")
         .in("key", ["fichas_tecnicas", "fornecedores", "compras", "impostos"]),
       supabase.from("notas_fiscais").select("id", { count: "exact", head: true }),
-    ]).then(([{ data }, { count }]) => {
-      if (data) {
+    ]).then(([{ data, error }, { count }]) => {
+      // Sem checar o erro, uma falha de leitura zerava fichas técnicas,
+      // fornecedores e compras na tela — e quem estivesse cadastrando salvava
+      // por cima, apagando tudo o que já existia no banco.
+      if (error) {
+        setErroTela("Não deu para carregar os dados do administrativo. Recarregue a página antes de salvar qualquer coisa.");
+      } else if (data) {
         const get = (key) => { const r = data.find(d => d.key === key); return Array.isArray(r?.value) ? r.value : []; };
         setFichas(get("fichas_tecnicas"));
         setFornecedores(get("fornecedores"));
@@ -1239,12 +1258,21 @@ export default function AdminView() {
     });
   }, []);
 
+  // Devolve { error } e só atualiza a tela quando o banco confirmou: antes o
+  // upsert não era conferido, então a ficha técnica aparecia salva na tela e
+  // sumia no próximo carregamento.
   const handleSave = async (key, value) => {
-    await supabase.from("config").upsert({ key, value });
+    setErroTela("");
+    const { error } = await supabase.from("config").upsert({ key, value });
+    if (error) {
+      setErroTela("Não deu para salvar. A alteração não foi gravada — tente de novo.");
+      return { error };
+    }
     if (key === "fichas_tecnicas") setFichas(value);
     if (key === "fornecedores")    setFornecedores(value);
     if (key === "compras")         setCompras(value);
     if (key === "impostos")        setImpostos(value);
+    return { error: null };
   };
 
   const secaoAtual = SECOES.find(s => s.id === secao);
@@ -1271,6 +1299,9 @@ export default function AdminView() {
       </div>
 
       <div className="admin-view__conteudo" style={{ padding: sz.pad }}>
+        {erroTela && (
+          <div className="admin-view__erro" role="alert">{erroTela}</div>
+        )}
         {loading ? (
           <div className="admin-view__carregando">Carregando...</div>
         ) : !secao ? (

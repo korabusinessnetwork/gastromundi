@@ -8,7 +8,10 @@ vi.mock("@/context/AppContext", async () => {
   return { useApp: mockUseApp, AppProvider: ({ children }) => children };
 });
 
-vi.mock("@/lib/adminAuth", () => ({ verificarSenhaUsuario: vi.fn() }));
+vi.mock("@/lib/adminAuth", () => ({
+  verificarSenhaUsuario: vi.fn(() => Promise.resolve({ ok: false, erro: null })),
+  verificarSenhaAdmin:   vi.fn(() => Promise.resolve({ ok: false, erro: null })),
+}));
 vi.mock("@/lib/supabase", () => ({ supabase: {} }));
 
 import { setAppMock, renderWithProviders } from "@/test/mockApp";

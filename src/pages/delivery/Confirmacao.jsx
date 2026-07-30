@@ -6,8 +6,14 @@ import { formatarPreco } from "@/lib/delivery";
 
 export default function Confirmacao({ resultado, tempoPreparo, onFechar }) {
   return (
-    <div className="modal-fundo" onClick={onFechar}>
-      <div className="modal-painel" onClick={(e) => e.stopPropagation()}>
+    // Sem fechar no fundo, ao contrário de todos os outros modais da vitrine.
+    // Aqui o número do pedido é a ÚNICA cópia que o cliente tem: não existe
+    // acompanhamento, comprovante nem histórico, e a sacola já foi apagada no
+    // aceite. Um toque fora do cartão — o lugar onde o polegar cai no celular
+    // — apagava o número para sempre. A saída continua sendo a mais visível
+    // da tela, que é o botão. (Prevenção de erro > mensagem de erro.)
+    <div className="modal-fundo">
+      <div className="modal-painel">
         <div className="modal-corpo">
           <div className="confirma">
             <div className="confirma__check">✓</div>

@@ -73,6 +73,43 @@ describe("PrivateRoute — Fase 5 (bloqueio total por assinatura, ADR-006 §4)",
   });
 });
 
+describe("PrivateRoute — gating de módulo por plano (ADR-005, camada 1)", () => {
+  it("módulo incluído no plano: renderiza o conteúdo", () => {
+    renderRota({ moduloHabilitado: (m) => m === "financeiro" }, { requiredModulo: "financeiro", moduloLabel: "Financeiro" });
+
+    expect(screen.getByText("Conteúdo protegido")).toBeInTheDocument();
+  });
+
+  it("módulo fora do plano: convida ao upgrade nomeando a tela, sem quebrar nem redirecionar", () => {
+    renderRota({ moduloHabilitado: () => false }, { requiredModulo: "financeiro", moduloLabel: "Financeiro" });
+
+    expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
+    expect(screen.getByText(/Financeiro não está no seu plano atual/i)).toBeInTheDocument();
+    // Redirecionar aqui geraria laço (a rota de destino pode ter o mesmo gate).
+    expect(screen.queryByText("Frente de Caixa")).not.toBeInTheDocument();
+  });
+
+  it("sem rótulo, o convite fala de 'Este recurso' — nunca 'undefined' na tela", () => {
+    renderRota({ moduloHabilitado: () => false }, { requiredModulo: "financeiro" });
+
+    expect(screen.getByText(/Este recurso não está no seu plano atual/i)).toBeInTheDocument();
+    expect(screen.queryByText(/undefined/i)).not.toBeInTheDocument();
+  });
+
+  it("falta de permissão é resolvida antes do plano: redireciona em vez de convidar ao upgrade", () => {
+    // Ordem importa: o gerente sem a permissão da rota é levado para a casa
+    // dele. Convidar ao upgrade quem nem podia entrar na tela sugeriria que
+    // pagar mais resolveria — e não resolve, o que falta é permissão.
+    renderRota(
+      { moduloHabilitado: () => false },
+      { requiredPermission: "clientes", requiredModulo: "clientes", moduloLabel: "Clientes" },
+    );
+
+    expect(screen.getByText("Frente de Caixa")).toBeInTheDocument();
+    expect(screen.queryByText(/não está no seu plano/i)).not.toBeInTheDocument();
+  });
+});
+
 // Rotas suficientes para observar PARA ONDE a negação de permissão redireciona.
 function renderComDestinos(overrides = {}, routeProps = {}) {
   setAppMock({ currentUser: gerente, moduloHabilitado: () => true, ...overrides });

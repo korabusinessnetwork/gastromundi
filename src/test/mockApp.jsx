@@ -95,13 +95,15 @@ export function createAppMockValue(overrides = {}) {
     setSessaoAbertaEm: vi.fn(() => Promise.resolve({ error: null })),
     setMeiosPagamento: vi.fn(() => Promise.resolve({ error: null })),
     updateEstoque: vi.fn(() => Promise.resolve({ error: null })),
-    bulkSetEstoque: vi.fn(() => Promise.resolve({ error: null })),
     baixarEstoque: vi.fn(() => Promise.resolve({ error: null })),
+    entradaEstoque: vi.fn(() => Promise.resolve({ error: null })),
     setMinimoEstoque: vi.fn(() => Promise.resolve({ error: null })),
     taxaServico: false,
     setTaxaServico: vi.fn(() => Promise.resolve({ error: null })),
     metodosCustom: [],
-    setMetodosCustom: vi.fn(),
+    // Devolve { error } como o AppContext real (gravarConfig) — quem chama
+    // desestrutura o retorno, então um vi.fn() "pelado" estouraria.
+    setMetodosCustom: vi.fn(() => Promise.resolve({ error: null })),
     // Leva 12 — offline-first no checkout: por padrão os testes rodam
     // "online" com TEF no crédito/débito (igual ao default real).
     redeOnline: true,

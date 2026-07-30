@@ -277,3 +277,32 @@
   .console__cabecalho { flex-direction: column; align-items: stretch; }
   .console__novo { justify-content: center; }
 }
+
+/* Aviso de estado degradado (âmbar): a tela diz o que não conseguiu
+   carregar em vez de fingir que o catálogo está vazio. */
+.console__aviso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-warn) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 40%, transparent);
+  color: var(--gm-warn);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.console__aviso span { flex: 1; }
+.console__aviso-acao {
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 45%, transparent);
+  background: transparent;
+  color: var(--gm-warn);
+  border-radius: 9px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.console__aviso-acao:hover { background: color-mix(in srgb, var(--gm-warn) 14%, transparent); }

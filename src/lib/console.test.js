@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // console.js importa ./supabase (que exige VITE_* no import). Como estes
 // testes exercitam só as funções PURAS, mockamos o módulo para não
@@ -8,7 +8,14 @@ vi.mock("./supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-import { normalizarUsername, validarNovoEstabelecimento, resumirPlataforma } from "./console";
+import { supabase } from "./supabase";
+import {
+  normalizarUsername,
+  validarNovoEstabelecimento,
+  resumirPlataforma,
+  compararModulosDoPlano,
+  definirMensalidade,
+} from "./console";
 
 describe("normalizarUsername", () => {
   it("baixa a caixa e remove espaços", () => {
@@ -142,10 +149,49 @@ describe("resumirPlataforma", () => {
     expect(kpis.mrr).toBe(500);
   });
 
-  it("monta o alerta de validade ordenado por urgência (bloqueado→carência→vencendo)", () => {
+  it("monta o alerta de validade ordenado por urgência (sem assinatura→bloqueado→carência→vencendo)", () => {
     const { precisamAtencao } = resumirPlataforma(tenants, planos, assinaturas, HOJE);
-    expect(precisamAtencao.map((l) => l.tenantId)).toEqual(["t-bloq", "t-carenc", "t-vence"]);
-    // t-ativo (vence em 20 dias), t-cancel e t-sem ficam de fora
+    expect(precisamAtencao.map((l) => l.tenantId)).toEqual(["t-sem", "t-bloq", "t-carenc", "t-vence"]);
+    // t-ativo (vence em 20 dias) e t-cancel ficam de fora
+  });
+
+  // R7L2: quem não tem linha de assinatura não é bloqueado por policy
+  // nenhuma, não soma no MRR e não aparecia em lugar algum da tela — o
+  // cliente vendido operava de graça para sempre, em silêncio. É o pior
+  // caso comercial, então vem antes até do bloqueado.
+  it("põe quem não tem assinatura no alerta, e no topo dele", () => {
+    const { precisamAtencao } = resumirPlataforma(tenants, planos, assinaturas, HOJE);
+    expect(precisamAtencao.map((l) => l.tenantId)).toContain("t-sem");
+    expect(precisamAtencao[0].tenantId).toBe("t-sem");
+    expect(precisamAtencao[0].status).toBe("sem_assinatura");
+    expect(precisamAtencao[0].nome).toBe("Novo Cliente");
+  });
+
+  it("põe todos os sem-assinatura antes do bloqueado, sem embaralhar com quem tem data", () => {
+    const maisUm = [...tenants, { id: "t-sem2", nome: "Outro Novo", plano_codigo: "basico" }];
+    const { precisamAtencao } = resumirPlataforma(maisUm, planos, assinaturas, HOJE);
+    expect(precisamAtencao.map((l) => l.tenantId)).toEqual([
+      "t-sem", "t-sem2", "t-bloq", "t-carenc", "t-vence",
+    ]);
+    // sem assinatura não tem dataVencimento: o alerta não pode inventar uma
+    expect(precisamAtencao[0].dataVencimento).toBeNull();
+    expect(precisamAtencao[0].diasParaVencer).toBeNull();
+    expect(precisamAtencao[0].valorMensal).toBe(0);
+  });
+
+  it("mantém o cancelado fora do alerta (é decisão manual, não pendência)", () => {
+    const { precisamAtencao } = resumirPlataforma(tenants, planos, assinaturas, HOJE);
+    expect(precisamAtencao.map((l) => l.tenantId)).not.toContain("t-cancel");
+    expect(precisamAtencao.map((l) => l.status)).not.toContain("cancelado");
+  });
+
+  it("não cria alerta quando a base toda está paga e longe do vencimento", () => {
+    const so = [{ id: "t-ok", nome: "Bar OK", plano_codigo: "basico" }];
+    const ass = [
+      { tenant_id: "t-ok", valor_mensal: 100, data_vencimento: "2026-08-13", carencia_dias: 3, status: "ativo" },
+    ];
+    const { precisamAtencao } = resumirPlataforma(so, planos, ass, HOJE);
+    expect(precisamAtencao).toEqual([]);
   });
 
   it("distribui por plano só os planos com tenant, na ordem do catálogo", () => {
@@ -164,5 +210,194 @@ describe("resumirPlataforma", () => {
     expect(r.kpis.mrr).toBe(0);
     expect(r.precisamAtencao).toEqual([]);
     expect(r.distribuicaoPlano).toEqual([]);
+  });
+});
+
+// R7L3: trocar de plano tem efeito imediato e invisível do Console — o
+// estabelecimento perde o módulo na hora e, sem `delivery`, o site público
+// de pedidos dele sai do ar (20260906). Esta função é o que permite a tela
+// NOMEAR a perda antes do clique.
+describe("compararModulosDoPlano", () => {
+  const BASICO = ["cardapio", "pdv", "caixa", "pedidos"];
+  const AVANCADO = ["cardapio", "pdv", "caixa", "pedidos", "estoque", "delivery", "relatorios", "financeiro"];
+
+  it("nomeia o que se perde no downgrade, em português, sem código cru", () => {
+    const { perdidos, ganhos } = compararModulosDoPlano(AVANCADO, BASICO);
+    expect(perdidos.map((m) => m.nome)).toEqual([
+      "Estoque", "Financeiro", "Relatórios", "Delivery (site de pedidos)",
+    ]);
+    expect(ganhos).toEqual([]);
+  });
+
+  it("nomeia o que se ganha no upgrade e não inventa perda", () => {
+    const { perdidos, ganhos } = compararModulosDoPlano(BASICO, AVANCADO);
+    expect(perdidos).toEqual([]);
+    expect(ganhos.map((m) => m.codigo)).toEqual(["estoque", "financeiro", "relatorios", "delivery"]);
+  });
+
+  it("devolve as duas listas vazias quando os planos liberam o mesmo", () => {
+    const { perdidos, ganhos } = compararModulosDoPlano(AVANCADO, [...AVANCADO].reverse());
+    expect(perdidos).toEqual([]);
+    expect(ganhos).toEqual([]);
+  });
+
+  it("ordena pelo registro central, não pela ordem que o banco devolveu", () => {
+    // Mesma perda, ordens de entrada opostas: a saída tem de ser idêntica.
+    const uma = compararModulosDoPlano(["delivery", "estoque", "cardapio"], ["cardapio"]);
+    const outra = compararModulosDoPlano(["cardapio", "estoque", "delivery"], ["cardapio"]);
+    expect(uma.perdidos.map((m) => m.codigo)).toEqual(["estoque", "delivery"]);
+    expect(outra.perdidos.map((m) => m.codigo)).toEqual(uma.perdidos.map((m) => m.codigo));
+  });
+
+  it("mostra código sem rótulo no fim da lista, mas nunca o esconde", () => {
+    const { perdidos } = compararModulosDoPlano(["modulo_novo_do_banco", "delivery"], []);
+    expect(perdidos.map((m) => m.codigo)).toEqual(["delivery", "modulo_novo_do_banco"]);
+    expect(perdidos[1].nome).toBe("modulo_novo_do_banco");
+  });
+
+  it("troca em que perde uma coisa e ganha outra devolve as duas listas", () => {
+    const { perdidos, ganhos } = compararModulosDoPlano(["delivery", "pdv"], ["jarvas", "pdv"]);
+    expect(perdidos.map((m) => m.codigo)).toEqual(["delivery"]);
+    expect(ganhos.map((m) => m.codigo)).toEqual(["jarvas"]);
+  });
+
+  it("não quebra com nulo/indefinido (leitura vazia não é erro)", () => {
+    expect(compararModulosDoPlano(null, undefined)).toEqual({ perdidos: [], ganhos: [] });
+    expect(compararModulosDoPlano(["pdv"], null).perdidos.map((m) => m.codigo)).toEqual(["pdv"]);
+  });
+});
+
+// R7L8: `assinaturas.valor_mensal` nasce em 0 e, até a 20260911, NENHUM
+// caminho do sistema escrevia esse campo. O MRR somava zero com clientes
+// reais na base e o cartão "Receita mensal" do Console afirmava R$ 0,00 como
+// se fosse fato apurado — sem como distinguir "não fatura nada" de "ninguém
+// preencheu o preço". `semPreco` é o que permite à tela dizer POR QUE.
+describe("resumirPlataforma — mensalidade não definida", () => {
+  const HOJE = new Date("2026-07-24T12:00:00Z");
+  const planos = [{ codigo: "basico", nome: "Básico" }];
+  // Datas iguais às do describe acima (status já conferido lá): 08-13 = ativo
+  // tranquilo, 07-23 com carência 3 = carência, 07-14 = bloqueado.
+  const ass = (id, valor, vencimento, status = "ativo") => ({
+    tenant_id: id, valor_mensal: valor, data_vencimento: vencimento,
+    carencia_dias: 3, status,
+  });
+
+  const tenants = [
+    { id: "t-zero",   nome: "Sem Preço",     plano_codigo: "basico" },
+    { id: "t-carenc", nome: "Atrasado Zero", plano_codigo: "basico" },
+    { id: "t-pago",   nome: "Paga 100",      plano_codigo: "basico" },
+    { id: "t-bloq",   nome: "Bloqueado",     plano_codigo: "basico" },
+    { id: "t-cancel", nome: "Cancelado",     plano_codigo: "basico" },
+    { id: "t-sem",    nome: "Sem Assinatura", plano_codigo: "basico" },
+  ];
+  const assinaturas = [
+    ass("t-zero",   0,   "2026-08-13"),
+    ass("t-carenc", 0,   "2026-07-23"),
+    ass("t-pago",   100, "2026-08-13"),
+    ass("t-bloq",   0,   "2026-07-14"),
+    ass("t-cancel", 0,   "2026-08-13", "cancelado"),
+    // t-sem: sem linha de assinatura de propósito
+  ];
+
+  it("conta só a base que PAGA e está sem preço definido", () => {
+    const { kpis } = resumirPlataforma(tenants, planos, assinaturas, HOJE);
+    // ativo zerado + carência zerada = 2. Bloqueado, cancelado e
+    // sem-assinatura não entram: eles já aparecem no alerta com o nome
+    // deles, e contá-los aqui viraria aviso duplicado sobre o mesmo cliente.
+    expect(kpis.semPreco).toBe(2);
+    // E não se confunde com o MRR nem com o total sem assinatura.
+    expect(kpis.mrr).toBe(100);
+    expect(kpis.semAssinatura).toBe(1);
+  });
+
+  it("NULL na coluna também é 'sem mensalidade definida'", () => {
+    // valor_mensal é NOT NULL hoje, mas a leitura não pode depender disso:
+    // um NULL somaria NaN no MRR e passaria batido pela contagem.
+    const { kpis } = resumirPlataforma(
+      [{ id: "t1", nome: "Bar", plano_codigo: "basico" }],
+      planos,
+      [ass("t1", null, "2026-08-13")],
+      HOJE
+    );
+    expect(kpis.semPreco).toBe(1);
+    expect(kpis.mrr).toBe(0);
+  });
+
+  it("é zero quando toda a base que paga tem preço (a nota sai da tela)", () => {
+    const { kpis } = resumirPlataforma(
+      [{ id: "t1", nome: "Bar", plano_codigo: "basico" }],
+      planos,
+      [ass("t1", 300, "2026-08-13")],
+      HOJE
+    );
+    expect(kpis.semPreco).toBe(0);
+  });
+
+  it("quem não tem assinatura nenhuma não vira 'sem preço'", () => {
+    // São problemas diferentes com soluções diferentes: sem assinatura se
+    // resolve criando a assinatura, sem preço se resolve definindo o valor.
+    const { kpis } = resumirPlataforma(
+      [{ id: "t1", nome: "Novo", plano_codigo: "basico" }],
+      planos,
+      [],
+      HOJE
+    );
+    expect(kpis.semPreco).toBe(0);
+    expect(kpis.semAssinatura).toBe(1);
+  });
+});
+
+// R7L8: a ÚNICA via de escrita de valor_mensal. `assinaturas` não tem policy
+// de UPDATE (20260719/20260726), então isto tem de passar pela RPC — um
+// `.from("assinaturas").update(...)` aqui responderia sucesso sem gravar nada.
+describe("definirMensalidade", () => {
+  beforeEach(() => {
+    supabase.reset();
+    supabase.rpc.mockClear();
+  });
+
+  it("chama a RPC do banco com os nomes de parâmetro do contrato", async () => {
+    supabase.setRpcResult("definir_mensalidade_tenant", {
+      data: { tenant_id: "t1", valor_mensal: 300 },
+      error: null,
+    });
+    const { data, error } = await definirMensalidade("t1", 300);
+    expect(error).toBeNull();
+    expect(data).toEqual({ tenant_id: "t1", valor_mensal: 300 });
+    // Nome da RPC e das chaves são contrato com a 20260911: errar aqui
+    // devolve 42883 ("function does not exist") na cara do dono.
+    expect(supabase.rpc).toHaveBeenCalledWith("definir_mensalidade_tenant", {
+      p_tenant_id: "t1",
+      p_valor: 300,
+    });
+  });
+
+  it("manda zero como zero — cortesia é valor válido, não campo vazio", async () => {
+    await definirMensalidade("t1", 0);
+    expect(supabase.rpc).toHaveBeenCalledWith("definir_mensalidade_tenant", {
+      p_tenant_id: "t1",
+      p_valor: 0,
+    });
+  });
+
+  it("devolve a recusa do banco em vez de inventar sucesso", async () => {
+    supabase.setRpcError("definir_mensalidade_tenant", {
+      code: "42501",
+      message: "Apenas a plataforma pode definir a mensalidade de um estabelecimento.",
+    });
+    const { data, error } = await definirMensalidade("t1", 300);
+    expect(data).toBeNull();
+    expect(error.code).toBe("42501");
+    // A recusa deliberada chega literal na tela: é ela que explica o motivo.
+    expect(error.message).toMatch(/Apenas a plataforma/);
+  });
+
+  it("não lança quando a chamada explode (queda de rede)", async () => {
+    supabase.rpc.mockImplementationOnce(() => {
+      throw new Error("Failed to fetch");
+    });
+    const { data, error } = await definirMensalidade("t1", 300);
+    expect(data).toBeNull();
+    expect(error.message).toBe("Failed to fetch");
   });
 });

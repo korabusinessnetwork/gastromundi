@@ -12,9 +12,11 @@ import "./PerfilImpressora.css";
 // usado localmente pra mostrar como o layout fica na largura escolhida
 // (mesma renderização exata que sai numa venda de verdade) e pra o botão
 // "Imprimir teste" ter algo concreto pra mandar pro driver escolhido.
+// O nome é genérico de propósito: é um exemplo mostrado a TODO
+// estabelecimento, então não pode ser a marca de nenhum (decisão 017).
 const DOCUMENTO_EXEMPLO = {
   tipo: "comprovante",
-  identidade: { nome: "GastroMundi", logoUrl: null, endereco: "", cnpj: "", rodape: "Obrigado pela preferência!" },
+  identidade: { nome: "Seu Estabelecimento", logoUrl: null, endereco: "", cnpj: "", rodape: "Obrigado pela preferência!" },
   comanda: "42",
   itens: [
     { nome: "Hambúrguer artesanal", qty: 2, preco: 32.5, emoji: "🍔", obs: ["sem cebola"] },

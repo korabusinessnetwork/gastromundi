@@ -387,6 +387,14 @@
   line-height: var(--lh-sm);
 }
 
+.subprodutos-view__erro-tela {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gm-red) 10%, transparent);
+}
+
 .subprodutos-view__modal-botoes {
   display: flex;
   gap: 10px;

@@ -29,7 +29,7 @@ const COLUNAS = [
  */
 export default function CozinhaView() {
   const { currentUser } = useApp();
-  const { pedidos, loading } = usePedidosCozinha();
+  const { pedidos, loading, erro, recarregar } = usePedidosCozinha();
   const { width } = useResponsive();
   const sz = getSizes(width);
 
@@ -85,6 +85,19 @@ export default function CozinhaView() {
           <div className="cozinha-view__subtitulo" style={{ color: varColor(C.muted) }}>Painel de preparo em tempo real</div>
         </div>
       </div>
+
+      {/* Falha ao carregar: nunca deixar o painel parecer "sem pedidos". */}
+      {erro && (
+        <div className="cozinha-view__erro" role="alert">
+          <LuTriangleAlert size={sz.fontLg} color="var(--gm-red)" />
+          <span className="cozinha-view__erro-texto">
+            Não deu para carregar os pedidos. Pode haver pedidos esperando que não estão nesta tela.
+          </span>
+          <button type="button" className="cozinha-view__erro-btn" onClick={recarregar} disabled={loading}>
+            {loading ? "Tentando…" : "Tentar de novo"}
+          </button>
+        </div>
+      )}
 
       {/* Colunas */}
       <div className="cozinha-view__colunas" style={{ gap: sz.gap, padding: sz.pad }}>

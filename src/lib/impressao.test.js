@@ -24,10 +24,21 @@ beforeEach(() => {
 });
 
 describe("resolverIdentidadeTenant (Fase 6 — sem marca hardcoded)", () => {
-  it("sem tema custom: nome cai no fallback GastroMundi, sem endereço/CNPJ (config padrão)", () => {
+  it("sem tenant nenhum: nome cai na marca da PLATAFORMA, sem endereço/CNPJ (config padrão)", () => {
     const identidade = resolverIdentidadeTenant(null, undefined);
 
-    expect(identidade).toEqual({ nome: "GastroMundi", logoUrl: null, endereco: "", cnpj: "", rodape: "Obrigado pela preferência!" });
+    expect(identidade).toEqual({ nome: "Kora", logoUrl: null, endereco: "", cnpj: "", rodape: "Obrigado pela preferência!" });
+  });
+
+  it("sem tema custom: o cupom sai com o nome CADASTRADO do estabelecimento", () => {
+    // Run 5, leva 11 — o pior caso do defeito: o cabeçalho do cupom é papel
+    // que vai para a mão do cliente. Todo estabelecimento sem `nome_exibicao`
+    // (o padrão de quem acabou de ser cadastrado) entregava um cupom com a
+    // marca de OUTRA empresa impressa em cima (decisão 017).
+    const identidade = resolverIdentidadeTenant({ nome: "Casa Coffee", tema: {} }, undefined);
+
+    expect(identidade.nome).toBe("Casa Coffee");
+    expect(identidade.nome).not.toBe("GastroMundi");
   });
 
   it("com tema custom: usa nome/logo do tenant", () => {
@@ -123,10 +134,17 @@ describe("montarComprovantePagamento (itens, totais, troco, identidade)", () => 
     expect(comprovante.identidade.nome).toBe("Pizzaria do João");
   });
 
-  it("usa o fallback GastroMundi sem tenant/tema", () => {
+  it("sem tema, o comprovante leva o nome cadastrado do estabelecimento", () => {
+    const comprovante = montarComprovantePagamento({ venda: vendaBase, tenant: { nome: "Casa Coffee", tema: {} } });
+
+    expect(comprovante.identidade.nome).toBe("Casa Coffee");
+  });
+
+  it("sem tenant nenhum, cai na marca da plataforma — nunca na de um cliente", () => {
     const comprovante = montarComprovantePagamento({ venda: vendaBase });
 
-    expect(comprovante.identidade.nome).toBe("GastroMundi");
+    expect(comprovante.identidade.nome).toBe("Kora");
+    expect(comprovante.identidade.nome).not.toBe("GastroMundi");
   });
 
   it("lida com venda vazia/incompleta sem lançar", () => {

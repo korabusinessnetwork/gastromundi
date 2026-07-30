@@ -142,49 +142,96 @@ export default function ProdutosView() {
   const [catNova,         setCatNova]         = useState("");
   const [catOpLoading,    setCatOpLoading]    = useState(false);
   const [catConfirmDelete, setCatConfirmDelete] = useState(null); // nome da categoria a excluir
+  const [catErro,         setCatErro]         = useState("");
+  const [catExtraCarregado, setCatExtraCarregado] = useState(false);
 
   useEffect(() => {
     supabase.from("config").select("value").eq("key", "categorias_extra").single()
-      .then(({ data }) => { if (data?.value && Array.isArray(data.value)) setCatExtra(data.value); });
+      .then(({ data, error }) => {
+        // Toda gravação de categoria é um upsert da lista inteira. Se a leitura
+        // falhou e mesmo assim deixássemos gravar, o upsert seguinte apagaria
+        // do banco todas as categorias que não conseguimos ler. Por isso a
+        // falha bloqueia a edição em vez de só avisar depois do estrago.
+        // PGRST116 é "nenhuma linha": tenant que ainda não criou extra nenhuma.
+        if (error && error.code !== "PGRST116") {
+          setCatErro("Não deu para carregar as categorias personalizadas. Recarregue a página antes de criar, renomear ou excluir categoria.");
+          return;
+        }
+        setCatExtraCarregado(true);
+        if (data?.value && Array.isArray(data.value)) setCatExtra(data.value);
+      });
     supabase.from("unidades_medida").select("*").order("ordem")
       .then(({ data }) => { if (data) setUnidadesMedida(data); });
   }, []);
 
+  // Otimista com desfazer: a lista volta ao que era quando o banco recusa.
+  // Antes o upsert não era conferido, então a categoria aparecia criada na
+  // tela, sumia no reload, e a gravação seguinte partia de uma lista errada.
   const salvarCatExtra = async (lista) => {
+    const anterior = catExtra;
     setCatExtra(lista);
-    await supabase.from("config").upsert({ key: "categorias_extra", value: lista });
+    const { error } = await supabase.from("config").upsert({ key: "categorias_extra", value: lista });
+    if (error) {
+      setCatExtra(anterior);
+      return { error };
+    }
+    return { error: null };
   };
 
   const criarCategoria = async () => {
     const nome = catNova.trim();
-    if (!nome || catOpLoading || categorias.includes(nome)) return;
+    if (!nome || catOpLoading || !catExtraCarregado || categorias.includes(nome)) return;
     setCatOpLoading(true);
-    await salvarCatExtra([...catExtra, nome]);
-    setCatNova("");
+    setCatErro("");
+    const { error } = await salvarCatExtra([...catExtra, nome]);
     setCatOpLoading(false);
+    if (error) {
+      setCatErro(`Não deu para criar a categoria "${nome}". Tente de novo.`);
+      return;
+    }
+    setCatNova("");
   };
 
   const renomearCategoria = async () => {
-    if (!catEditando || catOpLoading) return;
+    if (!catEditando || catOpLoading || !catExtraCarregado) return;
     const novoNome   = catEditando.input.trim();
     const nomeAntigo = catEditando.name;
     if (!novoNome || novoNome === nomeAntigo) { setCatEditando(null); return; }
     setCatOpLoading(true);
-    await salvarCatExtra(catExtra.map(c => c === nomeAntigo ? novoNome : c));
-    await Promise.all(products.filter(p => p.category === nomeAntigo).map(p => updateProduct(p.id, { category: novoNome })));
+    setCatErro("");
+    const { error } = await salvarCatExtra(catExtra.map(c => c === nomeAntigo ? novoNome : c));
+    if (error) {
+      setCatOpLoading(false);
+      setCatErro(`Não deu para renomear "${nomeAntigo}". Nada foi alterado — tente de novo.`);
+      return;
+    }
+    const resultados = await Promise.all(products.filter(p => p.category === nomeAntigo).map(p => updateProduct(p.id, { category: novoNome })));
+    const falhas = resultados.filter(r => r?.error).length;
+    if (falhas > 0) setCatErro(`A categoria virou "${novoNome}", mas ${falhas} produto${falhas === 1 ? "" : "s"} continuou em "${nomeAntigo}". Abra o produto e corrija a categoria.`);
     if (catFiltro === nomeAntigo) setCatFiltro(novoNome);
     setCatEditando(null);
     setCatOpLoading(false);
   };
 
   const excluirCategoria = async (nome) => {
-    if (catOpLoading || nome === CAT_SEM_CATEGORIA) return;
+    if (catOpLoading || !catExtraCarregado || nome === CAT_SEM_CATEGORIA) return;
     setCatOpLoading(true);
+    setCatErro("");
+    // A lista sai primeiro: se essa gravação falhar, nada foi mexido. Na ordem
+    // antiga (produtos primeiro) a mesma falha deixava todo mundo em "Sem
+    // Categoria" com a categoria ainda de pé — perda silenciosa.
+    const { error } = await salvarCatExtra(catExtra.filter(c => c !== nome));
+    if (error) {
+      setCatOpLoading(false);
+      setCatErro(`Não deu para excluir "${nome}". Nada foi alterado — tente de novo.`);
+      return;
+    }
     // Produtos dentro da categoria não são excluídos: caem no balde "Sem
-    // Categoria". Só depois removemos a categoria da lista de extras.
+    // Categoria".
     const afetados = products.filter(p => p.category === nome);
-    await Promise.all(afetados.map(p => updateProduct(p.id, { category: CAT_SEM_CATEGORIA })));
-    await salvarCatExtra(catExtra.filter(c => c !== nome));
+    const resultados = await Promise.all(afetados.map(p => updateProduct(p.id, { category: CAT_SEM_CATEGORIA })));
+    const falhas = resultados.filter(r => r?.error).length;
+    if (falhas > 0) setCatErro(`${falhas} produto${falhas === 1 ? " continuou" : "s continuaram"} em "${nome}", então a categoria segue na lista. Tente de novo.`);
     if (catFiltro === nome) setCatFiltro(afetados.length > 0 ? CAT_SEM_CATEGORIA : "Todos");
     setCatOpLoading(false);
   };
@@ -779,6 +826,9 @@ export default function ProdutosView() {
               </div>
               <button onClick={() => { setShowCatModal(false); setCatEditando(null); setCatNova(""); }} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", lineHeight: 0, padding: 4 }}><LuXIcon size={20} /></button>
             </div>
+            {catErro && (
+              <div className="produtos-view__cat-erro" role="alert">⚠️ {catErro}</div>
+            )}
             <div className="produtos-view__cat-lista">
               {categorias.length === 0 && <div className="produtos-view__cat-vazio" style={{ color: varColor(C.muted), textAlign: "center", padding: 24 }}>Nenhuma categoria ainda.</div>}
               {categorias.map(cat => {
@@ -787,7 +837,9 @@ export default function ProdutosView() {
                 const eCatFixa    = CATS_FIXAS.includes(cat);
                 const eSemCategoria = cat === CAT_SEM_CATEGORIA;
                 const eProtegida  = eCatFixa || eSemCategoria;
-                const podeExcluir = !eProtegida;
+                // Sem a lista carregada não dá para editar nem excluir: qualquer
+                // gravação apagaria as categorias que não conseguimos ler.
+                const podeExcluir = !eProtegida && catExtraCarregado;
                 return (
                   <div key={cat} className="produtos-view__cat-item" style={{ background: emEdicao ? "var(--gm-alow)" : varColor(C.surface), borderColor: emEdicao ? alfa(C.accent, "66") : varColor(C.border) }}>
                     {emEdicao ? (
@@ -802,7 +854,7 @@ export default function ProdutosView() {
                         {eCatFixa && <span className="produtos-view__cat-badge-padrao" style={{ background: alfa(C.accent, "15"), border: `1px solid ${alfa(C.accent, "33")}` }}>padrão</span>}
                         {eSemCategoria && <span className="produtos-view__cat-badge-padrao" style={{ background: alfa(C.blue, "15"), border: `1px solid ${alfa(C.blue, "33")}`, color: varColor(C.blue) }}>automática</span>}
                         <span className="produtos-view__cat-badge-qtd">{qtdProdutos} {qtdProdutos === 1 ? "produto" : "produtos"}</span>
-                        {!eProtegida && <button onClick={() => setCatEditando({ name: cat, input: cat })} className="produtos-view__cat-btn-editar" style={{ borderColor: varColor(C.border), color: varColor(C.muted) }}><LuPencil size={14} /></button>}
+                        {!eProtegida && <button onClick={() => setCatEditando({ name: cat, input: cat })} disabled={!catExtraCarregado || catOpLoading} className="produtos-view__cat-btn-editar" style={{ borderColor: varColor(C.border), color: varColor(C.muted), cursor: catExtraCarregado ? "pointer" : "not-allowed", opacity: catExtraCarregado ? 1 : 0.4 }}><LuPencil size={14} /></button>}
                         <button onClick={() => podeExcluir && setCatConfirmDelete(cat)} disabled={!podeExcluir || catOpLoading} className="produtos-view__cat-btn-excluir" style={{ borderColor: podeExcluir ? alfa(C.red, "55") : varColor(C.border), color: podeExcluir ? varColor(C.red) : varColor(C.border), cursor: podeExcluir ? "pointer" : "not-allowed", opacity: podeExcluir ? 1 : 0.4 }}><LuTrash2 size={14} /></button>
                       </>
                     )}
@@ -814,7 +866,7 @@ export default function ProdutosView() {
               <div className="produtos-view__cat-nova-titulo">Nova Categoria</div>
               <div className="produtos-view__cat-nova-linha">
                 <input value={catNova} onChange={e => setCatNova(e.target.value)} onKeyDown={e => e.key === "Enter" && criarCategoria()} placeholder="Ex: Bebidas, Lanches..." maxLength={40} className="produtos-view__cat-nova-input" style={{ borderColor: catNova.trim() ? varColor(C.accent) : "var(--gm-input-border)" }} />
-                <button onClick={criarCategoria} disabled={!catNova.trim() || catOpLoading || categorias.includes(catNova.trim())} className="produtos-view__cat-nova-btn" style={{ background: catNova.trim() && !categorias.includes(catNova.trim()) ? varColor(C.accent) : varColor(C.surface), color: catNova.trim() && !categorias.includes(catNova.trim()) ? "#fff" : varColor(C.muted), cursor: catNova.trim() && !categorias.includes(catNova.trim()) ? "pointer" : "not-allowed" }}>
+                <button onClick={criarCategoria} disabled={!catNova.trim() || catOpLoading || !catExtraCarregado || categorias.includes(catNova.trim())} className="produtos-view__cat-nova-btn" style={{ background: catNova.trim() && !categorias.includes(catNova.trim()) ? varColor(C.accent) : varColor(C.surface), color: catNova.trim() && !categorias.includes(catNova.trim()) ? "#fff" : varColor(C.muted), cursor: catNova.trim() && !categorias.includes(catNova.trim()) ? "pointer" : "not-allowed" }}>
                   {catOpLoading ? "..." : "Adicionar"}
                 </button>
               </div>

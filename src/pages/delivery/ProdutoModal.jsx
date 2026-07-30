@@ -16,6 +16,7 @@ import {
   formatarPreco,
   grupoSatisfeito,
   produtoPodeAdicionar,
+  produtoImpossivel,
   rotuloRegraGrupo,
   primeiroGrupoPendente,
   achatarGrupos,
@@ -32,10 +33,14 @@ import {
 function GrupoBloco({ grupo, nivel, selecoes, destaque, onAlternar, registrarRef }) {
   const ids = selecoes[grupo.id] ?? [];
   const obrigatorio = Number(grupo.min) > 0;
-  const escolhaUnica = Number(grupo.max) === 1;
+  const max = Number(grupo.max) > 0 ? Number(grupo.max) : 0; // 0 = sem limite
+  const escolhaUnica = max === 1;
   const ok = grupoSatisfeito(grupo, ids.length);
   const pendente = destaque === grupo.id;
   const subgrupos = grupo.subgrupos ?? [];
+  // Chegou ao teto do grupo. Escolha única não conta: ali tocar em outra
+  // opção troca a escolha, que é o comportamento esperado de um rádio.
+  const noLimite = max > 1 && ids.length >= max;
 
   return (
     <div
@@ -53,18 +58,24 @@ function GrupoBloco({ grupo, nivel, selecoes, destaque, onAlternar, registrarRef
             (obrigatorio && !ok ? " grupo__regra--obrig" : "")
           }
         >
-          {obrigatorio && ok ? "✓ pronto" : rotuloRegraGrupo(grupo)}
+          {noLimite
+            ? `Máximo ${max} — desmarque para trocar`
+            : obrigatorio && ok
+              ? "✓ pronto"
+              : rotuloRegraGrupo(grupo)}
         </span>
       </div>
       {(grupo.itens ?? []).map((c) => {
         const ativa = ids.includes(c.id);
+        const bloqueada = noLimite && !ativa;
         return (
           <button
             type="button"
-            className={`opcao${ativa ? " opcao--ativa" : ""}`}
+            className={`opcao${ativa ? " opcao--ativa" : ""}${bloqueada ? " opcao--bloqueada" : ""}`}
             key={c.id}
             onClick={() => onAlternar(grupo, c)}
             aria-pressed={ativa}
+            disabled={bloqueada}
           >
             <span className={`opcao__marca${escolhaUnica ? " opcao__marca--radio" : ""}`}>
               {ativa ? "✓" : ""}
@@ -95,7 +106,7 @@ function GrupoBloco({ grupo, nivel, selecoes, destaque, onAlternar, registrarRef
   );
 }
 
-export default function ProdutoModal({ produto, onFechar, onAdicionar }) {
+export default function ProdutoModal({ produto, lojaAberta = true, onFechar, onAdicionar }) {
   // selecoesPorGrupo: grupoId → [complementoId]
   const [selecoes, setSelecoes] = useState({});
   const [obs, setObs] = useState("");
@@ -139,6 +150,17 @@ export default function ProdutoModal({ produto, onFechar, onAdicionar }) {
   }, [grupos, selecoes]);
 
   const podeAdicionar = produtoPodeAdicionar(produto, selecoes);
+  // Grupo obrigatório sem nenhuma opção disponível (o dono marcou "acabou")
+  // deixa o produto impedido de sair: não existe escolha que o libere. Sem
+  // dizer isso, o CTA fica pedindo "Escolha os obrigatórios" para sempre e
+  // manda o cliente procurar o que não existe.
+  const indisponivel = produtoImpossivel(produto);
+  // Fora do horário a barra da sacola não existe (ela só aparece com a loja
+  // aberta). O "Adicionar" continuava clicável: o item entrava na sacola
+  // invisível, o modal fechava e a tela ficava EXATAMENTE igual. O cliente
+  // tocava de novo, e de novo — e reencontrava a pilha de repetidos quando
+  // a loja abrisse. O CTA agora diz por que não dá.
+  const fechada = !lojaAberta;
 
   const precoUnit = useMemo(() => {
     const base = Number(produto?.preco) || 0;
@@ -160,6 +182,7 @@ export default function ProdutoModal({ produto, onFechar, onAdicionar }) {
 
   // Clique no CTA: adiciona, ou conduz o cliente ao primeiro grupo pendente.
   function tentarAdicionar() {
+    if (fechada) return;
     if (podeAdicionar) {
       adicionar();
       return;
@@ -259,11 +282,19 @@ export default function ProdutoModal({ produto, onFechar, onAdicionar }) {
           </div>
 
           <button
-            className={`btn btn--primario${podeAdicionar ? "" : " btn--bloqueado"}`}
+            className={`btn btn--primario${podeAdicionar && !fechada ? "" : " btn--bloqueado"}`}
             onClick={tentarAdicionar}
-            aria-disabled={!podeAdicionar}
+            aria-disabled={!podeAdicionar || fechada}
           >
-            <span>{podeAdicionar ? "Adicionar" : "Escolha os obrigatórios"}</span>
+            <span>
+              {fechada
+                ? "Fechado no momento"
+                : indisponivel
+                  ? "Indisponível no momento"
+                  : podeAdicionar
+                    ? "Adicionar"
+                    : "Escolha os obrigatórios"}
+            </span>
             <span className="btn__preco">{formatarPreco(precoUnit * qtd)}</span>
           </button>
         </div>

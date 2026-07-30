@@ -3,17 +3,38 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
+import { totalItensAtivos } from "@/lib/comandaItens";
 import "./MesaMapView.css";
 
-export function statusMesa(mesa, abertas) {
-  if (mesa.status_manual === "manutencao") return "manutencao";
-  const temPedidoAtivo = abertas.some(
-    (o) => String(o.mesa) === String(mesa.numero)
-         && o.status !== "closed"
-         && Array.isArray(o.items) && o.items.length > 0
+/**
+ * A comanda aberta desta mesa, ou null.
+ *
+ * Não exige item lançado. `MobilePage.persistirLancamento` e a sincronização
+ * offline da Ponte criam a comanda com `items: []` ANTES de lançar os itens, e
+ * cancelar item por item zera a lista sem fechar a conta. Exigir item fazia a
+ * mesa com conta aberta voltar a aparecer "Livre" — e o clique nela abria uma
+ * SEGUNDA comanda na mesma mesa.
+ *
+ * A comparação ignora comanda sem mesa (delivery, balcão): sem isso
+ * `String(null) === String(undefined)` casava qualquer uma delas com mesa sem
+ * número.
+ */
+export function comandaAbertaDaMesa(mesa, abertas) {
+  const numero = mesa?.numero;
+  if (numero == null) return null;
+  return (
+    (Array.isArray(abertas) ? abertas : []).find(
+      (o) => o?.mesa != null && String(o.mesa) === String(numero) && o.status !== "closed"
+    ) ?? null
   );
-  if (temPedidoAtivo) return "aberta";
-  if (mesa.status_manual === "reservada") return "reservada";
+}
+
+export function statusMesa(mesa, abertas) {
+  // Conta aberta vence manutenção: a mesa marcada para manutenção com conta em
+  // aberto perdia o clique, e não havia caminho no mapa para cobrar essa conta.
+  if (comandaAbertaDaMesa(mesa, abertas)) return "aberta";
+  if (mesa?.status_manual === "manutencao") return "manutencao";
+  if (mesa?.status_manual === "reservada") return "reservada";
   return "livre";
 }
 
@@ -60,18 +81,12 @@ export default function MesaMapView({ mesas, loading, abertas, onSelectComanda, 
   const gap   = 12;
 
   const handleClick = (mesa) => {
-    const st = statusMesa(mesa, abertas);
-    if (st === "manutencao") return;
-    if (st === "aberta") {
-      const pedido = abertas.find(
-        (o) => String(o.mesa) === String(mesa.numero)
-             && o.status !== "closed"
-             && Array.isArray(o.items) && o.items.length > 0
-      );
-      if (pedido) onSelectComanda(pedido);
-    } else {
-      onOpenEmpty(mesa.numero, { mesa: mesa.numero });
-    }
+    // Conta aberta primeiro: a mesa em manutenção com conta em aberto precisa
+    // continuar clicável, senão a conta fica sem como ser cobrada pelo mapa.
+    const pedido = comandaAbertaDaMesa(mesa, abertas);
+    if (pedido) { onSelectComanda(pedido); return; }
+    if (statusMesa(mesa, abertas) === "manutencao") return;
+    onOpenEmpty(mesa.numero, { mesa: mesa.numero });
   };
 
   const temPosicao = mesas.some((m) => m.posicao_x != null && m.posicao_y != null);
@@ -127,36 +142,53 @@ function LayoutGrid({ mesas, abertas, cardW, cardH, gap, totalWidth, onClickMesa
 }
 
 function LayoutAbsoluto({ mesas, abertas, cardW, cardH, gap, onClickMesa, sz }) {
-  const maxX = Math.max(...mesas.map((m) => m.posicao_x ?? 1));
-  const maxY = Math.max(...mesas.map((m) => m.posicao_y ?? 1));
+  // Mesa sem as duas coordenadas não entra no mapa posicionado: o fallback
+  // `?? 1` jogava todas elas em (1,1), empilhadas uma sobre a outra — mesa com
+  // conta aberta desaparecia atrás de outra e ficava sem como ser cobrada.
+  // Elas vão para uma faixa própria abaixo do mapa, com o que fazer para
+  // posicioná-las.
+  const posicionadas = mesas.filter((m) => m.posicao_x != null && m.posicao_y != null);
+  const semPosicao   = mesas.filter((m) => m.posicao_x == null || m.posicao_y == null);
+  const maxX = Math.max(...posicionadas.map((m) => m.posicao_x));
+  const maxY = Math.max(...posicionadas.map((m) => m.posicao_y));
   const containerW = maxX * (cardW + gap) - gap;
   const containerH = maxY * (cardH + gap) - gap;
   return (
-    <div style={{ position: "relative", width: containerW, height: containerH, margin: "0 auto" }}>
-      {mesas.map((m) => {
-        const x = ((m.posicao_x ?? 1) - 1) * (cardW + gap);
-        const y = ((m.posicao_y ?? 1) - 1) * (cardH + gap);
-        return (
-          <div key={m.numero} style={{ position: "absolute", left: x, top: y }}>
-            <CardMesa mesa={m} abertas={abertas} w={cardW} h={cardH} sz={sz} onClick={onClickMesa} />
+    <>
+      <div style={{ position: "relative", width: containerW, height: containerH, margin: "0 auto" }}>
+        {posicionadas.map((m) => {
+          const x = (m.posicao_x - 1) * (cardW + gap);
+          const y = (m.posicao_y - 1) * (cardH + gap);
+          return (
+            <div key={m.numero} style={{ position: "absolute", left: x, top: y }}>
+              <CardMesa mesa={m} abertas={abertas} w={cardW} h={cardH} sz={sz} onClick={onClickMesa} />
+            </div>
+          );
+        })}
+      </div>
+      {semPosicao.length > 0 && (
+        <div className="mesa-map__sem-posicao" style={{ marginTop: gap * 2 }}>
+          <div className="mesa-map__sem-posicao-titulo" style={{ color: varColor(C.muted) }}>
+            Sem posição no mapa — defina a posição destas mesas em Configurações
           </div>
-        );
-      })}
-    </div>
+          <div className="mesa-map__sem-posicao-grid" style={{ gap }}>
+            {semPosicao.map((m) => (
+              <CardMesa key={m.numero} mesa={m} abertas={abertas} w={cardW} h={cardH} sz={sz} onClick={onClickMesa} />
+            ))}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
 function CardMesa({ mesa, abertas, w, h, sz, onClick }) {
-  const st    = statusMesa(mesa, abertas);
-  const s     = STATUS[st];
-  const pedido = st === "aberta"
-    ? abertas.find((o) => String(o.mesa) === String(mesa.numero) && o.status !== "closed" && Array.isArray(o.items) && o.items.length > 0)
-    : null;
-  const total = pedido
-    ? (Array.isArray(pedido.items) ? pedido.items : [])
-        .filter((i) => !i.cancelado)
-        .reduce((acc, i) => acc + (i.price ?? 0) * (i.qty ?? 1), 0)
-    : 0;
+  const st     = statusMesa(mesa, abertas);
+  const s      = STATUS[st];
+  const pedido = comandaAbertaDaMesa(mesa, abertas);
+  // Mesma conta do resto do sistema (itens ativos, arredondada). A soma
+  // reescrita aqui podia divergir por centavos do valor cobrado no checkout.
+  const total  = totalItensAtivos(pedido?.items);
 
   return (
     <div

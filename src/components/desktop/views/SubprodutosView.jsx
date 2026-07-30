@@ -229,22 +229,37 @@ export default function SubprodutosView({ sz }) {
   const [excluindo, setExcluindo] = useState(null); // subproduto pendente de exclusão
   const [deletando, setDeletando] = useState(false);
   const [erroDelete, setErroDelete] = useState("");
+  const [erroTela,  setErroTela]  = useState("");
   const [usoCombo,  setUsoCombo]  = useState({});   // { subproduto_id: qtd de combos que o usam }
+  const [usoComboOk, setUsoComboOk] = useState(false); // a contagem acima é confiável?
 
   const carregar = async () => {
     setLoading(true);
+    setErroTela("");
     // Além dos subprodutos, carrega quantos combos usam cada um: a FK
     // combo_subprodutos.subproduto_id é ON DELETE RESTRICT, então subproduto
     // em uso NÃO pode ser excluído — prevenimos o erro (Princípio nº 1) em
     // vez de deixar o banco recusar.
-    const [{ data }, { data: usos }] = await Promise.all([
+    const [{ data, error }, { data: usos, error: erroUsos }] = await Promise.all([
       supabase.from("subprodutos").select("*, estoque_subprodutos(quantidade, minimo)").order("nome"),
       supabase.from("combo_subprodutos").select("subproduto_id"),
     ]);
-    setLista(data ?? []);
+    // Falha de leitura não é lista vazia. Sem avisar, a tela dizia "Nenhum
+    // subproduto cadastrado" e o operador recadastrava tudo por cima.
+    if (error) {
+      setErroTela("Não deu para carregar os subprodutos. Recarregue a página — a lista abaixo pode estar incompleta.");
+    } else {
+      setLista(data ?? []);
+    }
+    // Sem a contagem de uso em combos, a trava de exclusão cai e o banco
+    // recusaria o delete com erro de FK. Melhor avisar e manter a trava.
+    if (erroUsos) {
+      setErroTela("Não deu para verificar quais subprodutos estão em combos. Recarregue a página antes de excluir qualquer um.");
+    }
     const mapa = {};
     for (const u of usos ?? []) mapa[u.subproduto_id] = (mapa[u.subproduto_id] ?? 0) + 1;
     setUsoCombo(mapa);
+    setUsoComboOk(!erroUsos);
     setLoading(false);
   };
 
@@ -255,9 +270,18 @@ export default function SubprodutosView({ sz }) {
   const fecharModal  = () => { setModal(false); setEditando(null); };
   const aoSalvar     = () => { fecharModal(); carregar(); };
 
+  // Otimista com desfazer: a gravação não era conferida, então o badge virava
+  // "Inativo" na tela e o subproduto continuava à venda no cardápio.
   const toggleAtivo = async (s) => {
-    await supabase.from("subprodutos").update({ ativo: !s.ativo, updated_at: new Date().toISOString() }).eq("id", s.id);
+    setErroTela("");
     setLista(prev => prev.map(x => x.id === s.id ? { ...x, ativo: !x.ativo } : x));
+    const { error } = await supabase.from("subprodutos")
+      .update({ ativo: !s.ativo, updated_at: new Date().toISOString() })
+      .eq("id", s.id);
+    if (error) {
+      setLista(prev => prev.map(x => x.id === s.id ? { ...x, ativo: s.ativo } : x));
+      setErroTela(`Não deu para ${s.ativo ? "desativar" : "ativar"} "${s.nome}". Nada mudou — tente de novo.`);
+    }
   };
 
   // Excluir subproduto — o saldo em estoque_subprodutos some em cascata
@@ -324,8 +348,15 @@ export default function SubprodutosView({ sz }) {
 
       {/* Tabela */}
       <div className="subprodutos-view__tabela-area" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
+        {erroTela && (
+          <div className="subprodutos-view__erro subprodutos-view__erro-tela" role="alert">⚠ {erroTela}</div>
+        )}
         {loading ? (
           <div className="subprodutos-view__estado">Carregando…</div>
+        ) : erroTela && lista.length === 0 ? (
+          // Lista vazia por falha de leitura não é lista vazia: o aviso acima
+          // já explica, e "Nenhum subproduto cadastrado" contradiria ele.
+          null
         ) : listafiltrada.length === 0 ? (
           <div className="subprodutos-view__vazio">
             <LuPackage size={40} style={{ opacity: 0.2 }} />
@@ -413,7 +444,10 @@ export default function SubprodutosView({ sz }) {
       {/* Confirmação de exclusão */}
       {excluindo && createPortal((() => {
         const usos = usoCombo[excluindo.id] ?? 0;
-        const bloqueado = usos > 0;
+        // Sem a contagem de combos, "0 usos" não quer dizer nada — prometer
+        // exclusão e levar erro de FK do banco é pior do que não deixar entrar.
+        const usoDesconhecido = !usoComboOk;
+        const bloqueado = usos > 0 || usoDesconhecido;
         const cor = bloqueado ? C.blue : C.red;
         return (
           <div {...fecharAoClicarFora(() => !deletando && setExcluindo(null))} className="subprodutos-view__confirm-overlay">
@@ -423,14 +457,18 @@ export default function SubprodutosView({ sz }) {
                   <LuTriangleAlert size={22} color={varColor(cor)} />
                 </div>
                 <div>
-                  <div className="subprodutos-view__confirm-titulo">{bloqueado ? "Não dá para excluir" : "Excluir subproduto?"}</div>
+                  <div className="subprodutos-view__confirm-titulo">{bloqueado ? (usoDesconhecido ? "Não dá para excluir agora" : "Não dá para excluir") : "Excluir subproduto?"}</div>
                   <div className="subprodutos-view__confirm-sub"><strong style={{ color: varColor(C.text) }}>{excluindo.nome}</strong></div>
                 </div>
               </div>
 
               {bloqueado ? (
                 <div className="subprodutos-view__confirm-aviso" style={{ background: alfa(C.blue, "0d"), border: `1px solid ${alfa(C.blue, "33")}` }}>
-                  Este subproduto está em <strong style={{ color: varColor(C.text) }}>{usos} combo{usos !== 1 ? "s" : ""}</strong>. Remova-o desse{usos !== 1 ? "s" : ""} combo{usos !== 1 ? "s" : ""} antes de excluir. Enquanto isso, você pode deixá-lo <strong>inativo</strong> para que ele não apareça na venda.
+                  {usoDesconhecido ? (
+                    <>Não conseguimos verificar se este subproduto está em algum combo. Recarregue a página e tente de novo. Enquanto isso, você pode deixá-lo <strong>inativo</strong> para que ele não apareça na venda.</>
+                  ) : (
+                    <>Este subproduto está em <strong style={{ color: varColor(C.text) }}>{usos} combo{usos !== 1 ? "s" : ""}</strong>. Remova-o desse{usos !== 1 ? "s" : ""} combo{usos !== 1 ? "s" : ""} antes de excluir. Enquanto isso, você pode deixá-lo <strong>inativo</strong> para que ele não apareça na venda.</>
+                  )}
                 </div>
               ) : (
                 <div className="subprodutos-view__confirm-aviso" style={{ background: alfa(C.red, "0d"), border: `1px solid ${alfa(C.red, "33")}` }}>

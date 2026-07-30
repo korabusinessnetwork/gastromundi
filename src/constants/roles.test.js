@@ -20,6 +20,59 @@ describe("PERMISSION_KEYS / LABELS", () => {
   });
 });
 
+// Run 5, leva 2 — o fallback antigo era garçom, e garçom NÃO é vazio: tem
+// palm, cozinha e clientes. Qualquer role fora da tabela (typo no banco, cargo
+// novo criado antes da matriz, o papel `plataforma` do Console) entrava num
+// estabelecimento com essas três liberadas. Cargo desconhecido = nada.
+describe("getPermissions — cargo desconhecido falha FECHADO (leva 2)", () => {
+  const semNada = (mapa) => {
+    expect(Object.keys(mapa).sort()).toEqual([...PERMISSION_KEYS].sort());
+    for (const k of PERMISSION_KEYS) expect(mapa[k]).toBe(false);
+  };
+
+  it("cargo que não existe não recebe nenhuma permissão", () => {
+    semNada(getPermissions("supervisor"));
+  });
+
+  it("papel `plataforma` (Console) não ganha acesso ao app do tenant", () => {
+    semNada(getPermissions("plataforma"));
+  });
+
+  it("typo no cargo não vira garçom", () => {
+    semNada(getPermissions("gerennte"));
+    expect(getPermissions("gerennte").palm).toBe(false);
+    expect(getPermissions("gerennte").cozinha).toBe(false);
+    expect(getPermissions("gerennte").clientes).toBe(false);
+  });
+
+  it("null, undefined e string vazia não recebem nada", () => {
+    semNada(getPermissions(null));
+    semNada(getPermissions(undefined));
+    semNada(getPermissions(""));
+  });
+
+  it("chave herdada do Object.prototype não vira cargo", () => {
+    semNada(getPermissions("constructor"));
+    semNada(getPermissions("toString"));
+    semNada(getPermissions("__proto__"));
+  });
+
+  it("os quatro cargos reais continuam intactos", () => {
+    expect(getPermissions("garcom").palm).toBe(true);
+    expect(getPermissions("garcom").pdv).toBe(false);
+    expect(getPermissions("caixa").pdv).toBe(true);
+    expect(getPermissions("gerente").financeiro).toBe(true);
+    expect(getPermissions("gerente").configuracoes).toBe(false);
+    expect(getPermissions("admin").configuracoes).toBe(true);
+  });
+
+  it("o mapa fechado é imutável — ninguém liga permissão nele por acidente", () => {
+    const mapa = getPermissions("inexistente");
+    expect(() => { mapa.pdv = true; }).toThrow();
+    expect(getPermissions("outro-inexistente").pdv).toBe(false);
+  });
+});
+
 describe("mesclarPermissoes", () => {
   it("sem override, retorna o mapa do cargo (completo, booleano)", () => {
     const base = getPermissions("caixa");

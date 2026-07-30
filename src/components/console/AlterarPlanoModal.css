@@ -1,0 +1,98 @@
+/**
+ * Trocar plano — painel de comparação (R7L3).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * A perda usa o vermelho de risco e o ganho o verde: a pessoa reconhece a
+ * gravidade antes de ler a lista (Princípio nº1).
+ */
+
+.apm-comparando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.apm-perda,
+.apm-ganho {
+  border-radius: 12px;
+  padding: 13px 15px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.apm-perda {
+  border: 1px solid color-mix(in srgb, var(--gm-red) 45%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 10%, transparent);
+}
+.apm-ganho {
+  border: 1px solid color-mix(in srgb, var(--gm-green) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
+}
+
+.apm-perda__titulo,
+.apm-ganho__titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+.apm-perda__titulo { color: var(--gm-red); }
+.apm-ganho__titulo { color: var(--gm-green); }
+
+.apm-lista {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--gm-text);
+}
+
+.apm-perda__consequencia {
+  margin: 9px 0 0;
+  color: var(--gm-text);
+}
+
+.apm-igual {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.apm-relere {
+  margin-top: 11px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 45%, transparent);
+  background: transparent;
+  color: var(--gm-red);
+  border-radius: 9px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.apm-relere:hover { background: color-mix(in srgb, var(--gm-red) 12%, transparent); }
+
+/* A confirmação é um alvo grande: o clique no texto também marca a caixa. */
+.apm-confirmar {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  background: var(--gm-surface);
+  font-size: 13px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.apm-confirmar input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  accent-color: var(--gm-accent);
+  cursor: pointer;
+}

@@ -5,6 +5,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { LuUser, LuClock, LuLock } from "react-icons/lu";
+import { totalItensAtivos } from "@/lib/comandaItens";
 import "./ComandaGrid.css";
 
 const TOTAL = 1000;
@@ -99,7 +100,10 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
               const items      = Array.isArray(order.items) ? order.items : [];
               const ativos     = items.filter(i => !i.cancelado);
               const qtdTotal   = ativos.reduce((s, i) => s + (i.qty || 1), 0);
-              const total      = ativos.reduce((s, i) => s + i.price * (i.qty || 1), 0);
+              // Mesma conta do resto do sistema (itens ativos, arredondada).
+              // A soma reescrita aqui não protegia `price` ausente: um item sem
+              // preço fazia o card mostrar "R$ NaN".
+              const total      = totalItensAtivos(items);
               const hasItems   = qtdTotal > 0;
               const isVisitada = visitadas.has(order.id);
               const isSelected = selected?.id === order.id;
@@ -270,7 +274,10 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, onClick
   const items    = Array.isArray(order.items) ? order.items : [];
   const ativos   = items.filter(i => !i.cancelado);
   const qtdTotal = ativos.reduce((s, i) => s + (i.qty || 1), 0);
-  const total    = ativos.reduce((s, i) => s + (i.price * (i.qty || 1)), 0);
+  // Mesma conta do resto do sistema (itens ativos, arredondada). A soma
+  // reescrita aqui não protegia `price` ausente: item sem preço fazia o card
+  // do grid mostrar "R$ NaN".
+  const total    = totalItensAtivos(items);
   const hasItems = qtdTotal > 0;
   const elapsed  = getElapsed(order.created_at);
 

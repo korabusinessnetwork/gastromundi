@@ -164,3 +164,30 @@ export async function processarBaixaEstoque({
 
   return { quantidade, error: null };
 }
+
+/**
+ * A função do banco não existe (migration ainda não aplicada).
+ *
+ * O app é publicado na Vercel antes de o dono rodar a migration no
+ * Supabase, então existe uma janela em que o código novo chama uma RPC
+ * que o banco ainda não tem. O PostgREST responde `PGRST202` ("Could not
+ * find the function ... in the schema cache").
+ *
+ * Isso não é erro de rede (reenviar não resolve) nem de permissão (o
+ * papel está certo): é o banco atrasado em relação ao app. Quem chama usa
+ * isto para cair no caminho antigo em vez de travar a operação — sem
+ * isso, dar entrada de mercadoria ficaria impossível até a migration ser
+ * aplicada.
+ *
+ * @param {object|null} error - o `error` devolvido pelo supabase-js
+ * @returns {boolean}
+ */
+export function isRpcAusente(error) {
+  if (!error) return false;
+  if (error.code === "PGRST202" || error.code === "42883") return true;
+  const texto = [error.message, error.details, error.hint]
+    .filter((parte) => typeof parte === "string")
+    .join(" ");
+  if (/could not find the function/i.test(texto)) return true;
+  return /function/i.test(texto) && /does not exist/i.test(texto);
+}

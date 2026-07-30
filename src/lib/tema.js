@@ -91,17 +91,52 @@ export function gerarVariaveisTema(tema) {
 }
 
 /**
- * Nome de exibição do estabelecimento — usado no lugar de "GastroMundi"
- * onde fizer sentido (ex.: cabeçalho da Sidebar). Fallback explícito
- * quando o tenant não definiu `nome_exibicao`.
+ * Marca da PLATAFORMA (o SaaS), não de nenhum cliente. É o único nome que
+ * pode ser hardcodado: decisão 017 proíbe a marca de um estabelecimento no
+ * código, e é justamente ela que precisa de um substituto neutro para
+ * quando o nome do tenant ainda não é conhecido.
+ */
+export const MARCA_PLATAFORMA = "Kora";
+
+/**
+ * Nome de exibição do estabelecimento (ex.: cabeçalho da Sidebar, do
+ * relatório exportado, do cupom impresso). Ordem: `tema.nome_exibicao` →
+ * `fallback` (normalmente `tenant.nome`, o nome cadastrado) → marca da
+ * plataforma.
+ *
+ * O último degrau era a marca de UM cliente ("GastroMundi"), então todo
+ * tenant sem `nome_exibicao` — o padrão de quem acabou de ser cadastrado —
+ * via a marca alheia na própria sidebar, no PDF que exportava e no cupom
+ * que entregava ao cliente. Agora o pior caso é a marca da plataforma.
+ *
+ * `fallback` nulo/ausente ou não-string também cai na plataforma, para o
+ * chamador poder passar `tenant?.nome` cru sem tratar o caso. String vazia
+ * é respeitada (o chamador pediu "sem nome" de propósito — CardapioPage).
  *
  * @param {object|null|undefined} tema
  * @param {string} [fallback]
  * @returns {string}
  */
-export function nomeExibicaoTenant(tema, fallback = "GastroMundi") {
+export function nomeExibicaoTenant(tema, fallback = MARCA_PLATAFORMA) {
   const nome = tema?.nome_exibicao;
-  return typeof nome === "string" && nome.trim() ? nome.trim() : fallback;
+  if (typeof nome === "string" && nome.trim()) return nome.trim();
+  const alt = fallback ?? MARCA_PLATAFORMA;
+  return typeof alt === "string" ? alt.trim() : MARCA_PLATAFORMA;
+}
+
+/**
+ * Marca completa para aba/cabeçalho: "NOME by Kora", com a assinatura da
+ * plataforma embaixo da marca do estabelecimento. Sem nome de
+ * estabelecimento (ou quando o nome JÁ é o da plataforma), devolve só a
+ * marca da plataforma — nunca "KORA by Kora".
+ *
+ * @param {string|null|undefined} nome
+ * @returns {string}
+ */
+export function marcaComAssinatura(nome) {
+  const n = typeof nome === "string" ? nome.trim() : "";
+  if (!n || n.toUpperCase() === MARCA_PLATAFORMA.toUpperCase()) return MARCA_PLATAFORMA;
+  return `${n.toUpperCase()} by ${MARCA_PLATAFORMA}`;
 }
 
 /**
@@ -151,7 +186,7 @@ export function aplicarTituloDocumento(nome, doc = typeof document !== "undefine
   if (!doc) return;
   const n = typeof nome === "string" ? nome.trim() : "";
   if (!n) return;
-  doc.title = `${n.toUpperCase()} by Kora`;
+  doc.title = marcaComAssinatura(n);
 }
 
 /**

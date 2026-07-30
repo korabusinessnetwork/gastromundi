@@ -38,6 +38,7 @@ vi.mock("@/lib/tef", async () => {
 });
 
 import { setAppMock } from "@/test/mockApp";
+import { diaLocalDaqui } from "@/utils/datas";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
 
 function setup(overrides = {}) {
@@ -209,9 +210,46 @@ describe("useFinalizarPagamento — receita automática (Financeiro fase 1)", ()
     const chamada = criarLancamentoMock.mock.calls[0][0];
     expect(chamada).toMatchObject({ tipo: "receita", categoria: "vendas", valor: 30, status: "previsto", origem: "venda" });
 
-    const hoje = new Date();
-    const esperado = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    expect(chamada.vencimento).toBe(esperado);
+    expect(chamada.vencimento).toBe(diaLocalDaqui(30));
+  });
+
+  // A1 da auditoria: a competência é o dia do ESTABELECIMENTO, não o dia UTC.
+  // Antes, toda comanda fechada depois das 21h caía no Financeiro de amanhã —
+  // ou seja, a noite inteira de um restaurante ia para a data errada.
+  it("comanda fechada às 21h30 lança a receita no dia de HOJE, não no de amanhã", async () => {
+    vi.useFakeTimers();
+    try {
+      // 2026-07-16T00:30:00Z = 15/07 às 21h30 em São Paulo.
+      vi.setSystemTime(new Date("2026-07-16T00:30:00.000Z"));
+      const { finalizarPagamento } = setup();
+
+      await finalizarPagamento(selectedComanda, [], payload);
+
+      await vi.waitFor(() => expect(criarLancamentoMock).toHaveBeenCalledTimes(1));
+      expect(criarLancamentoMock.mock.calls[0][0].competencia).toBe("2026-07-15");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("fiado fechado às 21h30 vence 30 dias após o dia local, não após o dia UTC", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-07-16T00:30:00.000Z"));
+      const { finalizarPagamento } = setup();
+
+      await finalizarPagamento(selectedComanda, [], {
+        ...payload,
+        pagamentos: [{ metodo: "fiado", valor: 30 }],
+      });
+
+      await vi.waitFor(() => expect(criarLancamentoMock).toHaveBeenCalledTimes(1));
+      const chamada = criarLancamentoMock.mock.calls[0][0];
+      expect(chamada.competencia).toBe("2026-07-15");
+      expect(chamada.vencimento).toBe("2026-08-14");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("F010: propaga o clienteId selecionado para a venda e para o lançamento de fiado", async () => {
@@ -538,5 +576,86 @@ describe("useFinalizarPagamento — Fase 4 (billing) NÃO bloqueia nenhuma escri
     await expect(finalizarPagamento(selectedComanda, [], payload)).resolves.toBeDefined();
     expect(appMock.addSale).toHaveBeenCalledTimes(1);
     expect(appMock.removePending).toHaveBeenCalledWith("pend-1");
+  });
+});
+
+// Leva D da auditoria. Dois furos no mesmo trecho: o total chegava do
+// chamador sem arredondar e ia cru para o banco/recibo, e o retorno das
+// baixas de estoque era descartado — a venda saía como sucesso total
+// enquanto o estoque ficava sem descontar, sem ninguém saber.
+describe("useFinalizarPagamento — Leva D (total arredondado e baixas que falharam)", () => {
+  it("total com sujeira de ponto flutuante é gravado arredondado, não 48.599999999999994", async () => {
+    const { appMock, finalizarPagamento } = setup();
+
+    // 39.9 + 8.7 (prato + bebida) não fecha em 48.6 no ponto flutuante.
+    const totalSujo = 39.9 + 8.7;
+    expect(totalSujo).not.toBe(48.6); // garante que o caso testado é mesmo o sujo
+
+    await finalizarPagamento(selectedComanda, [], { ...payload, total: totalSujo });
+
+    expect(appMock.addSale.mock.calls[0][0].total).toBe(48.6);
+    expect(logActionMock).toHaveBeenCalledWith(
+      "maria",
+      "comanda:finalizar",
+      expect.objectContaining({ total: 48.6, msg: expect.stringContaining("R$ 48.60") }),
+    );
+  });
+
+  it("baixa de estoque recusada pelo servidor deixa rastro ligado à comanda, sem quebrar a venda", async () => {
+    const { appMock, finalizarPagamento } = setup({
+      products: [{ id: 1, name: "Hambúrguer" }],
+      baixarEstoque: vi.fn(() => Promise.resolve({ error: { message: "violates row-level security policy" } })),
+    });
+
+    await expect(finalizarPagamento(selectedComanda, [], payload)).resolves.toBeDefined();
+
+    expect(logActionMock).toHaveBeenCalledWith(
+      "maria",
+      "comanda:finalizar:estoque_falhou",
+      expect.objectContaining({
+        comanda: "5",
+        itens: [{ produto_id: "1", nome: "Hambúrguer", quantidade: 1 }],
+      }),
+    );
+    expect(appMock.addSale).toHaveBeenCalledTimes(1);
+  });
+
+  it("baixa de subproduto recusada também entra no rastro", async () => {
+    const comboNaComanda = {
+      ...selectedComanda,
+      items: [{
+        id: 1, name: "Combo", price: 30, qty: 2,
+        combo: { subprodutos: [{ id: "sub-1", nome: "Molho da casa", controla_estoque: true, quantidade: 1 }] },
+      }],
+    };
+    const { finalizarPagamento } = setup({
+      baixarEstoqueSubproduto: vi.fn(() => Promise.resolve({ error: { message: "constraint" } })),
+    });
+
+    await expect(finalizarPagamento(comboNaComanda, [], payload)).resolves.toBeDefined();
+
+    expect(logActionMock).toHaveBeenCalledWith(
+      "maria",
+      "comanda:finalizar:estoque_falhou",
+      expect.objectContaining({ itens: [{ subproduto_id: "sub-1", nome: "Molho da casa", quantidade: 2 }] }),
+    );
+  });
+
+  it("baixa adiada por falta de internet NÃO vira alarme: a RPC está na fila e será reaplicada", async () => {
+    const { finalizarPagamento } = setup({
+      baixarEstoque: vi.fn(() => Promise.resolve({ error: null, offline: true })),
+    });
+
+    await finalizarPagamento(selectedComanda, [], payload);
+
+    expect(logActionMock).not.toHaveBeenCalledWith("maria", "comanda:finalizar:estoque_falhou", expect.anything());
+  });
+
+  it("venda inteira sem falha de estoque não registra o alarme", async () => {
+    const { finalizarPagamento } = setup();
+
+    await finalizarPagamento(selectedComanda, [], payload);
+
+    expect(logActionMock).not.toHaveBeenCalledWith("maria", "comanda:finalizar:estoque_falhou", expect.anything());
   });
 });

@@ -205,3 +205,118 @@ describe("assinaturaPermiteOperacao (Fase 5 — espelha assinatura_ativa/assinat
     expect(assinaturaPermiteOperacao(statusDepois)).toBe(true);
   });
 });
+
+/**
+ * R7L4 — a forma de PRODUÇÃO: `data_vencimento` chega como string "YYYY-MM-DD"
+ * (coluna `date`) e `hoje` é um `Date` de verdade. Os testes acima passam os
+ * DOIS lados como string, então os dois eram deslocados igual e o erro se
+ * anulava; só aqui ele aparece.
+ *
+ * A regra que tem de valer é a do SQL (`calcular_status_assinatura`,
+ * 20260719_assinaturas.sql), que é quem de fato bloqueia via RLS:
+ *   hoje <= vencimento → ativo · hoje <= vencimento + carência → carência.
+ */
+describe("calcularStatusAssinatura com `hoje` real (Date) — sem deslocar o dia", () => {
+  const vencimento = "2026-08-15";
+  const carenciaDias = 3;
+
+  it("no próprio dia do vencimento → ativo, não carência", () => {
+    expect(calcularStatusAssinatura(vencimento, carenciaDias, new Date(2026, 7, 15, 10, 0))).toBe("ativo");
+  });
+
+  it("no dia do vencimento às 23:59 → ainda ativo (a hora não antecipa o atraso)", () => {
+    expect(calcularStatusAssinatura(vencimento, carenciaDias, new Date(2026, 7, 15, 23, 59, 59))).toBe("ativo");
+  });
+
+  it("na véspera, à meia-noite e um minuto → ativo", () => {
+    expect(calcularStatusAssinatura(vencimento, carenciaDias, new Date(2026, 7, 14, 0, 1))).toBe("ativo");
+  });
+
+  it("um dia depois do vencimento → carência", () => {
+    expect(calcularStatusAssinatura(vencimento, carenciaDias, new Date(2026, 7, 16, 0, 30))).toBe("carencia");
+  });
+
+  it("último dia da carência (vencimento + 3) → carência, não bloqueado", () => {
+    expect(calcularStatusAssinatura(vencimento, carenciaDias, new Date(2026, 7, 18, 23, 0))).toBe("carencia");
+  });
+
+  it("primeiro dia depois da carência (vencimento + 4) → bloqueado", () => {
+    expect(calcularStatusAssinatura(vencimento, carenciaDias, new Date(2026, 7, 19, 0, 1))).toBe("bloqueado");
+  });
+
+  it("carência 0: no dia do vencimento ainda opera; no dia seguinte bloqueia", () => {
+    expect(calcularStatusAssinatura(vencimento, 0, new Date(2026, 7, 15, 12, 0))).toBe("ativo");
+    expect(calcularStatusAssinatura(vencimento, 0, new Date(2026, 7, 16, 12, 0))).toBe("bloqueado");
+  });
+
+  it("virada de mês: vence 31/08 e é 01/09 → carência, não bloqueado", () => {
+    expect(calcularStatusAssinatura("2026-08-31", carenciaDias, new Date(2026, 8, 1, 9, 0))).toBe("carencia");
+  });
+
+  it("virada de ano: vence 31/12 e é 01/01 do ano seguinte → carência", () => {
+    expect(calcularStatusAssinatura("2026-12-31", carenciaDias, new Date(2027, 0, 1, 9, 0))).toBe("carencia");
+  });
+
+  it("o mês não sai trocado: vence 05/09 e é 05/08 → ativo (falta um mês)", () => {
+    expect(calcularStatusAssinatura("2026-09-05", carenciaDias, new Date(2026, 7, 5, 9, 0))).toBe("ativo");
+  });
+
+  it("vencimento também como Date: no próprio dia → ativo", () => {
+    expect(
+      calcularStatusAssinatura(new Date(2026, 7, 15, 3, 0), carenciaDias, new Date(2026, 7, 15, 21, 0))
+    ).toBe("ativo");
+  });
+
+  it("um instante em UTC é lido no calendário local de quem opera", () => {
+    // 16/08 01:00Z é ainda 15/08 22:00 no Brasil — o dia que vale é o local.
+    expect(calcularStatusAssinatura(vencimento, carenciaDias, "2026-08-16T01:00:00.000Z")).toBe("ativo");
+  });
+
+  it("sem `hoje`: vencendo hoje (dia local de verdade) → ativo", () => {
+    const agora = new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    const hojeISO = `${agora.getFullYear()}-${p(agora.getMonth() + 1)}-${p(agora.getDate())}`;
+
+    expect(calcularStatusAssinatura(hojeISO, carenciaDias)).toBe("ativo");
+    expect(calcularDiasParaVencimento(hojeISO)).toBe(0);
+  });
+
+  it("sem `hoje`: venceu ontem → carência (e não bloqueado)", () => {
+    const ontem = new Date();
+    ontem.setDate(ontem.getDate() - 1);
+    const p = (n) => String(n).padStart(2, "0");
+    const ontemISO = `${ontem.getFullYear()}-${p(ontem.getMonth() + 1)}-${p(ontem.getDate())}`;
+
+    expect(calcularStatusAssinatura(ontemISO, carenciaDias)).toBe("carencia");
+    expect(calcularDiasParaVencimento(ontemISO)).toBe(-1);
+  });
+
+  it("data ausente ou ilegível bloqueia (fecha por padrão, não libera)", () => {
+    expect(calcularStatusAssinatura(null, 3, new Date(2026, 7, 15))).toBe("bloqueado");
+    expect(calcularStatusAssinatura("", 3, new Date(2026, 7, 15))).toBe("bloqueado");
+    expect(calcularStatusAssinatura("ontem", 3, new Date(2026, 7, 15))).toBe("bloqueado");
+  });
+});
+
+describe("calcularDiasParaVencimento com `hoje` real (Date)", () => {
+  it("conta o dia local exato, sem perder um dia", () => {
+    expect(calcularDiasParaVencimento("2026-08-20", new Date(2026, 7, 15, 10, 0))).toBe(5);
+  });
+
+  it("zero no próprio dia do vencimento, a qualquer hora", () => {
+    expect(calcularDiasParaVencimento("2026-08-15", new Date(2026, 7, 15, 0, 5))).toBe(0);
+    expect(calcularDiasParaVencimento("2026-08-15", new Date(2026, 7, 15, 23, 55))).toBe(0);
+  });
+
+  it("-1 no dia seguinte ao vencimento", () => {
+    expect(calcularDiasParaVencimento("2026-08-15", new Date(2026, 7, 16, 0, 5))).toBe(-1);
+  });
+
+  it("atravessa a virada de mês", () => {
+    expect(calcularDiasParaVencimento("2026-09-01", new Date(2026, 7, 31, 20, 0))).toBe(1);
+  });
+
+  it("um instante em UTC é lido no calendário local de quem opera", () => {
+    expect(calcularDiasParaVencimento("2026-08-20", "2026-08-16T01:00:00.000Z")).toBe(5);
+  });
+});

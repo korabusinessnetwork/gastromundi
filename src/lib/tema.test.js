@@ -3,6 +3,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   gerarVariaveisTema,
   nomeExibicaoTenant,
+  marcaComAssinatura,
+  MARCA_PLATAFORMA,
   logoUrlTenant,
   aplicarVariaveisTema,
   aplicarTituloDocumento,
@@ -64,9 +66,15 @@ describe("gerarVariaveisTema (Fase 6 — sem tema custom, sem overrides)", () =>
 });
 
 describe("nomeExibicaoTenant", () => {
-  it("retorna o fallback 'GastroMundi' quando o tenant não definiu nome_exibicao", () => {
-    expect(nomeExibicaoTenant(null)).toBe("GastroMundi");
-    expect(nomeExibicaoTenant({})).toBe("GastroMundi");
+  // Run 5, leva 11 — o fallback era a marca de UM cliente ("GastroMundi").
+  // Como quatro telas chamavam a função sem passar fallback, todo
+  // estabelecimento sem `nome_exibicao` (o padrão de quem acabou de ser
+  // cadastrado) via a marca alheia na sidebar, no PDF exportado e no cupom
+  // impresso. Decisão 017 proíbe exatamente isso.
+  it("sem nome nenhum, cai na marca da PLATAFORMA — nunca na de um cliente", () => {
+    expect(nomeExibicaoTenant(null)).toBe(MARCA_PLATAFORMA);
+    expect(nomeExibicaoTenant({})).toBe(MARCA_PLATAFORMA);
+    expect(nomeExibicaoTenant(null)).not.toBe("GastroMundi");
   });
 
   it("retorna o nome customizado do tenant quando definido", () => {
@@ -74,11 +82,45 @@ describe("nomeExibicaoTenant", () => {
   });
 
   it("ignora nome_exibicao vazio/só espaços (mantém o fallback)", () => {
-    expect(nomeExibicaoTenant({ nome_exibicao: "   " })).toBe("GastroMundi");
+    expect(nomeExibicaoTenant({ nome_exibicao: "   " })).toBe(MARCA_PLATAFORMA);
+    expect(nomeExibicaoTenant({ nome_exibicao: "   " }, "Casa Coffee")).toBe("Casa Coffee");
   });
 
   it("aceita um fallback customizado", () => {
     expect(nomeExibicaoTenant(null, "Outro Padrão")).toBe("Outro Padrão");
+  });
+
+  it("fallback nulo/ausente/não-string também cai na plataforma", () => {
+    // Os chamadores passam `tenant?.nome` cru; com o tenant ainda não
+    // carregado isso é `undefined`, e a assinatura precisa aguentar sem
+    // devolver "undefined" na tela.
+    expect(nomeExibicaoTenant(null, undefined)).toBe(MARCA_PLATAFORMA);
+    expect(nomeExibicaoTenant(null, null)).toBe(MARCA_PLATAFORMA);
+    expect(nomeExibicaoTenant({}, 42)).toBe(MARCA_PLATAFORMA);
+  });
+
+  it("string vazia como fallback é respeitada (CardapioPage pede 'sem nome' de propósito)", () => {
+    expect(nomeExibicaoTenant(null, "")).toBe("");
+  });
+});
+
+describe("marcaComAssinatura", () => {
+  it("assina a marca do estabelecimento com a da plataforma", () => {
+    expect(marcaComAssinatura("Casa Coffee")).toBe("CASA COFFEE by Kora");
+  });
+
+  it("sem nome de estabelecimento, devolve só a plataforma", () => {
+    expect(marcaComAssinatura("")).toBe(MARCA_PLATAFORMA);
+    expect(marcaComAssinatura("   ")).toBe(MARCA_PLATAFORMA);
+    expect(marcaComAssinatura(null)).toBe(MARCA_PLATAFORMA);
+    expect(marcaComAssinatura(undefined)).toBe(MARCA_PLATAFORMA);
+  });
+
+  it("quando o nome JÁ é o da plataforma, não repete a assinatura", () => {
+    // Sem este degrau, o fallback neutro apareceria como "KORA by Kora" na
+    // aba do navegador e no cabeçalho do PDF.
+    expect(marcaComAssinatura(MARCA_PLATAFORMA)).toBe(MARCA_PLATAFORMA);
+    expect(marcaComAssinatura("kora")).toBe(MARCA_PLATAFORMA);
   });
 });
 

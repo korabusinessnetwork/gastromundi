@@ -35,6 +35,8 @@ export default function ConsolePage() {
   const [assinaturas, setAssinaturas] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [erroPlanos, setErroPlanos] = useState(false);
+  const [erroAssinaturas, setErroAssinaturas] = useState(false);
   const [aba, setAba] = useState("estabelecimentos"); // 'estabelecimentos' | 'planos'
   const [modalAberto, setModalAberto] = useState(false);
   const [tenantSelecionado, setTenantSelecionado] = useState(null);
@@ -46,8 +48,8 @@ export default function ConsolePage() {
     setErro("");
     const [
       { data: listaTenants, error: eTenants },
-      { data: listaPlanos },
-      { data: listaAssinaturas },
+      { data: listaPlanos, error: ePlanos },
+      { data: listaAssinaturas, error: eAssinaturas },
     ] = await Promise.all([
       listarEstabelecimentos(),
       listarPlanos(),
@@ -60,9 +62,13 @@ export default function ConsolePage() {
     }
     setTenants(listaTenants);
     setPlanos(listaPlanos);
-    // Billing é secundário: se falhar a leitura das assinaturas, o Console
-    // ainda abre (lista de estabelecimentos), só o dashboard fica vazio.
     setAssinaturas(listaAssinaturas ?? []);
+    // As duas leituras secundárias falham devolvendo lista vazia — e lista
+    // vazia é indistinguível de "não tem nenhum". Guardamos a falha para a
+    // tela dizer que não sabe, em vez de afirmar zero (R$ 0 de receita,
+    // ninguém precisando de atenção) como se fosse a verdade.
+    setErroPlanos(Boolean(ePlanos));
+    setErroAssinaturas(Boolean(eAssinaturas));
     setCarregando(false);
   }, []);
 
@@ -101,6 +107,12 @@ export default function ConsolePage() {
     });
     carregar();
   };
+
+  // Sem catálogo de planos não há o que escolher no cadastro (o plano é
+  // obrigatório): a ação principal fica desabilitada e a tela diz por quê,
+  // em vez de abrir um formulário sem saída — prevenção de erro > mensagem
+  // de erro (Princípio nº1).
+  const semPlanos = planos.length === 0;
 
   return (
     <div className="console">
@@ -154,7 +166,28 @@ export default function ConsolePage() {
             <button className="console__novo" onClick={carregar}>Tentar de novo</button>
           </div>
         ) : aba === "planos" ? (
-          <PlanosDashboard tenants={tenants} planos={planos} assinaturas={assinaturas} />
+          erroAssinaturas ? (
+            // Preferimos não mostrar nada a mostrar número errado: sem a
+            // leitura da cobrança, o dashboard diria "receita R$ 0" e
+            // "ninguém precisa de atenção" para uma base que pode estar
+            // toda em atraso.
+            <div className="console__estado console__estado--erro">
+              <LuTriangleAlert size={26} aria-hidden />
+              <p>
+                Não foi possível carregar a cobrança dos estabelecimentos. Isso não quer
+                dizer que ninguém está pagando — os números só aparecem quando a leitura
+                funcionar.
+              </p>
+              <button className="console__novo" onClick={carregar}>Tentar de novo</button>
+            </div>
+          ) : (
+            <PlanosDashboard
+              tenants={tenants}
+              planos={planos}
+              assinaturas={assinaturas}
+              onAtualizado={carregar}
+            />
+          )
         ) : (
           <>
             <div className="console__cabecalho">
@@ -164,10 +197,31 @@ export default function ConsolePage() {
                   Cada estabelecimento é um cliente com seus próprios dados, plano e usuários.
                 </p>
               </div>
-              <button className="console__novo" onClick={() => setModalAberto(true)}>
+              <button
+                className="console__novo"
+                onClick={() => setModalAberto(true)}
+                disabled={semPlanos}
+                title={semPlanos ? "É preciso ter um plano disponível para cadastrar" : undefined}
+              >
                 <LuPlus size={18} aria-hidden /> Novo estabelecimento
               </button>
             </div>
+
+            {semPlanos && (
+              <div className="console__aviso" role="status">
+                <LuTriangleAlert size={18} aria-hidden />
+                <span>
+                  {erroPlanos
+                    ? "Não foi possível carregar a lista de planos. Enquanto isso não é possível cadastrar um estabelecimento, e o plano de cada card aparece pelo código."
+                    : "Nenhum plano disponível no catálogo. Ative um plano para poder cadastrar estabelecimentos."}
+                </span>
+                {erroPlanos && (
+                  <button type="button" className="console__aviso-acao" onClick={carregar}>
+                    Tentar de novo
+                  </button>
+                )}
+              </div>
+            )}
 
             {sucesso && (
               <div className="console__sucesso" role="status">
@@ -191,7 +245,12 @@ export default function ConsolePage() {
                 <LuBuilding2 size={30} aria-hidden />
                 <p className="console__vazio-titulo">Nenhum estabelecimento ainda</p>
                 <p className="console__vazio-texto">Crie o primeiro para começar a vender o sistema.</p>
-                <button className="console__novo" onClick={() => setModalAberto(true)}>
+                <button
+                  className="console__novo"
+                  onClick={() => setModalAberto(true)}
+                  disabled={semPlanos}
+                  title={semPlanos ? "É preciso ter um plano disponível para cadastrar" : undefined}
+                >
                   <LuPlus size={18} aria-hidden /> Criar o primeiro
                 </button>
               </div>

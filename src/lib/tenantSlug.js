@@ -67,9 +67,19 @@ export function resolverSlugTenant(hostname) {
  * `branding_por_slug`) e mostrar erro claro quando não existir, em vez
  * de cair silenciosamente no login de outro estabelecimento.
  *
+ * De propósito NÃO valida o formato do rótulo: um rótulo estranho ainda é
+ * uma reivindicação, e devolvê-la é o que mantém a tela em "endereço não
+ * encontrado" em vez de deixar a pessoa entrar no tenant do fallback.
+ * Rótulo VAZIO (`.kora.codes`, `..kora.codes`) é o único caso que não é
+ * reivindicação nenhuma — e voltava "" em vez de null, o que furava o `??`
+ * de quem consome (string vazia não é nullish): o e-mail de login saía
+ * `usuario@.local`, malformado, enquanto a tela pintava a marca do
+ * fallback. Ou seja, a URL dizia um estabelecimento e a tela mostrava
+ * outro, exatamente o que esta função existe para evitar.
+ *
  * @param {string} [hostname] - default window.location.hostname
  * @param {string} [rootDomain] - default VITE_ROOT_DOMAIN (testável)
- * @returns {string|null}
+ * @returns {string|null} rótulo reivindicado (nunca string vazia) ou null
  */
 export function slugDoSubdominio(hostname, rootDomain = ROOT_DOMAIN) {
   const host = String(
@@ -91,7 +101,7 @@ export function slugDoSubdominio(hostname, rootDomain = ROOT_DOMAIN) {
 
   // Sem ROOT_DOMAIN: mesma heurística do resolver (3+ rótulos ⇒ 1º é o slug).
   const labels = host.split(".");
-  if (labels.length >= 3 && labels[0] !== "www") return labels[0];
+  if (labels.length >= 3 && labels[0] && labels[0] !== "www") return labels[0];
   return null;
 }
 
@@ -100,11 +110,21 @@ export function slugDoSubdominio(hostname, rootDomain = ROOT_DOMAIN) {
  * Com subdomínio na URL, o namespace é SEMPRE o subdomínio digitado —
  * subdomínio errado autentica contra um namespace inexistente (login
  * falha), nunca contra o tenant do fallback.
+ *
+ * Devolve `null` quando o slug não forma um endereço válido (rótulo com
+ * caractere fora de a-z/0-9/hífen, hífen na ponta, ou `VITE_TENANT_SLUG_FALLBACK`
+ * mal configurado). Antes montava o e-mail de qualquer jeito e o servidor
+ * respondia "Unable to validate email address: invalid format", que ia crua
+ * para a tela de login como se fosse problema da senha. Com null, quem chama
+ * nem faz a requisição e diz o que realmente aconteceu: o endereço de acesso
+ * está errado.
+ *
  * @param {string} username
  * @param {string} [hostname]
- * @returns {string} `${username}@${slug}.local`
+ * @returns {string|null} `${username}@${slug}.local`, ou null se o slug não serve
  */
 export function emailDoLogin(username, hostname) {
   const slug = slugDoSubdominio(hostname) ?? resolverSlugTenant(hostname);
+  if (!slugValido(slug)) return null;
   return `${username}@${slug}.local`;
 }

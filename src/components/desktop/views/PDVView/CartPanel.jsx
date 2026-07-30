@@ -37,7 +37,8 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
   const [qtyInputStr,    setQtyInputStr]    = useState("");
   // senha para cancelamento de item lançado
   const [itemSenha,    setItemSenha]    = useState("");
-  const [itemSenhaErro, setItemSenhaErro] = useState(false);
+  // Texto: "senha errada" e "não deu para verificar agora" são coisas diferentes.
+  const [itemSenhaErro, setItemSenhaErro] = useState("");
   const [itemSenhaVis, setItemSenhaVis] = useState(false);
   const [itemSenhaOk,  setItemSenhaOk]  = useState(false);
 
@@ -72,7 +73,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
     const qtyMax = item.qty ?? 1;
     setConfirmExcluir({ tipo, idx, qtyMax, qtySel: 1, motivo: "", item });
     setQtyInputStr("1");
-    setItemSenha(""); setItemSenhaErro(false); setItemSenhaVis(false); setItemSenhaOk(false);
+    setItemSenha(""); setItemSenhaErro(""); setItemSenhaVis(false); setItemSenhaOk(false);
   };
 
   const confirmarExclusao = async () => {
@@ -87,10 +88,10 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
     if (!motivo.trim()) return;
     if (!itemSenhaOk) {
       if (!itemSenha) return;
-      const autorizado = await verificarSenhaAdmin(itemSenha);
-      if (!autorizado) { setItemSenhaErro(true); return; }
+      const { ok, erro } = await verificarSenhaAdmin(itemSenha);
+      if (!ok) { setItemSenhaErro(erro || "Senha incorreta. Apenas admin ou gerente pode cancelar itens."); return; }
       setItemSenhaOk(true);
-      setItemSenhaErro(false);
+      setItemSenhaErro("");
     }
     onRemoveAcumulado(idx, qtySel, motivo.trim());
     setConfirmExcluir(null);
@@ -353,7 +354,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
       {/* ── Popup: Confirmar exclusão / cancelamento ──────────────── */}
       {confirmExcluir && createPortal(
         <div
-          {...fecharAoClicarFora(() => { setConfirmExcluir(null); setItemSenha(""); setItemSenhaErro(false); setItemSenhaOk(false); })}
+          {...fecharAoClicarFora(() => { setConfirmExcluir(null); setItemSenha(""); setItemSenhaErro(""); setItemSenhaOk(false); })}
           className="cart-panel__overlay"
           style={{ zIndex: 9100 }}
         >
@@ -466,7 +467,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   <input
                     type={itemSenhaVis ? "text" : "password"}
                     value={itemSenha}
-                    onChange={e => { setItemSenha(e.target.value); setItemSenhaErro(false); setItemSenhaOk(false); }}
+                    onChange={e => { setItemSenha(e.target.value); setItemSenhaErro(""); setItemSenhaOk(false); }}
                     onKeyDown={e => { if (e.key === "Enter") confirmarExclusao(); }}
                     placeholder="Digite a senha..."
                     className="cart-panel__senha-input"
@@ -480,7 +481,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   </button>
                 </div>
                 {itemSenhaErro && (
-                  <div className="cart-panel__senha-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>Senha incorreta. Apenas admin ou gerente pode cancelar itens.</div>
+                  <div role="alert" className="cart-panel__senha-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>{itemSenhaErro}</div>
                 )}
                 {itemSenhaOk && (
                   <div className="cart-panel__senha-ok" style={{ color: varColor(C.green), fontWeight: 600 }}>✓ Autorizado</div>

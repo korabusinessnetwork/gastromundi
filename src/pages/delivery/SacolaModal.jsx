@@ -3,6 +3,11 @@
 // (com complementos/observação), permite ajustar quantidade ou remover,
 // e o subtotal. Bloqueia o avanço abaixo do pedido mínimo (prevenção de
 // erro > mensagem de erro).
+//
+// Também é AQUI que a sacola velha encara o cardápio de agora: as linhas
+// chegam já revisadas (revisarSacola), com `situacao` dizendo se o item
+// saiu do ar ou mudou de preço. Sem isso o cliente só descobria no último
+// clique, por uma recusa do servidor que não diz qual item é.
 // ──────────────────────────────────────────────────────────────────
 import { formatarPreco, precoLinha } from "@/lib/delivery";
 import "./SacolaModal.css";
@@ -11,6 +16,8 @@ export default function SacolaModal({
   itens,
   subtotal,
   pedidoMinimo,
+  temFora = false,
+  temPrecoNovo = false,
   onFechar,
   onAlterarQtd,
   onRemover,
@@ -42,29 +49,46 @@ export default function SacolaModal({
                   .map((c) => c.nome)
                   .filter(Boolean)
                   .join(", ");
+                const fora = item.situacao === "fora";
                 return (
-                  <div className="linha-sacola" key={item._linha}>
+                  <div
+                    className={`linha-sacola${fora ? " linha-sacola--fora" : ""}`}
+                    key={item._linha}
+                  >
                     <div className="linha-sacola__texto">
                       <p className="linha-sacola__nome">{item.nome}</p>
                       {extras && <p className="linha-sacola__extra">{extras}</p>}
                       {item.obs && <p className="linha-sacola__extra">Obs.: {item.obs}</p>}
-                      <div className="qtd" style={{ marginTop: 6 }}>
-                        <button
-                          className="qtd__botao"
-                          onClick={() => onAlterarQtd(item._linha, -1)}
-                          aria-label="Diminuir"
-                        >
-                          −
-                        </button>
-                        <span className="qtd__valor">{item.qtd}</span>
-                        <button
-                          className="qtd__botao"
-                          onClick={() => onAlterarQtd(item._linha, +1)}
-                          aria-label="Aumentar"
-                        >
-                          +
-                        </button>
-                      </div>
+                      {fora && (
+                        <p className="linha-sacola__selo linha-sacola__selo--fora">
+                          Saiu do cardápio — remova para continuar
+                        </p>
+                      )}
+                      {item.situacao === "preco" && (
+                        <p className="linha-sacola__selo">Preço atualizado pelo estabelecimento</p>
+                      )}
+                      {/* Mexer na quantidade de um item que saiu do ar não leva
+                          a lugar nenhum. A única saída é "Remover", e ela fica
+                          sozinha na linha para não competir com nada. */}
+                      {!fora && (
+                        <div className="qtd" style={{ marginTop: 6 }}>
+                          <button
+                            className="qtd__botao"
+                            onClick={() => onAlterarQtd(item._linha, -1)}
+                            aria-label="Diminuir"
+                          >
+                            −
+                          </button>
+                          <span className="qtd__valor">{item.qtd}</span>
+                          <button
+                            className="qtd__botao"
+                            onClick={() => onAlterarQtd(item._linha, +1)}
+                            aria-label="Aumentar"
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <span className="linha-sacola__preco">{formatarPreco(precoLinha(item))}</span>
@@ -96,6 +120,20 @@ export default function SacolaModal({
                 </div>
               </div>
 
+              {temFora && (
+                <div className="vitrine__aviso vitrine__aviso--erro">
+                  Um item da sua sacola saiu do cardápio enquanto você escolhia.
+                  Remova o item marcado para seguir com o pedido.
+                </div>
+              )}
+
+              {temPrecoNovo && (
+                <div className="vitrine__aviso">
+                  O preço de um item mudou desde que você escolheu. O valor abaixo já
+                  é o novo.
+                </div>
+              )}
+
               {abaixoMinimo && (
                 <div className="vitrine__aviso">
                   Pedido mínimo de {formatarPreco(pedidoMinimo)}. Faltam{" "}
@@ -106,7 +144,7 @@ export default function SacolaModal({
               <button
                 className="btn btn--primario"
                 onClick={onAvancar}
-                disabled={abaixoMinimo}
+                disabled={abaixoMinimo || temFora}
                 style={{ marginTop: 8 }}
               >
                 <span>Ir para a entrega</span>

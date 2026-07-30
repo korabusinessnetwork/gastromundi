@@ -4,7 +4,7 @@
 // Mostra o total (subtotal + taxa) e o troco calculado só para exibir —
 // o servidor revalida tudo ao gravar o pedido.
 // ──────────────────────────────────────────────────────────────────
-import { calcularTroco, formatarPreco } from "@/lib/delivery";
+import { calcularTroco, formatarPreco, valorDigitado } from "@/lib/delivery";
 
 const FORMAS = [
   { id: "dinheiro", nome: "Dinheiro", emoji: "💵" },
@@ -20,14 +20,13 @@ export default function CheckoutPagamento({
   onVoltar,
   onConfirmar,
   enviando,
+  erro,
 }) {
   const total = (Number(subtotal) || 0) + (Number(taxa) || 0);
   const troco = calcularTroco(dados.trocoPara, total);
+  const trocoDigitado = valorDigitado(dados.trocoPara);
   const trocoParaInvalido =
-    dados.forma === "dinheiro" &&
-    dados.trocoPara !== "" &&
-    Number(dados.trocoPara) > 0 &&
-    Number(dados.trocoPara) < total;
+    dados.forma === "dinheiro" && trocoDigitado > 0 && trocoDigitado < total;
 
   const podeConfirmar = !!dados.forma && !trocoParaInvalido && !enviando;
 
@@ -46,15 +45,22 @@ export default function CheckoutPagamento({
             O pagamento é na entrega. Escolha como quer pagar pro entregador.
           </p>
 
+          {/* Botão de verdade, não <div onClick>. Como div, a forma de
+              pagamento não recebia foco nem tecla: quem navega por teclado ou
+              leitor de tela tabulava do × direto para o "Confirmar pedido"
+              desabilitado, sem NENHUM jeito de escolher como pagar. O checkout
+              inteiro ficava impossível — e a única saída era desistir. */}
           {FORMAS.map((f) => (
-            <div
+            <button
               key={f.id}
+              type="button"
               className={`forma${dados.forma === f.id ? " forma--ativa" : ""}`}
               onClick={() => onMudar({ forma: f.id })}
+              aria-pressed={dados.forma === f.id}
             >
-              <span className="forma__emoji">{f.emoji}</span>
+              <span className="forma__emoji" aria-hidden="true">{f.emoji}</span>
               <span className="forma__nome">{f.nome}</span>
-            </div>
+            </button>
           ))}
 
           {dados.forma === "dinheiro" && (
@@ -86,23 +92,19 @@ export default function CheckoutPagamento({
           )}
 
           {dados.forma === "cartao" && (
-            <div
-              className="forma"
-              style={{ marginTop: 4 }}
+            <button
+              type="button"
+              className="forma forma--toggle"
               onClick={() => onMudar({ levarMaquininha: !dados.levarMaquininha })}
+              aria-pressed={!!dados.levarMaquininha}
             >
               <span
-                className={`opcao__marca${dados.levarMaquininha ? "" : ""}`}
-                style={{
-                  background: dados.levarMaquininha ? "var(--gm-accent)" : "transparent",
-                  borderColor: dados.levarMaquininha ? "var(--gm-accent)" : "var(--gm-border)",
-                  color: "#fff",
-                }}
+                className={`opcao__marca${dados.levarMaquininha ? " opcao__marca--marcada" : ""}`}
               >
                 {dados.levarMaquininha ? "✓" : ""}
               </span>
               <span className="forma__nome">Levar a maquininha de cartão</span>
-            </div>
+            </button>
           )}
 
           <div className="resumo">
@@ -119,6 +121,15 @@ export default function CheckoutPagamento({
               <span>{formatarPreco(total)}</span>
             </div>
           </div>
+
+          {/* Falha no envio aparece AQUI, dentro da folha de pagamento. Na
+              página ela ficava atrás do modal (position:fixed) — o cliente
+              clicava em confirmar e não via absolutamente nada acontecer. */}
+          {erro && (
+            <div className="vitrine__aviso vitrine__aviso--erro" role="alert">
+              {erro}
+            </div>
+          )}
 
           <button
             className="btn btn--primario"

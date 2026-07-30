@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { emitirEvento } from "./jarvas";
+import { round2 } from "./vendas";
 
 /**
  * Financeiro — fase 1 (docs/03_REGRAS_DE_NEGOCIO/FINANCEIRO.md).
@@ -36,6 +37,15 @@ export async function criarLancamento(dados, usuario) {
   const valor = Number(dados?.valor);
   if (!(valor > 0)) {
     return { data: null, error: { message: "Valor deve ser maior que zero." } };
+  }
+  // Tipo fora de receita/despesa passa pelo insert e depois não é somado nem
+  // como entrada nem como saída: o valor existe na tabela e não aparece em
+  // nenhum card. Barrar aqui é a única forma de o dinheiro nunca ficar órfão.
+  if (dados?.tipo !== "receita" && dados?.tipo !== "despesa") {
+    return { data: null, error: { message: "Tipo deve ser receita ou despesa." } };
+  }
+  if (!String(dados?.categoria ?? "").trim()) {
+    return { data: null, error: { message: "Categoria é obrigatória." } };
   }
   if (!dados?.competencia) {
     return { data: null, error: { message: "Competência é obrigatória." } };
@@ -154,8 +164,29 @@ export async function processarVencidos(lancamentos, hoje = new Date()) {
 // ── Funções puras (testadas em financeiro.test.js) ────────────────
 
 /**
+ * Status de conta EM ABERTO: o dinheiro ainda não entrou nem saiu, então
+ * continua sendo "a receber / a pagar". `vencido` é só um `previsto` atrasado —
+ * é a conta mais urgente que existe, e por isso não pode desaparecer da conta
+ * do previsto nem perder o botão de baixa (era o defeito da Run 2).
+ */
+const STATUS_EM_ABERTO = ["previsto", "vencido"];
+
+/** Status de conta já liquidada: virou dinheiro de verdade no período. */
+const STATUS_REALIZADO = ["pago", "recebido"];
+
+/**
+ * A conta ainda pode ser baixada (marcada como paga/recebida)?
+ *
+ * @param {object} lancamento
+ * @returns {boolean}
+ */
+export function contaEmAberto(lancamento) {
+  return STATUS_EM_ABERTO.includes(lancamento?.status);
+}
+
+/**
  * Calcula o fluxo de caixa previsto vs realizado num período.
- * "Previsto" = lançamentos com status 'previsto' cuja competência cai
+ * "Previsto" = contas em aberto ('previsto' ou 'vencido') cuja competência cai
  * no período; "realizado" = status 'pago'/'recebido' no período.
  *
  * @param {object[]} lancamentos
@@ -172,11 +203,14 @@ export function calcularFluxoCaixa(lancamentos, de, ate) {
     return t >= inicio && t <= fim;
   });
 
+  // round2 na soma: sem ele, R$ 39,90 + R$ 8,70 = 48.599999999999994 e um saldo
+  // exatamente zerado sai como -0.000000000000007 — a tela mostra "-R$ 0.00"
+  // em vermelho, como se o negócio estivesse no vermelho.
   const somar = (lista, tipo) =>
-    lista.filter((l) => l.tipo === tipo).reduce((s, l) => s + (Number(l.valor) || 0), 0);
+    round2(lista.filter((l) => l.tipo === tipo).reduce((s, l) => s + (Number(l.valor) || 0), 0));
 
-  const previstos  = doPeriodo.filter((l) => l.status === "previsto");
-  const realizados = doPeriodo.filter((l) => l.status === "pago" || l.status === "recebido");
+  const previstos  = doPeriodo.filter((l) => contaEmAberto(l));
+  const realizados = doPeriodo.filter((l) => STATUS_REALIZADO.includes(l.status));
 
   const previstoEntradas  = somar(previstos, "receita");
   const previstoSaidas    = somar(previstos, "despesa");
@@ -184,8 +218,8 @@ export function calcularFluxoCaixa(lancamentos, de, ate) {
   const realizadoSaidas   = somar(realizados, "despesa");
 
   return {
-    previsto:  { entradas: previstoEntradas,  saidas: previstoSaidas,  saldo: previstoEntradas  - previstoSaidas  },
-    realizado: { entradas: realizadoEntradas, saidas: realizadoSaidas, saldo: realizadoEntradas - realizadoSaidas },
+    previsto:  { entradas: previstoEntradas,  saidas: previstoSaidas,  saldo: round2(previstoEntradas  - previstoSaidas)  },
+    realizado: { entradas: realizadoEntradas, saidas: realizadoSaidas, saldo: round2(realizadoEntradas - realizadoSaidas) },
   };
 }
 

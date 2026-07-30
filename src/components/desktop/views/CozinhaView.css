@@ -97,6 +97,50 @@
   line-height: var(--lh-lg);
 }
 
+/**
+ * Faixa de falha na carga dos pedidos. Precisa gritar mais que o estado
+ * vazio: cozinha vazia e cozinha quebrada são coisas opostas e antes disso
+ * tinham exatamente a mesma cara.
+ */
+.cozinha-view__erro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 var(--gm-pad, 16px);
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-red);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.cozinha-view__erro-texto {
+  flex: 1;
+  font-weight: 700;
+}
+
+.cozinha-view__erro-btn {
+  /* alvo de toque generoso — a cozinha aperta isto com a mão ocupada */
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  background: var(--gm-red);
+  color: #fff;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cozinha-view__erro-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* ── PedidoCard ── */
 
 .pedido-card {

@@ -13,13 +13,18 @@ import AberturaCaixaModal from "@/components/modals/AberturaCaixaModal";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
-import { nomeExibicaoTenant } from "@/lib/tema";
+import { nomeExibicaoTenant, MARCA_PLATAFORMA } from "@/lib/tema";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import "./DesktopLayout.css";
 
 export default function DesktopLayout() {
   const { currentUser, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant } = useApp();
-  const nomeEstabelecimento = nomeExibicaoTenant(tenant?.tema);
+  // tema.nome_exibicao → nome cadastrado do estabelecimento → marca neutra
+  // da plataforma. Nunca a marca de outro cliente (decisão 017).
+  const nomeEstabelecimento = nomeExibicaoTenant(tenant?.tema, tenant?.nome);
+  // Sem estabelecimento resolvido, o nome exibido JÁ é o da plataforma —
+  // assinar ao lado leria "KORA by Kora".
+  const marcaDoTenant = nomeEstabelecimento !== MARCA_PLATAFORMA;
   const { width } = useResponsive();
   const sz = getSizes(width);
   const { notif, notify } = useNotification();
@@ -139,8 +144,9 @@ export default function DesktopLayout() {
             </button>
             <div className="desktop-layout__name-tenant" style={{ flex: 1, fontWeight: 900, letterSpacing: "-0.3px", overflowWrap: "break-word" }}>
               {nomeEstabelecimento.toUpperCase()}
-              {/* Assinatura da plataforma — aparece para todo tenant (white-label, decisão 017) */}
-              <span style={{ color: varColor(C.muted), fontWeight: 400 }}> by Kora</span>
+              {/* Assinatura da plataforma — aparece embaixo da marca de todo
+                  estabelecimento (white-label, decisão 017) */}
+              {marcaDoTenant && <span style={{ color: varColor(C.muted), fontWeight: 400 }}> by Kora</span>}
             </div>
             <span className="desktop-layout__status-badge" style={{
               fontWeight: 700, padding: "3px 8px", borderRadius: 10,

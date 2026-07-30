@@ -851,6 +851,18 @@
   line-height: var(--lh-base);
 }
 
+.produtos-view__cat-erro {
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gm-red) 10%, transparent);
+  color: var(--gm-red);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
 .produtos-view__cat-aviso-existe {
   color: var(--gm-muted);
   margin-top: 6px;

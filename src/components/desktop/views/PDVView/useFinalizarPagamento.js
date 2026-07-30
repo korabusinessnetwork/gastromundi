@@ -10,6 +10,7 @@ import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/lib/co
 import { isErroDeRede } from "@/lib/offline/rede";
 import { round2 } from "@/lib/vendas";
 import { reportarFalha } from "@/lib/observabilidade";
+import { hojeLocalISO, diaLocalDaqui } from "@/utils/datas";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
 // cadastrado hoje, mas a checagem já fica pronta para quando existir
@@ -65,6 +66,11 @@ export function useFinalizarPagamento() {
     // este `subtotal` vai para recibo, UI e sales.data; sem round2 o erro de
     // ponto flutuante (0.1+0.2) vazaria para essas superfícies.
     const subtotal        = round2(todosItens.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0));
+    // Mesmo motivo do subtotal acima: o total chega pronto do chamador e vai
+    // direto para sales.data, para o recibo e para o log. Um chamador que
+    // some centavos sem arredondar (divisão da conta, taxa, desconto) gravava
+    // 47.900000000000006 como o valor cobrado do cliente.
+    const totalVenda      = round2(total);
 
     const sale = {
       id:          crypto.randomUUID(),
@@ -75,7 +81,7 @@ export function useFinalizarPagamento() {
       valorTaxa:   valorTaxa   ?? 0,
       ajuste:      ajuste      ?? null,
       valorAjuste: valorAjuste ?? 0,
-      total,
+      total:       totalVenda,
       pagamentos,
       cashier:     currentUser?.name || "",
       // C3 — preserva quem lançou a comanda (garçom), não só quem cobrou
@@ -96,7 +102,9 @@ export function useFinalizarPagamento() {
     // Financeiro (fase 1): receita automática por pagamento — nunca bloqueia a venda.
     void (async () => {
       try {
-        const hoje = new Date().toISOString().slice(0, 10);
+        // Dia LOCAL do estabelecimento, nunca o dia UTC: comanda fechada às
+        // 21h30 pertence à noite de hoje, não ao Financeiro de amanhã.
+        const hoje = hojeLocalISO();
         for (const p of pagamentos ?? []) {
           const valorPagamento = Number(p?.valor) || 0;
           if (!p?.metodo || valorPagamento <= 0) continue;
@@ -106,7 +114,7 @@ export function useFinalizarPagamento() {
                 tipo: "receita", categoria: "vendas",
                 descricao: `Fiado — comanda ${selected.comanda}`,
                 valor: valorPagamento, competencia: hoje,
-                vencimento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+                vencimento: diaLocalDaqui(30),
                 status: "previsto",
                 origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
               }
@@ -187,6 +195,9 @@ export function useFinalizarPagamento() {
     for (const b of calcularBaixasProdutosCombo(itensAtivos)) {
       delta[b.produtoId] = (delta[b.produtoId] ?? 0) + b.qtd;
     }
+    // Baixas recusadas pelo servidor (RLS, constraint...). Offline não conta:
+    // a RPC entra na fila local e é reaplicada quando a conexão voltar.
+    const baixasFalhadas = [];
     for (const [prodId, qty] of Object.entries(delta)) {
       // Produto sem entrada no mapa de estoque = sem controle de estoque.
       // Estoque zerado NÃO pula a baixa: a RPC clampa em zero e o Jarvas
@@ -196,18 +207,33 @@ export function useFinalizarPagamento() {
       // Crítico 7 — converte a quantidade vendida (unidade de consumo)
       // para unidade de estoque via fator_consumo_estoque do produto.
       const qtdEstoque = produto ? consumoParaEstoque(qty, produto) : qty;
-      await baixarEstoque(prodId, qtdEstoque);
+      const { error } = (await baixarEstoque(prodId, qtdEstoque)) ?? {};
+      if (error) baixasFalhadas.push({ produto_id: prodId, nome: produto?.name ?? null, quantidade: qtdEstoque });
     }
 
     // B4 — combos também descontam o estoque dos subprodutos que os compõem
     // (a receita viaja no item do carrinho; só entram os com controla_estoque).
     // Mesma filosofia da baixa do principal: nunca bloqueia nem quebra a venda.
     for (const baixa of calcularBaixasSubprodutos(itensAtivos)) {
-      await baixarEstoqueSubproduto(baixa.subprodutoId, baixa.qtd, baixa.nome);
+      const { error } = (await baixarEstoqueSubproduto(baixa.subprodutoId, baixa.qtd, baixa.nome)) ?? {};
+      if (error) baixasFalhadas.push({ subproduto_id: baixa.subprodutoId, nome: baixa.nome ?? null, quantidade: baixa.qtd });
     }
 
     const metodoResumo = (pagamentos ?? []).map(p => p?.metodo).filter(Boolean).join(" + ") || "—";
-    logAction(currentUser?.username, "comanda:finalizar", { msg: `Comanda ${selected.comanda} finalizada · R$ ${total.toFixed(2)} · ${metodoResumo}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, total, metodo: metodoResumo });
+    logAction(currentUser?.username, "comanda:finalizar", { msg: `Comanda ${selected.comanda} finalizada · R$ ${totalVenda.toFixed(2)} · ${metodoResumo}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, total: totalVenda, metodo: metodoResumo });
+
+    // As baixas de estoque nunca bloqueiam a venda (decisão antiga), mas até
+    // aqui o retorno delas era jogado fora: a venda saía como sucesso total
+    // enquanto o estoque ficava sem descontar, e ninguém ligava um furo de
+    // inventário à comanda que o causou. Mesmo padrão do `remocaoFalhou`
+    // acima: registra o que falhou, sem atrapalhar a venda.
+    if (baixasFalhadas.length) {
+      logAction(currentUser?.username, "comanda:finalizar:estoque_falhou", {
+        msg: `Venda da comanda ${selected.comanda} gravada, mas ${baixasFalhadas.length} baixa(s) de estoque não foram aplicadas`,
+        name: currentUser?.name, role: currentUser?.role,
+        comanda: selected.comanda, venda_id: sale.id, itens: baixasFalhadas,
+      });
+    }
 
     if (remocaoFalhou) {
       logAction(currentUser?.username, "comanda:finalizar:remocao_falhou", { msg: `Venda gravada, mas a comanda ${selected.comanda} não foi removida da grade`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, venda_id: sale.id, erro: remocaoFalhou?.message ?? String(remocaoFalhou) });

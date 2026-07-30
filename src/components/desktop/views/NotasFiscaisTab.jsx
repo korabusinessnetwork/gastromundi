@@ -6,6 +6,12 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { parseNFe } from "@/utils/parseNFe";
+// O dia UTC vira às 21h de Brasília: a nota lançada à noite nascia com a data
+// de emissão de amanhã e a entrada de estoque caía no dia seguinte.
+import { hojeLocalISO } from "@/utils/datas";
+// A quantidade convertida vai direto para o saldo do estoque: sem arredondar,
+// 3 × 0,35 grava 1.0499999999999998 e o saldo carrega a sujeira para sempre.
+import { arredondarQtd } from "@/utils/conversaoUnidades";
 import "./NotasFiscaisTab.css";
 import {
   LuUpload, LuFileText, LuCheck, LuX, LuSearch,
@@ -73,17 +79,17 @@ function VinculaRow({ item, products, onChange }) {
     const same = p.unidade_estoque && item.unidadeXml &&
       p.unidade_estoque.toLowerCase() === item.unidadeXml.toLowerCase();
     const fator = same ? 1 : 1;
-    onChange({ ...item, produto: p, fator, fatorAuto: same, qtdEstoque: item.quantidade * fator });
+    onChange({ ...item, produto: p, fator, fatorAuto: same, qtdEstoque: arredondarQtd(item.quantidade * fator) });
   };
 
   const clearProduto = () => {
     setBusca("");
-    onChange({ ...item, produto: null, fator: 1, fatorAuto: false, qtdEstoque: item.quantidade });
+    onChange({ ...item, produto: null, fator: 1, fatorAuto: false, qtdEstoque: arredondarQtd(item.quantidade) });
   };
 
   const setFator = (val) => {
     const f = parseFloat(String(val).replace(",", ".")) || 0;
-    onChange({ ...item, fator: f, qtdEstoque: item.quantidade * f });
+    onChange({ ...item, fator: f, qtdEstoque: arredondarQtd(item.quantidade * f) });
   };
 
   useEffect(() => {
@@ -193,6 +199,7 @@ function VinculaRow({ item, products, onChange }) {
               step="any"
               value={item.fator}
               onChange={e => setFator(e.target.value)}
+              aria-label={`Fator de conversão de ${item.descricaoXml}`}
               className="nf-tab__sub"
               style={{
                 width: 64, padding: "5px 6px", borderRadius: 7,
@@ -218,7 +225,7 @@ function VinculaRow({ item, products, onChange }) {
 const ITEM_MANUAL_VAZIO = { descricaoXml: "", quantidade: "", unidadeXml: "", precoUnitario: "" };
 
 export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor }) {
-  const { products, estoque, bulkSetEstoque } = useApp();
+  const { products, entradaEstoque } = useApp();
 
   const [view,        setView]       = useState("lista");
   const [notas,       setNotas]      = useState([]);
@@ -244,7 +251,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
   // Formulário manual
   const [manualForm,  setManualForm]  = useState({
     numero: "", serie: "",
-    dataEmissao: new Date().toISOString().split("T")[0],
+    dataEmissao: hojeLocalISO(),
   });
   const [manualItens, setManualItens] = useState([{ ...ITEM_MANUAL_VAZIO }]);
   const [manualErro,  setManualErro]  = useState("");
@@ -321,7 +328,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
   };
 
   const startManual = () => {
-    setManualForm({ numero: "", serie: "", dataEmissao: new Date().toISOString().split("T")[0] });
+    setManualForm({ numero: "", serie: "", dataEmissao: hojeLocalISO() });
     setManualItens([{ ...ITEM_MANUAL_VAZIO }]);
     setManualErro("");
     setManualFornId(""); setManualFornBusca(""); setShowFornDD(false);
@@ -368,7 +375,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
       precoUnitario: parseFloat(String(it.precoUnitario).replace(",", ".")) || 0,
       precoTotal: (Number(it.quantidade) || 0) * (parseFloat(String(it.precoUnitario).replace(",", ".")) || 0),
       produto: null, fator: 1, fatorAuto: false,
-      qtdEstoque: Number(it.quantidade) || 0,
+      qtdEstoque: arredondarQtd(it.quantidade),
     })));
     setStep(3);
     setView("wizard");
@@ -434,7 +441,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
   const initItens = () => {
     setItensVinc((parsed?.itens || []).map(item => ({
-      ...item, produto: null, fator: 1, fatorAuto: false, qtdEstoque: item.quantidade,
+      ...item, produto: null, fator: 1, fatorAuto: false, qtdEstoque: arredondarQtd(item.quantidade),
     })));
   };
 
@@ -442,6 +449,12 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
   const vinculados    = itensVinc.filter(i => !!i.produto);
   const naoVinculados = itensVinc.filter(i => !i.produto);
+  // Item vinculado a um produto mas com quantidade 0 para o estoque: acontece
+  // quando o operador apaga o campo de fator ou digita texto nele (o parse cai
+  // para 0). Antes a importação seguia em frente — gravava uma entrada de 0 no
+  // histórico, não somava saldo nenhum, e a tela de sucesso ainda contava esse
+  // produto como "atualizado no estoque". Só se descobria conferindo o saldo.
+  const semQuantidade = vinculados.filter(i => !(i.qtdEstoque > 0));
 
   const handleConfirmar = async () => {
     setSaving(true); setSaveErro("");
@@ -498,22 +511,24 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             nota_fiscal_id: notaData.id,
             quantidade:     item.qtdEstoque,
             preco_unitario: item.fator > 0 ? item.precoUnitario / item.fator : item.precoUnitario,
-            data_entrada:   cabecalho.dataEmissao || new Date().toISOString().split("T")[0],
+            data_entrada:   cabecalho.dataEmissao || hojeLocalISO(),
           }))
         );
         if (entradasErr) throw entradasErr;
       }
 
-      // 4. Atualiza estoque no contexto (bulk para evitar race condition)
-      if (vinculados.length > 0) {
-        const novoEstoque = { ...estoque };
-        for (const item of vinculados) {
-          if (item.qtdEstoque > 0) {
-            novoEstoque[item.produto.id] = (novoEstoque[item.produto.id] ?? 0) + item.qtdEstoque;
-          }
-        }
-        const { error: estoqueErr } = await bulkSetEstoque(novoEstoque);
-        if (estoqueErr) throw new Error("a nota foi salva, mas o estoque não foi atualizado. Recarregue a página e ajuste o estoque manualmente se necessário.");
+      // 4. Entrada de estoque, um produto por vez e somada pelo banco.
+      //
+      // Antes isto montava `{ ...estoque }` — o mapa INTEIRO de saldos que
+      // este navegador tinha em memória — e mandava tudo de volta num upsert.
+      // Resultado: importar uma nota de 3 itens regravava o saldo de TODOS os
+      // produtos do catálogo com o valor que esta aba viu quando carregou.
+      // Qualquer venda ou ajuste feito em outro aparelho desde então era
+      // apagado, em silêncio, em produtos que nem estavam na nota.
+      // Agora só os itens da nota são tocados, e quem soma é o banco.
+      for (const item of vinculados) {
+        const { error: estoqueErr } = await entradaEstoque(item.produto.id, item.qtdEstoque);
+        if (estoqueErr) throw new Error(`a nota foi salva, mas a entrada de ${item.produto.name} não foi somada ao estoque. Confira o saldo desse item e ajuste manualmente se precisar.`);
       }
 
       setImportOk({ numero: cabecalho.numero, fornecedor: cabecalho.fornecedorNome, count: vinculados.length });
@@ -1170,15 +1185,23 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
               </div>
             )}
 
+            {semQuantidade.length > 0 && (
+              <div role="alert" className="nf-tab__erro-box" style={{ background: alfa("#f59e0b", "12"), border: `1.5px solid ${alfa("#f59e0b", "44")}` }}>
+                {semQuantidade.map(i => i.produto.name).join(", ")}
+                {semQuantidade.length === 1 ? " ficou com quantidade 0" : " ficaram com quantidade 0"} para o estoque.
+                Volte e corrija o fator de conversão, ou desvincule o item para ignorá-lo.
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: 12 }}>
               <button onClick={() => setStep(3)} disabled={saving} className="nf-tab__btn-secundario" style={{ cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.5 : 1 }}>
                 ← Voltar
               </button>
               <button
                 onClick={handleConfirmar}
-                disabled={saving}
+                disabled={saving || semQuantidade.length > 0}
                 className="nf-tab__btn-primario"
-                style={{ flex: 1, background: saving ? varColor(C.faint) : varColor(C.green), cursor: saving ? "not-allowed" : "pointer", boxShadow: saving ? "none" : `0 4px 16px ${alfa(C.green, "44")}`, transition: "background 0.15s" }}
+                style={{ flex: 1, background: saving || semQuantidade.length > 0 ? varColor(C.faint) : varColor(C.green), cursor: saving || semQuantidade.length > 0 ? "not-allowed" : "pointer", boxShadow: saving || semQuantidade.length > 0 ? "none" : `0 4px 16px ${alfa(C.green, "44")}`, transition: "background 0.15s" }}
               >
                 {saving ? "Salvando..." : "✓ Confirmar Importação"}
               </button>
