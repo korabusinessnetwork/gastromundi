@@ -16,6 +16,82 @@ export function round2(v) {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
+/** Teto do ajuste percentual — o mesmo `max` que o input do checkout declara. */
+export const AJUSTE_PERCENTUAL_MAX = 100;
+
+/**
+ * Valida o desconto/acréscimo do checkout ANTES de aplicar.
+ *
+ * O popup declarava o limite só no HTML (`<input type="number" max="100">`),
+ * que não impede digitar: `max` apenas trava as setinhas e marca o campo como
+ * inválido para um `checkValidity()` que ninguém chamava. Digitar 150 no modo
+ * Percentual — que é o modo PADRÃO, e 150 é um valor de "R$ 150" perfeitamente
+ * plausível de quem esqueceu de trocar para Valor Fixo — passava direto: o
+ * cálculo dava -150% da conta e o `Math.max(0, ...)` do total transformava
+ * isso em R$ 0,00. Venda de graça, sem aviso nenhum. Mesma coisa no modo fixo
+ * com desconto maior que a conta.
+ *
+ * Por que barrar o acréscimo acima de 100% também: cobrar 6× a conta por um
+ * dígito a mais é o mesmo erro de digitação, com o prejuízo do outro lado do
+ * balcão. O limite já era o anunciado pela tela.
+ *
+ * Função pura — o checkout usa para desabilitar o botão e dizer o motivo
+ * (prevenção antes da mensagem de erro), sem round-trip.
+ *
+ * @param {{ tipo?: 'desconto'|'acrescimo', mode?: 'percentual'|'fixo', valor?: any }} ajuste
+ * @param {number} base - valor da conta já com a taxa de serviço
+ * @returns {{ valido: boolean, erro: string|null }}
+ */
+export function validarAjuste(ajuste, base) {
+  const v = Number.parseFloat(ajuste?.valor);
+  if (!Number.isFinite(v) || v <= 0) {
+    return { valido: false, erro: "Informe um valor maior que zero." };
+  }
+
+  if (ajuste?.mode === "percentual") {
+    if (v > AJUSTE_PERCENTUAL_MAX) {
+      return {
+        valido: false,
+        erro: `O ${ajuste?.tipo === "desconto" ? "desconto" : "acréscimo"} não pode passar de ${AJUSTE_PERCENTUAL_MAX}%. Para um valor em reais, troque para "Valor Fixo (R$)".`,
+      };
+    }
+    return { valido: true, erro: null };
+  }
+
+  const conta = round2(base);
+  if (ajuste?.tipo === "desconto" && round2(v) > conta) {
+    return {
+      valido: false,
+      erro: `O desconto não pode ser maior que a conta (R$ ${conta.toFixed(2)}).`,
+    };
+  }
+
+  return { valido: true, erro: null };
+}
+
+/**
+ * Desconto exige senha de gerente/admin — SEMPRE, sem faixa de tolerância.
+ *
+ * No mesmo checkout, remover UM item da conta já pedia senha de gerente e um
+ * motivo; zerar a conta inteira com 100% de desconto não pedia nada. Desconto
+ * é a rota clássica de vazamento de caixa no PDV (o valor sai da conta e o
+ * dinheiro pode não entrar na gaveta), e a trava não pode ser mais fraca do
+ * que a de cancelar um refrigerante.
+ *
+ * Acréscimo não passa pela senha: ele AUMENTA o total (taxa de entrega,
+ * embalagem, adicional combinado com o cliente). Não tira dinheiro do caixa,
+ * e o cliente confere o valor no ato do pagamento.
+ *
+ * Função pura — a tela usa para decidir se mostra o campo de senha e se
+ * libera o botão Aplicar.
+ *
+ * @param {{ tipo?: 'desconto'|'acrescimo' }} ajuste
+ * @returns {boolean}
+ */
+export function ajusteExigeSenha(ajuste) {
+  return ajuste?.tipo === "desconto";
+}
+
 /**
  * TD009 (etapa 1) — mapeia uma venda no formato antigo (blob de
  * sales.data) para as linhas das tabelas relacionais novas

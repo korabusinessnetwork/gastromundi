@@ -11,9 +11,12 @@
  * (SECURITY DEFINER, 20260727) chamada com o JWT do CHAMADOR — assim a
  * própria RPC reconfirma que quem chama é super-admin `plataforma`.
  *
- * Autorização: o chamador precisa ser super-admin `plataforma`
- * (role='plataforma' em public.users). Um admin de estabelecimento comum
- * recebe 403 — provisionar tenants é ação da PLATAFORMA (decisão 027).
+ * Autorização: o chamador precisa ser super-admin `plataforma` ATIVO
+ * (role='plataforma' e active=true em public.users). Um admin de
+ * estabelecimento comum recebe 403 — provisionar tenants é ação da
+ * PLATAFORMA (decisão 027). A conta desativada também: desativar em `users`
+ * não invalida o JWT já emitido, então sem olhar `active` o ex-sócio a quem
+ * o acesso foi cortado seguiria criando estabelecimentos até o token vencer.
  *
  * Convenção de username (login ciente de tenant via subdomínio — 20260740):
  * o login monta o e-mail como `${username}@${slug}.local`, onde `slug` é o
@@ -46,6 +49,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { compensarProvisionamento, removerCredencialOrfa } from "../_shared/provisionamento.ts";
 import { coordenada, validarEntradaProvisionamento } from "../_shared/validacaoProvisionamento.ts";
+import { decidirAcesso, mensagemRecusa, PAPEIS_PLATAFORMA } from "../_shared/guardaEntrada.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -73,12 +77,13 @@ Deno.serve(async (req) => {
 
     const { data: callerData } = await supabaseCaller
       .from("users")
-      .select("role")
+      .select("role, active")
       .eq("auth_id", caller.id)
       .single();
 
-    if (callerData?.role !== "plataforma") {
-      return json({ error: "Acesso restrito à plataforma." }, 403);
+    const acesso = decidirAcesso(callerData, PAPEIS_PLATAFORMA);
+    if (!acesso.ok) {
+      return json({ error: mensagemRecusa(acesso.motivo, "Acesso restrito à plataforma.") }, 403);
     }
 
     // ── 2. Valida a entrada ──────────────────────────────────────────
@@ -211,7 +216,14 @@ Deno.serve(async (req) => {
       admin: { username, auth_id: authCreated.user.id },
     });
   } catch (e) {
-    return json({ error: (e as Error).message ?? "Erro interno." }, 500);
+    // Só o inesperado cai aqui — as falhas PREVISTAS (RPC recusou o slug,
+    // e-mail já cadastrado, perfil rejeitado) devolvem `.message` de
+    // propósito nos itens 3, 5 e 6, porque o Console precisa da causa para
+    // decidir o que fazer. O que sobra neste catch é exceção de runtime, e
+    // a mensagem dela carrega nome de tabela, coluna e constraint — desenho
+    // interno do banco entregue a quem chamou. Fica no log da função.
+    console.error("provisionar-estabelecimento error:", e);
+    return json({ error: "Erro interno ao provisionar o estabelecimento." }, 500);
   }
 });
 

@@ -11,6 +11,7 @@ import { useApp } from "@/context/AppContext";
 import { metodoUsaTef } from "@/lib/tef";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { buscarClientePorId } from "@/lib/clientes";
+import { AJUSTE_PERCENTUAL_MAX, ajusteExigeSenha, validarAjuste } from "@/lib/vendas";
 import ClienteFiadoSelector from "./ClienteFiadoSelector";
 import ImpressaoAcoes from "./ImpressaoAcoes";
 import ModalCpfNota from "./ModalCpfNota";
@@ -50,6 +51,11 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
   const [ajusteMode,    setAjusteMode]    = useState("percentual");
   const [ajusteValor,   setAjusteValor]   = useState("");
   const [ajusteAplicado, setAjusteAplicado] = useState(null);
+  // Senha de gerente no desconto (mesmo padrão do popup de remover item).
+  const [ajusteSenha,     setAjusteSenha]     = useState("");
+  const [ajusteSenhaErro, setAjusteSenhaErro] = useState("");
+  const [ajusteSenhaVis,  setAjusteSenhaVis]  = useState(false);
+  const [aplicandoAjuste, setAplicandoAjuste] = useState(false);
 
   // F010 — cliente do fiado (fiado exige cliente identificado)
   const [clienteFiado, setClienteFiado] = useState(null);
@@ -115,6 +121,22 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
   const valorAjuste   = calcAjuste(baseComTaxa, ajusteAplicado);
   const total         = round2(Math.max(0, baseComTaxa + valorAjuste));
 
+  // Prevenção > mensagem de erro: a validade do ajuste que está sendo digitado
+  // governa o botão Aplicar e o Enter, e o motivo aparece na hora. Sem isso,
+  // 150 no modo Percentual (o padrão) zerava a conta calado — o `max="100"` do
+  // input é só dica de HTML, não impede digitar.
+  const ajusteValidacao = validarAjuste({ tipo: ajusteTipo, mode: ajusteMode, valor: ajusteValor }, baseComTaxa);
+  const podeAplicarAjuste = ajusteValidacao.valido;
+  // Campo vazio não é erro do operador — é o estado inicial. Só reclama de
+  // um valor de fato digitado e fora do limite.
+  const ajusteErroVisivel = parseFloat(ajusteValor) > 0 ? ajusteValidacao.erro : null;
+
+  // Desconto só sai com senha de gerente/admin — a mesma trava que remover um
+  // item já tinha neste checkout. Acréscimo segue livre (aumenta o total).
+  const ajusteExigeAutorizacao = ajusteExigeSenha({ tipo: ajusteTipo });
+  const podeConfirmarAjuste =
+    podeAplicarAjuste && !aplicandoAjuste && (!ajusteExigeAutorizacao || !!ajusteSenha.trim());
+
   const isSplit = pagamentos.length > 1;
 
   // Single-mode helpers (pagamentos[0] with total auto-synced)
@@ -174,6 +196,51 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
   const voltarParaUnico = () => {
     setPagamentos(prev => [{ metodo: prev[0]?.metodo ?? null, valor: total, recebido: 0 }]);
     setShowDivisor(false);
+  };
+
+  const abrirAjuste = () => {
+    setAjusteValor(ajusteAplicado?.valor ?? "");
+    setAjusteTipo(ajusteAplicado?.tipo ?? "desconto");
+    setAjusteMode(ajusteAplicado?.mode ?? "percentual");
+    setAjusteSenha("");
+    setAjusteSenhaErro("");
+    setAjusteSenhaVis(false);
+    setShowAjuste(true);
+  };
+
+  // A senha não fica guardada em memória depois que o popup fecha.
+  const fecharAjuste = () => {
+    setShowAjuste(false);
+    setAjusteSenha("");
+    setAjusteSenhaErro("");
+    setAjusteSenhaVis(false);
+  };
+
+  // Aplica o desconto/acréscimo. No desconto, a senha é conferida ANTES —
+  // se não confere, o popup continua aberto com o motivo e nada é aplicado.
+  const aplicarAjuste = async () => {
+    if (!podeConfirmarAjuste) return;
+    const ajuste = { tipo: ajusteTipo, mode: ajusteMode, valor: ajusteValor };
+
+    if (!ajusteExigeAutorizacao) {
+      setAjusteAplicado(ajuste);
+      fecharAjuste();
+      return;
+    }
+
+    setAplicandoAjuste(true);
+    setAjusteSenhaErro("");
+    try {
+      const { ok, erro } = await verificarSenhaAdmin(ajusteSenha);
+      if (!ok) {
+        setAjusteSenhaErro(erro || "Senha incorreta. Apenas admin ou gerente pode dar desconto.");
+        return;
+      }
+      setAjusteAplicado(ajuste);
+      fecharAjuste();
+    } finally {
+      setAplicandoAjuste(false);
+    }
   };
 
   // Leva 15.1 — abre o popup de remoção para um item agrupado da lista
@@ -329,7 +396,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
 
           {/* Botão Desconto/Acréscimo */}
           <button
-            onClick={() => { setShowAjuste(true); setAjusteValor(ajusteAplicado?.valor ?? ""); setAjusteTipo(ajusteAplicado?.tipo ?? "desconto"); setAjusteMode(ajusteAplicado?.mode ?? "percentual"); }}
+            onClick={abrirAjuste}
             className="checkout-view__btn-ajuste"
             style={{
               background: ajusteAplicado ? alfa(ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green), "18") : varColor(C.surface),
@@ -874,7 +941,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
       {/* ── Popup Desconto / Acréscimo ── */}
       {showAjuste && createPortal(
         <div
-          {...fecharAoClicarFora(() => setShowAjuste(false))}
+          {...fecharAoClicarFora(fecharAjuste, !aplicandoAjuste)}
           className="checkout-view__overlay"
         >
           <div className="checkout-view__modal" style={{
@@ -886,7 +953,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                 <div className="checkout-view__modal-titulo" style={{ fontWeight: 800, color: "#fff" }}>Desconto / Acréscimo</div>
                 <div className="checkout-view__modal-subtitulo" style={{ fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>Total atual: R$ {baseComTaxa.toFixed(2)}</div>
               </div>
-              <button onClick={() => setShowAjuste(false)} className="checkout-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+              <button onClick={() => { if (!aplicandoAjuste) fecharAjuste(); }} className="checkout-view__modal-fechar" style={{ color: varColor(C.muted) }}>
                 <LuX size={sz.fontLg} />
               </button>
             </div>
@@ -938,17 +1005,12 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     autoFocus
                     type="number"
                     min="0"
-                    max={ajusteMode === "percentual" ? "100" : undefined}
+                    max={ajusteMode === "percentual" ? String(AJUSTE_PERCENTUAL_MAX) : undefined}
                     step={ajusteMode === "percentual" ? "1" : "0.01"}
                     value={ajusteValor}
                     onChange={e => setAjusteValor(e.target.value)}
                     placeholder="0"
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && parseFloat(ajusteValor) > 0) {
-                        setAjusteAplicado({ tipo: ajusteTipo, mode: ajusteMode, valor: ajusteValor });
-                        setShowAjuste(false);
-                      }
-                    }}
+                    onKeyDown={e => { if (e.key === "Enter") aplicarAjuste(); }}
                     className="checkout-view__modal-input"
                     style={{
                       padding: `${sz.padSm}px ${sz.padSm}px ${sz.padSm}px 52px`,
@@ -960,8 +1022,15 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                 </div>
               </div>
 
+              {/* Motivo de não dar para aplicar — some sozinho ao corrigir */}
+              {ajusteErroVisivel && (
+                <div className="checkout-view__ajuste-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>
+                  {ajusteErroVisivel}
+                </div>
+              )}
+
               {/* Preview */}
-              {parseFloat(ajusteValor) > 0 && (() => {
+              {podeAplicarAjuste && (() => {
                 const v   = parseFloat(ajusteValor) || 0;
                 const val = ajusteMode === "percentual" ? baseComTaxa * (v / 100) : v;
                 const novoTotal = Math.max(0, ajusteTipo === "desconto" ? baseComTaxa - val : baseComTaxa + val);
@@ -984,37 +1053,76 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                 );
               })()}
 
+              {/* Senha de gerente — só no desconto. Tirar valor da conta passa
+                  pela mesma autorização que remover um item já exigia aqui. */}
+              {ajusteExigeAutorizacao && (
+                <div>
+                  <div className="checkout-view__modal-input-label" style={{ fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>
+                    <LuLock size={13} /> Senha de gerente ou admin
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={ajusteSenhaVis ? "text" : "password"}
+                      value={ajusteSenha}
+                      onChange={e => { setAjusteSenha(e.target.value); setAjusteSenhaErro(""); }}
+                      onKeyDown={e => { if (e.key === "Enter") aplicarAjuste(); }}
+                      placeholder="Digite a senha"
+                      className="checkout-view__ajuste-senha"
+                      style={{
+                        border: `1.5px solid ${ajusteSenhaErro ? varColor(C.red) : "var(--gm-input-border)"}`,
+                        background: "var(--gm-input-bg)", color: varColor(C.text),
+                      }}
+                    />
+                    <button
+                      onClick={() => setAjusteSenhaVis(v => !v)}
+                      className="checkout-view__ajuste-senha-olho"
+                      style={{ color: varColor(C.muted) }}
+                      aria-label={ajusteSenhaVis ? "Ocultar senha" : "Mostrar senha"}
+                    >
+                      {ajusteSenhaVis ? <LuEyeOff size={16} /> : <LuEye size={16} />}
+                    </button>
+                  </div>
+                  {ajusteSenhaErro ? (
+                    <div role="alert" className="checkout-view__ajuste-senha-erro" style={{ color: varColor(C.red), fontWeight: 600, marginTop: 6 }}>
+                      {ajusteSenhaErro}
+                    </div>
+                  ) : (
+                    <div className="checkout-view__ajuste-senha-dica" style={{ color: varColor(C.muted), marginTop: 6 }}>
+                      Todo desconto precisa da autorização de um gerente.
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Ações */}
               <div className="checkout-view__modal-acoes" style={{ gap: sz.gap, paddingTop: 2 }}>
                 {ajusteAplicado && (
                   <button
-                    onClick={() => { setAjusteAplicado(null); setShowAjuste(false); }}
+                    onClick={() => { setAjusteAplicado(null); fecharAjuste(); }}
+                    disabled={aplicandoAjuste}
                     className="checkout-view__modal-btn-remover"
                     style={{
                       flex: 1, padding: `${sz.gap}px`,
                       border: `1.5px solid var(${C.border})`, background: "none",
                       color: varColor(C.muted),
+                      cursor: aplicandoAjuste ? "not-allowed" : "pointer",
                     }}
                   >
                     Remover
                   </button>
                 )}
                 <button
-                  onClick={() => {
-                    if (!(parseFloat(ajusteValor) > 0)) return;
-                    setAjusteAplicado({ tipo: ajusteTipo, mode: ajusteMode, valor: ajusteValor });
-                    setShowAjuste(false);
-                  }}
-                  disabled={!(parseFloat(ajusteValor) > 0)}
+                  onClick={aplicarAjuste}
+                  disabled={!podeConfirmarAjuste}
                   className="checkout-view__modal-btn-aplicar"
                   style={{
                     flex: 2, padding: `${sz.gap}px`,
-                    background: parseFloat(ajusteValor) > 0 ? varColor(C.accent) : varColor(C.faint),
-                    cursor: parseFloat(ajusteValor) > 0 ? "pointer" : "not-allowed",
-                    boxShadow: parseFloat(ajusteValor) > 0 ? `0 4px 20px ${alfa(C.accent, "44")}` : "none",
+                    background: podeConfirmarAjuste ? varColor(C.accent) : varColor(C.faint),
+                    cursor: podeConfirmarAjuste ? "pointer" : "not-allowed",
+                    boxShadow: podeConfirmarAjuste ? `0 4px 20px ${alfa(C.accent, "44")}` : "none",
                   }}
                 >
-                  Aplicar
+                  {aplicandoAjuste ? "Verificando senha..." : "Aplicar"}
                 </button>
               </div>
             </div>

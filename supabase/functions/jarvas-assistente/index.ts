@@ -20,6 +20,12 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  decidirAcesso,
+  mensagemRecusa,
+  PAPEIS_GERENCIA,
+  sanitizarHistorico,
+} from "../_shared/guardaEntrada.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,14 +57,16 @@ Deno.serve(async (req) => {
     const { data: { user: caller }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !caller) return json({ error: "Sessão inválida." }, 401);
 
+    // `active` entra no select porque a guarda falha fechado sem ela.
     const { data: callerData } = await supabaseClient
       .from("users")
-      .select("role, name")
+      .select("role, name, active")
       .eq("auth_id", caller.id)
       .single();
 
-    if (!callerData || !["admin", "gerente"].includes(callerData.role)) {
-      return json({ error: "Assistente disponível apenas para gerência." }, 403);
+    const acesso = decidirAcesso(callerData, PAPEIS_GERENCIA);
+    if (!acesso.ok) {
+      return json({ error: mensagemRecusa(acesso.motivo, "Assistente disponível apenas para gerência.") }, 403);
     }
 
     const { pergunta, historico } = await req.json();
@@ -133,10 +141,7 @@ Deno.serve(async (req) => {
     ].join("\n");
 
     const mensagens = [
-      ...(Array.isArray(historico) ? historico.slice(-6) : []).map((m: { papel: string; texto: string }) => ({
-        role: m.papel === "jarvas" ? "assistant" : "user",
-        content: String(m.texto).slice(0, 2000),
-      })),
+      ...sanitizarHistorico(historico),
       { role: "user", content: pergunta },
     ];
 

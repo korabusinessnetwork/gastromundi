@@ -26,6 +26,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decidirAcesso, mensagemRecusa, PAPEIS_GERENCIA } from "../_shared/guardaEntrada.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -128,6 +129,25 @@ Deno.serve(async (req) => {
 
     const { data: { user: caller }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !caller) return json({ erro: "Sessão inválida." }, 401);
+
+    // Exigir só "autenticado" era pouco. A aba "Importar / Exportar" que chama
+    // isto é gated em admin/gerente (ConfiguracoesView), mas o servidor
+    // aceitava qualquer sessão válida — garçom ou caixa podiam chamar a função
+    // direto e queimar a cota grátis do Gemini do estabelecimento. O teto
+    // diário abaixo não tapa isso: ele é fail-open de propósito e conta por
+    // tenant, não por quem tinha o direito de gastar.
+    const { data: callerData } = await supabaseClient
+      .from("users")
+      .select("role, active")
+      .eq("auth_id", caller.id)
+      .single();
+
+    const acesso = decidirAcesso(callerData, PAPEIS_GERENCIA);
+    if (!acesso.ok) {
+      return json({
+        erro: mensagemRecusa(acesso.motivo, "A leitura de cardápio por IA é restrita à gerência."),
+      }, 403);
+    }
 
     // ── 2. Valida as imagens recebidas ──────────────────────────────
     const { imagens } = await req.json();

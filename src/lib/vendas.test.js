@@ -1,5 +1,71 @@
 import { describe, it, expect, vi } from "vitest";
-import { mapearVendaParaLinhas, montarVendaLegada, persistirVendaNormalizada, round2 } from "./vendas";
+import { AJUSTE_PERCENTUAL_MAX, ajusteExigeSenha, mapearVendaParaLinhas, montarVendaLegada, persistirVendaNormalizada, round2, validarAjuste } from "./vendas";
+
+describe("validarAjuste — desconto que zerava a conta calado", () => {
+  const CONTA = 262.5;
+
+  it("barra o percentual acima de 100 (era total R$ 0,00 sem aviso)", () => {
+    // O caso real: modo Percentual é o PADRÃO do popup, e "150" é um valor
+    // de R$ 150 plausível de quem esqueceu de trocar para Valor Fixo.
+    const r = validarAjuste({ tipo: "desconto", mode: "percentual", valor: "150" }, CONTA);
+    expect(r.valido).toBe(false);
+    expect(r.erro).toContain("Valor Fixo");
+  });
+
+  it("barra o acréscimo acima de 100% — mesmo dedo, prejuízo do outro lado", () => {
+    expect(validarAjuste({ tipo: "acrescimo", mode: "percentual", valor: "500" }, CONTA).valido).toBe(false);
+  });
+
+  it("aceita exatamente 100% — dar a conta de cortesia é decisão legítima", () => {
+    const r = validarAjuste({ tipo: "desconto", mode: "percentual", valor: String(AJUSTE_PERCENTUAL_MAX) }, CONTA);
+    expect(r).toEqual({ valido: true, erro: null });
+  });
+
+  it("barra desconto fixo maior que a conta e diz de quanto ela é", () => {
+    const r = validarAjuste({ tipo: "desconto", mode: "fixo", valor: "300" }, CONTA);
+    expect(r.valido).toBe(false);
+    expect(r.erro).toContain("R$ 262.50");
+  });
+
+  it("aceita desconto fixo igual à conta, e acréscimo fixo sem teto", () => {
+    expect(validarAjuste({ tipo: "desconto", mode: "fixo", valor: "262.50" }, CONTA).valido).toBe(true);
+    expect(validarAjuste({ tipo: "acrescimo", mode: "fixo", valor: "1000" }, CONTA).valido).toBe(true);
+  });
+
+  it("centavo de ponto flutuante não vira 'desconto maior que a conta'", () => {
+    expect(validarAjuste({ tipo: "desconto", mode: "fixo", valor: "0.3" }, 0.1 + 0.2).valido).toBe(true);
+  });
+
+  it("recusa valor vazio, zero, negativo ou não numérico", () => {
+    for (const valor of ["", "0", "-10", "abc", null, undefined]) {
+      const r = validarAjuste({ tipo: "desconto", mode: "percentual", valor }, CONTA);
+      expect(r.valido).toBe(false);
+      expect(r.erro).toBe("Informe um valor maior que zero.");
+    }
+  });
+});
+
+describe("ajusteExigeSenha — senha de gerente no desconto", () => {
+  it("exige senha em TODO desconto, sem faixa de tolerância", () => {
+    expect(ajusteExigeSenha({ tipo: "desconto", mode: "percentual", valor: "5" })).toBe(true);
+    expect(ajusteExigeSenha({ tipo: "desconto", mode: "percentual", valor: "100" })).toBe(true);
+    expect(ajusteExigeSenha({ tipo: "desconto", mode: "fixo", valor: "0.50" })).toBe(true);
+  });
+
+  it("acréscimo não passa pela senha — aumenta o total, não esvazia o caixa", () => {
+    expect(ajusteExigeSenha({ tipo: "acrescimo", mode: "percentual", valor: "10" })).toBe(false);
+    expect(ajusteExigeSenha({ tipo: "acrescimo", mode: "fixo", valor: "8" })).toBe(false);
+  });
+
+  // A tela calcula com a MESMA comparação (`tipo === "desconto" ? -val : val`),
+  // então tipo malformado não vira desconto — soma. Dispensar a senha nesses
+  // casos não abre buraco: não há valor saindo da conta para autorizar.
+  it("tipo malformado não é desconto — nem no cálculo, nem aqui", () => {
+    for (const ajuste of [null, undefined, {}, { tipo: "" }, { tipo: "DESCONTO" }]) {
+      expect(ajusteExigeSenha(ajuste)).toBe(false);
+    }
+  });
+});
 
 describe("round2 (P7)", () => {
   it("arredonda pra 2 casas sem viés de ponto flutuante", () => {

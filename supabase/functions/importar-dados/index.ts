@@ -34,6 +34,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decidirAcesso, mensagemRecusa, PAPEIS_IMPORTACAO } from "../_shared/guardaEntrada.ts";
 import {
   validarPlanilhaProdutos,
   validarPlanilhaClientes,
@@ -77,16 +78,18 @@ Deno.serve(async (req) => {
     const { data: { user: caller }, error: authError } = await supabaseCaller.auth.getUser();
     if (authError || !caller) return json({ error: "Sessão inválida." }, 401);
 
+    // `active` entra no select porque a guarda falha fechado sem ela.
     const { data: callerData } = await supabaseCaller
       .from("users")
-      .select("role, tenant_id")
+      .select("role, tenant_id, active")
       .eq("auth_id", caller.id)
       .single();
 
-    const papel = callerData?.role;
-    if (papel !== "plataforma" && papel !== "admin") {
-      return json({ error: "Acesso restrito a administradores." }, 403);
+    const acesso = decidirAcesso(callerData, PAPEIS_IMPORTACAO);
+    if (!acesso.ok) {
+      return json({ error: mensagemRecusa(acesso.motivo, "Acesso restrito a administradores.") }, 403);
     }
+    const papel = callerData?.role;
 
     // ── 2. Valida a entrada e resolve o tenant alvo ──────────────────
     const body = await req.json().catch(() => null);
@@ -265,7 +268,12 @@ Deno.serve(async (req) => {
 
     return json({ ...base, criados: r.criados, atualizados: r.atualizados });
   } catch (e) {
-    return json({ error: (e as Error).message ?? "Erro interno." }, 500);
+    // Mensagem crua ia para o cliente: erro de supabase-js/Postgres carrega
+    // nome de tabela, coluna e constraint. Fica no log e o cliente recebe uma
+    // frase fechada. O erro de GRAVAÇÃO (r.error, acima) continua detalhado —
+    // aquele é o que diz onde o arquivo parou e precisa chegar em quem importa.
+    console.error("importar-dados error:", e);
+    return json({ error: "Erro interno na importação." }, 500);
   }
 });
 
