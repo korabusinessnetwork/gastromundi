@@ -67,6 +67,7 @@ Aprendizados não documentados se perdem. Este arquivo captura o conhecimento t�
 |------|-------------|--------------|
 | 2026-06 | Documentar a arquitetura **antes** de codar reduz retrabalho e alinha o time. | Manter abordagem document-first nas sprints de fundação. |
 | 2026-06 | Conflitos entre instruções e a estrutura real do repositório devem ser resolvidos explicitamente, não assumidos. | Quando houver divergência entre o pedido e o que existe, registrar a decisão de mapeamento. |
+| 2026-08 | O que cada rodada de trabalho com o Claude Code ensinava sumia com a sessão: o padrão manual (propor → rodar → reportar → revisar) exigia prompt novo a cada volta e nunca voltava para `memory/`. | Ciclo de sete passos criado em `.claude/loop/` (`/spec`, `/build`, `/review`, `/aprender`, `/proximo`, `/ciclo`), com o passo "aprender" obrigatório e o estado em `specs/_loop.md`. Instalar com `bash .claude/loop/instalar.sh` no início da sessão — `~/.claude/` do ambiente remoto é efêmero e a instalação global se perde. |
 
 ## Aprendizados de Negócio
 
