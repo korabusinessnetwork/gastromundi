@@ -257,6 +257,7 @@ DECLARE
   v_try        integer;
   v_fuso       text;
   v_dia        text;
+  v_seq        integer;
 BEGIN
   IF v_tenant IS NULL THEN
     RAISE EXCEPTION 'Estabelecimento não encontrado.';
@@ -461,17 +462,26 @@ BEGIN
   -- de count(*)), e o filtro é o próprio prefixo do número (não
   -- created_at, que é UTC): assim um pedido apagado não faz a conta
   -- devolver para sempre um número que já existe, travando a loja.
-  -- to_char(...,'FM000') no lugar de lpad(...,3,'0') porque lpad TRUNCA
-  -- o que passa de 3 dígitos — o pedido 1000 viraria 100.
+  -- Formatação do sufixo: nenhuma das duas opções óbvias serve sozinha.
+  -- `lpad(n::text, 3, '0')` TRUNCA acima de três dígitos — o pedido 1000
+  -- viraria 100 e colidiria com o de número 100. E `to_char(n,'FM000')`
+  -- não expande o gabarito: o que não cabe vira '###'. O '###' seria pior
+  -- que a colisão, porque não casa com o filtro `-[0-9]+$` logo abaixo —
+  -- o MAX passaria a ignorar essa linha, todo pedido seguinte do dia
+  -- recalcularia o mesmo número, e a loja pararia de aceitar pedidos
+  -- depois de esgotar as 8 tentativas. `greatest(3, length(...))` mantém
+  -- os três dígitos de sempre e deixa o número crescer quando precisa.
   v_dia := to_char(timezone(v_fuso, now()), 'YYMMDD');
 
   FOR v_try IN 1..8 LOOP
-    SELECT v_dia || '-' || to_char(
-             COALESCE(max(split_part(numero, '-', 2)::int), 0) + v_try, 'FM000')
-      INTO v_numero
+    SELECT COALESCE(max(split_part(numero, '-', 2)::int), 0) + v_try
+      INTO v_seq
     FROM public.delivery_pedidos
     WHERE tenant_id = v_tenant
       AND numero ~ ('^' || v_dia || '-[0-9]+$');
+
+    v_numero := v_dia || '-' ||
+                lpad(v_seq::text, greatest(3, length(v_seq::text)), '0');
 
     BEGIN
       INSERT INTO public.delivery_pedidos (

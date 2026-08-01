@@ -70,6 +70,24 @@ Padrões surgem de decisões repetidas. Quando a mesma solução é adotada trê
 - **Estado local**: mantido no componente sempre que não precisar ser compartilhado.
 - Regra de ouro: elevar estado apenas quando há mais de um consumidor real.
 
+### Conferência textual de SQL: tirar comentário antes, e proibir a forma, não a palavra
+Vale para todo guard que lê migration em `src/**/*SqlGuard.test.js` e para todo autoteste
+`DO $$` que inspeciona `pg_get_functiondef()`.
+
+- **Sempre remova os comentários antes de conferir.** O corpo consertado normalmente *explica em
+  português* a fórmula que substituiu, então a palavra do bug continua no arquivo depois de sumir
+  do código. Em JS: descartar a linha que começa com `--` **e** cortar o `--` de fim de linha
+  (`linha.replace(/--.*$/, "")`). Em SQL: `regexp_replace(v_def, '--.*', '', 'gn')` — a flag `n`
+  faz o `.` não atravessar a quebra de linha. O erro simétrico é pior e passa calado: um comentário
+  citando a guarda faz a guarda ser dada como presente sem ela existir.
+- **Proíba a forma defeituosa, não o token.** `lpad(x, 3, '0')` trunca e `to_char(n,'FM000')`
+  estoura, mas `lpad` e `to_char` em si são corretos — um guard que bane o token obriga quem vier
+  depois a reintroduzir o bug para o teste passar.
+- **Prove a regex nos dois lados.** Um caso que ela deve pegar e um que ela não pode pegar, no
+  mesmo teste: sem isso, afrouxar a regex até não pegar nada vira o caminho fácil de "fazer passar".
+- **Laço sobre arquivos precisa provar que rodou.** Conte os blocos conferidos e exija `> 0` — laço
+  vazio não asserta nada e o teste fica verde sem ter olhado coisa nenhuma.
+
 ---
 
 ## Padrões de API

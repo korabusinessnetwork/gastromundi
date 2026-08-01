@@ -33,8 +33,11 @@
 -- Correção: o dia vem do fuso do estabelecimento; a sequência vem de
 -- MAX(sequência já emitida no dia) + tentativa, filtrando pelo PRÓPRIO
 -- prefixo do número (não por created_at, que é UTC) — assim pedido
--- apagado não trava mais nada; e a formatação passa a `to_char(n,'FM000')`,
--- que preenche com zero à esquerda sem nunca truncar.
+-- apagado não trava mais nada; e a formatação passa a
+-- `lpad(n::text, greatest(3, length(n::text)), '0')`, que preenche com zero
+-- à esquerda até três dígitos e deixa o número crescer sozinho a partir daí.
+-- (`to_char(n,'FM000')` NÃO serve: o Postgres não expande o gabarito — o que
+-- não cabe em três casas vira '###'.)
 --
 -- ── D15 · o horário de funcionamento só valia com o dono olhando a tela
 --
@@ -365,6 +368,7 @@ DECLARE
   v_try        integer;
   v_fuso       text;
   v_dia        text;
+  v_seq        integer;
 BEGIN
   IF v_tenant IS NULL THEN
     RAISE EXCEPTION 'Estabelecimento não encontrado.';
@@ -561,17 +565,26 @@ BEGIN
   -- de count(*)), e o filtro é o próprio prefixo do número (não
   -- created_at, que é UTC): assim um pedido apagado não faz a conta
   -- devolver para sempre um número que já existe, travando a loja.
-  -- to_char(...,'FM000') no lugar de lpad(...,3,'0') porque lpad TRUNCA
-  -- o que passa de 3 dígitos — o pedido 1000 viraria 100.
+  -- Formatação do sufixo: nenhuma das duas opções óbvias serve sozinha.
+  -- `lpad(n::text, 3, '0')` TRUNCA acima de três dígitos — o pedido 1000
+  -- viraria 100 e colidiria com o de número 100. E `to_char(n,'FM000')`
+  -- não expande o gabarito: o que não cabe vira '###'. O '###' seria pior
+  -- que a colisão, porque não casa com o filtro `-[0-9]+$` logo abaixo —
+  -- o MAX passaria a ignorar essa linha, todo pedido seguinte do dia
+  -- recalcularia o mesmo número, e a loja pararia de aceitar pedidos
+  -- depois de esgotar as 8 tentativas. `greatest(3, length(...))` mantém
+  -- os três dígitos de sempre e deixa o número crescer quando precisa.
   v_dia := to_char(timezone(v_fuso, now()), 'YYMMDD');
 
   FOR v_try IN 1..8 LOOP
-    SELECT v_dia || '-' || to_char(
-             COALESCE(max(split_part(numero, '-', 2)::int), 0) + v_try, 'FM000')
-      INTO v_numero
+    SELECT COALESCE(max(split_part(numero, '-', 2)::int), 0) + v_try
+      INTO v_seq
     FROM public.delivery_pedidos
     WHERE tenant_id = v_tenant
       AND numero ~ ('^' || v_dia || '-[0-9]+$');
+
+    v_numero := v_dia || '-' ||
+                lpad(v_seq::text, greatest(3, length(v_seq::text)), '0');
 
     BEGIN
       INSERT INTO public.delivery_pedidos (
@@ -790,10 +803,15 @@ BEGIN
   SELECT COALESCE(max(split_part(numero, '-', 2)::int), 0) + 1 INTO n
   FROM _numeros WHERE numero ~ '^260801-[0-9]+$';
   IF n <> 1 THEN RAISE EXCEPTION 'dia vazio devia começar em 1, veio %', n; END IF;
-  -- Formatação não trunca acima de 999 (lpad truncava).
-  IF to_char(1, 'FM000')    <> '001'  THEN RAISE EXCEPTION 'formato 001';  END IF;
-  IF to_char(47, 'FM000')   <> '047'  THEN RAISE EXCEPTION 'formato 047';  END IF;
-  IF to_char(1000, 'FM000') <> '1000' THEN RAISE EXCEPTION 'formato 1000'; END IF;
+  -- Formatação: três dígitos como sempre, sem truncar acima de 999 (lpad
+  -- puro cortava 1000 para '100') e sem estourar o gabarito
+  -- (to_char(...,'FM000') devolvia '###'). Mesma expressão que a função usa.
+  IF lpad(   1::text, greatest(3, length(   1::text)), '0') <> '001'  THEN
+    RAISE EXCEPTION 'formato 001';  END IF;
+  IF lpad(  47::text, greatest(3, length(  47::text)), '0') <> '047'  THEN
+    RAISE EXCEPTION 'formato 047';  END IF;
+  IF lpad(1000::text, greatest(3, length(1000::text)), '0') <> '1000' THEN
+    RAISE EXCEPTION 'formato 1000'; END IF;
   DROP TABLE _numeros;
 
   RAISE NOTICE 'Run 6 leva 5: autoteste OK (horário no fuso do estabelecimento + numeração à prova de exclusão).';

@@ -50,16 +50,27 @@ const FUSO_PADRAO = "America/Sao_Paulo";
 const conteudoCorretiva = readFileSync(join(MIGRATIONS_DIR, MIGRACAO_CORRETIVA), "utf8");
 
 // Tira os comentários ANTES de juntar as linhas: sem isso, um "--" engoliria
-// todo o resto do bloco ao virar uma linha só.
+// todo o resto do bloco ao virar uma linha só. Corta também o comentário de
+// FIM de linha: sem isso um `-- antes era , 3, '0')` escrito ao lado de código
+// correto seria lido como se fosse o código. Cortar em `--` cegamente
+// estragaria uma string SQL que contivesse `--`; não existe nenhuma nas
+// migrations de delivery, e se um dia existir é aqui que se trata.
+function semComentarioDeFim(linha) {
+  return linha.replace(/--.*$/, "");
+}
+
 function semComentarios(sql) {
   return sql
     .split("\n")
-    .map((linha) => (linha.trim().startsWith("--") ? "" : linha))
+    .map((linha) => (linha.trim().startsWith("--") ? "" : semComentarioDeFim(linha)))
     .join("\n");
 }
 
 function linhasAtivas(sql) {
-  return sql.split("\n").filter((linha) => !linha.trim().startsWith("--"));
+  return sql
+    .split("\n")
+    .filter((linha) => !linha.trim().startsWith("--"))
+    .map(semComentarioDeFim);
 }
 
 // Corpo do autoteste (do DO $auto$ até o fim), em uma linha só.
@@ -189,28 +200,59 @@ const declarados = horariosDeclarados(blocoAutoteste);
 const casosAbertura = casosDeAbertura(blocoAutoteste, declarados);
 const casosMinutos = casosDeMinutos(blocoAutoteste);
 
-/** O texto de uma função dentro de um arquivo, da assinatura à próxima. */
+/**
+ * O texto de uma função dentro de um arquivo, da assinatura à próxima — já sem
+ * comentários. Conferir âncora sobre o fonte cru é falso positivo garantido: o
+ * corpo consertado EXPLICA em português a fórmula que substituiu, então as
+ * palavras do bug continuam escritas no arquivo depois de sumirem do código. E
+ * o recorte também precisa do texto limpo: existe migration com um
+ * `CREATE OR REPLACE FUNCTION` citado dentro de comentário, que abriria um
+ * bloco fantasma.
+ */
 function blocosDaFuncao(sql, nomeFuncao) {
-  const marcas = [...sql.matchAll(/CREATE OR REPLACE FUNCTION public\.([a-z_0-9]+)\b/g)];
+  const limpo = semComentarios(sql);
+  const marcas = [...limpo.matchAll(/CREATE OR REPLACE FUNCTION public\.([a-z_0-9]+)\b/g)];
   return marcas
     .map((marca, i) => ({
       nome: marca[1],
-      texto: sql.slice(marca.index, i + 1 < marcas.length ? marcas[i + 1].index : sql.length),
+      texto: limpo.slice(marca.index, i + 1 < marcas.length ? marcas[i + 1].index : limpo.length),
     }))
     .filter((bloco) => bloco.nome === nomeFuncao)
     .map((bloco) => bloco.texto);
 }
 
+/**
+ * As duas formas erradas de numerar o pedido, e a única certa.
+ *
+ * `lpad(n::text, 3, '0')` TRUNCA o que passa de três dígitos: o pedido 1000
+ * virava 100 e colidia com o de número 100. A troca óbvia, `to_char(n,'FM000')`,
+ * é pior: o Postgres não expande o gabarito, o que não cabe vira '###', e '###'
+ * não casa com o filtro `-[0-9]+` que alimenta o MAX — a sequência para de
+ * enxergar a própria linha, repete o número para sempre e a loja trava.
+ *
+ * A proibição precisa exigir a VÍRGULA antes do 3 (`, 3, '0')`), senão ela
+ * acusa o próprio conserto: `greatest(3, length(...))` também contém "3,".
+ */
+const LPAD_QUE_TRUNCA = /\blpad\s*\(.*,\s*3\s*,\s*'0'\s*\)/;
+const TO_CHAR_QUE_ESTOURA = /'FM0+'/;
+const LPAD_QUE_CRESCE = /\blpad\s*\([^,]+,\s*greatest\(\s*3\s*,\s*length\(/;
+
 /** O conserto, por função: se um destes sumir do corpo, o bug voltou. */
 const ANCORAS_DO_CONSERTO = {
-  criar_pedido_delivery: [
-    /to_char\(timezone\(v_fuso, now\(\)\), 'YYMMDD'\)/,
-    /'FM000'/,
-    /IF NOT COALESCE\(public\.delivery_aberto_agora\(v_cfg\.horario, v_cfg\.aberto, v_fuso\), false\) THEN/,
-  ],
-  cardapio_publico: [
-    /'aberto',\s*public\.delivery_aberto_agora\(\s*v_cfg\.horario, v_cfg\.aberto, v_cfg\.fuso\)/,
-  ],
+  criar_pedido_delivery: {
+    exigidas: [
+      /to_char\(timezone\(v_fuso, now\(\)\), 'YYMMDD'\)/,
+      LPAD_QUE_CRESCE,
+      /IF NOT COALESCE\(public\.delivery_aberto_agora\(v_cfg\.horario, v_cfg\.aberto, v_fuso\), false\) THEN/,
+    ],
+    proibidas: [LPAD_QUE_TRUNCA, TO_CHAR_QUE_ESTOURA],
+  },
+  cardapio_publico: {
+    exigidas: [
+      /'aberto',\s*public\.delivery_aberto_agora\(\s*v_cfg\.horario, v_cfg\.aberto, v_cfg\.fuso\)/,
+    ],
+    proibidas: [],
+  },
 };
 
 describe("Delivery — guard do horário e do número do pedido no fuso do estabelecimento", () => {
@@ -236,19 +278,32 @@ describe("Delivery — guard do horário e do número do pedido no fuso do estab
     // mesmas funções. O que precisa valer é que ela carregue o conserto
     // adiante — o jeito mais fácil de perder este bug de novo é copiar um
     // corpo antigo por cima da versão consertada, e nada quebraria.
+    let blocosConferidos = 0;
     for (const posterior of definidoras.filter((nome) => nome > MIGRACAO_CORRETIVA)) {
       const sql = readFileSync(join(MIGRATIONS_DIR, posterior), "utf8");
       for (const [funcao, ancoras] of Object.entries(ANCORAS_DO_CONSERTO)) {
         for (const bloco of blocosDaFuncao(sql, funcao)) {
-          for (const ancora of ancoras) {
+          blocosConferidos += 1;
+          for (const ancora of ancoras.exigidas) {
             expect(
               ancora.test(bloco),
               `${posterior} redefine ${funcao} sem ${ancora} — o conserto do fuso/número foi desfeito`
             ).toBe(true);
           }
+          for (const proibida of ancoras.proibidas) {
+            expect(
+              proibida.test(bloco),
+              `${posterior} redefine ${funcao} usando ${proibida} — a numeração do pedido voltou a quebrar`
+            ).toBe(false);
+          }
         }
       }
     }
+
+    // Hoje a 20260907 refaz as duas funções. Se um rename fizer
+    // `blocosDaFuncao` devolver vazio, o laço acima não asserta nada e o teste
+    // passaria oco — verde sem ter conferido coisa nenhuma.
+    expect(blocosConferidos).toBeGreaterThan(0);
   });
 
   it("a corretiva recria as duas funções e cria a coluna de fuso", () => {
@@ -261,20 +316,51 @@ describe("Delivery — guard do horário e do número do pedido no fuso do estab
     );
   });
 
-  it("nenhuma linha ativa da corretiva volta a usar o dia de Greenwich ou o lpad que trunca", () => {
+  it("nenhuma linha ativa da corretiva volta a usar o dia de Greenwich, o lpad que trunca ou o FM000 que estoura", () => {
     const ativas = linhasAtivas(conteudoCorretiva);
     // O dia do pedido não pode mais sair de created_at em UTC.
     expect(ativas.filter((l) => /created_at::date\s*=\s*now\(\)::date/.test(l))).toEqual([]);
-    // lpad(texto, 3, '0') TRUNCA acima de 3 dígitos: o pedido 1000 virava 100.
-    expect(ativas.filter((l) => /\blpad\s*\(/.test(l))).toEqual([]);
+    // As duas formas que quebram a numeração, pelos motivos do comentário de
+    // LPAD_QUE_TRUNCA lá em cima.
+    expect(ativas.filter((l) => LPAD_QUE_TRUNCA.test(l))).toEqual([]);
+    expect(ativas.filter((l) => TO_CHAR_QUE_ESTOURA.test(l))).toEqual([]);
     // A sequência não pode voltar a sair de count(*), que trava a loja depois
     // de um pedido apagado.
     expect(ativas.filter((l) => /count\(\*\)\s*\+\s*1/.test(l))).toEqual([]);
     // O dia vem do fuso do estabelecimento, e o número é formatado sem truncar.
     expect(conteudoCorretiva).toMatch(/to_char\(timezone\(v_fuso, now\(\)\), 'YYMMDD'\)/);
-    expect(conteudoCorretiva).toMatch(
-      /max\(split_part\(numero, '-', 2\)::int\), 0\) \+ v_try, 'FM000'/
-    );
+    expect(conteudoCorretiva).toMatch(/max\(split_part\(numero, '-', 2\)::int\), 0\) \+ v_try/);
+    expect(LPAD_QUE_CRESCE.test(conteudoCorretiva)).toBe(true);
+  });
+
+  it("a proibição pega a fórmula que trunca e deixa passar a que cresce", () => {
+    // Sem provar os dois lados, o caminho mais fácil de "fazer o guard passar"
+    // é afrouxar a regex até ela não pegar mais nada — e aí o guard vira
+    // enfeite justamente no dia em que alguém reintroduzir o bug.
+    expect(LPAD_QUE_TRUNCA.test("v_numero := lpad(v_seq::text, 3, '0');")).toBe(true);
+    expect(LPAD_QUE_TRUNCA.test("v_numero := lpad(numero, 3,'0');")).toBe(true);
+    expect(TO_CHAR_QUE_ESTOURA.test("to_char(v_seq, 'FM000')")).toBe(true);
+
+    const certa = "lpad(v_seq::text, greatest(3, length(v_seq::text)), '0')";
+    expect(LPAD_QUE_TRUNCA.test(certa)).toBe(false);
+    expect(TO_CHAR_QUE_ESTOURA.test(certa)).toBe(false);
+    expect(LPAD_QUE_CRESCE.test(certa)).toBe(true);
+  });
+
+  it("a âncora não se satisfaz com a fórmula citada dentro de um comentário", () => {
+    // O corpo consertado explica em português o que substituiu, então as duas
+    // fórmulas antigas continuam escritas no arquivo — só que em comentário.
+    // Se a conferência olhasse o fonte cru, o guard aprovaria texto morto.
+    const sql = [
+      "CREATE OR REPLACE FUNCTION public.criar_pedido_delivery()",
+      "-- antes: to_char(v_seq, 'FM000') e lpad(v_seq::text, 3, '0')",
+      "BEGIN",
+      "  v_numero := 'sem numeração aqui';  -- to_char(v_seq, 'FM000')",
+      "END;",
+    ].join("\n");
+    const [bloco] = blocosDaFuncao(sql, "criar_pedido_delivery");
+    expect(TO_CHAR_QUE_ESTOURA.test(bloco)).toBe(false);
+    expect(LPAD_QUE_TRUNCA.test(bloco)).toBe(false);
   });
 
   it("as duas portas de entrada passaram a consultar o horário, e a do pedido continua fail-closed", () => {

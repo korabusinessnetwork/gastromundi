@@ -191,6 +191,15 @@ BEGIN
 
   v_def := pg_get_functiondef(v_reg);
 
+  -- `pg_get_functiondef` devolve o fonte COM os comentários, e o corpo novo
+  -- documenta em português exatamente o ramo que foi retirado ("o ramo
+  -- anterior deixava gerente/admin renovar o próprio estabelecimento").
+  -- Conferir o texto cru acusava esse comentário como se fosse código vivo.
+  -- O erro simétrico é pior e passaria calado: um comentário citando
+  -- `is_super_admin()` faria a guarda de plataforma ser dada como presente
+  -- sem ela existir. Daqui para baixo as conferências olham só o código.
+  v_def := regexp_replace(v_def, '--.*', '', 'gn');
+
   IF v_def NOT LIKE '%is_super_admin() IS NOT TRUE%' THEN
     RAISE EXCEPTION 'FALHA: a guarda de plataforma não está no corpo da função.';
   END IF;
