@@ -56,6 +56,19 @@ const FUNCOES = {
 };
 
 /**
+ * As duas fiscais que ESCAPARAM da primeira leva. Cancelar uma NFC-e
+ * autorizada e queimar uma faixa de numeração são os atos mais irreversíveis
+ * do sistema, e as duas seguiam decidindo acesso só pelo papel — o mesmo furo
+ * que a guarda fecha nas outras cinco. Ficam num mapa separado porque o gate
+ * delas nasceu com outro formato (`perfil?.role !== ...`, não `callerData`),
+ * e é justamente esse formato que não pode voltar.
+ */
+const FUNCOES_FISCAIS = {
+  "cancelar-nfce": join(RAIZ, "supabase/functions/cancelar-nfce/index.ts"),
+  "inutilizar-nfce": join(RAIZ, "supabase/functions/inutilizar-nfce/index.ts"),
+};
+
+/**
  * Os cabeçalhos CITAM o código que foi removido para explicar o furo; sem
  * tirar os comentários, "isto não existe mais" falharia por causa da própria
  * documentação.
@@ -232,6 +245,33 @@ describe("as cinco funções não-fiscais consultam users com `active`", () => {
       expect(fonte).not.toMatch(/callerData\?\.role !== "plataforma"/);
       expect(fonte).not.toMatch(/\["admin", "gerente"\]\.includes\(callerData\.role\)/);
     }
+  });
+});
+
+describe("as duas funções fiscais também barram a conta desativada", () => {
+  for (const [nome, caminho] of Object.entries(FUNCOES_FISCAIS)) {
+    it(`${nome} pede a coluna active e chama decidirAcesso`, () => {
+      const fonte = semComentariosTs(caminho);
+      expect(fonte).toContain('from("users")');
+      expect(fonte).toMatch(/\.select\("role,[^"]*active"\)/);
+      expect(fonte).toContain("decidirAcesso(");
+      expect(fonte).toContain('from "../_shared/guardaEntrada.ts"');
+    });
+  }
+
+  it("nenhuma delas volta a decidir só pelo papel", () => {
+    for (const caminho of Object.values(FUNCOES_FISCAIS)) {
+      const fonte = semComentariosTs(caminho);
+      expect(fonte).not.toMatch(/perfil\?\.role !== "admin"/);
+      expect(fonte).not.toMatch(/perfil\?\.role !== "gerente"/);
+    }
+  });
+
+  it("cancelar exige gerência e inutilizar exige admin — o peso do ato não mudou", () => {
+    expect(semComentariosTs(FUNCOES_FISCAIS["cancelar-nfce"]))
+      .toContain("decidirAcesso(perfil, PAPEIS_GERENCIA)");
+    expect(semComentariosTs(FUNCOES_FISCAIS["inutilizar-nfce"]))
+      .toContain("decidirAcesso(perfil, PAPEIS_ADMIN)");
   });
 });
 

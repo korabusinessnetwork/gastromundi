@@ -157,18 +157,34 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
     !redeOnline && addonHabilitado?.("tef") && metodoUsaTef(id, metodosTef);
   const tefOffline = pagamentos.some(p => p.metodo && metodoIndisponivelOffline(p.metodo));
 
-  // No split, dinheiro com "Recebido" digitado abaixo do valor alocado
+  // Dinheiro com "Recebido" digitado abaixo do que aquele pagamento cobre
   // não pode confirmar — a tela já mostra "Falta: R$ x" e o botão guia.
   // Recebido em branco (0) segue valendo como "valor exato".
-  const dinheiroInsuficiente = isSplit && pagamentos.some(
-    p => p.metodo === "dinheiro" && (p.recebido || 0) > 0 && p.recebido < p.valor - 0.005
-  );
+  // Vale nos DOIS modos: no split a trava existia desde sempre, mas no
+  // pagamento único ela ficava de fora e o caixa conseguia fechar uma conta
+  // de R$ 80 com R$ 50 na mão — a venda entrava cheia e o caixa nascia com
+  // R$ 30 de furo, sem nada na tela dizendo que faltou. É a mesma regra do
+  // PDV mobile (PdvModulo: `!ehDinheiro || recebidoNum >= total`).
+  const dinheiroInsuficiente = isSplit
+    ? pagamentos.some(
+        p => p.metodo === "dinheiro" && (p.recebido || 0) > 0 && p.recebido < p.valor - 0.005
+      )
+    : singleMetodo === "dinheiro" && singleRecebido > 0 && singleRecebido < total - 0.005;
+
+  // Quanto falta de dinheiro na mão, para o aviso do botão dizer o número em
+  // vez de mandar "selecione a forma de pagamento" (que já está selecionada).
+  const faltaEmDinheiro = round2(isSplit
+    ? pagamentos.reduce((s, p) => s + (
+        p.metodo === "dinheiro" && (p.recebido || 0) > 0 && p.recebido < p.valor - 0.005
+          ? p.valor - p.recebido : 0
+      ), 0)
+    : Math.max(0, total - singleRecebido));
 
   // Tolerância de meio centavo (só ruído de float): com round2 em tudo,
   // 1 centavo não alocado é diferença real e deve bloquear a confirmação.
   const podeConfirmar = itensVisiveis.length > 0 && (isSplit
-    ? pagamentos.every(p => !!p.metodo) && Math.abs(faltaAlocar) < 0.005 && !dinheiroInsuficiente
-    : !!singleMetodo) && (!usaFiado || !!clienteFiado) && !tefOffline;
+    ? pagamentos.every(p => !!p.metodo) && Math.abs(faltaAlocar) < 0.005
+    : !!singleMetodo) && !dinheiroInsuficiente && (!usaFiado || !!clienteFiado) && !tefOffline;
 
   const updatePagamento = (idx, patch) =>
     setPagamentos(prev => prev.map((p, i) => i === idx ? { ...p, ...patch } : p));
@@ -915,6 +931,8 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     ? "Sem internet: a maquininha (TEF) não funciona. Troque para dinheiro, Pix ou outro método — a venda fica guardada e sobe quando a conexão voltar."
                     : usaFiado && !clienteFiado
                     ? "Busque ou cadastre o cliente do fiado acima"
+                    : dinheiroInsuficiente
+                    ? `Faltam R$ ${faltaEmDinheiro.toFixed(2)} em dinheiro — corrija o valor recebido ou divida o pagamento`
                     : isSplit
                     ? Math.abs(faltaAlocar) >= 0.015
                       ? `Distribua os R$ ${Math.abs(faltaAlocar).toFixed(2)} restantes`

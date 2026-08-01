@@ -209,6 +209,61 @@ describe("AppContext — sessão local órfã sem JWT (Run 5, leva 1)", () => {
   });
 });
 
+// Desativar alguém em `public.users` NÃO revoga o JWT que já está no navegador
+// dele — só o `signOut` faz isso. O único sinal da desativação é a busca do
+// perfil (filtrada por `active = true`) voltar sem linha; antes esse ramo só
+// desligava o `loading` e a pessoa seguia com a tela montada e as permissões
+// antigas do sessionStorage até fechar a aba. O contraponto é não confundir
+// "sem linha" com "não consegui ler": um soluço de rede não pode derrubar o
+// caixa no meio do turno.
+describe("AppContext — conta desativada com JWT ainda vivo", () => {
+  /** `users.single()` responde o que o teste mandar; o resto vem vazio. */
+  function comPerfilRespondendo(resposta) {
+    mockSupabase.from.mockImplementation((tabela) => {
+      const builder = {};
+      for (const m of ["select", "eq", "neq", "order", "limit", "in", "gte", "lte", "not", "or"]) {
+        builder[m] = vi.fn(() => builder);
+      }
+      builder.single = vi.fn(() =>
+        Promise.resolve(tabela === "users" ? resposta : { data: null, error: null }),
+      );
+      builder.maybeSingle = builder.single;
+      builder.then = (ok, falha) => Promise.resolve({ data: [], error: null }).then(ok, falha);
+      const api = {};
+      for (const m of ["select", "insert", "update", "delete", "upsert"]) api[m] = vi.fn(() => builder);
+      return api;
+    });
+  }
+
+  it("perfil sem linha ativa derruba a sessão local E o token do Auth", async () => {
+    comRede(true);
+    saveSession(usuario);
+    comSessaoNoAuth();
+    // PGRST116 = `.single()` sem resultado: o banco respondeu com certeza.
+    comPerfilRespondendo({ data: null, error: { code: "PGRST116", message: "0 rows" } });
+
+    const app = await montar();
+
+    expect(app.current.currentUser).toBeNull();
+    expect(loadSession()).toBeNull();
+    expect(mockSupabase.auth.signOut).toHaveBeenCalled();
+    expect(app.current.loading).toBe(false);
+  });
+
+  it("leitura do perfil que falha NÃO derruba ninguém — rede ruim não é desativação", async () => {
+    comRede(true);
+    saveSession(usuario);
+    comSessaoNoAuth();
+    comPerfilRespondendo({ data: null, error: { message: "Failed to fetch" } });
+
+    const app = await montar();
+
+    expect(app.current.currentUser).toMatchObject({ id: 7, username: "fulano" });
+    expect(loadSession()).toMatchObject({ id: 7 });
+    expect(mockSupabase.auth.signOut).not.toHaveBeenCalled();
+  });
+});
+
 // Run 5, levas 4 e 5 — os dois cronômetros de segurança que a tela de login
 // promete ("expira após 30 min de inatividade", teto de 8 horas) não podiam
 // disparar durante o uso normal do PDV:

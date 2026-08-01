@@ -25,6 +25,8 @@ import {
   JANELA_TENTATIVAS_MS,
   MAX_ATTEMPTS,
   LOCKOUT_MS,
+  perfilInativoConfirmado,
+  PGRST_SEM_LINHA,
 } from "./session";
 
 const CHAVE = "kora_session";
@@ -375,6 +377,32 @@ describe("tentativas de login — o contador do bloqueio", () => {
       expect(getAttempts("maria")).toEqual({});
     } finally {
       Storage.prototype.getItem = get;
+    }
+  });
+});
+
+// A busca do perfil devolve `data: null` tanto quando a conta foi desativada
+// quanto quando a leitura falhou — e os desfechos são opostos (derrubar ×
+// manter a sessão). Quem separa os dois é o código do PostgREST.
+describe("perfilInativoConfirmado — desativação × leitura que falhou", () => {
+  it("sem linha (PGRST116) é resposta definitiva: a conta não está mais ativa", () => {
+    expect(perfilInativoConfirmado({ code: PGRST_SEM_LINHA, message: "0 rows" })).toBe(true);
+  });
+
+  it("ausência de erro também é resposta definitiva", () => {
+    expect(perfilInativoConfirmado(null)).toBe(true);
+    expect(perfilInativoConfirmado(undefined)).toBe(true);
+  });
+
+  it("falha de rede NÃO conta como desativação — a sessão fica de pé", () => {
+    expect(perfilInativoConfirmado({ message: "Failed to fetch" })).toBe(false);
+  });
+
+  it("qualquer outro código do banco vale como 'não sei' e preserva a sessão", () => {
+    // 42703 (coluna ausente), 500, timeout, RLS: nenhum deles prova que a
+    // conta caiu. Derrubar aqui seria logout aleatório no meio do turno.
+    for (const code of ["42703", "PGRST301", "500", "57014"]) {
+      expect(perfilInativoConfirmado({ code, message: code })).toBe(false);
     }
   });
 });

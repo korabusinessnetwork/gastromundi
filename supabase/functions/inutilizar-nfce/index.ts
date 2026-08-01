@@ -23,6 +23,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { assinarInutDSig, transmitirInutSefazRS } from "../_shared/nfceTransmissao.ts";
+import { decidirAcesso, mensagemRecusa, PAPEIS_ADMIN } from "../_shared/guardaEntrada.ts";
 import {
   montarXmlInutilizacao,
   decidirDesfechoInutilizacao,
@@ -58,13 +59,22 @@ Deno.serve(async (req: Request) => {
     // 'admin' em public.users (mesmo padrão de provisionar-estabelecimento).
     // Caixa/garçom/gerente → 403. O client é user-scoped, mas a decisão de
     // AUTORIZAÇÃO fica explícita aqui (defesa em profundidade, não só RLS).
+    // `active` entra no select pelo mesmo motivo de cancelar-nfce: desativar
+    // alguém em public.users não invalida o JWT já emitido, e queimar faixa de
+    // numeração é irreversível. decidirAcesso falha FECHADO se a coluna faltar.
     const { data: perfil } = await supabase
       .from("users")
-      .select("role")
+      .select("role, active")
       .eq("auth_id", user.id)
       .single();
-    if (perfil?.role !== "admin") {
-      return json({ error: "Apenas administradores podem inutilizar numeração fiscal." }, 403);
+    const acesso = decidirAcesso(perfil, PAPEIS_ADMIN);
+    if (!acesso.ok) {
+      return json({
+        error: mensagemRecusa(
+          acesso.motivo,
+          "Apenas administradores podem inutilizar numeração fiscal.",
+        ),
+      }, 403);
     }
 
     // ── 2. Entrada: série + faixa + justificativa (+ ano opcional) ────
