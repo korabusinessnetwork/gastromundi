@@ -220,6 +220,69 @@
   text-decoration-style: solid;
 }
 
+/* Registrar pagamento. Ao contrário da mensalidade (que é o próprio valor da
+   célula, clicável), aqui é uma AÇÃO — então lê como botão de verdade, com
+   contorno e fundo. Discreto o bastante para não competir com o selo de
+   situação ao lado, e alto o suficiente para acertar no toque. */
+.pdash__pagar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--gm-border);
+  border-radius: 9px;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pdash__pagar:hover { border-color: var(--gm-accent); color: var(--gm-accent); }
+.pdash__pagar:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
+.pdash__pagar svg { color: var(--gm-green); }
+
+/* Faixa de confirmação do pagamento. Verde quando o pagamento colocou a
+   assinatura em dia; âmbar quando o vencimento andou mas continua atrasado —
+   a RPC anda um ciclo por vez, e a cor não pode dizer "resolvido" quando não
+   está. */
+.pdash__ok {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: -4px 0 16px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--gm-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pdash__ok > svg { flex: 0 0 auto; margin-top: 2px; color: var(--gm-green); }
+.pdash__ok-texto { flex: 1; min-width: 0; }
+.pdash__ok--atraso {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.1);
+}
+.pdash__ok--atraso > svg { color: #f59e0b; }
+
+.pdash__ok-fechar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+.pdash__ok-fechar:hover { background: var(--gm-card); color: var(--gm-text); }
+.pdash__ok-fechar:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
+
 /* ── Selo de situação ─────────────────────────────────────────────── */
 .pdash__selo {
   display: inline-block;

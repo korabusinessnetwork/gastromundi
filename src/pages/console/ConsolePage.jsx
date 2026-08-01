@@ -185,6 +185,10 @@ export default function ConsolePage() {
               tenants={tenants}
               planos={planos}
               assinaturas={assinaturas}
+              // Quem deu baixa no pagamento fica gravado em
+              // `assinaturas_pagamentos.confirmado_por` — o histórico precisa
+              // dizer quem confirmou, não só que alguém confirmou.
+              confirmadoPor={currentUser?.name ?? null}
               onAtualizado={carregar}
             />
           )

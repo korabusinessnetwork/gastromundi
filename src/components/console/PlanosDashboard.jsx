@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import {
   LuTriangleAlert, LuCircleCheck, LuClock, LuBan, LuBuilding2, LuWallet,
-  LuChartPie,
+  LuChartPie, LuBanknote, LuX,
 } from "react-icons/lu";
 import { resumirPlataforma } from "@/lib/console";
 import { formatarReais } from "@/lib/deliveryPedidos";
 import DefinirMensalidadeModal from "./DefinirMensalidadeModal";
+import ConfirmarRenovacaoModal from "./ConfirmarRenovacaoModal";
 import "./PlanosDashboard.css";
 
 /**
@@ -18,11 +19,11 @@ import "./PlanosDashboard.css";
  * o bloco do topo lista quem está vencendo/atrasado/bloqueado, ordenado
  * por urgência — o que a plataforma precisa cobrar AGORA.
  *
- * A única escrita daqui é a MENSALIDADE (20260911): a troca de plano continua
- * no card de estabelecimento e a renovação de assinatura tem RPC própria
- * (20260909). Autorização é do banco — o super-admin lê `assinaturas` de todos
- * via `is_super_admin()` (20260726) e a RPC revalida o papel na escrita; a
- * casca aqui não decide acesso.
+ * Daqui saem duas escritas: a MENSALIDADE (20260911) e o PAGAMENTO da
+ * mensalidade (`confirmar_renovacao_assinatura`, 20260909) — a troca de plano
+ * continua no card de estabelecimento. Autorização é do banco: o super-admin lê
+ * `assinaturas` de todos via `is_super_admin()` (20260726) e as duas RPCs
+ * revalidam o papel na escrita; a casca aqui não decide acesso.
  *
  * Por que a mensalidade mora nesta tela: `valor_mensal` nasce em 0 e até a
  * 20260911 nenhum caminho do sistema o escrevia, então o cartão "Receita
@@ -35,14 +36,22 @@ import "./PlanosDashboard.css";
  * ficam em cartões grandes e legíveis; a nota embaixo dos cartões explica em
  * uma frase por que a receita pode estar menor do que a real; a tabela detalha
  * por estabelecimento com um selo de status humano (Ativo / Vence em X dias /
- * Em atraso / Bloqueado). Sem jargão de billing solto na tela.
+ * Em atraso / Bloqueado). Sem jargão de billing solto na tela. E o botão de
+ * registrar pagamento fica na MESMA linha em que se lê o vencimento, então
+ * dá para ver o que vai mudar antes de clicar.
  */
-export default function PlanosDashboard({ tenants, planos, assinaturas, onAtualizado }) {
+export default function PlanosDashboard({ tenants, planos, assinaturas, confirmadoPor, onAtualizado }) {
   const { kpis, precisamAtencao, distribuicaoPlano, linhas } = useMemo(
     () => resumirPlataforma(tenants ?? [], planos ?? [], assinaturas ?? []),
     [tenants, planos, assinaturas]
   );
   const [linhaPreco, setLinhaPreco] = useState(null);
+  const [linhaRenovacao, setLinhaRenovacao] = useState(null);
+  const [aviso, setAviso] = useState(null);
+  // A RPC devolve o status recalculado a partir do vencimento NOVO. Quem estava
+  // quatro meses atrasado continua atrasado depois de um pagamento — a faixa
+  // precisa dizer isso, senão a tela mente sobre o que acabou de acontecer.
+  const aindaEmAtraso = aviso?.status === "carencia" || aviso?.status === "bloqueado";
 
   return (
     <div className="pdash">
@@ -116,6 +125,29 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, onAtuali
       {/* ── Tabela por estabelecimento ───────────────────────────────── */}
       <section className="pdash__bloco">
         <h2 className="pdash__bloco-titulo">Assinaturas por estabelecimento</h2>
+
+        {/* Fica aqui, e não no topo da página, porque é aqui que o clique
+            aconteceu — depois que o modal fecha a resposta tem de estar onde
+            os olhos já estão. */}
+        {aviso && (
+          <div className={`pdash__ok${aindaEmAtraso ? " pdash__ok--atraso" : ""}`} role="status">
+            <LuCircleCheck size={16} aria-hidden />
+            <span className="pdash__ok-texto">
+              Pagamento de {aviso.competencia} registrado para <strong>{aviso.nome}</strong>.
+              {" "}O vencimento agora é {formatarData(aviso.vencimento)}.
+              {aindaEmAtraso && " A assinatura continua em atraso — registre também a competência seguinte."}
+            </span>
+            <button
+              type="button"
+              className="pdash__ok-fechar"
+              onClick={() => setAviso(null)}
+              aria-label="Fechar aviso"
+            >
+              <LuX size={16} />
+            </button>
+          </div>
+        )}
+
         <div className="pdash__tabela-scroll">
           <table className="pdash__tabela">
             <thead>
@@ -125,6 +157,7 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, onAtuali
                 <th className="pdash__col-num">Mensalidade</th>
                 <th>Vencimento</th>
                 <th>Situação</th>
+                <th>Pagamento</th>
               </tr>
             </thead>
             <tbody>
@@ -152,6 +185,23 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, onAtuali
                   </td>
                   <td>{formatarData(l.dataVencimento)}</td>
                   <td><SeloStatus status={l.status} dias={l.diasParaVencer} /></td>
+                  <td>
+                    {/* Sem assinatura não há o que renovar (a RPC recusaria com
+                        "Assinatura não encontrada"), e renovar um cancelado o
+                        descancelaria em silêncio, porque o status é recalculado
+                        a partir da data nova. Nos dois casos a ação não é essa:
+                        célula sem botão. Prevenção de erro > erro. */}
+                    {l.status === "sem_assinatura" || l.status === "cancelado" ? "—" : (
+                      <button
+                        type="button"
+                        className="pdash__pagar"
+                        onClick={() => setLinhaRenovacao(l)}
+                        aria-label={`Registrar pagamento de ${l.nome}`}
+                      >
+                        <LuBanknote size={14} aria-hidden /> Registrar pagamento
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -165,6 +215,25 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, onAtuali
           onFechar={() => setLinhaPreco(null)}
           onDefinido={() => {
             setLinhaPreco(null);
+            onAtualizado?.();
+          }}
+        />
+      )}
+
+      {linhaRenovacao && (
+        <ConfirmarRenovacaoModal
+          linha={linhaRenovacao}
+          vencimentoAtual={formatarData(linhaRenovacao.dataVencimento)}
+          confirmadoPor={confirmadoPor}
+          onFechar={() => setLinhaRenovacao(null)}
+          onConfirmado={(assinatura, competencia) => {
+            setAviso({
+              nome: linhaRenovacao.nome,
+              competencia,
+              vencimento: assinatura?.data_vencimento,
+              status: assinatura?.status,
+            });
+            setLinhaRenovacao(null);
             onAtualizado?.();
           }}
         />
