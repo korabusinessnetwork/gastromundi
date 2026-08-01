@@ -7,7 +7,7 @@ const { registrarInsight, buscarInsights } = vi.hoisted(() => ({
 
 vi.mock("./jarvas", () => ({ registrarInsight, buscarInsights }));
 
-import { verificarEstoqueMinimo, verificarOversell, gerarAlertaEstoque, gerarAlertaOversell, processarBaixaEstoque, isRpcAusente } from "./estoque";
+import { verificarEstoqueMinimo, verificarOversell, gerarAlertaEstoque, gerarAlertaOversell, gerarAlertaBaixaFalhou, processarBaixaEstoque, isRpcAusente } from "./estoque";
 
 describe("verificarEstoqueMinimo", () => {
   it("detecta quando a baixa cruza o mínimo (estava acima, ficou em/abaixo)", () => {
@@ -149,6 +149,86 @@ describe("gerarAlertaEstoque", () => {
   });
 });
 
+describe("gerarAlertaBaixaFalhou", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    buscarInsights.mockResolvedValue({ data: [], error: null });
+  });
+
+  it("registra alerta grave no módulo de estoque, com ação que leva ao estoque", async () => {
+    await gerarAlertaBaixaFalhou(
+      { produtoId: 9, nome: "Chopp", quantidade: 3, erro: { message: "new row violates row-level security policy" } },
+      "maria",
+    );
+
+    expect(registrarInsight).toHaveBeenCalledTimes(1);
+    const insight = registrarInsight.mock.calls[0][0];
+    expect(insight).toMatchObject({
+      tipo: "alerta",
+      severidade: "danger",
+      visibilidade: "operacional",
+      modulo: "estoque",
+      acao: { tipo: "abrir_estoque", params: { produto_ids: [9] } },
+    });
+    expect(insight.origem.chave).toBe("estoque:baixa-falhou:produto:9");
+  });
+
+  it("o texto que o gestor lê não tem jargão do banco — o erro técnico fica em origem", async () => {
+    const cru = "new row violates row-level security policy for table \"estoque\"";
+    await gerarAlertaBaixaFalhou({ produtoId: 9, nome: "Chopp", quantidade: 3, erro: { message: cru } }, "maria");
+
+    const insight = registrarInsight.mock.calls[0][0];
+    expect(insight.titulo).not.toContain(cru);
+    expect(insight.descricao).not.toContain(cru);
+    expect(insight.titulo).toContain("Chopp");
+    expect(insight.descricao).toContain("Chopp");
+    expect(insight.origem.dados.erro).toBe(cru);
+  });
+
+  it("não repete o alerta enquanto o do mesmo produto continua aberto", async () => {
+    buscarInsights.mockResolvedValue({
+      data: [{ origem: { chave: "estoque:baixa-falhou:produto:9" } }],
+      error: null,
+    });
+
+    await gerarAlertaBaixaFalhou({ produtoId: 9, nome: "Chopp", quantidade: 3, erro: { message: "falha" } }, "maria");
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("subproduto tem chave própria — não é confundido com o produto de mesmo id", async () => {
+    buscarInsights.mockResolvedValue({
+      data: [{ origem: { chave: "estoque:baixa-falhou:produto:9" } }],
+      error: null,
+    });
+
+    await gerarAlertaBaixaFalhou({ subprodutoId: 9, nome: "Molho da casa", quantidade: 0.5, erro: null }, "maria");
+
+    expect(registrarInsight).toHaveBeenCalledTimes(1);
+    const insight = registrarInsight.mock.calls[0][0];
+    expect(insight.origem.chave).toBe("estoque:baixa-falhou:subproduto:9");
+    expect(insight.origem.dados).toMatchObject({ subproduto_id: 9, quantidade: 0.5, erro: null });
+    expect(insight.acao.params).toEqual({ subproduto_ids: [9] });
+  });
+
+  it("item sem nome ainda gera alerta legível", async () => {
+    await gerarAlertaBaixaFalhou({ produtoId: 42, nome: null, quantidade: 1, erro: { code: "42501" } }, "maria");
+
+    const insight = registrarInsight.mock.calls[0][0];
+    expect(insight.titulo).toContain("Produto 42");
+    expect(insight.origem.dados.erro).toBe("42501"); // erro sem `message` cai no código
+  });
+
+  it("falha do próprio Jarvas não quebra a venda", async () => {
+    buscarInsights.mockRejectedValue(new Error("falha de rede"));
+
+    await expect(
+      gerarAlertaBaixaFalhou({ produtoId: 9, nome: "Chopp", quantidade: 3, erro: { message: "falha" } }, "maria"),
+    ).resolves.toBeUndefined();
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+});
+
 describe("processarBaixaEstoque", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -191,7 +271,23 @@ describe("processarBaixaEstoque", () => {
     });
 
     expect(error).toEqual({ message: "falha" });
-    expect(quantidade).toBe(3); // fallback calculado localmente
+    // TD012: o banco recusou, então NADA foi descontado — o saldo continua
+    // sendo o de antes. Devolver 3 (a estimativa `5 - 2`) seria inventar um
+    // número que só existe aqui dentro, que foi como o bug de RLS se escondeu.
+    expect(quantidade).toBe(5);
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("RPC que LANÇA vira erro normal — a exceção não sobe para a venda", async () => {
+    const chamarRpc = vi.fn(() => Promise.reject(new TypeError("Failed to fetch")));
+
+    const { error, quantidade } = await processarBaixaEstoque({
+      produtoId: 3, qty: 2, quantidadeAnterior: 5, nomeProduto: "Pizza",
+      usuario: "maria", chamarRpc,
+    });
+
+    expect(error).toEqual({ message: "Failed to fetch" });
+    expect(quantidade).toBe(5);
     expect(registrarInsight).not.toHaveBeenCalled();
   });
 

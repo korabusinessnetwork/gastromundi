@@ -15,7 +15,7 @@ import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
 import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
 import { criarLancamento } from "@/lib/financeiro";
 import { METODOS_TEF_PADRAO } from "@/lib/tef";
-import { processarBaixaEstoque, isRpcAusente } from "@/lib/estoque";
+import { processarBaixaEstoque, gerarAlertaBaixaFalhou, isRpcAusente } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
@@ -1312,11 +1312,12 @@ export function AppProvider({ children }) {
     // tentativa gravou mas a resposta se perdeu na queda de conexão.
     const opId = crypto.randomUUID();
     const produto = products.find(p => String(p.id) === String(productId));
+    const nomeProduto = produto?.name ?? `Produto ${productId}`;
     const { quantidade, error } = await processarBaixaEstoque({
       produtoId: productId,
       qty,
       quantidadeAnterior: anterior,
-      nomeProduto: produto?.name ?? `Produto ${productId}`,
+      nomeProduto,
       minimoFallback: estoqueMinimos[productId] ?? 10,
       usuario: currentUser?.username,
       chamarRpc: (id, q) => supabase.rpc("baixar_estoque", { p_produto_id: id, p_qtd: q, p_op_id: opId }),
@@ -1338,6 +1339,13 @@ export function AppProvider({ children }) {
         quantidade: qty,
         erro: error?.message ?? error?.code ?? String(error),
       }, currentUser?.username);
+      // Sentry, evento e log são para quem desenvolve. O alerta do Jarvas é o
+      // único destes que o gestor abre — sem ele o furo de inventário só
+      // aparece na contagem física (TD012).
+      void gerarAlertaBaixaFalhou(
+        { produtoId: productId, nome: nomeProduto, quantidade: qty, erro: error },
+        currentUser?.username,
+      );
       return { error };
     }
 
@@ -1444,6 +1452,10 @@ export function AppProvider({ children }) {
         quantidade: qtd,
         erro: error?.message ?? error?.code ?? String(error),
       }, currentUser?.username);
+      void gerarAlertaBaixaFalhou(
+        { subprodutoId, nome: nome ?? null, quantidade: qtd, erro: error },
+        currentUser?.username,
+      );
       return { error };
     }
     emitirEvento("estoque.baixa", "estoque", { subproduto_id: subprodutoId, nome: nome ?? null, quantidade: qtd }, currentUser?.username);

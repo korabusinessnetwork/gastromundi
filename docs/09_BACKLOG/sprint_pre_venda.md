@@ -33,7 +33,7 @@ foi adiado — e o modelo de acesso escolhido o torna obrigatório para vender.
 
 | # | Item | Motivo |
 |---|------|--------|
-| S2-1 | **TD012 — baixa de estoque visível**: parar de engolir erro e mostrar estimativa local; falha de baixa precisa alertar/logar. | Com estoque real, uma baixa que falha silenciosamente corrompe o inventário. |
+| S2-1 | ✅ **Feito (2026-08-01)** — **TD012 — baixa de estoque visível**: parar de engolir erro e mostrar estimativa local; falha de baixa precisa alertar/logar. A falha agora vira alerta no painel do Jarvas (`gerarAlertaBaixaFalhou`), e a estimativa local saiu do retorno de erro. Fica de fora: agregar a falha sistêmica num alerta só, e avisar o operador na tela do PDV. | Com estoque real, uma baixa que falha silenciosamente corrompe o inventário. |
 | S2-2 | **QA dos fluxos críticos** (PDV → caixa → fiscal → impressão) num tenant de teste + **teste físico de impressora térmica** (corte/densidade, pendente do F020). | Antes de por dinheiro real e nota fiscal em jogo. |
 | S2-3 | **Backfill/limpeza de dados** por tenant (garantir que o novo cliente começa zerado e que relatórios batem). | Higiene de dados no onboarding. |
 

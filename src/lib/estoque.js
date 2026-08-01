@@ -122,6 +122,63 @@ export async function gerarAlertaEstoque({ produtoId, nome, quantidade, minimo }
   }
 }
 
+const chaveBaixaFalhou = (alvo, id) => `estoque:baixa-falhou:${alvo}:${id}`;
+
+// Mesma leitura de erro usada no AppContext — mensagem, código, ou a forma
+// em texto quando o erro nem objeto é.
+const textoDoErro = (erro) => (erro ? (erro.message ?? erro.code ?? String(erro)) : null);
+
+/**
+ * Alerta de baixa recusada pelo servidor (TD012).
+ *
+ * A venda gravou, o estoque não desceu, e até aqui isso só existia no Sentry,
+ * na tabela de eventos e no log de atividade — três lugares que o gestor não
+ * abre. Sem este alerta, o saldo na tela fica maior que o real e ninguém
+ * descobre até a contagem física não bater (foi assim que o bug de RLS na
+ * `baixar_estoque` passou semanas escondido).
+ *
+ * Só deve ser chamado para falha de verdade: sem internet a RPC entra na fila
+ * e é reaplicada, então alertar ali ensinaria o gestor a ignorar o alerta.
+ *
+ * Fire-and-forget, com o mesmo dedupe dos irmãos — nunca lança, nunca bloqueia
+ * a venda.
+ *
+ * @param {{ produtoId?: string|number, subprodutoId?: string|number, nome?: string|null, quantidade: number, erro?: object|null }} dados
+ * @param {string} [usuario]
+ * @returns {Promise<void>}
+ */
+export async function gerarAlertaBaixaFalhou({ produtoId, subprodutoId, nome, quantidade, erro }, usuario) {
+  try {
+    const alvo = produtoId != null ? "produto" : "subproduto";
+    const id = produtoId != null ? produtoId : subprodutoId;
+    const chave = chaveBaixaFalhou(alvo, id);
+    const { data: abertos } = await buscarInsights({ status: ["novo", "lido"], limite: 200 });
+    const jaExiste = (abertos ?? []).some((i) => i?.origem?.chave === chave);
+    if (jaExiste) return;
+
+    const item = nome || (alvo === "produto" ? `Produto ${id}` : `Item ${id}`);
+    await registrarInsight({
+      tipo: "alerta",
+      severidade: "danger",
+      visibilidade: "operacional",
+      modulo: "estoque",
+      titulo: `Estoque não descontado: ${item}`,
+      // Sem o texto cru do banco: quem lê isto é dono de restaurante. A
+      // mensagem técnica fica em origem.dados.erro, para o diagnóstico.
+      descricao: `Uma venda saiu com ${fmtNum(quantidade)} de ${item}, mas o sistema não conseguiu descontar do estoque. O saldo que aparece na tela está maior do que o que existe de verdade — confira a contagem deste item.`,
+      acao: {
+        label: "Ver estoque",
+        tipo: "abrir_estoque",
+        params: alvo === "produto" ? { produto_ids: [id] } : { subproduto_ids: [id] },
+      },
+      origem: { chave, dados: { [`${alvo}_id`]: id, nome: item, quantidade, erro: textoDoErro(erro) } },
+    });
+  } catch (err) {
+    // intencionalmente silencioso — alerta do Jarvas nunca pode quebrar a venda
+    console.error("[estoque] falha ao gerar alerta de baixa recusada:", err);
+  }
+}
+
 /**
  * Orquestra uma baixa de estoque: chama a RPC (injetada, para ser
  * testável sem montar o AppProvider inteiro), decide se a baixa
@@ -142,10 +199,24 @@ export async function gerarAlertaEstoque({ produtoId, nome, quantidade, minimo }
 export async function processarBaixaEstoque({
   produtoId, qty, quantidadeAnterior, nomeProduto, minimoFallback = 10, usuario, chamarRpc,
 }) {
-  const { data, error } = await chamarRpc(produtoId, qty);
+  let data = null, error = null;
+  try {
+    ({ data, error } = (await chamarRpc(produtoId, qty)) ?? {});
+  } catch (err) {
+    // A RPC normalmente devolve `{ error }`, mas quando ela LANÇA (falha de
+    // fetch, URL inválida, resposta ilegível) a exceção subia até o
+    // finalizarPagamento, que chama a baixa sem proteção — depois da venda já
+    // gravada. Mesma blindagem que entradaEstoque e baixarEstoqueSubproduto
+    // já têm no AppContext.
+    error = { message: err?.message ?? String(err) };
+  }
   if (error) {
     console.error("[estoque] falha ao baixar estoque:", error);
-    return { quantidade: Math.max(0, Number(quantidadeAnterior) - qty), error };
+    // Nada foi descontado no banco. Devolver `anterior - qty` seria entregar um
+    // saldo que nunca existiu — o TD012 na origem: a estimativa local passava
+    // por verdade e escondeu o bug de RLS por semanas. Quem chama recebe o
+    // saldo de antes, que é o que o banco de fato tem.
+    return { quantidade: Math.max(0, Number(quantidadeAnterior) || 0), error };
   }
 
   const linha = Array.isArray(data) ? data[0] : data;

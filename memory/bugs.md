@@ -51,7 +51,7 @@ revisão item a item com o dono antes de merge.
 | `sanitizeInput` lançava com não-string | crypto.js | ✅ Leva 10 — null-safe + testes |
 | CSV de divergência sem descontar fundo | FechamentoModal | ✅ Leva 5 |
 | Variação % mostrava "+100%" com base zero | RelatorioView | ✅ Leva 8 — vira "—" |
-| `key={i}` em listas | ~25 ocorrências | ✅ verificado sem bug hoje — registrado como TD012 |
+| `key={i}` em listas | ~25 ocorrências | ✅ verificado sem bug hoje — registrado como TD015 (era TD012, renumerado em 2026-08-01: o número colidia com o item de estoque) |
 | RPC `limpar_reserva_mesa` "órfã" | — | ✅ falso positivo — usada em `useFinalizarPagamento.js` e testada |
 | Cor do gerente "hardcodada" | constants/roles.js | ✅ falso positivo — papel é conceito da plataforma, não branding do tenant |
 | `emitirDocumentoFiscal` stub | fiscal | ⏳ pendente (depende de provedor fiscal — decisão de custo do dono) |

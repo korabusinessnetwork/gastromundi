@@ -78,8 +78,9 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 | TD009 | `sales`/`fechamentos` como blobs JSONB — relatórios/consultas SQL limitados | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Em andamento — etapa 2 concluída (2026-07-04) |
 | TD010 | Realtime só em `pending` — estoque/config/insights não sincronizam entre dispositivos | 🏗️ Arquitetura | Médio | Médio | 🟡 Medium | Resolvido (2026-07-04) |
 | TD011 | Fluxos críticos do PDV sem testes de componente (só funções puras são testadas) | 🧪 Testes | Alto | Médio | 🟠 High | Resolvido (2026-07-05) |
-| TD012 | `estoque.js` engole exceção da baixa e mostra estimativa local como se fosse sucesso — mascarou o bug de RLS (`baixar_estoque`) por semanas. Falha de baixa precisa ser visível (alerta/log), não silenciosa | 🔒 Confiabilidade | Alto (quando estoque for real) | Baixo | 🟠 High | Identificado (2026-07-06) |
+| TD012 | `estoque.js` engole exceção da baixa e mostra estimativa local como se fosse sucesso — mascarou o bug de RLS (`baixar_estoque`) por semanas. Falha de baixa precisa ser visível (alerta/log), não silenciosa | 🔒 Confiabilidade | Alto (quando estoque for real) | Baixo | 🟠 High | Resolvido (2026-08-01) — `gerarAlertaBaixaFalhou` leva a falha ao painel do Jarvas (o único destes destinos que o gestor abre); `processarBaixaEstoque` devolve o saldo anterior em vez do estimado e embrulha a RPC em `try/catch`; offline não alerta |
 | TD014 | Guard `deliveryHorarioSqlGuard.test.js` proibia o token `lpad(` e **exigia** `'FM000'` — obrigava a reintroduzir o bug D14 (número do pedido) para a suíte passar; a âncora ainda casava o comentário da migration, não o código | 🧪 Testes | Alto (travava o commit do conserto já aplicado em produção) | Baixo | 🟠 High | Resolvido (2026-08-01) — proíbe a forma (`lpad(x, 3, '0')` / `FM000`), regex provada nos dois lados, `blocosDaFuncao` sem comentários |
+| TD015 | `key={i}` (índice) em listas React — ~25 ocorrências; item existia desde 2026-07-17 com o número TD012, duplicando o ID do item de estoque e sem linha nesta tabela | 🧹 Code Quality | Baixo | Médio | 🟢 Low | Identificado (2026-07-17, varredura; renumerado em 2026-08-01) |
 
 ### [TD001] Senhas legíveis em `config.credentials`
 
@@ -221,13 +222,19 @@ Fluxos cobertos:
 
 **Resultado:** `npm test` — 9 arquivos, 74 testes, todos verdes. `npm run build` sem erros.
 
-### [TD012] `key={i}` (índice) em listas React
+### [TD012] Baixa de estoque que falha em silêncio
 
-**Categoria:** Code Quality · **Impacto:** Baixo · **Esforço:** Médio · **Prioridade:** 🟢 Low · **Status:** Identificado (2026-07-17, varredura)
+**Categoria:** Confiabilidade · **Impacto:** Alto · **Esforço:** Baixo · **Prioridade:** 🟠 High · **Status:** Resolvido (2026-08-01)
 
-**Descrição:** ~25 ocorrências de `key={i}`/`key={idx}` em `.map()` (cabeçalhos de tabela, itens de comanda, entradas de split de pagamento etc.). Verificado na varredura de 2026-07-17: as listas afetadas ou são estáticas (headers) ou têm todos os inputs controlados (valor vem do state), então não há bug de comportamento hoje — o risco é futuro, se alguma dessas listas passar a reordenar/ter estado não-controlado por item.
+**Descrição:** a baixa que o servidor recusava era desfeita na tela e reportada ao Sentry, à tabela `jarvas_eventos` e ao `activity_log` — **três destinos que só o desenvolvedor abre**. A superfície do gestor é o painel do Jarvas (`jarvas_insights`), e ali não chegava nada: a venda saía, o estoque não descia, e o furo de inventário só aparecia na contagem física. Foi assim que o bug de RLS na `baixar_estoque` passou semanas escondido.
 
-**Solução proposta:** ao tocar em cada tela, trocar por chave estável (id do item, `metodo`, texto do header). Não vale um refactor em massa isolado.
+Um andar abaixo, `processarBaixaEstoque` ainda devolvia `quantidadeAnterior - qty` **junto com o erro** — um saldo que nunca existiu no banco, com um teste que chegava a afirmá-lo (`// fallback calculado localmente`) — e chamava a RPC sem `try/catch`, diferente de `entradaEstoque` e `baixarEstoqueSubproduto`: uma RPC que *lançasse* subia a exceção até o `useFinalizarPagamento`, depois da venda já gravada.
+
+**Resolução:** `gerarAlertaBaixaFalhou` (`src/lib/estoque.js`) registra um insight `danger`/`operacional` no módulo de estoque, com o dedupe por `origem.chave` dos irmãos (`estoque:baixa-falhou:<produto|subproduto>:<id>`) e ação que leva ao estoque. O texto que o gestor lê é português de operação; a frase do Postgres fica em `origem.dados.erro`, para diagnóstico. `AppContext.baixarEstoque` e `baixarEstoqueSubproduto` disparam o alerta **depois** do desvio de `isErroDeRede` — sem internet a baixa vai para a fila e é reaplicada com o mesmo `opId`, e alertar ali ensinaria o gestor a ignorar o alerta. `processarBaixaEstoque` passou a devolver o saldo anterior no erro e a embrulhar a `chamarRpc`.
+
+**Não coberto (fica pendente):** falha sistêmica (RLS quebrada) gera um alerta por produto distinto — o dedupe evita a repetição do mesmo item, não a multiplicação entre itens. Agregar num único alerta é regra nova. Também segue fora: avisar o operador na própria tela do PDV, e `entradaEstoque`, que também só reporta ao Sentry.
+
+**Referências:** `specs/td012-baixa-de-estoque-que-falha-em-silencio.md`; S2-1 em `sprint_pre_venda.md`.
 
 ### [TD013] `updatePending` sem merge atômico no banco (RPC de append JSONB)
 
@@ -236,6 +243,14 @@ Fluxos cobertos:
 **Descrição:** a Leva 2 resolveu a perda de itens entre dispositivos no lado do cliente (merge por `uid` + resync do `selected` via Realtime), mas o update em `pending.items` continua sendo read-modify-write do array inteiro no cliente. Dois lançamentos simultâneos na mesma comanda em janelas muito curtas ainda podem se sobrescrever antes de o Realtime sincronizar.
 
 **Solução proposta:** RPC `SECURITY DEFINER` de append atômico no JSONB (`items = items || novos_itens` com lock de linha), no mesmo padrão de `baixar_estoque`/`limpar_reserva_mesa`, e o cliente passar a enviar só os itens novos.
+
+### [TD015] `key={i}` (índice) em listas React
+
+**Categoria:** Code Quality · **Impacto:** Baixo · **Esforço:** Médio · **Prioridade:** 🟢 Low · **Status:** Identificado (2026-07-17, varredura; renumerado de TD012 em 2026-08-01, ID duplicado)
+
+**Descrição:** ~25 ocorrências de `key={i}`/`key={idx}` em `.map()` (cabeçalhos de tabela, itens de comanda, entradas de split de pagamento etc.). Verificado na varredura de 2026-07-17: as listas afetadas ou são estáticas (headers) ou têm todos os inputs controlados (valor vem do state), então não há bug de comportamento hoje — o risco é futuro, se alguma dessas listas passar a reordenar/ter estado não-controlado por item.
+
+**Solução proposta:** ao tocar em cada tela, trocar por chave estável (id do item, `metodo`, texto do header). Não vale um refactor em massa isolado.
 
 ---
 

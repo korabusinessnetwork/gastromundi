@@ -75,7 +75,7 @@ vi.mock("@/lib/tenant", () => ({
   addonHabilitado: () => false,
 }));
 
-import { emitirEvento } from "@/lib/jarvas";
+import { emitirEvento, registrarInsight } from "@/lib/jarvas";
 import { reportarFalha } from "@/lib/observabilidade";
 import { AppProvider, useApp, aplicarNumeroRemoto } from "./AppContext";
 
@@ -556,5 +556,85 @@ describe("AppContext — realtime do estoque (Run 4, leva 11)", () => {
     // valendo 0 faria a tela mostrar ruptura de um produto que não controla.
     expect(app.current.estoque).not.toHaveProperty("7");
     expect(app.current.estoqueMinimos).not.toHaveProperty("7");
+  });
+});
+
+// ── TD012 — a baixa que falha precisa chegar em quem pode agir ───────────
+//
+// A falha de baixa já era desfeita na tela e reportada ao Sentry, ao
+// `jarvas_eventos` e ao `activity_log` — três destinos que só o desenvolvedor
+// abre. O gestor abre o painel do Jarvas, e lá não chegava nada: o furo de
+// inventário só aparecia na contagem física, semanas depois.
+//
+// Offline não entra nesta conta. A baixa sem rede vai para a fila e é
+// reaplicada com a mesma chave; alertar ali ensinaria o gestor a ignorar o
+// alerta, que é o pior resultado possível.
+describe("AppContext — alerta de baixa recusada (TD012)", () => {
+  const RECUSADA = erroRpc({ code: "42501", message: "new row violates row-level security policy" });
+
+  /** Dá voltas de microtask para o alerta, que é disparado sem await. */
+  const deixarOAlertaSair = () =>
+    act(async () => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); });
+
+  /** Só os insights de baixa recusada, ignorando mínimo e oversell. */
+  const alertasDeBaixa = () =>
+    registrarInsight.mock.calls
+      .map(([insight]) => insight)
+      .filter((i) => String(i?.origem?.chave ?? "").startsWith("estoque:baixa-falhou:"));
+
+  it("baixa recusada pelo banco vira alerta no painel do gestor", async () => {
+    comRpcPorNome({ baixar_estoque: RECUSADA });
+    const app = montar();
+
+    await act(async () => { await app.current.baixarEstoque(1, 2); });
+    await deixarOAlertaSair();
+
+    const [alerta] = alertasDeBaixa();
+    expect(alerta).toMatchObject({
+      tipo: "alerta",
+      severidade: "danger",
+      visibilidade: "operacional",
+      modulo: "estoque",
+      acao: { tipo: "abrir_estoque" },
+    });
+    expect(alerta.origem.chave).toBe("estoque:baixa-falhou:produto:1");
+    // A frase do Postgres serve ao diagnóstico, não à leitura do gestor.
+    expect(alerta.titulo).not.toContain("row-level security");
+    expect(alerta.descricao).not.toContain("row-level security");
+    expect(alerta.origem.dados.erro).toContain("row-level security");
+  });
+
+  it("sem internet NÃO alerta — a baixa só entrou na fila para reenvio", async () => {
+    comRpc(SEM_REDE);
+    const app = montar();
+
+    await act(async () => { await app.current.baixarEstoque(1, 2); });
+    await deixarOAlertaSair();
+
+    expect(alertasDeBaixa()).toHaveLength(0);
+    expect(filaGravada()).toHaveLength(1);
+  });
+
+  it("subproduto recusado alerta com chave própria", async () => {
+    comRpcPorNome({ baixar_estoque_subproduto: RECUSADA });
+    const app = montar();
+
+    await act(async () => { await app.current.baixarEstoqueSubproduto("sub-1", 2, "Molho da casa"); });
+    await deixarOAlertaSair();
+
+    const [alerta] = alertasDeBaixa();
+    expect(alerta.origem.chave).toBe("estoque:baixa-falhou:subproduto:sub-1");
+    expect(alerta.titulo).toContain("Molho da casa");
+    expect(alerta.acao.params).toEqual({ subproduto_ids: ["sub-1"] });
+  });
+
+  it("subproduto sem rede também não alerta", async () => {
+    comRpc(SEM_REDE);
+    const app = montar();
+
+    await act(async () => { await app.current.baixarEstoqueSubproduto("sub-1", 2, "Molho da casa"); });
+    await deixarOAlertaSair();
+
+    expect(alertasDeBaixa()).toHaveLength(0);
   });
 });
