@@ -2,6 +2,39 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 18 — F018, fatia 5 — esqueleto e aba Pedidos do Delivery — 2026-08-02
+
+- **Spec:** `specs/f018-delivery-pedidos-css.md`
+- **Resultado da review:** **aprovado sem ressalvas** — 11 de 11 critérios em sim, nenhuma rodada de
+  correção. `npx vitest run` em 194 de 194 arquivos e 3080 de 3080 testes (74,88s), nenhum arquivo de
+  teste tocado. `npx vite build` verde (10,99s). Dois arquivos de código tocados, os previstos:
+  `DeliveryView.jsx` e `DeliveryView.css`.
+- **Construído:** o esqueleto da tela (cabeçalho, tag de modo, abas, área) e a aba **Pedidos**
+  inteira — barra de topo, estados vazios, kanban e cartão do pedido — saíram de **39 para 4**
+  estilos inline. O arquivo foi de 217 para **182**; o `src/` de 1842 para **1807**. Os 4 que ficam
+  carregam `sz.pad` (3) e a custom property `--cor-status` (1). Saiu junto o último `#f59e0b` do
+  arquivo: `COR_STATUS.amber` virou `--gm-warn`, que o tenant pode sobrescrever — a cor do status do
+  delivery passa a seguir o tema como todas as outras (decisão 017).
+- **A descoberta da fatia:** cor calculada em runtime **cabe** em CSS. `baseCorStatus()` devolve uma
+  entre seis cores e pintava onze elementos por inline; agora entra uma vez na coluna do kanban como
+  `style={{ "--cor-status": … }}` e título, bolinha, contador e a fita esquerda do cartão leem
+  `var(--cor-status, var(--gm-muted))` pelo CSS, por herança. O `style` que sobra deixou de ser
+  estilo e virou parâmetro. Padrão em `memory/patterns.md` → "Cor calculada em runtime: custom
+  property local no ancestral".
+- **O tropeço:** o comentário que explica o `--cor-status` foi escrito como bloco JSX
+  (`{/* … */}`) entre o `return (` e o elemento, dentro do callback de `.map()` — ali não é
+  comentário, é uma segunda expressão, e o arquivo parou de parsear. O vitest reportou "1 arquivo
+  falhou, 3071 testes passando, nenhum teste falhando", que se parece com flake e não é: arquivo
+  vermelho com zero teste vermelho é erro de transformação. Em `memory/learnings.md`.
+- **Commit:** `5addcf2` na branch `ciclo/s1-3-configuracoes` (empurrado).
+- **Pendente de decisão:** nenhuma nova. Entrou na fila do `--gm-sobre-accent` o `#fff` dos dois
+  botões de ação do cartão (texto sobre cor cheia — o projeto não tem token para isso). Seguem
+  abertas as de antes: cortesia sem renovação (F022), ADR do offline-first (F021), token do roxo do
+  débito em `METODOS_COLOR`, `line-height` do `.pdv__lock-desc`, e as migrations `20260912`–`20260916`
+  que ainda precisam rodar no SQL Editor.
+- **Próximo item recomendado:** **F018, fatia 6 — a aba Cardápio do `DeliveryView.jsx`** — o arquivo
+  está aberto e com o CSS já estruturado, e é a maior aba das 182 ocorrências que restam nele.
+
 ## Rodada 17 — F018, fatia 4 do PDV — o corpo da tela — 2026-08-02
 
 - **Spec:** `specs/f018-pdv-corpo-css.md`
