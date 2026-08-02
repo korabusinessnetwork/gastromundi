@@ -2,6 +2,55 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 21 — F018, fatia 8 — a cadeia de props `sz` do Delivery — 2026-08-02
+
+- **Spec:** `specs/f018-delivery-sz-css.md`
+- **Resultado da review:** **aprovado sem ressalvas** — 15 de 15 critérios em sim, nenhuma rodada
+  de correção. `npx vitest run`: 194 arquivos, 3080 testes, verde (84,84s). `npx vite build`:
+  verde (10,98s), rodado depois da última edição de CSS — é o único passo que compila o `.css`.
+- **Construído:** o `DeliveryView.jsx` passava `sz` (o objeto de `getSizes(width)`) por **12**
+  assinaturas de componente para desreferenciar `sz.pad` em **5 lugares**. A prop foi apagada de
+  ponta a ponta: `sz` 30 → **0** linhas, `getSizes` 2 → **0**, `useResponsive` 2 → **0**, inline
+  124 → **119**, `src/` 1749 → **1744** (ainda 46 arquivos). Os 5 usos viraram o token global
+  **`--gm-pad`** em `src/styles/tema.css`.
+- **Por que virou token e não media query:** o precedente é o próprio `src/styles/tipografia.css`,
+  que já tinha migrado `sz.font*` para CSS com `clamp()`. A reta `min(14.9px + 0.86vw, 48px)`
+  passa pelos dois extremos da curva antiga (18px em 360 de largura, 48px em 3840) e troca os
+  degraus intermediários por variação contínua — a tela para de "pular" ao cruzar breakpoint. O
+  único degrau real (18 → 12px abaixo de 360) ficou como `@media` explícita, depois do `:root`.
+  De quebra, o tenant pode adensar o layout sobrescrevendo um token (decisão 017).
+- **A descoberta da fatia:** `src/components/desktop/views/CozinhaView.css:109` já escrevia
+  `margin: 0 var(--gm-pad, 16px)` — referência a um token que **nunca existiu**. O fallback
+  escondia a ausência: a faixa desenhava 16px e parecia certa. Criar o token faz aquela linha
+  começar a resolver — efeito colateral fora do escopo, declarado no spec antes do build.
+- **A armadilha evitada:** `.delivery-view__btn--primario` tem **3** usuários, mas só **2**
+  carregavam o padding inline; o terceiro é o "Salvar" do modal, que tem padding próprio. Pendurar
+  o espaçamento no modificador de cor teria reestilizado um botão fora da fatia. Saiu como
+  modificador de forma separado (`--acao-topo`) — segunda aparição seguida do padrão da rodada 19.
+- **O quase-erro:** o token ia nascer `clamp(12px, 14.9px + 0.86vw, 48px)`, com o piso copiado do
+  degrau do celular mini. O `12px` é **inalcançável** ali (exigiria viewport negativo) — seria CSS
+  morto com cara de intencional, exatamente o que a rodada 20 registrou como aprendizado. Virou
+  `min()` de dois argumentos, com o motivo escrito no comentário. **Desvio deliberado do critério
+  6 do spec**, e melhor que ele.
+- **Nota de método:** o normalizador de markup acusou DIVERGE no primeiro import, porque a fatia
+  mexe em props e imports, que não são marcação — e ele só reporta a primeira divergência. Invertí
+  a pergunta: declarei no script as 4 transformações que a fatia autoriza, apliquei no `HEAD` e
+  exigi igualdade. Veio **DIFF VAZIO**, o que prova mecanicamente que nada além do previsto mudou.
+- **Correção de contagem:** o spec falava em "13 assinaturas"; são **12**. O número veio da
+  estimativa da rodada 20 e nenhum critério dependia dele.
+- **Aprendido:** `memory/learnings.md` — conferir argumento por argumento de `clamp`/`min`/`max`
+  antes de commitar, e `var(--token, fallback)` esconder token inexistente (técnicos); normalizador
+  como verificador de transformação declarada (processo). `memory/patterns.md` — "Escala responsiva
+  que vive em JavaScript vira token, não media query em cada tela", que é o roteiro para as demais
+  propriedades do `sz` e para os 15 arquivos que ainda chamam `getSizes`.
+- **Commit:** `7af5734` na branch `ciclo/s1-3-configuracoes`.
+- **Pendente de decisão:** nenhuma nova.
+- **Próximo item recomendado:** F018, fatia 9 — a **aba Complementos** do `DeliveryView.jsx`.
+  Dos 119 inline que sobraram no arquivo, **91** estão nos seis componentes dessa aba
+  (`GrupoEditor` 50, `SeletorProdutosMulti` 11, `AbaComplementos` 10, `SeletorSubgrupo` 8,
+  `GrupoCardMini` 6, `SeletorProdutoComplemento` 6). Depois dela sobra só a `AbaEntrega` (26) e
+  dois avulsos — duas fatias fecham o segundo maior arquivo do projeto.
+
 ## Rodada 20 — F018, fatia 7 — o helper `inputStyle` do Delivery — 2026-08-02
 
 - **Spec:** `specs/f018-delivery-inputstyle-css.md`
