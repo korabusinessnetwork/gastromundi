@@ -2,6 +2,38 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 17 — F018, fatia 4 do PDV — o corpo da tela — 2026-08-02
+
+- **Spec:** `specs/f018-pdv-corpo-css.md`
+- **Resultado da review:** **aprovado sem ressalvas** — 11 de 11 critérios em sim, nenhuma rodada de
+  correção. `npx vitest run` em 194 de 194 arquivos e 3080 de 3080 testes (76,20s), nenhum arquivo de
+  teste tocado. `npx vite build` verde (11,10s). `git diff --stat` nos dois arquivos previstos:
+  `PDVView.css` (+311) e `PDVView/index.jsx` (190 linhas alteradas).
+- **Construído:** alerta de estoque, alerta de validade, abas Mapa/Lista/Comandas/Reservas, toast
+  flutuante, busca de comandas, abas do celular e o resto do cabeçalho saíram de **33 para 0**
+  estilos inline. O arquivo foi de 53 para **20**, e os 20 que ficam carregam a escala responsiva
+  (`sz.*`, `isCel`) — **o maior arquivo do projeto está fechado**. O `src/` foi de 1875 para
+  **1842**. Saíram junto os dois últimos `onMouseEnter`/`onMouseLeave` (o arquivo tem zero
+  `currentTarget.style`) e o `#f59e0b`/`#ef4444` cravado nas duas faixas, que virou
+  `--gm-warn`/`--gm-red`.
+- **Prova de que nada de lógica mudou:** o JSX do `HEAD` e o do working copy, com `style=`,
+  `className=`, `color=`, `onMouseEnter=` e `onMouseLeave=` removidos, são **idênticos** — zero linha
+  de diferença em 190 linhas trocadas.
+- **O que a fatia ensinou:** duas faixas com a mesma estrutura e cores diferentes pedem a cor no
+  **descendente do modificador**, não na classe compartilhada — mas o chip é a exceção, porque a
+  faixa de validade alterna as duas cores dentro da mesma lista (modificador por item, não por
+  bloco). E a classe copia a **ausência** também: só as abas de cima declaravam
+  `font-family: inherit`; escrevê-lo nas duas trocaria a fonte das abas do celular. Ambos em
+  `memory/patterns.md`. Em `memory/learnings.md`: o `--gm-warn` existe desde sempre com um comentário
+  mandando substituir o `#f59e0b`, e o hex ainda está em **60 lugares de 30 arquivos** — comentário
+  de token descreve intenção, não faz varredura.
+- **Commit:** `e01141f` na branch `ciclo/s1-3-configuracoes` (empurrado).
+- **Pendente de decisão:** nenhuma nova. Seguem abertas as de antes — cortesia sem renovação (F022),
+  ADR do offline-first (F021), token do roxo do débito em `METODOS_COLOR`, `line-height` do
+  `.pdv__lock-desc`, e as migrations `20260912`–`20260916` que ainda precisam rodar no SQL Editor.
+- **Próximo item recomendado:** **F018, `DeliveryView.jsx`** — 217 estilos inline, o maior arquivo
+  restante do item que está 🟠 High e em andamento, e o primeiro fora do PDV.
+
 ## Rodada 16 — F018, fatia 3 do PDV — os cinco modais — 2026-08-02
 
 - **Spec:** `specs/f018-pdv-modais-css.md`
