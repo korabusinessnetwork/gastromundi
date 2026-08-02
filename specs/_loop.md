@@ -2,6 +2,42 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 14 — BUG001 — alfa concatenado em `var()` apaga a borda — 2026-08-02
+
+- **Spec:** `specs/bug001-alfa-concatenado-em-var.md`
+- **Resultado da review:** **aprovado sem ressalvas** — 8 de 8 critérios em sim, nenhuma rodada de
+  correção. `npx vitest run` em 194 de 194 arquivos e 3080 de 3080 testes (76s). `git diff --stat`
+  em 7 arquivos, 26 inserções e 26 remoções — nenhuma linha tocada fora do inventário.
+- **Construído:** as 26 linhas que montavam cor colando dois dígitos hex no fim de uma custom
+  property (`var(--gm-accent)66`, CSS inválido) passaram a usar `alfa(cor, "NN")`, que produz
+  `color-mix(in srgb, <cor> N%, transparent)`. Cada ponto manteve a mesma cor e o mesmo sufixo de
+  antes. Arquivos: `Sidebar` (3), `MesasAdmin` (2), `PDVView/index` (12), `RelatorioView` (4),
+  `FechamentoModal` (3), `ConfiguracoesView` (1), `JarvasPanel` (1).
+- **Ao contrário da rodada 13, esta rodada muda a aparência de propósito** — é exatamente o que
+  corrige o bug: bordas que estavam sumindo voltam a aparecer na cor certa.
+- **Nada foi corrigido pela review:** a auditoria não achou defeito no que foi construído.
+- **A rodada corrigiu o próprio registro do bug:** o reporte da rodada 13 dizia 18 ocorrências em 6
+  arquivos. O real é **26 linhas / 27 declarações em 7 arquivos**. O número velho saiu de um grep
+  ancorado em `varColor(`, que perde os pontos onde o token chega por variável (`${tipo.color}44`,
+  alimentado por mapas que guardam `varColor(C.x)`) e os que fecham ternário em vez de chamada.
+- **São duas falhas, não uma:** em `border` (atalho) o valor inválido leva todas as longhands a
+  `unset` e a borda **some**; em `style.borderColor` (CSSOM, nos `onFocus`/`onBlur` à mão) só a cor
+  cai para `unset` → `currentColor` e a borda fica **da cor do texto**. Procurar por "borda que
+  sumiu" não acha o segundo grupo.
+- **Aprendido:** `memory/learnings.md` (duas linhas: o inventário incompleto e as duas falhas
+  distintas), `memory/patterns.md` (a seção "Alfa sobre token" ganhou a regra "procure pela cauda,
+  não pela cabeça" com os dois greps completos, e o fato de `alfa()` aceitar token, string resolvida
+  ou hex literal), `memory/bugs.md` e `docs/09_BACKLOG/bugs.md` (`BUG001` fechado, com o inventário
+  correto), e o §8 do próprio spec.
+- **Commit:** `7d54ad4` na branch `ciclo/s1-3-configuracoes`.
+- **Pendente de decisão (nenhuma bloqueia):** alinhar o `line-height` de `.pdv__lock-desc` com a
+  escala (1.6 → 1.5) é decisão de design; segue de pé a proposta do token `--gm-sobre-accent`.
+  Novidade desta rodada: `METODOS_COLOR` e `ACTION_TYPE_META.caixa` cravam hex de marca
+  (`#10b981`, `#3b82f6`, `#8b5cf6`, `#f59e0b`) que não seguem o tema do tenant — encosta na decisão
+  017 e precisa de token novo em `TOKENS_PERMITIDOS`.
+- **Próximo item recomendado:** **F018, fatia 2 do `PDVView/index.jsx`** — prioridade 🟠 High escrita
+  no backlog, sem portão de custo, e é o maior arquivo aberto do projeto (228 inline restantes).
+
 ## Rodada 13 — F018 — PDV, fatia 1: estados de bloqueio e cabeçalho — 2026-08-02
 
 - **Spec:** `specs/f018-pdv-header-css.md`
