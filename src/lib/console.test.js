@@ -18,6 +18,8 @@ import {
   listarAnalitico,
   resumirUso,
   PERIODOS_ANALYTICS,
+  resumirAddonsDoTenant,
+  contarAddonsPorTenant,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -598,5 +600,94 @@ describe("resumirUso", () => {
     const { linhas } = resumirUso(tenants, null, null, HOJE);
     expect(linhas).toHaveLength(4);
     expect(linhas.every((l) => l.pedidos === 0)).toBe(true);
+  });
+});
+
+// F022-ADDONS — o Console precisa distinguir três estados que o banco guarda
+// de formas parecidas: nunca contratou (não tem linha), contratou e está
+// ligado (`ativo = true`) e contratou e desligou (`ativo = false`, linha
+// preservada). Confundir o terceiro com o primeiro faria a tela dizer
+// "Desligado" para todo mundo — o que é verdade, mas apaga a informação de
+// que aquele cliente já pagou por aquilo um dia.
+describe("resumirAddonsDoTenant", () => {
+  const catalogo = [
+    { codigo: "nfe", nome: "Nota fiscal eletrônica", descricao: "Emite NFC-e no pagamento." },
+    { codigo: "tef", nome: "Maquininha integrada", descricao: "Cartão direto pelo PDV." },
+  ];
+
+  it("marca como ligado só o que está ativo para AQUELE tenant", () => {
+    const linhas = [
+      { tenant_id: "t-1", addon_codigo: "nfe", ativo: true },
+      { tenant_id: "t-2", addon_codigo: "tef", ativo: true },
+    ];
+    const r = resumirAddonsDoTenant(catalogo, linhas, "t-1");
+    expect(r.map((a) => [a.codigo, a.ativo])).toEqual([["nfe", true], ["tef", false]]);
+  });
+
+  it("linha do outro tenant nunca vaza para o resumo", () => {
+    const linhas = [{ tenant_id: "t-vizinho", addon_codigo: "nfe", ativo: true }];
+    const r = resumirAddonsDoTenant(catalogo, linhas, "t-1");
+    expect(r.every((a) => a.ativo === false)).toBe(true);
+  });
+
+  it("contratado e desligado conta como desligado (a linha existe, ativo é false)", () => {
+    const linhas = [{ tenant_id: "t-1", addon_codigo: "nfe", ativo: false }];
+    const [nfe] = resumirAddonsDoTenant(catalogo, linhas, "t-1");
+    expect(nfe.ativo).toBe(false);
+  });
+
+  it("sai sempre o catálogo inteiro, na ordem do catálogo", () => {
+    const r = resumirAddonsDoTenant(catalogo, [], "t-1");
+    expect(r.map((a) => a.codigo)).toEqual(["nfe", "tef"]);
+  });
+
+  it("add-on do banco sem nome cai no código — a linha nunca fica sem rótulo", () => {
+    const [a] = resumirAddonsDoTenant([{ codigo: "novo" }], [], "t-1");
+    expect(a.nome).toBe("novo");
+    expect(a.descricao).toBeNull();
+  });
+
+  it("tenant nulo não liga nada por acidente", () => {
+    const linhas = [{ tenant_id: null, addon_codigo: "nfe", ativo: true }];
+    expect(resumirAddonsDoTenant(catalogo, linhas, null).every((a) => !a.ativo)).toBe(true);
+  });
+
+  it("`ativo` fora do formato booleano não vale como ligado", () => {
+    const linhas = [
+      { tenant_id: "t-1", addon_codigo: "nfe", ativo: "true" },
+      { tenant_id: "t-1", addon_codigo: "tef", ativo: 1 },
+    ];
+    expect(resumirAddonsDoTenant(catalogo, linhas, "t-1").every((a) => !a.ativo)).toBe(true);
+  });
+
+  it("trata listas ausentes como vazias em vez de explodir", () => {
+    expect(resumirAddonsDoTenant(undefined, undefined, "t-1")).toEqual([]);
+    expect(resumirAddonsDoTenant(catalogo, null, "t-1")).toHaveLength(2);
+  });
+});
+
+describe("contarAddonsPorTenant", () => {
+  it("conta um por tenant, só os ativos", () => {
+    const linhas = [
+      { tenant_id: "t-1", addon_codigo: "nfe", ativo: true },
+      { tenant_id: "t-1", addon_codigo: "tef", ativo: true },
+      { tenant_id: "t-2", addon_codigo: "nfe", ativo: true },
+      { tenant_id: "t-3", addon_codigo: "nfe", ativo: false },
+    ];
+    expect(contarAddonsPorTenant(linhas)).toEqual({ "t-1": 2, "t-2": 1 });
+  });
+
+  it("tenant sem nada ligado simplesmente não aparece no mapa", () => {
+    const c = contarAddonsPorTenant([{ tenant_id: "t-9", addon_codigo: "nfe", ativo: false }]);
+    expect(c["t-9"]).toBeUndefined();
+  });
+
+  it("ignora linha sem tenant em vez de criar uma chave vazia", () => {
+    expect(contarAddonsPorTenant([{ tenant_id: null, addon_codigo: "nfe", ativo: true }])).toEqual({});
+  });
+
+  it("trata lista ausente como vazia", () => {
+    expect(contarAddonsPorTenant(undefined)).toEqual({});
+    expect(contarAddonsPorTenant(null)).toEqual({});
   });
 });

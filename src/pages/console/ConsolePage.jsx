@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
-  LuPalette, LuChartColumn, LuActivity,
+  LuPalette, LuChartColumn, LuActivity, LuPuzzle,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
-import { listarEstabelecimentos, listarPlanos, listarAssinaturas } from "@/lib/console";
+import {
+  listarEstabelecimentos, listarPlanos, listarAssinaturas,
+  listarAddonsPorTenant, contarAddonsPorTenant,
+} from "@/lib/console";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
 import AlterarPlanoModal from "@/components/console/AlterarPlanoModal";
 import AlterarLayoutModal from "@/components/console/AlterarLayoutModal";
+import AddonsModal from "@/components/console/AddonsModal";
 import PlanosDashboard from "@/components/console/PlanosDashboard";
 import AnalyticsDashboard from "@/components/console/AnalyticsDashboard";
 import "./ConsolePage.css";
@@ -42,6 +46,9 @@ export default function ConsolePage() {
   const [modalAberto, setModalAberto] = useState(false);
   const [tenantSelecionado, setTenantSelecionado] = useState(null);
   const [tenantLayoutSelecionado, setTenantLayoutSelecionado] = useState(null);
+  const [tenantAddonsSelecionado, setTenantAddonsSelecionado] = useState(null);
+  const [addonsPorTenant, setAddonsPorTenant] = useState({});
+  const [addonsMudaram, setAddonsMudaram] = useState(false);
   const [sucesso, setSucesso] = useState(null);
 
   const carregar = useCallback(async () => {
@@ -51,10 +58,12 @@ export default function ConsolePage() {
       { data: listaTenants, error: eTenants },
       { data: listaPlanos, error: ePlanos },
       { data: listaAssinaturas, error: eAssinaturas },
+      { data: listaAddons },
     ] = await Promise.all([
       listarEstabelecimentos(),
       listarPlanos(),
       listarAssinaturas(),
+      listarAddonsPorTenant(),
     ]);
     if (eTenants) {
       setErro("Não foi possível carregar os estabelecimentos. Verifique a conexão e tente de novo.");
@@ -64,6 +73,9 @@ export default function ConsolePage() {
     setTenants(listaTenants);
     setPlanos(listaPlanos);
     setAssinaturas(listaAssinaturas ?? []);
+    // Guardamos só a CONTAGEM por tenant: o card precisa de um número, e a
+    // lista completa quem lê é o modal, que a busca de novo ao abrir.
+    setAddonsPorTenant(contarAddonsPorTenant(listaAddons));
     // As duas leituras secundárias falham devolvendo lista vazia — e lista
     // vazia é indistinguível de "não tem nenhum". Guardamos a falha para a
     // tela dizer que não sabe, em vez de afirmar zero (R$ 0 de receita,
@@ -106,6 +118,28 @@ export default function ConsolePage() {
       nome: tenant.nome,
       layoutAlterado: rotularLayout(tenant.tema),
     });
+    carregar();
+  };
+
+  const aoAbrirAddons = (tenant) => {
+    setSucesso(null);
+    setTenantAddonsSelecionado(tenant);
+  };
+
+  // O modal de add-ons não fecha a cada troca (dá para ligar dois seguidos),
+  // e a faixa de sucesso ficaria escondida atrás dele. Então o retorno da
+  // ação aparece na própria linha do modal, e aqui só marcamos que houve
+  // mudança para recontar a lista quando ele fechar.
+  const aoAddonAlterado = () => {
+    setAddonsMudaram(true);
+  };
+
+  const aoFecharAddons = () => {
+    const tenant = tenantAddonsSelecionado;
+    setTenantAddonsSelecionado(null);
+    if (!addonsMudaram) return;
+    setAddonsMudaram(false);
+    setSucesso({ nome: tenant?.nome, addonsAtualizados: true });
     carregar();
   };
 
@@ -248,6 +282,8 @@ export default function ConsolePage() {
                     <>Plano de <strong>{sucesso.nome}</strong> atualizado para <strong>{sucesso.planoAlterado}</strong>.</>
                   ) : sucesso.layoutAlterado ? (
                     <>Layout de <strong>{sucesso.nome}</strong> trocado para <strong>{sucesso.layoutAlterado}</strong>.</>
+                  ) : sucesso.addonsAtualizados ? (
+                    <>Add-ons de <strong>{sucesso.nome}</strong> atualizados.</>
                   ) : (
                     <><strong>{sucesso.nome}</strong> criado. O responsável já pode entrar com o
                     usuário <strong>{sucesso.admin?.username}</strong>.</>
@@ -275,7 +311,8 @@ export default function ConsolePage() {
               <ul className="console__lista">
                 {tenants.map((t) => (
                   // Botões IRMÃOS (não aninhados — HTML inválido): o card troca
-                  // o plano, o botão de paleta ao lado troca o layout.
+                  // o plano, o botão de paleta troca o layout e o de peça
+                  // liga/desliga os add-ons pagos.
                   <li key={t.id} className="console__item">
                     <button
                       type="button"
@@ -302,6 +339,17 @@ export default function ConsolePage() {
                     >
                       <LuPalette size={17} aria-hidden />
                       <span className="console__layout-nome">{rotularLayout(t.tema)}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="console__addons"
+                      onClick={() => aoAbrirAddons(t)}
+                      title="Ligar ou desligar os add-ons pagos deste estabelecimento"
+                    >
+                      <LuPuzzle size={17} aria-hidden />
+                      <span className="console__addons-nome">
+                        {rotularAddons(addonsPorTenant[t.id])}
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -335,6 +383,14 @@ export default function ConsolePage() {
           onAlterado={aoLayoutAlterado}
         />
       )}
+
+      {tenantAddonsSelecionado && (
+        <AddonsModal
+          tenant={tenantAddonsSelecionado}
+          onFechar={aoFecharAddons}
+          onAlterado={aoAddonAlterado}
+        />
+      )}
     </div>
   );
 }
@@ -359,4 +415,14 @@ function rotularPlano(planos, codigo) {
 function rotularLayout(tema) {
   const codigo = layoutDoTema(tema);
   return LAYOUTS[codigo]?.nome ?? codigo;
+}
+
+// O botão diz QUANTOS add-ons estão ligados, não "Add-ons": o dono precisa
+// enxergar da lista quem já contratou algo, sem abrir estabelecimento por
+// estabelecimento (Princípio nº1 — estado sempre visível).
+function rotularAddons(quantos) {
+  const n = Number(quantos) || 0;
+  if (n === 0) return "Sem add-ons";
+  if (n === 1) return "1 add-on";
+  return `${n} add-ons`;
 }

@@ -11,7 +11,7 @@
 // na leitura dos planos deixava o botão "Novo estabelecimento" abrir um
 // formulário sem plano nenhum para escolher, sem dizer por quê.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("@/context/AppContext", async () => {
@@ -26,10 +26,13 @@ vi.mock("@/lib/supabase", async () => {
 
 // Só as três leituras são dubladas; `resumirPlataforma` fica REAL, senão o
 // teste não prova nada sobre o que a tela calcula a partir delas.
-const { mockListarEstabelecimentos, mockListarPlanos, mockListarAssinaturas } = vi.hoisted(() => ({
+const { mockListarEstabelecimentos, mockListarPlanos, mockListarAssinaturas, banco } = vi.hoisted(() => ({
   mockListarEstabelecimentos: vi.fn(),
   mockListarPlanos: vi.fn(),
   mockListarAssinaturas: vi.fn(),
+  // Holder mutável em vez de vi.fn(): os `mockReset()` dos beforeEach
+  // existentes não apagam esta leitura, que toda aba faz.
+  banco: { addons: [] },
 }));
 vi.mock("@/lib/console", async () => {
   const real = await vi.importActual("@/lib/console");
@@ -38,6 +41,7 @@ vi.mock("@/lib/console", async () => {
     listarEstabelecimentos: mockListarEstabelecimentos,
     listarPlanos: mockListarPlanos,
     listarAssinaturas: mockListarAssinaturas,
+    listarAddonsPorTenant: async () => ({ data: banco.addons, error: null }),
   };
 });
 
@@ -201,5 +205,60 @@ describe("ConsolePage — o alerta de validade chega à tela", () => {
     await abrirAbaPlanos(user);
 
     expect(screen.queryByText(/precisa de atenção|precisam de atenção/i)).not.toBeInTheDocument();
+  });
+});
+
+// F022-ADDONS — quem já contratou add-on pago precisa ser visível DA LISTA.
+// Sem isso o dono teria de abrir estabelecimento por estabelecimento para
+// descobrir quem tem NF-e ou TEF ligado (Princípio nº1 — estado sempre
+// visível).
+describe("ConsolePage — add-ons no card do estabelecimento", () => {
+  const cardDe = (nome) => screen.getByText(nome).closest("li");
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    banco.addons = [];
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("o botão diz quantos add-ons estão ligados naquele estabelecimento", async () => {
+    banco.addons = [
+      { tenant_id: "t1", addon_codigo: "nfe", ativo: true, ativado_em: null },
+      { tenant_id: "t1", addon_codigo: "tef", ativo: true, ativado_em: null },
+    ];
+    renderWithProviders(<ConsolePage />);
+
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(within(cardDe("Bar do Zé")).getByRole("button", { name: "2 add-ons" })).toBeInTheDocument()
+    );
+    // O vizinho não herda a contagem.
+    expect(within(cardDe("Café Central")).getByRole("button", { name: "Sem add-ons" })).toBeInTheDocument();
+  });
+
+  it("add-on contratado e depois desligado não conta como ligado", async () => {
+    banco.addons = [{ tenant_id: "t1", addon_codigo: "nfe", ativo: false, ativado_em: null }];
+    renderWithProviders(<ConsolePage />);
+
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(within(cardDe("Bar do Zé")).getByRole("button", { name: "Sem add-ons" })).toBeInTheDocument()
+    );
+  });
+
+  it("clicar no botão abre os add-ons daquele estabelecimento, não a troca de plano", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(within(cardDe("Bar do Zé")).getByRole("button", { name: "Sem add-ons" }));
+
+    const modal = await screen.findByRole("dialog", { name: /add-ons do estabelecimento/i });
+    expect(within(modal).getByText("Bar do Zé")).toBeInTheDocument();
   });
 });

@@ -185,8 +185,10 @@
 }
 .console__item .console__card--clicavel { flex: 1; min-width: 0; }
 
-/* Botão de troca de layout — mesmo idioma visual do card clicável. */
-.console__layout {
+/* Botões laterais do item (layout e add-ons) — mesmo idioma visual do card
+   clicável, para que os três se leiam como um bloco só. */
+.console__layout,
+.console__addons {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -203,16 +205,19 @@
   flex-shrink: 0;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
-.console__layout:hover {
+.console__layout:hover,
+.console__addons:hover {
   border-color: var(--gm-accent);
   background: var(--gm-surface);
   color: var(--gm-accent);
 }
-.console__layout:focus-visible {
+.console__layout:focus-visible,
+.console__addons:focus-visible {
   outline: 2px solid var(--gm-accent);
   outline-offset: 2px;
 }
-.console__layout-nome {
+.console__layout-nome,
+.console__addons-nome {
   font-size: 11px;
   font-weight: 700;
   max-width: 110px;
@@ -281,6 +286,12 @@
 @media (max-width: 560px) {
   .console__cabecalho { flex-direction: column; align-items: stretch; }
   .console__novo { justify-content: center; }
+  /* Três alvos lado a lado não cabem: o card ocupa a linha inteira e os
+     dois botões dividem a de baixo, ainda com área de toque cheia. */
+  .console__item { flex-wrap: wrap; }
+  .console__item .console__card--clicavel { flex: 1 1 100%; }
+  .console__layout,
+  .console__addons { flex: 1 1 0; min-width: 0; }
 }
 
 /* Aviso de estado degradado (âmbar): a tela diz o que não conseguiu

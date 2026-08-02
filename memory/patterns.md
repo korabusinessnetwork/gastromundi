@@ -138,6 +138,19 @@ pedido, caixa, estoque) — hoje "Uso e faturamento", amanhã qualquer painel de
   arquivo.** Os dois, sempre. O bloco em SQL some no primeiro `CREATE OR REPLACE` que alguém
   escrever para "só mais uma coluninha" — o guard textual na suíte é o que sobrevive a isso.
 
+### Cruzamento por tenant nunca casa tenant ausente
+Toda função que filtra uma lista por `tenant_id` para decidir o que a tela mostra.
+
+- **Curto-circuite antes de comparar:** `tenantId ? linhas.filter((l) => l.tenant_id === tenantId) : []`.
+  Sem isso, `null === null` casa — e o tenant chega nulo com facilidade, porque toda tela que abre
+  a partir de um card escreve `tenant?.id ?? null` enquanto o modal ainda não recebeu o registro.
+  O resultado é dado de ninguém exibido como dado de alguém.
+- **O teste que pega isso é o do caso vazio**, não o do caminho feliz: um caso "tenant nulo não liga
+  nada por acidente" com uma linha de `tenant_id` nulo na entrada. Ler o código não denuncia —
+  `l.tenant_id === tenantId` parece obviamente certo.
+- **Vale para qualquer chave anulável**, não só tenant: `usuario_id`, `caixa_id`, `pedido_id`.
+  Comparar por identidade sempre pareia duas ausências.
+
 ---
 
 ## Padrões de API

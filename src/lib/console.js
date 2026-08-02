@@ -587,3 +587,136 @@ export async function definirMensalidade(tenantId, valor) {
     return { data: null, error: { message: err?.message ?? "Falha ao definir a mensalidade." } };
   }
 }
+
+/**
+ * Catálogo de add-ons pagos (`public.addons`) — o que a plataforma tem
+ * para oferecer. Add-on é eixo ORTOGONAL ao plano (decisão 019/021):
+ * disponível em qualquer tier, contratado à parte.
+ *
+ * A lista vem do BANCO, não do front: um add-on novo aparece no Console
+ * sem release. Campos explícitos (nunca `select *`).
+ *
+ * Nunca lança: falha volta como { data: [], error }.
+ *
+ * @returns {Promise<{data: Array<{codigo:string, nome:string, descricao:string|null}>, error: object|null}>}
+ */
+export async function listarAddons() {
+  try {
+    const { data, error } = await supabase
+      .from("addons")
+      .select("codigo, nome, descricao")
+      .order("codigo", { ascending: true });
+    if (error) return { data: [], error };
+    return { data: data ?? [], error: null };
+  } catch (err) {
+    return { data: [], error: { message: err?.message ?? "Falha ao buscar os add-ons." } };
+  }
+}
+
+/**
+ * Add-ons contratados de TODOS os estabelecimentos — leitura cross-tenant
+ * do Console. Só o super-admin enxerga mais de um tenant: a policy
+ * `tenant_addons_select_auth` (20260726) filtra por
+ * `tenant_id = tenant_atual_id() OR is_super_admin()`.
+ *
+ * Traz também as linhas com `ativo = false` de propósito: desligar
+ * PRESERVA a linha (20260915), e o Console precisa saber a diferença
+ * entre "nunca contratou" e "contratou e está desligado".
+ *
+ * Nunca lança: falha volta como { data: [], error }.
+ *
+ * @returns {Promise<{data: Array<{tenant_id:string, addon_codigo:string, ativo:boolean, ativado_em:string}>, error: object|null}>}
+ */
+export async function listarAddonsPorTenant() {
+  try {
+    const { data, error } = await supabase
+      .from("tenant_addons")
+      .select("tenant_id, addon_codigo, ativo, ativado_em");
+    if (error) return { data: [], error };
+    return { data: data ?? [], error: null };
+  } catch (err) {
+    return { data: [], error: { message: err?.message ?? "Falha ao buscar os add-ons dos estabelecimentos." } };
+  }
+}
+
+/**
+ * Liga ou desliga um add-on de um estabelecimento via RPC
+ * `alternar_addon_tenant` (20260915).
+ *
+ * `tenant_addons` NÃO tem policy de escrita (20260718): a única via é
+ * esta RPC SECURITY DEFINER com guarda `is_super_admin()` — antes dela, o
+ * jeito de habilitar NF-e/TEF para um cliente era INSERT no SQL Editor.
+ * A autorização real é do banco; o front só monta a chamada.
+ *
+ * Nunca lança: falha de rede/RLS volta como { data: null, error }.
+ *
+ * @param {string} tenantId     id do estabelecimento
+ * @param {string} addonCodigo  código do add-on (catálogo public.addons)
+ * @param {boolean} ativo       true liga, false desliga
+ * @returns {Promise<{data: object|null, error: object|null}>}
+ */
+export async function alternarAddon(tenantId, addonCodigo, ativo) {
+  try {
+    const { data, error } = await supabase.rpc("alternar_addon_tenant", {
+      p_tenant_id: tenantId,
+      p_addon_codigo: addonCodigo,
+      p_ativo: ativo,
+    });
+    if (error) return { data: null, error };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao alterar o add-on." } };
+  }
+}
+
+/**
+ * Função PURA — cruza o catálogo de add-ons com o que um estabelecimento
+ * tem contratado e devolve a lista que a tela mostra.
+ *
+ * Roda pelo CATÁLOGO, não pelas linhas do tenant: add-on sem linha sai
+ * como desligado (é o estado normal — nenhum tenant nasce com add-on,
+ * 20260718), e linha órfã de um código removido do catálogo não aparece
+ * nem quebra a tela.
+ *
+ * @param {Array<{codigo:string, nome:string, descricao?:string|null}>} addons catálogo
+ * @param {Array<{tenant_id:string, addon_codigo:string, ativo:boolean}>} tenantAddons
+ * @param {string} tenantId
+ * @returns {Array<{codigo:string, nome:string, descricao:string|null, ativo:boolean}>}
+ */
+export function resumirAddonsDoTenant(addons, tenantAddons, tenantId) {
+  const catalogo = Array.isArray(addons) ? addons : [];
+  const linhas = Array.isArray(tenantAddons) ? tenantAddons : [];
+  // Sem tenant não existe "ligado": comparar direto casaria tenantId nulo
+  // com linha de tenant_id nulo e a tela mostraria add-on ativo sem saber
+  // de quem.
+  const ativos = new Set(
+    tenantId
+      ? linhas
+          .filter((l) => l?.tenant_id === tenantId && l?.ativo === true)
+          .map((l) => l.addon_codigo)
+      : []
+  );
+  return catalogo.map((a) => ({
+    codigo: a.codigo,
+    nome: a.nome ?? a.codigo,
+    descricao: a.descricao ?? null,
+    ativo: ativos.has(a.codigo),
+  }));
+}
+
+/**
+ * Função PURA — quantos add-ons cada estabelecimento tem LIGADOS, para o
+ * botão do card dizer o estado sem abrir o modal.
+ *
+ * @param {Array<{tenant_id:string, ativo:boolean}>} tenantAddons
+ * @returns {Record<string, number>} id do tenant → quantidade ligada
+ */
+export function contarAddonsPorTenant(tenantAddons) {
+  const linhas = Array.isArray(tenantAddons) ? tenantAddons : [];
+  const contagem = {};
+  for (const l of linhas) {
+    if (!l?.tenant_id || l?.ativo !== true) continue;
+    contagem[l.tenant_id] = (contagem[l.tenant_id] ?? 0) + 1;
+  }
+  return contagem;
+}

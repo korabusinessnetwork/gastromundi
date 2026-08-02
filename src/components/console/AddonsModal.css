@@ -1,0 +1,247 @@
+/**
+ * Add-ons por estabelecimento (Console, F022).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * Cada add-on é um cartão fechado: nome, estado, aviso e ação moram
+ * juntos, então não há dúvida sobre qual botão pertence a qual add-on
+ * (Princípio nº1). Ligado usa o verde e a ação de desligar o vermelho — a
+ * gravidade é reconhecida antes da leitura.
+ */
+
+.adm-carregando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.adm-vazio {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+/* Falha de leitura NÃO pode parecer "catálogo vazio": as duas frases levam a
+   decisões opostas (uma manda cadastrar add-on, a outra manda tentar de
+   novo). Por isso o bloco é vermelho, explica a consequência e oferece a
+   única saída útil. */
+.adm-erro {
+  border: 1px solid color-mix(in srgb, var(--gm-red) 45%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 10%, transparent);
+  border-radius: 12px;
+  padding: 13px 15px;
+}
+
+.adm-erro__titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gm-red);
+}
+.adm-erro__titulo svg { flex-shrink: 0; }
+
+.adm-erro__texto {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--gm-text);
+}
+
+.adm-relere {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 55%, transparent);
+  background: transparent;
+  color: var(--gm-red);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.adm-relere:hover {
+  background: color-mix(in srgb, var(--gm-red) 16%, transparent);
+}
+
+.adm-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.adm-item {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  background: var(--gm-surface);
+  padding: 14px 15px;
+}
+
+.adm-item__topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adm-item__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.adm-item__nome {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.adm-item__descricao {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--gm-muted);
+}
+
+/* Estado por extenso, não só cor: quem não distingue as cores lê a palavra. */
+.adm-estado {
+  flex-shrink: 0;
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+.adm-estado--ligado {
+  border-color: color-mix(in srgb, var(--gm-green) 45%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 12%, transparent);
+  color: var(--gm-green);
+}
+
+.adm-item__aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  background: var(--gm-card);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--gm-muted);
+}
+.adm-item__aviso svg { flex-shrink: 0; margin-top: 1px; }
+
+.adm-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  align-self: flex-start;
+  /* Alvo de toque confortável (Princípio nº1). */
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.adm-botao:disabled { opacity: 0.6; cursor: default; }
+
+.adm-botao--ligar {
+  border-color: color-mix(in srgb, var(--gm-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--gm-accent) 14%, transparent);
+  color: var(--gm-accent);
+}
+.adm-botao--ligar:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--gm-accent) 22%, transparent);
+}
+
+.adm-botao--desligar { color: var(--gm-muted); }
+.adm-botao--desligar:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--gm-red) 45%, transparent);
+  color: var(--gm-red);
+}
+
+.adm-botao--perigo {
+  border-color: color-mix(in srgb, var(--gm-red) 55%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 14%, transparent);
+  color: var(--gm-red);
+}
+.adm-botao--perigo:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--gm-red) 22%, transparent);
+}
+
+.adm-confirma {
+  border: 1px solid color-mix(in srgb, var(--gm-red) 45%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 10%, transparent);
+  border-radius: 12px;
+  padding: 13px 15px;
+}
+
+.adm-confirma__texto {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--gm-text);
+}
+.adm-confirma__texto svg { flex-shrink: 0; margin-top: 1px; color: var(--gm-red); }
+
+.adm-confirma__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+}
+/* Dentro da confirmação os dois botões formam um par — o align-self do
+   .adm-botao (que serve à linha) deixaria um mais curto que o outro. */
+.adm-confirma__acoes .adm-botao { align-self: auto; }
+
+.adm-item__erro {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--gm-red);
+}
+.adm-item__erro svg { flex-shrink: 0; margin-top: 1px; }
+
+/* O rodapé conta quantos estão ligados — o resumo fica visível sem rolar
+   a lista de volta. */
+.adm-rodape {
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+@media (max-width: 520px) {
+  .adm-item__topo { flex-direction: column; align-items: flex-start; }
+  .adm-botao { align-self: stretch; width: 100%; }
+  .adm-confirma__acoes > * { flex: 1 1 100%; }
+}
