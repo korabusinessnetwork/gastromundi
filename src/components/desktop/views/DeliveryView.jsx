@@ -1242,21 +1242,21 @@ function ModalProduto({
           <>
             <div className="delivery-view__campo">
               <label className="delivery-view__label">Nome *</label>
-              <input className="delivery-view__input" style={inputStyle(sz)} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: X-Salada" maxLength={60} />
+              <input className="delivery-view__input" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: X-Salada" maxLength={60} />
             </div>
             <div className="delivery-view__campo-linha">
               <div className="delivery-view__campo delivery-view__campo--flex">
                 <label className="delivery-view__label">Preço (R$) *</label>
-                <input className="delivery-view__input" style={inputStyle(sz)} type="number" min="0" step="0.01" value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" />
+                <input className="delivery-view__input" type="number" min="0" step="0.01" value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" />
               </div>
               <div className="delivery-view__campo delivery-view__campo--emoji">
                 <label className="delivery-view__label">Emoji</label>
-                <input className="delivery-view__input" style={{ ...inputStyle(sz), textAlign: "center" }} value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder="🍔" maxLength={4} />
+                <input className="delivery-view__input delivery-view__input--centro" value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder="🍔" maxLength={4} />
               </div>
             </div>
             <div className="delivery-view__campo">
               <label className="delivery-view__label">Categoria</label>
-              <input className="delivery-view__input" style={inputStyle(sz)} value={categoria} onChange={(e) => setCategoria(e.target.value)} placeholder="Ex: Lanches" maxLength={40} list="delivery-cats" />
+              <input className="delivery-view__input" value={categoria} onChange={(e) => setCategoria(e.target.value)} placeholder="Ex: Lanches" maxLength={40} list="delivery-cats" />
               <datalist id="delivery-cats">{categorias.map((c) => <option key={c} value={c} />)}</datalist>
             </div>
           </>
@@ -1341,7 +1341,7 @@ function ModalProduto({
         </div>
         <div className="delivery-view__campo">
           <label className="delivery-view__label">Descrição</label>
-          <textarea className="delivery-view__textarea" style={inputStyle(sz)} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Pão, hambúrguer, queijo, alface e tomate." maxLength={280} />
+          <textarea className="delivery-view__textarea" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Pão, hambúrguer, queijo, alface e tomate." maxLength={280} />
         </div>
         <label className="delivery-view__switch">
           <span>Disponível no cardápio</span>
@@ -1514,7 +1514,6 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
           <div style={{ display: "flex", gap: 8, alignItems: "center", maxWidth: 480 }}>
             <input
               className="delivery-view__input"
-              style={inputStyle(sz)}
               value={novoGrupo}
               onChange={(e) => setNovoGrupo(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addGrupo()}
@@ -1628,7 +1627,6 @@ function SeletorProdutoComplemento({ sz, products, idsExcluir, onEscolher }) {
     <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
       <input
         className="delivery-view__input"
-        style={{ ...inputStyle(sz), width: "100%" }}
         value={termo}
         onChange={(e) => { setTermo(e.target.value); setAberto(true); }}
         onFocus={() => setAberto(true)}
@@ -1702,8 +1700,7 @@ function SeletorSubgrupo({ sz, candidatos, onEscolher }) {
         style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }}
       />
       <input
-        className="delivery-view__input"
-        style={{ ...inputStyle(sz), width: "100%", paddingLeft: 32 }}
+        className="delivery-view__input delivery-view__input--com-icone"
         value={termo}
         onChange={(e) => { setTermo(e.target.value); setAberto(true); }}
         onFocus={() => setAberto(true)}
@@ -2026,8 +2023,7 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
     <div style={{ border: `1px solid ${varColor(C.border)}`, borderRadius: 14, padding: 16, background: varColor(C.card) }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <input
-          className="delivery-view__input"
-          style={{ ...inputStyle(sz), flex: 1, minWidth: 160, fontWeight: 700 }}
+          className="delivery-view__input delivery-view__input--titulo"
           value={nome}
           onChange={(e) => setNome(e.target.value)}
           disabled={!isAdmin}
@@ -2069,7 +2065,7 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
         </div>
         <label className="delivery-view__hint" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}>
           máx
-          <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 56 }} type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} disabled={!isAdmin} />
+          <input className="delivery-view__input delivery-view__input--qtd" type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} disabled={!isAdmin} />
         </label>
         {isAdmin && (
           <button
@@ -2134,7 +2130,7 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
                   <LuX size={14} />
                 </button>
               </div>
-              <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 96 }} type="number" min="0" step="0.01" value={novoPreco} onChange={(e) => setNovoPreco(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addItem()} placeholder="R$ 0,00" />
+              <input className="delivery-view__input delivery-view__input--preco" type="number" min="0" step="0.01" value={novoPreco} onChange={(e) => setNovoPreco(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addItem()} placeholder="R$ 0,00" />
               <button onClick={addItem} className="delivery-view__btn delivery-view__btn--sm" style={{ background: varColor(C.accent), color: "#fff", padding: "8px 14px" }}>
                 <LuPlus size={13} /> Adicionar
               </button>
@@ -2348,8 +2344,7 @@ function SeletorProdutosMulti({ sz, itens, produtoIds, vinculando, onAlternar })
           style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }}
         />
         <input
-          className="delivery-view__input"
-          style={{ ...inputStyle(sz), width: "100%", paddingLeft: 32 }}
+          className="delivery-view__input delivery-view__input--com-icone"
           value={termo}
           onChange={(e) => { setTermo(e.target.value); setAberto(true); }}
           onFocus={() => setAberto(true)}
@@ -2608,11 +2603,11 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <div className="delivery-view__campo" style={{ flex: "1 1 180px" }}>
           <label className="delivery-view__label">Pedido mínimo (R$)</label>
-          <input className="delivery-view__input" style={inputStyle(sz)} type="number" min="0" step="0.01" value={config.pedido_minimo ?? 0} disabled={readOnly} onChange={(e) => set({ pedido_minimo: e.target.value })} onBlur={() => salvar()} />
+          <input className="delivery-view__input" type="number" min="0" step="0.01" value={config.pedido_minimo ?? 0} disabled={readOnly} onChange={(e) => set({ pedido_minimo: e.target.value })} onBlur={() => salvar()} />
         </div>
         <div className="delivery-view__campo" style={{ flex: "1 1 180px" }}>
           <label className="delivery-view__label">Tempo de preparo (min)</label>
-          <input className="delivery-view__input" style={inputStyle(sz)} type="number" min="0" value={config.tempo_preparo_min ?? 30} disabled={readOnly} onChange={(e) => set({ tempo_preparo_min: e.target.value })} onBlur={() => salvar()} />
+          <input className="delivery-view__input" type="number" min="0" value={config.tempo_preparo_min ?? 30} disabled={readOnly} onChange={(e) => set({ tempo_preparo_min: e.target.value })} onBlur={() => salvar()} />
         </div>
       </div>
 
@@ -2664,7 +2659,6 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
                 <div className="delivery-view__autocomplete" style={{ flex: "1 1 240px" }}>
                   <input
                     className="delivery-view__input"
-                    style={{ ...inputStyle(sz), width: "100%" }}
                     type="text"
                     placeholder="Rua, número, bairro, cidade"
                     value={enderecoOrigem}
@@ -2796,16 +2790,16 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
             )}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {modoTaxa === "km" ? (
-                <input className="delivery-view__input" style={{ ...inputStyle(sz), flex: "1 1 160px" }} type="number" min="0" step="0.1" value={faixaKmAte} onChange={(e) => setFaixaKmAte(e.target.value)} placeholder="Até quantos km" />
+                <input className="delivery-view__input delivery-view__input--faixa" type="number" min="0" step="0.1" value={faixaKmAte} onChange={(e) => setFaixaKmAte(e.target.value)} placeholder="Até quantos km" />
               ) : faixaTipo === "bairro" ? (
-                <input className="delivery-view__input" style={{ ...inputStyle(sz), flex: "1 1 160px" }} value={faixaBairro} onChange={(e) => setFaixaBairro(e.target.value)} placeholder="Bairro" maxLength={60} />
+                <input className="delivery-view__input delivery-view__input--faixa" value={faixaBairro} onChange={(e) => setFaixaBairro(e.target.value)} placeholder="Bairro" maxLength={60} />
               ) : (
                 <>
-                  <input className="delivery-view__input" style={{ ...inputStyle(sz), flex: "1 1 120px" }} value={formatarCep(faixaCepIni)} onChange={(e) => setFaixaCepIni(e.target.value)} placeholder="CEP inicial" />
-                  <input className="delivery-view__input" style={{ ...inputStyle(sz), flex: "1 1 120px" }} value={formatarCep(faixaCepFim)} onChange={(e) => setFaixaCepFim(e.target.value)} placeholder="CEP final" />
+                  <input className="delivery-view__input delivery-view__input--faixa-cep" value={formatarCep(faixaCepIni)} onChange={(e) => setFaixaCepIni(e.target.value)} placeholder="CEP inicial" />
+                  <input className="delivery-view__input delivery-view__input--faixa-cep" value={formatarCep(faixaCepFim)} onChange={(e) => setFaixaCepFim(e.target.value)} placeholder="CEP final" />
                 </>
               )}
-              <input className="delivery-view__input" style={{ ...inputStyle(sz), width: 110 }} type="number" min="0" step="0.01" value={faixaTaxa} onChange={(e) => setFaixaTaxa(e.target.value)} placeholder="Taxa R$" />
+              <input className="delivery-view__input delivery-view__input--taxa" type="number" min="0" step="0.01" value={faixaTaxa} onChange={(e) => setFaixaTaxa(e.target.value)} placeholder="Taxa R$" />
               <button onClick={addFaixa} disabled={salvando} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "10px 16px" }}>
                 <LuPlus size={14} /> Adicionar
               </button>
@@ -2815,13 +2809,4 @@ function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
       </div>
     </div>
   );
-}
-
-// Estilo base de input, casado ao tema do tenant (var --gm-*).
-function inputStyle(sz) {
-  return {
-    border: `1.5px solid var(--gm-input-border)`,
-    background: "var(--gm-input-bg)",
-    color: varColor(C.text),
-  };
 }

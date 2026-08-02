@@ -362,6 +362,23 @@ suíte não vê, porque não lê CSS.
 - Vale para qualquer modificador de estado (`--erro`, `--ok`, `--aviso`, `--perigo`): o estado diz
   como a coisa **é**, nunca onde ela fica.
 
+### Estilo inline não duplica CSS: ele desliga o baseline global
+`src/styles/inputs.css` define o comportamento de campo do sistema inteiro — fundo, borda de
+repouso, anel de foco, borda accent no foco, `[aria-invalid]`, `:disabled`, `::placeholder`. O helper
+`inputStyle()` do `DeliveryView` devolvia `border` inline, e inline vence qualquer seletor: os 20
+campos do Delivery eram os únicos que não acendiam ao focar. Ninguém reporta isso, porque realce
+que nunca existiu não parece defeito.
+
+- `border`, `background` e `color` inline não competem só com a classe da tela — competem com as
+  regras de **estado** do baseline (`:focus`, `:disabled`, `[aria-invalid]`, `::placeholder`), que
+  é onde mora a consistência entre telas. Propriedade inline que o baseline também governa vale
+  como estado desligado, não como duplicação.
+- Ao migrar inline → classe, listar quais estados o elemento passa a receber e declarar isso no
+  spec como diferença visual esperada. Descobrir na review é tarde: vira dúvida de regressão.
+- Antes de criar modificador para cada propriedade do inline, ler a regra de destino inteira —
+  parte já pode estar lá (`width: 100%` já estava em `.delivery-view__input`), e modificador que
+  não muda pixel nenhum fica no CSS parecendo intencional.
+
 ---
 
 ## Padrões de API

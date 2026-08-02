@@ -522,12 +522,20 @@
   vertical-align: -2px;
   margin-right: 4px;
 }
+/* Campo de formulário do Delivery. Fundo, borda e cor saem dos tokens
+   --gm-input-* / --gm-text (derivados da marca do tenant em tema.css) — antes
+   vinham do helper inputStyle() aplicado inline em cada campo. A borda é 1.5px de
+   propósito: o baseline global de inputs.css usa 1px, e aqui o campo fica dentro
+   de card, onde precisa de um traço a mais para não sumir. */
 .delivery-view__input,
 .delivery-view__textarea {
   width: 100%;
   box-sizing: border-box;
   padding: 10px 12px;
+  border: 1.5px solid var(--gm-input-border);
   border-radius: 10px;
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
   font-family: inherit;
   outline: none;
 }
@@ -535,6 +543,23 @@
   resize: vertical;
   min-height: 72px;
 }
+
+/* Modificadores de forma do campo. Vêm DEPOIS da base de propósito: têm a mesma
+   especificidade (0,1,0), então quem decide é a ordem — sem isso o `width: 100%`
+   da base atropelaria as larguras fixas daqui. */
+.delivery-view__input--centro    { text-align: center; }
+/* Campo com lupa sobreposta à esquerda: o texto começa depois do ícone. */
+.delivery-view__input--com-icone { padding-left: 32px; }
+/* Nome do grupo de complementos: ocupa a linha e pesa como título. */
+.delivery-view__input--titulo    { flex: 1; min-width: 160px; font-weight: 700; }
+/* Larguras fixas por papel — números curtos que não devem esticar na linha. */
+.delivery-view__input--qtd       { width: 56px; }
+.delivery-view__input--preco     { width: 96px; }
+.delivery-view__input--taxa      { width: 110px; }
+/* Faixa de entrega: campos que dividem a linha e quebram juntos. Só `flex` — a
+   largura continua sendo a da base, como já era com o estilo inline. */
+.delivery-view__input--faixa     { flex: 1 1 160px; }
+.delivery-view__input--faixa-cep { flex: 1 1 120px; }
 .delivery-view__switch {
   display: flex;
   align-items: center;
