@@ -347,6 +347,21 @@ cabe em classe" parecia verdade. Cabe: o JSX define a variável **uma vez** no a
 - Não confundir com token de tema: `--cor-status` é **local**, sem prefixo `--gm-`, e nunca entra em
   `tema.css`. Ela pertence ao componente, como os `--fs-*`/`--lh-*` que o mesmo arquivo já usava.
 
+### Modificador de cor não carrega espaçamento
+`.delivery-view__aviso--erro` nasceu com `background`, `color`, `border` **e** `margin-bottom: 12px`,
+e funcionou enquanto teve um usuário só. Quando a aba Cardápio trouxe mais dois avisos de erro, os
+dois dentro de modal e sem margem, reusar o modificador daria 12px de folga a quem nunca teve — e a
+suíte não vê, porque não lê CSS.
+
+- Antes de reusar um modificador existente, ler as declarações dele e separar as que descrevem o
+  **papel** (cor, peso, borda) das que descrevem a **posição** (`margin`, `width`, `flex`). O papel
+  fica; a posição sai para modificador próprio (`--espacado`), aplicado nos usuários que a tinham.
+- O mesmo raciocínio de "Enriquecer classe compartilhada: enumerar os usuários antes, não depois",
+  na direção inversa: lá a classe ganha declaração e pode estragar quem já usa; aqui a classe está
+  intacta e é o **novo** usuário que herda o que não pediu.
+- Vale para qualquer modificador de estado (`--erro`, `--ok`, `--aviso`, `--perigo`): o estado diz
+  como a coisa **é**, nunca onde ela fica.
+
 ---
 
 ## Padrões de API

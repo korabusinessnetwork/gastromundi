@@ -192,6 +192,13 @@
   flex-wrap: wrap;
   border-radius: 14px;
   padding: 16px 18px;
+  margin-bottom: 16px;
+  background: color-mix(in srgb, var(--gm-blue) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-blue) 20%, transparent);
+}
+/* Linha da ação principal da aba (o botão "Novo produto" no modo standalone). */
+.delivery-view__acao-topo {
+  margin-bottom: 16px;
 }
 .delivery-view__import-texto {
   flex: 1;
@@ -244,6 +251,30 @@
   background: color-mix(in srgb, var(--gm-accent) 7%, transparent);
   color: var(--gm-accent);
 }
+/* Ação principal (salvar, novo produto): cor do tenant, texto sobre ela.
+   O `#fff` é o mesmo já usado em `--perigo` e em `card-remover`; sai daqui
+   quando o token de "texto sobre cor cheia" for aprovado. */
+.delivery-view__btn--primario {
+  background: var(--gm-accent);
+  color: #fff;
+}
+/* Ação secundária do par de botões do modal: fundo apagado, sem peso visual. */
+.delivery-view__btn--secundario {
+  background: color-mix(in srgb, var(--gm-muted) 8%, transparent);
+  color: var(--gm-muted);
+}
+/* Importar cardápio do PDV — azul porque é uma ação de trazer dado de fora,
+   não a ação principal da tela. */
+.delivery-view__btn--importar {
+  background: var(--gm-blue);
+  color: #fff;
+}
+/* "Tentar de novo" dentro de um estado de erro: discreto, não compete com a mensagem. */
+.delivery-view__btn--tentar {
+  background: color-mix(in srgb, var(--gm-accent) 7%, transparent);
+  color: var(--gm-accent);
+  padding: 9px 14px;
+}
 
 /* Lista de produtos do delivery (cards) */
 .delivery-view__cards {
@@ -257,6 +288,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
 }
 .delivery-view__card-topo {
   display: flex;
@@ -265,6 +298,7 @@
 }
 .delivery-view__card-divisor {
   margin: 0;
+  border-top: 1px solid var(--gm-border);
 }
 .delivery-view__card-preco-linha {
   display: flex;
@@ -294,8 +328,9 @@
   gap: 8px;
   padding: 11px 12px;
   border-radius: 12px;
-  border: 1px solid transparent;
+  border: 1px solid var(--gm-border);
   background: transparent;
+  color: var(--gm-text);
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
@@ -337,6 +372,7 @@
   justify-content: center;
   font-size: 28px;
   flex-shrink: 0;
+  background: color-mix(in srgb, var(--gm-accent) 7%, transparent);
 }
 .delivery-view__card-corpo {
   flex: 1;
@@ -356,6 +392,12 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* Produto sem descrição: o convite a preencher aparece mais apagado e em
+   itálico, para não ser lido como se fosse a descrição de verdade. */
+.delivery-view__card-desc--vazia {
+  font-style: italic;
+  opacity: 0.6;
+}
 .delivery-view__card-linha {
   display: flex;
   align-items: center;
@@ -370,6 +412,29 @@
   padding: 3px 10px;
   border-radius: 999px;
   font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+/* Só o admin liga/desliga o item no cardápio; para os demais o selo é um
+   rótulo, e o cursor precisa dizer isso antes do clique (prevenção de erro). */
+.delivery-view__pill:disabled {
+  cursor: default;
+}
+/* Disponível/indisponível: a cor mora no modificador, e a bolinha herda dele
+   por descendência — assim o estado é decidido em um lugar só. */
+.delivery-view__pill--on {
+  background: color-mix(in srgb, var(--gm-green) 8%, transparent);
+  color: var(--gm-green);
+}
+.delivery-view__pill--off {
+  background: color-mix(in srgb, var(--gm-muted) 8%, transparent);
+  color: var(--gm-muted);
+}
+.delivery-view__pill--on .delivery-view__card-dot {
+  background: var(--gm-green);
+}
+.delivery-view__pill--off .delivery-view__card-dot {
+  background: var(--gm-muted);
 }
 
 /* Estado vazio */
@@ -409,11 +474,21 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  background: var(--gm-card);
+  color: var(--gm-text);
 }
 .delivery-view__modal-topo {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.delivery-view__modal-titulo {
+  font-weight: 800;
+}
+/* Ícone que abre o título do modal (galeria de fotos). */
+.delivery-view__titulo-icone {
+  vertical-align: -3px;
+  margin-right: 6px;
 }
 .delivery-view__modal-fechar {
   background: none;
@@ -421,14 +496,31 @@
   cursor: pointer;
   line-height: 0;
   padding: 4px;
+  color: var(--gm-muted);
 }
 .delivery-view__campo {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
+/* Dois campos lado a lado (preço + emoji). */
+.delivery-view__campo-linha {
+  display: flex;
+  gap: 10px;
+}
+.delivery-view__campo--flex {
+  flex: 1;
+}
+.delivery-view__campo--emoji {
+  width: 88px;
+}
 .delivery-view__label {
   font-weight: 600;
+}
+/* Ícone à esquerda do rótulo do campo. */
+.delivery-view__label-icone {
+  vertical-align: -2px;
+  margin-right: 4px;
 }
 .delivery-view__input,
 .delivery-view__textarea {
@@ -507,6 +599,10 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+/* O input de arquivo é acionado pelo clique na miniatura; nunca aparece. */
+.delivery-view__foto-input {
+  display: none;
+}
 .delivery-view__foto-alvo-wrap {
   position: relative;
   flex-shrink: 0;
@@ -534,10 +630,15 @@
   flex-shrink: 0;
   object-fit: cover;
 }
+.delivery-view__foto-preview {
+  border: 1px solid color-mix(in srgb, var(--gm-muted) 13%, transparent);
+}
 .delivery-view__foto-vazia {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: color-mix(in srgb, var(--gm-muted) 6%, transparent);
+  color: var(--gm-muted);
 }
 /* Selo de "editar" no canto da foto — sinaliza que é clicável. */
 .delivery-view__foto-editar {
@@ -551,6 +652,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  background: var(--gm-accent);
 }
 /* Fundo invisível que fecha o menu ao clicar fora. */
 .delivery-view__foto-menu-fundo {
@@ -570,6 +672,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  background: var(--gm-card);
+  border: 1px solid color-mix(in srgb, var(--gm-muted) 13%, transparent);
 }
 .delivery-view__foto-menu-item {
   display: flex;
@@ -584,11 +688,19 @@
   font-weight: 600;
   text-align: left;
   cursor: pointer;
+  color: var(--gm-text);
+}
+/* Remover foto: vermelho porque desfaz trabalho já feito. */
+.delivery-view__foto-menu-item--perigo {
+  color: var(--gm-red);
 }
 .delivery-view__foto-menu-item:hover {
   background: rgba(128, 128, 128, 0.12);
 }
-.delivery-view__hint { flex-basis: 100%; }
+.delivery-view__hint {
+  flex-basis: 100%;
+  color: var(--gm-muted);
+}
 
 /* ── Galeria de fotos ── */
 .delivery-view__galeria { max-width: 620px; }
@@ -599,6 +711,10 @@
   gap: 10px;
   text-align: center;
   padding: 32px 16px;
+  color: var(--gm-muted);
+}
+.delivery-view__galeria-estado-titulo {
+  font-weight: 700;
 }
 .delivery-view__galeria-grade {
   display: grid;
@@ -611,7 +727,7 @@
 .delivery-view__galeria-item {
   position: relative;
   padding: 0;
-  border: 2px solid transparent;
+  border: 2px solid color-mix(in srgb, var(--gm-muted) 13%, transparent);
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
@@ -630,7 +746,11 @@
   outline: 2px solid var(--gm-accent);
   outline-offset: 2px;
 }
-.delivery-view__galeria-item.is-sel { border-width: 2px; }
+/* Foto escolhida: a borda ganha a cor do tenant e o selo de check aparece. */
+.delivery-view__galeria-item.is-sel {
+  border-width: 2px;
+  border-color: var(--gm-accent);
+}
 .delivery-view__galeria-check {
   position: absolute;
   top: 5px;
@@ -642,6 +762,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  background: var(--gm-accent);
 }
 .delivery-view__girando { animation: delivery-view-girar 0.9s linear infinite; }
 @keyframes delivery-view-girar { to { transform: rotate(360deg); } }
@@ -653,6 +774,7 @@
 .delivery-view__modal-botoes > button {
   flex: 1;
   justify-content: center;
+  padding: 11px 0;
 }
 
 /* Faixas de taxa */
@@ -672,11 +794,20 @@
   border-radius: 10px;
   padding: 10px 12px;
 }
-/* Falha ao carregar o cardápio do delivery (topo da área de conteúdo). */
+/* Falha: usado tanto no topo da área de conteúdo quanto dentro dos modais.
+   Só cor — o espaçamento é de quem posiciona (`--espacado`), senão os avisos
+   de dentro do modal ganhariam margem que não têm. */
 .delivery-view__aviso--erro {
   background: color-mix(in srgb, var(--gm-red) 7%, transparent);
   color: var(--gm-red);
   border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+}
+/* Referência do produto vindo do PDV, no modo addon: informativo, não alerta. */
+.delivery-view__aviso--info {
+  background: color-mix(in srgb, var(--gm-blue) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-blue) 13%, transparent);
+}
+.delivery-view__aviso--espacado {
   margin-bottom: 12px;
 }
 

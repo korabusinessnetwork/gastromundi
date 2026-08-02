@@ -396,7 +396,7 @@ export default function DeliveryView({ notify } = {}) {
 
       <div className="delivery-view__area" style={{ padding: sz.pad }}>
         {erro && (
-          <div className="delivery-view__aviso delivery-view__aviso--erro">
+          <div className="delivery-view__aviso delivery-view__aviso--erro delivery-view__aviso--espacado">
             ⚠️ {erro}
           </div>
         )}
@@ -834,10 +834,7 @@ function AbaCardapio({
     <>
       {/* Ação principal por modo */}
       {isAdmin && ehAddon && (
-        <div
-          className="delivery-view__import"
-          style={{ background: alfa(C.blue, "0c"), border: `1px solid ${alfa(C.blue, "33")}`, marginBottom: 16 }}
-        >
+        <div className="delivery-view__import">
           <div className="delivery-view__import-texto">
             <div className="delivery-view__import-titulo">
               <LuDownload size={16} color={varColor(C.blue)} /> Importar cardápio do PDV
@@ -851,8 +848,8 @@ function AbaCardapio({
           <button
             onClick={importar}
             disabled={importando || faltamImportar.length === 0}
-            className="delivery-view__btn"
-            style={{ background: varColor(C.blue), color: "#fff", padding: `10px ${sz.pad}px` }}
+            className="delivery-view__btn delivery-view__btn--importar"
+            style={{ padding: `10px ${sz.pad}px` }}
           >
             <LuDownload size={15} />
             {importando ? "Importando…" : faltamImportar.length > 0 ? `Importar ${faltamImportar.length}` : "Importado"}
@@ -861,11 +858,11 @@ function AbaCardapio({
       )}
 
       {isAdmin && !ehAddon && (
-        <div style={{ marginBottom: 16 }}>
+        <div className="delivery-view__acao-topo">
           <button
             onClick={() => setModal({ modo: "novo" })}
-            className="delivery-view__btn"
-            style={{ background: varColor(C.accent), color: "#fff", padding: `10px ${sz.pad}px` }}
+            className="delivery-view__btn delivery-view__btn--primario"
+            style={{ padding: `10px ${sz.pad}px` }}
           >
             <LuPlus size={15} /> Novo produto
           </button>
@@ -874,14 +871,14 @@ function AbaCardapio({
 
       {/* Lista / estados */}
       {carregando ? (
-        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.4 }}>⏳</div>
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji delivery-view__vazio-emoji--carregando">⏳</div>
           <div className="delivery-view__carregando">Carregando o cardápio…</div>
         </div>
       ) : itens.length === 0 ? (
-        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.3 }}>🛵</div>
-          <div className="delivery-view__vazio-titulo" style={{ fontWeight: 600 }}>Nenhum produto no delivery ainda</div>
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">🛵</div>
+          <div className="delivery-view__vazio-titulo">Nenhum produto no delivery ainda</div>
           <div className="delivery-view__vazio-desc">
             {ehAddon
               ? "Use “Importar cardápio do PDV” acima para trazer seus produtos."
@@ -949,26 +946,26 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
   const [confirmar, setConfirmar] = useState(false);
 
   return (
-    <div className="delivery-view__card" style={{ background: varColor(C.card), border: `1px solid ${varColor(C.border)}` }}>
+    <div className="delivery-view__card">
       <div className="delivery-view__card-topo">
         {item.foto_url ? (
           <img className="delivery-view__card-foto" src={item.foto_url} alt={nome} />
         ) : (
-          <div className="delivery-view__card-emoji" style={{ background: alfa(C.accent, "12") }}>{emoji}</div>
+          <div className="delivery-view__card-emoji">{emoji}</div>
         )}
         <div className="delivery-view__card-corpo">
           <div className="delivery-view__card-nome">{nome}</div>
           {item.descricao ? (
             <div className="delivery-view__card-desc">{item.descricao}</div>
           ) : (
-            <div className="delivery-view__card-desc" style={{ fontStyle: "italic", opacity: 0.6 }}>
+            <div className="delivery-view__card-desc delivery-view__card-desc--vazia">
               Sem descrição — clique em editar para caprichar.
             </div>
           )}
         </div>
       </div>
 
-      <div className="delivery-view__card-divisor" style={{ borderTop: `1px solid ${varColor(C.border)}` }} />
+      <div className="delivery-view__card-divisor" />
 
       <div className="delivery-view__card-preco-linha">
         <span className="delivery-view__card-preco">
@@ -977,18 +974,10 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
         <button
           onClick={onToggle}
           disabled={!isAdmin}
-          className="delivery-view__pill"
-          style={{
-            border: "none", cursor: isAdmin ? "pointer" : "default",
-            background: alfa(item.disponivel ? C.green : C.muted, "15"),
-            color: varColor(item.disponivel ? C.green : C.muted),
-          }}
+          className={`delivery-view__pill delivery-view__pill--${item.disponivel ? "on" : "off"}`}
           title="Ligar/desligar no cardápio"
         >
-          <span
-            className="delivery-view__card-dot"
-            style={{ background: varColor(item.disponivel ? C.green : C.muted) }}
-          />
+          <span className="delivery-view__card-dot" />
           {item.disponivel ? "Disponível" : "Indisponível"}
         </button>
       </div>
@@ -1016,7 +1005,6 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
               <button
                 onClick={onEditar}
                 className="delivery-view__card-editar"
-                style={{ borderColor: varColor(C.border), color: varColor(C.text) }}
               >
                 <LuPencil size={15} /> Editar
               </button>
@@ -1233,19 +1221,19 @@ function ModalProduto({
   return createPortal(
     <>
     <div className="delivery-view__overlay" {...fecharAoClicarFora(onFechar)}>
-      <div className="delivery-view__modal" style={{ background: varColor(C.card), color: varColor(C.text) }}>
+      <div className="delivery-view__modal">
         <div className="delivery-view__modal-topo">
-          <div className="delivery-view__modal-titulo" style={{ fontWeight: 800 }}>
+          <div className="delivery-view__modal-titulo">
             {modo === "novo" ? "Novo produto do delivery" : "Editar produto do delivery"}
           </div>
-          <button onClick={onFechar} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+          <button onClick={onFechar} className="delivery-view__modal-fechar">
             <LuX size={18} />
           </button>
         </div>
 
         {/* Standalone: dados do produto. Addon: só referência do PDV. */}
         {ehAddon ? (
-          <div className="delivery-view__aviso" style={{ background: alfa(C.blue, "0c"), border: `1px solid ${alfa(C.blue, "22")}` }}>
+          <div className="delivery-view__aviso delivery-view__aviso--info">
             <strong>{prod?.name || "Produto"}</strong>
             {prod?.price != null ? ` · ${formatarReais(prod.price)}` : ""} — nome e preço vêm do
             cadastro do PDV. Aqui você ajusta como ele aparece no delivery.
@@ -1256,12 +1244,12 @@ function ModalProduto({
               <label className="delivery-view__label">Nome *</label>
               <input className="delivery-view__input" style={inputStyle(sz)} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: X-Salada" maxLength={60} />
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <div className="delivery-view__campo" style={{ flex: 1 }}>
+            <div className="delivery-view__campo-linha">
+              <div className="delivery-view__campo delivery-view__campo--flex">
                 <label className="delivery-view__label">Preço (R$) *</label>
                 <input className="delivery-view__input" style={inputStyle(sz)} type="number" min="0" step="0.01" value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" />
               </div>
-              <div className="delivery-view__campo" style={{ width: 88 }}>
+              <div className="delivery-view__campo delivery-view__campo--emoji">
                 <label className="delivery-view__label">Emoji</label>
                 <input className="delivery-view__input" style={{ ...inputStyle(sz), textAlign: "center" }} value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder="🍔" maxLength={4} />
               </div>
@@ -1277,7 +1265,7 @@ function ModalProduto({
         {/* Camada de delivery (ambos os modos) — foto do produto (upload) */}
         <div className="delivery-view__campo">
           <label className="delivery-view__label">
-            <LuImage size={13} style={{ verticalAlign: "-2px", marginRight: 4 }} />
+            <LuImage size={13} className="delivery-view__label-icone" />
             Foto do produto
           </label>
           <div className="delivery-view__foto-upload">
@@ -1286,7 +1274,7 @@ function ModalProduto({
               type="file"
               accept={ACCEPT_IMAGEM}
               onChange={escolherFoto}
-              style={{ display: "none" }}
+              className="delivery-view__foto-input"
             />
             {/* Clicar na foto abre o menu de escolha (enviar nova / galeria). */}
             <div className="delivery-view__foto-alvo-wrap">
@@ -1300,13 +1288,13 @@ function ModalProduto({
                 title="Clique para trocar a foto"
               >
                 {temFoto ? (
-                  <img className="delivery-view__foto-preview" src={fotoPreview || fotoUrl} alt="Prévia da foto do produto" style={{ border: `1px solid ${alfa(C.muted, "22")}` }} />
+                  <img className="delivery-view__foto-preview" src={fotoPreview || fotoUrl} alt="Prévia da foto do produto" />
                 ) : (
-                  <div className="delivery-view__foto-vazia" style={{ background: alfa(C.muted, "10"), color: varColor(C.muted) }}>
+                  <div className="delivery-view__foto-vazia">
                     <LuImage size={26} />
                   </div>
                 )}
-                <span className="delivery-view__foto-editar" style={{ background: varColor(C.accent) }}>
+                <span className="delivery-view__foto-editar">
                   <LuPencil size={12} color="#fff" />
                 </span>
               </button>
@@ -1314,13 +1302,12 @@ function ModalProduto({
               {menuFotoAberto && (
                 <>
                   <div className="delivery-view__foto-menu-fundo" onClick={() => setMenuFotoAberto(false)} />
-                  <div className="delivery-view__foto-menu" role="menu" style={{ top: menuPos?.top, left: menuPos?.left, background: varColor(C.card), border: `1px solid ${alfa(C.muted, "22")}` }}>
+                  <div className="delivery-view__foto-menu" role="menu" style={{ top: menuPos?.top, left: menuPos?.left }}>
                     <button
                       type="button"
                       role="menuitem"
                       className="delivery-view__foto-menu-item"
                       onClick={() => { setMenuFotoAberto(false); fotoInputRef.current?.click(); }}
-                      style={{ color: varColor(C.text) }}
                     >
                       <LuUpload size={15} color={varColor(C.accent)} /> Enviar nova foto
                     </button>
@@ -1329,7 +1316,6 @@ function ModalProduto({
                       role="menuitem"
                       className="delivery-view__foto-menu-item"
                       onClick={abrirGaleria}
-                      style={{ color: varColor(C.text) }}
                     >
                       <LuImages size={15} color={varColor(C.accent)} /> Escolher da galeria
                     </button>
@@ -1337,9 +1323,8 @@ function ModalProduto({
                       <button
                         type="button"
                         role="menuitem"
-                        className="delivery-view__foto-menu-item"
+                        className="delivery-view__foto-menu-item delivery-view__foto-menu-item--perigo"
                         onClick={() => { removerFoto(); setMenuFotoAberto(false); }}
-                        style={{ color: varColor(C.red) }}
                       >
                         <LuTrash2 size={15} /> Remover foto
                       </button>
@@ -1349,7 +1334,7 @@ function ModalProduto({
               )}
             </div>
 
-            <span className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
+            <span className="delivery-view__hint">
               Clique na foto para enviar do celular ou escolher da galeria. Ajustamos o tamanho automaticamente.
             </span>
           </div>
@@ -1369,14 +1354,14 @@ function ModalProduto({
         </label>
 
         {erro && (
-          <div className="delivery-view__aviso" style={{ background: alfa(C.red, "12"), color: varColor(C.red), border: `1px solid ${alfa(C.red, "33")}` }}>
+          <div className="delivery-view__aviso delivery-view__aviso--erro">
             ⚠️ {erro}
           </div>
         )}
 
         <div className="delivery-view__modal-botoes">
-          <button onClick={onFechar} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0" }}>Cancelar</button>
-          <button onClick={salvar} disabled={salvando} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "11px 0" }}>
+          <button onClick={onFechar} className="delivery-view__btn delivery-view__btn--secundario">Cancelar</button>
+          <button onClick={salvar} disabled={salvando} className="delivery-view__btn delivery-view__btn--primario">
             {salvando ? "Salvando…" : "Salvar"}
           </button>
         </div>
@@ -1386,41 +1371,40 @@ function ModalProduto({
     {/* Galeria: todas as fotos já enviadas por este estabelecimento. */}
     {galeriaAberta && (
       <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setGaleriaAberta(false))}>
-        <div className="delivery-view__modal delivery-view__galeria" style={{ background: varColor(C.card), color: varColor(C.text) }}>
+        <div className="delivery-view__modal delivery-view__galeria">
           <div className="delivery-view__modal-topo">
-            <div className="delivery-view__modal-titulo" style={{ fontWeight: 800 }}>
-              <LuImages size={16} style={{ verticalAlign: "-3px", marginRight: 6 }} />
+            <div className="delivery-view__modal-titulo">
+              <LuImages size={16} className="delivery-view__titulo-icone" />
               Galeria de fotos
             </div>
-            <button onClick={() => setGaleriaAberta(false)} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+            <button onClick={() => setGaleriaAberta(false)} className="delivery-view__modal-fechar">
               <LuX size={18} />
             </button>
           </div>
 
           {galeriaCarregando ? (
-            <div className="delivery-view__galeria-estado" style={{ color: varColor(C.muted) }}>
+            <div className="delivery-view__galeria-estado">
               <LuRefreshCw size={22} className="delivery-view__girando" />
               Carregando as fotos…
             </div>
           ) : galeriaErro ? (
             <div className="delivery-view__galeria-estado">
-              <div className="delivery-view__aviso" style={{ background: alfa(C.red, "12"), color: varColor(C.red), border: `1px solid ${alfa(C.red, "33")}` }}>
+              <div className="delivery-view__aviso delivery-view__aviso--erro">
                 ⚠️ {galeriaErro}
               </div>
               <button
                 type="button"
                 onClick={abrirGaleria}
-                className="delivery-view__btn delivery-view__btn--sm"
-                style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "9px 14px" }}
+                className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--tentar"
               >
                 <LuRefreshCw size={14} /> Tentar de novo
               </button>
             </div>
           ) : galeriaFotos.length === 0 ? (
-            <div className="delivery-view__galeria-estado" style={{ color: varColor(C.muted) }}>
+            <div className="delivery-view__galeria-estado">
               <LuImage size={30} />
-              <div style={{ fontWeight: 700 }}>Nenhuma foto ainda</div>
-              <div className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
+              <div className="delivery-view__galeria-estado-titulo">Nenhuma foto ainda</div>
+              <div className="delivery-view__hint">
                 Envie a primeira foto de um produto e ela aparecerá aqui para reusar.
               </div>
             </div>
@@ -1434,12 +1418,11 @@ function ModalProduto({
                     type="button"
                     className={`delivery-view__galeria-item${selecionada ? " is-sel" : ""}`}
                     onClick={() => selecionarDaGaleria(foto)}
-                    style={{ borderColor: selecionada ? varColor(C.accent) : alfa(C.muted, "22") }}
                     title="Usar esta foto"
                   >
                     <img src={foto.url} alt="Foto do delivery" loading="lazy" />
                     {selecionada && (
-                      <span className="delivery-view__galeria-check" style={{ background: varColor(C.accent) }}>
+                      <span className="delivery-view__galeria-check">
                         <LuCheck size={14} color="#fff" />
                       </span>
                     )}
