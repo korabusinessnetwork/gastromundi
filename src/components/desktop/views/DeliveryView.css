@@ -822,6 +822,7 @@
 /* Faixas de taxa */
 .delivery-view__faixa {
   display: flex;
+  background: var(--gm-surface);
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
@@ -1533,6 +1534,164 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   ABA ENTREGA — pedido mínimo, taxa por área ou por distância, endereço
+   de origem e faixas. Tudo isto era `style={{}}` no JSX (F018, fatia 10,
+   a que fecha o arquivo). Cor sempre por token --gm-* para o tenant
+   conseguir trocar (decisão 017) e blend por color-mix, nunca hex com
+   sufixo de alfa (ADR-007): os 7% abaixo são o que `alfa(C.muted, "12")`
+   emitia em runtime.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Coluna da aba inteira. O teto de largura é o que faz a aba ser legível:
+   são formulários curtos, e campo esticado em tela larga obriga o olho a
+   varrer de ponta a ponta para ligar rótulo e valor. */
+.delivery-view__entrega {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Pedido mínimo e tempo de preparo: dois campos independentes, lado a lado
+   enquanto couber, um embaixo do outro quando não couber. */
+.delivery-view__entrega-basico {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+/* Cada um ocupa metade da linha, mas nunca afina abaixo de 180px — abaixo
+   disso o número digitado começa a ser cortado. */
+.delivery-view__campo--metade {
+  flex: 1 1 180px;
+}
+
+/* Subtítulo "Taxa de entrega", com o caminhão antes do texto. O
+   `margin-bottom` curto cola o título no seletor de modo logo abaixo:
+   os dois são a mesma decisão. */
+.delivery-view__entrega-titulo {
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Os dois seletores de escolha única da aba ── */
+/* Linha do par "Por bairro / CEP | Por distância (km)". */
+.delivery-view__entrega-modos {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+/* Linha do par "Por bairro | Por CEP", dentro da caixa de nova faixa. */
+.delivery-view__faixa-tipos {
+  display: flex;
+  gap: 6px;
+}
+/* Os dois pares têm a mesma cor e paddings diferentes (o de dentro da caixa
+   é 1px mais baixo). A cor sai aqui uma vez só; o padding fica em cada um. */
+.delivery-view__entrega-modo,
+.delivery-view__faixa-tipo {
+  background: color-mix(in srgb, var(--gm-muted) 7%, transparent);
+  color: var(--gm-muted);
+}
+.delivery-view__entrega-modo {
+  padding: 8px 14px;
+}
+.delivery-view__faixa-tipo {
+  padding: 7px 14px;
+}
+/* A opção valendo fica pintada com a cor do tenant: é o único sinal de qual
+   das duas está ativa, já que as duas continuam clicáveis. O `#fff` é o
+   mesmo de `--primario` e sai daqui quando o token de "texto sobre cor
+   cheia" for aprovado. */
+.delivery-view__entrega-modo--ativo,
+.delivery-view__faixa-tipo--ativo {
+  background: var(--gm-accent);
+  color: #fff;
+}
+
+/* ── Variantes do texto de apoio (`__hint`) nesta aba ── */
+/* Explicação do modo de cobrança, entre o seletor e o mapa. */
+.delivery-view__hint--taxa {
+  margin-bottom: 10px;
+}
+/* Instrução colada embaixo do campo que ela explica. */
+.delivery-view__hint--campo {
+  margin-top: 4px;
+}
+/* Falta o ponto de partida no mapa: sem ele o cálculo por distância não
+   funciona, então o aviso é vermelho e não cinza como os outros. */
+.delivery-view__hint--erro {
+  color: var(--gm-red);
+  margin-top: 6px;
+}
+
+/* ── Endereço de origem e mapa (só no modo por distância) ── */
+/* Respiro entre o mapa e a lista de faixas que vem depois dele. */
+.delivery-view__entrega-mapa {
+  margin-bottom: 12px;
+}
+/* O campo de endereço se separa do mapa logo abaixo. */
+.delivery-view__campo--endereco {
+  margin-bottom: 10px;
+}
+/* Campo de endereço, botão de localizar e cadeado na mesma linha. Alinha
+   pelo topo porque o campo cresce quando a lista de sugestões abre. */
+.delivery-view__endereco-linha {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+/* O campo toma a sobra da linha e empurra botão e cadeado para a direita,
+   mas quebra para a linha de baixo antes de espremer o endereço. */
+.delivery-view__autocomplete--endereco {
+  flex: 1 1 240px;
+}
+/* "Localizar no mapa": mais largo que os seletores ao lado, porque é ação
+   e não escolha. */
+.delivery-view__btn--localizar {
+  padding: 8px 16px;
+}
+/* Cadeado fechado: pintado com a cor do tenant para o operador enxergar
+   que o endereço está travado sem precisar ler o ícone. */
+.delivery-view__cadeado--travado {
+  background: var(--gm-accent);
+  color: #fff;
+}
+
+/* ── Faixas de taxa ── */
+/* Pilha das faixas já cadastradas, separada da caixa de criar. */
+.delivery-view__faixas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+/* Caixa de criar faixa. A borda tracejada diz que ali nada existe ainda —
+   é formulário, não item da lista. */
+.delivery-view__faixa-nova {
+  border: 1px dashed var(--gm-border);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* Campos da nova faixa mais o botão de adicionar, na mesma linha; quebram
+   juntos quando a caixa fica estreita. */
+.delivery-view__faixa-campos {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* "Adicionar": fecha o trabalho da caixa, então é o botão mais alto dela. */
+.delivery-view__btn--add-faixa {
+  padding: 10px 16px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
    TIPOGRAFIA — migração JS→CSS (tokens --fs-* e --lh- de tipografia.css).
    Antes o tamanho vinha inline via sz.* (getSizes por breakpoint); agora
    sai da escala do design system por classe/role. `sz` segue no JSX só
@@ -1680,6 +1839,10 @@
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  /* Liberado e o estado de partida: apagado, para nao parecer um botao
+     de acao ao lado do campo de endereco. */
+  background: color-mix(in srgb, var(--gm-muted) 7%, transparent);
+  color: var(--gm-muted);
 }
 .delivery-view__cadeado:active { transform: translateY(1px); }
 

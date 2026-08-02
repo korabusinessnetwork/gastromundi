@@ -28,7 +28,6 @@ import { usePedidosDelivery } from "@/utils/hooks";
 import MODULOS from "@/constants/modulos";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import {
   LuBike,
   LuDownload,
@@ -2494,7 +2493,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   );
 
   if (carregando || !config) {
-    return <div className="delivery-view__carregando" style={{ color: varColor(C.muted), padding: 16 }}>Carregando…</div>;
+    return <div className="delivery-view__carregando delivery-view__carregando--bloco">Carregando…</div>;
   }
 
   const readOnly = !isAdmin;
@@ -2506,14 +2505,14 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   );
 
   return (
-    <div style={{ maxWidth: 560, display: "flex", flexDirection: "column", gap: 18 }}>
+    <div className="delivery-view__entrega">
       {/* Pedido mínimo + tempo de preparo */}
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <div className="delivery-view__campo" style={{ flex: "1 1 180px" }}>
+      <div className="delivery-view__entrega-basico">
+        <div className="delivery-view__campo delivery-view__campo--metade">
           <label className="delivery-view__label">Pedido mínimo (R$)</label>
           <input className="delivery-view__input" type="number" min="0" step="0.01" value={config.pedido_minimo ?? 0} disabled={readOnly} onChange={(e) => set({ pedido_minimo: e.target.value })} onBlur={() => salvar()} />
         </div>
-        <div className="delivery-view__campo" style={{ flex: "1 1 180px" }}>
+        <div className="delivery-view__campo delivery-view__campo--metade">
           <label className="delivery-view__label">Tempo de preparo (min)</label>
           <input className="delivery-view__input" type="number" min="0" value={config.tempo_preparo_min ?? 30} disabled={readOnly} onChange={(e) => set({ tempo_preparo_min: e.target.value })} onBlur={() => salvar()} />
         </div>
@@ -2521,13 +2520,13 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
 
       {/* Taxa de entrega */}
       <div>
-        <div className="delivery-view__entrega-titulo" style={{ fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+        <div className="delivery-view__entrega-titulo">
           <LuTruck size={16} color={varColor(C.accent)} /> Taxa de entrega
         </div>
 
         {/* Seletor de modo: por área (bairro/CEP) ou por distância (km) */}
         {isAdmin && (
-          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+          <div className="delivery-view__entrega-modos">
             {[
               { id: "area", label: "Por bairro / CEP" },
               { id: "km", label: "Por distância (km)" },
@@ -2535,12 +2534,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
               <button
                 key={m.id}
                 onClick={() => setModoTaxa(m.id)}
-                className="delivery-view__btn delivery-view__btn--sm"
-                style={{
-                  padding: "8px 14px",
-                  background: modoTaxa === m.id ? varColor(C.accent) : alfa(C.muted, "12"),
-                  color: modoTaxa === m.id ? "#fff" : varColor(C.muted),
-                }}
+                className={`delivery-view__btn delivery-view__btn--sm delivery-view__entrega-modo${modoTaxa === m.id ? " delivery-view__entrega-modo--ativo" : ""}`}
               >
                 {m.label}
               </button>
@@ -2548,7 +2542,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
           </div>
         )}
 
-        <div className="delivery-view__hint" style={{ color: varColor(C.muted), marginBottom: 10 }}>
+        <div className="delivery-view__hint delivery-view__hint--taxa">
           {modoTaxa === "km"
             ? "Marque no mapa de onde você entrega e crie anéis por distância (ex.: até 2 km R$ 5, até 5 km R$ 8). Fora do maior anel, o cliente não consegue pedir."
             : "Cobre por bairro ou por faixa de CEP. Quem estiver fora de todas as faixas não consegue pedir para entrega."}
@@ -2556,15 +2550,15 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
 
         {/* Mapa visual (só no modo por distância) */}
         {modoTaxa === "km" && (
-          <div style={{ marginBottom: 12 }}>
+          <div className="delivery-view__entrega-mapa">
             {/* Endereço do estabelecimento → origem do mapa */}
-            <div className="delivery-view__campo" style={{ marginBottom: 10 }}>
+            <div className="delivery-view__campo delivery-view__campo--endereco">
               <label className="delivery-view__label">
                 Endereço do estabelecimento (ponto de partida das entregas)
               </label>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+              <div className="delivery-view__endereco-linha">
                 {/* wrapper relativo: a lista de sugestões flutua abaixo do input */}
-                <div className="delivery-view__autocomplete" style={{ flex: "1 1 240px" }}>
+                <div className="delivery-view__autocomplete delivery-view__autocomplete--endereco">
                   <input
                     className="delivery-view__input"
                     type="text"
@@ -2608,12 +2602,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
                   <button
                     onClick={localizarPeloEndereco}
                     disabled={geocodificando}
-                    className="delivery-view__btn delivery-view__btn--sm"
-                    style={{
-                      padding: "8px 16px", whiteSpace: "nowrap",
-                      background: varColor(C.accent), color: "#fff",
-                      opacity: geocodificando ? 0.7 : 1,
-                    }}
+                    className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--primario delivery-view__btn--localizar"
                   >
                     {geocodificando ? "Localizando…" : "Localizar no mapa"}
                   </button>
@@ -2624,21 +2613,17 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
                   <button
                     type="button"
                     onClick={alternarBloqueio}
-                    className="delivery-view__cadeado"
+                    className={`delivery-view__cadeado${bloqueado ? " delivery-view__cadeado--travado" : ""}`}
                     title={bloqueado ? "Endereço bloqueado — toque para liberar a edição" : "Bloquear edição do endereço"}
                     aria-label={bloqueado ? "Liberar edição do endereço" : "Bloquear edição do endereço"}
                     aria-pressed={bloqueado}
-                    style={{
-                      background: bloqueado ? varColor(C.accent) : alfa(C.muted, "12"),
-                      color: bloqueado ? "#fff" : varColor(C.muted),
-                    }}
                   >
                     {bloqueado ? <LuLock size={18} /> : <LuLockOpen size={18} />}
                   </button>
                 )}
               </div>
               {!readOnly && (
-                <div className="delivery-view__hint" style={{ color: varColor(C.muted), marginTop: 4 }}>
+                <div className="delivery-view__hint delivery-view__hint--campo">
                   {bloqueado
                     ? "Endereço bloqueado. Toque no cadeado para liberar a edição."
                     : "Comece a digitar e escolha uma sugestão — o pino vai para lá. Você ainda pode arrastá-lo para o ajuste fino, ou travar com o cadeado."}
@@ -2653,22 +2638,22 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
               readOnly={readOnly || bloqueado}
             />
             {!origem && (
-              <div className="delivery-view__hint" style={{ color: varColor(C.red), marginTop: 6 }}>
+              <div className="delivery-view__hint delivery-view__hint--erro">
                 Marque o ponto de partida no mapa — sem ele o cálculo por distância não funciona.
               </div>
             )}
           </div>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+        <div className="delivery-view__faixas">
           {faixasVisiveis.length === 0 && (
-            <div className="delivery-view__hint" style={{ color: varColor(C.muted) }}>Nenhuma faixa cadastrada ainda.</div>
+            <div className="delivery-view__hint">Nenhuma faixa cadastrada ainda.</div>
           )}
           {faixasVisiveis.map((f, idx) => (
-            <div key={idx} className="delivery-view__faixa" style={{ background: varColor(C.surface) }}>
+            <div key={idx} className="delivery-view__faixa">
               <span className="delivery-view__faixa-texto">{faixaResumo(f)}</span>
               {isAdmin && (
-                <button onClick={() => removerFaixa(idx)} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+                <button onClick={() => removerFaixa(idx)} className="delivery-view__modal-fechar">
                   <LuTrash2 size={14} />
                 </button>
               )}
@@ -2677,26 +2662,21 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
         </div>
 
         {isAdmin && (
-          <div style={{ border: `1px dashed ${varColor(C.border)}`, borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="delivery-view__faixa-nova">
             {modoTaxa === "area" && (
-              <div style={{ display: "flex", gap: 6 }}>
+              <div className="delivery-view__faixa-tipos">
                 {["bairro", "cep"].map((t) => (
                   <button
                     key={t}
                     onClick={() => setFaixaTipo(t)}
-                    className="delivery-view__btn delivery-view__btn--sm"
-                    style={{
-                      padding: "7px 14px",
-                      background: faixaTipo === t ? varColor(C.accent) : alfa(C.muted, "12"),
-                      color: faixaTipo === t ? "#fff" : varColor(C.muted),
-                    }}
+                    className={`delivery-view__btn delivery-view__btn--sm delivery-view__faixa-tipo${faixaTipo === t ? " delivery-view__faixa-tipo--ativo" : ""}`}
                   >
                     {t === "bairro" ? "Por bairro" : "Por CEP"}
                   </button>
                 ))}
               </div>
             )}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div className="delivery-view__faixa-campos">
               {modoTaxa === "km" ? (
                 <input className="delivery-view__input delivery-view__input--faixa" type="number" min="0" step="0.1" value={faixaKmAte} onChange={(e) => setFaixaKmAte(e.target.value)} placeholder="Até quantos km" />
               ) : faixaTipo === "bairro" ? (
@@ -2708,7 +2688,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
                 </>
               )}
               <input className="delivery-view__input delivery-view__input--taxa" type="number" min="0" step="0.01" value={faixaTaxa} onChange={(e) => setFaixaTaxa(e.target.value)} placeholder="Taxa R$" />
-              <button onClick={addFaixa} disabled={salvando} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "10px 16px" }}>
+              <button onClick={addFaixa} disabled={salvando} className="delivery-view__btn delivery-view__btn--primario delivery-view__btn--add-faixa">
                 <LuPlus size={14} /> Adicionar
               </button>
             </div>

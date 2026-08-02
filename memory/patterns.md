@@ -460,6 +460,12 @@ Vale também a conferência final, que é uma linha de Node: extrair todo
 pega classe aplicada sem regra — o erro que nem o `vitest` (não lê CSS) nem o `vite build`
 (CSS órfão compila) reclamam.
 
+E, na mesma passada, **conte o helper que a migração está substituindo**. Se a fatia apaga a
+última chamada de `alfa(`/`varColor(`/`inputStyle(` do arquivo, o import fica órfão no topo e
+as duas suítes de gate continuam verdes — import não usado é código válido. Foi o que
+aconteceu na fatia 10 do `DeliveryView.jsx` com o `alfa`. A regra: contagem do helper que cai
+a **zero** é ordem de apagar o import, não resultado neutro.
+
 ---
 
 ## Padrões de API
