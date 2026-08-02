@@ -544,134 +544,625 @@
   line-height: 1;
 }
 
-/* ── SaldoModal (relatório de saldo do dia) ──────────────────────── */
+/* ── SaldoModal (relatório de saldo do dia) ──────────────────────────
+ *
+ * Leva 3 (rodada 15, specs/f018-pdv-saldo-css.md): cor, borda, raio, sombra,
+ * espaçamento fixo, layout e estado do modal inteiro. Segue inline no JSX só o
+ * que depende de runtime: `sz.*` (escala por breakpoint), `isNarrow` (grid dos
+ * KPIs e flex-wrap de duas linhas) e as cores que vêm do dado (valor do KPI,
+ * método de pagamento, comanda com/sem itens).
+ *
+ * Estado com gancho nativo em CSS deixou de ser ternário em JavaScript:
+ * `:disabled` no botão Acessar, `:last-child` e `:nth-child(odd)` na lista de
+ * cancelados, `[aria-invalid]` na borda de erro do campo de senha. O que não
+ * tem gancho virou modificador: `--autorizado` e `--aberto`.
+ * ─────────────────────────────────────────────────────────────────── */
+
+.pdv__saldo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  /* rgba literal: é véu de escurecimento sobre o conteúdo, não cor de marca —
+     não vem do tema de propósito (mesmo caso da sombra do card abaixo). */
+  background: rgba(0, 0, 0, 0.75);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.pdv__saldo-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 420px;
+  max-height: 92vh;
+  overflow: hidden;
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  background: var(--gm-card);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  color: var(--gm-text);
+  transition: max-width 0.3s;
+}
+
+/* Depois da senha o modal mostra o relatório e precisa de mais largura — a
+   transição acima é o que faz o alargamento ser percebido como continuidade. */
+.pdv__saldo-modal--autorizado {
+  max-width: 560px;
+}
+
+/* padding segue inline aqui e no corpo: sai de `sz` (escala por breakpoint). */
+.pdv__saldo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.pdv__saldo-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdv__saldo-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-accent) 9%, transparent);
+}
 
 .pdv__saldo-titulo {
   font-size: var(--fs-xl);   /* role: título de modal (era sz.fontBase + 1) */
   line-height: var(--lh-xl);
+  font-weight: 900;
 }
 
 .pdv__saldo-subtitulo {
+  margin-top: 1px;
   font-size: var(--fs-sm);   /* role: subtítulo (data) (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.pdv__saldo-close-btn {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border: none;
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+
+.pdv__saldo-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Ramo autorizado: o relatório é longo e rola dentro do modal. */
+.pdv__saldo-corpo--dados {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .pdv__saldo-aviso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 20%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-accent) 6%, transparent);
   font-size: var(--fs-sm);   /* role: caixa de aviso da senha (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+/* O cadeado não pode encolher quando o texto do aviso quebra em duas linhas. */
+.pdv__saldo-aviso > svg {
+  flex-shrink: 0;
+}
+
+.pdv__saldo-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .pdv__saldo-label {
   font-size: var(--fs-xs);   /* role: rótulo em caixa alta "Senha" (era sz.fontSm) */
   line-height: var(--lh-xs);
   letter-spacing: var(--tracking-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--gm-muted);
 }
 
+/* Ancora o botão do olho sobre o campo. */
+.pdv__saldo-input-wrap {
+  position: relative;
+}
+
+/*
+ * Com a borda aqui (e não inline), quem pinta o foco passa a ser o baseline
+ * global de src/styles/inputs.css — este era o único campo do sistema sem
+ * borda de foco visível, porque estilo inline vencia aquela regra.
+ * O par com [aria-invalid] abaixo é o que mantém o vermelho do erro enquanto
+ * o operador digita: sem ele a regra de foco pintaria de accent justo o campo
+ * que está avisando que a senha saiu errada.
+ */
 .pdv__saldo-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px 44px 12px 16px;
+  border: 1.5px solid var(--gm-input-border);
+  border-radius: 10px;
+  outline: none;
+  background: var(--gm-input-bg);
+  font-family: inherit;
   font-size: var(--fs-base);   /* role: input de senha (era sz.fontBase) */
   line-height: var(--lh-base);
+  color: var(--gm-text);
+}
+
+.pdv__saldo-input[aria-invalid="true"] {
+  border-color: var(--gm-red);
+}
+
+.pdv__saldo-olho-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
 }
 
 .pdv__saldo-erro {
   font-size: var(--fs-sm);   /* role: texto de erro (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
+  font-weight: 600;
+  color: var(--gm-red);
+}
+
+.pdv__saldo-acoes {
+  display: flex;
+  gap: 10px;
 }
 
 .pdv__saldo-modal-btn {
+  padding: 11px 0;
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  background: none;
   font-size: var(--fs-base);   /* role: botão de rodapé do modal (era sz.fontBase) */
   line-height: var(--lh-base);
+  font-weight: 600;
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+
+/* Na dupla Cancelar/Acessar os dois dividem a linha meio a meio. */
+.pdv__saldo-acoes .pdv__saldo-modal-btn {
+  flex: 1;
+}
+
+/* O "Fechar" do relatório fica no fim de um corpo que rola: não pode encolher. */
+.pdv__saldo-modal-btn--rodape {
+  flex-shrink: 0;
+}
+
+.pdv__saldo-modal-btn--primario {
+  border: none;
+  background: var(--gm-accent);
+  font-weight: 700;
+  color: #fff;   /* literal: sem token para texto sobre a marca — ver .pdv__voltar-btn:hover */
+}
+
+/* `disabled` no JSX é exatamente `!senha.trim()` — o estado sai do CSS. */
+.pdv__saldo-modal-btn--primario:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+/* grid-template-columns segue inline: alterna com `isNarrow` (largura < 540). */
+.pdv__saldo-kpis {
+  display: grid;
+  gap: 10px;
+}
+
+.pdv__saldo-kpi {
+  padding: 14px 16px;
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  background: var(--gm-surface);
 }
 
 /* KPIs (Vendas Finalizadas / Em Aberto) — rótulo/valor/sub reusados também
-   pelo card de Cancelamentos e pela seção Por Método. */
+   pelo card de Cancelamentos e pelas seções de lista. O que varia por seção
+   (margem e, no vermelho, a cor) vem das regras de contexto logo abaixo. */
 .pdv__saldo-kpi-label {
   font-size: var(--fs-xs);   /* role: rótulo em caixa alta (era sz.fontSm) */
   line-height: var(--lh-xs);
   letter-spacing: var(--tracking-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--gm-muted);
 }
 
+.pdv__saldo-kpi .pdv__saldo-kpi-label {
+  margin-bottom: 6px;
+}
+
+.pdv__saldo-secao .pdv__saldo-kpi-label {
+  margin-bottom: 8px;
+}
+
+.pdv__saldo-cancelamentos .pdv__saldo-kpi-label {
+  margin-bottom: 4px;
+  color: var(--gm-red);
+}
+
+.pdv__saldo-accordion-btn .pdv__saldo-kpi-label {
+  color: var(--gm-red);
+}
+
+/* A cor do valor do KPI vem do dado (verde para fechado, accent para aberto) e
+   segue inline; no card de Cancelamentos é sempre vermelha. */
 .pdv__saldo-kpi-valor {
   font-size: var(--fs-2xl);   /* role: número hero de destaque (era sz.fontLg) */
   line-height: var(--lh-2xl);
   font-variant-numeric: tabular-nums;
+  font-weight: 900;
+}
+
+.pdv__saldo-cancelamentos .pdv__saldo-kpi-valor {
+  flex-shrink: 0;
+  color: var(--gm-red);
 }
 
 .pdv__saldo-kpi-sub {
   font-size: var(--fs-sm);   /* role: texto de apoio (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.pdv__saldo-kpi .pdv__saldo-kpi-sub {
+  margin-top: 3px;
+}
+
+.pdv__saldo-total .pdv__saldo-kpi-sub {
+  margin-top: 2px;
+}
+
+/* ── Card de cancelamentos do dia ────────────────────────────────── */
+
+.pdv__saldo-cancelamentos {
+  padding: 14px 16px;
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-red) 5%, transparent);
+}
+
+/* flex-wrap segue inline: quebra em duas linhas quando `isNarrow`. */
+.pdv__saldo-cancelamentos-linha {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pdv__saldo-cancelamentos-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pdv__saldo-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
 }
 
 .pdv__saldo-pill {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--gm-surface);
   font-size: var(--fs-xs);   /* role: selo pequeno de contagem (era 12px) */
   line-height: var(--lh-xs);
+  color: var(--gm-muted);
+}
+
+/* Comanda cancelada inteira pesa mais que item avulso — por isso destacada. */
+.pdv__saldo-pill--comanda {
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  font-weight: 600;
+  color: var(--gm-red);
+}
+
+/* ── Total do dia ────────────────────────────────────────────────── */
+
+/* flex-wrap segue inline (`isNarrow`), como no card de cancelamentos. */
+.pdv__saldo-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1.5px solid color-mix(in srgb, var(--gm-green) 27%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-green) 6%, transparent);
+}
+
+.pdv__saldo-total-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .pdv__saldo-total-titulo {
   font-size: var(--fs-base);   /* role: label do Total do Dia (era sz.fontBase) */
   line-height: var(--lh-base);
+  font-weight: 700;
+  color: var(--gm-text);
 }
 
 .pdv__saldo-total-valor {
+  flex-shrink: 0;
   font-size: var(--fs-2xl);   /* role: número hero de destaque (era sz.fontLg + 2) */
   line-height: var(--lh-2xl);
   font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  color: var(--gm-green);
 }
 
+/* ── Vendas por método de pagamento ──────────────────────────────── */
+
+.pdv__saldo-metodos {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.pdv__saldo-metodo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  background: var(--gm-surface);
+}
+
+/* Cor, fundo e borda saem do método (mapa em JS) e seguem inline. */
 .pdv__saldo-metodo-pill {
+  padding: 3px 10px;
+  border-radius: 8px;
   font-size: var(--fs-sm);   /* role: selo do método de pagamento (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
+  font-weight: 700;
 }
 
 .pdv__saldo-metodo-valor {
   font-size: var(--fs-lg);   /* role: valor money inline (era sz.fontBase) */
   line-height: var(--lh-lg);
   font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--gm-text);
+}
+
+/* ── Accordion de itens cancelados ───────────────────────────────── */
+
+.pdv__saldo-accordion {
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+  border-radius: 14px;
+}
+
+.pdv__saldo-accordion-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--gm-red) 3%, transparent);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+/* Aberto: o fundo escurece um passo e o raio de baixo some para o cabeçalho
+   se emendar visualmente na lista. */
+.pdv__saldo-accordion-btn--aberto {
+  border-radius: 14px 14px 0 0;
+  background: color-mix(in srgb, var(--gm-red) 5%, transparent);
+}
+
+.pdv__saldo-accordion-esq,
+.pdv__saldo-accordion-dir {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdv__saldo-accordion-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
 }
 
 .pdv__saldo-accordion-contagem {
+  padding: 1px 8px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
   font-size: var(--fs-xs);   /* role: selo de contagem (era 11px) */
   line-height: var(--lh-xs);
+  font-weight: 800;
+  color: var(--gm-red);
 }
 
 .pdv__saldo-accordion-total {
   font-size: var(--fs-sm);   /* role: valor money compacto no cabeçalho (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
   font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--gm-red);
+}
+
+/* A seta gira ao abrir — o modificador mora no botão, que é quem tem o estado. */
+.pdv__saldo-chevron {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: transform 0.2s;
+}
+
+.pdv__saldo-accordion-btn--aberto .pdv__saldo-chevron {
+  transform: rotate(180deg);
+}
+
+.pdv__saldo-cancelados-lista {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow-y: auto;
+  border-top: 1px solid color-mix(in srgb, var(--gm-red) 13%, transparent);
+}
+
+/* Zebra: o JSX pintava `idx % 2 === 0`, ou seja, o PRIMEIRO item — em CSS isso
+   é :nth-child(odd), não even. E a última linha não leva divisória. */
+.pdv__saldo-cancelado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--gm-red) 8%, transparent);
+}
+
+.pdv__saldo-cancelado:nth-child(odd) {
+  background: color-mix(in srgb, var(--gm-red) 2%, transparent);
+}
+
+.pdv__saldo-cancelado:last-child {
+  border-bottom: none;
+}
+
+.pdv__saldo-cancelado-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pdv__saldo-cancelado-titulo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .pdv__saldo-item-nome {
   font-size: var(--fs-sm);   /* role: nome do item cancelado (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
+  font-weight: 700;
+  color: var(--gm-text);
+  text-decoration: line-through;
+  opacity: 0.6;
 }
 
 .pdv__saldo-item-selo {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
   font-size: var(--fs-xs);   /* role: selo "comanda cancelada" (era 10px) */
   line-height: var(--lh-xs);
+  font-weight: 700;
+  color: var(--gm-red);
 }
 
 .pdv__saldo-item-meta {
+  margin-top: 2px;
   font-size: var(--fs-xs);   /* role: meta (motivo/quem cancelou) (era 11px) */
   line-height: var(--lh-xs);
+  color: var(--gm-muted);
 }
 
 .pdv__saldo-item-preco {
+  flex-shrink: 0;
   font-size: var(--fs-sm);   /* role: valor money compacto na lista (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
   font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--gm-red);
+}
+
+/* ── Comandas em aberto ──────────────────────────────────────────── */
+
+.pdv__saldo-comandas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.pdv__saldo-comanda {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 13px;
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  background: var(--gm-surface);
+}
+
+.pdv__saldo-comanda-info {
+  min-width: 0;
+}
+
+.pdv__saldo-comanda-dir {
+  flex-shrink: 0;
+  margin-left: 10px;
+  text-align: right;
 }
 
 .pdv__saldo-comanda-nome {
   font-size: var(--fs-sm);   /* role: nome da comanda em aberto (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
+  font-weight: 700;
 }
 
 .pdv__saldo-comanda-meta {
   font-size: var(--fs-sm);   /* role: garçom / contagem de itens (era sz.fontSm) */
   line-height: var(--lh-sm);
+  color: var(--gm-muted);
 }
 
+/* A cor diz se a comanda já tem consumo (accent) ou está zerada (muted) —
+   vem do dado e segue inline. */
 .pdv__saldo-comanda-valor {
   font-size: var(--fs-lg);   /* role: valor money inline (era sz.fontBase) */
   line-height: var(--lh-lg);
   font-variant-numeric: tabular-nums;
+  font-weight: 800;
 }

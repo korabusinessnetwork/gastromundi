@@ -235,6 +235,28 @@ reimplementam o foco à mão com `onFocus`/`onBlur` mexendo em `e.currentTarget.
 - **O `background` é o inverso:** o global usa cadeia de `:not()` (~0,8,1) e passa a vencer a classe
   assim que o inline sai — só não muda nada porque o valor é o mesmo `var(--gm-input-bg)`. Conferir
   esse par antes de tirar o inline de um input com fundo próprio.
+- **Campo com estado de erro é a exceção: a troca não é neutra, e `aria-invalid` é obrigatório.**
+  O item acima ("mesmo resultado visual") vale para input sem erro, como o `.pdv__barcode-input`.
+  Quando a borda inline era um ternário (`senhaErro ? red : input-border`), movê-la para a classe
+  (0,1,0) entrega o foco para a regra global (0,4,1) — que pinta **accent** e apaga o vermelho justo
+  enquanto o operador digita a senha errada, que é quando o sinal importa. O `inputs.css` já prevê
+  isso com `:not([aria-invalid="true"])`, mas só funciona se o JSX declarar o atributo. Regra: ao
+  extrair a borda de um input com erro, `aria-invalid={!!erro}` entra na mesma edição, e a cor de
+  erro vira `.classe[aria-invalid="true"]`. Feito em `.pdv__saldo-input` (rodada 15).
+
+### Estado de lista na extração de CSS: o gancho nativo inverte o índice
+Ao trocar ternário de `map()` por seletor, o índice do JavaScript é 0-based e o do CSS é 1-based —
+os dois idiomas mais comuns invertem:
+
+- `idx % 2 === 0` (pinta o **primeiro**) é `:nth-child(odd)`, **não** `even`. Trocar por engano
+  inverte a listra e nada acusa: a suíte passa e a tela continua zebrada, só que ao contrário.
+- `idx < lista.length - 1 ? borda : "none"` (divisória em todos menos o último) é
+  `border-bottom` na classe + `:last-child { border-bottom: none }`.
+- O ganho não é só menos inline: as duas formas em JavaScript recalculam a lista inteira quando um
+  item entra ou sai, e a versão em CSS não depende de `length` nenhum.
+
+Feito em `.pdv__saldo-cancelado` (rodada 15). Vale para as listas que sobraram em `DeliveryView`,
+`RelatorioView` e `NotasFiscaisTab`, que usam o mesmo idioma.
 
 ---
 

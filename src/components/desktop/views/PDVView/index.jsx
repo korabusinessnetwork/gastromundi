@@ -2259,71 +2259,39 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   };
 
   return (
-    <div
-      {...fecharAoClicarFora(onClose)}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9200,
-        background: "rgba(0,0,0,0.75)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
-      }}
-    >
-      <div style={{
-        background: varColor(C.card), borderRadius: 20,
-        width: "100%", maxWidth: autorizado ? 560 : 420,
-        border: `1px solid var(${C.border})`,
-        boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-        color: varColor(C.text), overflow: "hidden",
-        maxHeight: "92vh", display: "flex", flexDirection: "column",
-        transition: "max-width 0.3s",
-      }}>
+    <div {...fecharAoClicarFora(onClose)} className="pdv__saldo-overlay">
+      <div className={`pdv__saldo-modal${autorizado ? " pdv__saldo-modal--autorizado" : ""}`}>
         {/* Header */}
-        <div style={{
-          padding: `${sz.padSm + 4}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})`,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          flexShrink: 0,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 12,
-              background: `${alfa(C.accent, "18")}`, border: `1.5px solid ${alfa(C.accent, "44")}`,
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-            }}>
+        <div className="pdv__saldo-header" style={{ padding: `${sz.padSm + 4}px ${sz.pad}px` }}>
+          <div className="pdv__saldo-header-info">
+            <div className="pdv__saldo-icone">
               <LuChartBar size={18} color={varColor(C.accent)} />
             </div>
             <div>
-              <div className="pdv__saldo-titulo" style={{ fontWeight: 900 }}>Saldo do Dia</div>
-              <div className="pdv__saldo-subtitulo" style={{ color: varColor(C.muted), marginTop: 1 }}>
+              <div className="pdv__saldo-titulo">Saldo do Dia</div>
+              <div className="pdv__saldo-subtitulo">
                 {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
               </div>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, display: "flex", alignItems: "center" }}
-          >
+          <button onClick={onClose} className="pdv__saldo-close-btn">
             <LuX size={18} />
           </button>
         </div>
 
         {/* Corpo: senha ou dados */}
         {!autorizado ? (
-          <div style={{ padding: sz.pad, display: "flex", flexDirection: "column", gap: 16 }}>
-            <div className="pdv__saldo-aviso" style={{
-              display: "flex", alignItems: "center", gap: 10,
-              background: `${alfa(C.accent, "10")}`, border: `1px solid ${alfa(C.accent, "33")}`,
-              borderRadius: 12, padding: "12px 16px",
-              color: varColor(C.muted),
-            }}>
-              <LuLock size={16} color={varColor(C.accent)} style={{ flexShrink: 0 }} />
+          <div className="pdv__saldo-corpo" style={{ padding: sz.pad }}>
+            <div className="pdv__saldo-aviso">
+              <LuLock size={16} color={varColor(C.accent)} />
               Acesso restrito a administradores e gerentes.
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label className="pdv__saldo-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase" }}>
+            <div className="pdv__saldo-campo">
+              <label className="pdv__saldo-label">
                 Senha
               </label>
-              <div style={{ position: "relative" }}>
+              <div className="pdv__saldo-input-wrap">
                 <input
                   autoFocus
                   type={senhaVis ? "text" : "password"}
@@ -2332,117 +2300,110 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   onKeyDown={e => e.key === "Enter" && verificarSenha()}
                   placeholder="Digite a senha de acesso"
                   className="pdv__saldo-input"
-                  style={{
-                    width: "100%", padding: "12px 44px 12px 16px",
-                    borderRadius: 10, border: `1.5px solid ${senhaErro ? varColor(C.red) : "var(--gm-input-border)"}`,
-                    background: "var(--gm-input-bg)", color: varColor(C.text),
-                    fontFamily: "inherit", outline: "none",
-                    boxSizing: "border-box",
-                  }}
+                  aria-invalid={!!senhaErro}
                 />
                 <button
                   onClick={() => setSenhaVis(v => !v)}
-                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", display: "flex", padding: 2 }}
+                  className="pdv__saldo-olho-btn"
                 >
                   {senhaVis ? <LuEyeOff size={16} /> : <LuEye size={16} />}
                 </button>
               </div>
               {senhaErro && (
-                <div role="alert" className="pdv__saldo-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>
+                <div role="alert" className="pdv__saldo-erro">
                   {senhaErro}
                 </div>
               )}
             </div>
 
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={onClose} className="pdv__saldo-modal-btn" style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600 }}>
+            <div className="pdv__saldo-acoes">
+              <button onClick={onClose} className="pdv__saldo-modal-btn">
                 Cancelar
               </button>
               <button
                 onClick={verificarSenha}
                 disabled={!senha.trim()}
-                className="pdv__saldo-modal-btn"
-                style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "none", background: senha.trim() ? varColor(C.accent) : varColor(C.faint), color: "#fff", cursor: senha.trim() ? "pointer" : "not-allowed", fontWeight: 700 }}
+                className="pdv__saldo-modal-btn pdv__saldo-modal-btn--primario"
               >
                 Acessar
               </button>
             </div>
           </div>
         ) : (
-          <div style={{ padding: sz.pad, display: "flex", flexDirection: "column", gap: 16, overflowY: "auto", flex: 1 }}>
+          <div className="pdv__saldo-corpo pdv__saldo-corpo--dados" style={{ padding: sz.pad }}>
 
             {/* KPIs */}
-            <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 10 }}>
+            <div className="pdv__saldo-kpis" style={{ gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr" }}>
               {[
                 { label: "Vendas Finalizadas",    value: `R$ ${totalVendas.toFixed(2)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: varColor(C.green) },
                 { label: "Em Aberto (estimado)",  value: `R$ ${totalAberto.toFixed(2)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: varColor(C.accent) },
               ].map(k => (
-                <div key={k.label} style={{ background: varColor(C.surface), border: `1px solid var(${C.border})`, borderRadius: 12, padding: "14px 16px" }}>
-                  <div className="pdv__saldo-kpi-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", marginBottom: 6 }}>{k.label}</div>
-                  <div className="pdv__saldo-kpi-valor" style={{ fontWeight: 900, color: k.color }}>{k.value}</div>
-                  <div className="pdv__saldo-kpi-sub" style={{ color: varColor(C.muted), marginTop: 3 }}>{k.sub}</div>
+                <div key={k.label} className="pdv__saldo-kpi">
+                  <div className="pdv__saldo-kpi-label">{k.label}</div>
+                  <div className="pdv__saldo-kpi-valor" style={{ color: k.color }}>{k.value}</div>
+                  <div className="pdv__saldo-kpi-sub">{k.sub}</div>
                 </div>
               ))}
             </div>
 
             {/* Card de Cancelamentos */}
-            <div style={{ background: `${alfa(C.red, "0c")}`, border: `1.5px solid ${alfa(C.red, "33")}`, borderRadius: 12, padding: "14px 16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: isNarrow ? "wrap" : "nowrap" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="pdv__saldo-kpi-label" style={{ fontWeight: 700, color: varColor(C.red), textTransform: "uppercase", marginBottom: 4 }}>
+            <div className="pdv__saldo-cancelamentos">
+              <div className="pdv__saldo-cancelamentos-linha" style={{ flexWrap: isNarrow ? "wrap" : "nowrap" }}>
+                <div className="pdv__saldo-cancelamentos-info">
+                  <div className="pdv__saldo-kpi-label">
                     Cancelamentos do Dia
                   </div>
-                  <div className="pdv__saldo-kpi-sub" style={{ color: varColor(C.muted) }}>
+                  <div className="pdv__saldo-kpi-sub">
                     {qtdCancelados} {qtdCancelados === 1 ? "item cancelado" : "itens cancelados"}
                   </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 4 }}>
+                  <div className="pdv__saldo-pills">
                     {canceladosAbertos.length > 0 && (
-                      <span className="pdv__saldo-pill" style={{ color: varColor(C.muted), background: varColor(C.surface), borderRadius: 6, padding: "2px 8px" }}>
+                      <span className="pdv__saldo-pill">
                         {canceladosAbertos.reduce((s,i)=>s+(i.qty??1),0)} em aberto
                       </span>
                     )}
                     {canceladosFechados.length > 0 && (
-                      <span className="pdv__saldo-pill" style={{ color: varColor(C.muted), background: varColor(C.surface), borderRadius: 6, padding: "2px 8px" }}>
+                      <span className="pdv__saldo-pill">
                         {canceladosFechados.reduce((s,i)=>s+(i.qty??1),0)} em fechadas
                       </span>
                     )}
                     {canceladosComanda.length > 0 && (
-                      <span className="pdv__saldo-pill" style={{ color: varColor(C.red), background: `${alfa(C.red, "12")}`, borderRadius: 6, padding: "2px 8px", fontWeight: 600 }}>
+                      <span className="pdv__saldo-pill pdv__saldo-pill--comanda">
                         {canceladosComanda.reduce((s,i)=>s+(i.qty??1),0)} de comanda{logsComandaCancelada.length !== 1 ? "s" : ""} cancelada{logsComandaCancelada.length !== 1 ? "s" : ""} ({logsComandaCancelada.length})
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="pdv__saldo-kpi-valor" style={{ fontWeight: 900, color: varColor(C.red), flexShrink: 0 }}>
+                <div className="pdv__saldo-kpi-valor">
                   {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
                 </div>
               </div>
             </div>
 
             {/* Total geral */}
-            <div style={{ background: `${alfa(C.green, "10")}`, border: `1.5px solid ${alfa(C.green, "44")}`, borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: isNarrow ? "wrap" : "nowrap" }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="pdv__saldo-total-titulo" style={{ fontWeight: 700, color: varColor(C.text) }}>Total do Dia (projetado)</div>
-                <div className="pdv__saldo-kpi-sub" style={{ color: varColor(C.muted), marginTop: 2 }}>Fechadas + em aberto · cancelamentos não incluídos</div>
+            <div className="pdv__saldo-total" style={{ flexWrap: isNarrow ? "wrap" : "nowrap" }}>
+              <div className="pdv__saldo-total-info">
+                <div className="pdv__saldo-total-titulo">Total do Dia (projetado)</div>
+                <div className="pdv__saldo-kpi-sub">Fechadas + em aberto · cancelamentos não incluídos</div>
               </div>
-              <div className="pdv__saldo-total-valor" style={{ fontWeight: 900, color: varColor(C.green), flexShrink: 0 }}>
+              <div className="pdv__saldo-total-valor">
                 R$ {(totalVendas + totalAberto).toFixed(2)}
               </div>
             </div>
 
             {/* Por método de pagamento */}
             {Object.keys(porMetodo).length > 0 && (
-              <div>
-                <div className="pdv__saldo-kpi-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", marginBottom: 8 }}>
+              <div className="pdv__saldo-secao">
+                <div className="pdv__saldo-kpi-label">
                   Vendas por Método
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                <div className="pdv__saldo-metodos">
                   {Object.entries(porMetodo).sort((a, b) => b[1] - a[1]).map(([metodo, val]) => (
-                    <div key={metodo} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: varColor(C.surface), borderRadius: 10, padding: "10px 14px", border: `1px solid var(${C.border})` }}>
-                      <span className="pdv__saldo-metodo-pill" style={{ fontWeight: 700, color: METODOS_COLOR[metodo] ?? varColor(C.muted), background: alfa(METODOS_COLOR[metodo] ?? varColor(C.muted), "18"), border: `1px solid ${alfa(METODOS_COLOR[metodo] ?? varColor(C.muted), "44")}`, borderRadius: 8, padding: "3px 10px" }}>
+                    <div key={metodo} className="pdv__saldo-metodo">
+                      <span className="pdv__saldo-metodo-pill" style={{ color: METODOS_COLOR[metodo] ?? varColor(C.muted), background: alfa(METODOS_COLOR[metodo] ?? varColor(C.muted), "18"), border: `1px solid ${alfa(METODOS_COLOR[metodo] ?? varColor(C.muted), "44")}` }}>
                         {rotuloMetodo(metodo, customLabels)}
                       </span>
-                      <span className="pdv__saldo-metodo-valor" style={{ fontWeight: 800, color: varColor(C.text) }}>
+                      <span className="pdv__saldo-metodo-valor">
                         R$ {Number(val).toFixed(2)}
                       </span>
                     </div>
@@ -2453,47 +2414,32 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
 
             {/* Detalhe dos itens cancelados — accordion */}
             {todosCancelados.length > 0 && (
-              <div style={{ border: `1.5px solid ${alfa(C.red, "33")}`, borderRadius: 14 }}>
+              <div className="pdv__saldo-accordion">
                 {/* Header clicável */}
                 <button
                   type="button"
                   onClick={() => setShowCancelList(v => !v)}
-                  style={{
-                    width: "100%", padding: "12px 16px", border: "none",
-                    borderRadius: showCancelList ? "14px 14px 0 0" : 14,
-                    background: showCancelList ? `${alfa(C.red, "0e")}` : `${alfa(C.red, "07")}`,
-                    cursor: "pointer", display: "flex", alignItems: "center",
-                    justifyContent: "space-between", fontFamily: "inherit",
-                    transition: "background 0.15s",
-                  }}
+                  className={`pdv__saldo-accordion-btn${showCancelList ? " pdv__saldo-accordion-btn--aberto" : ""}`}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{
-                      width: 28, height: 28, borderRadius: 8,
-                      background: `${alfa(C.red, "18")}`, border: `1px solid ${alfa(C.red, "33")}`,
-                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                    }}>
+                  <div className="pdv__saldo-accordion-esq">
+                    <div className="pdv__saldo-accordion-icone">
                       <LuX size={13} color={varColor(C.red)} />
                     </div>
-                    <span className="pdv__saldo-kpi-label" style={{ fontWeight: 700, color: varColor(C.red), textTransform: "uppercase" }}>
+                    <span className="pdv__saldo-kpi-label">
                       Itens Cancelados
                     </span>
-                    <span className="pdv__saldo-accordion-contagem" style={{
-                      fontWeight: 800, color: varColor(C.red),
-                      background: `${alfa(C.red, "18")}`, border: `1px solid ${alfa(C.red, "33")}`,
-                      borderRadius: 20, padding: "1px 8px",
-                    }}>
+                    <span className="pdv__saldo-accordion-contagem">
                       {todosCancelados.reduce((s, i) => s + (i.qty ?? 1), 0)}
                     </span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span className="pdv__saldo-accordion-total" style={{ fontWeight: 800, color: varColor(C.red) }}>
+                  <div className="pdv__saldo-accordion-dir">
+                    <span className="pdv__saldo-accordion-total">
                       {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
                     </span>
                     <svg
                       width="14" height="14" viewBox="0 0 24 24" fill="none"
                       stroke={varColor(C.red)} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                      style={{ transform: showCancelList ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", opacity: 0.7, flexShrink: 0 }}
+                      className="pdv__saldo-chevron"
                     >
                       <polyline points="6 9 12 15 18 9" />
                     </svg>
@@ -2502,41 +2448,29 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
 
                 {/* Lista com scroll */}
                 {showCancelList && (
-                  <div style={{
-                    maxHeight: 240, overflowY: "auto",
-                    display: "flex", flexDirection: "column", gap: 0,
-                    borderTop: `1px solid ${alfa(C.red, "22")}`,
-                  }}>
+                  <div className="pdv__saldo-cancelados-lista">
                     {todosCancelados.map((item, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          display: "flex", alignItems: "center", justifyContent: "space-between",
-                          padding: "10px 16px", gap: 10,
-                          borderBottom: idx < todosCancelados.length - 1 ? `1px solid ${alfa(C.red, "14")}` : "none",
-                          background: idx % 2 === 0 ? `${alfa(C.red, "04")}` : "transparent",
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                            <span className="pdv__saldo-item-nome" style={{ fontWeight: 700, color: varColor(C.text), textDecoration: "line-through", opacity: 0.6 }}>
+                      <div key={idx} className="pdv__saldo-cancelado">
+                        <div className="pdv__saldo-cancelado-info">
+                          <div className="pdv__saldo-cancelado-titulo">
+                            <span className="pdv__saldo-item-nome">
                               {item.emoji ? `${item.emoji} ` : ""}{item.name}{(item.qty ?? 1) > 1 ? ` ×${item.qty}` : ""}
                             </span>
                             {item._comandaCancelada && (
-                              <span className="pdv__saldo-item-selo" style={{ fontWeight: 700, color: varColor(C.red), background: `${alfa(C.red, "14")}`, borderRadius: 5, padding: "1px 6px", flexShrink: 0 }}>
+                              <span className="pdv__saldo-item-selo">
                                 comanda cancelada
                               </span>
                             )}
                           </div>
                           {(item.motivoCancelamento || item.canceladoPor || item._comanda) && (
-                            <div className="pdv__saldo-item-meta" style={{ color: varColor(C.muted), marginTop: 2 }}>
+                            <div className="pdv__saldo-item-meta">
                               {item._comanda ? `${item._comanda} · ` : ""}
                               {item.canceladoPor || ""}
                               {item.motivoCancelamento && item.motivoCancelamento !== "—" ? ` — ${item.motivoCancelamento}` : ""}
                             </div>
                           )}
                         </div>
-                        <div className="pdv__saldo-item-preco" style={{ fontWeight: 800, color: varColor(C.red), flexShrink: 0 }}>
+                        <div className="pdv__saldo-item-preco">
                           - R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}
                         </div>
                       </div>
@@ -2548,25 +2482,25 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
 
             {/* Comandas em aberto */}
             {abertas.length > 0 && (
-              <div>
-                <div className="pdv__saldo-kpi-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", marginBottom: 8 }}>
+              <div className="pdv__saldo-secao">
+                <div className="pdv__saldo-kpi-label">
                   Comandas em Aberto
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 180, overflowY: "auto" }}>
+                <div className="pdv__saldo-comandas">
                   {abertas.map(p => {
                     const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
                     const subtotal = ativos.reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0);
                     return (
-                      <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: varColor(C.surface), borderRadius: 10, padding: "9px 13px", border: `1px solid var(${C.border})` }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div className="pdv__saldo-comanda-nome" style={{ fontWeight: 700 }}>{fmtComanda(p.comanda)}</div>
-                          {p.garcom && <div className="pdv__saldo-comanda-meta" style={{ color: varColor(C.muted) }}>{p.garcom}</div>}
+                      <div key={p.id} className="pdv__saldo-comanda">
+                        <div className="pdv__saldo-comanda-info">
+                          <div className="pdv__saldo-comanda-nome">{fmtComanda(p.comanda)}</div>
+                          {p.garcom && <div className="pdv__saldo-comanda-meta">{p.garcom}</div>}
                         </div>
-                        <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
-                          <div className="pdv__saldo-comanda-valor" style={{ fontWeight: 800, color: subtotal > 0 ? varColor(C.accent) : varColor(C.muted) }}>
+                        <div className="pdv__saldo-comanda-dir">
+                          <div className="pdv__saldo-comanda-valor" style={{ color: subtotal > 0 ? varColor(C.accent) : varColor(C.muted) }}>
                             {subtotal > 0 ? `R$ ${subtotal.toFixed(2)}` : "Sem itens"}
                           </div>
-                          <div className="pdv__saldo-comanda-meta" style={{ color: varColor(C.muted) }}>
+                          <div className="pdv__saldo-comanda-meta">
                             {ativos.reduce((s, i) => s + (i.qty ?? 1), 0)} item(ns)
                           </div>
                         </div>
@@ -2579,8 +2513,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
 
             <button
               onClick={onClose}
-              className="pdv__saldo-modal-btn"
-              style={{ padding: "11px 0", borderRadius: 10, border: `1px solid var(${C.border})`, background: "none", color: varColor(C.muted), cursor: "pointer", fontWeight: 600, flexShrink: 0 }}
+              className="pdv__saldo-modal-btn pdv__saldo-modal-btn--rodape"
             >
               Fechar
             </button>
