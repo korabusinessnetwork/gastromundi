@@ -167,6 +167,34 @@ pedido, caixa, estoque) — hoje "Uso e faturamento", amanhã qualquer painel de
 - Preferir *skeletons* a spinners em telas com layout previsível.
 - Evitar saltos de layout (layout shift) ao carregar conteúdo.
 
+### "Ainda não sei" nunca é dito como "não existe"
+
+*Adotado em 2026-08-01 (aba "Minha assinatura", S1-3).*
+
+Tela de leitura só pode **afirmar** o que já tem em mãos. Antes de escrever uma
+frase categórica ("não há assinatura cadastrada", "nenhum pagamento
+registrado"), o componente checa se o dado que a sustenta chegou:
+
+- **Contexto ainda em voo** (`tenant`/`assinatura` nulos no bootstrap) é
+  *carregando*, não *vazio*: `MinhaAssinaturaTab.jsx` retorna cedo enquanto
+  `tenant?.id` é nulo, em vez de renderizar "ainda não há assinatura".
+- **Falha de leitura** é *erro com "Tentar de novo"*, nunca lista vazia — vazio
+  por falha de rede faz o dono pagar de novo o que já pagou.
+- **Zero real** é afirmado por escrito, com o motivo ("nenhum pagamento em
+  vigor: 1 lançamento foi cancelado"), para não parecer carregamento travado.
+
+Vale para qualquer tela que responda pergunta de dinheiro ou de acesso: a
+diferença entre "não sei" e "não tem" é a diferença entre esperar e agir.
+
+### Fallback de nome nunca é o código técnico
+
+*Adotado em 2026-08-01 (S1-3).*
+
+Quando o rótulo humano vem de outra tabela e a leitura falha, o fallback é uma
+**frase neutra** ("Plano contratado"), nunca o identificador cru (`medio`,
+`fiscal_integracoes`). Código na tela é jargão técnico (Princípio nº1) e o
+usuário não tem como traduzir. Vale para plano, módulo, método e status.
+
 ---
 
 ## Padrões de Processo

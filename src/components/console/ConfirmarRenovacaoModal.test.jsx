@@ -31,7 +31,10 @@ vi.mock("@/lib/assinatura", async () => {
   return { ...real, confirmarRenovacaoAssinatura: mockRenovar };
 });
 
-import ConfirmarRenovacaoModal, { rotuloCompetencia } from "./ConfirmarRenovacaoModal";
+import ConfirmarRenovacaoModal from "./ConfirmarRenovacaoModal";
+// `rotuloCompetencia` mudou de casa para `@/lib/assinatura` (S1-3): a aba do
+// estabelecimento usa o mesmo rótulo de mês e não importa nada do Console.
+import { rotuloCompetencia } from "@/lib/assinatura";
 import { formatarReais } from "@/lib/deliveryPedidos";
 
 const COM_PRECO = {

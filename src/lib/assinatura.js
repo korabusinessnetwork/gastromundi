@@ -25,6 +25,14 @@ import { supabase } from "./supabase";
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
+/**
+ * A partir de quantos dias antes do vencimento o sistema avisa. Uma
+ * constante só: o banner do topo (`AssinaturaBanner`) e a aba "Minha
+ * assinatura" precisam concordar — a tela não pode dizer "está em dia"
+ * enquanto o banner avisa que vence.
+ */
+export const DIAS_AVISO_PRE_VENCIMENTO = 5;
+
 // "YYYY-MM-DD" e nada mais — é exatamente o formato em que uma coluna `date`
 // do Postgres chega pelo PostgREST.
 const SO_DATA = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -312,5 +320,110 @@ export function resumirPagamentos(pagamentos = []) {
     totalCentavos: validas.reduce((soma, l) => soma + l.valorCentavos, 0),
     quantidadeValidos: validas.length,
     quantidadeEstornados: linhas.length - validas.length,
+  };
+}
+
+const MESES = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+/**
+ * "2026-08" → "agosto/2026". Devolve "" para mês vazio ou malformado.
+ *
+ * Mora aqui, e não no modal do Console onde nasceu, porque a tela do
+ * ESTABELECIMENTO (Minha assinatura) nomeia o mesmo mês de competência —
+ * e uma tela de tenant importando um componente do Console amarraria as
+ * duas superfícies, que a decisão 027 mantém separadas.
+ */
+export function rotuloCompetencia(mes) {
+  const m = String(mes ?? "").match(/^(\d{4})-(\d{2})$/);
+  if (!m) return "";
+  const nome = MESES[Number(m[2]) - 1];
+  return nome ? `${nome}/${m[1]}` : "";
+}
+
+/** "2026-08-05" (`date`) → "05/08/2026", pela string — nunca por new Date(). */
+function dataBr(iso) {
+  const m = String(iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+}
+
+/**
+ * Traduz a assinatura do tenant logado para a frase que o dono do
+ * restaurante lê (S1-3). Pura, sem I/O.
+ *
+ * Recalcula o status a partir de data/carência em vez de reaproveitar o
+ * `assinatura.status` que veio do bootstrap: uma sessão aberta atravessa a
+ * meia-noite, e a frase "vence hoje" não pode continuar na tela no dia
+ * seguinte. Mesmo motivo pelo qual o status nunca vem da coluna `status` do
+ * banco, que é cache (ADR-006 §3).
+ *
+ * `tom` é a intenção da mensagem, não a cor: quem pinta é o CSS.
+ *
+ * @param {{dataVencimento: string, carenciaDias: number, valorMensal: number}|null} assinatura
+ * @param {Date|string} [hoje]
+ * @returns {{status: string, tom: "ok"|"aviso"|"critico", titulo: string, detalhe: string, vencimentoBr: string, mensalidadeCentavos: number, isento: boolean}|null}
+ */
+export function resumirPlanoDoTenant(assinatura, hoje = new Date()) {
+  if (!assinatura || !assinatura.dataVencimento) return null;
+
+  const carencia = Number(assinatura.carenciaDias) || 0;
+  const status = calcularStatusAssinatura(assinatura.dataVencimento, carencia, hoje);
+  const dias = calcularDiasParaVencimento(assinatura.dataVencimento, hoje);
+  const vencimentoBr = dataBr(assinatura.dataVencimento);
+  const mensalidadeCentavos = Math.round((Number(assinatura.valorMensal) || 0) * 100);
+
+  const base = {
+    status,
+    vencimentoBr,
+    mensalidadeCentavos,
+    isento: mensalidadeCentavos === 0,
+  };
+
+  if (status === "carencia") {
+    const restantes = Math.max(0, carencia - Math.abs(dias ?? 0));
+    return {
+      ...base,
+      tom: "critico",
+      titulo: "Sua mensalidade está atrasada",
+      detalhe: restantes > 0
+        ? `Venceu em ${vencimentoBr}. Você tem mais ${restantes} dia${restantes === 1 ? "" : "s"} para regularizar antes de perder o acesso.`
+        : `Venceu em ${vencimentoBr}. O prazo para regularizar termina hoje.`,
+    };
+  }
+
+  if (status === "bloqueado") {
+    return {
+      ...base,
+      tom: "critico",
+      titulo: "Seu acesso está bloqueado por falta de pagamento",
+      detalhe: `A mensalidade venceu em ${vencimentoBr} e o prazo de regularização terminou.`,
+    };
+  }
+
+  if (dias === 0) {
+    return {
+      ...base,
+      tom: "aviso",
+      titulo: "Sua mensalidade vence hoje",
+      detalhe: `O acesso continua liberado hoje, ${vencimentoBr}.`,
+    };
+  }
+
+  if (dias !== null && dias <= DIAS_AVISO_PRE_VENCIMENTO) {
+    return {
+      ...base,
+      tom: "aviso",
+      titulo: `Sua mensalidade vence em ${dias} dia${dias === 1 ? "" : "s"}`,
+      detalhe: `Próximo vencimento em ${vencimentoBr}.`,
+    };
+  }
+
+  return {
+    ...base,
+    tom: "ok",
+    titulo: "Sua assinatura está em dia",
+    detalhe: `Próximo vencimento em ${vencimentoBr}.`,
   };
 }

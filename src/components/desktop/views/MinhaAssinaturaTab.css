@@ -1,0 +1,283 @@
+/* Aba "Minha assinatura" (Configurações) — plano, situação da mensalidade e
+   histórico de pagamentos do próprio estabelecimento.
+   CSS separado do JSX e só tokens --gm-* (decisão 018 + white-label 017). */
+
+.massin {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 860px;
+}
+
+/* ── Situação (a resposta de "estou em dia?") ─────────────────── */
+
+.massin__situacao {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  padding: 18px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+}
+
+.massin__situacao--ok {
+  background: var(--gm-alow);
+  border-color: var(--gm-accent);
+  color: var(--gm-text);
+}
+
+.massin__situacao--ok svg {
+  color: var(--gm-green);
+}
+
+.massin__situacao--aviso {
+  background: var(--gm-alow);
+  border-color: var(--gm-accent);
+}
+
+.massin__situacao--aviso svg {
+  color: var(--gm-accent);
+}
+
+.massin__situacao--critico {
+  background: var(--gm-card);
+  border-color: var(--gm-red);
+}
+
+.massin__situacao--critico svg {
+  color: var(--gm-red);
+}
+
+.massin__situacao-texto {
+  min-width: 0;
+}
+
+.massin__situacao-titulo {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.massin__situacao-detalhe {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
+/* ── Cards ────────────────────────────────────────────────────── */
+
+.massin__card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.massin__card-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.massin__rotulo {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gm-muted);
+}
+
+.massin__rotulo--secao {
+  margin-top: 4px;
+}
+
+.massin__plano {
+  margin-top: 2px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--gm-text);
+}
+
+.massin__mensalidade {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--gm-text);
+  white-space: nowrap;
+}
+
+.massin__mensalidade span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gm-muted);
+}
+
+/* ── Módulos incluídos ────────────────────────────────────────── */
+
+.massin__modulos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.massin__modulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--gm-text);
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+
+.massin__modulo svg {
+  color: var(--gm-green);
+}
+
+/* ── Estados da lista de pagamentos ───────────────────────────── */
+
+.massin__estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--gm-muted);
+  padding: 8px 0;
+}
+
+.massin__estado--erro {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-red);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.massin__estado-texto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gm-red);
+}
+
+.massin__estado-detalhe {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
+.massin__botao {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.massin__girando {
+  animation: massin-girar 1s linear infinite;
+}
+
+@keyframes massin-girar {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Lista de pagamentos ──────────────────────────────────────── */
+
+.massin__total {
+  font-size: 14px;
+  color: var(--gm-muted);
+}
+
+.massin__total strong {
+  font-size: 16px;
+  color: var(--gm-text);
+}
+
+.massin__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.massin__item {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.massin__item--cancelado .massin__item-mes,
+.massin__item--cancelado .massin__item-valor {
+  text-decoration: line-through;
+  color: var(--gm-muted);
+}
+
+.massin__item-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.massin__item-mes {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gm-text);
+  text-transform: capitalize;
+}
+
+.massin__item-valor {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gm-text);
+  white-space: nowrap;
+}
+
+.massin__item-meta,
+.massin__item-cancelado {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
+.massin__item-cancelado {
+  color: var(--gm-red);
+}
+
+/* ── Mobile ───────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .massin__card-topo {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

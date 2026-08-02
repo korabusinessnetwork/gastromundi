@@ -18,7 +18,7 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { createPortal } from "react-dom";
-import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter, LuBike } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter, LuBike, LuReceipt } from "react-icons/lu";
 import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
 import { logAction } from "@/lib/logger";
 import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/deliveryAdmin";
@@ -34,6 +34,7 @@ import {
 import ConfiguracaoImpressao from "./impressao/ConfiguracaoImpressao";
 import MesasAdmin from "./mesas/MesasAdmin";
 import ImportarExportarTab from "./ImportarExportarTab";
+import MinhaAssinaturaTab from "./MinhaAssinaturaTab";
 import "./ConfiguracoesView.css";
 
 const ROLES = [
@@ -1281,6 +1282,9 @@ const ABAS_CONFIG = [
   { id: "categorias",       label: "Radar de Oportunidades", gerenteOnly: true },
   { id: "impressao",        label: "Impressão",           adminOnly: true  },
   { id: "importar",         label: "Importar / Exportar", adminOnly: true  },
+  // Assinatura é assunto de quem responde pelo estabelecimento — caixa e
+  // garçom não veem (mesmo recorte do banner do topo).
+  { id: "assinatura",       label: "Minha assinatura",    gerenteOnly: true },
 ];
 
 function GeralTab({ sz }) {
@@ -1713,6 +1717,7 @@ export default function ConfiguracoesView() {
             >
               {a.id === "impressao" && <LuPrinter size={13} />}
               {a.id === "delivery" && <LuBike size={13} />}
+              {a.id === "assinatura" && <LuReceipt size={13} />}
               {a.label}
             </button>
           ))}
@@ -1730,6 +1735,7 @@ export default function ConfiguracoesView() {
         {aba === "categorias" && isGerente && <CategoriasGrupoTab sz={sz} />}
         {aba === "impressao" && isAdmin && <ConfiguracaoImpressao sz={sz} />}
         {aba === "importar"  && isAdmin && <ImportarExportarTab />}
+        {aba === "assinatura" && isGerente && <MinhaAssinaturaTab />}
       </div>
     </div>
   );

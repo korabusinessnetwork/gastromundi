@@ -3,9 +3,10 @@ import { createPortal } from "react-dom";
 import {
   LuX, LuTriangleAlert, LuLoaderCircle, LuReceipt, LuRotateCcw, LuBan,
 } from "react-icons/lu";
-import { listarPagamentosAssinatura, estornarPagamentoAssinatura, resumirPagamentos } from "@/lib/assinatura";
+import {
+  listarPagamentosAssinatura, estornarPagamentoAssinatura, resumirPagamentos, rotuloCompetencia,
+} from "@/lib/assinatura";
 import { formatarReais } from "@/lib/deliveryPedidos";
-import { rotuloCompetencia } from "./ConfirmarRenovacaoModal";
 // A casca (overlay, modal, header, botões, spinner) é a mesma dos outros
 // modais do Console — decisão 018, sem duplicar CSS.
 import "./NovoEstabelecimentoModal.css";

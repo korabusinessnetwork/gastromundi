@@ -1,17 +1,12 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuBanknote } from "react-icons/lu";
-import { confirmarRenovacaoAssinatura } from "@/lib/assinatura";
+import { confirmarRenovacaoAssinatura, rotuloCompetencia } from "@/lib/assinatura";
 import { valorDigitado } from "@/lib/delivery";
 import { formatarReais } from "@/lib/deliveryPedidos";
 // Reaproveita o CSS genérico de modal do Console (overlay, modal, header,
 // campo, footer, botões) — decisão 018 (CSS separado do JSX), sem duplicar.
 import "./NovoEstabelecimentoModal.css";
-
-const MESES = [
-  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
-];
 
 // Como o dinheiro entrou. Vai para `assinaturas_pagamentos.metodo`, que é texto
 // livre no banco — a lista existe para ninguém precisar digitar (e para o
@@ -31,14 +26,6 @@ function mesDaData(iso) {
 
 function mesCorrente(hoje = new Date()) {
   return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
-}
-
-/** "2026-08" → "agosto/2026". Devolve "" para mês vazio ou malformado. */
-export function rotuloCompetencia(mes) {
-  const m = String(mes ?? "").match(/^(\d{4})-(\d{2})$/);
-  if (!m) return "";
-  const nome = MESES[Number(m[2]) - 1];
-  return nome ? `${nome}/${m[1]}` : "";
 }
 
 /**

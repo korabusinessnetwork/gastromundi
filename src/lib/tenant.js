@@ -101,6 +101,36 @@ export async function buscarModulosDoPlano(planoCodigo) {
 }
 
 /**
+ * Nome do plano do tenant, do catálogo central (`public.planos`) — para a
+ * aba "Minha assinatura" poder escrever "Plano Médio" em vez de `medio`.
+ * Código de plano na tela é jargão técnico (CLAUDE.md, Princípio nº1).
+ *
+ * A policy `planos_select_auth` (20260728) libera a leitura a qualquer
+ * usuário autenticado, então não há RLS a configurar aqui. Campos
+ * explícitos, nunca `select *`.
+ *
+ * Nunca lança: falha volta como { data: null, error } e quem chama decide
+ * o fallback — plano sem nome não pode derrubar a tela.
+ *
+ * @param {string} planoCodigo
+ * @returns {Promise<{data: {codigo: string, nome: string}|null, error: object|null}>}
+ */
+export async function buscarPlanoDoTenant(planoCodigo) {
+  if (!planoCodigo) return { data: null, error: null };
+  try {
+    const { data, error } = await supabase
+      .from("planos")
+      .select("codigo, nome")
+      .eq("codigo", planoCodigo)
+      .maybeSingle();
+    if (error) return { data: null, error };
+    return { data: data ?? null, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao buscar o plano do estabelecimento." } };
+  }
+}
+
+/**
  * Busca os códigos de add-on ATIVOS de um tenant, direto do registro
  * central (`public.tenant_addons`). Nenhum tenant tem add-on ativo por
  * padrão — lista vazia é o caso normal, não um erro.

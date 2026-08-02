@@ -15,6 +15,9 @@ import {
   sincronizarStatusAssinatura,
   confirmarRenovacaoAssinatura,
   resumirPagamentos,
+  rotuloCompetencia,
+  resumirPlanoDoTenant,
+  DIAS_AVISO_PRE_VENCIMENTO,
 } from "./assinatura";
 
 beforeEach(() => {
@@ -424,5 +427,108 @@ describe("resumirPagamentos", () => {
     const cru = [pg("2026-06-01", 300), pg("2026-08-01", 300)];
     resumirPagamentos(cru);
     expect(cru.map((p) => p.competencia)).toEqual(["2026-06-01", "2026-08-01"]);
+  });
+});
+
+describe("rotuloCompetencia", () => {
+  it("nomeia o mês em português", () => {
+    expect(rotuloCompetencia("2026-08")).toBe("agosto/2026");
+    expect(rotuloCompetencia("2026-01")).toBe("janeiro/2026");
+    expect(rotuloCompetencia("2026-12")).toBe("dezembro/2026");
+    expect(rotuloCompetencia("2026-03")).toBe("março/2026");
+  });
+
+  it("mês vazio, malformado ou fora do intervalo devolve string vazia", () => {
+    expect(rotuloCompetencia("")).toBe("");
+    expect(rotuloCompetencia(null)).toBe("");
+    expect(rotuloCompetencia("2026")).toBe("");
+    expect(rotuloCompetencia("2026-13")).toBe("");
+    expect(rotuloCompetencia("2026-00")).toBe("");
+  });
+});
+
+describe("resumirPlanoDoTenant (a frase que o dono do restaurante lê)", () => {
+  const assinatura = (dataVencimento, extra = {}) => ({
+    dataVencimento,
+    carenciaDias: 3,
+    valorMensal: 300,
+    ...extra,
+  });
+
+  it("sem assinatura devolve null — a tela mostra o texto de 'ainda não cadastrada'", () => {
+    expect(resumirPlanoDoTenant(null)).toBeNull();
+    expect(resumirPlanoDoTenant({ carenciaDias: 3, valorMensal: 300 })).toBeNull();
+  });
+
+  it("vencimento distante: em dia, tom ok, com a data no detalhe", () => {
+    const r = resumirPlanoDoTenant(assinatura("2026-09-05"), "2026-08-01T10:00:00");
+    expect(r.status).toBe("ativo");
+    expect(r.tom).toBe("ok");
+    expect(r.titulo).toBe("Sua assinatura está em dia");
+    expect(r.detalhe).toContain("05/09/2026");
+  });
+
+  it("vence hoje: avisa sem alarmar, e o acesso segue liberado", () => {
+    const r = resumirPlanoDoTenant(assinatura("2026-08-01"), "2026-08-01T23:00:00");
+    expect(r.tom).toBe("aviso");
+    expect(r.titulo).toBe("Sua mensalidade vence hoje");
+    expect(r.status).toBe("ativo");
+  });
+
+  it("dentro da janela de aviso concorda com o banner do topo", () => {
+    // Um dia antes do limite avisa; um dia depois ainda não — se estas duas
+    // divergissem, a aba diria "em dia" enquanto o banner avisava.
+    const dentro = resumirPlanoDoTenant(assinatura("2026-08-06"), "2026-08-01T10:00:00");
+    expect(DIAS_AVISO_PRE_VENCIMENTO).toBe(5);
+    expect(dentro.tom).toBe("aviso");
+    expect(dentro.titulo).toBe("Sua mensalidade vence em 5 dias");
+
+    const fora = resumirPlanoDoTenant(assinatura("2026-08-07"), "2026-08-01T10:00:00");
+    expect(fora.tom).toBe("ok");
+  });
+
+  it("um dia só é 'dia', não 'dias'", () => {
+    const r = resumirPlanoDoTenant(assinatura("2026-08-02"), "2026-08-01T10:00:00");
+    expect(r.titulo).toBe("Sua mensalidade vence em 1 dia");
+  });
+
+  it("atrasado dentro da carência: diz quanto tempo ainda resta", () => {
+    const r = resumirPlanoDoTenant(assinatura("2026-07-30"), "2026-08-01T10:00:00");
+    expect(r.status).toBe("carencia");
+    expect(r.tom).toBe("critico");
+    expect(r.titulo).toBe("Sua mensalidade está atrasada");
+    expect(r.detalhe).toContain("30/07/2026");
+    expect(r.detalhe).toContain("1 dia ");
+  });
+
+  it("último dia da carência não promete dias que não existem", () => {
+    const r = resumirPlanoDoTenant(assinatura("2026-07-29"), "2026-08-01T10:00:00");
+    expect(r.status).toBe("carencia");
+    expect(r.detalhe).toContain("termina hoje");
+  });
+
+  it("carência estourada: bloqueado", () => {
+    const r = resumirPlanoDoTenant(assinatura("2026-07-20"), "2026-08-01T10:00:00");
+    expect(r.status).toBe("bloqueado");
+    expect(r.tom).toBe("critico");
+    expect(r.titulo).toBe("Seu acesso está bloqueado por falta de pagamento");
+  });
+
+  it("mensalidade vira centavos inteiros, sem float", () => {
+    const r = resumirPlanoDoTenant(assinatura("2026-09-05", { valorMensal: 299.9 }), "2026-08-01T10:00:00");
+    expect(r.mensalidadeCentavos).toBe(29990);
+    expect(r.isento).toBe(false);
+  });
+
+  it("cortesia (valor zero) é marcada como isenta, não como R$ 0,00 devido", () => {
+    const r = resumirPlanoDoTenant(assinatura("2026-09-05", { valorMensal: 0 }), "2026-08-01T10:00:00");
+    expect(r.mensalidadeCentavos).toBe(0);
+    expect(r.isento).toBe(true);
+  });
+
+  it("não usa new Date() na data de vencimento: dia 1º não volta para o mês anterior", () => {
+    // `data_vencimento` é `date`; lido como UTC no fuso -03 viraria 31/07.
+    const r = resumirPlanoDoTenant(assinatura("2026-08-01"), "2026-07-01T10:00:00");
+    expect(r.vencimentoBr).toBe("01/08/2026");
   });
 });

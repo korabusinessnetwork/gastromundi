@@ -3,9 +3,8 @@ import { LuCircleAlert, LuTriangleAlert } from "react-icons/lu";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
+import { DIAS_AVISO_PRE_VENCIMENTO } from "@/lib/assinatura";
 import "./AssinaturaBanner.css";
-
-const DIAS_AVISO_PRE_VENCIMENTO = 5;
 
 /**
  * Banner informativo de assinatura — Fase 4 da camada de comercialização
