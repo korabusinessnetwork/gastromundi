@@ -35,7 +35,7 @@ const PERIODOS = [
 const METODOS_ICON  = { dinheiro: LuBanknote, credito: LuCreditCard, debito: LuSmartphone, pix: LuZap };
 const ACTION_TYPE_META = {
   auth:    { label: "Auth",    color: varColor(C.blue)      },
-  caixa:   { label: "Caixa",  color: "#f59e0b"   },
+  caixa:   { label: "Caixa",  color: varColor(C.warn)      },
   comanda: { label: "Comanda", color: varColor(C.green)     },
   itens:   { label: "Itens",  color: varColor(C.green)     },
   produto: { label: "Produto", color: varColor(C.accent)    },
@@ -81,27 +81,22 @@ const fmtR = (v) => "R$ " + Number(v ?? 0).toFixed(2);
 
 function KpiCard({ label, value, color, Icon, sz }) {
   return (
-    <div style={{
-      background: varColor(C.card), border: `1px solid var(${C.border})`,
-      borderRadius: 16, padding: `${sz.padSm + 4}px ${sz.pad - 4}px`,
-      display: "flex", flexDirection: "column", gap: 10,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div
+      className="relatorio-view__kpi"
+      style={{ "--kpi-pad-y": `${sz.padSm + 4}px`, "--kpi-pad-x": `${sz.pad - 4}px`, "--kpi-cor": color }}
+    >
+      <div className="relatorio-view__kpi-topo">
         {Icon && <Icon size={sz.fontLg} color={color} />}
-        <span className="relatorio-view__kpi-label" style={{ color: varColor(C.muted), fontWeight: 600 }}>{label}</span>
+        <span className="relatorio-view__kpi-label">{label}</span>
       </div>
-      <div className="relatorio-view__kpi-valor" style={{ fontWeight: 900, color }}>{value}</div>
+      <div className="relatorio-view__kpi-valor">{value}</div>
     </div>
   );
 }
 
 function Th({ children, right }) {
   return (
-    <th className="relatorio-view__th" style={{
-      padding: "12px 16px", textAlign: right ? "right" : "left",
-      fontWeight: 700, color: varColor(C.muted),
-      textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap",
-    }}>
+    <th className={"relatorio-view__th" + (right ? " relatorio-view__th--direita" : "")}>
       {children}
     </th>
   );
@@ -109,13 +104,15 @@ function Th({ children, right }) {
 
 function Td({ children, right, muted, sz, nowrap, color }) {
   return (
-    <td className="relatorio-view__td" style={{
-      padding: "14px 16px",
-      textAlign: right ? "right" : "left",
-      color: color ?? (muted ? varColor(C.muted) : varColor(C.text)),
-      whiteSpace: nowrap ? "nowrap" : undefined,
-      verticalAlign: "middle",
-    }}>
+    <td
+      className={
+        "relatorio-view__td"
+        + (right  ? " relatorio-view__td--direita" : "")
+        + (muted  ? " relatorio-view__td--apagado" : "")
+        + (nowrap ? " relatorio-view__td--nowrap"  : "")
+      }
+      style={{ "--td-cor": color }}
+    >
       {children}
     </td>
   );
@@ -126,13 +123,9 @@ function Empty({ icon: Icon, msg, sz }) {
     ? <span className="relatorio-view__empty-icon">{Icon}</span>
     : Icon ? <Icon size={48} /> : null;
   return (
-    <div style={{
-      flex: 1, display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center",
-      gap: 10, color: varColor(C.muted), padding: 60,
-    }}>
-      <div style={{ opacity: 0.3 }}>{inner}</div>
-      <div className="relatorio-view__empty-msg" style={{ fontWeight: 600 }}>{msg}</div>
+    <div className="relatorio-view__empty">
+      <div className="relatorio-view__empty-glifo">{inner}</div>
+      <div className="relatorio-view__empty-msg">{msg}</div>
     </div>
   );
 }
@@ -141,15 +134,7 @@ function ChipBtn({ active, onClick, children, sz }) {
   return (
     <button
       onClick={onClick}
-      className="relatorio-view__chip"
-      style={{
-        padding: "6px 14px", borderRadius: 20, border: "none",
-        background: active ? varColor(C.accent) : varColor(C.surface),
-        color: active ? "#fff" : varColor(C.muted),
-        cursor: "pointer", fontWeight: 600,
-        transition: "background 0.15s, color 0.15s",
-        whiteSpace: "nowrap",
-      }}
+      className={"relatorio-view__chip" + (active ? " relatorio-view__chip--ativo" : "")}
     >
       {children}
     </button>
@@ -160,18 +145,11 @@ function ChipBtn({ active, onClick, children, sz }) {
 
 function ExportBar({ onPDF, onXLSX, sz }) {
   return (
-    <div style={{ display: "flex", gap: 6, marginLeft: "auto", flexShrink: 0 }}>
+    <div className="relatorio-view__export-bar">
       <button
         onClick={onPDF}
         title="Exportar PDF"
         className="relatorio-view__export-btn"
-        style={{
-          display: "flex", alignItems: "center", gap: 5,
-          padding: "6px 13px", borderRadius: 8,
-          border: `1px solid var(${C.border})`, background: "none",
-          color: varColor(C.muted), cursor: "pointer",
-          fontWeight: 600, whiteSpace: "nowrap",
-        }}
       >
         <LuPrinter size={13} /> PDF
       </button>
@@ -179,13 +157,6 @@ function ExportBar({ onPDF, onXLSX, sz }) {
         onClick={onXLSX}
         title="Exportar Excel"
         className="relatorio-view__export-btn"
-        style={{
-          display: "flex", alignItems: "center", gap: 5,
-          padding: "6px 13px", borderRadius: 8,
-          border: `1px solid var(${C.border})`, background: "none",
-          color: varColor(C.muted), cursor: "pointer",
-          fontWeight: 600, whiteSpace: "nowrap",
-        }}
       >
         <LuDownload size={13} /> Excel
       </button>
@@ -217,48 +188,29 @@ function FechamentoDetalheModal({ f, customLabels, onClose }) {
   return createPortal(
     <div
       {...fecharAoClicarFora(onClose)}
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 500, fontFamily: "'Inter',system-ui,sans-serif",
-      }}
+      className="relatorio-view__modal-overlay"
     >
-      <div style={{
-        background: varColor(C.card), borderRadius: 20, padding: 28,
-        width: "100%", maxWidth: 520, border: `1px solid var(${C.border})`,
-        display: "flex", flexDirection: "column", gap: 20,
-        maxHeight: "90vh", overflowY: "auto",
-        color: varColor(C.text), fontFamily: "'Inter',system-ui,sans-serif",
-        boxSizing: "border-box",
-      }}>
+      <div className="relatorio-view__modal-caixa">
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-              background: `${alfa(C.accent, "18")}`, border: `1.5px solid ${alfa(C.accent, "44")}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
+        <div className="relatorio-view__modal-header">
+          <div className="relatorio-view__modal-header-info">
+            <div className="relatorio-view__modal-icone">
               <LuLock size={22} color={varColor(C.accent)} />
             </div>
             <div>
-              <div className="relatorio-view__modal-titulo" style={{ fontWeight: 800 }}>Fechamento de Caixa</div>
-              <div className="relatorio-view__modal-data" style={{ color: varColor(C.muted), marginTop: 2 }}>
+              <div className="relatorio-view__modal-titulo">Fechamento de Caixa</div>
+              <div className="relatorio-view__modal-data">
                 {fmtData(f.at)}
               </div>
-              <div className="relatorio-view__modal-usuario" style={{ color: varColor(C.muted), marginTop: 1 }}>
+              <div className="relatorio-view__modal-usuario">
                 {f.user ?? "—"}{f.role ? ` · ${f.role}` : ""}
               </div>
             </div>
           </div>
           <button
             onClick={onClose}
-            style={{
-              background: "none", border: `1px solid var(${C.border})`,
-              borderRadius: 8, padding: "6px 8px", cursor: "pointer",
-              color: varColor(C.muted), display: "flex", alignItems: "center",
-            }}
+            className="relatorio-view__modal-x"
           >
             <LuX size={16} />
           </button>
@@ -266,16 +218,10 @@ function FechamentoDetalheModal({ f, customLabels, onClose }) {
 
         {/* Tabela por método */}
         {f.conferidoPorMetodo && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            <div className="relatorio-view__modal-th" style={{
-              display: "grid", gridTemplateColumns: "1fr 110px",
-              gap: 8, paddingBottom: 8, marginBottom: 2,
-              borderBottom: `1px solid var(${C.border})`,
-              fontWeight: 700, color: varColor(C.muted),
-              textTransform: "uppercase", letterSpacing: 1,
-            }}>
+          <div className="relatorio-view__modal-tabela">
+            <div className="relatorio-view__modal-th">
               <span>Método</span>
-              <span style={{ textAlign: "right" }}>Conferido</span>
+              <span className="relatorio-view__modal-th-valor">Conferido</span>
             </div>
             {metodos.map(id => {
               const cat = METODOS_DETALHE.find(m => m.id === id);
@@ -283,21 +229,17 @@ function FechamentoDetalheModal({ f, customLabels, onClose }) {
               const label = cat?.label ?? rotuloMetodo(id, customLabels);
               const val = f.conferidoPorMetodo[id] ?? 0;
               return (
-                <div key={id} style={{
-                  display: "grid", gridTemplateColumns: "1fr 110px",
-                  gap: 8, alignItems: "center", padding: "11px 0",
-                  borderBottom: `1px solid var(${C.border})`,
-                }}>
-                  <div className="relatorio-view__modal-metodo-label" style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+                <div key={id} className="relatorio-view__modal-metodo-linha">
+                  <div className="relatorio-view__modal-metodo-label">
                     <Icon size={15} color={varColor(C.muted)} />
                     {label}
                     {id === "dinheiro" && f.fundo > 0 && (
-                      <span className="relatorio-view__modal-fundo-nota" style={{ color: varColor(C.muted), fontWeight: 400 }}>
+                      <span className="relatorio-view__modal-fundo-nota">
                         (inclui fundo {fmtR(f.fundo)})
                       </span>
                     )}
                   </div>
-                  <div className="relatorio-view__modal-metodo-valor" style={{ textAlign: "right", fontWeight: 800 }}>
+                  <div className="relatorio-view__modal-metodo-valor">
                     {fmtR(val)}
                   </div>
                 </div>
@@ -308,55 +250,45 @@ function FechamentoDetalheModal({ f, customLabels, onClose }) {
 
         {/* Observação */}
         {f.observacao && (
-          <div style={{
-            background: `${alfa(C.accent, "0c")}`, border: `1px solid ${alfa(C.accent, "33")}`,
-            borderRadius: 12, padding: "12px 14px",
-            display: "flex", flexDirection: "column", gap: 4,
-          }}>
-            <div className="relatorio-view__modal-obs-label" style={{ fontWeight: 700, color: varColor(C.accent), textTransform: "uppercase", letterSpacing: 1 }}>
+          <div className="relatorio-view__modal-obs">
+            <div className="relatorio-view__modal-obs-label">
               Observação
             </div>
-            <div className="relatorio-view__modal-obs-texto" style={{ color: varColor(C.text) }}>
+            <div className="relatorio-view__modal-obs-texto">
               {f.observacao}
             </div>
           </div>
         )}
 
         {/* Resumo */}
-        <div style={{
-          background: varColor(C.surface), borderRadius: 14,
-          border: `1px solid var(${C.border})`, padding: 16,
-          display: "flex", flexDirection: "column", gap: 9,
-        }}>
+        <div className="relatorio-view__modal-resumo">
           {[
             { label: "Total de Vendas (sistema)", value: fmtR(f.totalVendas) },
             { label: "Fundo de Caixa",            value: fmtR(f.fundo)       },
           ].map(r => (
-            <div key={r.label} style={{ display: "flex", justifyContent: "space-between" }}>
-              <span className="relatorio-view__modal-resumo-label" style={{ color: varColor(C.muted) }}>{r.label}</span>
-              <span className="relatorio-view__modal-resumo-valor" style={{ fontWeight: 600, color: varColor(C.muted) }}>{r.value}</span>
+            <div key={r.label} className="relatorio-view__modal-resumo-linha">
+              <span className="relatorio-view__modal-resumo-label">{r.label}</span>
+              <span className="relatorio-view__modal-resumo-valor">{r.value}</span>
             </div>
           ))}
 
-          <div style={{ borderTop: `1px solid var(${C.border})`, paddingTop: 9, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="relatorio-view__modal-total-label" style={{ fontWeight: 700 }}>Total Esperado em Caixa</span>
-            <span className="relatorio-view__modal-total-valor" style={{ fontWeight: 800, color: varColor(C.muted) }}>{fmtR(totalEsperado)}</span>
+          <div className="relatorio-view__modal-total-linha relatorio-view__modal-total-linha--separada">
+            <span className="relatorio-view__modal-total-label">Total Esperado em Caixa</span>
+            <span className="relatorio-view__modal-total-valor">{fmtR(totalEsperado)}</span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="relatorio-view__modal-total-label" style={{ fontWeight: 800 }}>Total Conferido</span>
-            <span className="relatorio-view__modal-total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>{fmtR(f.totalConferido)}</span>
+          <div className="relatorio-view__modal-total-linha">
+            <span className="relatorio-view__modal-total-label relatorio-view__modal-total-label--forte">Total Conferido</span>
+            <span className="relatorio-view__modal-total-valor relatorio-view__modal-total-valor--conferido">{fmtR(f.totalConferido)}</span>
           </div>
 
-          <div style={{
-            padding: "12px 16px", borderRadius: 10, marginTop: 4,
-            background: `${alfa(corSituacao, "14")}`,
-            border: `1.5px solid ${alfa(corSituacao, "55")}`,
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-          }}>
-            <span className="relatorio-view__modal-dif-label" style={{ fontWeight: 600, color: varColor(C.muted) }}>
+          <div
+            className="relatorio-view__modal-dif"
+            style={{ "--cor-situacao": varColor(corSituacao) }}
+          >
+            <span className="relatorio-view__modal-dif-label">
               {ROTULO_SITUACAO[situacao]}
             </span>
-            <span className="relatorio-view__modal-total-valor" style={{ fontWeight: 900, color: varColor(corSituacao) }}>
+            <span className="relatorio-view__modal-dif-valor">
               {situacao === "sobra" ? "+" : ""}{fmtR(diferenca)}
             </span>
           </div>
@@ -365,12 +297,6 @@ function FechamentoDetalheModal({ f, customLabels, onClose }) {
         <button
           onClick={onClose}
           className="relatorio-view__modal-fechar"
-          style={{
-            padding: "11px", borderRadius: 10,
-            border: `1px solid var(${C.border})`, background: "none",
-            color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
-            fontFamily: "inherit",
-          }}
         >
           Fechar
         </button>

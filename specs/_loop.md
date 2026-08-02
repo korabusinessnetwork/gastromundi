@@ -2,6 +2,16 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 24 — F018 fatia 11 (primitivos e modal do Relatório) — 2026-08-02
+- Spec: specs/f018-relatorio-primitivos-css.md
+- Resultado da review: **aprovada sem ressalvas** — 15 de 15 critérios, zero rodadas de correção.
+- Suíte: 195 arquivos / 3104 testes verdes (78.50s). Build: 11.37s.
+- Métrica: RelatorioView.jsx 202 → 159; no trecho migrado 46 → 3 (os 3 são custom property de runtime). src/ 1627 → 1584.
+- Saiu o único hex cravado do arquivo (#f59e0b → --gm-warn) e as 6 chamadas de alfa() da fatia.
+- Aprendido: memory/learnings.md — (1) style={cond ? {…} : undefined} some da métrica do F018 sem tirar o inline; (2) `*/` dentro de comentário CSS fecha o comentário e o gate não denuncia.
+- Pendente de decisão: nenhuma.
+- **Loop pausado aqui pelo dono**: prioridade passou para o que falta a aplicação rodar 100% e poder ser vendida em 3 dias. F018 volta depois.
+
 ## Rodada 23 — F018, fatia 10 — aba Entrega do Delivery — 2026-08-02
 
 - **Spec:** `specs/f018-delivery-entrega-css.md`

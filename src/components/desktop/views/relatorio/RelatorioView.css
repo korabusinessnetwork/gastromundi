@@ -1,16 +1,26 @@
 /**
- * RelatorioView — migração da TIPOGRAFIA de JS inline para CSS. Decisão 018
- * (CSS separado do JSX) + tokens --fs-* e --lh-* de src/styles/tipografia.css
- * (fonte única de verdade do tamanho de fonte; ADR-007, sobreponível por tenant).
+ * RelatorioView — CSS separado do JSX (decisão 018), com os tokens de fonte de
+ * src/styles/tipografia.css e cor sempre por token --gm- (ADR-007,
+ * sobreponível por tenant).
  *
- * TAMANHO DE FONTE agora vem da escala do design system por classe de
- * componente — não mais inline via sz.* do JSX. `sz`/getSizes CONTINUA no JSX
- * só para layout (padding/gap/grid) e para SIZE de ícones (props size=), que
- * seguem no sistema JS por breakpoint.
+ * TAMANHO DE FONTE vem da escala do design system por classe de componente —
+ * não mais inline via sz.* do JSX. `sz`/getSizes CONTINUA no JSX só para
+ * layout (padding/gap/grid) e para SIZE de ícones (props size=), que seguem no
+ * sistema JS por breakpoint.
  *
  * Relatório é denso em dinheiro/KPI/quantidade/hora → `font-variant-numeric:
  * tabular-nums` em toda coluna/valor numérico, para os dígitos alinharem.
- * Cor, font-weight, padding, gap, border PERMANECEM inline no JSX.
+ *
+ * ESTADO DA MIGRAÇÃO (fatia 11, rodada 24): os seis componentes auxiliares
+ * compartilhados (KpiCard, Th, Td, Empty, ChipBtn, ExportBar) e o modal de
+ * detalhe de fechamento têm aqui TUDO — cor, peso, padding, gap, borda,
+ * layout. No corpo da view (as seis abas) só a tipografia migrou até agora;
+ * lá cor, padding, gap e borda ainda estão inline no JSX, e saem em fatias
+ * seguintes.
+ *
+ * Valor que só existe em runtime entra como custom property no elemento e é
+ * lido aqui: --kpi-pad-y/--kpi-pad-x/--kpi-cor no KpiCard, --td-cor no Td e
+ * --cor-situacao no quadro de diferença do modal.
  *
  * ATENÇÃO: Custom Property não resolve em @media — se precisar de breakpoint
  * literal, escrever o px direto (aqui não há @media).
@@ -18,31 +28,82 @@
 
 /* ── Componentes auxiliares compartilhados ───────────────────────── */
 
-/* KpiCard — rótulo de apoio + número hero do dashboard */
+/* KpiCard — cartão de número do topo da aba. O padding vem do sistema de
+   tamanho por breakpoint, que ainda vive no JS, e a cor do número é escolhida
+   por quem chama; os dois entram como custom property no cartão. */
+.relatorio-view__kpi {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  padding: var(--kpi-pad-y) var(--kpi-pad-x);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* ícone e rótulo na mesma linha, acima do número */
+.relatorio-view__kpi-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .relatorio-view__kpi-label {
   font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
+  color: var(--gm-muted);
+  font-weight: 600;
 }
 .relatorio-view__kpi-valor {
   font-size: var(--fs-2xl);  /* role: número hero de KPI (era sz.fontXl) */
   line-height: var(--lh-2xl);
   font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  color: var(--kpi-cor, inherit);
 }
 
 /* Th — cabeçalho de tabela em caixa alta */
 .relatorio-view__th {
   font-size: var(--fs-sm);   /* role: label de coluna (era 14) */
   line-height: var(--lh-sm);
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
 }
+/* coluna de dinheiro ou quantidade alinha à direita */
+.relatorio-view__th--direita { text-align: right; }
 
-/* Td — célula de corpo (dinheiro, contagem, data, texto) */
+/* Td — célula de corpo (dinheiro, contagem, data, texto). --td-cor só é
+   definida quando quem chama passa uma cor de dado (o tipo do log, por
+   exemplo); sem ela vale o texto padrão, ou o apagado. */
 .relatorio-view__td {
   font-size: var(--fs-base); /* role: corpo (era sz.fontBase) */
   line-height: var(--lh-base);
   font-variant-numeric: tabular-nums;
+  padding: 14px 16px;
+  text-align: left;
+  vertical-align: middle;
+  color: var(--td-cor, var(--gm-text));
 }
+.relatorio-view__td--direita { text-align: right; }
+.relatorio-view__td--apagado { color: var(--td-cor, var(--gm-muted)); }
+.relatorio-view__td--nowrap  { white-space: nowrap; }
 
-/* Empty — glyph decorativo grande + mensagem do estado vazio */
+/* Empty — estado vazio centralizado no espaço que sobrou da aba */
+.relatorio-view__empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px;
+  color: var(--gm-muted);
+}
+/* o glyph fica de propósito quase apagado: é decoração, não informação */
+.relatorio-view__empty-glifo { opacity: 0.3; }
 .relatorio-view__empty-icon {
   font-size: var(--fs-5xl);  /* role: hero decorativo (era 48) */
   line-height: 1;
@@ -50,86 +111,305 @@
 .relatorio-view__empty-msg {
   font-size: var(--fs-lg);   /* role: estado-vazio (era sz.fontBase + 1) */
   line-height: var(--lh-lg);
+  font-weight: 600;
 }
 
 /* ChipBtn — filtro em pílula */
 .relatorio-view__chip {
   font-size: var(--fs-sm);   /* role: label (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: none;
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+/* o filtro em uso é o único cheio de cor — é o que diz onde você está */
+.relatorio-view__chip--ativo {
+  background: var(--gm-accent);
+  color: #fff;
 }
 
-/* ExportBar / botão de export (PDF, Excel) */
+/* ExportBar — PDF e Excel empurrados para a direita da barra da aba */
+.relatorio-view__export-bar {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
 .relatorio-view__export-btn {
   font-size: var(--fs-sm);   /* role: label de botão (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* ── Modal de detalhe de fechamento ──────────────────────────────── */
 
+/* O modal vai por portal para o body, fora da árvore da view: precisa
+   declarar a própria fonte, senão herda a do documento. */
+.relatorio-view__modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.relatorio-view__modal-caixa {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: var(--gm-text);
+  font-family: 'Inter', system-ui, sans-serif;
+  box-sizing: border-box;
+}
+
+/* cabeçalho: quem fechou e quando à esquerda, o X à direita */
+.relatorio-view__modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.relatorio-view__modal-header-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.relatorio-view__modal-icone {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--gm-accent) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.relatorio-view__modal-x {
+  background: none;
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  color: var(--gm-muted);
+  display: flex;
+  align-items: center;
+}
 .relatorio-view__modal-titulo {
   font-size: var(--fs-xl);   /* role: título do modal (era 18) */
   line-height: var(--lh-xl);
+  font-weight: 800;
 }
 .relatorio-view__modal-data {
   font-size: var(--fs-base); /* role: data/hora secundária (era 16) */
   line-height: var(--lh-base);
   font-variant-numeric: tabular-nums;
+  color: var(--gm-muted);
+  margin-top: 2px;
 }
 .relatorio-view__modal-usuario {
   font-size: var(--fs-lg);   /* role: nome do operador (era 18) */
   line-height: var(--lh-lg);
+  color: var(--gm-muted);
+  margin-top: 1px;
+}
+
+/* conferência por método: rótulo à esquerda, dinheiro em coluna fixa de 110px
+   para os valores alinharem entre si */
+.relatorio-view__modal-tabela {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 .relatorio-view__modal-th {
   font-size: var(--fs-sm);   /* role: cabeçalho da grade (era 14) */
   line-height: var(--lh-sm);
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--gm-border);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.relatorio-view__modal-th-valor { text-align: right; }
+.relatorio-view__modal-metodo-linha {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 8px;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--gm-border);
 }
 .relatorio-view__modal-metodo-label {
   font-size: var(--fs-lg);   /* role: rótulo de linha (era 17) */
   line-height: var(--lh-lg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
 }
+/* o peso 400 é o que separa a nota do rótulo em negrito ao lado */
 .relatorio-view__modal-fundo-nota {
   font-size: var(--fs-sm);   /* role: caption "(inclui fundo)" (era 14) */
   line-height: var(--lh-sm);
   font-variant-numeric: tabular-nums;
+  color: var(--gm-muted);
+  font-weight: 400;
 }
 .relatorio-view__modal-metodo-valor {
   font-size: var(--fs-lg);   /* role: dinheiro conferido (era 17) */
   line-height: var(--lh-lg);
   font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-weight: 800;
+}
+
+/* observação escrita por quem fechou o caixa */
+.relatorio-view__modal-obs {
+  background: color-mix(in srgb, var(--gm-accent) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 20%, transparent);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .relatorio-view__modal-obs-label {
   font-size: var(--fs-sm);   /* role: caption "Observação" (era 14) */
   line-height: var(--lh-sm);
+  font-weight: 700;
+  color: var(--gm-accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 .relatorio-view__modal-obs-texto {
   font-size: var(--fs-base); /* role: corpo da observação (era 16) */
   line-height: var(--lh-base);
+  color: var(--gm-text);
+}
+
+/* resumo: vendas e fundo, depois esperado e conferido, depois a diferença */
+.relatorio-view__modal-resumo {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.relatorio-view__modal-resumo-linha {
+  display: flex;
+  justify-content: space-between;
 }
 .relatorio-view__modal-resumo-label {
   font-size: var(--fs-base); /* role: rótulo do resumo (era 16) */
   line-height: var(--lh-base);
+  color: var(--gm-muted);
 }
 .relatorio-view__modal-resumo-valor {
   font-size: var(--fs-base); /* role: dinheiro do resumo (era 16) */
   line-height: var(--lh-base);
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--gm-muted);
+}
+.relatorio-view__modal-total-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+/* o esperado abre o bloco de totais: a linha acima o separa das parcelas */
+.relatorio-view__modal-total-linha--separada {
+  border-top: 1px solid var(--gm-border);
+  padding-top: 9px;
+  margin-top: 2px;
 }
 .relatorio-view__modal-total-label {
   font-size: var(--fs-lg);   /* role: rótulo de total (era 17/18) */
   line-height: var(--lh-lg);
+  font-weight: 700;
 }
+.relatorio-view__modal-total-label--forte { font-weight: 800; }
 .relatorio-view__modal-total-valor {
   font-size: var(--fs-lg);   /* role: dinheiro de total (era 17/18) */
   line-height: var(--lh-lg);
   font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--gm-muted);
+}
+/* o conferido é o número que o operador contou: verde e mais pesado */
+.relatorio-view__modal-total-valor--conferido {
+  font-weight: 900;
+  color: var(--gm-green);
+}
+
+/* diferença: verde quando bate ou sobra, vermelho quando falta. A cor é
+   escolhida em JS e entra uma vez só, como --cor-situacao. */
+.relatorio-view__modal-dif {
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-top: 4px;
+  background: color-mix(in srgb, var(--cor-situacao) 8%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--cor-situacao) 33%, transparent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .relatorio-view__modal-dif-label {
   font-size: var(--fs-base); /* role: rótulo sobra/falta (era 16) */
   line-height: var(--lh-base);
+  font-weight: 600;
+  color: var(--gm-muted);
+}
+.relatorio-view__modal-dif-valor {
+  font-size: var(--fs-lg);   /* role: dinheiro da diferença (era 17/18) */
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  color: var(--cor-situacao);
 }
 .relatorio-view__modal-fechar {
   font-size: var(--fs-lg);   /* role: label de botão (era 17) */
   line-height: var(--lh-lg);
+  padding: 11px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
 }
 
 /* ── View principal — cabeçalho e abas ───────────────────────────── */
