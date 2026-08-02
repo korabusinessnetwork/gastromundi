@@ -297,6 +297,39 @@ classe compartilhada — o que os outros quatro pediam — pintaria de vermelho 
 
 ---
 
+### Duas faixas com a mesma estrutura e cores diferentes: a cor mora no descendente do modificador
+As faixas de alerta do PDV (estoque em âmbar, validade em vermelho) são a mesma marcação: cabeçalho
+com ícone, label, botão Ver/Ocultar e uma lista de chips. Dar `color` à classe compartilhada
+(`.pdv__alerta-label`, `.pdv__alerta-toggle`) obrigaria uma das duas a sobrescrever, e a
+sobrescrita é onde a divergência de valor se instala calada.
+
+- A classe compartilhada leva só o que é igual nas duas (layout, tamanho, peso). A cor vem do
+  **descendente do modificador da faixa**: `.pdv__alerta--atencao .pdv__alerta-label { color: … }`.
+  Uma faixa nova é um modificador novo, não uma sobrescrita.
+- **Confira o escopo do estado antes de escolher onde o modificador mora.** O chip parece o mesmo
+  caso e não é: dentro da faixa de validade ele alterna as duas cores na mesma lista (vencido
+  vermelho, próximo âmbar). Modificador de chip por faixa pintaria a lista inteira de uma cor só.
+  A pergunta é "esse estado varia por bloco ou por item?", e a resposta está na condição do JSX
+  (`vencido ? … : …` é por item), não na aparência da tela cheia.
+- Consequência prática: modificador de bloco (`--atencao`/`--critico`) e modificador de item
+  (`-chip--critico`/`--atencao`) coexistem com o mesmo sufixo e significam recortes diferentes. O
+  nome não desambigua — o prefixo do bloco BEM é o que diz qual é qual.
+
+### Ao extrair CSS, a classe copia a ausência também
+Os dois grupos de abas do `PDVView/index.jsx` pareciam idênticos e não eram: as abas
+Mapa/Lista/Comandas declaravam `fontFamily: "inherit"` inline, as abas Produtos/Carrinho do celular
+não. `<button>` não herda fonte do documento sozinho — escrever `font-family: inherit` na segunda
+classe "por higiene" trocaria a fonte do sistema pela do app num par de botões que o dono vê todo
+dia no celular.
+
+- Ao mover declaração de inline para classe, o conjunto de destino é **exatamente** o de origem: o
+  que não estava lá não entra, mesmo quando a ausência parece descuido. Corrigir e migrar na mesma
+  rodada apaga a evidência de qual dos dois mudou a tela.
+- Se a ausência realmente for um defeito, ela vira item separado — o contrato de uma fatia de F018
+  é mudança visual zero, e é isso que permite auditar 190 linhas trocadas por diferença de zero.
+
+---
+
 ## Padrões de API
 
 ### Formato de Resposta

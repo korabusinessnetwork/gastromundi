@@ -207,7 +207,14 @@
   font-weight: 700;
   color: var(--gm-green);
   pointer-events: none;
+  opacity: 0;
+  transform: translateY(-6px);
   transition: opacity 0.3s, transform 0.3s;
+}
+
+.pdv__toast--visivel {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /*
@@ -222,6 +229,10 @@
   z-index: 60;
   pointer-events: none;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  /* Fundo opaco (e não o tom translúcido do toast do cabeçalho): flutuando
+     sobre a lista, o verde translúcido deixaria a comanda de baixo
+     transparecer atrás do texto. */
+  background: var(--gm-surface);
   opacity: 0;
   transform: translate(-50%, -6px);
   transition: opacity 0.3s, transform 0.3s;
@@ -232,18 +243,28 @@
   transform: translate(-50%, 0);
 }
 
-/* background e cursor seguem inline: mudam com o caixa aberto/fechado. */
+/* padding e a largura total do celular seguem inline: dependem de `sz` e de
+   `isCel`. O fundo e o cursor vieram para cá porque o `disabled` do botão é
+   `!caixaAberto` — exatamente a negação da condição que os pintava, então
+   `:disabled` reproduz o ternário sem perder nada. */
 .pdv__nova-comanda-btn {
   display: flex;
   align-items: center;
   gap: 6px;
   border: none;
   border-radius: 9px;
+  background: var(--gm-accent);
   font-size: var(--fs-base);   /* role: botão (era sem token) */
   line-height: var(--lh-base);
   font-weight: 700;
   color: #fff;   /* literal: sem token para texto sobre a marca — ver .pdv__voltar-btn:hover */
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.pdv__nova-comanda-btn:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
 }
 
 /* ── Ações do modo pedido ────────────────────────────────────────── */
@@ -287,11 +308,26 @@
   color: var(--gm-text);
 }
 
-/* Cliente: borda/fundo/cor dependem de haver cliente vinculado e continuam
-   inline, junto com o hover (que só vale quando não há cliente). */
+/* Cliente: sem cliente vinculado é igual ao neutro; com cliente, ganha a cor
+   da marca. O hover só valia sem cliente (o `if` dos dois handlers em JS que
+   saíram daqui) — `:not()` faz o mesmo recorte. */
 .pdv__acao-btn--cliente {
   max-width: 200px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
   transition: background 0.15s, color 0.15s;
+}
+
+.pdv__acao-btn--cliente:not(.pdv__acao-btn--cliente-vinculado):hover {
+  background: var(--gm-card);
+  color: var(--gm-text);
+}
+
+.pdv__acao-btn--cliente-vinculado {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 7%, transparent);
+  color: var(--gm-accent);
 }
 
 .pdv__acao-btn--cancelar-comanda,
@@ -312,36 +348,264 @@
   background: color-mix(in srgb, var(--gm-red) 12%, transparent);
 }
 
-/* Alertas de estoque baixo / validade — mesmas classes reusadas pelas duas
-   faixas (estrutura idêntica, dado diferente). */
+/* ── Faixas de alerta (estoque baixo e validade) ─────────────────────
+ *
+ * As duas faixas são a mesma estrutura com dado diferente, então dividem as
+ * classes. O que muda entre elas é só a cor: `--atencao` (âmbar, estoque) e
+ * `--critico` (vermelho, validade). Por isso label e toggle recebem a cor pelo
+ * modificador da faixa, e não na classe compartilhada.
+ *
+ * O chip é a exceção: dentro da faixa de validade ele alterna as duas cores
+ * (vencido vermelho, próximo âmbar), então o modificador dele é por chip.
+ *
+ * O âmbar era `#f59e0b` cravado seis vezes no JSX — é o valor de --gm-warn,
+ * e o comentário do token em src/styles/tema.css já mandava fazer esta troca.
+ */
+.pdv__alerta {
+  flex-shrink: 0;
+}
+
+.pdv__alerta--atencao {
+  border-bottom: 1px solid color-mix(in srgb, var(--gm-warn) 27%, transparent);
+  background: color-mix(in srgb, var(--gm-warn) 5%, transparent);
+}
+
+.pdv__alerta--critico {
+  border-bottom: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 4%, transparent);
+}
+
+.pdv__alerta-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 24px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
 .pdv__alerta-label {
+  flex: 1;
   font-size: var(--fs-base);   /* role: label do aviso (era 16px) */
   line-height: var(--lh-base);
+  font-weight: 700;
 }
 
 .pdv__alerta-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--fs-base);   /* role: ação "Ver/Ocultar" (era 18px) */
   line-height: var(--lh-base);
+  font-weight: 600;
+}
+
+.pdv__alerta--atencao .pdv__alerta-label,
+.pdv__alerta--atencao .pdv__alerta-toggle {
+  color: var(--gm-warn);
+}
+
+.pdv__alerta--critico .pdv__alerta-label,
+.pdv__alerta--critico .pdv__alerta-toggle {
+  color: var(--gm-red);
+}
+
+.pdv__alerta-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 24px 12px;
 }
 
 .pdv__alerta-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
   font-size: var(--fs-base);   /* role: chip de contagem (era 18px) */
   line-height: var(--lh-base);
+  font-weight: 700;
 }
 
+.pdv__alerta-chip--critico {
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
+  color: var(--gm-red);
+}
+
+.pdv__alerta-chip--atencao {
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 27%, transparent);
+  background: color-mix(in srgb, var(--gm-warn) 9%, transparent);
+  color: var(--gm-warn);
+}
+
+/* A quantidade/prazo no fim do chip é o que o operador procura. */
+.pdv__alerta-chip-valor {
+  font-weight: 900;
+}
+
+/* ── Abas Lista / Mapa / Comandas / Reservas ─────────────────────── */
+
+/* O padding lateral segue inline: é `sz.pad`. */
+.pdv__tabs {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+/* margin-bottom: -1px faz a borda da aba ativa cobrir a borda do contêiner. */
 .pdv__tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: -1px;
+  padding: 8px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-family: inherit;   /* controle de formulário não herda fonte sozinho */
   font-size: var(--fs-base);   /* role: aba Mapa/Lista/Comandas (era sz.fontBase) */
   line-height: var(--lh-base);
+  font-weight: 700;
+  color: var(--gm-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
 }
 
+.pdv__tab-btn--ativa {
+  border-bottom-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
+/* Reservas fica encostada à direita, separada das três abas de venda. */
+.pdv__tab-btn--direita {
+  margin-left: auto;
+}
+
+/* ── Busca de comandas ───────────────────────────────────────────── */
+
+.pdv__busca {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  /* Era 16px de folga + input de 57px de altura = ~92px só para a busca.
+     Campo numérico não precisa desse porte; 47px ainda passa do --tap-min. */
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.pdv__busca-campo {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+}
+
+.pdv__busca-icone {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gm-muted);
+  pointer-events: none;
+  transition: color 0.15s;
+}
+
+.pdv__busca-icone--ativo {
+  color: var(--gm-accent);
+}
+
+/* Mesmo ganho do .pdv__barcode-input: com a borda aqui (0,1,0), quem pinta o
+   foco passa a ser src/styles/inputs.css, que tem especificidade maior. Antes,
+   a borda inline vencia a regra global e este campo não mostrava foco. */
 .pdv__busca-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 11px 46px;
+  border: 1.5px solid var(--gm-input-border);
+  border-radius: 12px;
+  outline: none;
+  background: var(--gm-input-bg);
+  font-family: inherit;
   font-size: var(--fs-base);   /* role: input (era 18px) */
   line-height: var(--lh-base);
+  color: var(--gm-text);
+  transition: border-color 0.15s;
+}
+
+.pdv__busca-input--preenchido {
+  border-color: color-mix(in srgb, var(--gm-accent) 53%, transparent);
+}
+
+.pdv__busca-limpar {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  display: flex;
+  padding: 2px;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+
+/* ── Corpo da tela ───────────────────────────────────────────────── */
+
+/* min-height: 0 é o que permite a lista rolar dentro do flex em vez de
+   empurrar a página. */
+.pdv__body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pdv__lista-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.pdv__produtos-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Abas Produtos / Carrinho (só no celular) ────────────────────── */
+
+.pdv__mobile-tabs {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--gm-border);
 }
 
 .pdv__mobile-tab-btn {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 13px 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
   font-size: var(--fs-base);   /* role: aba Produtos/Carrinho no celular (era 17px) */
   line-height: var(--lh-base);
+  font-weight: 700;
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+
+.pdv__mobile-tab-btn--ativa {
+  border-bottom-color: var(--gm-accent);
+  background: var(--gm-alow);
+  color: var(--gm-accent);
 }
 
 /* ── Leitor de código de barras ──────────────────────────────────── */
@@ -365,7 +629,8 @@
   gap: 6px;
 }
 
-/* Fundo, cor e borda dependem de o código ter sido encontrado → seguem inline. */
+/* Verde quando o código foi encontrado, vermelho quando não — o retorno é o
+   único sinal de que o bipe entrou, então tem cor de estado, não de aviso. */
 .pdv__barcode-feedback {
   padding: 4px 10px;
   border-radius: 8px;
@@ -375,19 +640,40 @@
   white-space: nowrap;
 }
 
-/* Borda, fundo e cor dependem de o campo estar aberto → seguem inline. */
+.pdv__barcode-feedback--ok {
+  border: 1px solid color-mix(in srgb, var(--gm-green) 27%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
+  color: var(--gm-green);
+}
+
+.pdv__barcode-feedback--erro {
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
+  color: var(--gm-red);
+}
+
 .pdv__scanner-btn {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 10px 14px;
+  border: 1.5px solid var(--gm-border);
   border-radius: 10px;
+  background: var(--gm-surface);
   font-family: inherit;   /* controle de formulário não herda fonte sozinho */
   font-size: var(--fs-sm);   /* role: botão compacto secundário (era 15px) */
   line-height: var(--lh-sm);
   font-weight: 700;
+  color: var(--gm-muted);
   cursor: pointer;
   transition: all 0.15s;
+}
+
+/* Aceso enquanto o campo de digitação está aberto — o botão é o interruptor. */
+.pdv__scanner-btn--aberto {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 7%, transparent);
+  color: var(--gm-accent);
 }
 
 /* A borda accent no foco vinha de onFocus/onBlur em JS porque o `border`
@@ -408,16 +694,25 @@
   color: var(--gm-text);
 }
 
-/* Fundo e cursor dependem de haver código digitado → seguem inline. */
+/* Apagado até haver código digitado. O botão não tem atributo `disabled` (o
+   clique com campo vazio é inofensivo), então o estado é modificador de classe
+   e não `:disabled`. */
 .pdv__barcode-ok-btn {
   padding: 8px 14px;
   border: none;
   border-radius: 9px;
+  background: var(--gm-faint);
   font-family: inherit;
   font-size: var(--fs-sm);   /* role: botão compacto (era 14px) */
   line-height: var(--lh-sm);
   font-weight: 700;
   color: #fff;   /* literal: sem token para texto sobre a marca */
+  cursor: not-allowed;
+}
+
+.pdv__barcode-ok-btn--ativo {
+  background: var(--gm-accent);
+  cursor: pointer;
 }
 
 /* ── Modais (compartilhadas entre Nova Comanda / Cancelar Comanda /

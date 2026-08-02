@@ -846,10 +846,7 @@ export default function PDVView({ notify }) {
           <div className="pdv__header-acoes" style={{ justifyContent: isCel ? "flex-start" : "flex-end", gap: sz.gap }}>
           {/* Toast inline — visível no mapa/lista após lançar */}
           {emPainel && (
-            <div className="pdv__toast" style={{
-              opacity: toast ? 1 : 0,
-              transform: toast ? "translateY(0)" : "translateY(-6px)",
-            }}>
+            <div className={`pdv__toast${toast ? " pdv__toast--visivel" : ""}`}>
               ✓ Pedido lançado!
             </div>
           )}
@@ -860,8 +857,6 @@ export default function PDVView({ notify }) {
               className="pdv__nova-comanda-btn"
               style={{
                 padding: `${sz.padSm - 5}px ${sz.pad - 2}px`,
-                background: caixaAberto ? varColor(C.accent) : varColor(C.faint),
-                cursor: caixaAberto ? "pointer" : "not-allowed",
                 ...(isCel ? { width: "100%", justifyContent: "center" } : {}),
               }}
             >
@@ -880,11 +875,7 @@ export default function PDVView({ notify }) {
                     <div className="pdv__barcode-linha">
                       {/* Feedback inline */}
                       {barcodeFeedback && (
-                        <span className="pdv__barcode-feedback" style={{
-                          background: barcodeFeedback === "ok" ? `${alfa(C.green, "18")}` : `${alfa(C.red, "18")}`,
-                          color: barcodeFeedback === "ok" ? varColor(C.green) : varColor(C.red),
-                          border: `1px solid ${alfa(barcodeFeedback === "ok" ? C.green : C.red, "44")}`,
-                        }}>
+                        <span className={`pdv__barcode-feedback pdv__barcode-feedback--${barcodeFeedback === "ok" ? "ok" : "erro"}`}>
                           {barcodeFeedback === "ok" ? "✓ Item adicionado" : "Código não encontrado"}
                         </span>
                       )}
@@ -893,12 +884,7 @@ export default function PDVView({ notify }) {
                         type="button"
                         onClick={() => { setBarcodeInputOpen(v => !v); setBarcodeValue(""); setBarcodeFeedback(null); }}
                         title="Scanner de código de barras"
-                        className="pdv__scanner-btn"
-                        style={{
-                          border: `1.5px solid ${barcodeInputOpen ? varColor(C.accent) : varColor(C.border)}`,
-                          background: barcodeInputOpen ? `${alfa(C.accent, "12")}` : varColor(C.surface),
-                          color: barcodeInputOpen ? varColor(C.accent) : varColor(C.muted),
-                        }}
+                        className={`pdv__scanner-btn${barcodeInputOpen ? " pdv__scanner-btn--aberto" : ""}`}
                       >
                         <LuScanBarcode size={16} />
                         Scanner
@@ -920,11 +906,7 @@ export default function PDVView({ notify }) {
                         <button
                           type="button"
                           onClick={() => handleBarcodeScan(barcodeValue.trim())}
-                          className="pdv__barcode-ok-btn"
-                          style={{
-                            background: barcodeValue.trim() ? varColor(C.accent) : varColor(C.faint),
-                            cursor: barcodeValue.trim() ? "pointer" : "not-allowed",
-                          }}
+                          className={`pdv__barcode-ok-btn${barcodeValue.trim() ? " pdv__barcode-ok-btn--ativo" : ""}`}
                         >
                           OK
                         </button>
@@ -948,15 +930,8 @@ export default function PDVView({ notify }) {
                 <button
                   onClick={abrirClienteComanda}
                   title="Vincular cliente à comanda"
-                  className="pdv__acao-btn pdv__acao-btn--cliente"
-                  style={{
-                    padding: `${sz.padSm - 2}px ${sz.padSm}px`,
-                    border: `1px solid ${selected?.cliente_id ? varColor(C.accent) : `var(${C.border})`}`,
-                    background: selected?.cliente_id ? `${alfa(C.accent, "12")}` : varColor(C.surface),
-                    color: selected?.cliente_id ? varColor(C.accent) : varColor(C.muted),
-                  }}
-                  onMouseEnter={e => { if (!selected?.cliente_id) { e.currentTarget.style.background = varColor(C.card); e.currentTarget.style.color = varColor(C.text); } }}
-                  onMouseLeave={e => { if (!selected?.cliente_id) { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.color = varColor(C.muted); } }}
+                  className={`pdv__acao-btn pdv__acao-btn--cliente${selected?.cliente_id ? " pdv__acao-btn--cliente-vinculado" : ""}`}
+                  style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
                 >
                   <LuUser size={sz.fontBase - 2} />
                   <span className="pdv__acao-btn-texto">
@@ -1010,54 +985,34 @@ export default function PDVView({ notify }) {
         const total = criticos.length + baixos.length;
         if (total === 0) return null;
         return (
-          <div style={{
-            flexShrink: 0,
-            borderBottom: `1px solid #f59e0b44`,
-            background: "#f59e0b0c",
-          }}>
+          <div className="pdv__alerta pdv__alerta--atencao">
             {/* Cabeçalho do alerta */}
             <button
               onClick={() => setAlertaAberto(v => !v)}
-              style={{
-                width: "100%", background: "none", border: "none",
-                cursor: "pointer", padding: "7px 24px",
-                display: "flex", alignItems: "center", gap: 10,
-                textAlign: "left",
-              }}
+              className="pdv__alerta-cabecalho"
             >
-              <LuTriangleAlert size={16} color="#f59e0b" />
-              <span className="pdv__alerta-label" style={{ fontWeight: 700, color: "#f59e0b", flex: 1 }}>
+              <LuTriangleAlert size={16} color={varColor(C.warn)} />
+              <span className="pdv__alerta-label">
                 {criticos.length > 0 && `${criticos.length} produto${criticos.length !== 1 ? "s" : ""} sem estoque`}
                 {criticos.length > 0 && baixos.length > 0 && " · "}
                 {baixos.length > 0 && `${baixos.length} produtos com estoque baixo`}
               </span>
-              <span className="pdv__alerta-toggle" style={{ color: "#f59e0b", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              <span className="pdv__alerta-toggle">
                 {alertaAberto ? <><LuChevronUp size={14} /> Ocultar</> : <><LuChevronDown size={14} /> Ver</>}
               </span>
             </button>
 
             {/* Lista de itens */}
             {alertaAberto && (
-              <div style={{
-                padding: "0 24px 12px",
-                display: "flex", gap: 8, flexWrap: "wrap",
-              }}>
+              <div className="pdv__alerta-lista">
                 {criticos.map(p => (
-                  <span key={p.id} className="pdv__alerta-chip" style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "4px 12px", borderRadius: 20, fontWeight: 700,
-                    background: `${alfa(C.red, "18")}`, border: `1px solid ${alfa(C.red, "44")}`, color: varColor(C.red),
-                  }}>
-                    {p.emoji} {p.name} · <span style={{ fontWeight: 900 }}>0</span>
+                  <span key={p.id} className="pdv__alerta-chip pdv__alerta-chip--critico">
+                    {p.emoji} {p.name} · <span className="pdv__alerta-chip-valor">0</span>
                   </span>
                 ))}
                 {baixos.map(p => (
-                  <span key={p.id} className="pdv__alerta-chip" style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "4px 12px", borderRadius: 20, fontWeight: 700,
-                    background: "#f59e0b18", border: "1px solid #f59e0b44", color: "#f59e0b",
-                  }}>
-                    {p.emoji} {p.name} · <span style={{ fontWeight: 900 }}>{estoque[p.id]}</span>
+                  <span key={p.id} className="pdv__alerta-chip pdv__alerta-chip--atencao">
+                    {p.emoji} {p.name} · <span className="pdv__alerta-chip-valor">{estoque[p.id]}</span>
                   </span>
                 ))}
               </div>
@@ -1076,35 +1031,26 @@ export default function PDVView({ notify }) {
           ? `vencido há ${Math.abs(dias)}d`
           : dias === 0 ? "vence hoje" : `${dias}d`;
         return (
-          <div style={{ flexShrink: 0, borderBottom: `1px solid #ef444444`, background: "#ef44440a" }}>
+          <div className="pdv__alerta pdv__alerta--critico">
             <button
               onClick={() => setAlertaValidadeAberto(v => !v)}
-              style={{
-                width: "100%", background: "none", border: "none", cursor: "pointer",
-                padding: "7px 24px", display: "flex", alignItems: "center", gap: 10, textAlign: "left",
-              }}
+              className="pdv__alerta-cabecalho"
             >
               <LuTriangleAlert size={16} color={varColor(C.red)} />
-              <span className="pdv__alerta-label" style={{ fontWeight: 700, color: varColor(C.red), flex: 1 }}>
+              <span className="pdv__alerta-label">
                 {vencidos.length > 0 && `${vencidos.length} produto${vencidos.length !== 1 ? "s" : ""} vencido${vencidos.length !== 1 ? "s" : ""}`}
                 {vencidos.length > 0 && proximos.length > 0 && " · "}
                 {proximos.length > 0 && `${proximos.length} vencendo em breve`}
               </span>
-              <span className="pdv__alerta-toggle" style={{ color: varColor(C.red), fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              <span className="pdv__alerta-toggle">
                 {alertaValidadeAberto ? <><LuChevronUp size={14} /> Ocultar</> : <><LuChevronDown size={14} /> Ver</>}
               </span>
             </button>
             {alertaValidadeAberto && (
-              <div style={{ padding: "0 24px 12px", display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="pdv__alerta-lista">
                 {vencendo.map(({ produto, dias, vencido }) => (
-                  <span key={produto.id} className="pdv__alerta-chip" style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "4px 12px", borderRadius: 20, fontWeight: 700,
-                    background: vencido ? `${alfa(C.red, "18")}` : "#f59e0b18",
-                    border: `1px solid ${vencido ? alfa(C.red, "44") : "#f59e0b44"}`,
-                    color: vencido ? varColor(C.red) : "#f59e0b",
-                  }}>
-                    {produto.emoji} {produto.name} · <span style={{ fontWeight: 900 }}>{rotuloDias(dias)}</span>
+                  <span key={produto.id} className={`pdv__alerta-chip pdv__alerta-chip--${vencido ? "critico" : "atencao"}`}>
+                    {produto.emoji} {produto.name} · <span className="pdv__alerta-chip-valor">{rotuloDias(dias)}</span>
                   </span>
                 ))}
               </div>
@@ -1115,13 +1061,7 @@ export default function PDVView({ notify }) {
 
       {/* ── Tab Mapa / Lista (celular fica só na lista) ───────────── */}
       {emPainel && !painelEnxuto && (
-        <div style={{
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          borderBottom: `1px solid var(${C.border})`,
-          padding: `0 ${sz.pad}px`,
-        }}>
+        <div className="pdv__tabs" style={{ padding: `0 ${sz.pad}px` }}>
           {[
             { key: "grid",     label: "Lista",            Icon: LuList },
             { key: "mapa",     label: "Mapa",             Icon: LuLayoutGrid },
@@ -1131,20 +1071,7 @@ export default function PDVView({ notify }) {
             <button
               key={key}
               onClick={() => setMode(key)}
-              className="pdv__tab-btn"
-              style={{
-                padding: `8px 16px`,
-                background: "none", border: "none",
-                borderBottom: `2px solid ${mode === key ? varColor(C.accent) : "transparent"}`,
-                color: mode === key ? varColor(C.accent) : varColor(C.muted),
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 6,
-                transition: "color 0.15s, border-color 0.15s",
-                marginBottom: -1,
-                fontFamily: "inherit",
-                ...(alignRight ? { marginLeft: "auto" } : null),
-              }}
+              className={`pdv__tab-btn${mode === key ? " pdv__tab-btn--ativa" : ""}${alignRight ? " pdv__tab-btn--direita" : ""}`}
             >
               <Icon size={14} />{label}
             </button>
@@ -1156,61 +1083,30 @@ export default function PDVView({ notify }) {
              O toast normal mora no cabeçalho, que some no celular. Sem esta
              versão flutuante, lançar pedido no celular não daria retorno. */}
       {painelEnxuto && (
-        <div
-          className={`pdv__toast pdv__toast--flutuante${toast ? " pdv__toast--visivel" : ""}`}
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            // Fundo opaco (e não o tom translúcido do toast do cabeçalho):
-            // flutuando sobre a lista, o verde translúcido deixaria a comanda
-            // de baixo transparecer atrás do texto.
-            background: varColor(C.surface), border: `1px solid ${alfa(C.green, "44")}`,
-            color: varColor(C.green), borderRadius: 10, padding: "9px 16px",
-            fontWeight: 700,
-          }}
-        >
+        <div className={`pdv__toast pdv__toast--flutuante${toast ? " pdv__toast--visivel" : ""}`}>
           ✓ Pedido lançado!
         </div>
       )}
 
       {/* ── Busca de comandas (lista e comandas abertas) ─────────── */}
       {(mode === "grid" || mode === "abertas") && (
-        <div style={{
-          flexShrink: 0,
-          // Era 16px de folga + input de 57px de altura = ~92px só para a busca.
-          // Campo numérico não precisa desse porte; 47px ainda passa do --tap-min.
-          padding: "10px 24px",
-          borderBottom: `1px solid var(${C.border})`,
-          display: "flex", justifyContent: "center",
-        }}>
-          <div style={{ position: "relative", width: "100%", maxWidth: 760 }}>
+        <div className="pdv__busca">
+          <div className="pdv__busca-campo">
             <LuSearch
               size={18}
-              color={buscaComanda ? varColor(C.accent) : varColor(C.muted)}
-              style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", transition: "color 0.15s" }}
+              className={`pdv__busca-icone${buscaComanda ? " pdv__busca-icone--ativo" : ""}`}
             />
             <input
               value={buscaComanda}
               onChange={e => { if (e.target.value === "" || /^\d+$/.test(e.target.value)) setBuscaComanda(e.target.value); }}
               placeholder="Buscar comanda..."
               inputMode="numeric"
-              className="pdv__busca-input"
-              style={{
-                width: "100%",
-                padding: "11px 46px",
-                borderRadius: 12,
-                border: `1.5px solid ${buscaComanda ? alfa(C.accent, "88") : "var(--gm-input-border)"}`,
-                background: "var(--gm-input-bg)",
-                color: varColor(C.text),
-                fontFamily: "inherit",
-                outline: "none",
-                boxSizing: "border-box",
-                transition: "border-color 0.15s",
-              }}
+              className={`pdv__busca-input${buscaComanda ? " pdv__busca-input--preenchido" : ""}`}
             />
             {buscaComanda && (
               <button
                 onClick={() => setBuscaComanda("")}
-                style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: varColor(C.muted), display: "flex", padding: 2 }}
+                className="pdv__busca-limpar"
               >
                 <LuX size={16} />
               </button>
@@ -1220,7 +1116,7 @@ export default function PDVView({ notify }) {
       )}
 
       {/* ── Body ────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
+      <div className="pdv__body">
 
         {mode === "mapa" && (
           <MesaMapView
@@ -1242,7 +1138,7 @@ export default function PDVView({ notify }) {
         )}
 
         {mode === "grid" && (
-          <div style={{ flex: 1, overflowY: "auto" }}>
+          <div className="pdv__lista-scroll">
             <ComandaGrid
               abertas={abertas}
               visitadas={lancadas}
@@ -1258,7 +1154,7 @@ export default function PDVView({ notify }) {
         {/* Só as comandas pendentes de pagamento — o operador localiza
             rápido quem ainda não pagou, sem os slots vazios da lista. */}
         {mode === "abertas" && (
-          <div style={{ flex: 1, overflowY: "auto" }}>
+          <div className="pdv__lista-scroll">
             <ComandaGrid
               abertas={abertas}
               visitadas={lancadas}
@@ -1276,10 +1172,7 @@ export default function PDVView({ notify }) {
           <>
             {/* Tab bar — só no mobile */}
             {isMob && (
-              <div style={{
-                display: "flex", flexShrink: 0,
-                borderBottom: `1px solid var(${C.border})`,
-              }}>
+              <div className="pdv__mobile-tabs">
                 {[
                   { key: "produtos",  label: "Produtos",  Icon: LuShoppingBag },
                   { key: "carrinho", label: `Carrinho${cartItems.length > 0 ? ` (${cartItems.length})` : ""}`, Icon: LuShoppingCart },
@@ -1287,16 +1180,7 @@ export default function PDVView({ notify }) {
                   <button
                     key={key}
                     onClick={() => setAbaAtiva(key)}
-                    className="pdv__mobile-tab-btn"
-                    style={{
-                      flex: 1, padding: "13px 0",
-                      background: abaAtiva === key ? varColor(C.alow) : "none",
-                      border: "none",
-                      borderBottom: `2px solid ${abaAtiva === key ? varColor(C.accent) : "transparent"}`,
-                      color: abaAtiva === key ? varColor(C.accent) : varColor(C.muted),
-                      fontWeight: 700, cursor: "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    }}
+                    className={`pdv__mobile-tab-btn${abaAtiva === key ? " pdv__mobile-tab-btn--ativa" : ""}`}
                   >
                     <Icon size={15} />{label}
                   </button>
@@ -1306,7 +1190,7 @@ export default function PDVView({ notify }) {
 
             {/* Produtos */}
             {(!isMob || abaAtiva === "produtos") && (
-              <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <div className="pdv__produtos-area">
                 <ProductGrid products={products} combos={combos} onAdd={handleAddProduct} />
               </div>
             )}
