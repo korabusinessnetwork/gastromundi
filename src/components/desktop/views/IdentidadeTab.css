@@ -1,0 +1,274 @@
+/* Aba "Identidade" (Configurações) — nome de exibição e logo do próprio
+   estabelecimento (S1-3, decisões 017 e 018).
+   CSS separado do JSX e só tokens --gm-*: nenhuma cor hardcodada, para a
+   tela continuar legível em qualquer paleta de tenant (clara ou escura). */
+
+.ident {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+}
+
+.ident__intro {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--gm-muted);
+}
+
+/* ── Prévia — o resultado ANTES de salvar (princípio nº 1) ────────
+   O palco repete o fundo da sidebar (--gm-surface) de propósito: é ali
+   que a marca vai aparecer, então a prévia precisa mostrar o logo sobre
+   o MESMO fundo. Logo transparente sobre card claro mentiria. */
+
+.ident__previa {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  border: 1px dashed var(--gm-border);
+  border-radius: 14px;
+  padding: 18px;
+  background: var(--gm-card);
+}
+
+.ident__previa-palco {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  width: 100%;
+  max-width: 260px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  text-align: center;
+  overflow: hidden;
+}
+
+.ident__previa-logo {
+  max-width: 100%;
+  max-height: 52px;
+  object-fit: contain;
+  display: block;
+}
+
+.ident__previa-nome {
+  font-family: var(--gm-font-titulo);
+  font-weight: 900;
+  font-size: clamp(13px, 3vw, 16px);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+  color: var(--gm-text);
+  overflow-wrap: break-word;
+}
+
+.ident__previa-tagline {
+  font-family: var(--gm-font-texto);
+  color: var(--gm-muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.ident__previa-legenda {
+  font-size: 12px;
+  color: var(--gm-muted);
+}
+
+/* ── Cards ────────────────────────────────────────────────────── */
+
+.ident__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.ident__rotulo {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gm-muted);
+}
+
+.ident__input {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 15px;
+}
+
+.ident__ajuda {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
+.ident__ajuda--erro {
+  color: var(--gm-red);
+  font-weight: 700;
+}
+
+/* ── Ações ────────────────────────────────────────────────────── */
+
+.ident__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ident__botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  /* 44px é o alvo de toque do sistema (PDV roda no tablet). */
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ident__botao:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ident__botao--fantasma {
+  background: transparent;
+  color: var(--gm-muted);
+}
+
+.ident__botao--perigo {
+  border-color: var(--gm-red);
+  color: var(--gm-red);
+}
+
+/* Input de arquivo escondido: quem clica é o botão grande, que abre a
+   galeria no computador e a câmera no celular. */
+.ident__arquivo {
+  display: none;
+}
+
+/* ── Confirmação de remoção (ação destrutiva confirma) ─────────── */
+
+.ident__confirmar {
+  margin-top: 8px;
+  border: 1px solid var(--gm-red);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--gm-surface);
+}
+
+.ident__confirmar-texto {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-text);
+}
+
+/* ── Avisos ───────────────────────────────────────────────────── */
+
+.ident__aviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+}
+
+.ident__aviso--erro {
+  border-color: var(--gm-red);
+  color: var(--gm-red);
+}
+
+.ident__aviso--ok {
+  border-color: var(--gm-green);
+  color: var(--gm-green);
+}
+
+/* ── Estados e rodapé ─────────────────────────────────────────── */
+
+.ident__estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--gm-muted);
+  padding: 8px 0;
+}
+
+.ident__rodape {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ident__salvar {
+  min-height: 48px;
+  padding: 12px 22px;
+  border-radius: 12px;
+  background: var(--gm-accent);
+  border: 1px solid var(--gm-accent);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ident__salvar:disabled {
+  background: var(--gm-surface);
+  border-color: var(--gm-border);
+  color: var(--gm-muted);
+  cursor: not-allowed;
+}
+
+.ident__salvar > span,
+.ident__salvar svg {
+  vertical-align: middle;
+}
+
+.ident__rodape-dica {
+  font-size: 12px;
+  color: var(--gm-muted);
+}
+
+.ident__girando {
+  animation: ident-girar 1s linear infinite;
+}
+
+@keyframes ident-girar {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Mobile ───────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .ident__acoes,
+  .ident__rodape {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ident__salvar {
+    width: 100%;
+  }
+}

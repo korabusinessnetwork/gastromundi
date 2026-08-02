@@ -1628,11 +1628,26 @@ export function AppProvider({ children }) {
     return mapa;
   })();
 
+  // Aplica a identidade recém-salva sem refazer o bootstrap (S1-3).
+  // Mescla SÓ `tema`: a linha crua que a RPC devolve não tem o que o
+  // `buscarBootstrapTenant` enriquece (assinatura, módulos do plano,
+  // add-ons). Trocar o objeto inteiro apagaria isso e derrubaria o gating
+  // de módulo e a aba "Minha assinatura" até o próximo F5.
+  const aplicarTenantSalvo = useCallback((linhaDoTenant) => {
+    if (!linhaDoTenant || typeof linhaDoTenant !== "object") return;
+    setTenantLocal((anterior) => (anterior ? { ...anterior, tema: linhaDoTenant.tema ?? null } : anterior));
+  }, []);
+
   const value = {
     loading,
     // dados
     products, pending, sales, users, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, meiosPagamento, estoque, estoqueMinimos,
     tenant, moduloHabilitado: moduloHabilitadoNoPlano, addonHabilitado: addonHabilitadoNoTenant,
+    // Aplica no estado o tenant que a RPC de identidade acabou de devolver
+    // (S1-3). Sem isto, o dono salvaria o logo e a sidebar continuaria com a
+    // marca antiga até um F5 — parecendo que não salvou. O efeito de tema
+    // depende de `tenant`, então a troca repinta sozinha.
+    aplicarTenantSalvo,
     // Fase 4 — camada de comercialização (ADR-006): status calculado, só
     // exibição nesta fase — nenhuma escrita é bloqueada por causa disso.
     assinatura: tenant?.assinatura ?? null,

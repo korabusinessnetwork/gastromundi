@@ -195,6 +195,38 @@ Quando o rótulo humano vem de outra tabela e a leitura falha, o fallback é uma
 `fiscal_integracoes`). Código na tela é jargão técnico (Princípio nº1) e o
 usuário não tem como traduzir. Vale para plano, módulo, método e status.
 
+### O que o servidor confirmou tem precedência sobre o contexto
+
+*Adotado em 2026-08-01 (S1-3-IDENTIDADE).*
+
+Tela que salva por RPC e decide "mudou?" comparando o formulário com o que veio
+do `AppContext` precisa guardar, em estado local, **o que a RPC devolveu** — e
+ler dele primeiro. Sem isso, "salvou com sucesso" fica dependendo de o contexto
+repintar: o banner de sucesso não acende, ou pisca e some, e o botão de salvar
+continua aceso como se nada tivesse ido ao banco. Em `IdentidadeTab.jsx` é o
+`temaSalvo`, alimentado com `data?.tema` e, quando a RPC não devolve linha, com
+o que acabou de ser enviado.
+
+O sintoma é sempre o mesmo: o feedback de sucesso funciona no navegador (porque
+o contexto recarrega logo depois) e falha no teste, onde o contexto é estático.
+O teste está certo — quem depende de um repintar assíncrono para dizer "salvo"
+está afirmando antes de saber.
+
+### Pasta nova dentro do bucket que já existe
+
+*Adotado em 2026-08-01 (S1-3-IDENTIDADE).*
+
+As policies de Storage da `20260826` casam pela **primeira** pasta do caminho
+(`(storage.foldername(name))[1] = tenant`). Então qualquer arquivo novo por
+tenant cabe em `{tenant_id}/<assunto>/<arquivo>` dentro do `delivery-fotos` já
+autorizado, isolado e público — sem bucket novo, sem policy nova, sem mais um
+passo manual em produção (e sem repetir o deadlock `40P01` documentado naquela
+migration). O logo do estabelecimento mora em `{tenant_id}/identidade/logo.png`.
+
+Trade-off assumido: o nome do bucket fica menos literal do que o conteúdo.
+Bucket novo só quando a **regra de acesso** for diferente — não quando só o
+assunto for.
+
 ---
 
 ## Padrões de Processo

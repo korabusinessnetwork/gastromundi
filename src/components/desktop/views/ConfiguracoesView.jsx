@@ -18,7 +18,7 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { createPortal } from "react-dom";
-import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter, LuBike, LuReceipt } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter, LuBike, LuReceipt, LuPalette } from "react-icons/lu";
 import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
 import { logAction } from "@/lib/logger";
 import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/deliveryAdmin";
@@ -35,6 +35,7 @@ import ConfiguracaoImpressao from "./impressao/ConfiguracaoImpressao";
 import MesasAdmin from "./mesas/MesasAdmin";
 import ImportarExportarTab from "./ImportarExportarTab";
 import MinhaAssinaturaTab from "./MinhaAssinaturaTab";
+import IdentidadeTab from "./IdentidadeTab";
 import "./ConfiguracoesView.css";
 
 const ROLES = [
@@ -1274,6 +1275,9 @@ export function UnidadesMedidaTab({ sz }) {
 
 const ABAS_CONFIG = [
   { id: "geral",            label: "Geral",               adminOnly: false },
+  // Marca do estabelecimento (nome e logo) — quem responde pela marca é o
+  // dono, e a escrita é por RPC de admin (20260914), então a aba acompanha.
+  { id: "identidade",       label: "Identidade",          adminOnly: true  },
   { id: "usuarios",         label: "Usuários",            adminOnly: false },
   { id: "meios_pagamento",  label: "Meios de Pagamento",  adminOnly: false },
   { id: "unidades_medida",  label: "Unidades de Medida",  adminOnly: false },
@@ -1715,6 +1719,7 @@ export default function ConfiguracoesView() {
                 color: aba === a.id ? "#fff" : varColor(C.muted),
               }}
             >
+              {a.id === "identidade" && <LuPalette size={13} />}
               {a.id === "impressao" && <LuPrinter size={13} />}
               {a.id === "delivery" && <LuBike size={13} />}
               {a.id === "assinatura" && <LuReceipt size={13} />}
@@ -1727,6 +1732,7 @@ export default function ConfiguracoesView() {
       {/* Conteúdo */}
       <div className="configuracoes-view__conteudo" style={{ padding: sz.pad }}>
         {aba === "geral"           && <GeralTab sz={sz} />}
+        {aba === "identidade" && isAdmin && <IdentidadeTab />}
         {aba === "usuarios"        && <UsuariosTab sz={sz} />}
         {aba === "meios_pagamento" && <MeiosPagamentoTab sz={sz} />}
         {aba === "unidades_medida" && <UnidadesMedidaTab sz={sz} />}

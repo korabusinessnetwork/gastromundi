@@ -54,11 +54,12 @@ Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
   tabelas operacionais; e `features.md` diz que o **F016** está "planejado, código não iniciado",
   embora `20260720_assinatura_enforcement.sql`, `AssinaturaBanner.jsx` e `AssinaturaBloqueada.jsx`
   existam. Vale uma rodada de acerto de status antes que alguém construa de novo o que está pronto.
-- **Próximo item recomendado:** **S1-3-USUARIOS** — o dono do restaurante criando e desativando os
-  próprios usuários pela tela: é o pedaço do S1-3 que hoje só existe por SQL (o motivo escrito de o
-  S1-3 travar a venda), o banco já está pronto para ele (`20260739_users_rls_tenant_scope.sql` e
-  `20260740_tenant_slug_e_username_por_tenant.sql`) e, ao contrário de identidade/tema, não depende
-  da pendência de Storage × RLS.
+- **Próximo item recomendado:** **S1-3-IDENTIDADE** — nome de exibição e logo do estabelecimento
+  editáveis pelo admin do próprio tenant. Cheguei a recomendar "S1-3-USUARIOS" e estava errado: a aba
+  "Usuários" já existe em Configurações com CRUD completo, reset de senha e permissões por cargo, e a
+  aba "Impressão" também — dos três pedaços que o `sprint_pre_venda.md` lista no S1-3, só identidade
+  ficou. Hoje ela só muda por RPC do Console (`tenants` não tem policy de UPDATE — ADR-005/008 §7), e
+  o Storage já está destravado desde a `20260826_delivery_fotos_tenant_por_uid.sql`.
 
 ## Rodada 6 — F022-HISTORICO — 2026-08-01
 
