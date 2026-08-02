@@ -418,6 +418,50 @@ Aplicável às outras propriedades do `sz` e aos **15 arquivos** que ainda chama
 
 ---
 
+### Migração de estilo em massa: script que conta antes de gravar, e não grava se a conta não bate
+*Adotado em 2026-08-02 (rodada 22 do ciclo, F018 fatia 9). Arquivo da rodada:
+`src/components/desktop/views/DeliveryView.jsx`, 119 → 28 `style={{`.*
+
+Trocar dezenas de `style={{…}}` por `className` à mão é caro e erra em silêncio; um
+`replace all` cego é barato e erra pior — o mesmo bloco de estilo aparece em componentes
+que **não** estão na fatia. Nesta rodada, três blocos idênticos aos migrados viviam em
+`AbaEntrega` (linhas 2660, 2684 e 2690), que é escopo da fatia 10. Um replace-all os
+teria migrado junto, sem aparecer em lugar nenhum do relatório.
+
+O formato que funciona é um script `.cjs` no scratchpad onde **cada substituição declara
+quantas ocorrências espera**, e o arquivo só é gravado se todas baterem:
+
+```js
+function rep(name, from, to, esperado) {
+  const n = s.split(from).length - 1;
+  if (n !== esperado) { erros.push(name + ": esperava " + esperado + ", achou " + n); return; }
+  s = s.split(from).join(to);
+}
+// …
+if (erros.length) { console.log(erros.join("\n")); process.exit(1); }  // nada é gravado
+fs.writeFileSync(p, s);
+```
+
+Três consequências que valem para a próxima fatia:
+
+- **Acumular os erros em vez de lançar no primeiro** faz uma rodada de execução revelar
+  todos os padrões ambíguos de uma vez, em vez de uma execução por ambiguidade.
+- **Contagem que não bate é informação, não obstáculo**: ela apontou exatamente os três
+  gêmeos fora de escopo. Desambiguar é estreitar a âncora (incluir a indentação, ou um
+  pedaço do handler: `setConfirmarVoltar(false)} className=…`), nunca subir o esperado.
+- **Neste `.css`, âncora de seletor precisa do `{\n`.** O arquivo declara a mesma classe
+  duas vezes de propósito — a regra estrutural (multi-linha) e a gêmea de uma linha só no
+  bloco de TIPOGRAFIA (`.delivery-view__editor-titulo { font-size: … }`). Ancorar em
+  `\n.delivery-view__X {` casa as duas; ancorar em `\n.delivery-view__X {\n` casa só a
+  estrutural.
+
+Vale também a conferência final, que é uma linha de Node: extrair todo
+`componente__[a-z0-9-]+` do JSX e todo `.componente__…` do CSS e listar a diferença. Ela
+pega classe aplicada sem regra — o erro que nem o `vitest` (não lê CSS) nem o `vite build`
+(CSS órfão compila) reclamam.
+
+---
+
 ## Padrões de API
 
 ### Formato de Resposta

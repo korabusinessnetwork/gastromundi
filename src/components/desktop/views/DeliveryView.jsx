@@ -1472,7 +1472,7 @@ function AbaComplementos({ isAdmin, itens, products, aviso }) {
   };
 
   if (carregando) {
-    return <div className="delivery-view__carregando" style={{ color: varColor(C.muted), padding: 16 }}>Carregando…</div>;
+    return <div className="delivery-view__carregando delivery-view__carregando--bloco">Carregando…</div>;
   }
 
   // ── Editor aberto: mostra só o grupo escolhido, limpo, com "voltar" ──
@@ -1495,13 +1495,13 @@ function AbaComplementos({ isAdmin, itens, products, aviso }) {
 
   // ── Grade de cards (visão padrão) ───────────────────────────────────
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap" }}>
-        <div className="delivery-view__hint" style={{ flex: 1, minWidth: 200, color: varColor(C.muted) }}>
+    <div className="delivery-view__complementos">
+      <div className="delivery-view__complementos-topo">
+        <div className="delivery-view__hint delivery-view__complementos-intro">
           Crie um grupo uma vez (ex.: “Adicionais”, “Molhos”) e marque em quais produtos ele aparece. Toque num card para editar.
         </div>
         {isAdmin && (
-          <div style={{ display: "flex", gap: 8, alignItems: "center", maxWidth: 480 }}>
+          <div className="delivery-view__novo-grupo">
             <input
               className="delivery-view__input"
               value={novoGrupo}
@@ -1510,7 +1510,7 @@ function AbaComplementos({ isAdmin, itens, products, aviso }) {
               placeholder="Novo grupo (ex.: Adicionais)"
               maxLength={60}
             />
-            <button onClick={addGrupo} disabled={!novoGrupo.trim() || salvandoGrupo} className="delivery-view__btn" style={{ background: varColor(C.accent), color: "#fff", padding: "10px 16px", whiteSpace: "nowrap" }}>
+            <button onClick={addGrupo} disabled={!novoGrupo.trim() || salvandoGrupo} className="delivery-view__btn delivery-view__btn--primario delivery-view__btn--novo-grupo">
               <LuPlus size={14} /> Grupo
             </button>
           </div>
@@ -1518,19 +1518,13 @@ function AbaComplementos({ isAdmin, itens, products, aviso }) {
       </div>
 
       {grupos.length === 0 ? (
-        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.3 }}>🧩</div>
-          <div className="delivery-view__vazio-titulo" style={{ fontWeight: 600 }}>Nenhum grupo ainda</div>
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">🧩</div>
+          <div className="delivery-view__vazio-titulo">Nenhum grupo ainda</div>
           <div className="delivery-view__vazio-desc">Crie o primeiro grupo (ex.: “Adicionais”) e escolha em quais produtos ele aparece.</div>
         </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))",
-            gap: 12,
-          }}
-        >
+        <div className="delivery-view__grupos-grade">
           {grupos.map((g) => (
             <GrupoCardMini
               key={g.id}
@@ -1559,33 +1553,21 @@ function GrupoCardMini({ grupo, onAbrir }) {
       type="button"
       onClick={onAbrir}
       className="delivery-view__grupo-card"
-      style={{
-        display: "flex", flexDirection: "column", gap: 8, textAlign: "left",
-        border: `1px solid ${varColor(C.border)}`, borderRadius: 14,
-        padding: 14, background: varColor(C.card), cursor: "pointer",
-        width: "100%", minHeight: 116,
-      }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span className="delivery-view__grupo-nome" style={{ flex: 1, fontWeight: 700, color: varColor(C.text) }}>
+      <div className="delivery-view__grupo-topo">
+        <span className="delivery-view__grupo-nome">
           {grupo.nome}
         </span>
-        <LuChevronRight size={18} style={{ color: varColor(C.muted), flexShrink: 0 }} />
+        <LuChevronRight size={18} className="delivery-view__grupo-seta" />
       </div>
 
       <span
-        className="delivery-view__grupo-selo"
-        style={{
-          alignSelf: "flex-start", fontWeight: 600,
-          padding: "2px 8px", borderRadius: 999,
-          background: obrigatorio ? alfa(C.accent, "15") : varColor(C.surface),
-          color: obrigatorio ? varColor(C.accent) : varColor(C.muted),
-        }}
+        className={`delivery-view__grupo-selo delivery-view__grupo-selo--${obrigatorio ? "obrigatorio" : "opcional"}`}
       >
         {obrigatorio ? "Obrigatório" : "Opcional"} · {grupo.min_escolhas ?? 0}–{grupo.max_escolhas ?? 1}
       </span>
 
-      <div className="delivery-view__grupo-stats" style={{ marginTop: "auto", display: "flex", gap: 12, color: varColor(C.muted), flexWrap: "wrap" }}>
+      <div className="delivery-view__grupo-stats">
         <span>{nItens} {nItens === 1 ? "item" : "itens"}</span>
         <span>·</span>
         <span>{nProdutos} {nProdutos === 1 ? "produto" : "produtos"}</span>
@@ -1613,7 +1595,7 @@ function SeletorProdutoComplemento({ products, idsExcluir, onEscolher }) {
   );
 
   return (
-    <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
+    <div className="delivery-view__busca-inline">
       <input
         className="delivery-view__input"
         value={termo}
@@ -1623,16 +1605,9 @@ function SeletorProdutoComplemento({ products, idsExcluir, onEscolher }) {
         placeholder="Buscar item já criado…"
       />
       {aberto && (
-        <div
-          style={{
-            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20,
-            maxHeight: 240, overflowY: "auto",
-            background: varColor(C.card), border: `1px solid ${varColor(C.border)}`,
-            borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
-          }}
-        >
+        <div className="delivery-view__menu-busca">
           {resultados.length === 0 ? (
-            <div className="delivery-view__hint" style={{ padding: "10px 12px", color: varColor(C.muted) }}>
+            <div className="delivery-view__hint delivery-view__menu-vazio">
               {(products || []).length === 0
                 ? "Nenhum produto criado ainda."
                 : "Nenhum item encontrado."}
@@ -1644,18 +1619,11 @@ function SeletorProdutoComplemento({ products, idsExcluir, onEscolher }) {
                 type="button"
                 // onMouseDown (antes do blur) garante que o clique registra.
                 onMouseDown={(e) => { e.preventDefault(); onEscolher(p); setTermo(""); setAberto(false); }}
-                className="delivery-view__btn"
-                style={{
-                  display: "flex", alignItems: "center", gap: 8, width: "100%",
-                  padding: "10px 12px", background: "transparent", border: "none",
-                  borderBottom: `1px solid ${alfa(C.border, "60")}`,
-                  color: varColor(C.text), textAlign: "left",
-                  cursor: "pointer",
-                }}
+                className="delivery-view__btn delivery-view__menu-opcao"
               >
                 {p.emoji && <span className="delivery-view__opcao-emoji">{p.emoji}</span>}
-                <span style={{ flex: 1 }}>{p.name}</span>
-                <span className="delivery-view__opcao-meta" style={{ color: varColor(C.muted) }}>
+                <span className="delivery-view__menu-opcao-nome">{p.name}</span>
+                <span className="delivery-view__opcao-meta">
                   {formatarReais(p.price)}
                 </span>
               </button>
@@ -1683,10 +1651,10 @@ function SeletorSubgrupo({ candidatos, onEscolher }) {
   }, [candidatos, termo]);
 
   return (
-    <div style={{ position: "relative", maxWidth: 420 }}>
+    <div className="delivery-view__busca">
       <LuSearch
         size={15}
-        style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }}
+        className="delivery-view__busca-lupa"
       />
       <input
         className="delivery-view__input delivery-view__input--com-icone"
@@ -1697,16 +1665,9 @@ function SeletorSubgrupo({ candidatos, onEscolher }) {
         placeholder="Buscar grupo para anexar como subgrupo…"
       />
       {aberto && (
-        <div
-          style={{
-            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20,
-            maxHeight: 240, overflowY: "auto",
-            background: varColor(C.card), border: `1px solid ${varColor(C.border)}`,
-            borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
-          }}
-        >
+        <div className="delivery-view__menu-busca">
           {resultados.length === 0 ? (
-            <div className="delivery-view__hint" style={{ padding: "10px 12px", color: varColor(C.muted) }}>
+            <div className="delivery-view__hint delivery-view__menu-vazio">
               Nenhum grupo encontrado.
             </div>
           ) : (
@@ -1717,18 +1678,11 @@ function SeletorSubgrupo({ candidatos, onEscolher }) {
                   key={g.id}
                   type="button"
                   onMouseDown={(e) => { e.preventDefault(); onEscolher(g); setTermo(""); setAberto(false); }}
-                  className="delivery-view__btn"
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8, width: "100%",
-                    padding: "10px 12px", background: "transparent", border: "none",
-                    borderBottom: `1px solid ${alfa(C.border, "60")}`,
-                    color: varColor(C.text), textAlign: "left",
-                    cursor: "pointer",
-                  }}
+                  className="delivery-view__btn delivery-view__menu-opcao"
                 >
-                  <LuPlus size={13} style={{ color: varColor(C.accent), flexShrink: 0 }} />
-                  <span style={{ flex: 1 }}>{g.nome}</span>
-                  <span className="delivery-view__opcao-meta" style={{ color: varColor(C.muted) }}>
+                  <LuPlus size={13} className="delivery-view__menu-opcao-icone" />
+                  <span className="delivery-view__menu-opcao-nome">{g.nome}</span>
+                  <span className="delivery-view__opcao-meta">
                     {nSub} {nSub === 1 ? "item" : "itens"}
                   </span>
                 </button>
@@ -1974,25 +1928,24 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="delivery-view__editor">
       {/* Header do editor: voltar + título + Salvar (trava de tudo) */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="delivery-view__editor-topo">
         <button
           type="button"
           onClick={tentarVoltar}
-          className="delivery-view__btn delivery-view__btn--sm"
-          style={{ display: "flex", alignItems: "center", gap: 6, background: varColor(C.surface), color: varColor(C.text), padding: "8px 12px", whiteSpace: "nowrap" }}
+          className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--voltar"
         >
           <LuArrowLeft size={15} /> Voltar
         </button>
-        <span className="delivery-view__editor-titulo" style={{ flex: 1, fontWeight: 700, color: varColor(C.text) }}>
-          <span style={{ fontWeight: 600, color: varColor(C.muted) }}>nome: </span>
+        <span className="delivery-view__editor-titulo">
+          <span className="delivery-view__editor-titulo-rotulo">nome: </span>
           {nome || grupo.nome}
         </span>
         {isAdmin && (
           <>
             {sujo && (
-              <span className="delivery-view__hint" style={{ color: varColor(C.red), fontWeight: 600, whiteSpace: "nowrap" }}>
+              <span className="delivery-view__hint delivery-view__editor-sujo">
                 Alterações não salvas
               </span>
             )}
@@ -2000,8 +1953,7 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
               type="button"
               onClick={salvar}
               disabled={!sujo || salvando}
-              className="delivery-view__btn delivery-view__btn--sm"
-              style={{ display: "flex", alignItems: "center", gap: 6, background: sujo ? varColor(C.accent) : alfa(C.muted, "20"), color: sujo ? "#fff" : varColor(C.muted), padding: "9px 16px", fontWeight: 700, whiteSpace: "nowrap", cursor: sujo && !salvando ? "pointer" : "default" }}
+              className={`delivery-view__btn delivery-view__btn--sm delivery-view__btn--salvar delivery-view__btn--${sujo ? "primario" : "inerte"}`}
             >
               {salvando ? "Salvando…" : "Salvar"}
             </button>
@@ -2009,8 +1961,8 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
         )}
       </div>
 
-    <div style={{ border: `1px solid ${varColor(C.border)}`, borderRadius: 14, padding: 16, background: varColor(C.card) }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+    <div className="delivery-view__editor-caixa">
+      <div className="delivery-view__editor-linha">
         <input
           className="delivery-view__input delivery-view__input--titulo"
           value={nome}
@@ -2025,7 +1977,7 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
         <div
           role="group"
           aria-label="O cliente é obrigado a escolher neste grupo?"
-          style={{ display: "inline-flex", borderRadius: 999, border: `1px solid ${varColor(C.border)}`, overflow: "hidden" }}
+          className="delivery-view__segmentado"
         >
           {[
             { obrig: false, texto: "Opcional" },
@@ -2039,20 +1991,14 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
                 aria-pressed={ativo}
                 disabled={!isAdmin}
                 onClick={() => isAdmin && setMin(opt.obrig ? String(Math.max(1, Number(min) || 0)) : "0")}
-                className="delivery-view__editor-toggle"
-                style={{
-                  padding: "8px 14px", fontWeight: 700, border: "none",
-                  background: ativo ? varColor(C.accent) : "transparent",
-                  color: ativo ? "#fff" : varColor(C.muted),
-                  cursor: isAdmin ? "pointer" : "default", whiteSpace: "nowrap",
-                }}
+                className={`delivery-view__editor-toggle${ativo ? " delivery-view__editor-toggle--ativo" : ""}`}
               >
                 {opt.texto}
               </button>
             );
           })}
         </div>
-        <label className="delivery-view__hint" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 4 }}>
+        <label className="delivery-view__hint delivery-view__editor-max">
           máx
           <input className="delivery-view__input delivery-view__input--qtd" type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} disabled={!isAdmin} />
         </label>
@@ -2060,14 +2006,13 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
           <button
             onClick={() => setConfirmarRemover(true)}
             title="Remover grupo"
-            className="delivery-view__btn delivery-view__btn--sm"
-            style={{ background: alfa(C.red, "10"), color: varColor(C.red), padding: "8px 10px" }}
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--remover-grupo"
           >
             <LuTrash2 size={13} />
           </button>
         )}
       </div>
-      <div className="delivery-view__hint" style={{ color: varColor(C.muted), marginTop: 4 }}>
+      <div className="delivery-view__hint delivery-view__editor-explica">
         {Number(min) > 0
           ? `Obrigatório — o cliente precisa escolher ${Number(max) > 1 ? `de ${min || 1} a ${max}` : "1 opção"}`
           : `Opcional — o cliente pode escolher ${Number(max) > 1 ? `até ${max}` : "1, se quiser"}`}
@@ -2075,23 +2020,22 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
 
       {/* Itens do grupo — arraste pela alça (⠿) para reordenar (cima/baixo).
           A ordem aqui é a mesma que o cliente vê na vitrine. */}
-      <div style={{ marginTop: 10 }}>
+      <div className="delivery-view__editor-itens">
         <ListaArrastavel
           itens={itens}
           idDe={(it) => it.id ?? it._tempId}
           onReordenar={reordenarItens}
           renderItem={(it, { alca }) => (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: varColor(C.surface), marginBottom: 6 }}>
+            <div className="delivery-view__item-linha delivery-view__item-linha--compacta">
               {isAdmin && <span {...alca}>⠿</span>}
-              <span className="delivery-view__item-nome" style={{ flex: 1 }}>{it.nome}</span>
-              <span className="delivery-view__item-preco" style={{ color: varColor(C.accent), fontWeight: 600 }}>
+              <span className="delivery-view__item-nome">{it.nome}</span>
+              <span className="delivery-view__item-preco">
                 {Number(it.preco) > 0 ? `+ ${formatarReais(it.preco)}` : "Grátis"}
               </span>
               {isAdmin && (
                 <button
                   onClick={() => removerItem(it)}
                   className="delivery-view__modal-fechar"
-                  style={{ color: varColor(C.muted) }}
                 >
                   <LuX size={14} />
                 </button>
@@ -2102,25 +2046,24 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
       </div>
 
       {isAdmin && (
-        <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div className="delivery-view__add-item">
           {selecionadoProd ? (
             // Produto escolhido: mostra o item + preço (editável) + confirmar.
             <>
-              <div className="delivery-view__selecionado" style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 180, padding: "8px 10px", borderRadius: 8, background: alfa(C.accent, "12"), color: varColor(C.accent), fontWeight: 600 }}>
+              <div className="delivery-view__selecionado">
                 {selecionadoProd.emoji && <span>{selecionadoProd.emoji}</span>}
-                <span style={{ flex: 1 }}>{selecionadoProd.name}</span>
+                <span className="delivery-view__selecionado-nome">{selecionadoProd.name}</span>
                 <button
                   type="button"
                   onClick={() => { setSelecionadoProd(null); setNovoPreco(""); }}
-                  className="delivery-view__modal-fechar"
+                  className="delivery-view__modal-fechar delivery-view__modal-fechar--accent"
                   title="Trocar item"
-                  style={{ color: varColor(C.accent) }}
                 >
                   <LuX size={14} />
                 </button>
               </div>
               <input className="delivery-view__input delivery-view__input--preco" type="number" min="0" step="0.01" value={novoPreco} onChange={(e) => setNovoPreco(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addItem()} placeholder="R$ 0,00" />
-              <button onClick={addItem} className="delivery-view__btn delivery-view__btn--sm" style={{ background: varColor(C.accent), color: "#fff", padding: "8px 14px" }}>
+              <button onClick={addItem} className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--primario delivery-view__btn--add-item">
                 <LuPlus size={13} /> Adicionar
               </button>
             </>
@@ -2139,17 +2082,17 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
           biblioteca dentro deste. Cada subgrupo continua reutilizável
           sozinho — aqui só se reaproveita. Arraste pela alça pra ordenar. */}
       {isAdmin && (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${alfa(C.border, "60")}` }}>
-          <div className="delivery-view__secao-titulo" style={{ fontWeight: 600, color: varColor(C.text), marginBottom: 2 }}>
-            <LuClipboardList size={12} style={{ verticalAlign: "-2px", marginRight: 4 }} /> Subgrupos deste grupo
+        <div className="delivery-view__editor-secao">
+          <div className="delivery-view__secao-titulo">
+            <LuClipboardList size={12} className="delivery-view__secao-icone" /> Subgrupos deste grupo
           </div>
-          <div className="delivery-view__hint" style={{ color: varColor(C.muted), marginBottom: 8 }}>
+          <div className="delivery-view__hint delivery-view__secao-desc">
             Reaproveite grupos já criados aqui dentro. Cada subgrupo mantém suas próprias
             regras (obrigatório/opcional) e continua disponível sozinho em outros produtos.
           </div>
 
           {subgrupoIds.length > 0 && (
-            <div style={{ marginBottom: 8 }}>
+            <div className="delivery-view__secao-lista">
               <ListaArrastavel
                 itens={subgrupoIds}
                 idDe={(id) => id}
@@ -2159,19 +2102,18 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
                   const nSub = (sub?.itens || []).length;
                   const obrig = Number(sub?.min_escolhas) > 0;
                   return (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 8, background: varColor(C.surface), marginBottom: 6 }}>
+                    <div className="delivery-view__item-linha">
                       <span {...alca}>⠿</span>
-                      <span className="delivery-view__item-nome" style={{ flex: 1, fontWeight: 600, color: varColor(C.text) }}>
+                      <span className="delivery-view__item-nome delivery-view__item-nome--forte">
                         {sub?.nome || "(grupo removido)"}
                       </span>
-                      <span className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
+                      <span className="delivery-view__hint">
                         {obrig ? "Obrigatório" : "Opcional"} · {nSub} {nSub === 1 ? "item" : "itens"}
                       </span>
                       <button
                         onClick={() => removerSubgrupo(id)}
                         className="delivery-view__modal-fechar"
                         title="Remover subgrupo (não apaga o grupo)"
-                        style={{ color: varColor(C.muted) }}
                       >
                         <LuX size={14} />
                       </button>
@@ -2185,7 +2127,7 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
           {candidatosSubgrupo.length > 0 ? (
             <SeletorSubgrupo candidatos={candidatosSubgrupo} onEscolher={addSubgrupo} />
           ) : (
-            <div className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
+            <div className="delivery-view__hint">
               {biblioteca.length <= 1
                 ? "Crie outros grupos na biblioteca para reaproveitá-los aqui como subgrupos."
                 : "Nenhum outro grupo disponível para anexar aqui."}
@@ -2196,12 +2138,12 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
 
       {/* Onde este grupo aparece — busca multi-seleção dos produtos do cardápio. */}
       {isAdmin && (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${alfa(C.border, "60")}` }}>
-          <div className="delivery-view__secao-titulo" style={{ fontWeight: 600, color: varColor(C.text), marginBottom: 6 }}>
-            <LuUtensils size={12} style={{ verticalAlign: "-2px", marginRight: 4 }} /> Aparece nestes produtos
+        <div className="delivery-view__editor-secao">
+          <div className="delivery-view__secao-titulo delivery-view__secao-titulo--respiro">
+            <LuUtensils size={12} className="delivery-view__secao-icone" /> Aparece nestes produtos
           </div>
           {itensCardapio.length === 0 ? (
-            <div className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
+            <div className="delivery-view__hint">
               Adicione produtos ao cardápio para vincular este grupo a eles.
             </div>
           ) : (
@@ -2219,21 +2161,21 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
       {/* Confirmação ao voltar com rascunho pendente (avisa e confirma) */}
       {confirmarVoltar && createPortal(
         <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setConfirmarVoltar(false))}>
-          <div className="delivery-view__modal" style={{ background: varColor(C.card), color: varColor(C.text), maxWidth: 420 }}>
+          <div className="delivery-view__modal delivery-view__modal--estreito">
             <div className="delivery-view__modal-topo">
-              <div className="delivery-view__modal-titulo" style={{ fontWeight: 800 }}>Alterações não salvas</div>
-              <button onClick={() => setConfirmarVoltar(false)} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+              <div className="delivery-view__modal-titulo">Alterações não salvas</div>
+              <button onClick={() => setConfirmarVoltar(false)} className="delivery-view__modal-fechar">
                 <LuX size={18} />
               </button>
             </div>
-            <div className="delivery-view__modal-texto" style={{ color: varColor(C.text) }}>
+            <div className="delivery-view__modal-texto">
               Você tem alterações não salvas neste grupo. Se sair agora, elas serão descartadas e o grupo continua como estava.
             </div>
             <div className="delivery-view__modal-botoes">
-              <button onClick={() => setConfirmarVoltar(false)} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0" }}>
+              <button onClick={() => setConfirmarVoltar(false)} className="delivery-view__btn delivery-view__btn--secundario">
                 Continuar editando
               </button>
-              <button onClick={() => { setConfirmarVoltar(false); onVoltar(); }} className="delivery-view__btn" style={{ background: varColor(C.red), color: "#fff", padding: "11px 0" }}>
+              <button onClick={() => { setConfirmarVoltar(false); onVoltar(); }} className="delivery-view__btn delivery-view__btn--perigo">
                 Descartar e sair
               </button>
             </div>
@@ -2245,21 +2187,21 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
       {/* Confirmação da remoção do grupo inteiro (ação destrutiva) */}
       {confirmarRemover && createPortal(
         <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setConfirmarRemover(false))}>
-          <div className="delivery-view__modal" style={{ background: varColor(C.card), color: varColor(C.text), maxWidth: 420 }}>
+          <div className="delivery-view__modal delivery-view__modal--estreito">
             <div className="delivery-view__modal-topo">
-              <div className="delivery-view__modal-titulo" style={{ fontWeight: 800 }}>Remover grupo</div>
-              <button onClick={() => setConfirmarRemover(false)} className="delivery-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+              <div className="delivery-view__modal-titulo">Remover grupo</div>
+              <button onClick={() => setConfirmarRemover(false)} className="delivery-view__modal-fechar">
                 <LuX size={18} />
               </button>
             </div>
-            <div className="delivery-view__modal-texto" style={{ color: varColor(C.text) }}>
+            <div className="delivery-view__modal-texto">
               Remover o grupo <strong>{grupo.nome}</strong>? Ele deixará de aparecer em todos os produtos vinculados. Essa ação não pode ser desfeita.
             </div>
             <div className="delivery-view__modal-botoes">
-              <button onClick={() => setConfirmarRemover(false)} className="delivery-view__btn" style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "11px 0" }}>
+              <button onClick={() => setConfirmarRemover(false)} className="delivery-view__btn delivery-view__btn--secundario">
                 Cancelar
               </button>
-              <button onClick={removerGrupo} className="delivery-view__btn" style={{ background: varColor(C.red), color: "#fff", padding: "11px 0" }}>
+              <button onClick={removerGrupo} className="delivery-view__btn delivery-view__btn--perigo">
                 Remover grupo
               </button>
             </div>
@@ -2293,29 +2235,22 @@ function SeletorProdutosMulti({ itens, produtoIds, vinculando, onAlternar }) {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="delivery-view__multi">
       {/* Chips dos já vinculados */}
       {selecionados.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div className="delivery-view__chips">
           {selecionados.map((it) => (
             <span
               key={it.id}
               className="delivery-view__chip-produto"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "5px 8px 5px 10px", borderRadius: 999,
-                background: alfa(C.accent, "15"), color: varColor(C.accent),
-                border: `1px solid ${alfa(C.accent, "40")}`, fontWeight: 600,
-              }}
             >
               {it.produto?.name || "(produto)"}
               <button
                 type="button"
                 onClick={() => onAlternar(it.produto_id)}
                 disabled={vinculando}
-                className="delivery-view__modal-fechar"
+                className="delivery-view__modal-fechar delivery-view__modal-fechar--accent delivery-view__chip-remover"
                 title="Remover deste combo"
-                style={{ color: varColor(C.accent), display: "inline-flex" }}
               >
                 <LuX size={13} />
               </button>
@@ -2325,10 +2260,10 @@ function SeletorProdutosMulti({ itens, produtoIds, vinculando, onAlternar }) {
       )}
 
       {/* Busca para adicionar mais produtos */}
-      <div style={{ position: "relative", maxWidth: 420 }}>
+      <div className="delivery-view__busca">
         <LuSearch
           size={15}
-          style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), pointerEvents: "none" }}
+          className="delivery-view__busca-lupa"
         />
         <input
           className="delivery-view__input delivery-view__input--com-icone"
@@ -2339,16 +2274,9 @@ function SeletorProdutosMulti({ itens, produtoIds, vinculando, onAlternar }) {
           placeholder="Buscar produto para adicionar…"
         />
         {aberto && (
-          <div
-            style={{
-              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20,
-              maxHeight: 240, overflowY: "auto",
-              background: varColor(C.card), border: `1px solid ${varColor(C.border)}`,
-              borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
-            }}
-          >
+          <div className="delivery-view__menu-busca">
             {resultados.length === 0 ? (
-              <div className="delivery-view__hint" style={{ padding: "10px 12px", color: varColor(C.muted) }}>
+              <div className="delivery-view__hint delivery-view__menu-vazio">
                 {termo.trim() ? "Nenhum produto encontrado." : "Todos os produtos já estão neste combo."}
               </div>
             ) : (
@@ -2359,17 +2287,10 @@ function SeletorProdutosMulti({ itens, produtoIds, vinculando, onAlternar }) {
                   disabled={vinculando}
                   // onMouseDown (antes do blur) garante que o clique registra.
                   onMouseDown={(e) => { e.preventDefault(); onAlternar(it.produto_id); setTermo(""); }}
-                  className="delivery-view__btn"
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8, width: "100%",
-                    padding: "10px 12px", background: "transparent", border: "none",
-                    borderBottom: `1px solid ${alfa(C.border, "60")}`,
-                    color: varColor(C.text), textAlign: "left",
-                    cursor: "pointer",
-                  }}
+                  className="delivery-view__btn delivery-view__menu-opcao"
                 >
-                  <LuPlus size={13} style={{ color: varColor(C.accent), flexShrink: 0 }} />
-                  <span style={{ flex: 1 }}>{it.produto?.name || "(produto)"}</span>
+                  <LuPlus size={13} className="delivery-view__menu-opcao-icone" />
+                  <span className="delivery-view__menu-opcao-nome">{it.produto?.name || "(produto)"}</span>
                 </button>
               ))
             )}

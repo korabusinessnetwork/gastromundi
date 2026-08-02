@@ -1045,9 +1045,22 @@
   padding: 8px 12px;
 }
 
-/* Card médio da biblioteca de grupos (aba Complementos). Realce ao passar
+/* Card médio da biblioteca de grupos (aba Complementos). É um <button> sem a
+   classe `__btn`, então a forma toda mora aqui. A altura mínima deixa os cards
+   da grade do mesmo tamanho mesmo com nomes de uma linha só. Realce ao passar
    o mouse / focar pelo teclado — reforça que o card inteiro é clicável. */
 .delivery-view__grupo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--gm-card);
+  cursor: pointer;
+  width: 100%;
+  min-height: 116px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 .delivery-view__grupo-card:hover,
@@ -1077,6 +1090,446 @@
 }
 .delivery-view__card-remover:hover {
   background: oklch(0.54 0.19 25);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ABA COMPLEMENTOS — biblioteca de grupos, editor e seletores de busca.
+   Tudo isto era `style={{}}` no JSX (F018, fatia 9). Cor sempre por token
+   --gm-* para o tenant conseguir trocar (decisão 017) e blend por
+   color-mix, nunca hex com sufixo de alfa (ADR-007). As porcentagens são
+   as mesmas que o helper `alfa()` emitia em runtime.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* "Carregando…" que ocupa a aba inteira, e não uma linha no meio de
+   conteúdo já montado — por isso ganha respiro e cor de apoio. É
+   modificador, e não regra na classe base, porque `__carregando` veste
+   também os "Carregando pedidos…" e "Carregando o cardápio…", que herdam
+   a cor de quem os contém. */
+.delivery-view__carregando--bloco {
+  color: var(--gm-muted);
+  padding: 16px;
+}
+
+/* ── Biblioteca de grupos (a grade de cards) ── */
+/* Coluna da aba inteira: cabeçalho em cima, grade de grupos embaixo. */
+.delivery-view__complementos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* Explicação à esquerda + campo de criar grupo à direita; quebram um sobre
+   o outro quando não cabem lado a lado. */
+.delivery-view__complementos-topo {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+/* Frase que explica o que é um grupo de complementos. Ocupa a sobra da
+   linha, mas nunca fica mais estreita que 200px — abaixo disso a frase
+   vira uma palavra por linha. */
+.delivery-view__complementos-intro {
+  flex: 1;
+  min-width: 200px;
+}
+/* Campo de nome + botão de criar, lado a lado. O teto de largura evita um
+   campo enorme numa tela larga. */
+.delivery-view__novo-grupo {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  max-width: 480px;
+}
+/* Grade que se adapta sozinha à largura: quantos cards couberem de 230px,
+   sem breakpoint. */
+.delivery-view__grupos-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+/* Primeira linha do card: nome à esquerda, seta de abrir à direita. */
+.delivery-view__grupo-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Nome do grupo é o que identifica o card — pesa mais que o resto dele. */
+.delivery-view__grupo-nome {
+  flex: 1;
+  font-weight: 700;
+  color: var(--gm-text);
+}
+/* Seta ">" que indica "toque para abrir" — decoração, não compete com o nome. */
+.delivery-view__grupo-seta {
+  color: var(--gm-muted);
+  flex-shrink: 0;
+}
+/* Etiqueta arredondada "Obrigatório"/"Opcional". `align-self` impede que
+   ela estique junto com o card. */
+.delivery-view__grupo-selo {
+  align-self: flex-start;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+/* Grupo obrigatório usa a cor do tenant; opcional fica neutro. A diferença
+   é de cor só — o texto do selo já diz qual é qual. */
+.delivery-view__grupo-selo--obrigatorio {
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  color: var(--gm-accent);
+}
+.delivery-view__grupo-selo--opcional {
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+/* Contagens no rodapé do card: `margin-top: auto` empurra para baixo, então
+   ficam alinhadas entre cards de alturas diferentes. */
+.delivery-view__grupo-stats {
+  margin-top: auto;
+  display: flex;
+  gap: 12px;
+  color: var(--gm-muted);
+  flex-wrap: wrap;
+}
+
+/* ── Menus de busca (escolher produto, anexar subgrupo, vincular produto) ──
+   Os três são o mesmo componente visual: campo em cima, lista flutuando
+   logo abaixo. Não se confundem com `__sugestoes` (autocomplete de
+   endereço), que é um <ul> com padding próprio e z-index acima do mapa. */
+.delivery-view__busca {
+  position: relative;
+  max-width: 420px;
+}
+/* Mesmo papel, mas dentro de uma linha de campos: divide o espaço em vez de
+   ter largura própria. */
+.delivery-view__busca-inline {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+}
+/* Lupa desenhada dentro do campo (o input tem `--com-icone` para abrir o
+   recuo). `pointer-events: none` para o clique atravessar e focar o campo. */
+.delivery-view__busca-lupa {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gm-muted);
+  pointer-events: none;
+}
+/* A lista que flutua embaixo do campo. Rola dentro de si em vez de
+   empurrar a tela, e a sombra a descola do conteúdo por baixo. */
+.delivery-view__menu-busca {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+/* Linha da lista: ocupa a largura toda e é separada da próxima por uma
+   borda fina. O `border-bottom` vem depois do `border: none` de `__btn`
+   de propósito — mesma especificidade, quem vence é a ordem. */
+.delivery-view__menu-opcao {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--gm-border) 38%, transparent);
+  color: var(--gm-text);
+  text-align: left;
+  cursor: pointer;
+}
+/* "+" à esquerda da opção, na cor do tenant: diz que clicar adiciona. */
+.delivery-view__menu-opcao-icone {
+  color: var(--gm-accent);
+  flex-shrink: 0;
+}
+/* Nome da opção ocupa a sobra, empurrando preço/contagem para a direita. */
+.delivery-view__menu-opcao-nome {
+  flex: 1;
+}
+/* Preço / contagem à direita da opção. */
+.delivery-view__opcao-meta {
+  color: var(--gm-muted);
+}
+/* "Nenhum item encontrado" dentro do menu: mesmo recuo das opções, para o
+   texto não encostar na borda. */
+.delivery-view__menu-vazio {
+  padding: 10px 12px;
+}
+
+/* ── Editor de um grupo ── */
+/* Tela de editar um grupo: cabeçalho, caixa de regras e seções, empilhados. */
+.delivery-view__editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* Cabeçalho do editor: Voltar, nome do grupo, aviso de pendência e Salvar. */
+.delivery-view__editor-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* Nome do grupo em edição — ocupa a sobra entre os dois botões. */
+.delivery-view__editor-titulo {
+  flex: 1;
+  font-weight: 700;
+  color: var(--gm-text);
+}
+/* A palavra "nome:" antes do nome do grupo — rótulo, não conteúdo. */
+.delivery-view__editor-titulo-rotulo {
+  font-weight: 600;
+  color: var(--gm-muted);
+}
+/* Aviso de alteração pendente ao lado do Salvar. Vermelho de propósito:
+   é o que impede o operador de sair sem salvar sem perceber. Vence a cor
+   de `__hint` por vir depois no arquivo. */
+.delivery-view__editor-sujo {
+  color: var(--gm-red);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Caixa que agrupa as regras do grupo (obrigatório, mínimo, máximo) e a
+   lista de itens, separando-as do cabeçalho. */
+.delivery-view__editor-caixa {
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  padding: 16px;
+  background: var(--gm-card);
+}
+/* Uma linha de controles da caixa de regras; quebra quando não cabe. */
+.delivery-view__editor-linha {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+/* Par de botões grudados "Opcional | Obrigatório" — a borda arredondada
+   fica no grupo e o `overflow: hidden` corta os cantos dos botões. */
+.delivery-view__segmentado {
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  overflow: hidden;
+}
+/* Cada metade do par "Opcional | Obrigatório". Fundo transparente para a
+   borda arredondada do grupo aparecer atrás. */
+.delivery-view__editor-toggle {
+  padding: 8px 14px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--gm-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+/* Sem permissão de admin o par vira só leitura (o botão nasce `disabled`). */
+.delivery-view__editor-toggle:disabled {
+  cursor: default;
+}
+/* A metade escolhida do par fica pintada com a cor do tenant: é o único
+   sinal de qual das duas está valendo. */
+.delivery-view__editor-toggle--ativo {
+  background: var(--gm-accent);
+  color: #fff;
+}
+/* "máx [ 2 ]" ao lado do par — rótulo e campo na mesma linha. */
+.delivery-view__editor-max {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+/* Frase que traduz min/máx para português ("o cliente precisa escolher…"),
+   logo abaixo dos controles que ela explica. */
+.delivery-view__editor-explica {
+  margin-top: 4px;
+}
+/* Respiro entre as regras do grupo e a lista de itens dele. */
+.delivery-view__editor-itens {
+  margin-top: 10px;
+}
+/* Linha de um item do grupo (ou de um subgrupo anexado), arrastável pela
+   alça. A variante compacta é a lista de itens, que costuma ser a mais
+   longa das duas. */
+.delivery-view__item-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--gm-surface);
+  margin-bottom: 6px;
+}
+.delivery-view__item-linha--compacta {
+  padding: 6px 10px;
+}
+/* Nome ocupa a sobra da linha, encostando o preço na direita. */
+.delivery-view__item-nome {
+  flex: 1;
+}
+/* Nome do subgrupo anexado: pesa mais porque ali a linha também mostra
+   quantos itens ele carrega. */
+.delivery-view__item-nome--forte {
+  font-weight: 600;
+  color: var(--gm-text);
+}
+/* Preço na cor do tenant: é o que o cliente paga a mais por aquele item. */
+.delivery-view__item-preco {
+  color: var(--gm-accent);
+  font-weight: 600;
+}
+/* Linha de adicionar item: campo de busca, preço e o botão de confirmar. */
+.delivery-view__add-item {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+/* Produto já escolhido, esperando o preço e o "Adicionar" — pintado com a
+   cor do tenant para o operador ver que aquela linha está no meio de uma
+   ação, não é um item salvo. */
+.delivery-view__selecionado {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gm-accent) 7%, transparent);
+  color: var(--gm-accent);
+  font-weight: 600;
+}
+/* Nome do produto escolhido ocupa a sobra até o "x" de trocar. */
+.delivery-view__selecionado-nome {
+  flex: 1;
+}
+/* Seções de baixo do editor (subgrupos, produtos onde aparece): separadas
+   por um filete, não por caixa nova — continuam sendo o mesmo editor. */
+.delivery-view__editor-secao {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--gm-border) 38%, transparent);
+}
+/* Subtítulo das seções de baixo do editor, com ícone antes do texto. */
+.delivery-view__secao-titulo {
+  font-weight: 600;
+  color: var(--gm-text);
+  margin-bottom: 2px;
+}
+/* Quando a seção não tem linha de apoio embaixo do título, o respiro maior
+   fica no próprio título. */
+.delivery-view__secao-titulo--respiro {
+  margin-bottom: 6px;
+}
+/* Ícone do subtítulo: desce 2px para alinhar com a linha de base do texto. */
+.delivery-view__secao-icone {
+  vertical-align: -2px;
+  margin-right: 4px;
+}
+/* A frase que explica a seção e a lista de subgrupos já anexados: ambas
+   precisam do mesmo respiro antes do que vem depois. */
+.delivery-view__secao-desc,
+.delivery-view__secao-lista {
+  margin-bottom: 8px;
+}
+
+/* ── Produtos onde o grupo aparece (chips + busca) ── */
+/* Chips dos produtos já vinculados em cima, campo de buscar mais embaixo. */
+.delivery-view__multi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* Os chips quebram em várias linhas conforme o grupo é vinculado a mais
+   produtos. */
+.delivery-view__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* Produto já vinculado, na cor do tenant, com o "x" de desvincular dentro. */
+.delivery-view__chip-produto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  color: var(--gm-accent);
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 25%, transparent);
+  font-weight: 600;
+}
+/* O "x" dentro do chip precisa ficar na mesma linha do nome. */
+.delivery-view__chip-remover {
+  display: inline-flex;
+}
+/* O "x" de fechar herda a cor do contexto quando ele está dentro de algo
+   pintado com a cor do tenant (chip, item selecionado). */
+.delivery-view__modal-fechar--accent {
+  color: var(--gm-accent);
+}
+
+/* ── Modificadores de FORMA dos botões desta aba ──
+   O padding mora aqui, e não nos modificadores de cor (`--primario`,
+   `--secundario`), porque esses vestem botões de outras telas com
+   espaçamento próprio. */
+/* Criar grupo: o botão principal da aba vazia, então é o mais alto. */
+.delivery-view__btn--novo-grupo {
+  padding: 10px 16px;
+}
+/* Sair do editor: neutro, para não competir com o Salvar ao lado. */
+.delivery-view__btn--voltar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+}
+/* Salvar o grupo: mais largo que o Voltar, é a ação que fecha o trabalho. */
+.delivery-view__btn--salvar {
+  display: flex;
+  gap: 6px;
+  padding: 9px 16px;
+}
+/* Salvar sem nada para salvar: cinza chapado, sem convidar ao clique. */
+.delivery-view__btn--inerte {
+  background: color-mix(in srgb, var(--gm-muted) 13%, transparent);
+  color: var(--gm-muted);
+}
+/* Confirmar o item que está sendo montado na linha de adicionar. */
+.delivery-view__btn--add-item {
+  padding: 8px 14px;
+}
+/* Lixeira do grupo: vermelho apagado — some no fundo até ser procurada. */
+.delivery-view__btn--remover-grupo {
+  background: color-mix(in srgb, var(--gm-red) 6%, transparent);
+  color: var(--gm-red);
+  padding: 8px 10px;
+}
+/* Confirmação destrutiva de modal ("Sair sem salvar", "Remover"): vermelho
+   cheio, para não ser clicado por engano no lugar do Cancelar. O `#fff` é
+   o mesmo de `--primario` e sai daqui quando o token de "texto sobre cor
+   cheia" for aprovado. */
+.delivery-view__btn--perigo {
+  background: var(--gm-red);
+  color: #fff;
+}
+/* Confirmação curta (sair sem salvar, remover grupo): mais estreita que o
+   modal de cadastro, que tem formulário inteiro dentro. */
+.delivery-view__modal--estreito {
+  max-width: 420px;
 }
 
 /* ══════════════════════════════════════════════════════════════════
