@@ -34,9 +34,13 @@ Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
   backlog que estava velha; o `KLogo` órfão), `memory/patterns.md` (seção nova sobre especificidade
   contra ordem de bundle, `margin` shorthand e custom property com unidade) e a linha do **F018**
   reescrita em `docs/09_BACKLOG/features.md` com a contagem recontada.
-- **Número corrigido:** o backlog dizia "121 dos 156" arquivos migrados. A contagem real é **118 dos
-  157**, e só **3** arquivos juntam `style={{` com nenhum `.css` próprio: `PDVView/index.jsx`,
-  `CardapioPage.jsx` e `main.jsx`.
+- **Número (corrigido depois, no começo da rodada 13):** eu "corrigi" o backlog de 121 para 118
+  arquivos migrados usando um script que procurava um `.css` **irmão de mesmo nome** — e ele marcou
+  `PDVView/index.jsx` como "sem CSS" quando o arquivo importa `./PDVView.css` na linha 24. Contando
+  pelo `import "./*.css"` real, o número original estava certo: **121 de 157**. Mais importante: essa
+  métrica media a coisa errada. Só **1** arquivo (`src/main.jsx`) tem inline sem CSS próprio; a
+  dívida real do F018 são **2068 `style={{` em 46 arquivos que já importam seu `.css`**. A linha do
+  backlog passou a medir isso.
 - **Commit:** `b238c0d` na branch `ciclo/s1-3-configuracoes`
 - **Pendente de decisão:** o token `--gm-sobre-accent` (novo, acima); o ADR do F021 (offline-first),
   aberto desde a rodada 10; domínio/subdomínio de delivery por tenant (custo, ~R$ 40/ano + DNS
