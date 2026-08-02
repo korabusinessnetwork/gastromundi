@@ -2,6 +2,50 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 20 — F018, fatia 7 — o helper `inputStyle` do Delivery — 2026-08-02
+
+- **Spec:** `specs/f018-delivery-inputstyle-css.md`
+- **Resultado da review:** **aprovado sem ressalvas** — 13 de 13 critérios em sim, nenhuma rodada de
+  correção. `npx vitest run` em 194 de 194 arquivos e 3080 de 3080 testes (76,23s), nenhum arquivo de
+  teste tocado. `npx vite build` verde (10,90s). Dois arquivos de código tocados, os previstos:
+  `DeliveryView.jsx` e `DeliveryView.css`.
+- **Construído:** a função `inputStyle(sz)` e seus **20 usos** sumiram do arquivo
+  (`grep -c inputStyle` de 21 para **0**). As três declarações que ela devolvia foram para a regra
+  base `.delivery-view__input, .delivery-view__textarea`, que já existia, e as propriedades extras
+  do spread viraram oito modificadores BEM: `--centro`, `--com-icone`, `--titulo`, `--qtd`,
+  `--preco`, `--taxa`, `--faixa` e `--faixa-cep`. O arquivo foi de 137 para **124** `style={{`; o
+  `src/` de 1762 para **1749**, ainda em 46 arquivos.
+- **Por que a fatia foi segura:** os 20 usuários de `.delivery-view__input` / `__textarea` eram
+  exatamente os 20 usos do helper — 1 para 1. Enriquecer a regra base não podia atingir ninguém de
+  fora, e essa conferência é a primeira coisa a fazer, não a última. É o oposto da rodada 19, onde
+  a classe compartilhada tinha usuários fora da fatia e cada um precisou de prova em disco.
+- **A descoberta da fatia:** o `border` inline não estava só duplicando CSS — estava **desligando**
+  a regra `input:not([aria-invalid="true"]):focus { border-color: var(--gm-accent) }` de
+  `src/styles/inputs.css`. Os 20 campos do Delivery eram os únicos do sistema que não acendiam ao
+  focar, e ninguém reportou porque realce que nunca existiu não parece defeito. A mudança entrou
+  declarada no spec como a única diferença visual da rodada. Padrão em `memory/patterns.md` →
+  "Estilo inline não duplica CSS: ele desliga o baseline global".
+- **O quase-erro:** dois dos treze objetos inline eram redundância pura (`width: "100%"` que a
+  classe base já tinha). A leitura mecânica da tarefa criaria um modificador `--largura-total` que
+  não muda um pixel e ficaria no CSS parecendo intencional.
+- **Nota de método:** o normalizador de markup acusou `DIVERGE`, e corretamente — a fatia apagou uma
+  função, que não é marcação. A prova que fecha o critério é outra: o arquivo novo termina exatamente
+  no offset da divergência (76127 de 76127) e o resto exclusivo do `HEAD` é literalmente o corpo de
+  `inputStyle`. "DIFF VAZIO" só é o critério certo quando a rodada não remove nada além de atributo.
+- **Aprendido:** duas linhas em `memory/learnings.md` (o inline que desliga estado global; a
+  redundância do `width: 100%`), uma em Processo (o normalizador com deleção que não é markup), uma
+  seção nova em `memory/patterns.md` e a nota da rodada 20 no F018 de `docs/09_BACKLOG/features.md`.
+- **Commit:** `73e1798` na branch `ciclo/s1-3-configuracoes`.
+- **Pendente de decisão:** nenhuma nova. Seguem na fila do dono o token `--gm-sobre-accent` (para os
+  `#fff` sobre fundo accent), o `line-height` de `.pdv__lock-desc`, os quatro hex de marca em
+  `METODOS_COLOR`/`ACTION_TYPE_META.caixa` no `PDVView/index.jsx`, a unificação dos seis overlays do
+  PDV, o destino do `KLogo` órfão e o ADR do F021.
+- **Próximo item recomendado:** **F018, fatia 8 — a cadeia de props `sz` do `DeliveryView`**. Depois
+  desta rodada ela atravessa 13 assinaturas de componente e é desreferenciada em **5 lugares apenas**
+  (linhas 298, 382, 397, 852 e 865 — todos `padding` derivado de `sz.pad`), sendo que `CardPedido`
+  na linha 664 já recebe a prop sem usar. São os 5 últimos `style` estruturais do arquivo: convertê-los
+  em CSS e apagar a prop de ponta a ponta fecha o `DeliveryView` inteiro.
+
 ## Rodada 19 — F018, fatia 6 — aba Cardápio do Delivery — 2026-08-02
 
 - **Spec:** `specs/f018-delivery-cardapio-css.md`
