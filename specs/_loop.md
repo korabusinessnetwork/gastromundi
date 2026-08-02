@@ -2,6 +2,47 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 11 — F005-SANGRIA — 2026-08-02
+
+- **Spec:** `specs/f005-sangria-e-suprimento-no-caixa.md`
+- **Resultado da review:** aprovado sem ressalvas — 18 de 18 critérios em sim, `npx vitest run` em
+  194 de 194 arquivos e 3080 de 3080 testes. Nenhum arquivo tocado fora do §4.
+- **Construído:** o dinheiro que sai e entra na gaveta no meio do turno passou a ter registro. Tabela
+  `caixa_movimentos` (migration `20260916`) com `tenant_id`, CHECK de `tipo` e de `valor > 0`, RLS
+  ativa, INSERT liberado só para admin/gerente/caixa e **sem policy de UPDATE nem de DELETE** —
+  movimento de caixa não se corrige, se estorna. `src/lib/caixaMovimentos.js` com as regras puras
+  (leitura de `50,00`, movimentos da sessão, dinheiro disponível, limite de autorização) e
+  `MovimentoCaixaModal.jsx` com o fluxo de sangria e suprimento. O fechamento passou a somar o
+  ajuste esperado, e o limite de sangria virou config por estabelecimento (`limite_sangria`,
+  padrão R$ 200) editável em Configurações.
+- **Corrigido pela review:** `registrarMovimentoCaixa` validava valor, motivo e dinheiro disponível,
+  mas **não conferia se o caixa ainda estava aberto**. O botão só aparece com o caixa aberto — só
+  que `caixa_aberto` é chave compartilhada em `config` e chega por realtime: outro aparelho fecha o
+  caixa com o modal já na tela e o insert entra com o `sessao_aberta_em` de uma sessão já conferida.
+  Dinheiro fora de todo fechamento, sem erro nenhum na tela. Guarda adicionada em
+  `AppContext.jsx:1288`, antes do insert.
+- **Desvio do spec, documentado:** o critério 9 pedia `verificarSenhaAdmin`, mas essa função devolve
+  só `{ ok }` — não diz **quem** autorizou. A build usa `verificarSenhaUsuario(username, password)`,
+  o mesmo RPC com `p_username`, para que a senha tenha que ser do gerente escolhido no seletor.
+  Caso contrário o critério 3 gravaria em `autorizado_por` um nome que ninguém conferiu.
+- **A segunda correção veio do guard da rodada anterior:** o `schemaSqlGuard` do TD016 quebrou a
+  suíte na primeira migration criada depois dele — `caixa_movimentos` não estava em
+  `supabase/schema.sql`. O vigia funcionou uma rodada depois de nascer.
+- **Aprendido:** `memory/learnings.md` (a sessão que a tela guardava e o handler não; o guard que
+  cobra schema.sql em toda migration nova; o critério que nomeia função sem conferir a linha de
+  `export`), `memory/patterns.md` (nova seção "Estado compartilhado é reconferido no handler, não só
+  na tela") e a linha do **F005** reescrita em `docs/09_BACKLOG/features.md`.
+- **Commit:** `7ab7c3b` na branch `ciclo/s1-3-configuracoes`
+- **Pendente de decisão:** segue o ADR do F021 (offline-first), aberto desde a rodada 10. Novo:
+  domínio/subdomínio de delivery por tenant esbarra em custo (domínio ~R$ 40/ano + DNS wildcard).
+- **Pendente de produção:** as migrations `20260912`, `20260913`, `20260914`, `20260915` e
+  `20260916` continuam sem rodar no Supabase.
+- **Próximo item recomendado:** **F018 (telas de delivery)** — é a maior prioridade escrita ainda
+  aberta e o menor caminho até algo verificável: 8 estilos inline em quatro arquivos já cobertos por
+  teste, na única superfície que o cliente final enxerga e que hoje não dá para tematizar por
+  estabelecimento.
+
+
 ## Rodada 10 — TD016 — 2026-08-02
 
 - **Spec:** `specs/td016-veracidade-do-backlog-e-do-schema.md`
