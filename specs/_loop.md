@@ -2,6 +2,48 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 4 — prévia do cardápio abre o estabelecimento logado — 2026-08-01
+
+- **Spec:** `specs/previa-do-cardapio-abre-o-estabelecimento-logado.md`
+- **Resultado da review:** aprovado sem ressalvas — 14 de 14 critérios em sim, `npm test` em
+  182 de 182 arquivos e 2817 de 2817 testes, **sem nenhuma rodada de correção**. Nenhum arquivo
+  tocado fora do §4 do spec; nenhuma migration criada ou alterada.
+- **O que o levantamento mudou no escopo:** a recomendação da Rodada 3 dizia que "não existe jeito de
+  ver o cardápio como o cliente vê", e a fila do dono dizia o oposto — "✅ ENTREGUE (f9fc34f)". As
+  duas estavam erradas do mesmo jeito. O botão existia **e abria o estabelecimento errado**: sem
+  subdomínio por tenant em produção, `CardapioPage` resolvia o slug pelo fallback, então o dono de
+  qualquer estabelecimento via a vitrine, a marca, as categorias e os preços da GastroMundi. O escopo
+  virou fechar esse furo de white-label (decisão 017), não construir a tela.
+- **Construído:** o botão leva `?loja=<slug do tenant logado>` — o `slug` entrou no `select` de
+  `buscarTenantAtual`, que não o trazia, embora a coluna exista desde a `20260740`. A vitrine passou
+  a resolver por `slugDaVitrine`: **subdomínio > query > fallback**, então endereço publicado nunca é
+  sequestrado por URL e ligar o subdomínio (item 2 da fila) depois não muda nada aqui. O que vem da
+  query é validado por `slugValido` antes de virar parâmetro de RPC; o que sai do banco passa por
+  `encodeURIComponent`. Tenant sem slug abre `/cardapio` como antes — degrada, não some.
+- **Achado no caminho (não chegou a produção):** `salvarBrandingCache` carimba o cache com o slug da
+  **origem**, que numa origem compartilhada é sempre `gastromundi`. A prévia da Casa Coffee gravaria
+  a marca dela sob o carimbo do vizinho e a tela de login da origem passaria a pintar "Casa Coffee"
+  para todo mundo. Prévia agora não lê nem grava o cache; um teste de controle prova que o caminho
+  normal continua lendo e gravando.
+- **Aprendido:** `memory/learnings.md` (Técnicos — cache carimbado pela origem não pode ser escrito
+  por tela que mostra outro estabelecimento; Processo — item marcado "entregue" escondeu o furo:
+  o levantamento pergunta o que a coisa **faz**, não se existe); `memory/patterns.md` → Padrões de
+  Código (padrão novo "Superfície pública endereçada por slug: precedência e cache por origem");
+  `memory/bugs.md` (seção "Ciclo do loop — 2026-08-01", com os dois defeitos);
+  `memory/fila-proximas-features.md` (o item 1 passou a descrever o comportamento, não só o commit);
+  e o resultado da review anexado ao spec (§8 e §9).
+- **Commit:** `5753de0` na branch `ciclo/previa-cardapio-estabelecimento-certo` (criada a partir da
+  branch da Rodada 3, então carrega os commits dela; push feito, sem pull request). Inclui o ledger
+  da Rodada 3, que ficou de fora do commit daquela rodada.
+- **Pendente de decisão:** a mesma das Rodadas 2 e 3, ainda sem resposta — estabelecimento de
+  **cortesia** (`valor_mensal = 0`) não consegue renovar, porque a RPC recusa `p_valor <= 0`.
+- **Não verificado em produção:** se a migration `20260740` (que criou `tenants.slug`) está aplicada.
+  O código degrada em silêncio se não estiver (`slug ?? null` → `/cardapio` seco), mas a prévia só
+  acerta o estabelecimento com a coluna no ar.
+- **Próximo item recomendado:** **F022-ANALYTICS** — analytics de plataforma no Console (faturamento,
+  pedidos e ticket médio por estabelecimento): é a fatia que falta do item nº 3 da fila do dono, é
+  gratuita, e hoje o Console mostra quem paga mas não mostra quem usa.
+
 ## Rodada 3 — TD012 — 2026-08-01
 
 - **Spec:** `specs/td012-baixa-de-estoque-que-falha-em-silencio.md`
