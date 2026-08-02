@@ -2,6 +2,54 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 8 — S1-3-IDENTIDADE — 2026-08-01
+
+- **Spec:** `specs/s1-3-identidade-do-estabelecimento.md`
+- **Resultado da review:** aprovado sem ressalvas — 18 de 18 critérios em sim, `npm test` em 189 de
+  189 arquivos e 2983 de 2983 testes. Nenhum arquivo tocado fora do §4 do spec.
+- **Construído:** aba **"Identidade"** em Configurações, só admin
+  (`src/components/desktop/views/IdentidadeTab.jsx` + `.css` + `.test.jsx`, 22 testes), com a lib
+  `src/lib/identidadeTenant.js` (+ 25 testes) e a migration
+  `supabase/migrations/20260914_identidade_tenant.sql`. O dono define **nome de exibição** e **logo**
+  da própria marca; a prévia no topo é o mesmo bloco que a sidebar pinta, atualizando enquanto se
+  digita ou se escolhe a imagem — o resultado aparece antes de salvar. O logo vem do arquivo (sem
+  campo de URL), é comprimido no `<canvas>` em PNG **com alpha preservado** e vai para
+  `{tenant_id}/identidade/logo.png` no bucket `delivery-fotos`.
+- **Por que não precisou de bucket nem de policy nova:** as policies da `20260826` casam pela
+  **primeira** pasta do caminho, então o caminho aninhado já nasce isolado e autorizado, e o bucket
+  já é público — que é o que a tela de login (pré-autenticação) precisa. Zero passo manual novo em
+  produção e nenhuma repetição do deadlock `40P01` documentado naquela migration.
+- **Fronteira mantida:** a RPC escreve **duas** chaves de `tenants.tema` (`nome_exibicao`,
+  `logo_url`). Paleta (`accent`) e `layout` continuam sendo do Console — `alterar_layout_tenant`
+  (`20260801`) apaga overrides de paleta de propósito, e duas pontas escrevendo o mesmo jsonb se
+  sobrescreveriam sem ninguém perceber.
+- **Corrigido pela review:** o critério 6 do próprio spec estava errado. Ele exigia que nome vazio
+  "não salvasse"; o código deixa o vazio **limpar** o nome de exibição e voltar ao nome cadastrado —
+  que é o único jeito de desfazer um nome já escolhido sem SQL. Spec reescrito, código mantido.
+- **Aprendido:** `memory/learnings.md` (o `logoUrlSegura` que não existe em `tema.js`; o
+  `comprimirImagem` do Delivery que pinta fundo branco e não serve para logo; o banner de sucesso
+  que dependia do contexto repintar) e `memory/patterns.md` ("O que o servidor confirmou tem
+  precedência sobre o contexto" e "Pasta nova dentro do bucket que já existe").
+- **Backlog:** `sprint_pre_venda.md` S1-3 passou de "Parcial" para **entregue** nas quatro abas
+  (Usuários, Impressão, Minha assinatura, Identidade), com a nota errada sobre "logo esbarra na
+  pendência de Storage × RLS" desfeita.
+- **Commit:** `64d3dbe` na branch `ciclo/s1-3-configuracoes` — a branch foi renomeada de
+  `ciclo/s1-3-usuarios` (nome que já não descrevia nem a rodada 7 nem a 8) e **o push da rodada 7
+  nunca tinha acontecido**: as duas rodadas subiram juntas agora.
+- **Roda em produção:** `20260914_identidade_tenant.sql` precisa ser aplicada no SQL Editor —
+  enquanto não for, a aba abre e a prévia funciona, mas salvar devolve
+  `function public.atualizar_identidade_tenant does not exist`. Continuam pendentes também a
+  `20260912_analytics_plataforma.sql` e a `20260913_estorno_pagamento_assinatura.sql`.
+- **Pendente de decisão do dono:** (1) estabelecimento de **cortesia** (`valor_mensal = 0`) não
+  consegue renovar — a RPC recusa `p_valor <= 0`; (2) **como o cliente paga** (chave Pix, canal de
+  contato) não está escrito em lugar nenhum, e a aba "Minha assinatura" só sabe dizer que venceu;
+  (3) a assinatura do próprio GastroMundi **vence em 2026-08-05 e bloqueia em 2026-08-09**.
+- **Próximo item recomendado:** **F022-ADDONS** — ligar e desligar add-ons por estabelecimento pelo
+  Console. As tabelas existem desde a `20260718_addons.sql` e o app já barra fail-closed
+  (`addonHabilitado`, `AppContext.jsx:1620`), mas `src/pages/console/` e `src/components/console/`
+  não têm **uma linha** sobre add-on: habilitar TEF ou fiscal para um cliente hoje é `INSERT` no SQL
+  Editor. É o que sobrou do F022 (🔴 bloqueia venda) que **não** depende de provedor pago.
+
 ## Rodada 7 — S1-3-ASSINATURA — 2026-08-01
 
 - **Spec:** `specs/s1-3-minha-assinatura-no-estabelecimento.md`
