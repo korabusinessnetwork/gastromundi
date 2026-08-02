@@ -59,7 +59,12 @@ AS $$
   SELECT tenant_id FROM public.users WHERE auth_id = auth.uid() LIMIT 1;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.tenant_do_usuario_atual() TO authenticated;
+-- CREATE FUNCTION concede EXECUTE a PUBLIC por padrão, e `anon` herda de
+-- PUBLIC: sem este REVOKE um visitante não autenticado chama a função
+-- definer direto pela REST. Hoje ela devolve NULL para anon (auth.uid() é
+-- NULL), mas função definer executável por anônimo não deve existir.
+REVOKE EXECUTE ON FUNCTION public.tenant_do_usuario_atual() FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.tenant_do_usuario_atual() TO authenticated;
 
 -- ── RPC ────────────────────────────────────────────────────────────
 -- Convenção dos parâmetros:

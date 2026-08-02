@@ -534,6 +534,25 @@ describe("resumirUso", () => {
     expect(porId["t-parado"].diasSemVender).toBe(50);
   });
 
+  // A conta é de dias de CALENDÁRIO, não de intervalo decorrido. Uma venda das
+  // 22h de ontem, lida às 9h de hoje, tem 11 horas de intervalo — se a conta
+  // fosse `floor(decorrido/24h)` a tela diria "Hoje" para um estabelecimento
+  // que ainda nem abriu o caixa, e o dono não veria que ele parou de vender.
+  it("vira o dia na virada do calendário, não a cada 24 horas cheias", () => {
+    const hoje = new Date("2026-08-01T09:00:00-03:00");
+    const ontemANoite = [
+      { tenant_id: "t-forte", faturamento_centavos: 1000, pedidos: 1, ultima_venda: "2026-07-31T22:00:00-03:00" },
+    ];
+    const { linhas } = resumirUso([tenants[0]], assinaturas, ontemANoite, hoje);
+    expect(linhas[0].diasSemVender).toBe(1);
+  });
+
+  it("data de venda ilegível vira 'nunca vendeu', não NaN na tela", () => {
+    const quebrado = [{ tenant_id: "t-forte", faturamento_centavos: 1000, pedidos: 1, ultima_venda: "ontem" }];
+    const { linhas } = resumirUso([tenants[0]], assinaturas, quebrado, HOJE);
+    expect(linhas[0].diasSemVender).toBeNull();
+  });
+
   it("ignora tenant que veio na RPC e não está mais na lista de estabelecimentos", () => {
     const orfao = [...analitico, { tenant_id: "t-sumiu", faturamento_centavos: 999999, pedidos: 9, ultima_venda: null }];
     const { linhas, kpis } = resumirUso(tenants, assinaturas, orfao, HOJE);

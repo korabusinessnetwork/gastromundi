@@ -192,6 +192,9 @@
 .pdv__saldo-btn:hover {
   background: var(--gm-card);
   color: var(--gm-text);
+  /* O realce de borda vinha do onMouseEnter antigo e se perdeu na mudança
+     do estilo para o CSS; sem ele o botão fica menos evidente no hover. */
+  border-color: color-mix(in srgb, var(--gm-accent) 40%, transparent);
 }
 
 .pdv__toast {

@@ -223,6 +223,32 @@ describe("AddonsModal — desligar", () => {
     expect(within(itemDe("Nota fiscal eletrônica")).getByText("Ligado")).toBeInTheDocument();
   });
 
+  // Sem a trava, dois cliques disparam duas chamadas e a resposta mais lenta
+  // repinta a linha com um estado velho — o dono vê "Ligado" num add-on que
+  // acabou de desligar (e vice-versa).
+  it("clicar duas vezes em 'Desligar mesmo assim' não manda duas chamadas", async () => {
+    const user = userEvent.setup();
+    let liberar;
+    mockAlternar.mockImplementation(
+      () => new Promise((resolve) => { liberar = () => resolve({ data: linhaAtiva("nfe", false), error: null }); })
+    );
+    montar();
+    await carregado();
+    await user.click(botaoDe("Nota fiscal eletrônica", /^desligar$/i));
+
+    await user.click(screen.getByRole("button", { name: /desligar mesmo assim/i }));
+    expect(mockAlternar).toHaveBeenCalledTimes(1);
+
+    // Enquanto a chamada está no ar a linha não aceita um segundo pedido.
+    const emAndamento = botaoDe("Nota fiscal eletrônica", /salvando/i);
+    expect(emAndamento).toBeDisabled();
+    await user.click(emAndamento);
+    expect(mockAlternar).toHaveBeenCalledTimes(1);
+
+    liberar();
+    expect(await within(itemDe("Nota fiscal eletrônica")).findByText("Desligado")).toBeInTheDocument();
+  });
+
   it("confirmar desliga de fato", async () => {
     const user = userEvent.setup();
     mockAlternar.mockResolvedValue({ data: linhaAtiva("nfe", false), error: null });

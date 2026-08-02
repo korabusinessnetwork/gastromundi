@@ -957,8 +957,9 @@ CREATE TABLE public.nfce_inutilizacoes (
 -- confirmar_pagamento_assinatura(...)                         → 20260719 e sucessoras
 -- confirmar_renovacao_assinatura(uuid, numeric, text)         → 20260911 (recusa p_valor <= 0)
 -- analytics_plataforma(...)                                   → 20260912  (pendente em produção)
--- estornar_pagamento_assinatura(uuid, text)                   → 20260913  (pendente em produção)
--- atualizar_identidade_tenant(uuid, text, text)               → 20260914  (pendente em produção)
+-- estornar_pagamento_assinatura(uuid, text, text)             → 20260913  (pendente em produção)
+-- atualizar_identidade_tenant(text, text)                     → 20260914  (pendente em produção)
+--   sem parâmetro de tenant de propósito: o alvo é sempre tenant_do_usuario_atual()
 -- alternar_addon_tenant(uuid, text, boolean)                  → 20260915  (pendente em produção)
 
 -- =============================================================
@@ -977,6 +978,7 @@ CREATE TABLE public.nfce_inutilizacoes (
 -- venda_itens           → venda_itens_all_caixa_up (caixa/gerente/admin) — TD009 etapa 1
 -- venda_pagamentos      → venda_pagamentos_all_caixa_up (caixa/gerente/admin) — TD009 etapa 1
 -- fechamentos           → fechamentos_all_caixa_up (caixa/gerente/admin)
+-- caixa_movimentos      → caixa_movimentos_select_auth ; caixa_movimentos_insert_operacao (admin/gerente/caixa) ; caixa_movimentos_tenant_isolation (RESTRICTIVE) — 20260916 (F005). SEM policy de UPDATE/DELETE: razão append-only, a trilha da sangria não se apaga.
 -- config                → config_select_auth ; config_write_gerente_admin ; config_write_caixa_sessao (caixa: só fundo_atual/caixa_aberto/sessao_aberta_em — 20260744)
 -- operator_logs         → oplogs_insert_auth ; oplogs_select_gerente_admin
 -- unidades_medida       → unidades_select_auth ; unidades_write_admin

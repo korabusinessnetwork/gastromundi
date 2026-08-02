@@ -65,7 +65,11 @@ export async function gerarAlertaOversell({ produtoId, nome, vendido, disponivel
     const jaExiste = (abertos ?? []).some((i) => i?.origem?.chave === chave);
     if (jaExiste) return;
 
-    await registrarInsight({
+    // `registrarInsight` devolve `{ data, error }` e o supabase-js não lança
+    // quando a RLS recusa: sem olhar o `.error` o alerta some em silêncio e a
+    // função "termina bem" sem ter registrado nada. `?? {}` porque nem todo
+    // chamador (nem os mocks dos testes) devolve o par.
+    const { error } = (await registrarInsight({
       tipo: "alerta",
       severidade: "danger",
       visibilidade: "operacional",
@@ -74,7 +78,8 @@ export async function gerarAlertaOversell({ produtoId, nome, vendido, disponivel
       descricao: `Uma venda baixou ${fmtNum(vendido)} de ${nome}, mas o estoque tinha só ${fmtNum(disponivel)}. O saldo foi zerado e a diferença não existe no sistema — confira a contagem e a reposição.`,
       acao: { label: "Ver estoque", tipo: "abrir_estoque", params: { produto_ids: [produtoId] } },
       origem: { chave, dados: { produto_id: produtoId, nome, vendido, disponivel } },
-    });
+    })) ?? {};
+    if (error) console.error("[estoque] alerta de oversell não registrado:", error);
   } catch (err) {
     // intencionalmente silencioso — alerta do Jarvas nunca pode quebrar a venda
     console.error("[estoque] falha ao gerar alerta de oversell:", err);
@@ -104,7 +109,7 @@ export async function gerarAlertaEstoque({ produtoId, nome, quantidade, minimo }
     if (jaExiste) return;
 
     const zerado = Number(quantidade) === 0;
-    await registrarInsight({
+    const { error } = (await registrarInsight({
       tipo: "alerta",
       severidade: zerado ? "danger" : "warning",
       visibilidade: "operacional",
@@ -115,7 +120,8 @@ export async function gerarAlertaEstoque({ produtoId, nome, quantidade, minimo }
         : `${nome} caiu para ${quantidade} unidade(s) após uma venda, abaixo do mínimo de ${minimo}.`,
       acao: { label: "Ver estoque", tipo: "abrir_estoque", params: { produto_ids: [produtoId] } },
       origem: { chave, dados: { produto_id: produtoId, nome, quantidade, minimo } },
-    });
+    })) ?? {};
+    if (error) console.error("[estoque] alerta de mínimo não registrado:", error);
   } catch (err) {
     // intencionalmente silencioso — alerta do Jarvas nunca pode quebrar a venda
     console.error("[estoque] falha ao gerar alerta de mínimo:", err);
@@ -157,7 +163,7 @@ export async function gerarAlertaBaixaFalhou({ produtoId, subprodutoId, nome, qu
     if (jaExiste) return;
 
     const item = nome || (alvo === "produto" ? `Produto ${id}` : `Item ${id}`);
-    await registrarInsight({
+    const { error } = (await registrarInsight({
       tipo: "alerta",
       severidade: "danger",
       visibilidade: "operacional",
@@ -172,7 +178,8 @@ export async function gerarAlertaBaixaFalhou({ produtoId, subprodutoId, nome, qu
         params: alvo === "produto" ? { produto_ids: [id] } : { subproduto_ids: [id] },
       },
       origem: { chave, dados: { [`${alvo}_id`]: id, nome: item, quantidade, erro: textoDoErro(erro) } },
-    });
+    })) ?? {};
+    if (error) console.error("[estoque] alerta de baixa recusada não registrado:", error);
   } catch (err) {
     // intencionalmente silencioso — alerta do Jarvas nunca pode quebrar a venda
     console.error("[estoque] falha ao gerar alerta de baixa recusada:", err);

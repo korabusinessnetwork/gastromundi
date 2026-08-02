@@ -75,6 +75,10 @@ export default function AddonsModal({ tenant, onFechar, onAlterado }) {
   );
 
   const aplicar = async (codigo, ativo) => {
+    // Trava de clique repetido: sem ela, dois cliques em "Desligar mesmo
+    // assim" disparam duas chamadas e a resposta mais lenta sobrescreve a UI
+    // com um estado velho.
+    if (salvando) return;
     setConfirmando("");
     setSalvando(codigo);
     setErros((e) => ({ ...e, [codigo]: "" }));
@@ -198,6 +202,7 @@ export default function AddonsModal({ tenant, onFechar, onAlterado }) {
                           <button
                             type="button"
                             className="adm-botao adm-botao--perigo"
+                            disabled={estaSalvando}
                             onClick={() => aplicar(addon.codigo, false)}
                           >
                             Desligar mesmo assim

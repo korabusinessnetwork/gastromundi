@@ -146,7 +146,10 @@ BEGIN
     RAISE EXCEPTION 'alternar_addon_tenant ficou sem SET search_path.';
   END IF;
 
-  v_def := pg_get_functiondef(v_oid);
+  -- Sem tirar os comentários o autoteste valida a documentação, não o
+  -- código: o cabeçalho da função cita `is_super_admin()` em texto, então
+  -- uma versão futura que perdesse a guarda ainda passaria.
+  v_def := regexp_replace(pg_get_functiondef(v_oid), '--.*', '', 'gn');
   IF v_def NOT LIKE '%is_super_admin%' THEN
     RAISE EXCEPTION 'alternar_addon_tenant sem a guarda is_super_admin().';
   END IF;
