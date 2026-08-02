@@ -64,18 +64,19 @@ Bugs são comportamentos inesperados que divergem das regras de negócio documen
 
 | # | Título | Severidade | Status | Reportado por | Data | Assignee |
 |---|--------|-----------|--------|---------------|------|---------|
-| BUG001 | Borda some (em vez de mudar de cor) onde o JSX cola sufixo de alfa em `var(--gm-*)` — 18 ocorrências em 6 arquivos | 🟡 Medium | Confirmado | Rodada 13 do ciclo (F018) | 2026-08-02 | — |
+| BUG001 | Borda some (em vez de mudar de cor) onde o JSX cola sufixo de alfa em `var(--gm-*)` — 26 linhas em 7 arquivos | 🟡 Medium | ✅ Corrigido (rodada 14) | Rodada 13 do ciclo (F018) | 2026-08-02 | — |
 
 ### [BUG001] Sufixo de alfa concatenado em `var()` produz CSS inválido
 
 **Severidade:** 🟡 Medium
-**Status:** Confirmado
+**Status:** ✅ Corrigido na rodada 14 (`specs/bug001-alfa-concatenado-em-var.md`)
 **Reportado por:** Rodada 13 do ciclo (`specs/f018-pdv-header-css.md`)
 **Data de reporte:** 2026-08-02
+**Data de correção:** 2026-08-02
 **Ambiente:** Produção
 
 **Descrição:**
-18 pontos do código montam cor com alfa concatenando dois dígitos hex ao fim de
+26 pontos do código montam cor com alfa concatenando dois dígitos hex ao fim de
 uma custom property — `varColor(C.accent) + "66"` ou `` `${varColor(cor)}55` `` —
 o que gera a string `var(--gm-accent)66`. Isso funcionava quando as cores eram
 hex literal (`#7c3aed` + `66` = `#7c3aed66`) e passou a ser **CSS inválido**
@@ -94,19 +95,34 @@ mudar de cor, **a borda desaparece**. O caso mais visível é o campo de senha d
 `Sidebar` (linhas 340 e 359): quando a senha está errada, a borda vermelha que
 avisa do erro simplesmente some.
 
-**Onde:**
+**Onde (inventário final, corrigido na rodada 14):**
 `src/components/desktop/Sidebar.jsx` (340, 359, 556) ·
 `src/components/desktop/views/mesas/MesasAdmin.jsx` (521, 688) ·
 `src/components/desktop/views/PDVView/index.jsx` (886, 1201, 1541, 1646, 1740,
-1749, 1971, 2087, 2092, 2093, 2119) ·
-`src/components/desktop/views/relatorio/RelatorioView.jsx` (353) ·
-`src/components/modals/FechamentoModal.jsx` (311, 340)
+1749, 1971, 2087, 2092, 2093, 2119, 2442) ·
+`src/components/desktop/views/relatorio/RelatorioView.jsx` (353, 1257, 1449, 1450) ·
+`src/components/modals/FechamentoModal.jsx` (238, 311, 340) ·
+`src/components/desktop/views/ConfiguracoesView.jsx` (747) ·
+`src/components/shared/JarvasPanel.jsx` (301)
 
-**Correção:**
-Trocar a concatenação por `alfa(C.x, "NN")` (`src/constants/colorAlfa.js`), que
-já produz `color-mix(in srgb, var(--gm-x) N%, transparent)` — a forma válida. A
-conversão de hex para porcentagem é `Math.round(parseInt("NN",16)/255*100)`.
-Casa com o F018, que passa por esses mesmos arquivos tela a tela.
+> O reporte original dizia 18 ocorrências em 6 arquivos. O número saiu de um grep
+> ancorado em `varColor(`, que perde os pontos onde o token chega por variável
+> (`${tipo.color}44`, `${cor}22`, `${color}18`, alimentados por mapas que guardam
+> `varColor(C.x)`) e os pontos onde o `}` fecha um ternário em vez da chamada. O
+> real é **26 linhas / 27 declarações em 7 arquivos**.
+
+**Correção aplicada (rodada 14):**
+As 26 linhas passaram a usar `alfa(cor, "NN")` (`src/constants/colorAlfa.js`), que
+produz `color-mix(in srgb, <cor> N%, transparent)` — a forma válida. Cada ponto
+manteve a mesma cor e o mesmo sufixo hex de antes (diff de 26 inserções e 26
+remoções, nenhuma outra linha tocada). O helper aceita tanto nome de token
+(`C.red`) quanto string já resolvida (`varColor(C.blue)`) ou hex literal
+(`"#f59e0b"`), então os mapas de cor mistos foram corrigidos sem ramificação.
+
+**Nota — duas falhas, não uma:** em `border` (atalho) o valor inválido leva as
+longhands a `unset` e a borda **some**; em `style.borderColor` (CSSOM, nos
+`onFocus`/`onBlur` feitos à mão) só a cor cai para `unset` → `currentColor`, e a
+borda fica **da cor do texto**. Os dois deixam de mostrar a cor pretendida.
 
 ## Template de Bug
 

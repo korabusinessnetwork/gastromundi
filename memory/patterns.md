@@ -205,8 +205,21 @@ de cor.
   `color-mix(in srgb, var(--gm-x) N%, transparent)`. A conversão do hex antigo é
   `Math.round(parseInt("NN",16)/255*100)` — `1a`→10%, `18`→9%, `44`→27%, `55`→33%, `0f`→6%.
 - **Nada acusa a forma errada:** o Vite não valida string de estilo, o jsdom não computa CSS e a
-  suíte fica verde. Só a leitura pega. Ao migrar uma tela, procurar `varColor(...) + "` e
-  `` `${varColor(...)}NN` `` antes de mexer no resto (`BUG001` mapeou 18 ocorrências em 6 arquivos).
+  suíte fica verde. Só a leitura pega. (`BUG001` mapeou 26 linhas em 7 arquivos; corrigido na
+  rodada 14.)
+- **Procure pela cauda, não pela cabeça.** Grep por `varColor(` perde metade dos casos: o token
+  também chega por variável (`` `${tipo.color}44` ``, `` `${cor}22` ``) e o `}` às vezes fecha um
+  ternário, não a chamada. As duas buscas que pegam tudo são
+  `grep -rE '\+\s*"[0-9a-fA-F]{2}"' src` e ``grep -rE '\}[0-9a-fA-F]{2}`' src``.
+- **`alfa()` aceita as duas formas de cor**, então mapa de cores misto não precisa de tratamento
+  especial: nome de token (`C.red`, ou `corSituacao = situacao === "falta" ? C.red : C.green`) vai
+  pelo ramo `var(...)`, e string já resolvida (`ACTION_TYPE_META.auth = varColor(C.blue)`) ou hex
+  literal (`"#f59e0b"`) vai pelo ramo literal. `alfa(tipo.color, "44")` funciona igual para os 5
+  tipos que guardam token e para o 1 que guarda hex.
+- **Duas falhas diferentes, mesmo defeito.** Em `border` (atalho), o valor inválido leva todas as
+  longhands a `unset` → `border-style: none` → a borda **some**. Em `style.borderColor` (CSSOM, nos
+  `onFocus`/`onBlur` feitos à mão), só a cor vai a `unset` → `currentColor` → a borda fica **da cor
+  do texto**. Procurar "borda sumiu" não acha o segundo caso.
 
 ### Borda de input na classe entrega o foco para o `inputs.css` global
 `src/styles/inputs.css` já pinta foco de todo input do sistema: a borda accent vem de

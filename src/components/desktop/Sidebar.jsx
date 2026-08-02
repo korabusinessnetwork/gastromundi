@@ -337,7 +337,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
                   className="sidebar__input"
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
-                    border: `1.5px solid ${authError ? varColor(C.red) + "88" : "var(--gm-input-border)"}`,
+                    border: `1.5px solid ${authError ? alfa(C.red, "88") : "var(--gm-input-border)"}`,
                     background: "var(--gm-input-bg)", color: varColor(C.text),
                     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                   }}
@@ -356,7 +356,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
                   className="sidebar__input"
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
-                    border: `1.5px solid ${authError ? varColor(C.red) + "88" : "var(--gm-input-border)"}`,
+                    border: `1.5px solid ${authError ? alfa(C.red, "88") : "var(--gm-input-border)"}`,
                     background: "var(--gm-input-bg)", color: varColor(C.text),
                     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
                   }}
@@ -553,7 +553,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
                           display: "flex", alignItems: "center", gap: 12,
                           transition: "border-color 0.15s, background 0.15s",
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = varColor(C.accent) + "66"; e.currentTarget.style.background = varColor(C.alow); }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = alfa(C.accent, "66"); e.currentTarget.style.background = varColor(C.alow); }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = varColor(C.border); e.currentTarget.style.background = varColor(C.surface); }}
                       >
                         <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: varColor(C.card), border: `1px solid var(${C.border})`, display: "flex", alignItems: "center", justifyContent: "center" }}>

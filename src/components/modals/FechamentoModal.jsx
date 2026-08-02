@@ -235,7 +235,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
                     style={{
                       width: "100%", padding: "8px 10px",
                       borderRadius: 8, textAlign: "right",
-                      border: `1.5px solid ${hasDiff ? (isPositive ? varColor(C.green) : varColor(C.red)) + "99" : "var(--gm-input-border)"}`,
+                      border: `1.5px solid ${hasDiff ? alfa(isPositive ? C.green : C.red, "99") : "var(--gm-input-border)"}`,
                       background: hasDiff ? (isPositive ? `${alfa(C.green, "10")}` : `${alfa(C.red, "10")}`) : "var(--gm-input-bg)",
                       color: varColor(C.text), fontWeight: 700,
                       boxSizing: "border-box", fontFamily: "inherit", outline: "none",
@@ -308,7 +308,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
           <div style={{
             padding: "12px 16px", borderRadius: 10, marginTop: 4,
             background: `${alfa(corDiferenca, "14")}`,
-            border: `1.5px solid ${varColor(corDiferenca)}55`,
+            border: `1.5px solid ${alfa(corDiferenca, "55")}`,
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <span className="fechamento-modal__diferenca-label" style={{ fontWeight: 600, color: varColor(C.muted) }}>
@@ -337,7 +337,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             className="fechamento-modal__obs-textarea"
             style={{
               width: "100%", padding: "10px 12px",
-              borderRadius: 10, border: `1.5px solid ${observacao ? varColor(C.accent) + "66" : "var(--gm-input-border)"}`,
+              borderRadius: 10, border: `1.5px solid ${observacao ? alfa(C.accent, "66") : "var(--gm-input-border)"}`,
               background: "var(--gm-input-bg)", color: varColor(C.text),
               fontFamily: "inherit", outline: "none",
               resize: "none",

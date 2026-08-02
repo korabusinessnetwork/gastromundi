@@ -350,7 +350,7 @@ function FechamentoDetalheModal({ f, customLabels, onClose }) {
           <div style={{
             padding: "12px 16px", borderRadius: 10, marginTop: 4,
             background: `${alfa(corSituacao, "14")}`,
-            border: `1.5px solid ${varColor(corSituacao)}55`,
+            border: `1.5px solid ${alfa(corSituacao, "55")}`,
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <span className="relatorio-view__modal-dif-label" style={{ fontWeight: 600, color: varColor(C.muted) }}>
@@ -1254,7 +1254,7 @@ export default function RelatorioView() {
                             fontWeight: 700,
                             padding: "3px 10px", borderRadius: 20,
                             background: c.origem === "Em aberto" ? `${alfa(C.accent, "14")}` : `${alfa(C.green, "14")}`,
-                            border: `1px solid ${c.origem === "Em aberto" ? varColor(C.accent) : varColor(C.green)}44`,
+                            border: `1px solid ${alfa(c.origem === "Em aberto" ? C.accent : C.green, "44")}`,
                             color: c.origem === "Em aberto" ? varColor(C.accent) : varColor(C.green),
                           }}>
                             {c.origem}
@@ -1446,8 +1446,8 @@ export default function RelatorioView() {
                           <Td sz={sz}>
                             <span className="relatorio-view__log-tipo" style={{
                               fontWeight: 700,
-                              background: `${tipo.color}18`,
-                              border: `1px solid ${tipo.color}44`,
+                              background: alfa(tipo.color, "18"),
+                              border: `1px solid ${alfa(tipo.color, "44")}`,
                               color: tipo.color,
                               padding: "3px 10px", borderRadius: 20,
                               whiteSpace: "nowrap",

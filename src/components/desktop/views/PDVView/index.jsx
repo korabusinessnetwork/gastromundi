@@ -883,7 +883,7 @@ export default function PDVView({ notify }) {
                         <span className="pdv__barcode-feedback" style={{
                           background: barcodeFeedback === "ok" ? `${alfa(C.green, "18")}` : `${alfa(C.red, "18")}`,
                           color: barcodeFeedback === "ok" ? varColor(C.green) : varColor(C.red),
-                          border: `1px solid ${barcodeFeedback === "ok" ? varColor(C.green) : varColor(C.red)}44`,
+                          border: `1px solid ${alfa(barcodeFeedback === "ok" ? C.green : C.red, "44")}`,
                         }}>
                           {barcodeFeedback === "ok" ? "✓ Item adicionado" : "Código não encontrado"}
                         </span>
@@ -1198,7 +1198,7 @@ export default function PDVView({ notify }) {
                 width: "100%",
                 padding: "11px 46px",
                 borderRadius: 12,
-                border: `1.5px solid ${buscaComanda ? varColor(C.accent) + "88" : "var(--gm-input-border)"}`,
+                border: `1.5px solid ${buscaComanda ? alfa(C.accent, "88") : "var(--gm-input-border)"}`,
                 background: "var(--gm-input-bg)",
                 color: varColor(C.text),
                 fontFamily: "inherit",
@@ -1538,7 +1538,7 @@ export default function PDVView({ notify }) {
                     className="pdv__modal-input"
                     style={{
                       width: "100%", padding: "13px 16px", borderRadius: 10, boxSizing: "border-box",
-                      border: `1.5px solid ${cancelarMotivo.trim() ? varColor(C.accent) + "88" : "var(--gm-input-border)"}`,
+                      border: `1.5px solid ${cancelarMotivo.trim() ? alfa(C.accent, "88") : "var(--gm-input-border)"}`,
                       background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none",
                     }}
                   />
@@ -1643,7 +1643,7 @@ export default function PDVView({ notify }) {
                     <div key={idx} style={{
                       display: "flex", alignItems: "center", gap: 10,
                       padding: "10px 14px", borderRadius: 12, marginBottom: 6,
-                      border: `1.5px solid ${ativo ? varColor(C.accent) + "66" : varColor(C.border)}`,
+                      border: `1.5px solid ${ativo ? alfa(C.accent, "66") : varColor(C.border)}`,
                       background: ativo ? `${alfa(C.accent, "08")}` : varColor(C.surface),
                       transition: "border-color 0.15s, background 0.15s",
                     }}>
@@ -1737,7 +1737,7 @@ export default function PDVView({ notify }) {
                             style={{
                               display: "flex", alignItems: "center", gap: 12,
                               padding: "10px 14px", borderRadius: 12,
-                              border: `1.5px solid ${sel ? varColor(C.green) + "88" : varColor(C.border)}`,
+                              border: `1.5px solid ${sel ? alfa(C.green, "88") : varColor(C.border)}`,
                               background: sel ? `${alfa(C.green, "0f")}` : varColor(C.surface),
                               cursor: "pointer", textAlign: "left", color: varColor(C.text),
                               transition: "border-color 0.15s, background 0.15s",
@@ -1746,7 +1746,7 @@ export default function PDVView({ notify }) {
                             <div className="pdv__transfer-avatar" style={{
                               width: 32, height: 32, borderRadius: 8, flexShrink: 0,
                               background: sel ? `${alfa(C.green, "22")}` : varColor(C.card),
-                              border: `1px solid ${sel ? varColor(C.green) + "55" : varColor(C.border)}`,
+                              border: `1px solid ${sel ? alfa(C.green, "55") : varColor(C.border)}`,
                               display: "flex", alignItems: "center", justifyContent: "center",
                               fontWeight: 800, color: sel ? varColor(C.green) : varColor(C.muted),
                             }}>
@@ -1968,7 +1968,7 @@ export default function PDVView({ notify }) {
                 className="pdv__modal-input"
                 style={{
                   width: "100%", padding: "11px 14px", borderRadius: 10, boxSizing: "border-box",
-                  border: `1.5px solid ${confirmCancelarMotivo.trim() ? varColor(C.accent) + "88" : "var(--gm-input-border)"}`,
+                  border: `1.5px solid ${confirmCancelarMotivo.trim() ? alfa(C.accent, "88") : "var(--gm-input-border)"}`,
                   background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none",
                 }}
               />
@@ -2084,13 +2084,13 @@ export default function PDVView({ notify }) {
                   className="pdv__modal-input"
                   style={{
                     width: "100%", padding: "13px 16px", borderRadius: 10,
-                    border: `1.5px solid ${!mesaInput.trim() ? varColor(C.red) + "88" : "var(--gm-input-border)"}`,
+                    border: `1.5px solid ${!mesaInput.trim() ? alfa(C.red, "88") : "var(--gm-input-border)"}`,
                     background: "var(--gm-input-bg)",
                     color: varColor(C.text), fontFamily: "inherit",
                     outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
                   }}
-                  onFocus={e => e.currentTarget.style.borderColor = varColor(C.accent) + "88"}
-                  onBlur={e => e.currentTarget.style.borderColor = !mesaInput.trim() ? varColor(C.red) + "88" : "var(--gm-input-border)"}
+                  onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
+                  onBlur={e => e.currentTarget.style.borderColor = !mesaInput.trim() ? alfa(C.red, "88") : "var(--gm-input-border)"}
                 />
                 {!mesaInput.trim() && (
                   <div className="pdv__modal-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>Campo obrigatório.</div>
@@ -2116,7 +2116,7 @@ export default function PDVView({ notify }) {
                     color: varColor(C.text), fontFamily: "inherit",
                     outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
                   }}
-                  onFocus={e => e.currentTarget.style.borderColor = varColor(C.accent) + "88"}
+                  onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
                   onBlur={e => e.currentTarget.style.borderColor = "var(--gm-input-border)"}
                 />
               </div>
@@ -2439,7 +2439,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                   {Object.entries(porMetodo).sort((a, b) => b[1] - a[1]).map(([metodo, val]) => (
                     <div key={metodo} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: varColor(C.surface), borderRadius: 10, padding: "10px 14px", border: `1px solid var(${C.border})` }}>
-                      <span className="pdv__saldo-metodo-pill" style={{ fontWeight: 700, color: METODOS_COLOR[metodo] ?? varColor(C.muted), background: `${METODOS_COLOR[metodo] ?? varColor(C.muted)}18`, border: `1px solid ${METODOS_COLOR[metodo] ?? varColor(C.muted)}44`, borderRadius: 8, padding: "3px 10px" }}>
+                      <span className="pdv__saldo-metodo-pill" style={{ fontWeight: 700, color: METODOS_COLOR[metodo] ?? varColor(C.muted), background: alfa(METODOS_COLOR[metodo] ?? varColor(C.muted), "18"), border: `1px solid ${alfa(METODOS_COLOR[metodo] ?? varColor(C.muted), "44")}`, borderRadius: 8, padding: "3px 10px" }}>
                         {rotuloMetodo(metodo, customLabels)}
                       </span>
                       <span className="pdv__saldo-metodo-valor" style={{ fontWeight: 800, color: varColor(C.text) }}>

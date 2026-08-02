@@ -298,7 +298,7 @@ export default function JarvasPanel() {
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                       <span className="jarvas-insight__badge" style={{
                         fontWeight: 800, textTransform: "uppercase",
-                        color: cor, background: `${cor}22`,
+                        color: cor, background: alfa(cor, "22"),
                         padding: "2px 7px", borderRadius: 8, letterSpacing: "0.4px",
                       }}>
                         {LABEL_TIPO[i.tipo] ?? i.tipo}

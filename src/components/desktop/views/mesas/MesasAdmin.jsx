@@ -518,7 +518,7 @@ export default function MesasAdmin({ sz }) {
                   className="mesas-admin__campo-input"
                   style={{
                     width: "100%", padding: "12px 14px", borderRadius: 10,
-                    border: `1.5px solid ${formErro && !form.numero.trim() && !editando ? varColor(C.red) + "88" : "var(--gm-input-border)"}`,
+                    border: `1.5px solid ${formErro && !form.numero.trim() && !editando ? alfa(C.red, "88") : "var(--gm-input-border)"}`,
                     background: "var(--gm-input-bg)", color: varColor(C.text),
                     fontFamily: "inherit", outline: "none",
                     boxSizing: "border-box", opacity: editando ? 0.55 : 1,
@@ -685,7 +685,7 @@ function CardMesaAdmin({ mesa, w, h, sz, onEdit, onDelete, onDragStart, onDragEn
       style={{
         width: w, height: h, borderRadius: 14, boxSizing: "border-box",
         background: hover ? `${alfa(C.accent, "10")}` : varColor(C.surface),
-        border: `2px solid ${hover ? varColor(C.accent) + "66" : varColor(C.border)}`,
+        border: `2px solid ${hover ? alfa(C.accent, "66") : varColor(C.border)}`,
         display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
         gap: 3, padding: "6px 4px", userSelect: "none",
