@@ -2,6 +2,57 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 6 — F022-HISTORICO — 2026-08-01
+
+- **Spec:** `specs/f022-historico-de-pagamentos-da-assinatura.md`
+- **Resultado da review:** aprovado sem ressalvas — 17 de 17 critérios em sim, `npm test` em
+  186 de 186 arquivos e 2908 de 2908 testes, **sem nenhuma rodada de correção** (as quatro correções
+  da rodada aconteceram dentro do `/build`, todas no guard, não no código entregue). Nenhum arquivo
+  tocado fora do §4 do spec; nenhuma policy criada ou alterada.
+- **O que o levantamento mudou no escopo:** a decisão 027 diz que as duas tabelas de assinatura não
+  têm policy de INSERT/UPDATE/DELETE de propósito — toda escrita passa por RPC `SECURITY DEFINER`.
+  Mas a `assinaturas_pagamentos` **já tem** o ramo `OR is_super_admin()` na policy de SELECT (desde a
+  `20260726`), então o Console lê o histórico direto, sem RPC de leitura e sem tocar em policy. O
+  escopo ficou: uma leitura direta e **uma** RPC nova, só para o desfazer.
+- **Construído:** modal "Pagamentos registrados" no `/console`
+  (`src/components/console/HistoricoPagamentosModal.jsx` + `.css`, aberto pelo botão "Ver pagamentos"
+  de cada linha do dashboard de planos), com `listarPagamentosAssinatura`, `estornarPagamentoAssinatura`
+  e a função pura `resumirPagamentos` em `src/lib/assinatura.js`. Mostra mês, valor, quem registrou e
+  quando, com o total do que vale; pagamento cancelado aparece riscado com o motivo e sem botão. O
+  desfazer é a RPC `estornar_pagamento_assinatura` (migration `20260913`): exige motivo de 3
+  caracteres, marca `estornado_em/estornado_por/estorno_motivo`, devolve o vencimento **um ciclo**
+  para trás, recalcula o status por `calcular_status_assinatura` e reconstrói `ultima_renovacao` pelo
+  maior pagamento que sobrou. O índice único de competência virou parcial
+  (`WHERE estornado_em IS NULL`), então o mês fica livre para ser lançado de novo com o valor certo.
+  Nada é apagado — o estorno é uma marca, não um DELETE.
+- **Corrigido pela review:** nada. Os 17 critérios já estavam em sim na primeira auditoria.
+- **Aprendido:** `memory/learnings.md` (duas linhas em Técnicos — o guard textual que varre o arquivo
+  inteiro encontra as próprias palavras proibidas dentro do `DO $conf$` e acusa o vigia como
+  infrator; e `/FOR (INSERT|UPDATE|DELETE)/` casa o `FOR UPDATE` dos locks da própria RPC, além do
+  CRLF que faz toda âncora com `"\n"` falhar); `memory/patterns.md` (três marcadores em "Conferência
+  textual de SQL" — proibir só antes do `DO $conf$`, ancorar no que é exclusivo do que se proíbe,
+  normalizar a quebra de linha antes de ancorar); `docs/09_BACKLOG/features.md` (o histórico no
+  status do F022, e a nota de RLS agora diz que toda escrita em assinatura passa por RPC); e o
+  resultado da review anexado ao spec (§9).
+- **Commit:** `98361a0` na branch `ciclo/f022-historico-pagamentos` (criada a partir da branch da
+  Rodada 5, então carrega os commits dela; push feito, sem pull request).
+- **Ação manual pendente:** rodar `supabase/migrations/20260913_estorno_pagamento_assinatura.sql` no
+  SQL Editor do Supabase —
+  https://github.com/korabusinessnetwork/gastromundi/blob/ciclo/f022-historico-pagamentos/supabase/migrations/20260913_estorno_pagamento_assinatura.sql
+  Enquanto não rodar, o modal **lista** os pagamentos normalmente (a leitura já existe em produção);
+  só o botão de cancelar falha, com a mensagem de erro na tela. Continua pendente também a
+  `20260912` da Rodada 5.
+- **Pendente de decisão:** a mesma das Rodadas 2 a 5, ainda sem resposta — estabelecimento de
+  **cortesia** (`valor_mensal = 0`) não consegue renovar, porque a RPC recusa `p_valor <= 0`.
+- **Prazo do dono:** a assinatura do próprio GastroMundi vence em **2026-08-05** e bloqueia em
+  **2026-08-09** — renovar pelo Console, em Planos e assinaturas → "Registrar pagamento".
+- **Fica registrado (não construído):** o histórico visto pelo **estabelecimento** (a policy já
+  deixa gerente/admin lerem o do próprio tenant, mas não existe tela), recibo/comprovante anexado ao
+  pagamento, e desfazer o estorno.
+- **Próximo item recomendado:** **S1-3-ASSINATURA** — aba "Minha assinatura" nas Configurações do
+  estabelecimento: hoje o dono do restaurante só vê o banner de vencimento, e o que ele pagou existe
+  apenas na tela do dono do SaaS.
+
 ## Rodada 5 — F022-ANALYTICS — 2026-08-01
 
 - **Spec:** `specs/f022-analytics-de-plataforma-no-console.md`
