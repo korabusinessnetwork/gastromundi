@@ -763,12 +763,7 @@ export default function PDVView({ notify }) {
   // caixa de fato fechado nos primeiros segundos após o login.
   if (bootstrapLoading) {
     return (
-      <div className="pdv__loading" style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        height: "100vh", background: varColor(C.bg),
-        fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.muted),
-        fontWeight: 600, userSelect: "none",
-      }}>
+      <div className="pdv__loading">
         Conectando ao caixa…
       </div>
     );
@@ -776,17 +771,13 @@ export default function PDVView({ notify }) {
 
   if (!caixaAberto) {
     return (
-      <div style={{
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        height: "100vh", background: varColor(C.bg), gap: 16, fontFamily: "'Inter',system-ui,sans-serif",
-        color: varColor(C.text), userSelect: "none",
-      }}>
-        <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 24, padding: "48px 56px", display: "flex", flexDirection: "column", alignItems: "center", gap: 16, maxWidth: 420, textAlign: "center" }}>
-          <div style={{ background: `${alfa(C.accent, "1a")}`, borderRadius: "50%", width: 80, height: 80, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div className="pdv__lock">
+        <div className="pdv__lock-card">
+          <div className="pdv__lock-icone">
             <LuLock size={36} color={varColor(C.accent)} />
           </div>
-          <div className="pdv__lock-titulo" style={{ fontWeight: 900 }}>Caixa Fechado</div>
-          <div className="pdv__lock-desc" style={{ color: varColor(C.muted), lineHeight: 1.6 }}>
+          <div className="pdv__lock-titulo">Caixa Fechado</div>
+          <div className="pdv__lock-desc">
             O caixa está fechado. Para realizar operações na frente de caixa, solicite ao responsável que abra o caixa.
           </div>
         </div>
@@ -795,61 +786,41 @@ export default function PDVView({ notify }) {
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: varColor(C.bg), flexDirection: "column" }}>
+    <div className="pdv__raiz">
 
       {/* ── Header (oculto no checkout — ele tem o próprio — e no painel
              enxuto do celular, onde a tela é só busca + lista) ────────── */}
       {mode !== "checkout" && !painelEnxuto && (
-        <div style={{
+        <div className="pdv__header" style={{
           // Faixa de topo compacta: header + alerta + abas + busca empilhados
           // comiam ~240px antes do primeiro card. Cada bloco perdeu altura sem
           // perder alvo de toque (ver comentários abaixo).
-          padding: `${sz.padSm - 3}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})`,
+          padding: `${sz.padSm - 3}px ${sz.pad}px`,
           ...(isCel
             ? { display: "flex", flexDirection: "column", alignItems: "stretch" }
             : { display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }),
           gap: sz.gap,
-          flexShrink: 0,
         }}>
           {/* Esquerda: título / voltar */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="pdv__header-esq">
             {mode === "pedido" && (
               <button
                 onClick={handleBack}
                 className="pdv__voltar-btn"
-                style={{
-                  background: varColor(C.surface),
-                  border: `1.5px solid var(${C.border})`,
-                  borderRadius: 10, color: varColor(C.text),
-                  cursor: "pointer",
-                  padding: `${sz.padSm - 2}px ${sz.padSm + 2}px`,
-                  fontWeight: 700,
-                  display: "flex", alignItems: "center", gap: 8,
-                  transition: "background 0.15s, border-color 0.15s", whiteSpace: "nowrap",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = varColor(C.accent);
-                  e.currentTarget.style.borderColor = varColor(C.accent);
-                  e.currentTarget.style.color = "#fff";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = varColor(C.surface);
-                  e.currentTarget.style.borderColor = varColor(C.border);
-                  e.currentTarget.style.color = varColor(C.text);
-                }}
+                style={{ padding: `${sz.padSm - 2}px ${sz.padSm + 2}px` }}
               >
                 <LuArrowLeft size={16} /> Voltar
               </button>
             )}
-            <div style={{ display: "flex", alignItems: "center", gap: 20, ...(isCel ? { flex: 1, justifyContent: "space-between" } : {}) }}>
-              <div style={{ minWidth: 0 }}>
-                <div className="pdv__titulo" style={{ fontWeight: 800 }}>
+            <div className="pdv__header-info" style={isCel ? { flex: 1, justifyContent: "space-between" } : undefined}>
+              <div className="pdv__header-titulos">
+                <div className="pdv__titulo">
                   {mode === "pedido" ? fmtComanda(selected?.comanda) : "Frente de Caixa"}
                 </div>
-                <div className="pdv__subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
+                <div className="pdv__subtitulo">
                   {mode === "pedido"
                     ? <>
-                        {selected?.mesa && <span style={{ marginRight: 6 }}>🪑 Mesa {selected.mesa}{selected?.apelido ? ` · ${selected.apelido}` : ""} ·</span>}
+                        {selected?.mesa && <span className="pdv__subtitulo-mesa">🪑 Mesa {selected.mesa}{selected?.apelido ? ` · ${selected.apelido}` : ""} ·</span>}
                         {cartItems.length} {cartItems.length === 1 ? "tipo de item" : "tipos de item"} no carrinho
                       </>
                     : `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} em aberto`}
@@ -860,15 +831,7 @@ export default function PDVView({ notify }) {
                   onClick={() => { setShowSaldo(true); setSaldoSenha(""); setSaldoSenhaErro(""); setSaldoAutorizado(false); setSaldoSenhaVis(false); }}
                   title="Saldo do dia"
                   className="pdv__saldo-btn"
-                  style={{
-                    display: "flex", alignItems: "center", gap: 7,
-                    padding: `${sz.padSm - 5}px ${sz.pad - 6}px`, borderRadius: 9,
-                    border: `1px solid var(${C.border})`, background: varColor(C.surface),
-                    color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
-                    transition: "background 0.15s, color 0.15s, border-color 0.15s", whiteSpace: "nowrap",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = varColor(C.card); e.currentTarget.style.color = varColor(C.text); e.currentTarget.style.borderColor = varColor(C.accent) + "66"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.color = varColor(C.muted); e.currentTarget.style.borderColor = varColor(C.border); }}
+                  style={{ padding: `${sz.padSm - 5}px ${sz.pad - 6}px` }}
                 >
                   <LuChartBar size={15} /> Saldo do Dia
                 </button>
@@ -880,16 +843,10 @@ export default function PDVView({ notify }) {
           {!isCel && <div />}
 
           {/* Direita: ações */}
-          <div style={{ display: "flex", justifyContent: isCel ? "flex-start" : "flex-end", alignItems: "center", gap: sz.gap, flexWrap: "wrap" }}>
+          <div className="pdv__header-acoes" style={{ justifyContent: isCel ? "flex-start" : "flex-end", gap: sz.gap }}>
           {/* Toast inline — visível no mapa/lista após lançar */}
           {emPainel && (
             <div className="pdv__toast" style={{
-              display: "flex", alignItems: "center", gap: 8,
-              background: `${alfa(C.green, "18")}`, border: `1px solid ${alfa(C.green, "44")}`,
-              color: varColor(C.green), borderRadius: 10, padding: "9px 16px",
-              fontWeight: 700,
-              pointerEvents: "none",
-              transition: "opacity 0.3s, transform 0.3s",
               opacity: toast ? 1 : 0,
               transform: toast ? "translateY(0)" : "translateY(-6px)",
             }}>
@@ -902,11 +859,9 @@ export default function PDVView({ notify }) {
               disabled={!caixaAberto}
               className="pdv__nova-comanda-btn"
               style={{
-                padding: `${sz.padSm - 5}px ${sz.pad - 2}px`, borderRadius: 9, border: "none",
+                padding: `${sz.padSm - 5}px ${sz.pad - 2}px`,
                 background: caixaAberto ? varColor(C.accent) : varColor(C.faint),
-                color: "#fff", fontWeight: 700,
                 cursor: caixaAberto ? "pointer" : "not-allowed",
-                display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
                 ...(isCel ? { width: "100%", justifyContent: "center" } : {}),
               }}
             >
@@ -917,20 +872,18 @@ export default function PDVView({ notify }) {
           {mode === "pedido" && (() => {
             const itensLancados = Array.isArray(selected?.items) ? selected.items : [];
             return (
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div className="pdv__acoes-pedido">
 
                 {/* ── Barcode scanner UI (FEATURE_BARCODE_SCANNER) ── */}
                 {FEATURE_BARCODE_SCANNER && (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div className="pdv__barcode-bloco">
+                    <div className="pdv__barcode-linha">
                       {/* Feedback inline */}
                       {barcodeFeedback && (
                         <span className="pdv__barcode-feedback" style={{
-                          fontWeight: 700, padding: "4px 10px", borderRadius: 8,
                           background: barcodeFeedback === "ok" ? `${alfa(C.green, "18")}` : `${alfa(C.red, "18")}`,
                           color: barcodeFeedback === "ok" ? varColor(C.green) : varColor(C.red),
                           border: `1px solid ${barcodeFeedback === "ok" ? varColor(C.green) : varColor(C.red)}44`,
-                          whiteSpace: "nowrap",
                         }}>
                           {barcodeFeedback === "ok" ? "✓ Item adicionado" : "Código não encontrado"}
                         </span>
@@ -942,13 +895,9 @@ export default function PDVView({ notify }) {
                         title="Scanner de código de barras"
                         className="pdv__scanner-btn"
                         style={{
-                          padding: "10px 14px", borderRadius: 10,
                           border: `1.5px solid ${barcodeInputOpen ? varColor(C.accent) : varColor(C.border)}`,
                           background: barcodeInputOpen ? `${alfa(C.accent, "12")}` : varColor(C.surface),
                           color: barcodeInputOpen ? varColor(C.accent) : varColor(C.muted),
-                          cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-                          fontWeight: 700, fontFamily: "inherit",
-                          transition: "all 0.15s",
                         }}
                       >
                         <LuScanBarcode size={16} />
@@ -957,7 +906,7 @@ export default function PDVView({ notify }) {
                     </div>
                     {/* Campo de input manual — colapsável */}
                     {barcodeInputOpen && (
-                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <div className="pdv__barcode-campo">
                         <input
                           autoFocus
                           type="text"
@@ -967,25 +916,14 @@ export default function PDVView({ notify }) {
                           placeholder="Digite ou escaneie o código..."
                           maxLength={64}
                           className="pdv__barcode-input"
-                          style={{
-                            width: 220, padding: "8px 12px",
-                            borderRadius: 9, border: `1.5px solid var(--gm-input-border)`,
-                            background: "var(--gm-input-bg)", color: varColor(C.text),
-                            fontFamily: "inherit", outline: "none",
-                            boxSizing: "border-box",
-                          }}
-                          onFocus={e => { e.currentTarget.style.borderColor = varColor(C.accent); }}
-                          onBlur={e => { e.currentTarget.style.borderColor = "var(--gm-input-border)"; }}
                         />
                         <button
                           type="button"
                           onClick={() => handleBarcodeScan(barcodeValue.trim())}
                           className="pdv__barcode-ok-btn"
                           style={{
-                            padding: "8px 14px", borderRadius: 9, border: "none",
                             background: barcodeValue.trim() ? varColor(C.accent) : varColor(C.faint),
-                            color: "#fff", cursor: barcodeValue.trim() ? "pointer" : "not-allowed",
-                            fontWeight: 700, fontFamily: "inherit",
+                            cursor: barcodeValue.trim() ? "pointer" : "not-allowed",
                           }}
                         >
                           OK
@@ -999,18 +937,8 @@ export default function PDVView({ notify }) {
                 <button
                   onClick={abrirEditarMesa}
                   title="Editar mesa e apelido"
-                  className="pdv__acao-btn"
-                  style={{
-                    padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
-                    border: `1px solid var(${C.border})`,
-                    background: varColor(C.surface),
-                    color: varColor(C.muted), fontWeight: 700,
-                    cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: 6,
-                    transition: "background 0.15s, color 0.15s", whiteSpace: "nowrap",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = varColor(C.card); e.currentTarget.style.color = varColor(C.text); }}
-                  onMouseLeave={e => { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.color = varColor(C.muted); }}
+                  className="pdv__acao-btn pdv__acao-btn--neutro"
+                  style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
                 >
                   <LuPencil size={sz.fontBase - 2} />
                   {selected?.mesa ? `Mesa ${selected.mesa}` : "Mesa"}
@@ -1020,22 +948,18 @@ export default function PDVView({ notify }) {
                 <button
                   onClick={abrirClienteComanda}
                   title="Vincular cliente à comanda"
-                  className="pdv__acao-btn"
+                  className="pdv__acao-btn pdv__acao-btn--cliente"
                   style={{
-                    padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
+                    padding: `${sz.padSm - 2}px ${sz.padSm}px`,
                     border: `1px solid ${selected?.cliente_id ? varColor(C.accent) : `var(${C.border})`}`,
                     background: selected?.cliente_id ? `${alfa(C.accent, "12")}` : varColor(C.surface),
-                    color: selected?.cliente_id ? varColor(C.accent) : varColor(C.muted), fontWeight: 700,
-                    cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: 6,
-                    transition: "background 0.15s, color 0.15s", whiteSpace: "nowrap",
-                    maxWidth: 200,
+                    color: selected?.cliente_id ? varColor(C.accent) : varColor(C.muted),
                   }}
                   onMouseEnter={e => { if (!selected?.cliente_id) { e.currentTarget.style.background = varColor(C.card); e.currentTarget.style.color = varColor(C.text); } }}
                   onMouseLeave={e => { if (!selected?.cliente_id) { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.color = varColor(C.muted); } }}
                 >
                   <LuUser size={sz.fontBase - 2} />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span className="pdv__acao-btn-texto">
                     {selected?.cliente_nome ? selected.cliente_nome : "Cliente"}
                   </span>
                 </button>
@@ -1044,35 +968,15 @@ export default function PDVView({ notify }) {
                   <>
                   <button
                     onClick={abrirTransferir}
-                    className="pdv__acao-btn"
-                    style={{
-                      padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
-                      border: `1px solid var(${C.border})`,
-                      background: varColor(C.surface),
-                      color: varColor(C.muted), fontWeight: 700,
-                      cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: 6,
-                      transition: "background 0.15s, color 0.15s", whiteSpace: "nowrap",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = varColor(C.card); e.currentTarget.style.color = varColor(C.text); }}
-                    onMouseLeave={e => { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.color = varColor(C.muted); }}
+                    className="pdv__acao-btn pdv__acao-btn--neutro"
+                    style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
                   >
                     <LuArrowLeftRight size={sz.fontBase - 1} /> Transferir
                   </button>
                   <button
                     onClick={() => { setShowCancelarComanda(true); setCancelarSenha(""); setCancelarSenhaErro(""); setCancelarAutorizado(false); setCancelarMotivo(""); }}
-                    className="pdv__acao-btn"
-                    style={{
-                      padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
-                      border: `1px solid ${alfa(C.red, "55")}`,
-                      background: `${alfa(C.red, "0f")}`,
-                      color: varColor(C.red), fontWeight: 700,
-                      cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: 6,
-                      transition: "background 0.15s", whiteSpace: "nowrap",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = `${alfa(C.red, "22")}`; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = `${alfa(C.red, "0f")}`; }}
+                    className="pdv__acao-btn pdv__acao-btn--cancelar-comanda"
+                    style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
                   >
                     <LuX size={sz.fontBase - 1} /> Cancelar Comanda
                   </button>
@@ -1080,18 +984,8 @@ export default function PDVView({ notify }) {
                 ) : (
                   <button
                     onClick={() => { setConfirmCancelar(true); setConfirmCancelarMotivo(""); }}
-                    className="pdv__acao-btn"
-                    style={{
-                      padding: `${sz.padSm - 2}px ${sz.padSm}px`, borderRadius: 10,
-                      border: `1px solid ${alfa(C.red, "55")}`,
-                      background: `${alfa(C.red, "0f")}`,
-                      color: varColor(C.red), fontWeight: 700,
-                      cursor: "pointer",
-                      display: "flex", alignItems: "center", gap: 6,
-                      transition: "background 0.15s", whiteSpace: "nowrap",
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = `${alfa(C.red, "1e")}`}
-                    onMouseLeave={e => e.currentTarget.style.background = `${alfa(C.red, "0f")}`}
+                    className="pdv__acao-btn pdv__acao-btn--cancelar-pedido"
+                    style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
                   >
                     Cancelar Pedido
                   </button>

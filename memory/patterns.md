@@ -194,6 +194,35 @@ filhas dela.
   `calc(var(--klogo-size) * 0.28)`. Sem o `px`, o `calc()` recebe número puro e **descarta a
   declaração inteira em silêncio** — nada quebra, o elemento só some de tamanho.
 
+### Alfa sobre token: `alfa()` ou `color-mix`, nunca hex concatenado
+Antes do ADR-007, cor com transparência se escrevia colando dois dígitos hex no fim da cor
+(`#7c3aed` + `"66"`). Com custom properties o mesmo idioma produz `var(--gm-accent)66`, que é
+**CSS inválido** — e inválido depois de substituir `var()` não cai para a regra anterior: as
+longhands vão para `unset`, então `border-style` volta a `none` e **a borda some** em vez de mudar
+de cor.
+
+- **A forma certa é `alfa(C.x, "NN")`** (`src/constants/colorAlfa.js`), que devolve
+  `color-mix(in srgb, var(--gm-x) N%, transparent)`. A conversão do hex antigo é
+  `Math.round(parseInt("NN",16)/255*100)` — `1a`→10%, `18`→9%, `44`→27%, `55`→33%, `0f`→6%.
+- **Nada acusa a forma errada:** o Vite não valida string de estilo, o jsdom não computa CSS e a
+  suíte fica verde. Só a leitura pega. Ao migrar uma tela, procurar `varColor(...) + "` e
+  `` `${varColor(...)}NN` `` antes de mexer no resto (`BUG001` mapeou 18 ocorrências em 6 arquivos).
+
+### Borda de input na classe entrega o foco para o `inputs.css` global
+`src/styles/inputs.css` já pinta foco de todo input do sistema: a borda accent vem de
+`input:not([aria-invalid="true"]):not([type="checkbox"]):not([type="radio"]):focus` (0,3,1) e o anel
+de um `:focus` universal. Um `border` **inline** vence isso, e é por isso que várias telas
+reimplementam o foco à mão com `onFocus`/`onBlur` mexendo em `e.currentTarget.style`.
+
+- **Movida a borda para a classe co-localizada (0,1,0), o global volta a vencer** — o foco passa a
+  ser pintado pelo `inputs.css`, com o mesmo resultado visual, e os dois handlers de JavaScript
+  saem junto (feito em `.pdv__barcode-input`).
+- **A borda de repouso continua sendo do componente:** a regra global usa `:where()`
+  (especificidade 0), então a classe define espessura e cor parada sem disputa.
+- **O `background` é o inverso:** o global usa cadeia de `:not()` (~0,8,1) e passa a vencer a classe
+  assim que o inline sai — só não muda nada porque o valor é o mesmo `var(--gm-input-bg)`. Conferir
+  esse par antes de tirar o inline de um input com fundo próprio.
+
 ---
 
 ## Padrões de API

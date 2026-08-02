@@ -1,6 +1,13 @@
 /**
- * F018 — leva 1 (núcleo do PDV). Decisão 018 (CSS separado do JSX) +
- * tokens --gm-* (ADR-007). Cores/transições/cursor/layout fixo são classe.
+ * F018 — núcleo do PDV. Decisão 018 (CSS separado do JSX) + tokens --gm-*
+ * (ADR-007).
+ *
+ * Leva 1: tipografia de toda a tela.
+ * Leva 2 (rodada 13, specs/f018-pdv-header-css.md): cor, borda, layout fixo,
+ * transição, cursor e hover/foco dos estados de bloqueio e do cabeçalho —
+ * até o fim da barra de ações. Do alerta de estoque para baixo, esses ainda
+ * moram no JSX. O que depende de runtime (sz.*, isCel, estado) segue inline
+ * de propósito; o que é literal mora aqui.
  *
  * TAMANHO DE FONTE agora vem da escala do design system (--fs-*/--lh-* de
  * src/styles/tipografia.css), por classe de componente — não mais inline via
@@ -14,45 +21,193 @@
 /* ── Estado de carregamento / caixa fechado ─────────────────────── */
 
 .pdv__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--gm-bg);
+  font-family: "Inter", system-ui, sans-serif;
   font-size: var(--fs-base);   /* role: corpo (era inline sem token) */
   line-height: var(--lh-base);
+  font-weight: 600;
+  color: var(--gm-muted);
+  user-select: none;
+}
+
+.pdv__lock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100vh;
+  background: var(--gm-bg);
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--gm-text);
+  user-select: none;
+}
+
+.pdv__lock-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 420px;
+  padding: 48px 56px;
+  border: 1px solid var(--gm-border);
+  border-radius: 24px;
+  background: var(--gm-card);
+  text-align: center;
+}
+
+.pdv__lock-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--gm-accent) 10%, transparent);
 }
 
 .pdv__lock-titulo {
   font-size: var(--fs-xl);   /* role: título de tela ("Caixa Fechado") */
   line-height: var(--lh-xl);
+  font-weight: 900;
 }
 
+/* line-height 1.6, e não --lh-base (1.5): 1.6 era o valor inline, que vencia a
+   classe por especificidade — é o que a tela mostra hoje. Preservado para não
+   mudar a altura do parágrafo; alinhar com a escala é decisão de design. */
 .pdv__lock-desc {
   font-size: var(--fs-base);   /* role: descrição/corpo */
-  line-height: var(--lh-base);
+  line-height: 1.6;
+  color: var(--gm-muted);
+}
+
+/* ── Raiz da tela ────────────────────────────────────────────────── */
+
+.pdv__raiz {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--gm-bg);
 }
 
 /* ── Header do PDV ───────────────────────────────────────────────── */
 
+/* padding, gap e a alternância grid/coluna continuam inline: dependem de
+   `sz` (escala por breakpoint) e de `isCel`. */
+.pdv__header {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.pdv__header-esq {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* No celular vira `flex: 1` + `space-between` — isso segue inline. */
+.pdv__header-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* min-width: 0 permite que o título encolha e reticencie dentro do flex. */
+.pdv__header-titulos {
+  min-width: 0;
+}
+
+.pdv__header-acoes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .pdv__voltar-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid var(--gm-border);
+  border-radius: 10px;
+  background: var(--gm-surface);
   font-size: var(--fs-base);   /* role: botão */
   line-height: var(--lh-base);
+  font-weight: 700;
+  color: var(--gm-text);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+/* #fff literal: TOKENS_PERMITIDOS (src/lib/tema.js) não tem token para texto
+   sobre a cor da marca — mesmo caso de vitrine.css (.btn--primario) e de
+   KLogo.css. Proposta do token --gm-sobre-accent está pendente com o dono. */
+.pdv__voltar-btn:hover {
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+  color: #fff;
 }
 
 .pdv__titulo {
   font-size: var(--fs-xl);   /* role: nome de tela / nº de comanda */
   line-height: var(--lh-xl);
+  font-weight: 800;
 }
 
 .pdv__subtitulo {
+  margin-top: 2px;
   font-size: var(--fs-sm);   /* role: texto secundário do header */
   line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.pdv__subtitulo-mesa {
+  margin-right: 6px;
 }
 
 .pdv__saldo-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--gm-border);
+  border-radius: 9px;
+  background: var(--gm-surface);
   font-size: var(--fs-base);   /* role: botão ("Saldo do Dia") */
   line-height: var(--lh-base);
+  font-weight: 600;
+  color: var(--gm-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+/* O hover em JS também mexia na borda, mas montava a string
+   `var(--gm-accent)66` — CSS inválido, descartado pelo navegador. Não foi
+   traduzido de propósito: reproduzir aqui mudaria a aparência de hoje. O que
+   se pretendia era color-mix(... var(--gm-accent) 40%, transparent). */
+.pdv__saldo-btn:hover {
+  background: var(--gm-card);
+  color: var(--gm-text);
 }
 
 .pdv__toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1px solid color-mix(in srgb, var(--gm-green) 27%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
   font-size: var(--fs-base);   /* role: mensagem de feedback (era sem token) */
   line-height: var(--lh-base);
+  font-weight: 700;
+  color: var(--gm-green);
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
 }
 
 /*
@@ -77,14 +232,84 @@
   transform: translate(-50%, 0);
 }
 
+/* background e cursor seguem inline: mudam com o caixa aberto/fechado. */
 .pdv__nova-comanda-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 9px;
   font-size: var(--fs-base);   /* role: botão (era sem token) */
   line-height: var(--lh-base);
+  font-weight: 700;
+  color: #fff;   /* literal: sem token para texto sobre a marca — ver .pdv__voltar-btn:hover */
+  white-space: nowrap;
 }
 
+/* ── Ações do modo pedido ────────────────────────────────────────── */
+
+.pdv__acoes-pedido {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Base comum aos cinco botões de ação (Mesa, Cliente, Transferir, Cancelar
+   Comanda, Cancelar Pedido). Cor e transição variam por papel → modificador. */
 .pdv__acao-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 10px;
   font-size: var(--fs-base);   /* role: botão (era sz.fontBase) */
   line-height: var(--lh-base);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Texto do botão que pode ser longo (nome do cliente). */
+.pdv__acao-btn-texto {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdv__acao-btn--neutro {
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.pdv__acao-btn--neutro:hover {
+  background: var(--gm-card);
+  color: var(--gm-text);
+}
+
+/* Cliente: borda/fundo/cor dependem de haver cliente vinculado e continuam
+   inline, junto com o hover (que só vale quando não há cliente). */
+.pdv__acao-btn--cliente {
+  max-width: 200px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.pdv__acao-btn--cancelar-comanda,
+.pdv__acao-btn--cancelar-pedido {
+  border: 1px solid color-mix(in srgb, var(--gm-red) 33%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 6%, transparent);
+  color: var(--gm-red);
+  transition: background 0.15s;
+}
+
+/* Os dois hovers têm intensidades diferentes no código de origem (13% e 12%).
+   Mantidas separadas: unificar mudaria a aparência, ainda que de pouco. */
+.pdv__acao-btn--cancelar-comanda:hover {
+  background: color-mix(in srgb, var(--gm-red) 13%, transparent);
+}
+
+.pdv__acao-btn--cancelar-pedido:hover {
+  background: color-mix(in srgb, var(--gm-red) 12%, transparent);
 }
 
 /* Alertas de estoque baixo / validade — mesmas classes reusadas pelas duas
@@ -121,24 +346,78 @@
 
 /* ── Leitor de código de barras ──────────────────────────────────── */
 
+.pdv__barcode-bloco {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.pdv__barcode-linha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pdv__barcode-campo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Fundo, cor e borda dependem de o código ter sido encontrado → seguem inline. */
 .pdv__barcode-feedback {
+  padding: 4px 10px;
+  border-radius: 8px;
   font-size: var(--fs-xs);   /* role: caption de retorno (era 13px) */
   line-height: var(--lh-xs);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
+/* Borda, fundo e cor dependem de o campo estar aberto → seguem inline. */
 .pdv__scanner-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-family: inherit;   /* controle de formulário não herda fonte sozinho */
   font-size: var(--fs-sm);   /* role: botão compacto secundário (era 15px) */
   line-height: var(--lh-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
+/* A borda accent no foco vinha de onFocus/onBlur em JS porque o `border`
+   inline vencia a regra global. Com a borda aqui (0,1,0), quem passa a
+   pintar o foco é src/styles/inputs.css, que tem especificidade maior —
+   mesmo resultado, sem JavaScript. */
 .pdv__barcode-input {
+  box-sizing: border-box;
+  width: 220px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--gm-input-border);
+  border-radius: 9px;
+  outline: none;
+  background: var(--gm-input-bg);
+  font-family: inherit;
   font-size: var(--fs-sm);   /* role: input compacto (era 14px) */
   line-height: var(--lh-sm);
+  color: var(--gm-text);
 }
 
+/* Fundo e cursor dependem de haver código digitado → seguem inline. */
 .pdv__barcode-ok-btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 9px;
+  font-family: inherit;
   font-size: var(--fs-sm);   /* role: botão compacto (era 14px) */
   line-height: var(--lh-sm);
+  font-weight: 700;
+  color: #fff;   /* literal: sem token para texto sobre a marca */
 }
 
 /* ── Modais (compartilhadas entre Nova Comanda / Cancelar Comanda /
