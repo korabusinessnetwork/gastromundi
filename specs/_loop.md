@@ -2,6 +2,38 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 23 — F018, fatia 10 — aba Entrega do Delivery — 2026-08-02
+
+- **Spec:** `specs/f018-delivery-entrega-css.md`
+- **Resultado da review:** **aprovada sem ressalvas** — 15 de 15 critérios em sim, **nenhuma rodada
+  de correção** (a primeira vez no F018). `npx vitest run`: 195 arquivos, 3096 testes, verde
+  (76,35s). `npx vite build`: verde (10,98s), rodado depois da última edição de CSS.
+- **Construído:** a `AbaEntrega` inteira saiu do inline — pedido mínimo, tempo de preparo, modo da
+  taxa, endereço de origem com mapa e as faixas por bairro/CEP/km. `style={{}}` no
+  `DeliveryView.jsx` foi de **28 para 2**; em `src/`, de **1653 para 1627** (queda de exatamente 26).
+  Os 2 que ficam são de runtime e não podem virar CSS estático: a cor da coluna do kanban
+  (`--cor-status`, linha 628) e a posição do menu de foto vinda de `getBoundingClientRect` (1296).
+- **O segundo maior arquivo do projeto está fechado** — seis fatias, das rodadas 18 a 23.
+- **Único comportamento que mudou de propósito (critério 8):** o botão "Localizar no mapa" tinha
+  `opacity: 0.7` inline enquanto geocodificava; agora usa o `0.6` de `.delivery-view__btn:disabled`,
+  o mesmo de todo botão desabilitado da tela. Declarado no spec antes do build.
+- **O método funcionou de primeira:** o script de migração contada (padrão da rodada 22) rodou as 26
+  substituições sem nenhuma divergência, sem precisar estreitar âncora. Cinco declarações que só
+  repetiam o que a classe já aplicava foram **apagadas**, não migradas, e três ternários de estilo
+  viraram par de classes.
+- **Aprendido:** `memory/learnings.md` — a última chamada de `alfa()` do arquivo saiu com a fatia e
+  o import ficou órfão, sem que `vitest` ou `vite build` reclamassem; import não usado é código
+  válido. `memory/patterns.md` — o padrão de migração contada ganhou o passo de contar também o
+  **helper** substituído: contagem que cai a zero é ordem de apagar o import.
+  `docs/09_BACKLOG/features.md` — F018 atualizado (1627 inline; `DeliveryView.jsx` sai da lista de
+  arquivos que ainda precisam de fatia).
+- **Commit:** `85ed313` na branch `ciclo/s1-3-configuracoes`.
+- **Pendente de decisão:** nenhuma nova. Continuam abertas o token `--gm-sobre-accent` e a
+  unificação dos seis overlays do PDV.
+- **Próximo item recomendado:** F018, fatia 11 — `relatorio/RelatorioView.jsx`, com **202** inline, o
+  maior arquivo que sobrou. Mesma receita das seis fatias anteriores, aplicada a uma tela que o dono
+  usa todo dia.
+
 ## Rodada 22 — F018, fatia 9 — aba Complementos do Delivery — 2026-08-02
 
 - **Spec:** `specs/f018-delivery-complementos-css.md`
