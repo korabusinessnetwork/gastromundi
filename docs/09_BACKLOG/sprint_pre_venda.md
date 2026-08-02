@@ -13,8 +13,14 @@ gating por módulo, add-ons scaffolding, billing + enforcement de assinatura no 
 white-label por `tenants.tema`), impressão adaptável (F015/F020), fix crítico de RLS (chave
 JWT), e o app inteiro tokenizado/responsivo (F018, finalizando cleanup de `colors.js`).
 
-**Porém:** tudo isso roda para **um único estabelecimento**. O isolamento multi-tenant real
-foi adiado — e o modelo de acesso escolhido o torna obrigatório para vender.
+**Atualizado em 2026-08-02:** o parágrafo acima descrevia o quadro de 2026-07-10, quando tudo
+isso rodava para **um único estabelecimento**. Não é mais verdade. O isolamento multi-tenant
+entrou nas levas `20260723` (hook de JWT), `20260724` (isolamento das operacionais), `20260725`
+(wrappers que leem o tenant do JWT) e `20260726` (billing), mais `20260738` (PK composta por
+tenant), `20260739` (RLS de `users`), `20260743` (grupos de categoria) e `20260813` (unidades de
+medida) — **49 tabelas** isoladas por `tenant_id`, com política `AS RESTRICTIVE` por tenant. O que
+bloqueia a venda hoje
+é só o **S1-4 (fiscal NFC-e)**, que depende de certificado e provedor pagos.
 
 ---
 
@@ -22,9 +28,9 @@ foi adiado — e o modelo de acesso escolhido o torna obrigatório para vender.
 
 | # | Item | Por que trava a venda | Esforço |
 |---|------|----------------------|---------|
-| S1-1 | **Isolamento multi-tenant**: adicionar `tenant_id` a TODAS as tabelas operacionais (vendas, venda_itens, venda_pagamentos, sales, pending, products, estoque, clientes, lancamentos, mesas, fechamentos, config, jarvas_*, notas_fiscais...) + RLS que filtra pelo tenant do usuário logado (via `users`/JWT). Ajustar as funções de gating/assinatura que hoje resolvem "o único tenant" para resolver o tenant do usuário.<br>**Entregue** em quatro levas — `20260723` (hook de JWT em `users`), `20260724` (isolamento das operacionais), `20260725` (wrappers que leem o tenant do JWT) e `20260726` (billing) — mais `20260738` (PK composta por tenant), `20260739` (RLS de `users`), `20260743` (grupos de categoria) e `20260813` (unidades de medida). Só falta refletir isso em `supabase/schema.sql`, que ainda não tem uma ocorrência de `tenant_id`. | Sem isso, no modelo "mesmo app", **um cliente vê os dados do outro**. Era o bloqueador nº 1 — deixou de ser. | ✅ Entregue |
+| S1-1 | **Isolamento multi-tenant**: adicionar `tenant_id` a TODAS as tabelas operacionais (vendas, venda_itens, venda_pagamentos, sales, pending, products, estoque, clientes, lancamentos, mesas, fechamentos, config, jarvas_*, notas_fiscais...) + RLS que filtra pelo tenant do usuário logado (via `users`/JWT). Ajustar as funções de gating/assinatura que hoje resolvem "o único tenant" para resolver o tenant do usuário.<br>**Entregue** em quatro levas — `20260723` (hook de JWT em `users`), `20260724` (isolamento das operacionais), `20260725` (wrappers que leem o tenant do JWT) e `20260726` (billing) — mais `20260738` (PK composta por tenant), `20260739` (RLS de `users`), `20260743` (grupos de categoria) e `20260813` (unidades de medida). O `supabase/schema.sql` foi refeito em 2026-08-02 (TD016) e agora descreve as 54 tabelas e o `tenant_id` de cada uma; `src/lib/schemaSqlGuard.test.js` quebra a suíte se ele voltar a atrasar. | Sem isso, no modelo "mesmo app", **um cliente vê os dados do outro**. Era o bloqueador nº 1 — deixou de ser. | ✅ Entregue |
 | S1-2 | **Console da plataforma (super-admin — VOCÊ)** — F022, decisão 027: página com **login próprio** e papel cross-tenant. Cria estabelecimentos (onboarding: tenant + 1º admin + base limpa), define plano/add-ons por tenant, **concede/estende tempo de assinatura**, configura fiscal por tenant (decisão 026), vê billing de todos. É por AQUI que você coloca um cliente novo no ar e gerencia a conta dele.<br>**Entregue**: login próprio, criar estabelecimento com o 1º admin (RPC `provisionar_tenant` `20260727` + Edge Function que cria a credencial em `auth.users`), plano, mensalidade, layout, add-ons (`20260915`), renovação, estorno, histórico e analytics da plataforma. A parte fiscal citada aqui **não é do Console**: quem preenche `tenant_fiscal_config` é o próprio estabelecimento, no `PainelFiscal`. | Sem isto não há como criar/gerenciar clientes nem controlar assinatura. Superfície mais sensível (cross-tenant) — desenhar junto do S1-1. | ✅ Entregue |
-| S1-3 | **Configurações do estabelecimento (admin do TENANT — o dono do restaurante)** — fim do "só por SQL", escopado ao próprio tenant: identidade/tema (logo, cores, nome), usuários, config de impressão/perfil, e visualização do próprio plano/assinatura. (A concessão de tempo de assinatura fica no console da plataforma, S1-2, não aqui.)<br>**Entregue (2026-08-01)**, em quatro abas de Configurações: **Usuários** (CRUD completo), **Impressão** (perfil e config), **Minha assinatura** (situação, plano, o que inclui e histórico de pagamentos, somente leitura — decisão 027) e **Identidade** (nome de exibição e logo do próprio estabelecimento, só admin, gravados por `atualizar_identidade_tenant` — migration `20260914`). O logo **não** esbarrava em Storage × RLS: as policies da `20260826` casam pela primeira pasta do caminho, então `{tenant_id}/identidade/logo.png` no bucket `delivery-fotos` já nasce isolado e autorizado.<br>Fora daqui de propósito: **paleta e layout** (`accent`, `tema.layout`) continuam sendo escolha da plataforma pelo Console (`alterar_layout_tenant`, `20260801`) — a troca de layout apaga overrides de paleta, e duas pontas escrevendo o mesmo jsonb se sobrescreveriam sem ninguém perceber. | Não dá pra entregar um sistema que o cliente só configura por SQL. Reaproveita telas já tokenizadas (F018). | 🟠 Médio |
+| S1-3 | **Configurações do estabelecimento (admin do TENANT — o dono do restaurante)** — fim do "só por SQL", escopado ao próprio tenant: identidade/tema (logo, cores, nome), usuários, config de impressão/perfil, e visualização do próprio plano/assinatura. (A concessão de tempo de assinatura fica no console da plataforma, S1-2, não aqui.)<br>**Entregue (2026-08-01)**, em quatro abas de Configurações: **Usuários** (CRUD completo), **Impressão** (perfil e config), **Minha assinatura** (situação, plano, o que inclui e histórico de pagamentos, somente leitura — decisão 027) e **Identidade** (nome de exibição e logo do próprio estabelecimento, só admin, gravados por `atualizar_identidade_tenant` — migration `20260914`). O logo **não** esbarrava em Storage × RLS: as policies da `20260826` casam pela primeira pasta do caminho, então `{tenant_id}/identidade/logo.png` no bucket `delivery-fotos` já nasce isolado e autorizado.<br>Fora daqui de propósito: **paleta e layout** (`accent`, `tema.layout`) continuam sendo escolha da plataforma pelo Console (`alterar_layout_tenant`, `20260801`) — a troca de layout apaga overrides de paleta, e duas pontas escrevendo o mesmo jsonb se sobrescreveriam sem ninguém perceber. | Não dá pra entregar um sistema que o cliente só configura por SQL. Reaproveita telas já tokenizadas (F018). | ✅ Entregue |
 | S1-4 | **Fiscal NFC-e** (exigido pelo cliente): escolher provedor + certificado digital, e ligar no hook fiscal nativo (F019) do fluxo de pagamento. Ver "Decisão de custo" abaixo. | Cliente exige NFC-e desde o dia 1. | 🔴 Alto + custo |
 
 ---
@@ -41,11 +47,19 @@ foi adiado — e o modelo de acesso escolhido o torna obrigatório para vender.
 
 ## ✅ Em andamento / finalização (não bloqueia)
 
-- **Cleanup do `colors.js`** (fecha o F018 100% — fonte única de cor). Já aprovado, rodando.
+- **Cleanup do `colors.js`** (fecha o F018 100% — fonte única de cor). Contagem de 2026-08-02:
+  **121 dos 156** `.jsx` não-teste já importam o `.css` co-localizado; faltam 4 arquivos com
+  `style={{` e nenhum `.css` próprio (`src/components/shared/KLogo.jsx` e as três telas de
+  checkout em `src/pages/delivery/`) e `style={{` residual em 44 arquivos já migrados.
 
 ## ⏸️ Adiado — NÃO bloqueia a venda desta semana
 
-- **F021 — PDV offline-first (PWA)**: alto valor de venda, mas grande e exige ADR. Fica para depois do lançamento.
+- **F021 — PDV offline-first (PWA)**: ~~fica para depois do lançamento~~ — **parcialmente entregue
+  na Leva 11, sem o ADR que o item exigia**: `src/lib/offline/fila.js` + `rede.js` + `snapshot.js`,
+  drenados por `drenarFila`/`executarOpOffline` em `src/context/AppContext.jsx`, com `VitePWA` no
+  `vite.config.js` e baixa de estoque idempotente (`20260830_idempotencia_baixa_estoque.sql`).
+  Continua faltando: IndexedDB (hoje é `localStorage`), conflito multi-dispositivo, realtime,
+  contingência fiscal/TEF — e o ADR.
 - **Gateway de pagamento automático**: cobrança manual cobre o lançamento (regra de custo).
 - **Subdomínio por tenant / deploy dedicado**: o modelo "mesmo app + login" dispensa por ora.
 

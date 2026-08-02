@@ -96,6 +96,13 @@ Vale para todo guard que lê migration em `src/**/*SqlGuard.test.js` e para todo
 - **Normalize a quebra de linha antes de ancorar.** Os fontes deste repositório são gravados com
   CRLF: `recorte(arquivo, inicio, "}\n")` devolve −1 e o teste falha sem nada de errado no código.
   `readFileSync(caminho, "utf8").replace(/\r/g, "")` na leitura resolve de uma vez.
+- **Conjunto de isenção é mais perigoso que conjunto de exigência.** Quando o guard monta uma lista
+  do que ele vai *pular* (tabela derrubada, arquivo legado, caso conhecido), errar para mais nessa
+  lista some com a verificação em silêncio — enquanto errar para mais numa exigência só produz um
+  falso positivo que alguém conserta. Faça a lista de isenção a mais estreita que o texto permitir e
+  diga na mensagem de erro por que cada item saiu. Foi o que quase furou o `schemaSqlGuard`: o
+  `DROP TABLE _numeros` da `20260903` é de uma `CREATE TEMP TABLE` de verificação, e ia isentar da
+  cobertura qualquer tabela real que um dia tivesse esse nome.
 
 ### Superfície pública endereçada por slug: precedência e cache por origem
 Vale para toda tela anônima que mostra os dados de **um** estabelecimento escolhido pelo endereço —

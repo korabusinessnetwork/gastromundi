@@ -2,6 +2,40 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 10 — TD016 — 2026-08-02
+
+- **Spec:** `specs/td016-veracidade-do-backlog-e-do-schema.md`
+- **Resultado da review:** aprovado sem ressalvas — 18 de 18 critérios em sim, `npx vitest run` em
+  191 de 191 arquivos e 3018 de 3018 testes. Nenhum arquivo tocado fora do §4, nenhuma migration
+  criada ou alterada.
+- **Construído:** os documentos que o `CLAUDE.md` chama de fonte de verdade voltaram a dizer a
+  verdade. `supabase/schema.sql` reconstruído das migrations — de 26 para **54 tabelas**, com a
+  camada multi-tenant inteira (`tenants`, `tenant_id` nas 49 isoladas, `tenant_atual_id()` e a
+  policy `RESTRICTIVE`), que antes não aparecia **nenhuma vez** no arquivo. `docs/09_BACKLOG/`
+  conferido item a item contra o código: 13 status errados corrigidos, cada um citando o arquivo ou
+  a migration que prova. E `src/lib/schemaSqlGuard.test.js` como vigia, no formato dos outros
+  quatorze `*Guard.test.js`.
+- **Os dois achados que mudam o que se sabe do sistema:** (1) **F021 (PDV offline-first) exigia ADR
+  antes de codar e entrou sem** — fila, replay da cascata e PWA rodam desde a Leva 11; falta a
+  decisão, não o código. (2) **F005 pede sangria e sangria não existe** — zero ocorrências em
+  `src/` e `supabase/migrations/`, num item que o dono marcou 🔴 Critical.
+- **Corrigido pela review:** o guard contava o `DROP TABLE _numeros` da `20260903` como tabela
+  derrubada, mas ela é `CREATE TEMP TABLE` de bloco de verificação. A lista de derrubadas é o que
+  **isenta** uma tabela dos outros três testes — uma temporária que colidisse de nome com uma
+  tabela real a tiraria da cobertura em silêncio.
+- **Provado por mutação:** renomear `combo_produtos` no schema quebra dois testes do guard nomeando
+  a tabela e a migration que a criou; o arquivo voltou byte a byte idêntico depois.
+- **Aprendido:** `memory/learnings.md` (o schema mudo por quatro semanas; conjunto de isenção que
+  cala a verificação; os 13 status errados; código entregue ≠ rodando em produção),
+  `memory/patterns.md` ("Conjunto de isenção é mais perigoso que conjunto de exigência", dentro da
+  seção de conferência textual de SQL) e o cadastro do **TD016** em `docs/09_BACKLOG/tech-debt.md`.
+- **Commit:** `<preenchido no push>` na branch `ciclo/s1-3-configuracoes`
+- **Pendente de decisão:** o ADR do F021 (offline-first), que o item exigia e nunca foi escrito —
+  IndexedDB × `localStorage`, conflito multi-dispositivo, realtime e contingência fiscal/TEF.
+- **Próximo item recomendado:** **F005-SANGRIA** — é o único 🔴 Critical do backlog com buraco real
+  de código, as regras já estão escritas em `docs/03_REGRAS_DE_NEGOCIO/CAIXA.md` (não depende de
+  decisão do dono) e sem ela o dinheiro que sai da gaveta no meio do turno não tem registro.
+
 ## Rodada 9 — F022-ADDONS — 2026-08-02
 
 - **Spec:** `specs/f022-addons-por-estabelecimento.md`
