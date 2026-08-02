@@ -107,6 +107,28 @@ hoje a vitrine `/cardapio`, amanhã qualquer página pública por tenant.
   `20260740`) abre a superfície sem parâmetro, no comportamento antigo. Botão que desaparece por
   dado faltando é pior que botão que faz o que fazia antes.
 
+### O Console lê a operação por agregado, nunca por policy
+Vale para toda tela do super-admin que precisa de dado que mora em tabela operacional (venda,
+pedido, caixa, estoque) — hoje "Uso e faturamento", amanhã qualquer painel de plataforma.
+
+- **Não existe `OR is_super_admin()` em tabela operacional.** Esse ramo só está em `tenants` e
+  `assinaturas`, que é o que o Console lê agregado (ADR-008 §5 e decisão v2 nº 2). Pôr o ramo em
+  `vendas` faria um token de plataforma vazado abrir a base operacional inteira, de todos os
+  clientes, o tempo todo. O caminho certo é o outro braço da mesma decisão: **RPC `SECURITY
+  DEFINER`** que revalida o papel dentro do banco (`IF public.is_super_admin() IS NOT TRUE THEN
+  RAISE … USING ERRCODE = 'insufficient_privilege'`) e devolve **agregado**.
+- **A assinatura de retorno é a trava, não a intenção.** `analytics_plataforma` (20260912) devolve
+  `tenant_id, faturamento_centavos, pedidos, ultima_venda` — nenhuma coluna que identifique uma
+  venda (`comanda`, `mesa`, `cashier`, `cliente_id`, item, valor unitário). Contagem e soma
+  atravessam; linha de venda de cliente, não. Uma coluna a mais na tela é uma coluna a mais
+  vazando por PostgREST.
+- **Parâmetro de período é lista fechada validada no banco**, não no front: a RPC é chamável direto
+  com qualquer token `authenticated`, então `p_dias NOT IN (7, 30, 90)` recusa com
+  `check_violation` no servidor. O front só escolhe o que oferecer.
+- **O autoteste `DO $conf$` protege o banco onde já rodou; o `*SqlGuard.test.js` protege o
+  arquivo.** Os dois, sempre. O bloco em SQL some no primeiro `CREATE OR REPLACE` que alguém
+  escrever para "só mais uma coluninha" — o guard textual na suíte é o que sobrevive a isso.
+
 ---
 
 ## Padrões de API

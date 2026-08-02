@@ -15,6 +15,9 @@ import {
   resumirPlataforma,
   compararModulosDoPlano,
   definirMensalidade,
+  listarAnalitico,
+  resumirUso,
+  PERIODOS_ANALYTICS,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -399,5 +402,201 @@ describe("definirMensalidade", () => {
     const { data, error } = await definirMensalidade("t1", 300);
     expect(data).toBeNull();
     expect(error.message).toBe("Failed to fetch");
+  });
+});
+
+describe("listarAnalitico", () => {
+  beforeEach(() => {
+    supabase.reset();
+    supabase.rpc.mockClear();
+  });
+
+  it("chama a RPC com o nome de parâmetro do contrato da 20260912", async () => {
+    supabase.setRpcResult("analytics_plataforma", {
+      data: [{ tenant_id: "t1", faturamento_centavos: 12345, pedidos: 3, ultima_venda: "2026-08-01T10:00:00Z" }],
+      error: null,
+    });
+    const { data, error } = await listarAnalitico(7);
+    expect(error).toBeNull();
+    expect(data).toHaveLength(1);
+    // Errar o nome do parâmetro devolve 42883 na cara do dono.
+    expect(supabase.rpc).toHaveBeenCalledWith("analytics_plataforma", { p_dias: 7 });
+  });
+
+  it("usa 30 dias quando ninguém escolhe período", async () => {
+    await listarAnalitico();
+    expect(supabase.rpc).toHaveBeenCalledWith("analytics_plataforma", { p_dias: 30 });
+  });
+
+  it("só oferece os três períodos que o banco aceita", () => {
+    // A lista fechada da tela tem que bater com o `NOT IN (7, 30, 90)` da
+    // RPC — divergir aqui vira check_violation na cara do dono.
+    expect(PERIODOS_ANALYTICS).toEqual([7, 30, 90]);
+  });
+
+  it("devolve a recusa do banco com lista vazia, sem inventar sucesso", async () => {
+    supabase.setRpcError("analytics_plataforma", {
+      code: "42501",
+      message: "Apenas a plataforma pode ver o uso dos estabelecimentos.",
+    });
+    const { data, error } = await listarAnalitico(30);
+    expect(data).toEqual([]);
+    expect(error.code).toBe("42501");
+  });
+
+  it("não lança quando a chamada explode (queda de rede)", async () => {
+    supabase.rpc.mockImplementationOnce(() => {
+      throw new Error("Failed to fetch");
+    });
+    const { data, error } = await listarAnalitico(30);
+    expect(data).toEqual([]);
+    expect(error.message).toBe("Failed to fetch");
+  });
+});
+
+describe("resumirUso", () => {
+  const HOJE = new Date("2026-08-01T12:00:00Z");
+  const tenants = [
+    { id: "t-forte",  nome: "Bar do Zé" },
+    { id: "t-fraco",  nome: "Café Central" },
+    { id: "t-parado", nome: "Pizza Nostra" },
+    { id: "t-novo",   nome: "Novo Cliente" },
+  ];
+  // Todos pagam em dia, menos onde o teste disser o contrário.
+  const assinaturas = [
+    { tenant_id: "t-forte",  data_vencimento: "2026-08-20", carencia_dias: 3, status: "ativo" },
+    { tenant_id: "t-fraco",  data_vencimento: "2026-08-20", carencia_dias: 3, status: "ativo" },
+    { tenant_id: "t-parado", data_vencimento: "2026-08-20", carencia_dias: 3, status: "ativo" },
+    { tenant_id: "t-novo",   data_vencimento: "2026-08-20", carencia_dias: 3, status: "ativo" },
+  ];
+  const analitico = [
+    { tenant_id: "t-forte",  faturamento_centavos: 250075, pedidos: 25, ultima_venda: "2026-08-01T09:00:00Z" },
+    { tenant_id: "t-fraco",  faturamento_centavos: 4050,   pedidos: 2,  ultima_venda: "2026-07-31T09:00:00Z" },
+    // vendeu no passado, nada no período → zero com data antiga
+    { tenant_id: "t-parado", faturamento_centavos: 0,      pedidos: 0,  ultima_venda: "2026-06-12T09:00:00Z" },
+    // t-novo: a RPC não devolve linha para quem nunca vendeu
+  ];
+
+  it("devolve base vazia sem NaN nem divisão por zero", () => {
+    const { linhas, kpis, pagandoSemUso } = resumirUso([], [], [], HOJE);
+    expect(linhas).toEqual([]);
+    expect(pagandoSemUso).toEqual([]);
+    expect(kpis).toEqual({
+      faturamentoCentavos: 0,
+      pedidos: 0,
+      ticketMedioCentavos: null,
+      operando: 0,
+      semUso: 0,
+    });
+  });
+
+  it("ordena por faturamento e soma os KPIs em centavos inteiros", () => {
+    const { linhas, kpis } = resumirUso(tenants, assinaturas, analitico, HOJE);
+    // Empatados em zero (t-novo e t-parado) desempatam pelo nome, para a
+    // ordem não dançar entre uma leitura e outra.
+    expect(linhas.map((l) => l.tenantId)).toEqual(["t-forte", "t-fraco", "t-novo", "t-parado"]);
+    // 250075 + 4050 = 254125 centavos. Em float (2500,75 + 40,50) o teste
+    // continuaria passando; o ponto é que a conta nunca sai do inteiro.
+    expect(kpis.faturamentoCentavos).toBe(254125);
+    expect(Number.isInteger(kpis.faturamentoCentavos)).toBe(true);
+    expect(kpis.pedidos).toBe(27);
+    expect(kpis.ticketMedioCentavos).toBe(Math.round(254125 / 27));
+    expect(Number.isInteger(kpis.ticketMedioCentavos)).toBe(true);
+    expect(kpis.operando).toBe(2);
+  });
+
+  it("dá ticket médio nulo — nunca NaN — para quem não teve pedido", () => {
+    const { linhas } = resumirUso(tenants, assinaturas, analitico, HOJE);
+    const porId = Object.fromEntries(linhas.map((l) => [l.tenantId, l]));
+    expect(porId["t-forte"].ticketMedioCentavos).toBe(Math.round(250075 / 25));
+    expect(porId["t-parado"].ticketMedioCentavos).toBeNull();
+    expect(porId["t-novo"].ticketMedioCentavos).toBeNull();
+  });
+
+  it("mantém na tabela quem não aparece na RPC, com zeros e sem última venda", () => {
+    const { linhas } = resumirUso(tenants, assinaturas, analitico, HOJE);
+    const novo = linhas.find((l) => l.tenantId === "t-novo");
+    expect(novo).toBeDefined();
+    expect(novo.faturamentoCentavos).toBe(0);
+    expect(novo.pedidos).toBe(0);
+    expect(novo.ultimaVenda).toBeNull();
+    // null é o que a tela lê como "nunca vendeu" — diferente de 50 dias parado.
+    expect(novo.diasSemVender).toBeNull();
+  });
+
+  it("conta há quantos dias foi a última venda, mesmo fora do período", () => {
+    const { linhas } = resumirUso(tenants, assinaturas, analitico, HOJE);
+    const porId = Object.fromEntries(linhas.map((l) => [l.tenantId, l]));
+    expect(porId["t-forte"].diasSemVender).toBe(0);
+    expect(porId["t-fraco"].diasSemVender).toBe(1);
+    expect(porId["t-parado"].diasSemVender).toBe(50);
+  });
+
+  it("ignora tenant que veio na RPC e não está mais na lista de estabelecimentos", () => {
+    const orfao = [...analitico, { tenant_id: "t-sumiu", faturamento_centavos: 999999, pedidos: 9, ultima_venda: null }];
+    const { linhas, kpis } = resumirUso(tenants, assinaturas, orfao, HOJE);
+    expect(linhas.map((l) => l.tenantId)).not.toContain("t-sumiu");
+    expect(kpis.faturamentoCentavos).toBe(254125); // o órfão não entra na soma
+  });
+
+  it("lista quem paga e não vendeu, do parado há mais tempo para o menos", () => {
+    const { pagandoSemUso, kpis } = resumirUso(tenants, assinaturas, analitico, HOJE);
+    // t-novo nunca vendeu (o pior caso) vem antes de t-parado, parado há 50 dias.
+    expect(pagandoSemUso.map((l) => l.tenantId)).toEqual(["t-novo", "t-parado"]);
+    expect(kpis.semUso).toBe(2);
+  });
+
+  it("não trava a ordem quando dois nunca venderam", () => {
+    const doisNovos = [
+      { id: "t-a", nome: "A" },
+      { id: "t-b", nome: "B" },
+    ];
+    const pagam = doisNovos.map((t) => ({
+      tenant_id: t.id, data_vencimento: "2026-08-20", carencia_dias: 3, status: "ativo",
+    }));
+    const { pagandoSemUso } = resumirUso(doisNovos, pagam, [], HOJE);
+    expect(pagandoSemUso).toHaveLength(2);
+    expect(pagandoSemUso.every((l) => l.diasSemVender === null)).toBe(true);
+  });
+
+  it("mantém em carência no bloco de atenção — ainda é cliente que paga", () => {
+    const emCarencia = [
+      { tenant_id: "t-parado", data_vencimento: "2026-07-31", carencia_dias: 3, status: "ativo" },
+    ];
+    const { pagandoSemUso } = resumirUso(
+      [{ id: "t-parado", nome: "Pizza Nostra" }], emCarencia, analitico, HOJE
+    );
+    expect(pagandoSemUso.map((l) => l.tenantId)).toEqual(["t-parado"]);
+  });
+
+  it("tira do bloco de atenção quem cancelou, bloqueou ou nunca teve assinatura", () => {
+    const naoPagam = [
+      { tenant_id: "t-parado", data_vencimento: "2026-08-20", carencia_dias: 3, status: "cancelado" },
+      // venceu há 20 dias com carência de 3 → bloqueado, já parou de pagar
+      { tenant_id: "t-fraco",  data_vencimento: "2026-07-12", carencia_dias: 3, status: "ativo" },
+      // t-novo sem linha nenhuma de assinatura
+    ];
+    const semPedido = [
+      { tenant_id: "t-fraco", faturamento_centavos: 0, pedidos: 0, ultima_venda: "2026-06-01T09:00:00Z" },
+      { tenant_id: "t-parado", faturamento_centavos: 0, pedidos: 0, ultima_venda: "2026-06-12T09:00:00Z" },
+    ];
+    const { pagandoSemUso, kpis } = resumirUso(tenants, naoPagam, semPedido, HOJE);
+    expect(pagandoSemUso).toEqual([]);
+    expect(kpis.semUso).toBe(0);
+  });
+
+  it("aguenta faturamento negativo (estorno) sem quebrar a conta", () => {
+    const estornado = [{ tenant_id: "t-forte", faturamento_centavos: -1500, pedidos: 2, ultima_venda: "2026-08-01T09:00:00Z" }];
+    const { linhas, kpis } = resumirUso([tenants[0]], assinaturas, estornado, HOJE);
+    expect(linhas[0].faturamentoCentavos).toBe(-1500);
+    expect(linhas[0].ticketMedioCentavos).toBe(-750);
+    expect(kpis.faturamentoCentavos).toBe(-1500);
+  });
+
+  it("trata listas ausentes como vazias em vez de explodir", () => {
+    expect(() => resumirUso(undefined, undefined, undefined, HOJE)).not.toThrow();
+    const { linhas } = resumirUso(tenants, null, null, HOJE);
+    expect(linhas).toHaveLength(4);
+    expect(linhas.every((l) => l.pedidos === 0)).toBe(true);
   });
 });

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
-  LuPalette, LuChartColumn,
+  LuPalette, LuChartColumn, LuActivity,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import { listarEstabelecimentos, listarPlanos, listarAssinaturas } from "@/lib/console";
@@ -10,6 +10,7 @@ import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoMo
 import AlterarPlanoModal from "@/components/console/AlterarPlanoModal";
 import AlterarLayoutModal from "@/components/console/AlterarLayoutModal";
 import PlanosDashboard from "@/components/console/PlanosDashboard";
+import AnalyticsDashboard from "@/components/console/AnalyticsDashboard";
 import "./ConsolePage.css";
 
 /**
@@ -37,7 +38,7 @@ export default function ConsolePage() {
   const [erro, setErro] = useState("");
   const [erroPlanos, setErroPlanos] = useState(false);
   const [erroAssinaturas, setErroAssinaturas] = useState(false);
-  const [aba, setAba] = useState("estabelecimentos"); // 'estabelecimentos' | 'planos'
+  const [aba, setAba] = useState("estabelecimentos"); // 'estabelecimentos' | 'planos' | 'uso'
   const [modalAberto, setModalAberto] = useState(false);
   const [tenantSelecionado, setTenantSelecionado] = useState(null);
   const [tenantLayoutSelecionado, setTenantLayoutSelecionado] = useState(null);
@@ -134,9 +135,9 @@ export default function ConsolePage() {
       </header>
 
       <main className="console__conteudo">
-        {/* Abas: gestão da base (estabelecimentos) e visão de negócio
-            (planos + assinaturas). Sempre visíveis — trocar de aba é a
-            navegação principal do Console (Princípio nº1). */}
+        {/* Abas: gestão da base (estabelecimentos), quem paga (planos +
+            assinaturas) e quem usa (uso e faturamento). Sempre visíveis —
+            trocar de aba é a navegação principal do Console (Princípio nº1). */}
         <nav className="console__abas" aria-label="Seções do console">
           <button
             type="button"
@@ -152,6 +153,13 @@ export default function ConsolePage() {
           >
             <LuChartColumn size={16} aria-hidden /> Planos e assinaturas
           </button>
+          <button
+            type="button"
+            className={`console__aba${aba === "uso" ? " console__aba--ativa" : ""}`}
+            onClick={() => setAba("uso")}
+          >
+            <LuActivity size={16} aria-hidden /> Uso e faturamento
+          </button>
         </nav>
 
         {carregando ? (
@@ -165,33 +173,38 @@ export default function ConsolePage() {
             <p>{erro}</p>
             <button className="console__novo" onClick={carregar}>Tentar de novo</button>
           </div>
+        ) : (aba === "planos" || aba === "uso") && erroAssinaturas ? (
+          // Preferimos não mostrar nada a mostrar número errado: sem a
+          // leitura da cobrança, o dashboard diria "receita R$ 0" e
+          // "ninguém precisa de atenção" para uma base que pode estar
+          // toda em atraso. Vale igual para a aba de uso, que só sabe quem
+          // "paga e não está vendendo" se souber quem paga.
+          <div className="console__estado console__estado--erro">
+            <LuTriangleAlert size={26} aria-hidden />
+            <p>
+              Não foi possível carregar a cobrança dos estabelecimentos. Isso não quer
+              dizer que ninguém está pagando — os números só aparecem quando a leitura
+              funcionar.
+            </p>
+            <button className="console__novo" onClick={carregar}>Tentar de novo</button>
+          </div>
+        ) : aba === "uso" ? (
+          // A leitura do uso é da própria aba (RPC `analytics_plataforma`):
+          // nada é pedido ao banco enquanto ninguém abrir "Uso e
+          // faturamento", então uma base sem a 20260912 aplicada continua
+          // com o resto do Console funcionando igual.
+          <AnalyticsDashboard tenants={tenants} assinaturas={assinaturas} />
         ) : aba === "planos" ? (
-          erroAssinaturas ? (
-            // Preferimos não mostrar nada a mostrar número errado: sem a
-            // leitura da cobrança, o dashboard diria "receita R$ 0" e
-            // "ninguém precisa de atenção" para uma base que pode estar
-            // toda em atraso.
-            <div className="console__estado console__estado--erro">
-              <LuTriangleAlert size={26} aria-hidden />
-              <p>
-                Não foi possível carregar a cobrança dos estabelecimentos. Isso não quer
-                dizer que ninguém está pagando — os números só aparecem quando a leitura
-                funcionar.
-              </p>
-              <button className="console__novo" onClick={carregar}>Tentar de novo</button>
-            </div>
-          ) : (
-            <PlanosDashboard
-              tenants={tenants}
-              planos={planos}
-              assinaturas={assinaturas}
-              // Quem deu baixa no pagamento fica gravado em
-              // `assinaturas_pagamentos.confirmado_por` — o histórico precisa
-              // dizer quem confirmou, não só que alguém confirmou.
-              confirmadoPor={currentUser?.name ?? null}
-              onAtualizado={carregar}
-            />
-          )
+          <PlanosDashboard
+            tenants={tenants}
+            planos={planos}
+            assinaturas={assinaturas}
+            // Quem deu baixa no pagamento fica gravado em
+            // `assinaturas_pagamentos.confirmado_por` — o histórico precisa
+            // dizer quem confirmou, não só que alguém confirmou.
+            confirmadoPor={currentUser?.name ?? null}
+            onAtualizado={carregar}
+          />
         ) : (
           <>
             <div className="console__cabecalho">

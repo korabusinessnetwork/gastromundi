@@ -58,14 +58,19 @@
   padding: 28px 24px 48px;
 }
 
-/* ── Abas (Estabelecimentos / Planos e assinaturas) ────────────── */
+/* ── Abas (Estabelecimentos / Planos / Uso e faturamento) ──────── */
 .console__abas {
   display: flex;
   gap: 6px;
   margin-bottom: 24px;
   border-bottom: 1px solid var(--gm-border);
+  /* Com três abas a fila passa da largura do celular. Rolar na horizontal
+     é melhor que espremer o rótulo (fica ilegível) ou quebrar a linha
+     (a borda de baixo se duplica e a aba ativa some do lugar). */
+  overflow-x: auto;
 }
 .console__aba {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 7px;

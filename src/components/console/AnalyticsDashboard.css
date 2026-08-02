@@ -1,0 +1,263 @@
+/**
+ * Uso e faturamento por estabelecimento (Console da Plataforma, S1-2).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * Vizinha do PlanosDashboard.css e escrita para parecer a mesma tela: os
+ * mesmos raios, o mesmo cartão de KPI, a mesma tabela. Quem trocar de aba
+ * não deve sentir que mudou de sistema.
+ *
+ * O âmbar de atenção (#f59e0b) não tem token --gm-*, então segue literal
+ * como no PlanosDashboard e no AssinaturaBanner — é cor semântica de
+ * status, não de marca (decisão 017).
+ */
+
+.auso {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ── Período ──────────────────────────────────────────────────────── */
+/* Três botões sempre à vista em vez de um seletor que esconde as opções
+   atrás de um clique: o dono compara 7/30/90 o tempo todo. */
+.auso__periodo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.auso__periodo-rotulo {
+  font-size: 13px;
+  color: var(--gm-muted);
+  font-weight: 600;
+  margin-right: 2px;
+}
+.auso__periodo-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.auso__periodo-btn:hover { border-color: var(--gm-accent); color: var(--gm-accent); }
+.auso__periodo-btn:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
+.auso__periodo-btn--ativo {
+  background: var(--gm-alow);
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+  font-weight: 800;
+}
+
+/* ── Estados (carregando / erro / vazio) ──────────────────────────── */
+.auso__estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 44px 20px;
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: var(--gm-card);
+  color: var(--gm-muted);
+  font-size: 14px;
+  text-align: center;
+}
+.auso__estado p { margin: 0; max-width: 46ch; line-height: 1.55; }
+.auso__estado > svg { color: var(--gm-muted); }
+
+.auso__estado--erro {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.07);
+  color: var(--gm-text);
+}
+.auso__estado--erro > svg { color: var(--gm-red); }
+
+.auso__vazio-titulo { font-size: 15px; font-weight: 800; color: var(--gm-text); }
+.auso__vazio-texto { font-size: 13px; }
+
+.auso__tentar {
+  padding: 8px 16px;
+  border: 1px solid var(--gm-border);
+  border-radius: 9px;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.auso__tentar:hover { border-color: var(--gm-accent); color: var(--gm-accent); }
+.auso__tentar:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
+
+.auso__spin { animation: auso-girar 1s linear infinite; }
+@keyframes auso-girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .auso__spin { animation: none; }
+}
+
+/* ── Paga e não usa ───────────────────────────────────────────────── */
+/* Mesma linguagem do alerta de validade da aba de Planos: âmbar, no topo,
+   antes dos números — é o que exige ação, não o que informa. */
+.auso__alerta {
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.auso__alerta-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #f59e0b;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.auso__alerta-topo strong { color: var(--gm-text); font-weight: 800; }
+
+.auso__alerta-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.auso__alerta-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 11px;
+  background: var(--gm-card);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+.auso__alerta-nome {
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.auso__alerta-quando {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f59e0b;
+  white-space: nowrap;
+}
+
+/* ── KPIs ─────────────────────────────────────────────────────────── */
+.auso__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 12px;
+}
+.auso__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  background: var(--gm-card);
+  /* sem isto o item de grid não encolhe abaixo do conteúdo e o valor
+     vaza para fora do cartão (mesmo caso do PlanosDashboard). */
+  min-width: 0;
+}
+.auso__kpi-icone { color: var(--gm-muted); }
+.auso__kpi-rotulo { font-size: 12px; color: var(--gm-muted); font-weight: 600; }
+.auso__kpi-valor {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Ninguém vendeu no período inteiro: afirmação, não ausência de dado.
+   Fica entre os cartões e a tabela, que é onde o zero seria lido errado. */
+.auso__sem-venda {
+  margin: -8px 0 0;
+  padding: 12px 16px;
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  background: var(--gm-card);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--gm-text);
+}
+
+.auso__nota {
+  margin: -8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
+/* ── Tabela ───────────────────────────────────────────────────────── */
+.auso__tabela-caixa {
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: var(--gm-card);
+  padding: 6px 4px;
+  overflow-x: auto;
+}
+.auso__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.auso__tabela-caption {
+  padding: 12px 14px 10px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gm-text);
+}
+.auso__tabela th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gm-muted);
+  border-bottom: 1px solid var(--gm-border);
+  white-space: nowrap;
+}
+.auso__tabela td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--gm-surface);
+  white-space: nowrap;
+}
+.auso__tabela tbody tr:last-child td,
+.auso__tabela tbody tr:last-child th { border-bottom: none; }
+
+/* nome do estabelecimento é <th scope="row">: precisa herdar o corpo da
+   célula, senão vem com o maiúsculo do cabeçalho da coluna. */
+.auso__nome {
+  border-bottom: 1px solid var(--gm-surface);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--gm-text);
+}
+.auso__num { text-align: right; }
+
+/* Quem não vendeu no período fica apagado — a tabela é ordenada por
+   faturamento, então essas linhas caem no fim e não competem com quem
+   está operando. */
+.auso__linha--parada th,
+.auso__linha--parada td { color: var(--gm-muted); }
+
+@media (max-width: 560px) {
+  .auso__kpi-valor { font-size: 19px; }
+  .auso__periodo-rotulo { width: 100%; }
+}

@@ -205,6 +205,141 @@ export function resumirPlataforma(tenants = [], planos = [], assinaturas = [], h
   return { linhas, kpis, precisamAtencao, distribuicaoPlano };
 }
 
+/** Períodos aceitos pela RPC `analytics_plataforma` (20260912) — a lista é
+ *  fechada no BANCO; aqui é só o que a tela oferece. */
+export const PERIODOS_ANALYTICS = [7, 30, 90];
+
+/**
+ * Uso da base por estabelecimento (F022-ANALYTICS) via RPC
+ * `analytics_plataforma` (20260912): faturamento, pedidos e última venda.
+ *
+ * Por que RPC e não `.from("vendas")`: a policy de `vendas` NÃO tem o ramo
+ * `OR is_super_admin()` — e isso é decisão escrita (ADR-008, decisão v2
+ * nº 2), não esquecimento. O super-admin não lê o dado operacional bruto
+ * de todos os tenants; lê AGREGADO, por uma RPC SECURITY DEFINER que
+ * revalida o papel dentro do banco. Uma leitura direta daqui voltaria
+ * vazia, e é assim que tem que ser.
+ *
+ * A RPC devolve só quatro colunas, nenhuma identificando uma venda.
+ *
+ * Nunca lança: falha de rede/RLS/função ausente volta como
+ * { data: [], error } — a tela precisa dizer que não sabe, não mostrar zero.
+ *
+ * @param {number} dias 7, 30 ou 90 (o banco recusa o resto)
+ * @returns {Promise<{data: Array<{tenant_id:string, faturamento_centavos:number, pedidos:number, ultima_venda:string|null}>, error: object|null}>}
+ */
+export async function listarAnalitico(dias = 30) {
+  try {
+    const { data, error } = await supabase.rpc("analytics_plataforma", { p_dias: dias });
+    if (error) return { data: [], error };
+    return { data: data ?? [], error: null };
+  } catch (err) {
+    return { data: [], error: { message: err?.message ?? "Falha ao carregar o uso dos estabelecimentos." } };
+  }
+}
+
+/** Dias inteiros desde uma data ISO. `null` quando não há data (nunca vendeu)
+ *  ou quando a data é inválida — a tela distingue "nunca" de "há 0 dias". */
+function diasDesde(iso, hoje) {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  return Math.max(0, Math.floor((hoje.getTime() - t) / 86400000));
+}
+
+/**
+ * Função PURA — cruza os estabelecimentos, as assinaturas e o agregado de
+ * uso na visão "a base está operando?". Não faz I/O (CLAUDE.md: função
+ * pura nasce com teste).
+ *
+ * O cruzamento é o produto aqui: faturamento sozinho é um número; o que o
+ * dono precisa ver é **quem paga e não usa** — assinatura em dia e zero
+ * pedidos no período. Esse é o churn que hoje só aparece no cancelamento.
+ *
+ * "Paga" usa o mesmo critério do MRR de `resumirPlataforma` (ativo ou
+ * carência, com o status recalculado por `calcularStatusAssinatura`, não o
+ * cache do banco). Bloqueado fica fora de propósito: perdeu o acesso, não
+ * vender é consequência, não sintoma. Cancelado e sem assinatura também —
+ * não pagam.
+ *
+ * Dinheiro em CENTAVOS INTEIROS do começo ao fim: a RPC já devolve assim e
+ * nada aqui divide por 100 — isso é trabalho da formatação, na tela.
+ *
+ * @param {Array<{id:string, nome:string}>} tenants
+ * @param {Array<{tenant_id:string, data_vencimento:string, carencia_dias:number, status:string}>} assinaturas
+ * @param {Array<{tenant_id:string, faturamento_centavos:number, pedidos:number, ultima_venda:string|null}>} analitico
+ * @param {Date} [hoje]
+ * @returns {{linhas:Array<object>, kpis:object, pagandoSemUso:Array<object>}}
+ */
+export function resumirUso(tenants = [], assinaturas = [], analitico = [], hoje = new Date()) {
+  const usoDe = new Map((analitico ?? []).map((u) => [u.tenant_id, u]));
+  const assinaturaDe = new Map((assinaturas ?? []).map((a) => [a.tenant_id, a]));
+
+  const linhas = (tenants ?? []).map((t) => {
+    const u = usoDe.get(t.id) ?? null;
+    const a = assinaturaDe.get(t.id) ?? null;
+    // Number(undefined) é NaN e NaN || 0 é 0 — o `|| 0` cobre ausente,
+    // nulo e lixo de uma vez.
+    const faturamentoCentavos = Math.round(Number(u?.faturamento_centavos) || 0);
+    const pedidos = Math.trunc(Number(u?.pedidos) || 0);
+
+    let statusAssinatura = "sem_assinatura";
+    if (a) {
+      statusAssinatura = a.status === "cancelado"
+        ? "cancelado"
+        : calcularStatusAssinatura(a.data_vencimento, a.carencia_dias, hoje);
+    }
+
+    return {
+      tenantId: t.id,
+      nome: t.nome,
+      faturamentoCentavos,
+      pedidos,
+      // Divisão inteira: ticket médio de 3 pedidos somando 1000 centavos é
+      // 333, não 333.3333. Sem pedido não existe ticket — `null` vira "—"
+      // na tela, nunca 0 (que leria como "vendeu de graça").
+      ticketMedioCentavos: pedidos > 0 ? Math.round(faturamentoCentavos / pedidos) : null,
+      ultimaVenda: u?.ultima_venda ?? null,
+      diasSemVender: diasDesde(u?.ultima_venda, hoje),
+      paga: statusAssinatura === "ativo" || statusAssinatura === "carencia",
+    };
+  });
+
+  // Quem mais fatura primeiro. Empate em zero é o caso comum (base nova):
+  // desempata por pedidos e depois por nome, para a lista não dançar entre
+  // dois carregamentos.
+  const ordenadas = [...linhas].sort(
+    (x, y) =>
+      y.faturamentoCentavos - x.faturamentoCentavos ||
+      y.pedidos - x.pedidos ||
+      String(x.nome ?? "").localeCompare(String(y.nome ?? ""), "pt-BR")
+  );
+
+  const faturamentoCentavos = linhas.reduce((s, l) => s + l.faturamentoCentavos, 0);
+  const pedidos = linhas.reduce((s, l) => s + l.pedidos, 0);
+
+  // Paga e não vendeu nada no período. Mais tempo parado = mais urgente;
+  // "nunca vendeu" (sem data) é o pior de todos e vem primeiro. O sentinela
+  // é finito de propósito: com Infinity, dois "nunca vendeu" dariam
+  // `Infinity - Infinity` = NaN e o comparador ficaria indefinido.
+  const NUNCA = Number.MAX_SAFE_INTEGER;
+  const pagandoSemUso = ordenadas
+    .filter((l) => l.paga && l.pedidos === 0)
+    .sort((x, y) => (y.diasSemVender ?? NUNCA) - (x.diasSemVender ?? NUNCA));
+
+  return {
+    linhas: ordenadas,
+    kpis: {
+      faturamentoCentavos,
+      pedidos,
+      ticketMedioCentavos: pedidos > 0 ? Math.round(faturamentoCentavos / pedidos) : null,
+      operando: linhas.filter((l) => l.pedidos > 0).length,
+      semUso: pagandoSemUso.length,
+    },
+    pagandoSemUso,
+  };
+}
+
 /**
  * Normaliza o username do 1º admin do estabelecimento para a convenção
  * de login global do app (email = `${username}@gastromundi.local`):
