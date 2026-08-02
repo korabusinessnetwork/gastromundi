@@ -2,6 +2,40 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 16 — F018, fatia 3 do PDV — os cinco modais — 2026-08-02
+
+- **Spec:** `specs/f018-pdv-modais-css.md`
+- **Resultado da review:** **aprovado sem ressalvas** — 10 de 10 critérios em sim, nenhuma rodada de
+  correção. `npx vitest run` em 194 de 194 arquivos e 3080 de 3080 testes (76,00s), nenhum arquivo
+  de teste tocado. `npx vite build` verde (11,53s) — rodado porque o vitest não parseia CSS e é a
+  única prova de que as ~870 linhas novas de folha de estilo compilam. `git diff --stat` nos dois
+  arquivos previstos: `PDVView.css` (+871) e `PDVView/index.jsx` (449 linhas alteradas).
+- **Construído:** Nova Comanda, Cancelar Comanda, Transferir Itens, Confirmar cancelamento e Mesa
+  saíram de **111 para 0** estilos inline. O arquivo inteiro foi de 164 para **53**; o `src/` foi de
+  1986 para **1875**. Quatro inputs ganharam `aria-invalid` e os quatro `onFocus`/`onBlur` que
+  pintavam borda à mão saíram — o foco passou a vir do `src/styles/inputs.css`, como no resto do
+  sistema.
+- **A armadilha da fatia, prevista no spec e confirmada no código:** em **3 dos 6 botões** a
+  expressão do `disabled` carrega a flag de "está salvando" (`criando`, `transferindo`,
+  `salvandoMesa`) que a condição do fundo nunca teve. Usar `:disabled` ali apagaria o botão no meio
+  da ação, com o texto dizendo "Abrindo...". Esses três viraram modificador de classe com a mesma
+  expressão de hoje; `:disabled` ficou nos que de fato casam.
+- **Segundo achado, este não previsto:** `.pdv__modal-erro` tinha **cinco** usuários, e o quinto era
+  a dica "Apelido é opcional..." em `muted` — não um erro. Enriquecer a classe compartilhada com
+  vermelho teria pintado uma informação neutra. Foi para `.pdv__mesa-hint`, com a mesma tipografia.
+- **Aprendido:** dois registros em `memory/learnings.md` (técnicos) e dois padrões novos em
+  `memory/patterns.md` — "`:disabled` só substitui o ternário quando a expressão é a mesma" e
+  "Enriquecer classe compartilhada: enumerar os usuários antes, não depois". Nota do F018 atualizada
+  em `docs/09_BACKLOG/features.md`, com o número medido pelo comando de sempre.
+- **Commit:** `04f5be9` na branch `ciclo/s1-3-configuracoes`.
+- **Pendente de decisão:** nenhuma nova. Seguem esperando o dono, sem bloquear: o `line-height: 1.6`
+  do `.pdv__lock-desc` fora da escala, as quatro cores de marca cravadas em `METODOS_COLOR` /
+  `ACTION_TYPE_META.caixa` (`index.jsx:2034`, contraria a decisão 017) e a unificação dos seis
+  overlays do PDV (tabela da divergência no §6 do spec).
+- **Próximo item recomendado:** **F018, fatia 4 do PDV** — os 53 `style={{` que sobraram em
+  `PDVView/index.jsx` (alerta de estoque, alerta de validade, abas mapa/lista, busca de comandas,
+  body). Fecha o maior arquivo do projeto, que já saiu de 247 para 53 em três rodadas.
+
 ## Rodada 15 — F018, fatia 2 do PDV — o modal "Saldo do Dia" — 2026-08-02
 
 - **Spec:** `specs/f018-pdv-saldo-css.md`
