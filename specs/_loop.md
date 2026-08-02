@@ -2,6 +2,43 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 22 — F018, fatia 9 — aba Complementos do Delivery — 2026-08-02
+
+- **Spec:** `specs/f018-delivery-complementos-css.md`
+- **Resultado da review:** **aprovado sem ressalvas** — 15 de 15 critérios em sim, uma rodada de
+  correção (comentário de papel faltando em 30 regras novas, critério 15). `npx vitest run`: 195
+  arquivos, 3096 testes, verde (75,25s). `npx vite build`: verde (11,06s), rodado depois da última
+  edição de CSS — é o único passo que compila o `.css`.
+- **Construído:** os seis componentes da aba Complementos saíram do inline. `style={{}}` no
+  `DeliveryView.jsx` foi de **119 para 28**, exatamente os 91 que o spec mirava; em `src/`, de
+  **1744 para 1653**. Os 28 que ficam são 2 de runtime (cor do status na linha 628, posição do menu
+  de foto na 1296) e 26 dentro da `AbaEntrega`, que é a fatia 10.
+- **A rodada anterior tinha deixado o CSS órfão:** o bloco de ~420 linhas já existia em
+  `DeliveryView.css` sem nenhum consumidor, porque toda propriedade da classe também estava inline
+  e inline sempre vence. Esta rodada apagou o inline e ligou as classes.
+- **Único comportamento que mudou de propósito (critério 11):** o botão Salvar desabilitado tinha
+  `cursor: default` inline, que sobrescrevia o `not-allowed` de `.delivery-view__btn:disabled`.
+  Agora o cursor diz que o botão não está clicável — declarado no spec antes do build.
+- **O método que salvou a fatia:** migração por script que **conta antes de gravar**. Três blocos
+  da `AbaEntrega` (linhas 2660, 2684 e 2690) são byte a byte iguais a blocos da aba Complementos.
+  Um `replace all` cego teria migrado os três em silêncio, sem nada no relatório denunciando.
+  Cada divergência de contagem foi resolvida estreitando a âncora — nunca subindo a expectativa.
+- **Falso alarme investigado:** 16 seletores aparecem duplicados no `.css`. É convenção do arquivo,
+  não defeito: a regra estrutural fica no bloco da tela e a gêmea de uma linha, só com `font-size`
+  e `line-height`, no bloco `TIPOGRAFIA` (a partir da linha 1497). Consequência prática para
+  script: âncora `\n.classe {` casa as duas; `\n.classe {\n` casa só a estrutural.
+- **Aprendido:** `memory/patterns.md` — "Migração de estilo em massa: script que conta antes de
+  gravar, e não grava se a conta não bate", com o esqueleto do `rep()` que acumula erros em vez de
+  parar no primeiro. `memory/learnings.md` — o caso concreto das três gêmeas fora de escopo.
+  `docs/09_BACKLOG/features.md` — F018 atualizado (1653 inline, `DeliveryView.jsx` em 28).
+- **Commit:** `143fa01` na branch `ciclo/s1-3-configuracoes`.
+- **Pendente de decisão:** nenhuma nova. Continuam abertas as de sempre: o token
+  `--gm-sobre-accent` (enquanto não existe, `#fff` literal sobre a cor do tenant) e a unificação
+  dos seis overlays do PDV.
+- **Próximo item recomendado:** F018, fatia 10 — a **`AbaEntrega`** do `DeliveryView.jsx`. São os
+  26 inline restantes mais os 2 de runtime; é a última fatia do segundo maior arquivo do projeto,
+  e fecha o arquivo inteiro.
+
 ## Rodada 21 — F018, fatia 8 — a cadeia de props `sz` do Delivery — 2026-08-02
 
 - **Spec:** `specs/f018-delivery-sz-css.md`
