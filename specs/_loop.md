@@ -2,6 +2,45 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 13 — F018 — PDV, fatia 1: estados de bloqueio e cabeçalho — 2026-08-02
+
+- **Spec:** `specs/f018-pdv-header-css.md`
+- **Resultado da review:** **aprovado** — 9 dos 10 critérios em sim, o critério 5 em parcial por um
+  desvio deliberado e documentado (detalhe abaixo). `npx vitest run` em 194 de 194 arquivos e 3080
+  de 3080 testes; os nove arquivos de teste do PDV rodados também isolados (88 testes). Nenhum
+  arquivo de teste alterado, nenhum arquivo tocado fora do §4.
+- **Construído:** o estilo estático da abertura do `PDVView` — tela de carregamento, tela "Caixa
+  Fechado" e a barra de cabeçalho inteira — saiu do JSX para o `PDVView.css`, que até então só tinha
+  tipografia. Hover e foco que moravam em `onMouseEnter`/`onMouseLeave`/`onFocus`/`onBlur` viraram
+  `:hover` e `:focus`. No trecho: **33 inline viraram 15** (todos com valor de runtime) e **16
+  handlers de estilo viraram 1**; no arquivo, **247 → 228**. O PDV sai por fatias porque é o maior
+  arquivo do projeto.
+- **Nada foi corrigido pela review:** a auditoria não achou defeito no que foi construído.
+- **Dois desvios deliberados, ambos documentados no próprio CSS:**
+  1. `.pdv__saldo-btn:hover` **perdeu a borda de propósito**: o JavaScript montava
+     `var(--gm-accent)66`, CSS inválido que o navegador descarta. Traduzir faria a borda
+     **aparecer** — e o contrato da rodada era mudança visual zero.
+  2. `.pdv__lock-desc` ficou com `line-height: 1.6` (o valor inline que vencia a classe) em vez do
+     `var(--lh-base)` da escala. Cumprir o critério 5 violaria o 10; prevaleceu o 10.
+- **O achado da rodada (`BUG001`, novo):** o `var()` + sufixo hex do saldo não era caso isolado —
+  **18 ocorrências em 6 arquivos** (`Sidebar`, `MesasAdmin`, `PDVView/index`, `RelatorioView`,
+  `FechamentoModal`). Como `var()` inválido resolve para `unset`, `border-style` cai para `none` e a
+  **borda some em vez de mudar de cor**; na `Sidebar` (340, 359) é a borda vermelha de senha errada
+  que desaparece. O idioma era correto quando as cores eram hex literal e morreu calado na migração
+  para custom properties (ADR-007) — nada no ferramental reclama de string de estilo inválida.
+- **Aprendido:** `memory/learnings.md` (o `BUG001` e a leva de tipografia que era letra morta onde o
+  inline competia), `memory/bugs.md` (o achado com as linhas), `memory/patterns.md` (duas seções
+  novas: "Alfa sobre token" e "Borda de input na classe entrega o foco para o `inputs.css` global"),
+  `docs/09_BACKLOG/bugs.md` (`BUG001` completo, com passos e correção) e a linha do **F018** em
+  `docs/09_BACKLOG/features.md`.
+- **Commit:** `fa91716` na branch `ciclo/s1-3-configuracoes`.
+- **Pendente de decisão (nenhuma bloqueia):** alinhar o `line-height` da tela "Caixa Fechado" com a
+  escala (1.6 → 1.5) é decisão de design; segue de pé a proposta do token `--gm-sobre-accent` da
+  rodada 12.
+- **Próximo item recomendado:** **BUG001** — é defeito em fluxo que já está em produção, apaga um
+  sinal de erro (senha errada na `Sidebar`), a correção é mecânica com o helper `alfa()` que já
+  existe, e passa exatamente pelos arquivos que as próximas fatias do F018 vão abrir.
+
 ## Rodada 12 — F018-DELIVERY-CSS — 2026-08-02
 
 - **Spec:** `specs/f018-delivery-css.md`
