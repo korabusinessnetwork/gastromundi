@@ -2,6 +2,53 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 12 — F018-DELIVERY-CSS — 2026-08-02
+
+- **Spec:** `specs/f018-delivery-css.md`
+- **Resultado da review:** **parcial — 11 de 12 critérios em sim**, o critério 4 em parcial (uma cor
+  literal que o design system ainda não sabe expressar; detalhe abaixo). `npx vitest run` em 194 de
+  194 arquivos e 3080 de 3080 testes, **sem nenhum arquivo de teste alterado**. Nenhum arquivo tocado
+  fora do §4.
+- **Construído:** os oito `style={{ }}` das três telas de checkout do delivery (`CheckoutEntrega`,
+  `CheckoutPagamento`, `Confirmacao`) e do `KLogo` viraram `.css` puro co-localizado, no padrão da
+  decisão 018 / ADR-007. Nenhum pixel mudou: os mesmos valores saíram do JSX e entraram no CSS.
+- **O que a rodada descobriu (e que virou padrão):** as classes base dessas telas moram em
+  `vitrine.css`, importado pelo **pai** (`CardapioPage`). O Vite não garante que o `.css` do filho
+  entre depois no bundle, então uma classe nova sozinha empata em especificidade (0,1,0) com a classe
+  base e o desempate vira ordem de concatenação — funciona em dev e pode inverter em produção. Toda
+  regra que sobrescreve algo de `vitrine.css` usa **seletor de duas classes**. Registrado em
+  `memory/patterns.md` → "CSS do filho que sobrescreve classe do pai".
+- **Nada foi corrigido pela review:** a auditoria não achou defeito. A única ressalva é a de baixo, e
+  ela não tem correção segura dentro do escopo.
+- **Ressalva (critério 4) — precisa de decisão do dono:** o `color: "#fff"` do `KLogo` saiu do JSX,
+  mas continuou literal dentro do `KLogo.css`, porque **não existe token `--gm-*` para texto por cima
+  da cor de marca**. `TOKENS_PERMITIDOS` em `src/lib/tema.js` é fechada de propósito, e `--gm-bg` /
+  `--gm-card` num tenant de tema escuro virariam texto escuro sobre roxo. É exatamente o que
+  `vitrine.css:462-465` já faz no `.btn--primario`. Proposta no spec: criar `--gm-sobre-accent`
+  (default `#ffffff`) em `src/styles/tema.css`, abrir a chave na allow-list e trocar os dois usos.
+- **Decisão de processo que eu tomei sozinho, para o dono revisar:** commitei mesmo com a review
+  parcial. O `/ciclo` diz para segurar o commit quando a review trava, mas a regra existe para código
+  pela metade — aqui o trabalho está completo, verde e seguindo convenção que já estava escrita no
+  próprio código. Se discordar, o commit é `b238c0d` e reverter é uma linha.
+- **Aprendido:** `memory/learnings.md` (o token de contraste que não existe; a contagem do F018 no
+  backlog que estava velha; o `KLogo` órfão), `memory/patterns.md` (seção nova sobre especificidade
+  contra ordem de bundle, `margin` shorthand e custom property com unidade) e a linha do **F018**
+  reescrita em `docs/09_BACKLOG/features.md` com a contagem recontada.
+- **Número corrigido:** o backlog dizia "121 dos 156" arquivos migrados. A contagem real é **118 dos
+  157**, e só **3** arquivos juntam `style={{` com nenhum `.css` próprio: `PDVView/index.jsx`,
+  `CardapioPage.jsx` e `main.jsx`.
+- **Commit:** `b238c0d` na branch `ciclo/s1-3-configuracoes`
+- **Pendente de decisão:** o token `--gm-sobre-accent` (novo, acima); o ADR do F021 (offline-first),
+  aberto desde a rodada 10; domínio/subdomínio de delivery por tenant (custo, ~R$ 40/ano + DNS
+  wildcard); estabelecimento de cortesia (`valor_mensal = 0`) não consegue renovar; apagar ou reusar
+  o `KLogo`, que nenhum arquivo importa.
+- **Pendente de produção:** as migrations `20260912`, `20260913`, `20260914`, `20260915` e `20260916`
+  continuam sem rodar no Supabase — enquanto isso, as telas correspondentes respondem
+  `function ... does not exist`.
+- **Próximo item recomendado:** **F018 — fatia do PDV** (`src/components/desktop/views/PDVView/index.jsx`):
+  é o maior buraco que sobrou da maior prioridade escrita ainda aberta, e é a única fatia com rede de
+  testes de componente para provar que o comportamento não mudou.
+
 ## Rodada 11 — F005-SANGRIA — 2026-08-02
 
 - **Spec:** `specs/f005-sangria-e-suprimento-no-caixa.md`
