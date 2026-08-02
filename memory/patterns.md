@@ -87,6 +87,15 @@ Vale para todo guard que lê migration em `src/**/*SqlGuard.test.js` e para todo
   mesmo teste: sem isso, afrouxar a regex até não pegar nada vira o caminho fácil de "fazer passar".
 - **Laço sobre arquivos precisa provar que rodou.** Conte os blocos conferidos e exija `> 0` — laço
   vazio não asserta nada e o teste fica verde sem ter olhado coisa nenhuma.
+- **Proibição textual para antes do `DO $conf$`.** O bloco de conferência cita, dentro dos `LIKE`,
+  exatamente o que a migration não pode ter — procurar essas palavras no arquivo inteiro acusa o
+  vigia. Recorte primeiro: `const migracao = sql.slice(0, sql.indexOf("DO $conf$"))` e proíba só ali.
+- **Ancore no que é exclusivo do que você proíbe.** Para provar que nenhuma política de escrita
+  nasceu, procure `CREATE POLICY` / `GRANT ... ON TABLE` — `FOR (INSERT|UPDATE|DELETE)` casa também
+  o `FOR UPDATE` dos locks de linha, que é o oposto de um problema.
+- **Normalize a quebra de linha antes de ancorar.** Os fontes deste repositório são gravados com
+  CRLF: `recorte(arquivo, inicio, "}\n")` devolve −1 e o teste falha sem nada de errado no código.
+  `readFileSync(caminho, "utf8").replace(/\r/g, "")` na leitura resolve de uma vez.
 
 ### Superfície pública endereçada por slug: precedência e cache por origem
 Vale para toda tela anônima que mostra os dados de **um** estabelecimento escolhido pelo endereço —

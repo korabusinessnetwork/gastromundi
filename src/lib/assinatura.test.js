@@ -14,6 +14,7 @@ import {
   buscarAssinaturaAtual,
   sincronizarStatusAssinatura,
   confirmarRenovacaoAssinatura,
+  resumirPagamentos,
 } from "./assinatura";
 
 beforeEach(() => {
@@ -318,5 +319,110 @@ describe("calcularDiasParaVencimento com `hoje` real (Date)", () => {
 
   it("um instante em UTC é lido no calendário local de quem opera", () => {
     expect(calcularDiasParaVencimento("2026-08-20", "2026-08-16T01:00:00.000Z")).toBe(5);
+  });
+});
+
+// F022-HISTORICO — o resumo do histórico de pagamentos da assinatura.
+describe("resumirPagamentos", () => {
+  const pg = (competencia, valor, extra = {}) => ({
+    id: `p-${competencia}`,
+    competencia,
+    valor,
+    metodo: "Pix",
+    confirmado_por: "Plataforma",
+    confirmado_em: `${competencia}T12:00:00.000Z`,
+    ...extra,
+  });
+
+  it("lista vazia não quebra e soma zero", () => {
+    expect(resumirPagamentos([])).toEqual({
+      linhas: [], totalCentavos: 0, quantidadeValidos: 0, quantidadeEstornados: 0,
+    });
+    expect(resumirPagamentos()).toEqual({
+      linhas: [], totalCentavos: 0, quantidadeValidos: 0, quantidadeEstornados: 0,
+    });
+    expect(resumirPagamentos(null).linhas).toEqual([]);
+  });
+
+  it("ordena do mais recente para o mais antigo", () => {
+    // Quem abre o histórico está procurando o que acabou de lançar — e é esse
+    // o lançamento com mais chance de estar errado.
+    const { linhas } = resumirPagamentos([
+      pg("2026-06-01", 300), pg("2026-08-01", 300), pg("2026-07-01", 300),
+    ]);
+    expect(linhas.map((l) => l.competencia)).toEqual(["2026-08-01", "2026-07-01", "2026-06-01"]);
+  });
+
+  it("empate de competência desempata pela hora do lançamento, mais nova primeiro", () => {
+    // Acontece quando a competência foi estornada e lançada de novo: as duas
+    // linhas convivem no mesmo mês.
+    const { linhas } = resumirPagamentos([
+      pg("2026-08-01", 300, { id: "velho", confirmado_em: "2026-08-01T09:00:00.000Z" }),
+      pg("2026-08-01", 250, { id: "novo", confirmado_em: "2026-08-02T09:00:00.000Z" }),
+    ]);
+    expect(linhas.map((l) => l.id)).toEqual(["novo", "velho"]);
+  });
+
+  it("soma em centavos inteiros — três de 0,10 dão 30, não 30,000000000000004", () => {
+    // O motivo de o total não ser somado em reais: `valor` é numeric e chega
+    // como float. 0.1+0.1+0.1 === 0.30000000000000004 em JS.
+    const { totalCentavos } = resumirPagamentos([
+      pg("2026-06-01", 0.1), pg("2026-07-01", 0.1), pg("2026-08-01", 0.1),
+    ]);
+    expect(totalCentavos).toBe(30);
+    expect(Number.isInteger(totalCentavos)).toBe(true);
+  });
+
+  it("valor com centavos quebrados vira inteiro sem arrastar dízima", () => {
+    expect(resumirPagamentos([pg("2026-08-01", 1234.565)]).linhas[0].valorCentavos).toBe(123457);
+    expect(resumirPagamentos([pg("2026-08-01", 300)]).totalCentavos).toBe(30000);
+  });
+
+  it("estornado continua na lista, mas fora do total", () => {
+    // Histórico de dinheiro não some: o que sai é o valor da conta, não a linha.
+    const { linhas, totalCentavos, quantidadeValidos, quantidadeEstornados } = resumirPagamentos([
+      pg("2026-08-01", 300),
+      pg("2026-07-01", 999, {
+        estornado_em: "2026-07-10T10:00:00.000Z",
+        estornado_por: "Plataforma",
+        estorno_motivo: "valor digitado errado",
+      }),
+    ]);
+    expect(linhas).toHaveLength(2);
+    expect(totalCentavos).toBe(30000);
+    expect(quantidadeValidos).toBe(1);
+    expect(quantidadeEstornados).toBe(1);
+
+    const estornado = linhas.find((l) => l.competencia === "2026-07-01");
+    expect(estornado.estornado).toBe(true);
+    expect(estornado.motivoEstorno).toBe("valor digitado errado");
+    expect(estornado.estornadoPor).toBe("Plataforma");
+  });
+
+  it("linha legada sem quem confirmou e sem valor não vira NaN nem 'undefined'", () => {
+    const { linhas, totalCentavos } = resumirPagamentos([
+      { id: "x", competencia: "2026-08-01", valor: null },
+    ]);
+    expect(linhas[0].valorCentavos).toBe(0);
+    expect(linhas[0].confirmadoPor).toBeNull();
+    expect(linhas[0].metodo).toBeNull();
+    expect(linhas[0].estornado).toBe(false);
+    expect(totalCentavos).toBe(0);
+  });
+
+  it("competência malformada não derruba a ordenação", () => {
+    const { linhas } = resumirPagamentos([
+      { id: "ruim", competencia: null, valor: 10 },
+      pg("2026-08-01", 300),
+    ]);
+    expect(linhas.map((l) => l.id)).toEqual(["p-2026-08-01", "ruim"]);
+  });
+
+  it("não modifica o array recebido", () => {
+    // O componente guarda a resposta do banco no state e chama isto a cada
+    // render: ordenar no lugar embaralharia o state por baixo do React.
+    const cru = [pg("2026-06-01", 300), pg("2026-08-01", 300)];
+    resumirPagamentos(cru);
+    expect(cru.map((p) => p.competencia)).toEqual(["2026-06-01", "2026-08-01"]);
   });
 });

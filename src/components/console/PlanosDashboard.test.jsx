@@ -14,6 +14,10 @@
 // e só nelas (renovar um cancelado o descancelaria em silêncio), que o nome de
 // quem confirmou chegue na RPC, e que a faixa de sucesso diga o vencimento novo
 // — inclusive quando ele continua no passado.
+//
+// F022-HISTORICO — e que a mesma coluna dê para CONFERIR o que já foi lançado,
+// inclusive no cancelado (que tem histórico e pode ter um lançamento errado
+// para desfazer), abrindo sempre no estabelecimento da linha clicada.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -31,10 +35,17 @@ vi.mock("@/lib/console", async () => {
   return { ...real, definirMensalidade: mockDefinir };
 });
 
-const { mockRenovar } = vi.hoisted(() => ({ mockRenovar: vi.fn() }));
+const { mockRenovar, mockListarPagamentos } = vi.hoisted(() => ({
+  mockRenovar: vi.fn(),
+  mockListarPagamentos: vi.fn(),
+}));
 vi.mock("@/lib/assinatura", async () => {
   const real = await vi.importActual("@/lib/assinatura");
-  return { ...real, confirmarRenovacaoAssinatura: mockRenovar };
+  return {
+    ...real,
+    confirmarRenovacaoAssinatura: mockRenovar,
+    listarPagamentosAssinatura: mockListarPagamentos,
+  };
 });
 
 import PlanosDashboard from "./PlanosDashboard";
@@ -62,10 +73,11 @@ const ass = (id, valor, extra = {}) => ({
 
 const tabela = () => screen.getByRole("table");
 const linhaDe = (nome) => within(tabela()).getByText(nome).closest("tr");
-// A linha tem dois botões desde a F022 — buscar "o botão" da linha passou a ser
-// ambíguo. Cada um é pego pelo próprio nome acessível.
+// A linha tem mais de um botão desde a F022 — buscar "o botão" da linha passou
+// a ser ambíguo. Cada um é pego pelo próprio nome acessível.
 const botaoPreco = (nome) => within(linhaDe(nome)).getByRole("button", { name: /mensalidade de/i });
 const botaoPagar = (nome) => within(linhaDe(nome)).getByRole("button", { name: /^Registrar pagamento de/i });
+const botaoHistorico = (nome) => within(linhaDe(nome)).getByRole("button", { name: /^Ver pagamentos de/i });
 
 function montar({ tenants, assinaturas, confirmadoPor }) {
   const onAtualizado = vi.fn();
@@ -268,6 +280,49 @@ describe("PlanosDashboard — coluna Pagamento", () => {
     // Botão travado depois do erro deixaria a pessoa sem saída nenhuma.
     expect(confirmar()).toBeEnabled();
     expect(onAtualizado).not.toHaveBeenCalled();
+  });
+});
+
+describe("PlanosDashboard — ver os pagamentos já lançados", () => {
+  beforeEach(() => {
+    mockListarPagamentos.mockReset();
+    mockListarPagamentos.mockResolvedValue({ data: [], error: null });
+  });
+
+  it("toda linha COM assinatura deixa conferir o que já foi lançado", () => {
+    montar(BASE);
+    expect(botaoHistorico("Café Central")).toBeInTheDocument();
+    expect(botaoHistorico("Bar do Zé")).toBeInTheDocument();
+  });
+
+  it("cancelado não renova, mas continua tendo histórico para conferir e consertar", () => {
+    // Quem cancelou o contrato ainda pode ter um pagamento lançado errado, e
+    // desfazer isso é justamente o que a F022-HISTORICO trouxe.
+    montar({
+      tenants: [{ id: "t-can", nome: "Fechou as Portas", plano_codigo: "basico" }],
+      assinaturas: [ass("t-can", 300, { status: "cancelado" })],
+    });
+    expect(botaoHistorico("Fechou as Portas")).toBeInTheDocument();
+  });
+
+  it("estabelecimento SEM assinatura não tem pagamento nenhum para mostrar", () => {
+    // Pagamento só existe através da RPC de renovação, que exige a linha de
+    // assinatura: aqui a lista seria vazia por construção.
+    montar(BASE);
+    expect(
+      within(linhaDe("Lanches Novos")).queryByRole("button", { name: /Ver pagamentos/i })
+    ).toBeNull();
+  });
+
+  it("abre o histórico do estabelecimento da linha clicada", async () => {
+    const user = userEvent.setup();
+    montar(BASE);
+    await user.click(botaoHistorico("Bar do Zé"));
+
+    // Abrir no estabelecimento errado mostraria o dinheiro de um cliente na
+    // linha de outro — e o cancelamento cairia na assinatura errada.
+    expect(await screen.findByRole("heading", { name: "Pagamentos de Bar do Zé" })).toBeInTheDocument();
+    expect(mockListarPagamentos).toHaveBeenCalledWith("t-zero");
   });
 });
 

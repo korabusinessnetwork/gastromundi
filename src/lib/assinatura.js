@@ -195,3 +195,122 @@ export async function confirmarRenovacaoAssinatura({ tenantId, competencia, valo
     return { data: null, error: { message: err?.message ?? "Falha ao confirmar a renovação da assinatura." } };
   }
 }
+
+/**
+ * Histórico de pagamentos da mensalidade de um estabelecimento
+ * (F022-HISTORICO).
+ *
+ * Leitura DIRETA, sem RPC: a policy `assinaturas_pagamentos_select_gerencia`
+ * (20260726) tem o ramo `is_super_admin()`, então o Console lê o histórico de
+ * qualquer estabelecimento e um gerente lê só o do próprio tenant. Campos
+ * explícitos — nunca `select *` em tabela de billing (CLAUDE.md).
+ *
+ * Nunca lança: falha volta como { data: [], error }. Quem chama precisa
+ * distinguir "não consegui ler" de "não há pagamento": lista vazia por engano
+ * levaria a lançar o mesmo mês duas vezes.
+ *
+ * @param {string} tenantId
+ * @returns {Promise<{data: Array<object>, error: object|null}>}
+ */
+export async function listarPagamentosAssinatura(tenantId) {
+  if (!tenantId) return { data: [], error: null };
+  try {
+    const { data, error } = await supabase
+      .from("assinaturas_pagamentos")
+      .select(
+        "id, competencia, valor, metodo, confirmado_por, confirmado_em, estornado_em, estornado_por, estorno_motivo"
+      )
+      .eq("tenant_id", tenantId);
+    if (error) return { data: [], error };
+    return { data: data ?? [], error: null };
+  } catch (err) {
+    return { data: [], error: { message: err?.message ?? "Falha ao carregar os pagamentos da assinatura." } };
+  }
+}
+
+/**
+ * Cancela (estorna) um pagamento lançado por engano — devolve o ciclo que ele
+ * empurrou no vencimento e libera a competência para ser lançada de novo com o
+ * valor certo (`estornar_pagamento_assinatura`, 20260913).
+ *
+ * O estabelecimento NÃO é parâmetro de propósito: sai da própria linha de
+ * pagamento dentro do banco. Mandá-lo daqui permitiria estornar o pagamento de
+ * um e descontar o ciclo de outro.
+ *
+ * Restrito à PLATAFORMA (`is_super_admin()` dentro da função SECURITY
+ * DEFINER) — e o motivo é obrigatório no banco, não só na tela.
+ *
+ * @param {{pagamentoId: string, motivo: string, estornadoPor: string}} params
+ * @returns {Promise<{data: object|null, error: object|null}>}
+ */
+export async function estornarPagamentoAssinatura({ pagamentoId, motivo, estornadoPor }) {
+  if (!pagamentoId) return { data: null, error: { message: "Pagamento inválido." } };
+  if (!motivo || String(motivo).trim().length < 3) {
+    return { data: null, error: { message: "Escreva o motivo do cancelamento — ele fica gravado no histórico." } };
+  }
+
+  try {
+    const { data, error } = await supabase.rpc("estornar_pagamento_assinatura", {
+      p_pagamento_id: pagamentoId,
+      p_motivo: String(motivo).trim(),
+      p_estornado_por: estornadoPor ?? null,
+    });
+    if (error) return { data: null, error };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao cancelar o pagamento da assinatura." } };
+  }
+}
+
+/** "2026-08-01" (competência, `date`) → 202608, para ordenar sem `new Date()`. */
+function chaveCompetencia(iso) {
+  const m = String(iso ?? "").match(/^(\d{4})-(\d{2})/);
+  return m ? Number(m[1]) * 100 + Number(m[2]) : 0;
+}
+
+/**
+ * Organiza o histórico de pagamentos para a tela (F022-HISTORICO). Pura, sem
+ * I/O — testável isoladamente (CLAUDE.md).
+ *
+ * Dinheiro em CENTAVOS INTEIROS: `assinaturas_pagamentos.valor` é `numeric` e
+ * chega como número em reais; somar dez linhas dessas em float erra o total
+ * por centavos. Cada linha é convertida na entrada e o total só vira real na
+ * hora de formatar.
+ *
+ * Ordena do mais recente para o mais antigo (competência e, no empate, a hora
+ * do lançamento): quem abre o histórico está procurando o que acabou de
+ * lançar. Pagamento estornado continua na lista — some do total, não da
+ * memória.
+ *
+ * @param {Array<object>} pagamentos linhas cruas de `assinaturas_pagamentos`
+ * @returns {{linhas: Array<object>, totalCentavos: number, quantidadeValidos: number, quantidadeEstornados: number}}
+ */
+export function resumirPagamentos(pagamentos = []) {
+  const linhas = (pagamentos ?? [])
+    .map((p) => ({
+      id: p.id,
+      competencia: p.competencia,
+      valorCentavos: Math.round((Number(p.valor) || 0) * 100),
+      metodo: p.metodo ?? null,
+      confirmadoPor: p.confirmado_por ?? null,
+      confirmadoEm: p.confirmado_em ?? null,
+      estornado: Boolean(p.estornado_em),
+      estornadoEm: p.estornado_em ?? null,
+      estornadoPor: p.estornado_por ?? null,
+      motivoEstorno: p.estorno_motivo ?? null,
+    }))
+    .sort((a, b) => {
+      const dif = chaveCompetencia(b.competencia) - chaveCompetencia(a.competencia);
+      if (dif !== 0) return dif;
+      return String(b.confirmadoEm ?? "").localeCompare(String(a.confirmadoEm ?? ""));
+    });
+
+  const validas = linhas.filter((l) => !l.estornado);
+
+  return {
+    linhas,
+    totalCentavos: validas.reduce((soma, l) => soma + l.valorCentavos, 0),
+    quantidadeValidos: validas.length,
+    quantidadeEstornados: linhas.length - validas.length,
+  };
+}

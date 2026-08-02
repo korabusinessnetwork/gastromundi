@@ -1,0 +1,171 @@
+/**
+ * Console da Plataforma (F022) — histórico de pagamentos da assinatura.
+ * CSS separado do JSX (decisão 018) · só tokens --gm-* (ADR-007), sem cor
+ * crua e sem nada de marca de um cliente (decisão 017).
+ *
+ * A casca (overlay, header, campo, footer, botões, spinner) vem de
+ * NovoEstabelecimentoModal.css. Aqui mora só o que é do histórico.
+ */
+
+/* O histórico cresce; um pouco mais largo que o modal de formulário. */
+.hpm-modal { max-width: 620px; }
+
+/* ── Estados: carregando, erro de leitura, vazio ───────────────── */
+.hpm-estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 18px 0;
+  font-size: 14px;
+  color: var(--gm-muted);
+}
+
+.hpm-estado--erro {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+}
+
+.hpm-estado__texto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 700;
+  color: var(--gm-red);
+}
+
+.hpm-estado__detalhe {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+/* ── Total do que entrou ───────────────────────────────────────── */
+.hpm-total {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  font-size: 14px;
+  color: var(--gm-muted);
+}
+.hpm-total strong {
+  font-size: 18px;
+  color: var(--gm-green);
+}
+
+/* ── Lista ─────────────────────────────────────────────────────── */
+.hpm-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hpm-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-card);
+}
+
+.hpm-item__topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hpm-item__mes {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gm-text);
+  text-transform: capitalize;
+}
+
+.hpm-item__valor {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.hpm-item__meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+/* Pagamento cancelado continua visível — histórico de dinheiro não some. */
+.hpm-item--cancelado { opacity: 0.75; }
+.hpm-item--cancelado .hpm-item__valor,
+.hpm-item--cancelado .hpm-item__mes { text-decoration: line-through; }
+
+.hpm-item__cancelado {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gm-red);
+}
+
+/* ── Ação de cancelar ──────────────────────────────────────────── */
+.hpm-cancelar {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.hpm-cancelar:hover { border-color: var(--gm-red); color: var(--gm-red); }
+
+.hpm-confirma {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 12px;
+  border-radius: 11px;
+  border: 1px solid var(--gm-red);
+  background: var(--gm-surface);
+}
+
+.hpm-confirma__aviso {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-text);
+}
+
+.hpm-confirma__acoes {
+  display: flex;
+  gap: 10px;
+}
+
+.hpm-btn--perigo {
+  background: var(--gm-red);
+  color: #fff;
+}
+.hpm-btn--perigo:disabled { background: var(--gm-faint); }

@@ -242,6 +242,33 @@
 .pdash__pagar:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
 .pdash__pagar svg { color: var(--gm-green); }
 
+/* Registrar pagamento (ação principal) e ver o histórico (consulta) dividem a
+   célula. A consulta é discreta de propósito: o caminho feliz da coluna é
+   registrar, não conferir. */
+.pdash__acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pdash__ver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--gm-muted);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pdash__ver:hover { border-color: var(--gm-border); color: var(--gm-text); }
+.pdash__ver:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
+
 /* Faixa de confirmação do pagamento. Verde quando o pagamento colocou a
    assinatura em dia; âmbar quando o vencimento andou mas continua atrasado —
    a RPC anda um ciclo por vez, e a cor não pode dizer "resolvido" quando não

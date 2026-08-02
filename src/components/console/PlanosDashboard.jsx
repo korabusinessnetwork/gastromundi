@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import {
   LuTriangleAlert, LuCircleCheck, LuClock, LuBan, LuBuilding2, LuWallet,
-  LuChartPie, LuBanknote, LuX,
+  LuChartPie, LuBanknote, LuX, LuReceipt,
 } from "react-icons/lu";
 import { resumirPlataforma } from "@/lib/console";
 import { formatarReais } from "@/lib/deliveryPedidos";
 import DefinirMensalidadeModal from "./DefinirMensalidadeModal";
 import ConfirmarRenovacaoModal from "./ConfirmarRenovacaoModal";
+import HistoricoPagamentosModal from "./HistoricoPagamentosModal";
 import "./PlanosDashboard.css";
 
 /**
@@ -47,6 +48,7 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, confirma
   );
   const [linhaPreco, setLinhaPreco] = useState(null);
   const [linhaRenovacao, setLinhaRenovacao] = useState(null);
+  const [linhaHistorico, setLinhaHistorico] = useState(null);
   const [aviso, setAviso] = useState(null);
   // A RPC devolve o status recalculado a partir do vencimento NOVO. Quem estava
   // quatro meses atrasado continua atrasado depois de um pagamento — a faixa
@@ -186,20 +188,35 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, confirma
                   <td>{formatarData(l.dataVencimento)}</td>
                   <td><SeloStatus status={l.status} dias={l.diasParaVencer} /></td>
                   <td>
-                    {/* Sem assinatura não há o que renovar (a RPC recusaria com
-                        "Assinatura não encontrada"), e renovar um cancelado o
-                        descancelaria em silêncio, porque o status é recalculado
-                        a partir da data nova. Nos dois casos a ação não é essa:
-                        célula sem botão. Prevenção de erro > erro. */}
-                    {l.status === "sem_assinatura" || l.status === "cancelado" ? "—" : (
-                      <button
-                        type="button"
-                        className="pdash__pagar"
-                        onClick={() => setLinhaRenovacao(l)}
-                        aria-label={`Registrar pagamento de ${l.nome}`}
-                      >
-                        <LuBanknote size={14} aria-hidden /> Registrar pagamento
-                      </button>
+                    {/* Sem linha de assinatura não há nem o que renovar (a RPC
+                        recusaria com "Assinatura não encontrada") nem histórico
+                        possível — pagamento só existe via renovação. Célula
+                        vazia. */}
+                    {l.status === "sem_assinatura" ? "—" : (
+                      <div className="pdash__acoes">
+                        {/* Renovar um cancelado o descancelaria em silêncio,
+                            porque o status é recalculado a partir da data nova:
+                            sem botão de pagar. Mas o histórico dele existe e
+                            pode ter erro para corrigir. Prevenção de erro > erro. */}
+                        {l.status !== "cancelado" && (
+                          <button
+                            type="button"
+                            className="pdash__pagar"
+                            onClick={() => setLinhaRenovacao(l)}
+                            aria-label={`Registrar pagamento de ${l.nome}`}
+                          >
+                            <LuBanknote size={14} aria-hidden /> Registrar pagamento
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="pdash__ver"
+                          onClick={() => setLinhaHistorico(l)}
+                          aria-label={`Ver pagamentos de ${l.nome}`}
+                        >
+                          <LuReceipt size={14} aria-hidden /> Ver pagamentos
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -234,6 +251,20 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, confirma
               status: assinatura?.status,
             });
             setLinhaRenovacao(null);
+            onAtualizado?.();
+          }}
+        />
+      )}
+
+      {linhaHistorico && (
+        <HistoricoPagamentosModal
+          linha={linhaHistorico}
+          confirmadoPor={confirmadoPor}
+          onFechar={() => setLinhaHistorico(null)}
+          // O estorno mexe em data_vencimento e status: a tabela por trás do
+          // modal ficaria mostrando o vencimento antigo se não recarregasse.
+          onEstornado={() => {
+            setAviso(null);
             onAtualizado?.();
           }}
         />
