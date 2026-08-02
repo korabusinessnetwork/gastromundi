@@ -1,16 +1,11 @@
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
+import "./KLogo.css";
 
+// `size` é dado de runtime, então é a única coisa que continua vindo do JSX —
+// e entra como custom property, já com unidade: sem o "px", o calc() do CSS
+// recebe número puro e descarta a regra em silêncio.
 export default function KLogo({ size = 28 }) {
   return (
-    <div style={{
-      width: size, height: size,
-      borderRadius: size * 0.28,
-      background: varColor(C.accent), color: "#fff",
-      fontWeight: 900, fontSize: size * 0.56,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      letterSpacing: "-1px", flexShrink: 0,
-    }}>
+    <div className="klogo" style={{ "--klogo-size": `${size}px` }}>
       K
     </div>
   );

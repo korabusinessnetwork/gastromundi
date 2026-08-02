@@ -1,0 +1,15 @@
+/**
+ * F018 — Decisão 018 (CSS separado do JSX) + decisão 023 / ADR-007
+ * (`.css` puro co-localizado, cor sempre via CSS Custom Property --gm-*).
+ *
+ * As classes base desta tela (.confirma, .btn) moram em vitrine.css, importado
+ * pelo PAI (CardapioPage). O Vite não garante que o arquivo do filho entre
+ * depois no bundle, então a regra abaixo usa SELETOR DE DUAS CLASSES: quem
+ * decide é a especificidade, não a ordem de concatenação.
+ */
+
+/* O respiro antes do "Voltar ao cardápio" — única saída da tela, e o número do
+   pedido acima dele é a única cópia que o cliente tem. */
+.btn.confirma__voltar {
+  margin-top: 24px;
+}

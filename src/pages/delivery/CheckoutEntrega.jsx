@@ -20,6 +20,7 @@ import {
   formatarPreco,
   geocodificarEndereco,
 } from "@/lib/delivery";
+import "./CheckoutEntrega.css";
 
 export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvancar }) {
   const [buscandoCep, setBuscandoCep] = useState(false);
@@ -210,7 +211,7 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
               placeholder="00000-000"
             />
             {buscandoCep && (
-              <p className="linha-sacola__extra" style={{ marginTop: 6 }}>
+              <p className="linha-sacola__extra checkout-entrega__buscando">
                 Buscando endereço…
               </p>
             )}
@@ -303,10 +304,9 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
           )}
 
           <button
-            className="btn btn--primario"
+            className="btn btn--primario checkout-entrega__avancar"
             onClick={onAvancar}
             disabled={!podeAvancar}
-            style={{ marginTop: 8 }}
           >
             <span>Ir para o pagamento</span>
           </button>

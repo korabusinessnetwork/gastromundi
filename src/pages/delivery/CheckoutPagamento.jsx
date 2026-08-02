@@ -5,6 +5,7 @@
 // o servidor revalida tudo ao gravar o pedido.
 // ──────────────────────────────────────────────────────────────────
 import { calcularTroco, formatarPreco, valorDigitado } from "@/lib/delivery";
+import "./CheckoutPagamento.css";
 
 const FORMAS = [
   { id: "dinheiro", nome: "Dinheiro", emoji: "💵" },
@@ -41,7 +42,7 @@ export default function CheckoutPagamento({
         </div>
 
         <div className="modal-corpo">
-          <p className="linha-sacola__extra" style={{ marginBottom: 16 }}>
+          <p className="linha-sacola__extra checkout-pagamento__intro">
             O pagamento é na entrega. Escolha como quer pagar pro entregador.
           </p>
 
@@ -64,7 +65,7 @@ export default function CheckoutPagamento({
           ))}
 
           {dados.forma === "dinheiro" && (
-            <div className="campo" style={{ marginTop: 12 }}>
+            <div className="campo checkout-pagamento__troco">
               <label className="campo__label" htmlFor="troco">
                 Precisa de troco para quanto? (opcional)
               </label>
@@ -79,12 +80,12 @@ export default function CheckoutPagamento({
                 placeholder="Ex.: 50"
               />
               {trocoParaInvalido && (
-                <p className="linha-sacola__extra" style={{ color: "var(--gm-red)", marginTop: 6 }}>
+                <p className="linha-sacola__extra checkout-pagamento__troco-erro">
                   O valor precisa ser maior que o total ({formatarPreco(total)}).
                 </p>
               )}
               {troco > 0 && (
-                <p className="linha-sacola__extra" style={{ marginTop: 6 }}>
+                <p className="linha-sacola__extra checkout-pagamento__troco-valor">
                   Troco a levar: <strong>{formatarPreco(troco)}</strong>
                 </p>
               )}

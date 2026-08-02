@@ -176,6 +176,26 @@ realtime muda **enquanto o modal está aberto**, num aparelho que não é este.
 
 ---
 
+### CSS do filho que sobrescreve classe do pai: quem decide é a especificidade
+Ao extrair `style={{ }}` para o `.css` co-localizado (decisão 018 / ADR-007), a classe base quase
+sempre mora num arquivo importado por **outro** componente — `vitrine.css` é importado por
+`CardapioPage.jsx`, e as telas de checkout que usam `.campo`, `.btn` e `.linha-sacola__extra` são
+filhas dela.
+
+- **Uma classe nova sozinha (`.checkout-entrega__buscando`) tem a mesma especificidade da classe
+  base (0,1,0)**, então o empate é desempatado pela ordem em que o Vite concatena o bundle — e essa
+  ordem não é garantida para o `.css` do filho. Funciona em dev e pode inverter em produção.
+- **A regra que sobrescreve usa duas classes:**
+  `.linha-sacola__extra.checkout-pagamento__troco-erro` (0,2,0) vence sempre, sem depender de ordem.
+- **`margin: 0 0 6px` na classe base zera o topo.** O shorthand apaga `margin-top`; a regra nova
+  precisa declarar `margin-top` explicitamente em vez de contar com o valor anterior.
+- **Prop que vira estilo entra como custom property, com unidade:** o JSX escreve
+  `--klogo-size` já com o `px` no valor, e o CSS deriva o resto com
+  `calc(var(--klogo-size) * 0.28)`. Sem o `px`, o `calc()` recebe número puro e **descarta a
+  declaração inteira em silêncio** — nada quebra, o elemento só some de tamanho.
+
+---
+
 ## Padrões de API
 
 ### Formato de Resposta

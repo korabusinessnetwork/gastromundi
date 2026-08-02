@@ -1,0 +1,28 @@
+/**
+ * F018 — Decisão 018 (CSS separado do JSX) + decisão 023 / ADR-007
+ * (`.css` puro co-localizado, cor sempre via CSS Custom Property --gm-*).
+ *
+ * O tamanho é prop do componente, então ele entra como custom property
+ * (`--klogo-size`, já com unidade) e todo o resto deriva dele por calc() com
+ * os mesmos fatores de antes: raio 0.28 e fonte 0.56 do lado do quadrado.
+ *
+ * O `#fff` continua literal de propósito: é o texto POR CIMA da cor de marca,
+ * e não existe token --gm-* para isso (a lista de TOKENS_PERMITIDOS em
+ * src/lib/tema.js é fechada). Criar um é decisão de design system, fora desta
+ * rodada — o que importa aqui é que o literal saiu do JSX e virou CSS.
+ */
+
+.klogo {
+  width: var(--klogo-size);
+  height: var(--klogo-size);
+  border-radius: calc(var(--klogo-size) * 0.28);
+  background: var(--gm-accent);
+  color: #fff;
+  font-weight: 900;
+  font-size: calc(var(--klogo-size) * 0.56);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -1px;
+  flex-shrink: 0;
+}

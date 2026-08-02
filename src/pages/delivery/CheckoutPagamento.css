@@ -1,0 +1,30 @@
+/**
+ * F018 — Decisão 018 (CSS separado do JSX) + decisão 023 / ADR-007
+ * (`.css` puro co-localizado, cor sempre via CSS Custom Property --gm-*).
+ *
+ * As classes base desta tela (.campo, .forma, .resumo, .linha-sacola__extra)
+ * moram em vitrine.css, importado pelo PAI (CardapioPage). O Vite não garante
+ * que o arquivo do filho entre depois no bundle, então toda regra que
+ * sobrescreve uma propriedade já declarada lá usa SELETOR DE DUAS CLASSES:
+ * quem decide é a especificidade, não a ordem de concatenação.
+ */
+
+/* .linha-sacola__extra declara `margin: 0 0 6px` — o shorthand zera o topo e
+   fixa 6px embaixo, então as três regras abaixo precisam ser explícitas. */
+.linha-sacola__extra.checkout-pagamento__intro {
+  margin-bottom: 16px;
+}
+
+.campo.checkout-pagamento__troco {
+  margin-top: 12px;
+}
+
+/* O valor do troco menor que o total: vermelho do tema, nunca hex. */
+.linha-sacola__extra.checkout-pagamento__troco-erro {
+  margin-top: 6px;
+  color: var(--gm-red);
+}
+
+.linha-sacola__extra.checkout-pagamento__troco-valor {
+  margin-top: 6px;
+}

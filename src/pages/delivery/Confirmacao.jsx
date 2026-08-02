@@ -3,6 +3,7 @@
 // volta ao cardápio com a sacola já limpa (feedback humano de sucesso).
 // ──────────────────────────────────────────────────────────────────
 import { formatarPreco } from "@/lib/delivery";
+import "./Confirmacao.css";
 
 export default function Confirmacao({ resultado, tempoPreparo, onFechar }) {
   return (
@@ -30,9 +31,8 @@ export default function Confirmacao({ resultado, tempoPreparo, onFechar }) {
               é na entrega.
             </p>
             <button
-              className="btn btn--fantasma"
+              className="btn btn--fantasma confirma__voltar"
               onClick={onFechar}
-              style={{ marginTop: 24 }}
             >
               Voltar ao cardápio
             </button>
