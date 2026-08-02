@@ -421,7 +421,26 @@
 }
 
 /* ── Modais (compartilhadas entre Nova Comanda / Cancelar Comanda /
-   Transferir Itens / Confirmar Cancelamento / Mesa) ────────────────── */
+   Transferir Itens / Confirmar Cancelamento / Mesa) ──────────────────
+ *
+ * Leva 4 (rodada 16, specs/f018-pdv-modais-css.md): os cinco modais inline
+ * saíram do JSX inteiros — nenhuma das declarações dependia de runtime, então
+ * o trecho ficou com zero `style={{`.
+ *
+ * Regra que governa esta seção: uma classe `pdv__modal-*` só recebe uma
+ * declaração cujo valor é IGUAL em todos os seus usuários. O que varia de um
+ * modal para o outro fica na classe do modal (`pdv__nova-`, `pdv__cancelar-`,
+ * `pdv__transfer-`, `pdv__confirm-`, `pdv__mesa-`). Por isso `-titulo` e `-btn`
+ * seguem só com tipografia: peso, raio e padding divergem entre os modais.
+ *
+ * Estado: `:disabled` só onde a expressão do atributo `disabled` é idêntica à
+ * que pintava o fundo (Verificar Senha, Confirmar Cancelamento, Sim cancelar, e
+ * o cursor do Entrar na comanda). Onde não é — "Abrir", "Transferir" e o fundo
+ * do "Entrar" ficam ativos durante o salvamento — o estado virou modificador
+ * (`--ativo`, `--pode`, `--salvando`), senão o botão cinzaria no meio da ação.
+ * Borda de erro é `[aria-invalid]`, que o src/styles/inputs.css já trata como
+ * "erro manda mais que foco".
+ * ─────────────────────────────────────────────────────────────────── */
 
 .pdv__modal-titulo {
   font-size: var(--fs-xl);   /* role: título de modal — unificado (era 16–20px conforme o modal) */
@@ -431,32 +450,47 @@
 .pdv__modal-subtitulo {
   font-size: var(--fs-sm);   /* role: subtítulo (era 15–16px) */
   line-height: var(--lh-sm);
+  color: var(--gm-muted);
 }
 
 .pdv__modal-desc {
   font-size: var(--fs-base);   /* role: descrição/corpo (era 16px) */
   line-height: var(--lh-base);
+  color: var(--gm-muted);
 }
 
 .pdv__modal-label {
   font-size: var(--fs-xs);   /* role: rótulo em caixa alta (era 14px) */
   line-height: var(--lh-xs);
   letter-spacing: var(--tracking-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--gm-muted);
 }
 
 .pdv__modal-input {
   font-size: var(--fs-base);   /* role: input (era 16–18px) */
   line-height: var(--lh-base);
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
 }
 
 .pdv__modal-erro {
-  font-size: var(--fs-sm);   /* role: texto de erro/aviso auxiliar (era 14–18px) */
+  font-size: var(--fs-sm);   /* role: texto de erro (era 14–18px) */
   line-height: var(--lh-sm);
+  color: var(--gm-red);
+  font-weight: 600;
 }
 
 .pdv__modal-aviso {
   font-size: var(--fs-sm);   /* role: caixa de aviso (era 15–16px) */
   line-height: var(--lh-sm);
+  border-radius: 10px;
 }
 
 .pdv__modal-btn {
@@ -464,23 +498,348 @@
   line-height: var(--lh-base);
 }
 
+/* Os quatro botões de recusa (Cancelar/Voltar) são idênticos fora do raio e do
+   padding, que ficam na classe do modal. */
+.pdv__modal-btn--secundario {
+  flex: 1;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Os seis botões de confirmação só compartilham isto — fundo, peso, raio e
+   padding mudam de modal para modal. */
+.pdv__modal-btn--primario {
+  border: none;
+  color: #fff;   /* literal: sem token para texto sobre a marca */
+}
+
 .pdv__modal-close-btn {
   font-size: var(--fs-lg);   /* role: glyph de fechar × (era 18px) */
   line-height: var(--lh-lg);
 }
 
+/* Botão que é só um ícone/glyph sobre o fundo do modal: fechar (× e LuX) e o
+   olho que revela a senha. */
+.pdv__modal-icone-btn {
+  border: none;
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+
 /* Emoji grande em círculo — usado no modal de Cancelar Pedido (🗑️) e no
-   modal de Mesa (🪑). */
+   modal de Mesa (🪑). Tamanho, cor e borda do círculo ficam no modal. */
 .pdv__modal-emoji-circulo {
   font-size: var(--fs-2xl);   /* role: emoji grande de destaque (era 20–22px) */
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Realce dentro de frase: o asterisco de campo obrigatório e o trecho que
+   avisa que a ação é irreversível. */
+.pdv__modal-vermelho {
+  color: var(--gm-red);
+}
+
+.pdv__modal-forte {
+  color: var(--gm-text);
+}
+
+/* ── Modal Nova Comanda ──────────────────────────────────────────── */
+
+.pdv__nova-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* rgba literal: véu de escurecimento, não cor de marca — não vem do tema de
+     propósito (mesmo caso das sombras dos cards abaixo). */
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.pdv__nova-card {
+  width: 340px;
+  padding: 28px;
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: var(--gm-card);
+}
+
+.pdv__nova-titulo {
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.pdv__nova-desc {
+  margin-bottom: 20px;
+}
+
+.pdv__nova-input {
+  display: block;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--gm-input-border);
+}
+
+.pdv__nova-acoes {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.pdv__nova-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+/* `disabled` aqui é `!nome.trim() || criando`, mas o fundo sempre dependeu só
+   do nome: usar `:disabled` acinzentaria o botão durante o "Abrindo...". */
+.pdv__nova-btn-abrir {
+  background: var(--gm-faint);
+  font-weight: 700;
+  cursor: not-allowed;
+}
+
+.pdv__nova-btn-abrir--ativo {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+
+/* ── Modal Cancelar Comanda ──────────────────────────────────────── */
+
+.pdv__cancelar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.pdv__cancelar-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  background: var(--gm-card);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+.pdv__cancelar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.pdv__cancelar-titulo {
+  font-weight: 800;
+  color: var(--gm-red);
+}
+
+.pdv__cancelar-subtitulo {
+  margin-top: 3px;
+}
+
+.pdv__cancelar-close-btn {
+  padding: 6px;
+}
+
+.pdv__cancelar-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 28px;
+}
+
+.pdv__cancelar-senha-wrap {
+  position: relative;
+}
+
+.pdv__cancelar-input {
+  padding: 13px 44px 13px 16px;
+  border: 1.5px solid var(--gm-input-border);
+}
+
+.pdv__cancelar-input[aria-invalid="true"] {
+  border-color: var(--gm-red);
+}
+
+.pdv__cancelar-olho-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px;
+}
+
+.pdv__cancelar-btn-verificar {
+  padding: 13px;
+  border-radius: 10px;
+  background: var(--gm-accent);
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pdv__cancelar-btn-verificar:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+.pdv__cancelar-motivo-input {
+  padding: 13px 16px;
+  border: 1.5px solid var(--gm-input-border);
+}
+
+/* Não é `:placeholder-shown`: campo com só espaços já esconde o placeholder,
+   mas `.trim()` continua vazio e o botão continua travado. */
+.pdv__cancelar-motivo-input--preenchido {
+  border-color: color-mix(in srgb, var(--gm-accent) 53%, transparent);
+}
+
+.pdv__cancelar-aviso {
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  color: var(--gm-red);
+  font-weight: 600;
+}
+
+.pdv__cancelar-btn-confirmar {
+  padding: 13px;
+  border-radius: 10px;
+  background: var(--gm-red);
+  box-shadow: none;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pdv__cancelar-btn-confirmar:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+/* A sombra nunca acompanhou o `disabled`: ela depende só do motivo estar
+   preenchido, e continua acesa enquanto o cancelamento é gravado. */
+.pdv__cancelar-btn-confirmar--preenchido {
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--gm-red) 27%, transparent);
 }
 
 /* ── Modal Transferir Itens ──────────────────────────────────────── */
 
+.pdv__transfer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.7);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.pdv__transfer-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  overflow: hidden;
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  background: var(--gm-card);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  color: var(--gm-text);
+}
+
+.pdv__transfer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.pdv__transfer-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+}
+
+.pdv__transfer-close-btn {
+  padding: 4px;
+  font-weight: 400;
+}
+
 .pdv__transfer-info {
   font-size: var(--fs-base);   /* role: texto informativo/descrição (era 16–18px) */
   line-height: var(--lh-base);
+  color: var(--gm-muted);
+}
+
+.pdv__transfer-de {
+  margin-top: 2px;
+}
+
+.pdv__transfer-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.pdv__transfer-secao-itens {
+  flex-shrink: 0;
+  padding: 16px 24px 8px;
+}
+
+.pdv__transfer-secao-destino {
+  flex-shrink: 0;
+  padding: 8px 24px 16px;
+}
+
+.pdv__transfer-label {
+  margin-bottom: 10px;
+}
+
+.pdv__transfer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  border: 1.5px solid var(--gm-border);
+  border-radius: 12px;
+  background: var(--gm-surface);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.pdv__transfer-item--ativo {
+  border-color: color-mix(in srgb, var(--gm-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-accent) 3%, transparent);
+}
+
+.pdv__transfer-item-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .pdv__transfer-item-emoji {
@@ -491,57 +850,485 @@
 .pdv__transfer-item-nome {
   font-size: var(--fs-lg);   /* role: nome de item (era 16px) */
   line-height: var(--lh-lg);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pdv__transfer-item-disponivel {
   font-size: var(--fs-sm);   /* role: texto de apoio "Disponível" (era 14px) */
   line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.pdv__transfer-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pdv__transfer-qty-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--gm-border);
+  border-radius: 6px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+  cursor: pointer;
 }
 
 .pdv__transfer-qty-symbol {
   font-size: var(--fs-base);   /* role: glyph -/+ do stepper (era 16px) */
+  line-height: 1;
 }
 
 .pdv__transfer-qty-valor {
   font-size: var(--fs-base);   /* role: quantidade (era 17px) */
   line-height: var(--lh-base);
   font-variant-numeric: tabular-nums;
+  min-width: 22px;
+  text-align: center;
+  font-weight: 800;
+  color: var(--gm-muted);
+}
+
+.pdv__transfer-qty-valor--ativo {
+  color: var(--gm-accent);
 }
 
 .pdv__transfer-todos-btn {
   font-size: var(--fs-sm);   /* role: botão compacto "Todos" (era 14px) */
   line-height: var(--lh-sm);
+  padding: 4px 10px;
+  border: none;
+  border-radius: 7px;
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pdv__transfer-todos-btn--ativo {
+  background: color-mix(in srgb, var(--gm-accent) 13%, transparent);
+  color: var(--gm-accent);
+}
+
+.pdv__transfer-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
 }
 
 .pdv__transfer-tab-btn {
   font-size: var(--fs-base);   /* role: aba de modo de transferência (era 18px) */
   line-height: var(--lh-base);
+  padding: 6px 12px;
+  border: 1.5px solid var(--gm-border);
+  border-radius: 8px;
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pdv__transfer-tab-btn--ativa {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  color: var(--gm-accent);
+}
+
+.pdv__transfer-vazio {
+  padding: 12px 0;
+}
+
+.pdv__transfer-sem-resultado {
+  padding: 6px 0;
+}
+
+.pdv__transfer-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pdv__transfer-destino-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--gm-border);
+  border-radius: 12px;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.pdv__transfer-destino-btn--selecionado {
+  border-color: color-mix(in srgb, var(--gm-green) 53%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 6%, transparent);
+}
+
+.pdv__transfer-destino-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .pdv__transfer-avatar {
   font-size: var(--fs-lg);   /* role: iniciais no avatar (era 17px) */
   line-height: var(--lh-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  background: var(--gm-card);
+  color: var(--gm-muted);
+  font-weight: 800;
+}
+
+.pdv__transfer-avatar--selecionado {
+  border-color: color-mix(in srgb, var(--gm-green) 33%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 13%, transparent);
+  color: var(--gm-green);
 }
 
 .pdv__transfer-card-nome {
   font-size: var(--fs-lg);   /* role: nome de item/comanda no card (era 16px) */
   line-height: var(--lh-lg);
+  font-weight: 700;
 }
 
 .pdv__transfer-card-meta {
   font-size: var(--fs-sm);   /* role: meta (garçom) (era 14px) */
   line-height: var(--lh-sm);
+  color: var(--gm-muted);
 }
 
 .pdv__transfer-card-valor {
   font-size: var(--fs-lg);   /* role: valor money inline (era 16px) */
   line-height: var(--lh-lg);
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--gm-green);
+}
+
+.pdv__transfer-lista-valor {
+  flex-shrink: 0;
+}
+
+.pdv__transfer-busca {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pdv__transfer-input-wrap {
+  position: relative;
+}
+
+.pdv__transfer-input {
+  padding: 12px 16px;
+  border: 1.5px solid var(--gm-input-border);
+}
+
+.pdv__transfer-input[aria-invalid="true"] {
+  border-color: var(--gm-red);
+}
+
+.pdv__transfer-nova-info {
+  margin-bottom: 2px;
+}
+
+.pdv__transfer-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1.5px solid color-mix(in srgb, var(--gm-green) 40%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-green) 4%, transparent);
+}
+
+.pdv__transfer-preview-nome {
+  color: var(--gm-green);
+}
+
+.pdv__transfer-preview-valor {
+  margin-left: auto;
 }
 
 .pdv__transfer-preview-check {
   font-size: var(--fs-lg);   /* role: glyph de confirmação ✓ (era 18px) */
   line-height: 1;
+}
+
+.pdv__transfer-footer {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 16px 24px;
+  border-top: 1px solid var(--gm-border);
+}
+
+.pdv__transfer-btn-cancelar {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: 12px;
+}
+
+/* `disabled` aqui é `!pode || transferindo`, mas o fundo (e a sombra) sempre
+   dependeram só de `pode`: com `:disabled` o botão apagaria no meio do
+   "Transferindo...". */
+.pdv__transfer-btn-confirmar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 2;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--gm-faint);
+  box-shadow: none;
+  font-family: inherit;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: not-allowed;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.pdv__transfer-btn-confirmar--pode {
+  background: var(--gm-green);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--gm-green) 27%, transparent);
+  cursor: pointer;
+}
+
+/* ── Modal Confirmar cancelamento ────────────────────────────────── */
+
+.pdv__confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.7);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.pdv__confirm-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 28px;
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  background: var(--gm-card);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  color: var(--gm-text);
+}
+
+.pdv__confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.pdv__confirm-emoji {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
+}
+
+.pdv__confirm-titulo {
+  font-weight: 900;
+}
+
+.pdv__confirm-subtitulo {
+  margin-top: 2px;
+}
+
+.pdv__confirm-aviso {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 5%, transparent);
+  color: var(--gm-muted);
+}
+
+.pdv__confirm-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.pdv__confirm-input {
+  padding: 11px 14px;
+  border: 1.5px solid var(--gm-input-border);
+}
+
+.pdv__confirm-input--preenchido {
+  border-color: color-mix(in srgb, var(--gm-accent) 53%, transparent);
+}
+
+.pdv__confirm-acoes {
+  display: flex;
+  gap: 10px;
+}
+
+.pdv__confirm-btn {
+  flex: 1;
+  padding: 13px 0;
+  border-radius: 12px;
+}
+
+.pdv__confirm-btn-sim {
+  background: var(--gm-red);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pdv__confirm-btn-sim:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+/* ── Modal Mesa ──────────────────────────────────────────────────── */
+
+.pdv__mesa-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.7);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.pdv__mesa-card {
+  width: 100%;
+  max-width: 380px;
+  overflow: hidden;
+  border: 1px solid var(--gm-border);
+  border-radius: 20px;
+  background: var(--gm-card);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  color: var(--gm-text);
+}
+
+.pdv__mesa-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.pdv__mesa-emoji {
+  width: 42px;
+  height: 42px;
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-accent) 9%, transparent);
+}
+
+.pdv__mesa-titulo {
+  font-weight: 900;
+}
+
+.pdv__mesa-sub {
+  margin-top: 1px;
+}
+
+.pdv__mesa-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 24px;
+}
+
+.pdv__mesa-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* "(opcional)" desfaz o caixa-alta do rótulo dentro do próprio rótulo. */
+.pdv__mesa-label-opcional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pdv__mesa-input {
+  padding: 13px 16px;
+  border: 1.5px solid var(--gm-input-border);
+  transition: border-color 0.15s;
+}
+
+/* Campo obrigatório vazio: o vermelho agora sobrevive ao foco em vez de ser
+   apagado pelo accent justo quando o operador foi consertar. */
+.pdv__mesa-input[aria-invalid="true"] {
+  border-color: color-mix(in srgb, var(--gm-red) 53%, transparent);
+}
+
+.pdv__mesa-hint {
+  font-size: var(--fs-sm);   /* role: dica auxiliar do campo (era 14px) */
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.pdv__mesa-acoes {
+  display: flex;
+  gap: 10px;
+}
+
+.pdv__mesa-btn-cancelar {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: 11px;
+}
+
+/* O cursor acompanha o `disabled` inteiro; o fundo e a opacidade não —
+   o botão segue aceso enquanto grava. */
+.pdv__mesa-btn-entrar {
+  flex: 2;
+  padding: 12px 0;
+  border-radius: 11px;
+  background: var(--gm-faint);
+  opacity: 1;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pdv__mesa-btn-entrar--ativo {
+  background: var(--gm-accent);
+}
+
+.pdv__mesa-btn-entrar--salvando {
+  opacity: 0.7;
+}
+
+.pdv__mesa-btn-entrar:disabled {
+  cursor: not-allowed;
 }
 
 /* ── SaldoModal (relatório de saldo do dia) ──────────────────────────

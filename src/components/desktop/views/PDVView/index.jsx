@@ -1376,22 +1376,15 @@ export default function PDVView({ notify }) {
       {showNova && (
         <div
           {...fecharAoClicarFora(() => setShowNova(false))}
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 200,
-          }}
+          className="pdv__nova-overlay"
         >
-          <div style={{
-            background: varColor(C.card), borderRadius: 16, padding: 28,
-            width: 340, border: `1px solid var(${C.border})`,
-          }}>
-            <div className="pdv__modal-titulo" style={{ fontWeight: 800, marginBottom: 6 }}>Nova Comanda</div>
-            <div className="pdv__modal-desc" style={{ color: varColor(C.muted), marginBottom: 20 }}>
+          <div className="pdv__nova-card">
+            <div className="pdv__modal-titulo pdv__nova-titulo">Nova Comanda</div>
+            <div className="pdv__modal-desc pdv__nova-desc">
               Informe o nome ou número da mesa
             </div>
 
-            <label className="pdv__modal-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase" }}>
+            <label className="pdv__modal-label">
               Nome / Número
             </label>
             <input
@@ -1401,39 +1394,20 @@ export default function PDVView({ notify }) {
               onKeyDown={e => e.key === "Enter" && handleNovaComanda()}
               placeholder="Ex: Mesa 1, Balcão, Delivery..."
               maxLength={30}
-              className="pdv__modal-input"
-              style={{
-                display: "block", width: "100%", marginTop: 8,
-                padding: "12px 14px", borderRadius: 10,
-                border: `1px solid var(--gm-input-border)`,
-                background: "var(--gm-input-bg)", color: varColor(C.text),
-                boxSizing: "border-box", fontFamily: "inherit", outline: "none",
-              }}
+              className="pdv__modal-input pdv__nova-input"
             />
 
-            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+            <div className="pdv__nova-acoes">
               <button
                 onClick={() => setShowNova(false)}
-                className="pdv__modal-btn"
-                style={{
-                  flex: 1, padding: 12, borderRadius: 10,
-                  border: `1px solid var(${C.border})`, background: "none",
-                  color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
-                }}
+                className="pdv__modal-btn pdv__modal-btn--secundario pdv__nova-btn"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleNovaComanda}
                 disabled={!nomeComanda.trim() || criando}
-                className="pdv__modal-btn"
-                style={{
-                  flex: 1, padding: 12, borderRadius: 10, border: "none",
-                  background: nomeComanda.trim() ? varColor(C.accent) : varColor(C.faint),
-                  color: "#fff",
-                  cursor: nomeComanda.trim() ? "pointer" : "not-allowed",
-                  fontWeight: 700,
-                }}
+                className={`pdv__modal-btn pdv__modal-btn--primario pdv__nova-btn pdv__nova-btn-abrir${nomeComanda.trim() ? " pdv__nova-btn-abrir--ativo" : ""}`}
               >
                 {criando ? "Abrindo..." : "Abrir"}
               </button>
@@ -1446,37 +1420,27 @@ export default function PDVView({ notify }) {
       {showCancelarComanda && createPortal(
         <div
           {...fecharAoClicarFora(() => setShowCancelarComanda(false))}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9100,
-            background: "rgba(0,0,0,0.75)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 24,
-          }}
+          className="pdv__cancelar-overlay"
         >
-          <div style={{
-            background: varColor(C.card), borderRadius: 20, border: `1px solid var(${C.border})`,
-            width: "100%", maxWidth: 420,
-            display: "flex", flexDirection: "column",
-            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-          }}>
+          <div className="pdv__cancelar-card">
             {/* Header */}
-            <div style={{ padding: "22px 28px 18px", borderBottom: `1px solid var(${C.border})`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div className="pdv__cancelar-header">
               <div>
-                <div className="pdv__modal-titulo" style={{ fontWeight: 800, color: varColor(C.red) }}>Cancelar Comanda</div>
-                <div className="pdv__modal-subtitulo" style={{ color: varColor(C.muted), marginTop: 3 }}>{fmtComanda(selected?.comanda)}</div>
+                <div className="pdv__modal-titulo pdv__cancelar-titulo">Cancelar Comanda</div>
+                <div className="pdv__modal-subtitulo pdv__cancelar-subtitulo">{fmtComanda(selected?.comanda)}</div>
               </div>
-              <button onClick={() => setShowCancelarComanda(false)} style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 6 }}>
+              <button onClick={() => setShowCancelarComanda(false)} className="pdv__modal-icone-btn pdv__cancelar-close-btn">
                 <LuX size={20} />
               </button>
             </div>
 
-            <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: 18 }}>
+            <div className="pdv__cancelar-body">
               {!cancelarAutorizado ? (
                 <>
-                  <div className="pdv__modal-desc" style={{ color: varColor(C.muted), lineHeight: 1.5 }}>
-                    Esta ação cancelará <strong style={{ color: varColor(C.text) }}>todos os itens</strong> da comanda. Digite a senha de administrador ou gerente para continuar.
+                  <div className="pdv__modal-desc">
+                    Esta ação cancelará <strong className="pdv__modal-forte">todos os itens</strong> da comanda. Digite a senha de administrador ou gerente para continuar.
                   </div>
-                  <div style={{ position: "relative" }}>
+                  <div className="pdv__cancelar-senha-wrap">
                     <input
                       autoFocus
                       type={cancelarSenhaVis ? "text" : "password"}
@@ -1490,21 +1454,17 @@ export default function PDVView({ notify }) {
                         }
                       }}
                       placeholder="Senha de admin ou gerente"
-                      className="pdv__modal-input"
-                      style={{
-                        width: "100%", padding: "13px 44px 13px 16px", borderRadius: 10, boxSizing: "border-box",
-                        border: `1.5px solid ${cancelarSenhaErro ? varColor(C.red) : "var(--gm-input-border)"}`,
-                        background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none",
-                      }}
+                      aria-invalid={!!cancelarSenhaErro}
+                      className="pdv__modal-input pdv__cancelar-input"
                     />
                     <button
                       onClick={() => setCancelarSenhaVis(v => !v)}
-                      style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4 }}
+                      className="pdv__modal-icone-btn pdv__cancelar-olho-btn"
                     >
                       {cancelarSenhaVis ? <LuEyeOff size={18} /> : <LuEye size={18} />}
                     </button>
                   </div>
-                  {cancelarSenhaErro && <div role="alert" className="pdv__modal-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>{cancelarSenhaErro}</div>}
+                  {cancelarSenhaErro && <div role="alert" className="pdv__modal-erro">{cancelarSenhaErro}</div>}
                   <button
                     onClick={async () => {
                       const { ok, erro } = await verificarSenhaAdmin(cancelarSenha);
@@ -1512,21 +1472,15 @@ export default function PDVView({ notify }) {
                       else setCancelarSenhaErro(erro || "Senha incorreta.");
                     }}
                     disabled={!cancelarSenha}
-                    className="pdv__modal-btn"
-                    style={{
-                      padding: "13px", borderRadius: 10, border: "none",
-                      background: cancelarSenha ? varColor(C.accent) : varColor(C.faint),
-                      color: "#fff", fontWeight: 700,
-                      cursor: cancelarSenha ? "pointer" : "not-allowed", fontFamily: "inherit",
-                    }}
+                    className="pdv__modal-btn pdv__modal-btn--primario pdv__cancelar-btn-verificar"
                   >
                     Verificar Senha
                   </button>
                 </>
               ) : (
                 <>
-                  <div className="pdv__modal-desc" style={{ color: varColor(C.muted), lineHeight: 1.5 }}>
-                    Motivo do cancelamento <span style={{ color: varColor(C.red) }}>*</span>
+                  <div className="pdv__modal-desc">
+                    Motivo do cancelamento <span className="pdv__modal-vermelho">*</span>
                   </div>
                   <input
                     autoFocus
@@ -1535,14 +1489,9 @@ export default function PDVView({ notify }) {
                     onChange={e => setCancelarMotivo(e.target.value)}
                     placeholder="Ex: cliente desistiu, erro no pedido..."
                     maxLength={120}
-                    className="pdv__modal-input"
-                    style={{
-                      width: "100%", padding: "13px 16px", borderRadius: 10, boxSizing: "border-box",
-                      border: `1.5px solid ${cancelarMotivo.trim() ? alfa(C.accent, "88") : "var(--gm-input-border)"}`,
-                      background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none",
-                    }}
+                    className={`pdv__modal-input pdv__cancelar-motivo-input${cancelarMotivo.trim() ? " pdv__cancelar-motivo-input--preenchido" : ""}`}
                   />
-                  <div className="pdv__modal-aviso" style={{ padding: "14px 16px", borderRadius: 10, background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "44")}`, color: varColor(C.red), fontWeight: 600 }}>
+                  <div className="pdv__modal-aviso pdv__cancelar-aviso">
                     ⚠️ {(selected?.items ?? []).filter(i => !i.cancelado).length} item(ns) serão cancelados e enviados para o relatório.
                   </div>
                   <button
@@ -1561,14 +1510,7 @@ export default function PDVView({ notify }) {
                       }
                     }}
                     disabled={cancelandoComanda || !cancelarMotivo.trim()}
-                    className="pdv__modal-btn"
-                    style={{
-                      padding: "13px", borderRadius: 10, border: "none",
-                      background: (cancelandoComanda || !cancelarMotivo.trim()) ? varColor(C.faint) : varColor(C.red),
-                      color: "#fff", fontWeight: 800,
-                      cursor: (cancelandoComanda || !cancelarMotivo.trim()) ? "not-allowed" : "pointer", fontFamily: "inherit",
-                      boxShadow: cancelarMotivo.trim() ? `0 4px 16px ${alfa(C.red, "44")}` : "none",
-                    }}
+                    className={`pdv__modal-btn pdv__modal-btn--primario pdv__cancelar-btn-confirmar${cancelarMotivo.trim() ? " pdv__cancelar-btn-confirmar--preenchido" : ""}`}
                   >
                     {cancelandoComanda ? "Cancelando..." : "✕ Confirmar Cancelamento"}
                   </button>
@@ -1584,48 +1526,31 @@ export default function PDVView({ notify }) {
       {showTransferir && createPortal(
         <div
           {...fecharAoClicarFora(() => setShowTransferir(false))}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9000,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
-          }}
+          className="pdv__transfer-overlay"
         >
-          <div style={{
-            background: varColor(C.card), borderRadius: 20,
-            width: "100%", maxWidth: 520,
-            maxHeight: "85vh", display: "flex", flexDirection: "column",
-            border: `1px solid var(${C.border})`,
-            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-            color: varColor(C.text), overflow: "hidden",
-          }}>
+          <div className="pdv__transfer-card">
             {/* Header */}
-            <div style={{
-              padding: "20px 24px", borderBottom: `1px solid var(${C.border})`,
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              flexShrink: 0,
-            }}>
+            <div className="pdv__transfer-header">
               <div>
-                <div className="pdv__modal-titulo" style={{ fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}>
+                <div className="pdv__modal-titulo pdv__transfer-titulo">
                   <LuArrowLeftRight size={18} /> Transferir itens
                 </div>
-                <div className="pdv__transfer-info" style={{ color: varColor(C.muted), marginTop: 2 }}>
+                <div className="pdv__transfer-info pdv__transfer-de">
                   De: {/^\d+$/.test(String(selected?.comanda ?? "").trim()) ? `Comanda ${selected?.comanda}` : selected?.comanda}
                 </div>
               </div>
               <button
                 onClick={() => setShowTransferir(false)}
-                className="pdv__modal-close-btn"
-                style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, fontWeight: 400 }}
+                className="pdv__modal-close-btn pdv__modal-icone-btn pdv__transfer-close-btn"
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+            <div className="pdv__transfer-body">
               {/* Seção: itens a transferir */}
-              <div style={{ padding: "16px 24px 8px", flexShrink: 0 }}>
-                <div className="pdv__modal-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", marginBottom: 10 }}>
+              <div className="pdv__transfer-secao-itens">
+                <div className="pdv__modal-label pdv__transfer-label">
                   Selecione os itens e quantidades
                 </div>
                 {/* Item cancelado não pode ser transferido: no destino ele se
@@ -1640,46 +1565,34 @@ export default function PDVView({ notify }) {
                   const qSel   = transQtds[idx] ?? 0;
                   const ativo  = qSel > 0;
                   return (
-                    <div key={idx} style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "10px 14px", borderRadius: 12, marginBottom: 6,
-                      border: `1.5px solid ${ativo ? alfa(C.accent, "66") : varColor(C.border)}`,
-                      background: ativo ? `${alfa(C.accent, "08")}` : varColor(C.surface),
-                      transition: "border-color 0.15s, background 0.15s",
-                    }}>
+                    <div key={idx} className={`pdv__transfer-item${ativo ? " pdv__transfer-item--ativo" : ""}`}>
                       {item.emoji && <span className="pdv__transfer-item-emoji">{item.emoji}</span>}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="pdv__transfer-item-nome" style={{ fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <div className="pdv__transfer-item-info">
+                        <div className="pdv__transfer-item-nome">
                           {item.name}
                         </div>
-                        <div className="pdv__transfer-item-disponivel" style={{ color: varColor(C.muted) }}>Disponível: {qty}</div>
+                        <div className="pdv__transfer-item-disponivel">Disponível: {qty}</div>
                       </div>
                       {/* Qty selector */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                      <div className="pdv__transfer-stepper">
                         <button
                           onClick={() => setTransQtds(prev => ({ ...prev, [idx]: Math.max(0, (prev[idx] ?? 0) - 1) }))}
-                          style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid var(${C.border})`, background: varColor(C.card), color: varColor(C.text), cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          className="pdv__transfer-qty-btn"
                         >
-                          <span className="pdv__transfer-qty-symbol" style={{ lineHeight: 1 }}>−</span>
+                          <span className="pdv__transfer-qty-symbol">−</span>
                         </button>
-                        <span className="pdv__transfer-qty-valor" style={{ minWidth: 22, textAlign: "center", fontWeight: 800, color: ativo ? varColor(C.accent) : varColor(C.muted) }}>
+                        <span className={`pdv__transfer-qty-valor${ativo ? " pdv__transfer-qty-valor--ativo" : ""}`}>
                           {qSel}
                         </span>
                         <button
                           onClick={() => setTransQtds(prev => ({ ...prev, [idx]: Math.min(qty, (prev[idx] ?? 0) + 1) }))}
-                          style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid var(${C.border})`, background: varColor(C.card), color: varColor(C.text), cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          className="pdv__transfer-qty-btn"
                         >
-                          <span className="pdv__transfer-qty-symbol" style={{ lineHeight: 1 }}>+</span>
+                          <span className="pdv__transfer-qty-symbol">+</span>
                         </button>
                         <button
                           onClick={() => setTransQtds(prev => ({ ...prev, [idx]: prev[idx] === qty ? 0 : qty }))}
-                          className="pdv__transfer-todos-btn"
-                          style={{
-                            padding: "4px 10px", borderRadius: 7, border: "none",
-                            background: ativo ? `${alfa(C.accent, "22")}` : varColor(C.surface),
-                            color: ativo ? varColor(C.accent) : varColor(C.muted),
-                            cursor: "pointer", fontWeight: 700,
-                          }}
+                          className={`pdv__transfer-todos-btn${ativo ? " pdv__transfer-todos-btn--ativo" : ""}`}
                         >
                           {ativo && qSel === qty ? "Todos ✓" : "Todos"}
                         </button>
@@ -1690,13 +1603,13 @@ export default function PDVView({ notify }) {
               </div>
 
               {/* Seção: comanda destino */}
-              <div style={{ padding: "8px 24px 16px", flexShrink: 0 }}>
-                <div className="pdv__modal-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", marginBottom: 10 }}>
+              <div className="pdv__transfer-secao-destino">
+                <div className="pdv__modal-label pdv__transfer-label">
                   Transferir para
                 </div>
 
                 {/* Abas de modo */}
-                <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+                <div className="pdv__transfer-tabs">
                   {[
                     { id: "lista",  label: "Comandas abertas" },
                     { id: "numero", label: "Buscar por número" },
@@ -1705,14 +1618,7 @@ export default function PDVView({ notify }) {
                     <button
                       key={tab.id}
                       onClick={() => { setTransMode(tab.id); setTransDestino(null); setTransNumeroErro(""); }}
-                      className="pdv__transfer-tab-btn"
-                      style={{
-                        padding: "6px 12px", borderRadius: 8, fontWeight: 700,
-                        border: `1.5px solid ${transMode === tab.id ? varColor(C.accent) : varColor(C.border)}`,
-                        background: transMode === tab.id ? `${alfa(C.accent, "14")}` : varColor(C.surface),
-                        color: transMode === tab.id ? varColor(C.accent) : varColor(C.muted),
-                        cursor: "pointer",
-                      }}
+                      className={`pdv__transfer-tab-btn${transMode === tab.id ? " pdv__transfer-tab-btn--ativa" : ""}`}
                     >
                       {tab.label}
                     </button>
@@ -1722,11 +1628,11 @@ export default function PDVView({ notify }) {
                 {/* Modo: lista de comandas abertas */}
                 {transMode === "lista" && (
                   abertas.filter(o => o.id !== selected?.id).length === 0 ? (
-                    <div className="pdv__transfer-info" style={{ color: varColor(C.muted), padding: "12px 0" }}>
+                    <div className="pdv__transfer-info pdv__transfer-vazio">
                       Nenhuma outra comanda aberta.
                     </div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div className="pdv__transfer-lista">
                       {abertas.filter(o => o.id !== selected?.id).map(o => {
                         const nome = fmtComanda(o.comanda) || `#${String(o.id).slice(-4).toUpperCase()}`;
                         const sel  = transDestino === o.id;
@@ -1734,30 +1640,17 @@ export default function PDVView({ notify }) {
                           <button
                             key={o.id}
                             onClick={() => setTransDestino(o.id)}
-                            style={{
-                              display: "flex", alignItems: "center", gap: 12,
-                              padding: "10px 14px", borderRadius: 12,
-                              border: `1.5px solid ${sel ? alfa(C.green, "88") : varColor(C.border)}`,
-                              background: sel ? `${alfa(C.green, "0f")}` : varColor(C.surface),
-                              cursor: "pointer", textAlign: "left", color: varColor(C.text),
-                              transition: "border-color 0.15s, background 0.15s",
-                            }}
+                            className={`pdv__transfer-destino-btn${sel ? " pdv__transfer-destino-btn--selecionado" : ""}`}
                           >
-                            <div className="pdv__transfer-avatar" style={{
-                              width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                              background: sel ? `${alfa(C.green, "22")}` : varColor(C.card),
-                              border: `1px solid ${sel ? alfa(C.green, "55") : varColor(C.border)}`,
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              fontWeight: 800, color: sel ? varColor(C.green) : varColor(C.muted),
-                            }}>
+                            <div className={`pdv__transfer-avatar${sel ? " pdv__transfer-avatar--selecionado" : ""}`}>
                               {sel ? "✓" : "#"}
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div className="pdv__transfer-card-nome" style={{ fontWeight: 700 }}>{nome}</div>
-                              {o.garcom && <div className="pdv__transfer-card-meta" style={{ color: varColor(C.muted) }}>{o.garcom}</div>}
+                            <div className="pdv__transfer-destino-info">
+                              <div className="pdv__transfer-card-nome">{nome}</div>
+                              {o.garcom && <div className="pdv__transfer-card-meta">{o.garcom}</div>}
                             </div>
                             {o.total > 0 && (
-                              <div className="pdv__transfer-card-valor" style={{ fontWeight: 700, color: varColor(C.green), flexShrink: 0 }}>
+                              <div className="pdv__transfer-card-valor pdv__transfer-lista-valor">
                                 R$ {Number(o.total).toFixed(2)}
                               </div>
                             )}
@@ -1770,8 +1663,8 @@ export default function PDVView({ notify }) {
 
                 {/* Modo: buscar por número */}
                 {transMode === "numero" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <div style={{ position: "relative" }}>
+                  <div className="pdv__transfer-busca">
+                    <div className="pdv__transfer-input-wrap">
                       <input
                         autoFocus
                         type="text"
@@ -1779,40 +1672,31 @@ export default function PDVView({ notify }) {
                         value={transNumero}
                         onChange={e => { setTransNumero(e.target.value.replace(/\D/g, "")); setTransNumeroErro(""); setTransDestino(null); }}
                         placeholder="Ex: 42"
-                        className="pdv__modal-input"
-                        style={{
-                          width: "100%", padding: "12px 16px", borderRadius: 10,
-                          border: `1.5px solid ${transNumeroErro ? varColor(C.red) : "var(--gm-input-border)"}`,
-                          background: "var(--gm-input-bg)", color: varColor(C.text),
-                          fontFamily: "inherit", outline: "none", boxSizing: "border-box",
-                        }}
+                        aria-invalid={!!transNumeroErro}
+                        className="pdv__modal-input pdv__transfer-input"
                       />
                     </div>
                     {transNumeroErro && (
-                      <div className="pdv__modal-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>{transNumeroErro}</div>
+                      <div className="pdv__modal-erro">{transNumeroErro}</div>
                     )}
                     {/* Preview da comanda encontrada */}
                     {(() => {
                       if (!transNumero.trim()) return null;
                       const encontrada = abertas.find(o => String(o.comanda).trim() === transNumero.trim() && o.id !== selected?.id);
                       if (!encontrada) return (
-                        <div className="pdv__transfer-info" style={{ color: varColor(C.muted), padding: "6px 0" }}>
+                        <div className="pdv__transfer-info pdv__transfer-sem-resultado">
                           Nenhuma comanda aberta com esse número.
                         </div>
                       );
                       return (
-                        <div style={{
-                          display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-                          borderRadius: 12, border: `1.5px solid ${alfa(C.green, "66")}`,
-                          background: `${alfa(C.green, "0a")}`,
-                        }}>
+                        <div className="pdv__transfer-preview">
                           <div className="pdv__transfer-preview-check">✓</div>
                           <div>
-                            <div className="pdv__transfer-card-nome" style={{ fontWeight: 700, color: varColor(C.green) }}>{fmtComanda(encontrada.comanda)}</div>
-                            {encontrada.garcom && <div className="pdv__transfer-card-meta" style={{ color: varColor(C.muted) }}>{encontrada.garcom}</div>}
+                            <div className="pdv__transfer-card-nome pdv__transfer-preview-nome">{fmtComanda(encontrada.comanda)}</div>
+                            {encontrada.garcom && <div className="pdv__transfer-card-meta">{encontrada.garcom}</div>}
                           </div>
                           {encontrada.total > 0 && (
-                            <div className="pdv__transfer-card-valor" style={{ marginLeft: "auto", fontWeight: 700, color: varColor(C.green) }}>
+                            <div className="pdv__transfer-card-valor pdv__transfer-preview-valor">
                               R$ {Number(encontrada.total).toFixed(2)}
                             </div>
                           )}
@@ -1824,8 +1708,8 @@ export default function PDVView({ notify }) {
 
                 {/* Modo: nova comanda */}
                 {transMode === "nova" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <div className="pdv__transfer-info" style={{ color: varColor(C.muted), marginBottom: 2 }}>
+                  <div className="pdv__transfer-busca">
+                    <div className="pdv__transfer-info pdv__transfer-nova-info">
                       Uma nova comanda será criada com os itens selecionados.
                     </div>
                     <input
@@ -1834,16 +1718,11 @@ export default function PDVView({ notify }) {
                       value={transNomeNova}
                       onChange={e => { setTransNomeNova(e.target.value); setTransNumeroErro(""); }}
                       placeholder="Nome ou número da nova comanda (ex: 99)"
-                      className="pdv__modal-input"
-                      style={{
-                        width: "100%", padding: "12px 16px", borderRadius: 10,
-                        border: `1.5px solid ${transNumeroErro ? varColor(C.red) : "var(--gm-input-border)"}`,
-                        background: "var(--gm-input-bg)", color: varColor(C.text),
-                        fontFamily: "inherit", outline: "none", boxSizing: "border-box",
-                      }}
+                      aria-invalid={!!transNumeroErro}
+                      className="pdv__modal-input pdv__transfer-input"
                     />
                     {transNumeroErro && (
-                      <div className="pdv__modal-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>{transNumeroErro}</div>
+                      <div className="pdv__modal-erro">{transNumeroErro}</div>
                     )}
                   </div>
                 )}
@@ -1871,32 +1750,17 @@ export default function PDVView({ notify }) {
               }
 
               return (
-                <div style={{ padding: "16px 24px", borderTop: `1px solid var(${C.border})`, flexShrink: 0, display: "flex", gap: 10 }}>
+                <div className="pdv__transfer-footer">
                   <button
                     onClick={() => setShowTransferir(false)}
-                    className="pdv__modal-btn"
-                    style={{
-                      flex: 1, padding: "12px 0", borderRadius: 12,
-                      border: `1px solid var(${C.border})`, background: "none",
-                      color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
-                    }}
+                    className="pdv__modal-btn pdv__modal-btn--secundario pdv__transfer-btn-cancelar"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleTransferir}
                     disabled={!pode || transferindo}
-                    className="pdv__modal-btn"
-                    style={{
-                      flex: 2, padding: "12px 16px", borderRadius: 12, border: "none",
-                      background: pode ? varColor(C.green) : varColor(C.faint),
-                      color: "#fff", cursor: pode ? "pointer" : "not-allowed",
-                      fontWeight: 800, fontFamily: "inherit",
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                      boxShadow: pode ? `0 4px 16px ${alfa(C.green, "44")}` : "none",
-                      transition: "background 0.2s, box-shadow 0.2s",
-                    }}
+                    className={`pdv__modal-btn pdv__modal-btn--primario pdv__transfer-btn-confirmar${pode ? " pdv__transfer-btn-confirmar--pode" : ""}`}
                   >
                     {transferindo
                       ? "Transferindo..."
@@ -1916,47 +1780,28 @@ export default function PDVView({ notify }) {
       {confirmCancelar && createPortal(
         <div
           {...fecharAoClicarFora(() => setConfirmCancelar(false))}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9000,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
-          }}
+          className="pdv__confirm-overlay"
         >
-          <div style={{
-            background: varColor(C.card), borderRadius: 20, padding: 28,
-            width: "100%", maxWidth: 400,
-            border: `1px solid var(${C.border})`,
-            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-            color: varColor(C.text),
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-              <div className="pdv__modal-emoji-circulo" style={{
-                width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-                background: `${alfa(C.red, "18")}`, border: `1.5px solid ${alfa(C.red, "44")}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
+          <div className="pdv__confirm-card">
+            <div className="pdv__confirm-header">
+              <div className="pdv__modal-emoji-circulo pdv__confirm-emoji">
                 🗑️
               </div>
               <div>
-                <div className="pdv__modal-titulo" style={{ fontWeight: 900 }}>Cancelar pedido?</div>
-                <div className="pdv__modal-subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
+                <div className="pdv__modal-titulo pdv__confirm-titulo">Cancelar pedido?</div>
+                <div className="pdv__modal-subtitulo pdv__confirm-subtitulo">
                   {/^\d+$/.test(String(selected?.comanda ?? "").trim()) ? `Comanda ${selected?.comanda}` : selected?.comanda}
                 </div>
               </div>
             </div>
 
-            <div className="pdv__modal-aviso" style={{
-              padding: "12px 16px", borderRadius: 10, marginBottom: 16,
-              background: `${alfa(C.red, "0d")}`, border: `1px solid ${alfa(C.red, "33")}`,
-              color: varColor(C.muted), lineHeight: 1.5,
-            }}>
-              A comanda será <strong style={{ color: varColor(C.red) }}>removida permanentemente</strong>. Esta ação não pode ser desfeita.
+            <div className="pdv__modal-aviso pdv__confirm-aviso">
+              A comanda será <strong className="pdv__modal-vermelho">removida permanentemente</strong>. Esta ação não pode ser desfeita.
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
-              <div className="pdv__modal-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase" }}>
-                Motivo do cancelamento <span style={{ color: varColor(C.red) }}>*</span>
+            <div className="pdv__confirm-campo">
+              <div className="pdv__modal-label">
+                Motivo do cancelamento <span className="pdv__modal-vermelho">*</span>
               </div>
               <input
                 autoFocus
@@ -1965,24 +1810,14 @@ export default function PDVView({ notify }) {
                 onChange={e => setConfirmCancelarMotivo(e.target.value)}
                 placeholder="Ex: cliente desistiu, erro no pedido..."
                 maxLength={120}
-                className="pdv__modal-input"
-                style={{
-                  width: "100%", padding: "11px 14px", borderRadius: 10, boxSizing: "border-box",
-                  border: `1.5px solid ${confirmCancelarMotivo.trim() ? alfa(C.accent, "88") : "var(--gm-input-border)"}`,
-                  background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none",
-                }}
+                className={`pdv__modal-input pdv__confirm-input${confirmCancelarMotivo.trim() ? " pdv__confirm-input--preenchido" : ""}`}
               />
             </div>
 
-            <div style={{ display: "flex", gap: 10 }}>
+            <div className="pdv__confirm-acoes">
               <button
                 onClick={() => setConfirmCancelar(false)}
-                className="pdv__modal-btn"
-                style={{
-                  flex: 1, padding: "13px 0", borderRadius: 12,
-                  border: `1px solid var(${C.border})`, background: "none",
-                  color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
-                }}
+                className="pdv__modal-btn pdv__modal-btn--secundario pdv__confirm-btn"
               >
                 Voltar
               </button>
@@ -2008,14 +1843,7 @@ export default function PDVView({ notify }) {
                   }
                 }}
                 disabled={!confirmCancelarMotivo.trim()}
-                className="pdv__modal-btn"
-                style={{
-                  flex: 1, padding: "13px 0", borderRadius: 12, border: "none",
-                  background: confirmCancelarMotivo.trim() ? varColor(C.red) : varColor(C.faint),
-                  color: "#fff",
-                  cursor: confirmCancelarMotivo.trim() ? "pointer" : "not-allowed",
-                  fontWeight: 800,
-                }}
+                className="pdv__modal-btn pdv__modal-btn--primario pdv__confirm-btn pdv__confirm-btn-sim"
               >
                 Sim, cancelar
               </button>
@@ -2029,49 +1857,31 @@ export default function PDVView({ notify }) {
       {showMesa && mesaPendingOrder && createPortal(
         <div
           {...fecharAoClicarFora(() => { handleConfirmarMesa(); })}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9100,
-            background: "rgba(0,0,0,0.7)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 24, fontFamily: "'Inter',system-ui,sans-serif",
-          }}
+          className="pdv__mesa-overlay"
         >
-          <div style={{
-            background: varColor(C.card), borderRadius: 20,
-            width: "100%", maxWidth: 380,
-            border: `1px solid var(${C.border})`,
-            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
-            color: varColor(C.text), overflow: "hidden",
-          }}>
+          <div className="pdv__mesa-card">
             {/* Header */}
-            <div style={{
-              padding: "20px 24px", borderBottom: `1px solid var(${C.border})`,
-              display: "flex", alignItems: "center", gap: 12,
-            }}>
-              <div className="pdv__modal-emoji-circulo" style={{
-                width: 42, height: 42, borderRadius: 12,
-                background: `${alfa(C.accent, "18")}`, border: `1.5px solid ${alfa(C.accent, "44")}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
+            <div className="pdv__mesa-header">
+              <div className="pdv__modal-emoji-circulo pdv__mesa-emoji">
                 🪑
               </div>
               <div>
-                <div className="pdv__modal-titulo" style={{ fontWeight: 900 }}>
+                <div className="pdv__modal-titulo pdv__mesa-titulo">
                   {fmtComanda(mesaPendingOrder.comanda)}
                 </div>
-                <div className="pdv__transfer-info" style={{ color: varColor(C.muted), marginTop: 1 }}>
+                <div className="pdv__transfer-info pdv__mesa-sub">
                   {mesaPendingOrder.mesa ? "Editar mesa e apelido" : "Informe a mesa antes de continuar"}
                 </div>
               </div>
             </div>
 
             {/* Body */}
-            <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="pdv__mesa-body">
 
               {/* Mesa */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label className="pdv__modal-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase" }}>
-                  Número ou nome da mesa <span style={{ color: varColor(C.red) }}>*</span>
+              <div className="pdv__mesa-campo">
+                <label className="pdv__modal-label">
+                  Número ou nome da mesa <span className="pdv__modal-vermelho">*</span>
                 </label>
                 <input
                   autoFocus
@@ -2081,26 +1891,18 @@ export default function PDVView({ notify }) {
                   onKeyDown={e => e.key === "Enter" && handleConfirmarMesa()}
                   placeholder="Ex: 5, Varanda, Salão 2..."
                   maxLength={40}
-                  className="pdv__modal-input"
-                  style={{
-                    width: "100%", padding: "13px 16px", borderRadius: 10,
-                    border: `1.5px solid ${!mesaInput.trim() ? alfa(C.red, "88") : "var(--gm-input-border)"}`,
-                    background: "var(--gm-input-bg)",
-                    color: varColor(C.text), fontFamily: "inherit",
-                    outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
-                  }}
-                  onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
-                  onBlur={e => e.currentTarget.style.borderColor = !mesaInput.trim() ? alfa(C.red, "88") : "var(--gm-input-border)"}
+                  aria-invalid={!mesaInput.trim()}
+                  className="pdv__modal-input pdv__mesa-input"
                 />
                 {!mesaInput.trim() && (
-                  <div className="pdv__modal-erro" style={{ color: varColor(C.red), fontWeight: 600 }}>Campo obrigatório.</div>
+                  <div className="pdv__modal-erro">Campo obrigatório.</div>
                 )}
               </div>
 
               {/* Apelido */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label className="pdv__modal-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase" }}>
-                  Apelido do cliente <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(opcional)</span>
+              <div className="pdv__mesa-campo">
+                <label className="pdv__modal-label">
+                  Apelido do cliente <span className="pdv__mesa-label-opcional">(opcional)</span>
                 </label>
                 <input
                   type="text"
@@ -2109,46 +1911,25 @@ export default function PDVView({ notify }) {
                   onKeyDown={e => e.key === "Enter" && handleConfirmarMesa()}
                   placeholder="Ex: João, Família Silva..."
                   maxLength={40}
-                  className="pdv__modal-input"
-                  style={{
-                    width: "100%", padding: "13px 16px", borderRadius: 10,
-                    border: `1.5px solid var(--gm-input-border)`, background: "var(--gm-input-bg)",
-                    color: varColor(C.text), fontFamily: "inherit",
-                    outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
-                  }}
-                  onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
-                  onBlur={e => e.currentTarget.style.borderColor = "var(--gm-input-border)"}
+                  className="pdv__modal-input pdv__mesa-input"
                 />
               </div>
 
-              <div className="pdv__modal-erro" style={{ color: varColor(C.muted) }}>
+              <div className="pdv__mesa-hint">
                 Apelido é opcional. Pressione Enter ou clique em Entrar para continuar.
               </div>
 
-              <div style={{ display: "flex", gap: 10 }}>
+              <div className="pdv__mesa-acoes">
                 <button
                   onClick={() => { setShowMesa(false); setMesaPendingOrder(null); }}
-                  className="pdv__modal-btn"
-                  style={{
-                    flex: 1, padding: "12px 0", borderRadius: 11,
-                    border: `1px solid var(${C.border})`, background: "none",
-                    color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
-                  }}
+                  className="pdv__modal-btn pdv__modal-btn--secundario pdv__mesa-btn-cancelar"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleConfirmarMesa}
                   disabled={salvandoMesa || !mesaInput.trim()}
-                  className="pdv__modal-btn"
-                  style={{
-                    flex: 2, padding: "12px 0", borderRadius: 11, border: "none",
-                    background: mesaInput.trim() ? varColor(C.accent) : varColor(C.faint),
-                    color: "#fff",
-                    cursor: (salvandoMesa || !mesaInput.trim()) ? "not-allowed" : "pointer",
-                    fontWeight: 800,
-                    opacity: salvandoMesa ? 0.7 : 1,
-                  }}
+                  className={`pdv__modal-btn pdv__modal-btn--primario pdv__mesa-btn-entrar${mesaInput.trim() ? " pdv__mesa-btn-entrar--ativo" : ""}${salvandoMesa ? " pdv__mesa-btn-entrar--salvando" : ""}`}
                 >
                   {salvandoMesa ? "Entrando..." : "Entrar na comanda →"}
                 </button>

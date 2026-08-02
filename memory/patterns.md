@@ -258,6 +258,43 @@ os dois idiomas mais comuns invertem:
 Feito em `.pdv__saldo-cancelado` (rodada 15). Vale para as listas que sobraram em `DeliveryView`,
 `RelatorioView` e `NotasFiscaisTab`, que usam o mesmo idioma.
 
+### `:disabled` só substitui o ternário quando a expressão é a mesma
+Botão com `style={{ background: cond ? accent : faint }}` e `disabled={outraCond}` parece pedir
+`:disabled` — mas as duas expressões quase nunca são iguais, porque o `disabled` costuma carregar
+também a flag de "está salvando" que o fundo nunca teve. Nos cinco modais do PDV, **três dos seis
+botões** estavam assim: `!nome.trim() || criando` contra `nome.trim()`, `!pode || transferindo`
+contra `pode`, `salvandoMesa || !mesaInput.trim()` contra `mesaInput.trim()`.
+
+- Usar `:disabled` nesses três acende o cinza **durante a ação** — o botão fica apagado enquanto o
+  texto diz "Abrindo...", que é justamente quando o operador precisa ver que algo está acontecendo
+  (princípio nº 1, "estados sempre visíveis"). Nada acusa: a suíte passa, o fundo só muda no meio de
+  uma operação que o teste não observa.
+- Regra: comparar as duas expressões **caractere a caractere** antes de escolher o gancho. Iguais →
+  `:disabled`. Diferentes → modificador de classe com a expressão de hoje (`--ativo`, `--pode`,
+  `--salvando`), e o `:disabled` fica reservado para as declarações que de fato acompanham o
+  atributo (tipicamente `cursor` e `opacity`).
+- O mesmo vale por **declaração**, não por botão: no "Confirmar Cancelamento" o `background` casava
+  com o `disabled` e o `box-shadow` não (dependia só de `motivo.trim()`), então um foi para
+  `:disabled` e o outro para o modificador.
+
+Feito nos seis botões dos modais do PDV (rodada 16). A tabela da comparação está em
+`specs/f018-pdv-modais-css.md` §6.
+
+### Enriquecer classe compartilhada: enumerar os usuários antes, não depois
+Classe compartilhada nascida de extração de tipografia agrupa por **tamanho**, não por papel — e o
+papel só aparece quando ela ganha cor. `.pdv__modal-erro` tinha cinco usuários; quatro eram erro de
+verdade e o quinto, em `PDVView/index.jsx`, era a linha "Apelido é opcional. Pressione Enter ou
+clique em Entrar para continuar." em `muted`. Acrescentar `color: var(--gm-red); font-weight: 600` à
+classe compartilhada — o que os outros quatro pediam — pintaria de vermelho uma informação neutra.
+
+- Antes de mover qualquer declaração para uma classe compartilhada, listar **todos** os usuários e
+  conferir o valor de cada um. Se um diverge, ele sai para classe própria com a mesma tipografia
+  (aqui `.pdv__mesa-hint`), e a compartilhada recebe só o que é igual em todos.
+- O risco é assimétrico e por isso passa batido: quem escreve a regra está olhando para os usuários
+  que a motivaram; o divergente é sempre o que não estava na tela no momento.
+- Vale igual para `-label`, `-input`, `-aviso` e companhia: `marginBottom` que só um usava desceu
+  para a classe do modal, não subiu para a compartilhada.
+
 ---
 
 ## Padrões de API
