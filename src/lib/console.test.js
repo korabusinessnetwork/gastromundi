@@ -20,6 +20,7 @@ import {
   PERIODOS_ANALYTICS,
   resumirAddonsDoTenant,
   contarAddonsPorTenant,
+  traduzirErroProvisionamento,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -708,5 +709,58 @@ describe("contarAddonsPorTenant", () => {
   it("trata lista ausente como vazia", () => {
     expect(contarAddonsPorTenant(undefined)).toEqual({});
     expect(contarAddonsPorTenant(null)).toEqual({});
+  });
+});
+
+describe("traduzirErroProvisionamento", () => {
+  it("traduz a colisão de credencial do Auth e aponta o campo do usuário", () => {
+    const r = traduzirErroProvisionamento(
+      "A user with this email address has already been registered"
+    );
+    expect(r.campo).toBe("adminUsername");
+    expect(r.mensagem).toMatch(/já existe na plataforma/i);
+    // Nada de inglês nem de "email" na tela: o dono digitou um USUÁRIO.
+    expect(r.mensagem).not.toMatch(/email|registered/i);
+    expect(r.aviso).toBe("");
+  });
+
+  it("reconhece as outras formas que o Auth usa para o mesmo erro", () => {
+    for (const bruto of [
+      "email_exists",
+      "user_already_exists",
+      'duplicate key value violates unique constraint "users_tenant_id_username_key"',
+    ]) {
+      expect(traduzirErroProvisionamento(bruto).campo).toBe("adminUsername");
+    }
+  });
+
+  it("separa o aviso de compensação da mensagem do campo", () => {
+    const r = traduzirErroProvisionamento(
+      'A user with this email address has already been registered ATENÇÃO: o estabelecimento "Casa Coffee" (casacoffee) foi criado e NÃO pôde ser removido automaticamente: sem permissão. Remova antes de tentar de novo.'
+    );
+    expect(r.campo).toBe("adminUsername");
+    expect(r.mensagem).not.toMatch(/ATENÇÃO/);
+    // O órfão exige ação manual — o aviso não pode sumir junto com a tradução.
+    expect(r.aviso).toMatch(/^ATENÇÃO:/);
+    expect(r.aviso).toMatch(/Casa Coffee/);
+  });
+
+  it("deixa passar intacto o erro que não conhece", () => {
+    const r = traduzirErroProvisionamento("Plano inexistente no catálogo.");
+    expect(r).toEqual({
+      campo: null,
+      mensagem: "Plano inexistente no catálogo.",
+      aviso: "",
+    });
+  });
+
+  it("nunca devolve mensagem vazia", () => {
+    for (const vazio of ["", "   ", null, undefined]) {
+      expect(traduzirErroProvisionamento(vazio)).toEqual({
+        campo: null,
+        mensagem: "Falha ao criar o estabelecimento.",
+        aviso: "",
+      });
+    }
   });
 });

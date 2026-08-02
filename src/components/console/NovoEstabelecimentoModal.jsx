@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuStore } from "react-icons/lu";
-import { validarNovoEstabelecimento, provisionarEstabelecimento } from "@/lib/console";
+import {
+  validarNovoEstabelecimento,
+  provisionarEstabelecimento,
+  traduzirErroProvisionamento,
+} from "@/lib/console";
 import "./NovoEstabelecimentoModal.css";
 
 /**
@@ -59,7 +63,12 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
     setEnviando(false);
 
     if (error) {
-      setErroServidor(error);
+      // Erro cru do servidor vira frase em português colada no campo que o
+      // dono precisa corrigir. O aviso de compensação (estabelecimento órfão
+      // que ficou para trás) continua no alerta, porque pede ação manual.
+      const { campo, mensagem, aviso } = traduzirErroProvisionamento(error);
+      if (campo) setErros((prev) => ({ ...prev, [campo]: mensagem }));
+      setErroServidor(campo ? aviso : [mensagem, aviso].filter(Boolean).join(" "));
       return;
     }
     onCriado(data);

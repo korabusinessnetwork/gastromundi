@@ -407,6 +407,54 @@ export function validarNovoEstabelecimento(f = {}) {
   return { ok: Object.keys(erros).length === 0, erros };
 }
 
+// Colisão de credencial no Auth. Enquanto `TENANT_ROOT_DOMAIN` está
+// desligado, a Edge Function usa o namespace de e-mail 'gastromundi' para
+// TODO estabelecimento — então o username precisa ser único na plataforma
+// inteira, e o segundo estabelecimento que reusar "admin" bate aqui. O
+// próprio index.ts chama esse caminho de "esperado"; é o modo de falha mais
+// provável ao pôr um cliente novo no ar.
+const ERRO_USUARIO_EM_USO =
+  /already[ _]been[ _]registered|already registered|email[_ ]?exists|user_already_exists|duplicate key[\s\S]*username/i;
+
+/**
+ * Traduz o erro cru do provisionamento para uma frase que o dono entende e
+ * diz QUAL campo do formulário corrigir (Princípio nº1: nada de jargão
+ * técnico na tela). Função pura — sem I/O.
+ *
+ * O Supabase Auth responde a colisão em inglês e falando de um "email
+ * address" que ninguém digitou (o e-mail é montado pelo servidor a partir do
+ * usuário). Cru, a mensagem não diz o que fazer; traduzida, ela aponta o
+ * campo "Usuário de acesso" e o caminho é óbvio: escolher outro.
+ *
+ * O `aviso` de compensação (o " ATENÇÃO: ... " que a Edge Function acrescenta
+ * quando NÃO conseguiu apagar o estabelecimento órfão) volta separado e
+ * NUNCA é descartado: ele exige ação manual do dono e não cabe colado num
+ * campo de formulário.
+ *
+ * @param {string} bruto mensagem devolvida por `provisionarEstabelecimento`
+ * @returns {{campo: string|null, mensagem: string, aviso: string}}
+ */
+export function traduzirErroProvisionamento(bruto) {
+  const texto = String(bruto ?? "").trim();
+  const corte = texto.indexOf("ATENÇÃO:");
+  const principal = (corte >= 0 ? texto.slice(0, corte) : texto).trim();
+  const aviso = corte >= 0 ? texto.slice(corte).trim() : "";
+
+  if (ERRO_USUARIO_EM_USO.test(principal)) {
+    return {
+      campo: "adminUsername",
+      mensagem: "Este usuário de acesso já existe na plataforma. Escolha outro — por exemplo, o nome do responsável junto do nome da loja.",
+      aviso,
+    };
+  }
+
+  return {
+    campo: null,
+    mensagem: principal || "Falha ao criar o estabelecimento.",
+    aviso,
+  };
+}
+
 /**
  * Provisiona um estabelecimento novo (tenant + 1º admin) via Edge
  * Function `provisionar-estabelecimento`. A função de borda é a única

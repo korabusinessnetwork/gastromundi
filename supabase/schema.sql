@@ -951,7 +951,8 @@ CREATE TABLE public.nfce_inutilizacoes (
 -- ── Console da plataforma (F022) — todas SECURITY DEFINER com
 --    guarda is_super_admin() e REVOKE de PUBLIC/anon ───────────
 -- provisionar_tenant(text, text, text, jsonb) → 20260727 ; slug em 20260741 ;
---   cria a assinatura junto desde 20260908
+--   cria a assinatura junto desde 20260908 ; semeia grupos_categoria e
+--   unidades_medida desde 20260917  (pendente em produção)
 -- alterar_plano_tenant / alterar_mensalidade_tenant           → 20260728 / 20260801
 -- alterar_layout_tenant(uuid, text)                           → 20260801
 -- confirmar_pagamento_assinatura(...)                         → 20260719 e sucessoras
