@@ -21,6 +21,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { assinarEventoDSig, transmitirEventoSefazRS } from "../_shared/nfceTransmissao.ts";
+import { decidirAcesso, mensagemRecusa, PAPEIS_GERENCIA } from "../_shared/guardaEntrada.ts";
 import {
   montarXmlEventoCancelamento,
   dentroDoPrazoCancelamento,
@@ -54,13 +55,23 @@ Deno.serve(async (req: Request) => {
     // Cancelar uma NFC-e autorizada é evento fiscal com peso — libera para
     // gerente e admin; caixa/garçom NÃO cancelam (mesmo padrão de gate por
     // JWT + public.users de provisionar-estabelecimento). Não autorizado → 403.
+    // `active` entra no select porque desativar alguém em public.users NÃO
+    // invalida o JWT já emitido: sem a coluna, quem foi tirado de circulação
+    // seguiria cancelando nota pelo tempo de vida do token (decidirAcesso
+    // falha FECHADO se a coluna vier ausente).
     const { data: perfil } = await supabase
       .from("users")
-      .select("role")
+      .select("role, active")
       .eq("auth_id", user.id)
       .single();
-    if (perfil?.role !== "gerente" && perfil?.role !== "admin") {
-      return json({ error: "Apenas gerente ou administrador podem cancelar uma NFC-e." }, 403);
+    const acesso = decidirAcesso(perfil, PAPEIS_GERENCIA);
+    if (!acesso.ok) {
+      return json({
+        error: mensagemRecusa(
+          acesso.motivo,
+          "Apenas gerente ou administrador podem cancelar uma NFC-e.",
+        ),
+      }, 403);
     }
 
     // ── 2. Entrada: chave + justificativa (+ nSeqEvento opcional) ─────

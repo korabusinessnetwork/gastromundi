@@ -31,6 +31,7 @@ import ImpressaoLancamentosBridge from "@/components/shared/ImpressaoLancamentos
 import {
   saveSession, loadSession, clearSession,
   lerSessao, atualizarUsuarioSessao, msRestantesDaSessao, esquecerTokenAuthLocal,
+  perfilInativoConfirmado,
   getAttempts, setAttempts, clearAttempts,
   IDLE_MS, MAX_ATTEMPTS, LOCKOUT_MS,
 } from "@/utils/session";
@@ -175,7 +176,7 @@ export function AppProvider({ children }) {
       }
       if (session) {
         tenantIdRef.current = session.user?.app_metadata?.tenant_id ?? null;
-        const userData = await buscarDadosUsuario(session.user.id);
+        const { usuario: userData, erro: erroPerfil } = await buscarDadosUsuario(session.user.id);
         if (userData) {
           setCurrentUser(userData);
           // Preserva o relógio quando esta aba já tem sessão; só carimba um
@@ -187,7 +188,23 @@ export function AppProvider({ children }) {
           // A sessão local basta para operar: o bootstrap hidrata do
           // snapshot e o app segue offline em vez de travar no login.
           await bootstrap();
+        } else if (perfilInativoConfirmado(erroPerfil)) {
+          // O JWT ainda vale, mas o banco respondeu com CERTEZA que não há
+          // usuário ativo para ele: a conta foi desativada (ou apagada) desde
+          // o login. Antes este ramo só fazia `setLoading(false)` — e como o
+          // `currentUser` é semeado do sessionStorage lá em cima, a pessoa
+          // desativada seguia com a tela montada e as permissões antigas até
+          // fechar a aba (o PrivateRoute só olha `currentUser`). Derrubar o
+          // token junto é o que impede o F5 de reabrir tudo.
+          tenantIdRef.current = null;
+          setCurrentUser(null);
+          clearSession();
+          await supabase.auth.signOut();
+          setLoading(false);
         } else {
+          // Não deu para ler o perfil (rede/servidor). Não dá para afirmar que
+          // a conta caiu, então a sessão fica de pé — derrubar aqui viraria
+          // logout aleatório no meio do turno.
           setLoading(false);
         }
       } else if (loadSession() && typeof navigator !== "undefined" && navigator.onLine === false) {
@@ -235,20 +252,27 @@ export function AppProvider({ children }) {
   // cima. O efeito [users] refina para a matriz do tenant assim que o
   // bootstrap termina. Resiliente à coluna ausente (migration 20260828 não
   // aplicada, erro 42703): repete o select sem ela e desliga o override.
+  // Devolve `{ usuario, erro }` em vez de só o usuário: sem o erro, quem chama
+  // não consegue separar "não existe usuário ativo com este auth_id" (conta
+  // desativada → derrubar a sessão) de "a leitura falhou" (rede instável →
+  // manter). Ver `perfilInativoConfirmado`.
   async function buscarDadosUsuario(authId) {
     const selecionar = (cols) =>
       supabase.from("users").select(cols).eq("auth_id", authId).eq("active", true).single();
     let { data, error } = await selecionar("id,name,username,role,auth_id,permissions");
     if (error?.code === "42703") {
       permsColunaIndisponivelRef.current = true;
-      ({ data } = await selecionar("id,name,username,role,auth_id"));
+      ({ data, error } = await selecionar("id,name,username,role,auth_id"));
     }
-    if (!data) return null;
+    if (!data) return { usuario: null, erro: error ?? null };
     const override = data.permissions ?? null;
     return {
-      ...data,
-      permissoesOverride: override,
-      permissions: mesclarPermissoes(getPermissions(data.role), override),
+      usuario: {
+        ...data,
+        permissoesOverride: override,
+        permissions: mesclarPermissoes(getPermissions(data.role), override),
+      },
+      erro: null,
     };
   }
 
@@ -806,7 +830,7 @@ export function AppProvider({ children }) {
       return { error: `Usuário ou senha incorretos. ${MAX_ATTEMPTS - count} tentativa(s) restante(s).` };
     }
 
-    const userData = await buscarDadosUsuario(authData.user.id);
+    const { usuario: userData } = await buscarDadosUsuario(authData.user.id);
     if (!userData) {
       await supabase.auth.signOut();
       return { error: "Usuário não encontrado ou inativo." };

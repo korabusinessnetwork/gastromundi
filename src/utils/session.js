@@ -92,6 +92,26 @@ export const clearSession = () => {
   }
 };
 
+// ── Perfil desativado × leitura que falhou ────────────────────
+// Desativar alguém em `public.users` NÃO invalida o JWT que já está no
+// navegador dele — só o `signOut` faz isso. Quem descobre a desativação é a
+// busca do perfil (filtrada por `active = true`): ela volta sem linha. O
+// problema é que "sem linha" e "não consegui ler" chegam do supabase-js do
+// mesmo jeito (`data: null`), e as duas exigem desfechos OPOSTOS:
+//   - sem linha  → a conta foi desativada/apagada: derrubar a sessão.
+//   - não li     → oscilação de rede/servidor: MANTER a sessão, senão um
+//                  soluço de rede joga o caixa para a tela de login no meio
+//                  do turno.
+// O PostgREST distingue os dois: `.single()` sem resultado devolve PGRST116
+// ("0 rows"). Só esse código (e a ausência total de erro) conta como resposta
+// definitiva; qualquer outra falha vale como "não sei" e preserva a sessão.
+export const PGRST_SEM_LINHA = "PGRST116";
+
+export const perfilInativoConfirmado = (erro) => {
+  if (!erro) return true;
+  return erro.code === PGRST_SEM_LINHA;
+};
+
 // ── Token do Supabase Auth ────────────────────────────────────
 // A sessão acima só serve para a tela abrir já logada. Quem de fato autoriza
 // qualquer leitura no banco é o token do Supabase, que o supabase-js guarda no

@@ -498,7 +498,14 @@ export default function PDVView({ notify }) {
       if (qtyIt <= restante) { restante -= qtyIt; return marcar(it, qtyIt); }
       const cancelar = restante;
       restante = 0;
-      return [{ ...it, qty: qtyIt - cancelar }, marcar(it, cancelar)];
+      // O pedaço cancelado é uma LINHA NOVA na comanda e precisa de `uid`
+      // próprio: herdando o uid do pedaço que continua ativo, os dois viravam
+      // o mesmo item aos olhos da reconciliação multi-dispositivo. Como
+      // `mesclarItensComanda` só preserva do banco os uids DESCONHECIDOS, o
+      // pedaço cancelado era descartado no primeiro lançamento vindo do Palm —
+      // o item voltava inteiro para a conta e o cliente pagava o que foi
+      // cancelado. Com uid novo, o cancelamento sobrevive ao merge.
+      return [{ ...it, qty: qtyIt - cancelar }, { ...marcar(it, cancelar), uid: crypto.randomUUID() }];
     }).flat();
     const novoTotal = totalItensAtivos(novos);
     const { error } = await updatePending(selected.id, { items: novos, total: novoTotal }, { baseItems: selected.items });
