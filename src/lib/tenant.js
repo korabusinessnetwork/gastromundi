@@ -32,13 +32,18 @@ import { buscarAssinaturaAtual, calcularStatusAssinatura, calcularDiasParaVencim
  * Nunca lança: falha de rede/RLS retorna { data: null, error }, para
  * o chamador decidir o fallback (ex.: identidade/tema hardcoded).
  *
- * @returns {Promise<{data: {id: string, nome: string, tema: object, plano_codigo: string}|null, error: object|null}>}
+ * O `slug` (20260740) é o rótulo do subdomínio/namespace do tenant. Vem
+ * junto porque é ele que endereça a vitrine pública: sem o slug, a prévia
+ * "Ver cardápio do cliente" não tem como pedir o cardápio DESTE
+ * estabelecimento e cai no fallback — mostrando a loja de outro.
+ *
+ * @returns {Promise<{data: {id: string, nome: string, slug: string, tema: object, plano_codigo: string}|null, error: object|null}>}
  */
 export async function buscarTenantAtual() {
   try {
     const { data, error } = await supabase
       .from("tenants")
-      .select("id, nome, tema, plano_codigo, created_at")
+      .select("id, nome, slug, tema, plano_codigo, created_at")
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -128,7 +133,7 @@ export async function buscarAddonsAtivos(tenantId) {
  * `assinatura.status` já vem CALCULADO (não é o cache do banco) —
  * Fase 4 é só exibição; nenhuma escrita é bloqueada aqui (Fase 5).
  *
- * @returns {Promise<{data: {id: string, nome: string, tema: object, planoCodigo: string, modulosDisponiveis: string[], addonsAtivos: string[], assinatura: {status: string, diasParaVencer: number, valorMensal: number, dataVencimento: string}|null}|null, error: object|null}>}
+ * @returns {Promise<{data: {id: string, nome: string, slug: string|null, tema: object, planoCodigo: string, modulosDisponiveis: string[], addonsAtivos: string[], assinatura: {status: string, diasParaVencer: number, valorMensal: number, dataVencimento: string}|null}|null, error: object|null}>}
  */
 export async function buscarBootstrapTenant() {
   const { data: tenantData, error: eTenant } = await buscarTenantAtual();
@@ -161,6 +166,7 @@ export async function buscarBootstrapTenant() {
     data: {
       id: tenantData.id,
       nome: tenantData.nome,
+      slug: tenantData.slug ?? null,
       tema: tenantData.tema,
       planoCodigo: tenantData.plano_codigo,
       modulosDisponiveis: modulos,

@@ -2,6 +2,40 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 3 — TD012 — 2026-08-01
+
+- **Spec:** `specs/td012-baixa-de-estoque-que-falha-em-silencio.md`
+- **Resultado da review:** aprovado sem ressalvas — 11 de 11 critérios em sim, `npm test` em
+  181 de 181 arquivos e 2801 de 2801 testes, **sem nenhuma rodada de correção**. Nenhum arquivo
+  tocado fora do §4 do spec; nenhuma migration criada ou alterada.
+- **O que o levantamento mudou no escopo:** o título do TD012 estava desatualizado. A parte "engole
+  a exceção e mostra estimativa local" já tinha sido consertada no `AppContext` meses antes. O que
+  continuava aberto era a outra metade: a falha ia para o Sentry, para `jarvas_eventos` e para o
+  `activity_log` — três destinos que só o desenvolvedor abre. O gestor não via nada. O spec foi
+  escrito para essa metade, mais dois defeitos achados no caminho na própria `processarBaixaEstoque`.
+- **Construído:** `gerarAlertaBaixaFalhou` leva a baixa recusada ao painel do Jarvas, com o dedupe
+  por `origem.chave` dos irmãos e o erro cru do Postgres guardado em `origem.dados.erro`, fora do
+  texto que o dono de restaurante lê. Offline **não** alerta — a baixa entra na fila e é reaplicada.
+  `processarBaixaEstoque` parou de devolver saldo estimado no erro e passou a embrulhar a RPC em
+  `try/catch`, como as duas irmãs já faziam.
+- **Aprendido:** `memory/learnings.md` (duas linhas — "reportar não é alertar: Sentry, evento e log
+  não fecham um item de falha silenciosa"; "um teste pode estar guardando o bug", que era o caso:
+  `estoque.test.js` afirmava o saldo inventado com comentário justificando);
+  `docs/09_BACKLOG/tech-debt.md` (TD012 resolvido, com seção própria); `sprint_pre_venda.md` (S2-1
+  feito); `memory/bugs.md`; e o resultado da review anexado ao spec (§8 e §9).
+- **ID duplicado corrigido:** existiam dois `TD012` no `tech-debt.md`. A seção `key={i}` em listas
+  React virou **TD015** e ganhou a linha na tabela ativa que nunca teve.
+- **Commit:** `150be86` na branch `ciclo/td012-baixa-estoque-silenciosa` (criada a partir da branch
+  da Rodada 2, então carrega os commits dela; push feito, sem pull request).
+- **Pendente de decisão:** a mesma da Rodada 2, ainda sem resposta — estabelecimento de **cortesia**
+  (`valor_mensal = 0`) não consegue renovar, porque a RPC recusa `p_valor <= 0`. Não bloqueia nada
+  desta rodada.
+- **Fica registrado (não construído):** falha sistêmica gera um alerta por produto distinto; somar
+  num alerta só é regra nova de agregação. Avisar o operador na tela do PDV continua sendo decisão
+  de produto não escrita. `entradaEstoque` também só reporta ao Sentry.
+- **Próximo item recomendado:** **preview clicável do cardápio do cliente** — é o item nº 1 da fila
+  do dono, e hoje não existe jeito de ver o cardápio como o cliente vê antes de publicar.
+
 ## Rodada 2 — F022-RENOVAR — 2026-08-01
 
 - **Spec:** `specs/f022-renovar-assinatura-console.md`

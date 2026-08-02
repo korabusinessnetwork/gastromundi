@@ -106,6 +106,59 @@ export function slugDoSubdominio(hostname, rootDomain = ROOT_DOMAIN) {
 }
 
 /**
+ * Slug pedido na QUERY (`?loja=casacoffee`) — o caminho de endereçamento que
+ * funciona enquanto não existe subdomínio comprado/apontado. É o que a prévia
+ * "Ver cardápio do cliente" usa para abrir a loja de QUEM ESTÁ LOGADO: sem
+ * isto, a vitrine cai no fallback e o dono de um estabelecimento vê a loja de
+ * outro (violação de white-label, decisão 017).
+ *
+ * Diferente de `slugDoSubdominio`, aqui o formato É validado: query string é
+ * entrada do usuário e vira parâmetro de RPC. O que não é slug volta null e o
+ * chamador segue para o fallback, como se a query não existisse.
+ *
+ * @param {string} [search] - default window.location.search
+ * @returns {string|null} slug válido em minúsculas, ou null
+ */
+export function slugDaQuery(search) {
+  try {
+    const bruto = search ?? (typeof window !== "undefined" ? window.location.search : "");
+    const valor = new URLSearchParams(String(bruto)).get("loja");
+    const slug = String(valor ?? "").toLowerCase().trim();
+    return slugValido(slug) ? slug : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Qual estabelecimento a VITRINE pública deve mostrar, e de onde essa
+ * resposta veio. Precedência: **subdomínio > query > fallback**.
+ *
+ * O endereço publicado sempre ganha da query — num domínio de loja real,
+ * acrescentar `?loja=outro` não troca a loja. A query só decide onde não há
+ * reivindicação de subdomínio nenhuma (dev, preview Vercel, domínio nu), que
+ * é exatamente o cenário de hoje em produção.
+ *
+ * `origem` importa para além do diagnóstico: com `"query"` a página está numa
+ * PRÉVIA e não pode gravar o cache de marca da origem (o cache é carimbado
+ * com `resolverSlugTenant()`, que no domínio compartilhado é sempre o mesmo —
+ * gravar ali faria a marca de um estabelecimento aparecer no login do outro).
+ *
+ * @param {string} [hostname] - default window.location.hostname
+ * @param {string} [search] - default window.location.search
+ * @returns {{ slug: string, origem: "subdominio"|"query"|"fallback" }}
+ */
+export function slugDaVitrine(hostname, search) {
+  const doSubdominio = slugDoSubdominio(hostname);
+  if (doSubdominio) return { slug: doSubdominio, origem: "subdominio" };
+
+  const daQuery = slugDaQuery(search);
+  if (daQuery) return { slug: daQuery, origem: "query" };
+
+  return { slug: resolverSlugTenant(hostname), origem: "fallback" };
+}
+
+/**
  * Monta o e-mail namespaced que o Supabase Auth espera para este tenant.
  * Com subdomínio na URL, o namespace é SEMPRE o subdomínio digitado —
  * subdomínio errado autentica contra um namespace inexistente (login

@@ -11,7 +11,7 @@
 //
 // AbaPedidos não é exportada: o teste monta o DeliveryView de verdade e vive
 // com a aba "pedidos", que é a inicial.
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -94,6 +94,10 @@ beforeEach(() => {
   semErro();
 });
 
+afterEach(() => {
+  vi.restoreAllMocks(); // desfaz o espião de window.open
+});
+
 describe("DeliveryView — falha ao atualizar não derruba o kanban (Run 6, leva 7)", () => {
   it("com pedidos na tela, a falha vira faixa e o kanban continua", async () => {
     comErro([PEDIDO]);
@@ -149,5 +153,63 @@ describe("DeliveryView — falha ao atualizar não derruba o kanban (Run 6, leva
     expect(cartaoDoPedido()).toBeInTheDocument();
     expect(faixaDeErro()).not.toBeInTheDocument();
     expect(telaCheiaDeErro()).not.toBeInTheDocument();
+  });
+});
+
+// Rodada 4 — o botão existia desde f9fc34f abrindo "/cardapio" seco. Sem
+// subdomínio no ar, a vitrine resolve o slug pelo fallback: o dono da Casa
+// Coffee clicava e via a loja, a marca e os preços da GastroMundi (decisão 017).
+describe("DeliveryView — a prévia abre a loja DESTE estabelecimento", () => {
+  const tenantCom = (slug) => ({
+    id: "t9",
+    nome: "Casa Coffee",
+    slug,
+    tema: {},
+    planoCodigo: "avancado",
+    modulosDisponiveis: null,
+    addonsAtivos: [],
+  });
+
+  /** window.open não navega no jsdom; o que interessa é a URL pedida. */
+  const espiarOpen = () => vi.spyOn(window, "open").mockImplementation(() => null);
+
+  const clicarNaPrevia = (user) =>
+    user.click(screen.getByRole("button", { name: /ver cardápio do cliente/i }));
+
+  it("leva o slug do tenant logado na URL da prévia", async () => {
+    setAppMock({ tenant: tenantCom("casacoffee") });
+    const abrir = espiarOpen();
+    const user = userEvent.setup();
+    await montar();
+
+    await clicarNaPrevia(user);
+
+    expect(abrir).toHaveBeenCalledWith("/cardapio?loja=casacoffee", "_blank", "noopener,noreferrer");
+  });
+
+  it("tenant sem slug continua abrindo a vitrine — o botão nunca deixa de funcionar", async () => {
+    setAppMock({ tenant: tenantCom(null) });
+    const abrir = espiarOpen();
+    const user = userEvent.setup();
+    await montar();
+
+    await clicarNaPrevia(user);
+
+    expect(abrir).toHaveBeenCalledWith("/cardapio", "_blank", "noopener,noreferrer");
+  });
+
+  it("slug fora do padrão vindo do banco sai codificado, sem quebrar a URL", async () => {
+    setAppMock({ tenant: tenantCom("casa coffee&x=1") });
+    const abrir = espiarOpen();
+    const user = userEvent.setup();
+    await montar();
+
+    await clicarNaPrevia(user);
+
+    expect(abrir).toHaveBeenCalledWith(
+      "/cardapio?loja=casa%20coffee%26x%3D1",
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 });

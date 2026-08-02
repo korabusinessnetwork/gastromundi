@@ -88,6 +88,25 @@ Vale para todo guard que lê migration em `src/**/*SqlGuard.test.js` e para todo
 - **Laço sobre arquivos precisa provar que rodou.** Conte os blocos conferidos e exija `> 0` — laço
   vazio não asserta nada e o teste fica verde sem ter olhado coisa nenhuma.
 
+### Superfície pública endereçada por slug: precedência e cache por origem
+Vale para toda tela anônima que mostra os dados de **um** estabelecimento escolhido pelo endereço —
+hoje a vitrine `/cardapio`, amanhã qualquer página pública por tenant.
+
+- **A ordem é subdomínio > query > fallback**, nessa sequência, e quem resolve devolve também **de
+  onde veio** (`slugDaVitrine` em `src/lib/tenantSlug.js`). O endereço publicado sempre ganha: um
+  `?loja=` na URL nunca sequestra um subdomínio de tenant que já está no ar. Sem essa ordem, ligar
+  o subdomínio depois vira uma migração de comportamento; com ela, é ligar a env e pronto.
+- **O que vem da URL é entrada de usuário.** O slug da query passa por `slugValido` antes de virar
+  parâmetro de RPC, e o slug que sai do banco passa por `encodeURIComponent` antes de virar URL.
+- **Cache carimbado por origem não pode ser escrito por tela de outro estabelecimento.** O
+  `brandingCache` é carimbado com o slug da **origem** (`resolverSlugTenant()`), não com o slug que a
+  tela está mostrando. Quando a origem é compartilhada — que é o caso hoje, sem subdomínio —, uma
+  tela em modo prévia que gravasse o cache faria a marca dela aparecer na tela de login de todo mundo
+  daquela origem. Prévia não lê (pintaria a marca errada no 1º quadro) e não grava (vazaria).
+- **Sem slug, degrade, não suma.** Tenant sem `slug` (bootstrap que falhou, banco anterior à
+  `20260740`) abre a superfície sem parâmetro, no comportamento antigo. Botão que desaparece por
+  dado faltando é pior que botão que faz o que fazia antes.
+
 ---
 
 ## Padrões de API

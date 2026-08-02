@@ -61,6 +61,8 @@ vi.mock("@/lib/tenant", () => ({
 vi.mock("@/lib/tenantSlug", () => ({
   slugDoSubdominio: () => SLUG,
   resolverSlugTenant: () => SLUG,
+  // Vitrine no endereço da própria loja: o slug vem do subdomínio, não da query.
+  slugDaVitrine: () => ({ slug: SLUG, origem: "subdominio" }),
 }));
 
 import CardapioPage from "./CardapioPage";

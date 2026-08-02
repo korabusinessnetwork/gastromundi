@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolverSlugTenant, slugDoSubdominio, emailDoLogin } from "./tenantSlug";
+import { resolverSlugTenant, slugDoSubdominio, slugDaQuery, slugDaVitrine, emailDoLogin } from "./tenantSlug";
 
 // Sem VITE_ROOT_DOMAIN / VITE_TENANT_SLUG no ambiente de teste, valem o
 // fallback 'gastromundi' e a heurística de 3+ rótulos.
@@ -83,6 +83,76 @@ describe("slugDoSubdominio", () => {
     // "endereço não encontrado".
     expect(slugDoSubdominio("casa_coffee.kora.codes")).toBe("casa_coffee");
     expect(slugDoSubdominio("-casa.kora.codes", "kora.codes")).toBe("-casa");
+  });
+});
+
+// Rodada 4 — a prévia "Ver cardápio do cliente" endereça a loja pela query
+// enquanto não existe subdomínio comprado. Sem isto a vitrine caía no fallback
+// e o dono de um estabelecimento via a loja de outro (decisão 017).
+describe("slugDaQuery", () => {
+  it("lê o ?loja=, normalizando caixa e espaços", () => {
+    expect(slugDaQuery("?loja=casacoffee")).toBe("casacoffee");
+    expect(slugDaQuery("?loja=CasaCoffee")).toBe("casacoffee");
+    expect(slugDaQuery("?loja=%20casacoffee%20")).toBe("casacoffee");
+    expect(slugDaQuery("?x=1&loja=bar-do-ze&y=2")).toBe("bar-do-ze");
+  });
+
+  it("sem parâmetro, vazio ou fora do formato de slug volta null", () => {
+    expect(slugDaQuery("")).toBe(null);
+    expect(slugDaQuery("?outra=coisa")).toBe(null);
+    expect(slugDaQuery("?loja=")).toBe(null);
+    expect(slugDaQuery("?loja=casa_coffee")).toBe(null);
+    expect(slugDaQuery("?loja=-casa")).toBe(null);
+    expect(slugDaQuery("?loja=casa-")).toBe(null);
+    expect(slugDaQuery("?loja=casa.coffee")).toBe(null);
+  });
+
+  it("o que vem da URL é validado antes de virar parâmetro de RPC", () => {
+    expect(slugDaQuery("?loja=' OR 1=1 --")).toBe(null);
+    expect(slugDaQuery("?loja=%3Cscript%3E")).toBe(null);
+    expect(slugDaQuery("?loja=../../etc/passwd")).toBe(null);
+  });
+
+  it("nunca lança: argumento ausente, nulo ou de outro tipo viram null", () => {
+    expect(slugDaQuery()).toBe(null);
+    expect(slugDaQuery(null)).toBe(null);
+    expect(slugDaQuery(123)).toBe(null);
+    expect(slugDaQuery({})).toBe(null);
+  });
+});
+
+describe("slugDaVitrine", () => {
+  it("subdomínio ganha da query — endereço publicado não se sequestra por URL", () => {
+    expect(slugDaVitrine("casacoffee.kora.codes", "?loja=gastromundi")).toEqual({
+      slug: "casacoffee",
+      origem: "subdominio",
+    });
+  });
+
+  it("sem subdomínio, o ?loja= válido decide (é o caso de hoje em produção)", () => {
+    expect(slugDaVitrine("gastromundi.vercel.app", "?loja=casacoffee")).toEqual({
+      slug: "casacoffee",
+      origem: "query",
+    });
+    expect(slugDaVitrine("localhost", "?loja=casacoffee")).toEqual({
+      slug: "casacoffee",
+      origem: "query",
+    });
+  });
+
+  it("sem subdomínio e sem query válida, é o comportamento de hoje", () => {
+    expect(slugDaVitrine("localhost", "")).toEqual({ slug: "gastromundi", origem: "fallback" });
+    expect(slugDaVitrine("gastromundi.vercel.app", "?loja=casa_coffee")).toEqual({
+      slug: "gastromundi",
+      origem: "fallback",
+    });
+  });
+
+  it("subdomínio digitado errado continua reivindicando — a vitrine mostra 'sem loja', não a loja do fallback", () => {
+    expect(slugDaVitrine("gastrumundi.kora.codes", "")).toEqual({
+      slug: "gastrumundi",
+      origem: "subdominio",
+    });
   });
 });
 

@@ -43,6 +43,9 @@ describe("buscarTenantAtual", () => {
     expect(select).toBeDefined();
     expect(select.args[0]).not.toBe("*");
     expect(select.args[0]).toContain("nome");
+    // Rodada 4 — sem o slug o front não sabe qual é a vitrine DESTE
+    // estabelecimento e a prévia do cardápio abre a loja do fallback.
+    expect(select.args[0]).toContain("slug");
   });
 
   it("propaga erro do Supabase sem lançar exceção", async () => {
@@ -139,7 +142,7 @@ describe("buscarAddonsAtivos", () => {
 describe("buscarBootstrapTenant", () => {
   it("combina tenant + módulos do plano + add-ons ativos + assinatura calculada num único objeto", async () => {
     mockSupabase.current.setTableResult("tenants", {
-      data: { id: "t1", nome: "GastroMundi", tema: {}, plano_codigo: "medio", created_at: "2026-07-16T00:00:00.000Z" },
+      data: { id: "t1", nome: "GastroMundi", slug: "gastromundi", tema: {}, plano_codigo: "medio", created_at: "2026-07-16T00:00:00.000Z" },
       error: null,
     });
     mockSupabase.current.setTableResult("planos_modulos", {
@@ -160,6 +163,7 @@ describe("buscarBootstrapTenant", () => {
     expect(error).toBeNull();
     expect(data.id).toBe("t1");
     expect(data.nome).toBe("GastroMundi");
+    expect(data.slug).toBe("gastromundi");
     expect(data.planoCodigo).toBe("medio");
     expect(data.modulosDisponiveis).toEqual(["cozinha", "estoque"]);
     expect(data.addonsAtivos).toEqual(["tef"]);
@@ -185,6 +189,9 @@ describe("buscarBootstrapTenant", () => {
 
     expect(error).toBeNull();
     expect(data.addonsAtivos).toEqual([]);
+    // Tenant sem slug (banco antes da 20260740) vira null explícito, não
+    // undefined — quem consome decide o fallback em vez de montar URL torta.
+    expect(data.slug).toBeNull();
   });
 
   it("assinatura vem null (sem inventar dado) quando o tenant não tem linha em assinaturas", async () => {

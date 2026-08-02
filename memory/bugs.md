@@ -87,3 +87,10 @@ revisão item a item com o dono antes de merge.
 | 15.5 | Busca por número de comanda no relatório | ✅ |
 | 15.6 | Card de Lucro no financeiro (`calcularCustoVendas`: fichas técnicas × vendas do mês, menos saídas pagas; cobertura parcial sinalizada no rótulo) | ✅ |
 | 15.7 | Frente de caixa abre direto na lista | ✅ |
+
+## Ciclo do loop — 2026-08-01
+
+| Bug | Onde | Estado |
+|---|---|---|
+| **Prévia do cardápio abria o estabelecimento errado.** "Ver cardápio do cliente" (`DeliveryView`, desde `f9fc34f`) abria `/cardapio` sem parâmetro. Sem subdomínio por tenant no ar, `CardapioPage` resolvia o slug por `slugDoSubdominio() ?? resolverSlugTenant()` e caía no fallback: o dono de **qualquer** estabelecimento via a vitrine, a marca, as categorias e os preços da GastroMundi. Violação de white-label (decisão 017) numa tela usada justamente para conferir o próprio cadastro — e silenciosa, porque a loja do outro parece normal | `DeliveryView.jsx` · `CardapioPage.jsx` · `tenantSlug.js` · `tenant.js` | ✅ Rodada 4 — o botão leva `?loja=<slug do tenant logado>` (`slug` entrou no `select` de `buscarTenantAtual`, que não o trazia) e a vitrine resolve por `slugDaVitrine`: **subdomínio > query > fallback**, então endereço publicado nunca é sequestrado por URL. Tenant sem slug abre `/cardapio` como antes. Sem migration — `tenants.slug` já existia desde a `20260740` |
+| **Vazamento de marca pelo cache de branding (achado no caminho, não chegou a produção).** `salvarBrandingCache` carimba o cache com o slug da **origem**; numa origem compartilhada isso é sempre `gastromundi`. A prévia da Casa Coffee gravaria a marca dela sob o carimbo do vizinho e a tela de login da origem passaria a pintar "Casa Coffee" para todo mundo | `brandingCache.js:91` | ✅ Rodada 4 — prévia (`origem === "query"`) não lê nem grava o cache; teste de controle prova que o caminho normal continua lendo e gravando |

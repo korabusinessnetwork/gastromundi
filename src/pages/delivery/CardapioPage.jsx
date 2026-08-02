@@ -20,7 +20,7 @@ import {
   logoUrlTenant,
 } from "@/lib/tema";
 import { layoutDoTema, varianteDoHorario, variaveisDoLayout } from "@/layouts";
-import { resolverSlugTenant, slugDoSubdominio } from "@/lib/tenantSlug";
+import { slugDaVitrine } from "@/lib/tenantSlug";
 import { buscarBrandingPorSlug } from "@/lib/tenant";
 import { lerBrandingCache, salvarBrandingCache } from "@/lib/brandingCache";
 import {
@@ -52,11 +52,19 @@ const ENTREGA_INICIAL = {
 const PAGAMENTO_INICIAL = { forma: "", trocoPara: "", levarMaquininha: false };
 
 export default function CardapioPage() {
-  // Slug do subdomínio (fallback só em dev/apex, como no resto do app).
-  const slug = useMemo(() => slugDoSubdominio() ?? resolverSlugTenant(), []);
+  // Qual loja mostrar: subdomínio > ?loja= > fallback (ver `slugDaVitrine`).
+  // `origem === "query"` é a PRÉVIA — o dono conferindo a própria loja num
+  // domínio que ainda não tem subdomínio por estabelecimento.
+  const { slug, origem } = useMemo(() => slugDaVitrine(), []);
+  const ehPrevia = origem === "query";
 
   // Marca (nome/logo) — cache por origem pinta certo já na 1ª tela.
+  // Na prévia o cache é de OUTRO estabelecimento (o do endereço aberto), então
+  // aqui não se lê nem se grava: ler pintaria a marca errada no primeiro quadro,
+  // gravar faria a marca da loja em prévia vazar para o login de quem divide a
+  // mesma origem — o cache é carimbado com o slug da ORIGEM, não com este.
   const [marca, setMarca] = useState(() => {
+    if (ehPrevia) return { nome: "", logo: null };
     const cache = lerBrandingCache();
     if (cache?.nome || cache?.logo) return { nome: cache.nome ?? "", logo: cache.logo };
     return { nome: "", logo: null };
@@ -98,12 +106,12 @@ export default function CardapioPage() {
       const nome = nomeExibicaoTenant(data.tema, data.nome || "");
       setMarca({ nome, logo: logoUrlTenant(data.tema) });
       aplicarTituloDocumento(nome ? `${nome} · Delivery` : "Delivery");
-      salvarBrandingCache({ nome, logo: logoUrlTenant(data.tema), variaveis });
+      if (!ehPrevia) salvarBrandingCache({ nome, logo: logoUrlTenant(data.tema), variaveis });
     })();
     return () => {
       ativo = false;
     };
-  }, [slug]);
+  }, [slug, ehPrevia]);
 
   // ── Carrega o cardápio público pelo slug.
   useEffect(() => {

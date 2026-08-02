@@ -54,7 +54,7 @@ export function createAppMockValue(overrides = {}) {
     // Fase 2 — camada de comercialização: por padrão nos testes, todos os
     // módulos habilitados (equivalente ao tenant real hoje, plano avançado)
     // — sobrescreva `tenant`/`moduloHabilitado` nos testes de gating.
-    tenant: { id: "t1", nome: "GastroMundi", tema: {}, planoCodigo: "avancado", modulosDisponiveis: null, addonsAtivos: [] },
+    tenant: { id: "t1", nome: "GastroMundi", slug: "gastromundi", tema: {}, planoCodigo: "avancado", modulosDisponiveis: null, addonsAtivos: [] },
     moduloHabilitado: () => true,
     // Fase 3 — add-ons: por padrão nos testes, nenhum ativo (igual ao tenant
     // real hoje) — sobrescreva `addonHabilitado` nos testes de NF-e/TEF.

@@ -153,6 +153,13 @@ export default function DeliveryView({ notify } = {}) {
   // Modo derivado do plano: tem PDV → addon; só delivery → standalone.
   const ehAddon = moduloHabilitado(MODULOS.PDV);
 
+  // Endereço da prévia: leva o slug DESTE estabelecimento. Sem slug (bootstrap
+  // que falhou, banco antigo), abre a vitrine sem parâmetro — degrada para o
+  // comportamento anterior em vez de sumir com o botão.
+  const urlDaPrevia = tenant?.slug
+    ? `/cardapio?loja=${encodeURIComponent(tenant.slug)}`
+    : "/cardapio";
+
   const [aba, setAba] = useState("pedidos");
   const [linhas, setLinhas] = useState([]);      // produto_delivery do tenant
   const [carregando, setCarregando] = useState(true);
@@ -298,11 +305,16 @@ export default function DeliveryView({ notify } = {}) {
         <div className="delivery-view__header-acoes">
           {/* Prévia clicável: abre o MESMO cardápio que o cliente final vê
               (rota pública /cardapio, por slug), em nova aba. Padrão "ver
-              minha loja" — o dono confere na hora o resultado do cadastro. */}
+              minha loja" — o dono confere na hora o resultado do cadastro.
+
+              O `?loja=` NÃO é enfeite: sem subdomínio no ar (o domínio ainda
+              não foi comprado), a vitrine resolveria o slug pelo fallback e
+              mostraria a loja de OUTRO estabelecimento. Com subdomínio, ele
+              ganha da query — ver `slugDaVitrine`. */}
           <button
             type="button"
             className="delivery-view__ver-cardapio"
-            onClick={() => window.open("/cardapio", "_blank", "noopener,noreferrer")}
+            onClick={() => window.open(urlDaPrevia, "_blank", "noopener,noreferrer")}
             title="Abre, em uma nova aba, o cardápio exatamente como o cliente vê."
           >
             <LuExternalLink size={14} />
