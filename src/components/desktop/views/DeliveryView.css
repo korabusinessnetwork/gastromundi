@@ -6,6 +6,8 @@
    ────────────────────────────────────────────────────────────────── */
 
 .delivery-view {
+  background: var(--gm-bg);
+  color: var(--gm-text);
   /* Padrão de scroll do app: a view ocupa a altura do <main> e NÃO rola como
      um todo — quem rola é só a área de conteúdo (.delivery-view__area). Assim
      o header e as abas ficam parados no topo. (Antes: min-height:100% sem
@@ -43,6 +45,18 @@
   border-radius: 999px;
   font-weight: 700;
   white-space: nowrap;
+}
+/* Mesma forma, cores diferentes: azul quando o delivery é um add-on do PDV,
+   verde quando o plano é só delivery. A cor mora no modificador. */
+.delivery-view__modo-tag--addon {
+  background: color-mix(in srgb, var(--gm-blue) 8%, transparent);
+  color: var(--gm-blue);
+  border: 1px solid color-mix(in srgb, var(--gm-blue) 20%, transparent);
+}
+.delivery-view__modo-tag--standalone {
+  background: color-mix(in srgb, var(--gm-green) 8%, transparent);
+  color: var(--gm-green);
+  border: 1px solid color-mix(in srgb, var(--gm-green) 20%, transparent);
 }
 
 /* Tag "Integrado ao PDV" + botão de abrir/fechar a loja, empilhados. */
@@ -148,10 +162,20 @@
 .delivery-view__aba {
   background: none;
   border: none;
+  /* A borda de baixo existe sempre (transparente na aba inativa) para a aba
+     não pular 2px ao ficar ativa. */
+  border-bottom: 2px solid transparent;
+  color: var(--gm-muted);
+  font-weight: 500;
   cursor: pointer;
   padding: 12px 18px;
   white-space: nowrap;
   font-family: inherit;
+}
+.delivery-view__aba--ativa {
+  border-bottom-color: var(--gm-accent);
+  color: var(--gm-accent);
+  font-weight: 700;
 }
 
 /* Área de conteúdo com rolagem */
@@ -199,6 +223,26 @@
 .delivery-view__btn:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+/* Ações da barra de topo da aba Pedidos. O padding mora aqui, e não em
+   `--sm`, porque `--sm` é usada em toda a tela com espaçamentos próprios. */
+.delivery-view__btn--avisos,
+.delivery-view__btn--atualizar {
+  padding: 6px 12px;
+}
+.delivery-view__btn--avisos {
+  background: color-mix(in srgb, var(--gm-muted) 7%, transparent);
+  color: var(--gm-muted);
+}
+/* Avisos ligados: o botão fica verde para o operador enxergar o estado sem
+   ler o rótulo (o sino sozinho não diz se está ligado ou desligado). */
+.delivery-view__btn--avisos-ligados {
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
+  color: var(--gm-green);
+}
+.delivery-view__btn--atualizar {
+  background: color-mix(in srgb, var(--gm-accent) 7%, transparent);
+  color: var(--gm-accent);
 }
 
 /* Lista de produtos do delivery (cards) */
@@ -330,6 +374,7 @@
 
 /* Estado vazio */
 .delivery-view__vazio {
+  color: var(--gm-muted);
   text-align: center;
   padding: 48px 24px;
   display: flex;
@@ -337,6 +382,11 @@
   align-items: center;
   gap: 8px;
 }
+/* O emoji é decoração: fica apagado atrás do texto. Enquanto carrega ele
+   aparece um pouco mais (é o único elemento na tela naquele instante). */
+.delivery-view__vazio-emoji { opacity: 0.3; }
+.delivery-view__vazio-emoji--carregando { opacity: 0.4; }
+.delivery-view__vazio-titulo { font-weight: 600; }
 
 /* Modal */
 .delivery-view__overlay {
@@ -622,6 +672,13 @@
   border-radius: 10px;
   padding: 10px 12px;
 }
+/* Falha ao carregar o cardápio do delivery (topo da área de conteúdo). */
+.delivery-view__aviso--erro {
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  color: var(--gm-red);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+  margin-bottom: 12px;
+}
 
 /* ── Aba Pedidos (operação — kanban por etapa do fluxo) ───────────── */
 .delivery-view__pedidos-topo {
@@ -633,6 +690,7 @@
   flex-wrap: wrap;
 }
 .delivery-view__pedidos-resumo {
+  color: var(--gm-muted);
   font-weight: 600;
 }
 /* Agrupa as ações da barra de topo (sino de avisos + atualizar) para que
@@ -653,6 +711,11 @@
   overflow-x: auto;
   padding-bottom: 6px;
 }
+/* A coluna recebe do JSX a custom property `--cor-status` com a cor da etapa
+   (são seis, escolhidas em runtime). Tudo que é colorido pela etapa — título,
+   bolinha, contador e a borda esquerda dos cartões — lê essa variável daqui,
+   por herança. O fallback é o cinza de status desconhecido, o mesmo que
+   `baseCorStatus` devolve. */
 .delivery-view__coluna {
   flex: 1 1 260px;
   min-width: 240px;
@@ -662,6 +725,7 @@
   gap: 10px;
 }
 .delivery-view__coluna-titulo {
+  color: var(--cor-status, var(--gm-muted));
   display: flex;
   align-items: center;
   gap: 8px;
@@ -671,12 +735,15 @@
   padding: 2px 2px 6px;
 }
 .delivery-view__coluna-bolinha {
+  background: var(--cor-status, var(--gm-muted));
   width: 9px;
   height: 9px;
   border-radius: 999px;
   flex: none;
 }
 .delivery-view__coluna-contador {
+  background: color-mix(in srgb, var(--cor-status, var(--gm-muted)) 12%, transparent);
+  color: var(--cor-status, var(--gm-muted));
   margin-left: auto;
   min-width: 22px;
   text-align: center;
@@ -692,6 +759,10 @@
 
 /* Cartão do pedido */
 .delivery-view__pedido {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  /* Fita da etapa: herdada da coluna (ver .delivery-view__coluna). */
+  border-left: 3px solid var(--cor-status, var(--gm-muted));
   border-radius: 12px;
   padding: 12px;
   display: flex;
@@ -705,24 +776,29 @@
   gap: 8px;
 }
 .delivery-view__pedido-num {
+  color: var(--gm-text);
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-weight: 800;
 }
 .delivery-view__pedido-tempo {
+  color: var(--gm-muted);
   white-space: nowrap;
 }
 .delivery-view__pedido-cliente {
+  color: var(--gm-text);
   font-weight: 700;
 }
 .delivery-view__pedido-linha {
+  color: var(--gm-muted);
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
 }
 .delivery-view__zap {
+  color: var(--gm-green);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -731,6 +807,7 @@
   text-decoration: none;
 }
 .delivery-view__pedido-itens-toggle {
+  color: var(--gm-accent);
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
@@ -743,21 +820,56 @@
   font-weight: 600;
 }
 .delivery-view__pedido-itens {
+  color: var(--gm-text);
   display: flex;
   flex-direction: column;
   gap: 3px;
   padding: 6px 0 2px;
 }
+/* "Carregando itens…" / "Sem itens detalhados." — texto de apoio dentro da
+   lista, apagado em relação aos itens de verdade. */
+.delivery-view__pedido-itens-aviso {
+  color: var(--gm-muted);
+}
 .delivery-view__pedido-item-obs {
+  color: var(--gm-muted);
   font-style: italic;
 }
 .delivery-view__pedido-total {
+  color: var(--gm-text);
   margin-top: 2px;
 }
 .delivery-view__pedido-acoes {
   display: flex;
   gap: 8px;
   margin-top: 6px;
+}
+/* Ação principal do cartão: pintada com a cor da etapa atual, ocupando a
+   linha — é a "próxima ação óbvia" do Princípio nº 1.
+   O `#fff` é o texto sobre cor cheia; o projeto ainda não tem token para
+   isso (mesma pendência da proposta --gm-sobre-accent). */
+.delivery-view__pedido-avancar {
+  background: var(--cor-status, var(--gm-muted));
+  color: #fff;
+  padding: 8px 12px;
+  flex: 1;
+}
+/* Cancelar em dois toques: o X discreto abre a confirmação, e só a
+   confirmação usa o vermelho cheio. */
+.delivery-view__pedido-cancelar {
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  color: var(--gm-red);
+  padding: 8px 10px;
+}
+.delivery-view__pedido-cancelar-confirma {
+  background: var(--gm-red);
+  color: #fff;
+  padding: 8px 12px;
+}
+.delivery-view__pedido-voltar {
+  background: color-mix(in srgb, var(--gm-muted) 8%, transparent);
+  color: var(--gm-muted);
+  padding: 8px 12px;
 }
 
 /* Card médio da biblioteca de grupos (aba Complementos). Realce ao passar

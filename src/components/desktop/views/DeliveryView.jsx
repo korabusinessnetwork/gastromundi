@@ -130,16 +130,18 @@ const ABAS = [
   { id: "entrega",      label: "Entrega e taxas" },
 ];
 
-// Chaves de cor semânticas (statusCor) → token do design system OU cor de
-// alerta literal (âmbar não é token de marca; ver colorAlfa.js). White-label
-// respeitado: os tokens seguem o tema do tenant; o âmbar é semântico fixo.
+// Chaves de cor semânticas (statusCor) → token do design system. O âmbar era
+// o hex `#f59e0b` cravado aqui; `--gm-warn` vale exatamente esse valor
+// (src/styles/tema.css) e está na lista de tokens que o tenant pode
+// sobrescrever (src/lib/tema.js), então a cor do status segue o tema como
+// todas as outras — white-label sem exceção (decisão 017).
 const COR_STATUS = {
   blue:   C.blue,
   accent: C.accent,
   green:  C.green,
   red:    C.red,
   muted:  C.muted,
-  amber:  "#f59e0b",
+  amber:  C.warn,
 };
 const baseCorStatus = (status) => COR_STATUS[statusCor(status)] || C.muted;
 const cssCor = (base) =>
@@ -291,7 +293,7 @@ export default function DeliveryView({ notify } = {}) {
   }, [isAdmin, tenant?.id, configDelivery?.horario?.auto, reconciliarAuto]);
 
   return (
-    <div className="delivery-view" style={{ background: varColor(C.bg), color: varColor(C.text) }}>
+    <div className="delivery-view">
       {/* Cabeçalho */}
       <div className="delivery-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div>
@@ -322,12 +324,7 @@ export default function DeliveryView({ notify } = {}) {
           </button>
 
           <span
-            className="delivery-view__modo-tag"
-            style={{
-              background: alfa(ehAddon ? C.blue : C.green, "15"),
-              color: varColor(ehAddon ? C.blue : C.green),
-              border: `1px solid ${alfa(ehAddon ? C.blue : C.green, "33")}`,
-            }}
+            className={`delivery-view__modo-tag delivery-view__modo-tag--${ehAddon ? "addon" : "standalone"}`}
             title={
               ehAddon
                 ? "Seu plano tem PDV: o delivery usa o mesmo cardápio do sistema."
@@ -389,12 +386,7 @@ export default function DeliveryView({ notify } = {}) {
             <button
               key={a.id}
               onClick={() => setAba(a.id)}
-              className="delivery-view__aba"
-              style={{
-                borderBottom: ativo ? `2px solid var(${C.accent})` : "2px solid transparent",
-                color: ativo ? varColor(C.accent) : varColor(C.muted),
-                fontWeight: ativo ? 700 : 500,
-              }}
+              className={`delivery-view__aba${ativo ? " delivery-view__aba--ativa" : ""}`}
             >
               {a.label}
             </button>
@@ -404,10 +396,7 @@ export default function DeliveryView({ notify } = {}) {
 
       <div className="delivery-view__area" style={{ padding: sz.pad }}>
         {erro && (
-          <div
-            className="delivery-view__aviso"
-            style={{ background: alfa(C.red, "12"), color: varColor(C.red), border: `1px solid ${alfa(C.red, "33")}`, marginBottom: 12 }}
-          >
+          <div className="delivery-view__aviso delivery-view__aviso--erro">
             ⚠️ {erro}
           </div>
         )}
@@ -565,7 +554,7 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
     <>
       {/* Barra de topo: resumo + recarregar manual (fallback sem realtime) */}
       <div className="delivery-view__pedidos-topo">
-        <div className="delivery-view__pedidos-resumo" style={{ color: varColor(C.muted) }}>
+        <div className="delivery-view__pedidos-resumo">
           {carregando
             ? "Carregando pedidos…"
             : abertos > 0
@@ -575,12 +564,7 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
         <div className="delivery-view__pedidos-acoes">
           <button
             onClick={alternarAvisos}
-            className="delivery-view__btn delivery-view__btn--sm"
-            style={{
-              background: avisosLigados ? alfa(C.green, "16") : alfa(C.muted, "12"),
-              color: avisosLigados ? varColor(C.green) : varColor(C.muted),
-              padding: "6px 12px",
-            }}
+            className={`delivery-view__btn delivery-view__btn--sm delivery-view__btn--avisos${avisosLigados ? " delivery-view__btn--avisos-ligados" : ""}`}
             title={avisosLigados ? "Avisos de pedido novo ligados (som + alerta na tela). Toque para desligar." : "Ligar avisos de pedido novo (som + alerta na tela)."}
             aria-pressed={avisosLigados}
           >
@@ -589,8 +573,7 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
           </button>
           <button
             onClick={recarregar}
-            className="delivery-view__btn delivery-view__btn--sm"
-            style={{ background: alfa(C.accent, "12"), color: varColor(C.accent), padding: "6px 12px" }}
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--atualizar"
             title="Atualizar a lista de pedidos"
           >
             <LuRefreshCw size={13} /> Atualizar
@@ -599,14 +582,14 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
       </div>
 
       {carregando ? (
-        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.4 }}>⏳</div>
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji delivery-view__vazio-emoji--carregando">⏳</div>
           <div className="delivery-view__carregando">Carregando pedidos…</div>
         </div>
       ) : erro && pedidos.length === 0 ? (
-        <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-          <div className="delivery-view__vazio-emoji" style={{ opacity: 0.3 }}>📡</div>
-          <div className="delivery-view__vazio-titulo" style={{ fontWeight: 600 }}>Não conseguimos carregar os pedidos</div>
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">📡</div>
+          <div className="delivery-view__vazio-titulo">Não conseguimos carregar os pedidos</div>
           <div className="delivery-view__vazio-desc">Verifique a conexão e toque em “Atualizar”.</div>
         </div>
       ) : (
@@ -631,9 +614,9 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
             </div>
           )}
           {colunas.length === 0 ? (
-            <div className="delivery-view__vazio" style={{ color: varColor(C.muted) }}>
-              <div className="delivery-view__vazio-emoji" style={{ opacity: 0.3 }}>🛵</div>
-              <div className="delivery-view__vazio-titulo" style={{ fontWeight: 600 }}>Nenhum pedido por aqui ainda</div>
+            <div className="delivery-view__vazio">
+              <div className="delivery-view__vazio-emoji">🛵</div>
+              <div className="delivery-view__vazio-titulo">Nenhum pedido por aqui ainda</div>
               <div className="delivery-view__vazio-desc">
                 Quando um cliente pedir pelo cardápio online, o pedido aparece aqui na hora.
               </div>
@@ -642,18 +625,15 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
             <div className="delivery-view__kanban">
               {colunas.map((col) => {
                 const base = baseCorStatus(col.status);
+                // A cor da etapa é calculada em runtime (6 status possíveis), então entra
+                // uma vez como custom property e o CSS da coluna, da bolinha, do contador
+                // e do cartão lê `var(--cor-status)`.
                 return (
-                  <div key={col.status} className="delivery-view__coluna">
-                    <div
-                      className="delivery-view__coluna-titulo"
-                      style={{ color: cssCor(base) }}
-                    >
-                      <span className="delivery-view__coluna-bolinha" style={{ background: cssCor(base) }} />
+                  <div key={col.status} className="delivery-view__coluna" style={{ "--cor-status": cssCor(base) }}>
+                    <div className="delivery-view__coluna-titulo">
+                      <span className="delivery-view__coluna-bolinha" />
                       {col.label}
-                      <span
-                        className="delivery-view__coluna-contador"
-                        style={{ background: alfa(base, "1f"), color: cssCor(base) }}
-                      >
+                      <span className="delivery-view__coluna-contador">
                         {col.pedidos.length}
                       </span>
                     </div>
@@ -707,28 +687,25 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
   };
 
   return (
-    <div
-      className="delivery-view__pedido"
-      style={{ background: varColor(C.card), border: `1px solid ${varColor(C.border)}`, borderLeft: `3px solid ${cssCor(base)}` }}
-    >
+    <div className="delivery-view__pedido">
       {/* Cabeçalho: número + tempo */}
       <div className="delivery-view__pedido-topo">
-        <span className="delivery-view__pedido-num" style={{ color: varColor(C.text) }}>
+        <span className="delivery-view__pedido-num">
           <LuClipboardList size={14} color={cssCor(base)} /> {pedido.numero}
         </span>
-        <span className="delivery-view__pedido-tempo" style={{ color: varColor(C.muted) }}>
+        <span className="delivery-view__pedido-tempo">
           {tempoDecorrido(pedido.created_at)}
         </span>
       </div>
 
       {/* Cliente */}
-      <div className="delivery-view__pedido-cliente" style={{ color: varColor(C.text) }}>
+      <div className="delivery-view__pedido-cliente">
         {pedido.cliente_nome || "Cliente"}
       </div>
 
       {/* Telefone → WhatsApp (só toque; número é do cliente) */}
       {pedido.cliente_telefone && (
-        <div className="delivery-view__pedido-linha" style={{ color: varColor(C.muted) }}>
+        <div className="delivery-view__pedido-linha">
           <LuPhone size={13} /> {formatarTelefone(pedido.cliente_telefone)}
           {zap && (
             <a
@@ -736,7 +713,6 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
               target="_blank"
               rel="noopener noreferrer"
               className="delivery-view__zap"
-              style={{ color: varColor(C.green) }}
               title="Falar com o cliente no WhatsApp"
             >
               <LuMessageCircle size={13} /> WhatsApp
@@ -747,44 +723,40 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
 
       {/* Endereço */}
       {endereco && (
-        <div className="delivery-view__pedido-linha" style={{ color: varColor(C.muted) }}>
+        <div className="delivery-view__pedido-linha">
           <LuMapPin size={13} /> {endereco}
         </div>
       )}
 
       {/* Pagamento */}
-      <div className="delivery-view__pedido-linha" style={{ color: varColor(C.muted) }}>
+      <div className="delivery-view__pedido-linha">
         <LuBanknote size={13} /> {resumoPagamento(pedido)}
       </div>
 
       {/* Itens (sob demanda) */}
-      <button
-        onClick={toggleItens}
-        className="delivery-view__pedido-itens-toggle"
-        style={{ color: varColor(C.accent) }}
-      >
+      <button onClick={toggleItens} className="delivery-view__pedido-itens-toggle">
         {aberto ? <LuChevronDown size={14} /> : <LuChevronRight size={14} />}
         {aberto ? "Ocultar itens" : "Ver itens"}
       </button>
       {aberto && (
-        <div className="delivery-view__pedido-itens" style={{ color: varColor(C.text) }}>
+        <div className="delivery-view__pedido-itens">
           {carregandoItens ? (
-            <div style={{ color: varColor(C.muted) }}>Carregando itens…</div>
+            <div className="delivery-view__pedido-itens-aviso">Carregando itens…</div>
           ) : itens && itens.length > 0 ? (
             itens.map((it) => (
               <div key={it.id} className="delivery-view__pedido-item">
                 <span>{it.qtd}× {it.nome}</span>
-                {it.obs && <span className="delivery-view__pedido-item-obs" style={{ color: varColor(C.muted) }}> — {it.obs}</span>}
+                {it.obs && <span className="delivery-view__pedido-item-obs"> — {it.obs}</span>}
               </div>
             ))
           ) : (
-            <div style={{ color: varColor(C.muted) }}>Sem itens detalhados.</div>
+            <div className="delivery-view__pedido-itens-aviso">Sem itens detalhados.</div>
           )}
         </div>
       )}
 
       {/* Total */}
-      <div className="delivery-view__pedido-total" style={{ color: varColor(C.text) }}>
+      <div className="delivery-view__pedido-total">
         Total <strong>{formatarReais(pedido.total)}</strong>
       </div>
 
@@ -794,8 +766,7 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
           {acao && (
             <button
               onClick={onAvancar}
-              className="delivery-view__btn delivery-view__btn--sm"
-              style={{ background: cssCor(base), color: "#fff", padding: "8px 12px", flex: 1 }}
+              className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-avancar"
             >
               {acao}
             </button>
@@ -805,15 +776,13 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
               <>
                 <button
                   onClick={onCancelar}
-                  className="delivery-view__btn delivery-view__btn--sm"
-                  style={{ background: varColor(C.red), color: "#fff", padding: "8px 12px" }}
+                  className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-cancelar-confirma"
                 >
                   Cancelar mesmo
                 </button>
                 <button
                   onClick={() => setConfirmarCancelar(false)}
-                  className="delivery-view__btn delivery-view__btn--sm"
-                  style={{ background: alfa(C.muted, "15"), color: varColor(C.muted), padding: "8px 12px" }}
+                  className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-voltar"
                 >
                   Voltar
                 </button>
@@ -821,8 +790,7 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
             ) : (
               <button
                 onClick={() => setConfirmarCancelar(true)}
-                className="delivery-view__btn delivery-view__btn--sm"
-                style={{ background: alfa(C.red, "12"), color: varColor(C.red), padding: "8px 10px" }}
+                className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-cancelar"
                 title="Cancelar este pedido"
               >
                 <LuX size={13} />

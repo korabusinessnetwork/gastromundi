@@ -328,6 +328,25 @@ dia no celular.
 - Se a ausência realmente for um defeito, ela vira item separado — o contrato de uma fatia de F018
   é mudança visual zero, e é isso que permite auditar 190 linhas trocadas por diferença de zero.
 
+### Cor calculada em runtime: custom property local no ancestral, não `style` em cada descendente
+No kanban do `DeliveryView.jsx`, `baseCorStatus(status)` devolve uma entre seis cores e ela pintava
+o título da coluna, a bolinha, o fundo e o texto do contador e a fita esquerda de cada cartão de
+pedido — onze `style={{ color: cssCor(base) }}` espalhados, porque "cor que só existe em runtime não
+cabe em classe" parecia verdade. Cabe: o JSX define a variável **uma vez** no ancestral
+(`style={{ "--cor-status": cssCor(base) }}` em `.delivery-view__coluna`) e o CSS lê
+`var(--cor-status, …)` em todos os descendentes, inclusive nos que herdam de outro componente.
+
+- O `style` que sobra deixa de ser estilo e vira **parâmetro**: uma linha, um valor, e nenhuma
+  decisão visual no JavaScript. Quantas propriedades a cor pinta e como ela é misturada passa a ser
+  problema do `.css` (o contador usa `color-mix(in srgb, var(--cor-status) 12%, transparent)`).
+- **Sempre com fallback na leitura**, não no `:root`: `var(--cor-status, var(--gm-muted))`. O
+  componente pode ser renderizado fora do ancestral que define a variável, e o fallback é o mesmo
+  valor que a função em JavaScript devolve no caso desconhecido — as duas pontas dizem a mesma coisa.
+- `color-mix` aceita a variável aninhada (`--cor-status` guarda o texto `var(--gm-blue)`): a
+  substituição acontece antes da leitura do valor. Quem prova é o `vite build`, não o vitest.
+- Não confundir com token de tema: `--cor-status` é **local**, sem prefixo `--gm-`, e nunca entra em
+  `tema.css`. Ela pertence ao componente, como os `--fs-*`/`--lh-*` que o mesmo arquivo já usava.
+
 ---
 
 ## Padrões de API
