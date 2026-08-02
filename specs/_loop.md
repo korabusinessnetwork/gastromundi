@@ -2,6 +2,54 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 5 — F022-ANALYTICS — 2026-08-01
+
+- **Spec:** `specs/f022-analytics-de-plataforma-no-console.md`
+- **Resultado da review:** aprovado sem ressalvas — 16 de 16 critérios em sim, `npm test` em
+  184 de 184 arquivos e 2863 de 2863 testes, uma rodada de correção sem escalada. Nenhum arquivo
+  tocado fora do §4 do spec; nenhuma policy de tabela operacional alterada.
+- **O que o levantamento mudou no escopo:** a nota do F022 no backlog dizia que "RLS por tenant
+  precisa de override `OR auth.is_super_admin()`". A ADR-008 (§5 e decisão fechada v2 nº 2) diz o
+  contrário para tabela operacional: esse ramo existe **só** em `tenants` e `assinaturas`. Quem
+  fosse construir o analytics lendo o backlog alteraria a policy de `vendas` e abriria a base
+  inteira de todos os clientes a qualquer token de plataforma. O escopo passou a ser o outro braço
+  da mesma decisão — agregado por RPC, não leitura por policy.
+- **Construído:** aba "Uso e faturamento" no `/console` (`src/components/console/AnalyticsDashboard
+  .jsx` + `.css`; `listarAnalitico` e a função pura `resumirUso` em `src/lib/console.js`) —
+  faturamento, pedidos, ticket médio e há quanto tempo cada estabelecimento vendeu pela última vez,
+  em 7/30/90 dias. A leitura é a RPC `analytics_plataforma` (migration `20260912`), `SECURITY
+  DEFINER` com `SET search_path = public`, que revalida `is_super_admin()` na primeira instrução e
+  devolve **contagem e soma** — nenhuma linha de venda sai do banco. `p_dias` é lista fechada
+  validada dentro do banco, porque o PostgREST expõe a função a qualquer token `authenticated`.
+  Dinheiro atravessa em centavos inteiros e vira real só na formatação. Quem paga e não está
+  vendendo aparece em bloco de atenção antes dos números — é a única coisa da aba que pede ação.
+- **Corrigido pela review:** o estado de vazio só disparava com zero estabelecimentos. Base com
+  clientes e nenhuma venda no período renderizava R$ 0,00 nos cartões e uma tabela de zeros, que se
+  lê como "não carregou" — exatamente o erro que a aba existe para evitar. Entrou a frase que afirma
+  o zero ("Nenhuma venda no período..."), com dois testes.
+- **Aprendido:** `memory/patterns.md` (padrão novo "O Console lê a operação por agregado, nunca por
+  policy" — assinatura de retorno como tranca, período validado no banco, os dois guards);
+  `memory/learnings.md` (duas linhas em Técnicos — nota de backlog envelhece e não é revisada quando
+  a ADR muda, o backlog diz **o que** falta e nunca **como** se faz; e o bloco `DO $conf$` só protege
+  o banco onde já rodou, some no primeiro `CREATE OR REPLACE`, então RPC cuja forma é a garantia
+  nasce com o autoteste em SQL **e** o `*SqlGuard.test.js` — já são 9);
+  `docs/09_BACKLOG/features.md` (a nota errada do F022 corrigida, e a aba nova no status);
+  e o resultado da review anexado ao spec (§8 e §9).
+- **Commit:** `334deaa` na branch `ciclo/f022-analytics-console` (criada a partir da branch da
+  Rodada 4, então carrega os commits dela; push feito, sem pull request).
+- **Ação manual pendente:** rodar `supabase/migrations/20260912_analytics_plataforma.sql` no SQL
+  Editor do Supabase. Enquanto não rodar, a aba mostra o erro com "Tentar de novo" e as outras duas
+  abas do Console seguem intactas — a leitura só acontece quando alguém abre a aba.
+- **Pendente de decisão:** a mesma das Rodadas 2, 3 e 4, ainda sem resposta — estabelecimento de
+  **cortesia** (`valor_mensal = 0`) não consegue renovar, porque a RPC recusa `p_valor <= 0`.
+- **Fica registrado (não construído):** impersonação/escopo explícito por estabelecimento (o outro
+  braço da ADR-008), detalhe e gráfico por estabelecimento, exportar CSV/PDF, separar delivery de
+  salão, e transformar "paga e não está vendendo" em alerta ativo do Jarvas.
+- **Próximo item recomendado:** **F022-HISTORICO** — histórico de pagamentos da assinatura e
+  correção de pagamento lançado por engano: a Rodada 2 pôs no Console um botão que empurra a data de
+  vencimento e grava em `assinaturas_pagamentos`, e hoje ninguém vê o que foi lançado nem desfaz um
+  lançamento errado sem SQL em produção.
+
 ## Rodada 4 — prévia do cardápio abre o estabelecimento logado — 2026-08-01
 
 - **Spec:** `specs/previa-do-cardapio-abre-o-estabelecimento-logado.md`
