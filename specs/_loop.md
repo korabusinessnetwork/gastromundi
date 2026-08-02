@@ -2,6 +2,43 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 19 — F018, fatia 6 — aba Cardápio do Delivery — 2026-08-02
+
+- **Spec:** `specs/f018-delivery-cardapio-css.md`
+- **Resultado da review:** **aprovado sem ressalvas** — 11 de 11 critérios em sim, nenhuma rodada de
+  correção. `npx vitest run` em 194 de 194 arquivos e 3080 de 3080 testes (76,99s), nenhum arquivo de
+  teste tocado. `npx vite build` verde (9,51s). Dois arquivos de código tocados, os previstos:
+  `DeliveryView.jsx` e `DeliveryView.css`.
+- **Construído:** a aba **Cardápio** inteira — `AbaCardapio`, `CardProduto` e o `ModalProduto`, com a
+  galeria de fotos junto — saiu de **53 para 8** atributos `style`. O arquivo foi de 182 para **137**
+  `style={{`; o `src/` de 1807 para **1762**. Os 8 que ficam carregam valor de runtime: 2 de
+  `sz.pad`, 1 de coordenada do menu de foto (`getBoundingClientRect` — é parâmetro, não estilo) e 5
+  do helper `inputStyle(sz)`, deixado inteiro de propósito para a próxima fatia.
+- **A descoberta da fatia:** dois ternários de JavaScript viraram estado nativo de CSS. O selo
+  disponível/indisponível é `--on`/`--off` com a bolinha pintada por descendência
+  (`.delivery-view__pill--on .delivery-view__card-dot`), e o `cursor: isAdmin ? "pointer" : "default"`
+  virou `cursor: pointer` mais `:disabled { cursor: default }` — equivalente porque o botão já era
+  `disabled={!isAdmin}`. A borda da foto selecionada passou a usar a classe `.is-sel` que **já
+  existia** na marcação e não era lida por ninguém.
+- **O tropeço:** `.delivery-view__aviso--erro` carregava `margin-bottom: 12px` junto com a cor, e
+  estava certo assim com um usuário só. Reusá-lo nos dois avisos de erro do modal daria 12px de
+  folga a quem nunca teve, e a suíte não vê porque não lê CSS. A margem saiu para o modificador
+  novo `--espacado`, aplicado no único uso que a tinha. Padrão em `memory/patterns.md` →
+  "Modificador de cor não carrega espaçamento".
+- **O outro tropeço, de spec:** o alvo estava escrito como "49 → 8" e as duas pontas contavam padrões
+  diferentes (`style={{` no 49, `style={{` **mais** `style={inputStyle` no 8). A faixa tinha 53. Alvo
+  verificável guarda o padrão exato que a review vai rodar, idêntico nas duas pontas —
+  `memory/learnings.md`, processo.
+- **Commit:** `cf18884` na branch `ciclo/s1-3-configuracoes` (empurrado).
+- **Pendente de decisão:** nenhuma nova. O token `--gm-sobre-accent` continua na fila do dono, agora
+  com os dois `#fff` de `--btn--primario` e `--btn--importar` junto.
+- **Próximo item recomendado:** **F018, fatia 7 — matar o helper `inputStyle(sz)`**
+  (`DeliveryView.jsx:2838`). Ele recebe `sz` e não usa: devolve três declarações estáticas
+  (`border`, `background`, `color`) que pertencem a `.delivery-view__input` /
+  `.delivery-view__textarea`, e tem **21 usos** no arquivo. É a maior remoção mecânica que resta no
+  `DeliveryView`, sai de uma vez só, e destrava as fatias seguintes — enquanto ele existir, todo
+  campo do arquivo continua com `style`.
+
 ## Rodada 18 — F018, fatia 5 — esqueleto e aba Pedidos do Delivery — 2026-08-02
 
 - **Spec:** `specs/f018-delivery-pedidos-css.md`
