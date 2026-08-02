@@ -81,4 +81,29 @@
   /* Mono para dados técnicos (SKU, IDs, nº de comanda/mesa) — TIPOGRAFIA.md.
      Tenant pode sobrescrever como as demais --gm-font-*. */
   --gm-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Respiro das bordas da tela (header, faixa de abas, área de conteúdo).
+     É para o espaçamento o que --fs-* é para a fonte: substitui o `sz.pad`
+     que vinha de getSizes(width) em JavaScript (src/constants/sizes.js).
+     A reta passa pelos dois extremos da curva antiga — 18px em 360 de
+     largura, 48px em 3840 — e troca os degraus intermediários por variação
+     contínua, então a tela para de "pular" ao cruzar um breakpoint.
+     Sobrescrevível pelo tenant como qualquer --gm-* (decisão 017): quem
+     quiser a tela mais densa baixa o token, sem tocar em componente.
+     É min() e não clamp() de propósito: o piso desta curva não fica aqui,
+     fica na media query abaixo. Um terceiro argumento no clamp seria número
+     que nunca entra em jogo — CSS morto com cara de intencional. */
+  --gm-pad: min(14.9px + 0.86vw, 48px);
+}
+
+/* Celular muito pequeno (<360): único degrau real da curva antiga — o
+   getSizes caía de 18px para 12px de uma vez, porque aí cada pixel de
+   conteúdo conta. clamp() não faz degrau, então esta exceção fica explícita.
+   Precisa vir DEPOIS do :root: mesma especificidade, quem decide é a ordem.
+   O px é literal de propósito — custom property não funciona como valor de
+   breakpoint dentro de @media (mesma nota que está na tipografia.css). */
+@media (max-width: 359.98px) {
+  :root {
+    --gm-pad: 12px;
+  }
 }

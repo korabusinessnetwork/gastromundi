@@ -18,7 +18,10 @@
   overflow: hidden;
 }
 
-/* Cabeçalho — parado no topo (não rola com o conteúdo). */
+/* Cabeçalho — parado no topo (não rola com o conteúdo). O respiro vem do
+   token global --gm-pad (era `sz.pad` inline, calculado em JS por largura de
+   tela); os 4px a menos em cima e embaixo são os mesmos de antes — o header
+   é mais baixo que largo de propósito, para o conteúdo começar mais cedo. */
 .delivery-view__header {
   flex-shrink: 0;
   display: flex;
@@ -26,6 +29,7 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  padding: calc(var(--gm-pad) - 4px) var(--gm-pad);
 }
 .delivery-view__titulo {
   font-weight: 800;
@@ -158,6 +162,8 @@
   gap: 4px;
   border-bottom: 1px solid var(--gm-border, #e5e7eb);
   overflow-x: auto;
+  /* Só nas laterais: as abas encostam no header em cima e na borda embaixo. */
+  padding: 0 var(--gm-pad);
 }
 .delivery-view__aba {
   background: none;
@@ -182,6 +188,7 @@
 .delivery-view__area {
   flex: 1;
   overflow-y: auto;
+  padding: var(--gm-pad);
 }
 
 /* Seção de importação (addon) */
@@ -236,6 +243,16 @@
 .delivery-view__btn--avisos,
 .delivery-view__btn--atualizar {
   padding: 6px 12px;
+}
+/* Botão de ação no topo da aba ("Importar", "Novo produto"): o respiro lateral
+   acompanha o da tela, então ele fica alinhado ao ritmo do resto — era o
+   `10px ${sz.pad}px` inline. Modificador de FORMA, separado dos de cor de
+   propósito: `--primario` também veste o "Salvar" do modal, que tem padding
+   próprio e não pode herdar este. Não confundir com `.delivery-view__acao-topo`,
+   que é a LINHA onde um dos dois botões mora — este aqui veste o botão, e vale
+   também para o "Importar", que fica na faixa de importação. */
+.delivery-view__btn--acao-topo {
+  padding: 10px var(--gm-pad);
 }
 .delivery-view__btn--avisos {
   background: color-mix(in srgb, var(--gm-muted) 7%, transparent);

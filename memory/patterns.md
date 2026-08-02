@@ -381,6 +381,43 @@ que nunca existiu não parece defeito.
 
 ---
 
+### Escala responsiva que vive em JavaScript vira token, não media query em cada tela
+*Adotado em 2026-08-02 (rodada 21 do ciclo, F018 fatia 8). Precedente: `src/styles/tipografia.css`.*
+
+`src/constants/sizes.js` calcula tamanhos por faixa de largura (`getSizes(width).pad`,
+`.gap`, `.fontMd`…) e o valor viaja pela árvore como prop `sz`. O custo não é o
+`style` inline: é a **prop que atravessa componentes que não a usam** só para chegar
+ao neto, e o `useResponsive` que re-renderiza a tela inteira a cada pixel de resize.
+
+A conversão que funciona, na ordem:
+
+1. **Um token em `src/styles/tema.css`**, não um arquivo novo por grandeza. Arquivo
+   próprio (como `tipografia.css`) se justifica quando a escala tem dezenas de tokens;
+   para um, é abstração para o futuro.
+2. **Reta entre os dois extremos da curva antiga**, escrita como `min()`/`max()` ou
+   `clamp()`: `--gm-pad: min(14.9px + 0.86vw, 48px)` passa por 18px em 360 e 48px em
+   3840. Os degraus intermediários viram variação contínua — a tela deixa de "pular"
+   ao cruzar breakpoint, que é ganho de UX e não só de código.
+3. **Degrau real vira `@media` explícita**, depois do `:root` (mesma especificidade,
+   quem decide é a ordem). `clamp()` não faz degrau; se a curva antiga tinha uma queda
+   de propósito (aqui 18 → 12px abaixo de 360), ela fica escrita como exceção.
+4. **Só então apagar a prop de ponta a ponta** — assinatura, pass-down e o
+   `const sz = getSizes(width)`. Componente que fica sem prop nenhuma fica assim.
+
+Duas conferências que a fatia exige:
+
+- **Antes de escrever o `clamp()`, checar se cada argumento entra em jogo.** Piso que
+  exigiria viewport negativo é CSS morto com cara de intencional — use `min()` e
+  deixe o piso na media query, onde ele de fato mora.
+- **`grep` do token antes de criar**: pode já existir referência com fallback
+  (`var(--gm-pad, 16px)`) escrita por quem esperava o token. Criar o token faz aquela
+  linha mudar de comportamento — é efeito colateral legítimo, mas vai declarado.
+
+Aplicável às outras propriedades do `sz` e aos **15 arquivos** que ainda chamam
+`getSizes`. `src/constants/sizes.js` só some quando o último sair.
+
+---
+
 ## Padrões de API
 
 ### Formato de Resposta

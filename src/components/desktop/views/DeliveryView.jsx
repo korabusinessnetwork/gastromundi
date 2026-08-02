@@ -24,8 +24,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
-import { useResponsive, usePedidosDelivery } from "@/utils/hooks";
-import { getSizes } from "@/constants/sizes";
+import { usePedidosDelivery } from "@/utils/hooks";
 import MODULOS from "@/constants/modulos";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -149,8 +148,6 @@ const cssCor = (base) =>
 
 export default function DeliveryView({ notify } = {}) {
   const { products, tenant, currentUser, moduloHabilitado, addProduct, updateProduct, recarregarProdutos } = useApp();
-  const { width } = useResponsive();
-  const sz = getSizes(width);
 
   // Modo derivado do plano: tem PDV → addon; só delivery → standalone.
   const ehAddon = moduloHabilitado(MODULOS.PDV);
@@ -295,7 +292,7 @@ export default function DeliveryView({ notify } = {}) {
   return (
     <div className="delivery-view">
       {/* Cabeçalho */}
-      <div className="delivery-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
+      <div className="delivery-view__header">
         <div>
           <div className="delivery-view__titulo">
             <LuBike size={20} color={varColor(C.accent)} /> Delivery
@@ -379,7 +376,7 @@ export default function DeliveryView({ notify } = {}) {
       </div>
 
       {/* Abas */}
-      <div className="delivery-view__abas" style={{ padding: `0 ${sz.pad}px` }}>
+      <div className="delivery-view__abas">
         {ABAS.map((a) => {
           const ativo = aba === a.id;
           return (
@@ -394,7 +391,7 @@ export default function DeliveryView({ notify } = {}) {
         })}
       </div>
 
-      <div className="delivery-view__area" style={{ padding: sz.pad }}>
+      <div className="delivery-view__area">
         {erro && (
           <div className="delivery-view__aviso delivery-view__aviso--erro delivery-view__aviso--espacado">
             ⚠️ {erro}
@@ -402,12 +399,11 @@ export default function DeliveryView({ notify } = {}) {
         )}
 
         {aba === "pedidos" && (
-          <AbaPedidos sz={sz} isAdmin={isAdmin} ehAddon={ehAddon} aviso={aviso} currentUser={currentUser} />
+          <AbaPedidos isAdmin={isAdmin} ehAddon={ehAddon} aviso={aviso} currentUser={currentUser} />
         )}
 
         {aba === "cardapio" && (
           <AbaCardapio
-            sz={sz}
             isAdmin={isAdmin}
             ehAddon={ehAddon}
             carregando={carregando}
@@ -426,11 +422,11 @@ export default function DeliveryView({ notify } = {}) {
         )}
 
         {aba === "complementos" && (
-          <AbaComplementos sz={sz} isAdmin={isAdmin} itens={itensCardapio} products={products} aviso={aviso} />
+          <AbaComplementos isAdmin={isAdmin} itens={itensCardapio} products={products} aviso={aviso} />
         )}
 
         {aba === "entrega" && (
-          <AbaEntrega sz={sz} isAdmin={isAdmin} tenant={tenant} currentUser={currentUser} aviso={aviso} />
+          <AbaEntrega isAdmin={isAdmin} tenant={tenant} currentUser={currentUser} aviso={aviso} />
         )}
       </div>
     </div>
@@ -464,7 +460,7 @@ const lerPrefAvisos = () => {
   }
 };
 
-function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
+function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
   const { pedidos, carregando, erro, recarregar } = usePedidosDelivery();
   const [tick, setTick] = useState(0); // recalcula "há X min" de tempos em tempos
 
@@ -641,7 +637,6 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
                       {col.pedidos.map((p) => (
                         <CardPedido
                           key={p.id}
-                          sz={sz}
                           pedido={p}
                           isAdmin={isAdmin}
                           ehAddon={ehAddon}
@@ -661,7 +656,7 @@ function AbaPedidos({ sz, isAdmin, ehAddon, aviso, currentUser }) {
   );
 }
 
-function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
+function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
   const [aberto, setAberto] = useState(false);
   const [itens, setItens] = useState(null); // null = ainda não buscou
   const [carregandoItens, setCarregandoItens] = useState(false);
@@ -807,7 +802,7 @@ function CardPedido({ sz, pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
 // ABA 1 — Cardápio (importação no addon / cadastro no standalone)
 // ════════════════════════════════════════════════════════════════
 function AbaCardapio({
-  sz, isAdmin, ehAddon, carregando, itens, faltamImportar,
+  isAdmin, ehAddon, carregando, itens, faltamImportar,
   products, linhas, tenant, addProduct, updateProduct, recarregarProdutos, currentUser, aviso, recarregar,
 }) {
   const [importando, setImportando] = useState(false);
@@ -848,8 +843,7 @@ function AbaCardapio({
           <button
             onClick={importar}
             disabled={importando || faltamImportar.length === 0}
-            className="delivery-view__btn delivery-view__btn--importar"
-            style={{ padding: `10px ${sz.pad}px` }}
+            className="delivery-view__btn delivery-view__btn--importar delivery-view__btn--acao-topo"
           >
             <LuDownload size={15} />
             {importando ? "Importando…" : faltamImportar.length > 0 ? `Importar ${faltamImportar.length}` : "Importado"}
@@ -861,8 +855,7 @@ function AbaCardapio({
         <div className="delivery-view__acao-topo">
           <button
             onClick={() => setModal({ modo: "novo" })}
-            className="delivery-view__btn delivery-view__btn--primario"
-            style={{ padding: `10px ${sz.pad}px` }}
+            className="delivery-view__btn delivery-view__btn--primario delivery-view__btn--acao-topo"
           >
             <LuPlus size={15} /> Novo produto
           </button>
@@ -890,7 +883,6 @@ function AbaCardapio({
           {itens.map((it) => (
             <CardProduto
               key={it.id}
-              sz={sz}
               item={it}
               isAdmin={isAdmin}
               ehAddon={ehAddon}
@@ -917,7 +909,6 @@ function AbaCardapio({
 
       {modal && (
         <ModalProduto
-          sz={sz}
           modo={modal.modo}
           item={modal.item}
           ehAddon={ehAddon}
@@ -939,7 +930,7 @@ function AbaCardapio({
   );
 }
 
-function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) {
+function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) {
   const nome = item.produto?.name || "(produto removido do PDV)";
   const preco = item.produto?.price;
   const emoji = item.produto?.emoji || "🍽️";
@@ -1028,7 +1019,7 @@ function CardProduto({ sz, item, isAdmin, ehAddon, onEditar, onRemover, onToggle
 //   nome/preço vêm do PDV e aparecem só para referência.
 // Standalone: nome/preço/categoria + a camada de delivery, tudo junto.
 function ModalProduto({
-  sz, modo, item, ehAddon, products, tenant, currentUser, addProduct, updateProduct, recarregarProdutos, aviso, onFechar, onSalvo,
+  modo, item, ehAddon, products, tenant, currentUser, addProduct, updateProduct, recarregarProdutos, aviso, onFechar, onSalvo,
 }) {
   const prod = item?.produto || null;
   const [nome, setNome] = useState(prod?.name || "");
@@ -1449,7 +1440,7 @@ function ModalProduto({
 // todos de uma vez. Nada some do cardápio: os grupos antigos foram
 // migrados para essa biblioteca com seu produto já vinculado.
 // ════════════════════════════════════════════════════════════════
-function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
+function AbaComplementos({ isAdmin, itens, products, aviso }) {
   const [grupos, setGrupos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [novoGrupo, setNovoGrupo] = useState("");
@@ -1489,7 +1480,6 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
   if (grupoAberto) {
     return (
       <GrupoEditor
-        sz={sz}
         isAdmin={isAdmin}
         grupo={grupoAberto}
         biblioteca={grupos}
@@ -1544,7 +1534,6 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
           {grupos.map((g) => (
             <GrupoCardMini
               key={g.id}
-              sz={sz}
               grupo={g}
               onAbrir={() => setGrupoAbertoId(g.id)}
             />
@@ -1559,7 +1548,7 @@ function AbaComplementos({ sz, isAdmin, itens, products, aviso }) {
 // resumo (obrigatório/opcional), quantos itens tem e em quantos produtos
 // aparece. Tocar abre o editor. Nada de campo editável aqui — a edição
 // mora no menu limpo (GrupoEditor), pra grade ficar fácil de escanear.
-function GrupoCardMini({ sz, grupo, onAbrir }) {
+function GrupoCardMini({ grupo, onAbrir }) {
   const nItens = (grupo.itens || []).length;
   const nProdutos = (grupo.produtoIds || []).length;
   const nSubgrupos = (grupo.subgrupoIds || []).length;
@@ -1614,7 +1603,7 @@ function GrupoCardMini({ sz, grupo, onAbrir }) {
 // Menu de busca para escolher um produto JÁ CRIADO como complemento.
 // Digita → lista os itens do catálogo que casam (menos os já no grupo) →
 // clica para escolher. Sem digitação técnica: só buscar e tocar.
-function SeletorProdutoComplemento({ sz, products, idsExcluir, onEscolher }) {
+function SeletorProdutoComplemento({ products, idsExcluir, onEscolher }) {
   const [termo, setTermo] = useState("");
   const [aberto, setAberto] = useState(false);
 
@@ -1682,7 +1671,7 @@ function SeletorProdutoComplemento({ sz, products, idsExcluir, onEscolher }) {
 // reciclável estilo iFood). Digita → lista os grupos candidatos (a lista já
 // vem sem ele mesmo, sem os já anexados e sem os que criariam ciclo) →
 // clica pra anexar. Mesmo padrão do seletor de produto: só buscar e tocar.
-function SeletorSubgrupo({ sz, candidatos, onEscolher }) {
+function SeletorSubgrupo({ candidatos, onEscolher }) {
   const [termo, setTermo] = useState("");
   const [aberto, setAberto] = useState(false);
 
@@ -1755,7 +1744,7 @@ function SeletorSubgrupo({ sz, candidatos, onEscolher }) {
 // Menu de edição LIMPO de um grupo. Abre a partir de um card da grade
 // (GrupoCardMini). Header com "voltar" + nome; corpo com regras (mín/máx),
 // itens do grupo e a busca multi-seleção de "aparece nestes produtos".
-function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCardapio = [], aviso, recarregar, onVoltar, onRemovido }) {
+function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio = [], aviso, recarregar, onVoltar, onRemovido }) {
   // ── Rascunho local — NADA persiste até "Salvar" ─────────────────────
   // Todo o editor é um rascunho: nome, mín/máx, itens e "aparece nestes
   // produtos" ficam só na memória. "Salvar" grava tudo de uma vez; "Voltar"
@@ -2138,7 +2127,6 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
           ) : (
             // Ainda escolhendo: menu de busca dos produtos já criados.
             <SeletorProdutoComplemento
-              sz={sz}
               products={products}
               idsExcluir={idsNoGrupo}
               onEscolher={escolherProduto}
@@ -2195,7 +2183,7 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
           )}
 
           {candidatosSubgrupo.length > 0 ? (
-            <SeletorSubgrupo sz={sz} candidatos={candidatosSubgrupo} onEscolher={addSubgrupo} />
+            <SeletorSubgrupo candidatos={candidatosSubgrupo} onEscolher={addSubgrupo} />
           ) : (
             <div className="delivery-view__hint" style={{ color: varColor(C.muted) }}>
               {biblioteca.length <= 1
@@ -2218,7 +2206,6 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
             </div>
           ) : (
             <SeletorProdutosMulti
-              sz={sz}
               itens={itensCardapio}
               produtoIds={produtoIds}
               vinculando={false}
@@ -2289,7 +2276,7 @@ function GrupoEditor({ sz, isAdmin, grupo, biblioteca = [], products, itensCarda
 // que ainda NÃO estão no combo — digita, filtra e toca pra adicionar (dá
 // pra escolher vários). Substitui o antigo checklist de pílulas: com muitos
 // produtos, procurar é mais intuitivo que varrer uma lista inteira.
-function SeletorProdutosMulti({ sz, itens, produtoIds, vinculando, onAlternar }) {
+function SeletorProdutosMulti({ itens, produtoIds, vinculando, onAlternar }) {
   const [termo, setTermo] = useState("");
   const [aberto, setAberto] = useState(false);
 
@@ -2396,7 +2383,7 @@ function SeletorProdutosMulti({ sz, itens, produtoIds, vinculando, onAlternar })
 // ════════════════════════════════════════════════════════════════
 // ABA 3 — Entrega e taxas (config_delivery)
 // ════════════════════════════════════════════════════════════════
-function AbaEntrega({ sz, isAdmin, tenant, currentUser, aviso }) {
+function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   const [config, setConfig] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);

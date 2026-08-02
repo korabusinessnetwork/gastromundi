@@ -31,7 +31,8 @@ const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery } = v
   carregarConfigDelivery: vi.fn(),
 }));
 
-// useResponsive fica real: é ele que define `sz`, e sem ele o layout não monta.
+// Só o hook de pedidos é falso. O resto de @/utils/hooks passa real pelo
+// importOriginal() — a tela usa vários e nenhum precisa ser dublê aqui.
 vi.mock("@/utils/hooks", async (importOriginal) => ({
   ...(await importOriginal()),
   usePedidosDelivery,
