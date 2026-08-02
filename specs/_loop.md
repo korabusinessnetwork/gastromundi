@@ -29,7 +29,7 @@ Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
   cala a verificação; os 13 status errados; código entregue ≠ rodando em produção),
   `memory/patterns.md` ("Conjunto de isenção é mais perigoso que conjunto de exigência", dentro da
   seção de conferência textual de SQL) e o cadastro do **TD016** em `docs/09_BACKLOG/tech-debt.md`.
-- **Commit:** `<preenchido no push>` na branch `ciclo/s1-3-configuracoes`
+- **Commit:** `20c5837` na branch `ciclo/s1-3-configuracoes`
 - **Pendente de decisão:** o ADR do F021 (offline-first), que o item exigia e nunca foi escrito —
   IndexedDB × `localStorage`, conflito multi-dispositivo, realtime e contingência fiscal/TEF.
 - **Próximo item recomendado:** **F005-SANGRIA** — é o único 🔴 Critical do backlog com buraco real
