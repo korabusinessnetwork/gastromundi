@@ -2,6 +2,64 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 7 — S1-3-ASSINATURA — 2026-08-01
+
+- **Spec:** `specs/s1-3-minha-assinatura-no-estabelecimento.md`
+- **Resultado da review:** aprovado sem ressalvas na segunda auditoria — 18 de 18 critérios em sim,
+  `npm test` em 187 de 187 arquivos e 2936 de 2936 testes, uma rodada de correção sem escalada.
+  Nenhum arquivo tocado fora do §4 do spec; **nenhuma migration** criada ou alterada.
+- **O que o levantamento mudou no escopo:** nada precisava de SQL. As três policies de leitura já
+  estão em produção — `assinaturas_select_auth` e `assinaturas_pagamentos_select_gerencia`
+  (`20260726`) e `planos_select_auth` (`20260728`) —, então a aba nasceu só de front. E como toda
+  escrita em assinatura passa por RPC guardada por `is_super_admin()` (decisão 027), a tela é
+  declaradamente **somente leitura**: botão de registrar/cancelar aqui só levaria a um 42501.
+- **Construído:** aba **"Minha assinatura"** em Configurações
+  (`src/components/desktop/views/MinhaAssinaturaTab.jsx` + `.css` + `.test.jsx`), visível só para
+  gerente/admin — o mesmo recorte da policy. Responde em uma frase "estou em dia?", com a data do
+  próximo vencimento; mostra o plano pelo **nome** (`buscarPlanoDoTenant` em `src/lib/tenant.js`) e o
+  que ele inclui por `ROTULOS_MODULO`; e lista o histórico de pagamentos do próprio tenant com o
+  total do que vale, deixando o cancelado visível, riscado e com o motivo, fora da soma. Duas funções
+  puras mudaram de casa para `src/lib/assinatura.js` — `rotuloCompetencia` (vinha do modal do
+  Console) e `DIAS_AVISO_PRE_VENCIMENTO` (vinha do `AssinaturaBanner`) — para que banner e aba
+  avisem na mesma janela e nenhuma tela de tenant importe nada do Console.
+- **Corrigido pela review:** três desvios do próprio spec. (1) sem resposta de `public.planos` a aba
+  mostrava o código cru `medio` — e o teste que eu tinha escrito ratificava o jargão; virou "Plano
+  contratado", com teste provando que o código não aparece. (2) com `tenant` nulo no bootstrap a aba
+  afirmava "ainda não há uma assinatura cadastrada"; agora mostra "Carregando sua assinatura…".
+  (3) com todos os pagamentos cancelados o total dizia "R$ 0,00 pagos em 0 mensalidades"; agora
+  escreve "Nenhum pagamento em vigor: N lançamento(s) cancelado(s)".
+- **Aprendido:** `memory/learnings.md` (duas linhas em Técnicos — constante de regra e função pura
+  que duas superfícies leem moram em `src/lib` desde o começo, e o sintoma de estar no lugar errado é
+  precisar importar um componente para reaproveitar uma linha; e a tela que afirma o que ainda não
+  sabe, com o agravante do teste que congela o comportamento errado); `memory/patterns.md` (dois
+  padrões novos em UI/UX — "'Ainda não sei' nunca é dito como 'não existe'" e "Fallback de nome nunca
+  é o código técnico"); `docs/09_BACKLOG/sprint_pre_venda.md` (S1-3 marcado como parcial, com o que
+  entrou e o que falta); e o resultado da review anexado ao spec (§8).
+- **Commit:** `dfd7d4c` na branch `ciclo/s1-3-minha-assinatura` (criada a partir da branch da
+  Rodada 6, então carrega os commits dela; push feito, sem pull request).
+- **Ação manual pendente:** continuam sem rodar em produção a `20260912_analytics_plataforma.sql` e a
+  `20260913_estorno_pagamento_assinatura.sql`. Esta rodada não acrescenta nenhuma.
+- **Pendente de decisão:** (a) a mesma das Rodadas 2 a 6 — estabelecimento de **cortesia**
+  (`valor_mensal = 0`) não consegue renovar, porque a RPC recusa `p_valor <= 0`; (b) **como o
+  estabelecimento paga** (chave Pix, canal de contato) não está escrito em `docs/` nem em `memory/`,
+  então a aba de propósito não diz — é decisão de produto e conteúdo por estabelecimento.
+- **Prazo do dono:** a assinatura do próprio GastroMundi vence em **2026-08-05** e bloqueia em
+  **2026-08-09** — renovar pelo Console, em Planos e assinaturas → "Registrar pagamento".
+- **Fica registrado (não construído):** a outra metade do S1-3 — identidade/tema do estabelecimento
+  (logo, cores, nome), usuários e config de impressão pelo próprio tenant; recibo em PDF; e troca de
+  plano/add-on self-service.
+- **Backlog desatualizado que este levantamento encontrou (não corrigido):** `sprint_pre_venda.md`
+  ainda lista **S1-1 (isolamento multi-tenant)** como bloqueador aberto, mas as migrations
+  `20260723`–`20260726` e `20260738`–`20260743` já puseram `tenant_id` + policy RESTRICTIVE nas 24
+  tabelas operacionais; e `features.md` diz que o **F016** está "planejado, código não iniciado",
+  embora `20260720_assinatura_enforcement.sql`, `AssinaturaBanner.jsx` e `AssinaturaBloqueada.jsx`
+  existam. Vale uma rodada de acerto de status antes que alguém construa de novo o que está pronto.
+- **Próximo item recomendado:** **S1-3-USUARIOS** — o dono do restaurante criando e desativando os
+  próprios usuários pela tela: é o pedaço do S1-3 que hoje só existe por SQL (o motivo escrito de o
+  S1-3 travar a venda), o banco já está pronto para ele (`20260739_users_rls_tenant_scope.sql` e
+  `20260740_tenant_slug_e_username_por_tenant.sql`) e, ao contrário de identidade/tema, não depende
+  da pendência de Storage × RLS.
+
 ## Rodada 6 — F022-HISTORICO — 2026-08-01
 
 - **Spec:** `specs/f022-historico-de-pagamentos-da-assinatura.md`
