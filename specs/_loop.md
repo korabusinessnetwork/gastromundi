@@ -2,6 +2,60 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 9 — F022-ADDONS — 2026-08-02
+
+- **Spec:** `specs/f022-addons-por-estabelecimento.md`
+- **Resultado da review:** aprovado sem ressalvas — 20 de 20 critérios em sim, `npx vitest run` em
+  190 de 190 arquivos e 3014 de 3014 testes. **Um arquivo tocado fora do §4 do spec**, declarado:
+  `src/pages/console/ConsolePage.test.jsx`, porque o critério 10 (contagem de add-ons no card) não
+  tinha teste nenhum e critério sem evidência é critério em "não".
+- **Construído:** modal **"Add-ons"** por estabelecimento no Console
+  (`src/components/console/AddonsModal.jsx` + `.css` + `.test.jsx`), a migration
+  `supabase/migrations/20260915_alternar_addon_tenant.sql` (RPC `alternar_addon_tenant`), os avisos
+  em `src/constants/addons.js`, cinco funções novas em `src/lib/console.js` e um terceiro botão no
+  card do estabelecimento que já diz quantos add-ons estão ligados. Ligar NF-e ou TEF para um
+  cliente deixou de ser `INSERT` no SQL Editor.
+- **Desenho mantido:** `tenant_addons` continua **sem policy de escrita** — tudo pela RPC
+  `SECURITY DEFINER` com guarda `is_super_admin() IS NOT TRUE`, `REVOKE` antes do `GRANT`, igual a
+  `alterar_plano_tenant`, `definir_mensalidade_tenant` e `estornar_pagamento_assinatura`.
+- **Corrigido pela review, em três pontos:** (1) `resumirAddonsDoTenant` casava `null === null` e
+  mostrava "Ligado" para um add-on pago de ninguém quando o tenant chegava ausente — dado de um
+  cliente na tela de outro, o defeito mais caro que um SaaS multi-tenant tem; (2) quatro classes
+  (`.adm-erro`, `.adm-erro__titulo`, `.adm-erro__texto`, `.adm-relere`) eram usadas no JSX e **não
+  existiam** no CSS — o bloco de falha de leitura saía sem estilo e nada acusava; (3) altura do
+  botão de confirmar fora do padrão de 46px.
+- **Aprendido:** `memory/learnings.md` (o casamento por chave anulável e as classes inventadas que
+  ninguém valida), `memory/patterns.md` ("Cruzamento por tenant nunca casa tenant ausente") e
+  `memory/bugs.md` (o defeito do tenant nulo, achado no build e **não** chegado a produção — hoje o
+  Console guarda com `{tenantAddonsSelecionado && (`, mas a função é exportada e um segundo chamador
+  não teria essa guarda).
+- **Backlog:** F022 registrado como entregue nesta frente; F017 (TEF) e F019 (NF-e) ganharam a nota
+  de que a **contratação** já é operável ainda que a integração não exista.
+- **Commit:** `eb51344` na branch `ciclo/s1-3-configuracoes`, com push feito.
+- **Roda em produção:** `20260915_alternar_addon_tenant.sql` precisa ser aplicada no SQL Editor —
+  enquanto não for, o modal abre e lista, mas o botão devolve `function
+  public.alternar_addon_tenant does not exist`. Continuam pendentes `20260912_analytics_plataforma`,
+  `20260913_estorno_pagamento_assinatura` e `20260914_identidade_tenant`.
+- **O que o `/proximo` desta rodada descobriu (e corrigiu na documentação):** quatro afirmações do
+  backlog estavam falsas. **S1-1** ("isolamento multi-tenant, o bloqueador nº 1", 🔴 Alto) está
+  entregue desde as levas `20260723`–`20260726`. **S1-2** está entregue, inclusive o 1º admin
+  (Edge Function `provisionar-estabelecimento` + `provisionar_tenant`). A **configuração fiscal por
+  tenant** que o F022 dizia faltar não é do Console: existe em `PainelFiscal` gravando
+  `tenant_fiscal_config` (`20260731`), roteada em `src/routes/index.jsx:238`. E a observação do
+  **TD009** sobre o Jarvas ler estoque de uma chave morta já foi corrigida — a Edge Function lê a
+  tabela `estoque`.
+- **Pendente de decisão do dono:** (1) estabelecimento de **cortesia** (`valor_mensal = 0`) não
+  consegue renovar; (2) **como o cliente paga** (chave Pix, canal de contato) não está escrito em
+  lugar nenhum; (3) a assinatura do próprio GastroMundi **vence em 2026-08-05 e bloqueia em
+  2026-08-09**; (4) o **fiscal NFC-e** (S1-4/F019) depende de certificado A1 e provedor — o único
+  item que ainda bloqueia venda e o único que custa dinheiro.
+- **Próximo item recomendado:** **TD016** (novo) — auditoria de veracidade do backlog e do
+  `supabase/schema.sql`. Depois de nove rodadas, **acabou o trabalho de código que é gratuito e
+  bloqueia venda**: o que sobra ou é ação do dono, ou custa dinheiro, ou é 🟢 Low. E a fonte de
+  verdade declarada no `CLAUDE.md` está mentindo — `schema.sql` não tem **uma ocorrência** de
+  `tenant_id`, e este `/proximo` sozinho achou quatro linhas falsas. É o item que decide se as
+  próximas rodadas escolhem trabalho certo.
+
 ## Rodada 8 — S1-3-IDENTIDADE — 2026-08-01
 
 - **Spec:** `specs/s1-3-identidade-do-estabelecimento.md`
