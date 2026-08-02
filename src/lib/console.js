@@ -238,13 +238,22 @@ export async function listarAnalitico(dias = 30) {
   }
 }
 
-/** Dias inteiros desde uma data ISO. `null` quando não há data (nunca vendeu)
- *  ou quando a data é inválida — a tela distingue "nunca" de "há 0 dias". */
-function diasDesde(iso, hoje) {
+/** Dias de CALENDÁRIO desde uma data ISO. `null` quando não há data (nunca
+ *  vendeu) ou quando a data é inválida — a tela distingue "nunca" de "há 0
+ *  dias".
+ *
+ *  A conta é de dias de calendário, não de intervalo decorrido: a venda das
+ *  22h de ontem vista às 9h de hoje passou 11 horas, e `floor(11h/24h)` daria
+ *  0 — a tela diria "Hoje" para um estabelecimento que ainda não abriu o
+ *  caixa. Normalizamos as duas pontas para o dia local antes de subtrair.
+ *  `ultima_venda` é `timestamptz`, então os getters locais são os corretos. */
+export function diasDesde(iso, hoje) {
   if (!iso) return null;
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return null;
-  return Math.max(0, Math.floor((hoje.getTime() - t) / 86400000));
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const diaVenda = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  const diaHoje = Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  return Math.max(0, Math.round((diaHoje - diaVenda) / 86400000));
 }
 
 /**

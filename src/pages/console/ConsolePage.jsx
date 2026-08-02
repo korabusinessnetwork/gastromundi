@@ -42,6 +42,7 @@ export default function ConsolePage() {
   const [erro, setErro] = useState("");
   const [erroPlanos, setErroPlanos] = useState(false);
   const [erroAssinaturas, setErroAssinaturas] = useState(false);
+  const [erroAddons, setErroAddons] = useState(false);
   const [aba, setAba] = useState("estabelecimentos"); // 'estabelecimentos' | 'planos' | 'uso'
   const [modalAberto, setModalAberto] = useState(false);
   const [tenantSelecionado, setTenantSelecionado] = useState(null);
@@ -58,7 +59,7 @@ export default function ConsolePage() {
       { data: listaTenants, error: eTenants },
       { data: listaPlanos, error: ePlanos },
       { data: listaAssinaturas, error: eAssinaturas },
-      { data: listaAddons },
+      { data: listaAddons, error: eAddons },
     ] = await Promise.all([
       listarEstabelecimentos(),
       listarPlanos(),
@@ -82,6 +83,7 @@ export default function ConsolePage() {
     // ninguém precisando de atenção) como se fosse a verdade.
     setErroPlanos(Boolean(ePlanos));
     setErroAssinaturas(Boolean(eAssinaturas));
+    setErroAddons(Boolean(eAddons));
     setCarregando(false);
   }, []);
 
@@ -348,7 +350,7 @@ export default function ConsolePage() {
                     >
                       <LuPuzzle size={17} aria-hidden />
                       <span className="console__addons-nome">
-                        {rotularAddons(addonsPorTenant[t.id])}
+                        {rotularAddons(addonsPorTenant[t.id], erroAddons)}
                       </span>
                     </button>
                   </li>
@@ -420,7 +422,11 @@ function rotularLayout(tema) {
 // O botão diz QUANTOS add-ons estão ligados, não "Add-ons": o dono precisa
 // enxergar da lista quem já contratou algo, sem abrir estabelecimento por
 // estabelecimento (Princípio nº1 — estado sempre visível).
-function rotularAddons(quantos) {
+// Quando a leitura falha a contagem vem vazia, e vazio é indistinguível de
+// "não tem nenhum" — o dono leria "Sem add-ons" em todos os cards e poderia
+// desligar cobrança de quem tem módulo ligado. A tela diz que não sabe.
+function rotularAddons(quantos, erro) {
+  if (erro) return "Add-ons indisponíveis";
   const n = Number(quantos) || 0;
   if (n === 0) return "Sem add-ons";
   if (n === 1) return "1 add-on";

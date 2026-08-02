@@ -227,6 +227,30 @@ describe("gerarAlertaBaixaFalhou", () => {
     ).resolves.toBeUndefined();
     expect(registrarInsight).not.toHaveBeenCalled();
   });
+
+  // O supabase-js NÃO lança quando a RLS recusa o insert: devolve `{ error }`.
+  // Sem olhar esse erro o alerta some em silêncio — e é justamente o alerta
+  // que existe para não deixar o furo de estoque em silêncio.
+  it("registra no console quando o próprio insight é recusado pelo banco", async () => {
+    const erroDoBanco = { message: "new row violates row-level security policy" };
+    registrarInsight.mockResolvedValue({ data: null, error: erroDoBanco });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(
+      gerarAlertaBaixaFalhou({ produtoId: 9, nome: "Chopp", quantidade: 3, erro: null }, "maria"),
+    ).resolves.toBeUndefined();
+
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining("não registrado"), erroDoBanco);
+    spy.mockRestore();
+  });
+
+  it("não quebra quando o registrarInsight não devolve o par { data, error }", async () => {
+    registrarInsight.mockResolvedValue(undefined);
+
+    await expect(
+      gerarAlertaBaixaFalhou({ produtoId: 9, nome: "Chopp", quantidade: 3, erro: null }, "maria"),
+    ).resolves.toBeUndefined();
+  });
 });
 
 describe("processarBaixaEstoque", () => {

@@ -15,7 +15,7 @@ import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
 import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
 import { criarLancamento } from "@/lib/financeiro";
 import { METODOS_TEF_PADRAO } from "@/lib/tef";
-import { LIMITE_SANGRIA_PADRAO, limiteSangriaValido, validarMovimento } from "@/lib/caixaMovimentos";
+import { LIMITE_SANGRIA_PADRAO, lerValor, limiteSangriaValido, validarMovimento } from "@/lib/caixaMovimentos";
 import { processarBaixaEstoque, gerarAlertaBaixaFalhou, isRpcAusente } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { LOCK_TTL_MS } from "@/lib/comandaLock";
@@ -785,6 +785,22 @@ export function AppProvider({ children }) {
         // e aqui mora a não-idempotência do estoque / evento reemitido. É bug
         // silencioso — reporta com o tipo da op (drenarFila já separou rede).
         reportarFalha(error, { acao: "drenarPendenciasOffline", op: op?.tipo });
+        // Baixa recusada no reenvio é o MESMO furo de inventário do TD012: a
+        // venda saiu, o estoque não desceu, e a op foi descartada de vez. Sem
+        // este alerta o buraco só aparece na contagem física — Sentry e evento
+        // são para quem desenvolve, o Jarvas é o que o gestor abre.
+        if (op?.tipo === "rpc_baixar_estoque") {
+          const produto = products.find(p => String(p.id) === String(op.produtoId));
+          void gerarAlertaBaixaFalhou(
+            { produtoId: op.produtoId, nome: produto?.name ?? null, quantidade: op.qtd, erro: error },
+            currentUser?.username,
+          );
+        } else if (op?.tipo === "rpc_baixar_estoque_subproduto") {
+          void gerarAlertaBaixaFalhou(
+            { subprodutoId: op.subprodutoId, nome: op.nome ?? null, quantidade: op.qtd, erro: error },
+            currentUser?.username,
+          );
+        }
       }
     } finally {
       drenandoRef.current = false;
@@ -1321,7 +1337,11 @@ export function AppProvider({ children }) {
 
     const linha = {
       tipo,
-      valor: Number(valor),
+      // O mesmo parser da validação: `validarMovimento` aceita "50,00" via
+      // `lerValor`, e gravar com `Number` transformaria isso em NaN (→ null
+      // no JSON → violação de NOT NULL). Também garante que o que persiste é
+      // o valor arredondado que o usuário confirmou na tela.
+      valor: lerValor(valor),
       motivo: sanitizeInput(String(motivo).trim()),
       autor: currentUser?.username ?? "",
       autorizado_por: autorizadoPor ? sanitizeInput(String(autorizadoPor)) : null,
@@ -1534,7 +1554,10 @@ export function AppProvider({ children }) {
     }
     if (error) {
       if (isErroDeRede(error)) {
-        enfileirarOffline({ tipo: "rpc_baixar_estoque_subproduto", subprodutoId, qtd, opId });
+        // `nome` viaja junto: se esta op for recusada lá no dreno, o alerta
+        // precisa dizer "Queijo mussarela" e não "Item 42" — o subproduto não
+        // está no estado local do provider para ser resolvido depois.
+        enfileirarOffline({ tipo: "rpc_baixar_estoque_subproduto", subprodutoId, qtd, nome: nome ?? null, opId });
         return { error: null, offline: true };
       }
       reportarFalha(error, { acao: "baixarEstoqueSubproduto", tabela: "estoque", subproduto_id: subprodutoId, quantidade: qtd });

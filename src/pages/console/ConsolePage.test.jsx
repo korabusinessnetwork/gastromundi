@@ -32,7 +32,7 @@ const { mockListarEstabelecimentos, mockListarPlanos, mockListarAssinaturas, ban
   mockListarAssinaturas: vi.fn(),
   // Holder mutável em vez de vi.fn(): os `mockReset()` dos beforeEach
   // existentes não apagam esta leitura, que toda aba faz.
-  banco: { addons: [] },
+  banco: { addons: [], erroAddons: null },
 }));
 vi.mock("@/lib/console", async () => {
   const real = await vi.importActual("@/lib/console");
@@ -41,7 +41,8 @@ vi.mock("@/lib/console", async () => {
     listarEstabelecimentos: mockListarEstabelecimentos,
     listarPlanos: mockListarPlanos,
     listarAssinaturas: mockListarAssinaturas,
-    listarAddonsPorTenant: async () => ({ data: banco.addons, error: null }),
+    listarAddonsPorTenant: async () =>
+      banco.erroAddons ? { data: [], error: banco.erroAddons } : { data: banco.addons, error: null },
   };
 });
 
@@ -223,6 +224,7 @@ describe("ConsolePage — add-ons no card do estabelecimento", () => {
     mockListarPlanos.mockResolvedValue(ok(PLANOS));
     mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
     banco.addons = [];
+    banco.erroAddons = null;
     setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
   });
 
@@ -249,6 +251,21 @@ describe("ConsolePage — add-ons no card do estabelecimento", () => {
     await waitFor(() =>
       expect(within(cardDe("Bar do Zé")).getByRole("button", { name: "Sem add-ons" })).toBeInTheDocument()
     );
+  });
+
+  // Leitura vazia por falha é indistinguível de "não tem nenhum": todos os
+  // cards diriam "Sem add-ons" e o dono poderia desligar a cobrança de quem
+  // está com módulo pago ligado. A tela precisa dizer que não sabe.
+  it("com a leitura dos add-ons falhando, o card diz que não sabe — não 'Sem add-ons'", async () => {
+    banco.erroAddons = { message: "network" };
+    renderWithProviders(<ConsolePage />);
+
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(within(cardDe("Bar do Zé")).getByRole("button", { name: "Add-ons indisponíveis" })).toBeInTheDocument()
+    );
+    expect(within(cardDe("Bar do Zé")).queryByRole("button", { name: "Sem add-ons" })).not.toBeInTheDocument();
+    expect(within(cardDe("Café Central")).getByRole("button", { name: "Add-ons indisponíveis" })).toBeInTheDocument();
   });
 
   it("clicar no botão abre os add-ons daquele estabelecimento, não a troca de plano", async () => {

@@ -637,4 +637,43 @@ describe("AppContext — alerta de baixa recusada (TD012)", () => {
 
     expect(alertasDeBaixa()).toHaveLength(0);
   });
+
+  // O silêncio do offline vale enquanto a op AINDA vai ser reenviada. Quando o
+  // reenvio acontece e o banco recusa por algo que não é rede, a op é
+  // DESCARTADA de vez: a venda saiu, o estoque não desceu e ninguém mais vai
+  // tentar. É o mesmo furo de inventário do TD012, só que descoberto tarde —
+  // precisa do mesmo alerta.
+  it("op recusada no reenvio vira alerta: ela foi descartada, ninguém tenta de novo", async () => {
+    semearFila([{ uid: "op-1", tipo: "rpc_baixar_estoque", produtoId: 7, qtd: 3, opId: "chave-1" }]);
+    comRpcPorNome({ baixar_estoque: RECUSADA });
+    montar();
+
+    await assentar();
+    await deixarOAlertaSair();
+
+    const [alerta] = alertasDeBaixa();
+    expect(alerta?.origem.chave).toBe("estoque:baixa-falhou:produto:7");
+    expect(alerta.origem.dados.erro).toContain("row-level security");
+    expect(filaGravada()).toHaveLength(0); // descartada, não reenfileirada
+  });
+
+  // O subproduto não está no estado local do provider: se o nome não viajar
+  // junto com a op, o alerta do reenvio diz "Item sub-1" e o gestor não sabe o
+  // que conferir na prateleira.
+  it("o nome do subproduto viaja na fila e chega no alerta do reenvio", async () => {
+    comRpc(SEM_REDE);
+    const app = montar();
+
+    await act(async () => { await app.current.baixarEstoqueSubproduto("sub-1", 2, "Molho da casa"); });
+    expect(filaGravada()[0]).toMatchObject({ subprodutoId: "sub-1", nome: "Molho da casa" });
+
+    comRpcPorNome({ baixar_estoque_subproduto: RECUSADA });
+    montar();
+    await assentar();
+    await deixarOAlertaSair();
+
+    const [alerta] = alertasDeBaixa();
+    expect(alerta?.origem.chave).toBe("estoque:baixa-falhou:subproduto:sub-1");
+    expect(alerta.titulo).toContain("Molho da casa");
+  });
 });
