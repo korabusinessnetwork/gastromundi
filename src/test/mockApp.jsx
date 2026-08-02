@@ -111,6 +111,12 @@ export function createAppMockValue(overrides = {}) {
     setMetodosTef: vi.fn(() => Promise.resolve({ error: null })),
     enfileirarOffline: vi.fn(),
     pendenciasOffline: 0,
+    // F005 — sangria/suprimento: por padrão nenhum movimento na sessão e o
+    // limite padrão de retirada sem autorização.
+    movimentosCaixa: [],
+    registrarMovimentoCaixa: vi.fn(() => Promise.resolve({ error: null })),
+    limiteSangria: 200,
+    setLimiteSangria: vi.fn(() => Promise.resolve({ error: null })),
     ...overrides,
   };
 }

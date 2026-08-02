@@ -160,6 +160,22 @@ Toda função que filtra uma lista por `tenant_id` para decidir o que a tela mos
 
 ---
 
+### Estado compartilhado é reconferido no handler, não só na tela
+Caixa aberto, comanda travada, turno ativo, assinatura em dia: tudo que mora no banco e chega por
+realtime muda **enquanto o modal está aberto**, num aparelho que não é este.
+
+- **Sumir com o botão é conveniência; a regra mora onde a escrita acontece.** O ponto de entrada
+  gated por `caixaAberto` na `Sidebar` dá a impressão de que a condição está aplicada — mas quem
+  abriu o modal antes do estado virar continua com um caminho até o insert.
+- **A checagem vai imediatamente antes do insert**, no handler do `AppContext`, e devolve
+  `{ error: { message } }` no mesmo formato do erro do Supabase — a tela já sabe mostrar isso.
+- **O sintoma quando falta é mudo:** a linha entra com o recorte de uma sessão já conferida e
+  nenhum fechamento futuro a soma. Não há erro, não há tela quebrada, só dinheiro fora da conta.
+- **Não substitui a RLS nem é substituído por ela:** a policy responde "este cargo pode escrever",
+  não "agora é hora". Estado de operação é a camada de cima.
+
+---
+
 ## Padrões de API
 
 ### Formato de Resposta

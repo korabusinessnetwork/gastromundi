@@ -944,6 +944,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Limite de sangria — dinheiro, tabular-nums para o decimal não dançar. */
+.geral-tab__input-limite {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+
 .geral-tab__label-dias {
   font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
   line-height: var(--lh-sm);

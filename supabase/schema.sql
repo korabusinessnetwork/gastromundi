@@ -381,7 +381,7 @@ CREATE TABLE public.fechamentos (
 
 -- ── config (chave/valor de configurações do caixa) ────────────
 -- Keys atuais: fundo_atual, caixa_aberto, sessao_aberta_em,
--- meios_pagamento, taxa_servico, metodos_custom.
+-- meios_pagamento, taxa_servico, metodos_custom, limite_sangria (20260916).
 -- (keys 'credentials' e 'estoque' foram removidas — 20260704/20260705)
 -- PK composta desde 20260738: a chave natural `key` era global e o 2º
 -- tenant colidiria em 'caixa_aberto' sem sequer enxergar a linha do 1º.
@@ -391,6 +391,25 @@ CREATE TABLE public.config (
   tenant_id uuid  NOT NULL DEFAULT public.tenant_atual_id() REFERENCES public.tenants(id), -- 20260724
   PRIMARY KEY (tenant_id, key)  -- 20260738
 );
+
+-- ── caixa_movimentos — 20260916_caixa_movimentos.sql (F005) ───
+-- Sangria (dinheiro sai da gaveta) e suprimento (reforço de troco) da
+-- sessão de caixa. Entram no valor esperado do fechamento:
+--   esperado = fundo + entradas em dinheiro + suprimentos − sangrias.
+-- Sem policy de UPDATE nem de DELETE, de propósito: é trilha de
+-- auditoria. Errou o valor? Registra o movimento inverso.
+CREATE TABLE public.caixa_movimentos (
+  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id        uuid        NOT NULL DEFAULT public.tenant_atual_id() REFERENCES public.tenants(id),
+  tipo             text        NOT NULL,   -- CHECK: 'sangria' | 'suprimento'
+  valor            numeric     NOT NULL,   -- CHECK: > 0 (o sinal está no tipo)
+  motivo           text        NOT NULL,
+  autor            text        NOT NULL,   -- username, mesma chave do activity_log
+  autorizado_por   text,                   -- só quando passou do limite_sangria
+  sessao_aberta_em timestamptz,            -- recorte da sessão para o fechamento
+  created_at       timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX caixa_movimentos_sessao_idx ON public.caixa_movimentos (tenant_id, created_at DESC);
 
 -- ── operator_logs (auditoria fire-and-forget) ─────────────────
 CREATE TABLE public.operator_logs (

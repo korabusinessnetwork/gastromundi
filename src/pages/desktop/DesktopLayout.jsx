@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
@@ -10,6 +10,10 @@ import Notification, { useNotification } from "@/components/shared/Notification"
 import JarvasPanel from "@/components/shared/JarvasPanel";
 import FechamentoModal from "@/components/modals/FechamentoModal";
 import AberturaCaixaModal from "@/components/modals/AberturaCaixaModal";
+import MovimentoCaixaModal from "@/components/modals/MovimentoCaixaModal";
+import { inicioSessao } from "@/components/modals/FechamentoModal";
+import { movimentosDaSessao, dinheiroDisponivel, ROTULO_TIPO } from "@/lib/caixaMovimentos";
+import { totalPorMetodo } from "@/utils/pagamentos";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
@@ -18,7 +22,7 @@ import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import "./DesktopLayout.css";
 
 export default function DesktopLayout() {
-  const { currentUser, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant } = useApp();
+  const { currentUser, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant, users, movimentosCaixa, registrarMovimentoCaixa, limiteSangria } = useApp();
   // tema.nome_exibicao → nome cadastrado do estabelecimento → marca neutra
   // da plataforma. Nunca a marca de outro cliente (decisão 017).
   const nomeEstabelecimento = nomeExibicaoTenant(tenant?.tema, tenant?.nome);
@@ -31,7 +35,31 @@ export default function DesktopLayout() {
 
   const [showFechamento, setShowFechamento] = useState(false);
   const [showAbertura,   setShowAbertura]   = useState(false);
+  const [showMovimento,  setShowMovimento]  = useState(false);
   const [menuAberto,     setMenuAberto]     = useState(false);
+
+  // F005 — quanto existe fisicamente na gaveta agora: fundo + o que entrou em
+  // dinheiro nesta sessão + reforços − retiradas. É o teto da sangria, então
+  // usa a mesma janela de sessão do fechamento.
+  const dinheiroNaGaveta = useMemo(() => {
+    const inicio = inicioSessao(sessaoAbertaEm);
+    const vendasDinheiro = (sales ?? [])
+      .filter(s => s && !s.cancelada && new Date(s.at).getTime() >= inicio)
+      .reduce((soma, v) => soma + (totalPorMetodo(v).dinheiro ?? 0), 0);
+    return dinheiroDisponivel({
+      fundo: fundoAtual,
+      vendasDinheiro,
+      movimentos: movimentosDaSessao(movimentosCaixa, inicio),
+    });
+  }, [sales, fundoAtual, sessaoAbertaEm, movimentosCaixa]);
+
+  // Só admin/gerente autorizam sangria acima do limite — e autorizam a si
+  // mesmos, sem digitar a própria senha.
+  const autorizadores = useMemo(
+    () => (users ?? []).filter(u => (u.role === "admin" || u.role === "gerente") && u.active !== false),
+    [users]
+  );
+  const podeAutorizarSozinho = currentUser?.role === "admin" || currentUser?.role === "gerente";
 
   const isMob = width < 768;
   const [sidebarRecolhida, setSidebarRecolhida] = useState(false);
@@ -60,6 +88,7 @@ export default function DesktopLayout() {
               caixaAberto={caixaAberto}
               onFechamento={() => setShowFechamento(true)}
               onAbertura={() => setShowAbertura(true)}
+              onMovimentoCaixa={() => setShowMovimento(true)}
               onLogout={logout}
             />
           </div>
@@ -112,6 +141,7 @@ export default function DesktopLayout() {
               caixaAberto={caixaAberto}
               onFechamento={() => { setShowFechamento(true); setMenuAberto(false); }}
               onAbertura={() => { setShowAbertura(true); setMenuAberto(false); }}
+              onMovimentoCaixa={() => { setShowMovimento(true); setMenuAberto(false); }}
               onLogout={logout}
               onClose={() => setMenuAberto(false)}
             />
@@ -206,6 +236,25 @@ export default function DesktopLayout() {
             setShowAbertura(false);
           }}
           onClose={() => setShowAbertura(false)}
+        />
+      )}
+
+      {showMovimento && (
+        <MovimentoCaixaModal
+          disponivel={dinheiroNaGaveta}
+          limite={limiteSangria}
+          autorizadores={autorizadores}
+          podeAutorizarSozinho={podeAutorizarSozinho}
+          onConfirm={async (dados) => {
+            const resultado = await registrarMovimentoCaixa(dados);
+            // O modal fica aberto no erro e mostra a mensagem — aqui só
+            // avisamos o sucesso, que some da tela junto com o modal.
+            if (!resultado?.error) {
+              notify(`Registrado: ${ROTULO_TIPO[dados.tipo]} de R$ ${Number(dados.valor).toFixed(2)}.`, "ok");
+            }
+            return resultado;
+          }}
+          onClose={() => setShowMovimento(false)}
         />
       )}
     </div>

@@ -15,6 +15,7 @@ import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
 import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
 import { criarLancamento } from "@/lib/financeiro";
 import { METODOS_TEF_PADRAO } from "@/lib/tef";
+import { LIMITE_SANGRIA_PADRAO, limiteSangriaValido, validarMovimento } from "@/lib/caixaMovimentos";
 import { processarBaixaEstoque, gerarAlertaBaixaFalhou, isRpcAusente } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { LOCK_TTL_MS } from "@/lib/comandaLock";
@@ -94,6 +95,9 @@ export function AppProvider({ children }) {
   const [metodosTef,      setMetodosTefLocal]     = useState(METODOS_TEF_PADRAO); // quais métodos usam maquininha (TEF)
   const [taxaServico,     setTaxaServicoLocal]    = useState(false);
   const [diasAlertaValidade, setDiasAlertaValidadeLocal] = useState(7); // C1 — janela de alerta de validade
+  // F005 — sangrias e suprimentos da sessão de caixa (trilha de auditoria).
+  const [movimentosCaixa, setMovimentosCaixaLocal] = useState([]);
+  const [limiteSangria,   setLimiteSangriaLocal]   = useState(LIMITE_SANGRIA_PADRAO);
   const [estoque,         setEstoqueLocal]        = useState({});
   const [estoqueMinimos,  setEstoqueMinimosLocal] = useState({});
   const [tenant,          setTenantLocal]         = useState(null); // Fase 1 — camada de comercialização (ADR-005)
@@ -383,6 +387,7 @@ export function AppProvider({ children }) {
         { data: gruposData,   error: eGrupos   },
         { data: catGrupoData, error: eCatGrupo },
         { data: rolePermsData },
+        { data: movimentosData, error: eMovimentos },
       ] = await Promise.all([
         supabase.from("products").select("*").eq("active", true).order("id"),
         buscarPendingData(),
@@ -390,7 +395,7 @@ export function AppProvider({ children }) {
         buscarSalesData(),
         buscarUsers(),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","metodos_tef","dias_alerta_validade","ponte_endereco"]),
+        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","metodos_tef","dias_alerta_validade","ponte_endereco","limite_sangria"]),
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
         // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
         buscarBootstrapTenant(),
@@ -399,6 +404,13 @@ export function AppProvider({ children }) {
         supabase.from("categoria_grupo").select("category,grupo_id"),
         // Permissões por cargo do tenant (matriz editável, decisão 017).
         buscarRolePermissions(),
+        // F005 — sangrias/suprimentos. Campos nomeados: tabela de caixa não
+        // aceita `select *`. Só a janela recente interessa (a conta é sempre
+        // da sessão aberta), então limita em vez de arrastar o histórico.
+        supabase.from("caixa_movimentos")
+          .select("id,tipo,valor,motivo,autor,autorizado_por,created_at")
+          .order("created_at", { ascending: false })
+          .limit(200),
       ]);
 
       if (eUsers)    console.error("[bootstrap] users error:", eUsers);
@@ -410,6 +422,7 @@ export function AppProvider({ children }) {
       if (eTenant)   console.error("[bootstrap] tenant error:", eTenant);
       if (eGrupos)   console.error("[bootstrap] grupos_categoria error:", eGrupos);
       if (eCatGrupo) console.error("[bootstrap] categoria_grupo error:", eCatGrupo);
+      if (eMovimentos) console.error("[bootstrap] caixa_movimentos error:", eMovimentos);
 
       // ── Offline (Leva 11): sem internet, hidrata do último snapshot ──
       // e deixa o PDV operar; os pedidos entram na fila local.
@@ -436,6 +449,7 @@ export function AppProvider({ children }) {
 
       if (gruposData)   setGruposCategoriaLocal(gruposData);
       if (catGrupoData) setCategoriaGruposLocal(catGrupoData);
+      if (movimentosData) setMovimentosCaixaLocal(movimentosData);
 
       if (productsData?.length)    setProductsLocal(productsData);
       if (pendingData)             setPendingLocal(pendingData);
@@ -482,6 +496,10 @@ export function AppProvider({ children }) {
         if (Array.isArray(tef?.value)) setMetodosTefLocal(tef.value);
         const diasValidade = configData.find(c => c.key === "dias_alerta_validade");
         if (diasValidade?.value != null && !isNaN(Number(diasValidade.value))) setDiasAlertaValidadeLocal(Number(diasValidade.value));
+        // F005 — teto da sangria sem autorização, por estabelecimento
+        // (decisão 017). Valor torto cai no padrão dentro de limiteSangriaValido.
+        const limite = configData.find(c => c.key === "limite_sangria");
+        if (limite?.value != null) setLimiteSangriaLocal(limiteSangriaValido(limite.value));
         // Leva 13 — endereço do Palm na ponte local (salvo pela bridge)
         const ponte = configData.find(c => c.key === "ponte_endereco");
         if (typeof ponte?.value === "string" && ponte.value) setPonteEnderecoLocal(ponte.value);
@@ -1262,6 +1280,56 @@ export function AppProvider({ children }) {
     return { error: null };
   };
 
+  // ── Actions: Movimentos de caixa (F005) ───────────────────────
+  // Sangria (dinheiro sai) e suprimento (troco entra). Sem otimismo: só
+  // entra no estado local depois que o banco confirmou — um movimento que
+  // "existe" só na tela mudaria o valor esperado do fechamento sem lastro.
+  const registrarMovimentoCaixa = async ({ tipo, valor, motivo, autorizadoPor, disponivel } = {}) => {
+    // O botão só aparece com o caixa aberto, mas outro dispositivo pode ter
+    // fechado o caixa com este modal já na tela: o movimento entraria numa
+    // sessão que o fechamento não vai mais somar.
+    if (!caixaAberto) {
+      return { error: { message: "O caixa está fechado — abra o caixa antes de movimentar dinheiro." } };
+    }
+
+    const { ok, erro } = validarMovimento({ tipo, valor, motivo, disponivel });
+    if (!ok) return { error: { message: erro } };
+
+    const linha = {
+      tipo,
+      valor: Number(valor),
+      motivo: sanitizeInput(String(motivo).trim()),
+      autor: currentUser?.username ?? "",
+      autorizado_por: autorizadoPor ? sanitizeInput(String(autorizadoPor)) : null,
+      sessao_aberta_em: sessaoAbertaEm ?? null,
+    };
+
+    const { data, error } = await supabase
+      .from("caixa_movimentos")
+      .insert(linha)
+      .select("id,tipo,valor,motivo,autor,autorizado_por,created_at")
+      .single();
+
+    if (error) {
+      console.error("registrarMovimentoCaixa error:", error);
+      reportarFalha(error, { acao: "registrarMovimentoCaixa", tabela: "caixa_movimentos", tipo });
+      return { error };
+    }
+
+    setMovimentosCaixaLocal(prev => [data, ...prev]);
+    emitirEvento(tipo === "sangria" ? "caixa.sangria" : "caixa.suprimento", "caixa", {
+      valor: data.valor,
+      autorizado: !!data.autorizado_por,
+    }, currentUser?.username);
+    logAction(currentUser?.username, `caixa:${tipo}`, {
+      msg: `${tipo === "sangria" ? "Sangria" : "Suprimento"} de R$ ${Number(data.valor).toFixed(2)} · ${data.motivo}`,
+      name: currentUser?.name,
+      role: currentUser?.role,
+      autorizado_por: data.autorizado_por,
+    });
+    return { error: null, movimento: data };
+  };
+
   // ── Actions: Estoque ──────────────────────────────────────────
   const updateEstoque = async (productId, qty) => {
     // Quantidade não numérica virava NaN aqui (`Math.max(0, undefined)` é NaN):
@@ -1560,6 +1628,16 @@ export function AppProvider({ children }) {
     return gravarConfig("dias_alerta_validade", n, () => setDiasAlertaValidadeLocal(anterior));
   };
 
+  // F005 — teto da sangria sem autorização de gerente. Por estabelecimento
+  // (decisão 017); a policy da 20260744 já impede o cargo `caixa` de gravar
+  // esta chave, então quem opera não afrouxa o próprio limite.
+  const setLimiteSangria = async (val) => {
+    const anterior = limiteSangria;
+    const n = limiteSangriaValido(val);
+    setLimiteSangriaLocal(n);
+    return gravarConfig("limite_sangria", n, () => setLimiteSangriaLocal(anterior));
+  };
+
   // ── Actions: Grupos de categoria (C3) ─────────────────────────
   // Mapeia uma categoria (texto livre de products.category) a um grupo.
   // grupoId null/"" remove o mapeamento.
@@ -1672,6 +1750,8 @@ export function AppProvider({ children }) {
     setFundoAtual, setCaixaAberto, setSessaoAbertaEm, setMeiosPagamento, updateEstoque, baixarEstoque, entradaEstoque, baixarEstoqueSubproduto, setMinimoEstoque, recarregarEstoque,
     taxaServico, setTaxaServico,
     diasAlertaValidade, setDiasAlertaValidade,
+    movimentosCaixa, registrarMovimentoCaixa,
+    limiteSangria, setLimiteSangria,
     // C3 — grupos de categoria (radar do Palm + mapeamento em Configurações)
     gruposCategoria, categoriaGrupos, categoriaGrupoMap, setCategoriaGrupo,
     metodosCustom, setMetodosCustom,

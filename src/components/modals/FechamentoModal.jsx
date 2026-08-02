@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { round2 } from "@/lib/vendas";
 import { TOLERANCIA_CENTAVO, situacaoCaixa, ROTULO_SITUACAO } from "@/lib/caixa";
+import { movimentosDaSessao, totalPorTipo, ajusteEsperadoDinheiro } from "@/lib/caixaMovimentos";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
@@ -44,7 +45,7 @@ export function inicioSessao(sessaoAbertaEm, agora = Date.now()) {
   return inicioDoDia.getTime();
 }
 
-function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios) {
+function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios, movimentosCaixa) {
   const inicio = inicioSessao(sessaoAbertaEm);
   // Leva 15.3 — vendas canceladas ficam fora do fechamento
   const hoje = (sales ?? []).filter(s => s && !s.cancelada && new Date(s.at).getTime() >= inicio);
@@ -58,12 +59,22 @@ function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios) {
       naoMapeados[metodo] = (naoMapeados[metodo] ?? 0) + valor;
     }
   }); });
-  if (m.dinheiro !== undefined) m.dinheiro += fundoAtual;
-  return { hoje, m, naoMapeados };
+  // F005 — só os movimentos desta abertura de caixa. Sem o recorte, a sangria
+  // de ontem derrubaria o esperado de hoje.
+  const movimentos = movimentosDaSessao(movimentosCaixa, inicio);
+  const sangrias    = totalPorTipo(movimentos, "sangria");
+  const suprimentos = totalPorTipo(movimentos, "suprimento");
+  if (m.dinheiro !== undefined) {
+    // esperado = fundo + entradas em dinheiro + suprimentos − sangrias
+    // (CAIXA.md). Sem as duas últimas parcelas, todo dinheiro tirado da gaveta
+    // por um motivo legítimo aparecia aqui como falta.
+    m.dinheiro += fundoAtual + ajusteEsperadoDinheiro(movimentos);
+  }
+  return { hoje, m, naoMapeados, sangrias, suprimentos };
 }
 
 export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onConfirm, onClose }) {
-  const { meiosPagamento, metodosCustom } = useApp();
+  const { meiosPagamento, metodosCustom, movimentosCaixa } = useApp();
   const meios = meiosPagamento?.length ? meiosPagamento : Object.keys(METODOS_CATALOG);
   const customLabels = useMemo(
     () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),
@@ -73,9 +84,9 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
   const [salvando,    setSalvando]    = useState(false);
   const [observacao,  setObservacao]  = useState("");
 
-  const { hoje, m: sistema, naoMapeados } = useMemo(
-    () => buildSistema(sales, fundoAtual, sessaoAbertaEm, meios),
-    [sales, fundoAtual, sessaoAbertaEm, meios]
+  const { hoje, m: sistema, naoMapeados, sangrias, suprimentos } = useMemo(
+    () => buildSistema(sales, fundoAtual, sessaoAbertaEm, meios, movimentosCaixa),
+    [sales, fundoAtual, sessaoAbertaEm, meios, movimentosCaixa]
   );
 
   const totalVendas = round2(hoje.reduce((s, v) => s + (v.total ?? 0), 0));
@@ -200,6 +211,10 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
                     {metodo === "dinheiro" && (
                       <div className="fechamento-modal__fundo-nota" style={{ color: varColor(C.muted), marginTop: 3, paddingLeft: 23 }}>
                         inclui fundo {fmtR(fundoAtual)}
+                        {/* Sem dizer aqui de onde veio o desconto, o operador
+                            só via um esperado menor e não sabia por quê. */}
+                        {sangrias    > 0 && <> · − retiradas {fmtR(sangrias)}</>}
+                        {suprimentos > 0 && <> · + reforços {fmtR(suprimentos)}</>}
                       </div>
                     )}
                   </div>
@@ -275,6 +290,11 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
         }}>
           <Row label="Total de Vendas (sistema)" value={fmtR(totalVendas)} muted />
           <Row label={`Fundo de Caixa`} value={fmtR(fundoAtual)} muted />
+          {/* F005 — as duas parcelas do meio da fórmula do CAIXA.md só
+              aparecem quando existem, para não poluir o caixa que não
+              movimentou nada. */}
+          {suprimentos > 0 && <Row label="Reforços de troco (entrou)" value={`+ ${fmtR(suprimentos)}`} muted />}
+          {sangrias    > 0 && <Row label="Retiradas do caixa (saiu)"  value={`− ${fmtR(sangrias)}`}    muted />}
           <div style={{ borderTop: `1px solid var(${C.border})`, paddingTop: 9, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span className="fechamento-modal__total-esperado-label" style={{ fontWeight: 700 }}>Total Esperado em Caixa</span>
             <span className="fechamento-modal__total-esperado-valor" style={{ fontWeight: 800, color: varColor(C.muted) }}>{fmtR(totalSistema)}</span>

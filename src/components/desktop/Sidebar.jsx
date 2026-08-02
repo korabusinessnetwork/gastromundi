@@ -18,8 +18,13 @@ import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
   LuHistory, LuX, LuUser, LuArrowLeft, LuShieldAlert, LuWallet, LuChefHat, LuUsers,
-  LuSparkles, LuFileText, LuFileCheck, LuTrash2, LuBike,
+  LuSparkles, LuFileText, LuFileCheck, LuTrash2, LuBike, LuBanknote,
 } from "react-icons/lu";
+
+// F005 — quem opera a gaveta. Mesma lista da policy de INSERT em
+// caixa_movimentos: oferecer o botão a quem o banco vai recusar seria
+// deixar o operador errar para só depois explicar (Princípio nº 1).
+const CARGOS_MOVIMENTO_CAIXA = ["admin", "gerente", "caixa"];
 
 const NAV_ICONS = {
   "/app/pdv":           LuReceipt,
@@ -36,7 +41,7 @@ const NAV_ICONS = {
   "/app/admin":         LuBriefcase,
 };
 
-export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogout, onBackToChoice, onClose }) {
+export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovimentoCaixa, onLogout, onBackToChoice, onClose }) {
   const { currentUser, pending, sales, sessaoAbertaEm, users, moduloHabilitado, cancelarVendaFechada, metodosCustom } = useApp();
   // Rótulos de método configurados pelo tenant (white-label, decisão 017).
   const customLabels = useMemo(
@@ -47,6 +52,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
   const { width } = useResponsive();
   const sz = getSizes(width);
   const role    = ROLES[currentUser?.role] || ROLES.garcom;
+  const podeMovimentarCaixa = CARGOS_MOVIMENTO_CAIXA.includes(currentUser?.role);
   const abertas  = pending.filter(o => o.status !== "closed");
   // Leva 15.3 — vendas canceladas saem da lista (ficam só na trilha de auditoria)
   const naoCanceladas = sales.filter(s => s && !s.cancelada);
@@ -750,6 +756,24 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onLogou
               <div className="sidebar__aviso-comandas-abertas" style={{ fontWeight: 600, color: varColor(C.red), textAlign: "center", padding: "4px 8px", background: `${alfa(C.red, "12")}`, borderRadius: 8, border: `1px solid ${alfa(C.red, "33")}` }}>
                 {abertas.length} comanda{abertas.length !== 1 ? "s" : ""} em aberto
               </div>
+            )}
+            {/* F005 — sangria/suprimento: só com o caixa aberto e só para
+                quem opera a gaveta. */}
+            {onMovimentoCaixa && podeMovimentarCaixa && (
+              <button
+                onClick={onMovimentoCaixa}
+                title="Registrar retirada ou reforço de troco"
+                className="sidebar__caixa-btn"
+                style={{
+                  width: "100%", padding: "11px 0", borderRadius: 10,
+                  border: `1px solid ${alfa(C.accent, "55")}`,
+                  background: `${alfa(C.accent, "0f")}`,
+                  color: varColor(C.accent), cursor: "pointer", fontWeight: 800,
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                }}
+              >
+                <LuBanknote size={15} /> Retirar / Colocar Dinheiro
+              </button>
             )}
             <button
               onClick={abertas.length === 0 ? onFechamento : undefined}

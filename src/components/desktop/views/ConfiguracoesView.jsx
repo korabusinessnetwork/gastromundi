@@ -20,6 +20,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { createPortal } from "react-dom";
 import { LuEye, LuEyeOff, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPlus, LuTrash2, LuWallet, LuX, LuTriangleAlert, LuPrinter, LuBike, LuReceipt, LuPalette } from "react-icons/lu";
 import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
+import { LIMITE_SANGRIA_PADRAO } from "@/lib/caixaMovimentos";
 import { logAction } from "@/lib/logger";
 import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/deliveryAdmin";
 import {
@@ -1292,12 +1293,17 @@ const ABAS_CONFIG = [
 ];
 
 function GeralTab({ sz }) {
-  const { taxaServico, setTaxaServico, diasAlertaValidade, setDiasAlertaValidade } = useApp();
+  const { taxaServico, setTaxaServico, diasAlertaValidade, setDiasAlertaValidade,
+          limiteSangria, setLimiteSangria } = useApp();
   const [saving, setSaving] = useState(false);
   const [dias, setDias] = useState(String(diasAlertaValidade ?? 7));
   const [savingDias, setSavingDias] = useState(false);
+  // F005 — o valor é por estabelecimento (decisão 017), nunca cravado na tela.
+  const [limite, setLimite] = useState(String(limiteSangria ?? LIMITE_SANGRIA_PADRAO));
+  const [savingLimite, setSavingLimite] = useState(false);
 
   useEffect(() => { setDias(String(diasAlertaValidade ?? 7)); }, [diasAlertaValidade]);
+  useEffect(() => { setLimite(String(limiteSangria ?? LIMITE_SANGRIA_PADRAO)); }, [limiteSangria]);
 
   const handleToggle = async () => {
     setSaving(true);
@@ -1311,9 +1317,20 @@ function GeralTab({ sz }) {
     setSavingDias(false);
   };
 
+  const handleSalvarLimite = async () => {
+    setSavingLimite(true);
+    await setLimiteSangria(limite);
+    setSavingLimite(false);
+  };
+
   const diasNum = Number(dias);
   const diasValido = Number.isFinite(diasNum) && diasNum >= 1 && diasNum <= 365;
   const diasAlterado = String(diasAlertaValidade ?? 7) !== String(dias).trim();
+
+  const limiteNum = Number(limite);
+  const limiteValido = Number.isFinite(limiteNum) && limiteNum > 0;
+  const limiteAlterado = String(limiteSangria ?? LIMITE_SANGRIA_PADRAO) !== String(limite).trim();
+  const podeSalvarLimite = limiteValido && limiteAlterado && !savingLimite;
 
   return (
     <div className="geral-tab">
@@ -1375,6 +1392,48 @@ function GeralTab({ sz }) {
             }}
           >
             {savingDias ? "Salvando…" : "Salvar"}
+          </button>
+        </div>
+      </div>
+
+      {/* F005 — limite de retirada sem autorização de gerente */}
+      <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
+        <div style={{ flex: 1 }}>
+          <div className="geral-tab__titulo">Retirada sem autorização</div>
+          <div className="geral-tab__ajuda">
+            Acima deste valor, tirar dinheiro do caixa exige a senha de um gerente
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span className="geral-tab__label-dias" style={{ color: varColor(C.muted) }}>R$</span>
+          <input
+            type="number"
+            min="1"
+            step="0.01"
+            value={limite}
+            onChange={e => setLimite(e.target.value)}
+            aria-label="Limite de retirada sem autorização"
+            className="geral-tab__input-limite"
+            style={{
+              width: 96, padding: "9px 12px", borderRadius: 10,
+              border: `1.5px solid ${limiteValido ? "var(--gm-input-border)" : varColor(C.red)}`,
+              background: "var(--gm-input-bg)", color: varColor(C.text),
+              fontFamily: "inherit", outline: "none", textAlign: "center",
+            }}
+          />
+          <button
+            onClick={handleSalvarLimite}
+            disabled={!podeSalvarLimite}
+            className="geral-tab__btn-salvar-dias"
+            style={{
+              padding: "9px 16px", borderRadius: 10, border: "none",
+              background: podeSalvarLimite ? varColor(C.accent) : varColor(C.faint),
+              color: podeSalvarLimite ? "#fff" : varColor(C.muted),
+              cursor: podeSalvarLimite ? "pointer" : "not-allowed",
+              fontWeight: 700, fontFamily: "inherit",
+            }}
+          >
+            {savingLimite ? "Salvando…" : "Salvar"}
           </button>
         </div>
       </div>

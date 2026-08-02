@@ -1,0 +1,94 @@
+/**
+ * F005 — Decisão 018 (CSS separado do JSX) + tokens --fs-* e --lh-* do design system.
+ *
+ * TAMANHO DE FONTE vem da escala tipográfica (src/styles/tipografia.css).
+ * Dinheiro = tabular-nums para o decimal alinhar quando o operador compara
+ * o disponível com o que está digitando.
+ */
+
+.movimento-caixa__icone-header {
+  font-size: var(--fs-2xl);
+  line-height: 1;
+}
+
+.movimento-caixa__titulo {
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
+.movimento-caixa__subtitulo {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.movimento-caixa__tipo-titulo {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.movimento-caixa__tipo-ajuda {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.movimento-caixa__disponivel {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.movimento-caixa__disponivel-valor {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.movimento-caixa__label {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.movimento-caixa__simbolo-moeda {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.movimento-caixa__input {
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.movimento-caixa__textarea {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.movimento-caixa__aviso {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.movimento-caixa__select,
+.movimento-caixa__senha {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.movimento-caixa__erro,
+.movimento-caixa__pendencia {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.movimento-caixa__botao-cancelar {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* O rótulo do botão é branco sobre cor cheia em qualquer tema do tenant —
+   fica aqui para não deixar hex solto no JSX (decisão 018). */
+.movimento-caixa__botao-confirmar {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  color: #fff;
+}
