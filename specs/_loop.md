@@ -2,6 +2,47 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 15 — F018, fatia 2 do PDV — o modal "Saldo do Dia" — 2026-08-02
+
+- **Spec:** `specs/f018-pdv-saldo-css.md`
+- **Resultado da review:** **aprovado sem ressalvas** — 10 de 10 critérios em sim, nenhuma rodada de
+  correção. `npx vitest run` em 194 de 194 arquivos e 3080 de 3080 testes (75,85s), nenhum arquivo
+  de teste tocado. `git diff --stat` nos dois arquivos previstos no spec: `PDVView.css` (+495) e
+  `PDVView/index.jsx` (217 linhas alteradas).
+- **Construído:** o `SaldoModal` saiu de **73 para 9** estilos inline, e os 9 que sobraram carregam
+  valor de runtime (escala por breakpoint `sz.*`, alternância `isNarrow`, cor vinda de dado). A
+  seção "SaldoModal" do `PDVView.css` deixou de ser só tipografia e passou a ter cor, borda, layout
+  e estado. O arquivo inteiro foi de 228 para **164** inline; o `src/` foi de 2050 para **1986**.
+- **Quatro estados deixaram de ser ternário em JavaScript e viraram gancho nativo de CSS:**
+  `:disabled` no botão "Acessar", `:last-child` na divisória da lista, `:nth-child(odd)` na listra
+  zebrada e `[aria-invalid="true"]` na borda de erro. Os dois sem gancho viraram modificador de
+  classe (`--autorizado`, `--aberto`).
+- **A extração achou um defeito antigo, e ele é o motivo da única mudança de aparência:** a borda
+  inline do campo de senha vencia por especificidade a regra de `:focus` do `src/styles/inputs.css`
+  — esse era **o único input do sistema que não mostrava foco**, e ninguém tinha reportado porque o
+  anel de `box-shadow` aparecia mesmo assim. Com a borda na classe o campo se comporta como os
+  outros, e o `aria-invalid={!!senhaErro}` entrou junto para que o vermelho de senha errada não
+  fosse repintado de accent justo enquanto o operador digita.
+- **Nada foi corrigido pela review:** a auditoria não achou defeito no que foi construído. Três
+  suspeitas se dissolveram na conferência (um "TODO" que era substring de `METODOS_COLOR`, e três
+  classes que pareciam órfãs mas são de fora do trecho ou de comentário).
+- **O critério "nenhuma mudança de lógica" foi provado mecanicamente, não por memória:** removi
+  `style={{…}}` e `className=…` dos dois lados e comparei — sobraram três reflows de formatação e o
+  `aria-invalid` previsto no spec.
+- **Aprendido:** `memory/patterns.md` (a seção da borda de input ganhou a exceção do campo com erro,
+  e nasceu a seção "Estado de lista na extração de CSS", com o `idx % 2 === 0` que em CSS é `odd` e
+  não `even`), `memory/learnings.md` (o inline que **desliga** a parte do design system que depende
+  de estado; e métrica de backlog guarda o comando, não só o número),
+  `docs/09_BACKLOG/features.md` (F018 remedido com o comando ao lado) e o §8 do próprio spec.
+- **Commit:** `4609463` na branch `ciclo/s1-3-configuracoes`.
+- **Pendente de decisão (nenhuma bloqueia):** seguem de pé, sem novidade nesta rodada, o token
+  `--gm-sobre-accent`, o `line-height` de `.pdv__lock-desc` (1.6 vs 1.5 da escala) e os hex de marca
+  cravados em `METODOS_COLOR` / `ACTION_TYPE_META.caixa`, que não seguem o tema do tenant.
+- **Próximo item recomendado:** **F018, fatia 3 do `PDVView/index.jsx`** — não porque seja o maior
+  arquivo (não é mais: `DeliveryView.jsx` tem 217 contra 164), mas porque arquivo meio migrado é a
+  condição exata do defeito da rodada 13, em que a classe existia e o inline restante a mantinha
+  como letra morta. Terminar o arquivo antes de abrir outro é o que fecha esse risco.
+
 ## Rodada 14 — BUG001 — alfa concatenado em `var()` apaga a borda — 2026-08-02
 
 - **Spec:** `specs/bug001-alfa-concatenado-em-var.md`
