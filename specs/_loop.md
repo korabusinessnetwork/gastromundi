@@ -1,3 +1,11 @@
+## Rodada 45 — CONSOLE-UX 19 (escolher o endereço do cardápio na criação) — 2026-08-03
+- Spec: specs/console-endereco-na-criacao.md
+- Resultado da review: aprovado sem ressalvas — 16 de 16 (suíte 199 arquivos / 3388 testes, verde)
+- Aprendido: molde "regra do servidor espelhada no cliente para avisar, nunca para decidir" em memory/patterns.md (função pura + campo já normalizado + estado derivado + teste de deriva entre as duas pontas); o bug do endereço renomeado em silêncio em memory/bugs.md
+- Commit: 8b6fa31 na branch main
+- Pendente de decisão: (herdada da 41) pôr o USUÁRIO do responsável na mensagem de acesso exige RPC SECURITY DEFINER nova sobre `public.users` — vale criar? / (herdada da 44) o endereço do cardápio entra também na mensagem copiada, ou o texto fica como está? / (nova, fora de escopo) mudar o endereço de um estabelecimento JÁ criado exige RPC nova, porque a RLS de `tenants` só tem SELECT
+- Próximo item recomendado: CONSOLE-UX 20 — a senha provisória do responsável: botão "Gerar senha" e aviso de senha fraca no cadastro, porque hoje o dono inventa a senha do administrador do cliente no meio da venda (mínimo de 6 caracteres, campo visível) e nada o impede de repetir "123456" em todo cliente novo; só cliente, função pura, sem migration
+
 ## Rodada 44 — CONSOLE-UX 18 (o endereço do estabelecimento no cartão de primeiro acesso) — 2026-08-03
 - Spec: specs/console-endereco-no-cartao.md
 - Resultado da review: aprovado sem ressalvas — 12 de 12 (suíte 199 arquivos / 3348 testes, verde)
