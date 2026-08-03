@@ -27,13 +27,17 @@ const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/provisionar-
  * Nunca lança: falha de rede/RLS volta como { data: [], error } para o
  * chamador tratar o estado de erro na UI.
  *
- * @returns {Promise<{data: Array<{id:string,nome:string,plano_codigo:string,tema:object|null,created_at:string}>, error: object|null}>}
+ * O `slug` vem junto porque é o endereço da vitrine pública do
+ * estabelecimento — é dele que sai o atalho "Ver cardápio" da lista
+ * (CONSOLE-UX 15). Pode ser null em tenant anterior à 20260740.
+ *
+ * @returns {Promise<{data: Array<{id:string,nome:string,plano_codigo:string,tema:object|null,slug:string|null,created_at:string}>, error: object|null}>}
  */
 export async function listarEstabelecimentos() {
   try {
     const { data, error } = await supabase
       .from("tenants")
-      .select("id, nome, plano_codigo, tema, created_at")
+      .select("id, nome, plano_codigo, tema, slug, created_at")
       .order("created_at", { ascending: false });
     if (error) return { data: [], error };
     return { data: data ?? [], error: null };

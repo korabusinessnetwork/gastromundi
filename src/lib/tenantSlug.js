@@ -15,6 +15,8 @@
 // VITE_ROOT_DOMAIN e os subdomínios passam a resolver o tenant certo.
 // ──────────────────────────────────────────────────────────────────
 
+import { ehConsoleHost } from "./consoleHost";
+
 const SLUG_FALLBACK = (import.meta.env.VITE_TENANT_SLUG_FALLBACK || "gastromundi").toLowerCase();
 const ROOT_DOMAIN   = (import.meta.env.VITE_ROOT_DOMAIN || "").toLowerCase();
 
@@ -156,6 +158,40 @@ export function slugDaVitrine(hostname, search) {
   if (daQuery) return { slug: daQuery, origem: "query" };
 
   return { slug: resolverSlugTenant(hostname), origem: "fallback" };
+}
+
+/**
+ * Endereço da VITRINE PÚBLICA de um estabelecimento qualquer, para quem está
+ * OLHANDO DE FORA (o Console da plataforma). Diferente da prévia que o
+ * estabelecimento tem dentro do próprio app, aqui o slug não é o do host: é o
+ * do tenant que está no card.
+ *
+ * Duas formas, pela mesma precedência de `slugDaVitrine` (subdomínio > query):
+ *
+ *   - No host dedicado do Console (`console.dominio`), o rótulo "console" É uma
+ *     reivindicação de subdomínio e VENCERIA o `?loja=` — o link abriria a loja
+ *     errada (ou nenhuma). Lá se usa o endereço publicado do estabelecimento,
+ *     `https://<slug>.<root>/cardapio`, que é o que o cliente final digita.
+ *   - Fora dele (domínio compartilhado, dev, preview), caminho relativo com
+ *     `?loja=` — o que funciona hoje em produção.
+ *
+ * Devolve `null` quando o slug não forma um rótulo DNS válido (tenant anterior à
+ * 20260740, campo vazio, lixo no banco). Quem chama não renderiza o link: link
+ * quebrado na tela é pior do que atalho ausente.
+ *
+ * @param {string|null|undefined} slug - slug do tenant a ser aberto
+ * @param {string} [hostname] - default window.location.hostname
+ * @param {{subdominioConsole?: string, rootDomain?: string}} [opcoes] - overrides testáveis
+ * @returns {string|null} endereço da vitrine, ou null se o slug não serve
+ */
+export function urlDoCardapioPublico(slug, hostname, opcoes = {}) {
+  const { subdominioConsole, rootDomain = ROOT_DOMAIN } = opcoes;
+  const s = String(slug ?? "").toLowerCase().trim();
+  if (!slugValido(s)) return null;
+  if (ehConsoleHost(hostname, subdominioConsole, rootDomain)) {
+    return `https://${s}.${rootDomain}/cardapio`;
+  }
+  return `/cardapio?loja=${encodeURIComponent(s)}`;
 }
 
 /**

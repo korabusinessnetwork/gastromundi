@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
   LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
-  LuCopy, LuTag,
+  LuCopy, LuTag, LuExternalLink,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import {
@@ -14,6 +14,7 @@ import {
   filtrarPorPlano, normalizarFiltroPlano, contarPorPlano, montarMensagemPrimeiroAcesso,
 } from "@/lib/console";
 import { formatarReais } from "@/lib/deliveryPedidos";
+import { urlDoCardapioPublico } from "@/lib/tenantSlug";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
 import AlterarPlanoModal from "@/components/console/AlterarPlanoModal";
@@ -864,6 +865,10 @@ export default function ConsolePage() {
                     !erroAssinaturas &&
                     (situacao?.status === "ativo" || situacao?.status === "carencia") &&
                     (situacao?.valorMensal ?? 0) <= 0;
+                  // Endereço da vitrine pública deste estabelecimento
+                  // (CONSOLE-UX 15). Null quando o tenant não tem slug
+                  // utilizável — aí o atalho nem aparece.
+                  const urlCardapio = urlDoCardapioPublico(t.slug);
                   return (
                   // Botões IRMÃOS (não aninhados — HTML inválido): o card troca
                   // o plano, o botão de paleta troca o layout e o de peça
@@ -947,6 +952,23 @@ export default function ConsolePage() {
                         <LuReceipt size={17} aria-hidden />
                         <span className="console__pagamentos-nome">Pagamentos</span>
                       </button>
+                    )}
+                    {urlCardapio && (
+                      <a
+                        className="console__cardapio"
+                        href={urlCardapio}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Ver cardápio de ${t.nome} em nova aba`}
+                        title="Abrir a loja pública deste estabelecimento em nova aba"
+                      >
+                        {/* Seta de "sai daqui": é o único atalho do card que
+                            leva para fora do Console, e o ícone precisa dizer
+                            isso antes do clique — nenhum dos vizinhos (nota,
+                            etiqueta, recibo, paleta, peça) abre outra aba. */}
+                        <LuExternalLink size={17} aria-hidden />
+                        <span className="console__cardapio-nome">Ver cardápio</span>
+                      </a>
                     )}
                     <button
                       type="button"

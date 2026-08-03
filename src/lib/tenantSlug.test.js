@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolverSlugTenant, slugDoSubdominio, slugDaQuery, slugDaVitrine, emailDoLogin } from "./tenantSlug";
+import { resolverSlugTenant, slugDoSubdominio, slugDaQuery, slugDaVitrine, emailDoLogin, urlDoCardapioPublico } from "./tenantSlug";
 
 // Sem VITE_ROOT_DOMAIN / VITE_TENANT_SLUG no ambiente de teste, valem o
 // fallback 'gastromundi' e a heurística de 3+ rótulos.
@@ -187,6 +187,42 @@ describe("emailDoLogin", () => {
     for (const host of ["", ".", "..", ".kora.codes", "..kora.codes", "casacoffee.kora.codes", "localhost"]) {
       const e = emailDoLogin("admin", host);
       if (e !== null) expect(e, `host "${host}"`).not.toMatch(/@\.local$/);
+    }
+  });
+});
+
+describe("urlDoCardapioPublico (CONSOLE-UX 15)", () => {
+  it("fora do host do console, devolve o caminho relativo com ?loja=", () => {
+    expect(urlDoCardapioPublico("casacoffee", "kora.codes")).toBe("/cardapio?loja=casacoffee");
+    expect(urlDoCardapioPublico("bar-do-ze", "localhost")).toBe("/cardapio?loja=bar-do-ze");
+  });
+
+  it("normaliza maiúsculas e espaços do banco antes de montar o endereço", () => {
+    expect(urlDoCardapioPublico("  CasaCoffee  ", "localhost")).toBe("/cardapio?loja=casacoffee");
+  });
+
+  // No host do console o rótulo "console" É reivindicação de subdomínio e
+  // venceria o ?loja= (precedência de slugDaVitrine): o link abriria a loja
+  // errada. Lá vale o endereço publicado do próprio estabelecimento.
+  it("no host dedicado do console, devolve o endereço publicado do estabelecimento", () => {
+    const url = urlDoCardapioPublico("casacoffee", "console.kora.codes", {
+      subdominioConsole: "console",
+      rootDomain: "kora.codes",
+    });
+    expect(url).toBe("https://casacoffee.kora.codes/cardapio");
+  });
+
+  it("com o console em subdomínio ligado, host de tenant continua no caminho relativo", () => {
+    const url = urlDoCardapioPublico("casacoffee", "outraloja.kora.codes", {
+      subdominioConsole: "console",
+      rootDomain: "kora.codes",
+    });
+    expect(url).toBe("/cardapio?loja=casacoffee");
+  });
+
+  it("slug ausente, vazio ou fora do formato DNS devolve null", () => {
+    for (const slug of [null, undefined, "", "   ", "casa_coffee", "-casa", "casa-", "casa coffee", "loja.a"]) {
+      expect(urlDoCardapioPublico(slug, "localhost"), `slug ${JSON.stringify(slug)}`).toBeNull();
     }
   });
 });

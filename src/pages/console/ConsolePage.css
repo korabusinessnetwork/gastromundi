@@ -185,13 +185,15 @@
 }
 .console__item .console__card--clicavel { flex: 1; min-width: 0; }
 
-/* Botões laterais do item (cobrar, pagamentos, layout e add-ons) — mesmo
-   idioma visual do card clicável, para que se leiam como um bloco só. Só
+/* Botões laterais do item (cobrar, pagamentos, cardápio, layout e add-ons) —
+   mesmo idioma visual do card clicável, para que se leiam como um bloco só. Só
    "cobrar" foge do neutro, logo abaixo: é ação urgente, os outros são
-   consulta ou ajuste. */
+   consulta ou ajuste. "Ver cardápio" é âncora, não botão (leva para fora, em
+   aba nova), então desliga o sublinhado para não destoar da fileira. */
 .console__cobrar,
 .console__preco,
 .console__pagamentos,
+.console__cardapio,
 .console__layout,
 .console__addons {
   display: flex;
@@ -210,7 +212,9 @@
   flex-shrink: 0;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
+.console__cardapio { text-decoration: none; }
 .console__pagamentos:hover,
+.console__cardapio:hover,
 .console__layout:hover,
 .console__addons:hover {
   border-color: var(--gm-accent);
@@ -218,6 +222,7 @@
   color: var(--gm-accent);
 }
 .console__pagamentos:focus-visible,
+.console__cardapio:focus-visible,
 .console__layout:focus-visible,
 .console__addons:focus-visible {
   outline: 2px solid var(--gm-accent);
@@ -227,6 +232,7 @@
 .console__addons-nome,
 .console__cobrar-nome,
 .console__preco-nome,
+.console__cardapio-nome,
 .console__pagamentos-nome {
   font-size: 11px;
   font-weight: 700;
@@ -451,7 +457,9 @@
   .console__item { flex-wrap: wrap; }
   .console__item .console__card--clicavel { flex: 1 1 100%; }
   .console__cobrar,
+  .console__preco,
   .console__pagamentos,
+  .console__cardapio,
   .console__layout,
   .console__addons { flex: 1 1 0; min-width: 0; }
 }

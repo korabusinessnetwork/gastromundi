@@ -178,3 +178,22 @@ não bloqueou nada: `resumirPlataforma` **recalcula** o status por `calcularStat
 (só `cancelado`, que é manual, sobrevive ao recálculo). O teste de ordem por urgência só passou
 depois de mudar o `data_vencimento` para uma data vencida fora da carência. Para fabricar
 situação de cobrança em teste, mexa na data — o campo `status` do banco é cache.
+
+
+## No host do Console, `?loja=` perde para o subdomínio (rodada 41)
+
+O atalho "Ver cardápio" do Console abre a vitrine de OUTRO estabelecimento, e a precedência
+de `slugDaVitrine` (`src/lib/tenantSlug.js`) é **subdomínio > query > fallback**. Num Console
+que roda em `console.<dominio>` (o host dedicado do ADR-008 §7), o rótulo "console" é uma
+reivindicação de subdomínio válida e vence o `?loja=`: o link abriria a loja errada, ou
+nenhuma. Por isso `urlDoCardapioPublico` devolve o endereço publicado
+(`https://<slug>.<root>/cardapio`) quando `ehConsoleHost()` é verdadeiro, e só usa o caminho
+relativo com `?loja=` fora dele. Qualquer link novo do Console para uma superfície de tenant
+tem que responder a mesma pergunta: de que host ele vai ser clicado?
+
+## Nome acessível de botão do Console vem do texto, não do `title` (rodada 41)
+
+Em `src/pages/console/ConsolePage.test.jsx`, `getByRole("button", { name: /Trocar o layout/i })`
+não encontrou nada: os botões laterais do card usam o `title` como dica de mouse e trazem no
+corpo um rótulo curto (o nome do layout, "Sem add-ons"), que é o que vira nome acessível. Para
+mirar esses botões em teste, use `getByTitle` — ou o rótulo curto, quando ele for estável.

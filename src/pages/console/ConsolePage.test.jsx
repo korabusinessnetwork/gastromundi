@@ -2046,3 +2046,79 @@ describe("ConsolePage — lista de estabelecimentos por partes", () => {
     expect(cards()[0].textContent).toContain("Estabelecimento 25");
   });
 });
+
+// ── CONSOLE-UX 15 — prévia do cardápio de cada estabelecimento ──────
+//
+// O dono acaba de criar (ou de cobrar) um estabelecimento e quer ver a loja
+// de pé. Até aqui isso só existia dentro do app do próprio estabelecimento,
+// onde o super-admin não entra.
+describe("ConsolePage — atalho para o cardápio do estabelecimento", () => {
+  // Um com slug, um sem (tenant anterior à migration 20260740).
+  const COM_SLUG = [
+    { ...TENANTS[0], slug: "bar-do-ze" },
+    { ...TENANTS[1], slug: null },
+  ];
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(COM_SLUG));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("o card com slug ganha um link para a vitrine pública daquele estabelecimento", async () => {
+    renderWithProviders(<ConsolePage />);
+
+    const link = await screen.findByRole("link", { name: /Ver cardápio de Bar do Zé/i });
+    expect(link).toHaveAttribute("href", "/cardapio?loja=bar-do-ze");
+    expect(within(link).getByText("Ver cardápio")).toBeInTheDocument();
+  });
+
+  it("abre em aba nova, sem entregar a aba do Console à página aberta", async () => {
+    renderWithProviders(<ConsolePage />);
+
+    const link = await screen.findByRole("link", { name: /Ver cardápio de Bar do Zé/i });
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  // Prevenção de erro > mensagem de erro: sem slug não há endereço, então o
+  // atalho não existe — melhor do que um link que abre a loja de outro.
+  it("card sem slug não mostra o atalho", async () => {
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Café Central");
+
+    expect(screen.queryByRole("link", { name: /Ver cardápio de Café Central/i })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Ver cardápio/i })).toHaveLength(1);
+  });
+
+  it("slug fora do formato de endereço também não vira link", async () => {
+    mockListarEstabelecimentos.mockResolvedValue(ok([{ ...TENANTS[0], slug: "bar do zé" }]));
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+
+    expect(screen.queryByRole("link", { name: /Ver cardápio/i })).not.toBeInTheDocument();
+  });
+
+  // O link é IRMÃO do card, não filho: âncora dentro de <button> é HTML
+  // inválido, e clicar nele trocaria o plano junto de abrir a loja.
+  it("o link não fica dentro do botão que troca o plano", async () => {
+    renderWithProviders(<ConsolePage />);
+    const link = await screen.findByRole("link", { name: /Ver cardápio de Bar do Zé/i });
+
+    expect(link.closest("button")).toBeNull();
+    expect(link.closest("li")).not.toBeNull();
+  });
+
+  it("o atalho não atrapalha os outros do mesmo card", async () => {
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+    const card = screen.getByRole("link", { name: /Ver cardápio de Bar do Zé/i }).closest("li");
+
+    expect(within(card).getByTitle("Trocar o layout deste estabelecimento")).toBeInTheDocument();
+    expect(within(card).getByTitle(/add-ons pagos deste estabelecimento/i)).toBeInTheDocument();
+  });
+});
