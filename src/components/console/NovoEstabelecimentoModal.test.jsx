@@ -637,3 +637,110 @@ describe("NovoEstabelecimentoModal — o usuário de acesso vem do responsável"
     expect(screen.getByText(/igual ao usuário de acesso/i)).toBeInTheDocument();
   });
 });
+
+// ── CONSOLE-UX 23 — confirmar antes de descartar o cadastro pela metade ──
+//
+// Fechar é a única ação sem volta do modal: some o cadastro inteiro, inclusive
+// a senha sorteada, que não é relida de lugar nenhum. O que estes testes
+// protegem: que um clique no "X" no meio da venda não apague o trabalho, e que
+// o formulário ainda vazio continue fechando num clique só.
+describe("NovoEstabelecimentoModal — descartar o cadastro", () => {
+  const fechar = () => screen.getByRole("button", { name: /^Fechar$/i });
+  const cancelar = () => screen.getByRole("button", { name: /^Cancelar$/i });
+  const descartar = () => screen.queryByRole("button", { name: /^Descartar$/i });
+  const continuar = () => screen.queryByRole("button", { name: /Continuar preenchendo/i });
+
+  it("formulário vazio fecha na hora, sem perguntar", async () => {
+    const { user, onFechar } = montar();
+    await user.click(fechar());
+
+    expect(onFechar).toHaveBeenCalledTimes(1);
+    expect(descartar()).toBeNull();
+  });
+
+  it("o Cancelar do rodapé também fecha na hora quando não há nada", async () => {
+    const { user, onFechar } = montar();
+    await user.click(cancelar());
+
+    expect(onFechar).toHaveBeenCalledTimes(1);
+  });
+
+  it("com dado preenchido, o X pergunta antes e não fecha", async () => {
+    const { user, onFechar } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.click(fechar());
+
+    expect(onFechar).not.toHaveBeenCalled();
+    expect(screen.getByText(/Descartar este cadastro\?/i)).toBeInTheDocument();
+    expect(descartar()).toBeInTheDocument();
+  });
+
+  it("o plano já vem escolhido, então sozinho não faz o modal perguntar", async () => {
+    const { user, onFechar } = montar();
+    await user.selectOptions(screen.getByLabelText(/^Plano$/i), "basico");
+    await user.click(fechar());
+
+    expect(onFechar).toHaveBeenCalledTimes(1);
+  });
+
+  it("a senha gerada conta — é o dado que não existe em nenhum outro lugar", async () => {
+    const { user, onFechar } = montar();
+    await user.click(screen.getByRole("button", { name: /Gerar senha/i }));
+    await user.click(fechar());
+
+    expect(onFechar).not.toHaveBeenCalled();
+    expect(screen.getByText(/inclusive a senha do responsável/i)).toBeInTheDocument();
+  });
+
+  it("continuar preenchendo devolve o rodapé com os dados intactos", async () => {
+    const { user, onFechar } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.click(cancelar());
+    await user.click(continuar());
+
+    expect(onFechar).not.toHaveBeenCalled();
+    expect(descartar()).toBeNull();
+    expect(screen.getByLabelText(/Nome do estabelecimento/i)).toHaveValue("Bar do Zé");
+    expect(criar()).toBeInTheDocument();
+  });
+
+  it("descartar é o único caminho que fecha de verdade", async () => {
+    const { user, onFechar } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.click(fechar());
+    await user.click(descartar());
+
+    expect(onFechar).toHaveBeenCalledTimes(1);
+  });
+
+  it("enquanto a pergunta está na tela, criar não fica ao lado dela", async () => {
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.click(fechar());
+
+    expect(screen.queryByRole("button", { name: /Criar estabelecimento/i })).toBeNull();
+    expect(continuar()).toBeInTheDocument();
+  });
+
+  it("preencher e apagar volta a fechar num clique só", async () => {
+    const { user, onFechar } = montar();
+    const campo = screen.getByLabelText(/Nome do estabelecimento/i);
+    await user.type(campo, "Bar do Zé");
+    await user.clear(campo);
+    await user.click(fechar());
+
+    expect(onFechar).toHaveBeenCalledTimes(1);
+  });
+
+  it("erro do servidor na tela não some sozinho — descartar ali também pergunta", async () => {
+    mockProvisionar.mockResolvedValue({ error: "Falha de rede ao falar com o servidor" });
+    const { user, onFechar } = montar();
+    await preencher(user);
+    await user.click(criar());
+    expect(await screen.findByText(/Falha de rede/i)).toBeInTheDocument();
+
+    await user.click(fechar());
+    expect(onFechar).not.toHaveBeenCalled();
+    expect(descartar()).toBeInTheDocument();
+  });
+});

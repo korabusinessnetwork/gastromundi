@@ -795,6 +795,29 @@ export function validarNovoEstabelecimento(f = {}, slugsEmUso = []) {
   return { ok: Object.keys(erros).length === 0, erros };
 }
 
+/**
+ * O cadastro de estabelecimento tem algo digitado? (CONSOLE-UX 23) É o que
+ * decide se fechar o modal pergunta antes de descartar.
+ *
+ * Só conta campo DIGITÁVEL. O plano fica de fora de propósito: ele já vem
+ * escolhido quando o modal abre, então perguntar por causa dele seria perguntar
+ * sempre. Espaço em branco também não conta — não é dado que se lamente perder.
+ *
+ * Os campos derivados (endereço do cardápio, usuário de acesso) entram pelo que
+ * o dono digitou neles, não pela derivação: quem os deriva é o nome de origem,
+ * que já está na lista.
+ *
+ * @param {object} f campos do formulário, como estão na tela
+ * @returns {boolean} true se há algo a perder ao fechar
+ */
+export function cadastroTemDados(f = {}) {
+  const campos = [f.nome, f.slug, f.endereco, f.mensalidade, f.adminNome, f.adminUsername];
+  const digitado = campos.some((c) => String(c ?? "").trim() !== "");
+  // A senha vai à parte: nela, espaço é caractere legítimo, e ela é o dado que
+  // mais dói perder — sorteada uma vez, não é relida de lugar nenhum.
+  return digitado || String(f.adminPassword ?? "") !== "";
+}
+
 // ── Senha provisória do responsável (CONSOLE-UX 20) ────────────────
 //
 // O dono lê essa senha em voz alta para o cliente na hora da venda, então o

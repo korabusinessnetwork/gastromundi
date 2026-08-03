@@ -197,6 +197,29 @@
   border-top: 1px solid var(--gm-border);
 }
 
+/* Confirmação de descarte (CONSOLE-UX 23): ocupa o rodapé inteiro, com a
+   pergunta em cima e as duas saídas embaixo, na mesma linha dos botões
+   normais — o dono não muda de lugar para responder. */
+.nem-footer--descarte {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nem-descarte__texto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--gm-red);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nem-descarte__acoes {
+  display: flex;
+  gap: 12px;
+}
+
 .nem-btn {
   flex: 1;
   padding: 13px 16px;

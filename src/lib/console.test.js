@@ -44,6 +44,7 @@ import {
   usernameSugeridoDoNome,
   MAX_USERNAME,
   MIN_USERNAME,
+  cadastroTemDados,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -317,6 +318,48 @@ describe("forcaDaSenha", () => {
 
   it("é pura: a mesma entrada devolve sempre o mesmo resultado", () => {
     expect(forcaDaSenha("casaverd1")).toEqual(forcaDaSenha("casaverd1"));
+  });
+});
+
+describe("cadastroTemDados", () => {
+  it("formulário recém-aberto não tem nada a perder", () => {
+    expect(cadastroTemDados({})).toBe(false);
+    expect(
+      cadastroTemDados({
+        nome: "", slug: "", endereco: "", mensalidade: "",
+        adminNome: "", adminUsername: "", adminPassword: "",
+      })
+    ).toBe(false);
+  });
+
+  it("qualquer campo digitável preenchido conta", () => {
+    expect(cadastroTemDados({ nome: "Bar do Zé" })).toBe(true);
+    expect(cadastroTemDados({ slug: "bardoze" })).toBe(true);
+    expect(cadastroTemDados({ endereco: "Rua A, 100" })).toBe(true);
+    expect(cadastroTemDados({ mensalidade: "300,00" })).toBe(true);
+    expect(cadastroTemDados({ adminNome: "José" })).toBe(true);
+    expect(cadastroTemDados({ adminUsername: "jose" })).toBe(true);
+    expect(cadastroTemDados({ adminPassword: "senha-forte" })).toBe(true);
+  });
+
+  it("o plano escolhido sozinho não conta — ele já vem selecionado", () => {
+    expect(cadastroTemDados({ planoCodigo: "avancado" })).toBe(false);
+  });
+
+  it("espaço em branco não é dado que se lamente perder", () => {
+    expect(cadastroTemDados({ nome: "   ", adminNome: "\t" })).toBe(false);
+  });
+
+  it("senha só de espaço conta — ali espaço é caractere de verdade", () => {
+    expect(cadastroTemDados({ adminPassword: "  " })).toBe(true);
+  });
+
+  it("não olha nada além dos campos que conhece e não muda a entrada", () => {
+    const form = { nome: "Bar do Zé", adminPassword: "abc" };
+    const copia = { ...form };
+    cadastroTemDados(form);
+    expect(form).toEqual(copia);
+    expect(cadastroTemDados({ enviando: true, erros: { nome: "x" } })).toBe(false);
   });
 });
 

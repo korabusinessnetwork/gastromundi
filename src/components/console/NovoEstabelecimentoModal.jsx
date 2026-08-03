@@ -12,6 +12,7 @@ import {
   forcaDaSenha,
   sugerirUsuarioLivre,
   usernameSugeridoDoNome,
+  cadastroTemDados,
   MENSALIDADE_MAXIMA,
   MAX_SLUG,
 } from "@/lib/console";
@@ -58,6 +59,8 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
   // Quantas vezes o servidor recusou ESTE texto de usuário (CONSOLE-UX 21).
   // Zera a cada mudança do campo, porque texto novo merece a sugestão nº 1.
   const [recusasDeUsuario, setRecusasDeUsuario] = useState(0);
+  // Pediu para fechar com o formulário preenchido (CONSOLE-UX 23).
+  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
 
   // Pré-seleciona o plano mais completo (último da lista, maior tier) —
   // é o caso comercial mais comum ao abrir um cliente novo. O usuário
@@ -124,6 +127,18 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
     setRecusasDeUsuario(0);
   };
 
+  // Fechar é a única ação sem volta daqui (CONSOLE-UX 23): some tudo, inclusive
+  // a senha sorteada, que não é relida de lugar nenhum. Com o formulário ainda
+  // vazio não há o que perder — fecha direto, sem inventar um clique a mais.
+  const pedirParaFechar = () => {
+    const temDados = cadastroTemDados({
+      nome, slug: slugTocado ? slug : "", endereco, mensalidade, adminNome,
+      adminUsername: usernameTocado ? adminUsername : "", adminPassword,
+    });
+    if (temDados) setConfirmandoDescarte(true);
+    else onFechar();
+  };
+
   const submeter = async () => {
     if (enviando || erroMensalidade) return;
     setErroServidor("");
@@ -185,7 +200,7 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
             <LuStore size={20} aria-hidden />
             <h2>Novo estabelecimento</h2>
           </div>
-          <button className="nem-fechar" onClick={onFechar} disabled={enviando} aria-label="Fechar">
+          <button className="nem-fechar" onClick={pedirParaFechar} disabled={enviando} aria-label="Fechar">
             <LuX size={20} />
           </button>
         </header>
@@ -443,18 +458,44 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
           )}
         </div>
 
-        <footer className="nem-footer">
-          <button className="nem-btn nem-btn--secundario" onClick={onFechar} disabled={enviando}>
-            Cancelar
-          </button>
-          <button
-            className="nem-btn nem-btn--primario"
-            onClick={submeter}
-            disabled={enviando || Boolean(erroMensalidade)}
-          >
-            {enviando ? (<><LuLoaderCircle size={16} className="nem-spin" aria-hidden /> Criando…</>) : "Criar estabelecimento"}
-          </button>
-        </footer>
+        {/* Uma decisão de cada vez: enquanto a pergunta está na tela, o rodapé
+            inteiro é ela — "Criar estabelecimento" ao lado de "Descartar"
+            faria o dono escolher entre coisas que não se comparam. */}
+        {confirmandoDescarte ? (
+          <footer className="nem-footer nem-footer--descarte">
+            <p className="nem-descarte__texto" role="alert">
+              <LuTriangleAlert size={16} aria-hidden /> Descartar este cadastro? Tudo que você
+              preencheu se perde{adminPassword ? ", inclusive a senha do responsável" : ""}.
+            </p>
+            <div className="nem-descarte__acoes">
+              <button
+                className="nem-btn nem-btn--secundario"
+                onClick={onFechar}
+              >
+                Descartar
+              </button>
+              <button
+                className="nem-btn nem-btn--primario"
+                onClick={() => setConfirmandoDescarte(false)}
+              >
+                Continuar preenchendo
+              </button>
+            </div>
+          </footer>
+        ) : (
+          <footer className="nem-footer">
+            <button className="nem-btn nem-btn--secundario" onClick={pedirParaFechar} disabled={enviando}>
+              Cancelar
+            </button>
+            <button
+              className="nem-btn nem-btn--primario"
+              onClick={submeter}
+              disabled={enviando || Boolean(erroMensalidade)}
+            >
+              {enviando ? (<><LuLoaderCircle size={16} className="nem-spin" aria-hidden /> Criando…</>) : "Criar estabelecimento"}
+            </button>
+          </footer>
+        )}
       </div>
     </div>,
     document.body

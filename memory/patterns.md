@@ -824,3 +824,27 @@ Duas consequências que só aparecem na segunda vez:
   `josemaria` e o dono troca o responsável para "Ana Paula", o campo já mostra
   `anapaula`: manter na tela o erro (e a contagem de recusas) de um texto que não
   existe mais faz a sugestão nº 2 aparecer sobre um usuário nunca enviado.
+
+## Confirmar descarte no rodapé do próprio modal, não num segundo overlay (rodada 49)
+
+`NovoEstabelecimentoModal` — fechar com o formulário preenchido troca o rodapé
+pela pergunta, em vez de abrir um modal por cima do modal. Vale para qualquer
+formulário longo do sistema:
+
+1. **A pergunta ocupa o rodapé inteiro, uma decisão de cada vez.** "Criar
+   estabelecimento" desaparece enquanto "Descartar" está na tela: deixar os dois
+   lado a lado faz o dono escolher entre coisas que não se comparam. O formulário
+   continua visível atrás, então ele responde vendo o que perde.
+2. **Voltar é a ação primária.** "Continuar preenchendo" leva a cor primária,
+   "Descartar" fica secundário. A ação destrutiva nunca é a mais bonita da tela.
+3. **Só pergunta se há o que perder, e "o que perder" é o que foi DIGITADO**
+   (`cadastroTemDados`, função pura em `src/lib/console.js`). Campo com valor
+   padrão — aqui o plano, que já vem escolhido — não conta, senão o modal
+   perguntaria sempre e a confirmação viraria ruído que se clica sem ler.
+4. **Espaço em branco não conta como dado, exceto em campo de senha**, onde
+   espaço é caractere de verdade.
+5. Campo derivado (endereço do cardápio, usuário de acesso) entra pelo valor
+   digitado, nunca pela derivação: quem o deriva é o campo de origem, que já
+   está na conta.
+6. Empilhar `createPortal` por cima de `createPortal` é o que se evita aqui —
+   dois overlays disputam foco, `aria-modal` e tecla Esc.
