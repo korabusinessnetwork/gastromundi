@@ -14,7 +14,7 @@
     `scroll`; some sozinha quando a tabela cabe inteira.
   - `docs/09_BACKLOG/features.md` — a linha do F022 ganhou a rodada CONSOLE-UX 29.
   - `docs/09_BACKLOG/tech-debt.md` — TD017 cadastrado (os oito `#f59e0b` literais do Console).
-- Commit: <hash> na branch main
+- Commit: f1736d1 na branch main
 - Pendente de decisão: as quatro herdadas — (1) usuário do responsável na mensagem de acesso e
   verificação de usuário livre antes do envio, ambas dependem de RPC `SECURITY DEFINER` sobre
   `public.users` (rodada 41); (2) o endereço do cardápio entra na mensagem copiada? (rodada 44);
