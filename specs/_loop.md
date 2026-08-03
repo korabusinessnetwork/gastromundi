@@ -11,7 +11,7 @@ Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 - Aprendido: memory/learnings.md — contador/legenda tem que derivar da lista renderizada,
   não da lista de origem (a legenda de urgência contava quem o filtro havia escondido);
   e escape unicode em regex vai por Edit, não por script de shell. Backlog F022 atualizado.
-- Commit: <preenchido no push> na branch main
+- Commit: f25e5d7 na branch main
 - Pendente de decisão: nenhuma
 - Próximo item recomendado: CONSOLE-UX 4 — ação de cobrança direto do card (hoje, ver que alguém está bloqueado e agir são duas abas diferentes)
 
