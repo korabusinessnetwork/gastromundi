@@ -1,3 +1,35 @@
+## Rodada 53 — CONSOLE-UX 27: quando a conexão volta, o Console se atualiza sozinho — 2026-08-03
+- Spec: specs/console-volta-da-conexao.md
+- Resultado da review: aprovado sem ressalvas — 13 de 13 (suíte 201 arquivos / 3524 testes, verde)
+- Aprendido:
+  - `memory/learnings.md` — dar o PRIMEIRO parâmetro a uma função já usada como handler quebra
+    todo `onClick={f}` do arquivo em silêncio: o evento do clique chega como o argumento novo e,
+    sendo objeto, é sempre verdadeiro (três call sites do `carregar` ligariam o modo silencioso
+    sem querer, e nenhum teste pegaria, porque a recarga funciona — só não mostra estado). E: o
+    ref de "ainda montado" precisa reafirmar `true` na entrada do efeito, senão o StrictMode
+    monta/desmonta/remonta e o ref fica falso para sempre, transformando todo `setState`
+    guardado por ele em no-op silencioso.
+  - `memory/patterns.md` — o padrão da recarga silenciosa na volta da conexão, em seis pontos:
+    o `silencioso` governa só o estado de carregando e a escrita do erro; recarga silenciosa que
+    falha não escreve `erro` (o bloco de falha substitui a lista e apagaria o que a pessoa
+    estava lendo); dispara na transição via ref que nasce com o valor da montagem; guard contra
+    duas recargas sobrepostas porque o navegador dispara `online` mais de uma vez em troca de
+    rede; uma faixa só trocando de cor, com o offline mandando sobre os outros estados; e o
+    recado de sucesso some sozinho enquanto o de falha fica, porque nele há ação a tomar.
+  - `docs/09_BACKLOG/features.md` — a linha do F022 ganhou as rodadas CONSOLE-UX 26 e 27; a 26
+    tinha ficado de fora do backlog na rodada 52.
+- Commit: 1aa2533 na branch main
+- Pendente de decisão: as quatro herdadas — (1) usuário do responsável na mensagem de acesso e
+  verificação de usuário livre antes do envio, ambas dependem de RPC `SECURITY DEFINER` sobre
+  `public.users` (rodada 41); (2) o endereço do cardápio entra na mensagem copiada? (rodada 44);
+  (3) editar o endereço de um estabelecimento já criado precisa de RPC nova, `tenants` só tem
+  SELECT na RLS (rodada 45); (4) subir o mínimo de senha de 6 para 8 mexe na borda e no cliente
+  juntos (rodada 46).
+- Próximo item recomendado: CONSOLE-UX 28 — levar as duas camadas das rodadas 52 e 53 (tradução
+  de erro e faixa de rede com recarga na volta) para o **PDV**, que é onde a conexão cai de
+  verdade: o Console o dono usa sentado, o PDV roda no balcão a tarde inteira e hoje mostra
+  `error.message` cru em vários pontos, sem avisar quando a rede some.
+
 ## Rodada 52 — CONSOLE-UX 26: o Console quando a internet cai — 2026-08-03
 - Spec: specs/console-sem-internet.md
 - Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 201 arquivos / 3519 testes, verde)
