@@ -1,3 +1,28 @@
+## Rodada 50 — CONSOLE-UX 24: Esc e clique fora fecham os modais do Console — 2026-08-03
+- Spec: specs/console-esc-e-clique-fora.md
+- Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 200 arquivos / 3490 testes, verde)
+- Aprendido:
+  - `memory/patterns.md` — as quatro regras de Esc/clique fora num modal
+    (`src/hooks/useFecharModal.js`): o gesto chama o MESMO caminho do "X" e nunca
+    `onFechar` direto, então Esc nunca destrói; arrastar de dentro para fora não fecha
+    (lembrar onde o `mousedown` começou — checar só o alvo do `onClick` não basta); a
+    função de fechar entra por `useRef` e não como dependência do efeito, senão cada
+    tecla digitada reassina o `keydown` do `document`; e o gesto desfaz sempre a coisa
+    mais interna antes de fechar o modal.
+- Commit: 910a4e6 na branch main
+- Pendente de decisão: as quatro herdadas — (1) usuário do responsável na mensagem de
+  acesso e verificação de usuário livre antes do envio, ambas dependem de RPC
+  `SECURITY DEFINER` sobre `public.users` (rodada 41); (2) o endereço do cardápio entra
+  na mensagem copiada? (rodada 44); (3) editar o endereço de um estabelecimento já criado
+  precisa de RPC nova, `tenants` só tem SELECT na RLS (rodada 45); (4) subir o mínimo de
+  senha de 6 para 8 mexe na borda e no cliente juntos (rodada 46).
+- Próximo item recomendado: CONSOLE-UX 25 — o foco dentro dos modais do Console. É o
+  resto do teclado que a rodada 50 deixou pela metade: hoje o modal abre e o foco fica
+  no botão que ficou lá atrás, o Tab passeia pela página inteira por baixo do fundo
+  escuro, e ao fechar o dono não volta para onde estava. São três coisas pequenas no
+  mesmo hook — foco inicial no primeiro campo, Tab preso dentro do modal, foco devolvido
+  ao fechar — e valem para os sete de uma vez. Só cliente, sem migration.
+
 ## Rodada 49 — CONSOLE-UX 23: confirmar antes de descartar o cadastro pela metade — 2026-08-03
 - Spec: specs/console-descartar-cadastro.md
 - Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 199 arquivos / 3471 testes, verde)
