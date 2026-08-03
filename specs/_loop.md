@@ -2,7 +2,7 @@
 - Spec: specs/console-filtro-plano.md
 - Resultado da review: aprovado sem ressalvas — 10 de 10 (suíte 198 arquivos / 3271 testes, verde)
 - Aprendido: helper de teste que procura botão de um grupo se escopa no grupo — o seletor global `^Todos` quebrou 7 testes das rodadas 6 e 7 quando a tela ganhou "Todos os planos" (`memory/learnings.md`)
-- Commit: <hash> na branch main
+- Commit: 4c75843 na branch main
 - Pendente de decisão: nenhuma
 - Próximo item recomendado: CONSOLE-UX 11 — recorte por add-on contratado, no mesmo molde do plano, para responder "quem já paga o delivery" sem abrir o modal de cada card
 
