@@ -2,7 +2,7 @@
 - Spec: specs/console-primeiro-acesso.md
 - Resultado da review: aprovado sem ressalvas — 10 de 10 (suíte 198 arquivos / 3289 testes, verde)
 - Aprendido: molde do botão que copia (função pura + try/catch com bloco selecionável + senha nunca no texto) em memory/patterns.md; mock de provisionarEstabelecimento no ConsolePage.test.jsx em memory/learnings.md
-- Commit: <hash> na branch main
+- Commit: f2ce4be na branch main
 - Pendente de decisão: nenhuma
 - Próximo item recomendado: CONSOLE-UX 12 — paginação/carregamento por partes da lista de estabelecimentos, que hoje renderiza todos os tenants de uma vez e é o único ponto do Console que piora conforme a venda dá certo
 
