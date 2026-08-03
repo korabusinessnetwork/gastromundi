@@ -1,3 +1,31 @@
+## Rodada 57 — CONSOLE-UX 31: cobertura de teste dos dois arquivos do Console sem teste — 2026-08-03
+- Spec: specs/console-ux-31-testes-cobertura.md
+- Resultado da review: aprovado sem ressalvas — 10 de 10 (suíte 203 arquivos / 3536 testes, verde;
+  +2 arquivos e +12 testes, exatamente os desta rodada, sem regressão). Nenhum arquivo de produção
+  tocado — a rodada só adicionou teste.
+  - `src/components/console/AlterarLayoutModal.test.jsx` (novo, 7 testes): salvar travado sem
+    mudança e liberado ao trocar; descrição do layout escolhido na tela; gravação com o código
+    certo e `onAlterado` recebendo o retorno; erro do servidor visível sem chamar `onAlterado`;
+    voltar ao layout atual volta a travar; Esc fecha. `@/layouts` e `mensagemDeErroDoConsole`
+    reais, só `alterarLayout` dublado.
+  - `src/pages/console/ConsoleLoginPage.test.jsx` (novo, 5 testes): sessão de plataforma navega
+    para /console; sessão de outro papel é deslogada e avisada sem navegar; usuário/senha vazios
+    avisam sem chamar login; envio válido chama `login(u, p)`; erro do login aparece na tela.
+    Mesmo padrão de rotas-marcador do LoginPage.test.jsx.
+- Aprendido: nada novo que passe no filtro de qualidade do /aprender — a rodada reusou convenções
+  já fixadas (mock de `@/lib/console` por vi.hoisted, `@/test/mockApp`, rotas-marcador). Registro
+  reduzido a este ledger, de propósito.
+- Commit: <hash> na branch main
+- Pendente de decisão: as cinco herdadas, inalteradas (usuário do responsável na mensagem de
+  acesso, rodada 41; endereço do cardápio na mensagem copiada, rodada 44; RPC para editar endereço
+  de estabelecimento já criado, rodada 45; mínimo de senha 6 → 8, rodada 46; token
+  `--gm-sobre-accent`, rodada 53).
+- Próximo item recomendado: TD018 — tirar o âmbar literal (`#f59e0b`) do resto do aplicativo, boa
+  parte em `style=` inline no JSX, aplicando o roteiro de seis passos da rodada 56 fora do Console.
+  É o maior trabalho de código-puro que sobra e não depende de decisão do dono. O item de maior
+  valor para a venda continua sendo o QA humano do Console (criar um estabelecimento de teste pela
+  tela e percorrer os fluxos), mas isso é ação do dono — o navegador não abre nesta sessão.
+
 ## Rodada 56 — CONSOLE-UX 30: nenhuma cor de marca crua no Console — 2026-08-03
 - Spec: specs/console-cores-do-tema.md
 - Resultado da review: aprovado sem ressalvas — 7 de 7 (suíte 201 arquivos / 3524 testes, verde).
