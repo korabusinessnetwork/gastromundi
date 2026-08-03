@@ -483,7 +483,7 @@ describe("ConsolePage — busca por nome", () => {
   };
   const nomesNaOrdem = () =>
     screen.getAllByRole("listitem").map((li) => li.querySelector(".console__card-nome")?.textContent);
-  const campo = () => screen.getByLabelText("Buscar estabelecimento pelo nome");
+  const campo = () => screen.getByLabelText("Buscar estabelecimento pelo nome ou endereço");
 
   beforeEach(() => {
     mockListarEstabelecimentos.mockReset();
@@ -569,7 +569,7 @@ describe("ConsolePage — busca por nome", () => {
     renderWithProviders(<ConsolePage />);
     expect(await screen.findByText("Nenhum estabelecimento ainda")).toBeInTheDocument();
 
-    expect(screen.queryByLabelText("Buscar estabelecimento pelo nome")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Buscar estabelecimento pelo nome ou endereço")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Criar o primeiro/i })).toBeInTheDocument();
   });
 
@@ -706,7 +706,7 @@ describe("ConsolePage — registrar pagamento pelo card", () => {
     renderWithProviders(<ConsolePage />);
     expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
 
-    const campo = screen.getByLabelText("Buscar estabelecimento pelo nome");
+    const campo = screen.getByLabelText("Buscar estabelecimento pelo nome ou endereço");
     await user.type(campo, "cafe");
     await user.click(botaoCobrar("Café Central"));
     const modal = screen.getByRole("dialog", { name: "Registrar pagamento da assinatura" });
@@ -855,7 +855,7 @@ describe("ConsolePage — ver pagamentos pelo card", () => {
     renderWithProviders(<ConsolePage />);
     expect(await screen.findByText("Café Central")).toBeInTheDocument();
 
-    const campo = screen.getByLabelText("Buscar estabelecimento pelo nome");
+    const campo = screen.getByLabelText("Buscar estabelecimento pelo nome ou endereço");
     await user.type(campo, "cafe");
     await user.click(botaoPagamentos("Café Central"));
 
@@ -873,7 +873,7 @@ describe("ConsolePage — filtro por situação", () => {
   };
   const nomesNaOrdem = () =>
     screen.getAllByRole("listitem").map((li) => li.querySelector(".console__card-nome")?.textContent);
-  const campo = () => screen.getByLabelText("Buscar estabelecimento pelo nome");
+  const campo = () => screen.getByLabelText("Buscar estabelecimento pelo nome ou endereço");
   // Escopado ao grupo de situação: a linha de planos também tem um botão
   // que começa com "Todos" ("Todos os planos").
   const atalho = (nome) =>
@@ -1036,7 +1036,7 @@ describe("ConsolePage — o recorte escolhido fica na URL", () => {
   };
   const nomesNaOrdem = () =>
     screen.getAllByRole("listitem").map((li) => li.querySelector(".console__card-nome")?.textContent);
-  const campo = () => screen.getByLabelText("Buscar estabelecimento pelo nome");
+  const campo = () => screen.getByLabelText("Buscar estabelecimento pelo nome ou endereço");
   // Escopado ao grupo de situação: a linha de planos também tem um botão
   // que começa com "Todos" ("Todos os planos").
   const atalho = (nome) =>
@@ -1526,7 +1526,7 @@ describe("ConsolePage — o recorte por plano", () => {
     await user.click(atalhoPlano("Avançado"));
     expect(nomes()).toEqual(["Café Central"]);
 
-    await user.type(screen.getByLabelText("Buscar estabelecimento pelo nome"), "zé");
+    await user.type(screen.getByLabelText("Buscar estabelecimento pelo nome ou endereço"), "zé");
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
     expect(
       screen.getByText(/Nenhum estabelecimento com “zé” em “Em dia e Avançado”/)
@@ -2011,7 +2011,7 @@ describe("ConsolePage — lista de estabelecimentos por partes", () => {
 
     // Busca que casa com todos ("Estabelecimento"): o recorte é do mesmo
     // tamanho, mas é uma lista nova — começa do primeiro bloco.
-    await user.type(screen.getByLabelText("Buscar estabelecimento pelo nome"), "Estabelecimento");
+    await user.type(screen.getByLabelText("Buscar estabelecimento pelo nome ou endereço"), "Estabelecimento");
 
     await waitFor(() => expect(cards()).toHaveLength(20));
     expect(screen.getByText("Mostrando 20 de 25 estabelecimentos.")).toBeInTheDocument();
@@ -2234,5 +2234,84 @@ describe("ConsolePage — copiar o acesso de quem já existe", () => {
     await screen.findByText("Café Central");
 
     expect(screen.getAllByRole("button", { name: /Copiar acesso de/i })).toHaveLength(2);
+  });
+});
+
+// ── CONSOLE-UX 17 — o endereço no card e na busca ───────────────────
+//
+// O cliente liga e se identifica pelo link ("meu link é bar-do-ze"). Até aqui
+// esse dado só existia escondido no href do cardápio e no texto copiado: não
+// dava para achar o estabelecimento por ele, nem para distinguir dois cards de
+// nome parecido.
+describe("ConsolePage — endereço do estabelecimento no card e na busca", () => {
+  const COM_ENDERECO = [
+    { ...TENANTS[0], slug: "bar-do-ze" },
+    { ...TENANTS[1], slug: null },
+  ];
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(COM_ENDERECO));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("mostra o endereço no card de quem tem, e nada no card de quem não tem", async () => {
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Café Central");
+
+    const linha = screen.getByText("Endereço: bar-do-ze");
+    expect(within(linha.closest("li")).getByText("Bar do Zé")).toBeInTheDocument();
+    expect(screen.getAllByText(/^Endereço:/)).toHaveLength(1);
+    expect(screen.queryByText(/Endereço: *$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/null|undefined/)).not.toBeInTheDocument();
+  });
+
+  // É informação do card, não atalho novo: nada de botão ou link aninhado.
+  it("o endereço fica dentro do card, sem virar botão ou link", async () => {
+    renderWithProviders(<ConsolePage />);
+    const linha = await screen.findByText("Endereço: bar-do-ze");
+
+    expect(linha.tagName).toBe("SPAN");
+    expect(linha.closest("button")).toHaveClass("console__card");
+    expect(within(linha).queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("digitar o endereço acha o estabelecimento", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Café Central");
+
+    await user.type(
+      screen.getByLabelText("Buscar estabelecimento pelo nome ou endereço"),
+      "bar-do"
+    );
+
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+    expect(screen.queryByText("Café Central")).not.toBeInTheDocument();
+  });
+
+  it("o campo de busca avisa que dá para buscar por endereço", async () => {
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+
+    expect(screen.getByPlaceholderText("Buscar pelo nome ou endereço")).toBeInTheDocument();
+  });
+
+  it("quando nada casa, o texto manda conferir o nome ou o endereço", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+
+    await user.type(
+      screen.getByLabelText("Buscar estabelecimento pelo nome ou endereço"),
+      "pizzaria"
+    );
+
+    expect(await screen.findByText(/Nenhum estabelecimento com/)).toBeInTheDocument();
+    expect(screen.getByText(/Confira o nome ou o endereço/)).toBeInTheDocument();
   });
 });

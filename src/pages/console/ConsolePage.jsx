@@ -750,16 +750,18 @@ export default function ConsolePage() {
               </div>
             ) : (
               <>
-                {/* Buscar pelo nome: com a base crescendo, rolar a lista
-                    inteira deixa de ser caminho. Filtra enquanto digita, sem
-                    botão de "buscar" — nada a confirmar. */}
+                {/* Buscar pelo nome ou pelo endereço: com a base crescendo,
+                    rolar a lista inteira deixa de ser caminho. Filtra enquanto
+                    digita, sem botão de "buscar" — nada a confirmar. O endereço
+                    entra no rótulo porque é o dado com que o cliente se
+                    identifica ao dono — quem não sabe que pode, não usa. */}
                 <div className="console__busca">
                   <LuSearch size={17} aria-hidden className="console__busca-icone" />
                   <input
                     type="search"
                     className="console__busca-campo"
-                    placeholder="Buscar estabelecimento pelo nome"
-                    aria-label="Buscar estabelecimento pelo nome"
+                    placeholder="Buscar pelo nome ou endereço"
+                    aria-label="Buscar estabelecimento pelo nome ou endereço"
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
                   />
@@ -851,13 +853,15 @@ export default function ConsolePage() {
                 </div>
               ) : tenantsVisiveis.length === 0 ? (
                 // Vazio de BUSCA — diferente do vazio de base: aqui existem
-                // estabelecimentos, só nenhum com esse nome.
+                // estabelecimentos, só nenhum com esse nome ou endereço.
                 <div className="console__estado">
                   <LuSearch size={30} aria-hidden />
                   <p className="console__vazio-titulo">
                     Nenhum estabelecimento com “{busca.trim()}”
                   </p>
-                  <p className="console__vazio-texto">Confira o nome ou limpe a busca para ver todos.</p>
+                  <p className="console__vazio-texto">
+                    Confira o nome ou o endereço, ou limpe a busca para ver todos.
+                  </p>
                   <button type="button" className="console__novo" onClick={() => setBusca("")}>
                     Limpar busca
                   </button>
@@ -946,6 +950,21 @@ export default function ConsolePage() {
                         <span className="console__card-data">
                           Criado em {formatarData(t.created_at)}
                         </span>
+                        {/* Endereço do estabelecimento (CONSOLE-UX 17): até aqui
+                            ele só existia escondido no link do cardápio e no
+                            texto copiado. Na tela ele faz dois trabalhos —
+                            distingue dois cards de nome parecido e mostra o que
+                            digitar na busca quando o cliente diz "meu link é
+                            fulano". Tenant sem slug não ganha a linha: não há o
+                            que afirmar. */}
+                        {t.slug && (
+                          <span
+                            className="console__card-endereco"
+                            title="Endereço deste estabelecimento nos links do sistema (cardápio e acesso)"
+                          >
+                            Endereço: {t.slug}
+                          </span>
+                        )}
                       </span>
                       {t.plano_codigo && (
                         <span className="console__plano">{rotularPlano(planos, t.plano_codigo)}</span>

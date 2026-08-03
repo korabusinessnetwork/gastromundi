@@ -165,20 +165,28 @@ function paraBusca(texto) {
 }
 
 /**
- * Função PURA — filtra estabelecimentos pelo nome. Casa qualquer trecho do
- * nome (não só o começo), ignorando caixa e acento. Termo vazio devolve a
- * lista inteira, na ordem em que chegou — filtrar não reordena.
+ * Função PURA — filtra estabelecimentos pelo nome OU pelo endereço (o `slug`,
+ * rótulo que aparece no link do cardápio e no acesso). Casa qualquer trecho
+ * (não só o começo), ignorando caixa e acento. Termo vazio devolve a lista
+ * inteira, na ordem em que chegou — filtrar não reordena.
+ *
+ * O endereço entra na busca porque é assim que o cliente se identifica ao
+ * dono ("meu link é casacoffee"), e porque dois estabelecimentos de nome
+ * parecido só se distinguem por ele. Tenant sem slug (anterior à 20260740)
+ * simplesmente não casa por endereço — continua achável pelo nome.
  *
  * Não faz I/O e não muda o array recebido.
  *
- * @param {Array<{nome?:string}>} itens
+ * @param {Array<{nome?:string, slug?:string}>} itens
  * @param {string} termo
  * @returns {Array<object>}
  */
 export function filtrarEstabelecimentos(itens = [], termo = "") {
   const alvo = paraBusca(termo);
   if (!alvo) return [...(itens ?? [])];
-  return (itens ?? []).filter((t) => paraBusca(t?.nome).includes(alvo));
+  return (itens ?? []).filter(
+    (t) => paraBusca(t?.nome).includes(alvo) || paraBusca(t?.slug).includes(alvo)
+  );
 }
 
 /** Recortes possíveis da lista. Só estes três — o resto é "todos". */

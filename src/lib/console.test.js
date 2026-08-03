@@ -937,6 +937,48 @@ describe("filtrarEstabelecimentos", () => {
     const ordenado = [BASE[2], BASE[0], BASE[1]];
     expect(ids(filtrarEstabelecimentos(ordenado, "a"))).toEqual(["c", "a", "b"]);
   });
+
+  // CONSOLE-UX rodada 17 — o endereço (slug) também acha, porque é assim que o
+  // cliente se identifica ao dono ("meu link é casacoffee").
+  describe("busca pelo endereço (slug)", () => {
+    const COM_SLUG = [
+      { id: "a", nome: "Café Central", slug: "cafecentral" },
+      { id: "b", nome: "Bar do Zé", slug: "bar-do-ze" },
+      { id: "c", nome: "Padaria São João", slug: "padariasj" },
+    ];
+
+    it("casa qualquer trecho do endereço, ignorando caixa e espaço nas pontas", () => {
+      expect(ids(filtrarEstabelecimentos(COM_SLUG, "sj"))).toEqual(["c"]);
+      expect(ids(filtrarEstabelecimentos(COM_SLUG, "PADARIASJ"))).toEqual(["c"]);
+      expect(ids(filtrarEstabelecimentos(COM_SLUG, "  bar-do  "))).toEqual(["b"]);
+    });
+
+    it("continua achando pelo nome quem tem endereço", () => {
+      expect(ids(filtrarEstabelecimentos(COM_SLUG, "são joão"))).toEqual(["c"]);
+    });
+
+    it("traz os dois quando o termo casa o nome de um e o endereço de outro, sem duplicar", () => {
+      const mistos = [
+        { id: "a", nome: "Casa Coffee", slug: "cc" },
+        { id: "b", nome: "Bar do Zé", slug: "casacoffee-2" },
+        { id: "c", nome: "Casa Coffee", slug: "casacoffee" },
+      ];
+      expect(ids(filtrarEstabelecimentos(mistos, "casacoffee"))).toEqual(["b", "c"]);
+      // nome e endereço iguais no mesmo item: aparece uma vez só
+      expect(ids(filtrarEstabelecimentos(mistos, "casa"))).toEqual(["a", "b", "c"]);
+    });
+
+    it("item sem endereço não quebra e segue achável pelo nome", () => {
+      const legado = [
+        { id: "x", nome: "Sem Slug", slug: null },
+        { id: "y", nome: "Outro" },
+        { id: "z", nome: "Vazio", slug: "" },
+      ];
+      expect(() => filtrarEstabelecimentos(legado, "slug")).not.toThrow();
+      expect(ids(filtrarEstabelecimentos(legado, "sem"))).toEqual(["x"]);
+      expect(filtrarEstabelecimentos(legado, "cafecentral")).toEqual([]);
+    });
+  });
 });
 
 // CONSOLE-UX rodada 6 — o recorte por situação. A função NÃO decide quem está

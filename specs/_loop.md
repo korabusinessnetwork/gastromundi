@@ -1,3 +1,11 @@
+## Rodada 43 — CONSOLE-UX 17 (o endereço no card e na busca) — 2026-08-03
+- Spec: specs/console-endereco-na-busca.md
+- Resultado da review: aprovado sem ressalvas — 12 de 12 (suíte 199 arquivos / 3343 testes, verde)
+- Aprendido: o Console só LÊ `tenants` — a RLS tem apenas policy de SELECT (`tenants_select_auth`), então editar nome ou endereço pelo Console exige RPC `SECURITY DEFINER` nova; registrado em memory/learnings.md para não voltar como sugestão inocente
+- Commit: <hash> na branch main
+- Pendente de decisão: (herdada da rodada 41) pôr o USUÁRIO do responsável na mensagem de acesso exige RPC SECURITY DEFINER nova sobre `public.users` — mudança de schema em produção. Vale criar?
+- Próximo item recomendado: CONSOLE-UX 18 — o endereço do estabelecimento no cartão de primeiro acesso (a Edge Function de provisionamento já devolve `slug` na resposta, e o cartão que aparece logo depois de criar ainda não mostra); só cliente, sem migration
+
 ## Rodada 42 — CONSOLE-UX 16 (copiar o acesso de quem já existe) — 2026-08-03
 - Spec: specs/console-copiar-acesso.md
 - Resultado da review: aprovado sem ressalvas — 13 de 13 (suíte 199 arquivos / 3334 testes, verde)

@@ -217,3 +217,16 @@ Em `src/pages/console/ConsolePage.test.jsx`, `expect(campo).toHaveValue(expect.s
 falhou mesmo com o texto certo dentro do campo — a mensagem de erro mostra o valor
 esperado e o recebido praticamente iguais, o que engana. `toHaveValue` compara valor
 exato; para trecho, leia `campo.value` e use `toContain`.
+
+## O Console LÊ `tenants`, não escreve — a RLS só tem SELECT (rodada 43)
+
+Duas rodadas seguidas quase viraram "deixar o Console editar o estabelecimento"
+(trocar o nome, corrigir o endereço/slug). Não dá sem mudança de schema: as
+policies de `tenants` são só de leitura — `tenants_select_auth`, criada em
+`20260716_tenants_minimo.sql` e redefinida em
+`20260726_multitenant_fase4_billing_isolamento.sql`. Não existe policy de UPDATE
+para o super-admin. Toda escrita em `tenants` hoje passa por Edge Function /
+RPC `SECURITY DEFINER` (é assim que o provisionamento cria). Antes de
+especificar edição de estabelecimento no Console, ou se cria a RPC (decisão do
+dono, mexe em produção) ou o item não é dessa rodada. E trocar o slug ainda
+quebraria links de cardápio já entregues ao cliente.
