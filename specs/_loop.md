@@ -2,7 +2,7 @@
 - Spec: specs/console-endereco-na-busca.md
 - Resultado da review: aprovado sem ressalvas — 12 de 12 (suíte 199 arquivos / 3343 testes, verde)
 - Aprendido: o Console só LÊ `tenants` — a RLS tem apenas policy de SELECT (`tenants_select_auth`), então editar nome ou endereço pelo Console exige RPC `SECURITY DEFINER` nova; registrado em memory/learnings.md para não voltar como sugestão inocente
-- Commit: <hash> na branch main
+- Commit: d36f13e na branch main
 - Pendente de decisão: (herdada da rodada 41) pôr o USUÁRIO do responsável na mensagem de acesso exige RPC SECURITY DEFINER nova sobre `public.users` — mudança de schema em produção. Vale criar?
 - Próximo item recomendado: CONSOLE-UX 18 — o endereço do estabelecimento no cartão de primeiro acesso (a Edge Function de provisionamento já devolve `slug` na resposta, e o cartão que aparece logo depois de criar ainda não mostra); só cliente, sem migration
 
