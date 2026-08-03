@@ -544,7 +544,7 @@ export default function ImpostosAdmin({ sz }) {
         {[
           { label: `${itens.length} ite${itens.length !== 1 ? "ns" : "m"}`, color: varColor(C.text) },
           { label: `${totalConf} configurado${totalConf !== 1 ? "s" : ""}`, color: varColor(C.green) },
-          { label: `${totalPend} pendente${totalPend !== 1 ? "s" : ""}`, color: "#f59e0b" },
+          { label: `${totalPend} pendente${totalPend !== 1 ? "s" : ""}`, color: varColor(C.warn) },
         ].map((b, i) => (
           <span key={i} className="impostos-admin__badge" style={{ background: alfa(b.color, "18"), color: b.color, border: `1px solid ${alfa(b.color, "33")}` }}>
             {b.label}
@@ -642,9 +642,9 @@ export default function ImpostosAdmin({ sz }) {
 
                       {/* Badge status */}
                       <span className="impostos-admin__item-badge" style={{
-                        background: conf ? alfa(C.green, "15") : alfa("#f59e0b", "15"),
-                        color: conf ? varColor(C.green) : "#f59e0b",
-                        border: `1px solid ${alfa(conf ? varColor(C.green) : "#f59e0b", "44")}`,
+                        background: conf ? alfa(C.green, "15") : alfa(C.warn, "15"),
+                        color: conf ? varColor(C.green) : varColor(C.warn),
+                        border: `1px solid ${alfa(conf ? varColor(C.green) : varColor(C.warn), "44")}`,
                       }}>
                         {conf ? "✓ Configurado" : "Pendente"}
                       </span>

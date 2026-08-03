@@ -103,9 +103,9 @@ function VinculaRow({ item, products, onChange }) {
   return (
     <tr
       className="nf-tab__tr"
-      style={{ background: !linked ? alfa("#f59e0b", "0a") : "transparent" }}
+      style={{ background: !linked ? alfa(C.warn, "0a") : "transparent" }}
       onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-      onMouseLeave={e => e.currentTarget.style.background = !linked ? alfa("#f59e0b", "0a") : "transparent"}
+      onMouseLeave={e => e.currentTarget.style.background = !linked ? alfa(C.warn, "0a") : "transparent"}
     >
       {/* # */}
       <td className="nf-tab__td nf-tab__num" style={{ color: varColor(C.muted), fontWeight: 600, whiteSpace: "nowrap" }}>{item.numero}</td>
@@ -1000,9 +1000,9 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             </div>
 
             {showFornPopup && (
-              <div className="nf-tab__aviso" style={{ background: alfa("#f59e0b", "12"), border: `1.5px solid ${alfa("#f59e0b", "55")}` }}>
+              <div className="nf-tab__aviso" style={{ background: alfa(C.warn, "12"), border: `1.5px solid ${alfa(C.warn, "55")}` }}>
                 <div className="nf-tab__aviso-linha">
-                  <LuTriangleAlert size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <LuTriangleAlert size={20} color={varColor(C.warn)} style={{ flexShrink: 0, marginTop: 2 }} />
                   <div style={{ flex: 1 }}>
                     <div className="nf-tab__aviso-titulo">
                       Fornecedor não cadastrado
@@ -1018,7 +1018,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                           setShowFornPopup(false);
                         }}
                         className="nf-tab__sub"
-                        style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#f59e0b", color: "#fff", cursor: fornSaving ? "not-allowed" : "pointer", fontWeight: 700, fontFamily: "inherit", opacity: fornSaving ? 0.6 : 1 }}
+                        style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: varColor(C.warn), color: "#fff", cursor: fornSaving ? "not-allowed" : "pointer", fontWeight: 700, fontFamily: "inherit", opacity: fornSaving ? 0.6 : 1 }}
                       >
                         {fornSaving ? "Cadastrando..." : `Sim, cadastrar "${cab.fornecedorNome}"`}
                       </button>
@@ -1076,7 +1076,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                 <div className="nf-tab__title" style={{ fontWeight: 800 }}>Vincular itens a produtos</div>
                 <div className="nf-tab__sub" style={{ color: varColor(C.muted), marginTop: 2 }}>
                   {vinculados.length} de {itensVinc.length} itens vinculados
-                  {naoVinculados.length > 0 && <span style={{ color: "#f59e0b", marginLeft: 8 }}>· {naoVinculados.length} sem vínculo serão ignorados</span>}
+                  {naoVinculados.length > 0 && <span style={{ color: varColor(C.warn), marginLeft: 8 }}>· {naoVinculados.length} sem vínculo serão ignorados</span>}
                 </div>
               </div>
             </div>
@@ -1133,7 +1133,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                 {[
                   { label: "Total de itens", value: itensVinc.length, color: varColor(C.text) },
                   { label: "Vinculados",     value: vinculados.length, color: varColor(C.green) },
-                  { label: "Ignorados",      value: naoVinculados.length, color: naoVinculados.length > 0 ? "#f59e0b" : varColor(C.muted) },
+                  { label: "Ignorados",      value: naoVinculados.length, color: naoVinculados.length > 0 ? varColor(C.warn) : varColor(C.muted) },
                 ].map(k => (
                   <div key={k.label} className="nf-tab__kpi-card">
                     <div className="nf-tab__kpi-valor" style={{ color: k.color }}>{k.value}</div>
@@ -1186,7 +1186,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             )}
 
             {semQuantidade.length > 0 && (
-              <div role="alert" className="nf-tab__erro-box" style={{ background: alfa("#f59e0b", "12"), border: `1.5px solid ${alfa("#f59e0b", "44")}` }}>
+              <div role="alert" className="nf-tab__erro-box" style={{ background: alfa(C.warn, "12"), border: `1.5px solid ${alfa(C.warn, "44")}` }}>
                 {semQuantidade.map(i => i.produto.name).join(", ")}
                 {semQuantidade.length === 1 ? " ficou com quantidade 0" : " ficaram com quantidade 0"} para o estoque.
                 Volte e corrija o fator de conversão, ou desvincule o item para ignorá-lo.

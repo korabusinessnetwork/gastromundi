@@ -2,8 +2,9 @@
  * F018 — leva 3, sub-lote 3B. Decisão 018 (CSS separado do JSX) +
  * tokens --gm-* (ADR-007). Cores sólidas viram var(--gm-*); blends com
  * transparência usam alfa() (src/constants/colorAlfa.js). O laranja de
- * "pendente" (#f59e0b) é cor semântica fixa, não de marca — segue
- * literal, como AMBER em ComandaGrid.jsx.
+ * "pendente" usa o token de marca --gm-warn (via varColor/alfa no JSX),
+ * customizável por tenant (decisão 017) — não é mais o #f59e0b cravado
+ * (TD018, rodada 58).
  *
  * TAMANHO DE FONTE migrado para a escala do design system (--fs-* e --lh-*
  * de src/styles/tipografia.css), por classe — não mais inline via sz.*
