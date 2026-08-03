@@ -901,3 +901,26 @@ que os sete modais do Console não tinham. O que custou pensar:
    abriu o modal pode ter sumido na recarga da lista depois de criar ou renovar;
    `anterior.focus()` num nó solto não faz nada visível, mas ler `.focus` de
    algo que virou `null` quebra o desmonte.
+
+## Tela que trava sozinha quando a internet cai (rodada 52)
+
+Padrão fixado no Console (`ConsolePage.jsx` + `ConsolePage.css`) e reusável em qualquer
+tela que escreva no banco:
+
+1. **`useStatusRede()` decide, e a decisão vira um motivo em texto.** O componente
+   guarda `const online = useStatusRede()` e, junto, o `motivoOffline` — a frase que vai
+   no `title` de cada botão travado. Um `disabled` mudo é pior que o erro: o dono fica
+   clicando sem entender.
+2. **Faixa no topo, na cor de aviso, dizendo o que AINDA dá para fazer.** Ficar offline
+   não quebrou nada, só travou o que salva — por isso `--gm-warn`, não `--gm-red`, e por
+   isso a frase é "dá para ver o que já carregou; para criar ou alterar, reconecte".
+   `role="status"` (não `alert`): o leitor de tela anuncia sem interromper.
+3. **Só trava botão de escrita própria.** Superfície que também é leitura fica de fora:
+   no Console o card é ao mesmo tempo o atalho "trocar plano" e a linha da lista, então
+   travá-lo apagaria a lista inteira. Leitura, busca e filtro nunca são bloqueados.
+4. **A mensagem traduzida é a segunda linha de defesa**, para a conexão que cai depois
+   de o formulário abrir — `mensagemDeErroDoConsole` no `catch` de cada modal. Prevenção
+   e tradução são camadas diferentes; nenhuma das duas sozinha cobre o caso.
+5. **A faixa e a barra superior grudam juntas** num wrapper `position: sticky`, com
+   fundo opaco (`color-mix` sobre `--gm-card`): faixa translúcida deixa a lista passar
+   por baixo do texto quando a página rola.

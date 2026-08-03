@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuWallet } from "react-icons/lu";
-import { definirMensalidade, MENSALIDADE_MAXIMA } from "@/lib/console";
+import { mensagemDeErroDoConsole, definirMensalidade, MENSALIDADE_MAXIMA } from "@/lib/console";
 import { valorDigitado } from "@/lib/delivery";
 import { formatarReais } from "@/lib/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";
@@ -60,7 +60,7 @@ export default function DefinirMensalidadeModal({ linha, onFechar, onDefinido })
     setEnviando(false);
 
     if (error) {
-      setErroServidor(error.message ?? "Não foi possível salvar a mensalidade.");
+      setErroServidor(mensagemDeErroDoConsole(error, "Não foi possível salvar a mensalidade."));
       return;
     }
     onDefinido(data);

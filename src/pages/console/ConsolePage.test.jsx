@@ -11,7 +11,7 @@
 // na leitura dos planos deixava o botão "Novo estabelecimento" abrir um
 // formulário sem plano nenhum para escolher, sem dizer por quê.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { screen, waitFor, within, render } from "@testing-library/react";
+import { screen, waitFor, within, render, fireEvent } from "@testing-library/react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 
@@ -2402,5 +2402,87 @@ describe("ConsolePage — endereço do estabelecimento no card e na busca", () =
 
     expect(await screen.findByText(/Nenhum estabelecimento com/)).toBeInTheDocument();
     expect(screen.getByText(/Confira o nome ou o endereço/)).toBeInTheDocument();
+  });
+});
+
+// ── Sem conexão com a internet (CONSOLE-UX 26) ─────────────────────
+//
+// O Console é a ferramenta que o dono usa na rua, no celular, na frente do
+// cliente. Sem sinal, cada botão de salvar levava o formulário inteiro até um
+// erro em inglês no fim. Aqui a tela avisa ANTES de o dono digitar.
+describe("ConsolePage — sem conexão com a internet", () => {
+  const ficarOffline = () =>
+    Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true });
+  const voltarOnline = () =>
+    Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true });
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  afterEach(() => {
+    voltarOnline();
+  });
+
+  it("mostra a faixa no topo e continua deixando ler a lista", async () => {
+    ficarOffline();
+    renderWithProviders(<ConsolePage />);
+
+    expect(await screen.findByText("Sem conexão com a internet.")).toBeInTheDocument();
+    expect(screen.getByText(/para criar ou alterar, reconecte/i)).toBeInTheDocument();
+    // Leitura não trava: o que já carregou continua na tela.
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+    expect(screen.getByText("Café Central")).toBeInTheDocument();
+  });
+
+  it("trava o botão de criar estabelecimento e diz por quê", async () => {
+    ficarOffline();
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+
+    const botao = screen.getByRole("button", { name: /Novo estabelecimento/i });
+
+    expect(botao).toBeDisabled();
+    expect(botao.getAttribute("title")).toMatch(/sem conex/i);
+  });
+
+  it("trava também os botões de escrita de cada card", async () => {
+    ficarOffline();
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+
+    for (const botao of screen.getAllByTitle(/sem conex/i)) {
+      expect(botao).toBeDisabled();
+    }
+    // O layout aparece em todo card — garante que a varredura acima não passou vazia.
+    expect(screen.getAllByTitle(/sem conex/i).length).toBeGreaterThan(1);
+  });
+
+  it("com internet, nada disso aparece — a faixa é só para quando cai", async () => {
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+
+    expect(screen.queryByText("Sem conexão com a internet.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Novo estabelecimento/i })).toBeEnabled();
+  });
+
+  it("quando a conexão volta, a faixa some e os botões destravam sozinhos", async () => {
+    ficarOffline();
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Sem conexão com a internet.");
+
+    voltarOnline();
+    fireEvent(window, new Event("online"));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Sem conexão com a internet.")).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: /Novo estabelecimento/i })).toBeEnabled();
   });
 });

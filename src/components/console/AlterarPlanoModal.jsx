@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuBuilding2, LuPlus } from "react-icons/lu";
-import { alterarPlano, compararModulosDoPlano } from "@/lib/console";
+import { mensagemDeErroDoConsole, alterarPlano, compararModulosDoPlano } from "@/lib/console";
 import { buscarModulosDoPlano } from "@/lib/tenant";
 import MODULOS from "@/constants/modulos";
 import { useFecharModal } from "@/hooks/useFecharModal";
@@ -98,7 +98,7 @@ export default function AlterarPlanoModal({ tenant, planos, onFechar, onAlterado
     setEnviando(false);
 
     if (error) {
-      setErroServidor(error.message ?? "Não foi possível alterar o plano.");
+      setErroServidor(mensagemDeErroDoConsole(error, "Não foi possível alterar o plano."));
       return;
     }
     onAlterado(data);

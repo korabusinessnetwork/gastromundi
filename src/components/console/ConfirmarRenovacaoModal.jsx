@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuBanknote } from "react-icons/lu";
 import { confirmarRenovacaoAssinatura, rotuloCompetencia } from "@/lib/assinatura";
+import { mensagemDeErroDoConsole } from "@/lib/console";
 import { valorDigitado } from "@/lib/delivery";
 import { formatarReais } from "@/lib/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";
@@ -94,7 +95,7 @@ export default function ConfirmarRenovacaoModal({
     setEnviando(false);
 
     if (error) {
-      setErroServidor(error.message ?? "Não foi possível registrar o pagamento.");
+      setErroServidor(mensagemDeErroDoConsole(error, "Não foi possível registrar o pagamento."));
       return;
     }
     onConfirmado(data, rotulo);

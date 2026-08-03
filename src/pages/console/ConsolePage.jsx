@@ -3,9 +3,10 @@ import { useSearchParams } from "react-router-dom";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
   LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
-  LuCopy, LuTag, LuExternalLink,
+  LuCopy, LuTag, LuExternalLink, LuWifiOff,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
+import { useStatusRede } from "@/hooks/useStatusRede";
 import {
   listarEstabelecimentos, listarPlanos, listarAssinaturas,
   listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma, ordenarPorUrgencia,
@@ -323,6 +324,16 @@ export default function ConsolePage() {
   // de erro (Princípio nº1).
   const semPlanos = planos.length === 0;
 
+  // Sem internet o Console vira só leitura (CONSOLE-UX 26): a lista que já
+  // carregou, os filtros e os painéis continuam de pé, mas o que salva fica
+  // travado com o motivo à vista — mesma escolha do `semPlanos` acima, pelo
+  // mesmo motivo. O aviso de rede nos modais é a segunda linha de defesa,
+  // para a conexão que cai depois de o formulário abrir.
+  const online = useStatusRede();
+  const motivoOffline = online
+    ? undefined
+    : "Sem conexão com a internet — reconecte para alterar";
+
   // Situação da cobrança por tenant, para o card da lista. Vem da MESMA
   // função da aba "Planos e assinaturas" (`resumirPlataforma`, que recalcula
   // o status pela data em vez de confiar no campo em cache): duas contas
@@ -498,22 +509,40 @@ export default function ConsolePage() {
 
   return (
     <div className="console">
-      <header className="console__topo">
-        <div className="console__marca">
-          <LuStore size={22} aria-hidden />
-          <div>
-            {/* Console é da PLATAFORMA (multi-tenant) — marca Kora, não a de um cliente */}
-            <div className="console__marca-titulo">KORA</div>
-            <div className="console__marca-sub">Console da Plataforma</div>
+      {/* Barra superior e faixa de rede grudam juntas no topo: o aviso de
+          sem conexão precisa continuar à vista com a lista rolada. */}
+      <div className="console__topo-fixo">
+        <header className="console__topo">
+          <div className="console__marca">
+            <LuStore size={22} aria-hidden />
+            <div>
+              {/* Console é da PLATAFORMA (multi-tenant) — marca Kora, não a de um cliente */}
+              <div className="console__marca-titulo">KORA</div>
+              <div className="console__marca-sub">Console da Plataforma</div>
+            </div>
           </div>
-        </div>
-        <div className="console__usuario">
-          <span className="console__usuario-nome">{currentUser?.name ?? "Plataforma"}</span>
-          <button className="console__sair" onClick={logout} aria-label="Sair">
-            <LuLogOut size={16} aria-hidden /> Sair
-          </button>
-        </div>
-      </header>
+          <div className="console__usuario">
+            <span className="console__usuario-nome">{currentUser?.name ?? "Plataforma"}</span>
+            <button className="console__sair" onClick={logout} aria-label="Sair">
+              <LuLogOut size={16} aria-hidden /> Sair
+            </button>
+          </div>
+        </header>
+
+        {/* Faixa de sem conexão (CONSOLE-UX 26). Fica colada no topo, antes das
+            abas, porque o dono precisa saber ANTES de tentar — e diz o que ainda
+            dá para fazer, não só o que quebrou. `role="status"` para o leitor de
+            tela anunciar sem interromper o que ele estava lendo. */}
+        {!online && (
+          <div className="console__offline" role="status">
+            <LuWifiOff size={18} aria-hidden />
+            <span>
+              <strong>Sem conexão com a internet.</strong> Dá para ver o que já
+              carregou; para criar ou alterar, reconecte.
+            </span>
+          </div>
+        )}
+      </div>
 
       <main className="console__conteudo">
         {/* Abas: gestão da base (estabelecimentos), quem paga (planos +
@@ -603,8 +632,8 @@ export default function ConsolePage() {
               <button
                 className="console__novo"
                 onClick={() => setModalAberto(true)}
-                disabled={semPlanos}
-                title={semPlanos ? "É preciso ter um plano disponível para cadastrar" : undefined}
+                disabled={semPlanos || !online}
+                title={semPlanos ? "É preciso ter um plano disponível para cadastrar" : motivoOffline}
               >
                 <LuPlus size={18} aria-hidden /> Novo estabelecimento
               </button>
@@ -773,8 +802,8 @@ export default function ConsolePage() {
                 <button
                   className="console__novo"
                   onClick={() => setModalAberto(true)}
-                  disabled={semPlanos}
-                  title={semPlanos ? "É preciso ter um plano disponível para cadastrar" : undefined}
+                  disabled={semPlanos || !online}
+                  title={semPlanos ? "É preciso ter um plano disponível para cadastrar" : motivoOffline}
                 >
                   <LuPlus size={18} aria-hidden /> Criar o primeiro
                 </button>
@@ -1006,8 +1035,9 @@ export default function ConsolePage() {
                         type="button"
                         className="console__cobrar"
                         onClick={() => aoRegistrarPagamento(situacao)}
+                        disabled={!online}
                         aria-label={`Registrar pagamento de ${t.nome}`}
-                        title="Registrar o pagamento da mensalidade e empurrar o vencimento"
+                        title={motivoOffline ?? "Registrar o pagamento da mensalidade e empurrar o vencimento"}
                       >
                         <LuBanknote size={17} aria-hidden />
                         <span className="console__cobrar-nome">Registrar pagamento</span>
@@ -1018,8 +1048,9 @@ export default function ConsolePage() {
                         type="button"
                         className="console__preco"
                         onClick={() => aoDefinirMensalidade(situacao)}
+                        disabled={!online}
                         aria-label={`Definir mensalidade de ${t.nome}`}
-                        title="Definir quanto este estabelecimento paga por mês"
+                        title={motivoOffline ?? "Definir quanto este estabelecimento paga por mês"}
                       >
                         {/* Etiqueta de preço, não a nota de dinheiro do "Registrar
                             pagamento": os dois botões podem aparecer no MESMO card
@@ -1096,7 +1127,8 @@ export default function ConsolePage() {
                       type="button"
                       className="console__layout"
                       onClick={() => aoAlterarLayout(t)}
-                      title="Trocar o layout deste estabelecimento"
+                      disabled={!online}
+                      title={motivoOffline ?? "Trocar o layout deste estabelecimento"}
                     >
                       <LuPalette size={17} aria-hidden />
                       <span className="console__layout-nome">{rotularLayout(t.tema)}</span>
@@ -1105,7 +1137,8 @@ export default function ConsolePage() {
                       type="button"
                       className="console__addons"
                       onClick={() => aoAbrirAddons(t)}
-                      title="Ligar ou desligar os add-ons pagos deste estabelecimento"
+                      disabled={!online}
+                      title={motivoOffline ?? "Ligar ou desligar os add-ons pagos deste estabelecimento"}
                     >
                       <LuPuzzle size={17} aria-hidden />
                       <span className="console__addons-nome">

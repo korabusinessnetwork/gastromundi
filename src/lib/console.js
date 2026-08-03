@@ -923,6 +923,66 @@ export function forcaDaSenha(senha, usuario = "") {
   return { nivel: "media", motivo: "dá para melhorar: 10 caracteres ou mais." };
 }
 
+// ── Erro de rede e de servidor, em português (CONSOLE-UX 26) ───────
+
+// Assinatura de mensagem que ninguém escreveu para ser lida: metade é o
+// navegador quando a rede cai ("Failed to fetch"), metade é o Postgres cru
+// quando a policy ou a constraint barra sem RAISE ("new row violates
+// row-level security policy"). As duas chegam em inglês e falam de coisas que
+// não existem para quem está cobrando um cliente na rua.
+//
+// O código do erro NÃO serve de critério aqui: as RPCs do Console levantam
+// recusas deliberadas em português reusando ERRCODE existente — `42501` em
+// "Somente a plataforma pode confirmar renovação", `23505` em "A competência
+// 08/2026 já foi confirmada" —, então uma lista de códigos permitidos ou
+// engoliria essas frases ou deixaria passar o texto cru do mesmo código.
+const MARCA_TECNICA =
+  /failed to fetch|networkerror|network request failed|load failed|typeerror|fetch failed|err_[a-z_]+|econnrefused|<!doctype|violates |duplicate key|permission denied|could not find|schema cache|invalid input syntax|does not exist|null value in column/i;
+
+const SEM_INTERNET =
+  "Sem conexão com a internet. Reconecte para salvar — o que já está na tela continua aqui.";
+
+const FALHA_GENERICA =
+  "Não foi possível falar com o servidor agora. Tente de novo em alguns segundos.";
+
+const estaOffline = () =>
+  typeof navigator !== "undefined" && navigator.onLine === false;
+
+/**
+ * Traduz o erro de uma operação do Console para uma frase que o dono entende
+ * (Princípio nº1: nada de jargão técnico na tela). Sem I/O — só lê o
+ * `navigator.onLine` que o navegador já mantém.
+ *
+ * O Console é a tela que o dono abre na rua para cobrar, e ela mostrava o
+ * `error.message` cru: o `??` de antes só cobria mensagem vazia, então uma
+ * queda de sinal virava "TypeError: Failed to fetch" logo depois de tentar
+ * registrar um pagamento.
+ *
+ * A regra é uma só: quem escreveu a frase. Recusa escrita de propósito — pela
+ * RPC, pela Edge Function ou pelo próprio front — chega inteira, porque é ela
+ * que diz o que corrigir ("A competência 08/2026 já foi confirmada", "Sessão
+ * expirada. Entre novamente."). O que tem marca de máquina em inglês vira a
+ * frase do chamador. O código do erro não entra na conta: a mesma `42501`
+ * carrega tanto a recusa em português da RPC quanto o texto cru da policy.
+ *
+ * @param {{code?: string, message?: string}|string|null|undefined} error
+ * @param {string} [fallback] frase do chamador ("Não foi possível alterar o
+ *   plano."), usada no lugar da genérica
+ * @returns {string} sempre uma frase em português, nunca vazia
+ */
+export function mensagemDeErroDoConsole(error, fallback = "") {
+  const bruto = typeof error === "string" ? error : error?.message;
+  const texto = typeof bruto === "string" ? bruto.trim() : "";
+  const generica = String(fallback ?? "").trim() || FALHA_GENERICA;
+
+  // Offline vem antes de tudo: sem rede a chamada nem chegou ao servidor, e
+  // dizer "tente de novo" a quem está sem sinal é mandar bater na mesma porta.
+  if (estaOffline()) return SEM_INTERNET;
+  if (!texto) return generica;
+
+  return MARCA_TECNICA.test(texto) ? generica : texto;
+}
+
 // Colisão de credencial no Auth. Enquanto `TENANT_ROOT_DOMAIN` está
 // desligado, a Edge Function usa o namespace de e-mail 'gastromundi' para
 // TODO estabelecimento — então o username precisa ser único na plataforma
@@ -969,7 +1029,10 @@ export function traduzirErroProvisionamento(bruto) {
 
   return {
     campo: null,
-    mensagem: principal || "Falha ao criar o estabelecimento.",
+    // A Edge Function devolve texto, não código: o que ela escreve de
+    // propósito ("Sessão expirada. Entre novamente.") passa inteiro, e o que
+    // o navegador escreveu quando a rede caiu vira frase (CONSOLE-UX 26).
+    mensagem: mensagemDeErroDoConsole(principal, "Falha ao criar o estabelecimento."),
     aviso,
   };
 }

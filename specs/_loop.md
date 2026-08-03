@@ -1,3 +1,33 @@
+## Rodada 52 — CONSOLE-UX 26: o Console quando a internet cai — 2026-08-03
+- Spec: specs/console-sem-internet.md
+- Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 201 arquivos / 3519 testes, verde)
+- Aprendido:
+  - `memory/learnings.md` — código de erro do Postgres não diz se a frase é para humano:
+    as RPCs de assinatura do Console levantam recusa em português reusando ERRCODE de
+    infraestrutura (`42501` em "Somente a plataforma pode confirmar renovação", `23505`
+    na competência repetida), então a lista de códigos permitidos copiada do delivery
+    engoliu justamente a frase que diz o que corrigir e quebrou quatro arquivos de teste
+    de uma vez; o critério certo é a marca do texto, não o código. E: classe BEM nova em
+    CSS grande precisa de `grep` antes — `.console__cabecalho` já existia no mesmo
+    arquivo e as duas declarações somaram sem nenhum teste pegar.
+  - `memory/patterns.md` — o padrão de tela que trava sozinha quando a internet cai:
+    `useStatusRede()` mais um `motivoOffline` em texto no `title` de cada botão travado,
+    faixa em `--gm-warn` (não `--gm-red`) dizendo o que ainda dá para fazer, travamento
+    só nos botões de escrita própria (superfície que também é leitura fica de fora) e a
+    mensagem traduzida como segunda linha de defesa para a conexão que cai com o
+    formulário já aberto.
+- Commit: HASH na branch main
+- Pendente de decisão: as quatro herdadas — (1) usuário do responsável na mensagem de
+  acesso e verificação de usuário livre antes do envio, ambas dependem de RPC
+  `SECURITY DEFINER` sobre `public.users` (rodada 41); (2) o endereço do cardápio entra
+  na mensagem copiada? (rodada 44); (3) editar o endereço de um estabelecimento já criado
+  precisa de RPC nova, `tenants` só tem SELECT na RLS (rodada 45); (4) subir o mínimo de
+  senha de 6 para 8 mexe na borda e no cliente juntos (rodada 46).
+- Próximo item recomendado: CONSOLE-UX 27 — levar as duas camadas desta rodada para fora
+  do Console. A fila de escrita offline não é o próximo passo (é F021, com ADR pendente
+  de decisão do dono); o concreto é o PDV e o delivery, que ainda mostram `error.message`
+  cru em vários pontos e não avisam quando a conexão cai.
+
 ## Rodada 51 — CONSOLE-UX 25: o foco do teclado nos modais do Console — 2026-08-03
 - Spec: specs/console-foco-nos-modais.md
 - Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 201 arquivos / 3503 testes, verde)

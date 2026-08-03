@@ -18,6 +18,11 @@
   padding: 14px 24px;
   border-bottom: 1px solid var(--gm-border);
   background: var(--gm-card);
+}
+
+/* A barra superior e a faixa de sem conexão grudam juntas no topo: se a
+   internet cai com a lista rolada, o aviso não fica para trás na página. */
+.console__topo-fixo {
   position: sticky;
   top: 0;
   z-index: 10;
@@ -50,6 +55,37 @@
   cursor: pointer;
 }
 .console__sair:hover { border-color: var(--gm-muted); }
+
+/* ── Sem conexão (CONSOLE-UX 26) ───────────────────────────────── */
+/* Faixa presa logo abaixo da barra superior, na cor de aviso (não de erro:
+   ficar offline não quebrou nada, só travou o que salva). Grudada no topo
+   junto com a barra, para continuar à vista depois de rolar a lista. Por isso
+   o fundo mistura o aviso com `--gm-card` e não com `transparent`: grudada no
+   topo, a faixa translúcida deixaria a lista passar por baixo do texto. */
+.console__offline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 24px;
+  background: color-mix(in srgb, var(--gm-warn) 14%, var(--gm-card));
+  border-bottom: 1px solid color-mix(in srgb, var(--gm-warn) 40%, transparent);
+  color: var(--gm-warn);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* Botões de escrita do card enquanto falta internet: apagados e com o
+   cursor barrado, para o clique não sair de graça — o motivo está na faixa
+   acima e no `title` de cada um. */
+.console__cobrar:disabled,
+.console__preco:disabled,
+.console__layout:disabled,
+.console__addons:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* ── Conteúdo ──────────────────────────────────────────────────── */
 .console__conteudo {

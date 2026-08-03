@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // console.js importa ./supabase (que exige VITE_* no import). Como estes
 // testes exercitam só as funções PURAS, mockamos o módulo para não
@@ -26,6 +26,7 @@ import {
   contarAddonsPorTenant,
   montarMensagemPrimeiroAcesso,
   traduzirErroProvisionamento,
+  mensagemDeErroDoConsole,
   ordenarPorUrgencia,
   filtrarEstabelecimentos,
   filtrarPorSituacao,
@@ -1797,5 +1798,108 @@ describe("montarMensagemPrimeiroAcesso", () => {
     const entrada = { ...COMPLETO };
     montarMensagemPrimeiroAcesso(entrada);
     expect(entrada).toEqual(COMPLETO);
+  });
+});
+
+// ── mensagemDeErroDoConsole (CONSOLE-UX 26) ────────────────────────
+//
+// O que estes testes protegem: que nenhuma frase técnica em inglês chegue à
+// tela de quem está cobrando um cliente na rua, e que as recusas escritas de
+// propósito — no banco ou na Edge Function — continuem chegando inteiras, que
+// são elas que dizem o que corrigir.
+describe("mensagemDeErroDoConsole", () => {
+  const semRede = { message: "TypeError: Failed to fetch" };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("erro de rede vira frase em português, sem o texto do navegador", () => {
+    const texto = mensagemDeErroDoConsole(semRede, "Não foi possível alterar o plano.");
+
+    expect(texto).toBe("Não foi possível alterar o plano.");
+    expect(texto).not.toMatch(/fetch|TypeError/i);
+  });
+
+  it("outras marcas técnicas caem na mesma regra", () => {
+    for (const m of ["NetworkError when attempting to fetch resource", "Load failed", "net::ERR_NAME_NOT_RESOLVED", "<!DOCTYPE html>"]) {
+      expect(mensagemDeErroDoConsole({ message: m }, "Falhou.")).toBe("Falhou.");
+    }
+  });
+
+  // A regressão que este bloco existe para impedir: as RPCs do Console
+  // levantam recusa em português reusando ERRCODE de infraestrutura (42501 em
+  // "Somente a plataforma pode...", 23505 na competência repetida). Filtrar
+  // por código engoliria justamente a frase que diz o que corrigir.
+  it("recusa em português passa inteira mesmo com código de infraestrutura", () => {
+    const rls = { code: "42501", message: "Somente a plataforma pode confirmar renovação de assinatura." };
+    const dup = { code: "23505", message: "A competência 08/2026 já foi confirmada para este estabelecimento." };
+
+    expect(mensagemDeErroDoConsole(rls, "Falhou.")).toBe(rls.message);
+    expect(mensagemDeErroDoConsole(dup, "Falhou.")).toBe(dup.message);
+  });
+
+  it("recusa deliberada do banco (P0001) passa inteira", () => {
+    const erro = { code: "P0001", message: "Este estabelecimento já tem pagamento nesta competência." };
+
+    expect(mensagemDeErroDoConsole(erro, "Não foi possível registrar o pagamento.")).toBe(
+      "Este estabelecimento já tem pagamento nesta competência."
+    );
+  });
+
+  it("CHECK violado (23514) também passa inteiro", () => {
+    const erro = { code: "23514", message: "O valor precisa ser maior que zero." };
+
+    expect(mensagemDeErroDoConsole(erro, "Falhou.")).toBe("O valor precisa ser maior que zero.");
+  });
+
+  it("texto cru do Postgres não vaza: RLS e função ausente viram a frase do modal", () => {
+    const rls = { code: "42501", message: "new row violates row-level security policy" };
+    const ausente = { code: "PGRST202", message: "Could not find the function public.x in the schema cache" };
+
+    expect(mensagemDeErroDoConsole(rls, "Não foi possível salvar.")).toBe("Não foi possível salvar.");
+    expect(mensagemDeErroDoConsole(ausente, "Não foi possível salvar.")).toBe("Não foi possível salvar.");
+  });
+
+  it("frase que o próprio sistema escreveu, sem código, passa inteira", () => {
+    expect(mensagemDeErroDoConsole({ message: "Sessão expirada. Entre novamente." }, "Falhou.")).toBe(
+      "Sessão expirada. Entre novamente."
+    );
+    expect(mensagemDeErroDoConsole("Estabelecimento não identificado.", "Falhou.")).toBe(
+      "Estabelecimento não identificado."
+    );
+  });
+
+  it("navegador offline diz que é a internet, não o servidor", () => {
+    vi.stubGlobal("navigator", { onLine: false });
+
+    const texto = mensagemDeErroDoConsole(semRede, "Não foi possível alterar o plano.");
+
+    expect(texto).toMatch(/sem conex/i);
+    expect(texto).toMatch(/reconecte/i);
+  });
+
+  it("nunca devolve vazio: sem erro e sem frase do chamador, ainda fala português", () => {
+    for (const entrada of [null, undefined, {}, { message: "   " }, ""]) {
+      const texto = mensagemDeErroDoConsole(entrada);
+      expect(texto.length).toBeGreaterThan(10);
+      expect(texto).toMatch(/servidor/i);
+    }
+  });
+
+  it("é pura quanto ao erro recebido: não altera o objeto", () => {
+    const entrada = { code: "P0001", message: "Recusa." };
+    mensagemDeErroDoConsole(entrada, "Falhou.");
+
+    expect(entrada).toEqual({ code: "P0001", message: "Recusa." });
+  });
+
+  it("o provisionamento herda a regra: rede vira frase, recusa da borda passa", () => {
+    expect(traduzirErroProvisionamento("TypeError: Failed to fetch").mensagem).toBe(
+      "Falha ao criar o estabelecimento."
+    );
+    expect(traduzirErroProvisionamento("Sessão expirada. Entre novamente.").mensagem).toBe(
+      "Sessão expirada. Entre novamente."
+    );
   });
 });

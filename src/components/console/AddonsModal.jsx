@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuPuzzle, LuInfo } from "react-icons/lu";
-import { listarAddons, listarAddonsPorTenant, alternarAddon, resumirAddonsDoTenant } from "@/lib/console";
+import { mensagemDeErroDoConsole, listarAddons, listarAddonsPorTenant, alternarAddon, resumirAddonsDoTenant } from "@/lib/console";
 import { AVISOS_ADDON, CONSEQUENCIAS_DESLIGAR } from "@/constants/addons";
 import { useFecharModal } from "@/hooks/useFecharModal";
 import { useFocoDoModal } from "@/hooks/useFocoDoModal";
@@ -88,7 +88,7 @@ export default function AddonsModal({ tenant, onFechar, onAlterado }) {
     setSalvando("");
 
     if (error) {
-      setErros((e) => ({ ...e, [codigo]: error.message ?? "Não foi possível alterar o add-on." }));
+      setErros((e) => ({ ...e, [codigo]: mensagemDeErroDoConsole(error, "Não foi possível alterar o add-on.") }));
       return;
     }
 

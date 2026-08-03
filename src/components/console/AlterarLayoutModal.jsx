@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuPalette } from "react-icons/lu";
-import { alterarLayout } from "@/lib/console";
+import { mensagemDeErroDoConsole, alterarLayout } from "@/lib/console";
 import { listarLayouts, layoutDoTema } from "@/layouts";
 import { useFecharModal } from "@/hooks/useFecharModal";
 import { useFocoDoModal } from "@/hooks/useFocoDoModal";
@@ -41,7 +41,7 @@ export default function AlterarLayoutModal({ tenant, onFechar, onAlterado }) {
     setEnviando(false);
 
     if (error) {
-      setErroServidor(error.message ?? "Não foi possível alterar o layout.");
+      setErroServidor(mensagemDeErroDoConsole(error, "Não foi possível alterar o layout."));
       return;
     }
     onAlterado(data);

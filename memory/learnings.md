@@ -276,3 +276,35 @@ passou a nascer do responsável —, então a correção foi encurtar a mensagem
 usuário de acesso já existe na plataforma. Escolha outro." Quando a frase for
 necessária, o caminho é o `<label>` deixar de embrulhar o input (como já faz o campo
 da senha) ou o teste buscar por `getByPlaceholderText`.
+
+## Código de erro do Postgres não diz se a frase é para humano (rodada 52)
+
+A `mensagemDeErroDoConsole` nasceu copiando a regra da vitrine do delivery: lista de
+códigos "de recusa deliberada" (`P0001`, `23514`) passa inteira, o resto vira a frase
+genérica do modal. A suíte quebrou em quatro arquivos de uma vez
+(`ConfirmarRenovacaoModal`, `DefinirMensalidadeModal`, `HistoricoPagamentosModal`,
+`PlanosDashboard`) porque as RPCs de assinatura do Console levantam recusa em português
+reusando ERRCODE de infraestrutura: `42501` em "Somente a plataforma pode confirmar
+renovação de assinatura." e `23505` em "A competência 08/2026 já foi confirmada para
+este estabelecimento.". A lista de códigos engolia justamente a frase que diz o que
+corrigir.
+
+O critério certo não é o código, é quem escreveu o texto: recusa escrita de propósito
+(RPC, Edge Function ou front) está em português e passa inteira; o que tem marca de
+máquina em inglês vira a frase do chamador. Por isso a `MARCA_TECNICA` de
+`src/lib/console.js` cobre as duas metades — a do navegador ("Failed to fetch",
+"NetworkError") e a do Postgres cru ("violates ", "duplicate key", "permission denied",
+"could not find", "schema cache", "invalid input syntax", "does not exist", "null value
+in column"). Na próxima tela que for traduzir erro, comece pela marca do texto; código
+de erro só serve quando o projeto controla o `ERRCODE` de ponta a ponta, e este não
+controla.
+
+## Classe BEM nova no Console pode colidir com uma que já existe no mesmo arquivo (rodada 52)
+
+O wrapper grudento da faixa de sem conexão nasceu como `.console__cabecalho` — nome que
+`ConsolePage.css` já usava, 100 linhas abaixo, para o cabeçalho da seção (h1 + botão
+"Novo estabelecimento"), inclusive com uma regra em `@media`. As duas declarações
+somaram: o wrapper virou flex row com `margin-bottom`, e o cabeçalho da seção virou
+`position: sticky`. Nenhum teste pega isso — não há teste de CSS — e o projeto não tem
+eslint/stylelint. Antes de criar classe em arquivo CSS grande, `grep` do nome no
+próprio arquivo. O wrapper virou `.console__topo-fixo`.

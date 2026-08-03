@@ -6,6 +6,7 @@ import {
 import {
   listarPagamentosAssinatura, estornarPagamentoAssinatura, resumirPagamentos, rotuloCompetencia,
 } from "@/lib/assinatura";
+import { mensagemDeErroDoConsole } from "@/lib/console";
 import { formatarReais } from "@/lib/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";
 import { useFocoDoModal } from "@/hooks/useFocoDoModal";
@@ -70,7 +71,7 @@ export default function HistoricoPagamentosModal({ linha, confirmadoPor, onFecha
     if (error) {
       // Lista vazia por falha de leitura levaria a lançar o mesmo mês de
       // novo — a tela precisa dizer que não sabe.
-      setErroLeitura(error.message ?? "Não foi possível carregar os pagamentos.");
+      setErroLeitura(mensagemDeErroDoConsole(error, "Não foi possível carregar os pagamentos."));
       setEstado("erro");
       return;
     }
@@ -101,7 +102,7 @@ export default function HistoricoPagamentosModal({ linha, confirmadoPor, onFecha
     setEnviando(false);
 
     if (error) {
-      setErroServidor(error.message ?? "Não foi possível cancelar o pagamento.");
+      setErroServidor(mensagemDeErroDoConsole(error, "Não foi possível cancelar o pagamento."));
       return;
     }
     setEmCancelamento(null);
