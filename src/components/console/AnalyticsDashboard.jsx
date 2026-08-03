@@ -22,6 +22,12 @@ import "./AnalyticsDashboard.css";
  * a RPC devolve só contagem e soma, nunca a venda de um cliente. Esta tela
  * portanto não sabe (nem pode saber) o que cada estabelecimento vendeu.
  *
+ * O período (7/30/90) chega por propriedade e a troca volta pela página: ele
+ * mora na URL (`/console?aba=uso&dias=90`), para que recarregar não jogue o
+ * dono de volta em 30 dias e para que o endereço possa ser guardado. Quem
+ * escreve o parâmetro é a página; este componente só mostra o escolhido e
+ * pede o novo.
+ *
  * A leitura acontece aqui e não na página porque a aba é a única
  * interessada: enquanto ninguém abrir "Uso e faturamento", a RPC não é
  * chamada — e o Console continua carregando igual em bases onde a
@@ -36,8 +42,7 @@ import "./AnalyticsDashboard.css";
  * de billing solto: "faturamento", "pedidos", "ticket médio", "última
  * venda".
  */
-export default function AnalyticsDashboard({ tenants, assinaturas }) {
-  const [dias, setDias] = useState(30);
+export default function AnalyticsDashboard({ tenants, assinaturas, dias, aoTrocarPeriodo }) {
   const [analitico, setAnalitico] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);
@@ -72,7 +77,7 @@ export default function AnalyticsDashboard({ tenants, assinaturas }) {
             type="button"
             className={`auso__periodo-btn${d === dias ? " auso__periodo-btn--ativo" : ""}`}
             aria-pressed={d === dias}
-            onClick={() => setDias(d)}
+            onClick={() => aoTrocarPeriodo(d)}
           >
             {d} dias
           </button>

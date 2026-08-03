@@ -9,7 +9,7 @@ import {
   listarEstabelecimentos, listarPlanos, listarAssinaturas,
   listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma, ordenarPorUrgencia,
   filtrarEstabelecimentos, filtrarPorSituacao, FILTROS_SITUACAO, normalizarFiltroSituacao,
-  normalizarAba, ABAS_CONSOLE,
+  normalizarAba, ABAS_CONSOLE, normalizarPeriodo, PERIODO_PADRAO,
 } from "@/lib/console";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
@@ -119,6 +119,22 @@ export default function ConsolePage() {
         const proximo = new URLSearchParams(atual);
         if (a === ABAS_CONSOLE[0]) proximo.delete("aba");
         else proximo.set("aba", a);
+        return proximo;
+      },
+      { replace: true }
+    );
+  };
+
+  // O período da aba de uso (7/30/90 dias) fecha a série: era o último
+  // controle do Console que a recarga apagava. Mesmo desenho — 30 dias, o
+  // padrão, apaga o parâmetro.
+  const dias = normalizarPeriodo(searchParams.get("dias"));
+  const escolherPeriodo = (d) => {
+    setSearchParams(
+      (atual) => {
+        const proximo = new URLSearchParams(atual);
+        if (d === PERIODO_PADRAO) proximo.delete("dias");
+        else proximo.set("dias", String(d));
         return proximo;
       },
       { replace: true }
@@ -373,7 +389,12 @@ export default function ConsolePage() {
           // nada é pedido ao banco enquanto ninguém abrir "Uso e
           // faturamento", então uma base sem a 20260912 aplicada continua
           // com o resto do Console funcionando igual.
-          <AnalyticsDashboard tenants={tenants} assinaturas={assinaturas} />
+          <AnalyticsDashboard
+            tenants={tenants}
+            assinaturas={assinaturas}
+            dias={dias}
+            aoTrocarPeriodo={escolherPeriodo}
+          />
         ) : aba === "planos" ? (
           <PlanosDashboard
             tenants={tenants}

@@ -15,6 +15,7 @@
 //    coisa da tela que pede ação.
 // 4. Que quem nunca vendeu apareça, em vez de sumir da tabela — a pergunta da
 //    aba é justamente essa.
+import { useState } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -57,10 +58,25 @@ const USO = [
   // t-novo não vem da RPC: nunca vendeu.
 ];
 
-function montar(props = {}) {
-  return render(
-    <AnalyticsDashboard tenants={TENANTS} assinaturas={EM_DIA} {...props} />
+// O período é propriedade controlada pela página (ele mora na URL — ver
+// ConsolePage). Aqui a casca guarda o mesmo estado que a página guarda, para
+// que os testes de troca de período continuem exercendo o caminho real:
+// clicar → a página muda o valor → o componente recarrega.
+function Casca({ diasInicial = 30, ...props }) {
+  const [dias, setDias] = useState(diasInicial);
+  return (
+    <AnalyticsDashboard
+      tenants={TENANTS}
+      assinaturas={EM_DIA}
+      dias={dias}
+      aoTrocarPeriodo={setDias}
+      {...props}
+    />
   );
+}
+
+function montar(props = {}) {
+  return render(<Casca {...props} />);
 }
 
 // A tabela só existe depois que a leitura volta — o helper espera por ela.
@@ -124,6 +140,15 @@ describe("AnalyticsDashboard — período", () => {
     expect(botoes.map((b) => b.textContent)).toEqual(["7 dias", "30 dias", "90 dias"]);
     expect(botoes[1]).toHaveAttribute("aria-pressed", "true");
     expect(botoes[0]).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("abre no período que a página mandou, sem clique nenhum", async () => {
+    montar({ diasInicial: 90 });
+    await screen.findByRole("table");
+
+    expect(mockListar).toHaveBeenCalledWith(90);
+    expect(screen.getByRole("button", { name: "90 dias" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "30 dias" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("recarrega do banco ao trocar de período", async () => {

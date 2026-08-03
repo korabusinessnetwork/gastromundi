@@ -1231,3 +1231,106 @@ describe("ConsolePage — a aba aberta fica na URL", () => {
     expect(url()).toBe("/console?situacao=em_dia");
   });
 });
+
+describe("ConsolePage — o período do uso fica na URL", () => {
+  const EspiaoURL = () => {
+    const loc = useLocation();
+    const navigate = useNavigate();
+    return (
+      <>
+        <span data-testid="url">{loc.pathname + loc.search}</span>
+        <button type="button" onClick={() => navigate(-1)}>
+          voltar-teste
+        </button>
+      </>
+    );
+  };
+  const url = () => screen.getByTestId("url").textContent;
+  const renderComEspiao = (route = "/console", anteriores = []) =>
+    render(
+      <MemoryRouter initialEntries={[...anteriores, route]} initialIndex={anteriores.length}>
+        <ConsolePage />
+        <EspiaoURL />
+      </MemoryRouter>
+    );
+  const periodoBotao = (rotulo) => screen.getByRole("button", { name: rotulo });
+  // A aba de uso só existe depois que o grupo de período aparece.
+  const esperarUso = () => screen.findByText("Mostrando os últimos");
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("abrir com ?aba=uso&dias=90 já mostra 90 dias marcado, sem clique", async () => {
+    renderComEspiao("/console?aba=uso&dias=90");
+    await esperarUso();
+
+    expect(periodoBotao("90 dias")).toHaveAttribute("aria-pressed", "true");
+    expect(periodoBotao("30 dias")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("período inventado na URL cai em 30 dias, o padrão de hoje", async () => {
+    renderComEspiao("/console?aba=uso&dias=45");
+    await esperarUso();
+
+    expect(periodoBotao("30 dias")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("clicar num período escreve o parâmetro; 30 dias o remove", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console?aba=uso");
+    await esperarUso();
+
+    await user.click(periodoBotao("90 dias"));
+    expect(url()).toBe("/console?aba=uso&dias=90");
+
+    await user.click(periodoBotao("30 dias"));
+    expect(url()).toBe("/console?aba=uso");
+  });
+
+  it("trocar de período não empilha histórico: 'voltar' sai do Console", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console?aba=uso", ["/inicio"]);
+    await esperarUso();
+
+    await user.click(periodoBotao("7 dias"));
+    await user.click(periodoBotao("90 dias"));
+    await user.click(periodoBotao("30 dias"));
+
+    await user.click(screen.getByRole("button", { name: "voltar-teste" }));
+    expect(url()).toBe("/inicio");
+  });
+
+  it("período, aba e recorte convivem: nenhuma escrita apaga a outra", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console?aba=uso&situacao=em_dia");
+    await esperarUso();
+
+    await user.click(periodoBotao("90 dias"));
+    expect(url()).toContain("aba=uso");
+    expect(url()).toContain("situacao=em_dia");
+    expect(url()).toContain("dias=90");
+
+    // Sair da aba de uso mantém o período guardado para quando ela voltar.
+    await user.click(screen.getByRole("button", { name: /Estabelecimentos/i }));
+    expect(url()).toBe("/console?situacao=em_dia&dias=90");
+  });
+
+  it("o período fica na URL mesmo com outra aba aberta, e volta a valer no uso", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console?dias=90");
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Uso e faturamento/i }));
+    await esperarUso();
+    expect(periodoBotao("90 dias")).toHaveAttribute("aria-pressed", "true");
+  });
+});

@@ -618,3 +618,33 @@ Regras do fluxo:
 - **Destino final é sempre a `main`** (workflow "tudo direto na main",
   decisão do dono em 2026-07-12): valida local → merge na `main` → Vercel
   publica sozinha.
+
+## Estado de tela que mora na URL (Console, rodadas 33–35)
+
+Recorte de situação, aba aberta e período do uso vivem na URL do Console
+(`/console?aba=uso&situacao=atencao&dias=90`). O molde, já repetido três vezes,
+é sempre o mesmo — copie-o antes de inventar outro:
+
+1. **Normalizador puro** exportado em `src/lib/console.js`
+   (`normalizarFiltroSituacao`, `normalizarAba`, `normalizarPeriodo`): recebe o
+   texto cru do parâmetro e devolve sempre um valor válido. Não lê `window`,
+   não toca no roteador — por isso tem teste de unidade barato. URL editada à
+   mão nunca deixa a tela vazia.
+2. **A página lê** com `searchParams.get(...)`; não existe `useState` espelhando
+   o parâmetro (dois donos do mesmo valor sempre divergem).
+3. **A escrita parte de `new URLSearchParams(atual)`** dentro de
+   `setSearchParams((atual) => ..., { replace: true })`: cada escrita mexe só na
+   própria chave, então os três parâmetros convivem, e o `replace` impede que
+   trocar de aba/recorte vire histórico que o "voltar" precise desfazer.
+4. **O valor padrão apaga o parâmetro** (`proximo.delete(...)`) em vez de
+   escrevê-lo — o endereço fica limpo quando nada foi escolhido.
+5. **Componente filho fica controlado**, não guarda o estado
+   (`AnalyticsDashboard` recebe `dias` e `aoTrocarPeriodo`): ele não conhece o
+   roteador e o teste dele roda sem `MemoryRouter`.
+
+Fora da URL de propósito: o **termo da busca**. Nome de cliente digitado é dado
+de terceiro e não deve entrar no histórico do navegador nem em link colado.
+
+Teste dessa família: `MemoryRouter` nunca toca `window.location` — o endereço só
+pode ser lido por um espião com `useLocation()` renderizado ao lado da tela
+(`EspiaoURL` em `ConsolePage.test.jsx`).

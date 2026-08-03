@@ -1,3 +1,11 @@
+## Rodada 35 — CONSOLE-UX 9 (o período do uso na URL) — 2026-08-02
+- Spec: specs/console-periodo-na-url.md
+- Resultado da review: aprovado sem ressalvas — 10 de 10
+- Aprendido: o molde de estado-na-URL do Console virou padrão em memory/patterns.md (normalizador puro, escrita a partir de `new URLSearchParams(atual)` com `replace`, valor padrão apaga o parâmetro, filho controlado sem roteador)
+- Commit: <pendente> na branch main
+- Pendente de decisão: nenhuma
+- Próximo item recomendado: CONSOLE-UX 10 — atalho por plano na lista (ver quem está no Básico sem abrir card por card), único recorte que o Console ainda não oferece
+
 ## Rodada 34 — CONSOLE-UX 8 (a aba na URL) — 2026-08-02
 - Spec: specs/console-aba-na-url.md
 - Resultado da review: aprovado sem ressalvas (10 de 10) — suíte 198 arquivos / 3226 testes, verde

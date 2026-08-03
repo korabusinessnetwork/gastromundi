@@ -28,6 +28,8 @@ import {
   FILTROS_SITUACAO,
   normalizarAba,
   ABAS_CONSOLE,
+  normalizarPeriodo,
+  PERIODO_PADRAO,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -1075,5 +1077,50 @@ describe("normalizarAba", () => {
     for (const bruto of ["planos", "uso", "xpto", null, 7, {}]) {
       expect(ABAS_CONSOLE).toContain(normalizarAba(bruto));
     }
+  });
+});
+
+describe("normalizarPeriodo", () => {
+  it("deixa passar os três períodos oferecidos", () => {
+    expect(normalizarPeriodo("7")).toBe(7);
+    expect(normalizarPeriodo("30")).toBe(30);
+    expect(normalizarPeriodo("90")).toBe(90);
+  });
+
+  it("número fora do conjunto cai no padrão — senão nenhum botão ficaria marcado", () => {
+    expect(normalizarPeriodo("45")).toBe(PERIODO_PADRAO);
+    expect(normalizarPeriodo("0")).toBe(PERIODO_PADRAO);
+    expect(normalizarPeriodo("365")).toBe(PERIODO_PADRAO);
+  });
+
+  it("texto que não é um inteiro puro cai no padrão", () => {
+    expect(normalizarPeriodo("abc")).toBe(PERIODO_PADRAO);
+    expect(normalizarPeriodo("90.0")).toBe(PERIODO_PADRAO);
+    expect(normalizarPeriodo("-30")).toBe(PERIODO_PADRAO);
+    expect(normalizarPeriodo(" 90")).toBe(PERIODO_PADRAO);
+  });
+
+  it("ausente, vazio ou nulo cai no padrão", () => {
+    expect(normalizarPeriodo(null)).toBe(PERIODO_PADRAO);
+    expect(normalizarPeriodo(undefined)).toBe(PERIODO_PADRAO);
+    expect(normalizarPeriodo("")).toBe(PERIODO_PADRAO);
+    expect(normalizarPeriodo()).toBe(PERIODO_PADRAO);
+  });
+
+  it("parâmetro repetido (array) e tipos estranhos caem no padrão", () => {
+    expect(normalizarPeriodo(["7", "90"])).toBe(PERIODO_PADRAO);
+    expect(normalizarPeriodo(90)).toBe(PERIODO_PADRAO);
+    expect(normalizarPeriodo({})).toBe(PERIODO_PADRAO);
+  });
+
+  it("o que ela devolve é sempre um período conhecido", () => {
+    for (const bruto of ["7", "90", "45", "abc", null, ""]) {
+      expect(PERIODOS_ANALYTICS).toContain(normalizarPeriodo(bruto));
+    }
+  });
+
+  it("o padrão é o mesmo que a tela já abria antes de existir a URL", () => {
+    expect(PERIODO_PADRAO).toBe(30);
+    expect(PERIODOS_ANALYTICS).toContain(PERIODO_PADRAO);
   });
 });

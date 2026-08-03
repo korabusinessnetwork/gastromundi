@@ -243,6 +243,27 @@ export function normalizarAba(bruto) {
   return ABAS_CONSOLE.includes(bruto) ? bruto : ABAS_CONSOLE[0];
 }
 
+/** Período padrão da aba de uso — o mesmo que a tela já abria antes da URL. */
+export const PERIODO_PADRAO = 30;
+
+/**
+ * Função PURA — traduz o que veio da URL (`?dias=...`) para um dos períodos
+ * oferecidos pela aba de uso. O parâmetro chega como texto; só um texto que
+ * seja exatamente um número do conjunto passa. `"90.0"`, `"45"`, `"-30"`,
+ * `"abc"` e parâmetro repetido caem no padrão — o período tem que casar com um
+ * dos botões da tela, senão nenhum apareceria marcado.
+ *
+ * Não lê `window` nem o roteador — quem faz isso é a tela.
+ *
+ * @param {string|string[]|null|undefined} bruto
+ * @returns {number}
+ */
+export function normalizarPeriodo(bruto) {
+  if (typeof bruto !== "string" || !/^\d+$/.test(bruto)) return PERIODO_PADRAO;
+  const n = Number(bruto);
+  return PERIODOS_ANALYTICS.includes(n) ? n : PERIODO_PADRAO;
+}
+
 /**
  * Função PURA — agrega tenants + planos + assinaturas na visão da
  * plataforma (dashboard do Console): status recalculado por tenant, KPIs,
