@@ -176,17 +176,27 @@
   gap: 10px;
 }
 
-/* Item da lista: card do plano + botão de layout lado a lado (botões
-   irmãos — nunca aninhados, HTML inválido). */
+/* Item da lista: o card do estabelecimento em cima, ocupando a linha inteira,
+   e as ações dele logo abaixo (botões irmãos — nunca aninhados, HTML
+   inválido).
+
+   As ações já foram uma coluna de blocos à direita do card. Não cabem mais:
+   um item pode ter sete (cobrar, definir mensalidade, pagamentos, cardápio,
+   copiar acesso, marca e add-ons) e, como nenhuma encolhe, quem encolhia era
+   o card — o nome do estabelecimento virava "C…" e a data quebrava em três
+   linhas. Quem manda na largura é a informação, não a barra de ações. */
 .console__item {
   display: flex;
-  align-items: stretch;
-  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
-.console__item .console__card--clicavel { flex: 1; min-width: 0; }
+.console__item .console__card--clicavel { flex: 1 1 100%; min-width: 0; }
 
-/* Botões laterais do item (cobrar, pagamentos, cardápio, layout e add-ons) —
-   mesmo idioma visual do card clicável, para que se leiam como um bloco só. Só
+/* Ações do item (cobrar, pagamentos, cardápio, copiar, layout e add-ons) —
+   mesmo idioma visual do card, para que se leiam como um bloco só. Ícone e
+   rótulo lado a lado: na horizontal a fileira inteira cabe embaixo do card e
+   o rótulo aparece por extenso, que é o que diz o que o botão faz. Só
    "cobrar" foge do neutro, logo abaixo: é ação urgente, os outros são
    consulta ou ajuste. "Ver cardápio" é âncora, não botão (leva para fora, em
    aba nova), então desliga o sublinhado para não destoar da fileira. */
@@ -197,20 +207,23 @@
 .console__copiar,
 .console__layout,
 .console__addons {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 10px 14px;
-  min-width: 92px;
+  gap: 7px;
+  padding: 8px 13px;
   border: 1px solid var(--gm-border);
-  border-radius: 14px;
+  border-radius: 11px;
   background: var(--gm-card);
   color: var(--gm-muted);
   font-family: inherit;
+  /* Tamanho de fonte explícito porque a fileira mistura <button> e <a>: sem
+     isso o "Ver cardápio" fica 4px mais alto que os vizinhos e a linha
+     desalinha. */
+  font-size: 12px;
+  line-height: 1;
   cursor: pointer;
-  flex-shrink: 0;
+  flex: 0 0 auto;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 .console__cardapio { text-decoration: none; }
@@ -238,9 +251,11 @@
 .console__cardapio-nome,
 .console__copiar-nome,
 .console__pagamentos-nome {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  max-width: 110px;
+  /* Teto largo: "Registrar pagamento" e o nome da marca cabem por extenso.
+     A reticência é a exceção (marca de nome comprido), não a regra. */
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -483,17 +498,16 @@
 @media (max-width: 560px) {
   .console__cabecalho { flex-direction: column; align-items: stretch; }
   .console__novo { justify-content: center; }
-  /* Três alvos lado a lado não cabem: o card ocupa a linha inteira e os
-     dois botões dividem a de baixo, ainda com área de toque cheia. */
-  .console__item { flex-wrap: wrap; }
-  .console__item .console__card--clicavel { flex: 1 1 100%; }
+  /* Em tela estreita as ações param de se acomodar por conteúdo e passam a
+     dividir a linha em duas colunas de área de toque cheia — seis chips
+     miúdos numa fileira só seriam impossíveis de acertar com o dedo. */
   .console__cobrar,
   .console__preco,
   .console__pagamentos,
   .console__cardapio,
   .console__copiar,
   .console__layout,
-  .console__addons { flex: 1 1 0; min-width: 0; }
+  .console__addons { flex: 1 1 140px; }
 }
 
 /* Aviso de estado degradado (âmbar): a tela diz o que não conseguiu

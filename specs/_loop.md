@@ -2,7 +2,7 @@
 - Spec: specs/console-endereco-na-busca.md
 - Resultado da review: aprovado sem ressalvas — 12 de 12 (suíte 199 arquivos / 3343 testes, verde)
 - Aprendido: o Console só LÊ `tenants` — a RLS tem apenas policy de SELECT (`tenants_select_auth`), então editar nome ou endereço pelo Console exige RPC `SECURITY DEFINER` nova; registrado em memory/learnings.md para não voltar como sugestão inocente
-- Commit: d36f13e na branch main
+- Commit: cf7f235 na branch main
 - Pendente de decisão: (herdada da rodada 41) pôr o USUÁRIO do responsável na mensagem de acesso exige RPC SECURITY DEFINER nova sobre `public.users` — mudança de schema em produção. Vale criar?
 - Próximo item recomendado: CONSOLE-UX 18 — o endereço do estabelecimento no cartão de primeiro acesso (a Edge Function de provisionamento já devolve `slug` na resposta, e o cartão que aparece logo depois de criar ainda não mostra); só cliente, sem migration
 
@@ -10,7 +10,7 @@
 - Spec: specs/console-copiar-acesso.md
 - Resultado da review: aprovado sem ressalvas — 13 de 13 (suíte 199 arquivos / 3334 testes, verde)
 - Aprendido: hoje a porta de entrada é a MESMA para todo tenant (front e Edge Function caem no namespace `gastromundi` enquanto o domínio raiz está desligado), e isso tem prazo — ligado o domínio, todo endereço copiado vira `https://<slug>.<root>`; e `toHaveValue` não aceita matcher assimétrico (memory/learnings.md)
-- Commit: 106c223 na branch main
+- Commit: 9ac72fe na branch main
 - Pendente de decisão: (herdada da rodada 41) pôr o USUÁRIO do responsável na mensagem de acesso exige RPC SECURITY DEFINER nova sobre `public.users` — mudança de schema em produção. Vale criar?
 - Próximo item recomendado: CONSOLE-UX 17 — o endereço do estabelecimento visível no card e encontrável pela busca (hoje `filtrarEstabelecimentos` só olha o nome, e o endereço só existe dentro do texto copiado); só cliente, sem migration
 
