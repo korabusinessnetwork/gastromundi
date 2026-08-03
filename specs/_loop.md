@@ -15,7 +15,7 @@
 - Aprendido: nada novo que passe no filtro de qualidade do /aprender — a rodada reusou convenções
   já fixadas (mock de `@/lib/console` por vi.hoisted, `@/test/mockApp`, rotas-marcador). Registro
   reduzido a este ledger, de propósito.
-- Commit: <hash> na branch main
+- Commit: e1a578f na branch main
 - Pendente de decisão: as cinco herdadas, inalteradas (usuário do responsável na mensagem de
   acesso, rodada 41; endereço do cardápio na mensagem copiada, rodada 44; RPC para editar endereço
   de estabelecimento já criado, rodada 45; mínimo de senha 6 → 8, rodada 46; token
