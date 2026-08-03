@@ -153,3 +153,11 @@ leituras. Para chegar ao cartão de primeiro acesso pelo caminho de verdade
 formulário (`validarNovoEstabelecimento`) fica real de propósito — é ela que o
 teste exercita ao digitar. Da próxima vez que um teste do Console precisar
 passar pela criação, o mock já está pronto: `mockProvisionar`.
+
+## Asserção de "não contém o valor" casou com a URL do teste (rodada 38)
+
+Em `src/pages/console/ConsolePage.test.jsx`, provar que a mensagem copiada não leva valor
+financeiro com `expect(texto).not.toMatch(/300/)` falhou: o endereço de entrada do jsdom é
+`http://localhost:3000` e contém "300". Asserção negativa sobre dinheiro precisa mirar a forma
+do dinheiro (`/R$/`, `/300,00/`, o rótulo "mensalidade"), não o número solto — senão o teste
+quebra por coincidência de dígitos com porta, id ou data.

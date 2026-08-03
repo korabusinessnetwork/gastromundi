@@ -474,6 +474,19 @@
   margin: 4px 0 0;
   color: var(--gm-muted);
 }
+/* Aviso do caso "criado, mas o preço não salvou" (CONSOLE-UX 12): cor de
+   atenção dentro do cartão verde — a criação deu certo, só o preço ficou. */
+.console__acesso-alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gm-warn) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 40%, transparent);
+  color: var(--gm-warn);
+}
 .console__acesso-dados {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));

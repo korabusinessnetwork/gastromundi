@@ -31,11 +31,14 @@ vi.mock("@/lib/supabase", async () => {
 // `auth.users` — chamá-la de verdade num teste não faria sentido. O cartão de
 // primeiro acesso (CONSOLE-UX 11) precisa dela para chegar até a tela de
 // sucesso pelo caminho real: preencher o formulário e enviar.
-const { mockListarEstabelecimentos, mockListarPlanos, mockListarAssinaturas, mockProvisionar, banco } = vi.hoisted(() => ({
+// `definirMensalidade` entra pelo mesmo motivo (CONSOLE-UX 12): é a segunda
+// escrita do cadastro, feita pela RPC `definir_mensalidade_tenant`.
+const { mockListarEstabelecimentos, mockListarPlanos, mockListarAssinaturas, mockProvisionar, mockDefinirMensalidade, banco } = vi.hoisted(() => ({
   mockListarEstabelecimentos: vi.fn(),
   mockListarPlanos: vi.fn(),
   mockListarAssinaturas: vi.fn(),
   mockProvisionar: vi.fn(),
+  mockDefinirMensalidade: vi.fn(),
   // Holder mutável em vez de vi.fn(): os `mockReset()` dos beforeEach
   // existentes não apagam esta leitura, que toda aba faz.
   banco: { addons: [], erroAddons: null },
@@ -48,6 +51,7 @@ vi.mock("@/lib/console", async () => {
     listarPlanos: mockListarPlanos,
     listarAssinaturas: mockListarAssinaturas,
     provisionarEstabelecimento: mockProvisionar,
+    definirMensalidade: mockDefinirMensalidade,
     listarAddonsPorTenant: async () =>
       banco.erroAddons ? { data: [], error: banco.erroAddons } : { data: banco.addons, error: null },
   };
@@ -74,6 +78,7 @@ vi.mock("@/lib/assinatura", async () => {
 });
 
 import { montarMensagemPrimeiroAcesso } from "@/lib/console";
+import { formatarReais } from "@/lib/deliveryPedidos";
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
 import ConsolePage from "./ConsolePage";
 
@@ -1719,5 +1724,92 @@ describe("ConsolePage — o cartão de primeiro acesso", () => {
 
     await user.click(screen.getByRole("button", { name: /^Café Central/ }));
     expect(cartao()).not.toBeInTheDocument();
+  });
+});
+
+// CONSOLE-UX 12 — o preço combinado é gravado no ato do cadastro. O que se
+// prova aqui é o lado da TELA: o cartão confere o valor gravado, a mensagem
+// para o cliente continua sem qualquer valor financeiro, e a falha só do
+// preço aparece como aviso — nunca como "a criação falhou".
+describe("ConsolePage — a mensalidade no cartão de primeiro acesso", () => {
+  const prepararTela = () => {
+    const user = userEvent.setup();
+    const escrever = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, "clipboard", {
+      value: { writeText: escrever },
+      configurable: true,
+    });
+    renderWithProviders(<ConsolePage />);
+    return { user, escrever };
+  };
+
+  const criarEstabelecimento = async (user, mensalidade) => {
+    await user.click(await screen.findByRole("button", { name: /Novo estabelecimento/i }));
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    if (mensalidade) await user.type(screen.getByLabelText(/Mensalidade combinada/i), mensalidade);
+    await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
+    await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
+    await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+    await user.click(screen.getByRole("button", { name: /^Criar estabelecimento$/i }));
+    return screen.findByRole("region", { name: /Dados de primeiro acesso/i });
+  };
+
+  const dado = (rotulo) => {
+    const dt = screen.queryByText(rotulo, { selector: "dt" });
+    return dt ? dt.parentElement.querySelector("dd")?.textContent : null;
+  };
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockProvisionar.mockReset();
+    mockDefinirMensalidade.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    mockProvisionar.mockResolvedValue({
+      data: { tenant_id: "t-novo", nome: "Bar do Zé", admin: { username: "barze" } },
+      error: null,
+    });
+    mockDefinirMensalidade.mockResolvedValue({ data: { valor_mensal: 300 }, error: null });
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("mostra o preço gravado, mas não o manda para o cliente", async () => {
+    const { user, escrever } = prepararTela();
+    await criarEstabelecimento(user, "300,00");
+
+    expect(mockDefinirMensalidade).toHaveBeenCalledWith("t-novo", 300);
+    expect(dado("Mensalidade")).toBe(`${formatarReais(300)} por mês`);
+
+    await user.click(screen.getByRole("button", { name: /Copiar dados de acesso/i }));
+    const texto = escrever.mock.calls[0][0];
+    expect(texto).not.toMatch(/R\$/);
+    expect(texto).not.toMatch(/mensalidade/i);
+    expect(texto).not.toMatch(/300,00|300\.00/);
+  });
+
+  it("sem preço combinado, o cartão não inventa uma linha de mensalidade", async () => {
+    const { user } = prepararTela();
+    await criarEstabelecimento(user);
+
+    expect(mockDefinirMensalidade).not.toHaveBeenCalled();
+    expect(dado("Mensalidade")).toBeNull();
+  });
+
+  it("preço que não salvou vira aviso — a criação não é desmentida", async () => {
+    mockDefinirMensalidade.mockResolvedValue({ data: null, error: { message: "recusado" } });
+    const { user } = prepararTela();
+    await criarEstabelecimento(user, "300,00");
+
+    const aviso = screen.getByRole("alert");
+    expect(aviso).toHaveTextContent(/O estabelecimento foi criado, mas a mensalidade não foi salva/i);
+    expect(aviso).toHaveTextContent(/Planos e assinaturas/i);
+    // O cartão segue inteiro: o acesso do cliente não depende do preço.
+    expect(dado("Usuário")).toBe("barze");
+    expect(dado("Mensalidade")).toBeNull();
   });
 });

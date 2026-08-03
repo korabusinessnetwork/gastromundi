@@ -5,7 +5,11 @@ import {
   validarNovoEstabelecimento,
   provisionarEstabelecimento,
   traduzirErroProvisionamento,
+  definirMensalidade,
+  MENSALIDADE_MAXIMA,
 } from "@/lib/console";
+import { valorDigitado } from "@/lib/delivery";
+import { formatarReais } from "@/lib/deliveryPedidos";
 import "./NovoEstabelecimentoModal.css";
 
 /**
@@ -27,6 +31,7 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
   const [nome, setNome] = useState("");
   const [endereco, setEndereco] = useState("");
   const [planoCodigo, setPlanoCodigo] = useState("");
+  const [mensalidade, setMensalidade] = useState("");
   const [adminNome, setAdminNome] = useState("");
   const [adminUsername, setAdminUsername] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
@@ -44,11 +49,29 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
     }
   }, [planos, planoCodigo]);
 
+  // Mensalidade combinada (CONSOLE-UX 12). Vazio é aceito de propósito —
+  // cortesia e piloto existem —, mas o valor pergunta-se AQUI porque é aqui
+  // que a venda acontece: `valor_mensal` nasce 0 no banco (20260908) e, até
+  // esta rodada, lembrar de definir o preço em outra aba era com o dono.
+  const valorMensalidade = valorDigitado(mensalidade);
+  const semMensalidade = !mensalidade.trim();
+  let erroMensalidade = "";
+  if (!semMensalidade && valorMensalidade === null) {
+    erroMensalidade = "Digite só números, com vírgula nos centavos. Exemplo: 300,00";
+  } else if (valorMensalidade !== null && valorMensalidade < 0) {
+    erroMensalidade = "A mensalidade não pode ser negativa.";
+  } else if (valorMensalidade !== null && valorMensalidade > MENSALIDADE_MAXIMA) {
+    erroMensalidade = `O máximo aceito é ${formatarReais(MENSALIDADE_MAXIMA)} por mês.`;
+  }
+  // Zero digitado é o mesmo que vazio: cria sem preço e não chama a RPC à toa.
+  const mensalidadeParaSalvar =
+    !erroMensalidade && valorMensalidade !== null && valorMensalidade > 0 ? valorMensalidade : null;
+
   const limparErro = (campo) =>
     setErros((prev) => (prev[campo] ? { ...prev, [campo]: undefined } : prev));
 
   const submeter = async () => {
-    if (enviando) return;
+    if (enviando || erroMensalidade) return;
     setErroServidor("");
 
     const form = { nome, endereco, planoCodigo, adminNome, adminUsername, adminPassword };
@@ -60,9 +83,9 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
 
     setEnviando(true);
     const { data, error } = await provisionarEstabelecimento(form);
-    setEnviando(false);
 
     if (error) {
+      setEnviando(false);
       // Erro cru do servidor vira frase em português colada no campo que o
       // dono precisa corrigir. O aviso de compensação (estabelecimento órfão
       // que ficou para trás) continua no alerta, porque pede ação manual.
@@ -71,10 +94,28 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
       setErroServidor(campo ? aviso : [mensagem, aviso].filter(Boolean).join(" "));
       return;
     }
+    // Estabelecimento criado. A partir daqui NADA pode desfazê-lo: a
+    // mensalidade é uma segunda escrita, pela RPC que já existe
+    // (`definir_mensalidade_tenant`, 20260911 — única porta de escrita de
+    // `valor_mensal`), e se ela falhar o Console avisa em vez de mentir que a
+    // criação deu errado.
+    let mensalidadeFalhou = false;
+    if (mensalidadeParaSalvar !== null && data?.tenant_id) {
+      const { error: erroPreco } = await definirMensalidade(data.tenant_id, mensalidadeParaSalvar);
+      mensalidadeFalhou = Boolean(erroPreco);
+    }
+    setEnviando(false);
+
     // O plano vai junto porque quem o conhece com certeza é o formulário — o
     // cartão de primeiro acesso do Console precisa dele para dizer ao cliente
-    // o que ele contratou, sem depender do formato da resposta da borda.
-    onCriado({ ...data, plano_codigo: planoCodigo });
+    // o que ele contratou, sem depender do formato da resposta da borda. A
+    // mensalidade segue o mesmo caminho.
+    onCriado({
+      ...data,
+      plano_codigo: planoCodigo,
+      mensalidade: mensalidadeFalhou ? null : mensalidadeParaSalvar,
+      mensalidadeFalhou,
+    });
   };
 
   return createPortal(
@@ -138,6 +179,35 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
                 ))}
               </select>
               {erros.planoCodigo && <span className="nem-erro-campo">{erros.planoCodigo}</span>}
+            </label>
+
+            <label className="nem-campo">
+              <span className="nem-label">Mensalidade combinada (R$)</span>
+              <input
+                className={`nem-input${erroMensalidade ? " nem-input--erro" : ""}`}
+                type="text"
+                inputMode="decimal"
+                value={mensalidade}
+                placeholder="300,00"
+                maxLength={12}
+                disabled={enviando}
+                onChange={(e) => setMensalidade(e.target.value)}
+              />
+              {/* O eco em reais mostra o que o sistema ENTENDEU antes de
+                  gravar: "300,00" e "300" dão o mesmo valor, e "30000" salta
+                  aos olhos. Vazio é caminho legítimo (cortesia, piloto) e a
+                  dica diz onde definir depois, em vez de deixar o dono achar
+                  que esqueceu algo obrigatório. */}
+              {erroMensalidade ? (
+                <span className="nem-erro-campo">{erroMensalidade}</span>
+              ) : mensalidadeParaSalvar !== null ? (
+                <span className="nem-dica">Vai ficar {formatarReais(mensalidadeParaSalvar)} por mês.</span>
+              ) : (
+                <span className="nem-dica">
+                  Pode deixar em branco — o estabelecimento entra sem mensalidade definida e você
+                  define depois em "Planos e assinaturas".
+                </span>
+              )}
             </label>
           </section>
 
@@ -205,7 +275,11 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
           <button className="nem-btn nem-btn--secundario" onClick={onFechar} disabled={enviando}>
             Cancelar
           </button>
-          <button className="nem-btn nem-btn--primario" onClick={submeter} disabled={enviando}>
+          <button
+            className="nem-btn nem-btn--primario"
+            onClick={submeter}
+            disabled={enviando || Boolean(erroMensalidade)}
+          >
             {enviando ? (<><LuLoaderCircle size={16} className="nem-spin" aria-hidden /> Criando…</>) : "Criar estabelecimento"}
           </button>
         </footer>

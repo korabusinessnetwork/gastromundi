@@ -671,3 +671,20 @@ depois da venda. O molde vale para qualquer botão de copiar:
    `Object.defineProperty(window.navigator, "clipboard", { value: { writeText }, configurable: true })`
    — e o caso de falha é `writeText.mockRejectedValue(...)`, que prova que a
    tela não mente.
+
+## Duas escritas em sequência: sucesso parcial nunca vira erro (Console, rodada 38)
+
+O cadastro de estabelecimento faz duas escritas: a Edge Function `provisionar-estabelecimento`
+(irreversível — cria `auth.users`) e, em seguida, a RPC `definir_mensalidade_tenant` que grava o
+preço combinado. O molde, reusável em qualquer fluxo com uma escrita irreversível seguida de outra:
+
+1. A irreversível vem primeiro; a segunda só roda se a primeira devolveu `data`.
+2. Falha da segunda **não** desfaz nem apaga nada, e **não** é reportada como falha da operação:
+   o retorno carrega um sinalizador (`mensalidadeFalhou`) e a tela mostra a confirmação normal
+   mais um aviso dizendo o que ficou de fora e onde resolver.
+3. O estado de "enviando" só sai depois das duas — senão a tela de sucesso aparece no meio.
+4. Valor opcional que vale zero (cortesia, piloto) não chama a RPC à toa: zero e vazio são o
+   mesmo caminho.
+
+Implementado em `src/components/console/NovoEstabelecimentoModal.jsx` e no cartão de
+`src/pages/console/ConsolePage.jsx` (`.console__acesso-alerta`).

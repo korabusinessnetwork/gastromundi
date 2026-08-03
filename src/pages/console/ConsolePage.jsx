@@ -13,6 +13,7 @@ import {
   normalizarAba, ABAS_CONSOLE, normalizarPeriodo, PERIODO_PADRAO,
   filtrarPorPlano, normalizarFiltroPlano, contarPorPlano, montarMensagemPrimeiroAcesso,
 } from "@/lib/console";
+import { formatarReais } from "@/lib/deliveryPedidos";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
 import AlterarPlanoModal from "@/components/console/AlterarPlanoModal";
@@ -562,6 +563,17 @@ export default function ConsolePage() {
                   </button>
                 </div>
 
+                {/* Criação e preço são duas escritas. Se só a segunda falhou,
+                    o estabelecimento existe e o cartão continua valendo — o
+                    que o dono precisa saber é que o preço ficou de fora e
+                    onde defini-lo, não que "deu erro". */}
+                {sucesso.mensalidadeFalhou && (
+                  <p className="console__acesso-alerta" role="alert">
+                    <LuTriangleAlert size={16} aria-hidden /> O estabelecimento foi criado, mas a
+                    mensalidade não foi salva. Defina o valor em "Planos e assinaturas".
+                  </p>
+                )}
+
                 <dl className="console__acesso-dados">
                   <div>
                     <dt>Estabelecimento</dt>
@@ -571,6 +583,16 @@ export default function ConsolePage() {
                     <div>
                       <dt>Plano</dt>
                       <dd>{planoDoAcesso}</dd>
+                    </div>
+                  )}
+                  {/* A mensalidade fica no cartão, mas NÃO entra na mensagem
+                      copiada: aquele texto é para o cliente entrar no sistema,
+                      não é fatura. Aqui ela serve para o dono conferir que o
+                      preço combinado foi mesmo gravado. */}
+                  {sucesso.mensalidade > 0 && (
+                    <div>
+                      <dt>Mensalidade</dt>
+                      <dd>{formatarReais(sucesso.mensalidade)} por mês</dd>
                     </div>
                   )}
                   <div>

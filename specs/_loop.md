@@ -1,3 +1,11 @@
+## Rodada 38 — CONSOLE-UX 12 (mensalidade combinada no cadastro) — 2026-08-03
+- Spec: specs/console-mensalidade-no-cadastro.md
+- Resultado da review: aprovado sem ressalvas — 10 de 10 (suíte 199 arquivos / 3301 testes, verde)
+- Aprendido: molde de duas escritas em sequência com sucesso parcial (memory/patterns.md); asserção negativa de dinheiro não deve mirar o número solto (memory/learnings.md)
+- Commit: <hash> na branch main
+- Pendente de decisão: nenhuma
+- Próximo item recomendado: CONSOLE-UX 13 — marcar na lista quem está sem mensalidade definida, para o dono ver de fora quem entrou na base sem preço em vez de descobrir pelo cartão de receita zerada
+
 ## Rodada 37 — CONSOLE-UX 11 (cartão de primeiro acesso) — 2026-08-03
 - Spec: specs/console-primeiro-acesso.md
 - Resultado da review: aprovado sem ressalvas — 10 de 10 (suíte 198 arquivos / 3289 testes, verde)
