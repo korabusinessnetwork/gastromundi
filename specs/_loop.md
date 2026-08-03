@@ -2,7 +2,7 @@
 - Spec: specs/console-filtro-na-url.md
 - Resultado da review: aprovado sem ressalvas (10 de 10) — suíte 198 arquivos / 3214 testes, verde
 - Aprendido: memory/learnings.md — com MemoryRouter o endereço só se lê por `useLocation()`; asserção negativa sobre valor que pode estar vazio por acidente não prova nada
-- Commit: <preencher> na branch main
+- Commit: 839b8cf na branch main
 - Pendente de decisão: cortesia (`valor_mensal = 0`) não consegue renovar — a RPC recusa `p_valor <= 0`
 - Próximo item recomendado: CONSOLE-UX 8 — guardar também a aba (Estabelecimentos / Planos / Uso) na URL, fechando o "a tela volta como eu deixei" que a rodada 33 começou
 
