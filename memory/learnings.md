@@ -364,3 +364,30 @@ citando-o como precedente. Efeito real: cor que um tenant white-label não conse
 efeito nenhum — o atalho, vindo depois, zera a imagem. As camadas novas foram para o fim do
 arquivo de propósito. Vale para qualquer propriedade com atalho (`background`, `font`,
 `border`): longhand depois do shorthand, nunca antes.
+
+## `color-mix(… N%, transparent)` é exatamente `rgba(…, 0.N)` — dá para trocar sem olhar a tela
+
+Rodada 56 (CONSOLE-UX 30). Trocar 35 cores cruas do Console por token foi feito sem
+verificação visual (o navegador da sessão não abre) e mesmo assim sem risco, porque a
+conversão é aritmética, não estética: `color-mix` no espaço sRGB mistura com o alfa
+**pré-multiplicado**, então `color-mix(in srgb, #ef4444 40%, transparent)` resolve para
+`rgba(239, 68, 68, 0.4)`, o mesmo pixel. `transparent` é `rgba(0,0,0,0)`, e como o peso do
+canal de cor é o próprio alfa, o preto do `transparent` entra com peso zero e não suja o tom
+— que é o erro que a intuição espera ("vai escurecer"). É a mesma conversão que
+`src/constants/colorAlfa.js` já fazia no resto do aplicativo, travada por
+`colorAlfa.test.js`. Na próxima vez: substituição de `rgba(hex-do-token, a)` por
+`color-mix` sobre o token com `a*100%` é segura de fazer em lote, com script; o que precisa
+de olho é só onde o valor antigo **não** era o hex do token (no Console, só o véu do modal).
+
+## O comentário que nega o token não estava só no Console
+
+Rodada 55 achou dois arquivos do Console dizendo que o âmbar de status "não tem token
+`--gm-*`". A rodada 56 corrigiu os dois e varreu o resto: a mesma afirmação, e o mesmo
+`#f59e0b` literal, aparecem em mais de 30 lugares (`PDVView`, `CozinhaView`, `EstoqueView`,
+`NotasFiscaisTab`, `ImpostosAdmin`, `ImportarExportarTab`, `ConfiguracoesView`,
+`JarvasPanel`, `FechamentoModal`, `AssinaturaBanner`, `roles.js`, `crypto.js`) — boa parte
+em `style=` inline. E `src/lib/tema.js:66` já mapeia `--gm-warn` para sobrescrita por
+tenant, ou seja, o token estava pronto o tempo todo. Lição concreta: ao achar um comentário
+que justifica um hardcode, procurar a mesma frase no resto do repositório antes de assumir
+que é caso isolado — justificativa errada se copia junto com o código. Cadastrado como
+TD018.

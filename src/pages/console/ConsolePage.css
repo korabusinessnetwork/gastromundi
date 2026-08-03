@@ -224,8 +224,8 @@
   padding: 13px 16px;
   margin-bottom: 20px;
   border-radius: 12px;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: color-mix(in srgb, var(--gm-green) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-green) 40%, transparent);
   color: var(--gm-green);
   font-size: 14px;
   line-height: 1.45;
@@ -254,7 +254,7 @@
   border-radius: 16px;
   color: var(--gm-muted);
 }
-.console__estado--erro { color: var(--gm-red); border-color: rgba(239, 68, 68, 0.4); }
+.console__estado--erro { color: var(--gm-red); border-color: color-mix(in srgb, var(--gm-red) 40%, transparent); }
 .console__vazio-titulo { margin: 4px 0 0; font-size: 17px; font-weight: 700; color: var(--gm-text); }
 .console__vazio-texto { margin: 0 0 6px; font-size: 14px; color: var(--gm-muted); }
 

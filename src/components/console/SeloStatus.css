@@ -13,9 +13,9 @@
   white-space: nowrap;
 }
 
-.selo-status--ativo { background: rgba(16, 185, 129, 0.14); color: var(--gm-green); }
+.selo-status--ativo { background: color-mix(in srgb, var(--gm-green) 14%, transparent); color: var(--gm-green); }
 .selo-status--vencendo { background: var(--gm-alow); color: var(--gm-accent); }
-.selo-status--carencia { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-.selo-status--bloqueado { background: rgba(239, 68, 68, 0.14); color: var(--gm-red); }
+.selo-status--carencia { background: color-mix(in srgb, var(--gm-warn) 15%, transparent); color: var(--gm-warn); }
+.selo-status--bloqueado { background: color-mix(in srgb, var(--gm-red) 14%, transparent); color: var(--gm-red); }
 .selo-status--cancelado { background: var(--gm-surface); color: var(--gm-muted); }
 .selo-status--sem { background: var(--gm-surface); color: var(--gm-muted); }

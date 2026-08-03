@@ -3,10 +3,15 @@
  * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
  */
 
+/* O véu atrás do modal sai do tema, não de um preto cravado (decisão 017):
+   o valor antigo era um azul-quase-preto fixo, um fio mais escuro que
+   --gm-bg, e a diferença não se percebe. O ganho é que num tenant claro o véu
+   acompanha a paleta dele em vez de escurecer a tela com um azul que não é
+   dele. Este overlay é o de todos os sete modais do Console. */
 .nem-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(3, 6, 12, 0.72);
+  background: color-mix(in srgb, var(--gm-bg) 72%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -194,8 +199,8 @@
   gap: 8px;
   padding: 11px 14px;
   border-radius: 10px;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: color-mix(in srgb, var(--gm-red) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 40%, transparent);
   color: var(--gm-red);
   font-size: 13px;
   font-weight: 600;

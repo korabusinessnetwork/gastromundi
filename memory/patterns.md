@@ -999,3 +999,28 @@ inteira, que é o caso da lista com uma linha só. Aplicado em `.pdash__tabela-s
 `.auso__tabela-caixa`. Duas armadilhas: a cor das camadas de cobertura precisa ser
 **exatamente** o fundo do contêiner, e o bloco tem que vir **depois** de qualquer atalho
 `background` no arquivo, senão o atalho zera a imagem.
+
+## Tirar cor crua de um módulo inteiro sem mudar o que aparece na tela
+
+Rodada 56 (CONSOLE-UX 30), aplicável a qualquer módulo com `rgba()` de marca espalhado
+(o próximo é o TD018, no resto do aplicativo).
+
+1. **Levante antes de decidir o escopo.** `grep -n -E "#[0-9a-fA-F]{3,8}\b|rgba?\("` nos
+   CSS **e** nos JSX do módulo. O número que sai dali é o que vira critério de aceite
+   verificável ("zero `rgba()` de marca"), e é ele que diz se a rodada cabe.
+2. **Separe cor de marca de cor que não é marca.** Vermelho, verde, âmbar e accent viram
+   token. Sombra preta continua preta — sombra é profundidade. Texto branco sobre o accent
+   é um terceiro caso: precisa de um token que talvez não exista, então **não** entra de
+   contrabando; vira proposta ao dono.
+3. **Converta em lote, com script, e faça o script provar o número.** A conversão
+   `rgba(hex, a)` → `color-mix(in srgb, var(--token) a*100%, transparent)` é exata; o
+   script contar as trocas por arquivo é a evidência de que nada ficou para trás.
+4. **Preserve a quebra de linha de cada arquivo.** No GastroMundi quase tudo é CRLF, mas
+   não tudo (`SeloStatus.css` é LF). Normalizar o arquivo inteiro transforma uma troca de
+   três linhas num diff do arquivo todo.
+5. **Onde o valor antigo não era o hex do token, escreva por que a troca vale.** No véu do
+   modal o preto cravado era um fio mais escuro que `--gm-bg`; o comentário registra que a
+   diferença não se percebe e que o ganho é o véu seguir o tema do tenant.
+6. **Corrija o comentário junto com o código.** O hardcode costuma vir com uma
+   justificativa escrita ao lado; deixá-la lá faz o próximo achar que a decisão foi
+   deliberada e repetir.

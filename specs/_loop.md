@@ -1,3 +1,39 @@
+## Rodada 56 — CONSOLE-UX 30: nenhuma cor de marca crua no Console — 2026-08-03
+- Spec: specs/console-cores-do-tema.md
+- Resultado da review: aprovado sem ressalvas — 7 de 7 (suíte 201 arquivos / 3524 testes, verde).
+  35 cores cravadas à mão nos nove CSS do Console viraram `color-mix(in srgb, var(--gm-*) N%,
+  transparent)`, que resolve para o mesmo pixel no tema padrão. Sobraram de propósito os quatro
+  `color: #fff` (dependem do token `--gm-sobre-accent`, sem aval do dono) e a sombra preta do
+  modal. A review corrigiu uma coisa: a nota que eu havia escrito acima do véu do modal citava o
+  valor antigo em `rgba()`, e isso sujaria a busca do critério 1 para sempre — passou a descrever
+  o valor em palavras.
+- Aprendido:
+  - `memory/learnings.md` — `color-mix(… N%, transparent)` é exatamente `rgba(…, 0.N)`: a
+    mistura em sRGB usa alfa pré-multiplicado, então o preto do `transparent` entra com peso
+    zero e não escurece o tom, que é o que a intuição teme. Por isso a troca em lote é segura
+    sem verificação visual. E: o comentário que negava o token não era caso isolado do Console —
+    a mesma frase e o mesmo literal estão em mais de 30 lugares do aplicativo.
+  - `memory/patterns.md` — roteiro de seis passos para tirar cor crua de um módulo inteiro sem
+    mudar o que aparece na tela (levantar antes de decidir o escopo; separar cor de marca de
+    sombra e de texto-sobre-accent; converter com script que prova o número; preservar a quebra
+    de linha de cada arquivo; anotar onde o valor antigo não era o hex do token; corrigir o
+    comentário junto com o código).
+  - `docs/09_BACKLOG/tech-debt.md` — TD017 resolvido; TD018 aberto (o mesmo âmbar literal no
+    resto do aplicativo, boa parte em `style=` inline no JSX).
+  - `docs/09_BACKLOG/features.md` — a linha do F022 ganhou a rodada CONSOLE-UX 30.
+- Commit: <hash> na branch main
+- Pendente de decisão: as quatro herdadas (usuário do responsável na mensagem de acesso e
+  verificação de usuário livre, rodada 41; endereço do cardápio na mensagem copiada, rodada 44;
+  RPC para editar endereço de estabelecimento já criado, rodada 45; mínimo de senha 6 → 8,
+  rodada 46) — mais o token `--gm-sobre-accent`, proposto na rodada 53 e ainda sem aval, que é
+  o que trava os quatro `#fff` que sobraram nesta.
+- Próximo item recomendado: CONSOLE-UX 31 — **conferir o Console com dado de verdade**, criando
+  um estabelecimento de teste do zero pela tela e percorrendo o que as últimas rodadas mexeram
+  (lista, planos, uso e faturamento, os sete modais). São nove rodadas seguidas de melhoria sem
+  que ninguém tenha aberto a tela; o risco que sobra não é mais de código, é de comportamento —
+  e a venda está a três dias. Se o dono preferir seguir só no código, a alternativa é o TD018
+  (o mesmo âmbar literal no resto do aplicativo), que é maior porque mexe em JSX.
+
 ## Rodada 55 — CONSOLE-UX 29: as outras duas abas do Console no celular — 2026-08-03
 - Spec: specs/console-abas-no-celular.md
 - Resultado da review: aprovado sem ressalvas — 9 de 9 (suíte 201 arquivos / 3524 testes, verde),
