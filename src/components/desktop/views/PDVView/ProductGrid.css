@@ -72,6 +72,23 @@
   line-height: var(--lh-lg);
 }
 
+/* Primeiro dia do estabelecimento: o vazio explica e aponta o caminho.
+   Título com o peso do texto normal e dica em cinza — a orientação guia
+   sem gritar no meio da tela de operação. */
+.produto-grid__vazio-titulo {
+  color: var(--gm-text);
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+  margin: 0 0 8px;
+}
+
+.produto-grid__vazio-dica {
+  max-width: 42ch;
+  margin: 0 auto;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
 .produto-card {
   background: var(--gm-card);
   border: 1.5px solid var(--gm-border);

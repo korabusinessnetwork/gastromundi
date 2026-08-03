@@ -10,6 +10,13 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
   const categorias = ["Todos", ...new Set(products.map(p => p.category))];
   const [catAtiva, setCatAtiva] = useState("Todos");
 
+  // Estabelecimento recém-criado abre o PDV com o cardápio vazio. "Nenhum
+  // produto nesta categoria" mentiria — não existe categoria nenhuma — e não
+  // diz o que fazer. Aqui os dois vazios são coisas diferentes: catálogo
+  // vazio manda a pessoa para a tela de cadastro; categoria vazia é só um
+  // filtro sem resultado.
+  const catalogoVazio = products.length === 0;
+
   // Arrastar-para-rolar a barra de categorias: quando há categorias demais
   // elas transbordam e somem à direita (ex. nomes longos). No mouse não dá
   // para rolar na horizontal, então o operador não alcança as escondidas.
@@ -57,7 +64,10 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
   return (
     <div className="produto-grid">
 
-      {/* Filtro de categorias — arrastável para alcançar as que transbordam */}
+      {/* Filtro de categorias — arrastável para alcançar as que transbordam.
+          Sem produto nenhum a barra teria só o chip "Todos", que não filtra
+          nada: some para não competir com a orientação de cadastro. */}
+      {!catalogoVazio && (
       <div
         ref={filtroRef}
         className="produto-grid__filtro"
@@ -78,6 +88,7 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
           </button>
         ))}
       </div>
+      )}
 
       {/* Grid de produtos */}
       <div
@@ -95,7 +106,17 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
         ))}
         {cards.length === 0 && (
           <div className="produto-grid__vazio">
-            Nenhum produto nesta categoria
+            {catalogoVazio ? (
+              <>
+                <p className="produto-grid__vazio-titulo">Seu cardápio ainda está vazio</p>
+                <p className="produto-grid__vazio-dica">
+                  Cadastre os itens em <strong>Cadastro Produtos</strong>, no menu ao lado.
+                  Eles aparecem aqui na hora, prontos para vender.
+                </p>
+              </>
+            ) : (
+              "Nenhum produto nesta categoria"
+            )}
           </div>
         )}
       </div>
