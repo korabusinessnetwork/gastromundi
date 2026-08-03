@@ -3,7 +3,7 @@
 - Resultado da review: aprovado sem ressalvas (10 de 10) — suíte 198 arquivos / 3198 testes, verde
 - Aprendido: memory/learnings.md — (1) número dentro de um controle conta sobre a base do controle, número fora conta sobre a tela; (2) script node com agulha em `
 ` não casa fonte CRLF e substitui em silêncio — edição pontual vai de Edit
-- Commit: <preencher> na branch main
+- Commit: a2c11a2 na branch main
 - Pendente de decisão: cortesia (`valor_mensal = 0`) não consegue renovar — a RPC recusa `p_valor <= 0`
 - Próximo item recomendado: CONSOLE-UX 7 — lembrar o recorte escolhido na URL, para o dono poder deixar o Console aberto em "precisam de atenção" e voltar nele
 
