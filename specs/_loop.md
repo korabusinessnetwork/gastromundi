@@ -1,3 +1,30 @@
+## Rodada 51 — CONSOLE-UX 25: o foco do teclado nos modais do Console — 2026-08-03
+- Spec: specs/console-foco-nos-modais.md
+- Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 201 arquivos / 3503 testes, verde)
+- Aprendido:
+  - `memory/patterns.md` — o que não é óbvio no foco de um modal
+    (`src/hooks/useFocoDoModal.js`): o foco inicial vai no primeiro CAMPO e nunca no
+    primeiro focável, que é sempre o "X" do cabeçalho; a lista de focáveis é
+    recalculada a cada Tab e nunca congelada na montagem, porque o conteúdo do modal
+    muda embaixo do dono; filtrar focáveis por visibilidade (`offsetParent`) zera a
+    lista inteira no jsdom e faz todo teste de Tab passar por engano; e devolver o
+    foco ao desmontar precisa checar `isConnected`, porque a linha que abriu o modal
+    pode ter sumido na recarga da lista.
+- Commit: 86d4697 na branch main
+- Pendente de decisão: as quatro herdadas — (1) usuário do responsável na mensagem de
+  acesso e verificação de usuário livre antes do envio, ambas dependem de RPC
+  `SECURITY DEFINER` sobre `public.users` (rodada 41); (2) o endereço do cardápio entra
+  na mensagem copiada? (rodada 44); (3) editar o endereço de um estabelecimento já criado
+  precisa de RPC nova, `tenants` só tem SELECT na RLS (rodada 45); (4) subir o mínimo de
+  senha de 6 para 8 mexe na borda e no cliente juntos (rodada 46).
+- Próximo item recomendado: CONSOLE-UX 26 — o Console quando a internet cai. É o buraco
+  mais concreto que sobrou: o `useStatusRede` existe no projeto mas só o app do cliente
+  usa (`src/context/AppContext.jsx`); o Console, que é a tela que o dono abre na rua para
+  cobrar, não avisa que está sem conexão e devolve o erro cru do navegador no lugar de
+  uma frase — "Failed to fetch" numa tela que acabou de tentar registrar um pagamento é o
+  oposto de "nada de jargão técnico na tela". Faixa de sem conexão no topo, ação travada
+  com o motivo à vista e erro de rede traduzido nos sete modais. Só cliente, sem migration.
+
 ## Rodada 50 — CONSOLE-UX 24: Esc e clique fora fecham os modais do Console — 2026-08-03
 - Spec: specs/console-esc-e-clique-fora.md
 - Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 200 arquivos / 3490 testes, verde)
