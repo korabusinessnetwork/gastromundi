@@ -2,7 +2,7 @@
 - Spec: specs/console-aba-na-url.md
 - Resultado da review: aprovado sem ressalvas (10 de 10) — suíte 198 arquivos / 3226 testes, verde
 - Aprendido: nada novo que passe no filtro — a rodada reusou o molde da 33 (normalizador puro + escrita que apaga o valor padrão + replace)
-- Commit: <preencher> na branch main
+- Commit: 341407b na branch main
 - Pendente de decisão: cortesia (`valor_mensal = 0`) não consegue renovar — a RPC recusa `p_valor <= 0`
 - Próximo item recomendado: CONSOLE-UX 9 — o período da aba "Uso e faturamento" também na URL, fechando o último estado da tela que a recarga apaga
 
