@@ -19,6 +19,7 @@ import {
 import { urlDoCardapioPublico } from "@/lib/tenantSlug";
 import { valorDigitado } from "@/lib/delivery";
 import { formatarReais } from "@/lib/deliveryPedidos";
+import { useFecharModal } from "@/hooks/useFecharModal";
 import "./NovoEstabelecimentoModal.css";
 
 /**
@@ -192,8 +193,16 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
     });
   };
 
+  // Esc e clique no fundo entram pelo mesmo caminho do "X" (CONSOLE-UX
+  // 24) — e com a pergunta de descarte já na tela eles equivalem a
+  // "Continuar preenchendo": o gesto de sair nunca joga o cadastro fora.
+  const fundo = useFecharModal(
+    confirmandoDescarte ? () => setConfirmandoDescarte(false) : pedirParaFechar,
+    enviando
+  );
+
   return createPortal(
-    <div className="nem-overlay" role="dialog" aria-modal="true" aria-label="Criar estabelecimento">
+    <div className="nem-overlay" {...fundo} role="dialog" aria-modal="true" aria-label="Criar estabelecimento">
       <div className="nem-modal">
         <header className="nem-header">
           <div className="nem-header__titulo">

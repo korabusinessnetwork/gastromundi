@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuPuzzle, LuInfo } from "react-icons/lu";
 import { listarAddons, listarAddonsPorTenant, alternarAddon, resumirAddonsDoTenant } from "@/lib/console";
 import { AVISOS_ADDON, CONSEQUENCIAS_DESLIGAR } from "@/constants/addons";
+import { useFecharModal } from "@/hooks/useFecharModal";
 // Reaproveita o CSS genérico de modal do Console (overlay, modal, header,
 // corpo, footer, botões) — decisão 018 (CSS separado do JSX), sem duplicar.
 import "./NovoEstabelecimentoModal.css";
@@ -104,8 +105,11 @@ export default function AddonsModal({ tenant, onFechar, onAlterado }) {
 
   const ligados = linhas.filter((l) => l.ativo).length;
 
+  // Esc e clique no fundo escuro saem por onde o "X" sai (CONSOLE-UX 24).
+  const fundo = useFecharModal(onFechar, Boolean(salvando));
+
   return createPortal(
-    <div className="nem-overlay" role="dialog" aria-modal="true" aria-label="Add-ons do estabelecimento">
+    <div className="nem-overlay" {...fundo} role="dialog" aria-modal="true" aria-label="Add-ons do estabelecimento">
       <div className="nem-modal">
         <header className="nem-header">
           <div className="nem-header__titulo">

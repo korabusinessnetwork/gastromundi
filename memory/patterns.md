@@ -848,3 +848,31 @@ formulário longo do sistema:
    está na conta.
 6. Empilhar `createPortal` por cima de `createPortal` é o que se evita aqui —
    dois overlays disputam foco, `aria-modal` e tecla Esc.
+
+## Esc e clique fora num modal: as quatro regras (rodada 50)
+
+`src/hooks/useFecharModal.js` — as duas saídas que toda janela flutuante tem.
+O hook **não fecha nada**: ele entrega o gesto, e o modal decide o que fazer
+com ele. Quatro regras que não são óbvias e custam dado do usuário quando
+faltam:
+
+1. **O gesto chama o mesmo caminho do "X"**, nunca `onFechar` direto. No
+   cadastro de estabelecimento isso faz o Esc cair na confirmação de descarte
+   (rodada 49) em vez de apagar o formulário — **Esc nunca destrói**.
+2. **Arrastar de dentro para fora não fecha.** Selecionar o texto de um campo e
+   soltar o botão do mouse no fundo escuro é um clique que *termina* no fundo:
+   sem lembrar onde o `mousedown` começou (`comecouNoFundo` numa ref), o modal
+   fecha e o trabalho some. Checar só `e.target === e.currentTarget` no
+   `onClick` não basta.
+3. **A função de fechar entra por `useRef`, não por dependência do efeito.**
+   Ela é recriada a cada render; nas dependências, cada tecla digitada num
+   campo desassina e reassina o `keydown` do `document`. Efeito com `[]` + ref
+   atualizada no corpo do render assina uma vez e mesmo assim chama sempre a
+   versão mais recente.
+4. **O gesto desfaz a coisa mais interna.** Se o modal tem um passo aberto por
+   dentro (a confirmação de descarte no cadastro, o estorno em confirmação no
+   histórico de pagamentos), Esc fecha esse passo e só o Esc seguinte fecha o
+   modal. Fechar o modal por baixo de uma pergunta aberta é sempre errado.
+
+O estado de envio do modal entra como `bloqueado`: durante o envio as duas
+saídas ficam mudas, pela mesma razão que os botões ficam desabilitados.

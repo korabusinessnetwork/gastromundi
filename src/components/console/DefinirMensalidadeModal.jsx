@@ -4,6 +4,7 @@ import { LuX, LuTriangleAlert, LuLoaderCircle, LuWallet } from "react-icons/lu";
 import { definirMensalidade, MENSALIDADE_MAXIMA } from "@/lib/console";
 import { valorDigitado } from "@/lib/delivery";
 import { formatarReais } from "@/lib/deliveryPedidos";
+import { useFecharModal } from "@/hooks/useFecharModal";
 // Reaproveita o CSS genérico de modal do Console (overlay, modal, header,
 // campo, footer, botões) — decisão 018 (CSS separado do JSX), sem duplicar.
 import "./NovoEstabelecimentoModal.css";
@@ -64,8 +65,11 @@ export default function DefinirMensalidadeModal({ linha, onFechar, onDefinido })
     onDefinido(data);
   };
 
+  // Esc e clique no fundo escuro saem por onde o "X" sai (CONSOLE-UX 24).
+  const fundo = useFecharModal(onFechar, enviando);
+
   return createPortal(
-    <div className="nem-overlay" role="dialog" aria-modal="true" aria-label="Definir mensalidade do estabelecimento">
+    <div className="nem-overlay" {...fundo} role="dialog" aria-modal="true" aria-label="Definir mensalidade do estabelecimento">
       <div className="nem-modal">
         <header className="nem-header">
           <div className="nem-header__titulo">

@@ -288,3 +288,28 @@ describe("AlterarPlanoModal — a troca de plano diz o que o cliente perde", () 
     expect(onAlterado).not.toHaveBeenCalled();
   });
 });
+
+// ── CONSOLE-UX 24 — Esc e clique fora ──
+//
+// Nos modais de um campo só, o gesto de sair é o mesmo do "X": reabrir custa um
+// clique, não há o que confirmar. Este teste vale como amostra dos cinco
+// modais simples do Console, que ligam o hook exatamente assim.
+describe("AlterarPlanoModal — Esc e clique fora", () => {
+  it("Esc fecha o modal", async () => {
+    const user = userEvent.setup();
+    const { onFechar } = montar();
+
+    await user.keyboard("{Escape}");
+
+    expect(onFechar).toHaveBeenCalledTimes(1);
+  });
+
+  it("clique dentro do modal não fecha", async () => {
+    const user = userEvent.setup();
+    const { onFechar } = montar();
+
+    await user.click(await screen.findByRole("heading", { name: /Trocar plano/i }));
+
+    expect(onFechar).not.toHaveBeenCalled();
+  });
+});

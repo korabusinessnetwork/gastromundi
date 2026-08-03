@@ -4,6 +4,7 @@ import { LuX, LuTriangleAlert, LuLoaderCircle, LuBuilding2, LuPlus } from "react
 import { alterarPlano, compararModulosDoPlano } from "@/lib/console";
 import { buscarModulosDoPlano } from "@/lib/tenant";
 import MODULOS from "@/constants/modulos";
+import { useFecharModal } from "@/hooks/useFecharModal";
 // Reaproveita o CSS genérico de modal do Console (overlay, modal, header,
 // campo, footer, botões) — decisão 018 (CSS separado do JSX), sem duplicar.
 import "./NovoEstabelecimentoModal.css";
@@ -102,8 +103,11 @@ export default function AlterarPlanoModal({ tenant, planos, onFechar, onAlterado
     onAlterado(data);
   };
 
+  // Esc e clique no fundo escuro saem por onde o "X" sai (CONSOLE-UX 24).
+  const fundo = useFecharModal(onFechar, enviando);
+
   return createPortal(
-    <div className="nem-overlay" role="dialog" aria-modal="true" aria-label="Trocar plano do estabelecimento">
+    <div className="nem-overlay" {...fundo} role="dialog" aria-modal="true" aria-label="Trocar plano do estabelecimento">
       <div className="nem-modal">
         <header className="nem-header">
           <div className="nem-header__titulo">

@@ -284,3 +284,41 @@ describe("HistoricoPagamentosModal — cancelar um pagamento", () => {
     expect(onFechar).toHaveBeenCalledTimes(2);
   });
 });
+
+// ── CONSOLE-UX 24 — Esc e clique fora ──
+//
+// O gesto de sair desfaz sempre a coisa mais interna: com um estorno já em
+// confirmação, Esc volta para a lista em vez de fechar o histórico por baixo
+// dele — quem apertou Esc queria desistir do estorno, não do modal.
+describe("HistoricoPagamentosModal — Esc e clique fora", () => {
+  beforeEach(() => {
+    mockListar.mockResolvedValue({ data: [pg("p-ago", "2026-08-01", 300)], error: null });
+  });
+
+  it("Esc fecha o modal quando não há estorno em confirmação", async () => {
+    const user = userEvent.setup();
+    const { onFechar } = montar();
+    await screen.findByText("agosto/2026");
+
+    await user.keyboard("{Escape}");
+
+    expect(onFechar).toHaveBeenCalledTimes(1);
+  });
+
+  it("com o estorno em confirmação, Esc volta para a lista e não fecha", async () => {
+    const user = userEvent.setup();
+    const { onFechar } = montar();
+    await user.click(await screen.findByRole("button", { name: /^Cancelar o pagamento de agosto/i }));
+    expect(campoMotivo()).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(onFechar).not.toHaveBeenCalled();
+    expect(mockEstornar).not.toHaveBeenCalled();
+
+    // O segundo Esc, já sem nada aberto por dentro, fecha.
+    await user.keyboard("{Escape}");
+    expect(onFechar).toHaveBeenCalledTimes(1);
+  });
+});

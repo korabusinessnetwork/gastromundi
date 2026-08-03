@@ -744,3 +744,81 @@ describe("NovoEstabelecimentoModal — descartar o cadastro", () => {
     expect(descartar()).toBeInTheDocument();
   });
 });
+
+// ── CONSOLE-UX 24 — Esc e clique fora ──
+//
+// O gesto que todo mundo tenta primeiro numa janela flutuante. Aqui ele entra
+// pelo mesmo caminho do "X": com o formulário vazio fecha na hora, com dado
+// preenchido cai na pergunta de descarte da CONSOLE-UX 23. E com a pergunta já
+// na tela, Esc equivale a "Continuar preenchendo" — nunca descarta.
+describe("NovoEstabelecimentoModal — Esc e clique fora", () => {
+  const fundo = () => screen.getByRole("dialog");
+  const descartar = () => screen.queryByRole("button", { name: /^Descartar$/i });
+
+  it("com o formulário vazio, Esc fecha na hora", async () => {
+    const { user, onFechar } = montar();
+
+    await user.keyboard("{Escape}");
+
+    expect(onFechar).toHaveBeenCalledTimes(1);
+  });
+
+  it("com o formulário vazio, o clique no fundo escuro fecha na hora", async () => {
+    const { user, onFechar } = montar();
+
+    await user.click(fundo());
+
+    expect(onFechar).toHaveBeenCalledTimes(1);
+  });
+
+  it("com dado preenchido, Esc pergunta antes e não fecha", async () => {
+    const { user, onFechar } = montar();
+    await user.type(screen.getByLabelText(/^Nome do estabelecimento/i), "Bar do Zé");
+
+    await user.keyboard("{Escape}");
+
+    expect(descartar()).toBeInTheDocument();
+    expect(onFechar).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/^Nome do estabelecimento/i)).toHaveValue("Bar do Zé");
+  });
+
+  it("com dado preenchido, o clique no fundo escuro pergunta antes e não fecha", async () => {
+    const { user, onFechar } = montar();
+    await user.type(screen.getByLabelText(/^Nome do estabelecimento/i), "Bar do Zé");
+
+    await user.click(fundo());
+
+    expect(descartar()).toBeInTheDocument();
+    expect(onFechar).not.toHaveBeenCalled();
+  });
+
+  it("com a pergunta na tela, Esc volta ao formulário em vez de descartar", async () => {
+    const { user, onFechar } = montar();
+    await user.type(screen.getByLabelText(/^Nome do estabelecimento/i), "Bar do Zé");
+    await user.keyboard("{Escape}");
+    expect(descartar()).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+
+    expect(descartar()).toBeNull();
+    expect(onFechar).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/^Nome do estabelecimento/i)).toHaveValue("Bar do Zé");
+    expect(criar()).toBeInTheDocument();
+  });
+
+  // Selecionar o texto de um campo e soltar o botão do mouse fora da caixa é
+  // um clique que termina no fundo. Se ele fechasse, o dono perderia o
+  // cadastro por ter arrastado o mouse enquanto relia o que digitou.
+  it("arrastar de dentro para o fundo não pergunta nem fecha", async () => {
+    const { user, onFechar } = montar();
+    await user.type(screen.getByLabelText(/^Nome do estabelecimento/i), "Bar do Zé");
+
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: screen.getByLabelText(/^Nome do estabelecimento/i) },
+      { keys: "[/MouseLeft]", target: fundo() },
+    ]);
+
+    expect(descartar()).toBeNull();
+    expect(onFechar).not.toHaveBeenCalled();
+  });
+});

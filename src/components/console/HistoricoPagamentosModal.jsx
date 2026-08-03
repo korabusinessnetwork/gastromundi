@@ -7,6 +7,7 @@ import {
   listarPagamentosAssinatura, estornarPagamentoAssinatura, resumirPagamentos, rotuloCompetencia,
 } from "@/lib/assinatura";
 import { formatarReais } from "@/lib/deliveryPedidos";
+import { useFecharModal } from "@/hooks/useFecharModal";
 // A casca (overlay, modal, header, botões, spinner) é a mesma dos outros
 // modais do Console — decisão 018, sem duplicar CSS.
 import "./NovoEstabelecimentoModal.css";
@@ -108,8 +109,17 @@ export default function HistoricoPagamentosModal({ linha, confirmadoPor, onFecha
     onEstornado?.();
   };
 
+  // Esc e clique no fundo desfazem sempre a coisa mais interna
+  // (CONSOLE-UX 24): com um estorno em confirmação, o gesto volta para a
+  // lista em vez de fechar o histórico inteiro por baixo dele.
+  const pedirParaFechar = () => {
+    if (emCancelamento) setEmCancelamento(null);
+    else onFechar();
+  };
+  const fundo = useFecharModal(pedirParaFechar, enviando);
+
   return createPortal(
-    <div className="nem-overlay" role="dialog" aria-modal="true" aria-label="Pagamentos da assinatura">
+    <div className="nem-overlay" {...fundo} role="dialog" aria-modal="true" aria-label="Pagamentos da assinatura">
       <div className="nem-modal hpm-modal">
         <header className="nem-header">
           <div className="nem-header__titulo">

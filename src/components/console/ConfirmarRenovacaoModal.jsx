@@ -4,6 +4,7 @@ import { LuX, LuTriangleAlert, LuLoaderCircle, LuBanknote } from "react-icons/lu
 import { confirmarRenovacaoAssinatura, rotuloCompetencia } from "@/lib/assinatura";
 import { valorDigitado } from "@/lib/delivery";
 import { formatarReais } from "@/lib/deliveryPedidos";
+import { useFecharModal } from "@/hooks/useFecharModal";
 // Reaproveita o CSS genérico de modal do Console (overlay, modal, header,
 // campo, footer, botões) — decisão 018 (CSS separado do JSX), sem duplicar.
 import "./NovoEstabelecimentoModal.css";
@@ -98,8 +99,11 @@ export default function ConfirmarRenovacaoModal({
     onConfirmado(data, rotulo);
   };
 
+  // Esc e clique no fundo escuro saem por onde o "X" sai (CONSOLE-UX 24).
+  const fundo = useFecharModal(onFechar, enviando);
+
   return createPortal(
-    <div className="nem-overlay" role="dialog" aria-modal="true" aria-label="Registrar pagamento da assinatura">
+    <div className="nem-overlay" {...fundo} role="dialog" aria-modal="true" aria-label="Registrar pagamento da assinatura">
       <div className="nem-modal">
         <header className="nem-header">
           <div className="nem-header__titulo">
