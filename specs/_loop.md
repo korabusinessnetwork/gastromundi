@@ -11,7 +11,7 @@ Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
   recarrega a lista e mantém o histórico aberto.
 - Aprendido: memory/learnings.md — reusar componente num segundo lugar é redecidir
   os callbacks, não copiá-los; cada `on*` existe para um estado do chamador anterior.
-- Commit: (ver commit desta rodada) na branch main
+- Commit: 3302689 na branch main
 - Pendente de decisão: estabelecimento de cortesia (`valor_mensal = 0`) segue sem
   poder renovar — a RPC recusa `p_valor <= 0`.
 - Próximo item recomendado: CONSOLE-UX 6 — filtro por situação na lista (ver só quem
