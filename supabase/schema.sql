@@ -952,16 +952,16 @@ CREATE TABLE public.nfce_inutilizacoes (
 --    guarda is_super_admin() e REVOKE de PUBLIC/anon ───────────
 -- provisionar_tenant(text, text, text, jsonb) → 20260727 ; slug em 20260741 ;
 --   cria a assinatura junto desde 20260908 ; semeia grupos_categoria e
---   unidades_medida desde 20260917  (pendente em produção)
+--   unidades_medida desde 20260917  (aplicada 2026-08-02)
 -- alterar_plano_tenant / alterar_mensalidade_tenant           → 20260728 / 20260801
 -- alterar_layout_tenant(uuid, text)                           → 20260801
 -- confirmar_pagamento_assinatura(...)                         → 20260719 e sucessoras
 -- confirmar_renovacao_assinatura(uuid, numeric, text)         → 20260911 (recusa p_valor <= 0)
--- analytics_plataforma(...)                                   → 20260912  (pendente em produção)
--- estornar_pagamento_assinatura(uuid, text, text)             → 20260913  (pendente em produção)
--- atualizar_identidade_tenant(text, text)                     → 20260914  (pendente em produção)
+-- analytics_plataforma(...)                                   → 20260912  (aplicada 2026-08-02)
+-- estornar_pagamento_assinatura(uuid, text, text)             → 20260913  (aplicada 2026-08-02)
+-- atualizar_identidade_tenant(text, text)                     → 20260914  (aplicada 2026-08-02)
 --   sem parâmetro de tenant de propósito: o alvo é sempre tenant_do_usuario_atual()
--- alternar_addon_tenant(uuid, text, boolean)                  → 20260915  (pendente em produção)
+-- alternar_addon_tenant(uuid, text, boolean)                  → 20260915  (aplicada 2026-08-02)
 
 -- =============================================================
 -- ROW LEVEL SECURITY
