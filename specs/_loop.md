@@ -2,7 +2,7 @@
 - Spec: specs/console-lista-por-partes.md
 - Resultado da review: aprovado sem ressalvas — 10 de 10 (suíte 199 arquivos / 3312 testes, verde)
 - Aprendido: status de assinatura em teste vem da DATA de vencimento — resumirPlataforma recalcula e ignora o campo status do banco, exceto cancelado (memory/learnings.md)
-- Commit: PENDENTE na branch main
+- Commit: fbdc471 na branch main
 - Pendente de decisão: nenhuma nova (segue a cortesia com valor_mensal = 0)
 - Próximo item recomendado: CONSOLE-UX 15 — atalho de "copiar dados de acesso" para estabelecimento já existente, hoje só disponível no minuto seguinte à criação
 
