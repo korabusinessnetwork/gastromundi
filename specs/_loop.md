@@ -1,3 +1,11 @@
+## Rodada 41 — CONSOLE-UX 15 (prévia do cardápio no card) — 2026-08-03
+- Spec: specs/console-ver-cardapio.md
+- Resultado da review: aprovado sem ressalvas — 11 de 11 (suíte 199 arquivos / 3323 testes, verde)
+- Aprendido: no host dedicado do Console o `?loja=` perde para o subdomínio (link abriria a loja errada); e nome acessível dos botões do card vem do texto, não do `title` (memory/learnings.md)
+- Commit: 93097c2 na branch main
+- Pendente de decisão: copiar dados de acesso de estabelecimento JÁ EXISTENTE precisa do usuário do responsável, que mora em `public.users` — tabela sem o ramo `is_super_admin()` na RLS. Exige RPC SECURITY DEFINER nova (mudança de schema em produção). Vale criar?
+- Próximo item recomendado: CONSOLE-UX 16 — copiar o endereço de acesso de um estabelecimento existente (nome, plano e link de entrada, sem usuário e sem senha), agora que a lista lê o slug
+
 ## Rodada 40 — CONSOLE-UX 14 (lista por partes) — 2026-08-03
 - Spec: specs/console-lista-por-partes.md
 - Resultado da review: aprovado sem ressalvas — 10 de 10 (suíte 199 arquivos / 3312 testes, verde)
