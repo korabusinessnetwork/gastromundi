@@ -688,3 +688,37 @@ preço combinado. O molde, reusável em qualquer fluxo com uma escrita irrevers�
 
 Implementado em `src/components/console/NovoEstabelecimentoModal.jsx` e no cartão de
 `src/pages/console/ConsolePage.jsx` (`.console__acesso-alerta`).
+
+## Regra do servidor espelhada no cliente: para avisar, nunca para decidir (Console, rodada 45)
+
+O endereço público do estabelecimento (`tenants.slug`) é derivado e resolvido no
+banco: `slugify_tenant` (20260741) apaga acento e tudo que não é `[a-z0-9]`,
+`slug_reservado` (20260803) proíbe uma lista de rótulos, e o laço de
+`provisionar_tenant` resolve colisão com sufixo numérico. Tudo isso acontecia
+**calado**: "Bar do Zé" virava `bardoze`, e um segundo virava `bardoze2` sem
+ninguém saber. O molde que resolveu, reusável sempre que o servidor normaliza ou
+renomeia algo que o usuário digitou:
+
+1. **O cliente reimplementa a regra como função pura exportada** e diz no JSDoc
+   de qual objeto do banco ela é espelho (`normalizarSlug`, `sugerirSlugLivre`,
+   `SLUGS_RESERVADOS` em `src/lib/console.js`). O banco continua sendo a
+   autoridade — CHECK constraint e laço da RPC seguem lá.
+2. **O campo mostra o valor já normalizado a cada tecla.** O que está na tela é
+   exatamente o que o servidor vai gravar; nada de o usuário digitar "Bar-do Zé"
+   e descobrir depois que virou `bardoze`.
+3. **Estado derivado, não `useEffect`.** `slugEfetivo = slugTocado ? slug :
+   normalizarSlug(nome)` — enquanto ninguém editou, o endereço É o nome
+   normalizado, então não existe frame mostrando um valor velho. Depois de
+   editado, para de seguir o nome (senão a escolha do dono seria apagada a cada
+   letra corrigida no nome).
+4. **Conflito vira escolha, não surpresa:** a mensagem de erro traz o primeiro
+   endereço livre e um botão que o aplica em um clique — a mesma sugestão que a
+   RPC usaria calada.
+5. **Deriva entre as duas pontas é fixada por teste.**
+   `src/lib/provisionamentoValidacao.test.js` importa o `normalizarSlug` da Edge
+   Function e o do Console e prova, com `it.each` sobre as mesmas entradas, que
+   os dois concordam — inclusive no `MAX_SLUG`. Espelho sem esse teste desalinha
+   na primeira mudança de um dos lados.
+6. **Lista vazia não inventa conflito.** `slugsEmUso` vazio significa "não sei de
+   nenhum ocupado" (tenants ainda carregando), não "está tudo livre": o cliente
+   não bloqueia, e o banco segue como barreira final.

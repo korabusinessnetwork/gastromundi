@@ -11,6 +11,10 @@ vi.mock("./supabase", async () => {
 import { supabase } from "./supabase";
 import {
   normalizarUsername,
+  provisionarEstabelecimento,
+  normalizarSlug,
+  sugerirSlugLivre,
+  MAX_SLUG,
   validarNovoEstabelecimento,
   resumirPlataforma,
   compararModulosDoPlano,
@@ -64,6 +68,7 @@ describe("normalizarUsername", () => {
 describe("validarNovoEstabelecimento", () => {
   const valido = {
     nome: "Restaurante do Sul",
+    slug: "restaurantedosul",
     planoCodigo: "avancado",
     adminNome: "Maria",
     adminUsername: "maria",
@@ -111,8 +116,120 @@ describe("validarNovoEstabelecimento", () => {
     const { ok, erros } = validarNovoEstabelecimento({});
     expect(ok).toBe(false);
     expect(Object.keys(erros).sort()).toEqual(
-      ["adminNome", "adminPassword", "adminUsername", "nome", "planoCodigo"].sort()
+      ["adminNome", "adminPassword", "adminUsername", "nome", "planoCodigo", "slug"].sort()
     );
+  });
+
+  it("exige o endereço do cardápio quando o nome não gera nenhuma letra", () => {
+    const { ok, erros } = validarNovoEstabelecimento({ ...valido, slug: "@@@" });
+    expect(ok).toBe(false);
+    expect(erros.slug).toContain("Informe o endereço");
+  });
+
+  it("recusa endereço já ocupado e diz qual usar", () => {
+    const { ok, erros } = validarNovoEstabelecimento(
+      { ...valido, slug: "bardoze" },
+      ["bardoze", "outroqualquer"]
+    );
+    expect(ok).toBe(false);
+    expect(erros.slug).toContain("bardoze2");
+  });
+
+  it("recusa endereço reservado pelo sistema", () => {
+    const { ok, erros } = validarNovoEstabelecimento({ ...valido, slug: "console" });
+    expect(ok).toBe(false);
+    expect(erros.slug).toContain("reservado");
+    expect(erros.slug).toContain("console2");
+  });
+
+  it("compara endereços já normalizados — 'Bar do Zé' ocupa 'bardoze'", () => {
+    const { erros } = validarNovoEstabelecimento({ ...valido, slug: "Bar do Zé" }, ["bardoze"]);
+    expect(erros.slug).toBeTruthy();
+  });
+
+  it("lista de ocupados vazia não inventa conflito", () => {
+    const { ok } = validarNovoEstabelecimento({ ...valido, slug: "bardoze" }, []);
+    expect(ok).toBe(true);
+  });
+});
+
+describe("normalizarSlug", () => {
+  it("tira acento, espaço e maiúscula — igual ao slugify_tenant do banco", () => {
+    expect(normalizarSlug("Bar do Zé")).toBe("bardoze");
+    expect(normalizarSlug("  Café ☕  ")).toBe("cafe");
+  });
+
+  it("apaga hífen e ponto — o banco não guarda separador nenhum", () => {
+    expect(normalizarSlug("bar-do-ze")).toBe("bardoze");
+    expect(normalizarSlug("bar.do.ze")).toBe("bardoze");
+  });
+
+  it("corta em MAX_SLUG caracteres", () => {
+    expect(normalizarSlug("a".repeat(60))).toHaveLength(MAX_SLUG);
+  });
+
+  it("devolve vazio para entrada sem letra nem número", () => {
+    expect(normalizarSlug("@@@ !!!")).toBe("");
+    expect(normalizarSlug(null)).toBe("");
+    expect(normalizarSlug(undefined)).toBe("");
+  });
+});
+
+describe("sugerirSlugLivre", () => {
+  it("devolve a própria base quando ela está livre", () => {
+    expect(sugerirSlugLivre("bardoze", ["outro"])).toBe("bardoze");
+  });
+
+  it("pula os ocupados em cadeia", () => {
+    expect(sugerirSlugLivre("bardoze", ["bardoze", "bardoze2"])).toBe("bardoze3");
+  });
+
+  it("pula rótulo reservado — mesmo laço da RPC provisionar_tenant", () => {
+    expect(sugerirSlugLivre("console", [])).toBe("console2");
+  });
+
+  it("normaliza a base antes de sugerir", () => {
+    expect(sugerirSlugLivre("Bar do Zé", ["bardoze"])).toBe("bardoze2");
+  });
+
+  it("devolve vazio quando não sobra nada da base", () => {
+    expect(sugerirSlugLivre("@@@", [])).toBe("");
+  });
+});
+
+describe("provisionarEstabelecimento — o endereço no corpo", () => {
+  const base = {
+    nome: "Bar do Zé",
+    planoCodigo: "avancado",
+    adminNome: "José",
+    adminUsername: "barze",
+    adminPassword: "senha123",
+  };
+
+  function corpoEnviado() {
+    return JSON.parse(global.fetch.mock.calls[0][1].body);
+  }
+
+  beforeEach(() => {
+    supabase.auth.getSession.mockResolvedValue({ data: { session: { access_token: "tok" } } });
+    global.fetch = vi.fn(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ tenant_id: "t-1" }) })
+    );
+  });
+
+  it("manda o slug escolhido, normalizado", async () => {
+    await provisionarEstabelecimento({ ...base, slug: "Bar do Zé" });
+    expect(corpoEnviado().slug).toBe("bardoze");
+  });
+
+  it("sem slug, não manda o campo — a borda deriva do nome como sempre fez", async () => {
+    await provisionarEstabelecimento(base);
+    expect(corpoEnviado()).not.toHaveProperty("slug");
+  });
+
+  it("slug que vira vazio também não vai — não sobrescreve o fallback do servidor", async () => {
+    await provisionarEstabelecimento({ ...base, slug: "@@@" });
+    expect(corpoEnviado()).not.toHaveProperty("slug");
   });
 });
 

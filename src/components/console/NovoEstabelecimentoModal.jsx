@@ -6,8 +6,12 @@ import {
   provisionarEstabelecimento,
   traduzirErroProvisionamento,
   definirMensalidade,
+  normalizarSlug,
+  sugerirSlugLivre,
   MENSALIDADE_MAXIMA,
+  MAX_SLUG,
 } from "@/lib/console";
+import { urlDoCardapioPublico } from "@/lib/tenantSlug";
 import { valorDigitado } from "@/lib/delivery";
 import { formatarReais } from "@/lib/deliveryPedidos";
 import "./NovoEstabelecimentoModal.css";
@@ -27,8 +31,13 @@ import "./NovoEstabelecimentoModal.css";
  * (revalida o papel `plataforma`, cria auth + perfil de forma atômica).
  * Aqui só montamos o payload e mostramos o resultado.
  */
-export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado }) {
+export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFechar, onCriado }) {
   const [nome, setNome] = useState("");
+  const [slug, setSlug] = useState("");
+  // Enquanto o dono não editar o endereço, ele segue o nome. Depois de
+  // editado, para de seguir — senão o Console apagaria a escolha dele a cada
+  // letra corrigida no nome.
+  const [slugTocado, setSlugTocado] = useState(false);
   const [endereco, setEndereco] = useState("");
   const [planoCodigo, setPlanoCodigo] = useState("");
   const [mensalidade, setMensalidade] = useState("");
@@ -67,6 +76,13 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
   const mensalidadeParaSalvar =
     !erroMensalidade && valorMensalidade !== null && valorMensalidade > 0 ? valorMensalidade : null;
 
+  // Endereço público do estabelecimento (CONSOLE-UX 19). Estado derivado, não
+  // efeito: enquanto ninguém tocou no campo ele É o nome normalizado, então
+  // não existe um instante em que a tela mostre um endereço velho.
+  const slugEfetivo = slugTocado ? slug : normalizarSlug(nome);
+  const previaDoCardapio = urlDoCardapioPublico(slugEfetivo, window.location.hostname);
+  const sugestaoDeSlug = erros.slug ? sugerirSlugLivre(slugEfetivo, slugsEmUso) : "";
+
   const limparErro = (campo) =>
     setErros((prev) => (prev[campo] ? { ...prev, [campo]: undefined } : prev));
 
@@ -74,8 +90,10 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
     if (enviando || erroMensalidade) return;
     setErroServidor("");
 
-    const form = { nome, endereco, planoCodigo, adminNome, adminUsername, adminPassword };
-    const { ok, erros: errosValidacao } = validarNovoEstabelecimento(form);
+    const form = {
+      nome, slug: slugEfetivo, endereco, planoCodigo, adminNome, adminUsername, adminPassword,
+    };
+    const { ok, erros: errosValidacao } = validarNovoEstabelecimento(form, slugsEmUso);
     if (!ok) {
       setErros(errosValidacao);
       return;
@@ -149,8 +167,61 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
               {erros.nome && <span className="nem-erro-campo">{erros.nome}</span>}
             </label>
 
+            {/* Endereço público (slug). Vem logo abaixo do nome porque é dele
+                que nasce, e a prévia mostra o link inteiro que o cliente vai
+                receber — o dono escolhe agora, em vez de descobrir depois de
+                criar qual endereço o banco derivou. */}
             <label className="nem-campo">
-              <span className="nem-label">Endereço (opcional)</span>
+              <span className="nem-label">Link do cardápio</span>
+              <input
+                className={`nem-input${erros.slug ? " nem-input--erro" : ""}`}
+                type="text"
+                value={slugEfetivo}
+                placeholder="restaurantedosul"
+                maxLength={MAX_SLUG}
+                autoCapitalize="none"
+                autoCorrect="off"
+                disabled={enviando}
+                onChange={(e) => {
+                  // Normaliza a cada tecla: maiúscula, acento, espaço e hífen
+                  // somem na hora. O que está na tela é sempre, exatamente, o
+                  // que o servidor vai gravar.
+                  setSlugTocado(true);
+                  setSlug(normalizarSlug(e.target.value));
+                  limparErro("slug");
+                }}
+              />
+              {erros.slug ? (
+                <span className="nem-erro-campo">
+                  {erros.slug}
+                  {sugestaoDeSlug && (
+                    <button
+                      type="button"
+                      className="nem-sugestao"
+                      disabled={enviando}
+                      onClick={() => {
+                        setSlugTocado(true);
+                        setSlug(sugestaoDeSlug);
+                        limparErro("slug");
+                      }}
+                    >
+                      Usar {sugestaoDeSlug}
+                    </button>
+                  )}
+                </span>
+              ) : previaDoCardapio ? (
+                <span className="nem-dica">
+                  O cardápio do cliente vai ficar em <strong>{previaDoCardapio}</strong>
+                </span>
+              ) : (
+                <span className="nem-dica">
+                  Só letras e números, sem espaço nem acento — é o que aparece no link.
+                </span>
+              )}
+            </label>
+
+            <label className="nem-campo">
+              <span className="nem-label">Endereço da loja (opcional)</span>
               <input
                 className="nem-input"
                 type="text"

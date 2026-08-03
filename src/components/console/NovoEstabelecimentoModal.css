@@ -128,6 +128,23 @@
 .nem-dica { font-size: 12px; color: var(--gm-muted); }
 .nem-erro-campo { font-size: 12px; font-weight: 600; color: var(--gm-red); }
 
+/* Sugestão de endereço livre (CONSOLE-UX 19). Fica DENTRO da linha de erro,
+   colada na frase que explica o conflito: o dono lê o problema e a saída no
+   mesmo lugar, e resolve com um clique em vez de redigitar. */
+.nem-sugestao {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  background: var(--gm-surface);
+  color: var(--gm-accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nem-sugestao:hover:not(:disabled) { border-color: var(--gm-accent); }
+.nem-sugestao:disabled { opacity: 0.6; cursor: not-allowed; }
+
 /* ── Erro de servidor ──────────────────────────────────────────── */
 .nem-erro-servidor {
   display: flex;

@@ -604,6 +604,71 @@ export function normalizarUsername(raw) {
     .replace(/[^a-z0-9._-]/g, "");
 }
 
+/** Limite de tamanho do slug — mesmo `MAX_SLUG` da borda. */
+export const MAX_SLUG = 40;
+
+/**
+ * Rótulos que nenhum estabelecimento pode ocupar. Espelho da função
+ * `public.slug_reservado` (migration 20260803): o slug é o subdomínio E o
+ * namespace de e-mail do Auth, então 'console' na mão de um tenant colidiria
+ * com o próprio Console. O banco continua sendo a autoridade (CHECK
+ * constraint + laço da RPC); a lista aqui existe para AVISAR antes do envio,
+ * em vez de deixar o dono descobrir depois que virou 'console2'.
+ */
+export const SLUGS_RESERVADOS = [
+  "console",
+  "www", "app", "api",
+  "admin", "painel", "plataforma", "sistema", "kora",
+  "auth", "login", "static", "assets", "cdn", "mail", "smtp",
+  "ftp", "ns", "ns1", "ns2", "root", "suporte", "status",
+];
+
+/**
+ * Normaliza o endereço (slug) do estabelecimento exatamente como o servidor
+ * fará: espelho de `public.slugify_tenant` (20260741) e de `normalizarSlug`
+ * em `supabase/functions/_shared/validacaoProvisionamento.ts`.
+ *
+ * Repare que TUDO que não é letra ou número some — inclusive hífen e ponto.
+ * "Bar do Zé" vira "bardoze", não "bar-do-ze". A regra é do banco; o campo
+ * do formulário só precisa mostrar a verdade enquanto o dono digita.
+ *
+ * @param {string} raw
+ * @returns {string}
+ */
+export function normalizarSlug(raw) {
+  return String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, MAX_SLUG);
+}
+
+/**
+ * Primeiro endereço livre a partir de uma base, pela MESMA regra do laço de
+ * `provisionar_tenant` (20260803): base, base2, base3… pulando os que já
+ * estão em uso e os reservados. Serve para sugerir na tela o que o banco
+ * faria calado.
+ *
+ * @param {string} base slug pretendido (já normalizado ou não)
+ * @param {string[]} emUso slugs dos estabelecimentos existentes
+ * @returns {string} slug livre, ou "" se a base for vazia
+ */
+export function sugerirSlugLivre(base, emUso = []) {
+  const raiz = normalizarSlug(base);
+  if (!raiz) return "";
+  const ocupados = new Set((emUso ?? []).map((s) => normalizarSlug(s)).filter(Boolean));
+  const indisponivel = (s) => ocupados.has(s) || SLUGS_RESERVADOS.includes(s);
+
+  let candidato = raiz;
+  let n = 1;
+  while (indisponivel(candidato)) {
+    n += 1;
+    candidato = raiz + String(n);
+  }
+  return candidato;
+}
+
 /**
  * Função pura — valida o formulário de "Criar estabelecimento" ANTES de
  * chamar a Edge Function (prevenção de erro > mensagem de erro,
@@ -611,14 +676,31 @@ export function normalizarUsername(raw) {
  * quando o mapa está vazio. Não faz I/O — testável isoladamente
  * (CLAUDE.md: função pura nasce com teste).
  *
- * @param {{nome?:string, planoCodigo?:string, adminNome?:string, adminUsername?:string, adminPassword?:string}} f
+ * `slugsEmUso` vazio significa "não sei de nenhum ocupado" (lista ainda
+ * carregando): não inventa conflito, e o banco segue sendo a barreira final.
+ *
+ * @param {{nome?:string, slug?:string, planoCodigo?:string, adminNome?:string, adminUsername?:string, adminPassword?:string}} f
+ * @param {string[]} slugsEmUso slugs dos estabelecimentos que já existem
  * @returns {{ok: boolean, erros: Record<string,string>}}
  */
-export function validarNovoEstabelecimento(f = {}) {
+export function validarNovoEstabelecimento(f = {}, slugsEmUso = []) {
   const erros = {};
 
   const nome = String(f.nome ?? "").trim();
   if (!nome) erros.nome = "Informe o nome do estabelecimento.";
+
+  const slug = normalizarSlug(f.slug);
+  if (!slug) {
+    erros.slug = "Informe o endereço do cardápio.";
+  } else {
+    const ocupados = (slugsEmUso ?? []).map((s) => normalizarSlug(s));
+    const livre = sugerirSlugLivre(slug, ocupados);
+    if (SLUGS_RESERVADOS.includes(slug)) {
+      erros.slug = `"${slug}" é um endereço reservado pelo sistema. Use ${livre}, por exemplo.`;
+    } else if (ocupados.includes(slug)) {
+      erros.slug = `Já existe um estabelecimento neste endereço. Use ${livre}, por exemplo.`;
+    }
+  }
 
   if (!String(f.planoCodigo ?? "").trim()) erros.planoCodigo = "Escolha um plano.";
 
@@ -699,7 +781,7 @@ export function traduzirErroProvisionamento(bruto) {
  *
  * Nunca lança: erro de rede/autorização volta como { error } para a UI.
  *
- * @param {{nome:string, planoCodigo:string, tema?:object, adminNome:string, adminUsername:string, adminPassword:string, endereco?:string}} payload
+ * @param {{nome:string, slug?:string, planoCodigo:string, tema?:object, adminNome:string, adminUsername:string, adminPassword:string, endereco?:string}} payload
  * @returns {Promise<{data?:object, error?:string}>}
  */
 export async function provisionarEstabelecimento(payload) {
@@ -721,6 +803,12 @@ export async function provisionarEstabelecimento(payload) {
       };
     }
 
+    // Endereço (slug) escolhido no formulário. A borda já aceita `slug` no
+    // corpo e cai na derivação a partir do nome quando ele não vem — por isso
+    // só mandamos quando há valor, e nunca um vazio que sobrescreveria o
+    // fallback do servidor por nada.
+    const slug = normalizarSlug(payload.slug);
+
     const res = await fetch(EDGE_URL, {
       method: "POST",
       headers: {
@@ -730,6 +818,7 @@ export async function provisionarEstabelecimento(payload) {
       },
       body: JSON.stringify({
         nome: payload.nome,
+        ...(slug ? { slug } : {}),
         plano_codigo: payload.planoCodigo,
         // Estabelecimento novo nasce no layout da marca (1b, dia/noite
         // automático) — regra do dono. O payload pode sobrescrever.

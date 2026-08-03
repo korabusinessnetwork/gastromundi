@@ -46,17 +46,26 @@ function comoRegex(reais) {
 const mensalidade = () => screen.getByLabelText(/Mensalidade combinada/i);
 const criar = () => screen.getByRole("button", { name: /Criar estabelecimento|Criando/i });
 
-function montar() {
+function montar(slugsEmUso = []) {
   const user = userEvent.setup();
   const onCriado = vi.fn();
   const onFechar = vi.fn();
-  render(<NovoEstabelecimentoModal planos={PLANOS} onFechar={onFechar} onCriado={onCriado} />);
+  render(
+    <NovoEstabelecimentoModal
+      planos={PLANOS}
+      slugsEmUso={slugsEmUso}
+      onFechar={onFechar}
+      onCriado={onCriado}
+    />
+  );
   return { user, onCriado, onFechar };
 }
 
+const linkDoCardapio = () => screen.getByLabelText(/Link do cardápio/i);
+
 // Preenche tudo o que a validação real exige, menos a mensalidade.
-async function preencher(user) {
-  await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+async function preencher(user, nome = "Bar do Zé") {
+  await user.type(screen.getByLabelText(/Nome do estabelecimento/i), nome);
   await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
   await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
   await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
@@ -166,5 +175,98 @@ describe("NovoEstabelecimentoModal — a mensalidade combinada", () => {
     expect(mockDefinir).not.toHaveBeenCalled();
     expect(onCriado).not.toHaveBeenCalled();
     expect(criar()).toBeEnabled();
+  });
+});
+
+// CONSOLE-UX 19 — o endereço (slug) é escolhido na criação.
+//
+// Antes desta rodada o Console nunca mandava `slug`: o banco derivava do nome
+// e, em colisão ou rótulo reservado, renomeava CALADO (bardoze → bardoze2,
+// console → console2). O dono só descobria o endereço depois de criado, e
+// nunca sabia que tinha sido renomeado. O que estes testes protegem: que o
+// endereço apareça antes de criar, que seja exatamente o que o banco vai
+// gravar, e que conflito vire uma escolha em vez de uma surpresa.
+describe("NovoEstabelecimentoModal — o endereço do cardápio", () => {
+  beforeEach(() => {
+    mockProvisionar.mockReset();
+    mockDefinir.mockReset();
+    mockProvisionar.mockResolvedValue({
+      data: { tenant_id: "t-novo", nome: "Bar do Zé", admin: { username: "barze" } },
+      error: null,
+    });
+    mockDefinir.mockResolvedValue({ data: null, error: null });
+  });
+
+  it("nasce do nome, já no formato que o banco guarda", async () => {
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    expect(linkDoCardapio()).toHaveValue("bardoze");
+  });
+
+  it("mostra o link inteiro que o cliente vai receber", async () => {
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    expect(screen.getByText("/cardapio?loja=bardoze")).toBeInTheDocument();
+  });
+
+  it("normaliza o que se digita no campo — hífen e acento somem na hora", async () => {
+    const { user } = montar();
+    await user.type(linkDoCardapio(), "Bar-Do Zé!");
+    expect(linkDoCardapio()).toHaveValue("bardoze");
+  });
+
+  it("depois de editado, o endereço para de seguir o nome", async () => {
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.clear(linkDoCardapio());
+    await user.type(linkDoCardapio(), "barzinho");
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), " e Cia");
+    expect(linkDoCardapio()).toHaveValue("barzinho");
+  });
+
+  it("endereço já ocupado trava o envio e diz qual está livre", async () => {
+    const { user } = montar(["bardoze"]);
+    await preencher(user);
+    await user.click(criar());
+
+    expect(mockProvisionar).not.toHaveBeenCalled();
+    expect(screen.getByText(/Já existe um estabelecimento neste endereço/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Usar bardoze2/i })).toBeInTheDocument();
+  });
+
+  it("um clique na sugestão resolve o conflito e o envio segue", async () => {
+    const { user } = montar(["bardoze"]);
+    await preencher(user);
+    await user.click(criar());
+    await user.click(screen.getByRole("button", { name: /Usar bardoze2/i }));
+
+    expect(linkDoCardapio()).toHaveValue("bardoze2");
+    await user.click(criar());
+    expect(mockProvisionar).toHaveBeenCalledWith(expect.objectContaining({ slug: "bardoze2" }));
+  });
+
+  it("endereço reservado pelo sistema é barrado antes de virar console2", async () => {
+    const { user } = montar();
+    await preencher(user, "Console");
+    await user.click(criar());
+
+    expect(mockProvisionar).not.toHaveBeenCalled();
+    expect(screen.getByText(/reservado pelo sistema/i)).toBeInTheDocument();
+  });
+
+  it("nome sem letra nem número pede o endereço em vez de deixar o banco chutar", async () => {
+    const { user } = montar();
+    await preencher(user, "@@@");
+    await user.click(criar());
+
+    expect(mockProvisionar).not.toHaveBeenCalled();
+    expect(screen.getByText(/Informe o endereço do cardápio/i)).toBeInTheDocument();
+  });
+
+  it("o endereço escolhido vai junto no provisionamento", async () => {
+    const { user } = montar();
+    await preencher(user);
+    await user.click(criar());
+    expect(mockProvisionar).toHaveBeenCalledWith(expect.objectContaining({ slug: "bardoze" }));
   });
 });

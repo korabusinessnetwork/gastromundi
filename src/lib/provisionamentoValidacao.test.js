@@ -30,6 +30,8 @@ import {
 
 import {
   normalizarUsername as normalizarUsernameConsole,
+  normalizarSlug as normalizarSlugConsole,
+  MAX_SLUG as MAX_SLUG_CONSOLE,
   validarNovoEstabelecimento,
 } from "./console";
 import { sanitizeInput } from "@/utils/crypto";
@@ -172,6 +174,14 @@ describe("a normalização da borda não divergiu da do Console", () => {
 
   it.each(ENTRADAS)("%j normaliza igual nas duas pontas", (entrada) => {
     expect(normalizarUsernameBorda(entrada)).toBe(normalizarUsernameConsole(entrada));
+  });
+
+  // Mesma armadilha, agora com o SLUG (CONSOLE-UX 19): desde que o Console
+  // passou a mostrar o endereço antes de criar, a prévia na tela e o que o
+  // servidor grava têm de ser a mesma string — senão a tela promete
+  // "bardoze" e o banco guarda outra coisa.
+  it.each(ENTRADAS)("%j vira o mesmo slug nas duas pontas", (entrada) => {
+    expect(normalizarSlug(entrada)).toBe(normalizarSlugConsole(entrada));
   });
 });
 
@@ -447,7 +457,9 @@ describe("os limites da borda estão amarrados a uma fonte independente", () => 
     // `validarNovoEstabelecimento` (src/lib/console.js) é a validação da tela.
     // A borda não pode ser MAIS permissiva que ela: um username ou senha que a
     // tela recusa não deve nascer por outro caminho.
-    const base = { nome: "Casa Coffee", planoCodigo: "avancado", adminNome: "Ana" };
+    const base = {
+      nome: "Casa Coffee", slug: "casacoffee", planoCodigo: "avancado", adminNome: "Ana",
+    };
     const consoleAceita = (usuario, senha) =>
       validarNovoEstabelecimento({ ...base, adminUsername: usuario, adminPassword: senha }).ok;
 
@@ -462,5 +474,7 @@ describe("os limites da borda estão amarrados a uma fonte independente", () => 
     expect(MAX_SLUG + "999".length).toBeLessThanOrEqual(63);
     // E o corte tem de valer de verdade: nome comprido não gera slug comprido.
     expect(normalizarSlug("a".repeat(500)).length).toBe(MAX_SLUG);
+    // O campo da tela corta no mesmo ponto (CONSOLE-UX 19).
+    expect(MAX_SLUG_CONSOLE).toBe(MAX_SLUG);
   });
 });

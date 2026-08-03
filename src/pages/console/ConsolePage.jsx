@@ -1145,6 +1145,10 @@ export default function ConsolePage() {
       {modalAberto && (
         <NovoEstabelecimentoModal
           planos={planos}
+          // Os endereços já ocupados (CONSOLE-UX 19). Sem consulta nova: a
+          // lista de estabelecimentos já traz o `slug` de cada um, e o modal
+          // só precisa saber quais nomes não estão livres.
+          slugsEmUso={tenants.map((t) => t.slug).filter(Boolean)}
           onFechar={() => setModalAberto(false)}
           onCriado={aoCriar}
         />
