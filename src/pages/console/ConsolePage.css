@@ -562,3 +562,43 @@
   line-height: 1.5;
   resize: vertical;
 }
+
+/* Rodapé da lista por partes (CONSOLE-UX 14). Fica centralizado e discreto:
+   é o fim do bloco, não uma ação principal — o botão azul da tela continua
+   sendo "Novo estabelecimento". A conta vem antes da ação porque é ela que
+   explica por que existe um botão ali. */
+.console__mais {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0 4px;
+}
+
+.console__mais-conta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.console__mais-botao {
+  padding: 10px 20px;
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--gm-text);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.console__mais-botao:hover {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
+.console__mais-botao:focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
+}

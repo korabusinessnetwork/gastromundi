@@ -170,3 +170,11 @@ mostra os dois botões lado a lado, com o mesmo desenho de nota de dinheiro e a�
 (uma empurra o vencimento, a outra grava o preço). O segundo virou `LuTag` (etiqueta de preço).
 Regra para os próximos botões de card no Console: antes de escolher o ícone, verificar se a
 condição que mostra o botão pode ser verdadeira junto com a de algum vizinho.
+
+## Status de assinatura em teste vem da DATA, não do campo `status` (rodada 40)
+
+Em `src/pages/console/ConsolePage.test.jsx`, forçar `status: "bloqueado"` na assinatura dublada
+não bloqueou nada: `resumirPlataforma` **recalcula** o status por `calcularStatusAssinatura`
+(só `cancelado`, que é manual, sobrevive ao recálculo). O teste de ordem por urgência só passou
+depois de mudar o `data_vencimento` para uma data vencida fora da carência. Para fabricar
+situação de cobrança em teste, mexa na data — o campo `status` do banco é cache.

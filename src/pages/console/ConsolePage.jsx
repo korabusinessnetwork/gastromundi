@@ -54,6 +54,13 @@ const ROTULOS_FILTRO = {
   em_dia: "Em dia",
 };
 
+/**
+ * Quantos estabelecimentos a lista mostra por vez (CONSOLE-UX 14). Vinte cabe
+ * em duas ou três rolagens e já passa da conta de quem precisa de atenção num
+ * dia normal — quem quiser o resto pede.
+ */
+const BLOCO_LISTA = 20;
+
 export default function ConsolePage() {
   const { currentUser, logout } = useApp();
 
@@ -356,6 +363,29 @@ export default function ConsolePage() {
     () => filtrarEstabelecimentos(tenantsDoPlano, busca),
     [tenantsDoPlano, busca]
   );
+
+  // CONSOLE-UX 14 — a lista sai por partes. Renderizar todos os tenants de uma
+  // vez é o único ponto do Console que piora conforme a venda dá certo: cada
+  // card tem cinco botões e um selo, e a base cresce para sempre.
+  //
+  // O corte é só de RENDERIZAÇÃO: a leitura do banco, a ordem por urgência, os
+  // três recortes, a busca e as contagens continuam sobre a base inteira. Se a
+  // consulta é que fosse paginada, todo contador da tela passaria a mentir.
+  // Como quem precisa de ação já sobe para o topo, o primeiro bloco é
+  // justamente o que o dono veio ver.
+  const [quantidade, setQuantidade] = useState(BLOCO_LISTA);
+
+  // Recorte novo, busca nova ou lista recarregada começam do primeiro bloco: a
+  // ordem mudou, então "continuar de onde parou" não quer dizer nada aqui.
+  useEffect(() => {
+    setQuantidade(BLOCO_LISTA);
+  }, [filtroSituacao, filtroPlano, busca, tenants]);
+
+  const tenantsNaTela = useMemo(
+    () => tenantsVisiveis.slice(0, quantidade),
+    [tenantsVisiveis, quantidade]
+  );
+  const restantes = tenantsVisiveis.length - tenantsNaTela.length;
 
   // Contagem de cada atalho: sempre sobre a base inteira, não sobre o que a
   // busca deixou na tela — o número no atalho precisa dizer quantos EXISTEM
@@ -808,7 +838,7 @@ export default function ConsolePage() {
                 </div>
               ) : (
               <ul className="console__lista">
-                {tenantsVisiveis.map((t) => {
+                {tenantsNaTela.map((t) => {
                   const situacao = situacaoPorTenant.get(t.id);
                   // Cobrar aparece só em quem precisa de ação — mesma régua da
                   // ordem da lista (`idsPrecisamAtencao`), sem segunda cópia do
@@ -942,6 +972,25 @@ export default function ConsolePage() {
                   );
                 })}
               </ul>
+              )}
+              {/* Rodapé do bloco: primeiro a conta ("está vendo 20 de 47"),
+                  depois a ação. Sem essa linha, uma lista cortada é
+                  indistinguível de uma base menor do que ela é — e o dono
+                  acharia que perdeu cliente. */}
+              {restantes > 0 && (
+                <div className="console__mais">
+                  <p className="console__mais-conta">
+                    Mostrando {tenantsNaTela.length} de {tenantsVisiveis.length} estabelecimentos.
+                  </p>
+                  <button
+                    type="button"
+                    className="console__mais-botao"
+                    onClick={() => setQuantidade((q) => q + BLOCO_LISTA)}
+                  >
+                    Ver mais {Math.min(restantes, BLOCO_LISTA)}
+                    {Math.min(restantes, BLOCO_LISTA) === 1 ? " estabelecimento" : " estabelecimentos"}
+                  </button>
+                </div>
               )}
               </>
             )}

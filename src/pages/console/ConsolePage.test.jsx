@@ -1926,3 +1926,123 @@ describe("ConsolePage — quem está sem mensalidade na lista", () => {
     await waitFor(() => expect(screen.queryByText("Sem mensalidade")).not.toBeInTheDocument());
   });
 });
+
+// CONSOLE-UX 14 — a lista sai por partes.
+//
+// Renderizar todos os tenants de uma vez era o único ponto do Console que
+// piorava conforme a venda dá certo: cada card carrega selo, vencimento e até
+// cinco botões. O corte é só de renderização — ordem, recortes, busca e
+// contagens continuam sobre a base inteira, senão todo contador da tela
+// passaria a mentir.
+describe("ConsolePage — lista de estabelecimentos por partes", () => {
+  // 25 estabelecimentos em dia: mais que um bloco, sem ninguém no topo por
+  // urgência (isso é assunto do último teste).
+  const MUITOS = Array.from({ length: 25 }, (_, i) => ({
+    id: `m${i + 1}`,
+    nome: `Estabelecimento ${String(i + 1).padStart(2, "0")}`,
+    plano_codigo: i % 2 === 0 ? "basico" : "avancado",
+    tema: {},
+    created_at: "2026-03-01T12:00:00Z",
+  }));
+  const ASSINATURAS_MUITOS = MUITOS.map((t) => ({
+    tenant_id: t.id,
+    valor_mensal: 200,
+    data_vencimento: "2099-05-05",
+    carencia_dias: 3,
+    status: "ativo",
+  }));
+  const cards = () => document.querySelectorAll(".console__lista > li");
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(MUITOS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS_MUITOS));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("mostra o primeiro bloco e diz quantos existem no total", async () => {
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Estabelecimento 01")).toBeInTheDocument();
+
+    await waitFor(() => expect(cards()).toHaveLength(20));
+    expect(screen.getByText("Mostrando 20 de 25 estabelecimentos.")).toBeInTheDocument();
+    // O 21º existe na base, mas ainda não foi renderizado.
+    expect(screen.queryByText("Estabelecimento 21")).not.toBeInTheDocument();
+  });
+
+  it("o botão revela o resto e some quando não sobra ninguém", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Estabelecimento 01")).toBeInTheDocument();
+
+    await user.click(await screen.findByRole("button", { name: "Ver mais 5 estabelecimentos" }));
+
+    await waitFor(() => expect(cards()).toHaveLength(25));
+    // Quem já estava na tela continua lá — revelar não recomeça a lista.
+    expect(screen.getByText("Estabelecimento 01")).toBeInTheDocument();
+    expect(screen.getByText("Estabelecimento 25")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Ver mais/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Mostrando \d+ de/)).not.toBeInTheDocument();
+    // Nenhuma leitura nova: revelar é local.
+    expect(mockListarEstabelecimentos).toHaveBeenCalledTimes(1);
+  });
+
+  it("com poucos estabelecimentos a tela fica como sempre foi", async () => {
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(screen.queryByRole("button", { name: /Ver mais/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Mostrando \d+ de/)).not.toBeInTheDocument();
+  });
+
+  it("buscar volta ao primeiro bloco — a lista nova não herda o que foi revelado", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Estabelecimento 01")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Ver mais 5 estabelecimentos" }));
+    await waitFor(() => expect(cards()).toHaveLength(25));
+
+    // Busca que casa com todos ("Estabelecimento"): o recorte é do mesmo
+    // tamanho, mas é uma lista nova — começa do primeiro bloco.
+    await user.type(screen.getByLabelText("Buscar estabelecimento pelo nome"), "Estabelecimento");
+
+    await waitFor(() => expect(cards()).toHaveLength(20));
+    expect(screen.getByText("Mostrando 20 de 25 estabelecimentos.")).toBeInTheDocument();
+  });
+
+  it("recortar por plano corta a conta junto — o rodapé fala do recorte, não da base", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Estabelecimento 01")).toBeInTheDocument();
+
+    // 13 no Básico (índices pares de 25): um bloco cheio e mais nada a revelar
+    // além disso — o rodapé precisa contar 13, não 25.
+    await user.click(await screen.findByRole("button", { name: /^Básico/ }));
+
+    await waitFor(() => expect(cards()).toHaveLength(13));
+    expect(screen.queryByRole("button", { name: /Ver mais/i })).not.toBeInTheDocument();
+  });
+
+  it("quem precisa de atenção cabe no primeiro bloco — o corte não esconde bloqueado", async () => {
+    // O último da base, que sem urgência cairia no segundo bloco. O status vem
+    // do vencimento (`resumirPlataforma` recalcula), então o que se muda aqui é
+    // a data: vencida e fora da carência é bloqueado.
+    const bloqueadas = ASSINATURAS_MUITOS.map((a) =>
+      a.tenant_id === "m25" ? { ...a, data_vencimento: "2026-01-05" } : a
+    );
+    mockListarAssinaturas.mockResolvedValue(ok(bloqueadas));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Estabelecimento 01")).toBeInTheDocument();
+
+    await waitFor(() => expect(cards()).toHaveLength(20));
+    expect(screen.getByText("Estabelecimento 25")).toBeInTheDocument();
+    expect(cards()[0].textContent).toContain("Estabelecimento 25");
+  });
+});
