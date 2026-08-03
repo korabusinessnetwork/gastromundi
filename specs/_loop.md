@@ -16,7 +16,7 @@
     (quebrar linha e esconder o decorativo, em vez de truncar); e mexer no shell compartilhado,
     que conserta os sete modais de uma vez.
   - `docs/09_BACKLOG/features.md` — a linha do F022 ganhou a rodada CONSOLE-UX 28.
-- Commit: <hash> na branch main
+- Commit: bc467d7 na branch main
 - Pendente de decisão: as quatro herdadas — (1) usuário do responsável na mensagem de acesso e
   verificação de usuário livre antes do envio, ambas dependem de RPC `SECURITY DEFINER` sobre
   `public.users` (rodada 41); (2) o endereço do cardápio entra na mensagem copiada? (rodada 44);
