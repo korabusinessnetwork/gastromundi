@@ -1,3 +1,11 @@
+## Rodada 44 — CONSOLE-UX 18 (o endereço do estabelecimento no cartão de primeiro acesso) — 2026-08-03
+- Spec: specs/console-endereco-no-cartao.md
+- Resultado da review: aprovado sem ressalvas — 12 de 12 (suíte 199 arquivos / 3348 testes, verde)
+- Aprendido: `VITE_ROOT_DOMAIN` é lido na CARGA de `src/lib/tenantSlug.js`, então `vi.stubEnv` não muda mais nada depois do import — para testar o estado "domínio raiz ligado" mocke o módulo repassando `rootDomain` nas opções; registrado em memory/learnings.md
+- Commit: a0b204c na branch main
+- Pendente de decisão: (herdada da rodada 41) pôr o USUÁRIO do responsável na mensagem de acesso exige RPC SECURITY DEFINER nova sobre `public.users` — mudança de schema em produção. Vale criar? / (nova) o endereço do cardápio entra também na mensagem copiada, ou o texto entregue ao cliente fica como está?
+- Próximo item recomendado: CONSOLE-UX 19 — escolher o endereço (slug) do estabelecimento na hora de criar, em vez de descobrir depois qual o RPC derivou do nome; a Edge Function de provisionamento já aceita `slug` no corpo e o Console nunca manda, então é só cliente, sem migration
+
 ## Rodada 43 — CONSOLE-UX 17 (o endereço no card e na busca) — 2026-08-03
 - Spec: specs/console-endereco-na-busca.md
 - Resultado da review: aprovado sem ressalvas — 12 de 12 (suíte 199 arquivos / 3343 testes, verde)
