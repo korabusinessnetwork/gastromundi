@@ -223,7 +223,10 @@ BEGIN
   END IF;
 
   -- O estabelecimento sai da linha, não do cliente.
-  IF v_def LIKE '%p_tenant_id%' THEN
+  -- `position`, não `LIKE`: em LIKE o `_` é curinga de um caractere, e
+  -- o padrão '%p_tenant_id%' casava com o alias `p.tenant_id` que o
+  -- próprio corpo usa — a conferência reprovava a função correta.
+  IF position('p_tenant_id' in v_def) > 0 THEN
     RAISE EXCEPTION 'FALHA: o estorno voltou a receber o estabelecimento por parâmetro.';
   END IF;
 
