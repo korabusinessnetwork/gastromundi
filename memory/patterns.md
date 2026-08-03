@@ -769,3 +769,28 @@ regra.
    botão se desmente. O caso "10 caracteres, minúscula + dígito" precisa cair em
    "forte", e há teste amarrando as duas funções (`a senha gerada é lida como
    forte`).
+
+## Recusa do servidor vira escolha de um clique, com contagem por texto (Console, rodada 47)
+
+Segunda aplicação do molde da rodada 45 (endereço do cardápio), agora no usuário
+de acesso — `sugerirUsuarioLivre` em `src/lib/console.js`. O que se repete e vale
+para o próximo campo que colidir:
+
+1. A sugestão só nasce depois de o **servidor** recusar. O Console não lê
+   `public.users`, então sugerir antes seria inventar conflito. Quem verifica é o
+   envio; a tela só oferece a saída depois do "não".
+2. Guardar a **contagem de recusas do mesmo texto**, não o histórico de
+   candidatos. `recusasDeUsuario` cresce a cada recusa e zera em QUALQUER
+   mudança do campo — digitação ou clique na própria sugestão. Assim o candidato
+   nunca se repete e o código não precisa lembrar o que já ofereceu.
+3. O candidato distingue pelo estabelecimento antes de recorrer ao número
+   (`barze` → `barze.bardoze` → `barze.bardoze2`). Número puro é a última opção,
+   porque `admin2` não diz de quem é.
+4. Sufixo nunca é cortado pelo limite de tamanho; a base é. Cortar o número faria
+   dois candidatos diferentes virarem o mesmo texto.
+5. O candidato precisa passar na validação que a própria tela aplica e ser
+   sempre diferente do que foi recusado — os dois viram teste, porque a truncagem
+   de base longa consegue devolver exatamente o valor recusado.
+6. O botão vive DENTRO do `<span className="nem-erro-campo">`: o dono lê o
+   problema e a saída no mesmo lugar. Classe `.nem-sugestao` já existe — campo
+   novo com conflito reusa, não cria estilo.

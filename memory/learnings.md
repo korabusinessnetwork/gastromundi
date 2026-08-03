@@ -243,3 +243,16 @@ repassando `rootDomain` nas opções — as duas funções já aceitam esse over
 deixa tudo real. Feito assim em `src/pages/console/ConsolePage.test.jsx`. Reimportar a
 página inteira com `resetModules` também funcionaria, mas o arquivo tem sete `vi.mock` e
 sairia bem mais caro.
+
+## O `maxLength={30}` do Console é amarração de teste, não número solto (rodada 47)
+
+`src/lib/provisionamentoValidacao.test.js` lê o TEXTO de
+`NovoEstabelecimentoModal.jsx` (`readFileSync` + regex sobre `value={campo}` …
+`maxLength={\d+}`) e compara com `MAX_NOME`/`MAX_ADMIN_NOME`/`MAX_USERNAME`/
+`MAX_SENHA` da borda. O objetivo é ter uma fonte independente: se o teto virasse
+uma constante importada, o teste compararia a constante consigo mesma. Trocar
+`maxLength={30}` por `maxLength={MAX_USERNAME}` na rodada 47 fez a regex devolver
+`null` e derrubou o arquivo inteiro. Antes de "limpar magic number" nesses quatro
+campos do modal, leia o teste: o literal está ali de propósito. Constante nova que
+precise do mesmo teto ganha a própria linha de amarração no mesmo describe
+(`MAX_USERNAME` do Console = `maxLength` do campo = `MAX_USERNAME` da borda).

@@ -40,6 +40,8 @@ import {
   contarPorPlano,
   gerarSenhaProvisoria,
   forcaDaSenha,
+  sugerirUsuarioLivre,
+  MAX_USERNAME,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -313,6 +315,84 @@ describe("forcaDaSenha", () => {
 
   it("é pura: a mesma entrada devolve sempre o mesmo resultado", () => {
     expect(forcaDaSenha("casaverd1")).toEqual(forcaDaSenha("casaverd1"));
+  });
+});
+
+describe("sugerirUsuarioLivre", () => {
+  it("junta o usuário ao endereço da loja na primeira recusa", () => {
+    expect(sugerirUsuarioLivre("admin", { slug: "bardoze", tentativa: 1 })).toBe("admin.bardoze");
+  });
+
+  it("muda o candidato a cada nova recusa do mesmo texto", () => {
+    const opcoes = { slug: "bardoze" };
+    const candidatos = [1, 2, 3, 4].map((t) =>
+      sugerirUsuarioLivre("admin", { ...opcoes, tentativa: t })
+    );
+    expect(candidatos).toEqual(["admin.bardoze", "admin.bardoze2", "admin.bardoze3", "admin.bardoze4"]);
+    expect(new Set(candidatos).size).toBe(4);
+  });
+
+  it("não repete a loja quando o usuário já termina nela", () => {
+    expect(sugerirUsuarioLivre("admin.bardoze", { slug: "bardoze", tentativa: 1 })).toBe("admin.bardoze2");
+    expect(sugerirUsuarioLivre("admin.bardoze", { slug: "bardoze", tentativa: 2 })).toBe("admin.bardoze3");
+  });
+
+  it("cai no número quando não há endereço utilizável", () => {
+    expect(sugerirUsuarioLivre("admin", { slug: "", tentativa: 1 })).toBe("admin2");
+    expect(sugerirUsuarioLivre("admin", { tentativa: 2 })).toBe("admin3");
+    expect(sugerirUsuarioLivre("admin")).toBe("admin2");
+  });
+
+  it("normaliza o que recebe, como o servidor faria", () => {
+    expect(sugerirUsuarioLivre("  José Maria ", { slug: "Bar do Zé", tentativa: 1 })).toBe(
+      "josemaria.bardoze"
+    );
+  });
+
+  it("respeita o limite do campo cortando a base, nunca o número", () => {
+    const longo = "a".repeat(28);
+    const candidato = sugerirUsuarioLivre(longo, { slug: "bardoze", tentativa: 3 });
+    expect(candidato.length).toBeLessThanOrEqual(MAX_USERNAME);
+    expect(candidato.endsWith("3")).toBe(true);
+  });
+
+  it("nunca devolve o usuário que acabou de ser recusado", () => {
+    const casos = [
+      ["admin", "bardoze"],
+      ["a".repeat(30), "bardoze"],
+      ["a".repeat(29) + "2", ""],
+      ["admin.bardoze", "bardoze"],
+    ];
+    for (const [usuario, slug] of casos) {
+      for (const tentativa of [1, 2, 3]) {
+        const candidato = sugerirUsuarioLivre(usuario, { slug, tentativa });
+        expect(candidato).not.toBe(normalizarUsername(usuario));
+      }
+    }
+  });
+
+  it("devolve candidato que passa na validação do formulário", () => {
+    const candidato = sugerirUsuarioLivre("ana", { slug: "bardoze", tentativa: 1 });
+    const { ok } = validarNovoEstabelecimento({
+      nome: "Bar do Zé",
+      slug: "bardoze",
+      planoCodigo: "essencial",
+      adminNome: "Ana",
+      adminUsername: candidato,
+      adminPassword: "senha-forte-123",
+    });
+    expect(ok).toBe(true);
+  });
+
+  it("devolve vazio quando não sobra nada do usuário", () => {
+    expect(sugerirUsuarioLivre("", { slug: "bardoze" })).toBe("");
+    expect(sugerirUsuarioLivre("!!!", { slug: "bardoze" })).toBe("");
+    expect(sugerirUsuarioLivre(null)).toBe("");
+  });
+
+  it("é pura: a mesma entrada devolve sempre o mesmo candidato", () => {
+    const opcoes = { slug: "bardoze", tentativa: 2 };
+    expect(sugerirUsuarioLivre("admin", opcoes)).toBe(sugerirUsuarioLivre("admin", opcoes));
   });
 });
 

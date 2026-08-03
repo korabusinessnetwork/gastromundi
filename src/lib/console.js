@@ -604,6 +604,54 @@ export function normalizarUsername(raw) {
     .replace(/[^a-z0-9._-]/g, "");
 }
 
+/** Limite de tamanho do usuário de acesso — o mesmo do campo do formulário. */
+export const MAX_USERNAME = 30;
+
+/**
+ * Candidato de usuário livre depois de o servidor recusar por "usuário já em
+ * uso" (CONSOLE-UX 21). É chute educado, não verificação: `public.users` não é
+ * legível pelo Console, então quem confirma continua sendo o envio.
+ *
+ * A regra segue a mesma ideia do laço de slug: primeiro tenta distinguir pelo
+ * estabelecimento (`admin` + `bardoze` → `admin.bardoze`), porque é isso que
+ * separa dois clientes cujo responsável se chama igual; só depois recorre ao
+ * número (`admin.bardoze2`, `admin.bardoze3`…). Se o usuário digitado já
+ * termina no endereço da loja, pula direto para o número — `admin.bardoze` não
+ * vira `admin.bardoze.bardoze`.
+ *
+ * @param {string} usuario usuário que foi recusado
+ * @param {{slug?: string, tentativa?: number}} opcoes endereço do
+ *   estabelecimento e o número da recusa (1 na primeira)
+ * @returns {string} candidato normalizado, ou "" se o usuário for vazio
+ */
+export function sugerirUsuarioLivre(usuario, { slug = "", tentativa = 1 } = {}) {
+  const base = normalizarUsername(usuario);
+  if (!base) return "";
+
+  const loja = normalizarUsername(slug);
+  const jaTemLoja = Boolean(loja) && base.endsWith(`.${loja}`);
+  const raiz = loja && !jaTemLoja ? `${base}.${loja}` : base;
+
+  const montar = (numero) => {
+    const sufixo = numero > 1 ? String(numero) : "";
+    const limite = MAX_USERNAME - sufixo.length;
+    // Corta a base, nunca o número — e não deixa o corte terminar em separador.
+    const corpo = raiz.length > limite ? raiz.slice(0, limite).replace(/[._-]+$/, "") : raiz;
+    return corpo + sufixo;
+  };
+
+  const recusa = Math.max(1, Math.floor(Number(tentativa) || 1));
+  // Quando não há nada a acrescentar à base, a primeira sugestão já é numérica.
+  let numero = recusa + (raiz === base ? 1 : 0);
+  let candidato = montar(numero);
+  // Base longa demais pode voltar ao próprio usuário recusado depois do corte.
+  for (let i = 0; i < 5 && candidato === base; i += 1) {
+    numero = Math.max(2, numero + 1);
+    candidato = montar(numero);
+  }
+  return candidato.length >= 3 ? candidato : base + String(numero);
+}
+
 /** Limite de tamanho do slug — mesmo `MAX_SLUG` da borda. */
 export const MAX_SLUG = 40;
 

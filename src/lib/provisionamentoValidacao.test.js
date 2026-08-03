@@ -32,6 +32,7 @@ import {
   normalizarUsername as normalizarUsernameConsole,
   normalizarSlug as normalizarSlugConsole,
   MAX_SLUG as MAX_SLUG_CONSOLE,
+  MAX_USERNAME as MAX_USERNAME_CONSOLE,
   validarNovoEstabelecimento,
 } from "./console";
 import { sanitizeInput } from "@/utils/crypto";
@@ -451,6 +452,14 @@ describe("os limites da borda estão amarrados a uma fonte independente", () => 
     const doModal = maxLengthDoCampo(campo);
     expect(doModal).not.toBeNull();
     expect(teto()).toBe(doModal);
+  });
+
+  it("o teto que o Console usa para sugerir usuário é o mesmo do campo", () => {
+    // `sugerirUsuarioLivre` (CONSOLE-UX 21) corta o candidato por esse teto.
+    // Se ele passar do maxLength do campo, o clique na sugestão preencheria
+    // um valor que o próprio formulário não deixa digitar.
+    expect(MAX_USERNAME_CONSOLE).toBe(maxLengthDoCampo("adminUsername"));
+    expect(MAX_USERNAME_CONSOLE).toBe(MAX_USERNAME);
   });
 
   it("os mínimos são os mesmos que o Console já cobrava", () => {

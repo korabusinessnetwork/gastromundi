@@ -389,3 +389,125 @@ describe("NovoEstabelecimentoModal — a senha provisória", () => {
     espiao.mockRestore();
   });
 });
+
+// CONSOLE-UX 21 — sugestão de usuário livre depois da recusa do servidor.
+//
+// Enquanto o login não é ciente de tenant, o usuário precisa ser único na
+// plataforma inteira: o segundo cliente cujo responsável se chama igual bate
+// nessa colisão. O que estes testes protegem: que a recusa vire uma escolha de
+// um clique, que a sugestão só apareça depois de o servidor recusar, e que ela
+// mude a cada nova recusa em vez de repetir o mesmo palpite.
+describe("NovoEstabelecimentoModal — sugestão de usuário livre", () => {
+  const usuario = () => screen.getByLabelText(/Usuário de acesso/i);
+  const sugestao = () => screen.queryByRole("button", { name: /^Usar / });
+  const RECUSA = "A user with this email address has already been registered";
+
+  beforeEach(() => {
+    mockProvisionar.mockReset();
+    mockDefinir.mockReset();
+    mockDefinir.mockResolvedValue({ data: null, error: null });
+  });
+
+  it("oferece o usuário junto do nome da loja quando o servidor recusa", async () => {
+    mockProvisionar.mockResolvedValue({ error: RECUSA });
+    const { user } = montar();
+    await preencher(user);
+    await user.click(criar());
+
+    expect(screen.getByText(/já existe na plataforma/i)).toBeInTheDocument();
+    expect(sugestao()).toHaveTextContent("Usar barze.bardoze");
+  });
+
+  it("um clique adota a sugestão, limpa o erro e some", async () => {
+    mockProvisionar.mockResolvedValue({ error: RECUSA });
+    const { user } = montar();
+    await preencher(user);
+    await user.click(criar());
+    await user.click(sugestao());
+
+    expect(usuario().value).toBe("barze.bardoze");
+    expect(screen.queryByText(/já existe na plataforma/i)).not.toBeInTheDocument();
+    expect(sugestao()).toBeNull();
+  });
+
+  it("a sugestão muda a cada nova recusa, em vez de repetir o palpite", async () => {
+    mockProvisionar.mockResolvedValue({ error: RECUSA });
+    const { user } = montar();
+    await preencher(user);
+    await user.click(criar());
+    expect(sugestao()).toHaveTextContent("Usar barze.bardoze");
+
+    await user.click(criar());
+    expect(sugestao()).toHaveTextContent("Usar barze.bardoze2");
+
+    await user.click(criar());
+    expect(sugestao()).toHaveTextContent("Usar barze.bardoze3");
+  });
+
+  it("editar o usuário à mão zera a contagem e volta à sugestão nº 1", async () => {
+    mockProvisionar.mockResolvedValue({ error: RECUSA });
+    const { user } = montar();
+    await preencher(user);
+    await user.click(criar());
+    await user.click(criar());
+    expect(sugestao()).toHaveTextContent("Usar barze.bardoze2");
+
+    await user.clear(usuario());
+    await user.type(usuario(), "maria");
+    expect(sugestao()).toBeNull();
+
+    await user.click(criar());
+    expect(sugestao()).toHaveTextContent("Usar maria.bardoze");
+  });
+
+  it("não sugere nada antes do primeiro envio nem por erro de validação", async () => {
+    const { user } = montar();
+    expect(sugestao()).toBeNull();
+
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.click(criar());
+    expect(screen.getByText(/Informe o usuário de acesso do responsável/i)).toBeInTheDocument();
+    expect(sugestao()).toBeNull();
+    expect(mockProvisionar).not.toHaveBeenCalled();
+  });
+
+  it("não sugere quando a recusa do servidor é de outra coisa", async () => {
+    mockProvisionar.mockResolvedValue({ error: "Falha de rede ao falar com o servidor" });
+    const { user } = montar();
+    await preencher(user);
+    await user.click(criar());
+
+    expect(screen.getByText(/Falha de rede/i)).toBeInTheDocument();
+    expect(sugestao()).toBeNull();
+  });
+
+  it("o aviso de estabelecimento órfão continua inteiro ao lado da sugestão", async () => {
+    mockProvisionar.mockResolvedValue({
+      error: `${RECUSA} ATENÇÃO: o estabelecimento ficou criado sem responsável — apague pelo painel.`,
+    });
+    const { user } = montar();
+    await preencher(user);
+    await user.click(criar());
+
+    expect(screen.getByText(/ficou criado sem responsável/i)).toBeInTheDocument();
+    expect(sugestao()).toHaveTextContent("Usar barze.bardoze");
+  });
+
+  it("adotar a sugestão deixa o cadastro pronto para reenviar e criar", async () => {
+    mockProvisionar.mockResolvedValueOnce({ error: RECUSA });
+    mockProvisionar.mockResolvedValueOnce({
+      data: { tenant_id: "t-novo", nome: "Bar do Zé", admin: { username: "barze.bardoze" } },
+      error: null,
+    });
+    const { user, onCriado } = montar();
+    await preencher(user);
+    await user.click(criar());
+    await user.click(sugestao());
+    await user.click(criar());
+
+    expect(mockProvisionar).toHaveBeenLastCalledWith(
+      expect.objectContaining({ adminUsername: "barze.bardoze" })
+    );
+    expect(onCriado).toHaveBeenCalledTimes(1);
+  });
+});

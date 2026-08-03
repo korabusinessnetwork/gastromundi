@@ -10,6 +10,7 @@ import {
   sugerirSlugLivre,
   gerarSenhaProvisoria,
   forcaDaSenha,
+  sugerirUsuarioLivre,
   MENSALIDADE_MAXIMA,
   MAX_SLUG,
 } from "@/lib/console";
@@ -50,6 +51,9 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
   const [erros, setErros] = useState({});
   const [erroServidor, setErroServidor] = useState("");
   const [enviando, setEnviando] = useState(false);
+  // Quantas vezes o servidor recusou ESTE texto de usuário (CONSOLE-UX 21).
+  // Zera a cada mudança do campo, porque texto novo merece a sugestão nº 1.
+  const [recusasDeUsuario, setRecusasDeUsuario] = useState(0);
 
   // Pré-seleciona o plano mais completo (último da lista, maior tier) —
   // é o caso comercial mais comum ao abrir um cliente novo. O usuário
@@ -89,8 +93,24 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
   // sendo o mínimo de 6 da validação, que é a regra da borda.
   const forcaSenha = forcaDaSenha(adminPassword, adminUsername);
 
+  // Sugestão de usuário livre (CONSOLE-UX 21). Só depois de o SERVIDOR recusar
+  // por "já em uso" — sugerir antes disso seria inventar conflito, já que o
+  // Console não lê `public.users` e não tem como saber o que está ocupado.
+  const sugestaoDeUsuario =
+    recusasDeUsuario > 0 && erros.adminUsername
+      ? sugerirUsuarioLivre(adminUsername, { slug: slugEfetivo, tentativa: recusasDeUsuario })
+      : "";
+
   const limparErro = (campo) =>
     setErros((prev) => (prev[campo] ? { ...prev, [campo]: undefined } : prev));
+
+  // Mudou o usuário — por digitação ou aceitando a sugestão —, a contagem de
+  // recusas volta a zero: o próximo conflito é sobre um texto novo.
+  const alterarUsuario = (valor) => {
+    setAdminUsername(valor);
+    limparErro("adminUsername");
+    setRecusasDeUsuario(0);
+  };
 
   const submeter = async () => {
     if (enviando || erroMensalidade) return;
@@ -115,6 +135,8 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
       // que ficou para trás) continua no alerta, porque pede ação manual.
       const { campo, mensagem, aviso } = traduzirErroProvisionamento(error);
       if (campo) setErros((prev) => ({ ...prev, [campo]: mensagem }));
+      // Só a colisão de usuário conta recusa: é ela que gera a sugestão.
+      if (campo === "adminUsername") setRecusasDeUsuario((n) => n + 1);
       setErroServidor(campo ? aviso : [mensagem, aviso].filter(Boolean).join(" "));
       return;
     }
@@ -319,11 +341,25 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
                 autoCapitalize="none"
                 autoCorrect="off"
                 disabled={enviando}
-                onChange={(e) => { setAdminUsername(e.target.value); limparErro("adminUsername"); }}
+                onChange={(e) => alterarUsuario(e.target.value)}
               />
-              {erros.adminUsername
-                ? <span className="nem-erro-campo">{erros.adminUsername}</span>
-                : <span className="nem-dica">Só letras minúsculas, números, ponto, hífen e sublinhado.</span>}
+              {erros.adminUsername ? (
+                <span className="nem-erro-campo">
+                  {erros.adminUsername}
+                  {sugestaoDeUsuario && (
+                    <button
+                      type="button"
+                      className="nem-sugestao"
+                      disabled={enviando}
+                      onClick={() => alterarUsuario(sugestaoDeUsuario)}
+                    >
+                      Usar {sugestaoDeUsuario}
+                    </button>
+                  )}
+                </span>
+              ) : (
+                <span className="nem-dica">Só letras minúsculas, números, ponto, hífen e sublinhado.</span>
+              )}
             </label>
 
             {/* Único campo que não é um <label> em volta do input: o botão fica
