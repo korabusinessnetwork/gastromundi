@@ -21,7 +21,7 @@
   - `docs/09_BACKLOG/tech-debt.md` — TD017 resolvido; TD018 aberto (o mesmo âmbar literal no
     resto do aplicativo, boa parte em `style=` inline no JSX).
   - `docs/09_BACKLOG/features.md` — a linha do F022 ganhou a rodada CONSOLE-UX 30.
-- Commit: <hash> na branch main
+- Commit: da62f46 na branch main
 - Pendente de decisão: as quatro herdadas (usuário do responsável na mensagem de acesso e
   verificação de usuário livre, rodada 41; endereço do cardápio na mensagem copiada, rodada 44;
   RPC para editar endereço de estabelecimento já criado, rodada 45; mínimo de senha 6 → 8,
