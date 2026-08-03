@@ -16,7 +16,7 @@
     só nos botões de escrita própria (superfície que também é leitura fica de fora) e a
     mensagem traduzida como segunda linha de defesa para a conexão que cai com o
     formulário já aberto.
-- Commit: HASH na branch main
+- Commit: 06fa2bb na branch main
 - Pendente de decisão: as quatro herdadas — (1) usuário do responsável na mensagem de
   acesso e verificação de usuário livre antes do envio, ambas dependem de RPC
   `SECURITY DEFINER` sobre `public.users` (rodada 41); (2) o endereço do cardápio entra
