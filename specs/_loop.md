@@ -2,6 +2,14 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 28 — CONSOLE-UX 2 (lista por urgência) — 2026-08-02
+- Spec: specs/console-lista-por-urgencia.md
+- Resultado da review: aprovado sem ressalvas (9/9, suíte 198 arquivos / 3148 testes)
+- Aprendido: memory/learnings.md — flag de erro () precisa desligar TODO consumidor derivado, não só o primeiro: com  por falha de rede, a base inteira vira  e subiria ao topo. Backlog F022 atualizado.
+- Commit: ff7f588 na branch main
+- Pendente de decisão: nenhuma
+- Próximo item recomendado: CONSOLE-UX 3 — busca/filtro na lista de estabelecimentos, o próximo gargalo quando a base passar de uma tela
+
 ## Rodada 27 — CONSOLE-UX 1 (situação da cobrança na lista) — 2026-08-02
 - Spec: specs/console-situacao-na-lista.md
 - Resultado da review: **aprovada sem ressalvas** — 9 de 9 critérios, zero rodadas de correção.
