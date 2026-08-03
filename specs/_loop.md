@@ -11,7 +11,7 @@ Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
   e o novo vencimento, e a lista recarrega.
 - Aprendido: memory/learnings.md — régua de urgência não é régua de ação possível; o
   estado mais grave (`sem_assinatura`) é justamente o que não tem o que renovar.
-- Commit: (ver commit desta rodada) na branch main
+- Commit: f3d0de8 na branch main
 - Pendente de decisão: estabelecimento de cortesia (`valor_mensal = 0`) segue sem poder
   renovar — a RPC recusa `p_valor <= 0`.
 - Próximo item recomendado: CONSOLE-UX 5 — histórico de pagamentos direto do card
