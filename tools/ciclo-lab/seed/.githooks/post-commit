@@ -1,0 +1,66 @@
+#!/bin/sh
+# Hook pós-commit: escreve nota do commit em Obsidian no Vault.
+# Ativado via: git config core.hooksPath .githooks
+
+# Pula durante rebase, cherry-pick, merge — em operação de escrita múltipla
+# de commit, só o último recebe nota.
+if [ -d "$(git rev-parse --git-path rebase-merge 2>/dev/null)" ] || \
+   [ -d "$(git rev-parse --git-path rebase-apply 2>/dev/null)" ] || \
+   [ -f "$(git rev-parse --git-path CHERRY_PICK_HEAD 2>/dev/null)" ] || \
+   [ -f "$(git rev-parse --git-path MERGE_HEAD 2>/dev/null)" ]; then
+  exit 0
+fi
+
+# Onde escrever as notas (Obsidian)
+VAULT_DIR="${KORA_VAULT:-/d/Vault/kora}/Commits"
+mkdir -p "$VAULT_DIR"
+
+# Metadados do commit
+HASH_FULL=$(git rev-parse HEAD)
+HASH_SHORT=$(git rev-parse --short HEAD)
+DATA=$(date '+%Y-%m-%d')
+HORA=$(date '+%H:%M:%S')
+AUTOR=$(git log -1 --pretty=format:'%an')
+MSG=$(git log -1 --pretty=format:'%s')
+CORPO=$(git log -1 --pretty=format:'%b')
+
+# Repo — em local é sempre pdv-lab
+REPO="pdv-lab"
+
+# Branch, com fallback para modo headless
+BRANCH=$(git symbolic-ref --short -q HEAD 2>/dev/null)
+if [ -z "$BRANCH" ]; then
+  BRANCH=$(cat "$(git rev-parse --git-path HEAD)" 2>/dev/null | head -1 | sed 's,.*/,,')
+  [ -z "$BRANCH" ] && BRANCH="(detached)"
+fi
+
+# Lista de arquivos alterados
+ARQUIVOS=$(git diff-tree --no-commit-id --name-status -r HEAD)
+
+# Escreve a nota
+FILE="$VAULT_DIR/$DATA-$HASH_SHORT.md"
+cat > "$FILE" <<EOF
+---
+tipo: commit
+repo: $REPO
+branch: $BRANCH
+hash: $HASH_FULL
+data: $DATA $HORA
+autor: $AUTOR
+---
+
+# $MSG
+
+**Commit:** \`$HASH_SHORT\` · **Branch:** \`$BRANCH\` · **Autor:** $AUTOR
+**Quando:** $DATA às $HORA
+
+$CORPO
+
+## Arquivos alterados
+
+\`\`\`
+$ARQUIVOS
+\`\`\`
+EOF
+
+echo "[obsidian-hook] nota criada: $FILE"
