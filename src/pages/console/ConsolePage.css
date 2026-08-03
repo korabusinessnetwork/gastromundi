@@ -340,6 +340,53 @@
   border-color: var(--gm-accent);
 }
 
+/* Atalhos de situação. Ficam logo abaixo da busca, sempre visíveis: são a
+   resposta rápida a "quem eu cobro hoje". O ativo é marcado por preenchimento
+   E por `aria-pressed` — quem não distingue a cor ainda sabe onde está. */
+.console__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.console__filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.console__filtro:hover { border-color: var(--gm-accent); }
+.console__filtro:focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 1px;
+}
+.console__filtro[aria-pressed="true"] {
+  border-color: var(--gm-accent);
+  background: var(--gm-surface);
+  font-weight: 600;
+}
+.console__filtro-conta {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.console__filtro[aria-pressed="true"] .console__filtro-conta {
+  background: var(--gm-card);
+  color: var(--gm-text);
+}
+
 /* Explica a ordem da lista (quem precisa de ação vem primeiro) — sem isso a
    reordenação parece aleatória para quem já conhecia a ordem antiga. */
 .console__ordem-aviso {

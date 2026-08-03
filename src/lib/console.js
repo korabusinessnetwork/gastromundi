@@ -177,6 +177,33 @@ export function filtrarEstabelecimentos(itens = [], termo = "") {
   return (itens ?? []).filter((t) => paraBusca(t?.nome).includes(alvo));
 }
 
+/** Recortes possíveis da lista. Só estes três — o resto é "todos". */
+export const FILTROS_SITUACAO = ["todos", "atencao", "em_dia"];
+
+/**
+ * Função PURA — recorta a lista por situação de cobrança. Não define quem
+ * "precisa de atenção": recebe o conjunto de ids já decidido pela mesma régua
+ * que ordena a lista e dispara o alerta de validade (`ordenarPorUrgencia`),
+ * para não existir uma segunda definição do que é estar com problema.
+ *
+ * Filtro desconhecido, ausente ou "todos" devolve a lista inteira, na ordem em
+ * que chegou — estado inválido nunca esconde estabelecimento.
+ *
+ * Não faz I/O e não muda o array recebido.
+ *
+ * @param {Array<{id?:string}>} itens
+ * @param {string} filtro  "todos" | "atencao" | "em_dia"
+ * @param {Set<string>} idsAtencao
+ * @returns {Array<object>}
+ */
+export function filtrarPorSituacao(itens = [], filtro = "todos", idsAtencao = new Set()) {
+  const lista = itens ?? [];
+  const pendentes = idsAtencao ?? new Set();
+  if (filtro === "atencao") return lista.filter((t) => pendentes.has(t?.id));
+  if (filtro === "em_dia") return lista.filter((t) => !pendentes.has(t?.id));
+  return [...lista];
+}
+
 /**
  * Função PURA — agrega tenants + planos + assinaturas na visão da
  * plataforma (dashboard do Console): status recalculado por tenant, KPIs,

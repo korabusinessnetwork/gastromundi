@@ -851,3 +851,139 @@ describe("ConsolePage — ver pagamentos pelo card", () => {
     expect(screen.queryByText("Bar do Zé")).not.toBeInTheDocument();
   });
 });
+
+describe("ConsolePage — filtro por situação", () => {
+  const emDias = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const nomesNaOrdem = () =>
+    screen.getAllByRole("listitem").map((li) => li.querySelector(".console__card-nome")?.textContent);
+  const campo = () => screen.getByLabelText("Buscar estabelecimento pelo nome");
+  const atalho = (nome) => screen.getByRole("button", { name: new RegExp(`^${nome}`) });
+  const atalhos = () => screen.queryByRole("group", { name: /Filtrar por situação/i });
+
+  // t1 vencido há um mês (precisa de atenção), t2 longe do vencimento (em dia).
+  const MISTO = [
+    { tenant_id: "t1", valor_mensal: 149.9, data_vencimento: emDias(-30), carencia_dias: 3, status: "ativo" },
+    { tenant_id: "t2", valor_mensal: 249.9, data_vencimento: "2099-02-11", carencia_dias: 3, status: "ativo" },
+  ];
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(MISTO));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("mostra os três atalhos com contagens que somam a base", async () => {
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(atalho("Todos")).toHaveTextContent("2");
+    expect(atalho("Precisam de atenção")).toHaveTextContent("1");
+    expect(atalho("Em dia")).toHaveTextContent("1");
+  });
+
+  it("recorta a lista pelo atalho escolhido e volta com 'Todos'", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(atalho("Precisam de atenção"));
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé"]);
+
+    await user.click(atalho("Em dia"));
+    expect(nomesNaOrdem()).toEqual(["Café Central"]);
+
+    await user.click(atalho("Todos"));
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé", "Café Central"]);
+  });
+
+  it("marca o atalho ativo com aria-pressed, sem depender de cor", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(atalho("Todos")).toHaveAttribute("aria-pressed", "true");
+    expect(atalho("Em dia")).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(atalho("Em dia"));
+    expect(atalho("Em dia")).toHaveAttribute("aria-pressed", "true");
+    expect(atalho("Todos")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("filtro e busca se combinam, e trocar de filtro não apaga o termo digitado", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.type(campo(), "bar");
+    await user.click(atalho("Precisam de atenção"));
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé"]);
+    expect(campo()).toHaveValue("bar");
+
+    // "Bar do Zé" não está em dia: o cruzamento fica vazio, e o termo continua lá.
+    await user.click(atalho("Em dia"));
+    expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
+    expect(campo()).toHaveValue("bar");
+    expect(screen.getByText(/Nenhum estabelecimento com “bar” em “Em dia”/)).toBeInTheDocument();
+  });
+
+  it("recorte vazio diz o que está filtrando e oferece voltar para 'Todos'", async () => {
+    // ninguém precisa de atenção
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(atalho("Precisam de atenção")).toHaveTextContent("0");
+    await user.click(atalho("Precisam de atenção"));
+
+    expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
+    expect(screen.getByText("Nenhum estabelecimento precisa de atenção agora")).toBeInTheDocument();
+    // não é o vazio de base nem o de busca
+    expect(screen.queryByRole("button", { name: /Criar o primeiro/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Limpar busca" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Ver todos" }));
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé", "Café Central"]);
+  });
+
+  it("a legenda de urgência continua contando só o que está na tela", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+    expect(
+      screen.getByText("1 estabelecimento precisa de atenção e aparece primeiro.")
+    ).toBeInTheDocument();
+
+    await user.click(atalho("Em dia"));
+    expect(
+      screen.queryByText(/estabelecimentos? precisam? de atenção e aparece/)
+    ).not.toBeInTheDocument();
+  });
+
+  it("com a leitura das assinaturas quebrada, os atalhos não aparecem", async () => {
+    mockListarAssinaturas.mockResolvedValue(falhou());
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(atalhos()).not.toBeInTheDocument();
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé", "Café Central"]);
+  });
+
+  it("base vazia não mostra atalhos — o vazio de cadastro já resolve", async () => {
+    mockListarEstabelecimentos.mockResolvedValue(ok([]));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Nenhum estabelecimento ainda")).toBeInTheDocument();
+
+    expect(atalhos()).not.toBeInTheDocument();
+  });
+});

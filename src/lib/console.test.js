@@ -23,6 +23,7 @@ import {
   traduzirErroProvisionamento,
   ordenarPorUrgencia,
   filtrarEstabelecimentos,
+  filtrarPorSituacao,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -925,5 +926,72 @@ describe("filtrarEstabelecimentos", () => {
   it("preserva a ordem que veio (a urgência da rodada 2 continua valendo)", () => {
     const ordenado = [BASE[2], BASE[0], BASE[1]];
     expect(ids(filtrarEstabelecimentos(ordenado, "a"))).toEqual(["c", "a", "b"]);
+  });
+});
+
+// CONSOLE-UX rodada 6 — o recorte por situação. A função NÃO decide quem está
+// com problema: recebe o conjunto pronto da mesma régua que ordena a lista.
+// O que ela precisa garantir é que filtro inválido não esconda ninguém e que
+// os dois recortes somem exatamente a base.
+describe("filtrarPorSituacao", () => {
+  const BASE = [
+    { id: "a", nome: "Café Central" },
+    { id: "b", nome: "Bar do Zé" },
+    { id: "c", nome: "Padaria São João" },
+  ];
+  const ids = (lista) => lista.map((t) => t.id);
+  const pendentes = new Set(["a", "c"]);
+
+  it("'atencao' devolve só quem está no conjunto", () => {
+    expect(ids(filtrarPorSituacao(BASE, "atencao", pendentes))).toEqual(["a", "c"]);
+  });
+
+  it("'em_dia' devolve exatamente o complemento", () => {
+    expect(ids(filtrarPorSituacao(BASE, "em_dia", pendentes))).toEqual(["b"]);
+  });
+
+  it("os dois recortes somam a base, sem sobra nem repetição", () => {
+    const atencao = filtrarPorSituacao(BASE, "atencao", pendentes);
+    const emDia = filtrarPorSituacao(BASE, "em_dia", pendentes);
+    expect(atencao.length + emDia.length).toBe(BASE.length);
+    expect(new Set([...ids(atencao), ...ids(emDia)]).size).toBe(BASE.length);
+  });
+
+  it("'todos' devolve a lista inteira, na ordem recebida", () => {
+    expect(ids(filtrarPorSituacao(BASE, "todos", pendentes))).toEqual(["a", "b", "c"]);
+  });
+
+  it("filtro desconhecido, vazio ou ausente não esconde ninguém", () => {
+    expect(ids(filtrarPorSituacao(BASE, "bloqueado", pendentes))).toEqual(["a", "b", "c"]);
+    expect(ids(filtrarPorSituacao(BASE, "", pendentes))).toEqual(["a", "b", "c"]);
+    expect(ids(filtrarPorSituacao(BASE))).toEqual(["a", "b", "c"]);
+  });
+
+  it("conjunto vazio: 'atencao' fica vazio e 'em_dia' fica com todos", () => {
+    expect(filtrarPorSituacao(BASE, "atencao", new Set())).toEqual([]);
+    expect(ids(filtrarPorSituacao(BASE, "em_dia", new Set()))).toEqual(["a", "b", "c"]);
+  });
+
+  it("conjunto ausente não quebra — trata como ninguém pendente", () => {
+    expect(filtrarPorSituacao(BASE, "atencao", undefined)).toEqual([]);
+    expect(ids(filtrarPorSituacao(BASE, "em_dia", undefined))).toEqual(["a", "b", "c"]);
+  });
+
+  it("é pura: não mexe no array recebido", () => {
+    const original = [...BASE];
+    filtrarPorSituacao(BASE, "atencao", pendentes);
+    expect(BASE).toEqual(original);
+    expect(filtrarPorSituacao(BASE, "todos", pendentes)).not.toBe(BASE);
+  });
+
+  it("lista vazia e argumentos ausentes devolvem vazio", () => {
+    expect(filtrarPorSituacao([], "atencao", pendentes)).toEqual([]);
+    expect(filtrarPorSituacao()).toEqual([]);
+    expect(filtrarPorSituacao(null, "em_dia", pendentes)).toEqual([]);
+  });
+
+  it("preserva a ordem por urgência que veio da rodada 2", () => {
+    const ordenado = [BASE[2], BASE[0], BASE[1]];
+    expect(ids(filtrarPorSituacao(ordenado, "atencao", pendentes))).toEqual(["c", "a"]);
   });
 });

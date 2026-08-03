@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
-  LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt,
+  LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import {
   listarEstabelecimentos, listarPlanos, listarAssinaturas,
   listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma, ordenarPorUrgencia,
-  filtrarEstabelecimentos,
+  filtrarEstabelecimentos, filtrarPorSituacao, FILTROS_SITUACAO,
 } from "@/lib/console";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
@@ -36,6 +36,18 @@ import "./ConsolePage.css";
  * verde confirmando o que foi criado). Nada de jargão: "estabelecimento",
  * "plano", "responsável".
  */
+
+/**
+ * Rótulos dos atalhos de situação, na linguagem do dono — nunca os nomes
+ * técnicos dos status (`carencia`, `bloqueado`). A ordem de `FILTROS_SITUACAO`
+ * é a ordem na tela: o recorte mais largo primeiro.
+ */
+const ROTULOS_FILTRO = {
+  todos: "Todos",
+  atencao: "Precisam de atenção",
+  em_dia: "Em dia",
+};
+
 export default function ConsolePage() {
   const { currentUser, logout } = useApp();
 
@@ -63,6 +75,8 @@ export default function ConsolePage() {
   const [addonsMudaram, setAddonsMudaram] = useState(false);
   const [sucesso, setSucesso] = useState(null);
   const [busca, setBusca] = useState("");
+  // Recorte da lista por situacao de cobranca: todos | atencao | em_dia.
+  const [filtroSituacao, setFiltroSituacao] = useState("todos");
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -201,13 +215,31 @@ export default function ConsolePage() {
     };
   }, [tenants, planos, assinaturas, erroAssinaturas]);
 
+  // Recorte por situação — o filtro corta primeiro, a busca procura DENTRO do
+  // recorte. A ordem importa para a leitura da tela: "vendo os que precisam de
+  // atenção, procurando o Fulano" é a frase que o dono monta clicando; o
+  // contrário ("procurando o Fulano entre os que precisam") esconderia o
+  // resultado da busca sem explicação.
+  const tenantsDoFiltro = useMemo(
+    () => filtrarPorSituacao(tenantsOrdenados, filtroSituacao, idsPrecisamAtencao),
+    [tenantsOrdenados, filtroSituacao, idsPrecisamAtencao]
+  );
+
   // Busca por nome — a lista vem inteira do banco, então filtrar é local e
   // instantâneo (nenhuma consulta nova). Filtrar não reordena: o resultado
   // continua com quem precisa de ação no topo.
   const tenantsVisiveis = useMemo(
-    () => filtrarEstabelecimentos(tenantsOrdenados, busca),
-    [tenantsOrdenados, busca]
+    () => filtrarEstabelecimentos(tenantsDoFiltro, busca),
+    [tenantsDoFiltro, busca]
   );
+
+  // Contagem de cada atalho: sempre sobre a base inteira, não sobre o que a
+  // busca deixou na tela — o número no atalho precisa dizer quantos EXISTEM
+  // naquele recorte, senão clicar nele mostraria mais do que o botão prometia.
+  const contagens = useMemo(() => {
+    const atencao = tenantsOrdenados.filter((t) => idsPrecisamAtencao.has(t.id)).length;
+    return { todos: tenantsOrdenados.length, atencao, em_dia: tenantsOrdenados.length - atencao };
+  }, [tenantsOrdenados, idsPrecisamAtencao]);
 
   // Conta só quem está NA TELA: durante uma busca, anunciar pendências que o
   // filtro escondeu mandaria o dono procurar um card que não está ali.
@@ -394,6 +426,28 @@ export default function ConsolePage() {
                   />
                 </div>
 
+                {/* Atalhos de situação: a busca responde "onde está o Fulano",
+                    estes respondem "quem eu preciso cobrar hoje". A contagem
+                    fica no próprio botão para que clicar não seja aposta. Com a
+                    leitura das assinaturas quebrada não há situação confiável —
+                    e um recorte errado esconderia quem está devendo. */}
+                {!erroAssinaturas && (
+                  <div className="console__filtros" role="group" aria-label="Filtrar por situação de cobrança">
+                    {FILTROS_SITUACAO.map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        className="console__filtro"
+                        aria-pressed={filtroSituacao === f}
+                        onClick={() => setFiltroSituacao(f)}
+                      >
+                        {ROTULOS_FILTRO[f]}
+                        <span className="console__filtro-conta">{contagens[f]}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {/* A ordem da lista não pode ser mágica: se algo subiu para o
                     topo, a tela diz quantos são e por quê. */}
                 {quantosPrecisamAtencao > 0 && (
@@ -403,7 +457,27 @@ export default function ConsolePage() {
                       : `${quantosPrecisamAtencao} estabelecimentos precisam de atenção e aparecem primeiro.`}
                   </p>
                 )}
-              {tenantsVisiveis.length === 0 ? (
+              {tenantsVisiveis.length === 0 && filtroSituacao !== "todos" ? (
+                // Vazio do RECORTE — o dono precisa saber que a tela está
+                // filtrando, senão "sumiu tudo" vira susto. Quando há busca
+                // junto, o texto nomeia os dois cortes na ordem em que agem.
+                <div className="console__estado">
+                  <LuFilter size={30} aria-hidden />
+                  <p className="console__vazio-titulo">
+                    {busca.trim()
+                      ? `Nenhum estabelecimento com “${busca.trim()}” em “${ROTULOS_FILTRO[filtroSituacao]}”`
+                      : filtroSituacao === "atencao"
+                        ? "Nenhum estabelecimento precisa de atenção agora"
+                        : "Nenhum estabelecimento está em dia agora"}
+                  </p>
+                  <p className="console__vazio-texto">
+                    A lista está filtrada por “{ROTULOS_FILTRO[filtroSituacao]}”.
+                  </p>
+                  <button type="button" className="console__novo" onClick={() => setFiltroSituacao("todos")}>
+                    Ver todos
+                  </button>
+                </div>
+              ) : tenantsVisiveis.length === 0 ? (
                 // Vazio de BUSCA — diferente do vazio de base: aqui existem
                 // estabelecimentos, só nenhum com esse nome.
                 <div className="console__estado">
