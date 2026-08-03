@@ -1,3 +1,11 @@
+## Rodada 46 — CONSOLE-UX 20 (a senha provisória do responsável) — 2026-08-03
+- Spec: specs/console-senha-provisoria.md
+- Resultado da review: aprovado sem ressalvas — 13 de 13 (suíte 199 arquivos / 3422 testes, verde)
+- Aprendido: `<button>` dentro de `<label>` entra no nome acessível dos DOIS — o botão passa a se chamar o texto inteiro do label (a senha digitada junto) e o input fica sem rótulo; campo com ação no rótulo usa `<div>` + `htmlFor`/`id` explícito (memory/patterns.md e memory/bugs.md). Também virou padrão: aviso que orienta sem decidir (função pura devolvendo `{nivel, motivo}`, nunca booleano, nunca no `disabled`), e a heurística de força precisa aprovar a senha que o próprio botão gera
+- Commit: 203733e na branch main
+- Pendente de decisão: (herdada da 41) pôr o USUÁRIO do responsável na mensagem de acesso exige RPC SECURITY DEFINER nova sobre `public.users` — vale criar? / (herdada da 44) o endereço do cardápio entra também na mensagem copiada, ou o texto fica como está? / (herdada da 45) mudar o endereço de um estabelecimento JÁ criado exige RPC nova, porque a RLS de `tenants` só tem SELECT / (nova) aumentar o mínimo de 6 caracteres da senha mexe em `MIN_SENHA` na Edge Function e no cliente juntos — subir para 8?
+- Próximo item recomendado: CONSOLE-UX 21 — sugestão de usuário livre quando o provisionamento falha por "usuário já em uso". O próprio código chama essa colisão de "o modo de falha mais provável ao pôr um cliente novo no ar" (enquanto `TENANT_ROOT_DOMAIN` está desligado o username é único na plataforma inteira), e hoje o erro só devolve uma frase pedindo para o dono inventar outro. Aplicar o molde da rodada 45: um botão "Usar jose.bardoze" derivado do nome do responsável e do estabelecimento, com candidato diferente a cada nova recusa. Só cliente, sem migration — `public.users` não é legível pelo Console, então a sugestão é chute educado e a verificação continua sendo o servidor
+
 ## Rodada 45 — CONSOLE-UX 19 (escolher o endereço do cardápio na criação) — 2026-08-03
 - Spec: specs/console-endereco-na-criacao.md
 - Resultado da review: aprovado sem ressalvas — 16 de 16 (suíte 199 arquivos / 3388 testes, verde)
