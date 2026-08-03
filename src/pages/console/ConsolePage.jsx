@@ -423,10 +423,19 @@ export default function ConsolePage() {
   // Uma volta só: o botão do vazio limpa os dois recortes de uma vez. Deixar
   // o dono clicar duas vezes para reaparecer a lista é o tipo de beco que o
   // Princípio nº1 pede para não existir.
-  // Cartão de primeiro acesso (CONSOLE-UX 11). O endereço sai do próprio
-  // navegador: é exatamente a porta por onde o dono acabou de entrar, e não
-  // depende de nenhuma URL escrita no código ou variável nova.
-  const enderecoDeEntrada = typeof window !== "undefined" ? window.location.origin : "";
+  // Cartão de primeiro acesso (CONSOLE-UX 11 e 18). O endereço sai da mesma
+  // função pura que o card da lista usa, e não mais do `window.location`
+  // cru: sem domínio raiz configurado ela devolve a própria origem do
+  // navegador (a porta por onde o dono acabou de entrar, comportamento de
+  // hoje), e com domínio raiz ligado devolve o subdomínio DAQUELE
+  // estabelecimento. Cru, o cartão entregaria o endereço do Console ao
+  // cliente no dia em que os dois deixassem de ser o mesmo lugar.
+  //
+  // Endereço que não dá para afirmar (slug ausente ou fora do formato) vira
+  // `null`, e aí a linha some — Princípio nº1: prevenir o erro em vez de
+  // mostrar um endereço errado com cara de certo.
+  const enderecoDeEntrada = urlDeAcessoDoTenant(sucesso?.slug) ?? "";
+  const enderecoDoCardapio = urlDoCardapioPublico(sucesso?.slug);
   const planoDoAcesso = sucesso?.plano_codigo ? rotularPlano(planos, sucesso.plano_codigo) : "";
   const usuarioDoAcesso = sucesso?.admin?.username ?? "";
   const mensagemDeAcesso = montarMensagemPrimeiroAcesso({
@@ -670,10 +679,32 @@ export default function ConsolePage() {
                       <dd>{formatarReais(sucesso.mensalidade)} por mês</dd>
                     </div>
                   )}
-                  <div>
-                    <dt>Endereço de entrada</dt>
-                    <dd>{enderecoDeEntrada}</dd>
-                  </div>
+                  {enderecoDeEntrada && (
+                    <div>
+                      <dt>Endereço de entrada</dt>
+                      <dd>{enderecoDeEntrada}</dd>
+                    </div>
+                  )}
+                  {/* A loja pública já nasce no ar junto com o estabelecimento,
+                      e este é o minuto em que o dono está com o cliente na
+                      linha. Link de verdade, em aba nova: dá para conferir na
+                      hora que o cardápio abre antes de mandar o endereço. */}
+                  {enderecoDoCardapio && (
+                    <div>
+                      <dt>Endereço do cardápio</dt>
+                      <dd>
+                        <a
+                          className="console__acesso-link"
+                          href={enderecoDoCardapio}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Abrir a loja pública deste estabelecimento em nova aba"
+                        >
+                          {enderecoDoCardapio}
+                        </a>
+                      </dd>
+                    </div>
+                  )}
                   {usuarioDoAcesso && (
                     <div>
                       <dt>Usuário</dt>

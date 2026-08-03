@@ -230,3 +230,16 @@ RPC `SECURITY DEFINER` (é assim que o provisionamento cria). Antes de
 especificar edição de estabelecimento no Console, ou se cria a RPC (decisão do
 dono, mexe em produção) ou o item não é dessa rodada. E trocar o slug ainda
 quebraria links de cardápio já entregues ao cliente.
+
+## `VITE_ROOT_DOMAIN` é lido na CARGA do módulo — `vi.stubEnv` não alcança (rodada 44)
+
+`src/lib/tenantSlug.js` guarda `const ROOT_DOMAIN = import.meta.env.VITE_ROOT_DOMAIN` no
+topo do arquivo. Depois do import, mudar a variável de ambiente no teste não muda mais
+nada: `urlDeAcessoDoTenant` continua no ramo "sem domínio raiz" e nunca devolve `null`.
+Para exercitar o estado "domínio raiz ligado" em teste de componente (o único em que a
+origem do navegador e o endereço do cliente deixam de ser o mesmo lugar), mocke o módulo
+repassando `rootDomain` nas opções — as duas funções já aceitam esse override testável:
+`vi.mock("@/lib/tenantSlug", ...)` com `importActual` e um holder `vi.hoisted` que, vazio,
+deixa tudo real. Feito assim em `src/pages/console/ConsolePage.test.jsx`. Reimportar a
+página inteira com `resetModules` também funcionaria, mas o arquivo tem sete `vi.mock` e
+sairia bem mais caro.

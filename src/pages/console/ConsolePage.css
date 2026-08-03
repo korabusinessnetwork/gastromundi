@@ -595,6 +595,17 @@
   color: var(--gm-text);
   overflow-wrap: anywhere;
 }
+/* Endereço do cardápio dentro do cartão de primeiro acesso (CONSOLE-UX 18).
+   Aqui o sublinhado FICA — ao contrário do "Ver cardápio" da lista, que é um
+   chip numa fileira de botões. Neste bloco os vizinhos são texto puro
+   (estabelecimento, plano, usuário), e sem sublinhado o único endereço
+   clicável da tela pareceria mais um dado para copiar à mão. */
+.console__acesso-link {
+  color: var(--gm-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.console__acesso-link:hover { color: var(--gm-text); }
 .console__acesso-acoes {
   display: flex;
   align-items: center;

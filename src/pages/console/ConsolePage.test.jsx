@@ -10,7 +10,7 @@
 // mostraria se a plataforma não tivesse nenhum cliente pagando. E uma falha
 // na leitura dos planos deixava o botão "Novo estabelecimento" abrir um
 // formulário sem plano nenhum para escolher, sem dizer por quê.
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, waitFor, within, render } from "@testing-library/react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
@@ -55,6 +55,30 @@ vi.mock("@/lib/console", async () => {
     listarAddonsPorTenant: async () =>
       banco.erroAddons ? { data: [], error: banco.erroAddons } : { data: banco.addons, error: null },
   };
+});
+
+// CONSOLE-UX 18 — o cartão de primeiro acesso passou a montar o endereço com
+// as mesmas funções puras que os cards da lista usam, e uma delas só devolve
+// `null` quando existe domínio raiz. Esse domínio é lido do ambiente na CARGA
+// do módulo (`VITE_ROOT_DOMAIN`), então `vi.stubEnv` não alcança mais nada
+// depois do import. O holder abaixo é o seam: vazio (o normal), as duas
+// funções são as reais, sem desvio nenhum; preenchido, elas rodam com o
+// domínio raiz ligado — o estado em que o endereço do Console e o do cliente
+// deixam de ser o mesmo lugar.
+const { dominioRaiz } = vi.hoisted(() => ({ dominioRaiz: { valor: "" } }));
+vi.mock("@/lib/tenantSlug", async () => {
+  const real = await vi.importActual("@/lib/tenantSlug");
+  const comRaiz = (opcoes) =>
+    dominioRaiz.valor ? { ...opcoes, rootDomain: dominioRaiz.valor } : opcoes;
+  return {
+    ...real,
+    urlDeAcessoDoTenant: (slug, opcoes = {}) => real.urlDeAcessoDoTenant(slug, comRaiz(opcoes)),
+    urlDoCardapioPublico: (slug, hostname, opcoes = {}) =>
+      real.urlDoCardapioPublico(slug, hostname, comRaiz(opcoes)),
+  };
+});
+afterEach(() => {
+  dominioRaiz.valor = "";
 });
 
 // A renovação pelo card usa o modal que já existe, e ele grava pela RPC
@@ -1597,7 +1621,7 @@ describe("ConsolePage — o recorte por plano", () => {
 // exercitado pela porta de verdade (preencher e enviar o formulário de
 // criação), não injetando estado na página.
 describe("ConsolePage — o cartão de primeiro acesso", () => {
-  const RESPOSTA = { nome: "Bar do Zé", admin: { username: "barze" } };
+  const RESPOSTA = { nome: "Bar do Zé", slug: "bar-do-ze", admin: { username: "barze" } };
 
   // A mensagem esperada é a da própria função pura: se ela mudar, o teste
   // acompanha; o que se prova aqui é que a tela copia EXATAMENTE o que ela
@@ -1716,6 +1740,65 @@ describe("ConsolePage — o cartão de primeiro acesso", () => {
     expect(screen.queryByText("Usuário", { selector: "dt" })).not.toBeInTheDocument();
     expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
     expect(dado("Estabelecimento")).toBe("Bar do Zé");
+  });
+
+  // CONSOLE-UX 18 — no minuto seguinte à criação o dono está com o cliente na
+  // linha. O endereço da loja pública já existe; mostrá-lo aqui evita a volta
+  // "e o cardápio, qual é o link?".
+  it("mostra o endereço do cardápio recém-criado, como link de aba nova", async () => {
+    const { user } = prepararTela();
+    const cartaoCriado = await criarEstabelecimento(user);
+
+    expect(dado("Endereço do cardápio")).toBe("/cardapio?loja=bar-do-ze");
+    const link = within(cartaoCriado).getByRole("link", { name: "/cardapio?loja=bar-do-ze" });
+    expect(link).toHaveAttribute("href", "/cardapio?loja=bar-do-ze");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("resposta sem slug não inventa endereço de cardápio", async () => {
+    mockProvisionar.mockResolvedValue({ data: { nome: "Bar do Zé" }, error: null });
+    const { user } = prepararTela();
+    const cartaoCriado = await criarEstabelecimento(user);
+
+    expect(screen.queryByText("Endereço do cardápio", { selector: "dt" })).not.toBeInTheDocument();
+    expect(within(cartaoCriado).queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("slug fora do formato de endereço também não vira link", async () => {
+    mockProvisionar.mockResolvedValue({ data: { ...RESPOSTA, slug: "bar do zé" }, error: null });
+    const { user } = prepararTela();
+    await criarEstabelecimento(user);
+
+    expect(screen.queryByText("Endereço do cardápio", { selector: "dt" })).not.toBeInTheDocument();
+  });
+
+  // Com domínio raiz ligado, a origem do navegador é a porta do CONSOLE — não
+  // a do cliente. O cartão precisa falar do estabelecimento criado.
+  it("com domínio raiz, a entrada é o subdomínio do estabelecimento, não o do Console", async () => {
+    dominioRaiz.valor = "gastromundi.app";
+    const { user } = prepararTela();
+    await criarEstabelecimento(user);
+
+    expect(dado("Endereço de entrada")).toBe("https://bar-do-ze.gastromundi.app");
+  });
+
+  it("endereço que não dá para afirmar some do cartão e da mensagem copiada", async () => {
+    dominioRaiz.valor = "gastromundi.app";
+    mockProvisionar.mockResolvedValue({
+      data: { nome: "Bar do Zé", admin: { username: "barze" } },
+      error: null,
+    });
+    const { user, escrever } = prepararTela();
+    await criarEstabelecimento(user);
+
+    expect(screen.queryByText("Endereço de entrada", { selector: "dt" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Copiar dados de acesso/i }));
+    const texto = escrever.mock.calls[0][0];
+    expect(texto).not.toMatch(/Endereço:/);
+    expect(texto).not.toMatch(/undefined|null/);
+    expect(texto).toContain("Usuário: barze");
   });
 
   it("começar outra ação fecha o cartão — a tela não acumula dois avisos", async () => {
