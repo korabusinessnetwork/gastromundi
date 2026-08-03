@@ -1,0 +1,21 @@
+/**
+ * Selo de situação da assinatura (decisão 018 — CSS fora do JSX).
+ * Migrado de PlanosDashboard.css quando o selo virou componente
+ * compartilhado. Cores só por token --gm-* (ADR-007 / decisão 017).
+ */
+
+.selo-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.selo-status--ativo { background: rgba(16, 185, 129, 0.14); color: var(--gm-green); }
+.selo-status--vencendo { background: var(--gm-alow); color: var(--gm-accent); }
+.selo-status--carencia { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.selo-status--bloqueado { background: rgba(239, 68, 68, 0.14); color: var(--gm-red); }
+.selo-status--cancelado { background: var(--gm-surface); color: var(--gm-muted); }
+.selo-status--sem { background: var(--gm-surface); color: var(--gm-muted); }

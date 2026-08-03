@@ -271,6 +271,18 @@
 .console__card-nome { font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .console__card-data { font-size: 12px; color: var(--gm-muted); }
 
+/* Situação da cobrança na linha do estabelecimento. Fica logo abaixo do
+   nome (antes da data de criação) porque é a informação que decide a ação,
+   e quebra em duas linhas em tela estreita em vez de espremer o nome. */
+.console__card-situacao {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.console__card-vencimento { font-size: 12px; color: var(--gm-muted); }
+.console__card-sem-situacao { font-size: 12px; color: var(--gm-muted); font-style: italic; }
+
 .console__plano {
   padding: 5px 12px;
   border-radius: 999px;

@@ -311,20 +311,8 @@
 .pdash__ok-fechar:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
 
 /* ── Selo de situação ─────────────────────────────────────────────── */
-.pdash__selo {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.pdash__selo--ativo { background: rgba(16, 185, 129, 0.14); color: var(--gm-green); }
-.pdash__selo--vencendo { background: var(--gm-alow); color: var(--gm-accent); }
-.pdash__selo--carencia { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-.pdash__selo--bloqueado { background: rgba(239, 68, 68, 0.14); color: var(--gm-red); }
-.pdash__selo--cancelado { background: var(--gm-surface); color: var(--gm-muted); }
-.pdash__selo--sem { background: var(--gm-surface); color: var(--gm-muted); }
+/* O selo de situação virou componente compartilhado com a lista de
+   estabelecimentos: estilo agora em SeloStatus.css. */
 
 @media (max-width: 560px) {
   .pdash__kpi-valor { font-size: 22px; }

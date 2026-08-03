@@ -279,3 +279,85 @@ describe("ConsolePage — add-ons no card do estabelecimento", () => {
     expect(within(modal).getByText("Bar do Zé")).toBeInTheDocument();
   });
 });
+
+// CONSOLE-UX rodada 1 — a situação da cobrança no card do estabelecimento.
+//
+// A aba Estabelecimentos é a primeira tela do Console e mostrava nome, data de
+// criação, plano, layout e add-ons — tudo menos o que decide a próxima ação do
+// dono: quem está vencendo, quem está em atraso, quem está bloqueado. Isso só
+// existia na outra aba, com os dados já carregados neste mesmo componente
+// (Princípio nº1 — estado sempre visível).
+describe("ConsolePage — situação da cobrança no card", () => {
+  const cardDe = (nome) => screen.getByText(nome).closest("li");
+
+  // data_vencimento é `date` puro: monta a string pelo calendário local, não
+  // por toISOString() (que é UTC e trocaria o dia à noite no fuso -03).
+  const emDias = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("assinatura em dia mostra 'Ativo' e a data de vencimento no próprio card", async () => {
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    const card = cardDe("Bar do Zé");
+    expect(within(card).getByText("Ativo")).toBeInTheDocument();
+    // 2099-01-10 formatado pela string: sem new Date(), que recuaria um dia.
+    expect(within(card).getByText("vence 10/01/2099")).toBeInTheDocument();
+  });
+
+  it("quem vence nos próximos dias aparece com a contagem, sem trocar de aba", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok([
+      { tenant_id: "t1", valor_mensal: 149.9, data_vencimento: emDias(3), carencia_dias: 3, status: "ativo" },
+      ...ASSINATURAS.filter((a) => a.tenant_id !== "t1"),
+    ]));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(within(cardDe("Bar do Zé")).getByText("Vence em 3 dias")).toBeInTheDocument()
+    );
+    // O outro segue em dia — o alerta é de quem vence, não da lista inteira.
+    expect(within(cardDe("Café Central")).getByText("Ativo")).toBeInTheDocument();
+  });
+
+  it("estabelecimento sem linha de assinatura diz 'Sem assinatura' — não fica em branco", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS.filter((a) => a.tenant_id !== "t2")));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Café Central")).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(within(cardDe("Café Central")).getByText("Sem assinatura")).toBeInTheDocument()
+    );
+  });
+
+  it("com a leitura das assinaturas falhando, o card diz que não sabe — não 'Ativo'", async () => {
+    // Lista vazia por falha é idêntica a "ninguém tem assinatura": sem esta
+    // distinção o dono leria "Sem assinatura" em toda a base e poderia sair
+    // cobrando quem está em dia.
+    mockListarAssinaturas.mockResolvedValue(falhou());
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(within(cardDe("Bar do Zé")).getByText("Situação indisponível")).toBeInTheDocument()
+    );
+    expect(within(cardDe("Bar do Zé")).queryByText("Ativo")).not.toBeInTheDocument();
+    expect(within(cardDe("Bar do Zé")).queryByText("Sem assinatura")).not.toBeInTheDocument();
+    expect(within(cardDe("Café Central")).getByText("Situação indisponível")).toBeInTheDocument();
+  });
+});

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
   LuPalette, LuChartColumn, LuActivity, LuPuzzle,
@@ -6,7 +6,7 @@ import {
 import { useApp } from "@/context/AppContext";
 import {
   listarEstabelecimentos, listarPlanos, listarAssinaturas,
-  listarAddonsPorTenant, contarAddonsPorTenant,
+  listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma,
 } from "@/lib/console";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
@@ -15,6 +15,7 @@ import AlterarLayoutModal from "@/components/console/AlterarLayoutModal";
 import AddonsModal from "@/components/console/AddonsModal";
 import PlanosDashboard from "@/components/console/PlanosDashboard";
 import AnalyticsDashboard from "@/components/console/AnalyticsDashboard";
+import SeloStatus from "@/components/console/SeloStatus";
 import "./ConsolePage.css";
 
 /**
@@ -150,6 +151,17 @@ export default function ConsolePage() {
   // em vez de abrir um formulário sem saída — prevenção de erro > mensagem
   // de erro (Princípio nº1).
   const semPlanos = planos.length === 0;
+
+  // Situação da cobrança por tenant, para o card da lista. Vem da MESMA
+  // função da aba "Planos e assinaturas" (`resumirPlataforma`, que recalcula
+  // o status pela data em vez de confiar no campo em cache): duas contas
+  // diferentes acabariam mostrando "Ativo" aqui e "Em atraso" ali para o
+  // mesmo estabelecimento, e o dono não teria como saber qual acreditar.
+  // Sem consulta nova — `carregar()` já traz as assinaturas.
+  const situacaoPorTenant = useMemo(() => {
+    const { linhas } = resumirPlataforma(tenants, planos, assinaturas);
+    return new Map(linhas.map((l) => [l.tenantId, l]));
+  }, [tenants, planos, assinaturas]);
 
   return (
     <div className="console">
@@ -311,7 +323,9 @@ export default function ConsolePage() {
               </div>
             ) : (
               <ul className="console__lista">
-                {tenants.map((t) => (
+                {tenants.map((t) => {
+                  const situacao = situacaoPorTenant.get(t.id);
+                  return (
                   // Botões IRMÃOS (não aninhados — HTML inválido): o card troca
                   // o plano, o botão de paleta troca o layout e o de peça
                   // liga/desliga os add-ons pagos.
@@ -325,6 +339,25 @@ export default function ConsolePage() {
                       <span className="console__card-icone" aria-hidden><LuBuilding2 size={20} /></span>
                       <span className="console__card-info">
                         <span className="console__card-nome">{t.nome}</span>
+                        {/* Situação da cobrança na própria lista: é o que decide
+                            a próxima ação do dono (renovar, cobrar, liberar) e
+                            até aqui só existia na outra aba. Quando a leitura das
+                            assinaturas falha, a tela diz que não sabe em vez de
+                            mostrar "Ativo" para todo mundo. */}
+                        <span className="console__card-situacao">
+                          {erroAssinaturas ? (
+                            <span className="console__card-sem-situacao">Situação indisponível</span>
+                          ) : (
+                            <>
+                              <SeloStatus status={situacao?.status} dias={situacao?.diasParaVencer} />
+                              {(situacao?.status === "ativo" || situacao?.status === "carencia") && situacao?.dataVencimento && (
+                                <span className="console__card-vencimento">
+                                  vence {formatarVencimento(situacao.dataVencimento)}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </span>
                         <span className="console__card-data">
                           Criado em {formatarData(t.created_at)}
                         </span>
@@ -354,7 +387,8 @@ export default function ConsolePage() {
                       </span>
                     </button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </>
@@ -404,6 +438,15 @@ function formatarData(iso) {
   } catch {
     return "—";
   }
+}
+
+// `data_vencimento` é `date` puro (YYYY-MM-DD), sem hora. Passar por
+// new Date() faria o navegador ler como UTC e recuar um dia no fuso do
+// Brasil (-03) — "vence 04/08" para um vencimento em 05/08, justamente o
+// número que o dono usa para decidir se cobra hoje. Formata pela string.
+function formatarVencimento(iso) {
+  const m = String(iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "—";
 }
 
 // Mostra o nome amigável do plano (do catálogo), com o código como

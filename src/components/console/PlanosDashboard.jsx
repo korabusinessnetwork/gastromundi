@@ -8,6 +8,7 @@ import { formatarReais } from "@/lib/deliveryPedidos";
 import DefinirMensalidadeModal from "./DefinirMensalidadeModal";
 import ConfirmarRenovacaoModal from "./ConfirmarRenovacaoModal";
 import HistoricoPagamentosModal from "./HistoricoPagamentosModal";
+import SeloStatus from "./SeloStatus";
 import "./PlanosDashboard.css";
 
 /**
@@ -281,23 +282,6 @@ function CartaoKpi({ icone, rotulo, valor, tom, destaque }) {
       <span className="pdash__kpi-rotulo">{rotulo}</span>
     </div>
   );
-}
-
-// Selo humano de situação da assinatura. Rótulo em português do dia a dia,
-// sem jargão de billing (Princípio nº1).
-function SeloStatus({ status, dias }) {
-  const mapa = {
-    ativo:
-      dias != null && dias <= 5
-        ? { classe: "vencendo", texto: dias === 0 ? "Vence hoje" : `Vence em ${dias} dia${dias === 1 ? "" : "s"}` }
-        : { classe: "ativo", texto: "Ativo" },
-    carencia: { classe: "carencia", texto: dias != null ? `Em atraso (${Math.abs(dias)}d)` : "Em atraso" },
-    bloqueado: { classe: "bloqueado", texto: "Bloqueado" },
-    cancelado: { classe: "cancelado", texto: "Cancelado" },
-    sem_assinatura: { classe: "sem", texto: "Sem assinatura" },
-  };
-  const { classe, texto } = mapa[status] ?? mapa.sem_assinatura;
-  return <span className={`pdash__selo pdash__selo--${classe}`}>{texto}</span>;
 }
 
 // data_vencimento é `date` puro (YYYY-MM-DD). Formata pela string, sem

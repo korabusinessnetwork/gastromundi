@@ -523,6 +523,24 @@ Quando o rótulo humano vem de outra tabela e a leitura falha, o fallback é uma
 `fiscal_integracoes`). Código na tela é jargão técnico (Princípio nº1) e o
 usuário não tem como traduzir. Vale para plano, módulo, método e status.
 
+### Rótulo de status é componente, nunca cópia entre telas
+
+*Adotado em 2026-08-02 (CONSOLE-UX rodada 1).*
+
+`SeloStatus` vivia dentro de `PlanosDashboard.jsx`. Quando a lista de
+estabelecimentos do Console passou a mostrar a mesma situação de assinatura, a
+saída fácil seria repetir o mapa `status → texto` no `ConsolePage.jsx` — e a
+partir daí qualquer ajuste de vocabulário em um lado faria as duas abas
+discordarem sobre o mesmo tenant ("Ativo" numa, "Em atraso" na outra), sem o
+dono ter como saber qual acreditar. O selo virou
+`src/components/console/SeloStatus.jsx` + `.css` (decisão 018) e as duas telas
+importam. Regra: **enum de domínio que vira texto na tela mora em um
+componente só**, e o segundo consumidor extrai em vez de copiar.
+
+Junto vale a outra metade: as duas telas também precisam calcular o status
+pela **mesma função** (`resumirPlataforma`, que recalcula pela data em vez de
+ler o campo em cache). Texto igual com conta diferente diverge do mesmo jeito.
+
 ### O que o servidor confirmou tem precedência sobre o contexto
 
 *Adotado em 2026-08-01 (S1-3-IDENTIDADE).*
