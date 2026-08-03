@@ -347,3 +347,20 @@ página inteira e criava rolagem horizontal), três campos abaixo de 16px (zoom 
 que não desfaz), `max-height: 92vh` no shell dos modais (o `vh` mede a janela com a barra do
 navegador recolhida, então o rodapé com o botão principal nasce escondido — o certo é `dvh`), e
 alvos de toque de 33px. Antes de dar uma tela por pronta, contar as `@media` do arquivo.
+
+## O token `--gm-warn` existe, e três arquivos do Console juram que não (rodada 55)
+
+`PlanosDashboard.css`, `AnalyticsDashboard.css` e o `AssinaturaBanner` trazem um comentário
+afirmando que "o âmbar de carência não tem token `--gm-*`" e usam `#f59e0b` literal — oito
+ocorrências. O token está lá desde sempre: `src/styles/tema.css:50`, `--gm-warn: #f59e0b`.
+Um comentário errado se propaga por cópia: o segundo arquivo repetiu a afirmação do primeiro
+citando-o como precedente. Efeito real: cor que um tenant white-label não consegue trocar
+(decisão 017). Antes de escrever "não existe token para isto", `grep` no `tema.css`.
+
+## Ordem de declaração: o atalho `background` zera o `background-image` (rodada 55)
+
+`.auso__tabela-caixa` já declarava `background: var(--gm-card)`. Acrescentar
+`background-image` com as camadas da sombra de rolagem **antes** dessa linha não teria
+efeito nenhum — o atalho, vindo depois, zera a imagem. As camadas novas foram para o fim do
+arquivo de propósito. Vale para qualquer propriedade com atalho (`background`, `font`,
+`border`): longhand depois do shorthand, nunca antes.

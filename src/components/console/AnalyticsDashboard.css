@@ -257,7 +257,47 @@
 .auso__linha--parada th,
 .auso__linha--parada td { color: var(--gm-muted); }
 
+/* ── Sombra de rolagem da tabela (CONSOLE-UX 29) ──────────────────── */
+/* Mesma técnica da tabela da aba de Planos, pela mesma razão: a caixa rola
+   para o lado e nada avisava. As duas primeiras camadas são do tom do cartão
+   e rolam com o conteúdo (`local`), cobrindo a sombra quando não há mais nada
+   escondido daquele lado; as duas de baixo ficam paradas (`scroll`). */
+.auso__tabela-caixa {
+  background-image:
+    linear-gradient(to right, var(--gm-card), transparent),
+    linear-gradient(to left, var(--gm-card), transparent),
+    linear-gradient(to right, color-mix(in srgb, var(--gm-bg) 75%, transparent), transparent),
+    linear-gradient(to left, color-mix(in srgb, var(--gm-bg) 75%, transparent), transparent);
+  background-position: left center, right center, left center, right center;
+  background-size: 26px 100%, 26px 100%, 14px 100%, 14px 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+
 @media (max-width: 560px) {
   .auso__kpi-valor { font-size: 19px; }
   .auso__periodo-rotulo { width: 100%; }
+
+  /* ── As abas do Console no celular (CONSOLE-UX 29) ──────────────── */
+
+  .auso__alerta { padding: 16px 14px; }
+
+  /* "Paga e não usa" empilha pelo mesmo motivo do alerta da aba de Planos:
+     o nome do cliente é o dado, e em linha ele perde a largura para a data
+     e vira reticências. */
+  .auso__alerta-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .auso__alerta-nome {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+  }
+
+  /* Altura de dedo: os três períodos são o controle mais usado da aba, e o
+     "Tentar de novo" é a única saída quando a leitura falha. */
+  .auso__periodo-btn,
+  .auso__tentar { min-height: 44px; }
 }

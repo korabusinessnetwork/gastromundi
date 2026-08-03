@@ -972,3 +972,30 @@ nova do projeto, não só o Console:
 6. **Mexer no shell compartilhado rende mais.** Uma regra em `.nem-input` / `.nem-modal` /
    `.nem-overlay` conserta os **sete** modais do Console de uma vez; conferir com `grep` quem usa
    a classe antes de duplicar a correção componente a componente.
+
+## Sombra de rolagem em tabela larga, sem JavaScript (rodada 55)
+
+Tabela dentro de um contêiner com `overflow-x: auto` rola para o lado desde sempre — e nada
+diz isso. No celular ela parece cortada, e as colunas da direita (situação, ação) deixam de
+existir para quem olha. Quatro camadas de gradiente resolvem sem uma linha de JS:
+
+```css
+background-image:
+  linear-gradient(to right, var(--gm-card), transparent),   /* cobre a sombra da esquerda */
+  linear-gradient(to left,  var(--gm-card), transparent),   /* cobre a sombra da direita  */
+  linear-gradient(to right, color-mix(in srgb, var(--gm-bg) 75%, transparent), transparent),
+  linear-gradient(to left,  color-mix(in srgb, var(--gm-bg) 75%, transparent), transparent);
+background-position: left center, right center, left center, right center;
+background-size: 26px 100%, 26px 100%, 14px 100%, 14px 100%;
+background-repeat: no-repeat;
+background-attachment: local, local, scroll, scroll;
+```
+
+As duas primeiras camadas têm a cor do fundo do cartão e rolam **junto com o conteúdo**
+(`local`): quando não há mais nada escondido daquele lado, elas cobrem a sombra. As duas de
+baixo ficam **paradas** (`scroll`). A sombra aparece só do lado em que existe conteúdo
+escondido e some sozinha na ponta — inclusive some por completo quando a tabela cabe
+inteira, que é o caso da lista com uma linha só. Aplicado em `.pdash__tabela-scroll` e
+`.auso__tabela-caixa`. Duas armadilhas: a cor das camadas de cobertura precisa ser
+**exatamente** o fundo do contêiner, e o bloco tem que vir **depois** de qualquer atalho
+`background` no arquivo, senão o atalho zera a imagem.

@@ -169,3 +169,17 @@
   color: #fff;
 }
 .hpm-btn--perigo:disabled { background: var(--gm-faint); }
+
+/* ── O Console no celular (CONSOLE-UX 29) ──────────────────────── */
+@media (max-width: 560px) {
+  /* Cancelar um pagamento é ação destrutiva e tinha 33px de altura: no
+     celular, um alvo desse tamanho é o tipo de coisa em que o dedo acerta
+     sem querer. 44px é o mínimo confortável — e a confirmação logo abaixo
+     continua sendo a rede de proteção. */
+  .hpm-cancelar { min-height: 44px; }
+
+  /* As duas saídas da confirmação empilham: lado a lado num modal de 340px
+     elas ficam com ~160px cada, e "Cancelar o pagamento" não cabe sem
+     apertar a fonte. Empilhado, cada uma tem a linha inteira. */
+  .hpm-confirma__acoes { flex-direction: column; }
+}

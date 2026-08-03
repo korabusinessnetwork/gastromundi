@@ -96,3 +96,11 @@
   accent-color: var(--gm-accent);
   cursor: pointer;
 }
+
+/* ── O Console no celular (CONSOLE-UX 29) ──────────────────────── */
+@media (max-width: 560px) {
+  /* "Reler os efeitos" com altura de dedo: é o botão que faz o dono
+     conferir o que a troca de plano muda antes de confirmar — o caminho
+     que evita o erro, e o que menos pode ser difícil de acertar. */
+  .apm-relere { min-height: 44px; }
+}

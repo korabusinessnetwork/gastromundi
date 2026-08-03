@@ -1,3 +1,33 @@
+## Rodada 55 — CONSOLE-UX 29: as outras duas abas do Console no celular — 2026-08-03
+- Spec: specs/console-abas-no-celular.md
+- Resultado da review: aprovado sem ressalvas — 9 de 9 (suíte 201 arquivos / 3524 testes, verde),
+  com a mesma limitação da rodada 54: o navegador da sessão não abre, então não houve verificação
+  visual em 375px. Evidência por leitura do CSS.
+- Aprendido:
+  - `memory/learnings.md` — o token `--gm-warn` existe (`src/styles/tema.css:50`) e três arquivos
+    do Console afirmam em comentário que não existe, usando `#f59e0b` literal em oito lugares; um
+    comentário errado se propaga por cópia, com o segundo arquivo citando o primeiro como
+    precedente. E: longhand `background-image` tem que vir DEPOIS de qualquer atalho
+    `background` no arquivo, senão o atalho zera a imagem.
+  - `memory/patterns.md` — sombra de rolagem em tabela larga sem JavaScript: quatro camadas de
+    gradiente, duas `local` (da cor do fundo, cobrem a sombra ao chegar na ponta) e duas
+    `scroll`; some sozinha quando a tabela cabe inteira.
+  - `docs/09_BACKLOG/features.md` — a linha do F022 ganhou a rodada CONSOLE-UX 29.
+  - `docs/09_BACKLOG/tech-debt.md` — TD017 cadastrado (os oito `#f59e0b` literais do Console).
+- Commit: <hash> na branch main
+- Pendente de decisão: as quatro herdadas — (1) usuário do responsável na mensagem de acesso e
+  verificação de usuário livre antes do envio, ambas dependem de RPC `SECURITY DEFINER` sobre
+  `public.users` (rodada 41); (2) o endereço do cardápio entra na mensagem copiada? (rodada 44);
+  (3) editar o endereço de um estabelecimento já criado precisa de RPC nova, `tenants` só tem
+  SELECT na RLS (rodada 45); (4) subir o mínimo de senha de 6 para 8 mexe na borda e no cliente
+  juntos (rodada 46).
+- Próximo item recomendado: CONSOLE-UX 30 — tirar as **39 cores cruas** dos nove CSS do Console
+  (`rgba()` e hex literais, concentradas em `PlanosDashboard.css` com 17 e
+  `AnalyticsDashboard.css` com 8) e passá-las para os tokens `--gm-*` com `color-mix`, o TD017
+  incluído. É a decisão 017 (white-label) na prática: hoje um tenant que troque o tema continua
+  com âmbar, verde e vermelho fixos na tela que o dono usa para vender — e é trabalho de CSS puro,
+  sem risco para a suíte, com o benefício de fechar o Console inteiro no padrão do ADR-007.
+
 ## Rodada 54 — CONSOLE-UX 28: o Console no celular — 2026-08-03
 - Spec: specs/console-no-celular.md
 - Resultado da review: aprovado sem ressalvas — 11 de 11 (suíte 201 arquivos / 3524 testes, verde),

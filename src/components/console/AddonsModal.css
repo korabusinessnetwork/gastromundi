@@ -240,7 +240,10 @@
   color: var(--gm-muted);
 }
 
-@media (max-width: 520px) {
+/* 560px e não 520: é o corte que o resto do Console usa (rodada 29).
+   Dois valores concorrentes deixavam o modal ainda em linha numa faixa em
+   que a lista atrás dele já tinha empilhado. */
+@media (max-width: 560px) {
   .adm-item__topo { flex-direction: column; align-items: flex-start; }
   .adm-botao { align-self: stretch; width: 100%; }
   .adm-confirma__acoes > * { flex: 1 1 100%; }
