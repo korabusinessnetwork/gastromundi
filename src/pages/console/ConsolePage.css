@@ -187,6 +187,7 @@
 
 /* Botões laterais do item (layout e add-ons) — mesmo idioma visual do card
    clicável, para que os três se leiam como um bloco só. */
+.console__cobrar,
 .console__layout,
 .console__addons {
   display: flex;
@@ -217,13 +218,32 @@
   outline-offset: 2px;
 }
 .console__layout-nome,
-.console__addons-nome {
+.console__addons-nome,
+.console__cobrar-nome {
   font-size: 11px;
   font-weight: 700;
   max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Cobrar só existe em quem está atrasado ou prestes a vencer, então nasce
+   destacado (verde do dinheiro) em vez de neutro como os irmãos: é a ação
+   que resolve o problema que fez o card subir para o topo. */
+.console__cobrar {
+  border-color: color-mix(in srgb, var(--gm-green) 45%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 12%, transparent);
+  color: var(--gm-green);
+}
+.console__cobrar:hover {
+  border-color: var(--gm-green);
+  background: color-mix(in srgb, var(--gm-green) 20%, transparent);
+  color: var(--gm-green);
+}
+.console__cobrar:focus-visible {
+  outline: 2px solid var(--gm-green);
+  outline-offset: 2px;
 }
 
 .console__card {
@@ -341,6 +361,7 @@
      dois botões dividem a de baixo, ainda com área de toque cheia. */
   .console__item { flex-wrap: wrap; }
   .console__item .console__card--clicavel { flex: 1 1 100%; }
+  .console__cobrar,
   .console__layout,
   .console__addons { flex: 1 1 0; min-width: 0; }
 }

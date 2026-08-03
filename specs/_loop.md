@@ -2,6 +2,21 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 30 — CONSOLE-UX 4 (cobrar do card) — 2026-08-02
+- Spec: specs/console-cobrar-do-card.md
+- Resultado da review: aprovado sem ressalvas (9/9, suíte 198 arquivos / 3172 testes)
+- O quê: botão "Registrar pagamento" no card de quem precisa de atenção, abrindo o
+  `ConfirmarRenovacaoModal` que já existia — sem trocar de aba. Fica fora de quem está
+  em dia, cancelado ou sem assinatura (a RPC recusaria). Confirmado, a faixa diz o nome
+  e o novo vencimento, e a lista recarrega.
+- Aprendido: memory/learnings.md — régua de urgência não é régua de ação possível; o
+  estado mais grave (`sem_assinatura`) é justamente o que não tem o que renovar.
+- Commit: (ver commit desta rodada) na branch main
+- Pendente de decisão: estabelecimento de cortesia (`valor_mensal = 0`) segue sem poder
+  renovar — a RPC recusa `p_valor <= 0`.
+- Próximo item recomendado: CONSOLE-UX 5 — histórico de pagamentos direto do card
+  ("Ver pagamentos"), fechando o ciclo cobrar/conferir sem sair da aba Estabelecimentos.
+
 ## Rodada 29 — CONSOLE-UX 3 (busca por nome) — 2026-08-02
 - Spec: specs/console-busca-estabelecimento.md
 - Resultado da review: aprovado sem ressalvas (10/10, suíte 198 arquivos / 3164 testes)

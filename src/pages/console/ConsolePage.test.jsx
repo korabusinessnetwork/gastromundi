@@ -46,6 +46,15 @@ vi.mock("@/lib/console", async () => {
   };
 });
 
+// A renovação pelo card usa o modal que já existe, e ele grava pela RPC
+// `confirmar_renovacao_assinatura`. Aqui interessa a PORTA (o card abre o
+// modal certo e trata o retorno), não a RPC — que tem teste próprio.
+const { mockConfirmarRenovacao } = vi.hoisted(() => ({ mockConfirmarRenovacao: vi.fn() }));
+vi.mock("@/lib/assinatura", async () => {
+  const real = await vi.importActual("@/lib/assinatura");
+  return { ...real, confirmarRenovacaoAssinatura: mockConfirmarRenovacao };
+});
+
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
 import ConsolePage from "./ConsolePage";
 
@@ -549,5 +558,138 @@ describe("ConsolePage — busca por nome", () => {
     await user.type(campo(), "bar");
     expect(nomesNaOrdem()).toEqual(["Bar do Zé"]);
     expect(screen.queryByText(/precisa[m]? de atenção/)).not.toBeInTheDocument();
+  });
+});
+
+describe("ConsolePage — registrar pagamento pelo card", () => {
+  const emDias = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  // t2 bloqueado (venceu há 30 dias), t1 em dia lá em 2099.
+  const COM_ATRASO = [
+    ASSINATURAS[0],
+    { tenant_id: "t2", valor_mensal: 249.9, data_vencimento: emDias(-30), carencia_dias: 3, status: "ativo" },
+  ];
+  const botaoCobrar = (nome) => screen.queryByRole("button", { name: `Registrar pagamento de ${nome}` });
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockConfirmarRenovacao.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("mostra o botão só em quem precisa de ação", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok(COM_ATRASO));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(botaoCobrar("Café Central")).toBeInTheDocument(); // bloqueado
+    expect(botaoCobrar("Bar do Zé")).not.toBeInTheDocument(); // em dia
+  });
+
+  it("não mostra o botão em quem está sem assinatura (a RPC recusaria)", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok([ASSINATURAS[0]])); // t2 sem linha
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Café Central")).toBeInTheDocument();
+
+    expect(botaoCobrar("Café Central")).not.toBeInTheDocument();
+  });
+
+  it("não mostra o botão em estabelecimento cancelado", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok([
+      ASSINATURAS[0],
+      { tenant_id: "t2", valor_mensal: 249.9, data_vencimento: emDias(-30), carencia_dias: 3, status: "cancelado" },
+    ]));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Café Central")).toBeInTheDocument();
+
+    expect(botaoCobrar("Café Central")).not.toBeInTheDocument();
+  });
+
+  it("com a leitura das assinaturas quebrada, nenhum card oferece cobrar", async () => {
+    mockListarAssinaturas.mockResolvedValue(falhou());
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(botaoCobrar("Bar do Zé")).not.toBeInTheDocument();
+    expect(botaoCobrar("Café Central")).not.toBeInTheDocument();
+  });
+
+  it("abre o modal de renovação já preenchido com o estabelecimento", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok(COM_ATRASO));
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(botaoCobrar("Café Central"));
+    const modal = screen.getByRole("dialog", { name: "Registrar pagamento da assinatura" });
+    expect(within(modal).getByText("Café Central")).toBeInTheDocument();
+    expect(within(modal).getByText(/Mensalidade combinada/)).toHaveTextContent("249,90");
+  });
+
+  it("confirmado o pagamento, anuncia o novo vencimento e recarrega a lista", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok(COM_ATRASO));
+    mockConfirmarRenovacao.mockResolvedValue(ok({ data_vencimento: "2026-09-15", status: "ativo" }));
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+    const leiturasAntes = mockListarEstabelecimentos.mock.calls.length;
+
+    await user.click(botaoCobrar("Café Central"));
+    const modal = screen.getByRole("dialog", { name: "Registrar pagamento da assinatura" });
+    await user.click(within(modal).getByRole("button", { name: "Registrar pagamento" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(mockConfirmarRenovacao).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: "t2", valor: 249.9, confirmadoPor: "Plataforma" })
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Café Central");
+    expect(screen.getByRole("status")).toHaveTextContent("15/09/2026");
+    expect(mockListarEstabelecimentos.mock.calls.length).toBeGreaterThan(leiturasAntes);
+  });
+
+  it("cancelar não grava, não anuncia sucesso e não recarrega", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok(COM_ATRASO));
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+    const leiturasAntes = mockListarEstabelecimentos.mock.calls.length;
+
+    await user.click(botaoCobrar("Café Central"));
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mockConfirmarRenovacao).not.toHaveBeenCalled();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(mockListarEstabelecimentos.mock.calls.length).toBe(leiturasAntes);
+  });
+
+  it("registrar durante uma busca preserva o termo buscado", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok(COM_ATRASO));
+    mockConfirmarRenovacao.mockResolvedValue(ok({ data_vencimento: "2026-09-15", status: "ativo" }));
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    const campo = screen.getByLabelText("Buscar estabelecimento pelo nome");
+    await user.type(campo, "cafe");
+    await user.click(botaoCobrar("Café Central"));
+    const modal = screen.getByRole("dialog", { name: "Registrar pagamento da assinatura" });
+    await user.click(within(modal).getByRole("button", { name: "Registrar pagamento" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(campo).toHaveValue("cafe");
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
   });
 });

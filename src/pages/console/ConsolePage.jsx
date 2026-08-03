@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
-  LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch,
+  LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import {
@@ -17,6 +17,7 @@ import AddonsModal from "@/components/console/AddonsModal";
 import PlanosDashboard from "@/components/console/PlanosDashboard";
 import AnalyticsDashboard from "@/components/console/AnalyticsDashboard";
 import SeloStatus from "@/components/console/SeloStatus";
+import ConfirmarRenovacaoModal from "@/components/console/ConfirmarRenovacaoModal";
 import "./ConsolePage.css";
 
 /**
@@ -50,6 +51,10 @@ export default function ConsolePage() {
   const [tenantSelecionado, setTenantSelecionado] = useState(null);
   const [tenantLayoutSelecionado, setTenantLayoutSelecionado] = useState(null);
   const [tenantAddonsSelecionado, setTenantAddonsSelecionado] = useState(null);
+  // Linha de cobrança (do `resumirPlataforma`) que está sendo renovada pelo
+  // card. Guarda a LINHA, não o tenant, porque é o que o modal de renovação
+  // já sabe consumir na outra aba.
+  const [linhaRenovacao, setLinhaRenovacao] = useState(null);
   const [addonsPorTenant, setAddonsPorTenant] = useState({});
   const [addonsMudaram, setAddonsMudaram] = useState(false);
   const [sucesso, setSucesso] = useState(null);
@@ -145,6 +150,18 @@ export default function ConsolePage() {
     if (!addonsMudaram) return;
     setAddonsMudaram(false);
     setSucesso({ nome: tenant?.nome, addonsAtualizados: true });
+    carregar();
+  };
+
+  const aoRegistrarPagamento = (linha) => {
+    setSucesso(null);
+    setLinhaRenovacao(linha);
+  };
+
+  const aoPagamentoConfirmado = (assinatura) => {
+    const nome = linhaRenovacao?.nome;
+    setLinhaRenovacao(null);
+    setSucesso({ nome, pagamentoAte: assinatura?.data_vencimento ?? null });
     carregar();
   };
 
@@ -323,6 +340,9 @@ export default function ConsolePage() {
                     <>Plano de <strong>{sucesso.nome}</strong> atualizado para <strong>{sucesso.planoAlterado}</strong>.</>
                   ) : sucesso.layoutAlterado ? (
                     <>Layout de <strong>{sucesso.nome}</strong> trocado para <strong>{sucesso.layoutAlterado}</strong>.</>
+                  ) : sucesso.pagamentoAte ? (
+                    <>Pagamento de <strong>{sucesso.nome}</strong> registrado. Vence agora
+                    em <strong>{formatarVencimento(sucesso.pagamentoAte)}</strong>.</>
                   ) : sucesso.addonsAtualizados ? (
                     <>Add-ons de <strong>{sucesso.nome}</strong> atualizados.</>
                   ) : (
@@ -391,6 +411,14 @@ export default function ConsolePage() {
               <ul className="console__lista">
                 {tenantsVisiveis.map((t) => {
                   const situacao = situacaoPorTenant.get(t.id);
+                  // Cobrar aparece só em quem precisa de ação — mesma régua da
+                  // ordem da lista (`idsPrecisamAtencao`), sem segunda cópia do
+                  // critério. Fora: quem está em dia (nada a fazer), cancelado
+                  // (renovar o descancelaria em silêncio, e ele nunca entra no
+                  // conjunto) e sem assinatura, que a RPC recusaria — para esse
+                  // o caminho é definir a mensalidade na aba de cobrança.
+                  const podeCobrar =
+                    idsPrecisamAtencao.has(t.id) && situacao?.status !== "sem_assinatura";
                   return (
                   // Botões IRMÃOS (não aninhados — HTML inválido): o card troca
                   // o plano, o botão de paleta troca o layout e o de peça
@@ -432,6 +460,18 @@ export default function ConsolePage() {
                         <span className="console__plano">{rotularPlano(planos, t.plano_codigo)}</span>
                       )}
                     </button>
+                    {podeCobrar && (
+                      <button
+                        type="button"
+                        className="console__cobrar"
+                        onClick={() => aoRegistrarPagamento(situacao)}
+                        aria-label={`Registrar pagamento de ${t.nome}`}
+                        title="Registrar o pagamento da mensalidade e empurrar o vencimento"
+                      >
+                        <LuBanknote size={17} aria-hidden />
+                        <span className="console__cobrar-nome">Registrar pagamento</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="console__layout"
@@ -468,6 +508,16 @@ export default function ConsolePage() {
           planos={planos}
           onFechar={() => setModalAberto(false)}
           onCriado={aoCriar}
+        />
+      )}
+
+      {linhaRenovacao && (
+        <ConfirmarRenovacaoModal
+          linha={linhaRenovacao}
+          vencimentoAtual={formatarVencimento(linhaRenovacao.dataVencimento)}
+          confirmadoPor={currentUser?.name ?? null}
+          onFechar={() => setLinhaRenovacao(null)}
+          onConfirmado={aoPagamentoConfirmado}
         />
       )}
 
