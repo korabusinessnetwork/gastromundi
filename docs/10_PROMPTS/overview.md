@@ -54,3 +54,4 @@ Esta pasta centraliza toda a "cópia de sistema" do GastroMundi: mensagens que o
 |-----------|----------|
 | [agent-prompts.md](./agent-prompts.md) | Prompts de agentes de IA (se aplicável) |
 | [templates.md](./templates.md) | Templates de e-mail e mensagens do sistema |
+| [roteamento-modelo-effort.md](./roteamento-modelo-effort.md) | Qual modelo e qual effort usar em cada tipo de tarefa |
