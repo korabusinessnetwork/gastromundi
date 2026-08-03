@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
@@ -188,9 +188,29 @@ export default function ConsolePage() {
     );
   };
 
-  const carregar = useCallback(async () => {
-    setCarregando(true);
-    setErro("");
+  // O Console pode ser fechado no meio de uma leitura — o dono sai da aba
+  // enquanto a busca volta. Sem esta guarda, os `setState` do `carregar`
+  // cairiam em componente desmontado (CONSOLE-UX 27, critério 9).
+  // (O `= true` na entrada não é redundante: em StrictMode o React monta,
+  // desmonta e remonta, e sem ele o ref ficaria falso para sempre depois da
+  // primeira limpeza.)
+  const montado = useRef(true);
+  useEffect(() => {
+    montado.current = true;
+    return () => { montado.current = false; };
+  }, []);
+
+  // `silencioso` é a recarga da volta da conexão (CONSOLE-UX 27): mesma busca,
+  // sem acender o estado de carregando. Acender apagaria a lista inteira e
+  // devolveria o dono ao "carregando…" logo depois de a internet voltar — o
+  // contrário do que ele quer, que é ver os mesmos cards com números frescos.
+  // Devolve `true`/`false` para quem chamou saber se deu certo; a tela em si
+  // continua sendo pintada pelos `setState` daqui.
+  const carregar = useCallback(async (silencioso = false) => {
+    if (!silencioso) {
+      setCarregando(true);
+      setErro("");
+    }
     const [
       { data: listaTenants, error: eTenants },
       { data: listaPlanos, error: ePlanos },
@@ -202,11 +222,21 @@ export default function ConsolePage() {
       listarAssinaturas(),
       listarAddonsPorTenant(),
     ]);
+    if (!montado.current) return !eTenants;
     if (eTenants) {
-      setErro("Não foi possível carregar os estabelecimentos. Verifique a conexão e tente de novo.");
-      setCarregando(false);
-      return;
+      // Recarga silenciosa que falha não apaga a tela: o `erro` troca a lista
+      // pelo bloco de falha, e quem estava lendo os cards ficaria sem nada por
+      // causa de uma atualização que não pediu. Quem avisa nesse caso é a faixa
+      // de rede, com o "Tentar de novo" (CONSOLE-UX 27).
+      if (!silencioso) {
+        setErro("Não foi possível carregar os estabelecimentos. Verifique a conexão e tente de novo.");
+        setCarregando(false);
+      }
+      return false;
     }
+    // Sucesso apaga o bloco de falha também na recarga silenciosa: se a
+    // primeira carga tinha falhado, agora existe lista para mostrar.
+    setErro("");
     setTenants(listaTenants);
     setPlanos(listaPlanos);
     setAssinaturas(listaAssinaturas ?? []);
@@ -220,7 +250,11 @@ export default function ConsolePage() {
     setErroPlanos(Boolean(ePlanos));
     setErroAssinaturas(Boolean(eAssinaturas));
     setErroAddons(Boolean(eAddons));
-    setCarregando(false);
+    // Só apaga o "carregando…" quem o acendeu: na recarga silenciosa ele nunca
+    // subiu, e mexer nele aqui desligaria por engano a primeira carga que
+    // ainda estivesse em voo.
+    if (!silencioso) setCarregando(false);
+    return true;
   }, []);
 
   useEffect(() => { carregar(); }, [carregar]);
@@ -333,6 +367,49 @@ export default function ConsolePage() {
   const motivoOffline = online
     ? undefined
     : "Sem conexão com a internet — reconecte para alterar";
+
+  // ── A volta da conexão (CONSOLE-UX 27) ─────────────────────────────
+  // Quando a internet voltava, a rodada 52 destravava os botões e sumia com a
+  // faixa — mas os números na tela continuavam sendo os de antes da queda, sem
+  // nada dizendo isso. Aqui a volta puxa os dados de novo, em silêncio (a lista
+  // não pisca), e a faixa narra: atualizando, atualizado, ou não deu.
+  //
+  // `null` = nada a dizer; os outros três são o que a faixa mostra.
+  const [atualizacao, setAtualizacao] = useState(null);
+  // Guarda contra duas recargas sobrepostas: o navegador dispara `online` mais
+  // de uma vez em troca de rede (cai o Wi-Fi, entra o 4G), e duas respostas
+  // fora de ordem escreveriam a lista duas vezes.
+  const recarregando = useRef(false);
+
+  const recarregarNaVolta = useCallback(async () => {
+    if (recarregando.current) return;
+    recarregando.current = true;
+    setAtualizacao("atualizando");
+    const deuCerto = await carregar(true);
+    recarregando.current = false;
+    // Desmontado no meio (o dono saiu do Console enquanto atualizava): não há
+    // mais faixa para pintar.
+    if (!montado.current) return;
+    setAtualizacao(deuCerto ? "atualizado" : "falhou");
+  }, [carregar]);
+
+  // Só na TRANSIÇÃO de offline para online. O ref nasce com o valor da
+  // montagem, então abrir o Console já online não conta como volta — a
+  // primeira carga é a do `useEffect` do `carregar`, e só ela.
+  const estavaOnline = useRef(online);
+  useEffect(() => {
+    const antes = estavaOnline.current;
+    estavaOnline.current = online;
+    if (online && antes === false) recarregarNaVolta();
+  }, [online, recarregarNaVolta]);
+
+  // "Atualizado" é recado, não estado: some sozinho depois de o dono ter tempo
+  // de ler. "Falhou" fica, porque ali existe uma ação para ele tomar.
+  useEffect(() => {
+    if (atualizacao !== "atualizado") return undefined;
+    const relogio = setTimeout(() => setAtualizacao(null), 4000);
+    return () => clearTimeout(relogio);
+  }, [atualizacao]);
 
   // Situação da cobrança por tenant, para o card da lista. Vem da MESMA
   // função da aba "Planos e assinaturas" (`resumirPlataforma`, que recalcula
@@ -533,15 +610,48 @@ export default function ConsolePage() {
             abas, porque o dono precisa saber ANTES de tentar — e diz o que ainda
             dá para fazer, não só o que quebrou. `role="status"` para o leitor de
             tela anunciar sem interromper o que ele estava lendo. */}
-        {!online && (
+        {/* Estar offline manda na faixa (CONSOLE-UX 27): se a conexão voltou e
+            caiu de novo no meio da recarga, o que o dono precisa ler é que está
+            sem internet — não um "atualizado" de uma busca que não terminou. */}
+        {!online ? (
           <div className="console__offline" role="status">
             <LuWifiOff size={18} aria-hidden />
             <span>
               <strong>Sem conexão com a internet.</strong> Dá para ver o que já
-              carregou; para criar ou alterar, reconecte.
+              carregou, mas os números podem estar desatualizados; para criar ou
+              alterar, reconecte.
             </span>
           </div>
-        )}
+        ) : atualizacao === "atualizando" ? (
+          <div className="console__offline console__offline--voltou" role="status">
+            <LuLoaderCircle size={18} className="console__spin" aria-hidden />
+            <span>
+              <strong>Conexão de volta.</strong> Atualizando os dados da tela…
+            </span>
+          </div>
+        ) : atualizacao === "atualizado" ? (
+          <div className="console__offline console__offline--voltou" role="status">
+            <LuCircleCheck size={18} aria-hidden />
+            <span>
+              <strong>Dados atualizados.</strong> O que está na tela é o de agora.
+            </span>
+          </div>
+        ) : atualizacao === "falhou" ? (
+          <div className="console__offline console__offline--falhou" role="status">
+            <LuTriangleAlert size={18} aria-hidden />
+            <span>
+              <strong>Não foi possível atualizar os dados.</strong> O que está na
+              tela é de antes da queda da conexão.
+            </span>
+            <button
+              type="button"
+              className="console__offline-acao"
+              onClick={recarregarNaVolta}
+            >
+              Tentar de novo
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <main className="console__conteudo">
@@ -581,7 +691,12 @@ export default function ConsolePage() {
           <div className="console__estado console__estado--erro">
             <LuTriangleAlert size={26} aria-hidden />
             <p>{erro}</p>
-            <button className="console__novo" onClick={carregar}>Tentar de novo</button>
+            {/* `() => carregar()` e não `carregar`: o handler receberia o evento
+                do clique como primeiro argumento, e o primeiro argumento agora é
+                o modo silencioso (CONSOLE-UX 27) — o evento é objeto, logo
+                verdadeiro, e a recarga pedida pelo dono não acenderia o
+                "carregando…" que ele está esperando ver. */}
+            <button className="console__novo" onClick={() => carregar()}>Tentar de novo</button>
           </div>
         ) : (aba === "planos" || aba === "uso") && erroAssinaturas ? (
           // Preferimos não mostrar nada a mostrar número errado: sem a
@@ -596,7 +711,7 @@ export default function ConsolePage() {
               dizer que ninguém está pagando — os números só aparecem quando a leitura
               funcionar.
             </p>
-            <button className="console__novo" onClick={carregar}>Tentar de novo</button>
+            <button className="console__novo" onClick={() => carregar()}>Tentar de novo</button>
           </div>
         ) : aba === "uso" ? (
           // A leitura do uso é da própria aba (RPC `analytics_plataforma`):
@@ -618,7 +733,7 @@ export default function ConsolePage() {
             // `assinaturas_pagamentos.confirmado_por` — o histórico precisa
             // dizer quem confirmou, não só que alguém confirmou.
             confirmadoPor={currentUser?.name ?? null}
-            onAtualizado={carregar}
+            onAtualizado={() => carregar()}
           />
         ) : (
           <>

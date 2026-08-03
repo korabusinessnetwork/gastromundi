@@ -11,7 +11,7 @@
 // na leitura dos planos deixava o botão "Novo estabelecimento" abrir um
 // formulário sem plano nenhum para escolher, sem dizer por quê.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { screen, waitFor, within, render, fireEvent } from "@testing-library/react";
+import { screen, waitFor, waitForElementToBeRemoved, within, render, fireEvent } from "@testing-library/react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 
@@ -2484,5 +2484,138 @@ describe("ConsolePage — sem conexão com a internet", () => {
       expect(screen.queryByText("Sem conexão com a internet.")).not.toBeInTheDocument();
     });
     expect(screen.getByRole("button", { name: /Novo estabelecimento/i })).toBeEnabled();
+  });
+});
+
+// ── A volta da conexão (CONSOLE-UX 27) ─────────────────────────────
+//
+// A rodada 52 destravava os botões quando a internet voltava, mas os números
+// na tela continuavam sendo os de antes da queda — vencimento, receita, quem
+// precisa de atenção — sem nada dizendo isso. Aqui a volta puxa os dados de
+// novo em silêncio (a lista não pisca) e a faixa conta o que aconteceu.
+describe("ConsolePage — quando a conexão volta", () => {
+  const ficarOffline = () =>
+    Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true });
+  const voltarOnline = () =>
+    Object.defineProperty(window.navigator, "onLine", { value: true, configurable: true });
+  const dispararOnline = () => fireEvent(window, new Event("online"));
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  afterEach(() => {
+    voltarOnline();
+  });
+
+  // Critério 2: abrir o Console já online é UMA carga. Sem isso, a recarga da
+  // volta viraria uma segunda chamada na montagem para todo mundo.
+  it("abrir o Console já online lê uma vez só", async () => {
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+
+    expect(mockListarEstabelecimentos).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/Conexão de volta/i)).not.toBeInTheDocument();
+  });
+
+  // Critério 4: o ponto da rodada. O que mudou enquanto a internet estava fora
+  // aparece na tela sem o dono recarregar a página.
+  it("traz os dados novos sem recarregar a página", async () => {
+    ficarOffline();
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+    expect(screen.queryByText("Padaria Nova")).not.toBeInTheDocument();
+
+    mockListarEstabelecimentos.mockResolvedValue(
+      ok([...TENANTS, { id: "t3", nome: "Padaria Nova", plano_codigo: "basico", tema: {}, created_at: "2026-03-01T12:00:00Z" }])
+    );
+    voltarOnline();
+    dispararOnline();
+
+    expect(await screen.findByText("Padaria Nova")).toBeInTheDocument();
+    // A lista antiga não sumiu no caminho: é recarga, não recomeço.
+    expect(screen.getByText("Bar do Zé")).toBeInTheDocument();
+  });
+
+  // Critério 5: a faixa narra os dois momentos e some sozinha. A leitura fica
+  // presa de propósito para o "atualizando" existir por tempo observável — com
+  // o mock resolvendo na hora, os dois estados cairiam no mesmo commit.
+  it("diz que está atualizando, depois que atualizou, e some sozinha", async () => {
+    ficarOffline();
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+
+    let liberar;
+    mockListarEstabelecimentos.mockReturnValue(
+      new Promise((resolve) => { liberar = () => resolve(ok(TENANTS)); })
+    );
+    voltarOnline();
+    dispararOnline();
+
+    expect(await screen.findByText(/Atualizando os dados da tela/i)).toBeInTheDocument();
+    // Enquanto atualiza, a lista continua de pé — nada de "Carregando…".
+    expect(screen.getByText("Bar do Zé")).toBeInTheDocument();
+    expect(screen.queryByText("Carregando…")).not.toBeInTheDocument();
+
+    liberar();
+    expect(await screen.findByText("Dados atualizados.")).toBeInTheDocument();
+
+    await waitForElementToBeRemoved(() => screen.queryByText("Dados atualizados."), { timeout: 6000 });
+  }, 10000);
+
+  // Critérios 6 e 7: sinal de volta que não chega ao servidor (Wi-Fi sem saída).
+  // A faixa não pode sumir fingindo que deu certo, e a tela não pode ser apagada
+  // por uma atualização que o dono não pediu.
+  it("recarga que falha mantém a faixa com Tentar de novo e não apaga a tela", async () => {
+    ficarOffline();
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+
+    mockListarEstabelecimentos.mockResolvedValue(falhou());
+    voltarOnline();
+    dispararOnline();
+
+    expect(await screen.findByText("Não foi possível atualizar os dados.")).toBeInTheDocument();
+    // Nada apagado: os cards de antes da queda continuam legíveis.
+    expect(screen.getByText("Bar do Zé")).toBeInTheDocument();
+    expect(screen.getByText("Café Central")).toBeInTheDocument();
+    // E o bloco de erro que substitui a lista não entrou no lugar dela.
+    expect(screen.queryByText(/Não foi possível carregar os estabelecimentos/i)).not.toBeInTheDocument();
+
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /Tentar de novo/i }));
+
+    expect(await screen.findByText("Dados atualizados.")).toBeInTheDocument();
+  });
+
+  // Critério 3: o navegador dispara `online` mais de uma vez em troca de rede.
+  // Duas recargas sobrepostas escreveriam a lista duas vezes, fora de ordem.
+  it("dois eventos de volta seguidos não disparam duas recargas", async () => {
+    ficarOffline();
+    renderWithProviders(<ConsolePage />);
+    await screen.findByText("Bar do Zé");
+    const antes = mockListarEstabelecimentos.mock.calls.length;
+
+    let liberar;
+    mockListarEstabelecimentos.mockReturnValue(
+      new Promise((resolve) => { liberar = () => resolve(ok(TENANTS)); })
+    );
+    voltarOnline();
+    dispararOnline();
+    dispararOnline();
+    dispararOnline();
+
+    await screen.findByText(/Atualizando os dados da tela/i);
+    expect(mockListarEstabelecimentos.mock.calls.length).toBe(antes + 1);
+
+    liberar();
+    await screen.findByText("Dados atualizados.");
   });
 });

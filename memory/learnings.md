@@ -308,3 +308,21 @@ somaram: o wrapper virou flex row com `margin-bottom`, e o cabeçalho da seção
 `position: sticky`. Nenhum teste pega isso — não há teste de CSS — e o projeto não tem
 eslint/stylelint. Antes de criar classe em arquivo CSS grande, `grep` do nome no
 próprio arquivo. O wrapper virou `.console__topo-fixo`.
+
+## Handler de clique passa o evento como 1º argumento — e o 1º argumento virou uma flag (rodada 53)
+
+`ConsolePage.jsx` tinha três `onClick={carregar}` / `onAtualizado={carregar}` escritos quando
+`carregar()` não recebia nada. Ao dar a ela um parâmetro (`carregar(silencioso = false)`), esses
+três call sites passaram a chamar `carregar(MouseEvent)` — objeto, logo verdadeiro, logo modo
+silencioso ligado. O "Tentar de novo" do bloco de falha deixaria de acender o "Carregando…" que o
+dono está esperando ver, e nenhum teste pegaria: a recarga funciona, só não mostra estado. Regra:
+ao acrescentar o **primeiro** parâmetro a uma função já usada como handler, procure todo
+`={nomeDaFuncao}` do arquivo e troque por `={() => nomeDaFuncao()}`.
+
+## Ref de "ainda montado" precisa voltar a `true` na entrada do efeito (rodada 53)
+
+O idioma `const montado = useRef(true); useEffect(() => () => { montado.current = false; }, [])`
+quebra em StrictMode: o React monta, desmonta e remonta, a limpeza roda, e o ref fica falso para
+sempre — todo `setState` guardado por ele vira no-op silencioso, e a tela nunca mais atualiza em
+desenvolvimento. O efeito tem que **reafirmar** `montado.current = true` antes de devolver a
+limpeza.

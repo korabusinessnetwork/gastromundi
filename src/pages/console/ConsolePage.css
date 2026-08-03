@@ -76,6 +76,39 @@
   text-align: center;
 }
 
+/* ── A volta da conexão (CONSOLE-UX 27) ────────────────────────── */
+/* A mesma faixa, trocando de cor conforme o que ela conta: verde enquanto
+   busca os dados de novo e ao terminar (nada quebrou, é boa notícia), vermelho
+   quando a busca não voltou (aí existe algo a fazer, e o botão está ali). O
+   fundo continua opaco pelo mesmo motivo do bloco acima — a faixa gruda no
+   topo por cima da lista rolando. */
+.console__offline--voltou {
+  background: color-mix(in srgb, var(--gm-green) 14%, var(--gm-card));
+  border-bottom-color: color-mix(in srgb, var(--gm-green) 40%, transparent);
+  color: var(--gm-green);
+}
+.console__offline--falhou {
+  background: color-mix(in srgb, var(--gm-red) 14%, var(--gm-card));
+  border-bottom-color: color-mix(in srgb, var(--gm-red) 40%, transparent);
+  color: var(--gm-red);
+}
+
+/* Botão dentro da faixa: herda a cor do estado (vermelho aqui), com contorno
+   em vez de preenchimento para não competir com as ações da lista. */
+.console__offline-acao {
+  padding: 5px 12px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.console__offline-acao:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
 /* Botões de escrita do card enquanto falta internet: apagados e com o
    cursor barrado, para o clique não sair de graça — o motivo está na faixa
    acima e no `title` de cada um. */

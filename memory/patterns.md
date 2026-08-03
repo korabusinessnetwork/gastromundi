@@ -924,3 +924,26 @@ tela que escreva no banco:
 5. **A faixa e a barra superior grudam juntas** num wrapper `position: sticky`, com
    fundo opaco (`color-mix` sobre `--gm-card`): faixa translúcida deixa a lista passar
    por baixo do texto quando a página rola.
+
+## Recarga silenciosa quando a conexão volta (rodada 53)
+
+Complemento do padrão da rodada 52 ("Tela que trava sozinha quando a internet cai"): destravar os
+botões não basta, porque os números na tela continuam sendo os de antes da queda. O quinto momento
+do ciclo é a volta. Implementado em `ConsolePage.jsx`, replicável em qualquer tela que carregue
+uma lista:
+
+1. A função de carga ganha um parâmetro `silencioso`. Ele governa **só o estado de carregando** e
+   **só a escrita do erro** — a busca é a mesma. Acender o "Carregando…" numa recarga que o
+   usuário não pediu apaga a tela inteira e é o contrário do que ele quer.
+2. Recarga silenciosa que **falha não escreve `erro`**: em telas assim o erro substitui a lista
+   pelo bloco de falha, e uma atualização não pedida não pode apagar o que a pessoa estava lendo.
+   Quem avisa é a faixa, com um botão de tentar de novo.
+3. Dispara na **transição**, comparando com um `useRef` que nasce com o valor da montagem — sem
+   isso, abrir a tela já online conta como "voltou" e vira uma segunda leitura para todo mundo.
+4. Um `recarregando.current` de guarda: o navegador dispara `online` mais de uma vez numa troca
+   de rede (cai o Wi-Fi, entra o 4G), e duas respostas fora de ordem escreveriam a lista duas vezes.
+5. A faixa é **uma só**, trocando de cor e de texto conforme o momento: `--gm-warn` offline,
+   `--gm-green` atualizando/atualizado, `--gm-red` falhou. Estar offline **manda** sobre os
+   outros estados, para a conexão que volta e cai de novo terminar dizendo "sem internet".
+6. O recado de sucesso some sozinho (temporizador); o de falha **fica**, porque nele existe uma
+   ação para a pessoa tomar.
