@@ -1,3 +1,26 @@
+## Rodada 49 — CONSOLE-UX 23: confirmar antes de descartar o cadastro pela metade — 2026-08-03
+- Spec: specs/console-descartar-cadastro.md
+- Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 199 arquivos / 3471 testes, verde)
+- Aprendido:
+  - `memory/patterns.md` — confirmação de descarte mora no rodapé do próprio modal, não
+    num segundo overlay: dois `createPortal` empilhados disputam foco, `aria-modal` e Esc.
+    O rodapé inteiro vira a pergunta (uma decisão de cada vez), a ação de voltar é a
+    primária e a destrutiva é a secundária, e o que dispara a pergunta é o que foi
+    DIGITADO — campo que já vem preenchido por padrão fica de fora, senão a confirmação
+    aparece sempre e vira barulho que se clica no automático.
+- Commit: d99c3a8 na branch main
+- Pendente de decisão: as quatro herdadas — (1) usuário do responsável na mensagem de
+  acesso e verificação de usuário livre antes do envio, ambas dependem de RPC
+  `SECURITY DEFINER` sobre `public.users` (rodada 41); (2) o endereço do cardápio entra
+  na mensagem copiada? (rodada 44); (3) editar o endereço de um estabelecimento já criado
+  precisa de RPC nova, `tenants` só tem SELECT na RLS (rodada 45); (4) subir o mínimo de
+  senha de 6 para 8 mexe na borda e no cliente juntos (rodada 46).
+- Próximo item recomendado: CONSOLE-UX 24 — Esc e clique fora fecham os modais do Console.
+  Hoje nenhum modal do Console fecha por Esc nem por clique no fundo escuro: a única saída
+  é acertar o "X" de 36px ou o "Cancelar". É o gesto que todo mundo tenta primeiro, e a
+  rodada 49 acabou de construir para onde ele vai — no cadastro, Esc cai na mesma pergunta
+  de descarte; nos modais de um campo só, fecha direto. Só cliente, sem migration.
+
 ## Rodada 48 — CONSOLE-UX 22: o usuário de acesso nasce do nome do responsável — 2026-08-03
 - Spec: specs/console-usuario-do-responsavel.md
 - Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 199 arquivos / 3455 testes, verde)
