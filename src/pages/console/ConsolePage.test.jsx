@@ -11,7 +11,8 @@
 // na leitura dos planos deixava o botão "Novo estabelecimento" abrir um
 // formulário sem plano nenhum para escolher, sem dizer por quê.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within, render } from "@testing-library/react";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("@/context/AppContext", async () => {
@@ -984,6 +985,154 @@ describe("ConsolePage — filtro por situação", () => {
     renderWithProviders(<ConsolePage />);
     expect(await screen.findByText("Nenhum estabelecimento ainda")).toBeInTheDocument();
 
+    expect(atalhos()).not.toBeInTheDocument();
+  });
+});
+
+describe("ConsolePage — o recorte escolhido fica na URL", () => {
+  // O MemoryRouter não mexe em `window.location`, então a única forma honesta
+  // de ver o endereço é perguntar ao próprio roteador. O espião também expõe um
+  // "voltar" para provar que trocar de recorte não empilha histórico.
+  const EspiaoURL = () => {
+    const loc = useLocation();
+    const navigate = useNavigate();
+    return (
+      <>
+        <span data-testid="url">{loc.pathname + loc.search}</span>
+        <button type="button" onClick={() => navigate(-1)}>
+          voltar-teste
+        </button>
+      </>
+    );
+  };
+  const url = () => screen.getByTestId("url").textContent;
+  const renderComEspiao = (route = "/console", anteriores = []) =>
+    render(
+      <MemoryRouter initialEntries={[...anteriores, route]} initialIndex={anteriores.length}>
+        <ConsolePage />
+        <EspiaoURL />
+      </MemoryRouter>
+    );
+
+  const emDias = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const nomesNaOrdem = () =>
+    screen.getAllByRole("listitem").map((li) => li.querySelector(".console__card-nome")?.textContent);
+  const campo = () => screen.getByLabelText("Buscar estabelecimento pelo nome");
+  const atalho = (nome) => screen.getByRole("button", { name: new RegExp(`^${nome}`) });
+  const atalhos = () => screen.queryByRole("group", { name: /Filtrar por situação/i });
+
+  // t1 vencido há um mês (precisa de atenção), t2 longe do vencimento (em dia).
+  const MISTO = [
+    { tenant_id: "t1", valor_mensal: 149.9, data_vencimento: emDias(-30), carencia_dias: 3, status: "ativo" },
+    { tenant_id: "t2", valor_mensal: 249.9, data_vencimento: "2099-02-11", carencia_dias: 3, status: "ativo" },
+  ];
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(MISTO));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("abrir com ?situacao=atencao já mostra a lista recortada, sem clique", async () => {
+    renderWithProviders(<ConsolePage />, { route: "/console?situacao=atencao" });
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé"]);
+    expect(atalho("Precisam de atenção")).toHaveAttribute("aria-pressed", "true");
+    expect(atalho("Todos")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("abrir com ?situacao=em_dia mostra o complemento", async () => {
+    renderWithProviders(<ConsolePage />, { route: "/console?situacao=em_dia" });
+    expect(await screen.findByText("Café Central")).toBeInTheDocument();
+
+    expect(nomesNaOrdem()).toEqual(["Café Central"]);
+    expect(atalho("Em dia")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("valor inventado na URL cai em 'Todos' e não esconde ninguém", async () => {
+    renderWithProviders(<ConsolePage />, { route: "/console?situacao=ATENCAO" });
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé", "Café Central"]);
+    expect(atalho("Todos")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("clicar num atalho escreve o parâmetro; 'Todos' o remove", async () => {
+    const user = userEvent.setup();
+    renderComEspiao();
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(atalho("Precisam de atenção"));
+    expect(url()).toBe("/console?situacao=atencao");
+
+    // endereço limpo é o que se copia sem pensar
+    await user.click(atalho("Todos"));
+    expect(url()).toBe("/console");
+  });
+
+  it("outros parâmetros da URL sobrevivem à escrita do recorte", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console?origem=email");
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(atalho("Em dia"));
+    expect(url()).toContain("origem=email");
+    expect(url()).toContain("situacao=em_dia");
+  });
+
+  it("trocar de recorte não empilha histórico: 'voltar' sai do Console", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console", ["/inicio"]);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(atalho("Precisam de atenção"));
+    await user.click(atalho("Em dia"));
+    await user.click(atalho("Todos"));
+    await user.click(atalho("Precisam de atenção"));
+
+    await user.click(screen.getByRole("button", { name: "voltar-teste" }));
+    expect(url()).toBe("/inicio");
+  });
+
+  it("o termo da busca não vai para a URL, e trocar de recorte não o apaga", async () => {
+    const user = userEvent.setup();
+    renderComEspiao();
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.type(campo(), "bar");
+    expect(url()).toBe("/console");
+
+    await user.click(atalho("Precisam de atenção"));
+    expect(campo()).toHaveValue("bar");
+    expect(url()).toBe("/console?situacao=atencao");
+  });
+
+  it("com a leitura das assinaturas quebrada, o parâmetro da URL é ignorado", async () => {
+    mockListarAssinaturas.mockResolvedValue(falhou());
+    renderWithProviders(<ConsolePage />, { route: "/console?situacao=atencao" });
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    // sem os atalhos na tela, recortar seria um corte que ninguém explica
+    expect(atalhos()).not.toBeInTheDocument();
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé", "Café Central"]);
+  });
+
+  it("base vazia com recorte na URL mostra o vazio de cadastro", async () => {
+    mockListarEstabelecimentos.mockResolvedValue(ok([]));
+    renderWithProviders(<ConsolePage />, { route: "/console?situacao=atencao" });
+
+    expect(await screen.findByText("Nenhum estabelecimento ainda")).toBeInTheDocument();
     expect(atalhos()).not.toBeInTheDocument();
   });
 });

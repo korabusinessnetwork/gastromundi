@@ -24,6 +24,8 @@ import {
   ordenarPorUrgencia,
   filtrarEstabelecimentos,
   filtrarPorSituacao,
+  normalizarFiltroSituacao,
+  FILTROS_SITUACAO,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -993,5 +995,47 @@ describe("filtrarPorSituacao", () => {
   it("preserva a ordem por urgência que veio da rodada 2", () => {
     const ordenado = [BASE[2], BASE[0], BASE[1]];
     expect(ids(filtrarPorSituacao(ordenado, "atencao", pendentes))).toEqual(["c", "a"]);
+  });
+});
+
+describe("normalizarFiltroSituacao", () => {
+  it("devolve os três recortes válidos como estão", () => {
+    expect(normalizarFiltroSituacao("todos")).toBe("todos");
+    expect(normalizarFiltroSituacao("atencao")).toBe("atencao");
+    expect(normalizarFiltroSituacao("em_dia")).toBe("em_dia");
+  });
+
+  it("valor desconhecido vira 'todos' — URL editada à mão não esconde ninguém", () => {
+    expect(normalizarFiltroSituacao("xpto")).toBe("todos");
+    expect(normalizarFiltroSituacao("bloqueado")).toBe("todos");
+  });
+
+  it("não aceita caixa diferente: o parâmetro é código, não texto de tela", () => {
+    expect(normalizarFiltroSituacao("ATENCAO")).toBe("todos");
+    expect(normalizarFiltroSituacao("Em_Dia")).toBe("todos");
+  });
+
+  it("parâmetro ausente ou vazio vira 'todos'", () => {
+    expect(normalizarFiltroSituacao(null)).toBe("todos");
+    expect(normalizarFiltroSituacao(undefined)).toBe("todos");
+    expect(normalizarFiltroSituacao("")).toBe("todos");
+    expect(normalizarFiltroSituacao()).toBe("todos");
+  });
+
+  it("chave repetida (array) vira 'todos' — não há escolha honesta entre duas", () => {
+    expect(normalizarFiltroSituacao(["atencao", "em_dia"])).toBe("todos");
+    expect(normalizarFiltroSituacao(["atencao"])).toBe("todos");
+  });
+
+  it("tipo estranho não quebra", () => {
+    expect(normalizarFiltroSituacao(3)).toBe("todos");
+    expect(normalizarFiltroSituacao({})).toBe("todos");
+    expect(normalizarFiltroSituacao(true)).toBe("todos");
+  });
+
+  it("o que ela devolve é sempre aceito por filtrarPorSituacao", () => {
+    for (const bruto of ["atencao", "em_dia", "todos", "xpto", null]) {
+      expect(FILTROS_SITUACAO).toContain(normalizarFiltroSituacao(bruto));
+    }
   });
 });

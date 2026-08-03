@@ -205,6 +205,26 @@ export function filtrarPorSituacao(itens = [], filtro = "todos", idsAtencao = ne
 }
 
 /**
+ * Função PURA — traduz o que veio da URL (`?situacao=...`) para um filtro
+ * válido. O parâmetro é texto de fora: pode ter sido digitado, colado de um
+ * link antigo ou vir repetido. Qualquer coisa que não seja exatamente um dos
+ * três recortes vira "todos" — o estado que não esconde ninguém.
+ *
+ * Aceita `null`/`undefined` (parâmetro ausente) e o array que alguns leitores
+ * de query string devolvem quando a chave aparece duas vezes; nesse caso não
+ * há escolha honesta a fazer, então cai em "todos" também.
+ *
+ * Não lê `window` nem o roteador — quem faz isso é a tela.
+ *
+ * @param {string|string[]|null|undefined} bruto
+ * @returns {"todos"|"atencao"|"em_dia"}
+ */
+export function normalizarFiltroSituacao(bruto) {
+  if (typeof bruto !== "string") return "todos";
+  return FILTROS_SITUACAO.includes(bruto) ? bruto : "todos";
+}
+
+/**
  * Função PURA — agrega tenants + planos + assinaturas na visão da
  * plataforma (dashboard do Console): status recalculado por tenant, KPIs,
  * o "alerta de validade" (quem precisa de ação) e a distribuição por

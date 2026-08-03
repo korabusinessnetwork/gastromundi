@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
   LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
@@ -7,7 +8,7 @@ import { useApp } from "@/context/AppContext";
 import {
   listarEstabelecimentos, listarPlanos, listarAssinaturas,
   listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma, ordenarPorUrgencia,
-  filtrarEstabelecimentos, filtrarPorSituacao, FILTROS_SITUACAO,
+  filtrarEstabelecimentos, filtrarPorSituacao, FILTROS_SITUACAO, normalizarFiltroSituacao,
 } from "@/lib/console";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
@@ -75,8 +76,37 @@ export default function ConsolePage() {
   const [addonsMudaram, setAddonsMudaram] = useState(false);
   const [sucesso, setSucesso] = useState(null);
   const [busca, setBusca] = useState("");
-  // Recorte da lista por situacao de cobranca: todos | atencao | em_dia.
-  const [filtroSituacao, setFiltroSituacao] = useState("todos");
+  // Recorte da lista por situação de cobrança: todos | atencao | em_dia.
+  //
+  // Mora na URL, não em estado local: recarregar a página, favoritar o
+  // endereço ou abrir o Console em outra aba devolve a mesma lista — o dono
+  // deixa aberto em "precisam de atenção" e volta nele. O termo da busca,
+  // esse sim, fica só na tela: é transitório e poria nome de cliente no
+  // histórico do navegador.
+  //
+  // Com a leitura das assinaturas quebrada, o parâmetro é ignorado: não há
+  // situação confiável para recortar, e a tela também não mostra os atalhos —
+  // o dono veria uma lista curta sem nada explicando o corte.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filtroSituacao = erroAssinaturas
+    ? "todos"
+    : normalizarFiltroSituacao(searchParams.get("situacao"));
+
+  // "Todos" apaga o parâmetro em vez de escrever `situacao=todos`: é o
+  // estado natural da tela, e endereço limpo é o que se copia sem pensar.
+  // `replace` porque trocar de recorte não é navegar — sem isso, o "voltar"
+  // do navegador desfaria filtro por filtro em vez de sair do Console.
+  const escolherFiltro = (f) => {
+    setSearchParams(
+      (atual) => {
+        const proximo = new URLSearchParams(atual);
+        if (f === "todos") proximo.delete("situacao");
+        else proximo.set("situacao", f);
+        return proximo;
+      },
+      { replace: true }
+    );
+  };
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -439,7 +469,7 @@ export default function ConsolePage() {
                         type="button"
                         className="console__filtro"
                         aria-pressed={filtroSituacao === f}
-                        onClick={() => setFiltroSituacao(f)}
+                        onClick={() => escolherFiltro(f)}
                       >
                         {ROTULOS_FILTRO[f]}
                         <span className="console__filtro-conta">{contagens[f]}</span>
@@ -473,7 +503,7 @@ export default function ConsolePage() {
                   <p className="console__vazio-texto">
                     A lista está filtrada por “{ROTULOS_FILTRO[filtroSituacao]}”.
                   </p>
-                  <button type="button" className="console__novo" onClick={() => setFiltroSituacao("todos")}>
+                  <button type="button" className="console__novo" onClick={() => escolherFiltro("todos")}>
                     Ver todos
                   </button>
                 </div>
