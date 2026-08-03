@@ -722,3 +722,50 @@ renomeia algo que o usuário digitou:
 6. **Lista vazia não inventa conflito.** `slugsEmUso` vazio significa "não sei de
    nenhum ocupado" (tenants ainda carregando), não "está tudo livre": o cliente
    não bloqueia, e o banco segue como barreira final.
+
+## Campo com ação no rótulo: o botão fica fora do `<label>` (Console, rodada 46)
+
+O padrão de campo do projeto é `<label>` envolvendo o input — funciona porque o
+label não tem nada dentro além do texto e do próprio campo. Quando o campo ganha
+uma **ação** ("Gerar senha", "Colar", "Sugerir"), esse padrão quebra:
+
+1. `<button>` dentro de `<label>` entra no nome acessível dos dois. O botão passa
+   a se chamar o texto inteiro do label (no caso da senha, incluindo o **valor
+   digitado**, que o leitor de tela anuncia em voz alta) e o input fica sem nome.
+   `getByLabelText` devolve o botão, não o campo.
+2. A forma certa é abrir o wrapper: `<div className="nem-campo">` com
+   `<label htmlFor="x">` e `id="x"` no input, e o botão como irmão do label dentro
+   de uma linha (`.nem-label-linha`, flex com `space-between`). Custa um `id`
+   fixo — aceitável em modal singleton, que é o caso.
+3. Deixe um comentário no JSX dizendo por que **este** campo destoa dos vizinhos,
+   senão a próxima passada "padroniza" de volta e reintroduz o bug.
+4. A suíte pega isso de graça se os testes de tela usarem `getByLabelText` e
+   `getByRole("button", { name })` em vez de seletor de classe: nove testes
+   falharam juntos e o erro do Testing Library já imprimiu o nome acessível
+   errado, com a causa visível na primeira leitura.
+
+## Aviso que orienta sem decidir: força de senha no Console (rodada 46)
+
+A validação que **barra** o envio é a regra da borda (o `MIN_SENHA = 6` da Edge
+Function, espelhado no cliente). A força da senha é outra categoria: opinião, não
+regra.
+
+1. Função pura exportada (`forcaDaSenha` em `src/lib/console.js`) devolvendo
+   `{ nivel, motivo }` — nunca um booleano. O nível pinta, o motivo explica em
+   português o que está errado ("é uma das primeiras que qualquer invasor tenta",
+   "é igual ao usuário de acesso"), e a tela não precisa saber a regra.
+2. Ela **nunca** entra no `validar*` nem no `disabled` do botão. Quem já decidiu
+   passa; quem não pensou é avisado. Um teste de tela fixa isso ("o aviso avisa,
+   mas não bloqueia") para ninguém "melhorar" depois.
+3. Campo vazio devolve `nivel: ""` — não existe avaliar o que ainda não foi
+   digitado, e reprovar um campo intocado é o oposto de prevenção de erro.
+4. Sorteio de senha é `crypto.getRandomValues` com rejeição de resto
+   (`Math.floor(2^32 / n) * n`), nunca `Math.random` nem `% n` direto no valor
+   cru — o módulo sem rejeição enviesa os primeiros símbolos do alfabeto.
+5. Alfabeto de senha lida em voz alta não tem `0 O o 1 l i` nem maiúscula: a
+   senha é ditada ao cliente na hora da venda, e "erro de digitação do cliente" é
+   um chamado de suporte com cara de bug.
+6. Se a heurística de força reprovar a senha que o **próprio botão** gera, o
+   botão se desmente. O caso "10 caracteres, minúscula + dígito" precisa cair em
+   "forte", e há teste amarrando as duas funções (`a senha gerada é lida como
+   forte`).

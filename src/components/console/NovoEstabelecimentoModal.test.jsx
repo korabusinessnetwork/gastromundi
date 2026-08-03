@@ -270,3 +270,122 @@ describe("NovoEstabelecimentoModal — o endereço do cardápio", () => {
     expect(mockProvisionar).toHaveBeenCalledWith(expect.objectContaining({ slug: "bardoze" }));
   });
 });
+
+// CONSOLE-UX 20 — a senha provisória do responsável.
+//
+// O dono inventava, no meio da venda, a senha do usuário mais poderoso do
+// estabelecimento do cliente; a única regra era o mínimo de 6 caracteres, e
+// nada impedia "123456" em todo cliente novo. O que estes testes protegem: que
+// exista uma senha boa a um clique, que a senha fraca seja dita em voz alta —
+// e que o aviso continue sendo aviso, sem travar quem já decidiu.
+describe("NovoEstabelecimentoModal — a senha provisória", () => {
+  const senhaProvisoria = () => screen.getByLabelText(/Senha provisória/i);
+  const gerarSenha = () => screen.getByRole("button", { name: /Gerar senha/i });
+
+  beforeEach(() => {
+    mockProvisionar.mockReset();
+    mockDefinir.mockReset();
+    mockProvisionar.mockResolvedValue({
+      data: { tenant_id: "t-novo", nome: "Bar do Zé", admin: { username: "barze" } },
+      error: null,
+    });
+    mockDefinir.mockResolvedValue({ data: null, error: null });
+  });
+
+  it("um clique preenche o campo com uma senha forte, visível na tela", async () => {
+    const { user } = montar();
+    await user.click(gerarSenha());
+
+    const campo = senhaProvisoria();
+    expect(campo).toHaveAttribute("type", "text");
+    expect(campo.value).toMatch(/^[abcdefghjkmnpqrstuvwxyz23456789]{10}$/);
+    expect(screen.getByText(/Senha forte/i)).toBeInTheDocument();
+  });
+
+  it("gerar de novo troca a senha", async () => {
+    const { user } = montar();
+    await user.click(gerarSenha());
+    const primeira = senhaProvisoria().value;
+    await user.click(gerarSenha());
+    expect(senhaProvisoria().value).not.toBe(primeira);
+  });
+
+  it("gerar limpa o erro que estava no campo", async () => {
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
+    await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
+    await user.click(criar());
+    expect(screen.getByText(/Defina uma senha para o responsável/i)).toBeInTheDocument();
+
+    await user.click(gerarSenha());
+    expect(screen.queryByText(/Defina uma senha para o responsável/i)).not.toBeInTheDocument();
+  });
+
+  it("senha óbvia é dita em português, sem jargão", async () => {
+    const { user } = montar();
+    await user.type(senhaProvisoria(), "123456");
+    expect(screen.getByText(/Senha fraca/i)).toBeInTheDocument();
+    expect(screen.getByText(/qualquer invasor tenta/i)).toBeInTheDocument();
+  });
+
+  it("senha igual ao usuário de acesso é apontada", async () => {
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Usuário de acesso/i), "bardozegrill");
+    await user.type(senhaProvisoria(), "bardozegrill");
+    expect(screen.getByText(/igual ao usuário de acesso/i)).toBeInTheDocument();
+  });
+
+  it("o aviso reavalia a cada tecla e some quando a senha melhora", async () => {
+    const { user } = montar();
+    await user.type(senhaProvisoria(), "abc123");
+    expect(screen.getByText(/Senha fraca/i)).toBeInTheDocument();
+    await user.clear(senhaProvisoria());
+    await user.type(senhaProvisoria(), "kx7mrapqz4");
+    expect(screen.queryByText(/Senha fraca/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Senha forte/i)).toBeInTheDocument();
+  });
+
+  it("o aviso avisa, mas não bloqueia: senha fraca de 6 caracteres ainda cria", async () => {
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
+    await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
+    await user.type(senhaProvisoria(), "123456");
+
+    expect(screen.getByText(/Senha fraca/i)).toBeInTheDocument();
+    expect(criar()).toBeEnabled();
+
+    await user.click(criar());
+    expect(mockProvisionar).toHaveBeenCalledWith(
+      expect.objectContaining({ adminPassword: "123456" })
+    );
+  });
+
+  it("abaixo do mínimo de 6 continua sendo a regra que barra o envio", async () => {
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
+    await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
+    await user.type(senhaProvisoria(), "abc");
+    await user.click(criar());
+
+    expect(mockProvisionar).not.toHaveBeenCalled();
+    expect(screen.getByText(/ao menos 6 caracteres/i)).toBeInTheDocument();
+  });
+
+  it("a senha nunca vai parar no log", async () => {
+    const espiao = vi.spyOn(console, "log").mockImplementation(() => {});
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
+    await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
+    await user.click(gerarSenha());
+    const senha = senhaProvisoria().value;
+    await user.click(criar());
+
+    const registrado = espiao.mock.calls.flat().map(String).join(" ");
+    expect(registrado).not.toContain(senha);
+    espiao.mockRestore();
+  });
+});

@@ -8,6 +8,8 @@ import {
   definirMensalidade,
   normalizarSlug,
   sugerirSlugLivre,
+  gerarSenhaProvisoria,
+  forcaDaSenha,
   MENSALIDADE_MAXIMA,
   MAX_SLUG,
 } from "@/lib/console";
@@ -82,6 +84,10 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
   const slugEfetivo = slugTocado ? slug : normalizarSlug(nome);
   const previaDoCardapio = urlDoCardapioPublico(slugEfetivo, window.location.hostname);
   const sugestaoDeSlug = erros.slug ? sugerirSlugLivre(slugEfetivo, slugsEmUso) : "";
+
+  // Força da senha (CONSOLE-UX 20). Só avisa — quem barra o envio continua
+  // sendo o mínimo de 6 da validação, que é a regra da borda.
+  const forcaSenha = forcaDaSenha(adminPassword, adminUsername);
 
   const limparErro = (campo) =>
     setErros((prev) => (prev[campo] ? { ...prev, [campo]: undefined } : prev));
@@ -320,9 +326,29 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
                 : <span className="nem-dica">Só letras minúsculas, números, ponto, hífen e sublinhado.</span>}
             </label>
 
-            <label className="nem-campo">
-              <span className="nem-label">Senha provisória</span>
+            {/* Único campo que não é um <label> em volta do input: o botão fica
+                na linha do rótulo (a senha boa é a próxima ação óbvia — quem
+                está no meio de uma venda não deveria ter de inventar uma), e
+                botão dentro de <label> rouba o nome acessível do campo. Daí o
+                htmlFor/id explícito. O campo segue visível (`type="text"`): o
+                dono precisa ler a senha para o cliente na hora. */}
+            <div className="nem-campo">
+              <span className="nem-label-linha">
+                <label className="nem-label" htmlFor="nem-senha">Senha provisória</label>
+                <button
+                  type="button"
+                  className="nem-gerar"
+                  disabled={enviando}
+                  onClick={() => {
+                    setAdminPassword(gerarSenhaProvisoria());
+                    limparErro("adminPassword");
+                  }}
+                >
+                  Gerar senha
+                </button>
+              </span>
               <input
+                id="nem-senha"
                 className={`nem-input${erros.adminPassword ? " nem-input--erro" : ""}`}
                 type="text"
                 value={adminPassword}
@@ -331,8 +357,20 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
                 disabled={enviando}
                 onChange={(e) => { setAdminPassword(e.target.value); limparErro("adminPassword"); }}
               />
-              {erros.adminPassword && <span className="nem-erro-campo">{erros.adminPassword}</span>}
-            </label>
+              {erros.adminPassword ? (
+                <span className="nem-erro-campo">{erros.adminPassword}</span>
+              ) : forcaSenha.nivel === "forte" ? (
+                <span className="nem-dica nem-forca--forte">Senha forte.</span>
+              ) : forcaSenha.nivel ? (
+                <span className={`nem-dica nem-forca--${forcaSenha.nivel}`}>
+                  {forcaSenha.nivel === "fraca" ? "Senha fraca" : "Senha razoável"} — {forcaSenha.motivo}
+                </span>
+              ) : (
+                <span className="nem-dica">
+                  Essa é a senha do administrador do cliente — use "Gerar senha" e leia para ele.
+                </span>
+              )}
+            </div>
           </section>
 
           {erroServidor && (

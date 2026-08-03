@@ -724,6 +724,111 @@ export function validarNovoEstabelecimento(f = {}, slugsEmUso = []) {
   return { ok: Object.keys(erros).length === 0, erros };
 }
 
+// ── Senha provisória do responsável (CONSOLE-UX 20) ────────────────
+//
+// O dono lê essa senha em voz alta para o cliente na hora da venda, então o
+// alfabeto não tem nada que se confunda ao ditar: sem 0/O/o, sem 1/l/i, sem
+// maiúscula. 10 caracteres em 31 símbolos dão ~49 bits — sobra para uma senha
+// provisória, e ainda cabe num bilhete.
+const LETRAS_SENHA = "abcdefghjkmnpqrstuvwxyz";
+const DIGITOS_SENHA = "23456789";
+const ALFABETO_SENHA = LETRAS_SENHA + DIGITOS_SENHA;
+const TAMANHO_SENHA = 10;
+
+/**
+ * Sorteio uniforme em [0, limite) a partir de `crypto.getRandomValues`.
+ * O `% limite` cru enviesaria os primeiros índices, então a cauda que não
+ * fecha um ciclo inteiro é descartada. `Math.random` não entra aqui: é
+ * previsível e isto é material de senha.
+ */
+function sortearIndice(limite) {
+  const buf = new Uint32Array(1);
+  const teto = Math.floor(0x100000000 / limite) * limite;
+  let n;
+  do {
+    globalThis.crypto.getRandomValues(buf);
+    n = buf[0];
+  } while (n >= teto);
+  return n % limite;
+}
+
+/**
+ * Senha provisória forte para o responsável do estabelecimento novo.
+ *
+ * Garante ao menos uma letra e ao menos um dígito — não por regra de
+ * validação, mas porque uma senha sorteada que saísse só de dígitos
+ * pareceria fraca para quem a lê, e o aviso da tela a marcaria como tal.
+ *
+ * @returns {string} 10 caracteres de `ALFABETO_SENHA`
+ */
+export function gerarSenhaProvisoria() {
+  const chars = [
+    LETRAS_SENHA[sortearIndice(LETRAS_SENHA.length)],
+    DIGITOS_SENHA[sortearIndice(DIGITOS_SENHA.length)],
+  ];
+  while (chars.length < TAMANHO_SENHA) {
+    chars.push(ALFABETO_SENHA[sortearIndice(ALFABETO_SENHA.length)]);
+  }
+  // Embaralha (Fisher–Yates) para a letra e o dígito obrigatórios não ficarem
+  // sempre nas duas primeiras posições.
+  for (let i = chars.length - 1; i > 0; i -= 1) {
+    const j = sortearIndice(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
+}
+
+/** As senhas que qualquer ataque tenta primeiro. Minúsculas, já normalizadas. */
+const SENHAS_OBVIAS = [
+  "123456", "1234567", "12345678", "123456789", "111111", "000000",
+  "senha", "senha123", "admin", "admin123", "mudar123", "qwerty", "abc123",
+];
+
+/**
+ * Função pura — avalia a senha digitada para AVISAR, nunca para barrar. Quem
+ * barra é `validarNovoEstabelecimento` (mínimo de 6, a mesma regra da borda);
+ * aqui só dizemos ao dono que ele está prestes a entregar `123456` como senha
+ * do administrador de um cliente pagante.
+ *
+ * @param {string} senha
+ * @param {string} usuario usuário de acesso digitado, para pegar senha = login
+ * @returns {{nivel: ""|"fraca"|"media"|"forte", motivo: string}}
+ */
+export function forcaDaSenha(senha, usuario = "") {
+  const s = String(senha ?? "");
+  if (!s) return { nivel: "", motivo: "" };
+
+  const minusculas = s.toLowerCase();
+  const login = normalizarUsername(usuario);
+
+  if (SENHAS_OBVIAS.includes(minusculas)) {
+    return { nivel: "fraca", motivo: "é uma das primeiras que qualquer invasor tenta." };
+  }
+  if (login && minusculas === login) {
+    return { nivel: "fraca", motivo: "é igual ao usuário de acesso." };
+  }
+  if (s.length < 8) {
+    return { nivel: "fraca", motivo: "tem menos de 8 caracteres." };
+  }
+  if (/^\d+$/.test(s)) {
+    return { nivel: "fraca", motivo: "só tem números — misture letras." };
+  }
+  if (/^[a-zA-Z]+$/.test(s)) {
+    return { nivel: "fraca", motivo: "só tem letras — misture números." };
+  }
+
+  const variedade =
+    (/[a-z]/.test(s) ? 1 : 0) +
+    (/[A-Z]/.test(s) ? 1 : 0) +
+    (/\d/.test(s) ? 1 : 0) +
+    (/[^a-zA-Z0-9]/.test(s) ? 1 : 0);
+
+  if (s.length >= 14 || variedade >= 3 || (s.length >= 10 && variedade >= 2)) {
+    return { nivel: "forte", motivo: "" };
+  }
+  return { nivel: "media", motivo: "dá para melhorar: 10 caracteres ou mais." };
+}
+
 // Colisão de credencial no Auth. Enquanto `TENANT_ROOT_DOMAIN` está
 // desligado, a Edge Function usa o namespace de e-mail 'gastromundi' para
 // TODO estabelecimento — então o username precisa ser único na plataforma

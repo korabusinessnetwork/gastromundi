@@ -145,6 +145,36 @@
 .nem-sugestao:hover:not(:disabled) { border-color: var(--gm-accent); }
 .nem-sugestao:disabled { opacity: 0.6; cursor: not-allowed; }
 
+/* Linha do rótulo com ação à direita — hoje só a senha provisória
+   (CONSOLE-UX 20): o botão fica na altura do rótulo, sem roubar o lugar do
+   campo nem virar mais uma linha de leitura. */
+.nem-label-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.nem-gerar {
+  padding: 3px 10px;
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  background: var(--gm-surface);
+  color: var(--gm-accent);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.nem-gerar:hover:not(:disabled) { border-color: var(--gm-accent); }
+.nem-gerar:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Aviso de força da senha. Não é erro — não pinta de vermelho de erro nem
+   bloqueia; "fraca" fica em destaque, "forte" confirma em silêncio. */
+.nem-forca--fraca { color: var(--gm-red); font-weight: 600; }
+.nem-forca--media { color: var(--gm-text); }
+.nem-forca--forte { color: var(--gm-accent); font-weight: 600; }
+
 /* ── Erro de servidor ──────────────────────────────────────────── */
 .nem-erro-servidor {
   display: flex;

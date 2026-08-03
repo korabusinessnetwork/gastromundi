@@ -38,6 +38,8 @@ import {
   filtrarPorPlano,
   normalizarFiltroPlano,
   contarPorPlano,
+  gerarSenhaProvisoria,
+  forcaDaSenha,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -194,6 +196,123 @@ describe("sugerirSlugLivre", () => {
 
   it("devolve vazio quando não sobra nada da base", () => {
     expect(sugerirSlugLivre("@@@", [])).toBe("");
+  });
+});
+
+describe("gerarSenhaProvisoria", () => {
+  it("devolve 10 caracteres", () => {
+    expect(gerarSenhaProvisoria()).toHaveLength(10);
+  });
+
+  it("não usa caractere que se confunde ao ditar (0 1 l i o O e maiúscula)", () => {
+    for (let i = 0; i < 200; i += 1) {
+      expect(gerarSenhaProvisoria()).toMatch(/^[abcdefghjkmnpqrstuvwxyz23456789]{10}$/);
+    }
+  });
+
+  it("sempre tem ao menos uma letra e ao menos um dígito", () => {
+    for (let i = 0; i < 200; i += 1) {
+      const senha = gerarSenhaProvisoria();
+      expect(senha).toMatch(/[a-z]/);
+      expect(senha).toMatch(/\d/);
+    }
+  });
+
+  it("não deixa a letra e o dígito obrigatórios sempre nas duas primeiras posições", () => {
+    // Sem o embaralhamento, senha[0] seria letra e senha[1] dígito em 100% dos
+    // sorteios — o que vazaria o formato para quem visse duas senhas.
+    const amostras = Array.from({ length: 200 }, () => gerarSenhaProvisoria());
+    expect(amostras.some((s) => /\d/.test(s[0]))).toBe(true);
+    expect(amostras.some((s) => /[a-z]/.test(s[1]))).toBe(true);
+  });
+
+  it("sorteia com crypto.getRandomValues, nunca com Math.random", () => {
+    const espiaoCrypto = vi.spyOn(globalThis.crypto, "getRandomValues");
+    const espiaoMath = vi.spyOn(Math, "random");
+    gerarSenhaProvisoria();
+    expect(espiaoCrypto).toHaveBeenCalled();
+    expect(espiaoMath).not.toHaveBeenCalled();
+    espiaoCrypto.mockRestore();
+    espiaoMath.mockRestore();
+  });
+
+  it("duas chamadas seguidas não devolvem a mesma senha", () => {
+    const senhas = new Set(Array.from({ length: 50 }, () => gerarSenhaProvisoria()));
+    expect(senhas.size).toBe(50);
+  });
+
+  it("passa na validação do formulário (mínimo de 6, máximo de 100)", () => {
+    const { ok, erros } = validarNovoEstabelecimento({
+      nome: "Restaurante do Sul",
+      slug: "restaurantedosul",
+      planoCodigo: "avancado",
+      adminNome: "Maria",
+      adminUsername: "maria",
+      adminPassword: gerarSenhaProvisoria(),
+    });
+    expect(ok).toBe(true);
+    expect(erros).toEqual({});
+  });
+
+  it("a senha gerada é lida como forte", () => {
+    expect(forcaDaSenha(gerarSenhaProvisoria()).nivel).toBe("forte");
+  });
+});
+
+describe("forcaDaSenha", () => {
+  it("não avalia campo vazio", () => {
+    expect(forcaDaSenha("")).toEqual({ nivel: "", motivo: "" });
+    expect(forcaDaSenha(null).nivel).toBe("");
+    expect(forcaDaSenha(undefined).nivel).toBe("");
+  });
+
+  it.each([
+    ["123456", "senha óbvia"],
+    ["senha", "senha óbvia"],
+    ["admin123", "senha óbvia"],
+    ["mudar123", "senha óbvia"],
+    ["qwerty", "senha óbvia"],
+    ["000000", "senha óbvia"],
+    ["abc123", "senha óbvia"],
+    ["ab1c", "curta demais"],
+    ["987654321", "só dígitos"],
+    ["abcdefghijkl", "só letras"],
+  ])("marca %s como fraca (%s)", (senha) => {
+    const { nivel, motivo } = forcaDaSenha(senha);
+    expect(nivel).toBe("fraca");
+    expect(motivo).toBeTruthy();
+  });
+
+  it("marca como fraca a senha igual ao usuário digitado", () => {
+    const { nivel, motivo } = forcaDaSenha("bardozegrill", "bardozegrill");
+    expect(nivel).toBe("fraca");
+    expect(motivo).toContain("usuário");
+  });
+
+  it("compara com o usuário já normalizado", () => {
+    // "Bar do Zé" normaliza para "bardoze" — a senha idêntica ao login é fraca
+    // mesmo que o dono tenha digitado o usuário com acento e espaço.
+    const { nivel, motivo } = forcaDaSenha("bardozegrill", "Bar do Zé Grill");
+    expect(nivel).toBe("fraca");
+    expect(motivo).toContain("usuário");
+  });
+
+  it("não confunde senha boa com o usuário quando o campo usuário está vazio", () => {
+    expect(forcaDaSenha("kx7mrapqz4", "").nivel).toBe("forte");
+  });
+
+  it("aceita senha longa colada de gerenciador como forte, sem inventar regra", () => {
+    expect(forcaDaSenha("Xk!9rTq#2wLm7vZp").nivel).toBe("forte");
+  });
+
+  it("chama de razoável a senha que só falta um empurrão", () => {
+    const { nivel, motivo } = forcaDaSenha("casaverd1");
+    expect(nivel).toBe("media");
+    expect(motivo).toBeTruthy();
+  });
+
+  it("é pura: a mesma entrada devolve sempre o mesmo resultado", () => {
+    expect(forcaDaSenha("casaverd1")).toEqual(forcaDaSenha("casaverd1"));
   });
 });
 
