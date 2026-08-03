@@ -1,0 +1,47 @@
+{
+  "autoCompactEnabled": true,
+  "autoCompactWindow": 120000,
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit",
+      "Write",
+      "TodoWrite",
+      "Bash(npm test*)",
+      "Bash(npm run test*)",
+      "Bash(npx vitest*)",
+      "Bash(npx vite *)",
+      "Bash(node tools/smoke.mjs*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout -- *)",
+      "Bash(git reset --hard*)"
+    ],
+    "deny": [
+      "Bash(git push*)",
+      "Bash(git remote*)",
+      "Bash(gh *)",
+      "Bash(npm publish*)",
+      "Bash(curl *)",
+      "Bash(wget *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/deny-push.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

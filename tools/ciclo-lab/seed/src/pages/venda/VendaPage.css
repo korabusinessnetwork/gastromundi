@@ -1,0 +1,131 @@
+:root {
+  --gm-bg-principal: #ffffff;
+  --gm-bg-secundario: #f9f9f9;
+  --gm-bg-destaque: #f0f4f8;
+  --gm-txt-principal: #1a1a1a;
+  --gm-txt-secundario: #666;
+  --gm-txt-destaque: #0066cc;
+  --gm-borda: #e0e0e0;
+  --gm-verde: #22c55e;
+  --gm-vermelho: #ef4444;
+  --gm-amarelo: #eab308;
+  --gm-cinza: #6b7280;
+}
+
+.venda__container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--gm-bg-principal);
+}
+
+.venda__header {
+  background: var(--gm-bg-destaque);
+  padding: 1rem;
+  border-bottom: 1px solid var(--gm-borda);
+}
+
+.venda__header h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.venda__status {
+  font-size: 0.875rem;
+  color: var(--gm-txt-secundario);
+}
+
+.venda__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.venda__itens {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.venda__itens h2 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.venda__lista {
+  list-style: none;
+}
+
+.venda__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  background: var(--gm-bg-secundario);
+  border-radius: 0.375rem;
+  border: 1px solid var(--gm-borda);
+}
+
+.venda__item-nome {
+  font-weight: 500;
+}
+
+.venda__item-preco {
+  color: var(--gm-txt-destaque);
+  font-weight: 600;
+}
+
+.venda__vazio {
+  text-align: center;
+  color: var(--gm-txt-secundario);
+  padding: 2rem;
+}
+
+.venda__resumo {
+  padding: 1rem;
+  border-top: 1px solid var(--gm-borda);
+  background: var(--gm-bg-secundario);
+}
+
+.venda__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.125rem;
+}
+
+.venda__total strong {
+  color: var(--gm-verde);
+  font-size: 1.5rem;
+}
+
+.venda__footer {
+  padding: 1rem;
+  border-top: 1px solid var(--gm-borda);
+  background: var(--gm-bg-principal);
+}
+
+.venda__btn-primario {
+  width: 100%;
+  padding: 0.875rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: var(--gm-verde);
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.venda__btn-primario:hover:not(:disabled) {
+  background: #16a34a;
+}
+
+.venda__btn-primario:disabled {
+  background: var(--gm-cinza);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
