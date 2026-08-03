@@ -28,19 +28,45 @@
   z-index: 10;
 }
 
+/* Marca e usuário podem encolher (CONSOLE-UX 28). Sem o `min-width: 0`, um
+   item flex nunca fica menor que o próprio conteúdo: num celular de 360px a
+   marca mais o nome mais o "Sair" passam da largura, e a barra empurra a
+   página inteira para o lado — a tela toda ganha rolagem horizontal por causa
+   de um nome comprido. Encolhendo, quem sobra vira reticências. */
 .console__marca {
   display: flex;
   align-items: center;
   gap: 12px;
   color: var(--gm-accent);
+  min-width: 0;
 }
+/* O ícone não encolhe (vira um traço fino); o bloco de texto ao lado sim — e
+   ele também precisa do `min-width: 0`, porque a reticência do filho depende
+   de o pai flex aceitar ficar menor que o conteúdo. */
+.console__marca > svg { flex-shrink: 0; }
+.console__marca > div { min-width: 0; }
 .console__marca-titulo { font-size: 15px; font-weight: 900; letter-spacing: 0.5px; color: var(--gm-text); }
 .console__marca-sub { font-size: 12px; color: var(--gm-muted); margin-top: 1px; }
+/* O subtítulo é o primeiro a ceder: "Console da Plataforma" é o texto mais
+   longo da barra e o menos necessário — quem está na tela já sabe onde está. */
+.console__marca-titulo,
+.console__marca-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-.console__usuario { display: flex; align-items: center; gap: 14px; }
-.console__usuario-nome { font-size: 13px; color: var(--gm-muted); }
+.console__usuario { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.console__usuario-nome {
+  font-size: 13px;
+  color: var(--gm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .console__sair {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -577,6 +603,73 @@
   .console__copiar,
   .console__layout,
   .console__addons { flex: 1 1 140px; }
+
+  /* ── O Console no celular (CONSOLE-UX 28) ─────────────────────── */
+
+  /* 24px de folga de cada lado custam 48px dos 360 de um celular comum —
+     13% da tela gasta em margem, tirados justamente do nome que o dono
+     precisa ler. */
+  .console__topo { padding: 12px 14px; }
+  .console__conteudo { padding: 20px 14px 40px; }
+  .console__offline {
+    padding: 10px 14px;
+    /* A faixa de falha tem texto longo e um botão: sem quebrar linha, o
+       "Tentar de novo" seria empurrado para fora da tela. */
+    flex-wrap: wrap;
+  }
+
+  /* Campo de busca em 16px: o Safari do iPhone dá zoom na página ao focar
+     um campo com fonte menor que isso — e não desfaz depois, deixando o
+     dono com o Console cortado até recarregar. Mesma razão do `.nem-input`
+     nos modais e do campo do login. */
+  .console__busca-campo { font-size: 16px; }
+
+  /* Altura de dedo (44px) nos alvos que o dono acerta em pé, na rua. O
+     padding sozinho não garante: quem manda na altura é o conteúdo, e o
+     rótulo de uma linha em 12px deixava o chip com 33px. */
+  .console__filtro,
+  .console__cobrar,
+  .console__preco,
+  .console__pagamentos,
+  .console__cardapio,
+  .console__copiar,
+  .console__layout,
+  .console__addons { min-height: 44px; }
+
+  /* O card alinha pelo topo porque o nome agora pode ter duas linhas — no
+     centro, o resto desceria junto e descolaria da primeira linha. */
+  .console__card {
+    align-items: flex-start;
+    padding: 14px;
+    gap: 12px;
+  }
+
+  /* O ícone do prédio sai no celular. Ele é decorativo (`aria-hidden`) e
+     idêntico em todo card — não distingue um estabelecimento do outro — e
+     custa 52px dos 302 que sobram dentro do card num aparelho de 360px. Com
+     o chip do plano ao lado, esses 52px são a diferença entre o nome caber
+     em duas linhas ou em quatro. No desktop ele fica: lá a largura sobra e
+     o ícone dá ritmo à lista. */
+  .console__card-icone { display: none; }
+
+  /* No desktop o nome corta com reticências porque sobra largura e a
+     exceção é rara. No celular a exceção vira regra: com o chip do plano ao
+     lado, "Restaurante do Seu Zé" viraria "Restaurante d…" em todo card, e
+     dois clientes de nome parecido ficariam indistinguíveis. Aqui a
+     informação manda na altura, não o contrário. O `anywhere` cobre o nome
+     sem espaços, que voltaria a empurrar a largura da página. */
+  .console__card-nome {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+  }
+  /* O endereço perde ainda mais com reticência: o final do slug é justamente
+     o que distingue "padaria-central" de "padaria-centro". */
+  .console__card-endereco {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+  }
 }
 
 /* Aviso de estado degradado (âmbar): a tela diz o que não conseguiu

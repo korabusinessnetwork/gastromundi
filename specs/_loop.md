@@ -1,3 +1,35 @@
+## Rodada 54 — CONSOLE-UX 28: o Console no celular — 2026-08-03
+- Spec: specs/console-no-celular.md
+- Resultado da review: aprovado sem ressalvas — 11 de 11 (suíte 201 arquivos / 3524 testes, verde),
+  com uma limitação registrada: a verificação visual em 375px não foi possível (o navegador
+  embutido estourou os 300s duas vezes e o Chrome real pediria uma escolha que pararia o loop).
+  A evidência é leitura do CSS mais aritmética de largura em 360px.
+- Aprendido:
+  - `memory/learnings.md` — comentário `{/* */}` não pode ser irmão dentro de `{cond && ( … )}`:
+    o `&&` admite uma expressão só, o arquivo inteiro para de transformar e os ~143 testes dele
+    nem rodam, com a suíte parecendo verde de longe. E: o layout de celular só existe se alguém
+    escrever a `@media` — 739 linhas de CSS com uma única `@media` escondiam quatro defeitos
+    (sem `min-width: 0`, campos abaixo de 16px, `vh` em vez de `dvh` no modal, alvos de 33px).
+  - `memory/patterns.md` — o roteiro de passada de celular em seis pontos, replicável em qualquer
+    tela: `min-width: 0` em item flex com texto; nenhum campo abaixo de 16px em tela de toque;
+    `dvh` na altura máxima de modal; 44px de altura mínima nos alvos; informação manda na altura
+    (quebrar linha e esconder o decorativo, em vez de truncar); e mexer no shell compartilhado,
+    que conserta os sete modais de uma vez.
+  - `docs/09_BACKLOG/features.md` — a linha do F022 ganhou a rodada CONSOLE-UX 28.
+- Commit: <hash> na branch main
+- Pendente de decisão: as quatro herdadas — (1) usuário do responsável na mensagem de acesso e
+  verificação de usuário livre antes do envio, ambas dependem de RPC `SECURITY DEFINER` sobre
+  `public.users` (rodada 41); (2) o endereço do cardápio entra na mensagem copiada? (rodada 44);
+  (3) editar o endereço de um estabelecimento já criado precisa de RPC nova, `tenants` só tem
+  SELECT na RLS (rodada 45); (4) subir o mínimo de senha de 6 para 8 mexe na borda e no cliente
+  juntos (rodada 46).
+- Próximo item recomendado: CONSOLE-UX 29 — terminar a passada de celular nas duas abas que
+  ficaram de fora, `PlanosDashboard` e `AnalyticsDashboard` (as abas "Planos e assinaturas" e
+  "Uso e faturamento"), mais os três modais com CSS próprio (`HistoricoPagamentosModal` sem
+  nenhuma `@media`, `AddonsModal` e `AlterarPlanoModal`): são 1.099 linhas de CSS com quatro
+  `@media` no total, tabelas e grades que provavelmente estouram em 360px, e a rodada 28 só
+  cobriu a aba de estabelecimentos.
+
 ## Rodada 53 — CONSOLE-UX 27: quando a conexão volta, o Console se atualiza sozinho — 2026-08-03
 - Spec: specs/console-volta-da-conexao.md
 - Resultado da review: aprovado sem ressalvas — 13 de 13 (suíte 201 arquivos / 3524 testes, verde)

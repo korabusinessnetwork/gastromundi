@@ -762,8 +762,12 @@ export default function ConsolePage() {
                     ? "Não foi possível carregar a lista de planos. Enquanto isso não é possível cadastrar um estabelecimento, e o plano de cada card aparece pelo código."
                     : "Nenhum plano disponível no catálogo. Ative um plano para poder cadastrar estabelecimentos."}
                 </span>
+                {/* `() => carregar()`, não `carregar`: o evento do clique
+                    chegaria como o primeiro argumento, que hoje é o modo
+                    silencioso (CONSOLE-UX 27) — e o dono não veria o
+                    "carregando…" da recarga que ele mesmo pediu. */}
                 {erroPlanos && (
-                  <button type="button" className="console__aviso-acao" onClick={carregar}>
+                  <button type="button" className="console__aviso-acao" onClick={() => carregar()}>
                     Tentar de novo
                   </button>
                 )}

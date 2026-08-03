@@ -148,3 +148,11 @@
   line-height: 1.5;
   text-align: center;
 }
+
+/* ── O Console no celular (CONSOLE-UX 28) ──────────────────────── */
+@media (max-width: 560px) {
+  /* Primeira tela do Console no celular, e a única com campo de senha: em
+     15px o Safari do iPhone dá zoom ao focar e não desfaz, então o dono
+     entra no Console já com a página ampliada. 16px é o limite dele. */
+  .console-login__input { font-size: 16px; }
+}

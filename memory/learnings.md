@@ -326,3 +326,24 @@ quebra em StrictMode: o React monta, desmonta e remonta, a limpeza roda, e o ref
 sempre — todo `setState` guardado por ele vira no-op silencioso, e a tela nunca mais atualiza em
 desenvolvimento. O efeito tem que **reafirmar** `montado.current = true` antes de devolver a
 limpeza.
+
+## Comentário `{/* */}` não pode ser irmão dentro de `{cond && ( … )}` (rodada 54)
+
+Ao explicar uma correção no JSX, escrevi o comentário **dentro** dos parênteses do
+`{erroPlanos && ( … )}`, acima do `<button>`. Um `&&` só admite **uma** expressão à direita:
+comentário e botão viraram duas, e o oxc quebrou o arquivo inteiro com `` `,` or `)` expected ``
+na linha do botão — que estava correta. Efeito colateral caro: o arquivo não transforma, então os
+~143 testes daquele arquivo **nem rodam**, e a suíte reporta "3381 passed" parecendo verde de
+longe. Regra: comentário explicativo vai **acima** da linha `{cond && (`, nunca dentro dela; só
+dentro de um bloco com irmãos (`<div>` … `</div>`) o `{/* */}` é válido como filho.
+
+## O layout mobile só existe se alguém escrever a `@media` (rodada 54)
+
+`ConsolePage.css` tinha 739 linhas e **uma** `@media`, cobrindo o cabeçalho e a fileira de ações.
+Barra superior, card, busca e os sete modais nunca tinham sido olhados numa tela estreita — e o
+Console é a tela que o dono usa **em pé, no celular, na frente do cliente**. Quatro defeitos
+concretos estavam lá desde o começo: nenhum `min-width: 0` na barra (um nome comprido empurrava a
+página inteira e criava rolagem horizontal), três campos abaixo de 16px (zoom do Safari do iPhone
+que não desfaz), `max-height: 92vh` no shell dos modais (o `vh` mede a janela com a barra do
+navegador recolhida, então o rodapé com o botão principal nasce escondido — o certo é `dvh`), e
+alvos de toque de 33px. Antes de dar uma tela por pronta, contar as `@media` do arquivo.

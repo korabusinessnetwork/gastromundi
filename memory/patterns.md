@@ -947,3 +947,28 @@ uma lista:
    outros estados, para a conexão que volta e cai de novo terminar dizendo "sem internet".
 6. O recado de sucesso some sozinho (temporizador); o de falha **fica**, porque nele existe uma
    ação para a pessoa tomar.
+
+## Passada de celular numa tela do Console (rodada 54)
+
+Roteiro fixo, na ordem em que os defeitos aparecem numa tela de 360px. Vale para qualquer tela
+nova do projeto, não só o Console:
+
+1. **`min-width: 0` em todo item flex que contém texto.** Sem ele um item flex nunca fica menor
+   que o próprio conteúdo, e um nome comprido empurra a página inteira para o lado. A reticência
+   do filho depende de o **pai** também aceitar encolher.
+2. **Nenhum `<input>` abaixo de 16px em tela de toque.** O Safari do iPhone dá zoom na página ao
+   focar um campo com fonte menor, e **não desfaz** — a pessoa termina de digitar com a tela
+   cortada. Subir na `@media`, não no desktop.
+3. **`dvh`, nunca `vh`, na altura máxima de modal.** O `vh` mede a janela com a barra do navegador
+   recolhida (o maior tamanho possível); com a barra à mostra, `92vh` esconde o rodapé — que é
+   justamente onde fica o botão principal.
+4. **44px de altura mínima** nos alvos de toque. `padding` sozinho não garante: quem manda na
+   altura é o conteúdo, e um rótulo de uma linha em 12px deixa o chip com 33px.
+5. **Informação manda na altura, não o contrário.** No desktop reticência é aceitável porque a
+   exceção é rara; no celular ela vira regra e dois clientes de nome parecido ficam
+   indistinguíveis. Deixar quebrar linha (`overflow-wrap: anywhere` cobre o nome sem espaços) e
+   pagar a largura **escondendo o que é decorativo** — ícone `aria-hidden` igual em todo card sai
+   no celular e devolve ~52px à coluna do nome.
+6. **Mexer no shell compartilhado rende mais.** Uma regra em `.nem-input` / `.nem-modal` /
+   `.nem-overlay` conserta os **sete** modais do Console de uma vez; conferir com `grep` quem usa
+   a classe antes de duplicar a correção componente a componente.
