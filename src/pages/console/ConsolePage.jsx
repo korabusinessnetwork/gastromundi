@@ -14,7 +14,7 @@ import {
   filtrarPorPlano, normalizarFiltroPlano, contarPorPlano, montarMensagemPrimeiroAcesso,
 } from "@/lib/console";
 import { formatarReais } from "@/lib/deliveryPedidos";
-import { urlDoCardapioPublico } from "@/lib/tenantSlug";
+import { urlDoCardapioPublico, urlDeAcessoDoTenant } from "@/lib/tenantSlug";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
 import AlterarPlanoModal from "@/components/console/AlterarPlanoModal";
@@ -95,6 +95,11 @@ export default function ConsolePage() {
   // botão: o dono acharia que copiou e mandaria uma mensagem vazia.
   const [copiado, setCopiado] = useState(false);
   const [copiaFalhou, setCopiaFalhou] = useState(false);
+  // O mesmo par, agora por CARD da lista (CONSOLE-UX 16): guarda o id do
+  // estabelecimento cujo acesso acabou de ser copiado — e não um booleano —
+  // porque com um booleano todos os cards diriam "Copiado!" ao mesmo tempo.
+  const [acessoCopiadoId, setAcessoCopiadoId] = useState(null);
+  const [acessoFalhouId, setAcessoFalhouId] = useState(null);
   const [busca, setBusca] = useState("");
   // Recorte da lista por situação de cobrança: todos | atencao | em_dia.
   //
@@ -440,6 +445,26 @@ export default function ConsolePage() {
       // tela mostra a mensagem para copiar à mão em vez de fingir que copiou.
       setCopiado(false);
       setCopiaFalhou(true);
+    }
+  };
+
+  // Copiar o acesso de um estabelecimento QUE JÁ EXISTE (CONSOLE-UX 16) —
+  // o cartão acima só aparece no minuto seguinte à criação, e o cliente
+  // pergunta "onde eu entro?" semanas depois.
+  //
+  // Sem usuário e sem senha: o usuário do responsável mora em `public.users`,
+  // fora do alcance do super-admin na RLS, e senha não circula por área de
+  // transferência. Nome, plano e porta de entrada são o que dá para afirmar —
+  // e é o que a pergunta pede.
+  const copiarAcessoDoTenant = async (tenantId, mensagem) => {
+    try {
+      await navigator.clipboard.writeText(mensagem);
+      setAcessoFalhouId(null);
+      setAcessoCopiadoId(tenantId);
+    } catch {
+      // Mesma regra do cartão de criação: nada de fingir que copiou.
+      setAcessoCopiadoId(null);
+      setAcessoFalhouId(tenantId);
     }
   };
 
@@ -869,6 +894,19 @@ export default function ConsolePage() {
                   // (CONSOLE-UX 15). Null quando o tenant não tem slug
                   // utilizável — aí o atalho nem aparece.
                   const urlCardapio = urlDoCardapioPublico(t.slug);
+                  // Porta de entrada da EQUIPE deste estabelecimento
+                  // (CONSOLE-UX 16). Hoje, sem domínio raiz, é a mesma porta
+                  // por onde o dono entrou; com subdomínio ligado, é o do
+                  // tenant — e null quando não dá para afirmar nenhuma.
+                  const urlDeEntrada = urlDeAcessoDoTenant(t.slug);
+                  const mensagemDeAcessoDoCard =
+                    urlDeEntrada === null
+                      ? ""
+                      : montarMensagemPrimeiroAcesso({
+                          estabelecimento: t.nome,
+                          plano: t.plano_codigo ? rotularPlano(planos, t.plano_codigo) : "",
+                          endereco: urlDeEntrada,
+                        });
                   return (
                   // Botões IRMÃOS (não aninhados — HTML inválido): o card troca
                   // o plano, o botão de paleta troca o layout e o de peça
@@ -969,6 +1007,40 @@ export default function ConsolePage() {
                         <LuExternalLink size={17} aria-hidden />
                         <span className="console__cardapio-nome">Ver cardápio</span>
                       </a>
+                    )}
+                    {urlDeEntrada !== null && (
+                      <button
+                        type="button"
+                        className="console__copiar"
+                        onClick={() => copiarAcessoDoTenant(t.id, mensagemDeAcessoDoCard)}
+                        aria-label={`Copiar acesso de ${t.nome}`}
+                        title="Copiar nome, plano e endereço de entrada para mandar ao cliente"
+                      >
+                        {/* Duas folhas: o gesto é "levar este texto daqui para
+                            a conversa com o cliente". Não repete nenhum ícone
+                            do card — a seta ao lado sai do Console, esta fica. */}
+                        <LuCopy size={17} aria-hidden />
+                        <span className="console__copiar-nome">Copiar acesso</span>
+                      </button>
+                    )}
+                    {acessoCopiadoId === t.id && (
+                      <span className="console__copiar-ok" role="status">
+                        Copiado!
+                      </span>
+                    )}
+                    {acessoFalhouId === t.id && (
+                      <div className="console__copiar-manual">
+                        <p className="console__copiar-aviso">
+                          Não deu para copiar sozinho. Selecione o texto abaixo e copie à mão:
+                        </p>
+                        <textarea
+                          className="console__copiar-texto"
+                          readOnly
+                          rows={6}
+                          value={mensagemDeAcessoDoCard}
+                          aria-label={`Acesso de ${t.nome}`}
+                        />
+                      </div>
                     )}
                     <button
                       type="button"

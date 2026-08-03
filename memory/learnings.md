@@ -197,3 +197,23 @@ Em `src/pages/console/ConsolePage.test.jsx`, `getByRole("button", { name: /Troca
 não encontrou nada: os botões laterais do card usam o `title` como dica de mouse e trazem no
 corpo um rótulo curto (o nome do layout, "Sem add-ons"), que é o que vira nome acessível. Para
 mirar esses botões em teste, use `getByTitle` — ou o rótulo curto, quando ele for estável.
+
+## Hoje a porta de entrada é a mesma para todo tenant — e isso tem prazo (rodada 42)
+
+Ao escrever o "Copiar acesso" do Console foi preciso responder qual endereço mandar ao
+cliente. O login monta o e-mail do Auth como `${username}@${slug}.local`, e o slug vem do
+SUBDOMÍNIO. Sem `VITE_ROOT_DOMAIN`, `emailDoLogin` cai no fallback `gastromundi`, e a Edge
+Function `provisionar-estabelecimento` usa o MESMO gate (`TENANT_ROOT_DOMAIN` desligado ⇒
+namespace `gastromundi`, linha ~142). Ou seja: hoje a origem compartilhada realmente
+autentica qualquer estabelecimento, desde que o username seja único — por isso
+`urlDeAcessoDoTenant` devolve a origem do navegador nesse estado. No dia em que o domínio
+raiz for ligado, o endereço de CADA cliente vira `https://<slug>.<root>` e qualquer texto
+que ainda mande a origem estará errado (a origem do dono pode até ser o host do Console).
+Quem tocar em endereço de acesso tem que olhar os dois gates, front e Edge Function.
+
+## `toHaveValue` não aceita matcher assimétrico (rodada 42)
+
+Em `src/pages/console/ConsolePage.test.jsx`, `expect(campo).toHaveValue(expect.stringContaining(...))`
+falhou mesmo com o texto certo dentro do campo — a mensagem de erro mostra o valor
+esperado e o recebido praticamente iguais, o que engana. `toHaveValue` compara valor
+exato; para trecho, leia `campo.value` e use `toContain`.

@@ -2122,3 +2122,117 @@ describe("ConsolePage — atalho para o cardápio do estabelecimento", () => {
     expect(within(card).getByTitle(/add-ons pagos deste estabelecimento/i)).toBeInTheDocument();
   });
 });
+
+// ── CONSOLE-UX 16 — copiar o acesso de um estabelecimento já existente ──
+//
+// O cartão de primeiro acesso só existe no minuto seguinte à criação. Quando o
+// cliente pergunta "onde eu entro?" semanas depois, o dono não tinha de onde
+// tirar a resposta sem abrir o banco.
+describe("ConsolePage — copiar o acesso de quem já existe", () => {
+  const prepararTela = ({ falharCopia = false } = {}) => {
+    const user = userEvent.setup();
+    const escrever = falharCopia
+      ? vi.fn().mockRejectedValue(new Error("NotAllowedError"))
+      : vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, "clipboard", {
+      value: { writeText: escrever },
+      configurable: true,
+    });
+    renderWithProviders(<ConsolePage />);
+    return { user, escrever };
+  };
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("copia nome, plano e endereço de entrada do estabelecimento clicado", async () => {
+    const { user, escrever } = prepararTela();
+    await screen.findByText("Bar do Zé");
+
+    await user.click(screen.getByRole("button", { name: /Copiar acesso de Bar do Zé/i }));
+
+    expect(escrever).toHaveBeenCalledTimes(1);
+    const texto = escrever.mock.calls[0][0];
+    expect(texto).toContain("Acesso do Bar do Zé");
+    expect(texto).toContain("Plano: Básico");
+    expect(texto).toContain(`Endereço: ${window.location.origin}`);
+  });
+
+  // A regra dura desta rodada: o que NÃO pode estar no texto. Usuário está
+  // fora do alcance da RLS, senha não circula por área de transferência e
+  // mensalidade é fatura, não é acesso.
+  it("não copia usuário, senha nem valor", async () => {
+    const { user, escrever } = prepararTela();
+    await screen.findByText("Bar do Zé");
+
+    await user.click(screen.getByRole("button", { name: /Copiar acesso de Bar do Zé/i }));
+
+    const texto = escrever.mock.calls[0][0];
+    expect(texto).not.toMatch(/Usuário:/);
+    expect(texto).not.toMatch(/149|R\$/);
+    expect(texto).toContain("Senha: a que foi definida no cadastro.");
+    expect(texto).not.toMatch(/Senha:.*\w{6,}$/m);
+  });
+
+  it("o retorno aparece só no card clicado", async () => {
+    const { user } = prepararTela();
+    await screen.findByText("Café Central");
+
+    await user.click(screen.getByRole("button", { name: /Copiar acesso de Café Central/i }));
+
+    const avisos = await screen.findAllByText("Copiado!");
+    expect(avisos).toHaveLength(1);
+    expect(within(avisos[0].closest("li")).getByText("Café Central")).toBeInTheDocument();
+  });
+
+  it("copiar outro estabelecimento move o retorno de lugar", async () => {
+    const { user } = prepararTela();
+    await screen.findByText("Bar do Zé");
+
+    await user.click(screen.getByRole("button", { name: /Copiar acesso de Bar do Zé/i }));
+    await screen.findByText("Copiado!");
+    await user.click(screen.getByRole("button", { name: /Copiar acesso de Café Central/i }));
+
+    const avisos = await screen.findAllByText("Copiado!");
+    expect(avisos).toHaveLength(1);
+    expect(within(avisos[0].closest("li")).getByText("Café Central")).toBeInTheDocument();
+  });
+
+  // Sem área de transferência (contexto não seguro, permissão negada) a tela
+  // não pode dizer "Copiado!": o dono mandaria uma mensagem vazia ao cliente.
+  it("quando a área de transferência recusa, mostra o texto para copiar à mão", async () => {
+    const { user } = prepararTela({ falharCopia: true });
+    await screen.findByText("Bar do Zé");
+
+    await user.click(screen.getByRole("button", { name: /Copiar acesso de Bar do Zé/i }));
+
+    const manual = await screen.findByLabelText("Acesso de Bar do Zé");
+    expect(manual.value).toContain("Acesso do Bar do Zé");
+    expect(manual.value).toContain(`Endereço: ${window.location.origin}`);
+    expect(screen.queryByText("Copiado!")).not.toBeInTheDocument();
+  });
+
+  it("o botão é irmão do card, não filho do botão que troca o plano", async () => {
+    prepararTela();
+    await screen.findByText("Bar do Zé");
+    const botao = screen.getByRole("button", { name: /Copiar acesso de Bar do Zé/i });
+
+    expect(botao.closest("button")).toBe(botao);
+    expect(botao.closest("li")).not.toBeNull();
+    expect(within(botao.closest("li")).getByTitle("Trocar o layout deste estabelecimento")).toBeInTheDocument();
+  });
+
+  it("todo estabelecimento da lista tem o atalho enquanto a entrada é compartilhada", async () => {
+    prepararTela();
+    await screen.findByText("Café Central");
+
+    expect(screen.getAllByRole("button", { name: /Copiar acesso de/i })).toHaveLength(2);
+  });
+});

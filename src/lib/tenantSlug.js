@@ -195,6 +195,43 @@ export function urlDoCardapioPublico(slug, hostname, opcoes = {}) {
 }
 
 /**
+ * Endereço por onde a EQUIPE de um estabelecimento entra no sistema — o que o
+ * Console manda para o cliente quando ele pergunta "onde eu faço login?".
+ *
+ * Depende de qual namespace de e-mail o login vai montar (`emailDoLogin`), e
+ * isso muda com o domínio raiz:
+ *
+ *   - **Sem domínio raiz** (produção de hoje): o front cai no fallback e a Edge
+ *     Function de provisionamento usa o MESMO namespace enquanto
+ *     `TENANT_ROOT_DOMAIN` está desligado. Ou seja, a porta compartilhada
+ *     autentica qualquer tenant — o endereço certo é a origem do navegador,
+ *     a mesma que o cartão de primeiro acesso já entrega.
+ *   - **Com domínio raiz**: cada estabelecimento entra pelo seu subdomínio, e a
+ *     origem do dono (que pode ser o host dedicado do Console) seria o endereço
+ *     ERRADO. Aí vale `https://<slug>.<root>`.
+ *
+ * Nesse segundo estado, tenant sem slug utilizável não tem endereço afirmável:
+ * devolve `null` e quem chama não oferece o atalho. Mandar o cliente para uma
+ * porta que não abre é pior do que não mandar nada.
+ *
+ * @param {string|null|undefined} slug - slug do tenant
+ * @param {{origem?: string, rootDomain?: string}} [opcoes] - `origem` default
+ *   window.location.origin; `rootDomain` override testável
+ * @returns {string|null} endereço de entrada, ou null se não dá para afirmar
+ */
+export function urlDeAcessoDoTenant(slug, opcoes = {}) {
+  const { rootDomain = ROOT_DOMAIN } = opcoes;
+  const origem =
+    opcoes.origem ?? (typeof window !== "undefined" ? window.location.origin : "");
+
+  if (!rootDomain) return String(origem ?? "");
+
+  const s = String(slug ?? "").toLowerCase().trim();
+  if (!slugValido(s)) return null;
+  return `https://${s}.${rootDomain}`;
+}
+
+/**
  * Monta o e-mail namespaced que o Supabase Auth espera para este tenant.
  * Com subdomínio na URL, o namespace é SEMPRE o subdomínio digitado —
  * subdomínio errado autentica contra um namespace inexistente (login

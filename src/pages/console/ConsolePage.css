@@ -194,6 +194,7 @@
 .console__preco,
 .console__pagamentos,
 .console__cardapio,
+.console__copiar,
 .console__layout,
 .console__addons {
   display: flex;
@@ -215,6 +216,7 @@
 .console__cardapio { text-decoration: none; }
 .console__pagamentos:hover,
 .console__cardapio:hover,
+.console__copiar:hover,
 .console__layout:hover,
 .console__addons:hover {
   border-color: var(--gm-accent);
@@ -223,6 +225,7 @@
 }
 .console__pagamentos:focus-visible,
 .console__cardapio:focus-visible,
+.console__copiar:focus-visible,
 .console__layout:focus-visible,
 .console__addons:focus-visible {
   outline: 2px solid var(--gm-accent);
@@ -233,6 +236,7 @@
 .console__cobrar-nome,
 .console__preco-nome,
 .console__cardapio-nome,
+.console__copiar-nome,
 .console__pagamentos-nome {
   font-size: 11px;
   font-weight: 700;
@@ -240,6 +244,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Retorno da cópia do acesso, dentro do próprio card (CONSOLE-UX 16). O
+   "Copiado!" fica ao lado do botão que foi clicado; o bloco manual quebra a
+   linha e ocupa o item inteiro, porque ali o dono precisa selecionar texto. */
+.console__copiar-ok {
+  align-self: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-accent);
+}
+.console__copiar-manual { flex: 1 1 100%; }
+.console__copiar-aviso {
+  margin: 0;
+  font-size: 12px;
+  color: var(--gm-muted);
 }
 
 /* Cobrar só existe em quem está atrasado ou prestes a vencer, então nasce
@@ -460,6 +480,7 @@
   .console__preco,
   .console__pagamentos,
   .console__cardapio,
+  .console__copiar,
   .console__layout,
   .console__addons { flex: 1 1 0; min-width: 0; }
 }
@@ -557,7 +578,8 @@
 }
 .console__acesso-ok { font-weight: 600; }
 .console__acesso-manual { margin-top: 14px; }
-.console__acesso-mensagem {
+.console__acesso-mensagem,
+.console__copiar-texto {
   width: 100%;
   margin-top: 6px;
   padding: 10px 12px;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolverSlugTenant, slugDoSubdominio, slugDaQuery, slugDaVitrine, emailDoLogin, urlDoCardapioPublico } from "./tenantSlug";
+import { resolverSlugTenant, slugDoSubdominio, slugDaQuery, slugDaVitrine, emailDoLogin, urlDoCardapioPublico, urlDeAcessoDoTenant } from "./tenantSlug";
 
 // Sem VITE_ROOT_DOMAIN / VITE_TENANT_SLUG no ambiente de teste, valem o
 // fallback 'gastromundi' e a heurística de 3+ rótulos.
@@ -224,5 +224,41 @@ describe("urlDoCardapioPublico (CONSOLE-UX 15)", () => {
     for (const slug of [null, undefined, "", "   ", "casa_coffee", "-casa", "casa-", "casa coffee", "loja.a"]) {
       expect(urlDoCardapioPublico(slug, "localhost"), `slug ${JSON.stringify(slug)}`).toBeNull();
     }
+  });
+});
+
+describe("urlDeAcessoDoTenant (CONSOLE-UX 16)", () => {
+  // Estado de hoje: sem domínio raiz, o login de TODO mundo cai no mesmo
+  // namespace de e-mail, então a porta compartilhada realmente abre para
+  // qualquer tenant — inclusive para quem nasceu antes do slug existir.
+  it("sem domínio raiz, devolve a origem recebida qualquer que seja o slug", () => {
+    const opcoes = { origem: "https://app.kora.codes", rootDomain: "" };
+    expect(urlDeAcessoDoTenant("casacoffee", opcoes)).toBe("https://app.kora.codes");
+    expect(urlDeAcessoDoTenant(null, opcoes)).toBe("https://app.kora.codes");
+    expect(urlDeAcessoDoTenant("lixo no banco", opcoes)).toBe("https://app.kora.codes");
+  });
+
+  it("com domínio raiz, devolve o subdomínio do próprio estabelecimento", () => {
+    const url = urlDeAcessoDoTenant("  CasaCoffee ", {
+      origem: "https://console.kora.codes",
+      rootDomain: "kora.codes",
+    });
+    expect(url).toBe("https://casacoffee.kora.codes");
+  });
+
+  // Aqui a origem do dono seria o endereço ERRADO (o host do Console, ou o
+  // subdomínio de outro cliente), então não há endereço afirmável.
+  it("com domínio raiz e slug inutilizável, devolve null", () => {
+    for (const slug of [null, undefined, "", "   ", "casa_coffee", "-casa", "casa coffee"]) {
+      const url = urlDeAcessoDoTenant(slug, {
+        origem: "https://console.kora.codes",
+        rootDomain: "kora.codes",
+      });
+      expect(url, `slug ${JSON.stringify(slug)}`).toBeNull();
+    }
+  });
+
+  it("sem origem e sem window, devolve string vazia em vez de estourar", () => {
+    expect(urlDeAcessoDoTenant("casacoffee", { origem: "", rootDomain: "" })).toBe("");
   });
 });
