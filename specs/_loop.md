@@ -1,3 +1,11 @@
+## Rodada 47 — CONSOLE-UX 21 (sugestão de usuário livre quando o usuário já está em uso) — 2026-08-03
+- Spec: specs/console-usuario-livre.md
+- Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 199 arquivos / 3441 testes, verde)
+- Aprendido: o `maxLength={30}` do campo é amarração de teste, não número solto — `provisionamentoValidacao.test.js` lê o LITERAL do JSX com `readFileSync` + regex para ter uma fonte independente do teto da borda, então trocá-lo por uma constante quebra o teste (memory/learnings.md). Também virou padrão o molde "recusa do servidor vira escolha de um clique, com contagem por texto": contar recusas do MESMO texto em vez de guardar o histórico de candidatos, zerar em qualquer mudança do campo, distinguir pelo estabelecimento antes do número, cortar a base e nunca o sufixo (memory/patterns.md)
+- Commit: 9c4b337 na branch main
+- Pendente de decisão: (herdada da 41) pôr o USUÁRIO do responsável na mensagem de acesso — e verificar usuário livre ANTES do envio — exige a mesma RPC SECURITY DEFINER nova sobre `public.users`. Vale criar? / (herdada da 44) o endereço do cardápio entra também na mensagem copiada, ou o texto fica como está? / (herdada da 45) mudar o endereço de um estabelecimento JÁ criado exige RPC nova, porque a RLS de `tenants` só tem SELECT / (herdada da 46) aumentar o mínimo de 6 caracteres da senha mexe em `MIN_SENHA` na Edge Function e no cliente juntos — subir para 8?
+- Próximo item recomendado: CONSOLE-UX 22 — o usuário de acesso nasce do nome do responsável. É o último campo do cadastro que o dono ainda precisa inventar do zero no meio da venda: hoje ele digita "José Maria" em Responsável e o campo vizinho fica vazio esperando que ele traduza aquilo para `josemaria` na mão, sabendo as regras (só minúscula, sem acento, sem espaço). O molde já existe duas vezes na mesma tela — o endereço do cardápio derivado do nome (rodada 45) e a sugestão de usuário livre (rodada 47) —, então é `normalizarUsername` do nome enquanto se digita, editável, parando de acompanhar assim que o dono mexer no campo. Só cliente, função pura já existente, sem migration e sem consulta nova
+
 ## Rodada 46 — CONSOLE-UX 20 (a senha provisória do responsável) — 2026-08-03
 - Spec: specs/console-senha-provisoria.md
 - Resultado da review: aprovado sem ressalvas — 13 de 13 (suíte 199 arquivos / 3422 testes, verde)
