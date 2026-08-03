@@ -3,7 +3,7 @@
 param(
   [string]$LabDir = "D:\projetos\pdv-lab",
   [string]$VaultDir = "D:\Vault\kora",
-  [string]$SeedDir = (Split-Path -Parent $MyInvocation.MyCommand.Path) + "\ciclo-lab\seed"
+  [string]$SeedDir = (Split-Path -Parent $MyInvocation.MyCommand.Path) + "\seed"
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,22 +35,16 @@ $dirs | ForEach-Object { New-Item -ItemType Directory -Path $_ -Force | Out-Null
 
 # 5. Copia os comandos do operador (de volta para o repo gastromundi)
 $thisDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$cmdDir = "$thisDir\ciclo-lab\commands"
-$hookDir = "$thisDir\ciclo-lab\hooks"
-$settingsPath = "$thisDir\ciclo-lab\settings.json"
+$cmdDir = "$thisDir\commands"
+$hookDir = "$thisDir\hooks"
+$settingsPath = "$thisDir\settings.json"
 
 Write-Host "[bootstrap] copiando comandos e configuração ..."
 Copy-Item -Path "$cmdDir\*" -Destination "$LabDir\.claude\commands\" -Force
 Copy-Item -Path "$hookDir\*" -Destination "$LabDir\.claude\hooks\" -Force
 Copy-Item -Path $settingsPath -Destination "$LabDir\.claude\settings.json" -Force
 
-# 6. Copia o hook post-commit (já em seed, mas garante)
-$postCommitSeed = "$LabDir\.githooks\post-commit"
-if (Test-Path $postCommitSeed) {
-  Copy-Item -Path $postCommitSeed -Destination "$LabDir\.githooks\post-commit" -Force
-}
-
-# 7. Inicia git
+# 6. Inicia git
 Write-Host "[bootstrap] inicializando repositório local ..."
 Push-Location $LabDir
 try {
@@ -86,6 +80,6 @@ Write-Host ""
 Write-Host "Próximos passos:"
 Write-Host "  1. cd $LabDir"
 Write-Host "  2. npm install"
-Write-Host "  3. npm test  (deve passar — semente verde)"
+Write-Host "  3. npm test  (deve passar - semente verde)"
 Write-Host "  4. node tools/smoke.mjs --rota=/"
 Write-Host "  5. Depois: .\run.ps1  (inicia o loop infinito)"
