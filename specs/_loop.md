@@ -2,7 +2,7 @@
 - Spec: specs/console-copiar-acesso.md
 - Resultado da review: aprovado sem ressalvas — 13 de 13 (suíte 199 arquivos / 3334 testes, verde)
 - Aprendido: hoje a porta de entrada é a MESMA para todo tenant (front e Edge Function caem no namespace `gastromundi` enquanto o domínio raiz está desligado), e isso tem prazo — ligado o domínio, todo endereço copiado vira `https://<slug>.<root>`; e `toHaveValue` não aceita matcher assimétrico (memory/learnings.md)
-- Commit: <hash> na branch main
+- Commit: 106c223 na branch main
 - Pendente de decisão: (herdada da rodada 41) pôr o USUÁRIO do responsável na mensagem de acesso exige RPC SECURITY DEFINER nova sobre `public.users` — mudança de schema em produção. Vale criar?
 - Próximo item recomendado: CONSOLE-UX 17 — o endereço do estabelecimento visível no card e encontrável pela busca (hoje `filtrarEstabelecimentos` só olha o nome, e o endereço só existe dentro do texto copiado); só cliente, sem migration
 
