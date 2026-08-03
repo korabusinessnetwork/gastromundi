@@ -1,3 +1,25 @@
+## Rodada 58 — TD018 (fatia módulo fiscal): âmbar cru → token --gm-warn — 2026-08-03
+- Spec: specs/td018-fiscal-ambar-token.md
+- Resultado da review: aprovado sem ressalvas — 8 de 8 (suíte 203 arquivos / 3536 testes, verde).
+  As 12 ocorrências de `#f59e0b` inline em `NotasFiscaisTab.jsx` (8) e `ImpostosAdmin.jsx` (4)
+  viraram `varColor(C.warn)` (cor sólida) e `alfa(C.warn, "<sufixo>")` (blend), com cada sufixo de
+  opacidade preservado; ternários âmbar/verde ficaram simétricos (`varColor(C.warn)` do lado âmbar).
+  Os dois comentários de CSS (`NotasFiscaisTab.css`, `ImpostosAdmin.css`) que afirmavam que o âmbar
+  "segue literal" foram corrigidos — mesma correção do TD017. Só os quatro arquivos de código + a
+  linha do TD018 no backlog foram tocados.
+- Aprendido: nada novo que passe no filtro do /aprender — o mecanismo (`alfa()` aceita `C.warn`;
+  migração drop-in) já estava registrado desde a rodada 56. O concreto foi atualizar o status do
+  TD018 em `docs/09_BACKLOG/tech-debt.md` para "Em andamento — módulo fiscal fechado", listando os
+  arquivos restantes.
+- Commit: 82eb8aa na branch main
+- Pendente de decisão: as cinco herdadas, inalteradas (usuário do responsável na mensagem de acesso,
+  rodada 41; endereço do cardápio na mensagem copiada, rodada 44; RPC para editar endereço de
+  estabelecimento já criado, rodada 45; mínimo de senha 6 → 8, rodada 46; token `--gm-sobre-accent`,
+  rodada 53).
+- Próximo item recomendado: TD018 (próxima fatia) — o âmbar cru no **módulo de PDV** (`PDVView/*`:
+  `index.jsx`, `ComandaGrid.jsx`, `MesaMapView.jsx`, `PDVView.css`; + `CozinhaView.jsx`), o coração
+  operacional e o maior bloco restante que o dono vê em toda venda. Mesmo roteiro desta rodada.
+
 ## Rodada 57 — CONSOLE-UX 31: cobertura de teste dos dois arquivos do Console sem teste — 2026-08-03
 - Spec: specs/console-ux-31-testes-cobertura.md
 - Resultado da review: aprovado sem ressalvas — 10 de 10 (suíte 203 arquivos / 3536 testes, verde;
