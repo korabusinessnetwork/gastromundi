@@ -2,7 +2,7 @@
 - Spec: specs/console-sem-mensalidade-na-lista.md
 - Resultado da review: aprovado sem ressalvas — 9 de 9 (suíte 199 arquivos / 3306 testes, verde)
 - Aprendido: dois botões laterais do mesmo card não podem repetir o ícone — "Registrar pagamento" e "Definir mensalidade" se cruzam e nasceram os dois com LuBanknote (memory/learnings.md)
-- Commit: PENDENTE na branch main
+- Commit: c38d48b na branch main
 - Pendente de decisão: nenhuma nova (segue a cortesia com valor_mensal = 0, anterior a esta rodada)
 - Próximo item recomendado: CONSOLE-UX 14 — carregar a lista de estabelecimentos por partes, único ponto do Console que piora conforme a venda dá certo
 
