@@ -11,6 +11,7 @@ import {
   gerarSenhaProvisoria,
   forcaDaSenha,
   sugerirUsuarioLivre,
+  usernameSugeridoDoNome,
   MENSALIDADE_MAXIMA,
   MAX_SLUG,
 } from "@/lib/console";
@@ -46,6 +47,9 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
   const [mensalidade, setMensalidade] = useState("");
   const [adminNome, setAdminNome] = useState("");
   const [adminUsername, setAdminUsername] = useState("");
+  // Mesma ideia do endereço: enquanto o dono não editar o usuário, ele segue o
+  // nome do responsável. Depois de editado (inclusive apagado), para de seguir.
+  const [usernameTocado, setUsernameTocado] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
 
   const [erros, setErros] = useState({});
@@ -89,16 +93,21 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
   const previaDoCardapio = urlDoCardapioPublico(slugEfetivo, window.location.hostname);
   const sugestaoDeSlug = erros.slug ? sugerirSlugLivre(slugEfetivo, slugsEmUso) : "";
 
+  // Usuário de acesso derivado do nome do responsável (CONSOLE-UX 22). Estado
+  // derivado, não efeito: enquanto ninguém tocou no campo, ele É o nome
+  // normalizado — daqui para baixo, o que vale é sempre `usernameEfetivo`.
+  const usernameEfetivo = usernameTocado ? adminUsername : usernameSugeridoDoNome(adminNome);
+
   // Força da senha (CONSOLE-UX 20). Só avisa — quem barra o envio continua
   // sendo o mínimo de 6 da validação, que é a regra da borda.
-  const forcaSenha = forcaDaSenha(adminPassword, adminUsername);
+  const forcaSenha = forcaDaSenha(adminPassword, usernameEfetivo);
 
   // Sugestão de usuário livre (CONSOLE-UX 21). Só depois de o SERVIDOR recusar
   // por "já em uso" — sugerir antes disso seria inventar conflito, já que o
   // Console não lê `public.users` e não tem como saber o que está ocupado.
   const sugestaoDeUsuario =
     recusasDeUsuario > 0 && erros.adminUsername
-      ? sugerirUsuarioLivre(adminUsername, { slug: slugEfetivo, tentativa: recusasDeUsuario })
+      ? sugerirUsuarioLivre(usernameEfetivo, { slug: slugEfetivo, tentativa: recusasDeUsuario })
       : "";
 
   const limparErro = (campo) =>
@@ -107,6 +116,9 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
   // Mudou o usuário — por digitação ou aceitando a sugestão —, a contagem de
   // recusas volta a zero: o próximo conflito é sobre um texto novo.
   const alterarUsuario = (valor) => {
+    // Mexeu no campo: ele deixa de seguir o nome do responsável, inclusive se
+    // o dono apagou tudo — campo vazio é escolha, não convite à derivação.
+    setUsernameTocado(true);
     setAdminUsername(valor);
     limparErro("adminUsername");
     setRecusasDeUsuario(0);
@@ -117,7 +129,8 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
     setErroServidor("");
 
     const form = {
-      nome, slug: slugEfetivo, endereco, planoCodigo, adminNome, adminUsername, adminPassword,
+      nome, slug: slugEfetivo, endereco, planoCodigo, adminNome,
+      adminUsername: usernameEfetivo, adminPassword,
     };
     const { ok, erros: errosValidacao } = validarNovoEstabelecimento(form, slugsEmUso);
     if (!ok) {
@@ -325,7 +338,17 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
                 placeholder="Ex.: Maria Oliveira"
                 maxLength={80}
                 disabled={enviando}
-                onChange={(e) => { setAdminNome(e.target.value); limparErro("adminNome"); }}
+                onChange={(e) => {
+                  setAdminNome(e.target.value);
+                  limparErro("adminNome");
+                  // Se o usuário ainda segue o nome, o texto dele acabou de
+                  // mudar — a recusa que estava na tela era sobre outro texto,
+                  // então some junto com a contagem da sugestão (CONSOLE-UX 21).
+                  if (!usernameTocado) {
+                    limparErro("adminUsername");
+                    setRecusasDeUsuario(0);
+                  }
+                }}
               />
               {erros.adminNome && <span className="nem-erro-campo">{erros.adminNome}</span>}
             </label>
@@ -335,7 +358,7 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
               <input
                 className={`nem-input${erros.adminUsername ? " nem-input--erro" : ""}`}
                 type="text"
-                value={adminUsername}
+                value={usernameEfetivo}
                 placeholder="Ex.: maria"
                 maxLength={30}
                 autoCapitalize="none"
@@ -356,6 +379,10 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
                       Usar {sugestaoDeUsuario}
                     </button>
                   )}
+                </span>
+              ) : !usernameTocado && usernameEfetivo ? (
+                <span className="nem-dica">
+                  Sugerido a partir do responsável — pode trocar por outro.
                 </span>
               ) : (
                 <span className="nem-dica">Só letras minúsculas, números, ponto, hífen e sublinhado.</span>

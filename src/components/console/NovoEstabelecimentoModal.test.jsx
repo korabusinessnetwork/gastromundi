@@ -63,11 +63,20 @@ function montar(slugsEmUso = []) {
 
 const linkDoCardapio = () => screen.getByLabelText(/Link do cardápio/i);
 
+// Escolhe um usuário de acesso à mão. Desde a CONSOLE-UX 22 o campo já vem
+// preenchido a partir do nome do responsável, então digitar sem limpar antes
+// concatenaria com a sugestão.
+async function digitarUsuario(user, valor) {
+  const campo = screen.getByLabelText(/Usuário de acesso/i);
+  await user.clear(campo);
+  await user.type(campo, valor);
+}
+
 // Preenche tudo o que a validação real exige, menos a mensalidade.
 async function preencher(user, nome = "Bar do Zé") {
   await user.type(screen.getByLabelText(/Nome do estabelecimento/i), nome);
   await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
-  await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
+  await digitarUsuario(user, "barze");
   await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
 }
 
@@ -314,7 +323,7 @@ describe("NovoEstabelecimentoModal — a senha provisória", () => {
     const { user } = montar();
     await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
     await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
-    await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
+    await digitarUsuario(user, "barze");
     await user.click(criar());
     expect(screen.getByText(/Defina uma senha para o responsável/i)).toBeInTheDocument();
 
@@ -331,7 +340,7 @@ describe("NovoEstabelecimentoModal — a senha provisória", () => {
 
   it("senha igual ao usuário de acesso é apontada", async () => {
     const { user } = montar();
-    await user.type(screen.getByLabelText(/Usuário de acesso/i), "bardozegrill");
+    await digitarUsuario(user, "bardozegrill");
     await user.type(senhaProvisoria(), "bardozegrill");
     expect(screen.getByText(/igual ao usuário de acesso/i)).toBeInTheDocument();
   });
@@ -350,7 +359,7 @@ describe("NovoEstabelecimentoModal — a senha provisória", () => {
     const { user } = montar();
     await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
     await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
-    await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
+    await digitarUsuario(user, "barze");
     await user.type(senhaProvisoria(), "123456");
 
     expect(screen.getByText(/Senha fraca/i)).toBeInTheDocument();
@@ -366,7 +375,7 @@ describe("NovoEstabelecimentoModal — a senha provisória", () => {
     const { user } = montar();
     await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
     await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
-    await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
+    await digitarUsuario(user, "barze");
     await user.type(senhaProvisoria(), "abc");
     await user.click(criar());
 
@@ -379,7 +388,7 @@ describe("NovoEstabelecimentoModal — a senha provisória", () => {
     const { user } = montar();
     await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
     await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
-    await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
+    await digitarUsuario(user, "barze");
     await user.click(gerarSenha());
     const senha = senhaProvisoria().value;
     await user.click(criar());
@@ -509,5 +518,122 @@ describe("NovoEstabelecimentoModal — sugestão de usuário livre", () => {
       expect.objectContaining({ adminUsername: "barze.bardoze" })
     );
     expect(onCriado).toHaveBeenCalledTimes(1);
+  });
+});
+
+// CONSOLE-UX 22 — o usuário de acesso nasce do nome do responsável.
+//
+// Era o último campo que o dono tinha de inventar do zero no meio da venda:
+// digitava "José Maria" e o campo vizinho ficava vazio, esperando que ele
+// traduzisse aquilo para `josemaria` de cabeça. O que estes testes protegem: a
+// derivação por estado derivado (muda junto com o nome, sem atraso), e o
+// momento em que ela precisa parar — mão do dono no campo manda mais.
+describe("NovoEstabelecimentoModal — o usuário de acesso vem do responsável", () => {
+  const usuario = () => screen.getByLabelText(/Usuário de acesso/i);
+  const responsavel = () => screen.getByLabelText(/Nome do responsável/i);
+  const sugestao = () => screen.queryByRole("button", { name: /^Usar / });
+  const RECUSA = "A user with this email address has already been registered";
+
+  beforeEach(() => {
+    mockProvisionar.mockReset();
+    mockDefinir.mockReset();
+    mockDefinir.mockResolvedValue({ data: null, error: null });
+    mockProvisionar.mockResolvedValue({
+      data: { tenant_id: "t-1", nome: "Bar do Zé", admin: { username: "josemaria" } },
+      error: null,
+    });
+  });
+
+  it("o campo segue o nome do responsável, já normalizado", async () => {
+    const { user } = montar();
+    expect(usuario().value).toBe("");
+
+    await user.type(responsavel(), "José Maria");
+    expect(usuario().value).toBe("josemaria");
+
+    await user.clear(responsavel());
+    await user.type(responsavel(), "Ana Paula");
+    expect(usuario().value).toBe("anapaula");
+  });
+
+  it("a dica avisa que o usuário foi sugerido e pode ser trocado", async () => {
+    const { user } = montar();
+    await user.type(responsavel(), "José Maria");
+    expect(screen.getByText(/Sugerido a partir do responsável/i)).toBeInTheDocument();
+
+    await digitarUsuario(user, "jose");
+    expect(screen.queryByText(/Sugerido a partir do responsável/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Só letras minúsculas/i)).toBeInTheDocument();
+  });
+
+  it("nome curto demais deixa o campo vazio, em vez de sugerir algo recusável", async () => {
+    const { user } = montar();
+    await user.type(responsavel(), "Zé");
+    expect(usuario().value).toBe("");
+
+    await user.click(criar());
+    expect(screen.getByText(/Informe o usuário de acesso do responsável/i)).toBeInTheDocument();
+    expect(mockProvisionar).not.toHaveBeenCalled();
+  });
+
+  it("depois de editado à mão, o campo para de seguir o nome — mesmo apagado", async () => {
+    const { user } = montar();
+    await user.type(responsavel(), "José Maria");
+    await digitarUsuario(user, "chefe");
+    await user.type(responsavel(), " Silva");
+    expect(usuario().value).toBe("chefe");
+
+    await user.clear(usuario());
+    await user.type(responsavel(), " Souza");
+    expect(usuario().value).toBe("");
+  });
+
+  it("aceitar a sugestão de usuário livre também trava a derivação", async () => {
+    mockProvisionar.mockResolvedValue({ error: RECUSA });
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.type(responsavel(), "José Maria");
+    await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+    await user.click(criar());
+    await user.click(sugestao());
+    expect(usuario().value).toBe("josemaria.bardoze");
+
+    // O candidato aceito não pode ser varrido pela próxima letra do nome.
+    await user.type(responsavel(), " Silva");
+    expect(usuario().value).toBe("josemaria.bardoze");
+  });
+
+  it("mudar o nome depois de uma recusa volta à sugestão nº 1 do texto novo", async () => {
+    mockProvisionar.mockResolvedValue({ error: RECUSA });
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.type(responsavel(), "José Maria");
+    await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+    await user.click(criar());
+    expect(sugestao()).toHaveTextContent("Usar josemaria.bardoze");
+
+    await user.clear(responsavel());
+    await user.type(responsavel(), "Ana Paula");
+    await user.click(criar());
+    expect(sugestao()).toHaveTextContent("Usar anapaula.bardoze");
+  });
+
+  it("o que vai para o servidor é o usuário derivado, sem ninguém digitá-lo", async () => {
+    const { user } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.type(responsavel(), "José Maria");
+    await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+    await user.click(criar());
+
+    expect(mockProvisionar).toHaveBeenCalledWith(
+      expect.objectContaining({ adminNome: "José Maria", adminUsername: "josemaria" })
+    );
+  });
+
+  it("a força da senha compara com o usuário derivado", async () => {
+    const { user } = montar();
+    await user.type(responsavel(), "José Maria");
+    await user.type(screen.getByLabelText(/Senha provisória/i), "josemaria");
+    expect(screen.getByText(/igual ao usuário de acesso/i)).toBeInTheDocument();
   });
 });

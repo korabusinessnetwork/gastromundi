@@ -607,6 +607,29 @@ export function normalizarUsername(raw) {
 /** Limite de tamanho do usuário de acesso — o mesmo do campo do formulário. */
 export const MAX_USERNAME = 30;
 
+/** Mínimo de caracteres do usuário de acesso, cobrado na validação de envio. */
+export const MIN_USERNAME = 3;
+
+/**
+ * Usuário de acesso sugerido a partir do nome do responsável (CONSOLE-UX 22):
+ * `José Maria` → `josemaria`. É o que o campo mostra enquanto ninguém o editar.
+ *
+ * Devolve "" quando o nome não produz um usuário aceitável (vazio, só símbolos
+ * ou curto demais). Campo vazio é melhor que campo preenchido com algo que a
+ * validação vai recusar: quem lê "ze" no lugar não tem como adivinhar que o
+ * problema é o tamanho.
+ *
+ * @param {string} nome nome do responsável, como foi digitado
+ * @returns {string} usuário normalizado, ou "" se não der para sugerir
+ */
+export function usernameSugeridoDoNome(nome) {
+  const bruto = normalizarUsername(nome);
+  // Corta pelo mesmo teto do campo, e não deixa o corte terminar em separador.
+  const cortado =
+    bruto.length > MAX_USERNAME ? bruto.slice(0, MAX_USERNAME).replace(/[._-]+$/, "") : bruto;
+  return cortado.length >= MIN_USERNAME ? cortado : "";
+}
+
 /**
  * Candidato de usuário livre depois de o servidor recusar por "usuário já em
  * uso" (CONSOLE-UX 21). É chute educado, não verificação: `public.users` não é
@@ -758,7 +781,7 @@ export function validarNovoEstabelecimento(f = {}, slugsEmUso = []) {
   const username = normalizarUsername(f.adminUsername);
   if (!username) {
     erros.adminUsername = "Informe o usuário de acesso do responsável.";
-  } else if (username.length < 3) {
+  } else if (username.length < MIN_USERNAME) {
     erros.adminUsername = "O usuário precisa ter ao menos 3 caracteres.";
   }
 
@@ -913,7 +936,10 @@ export function traduzirErroProvisionamento(bruto) {
   if (ERRO_USUARIO_EM_USO.test(principal)) {
     return {
       campo: "adminUsername",
-      mensagem: "Este usuário de acesso já existe na plataforma. Escolha outro — por exemplo, o nome do responsável junto do nome da loja.",
+      // Sem exemplo escrito: o botão de sugestão ao lado (CONSOLE-UX 21) já
+      // mostra um usuário livre pronto, e citar "o nome do responsável" aqui
+      // ficou redundante depois que o campo passou a nascer dele (CONSOLE-UX 22).
+      mensagem: "Este usuário de acesso já existe na plataforma. Escolha outro.",
       aviso,
     };
   }

@@ -1651,6 +1651,9 @@ describe("ConsolePage — o cartão de primeiro acesso", () => {
     await user.click(await screen.findByRole("button", { name: /Novo estabelecimento/i }));
     await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
     await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
+    // O campo já vem preenchido a partir do responsável (CONSOLE-UX 22) —
+    // limpar antes evita concatenar com a sugestão.
+    await user.clear(screen.getByLabelText(/Usuário de acesso/i));
     await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
     await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
     await user.click(screen.getByRole("button", { name: /^Criar estabelecimento$/i }));
@@ -1831,6 +1834,9 @@ describe("ConsolePage — a mensalidade no cartão de primeiro acesso", () => {
     await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
     if (mensalidade) await user.type(screen.getByLabelText(/Mensalidade combinada/i), mensalidade);
     await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
+    // O campo já vem preenchido a partir do responsável (CONSOLE-UX 22) —
+    // limpar antes evita concatenar com a sugestão.
+    await user.clear(screen.getByLabelText(/Usuário de acesso/i));
     await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
     await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
     await user.click(screen.getByRole("button", { name: /^Criar estabelecimento$/i }));

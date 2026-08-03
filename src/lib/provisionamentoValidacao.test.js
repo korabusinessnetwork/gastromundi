@@ -436,8 +436,12 @@ describe("os limites da borda estão amarrados a uma fonte independente", () => 
   // contrário) e o operador não entende por quê.
   const modal = readFileSync(MODAL, "utf8");
 
+  // O campo do usuário mostra um valor DERIVADO do nome do responsável
+  // (CONSOLE-UX 22), então o `value` do JSX não é o nome do estado.
+  const VALOR_NO_JSX = { adminUsername: "usernameEfetivo" };
+
   const maxLengthDoCampo = (campo) => {
-    const depois = modal.split(`value={${campo}}`)[1];
+    const depois = modal.split(`value={${VALOR_NO_JSX[campo] ?? campo}}`)[1];
     if (depois === undefined) return null;
     const achado = /maxLength=\{(\d+)\}/.exec(depois.slice(0, 400));
     return achado ? Number(achado[1]) : null;

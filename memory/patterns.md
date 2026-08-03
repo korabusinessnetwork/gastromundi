@@ -794,3 +794,33 @@ para o próximo campo que colidir:
 6. O botão vive DENTRO do `<span className="nem-erro-campo">`: o dono lê o
    problema e a saída no mesmo lugar. Classe `.nem-sugestao` já existe — campo
    novo com conflito reusa, não cria estilo.
+
+## Campo derivado de outro campo: as três peças (Console, rodada 48)
+
+Segunda aplicação do molde da rodada 45 (endereço do cardápio derivado do nome do
+estabelecimento), agora no usuário de acesso derivado do nome do responsável —
+`usernameSugeridoDoNome` em `src/lib/console.js` e `usernameEfetivo` em
+`NovoEstabelecimentoModal.jsx`. O campo derivado tem sempre estas peças:
+
+1. **Uma função pura** que traduz o campo de origem no campo de destino, testada
+   sozinha. Nada de derivar inline no JSX.
+2. **`xTocado` + `xEfetivo`, nunca `useEffect`.** `const xEfetivo = xTocado ? x :
+   derivar(origem)`. Enquanto ninguém tocou, o campo É a derivação, então não
+   existe renderização em que a tela mostre valor velho. Daí para baixo — payload,
+   validação, força da senha, sugestão de conflito — o que vale é sempre
+   `xEfetivo`; deixar um único ponto lendo o estado cru é o bug clássico.
+3. **Editar trava a derivação para sempre, inclusive apagar.** O `onChange` marca
+   `xTocado` antes de tudo. Campo esvaziado é escolha do dono, não convite a
+   preencher de novo. Aceitar uma sugestão de um clique passa pelo mesmo `onChange`,
+   então também trava.
+
+Duas consequências que só aparecem na segunda vez:
+
+- **A derivação devolve `""` quando não dá para derivar bem.** Nome que produz menos
+  de `MIN_USERNAME` caracteres não vira `ze`: vira campo vazio, e a validação de
+  envio explica o que falta. Campo preenchido com algo que a própria tela vai
+  recusar é pior que campo vazio — o dono não tem como adivinhar o motivo.
+- **Mexer na ORIGEM tem de limpar o erro do destino.** Se o servidor recusou
+  `josemaria` e o dono troca o responsável para "Ana Paula", o campo já mostra
+  `anapaula`: manter na tela o erro (e a contagem de recusas) de um texto que não
+  existe mais faz a sugestão nº 2 aparecer sobre um usuário nunca enviado.

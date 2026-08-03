@@ -41,7 +41,9 @@ import {
   gerarSenhaProvisoria,
   forcaDaSenha,
   sugerirUsuarioLivre,
+  usernameSugeridoDoNome,
   MAX_USERNAME,
+  MIN_USERNAME,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -315,6 +317,53 @@ describe("forcaDaSenha", () => {
 
   it("é pura: a mesma entrada devolve sempre o mesmo resultado", () => {
     expect(forcaDaSenha("casaverd1")).toEqual(forcaDaSenha("casaverd1"));
+  });
+});
+
+describe("usernameSugeridoDoNome", () => {
+  it("transforma o nome do responsável num usuário válido", () => {
+    expect(usernameSugeridoDoNome("José Maria")).toBe("josemaria");
+    expect(usernameSugeridoDoNome("  Ana  Paula  ")).toBe("anapaula");
+    expect(usernameSugeridoDoNome("MARIA OLIVEIRA")).toBe("mariaoliveira");
+  });
+
+  it("deixa em paz quem já digitou um usuário", () => {
+    expect(usernameSugeridoDoNome("admin")).toBe("admin");
+    expect(usernameSugeridoDoNome("bar.do.ze")).toBe("bar.do.ze");
+  });
+
+  it("respeita o limite do campo e não termina em separador", () => {
+    const longo = usernameSugeridoDoNome(`${"a".repeat(29)}.${"b".repeat(20)}`);
+    expect(longo.length).toBeLessThanOrEqual(MAX_USERNAME);
+    expect(longo).toBe("a".repeat(29));
+
+    const cortadoNoPonto = usernameSugeridoDoNome(`${"a".repeat(30)}.silva`);
+    expect(cortadoNoPonto).toBe("a".repeat(30));
+  });
+
+  it("devolve vazio quando o nome não dá um usuário aceitável", () => {
+    // Melhor campo vazio que campo com algo que a validação vai recusar.
+    expect(usernameSugeridoDoNome("Zé")).toBe("");
+    expect(usernameSugeridoDoNome("!!!")).toBe("");
+    expect(usernameSugeridoDoNome("")).toBe("");
+    expect(usernameSugeridoDoNome(null)).toBe("");
+    expect(usernameSugeridoDoNome(undefined)).toBe("");
+  });
+
+  it("o que ele devolve passa na validação do formulário", () => {
+    const base = {
+      nome: "Bar do Zé", slug: "bardoze", planoCodigo: "avancado",
+      adminNome: "José Maria", adminPassword: "senha123",
+    };
+    for (const nome of ["José Maria", "Ana", "MARIA OLIVEIRA", "a".repeat(90)]) {
+      const usuario = usernameSugeridoDoNome(nome);
+      expect(usuario.length).toBeGreaterThanOrEqual(MIN_USERNAME);
+      expect(validarNovoEstabelecimento({ ...base, adminUsername: usuario }).ok).toBe(true);
+    }
+  });
+
+  it("é pura — mesma entrada, mesma saída", () => {
+    expect(usernameSugeridoDoNome("José Maria")).toBe(usernameSugeridoDoNome("José Maria"));
   });
 });
 

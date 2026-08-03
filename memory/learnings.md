@@ -256,3 +256,23 @@ uma constante importada, o teste compararia a constante consigo mesma. Trocar
 campos do modal, leia o teste: o literal está ali de propósito. Constante nova que
 precise do mesmo teto ganha a própria linha de amarração no mesmo describe
 (`MAX_USERNAME` do Console = `maxLength` do campo = `MAX_USERNAME` da borda).
+
+## Texto dentro de `<label>` que cita o rótulo de OUTRO campo quebra o `getByLabelText` do outro (rodada 48)
+
+Terceira vez que a armadilha do nome acessível derruba o build do Console, e a
+primeira em que a culpa não é do texto novo da tela. `getByLabelText` casa contra o
+nome acessível inteiro do `<label>` — rótulo + dica + mensagem de erro + botão. A
+mensagem de `traduzirErroProvisionamento` em `src/lib/console.js` dizia "Escolha
+outro — por exemplo, o nome do responsável junto do nome da loja"; ela é renderizada
+dentro do `<label>` do campo Usuário de acesso, então, sempre que o servidor recusava,
+`screen.getByLabelText(/Nome do responsável/i)` passava a achar DOIS inputs e o teste
+morria com `getMultipleElementsFoundError` — num arquivo de teste que não tinha sido
+tocado pela mudança.
+
+Regra prática para o Console: nenhum texto que vive dentro de um `<label>` (dica, erro,
+rótulo de botão) deve conter o rótulo de outro campo da mesma tela. Aqui a frase já
+estava obsoleta — o botão de sugestão da rodada 47 mostra um usuário pronto e o campo
+passou a nascer do responsável —, então a correção foi encurtar a mensagem para "Este
+usuário de acesso já existe na plataforma. Escolha outro." Quando a frase for
+necessária, o caminho é o `<label>` deixar de embrulhar o input (como já faz o campo
+da senha) ou o teste buscar por `getByPlaceholderText`.
