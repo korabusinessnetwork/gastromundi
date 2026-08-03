@@ -22,6 +22,7 @@ import {
   contarAddonsPorTenant,
   traduzirErroProvisionamento,
   ordenarPorUrgencia,
+  filtrarEstabelecimentos,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -866,5 +867,63 @@ describe("ordenarPorUrgencia", () => {
     const { linhas, precisamAtencao } = resumirPlataforma(tenants, [], assinaturas, HOJE);
     expect(precisamAtencao.map((l) => l.tenantId)).toEqual(["t2"]);
     expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual(["t2", "t1"]);
+  });
+});
+
+describe("filtrarEstabelecimentos", () => {
+  const BASE = [
+    { id: "a", nome: "Café Central" },
+    { id: "b", nome: "Bar do Zé" },
+    { id: "c", nome: "Padaria São João" },
+  ];
+  const ids = (lista) => lista.map((t) => t.id);
+
+  it("ignora acento e caixa nos dois lados", () => {
+    expect(ids(filtrarEstabelecimentos(BASE, "cafe"))).toEqual(["a"]);
+    expect(ids(filtrarEstabelecimentos(BASE, "CAFÉ"))).toEqual(["a"]);
+    expect(ids(filtrarEstabelecimentos(BASE, "sao joao"))).toEqual(["c"]);
+    expect(ids(filtrarEstabelecimentos(BASE, "ZE"))).toEqual(["b"]);
+  });
+
+  it("casa com qualquer trecho do nome, não só com o começo", () => {
+    expect(ids(filtrarEstabelecimentos(BASE, "central"))).toEqual(["a"]);
+    expect(ids(filtrarEstabelecimentos(BASE, "do"))).toEqual(["b"]);
+  });
+
+  it("devolve a lista inteira, na ordem, com termo vazio ou só espaços", () => {
+    expect(ids(filtrarEstabelecimentos(BASE, ""))).toEqual(["a", "b", "c"]);
+    expect(ids(filtrarEstabelecimentos(BASE, "   "))).toEqual(["a", "b", "c"]);
+    expect(ids(filtrarEstabelecimentos(BASE))).toEqual(["a", "b", "c"]);
+  });
+
+  it("ignora espaços nas pontas do termo", () => {
+    expect(ids(filtrarEstabelecimentos(BASE, "  bar  "))).toEqual(["b"]);
+  });
+
+  it("devolve lista vazia quando nada casa", () => {
+    expect(filtrarEstabelecimentos(BASE, "pizzaria")).toEqual([]);
+  });
+
+  it("não quebra com nome nulo, vazio ou item ausente", () => {
+    const sujos = [{ id: "x", nome: null }, { id: "y" }, { id: "z", nome: "" }, null];
+    expect(() => filtrarEstabelecimentos(sujos, "bar")).not.toThrow();
+    expect(filtrarEstabelecimentos(sujos, "bar")).toEqual([]);
+  });
+
+  it("é pura: não muda o array recebido nem devolve a mesma referência", () => {
+    const copia = [...BASE];
+    const saida = filtrarEstabelecimentos(BASE, "");
+    expect(BASE).toEqual(copia);
+    expect(saida).not.toBe(BASE);
+  });
+
+  it("aguenta lista vazia e argumentos ausentes", () => {
+    expect(filtrarEstabelecimentos([], "bar")).toEqual([]);
+    expect(filtrarEstabelecimentos()).toEqual([]);
+  });
+
+  it("preserva a ordem que veio (a urgência da rodada 2 continua valendo)", () => {
+    const ordenado = [BASE[2], BASE[0], BASE[1]];
+    expect(ids(filtrarEstabelecimentos(ordenado, "a"))).toEqual(["c", "a", "b"]);
   });
 });

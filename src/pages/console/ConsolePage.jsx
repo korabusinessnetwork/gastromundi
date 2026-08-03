@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
-  LuPalette, LuChartColumn, LuActivity, LuPuzzle,
+  LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import {
   listarEstabelecimentos, listarPlanos, listarAssinaturas,
   listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma, ordenarPorUrgencia,
+  filtrarEstabelecimentos,
 } from "@/lib/console";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
@@ -52,6 +53,7 @@ export default function ConsolePage() {
   const [addonsPorTenant, setAddonsPorTenant] = useState({});
   const [addonsMudaram, setAddonsMudaram] = useState(false);
   const [sucesso, setSucesso] = useState(null);
+  const [busca, setBusca] = useState("");
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -164,14 +166,29 @@ export default function ConsolePage() {
   // o bloqueado não se esconder no meio da base conforme ela cresce. Com a
   // leitura das assinaturas quebrada não há dado para ordenar: mantém a
   // ordem do banco e não afirma nada — sem legenda.
-  const { situacaoPorTenant, tenantsOrdenados, quantosPrecisamAtencao } = useMemo(() => {
+  const { situacaoPorTenant, tenantsOrdenados, idsPrecisamAtencao } = useMemo(() => {
     const { linhas, precisamAtencao } = resumirPlataforma(tenants, planos, assinaturas);
     return {
       situacaoPorTenant: new Map(linhas.map((l) => [l.tenantId, l])),
       tenantsOrdenados: erroAssinaturas ? tenants : ordenarPorUrgencia(tenants, linhas),
-      quantosPrecisamAtencao: erroAssinaturas ? 0 : precisamAtencao.length,
+      idsPrecisamAtencao: new Set(erroAssinaturas ? [] : precisamAtencao.map((l) => l.tenantId)),
     };
   }, [tenants, planos, assinaturas, erroAssinaturas]);
+
+  // Busca por nome — a lista vem inteira do banco, então filtrar é local e
+  // instantâneo (nenhuma consulta nova). Filtrar não reordena: o resultado
+  // continua com quem precisa de ação no topo.
+  const tenantsVisiveis = useMemo(
+    () => filtrarEstabelecimentos(tenantsOrdenados, busca),
+    [tenantsOrdenados, busca]
+  );
+
+  // Conta só quem está NA TELA: durante uma busca, anunciar pendências que o
+  // filtro escondeu mandaria o dono procurar um card que não está ali.
+  const quantosPrecisamAtencao = useMemo(
+    () => tenantsVisiveis.filter((t) => idsPrecisamAtencao.has(t.id)).length,
+    [tenantsVisiveis, idsPrecisamAtencao]
+  );
 
   return (
     <div className="console">
@@ -333,6 +350,21 @@ export default function ConsolePage() {
               </div>
             ) : (
               <>
+                {/* Buscar pelo nome: com a base crescendo, rolar a lista
+                    inteira deixa de ser caminho. Filtra enquanto digita, sem
+                    botão de "buscar" — nada a confirmar. */}
+                <div className="console__busca">
+                  <LuSearch size={17} aria-hidden className="console__busca-icone" />
+                  <input
+                    type="search"
+                    className="console__busca-campo"
+                    placeholder="Buscar estabelecimento pelo nome"
+                    aria-label="Buscar estabelecimento pelo nome"
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                  />
+                </div>
+
                 {/* A ordem da lista não pode ser mágica: se algo subiu para o
                     topo, a tela diz quantos são e por quê. */}
                 {quantosPrecisamAtencao > 0 && (
@@ -342,8 +374,22 @@ export default function ConsolePage() {
                       : `${quantosPrecisamAtencao} estabelecimentos precisam de atenção e aparecem primeiro.`}
                   </p>
                 )}
+              {tenantsVisiveis.length === 0 ? (
+                // Vazio de BUSCA — diferente do vazio de base: aqui existem
+                // estabelecimentos, só nenhum com esse nome.
+                <div className="console__estado">
+                  <LuSearch size={30} aria-hidden />
+                  <p className="console__vazio-titulo">
+                    Nenhum estabelecimento com “{busca.trim()}”
+                  </p>
+                  <p className="console__vazio-texto">Confira o nome ou limpe a busca para ver todos.</p>
+                  <button type="button" className="console__novo" onClick={() => setBusca("")}>
+                    Limpar busca
+                  </button>
+                </div>
+              ) : (
               <ul className="console__lista">
-                {tenantsOrdenados.map((t) => {
+                {tenantsVisiveis.map((t) => {
                   const situacao = situacaoPorTenant.get(t.id);
                   return (
                   // Botões IRMÃOS (não aninhados — HTML inválido): o card troca
@@ -410,6 +456,7 @@ export default function ConsolePage() {
                   );
                 })}
               </ul>
+              )}
               </>
             )}
           </>

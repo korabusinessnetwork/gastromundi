@@ -150,6 +150,33 @@ export function ordenarPorUrgencia(itens = [], linhas = []) {
     .map((x) => x.item);
 }
 
+/** Texto comparável: sem caixa, sem acento e sem espaço sobrando. Existe
+ *  porque "Café Central" precisa ser encontrado digitando "cafe". */
+function paraBusca(texto) {
+  return String(texto ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); // remove acentos
+}
+
+/**
+ * Função PURA — filtra estabelecimentos pelo nome. Casa qualquer trecho do
+ * nome (não só o começo), ignorando caixa e acento. Termo vazio devolve a
+ * lista inteira, na ordem em que chegou — filtrar não reordena.
+ *
+ * Não faz I/O e não muda o array recebido.
+ *
+ * @param {Array<{nome?:string}>} itens
+ * @param {string} termo
+ * @returns {Array<object>}
+ */
+export function filtrarEstabelecimentos(itens = [], termo = "") {
+  const alvo = paraBusca(termo);
+  if (!alvo) return [...(itens ?? [])];
+  return (itens ?? []).filter((t) => paraBusca(t?.nome).includes(alvo));
+}
+
 /**
  * Função PURA — agrega tenants + planos + assinaturas na visão da
  * plataforma (dashboard do Console): status recalculado por tenant, KPIs,

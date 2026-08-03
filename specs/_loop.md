@@ -2,6 +2,19 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 29 — CONSOLE-UX 3 (busca por nome) — 2026-08-02
+- Spec: specs/console-busca-estabelecimento.md
+- Resultado da review: aprovado sem ressalvas (10/10, suíte 198 arquivos / 3164 testes)
+- O quê: campo de busca na aba Estabelecimentos, filtrando enquanto se digita, sem
+  ligar para acento nem caixa (`filtrarEstabelecimentos`, função pura). Sem resultado,
+  a tela repete o termo e oferece limpar — estado diferente do vazio de base.
+- Aprendido: memory/learnings.md — contador/legenda tem que derivar da lista renderizada,
+  não da lista de origem (a legenda de urgência contava quem o filtro havia escondido);
+  e escape unicode em regex vai por Edit, não por script de shell. Backlog F022 atualizado.
+- Commit: <preenchido no push> na branch main
+- Pendente de decisão: nenhuma
+- Próximo item recomendado: CONSOLE-UX 4 — ação de cobrança direto do card (hoje, ver que alguém está bloqueado e agir são duas abas diferentes)
+
 ## Rodada 28 — CONSOLE-UX 2 (lista por urgência) — 2026-08-02
 - Spec: specs/console-lista-por-urgencia.md
 - Resultado da review: aprovado sem ressalvas (9/9, suíte 198 arquivos / 3148 testes)

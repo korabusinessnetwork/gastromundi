@@ -441,3 +441,113 @@ describe("ConsolePage — ordem da lista por urgência", () => {
     expect(screen.queryByText(/precisa[m]? de atenção/)).not.toBeInTheDocument();
   });
 });
+
+describe("ConsolePage — busca por nome", () => {
+  const emDias = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const nomesNaOrdem = () =>
+    screen.getAllByRole("listitem").map((li) => li.querySelector(".console__card-nome")?.textContent);
+  const campo = () => screen.getByLabelText("Buscar estabelecimento pelo nome");
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("filtra a lista enquanto digita, sem ligar para acento nem caixa", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.type(campo(), "cafe");
+    expect(nomesNaOrdem()).toEqual(["Café Central"]);
+  });
+
+  it("casa com um trecho do meio do nome", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.type(campo(), "central");
+    expect(nomesNaOrdem()).toEqual(["Café Central"]);
+  });
+
+  it("limpar o campo traz a lista inteira de volta", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.type(campo(), "cafe");
+    expect(nomesNaOrdem()).toEqual(["Café Central"]);
+    await user.clear(campo());
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé", "Café Central"]);
+  });
+
+  it("sem resultado, mostra o vazio de busca com o termo e o botão de limpar", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.type(campo(), "pizzaria");
+    expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
+    expect(screen.getByText(/Nenhum estabelecimento com/)).toHaveTextContent("pizzaria");
+    // não pode ser confundido com o vazio de base (critério 8)
+    expect(screen.queryByRole("button", { name: /Criar o primeiro/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Limpar busca" }));
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé", "Café Central"]);
+  });
+
+  it("a legenda de urgência conta só quem está na tela", async () => {
+    // os dois precisam de atenção; a busca esconde um deles
+    mockListarAssinaturas.mockResolvedValue(ok([
+      { tenant_id: "t1", valor_mensal: 149.9, data_vencimento: emDias(2), carencia_dias: 3, status: "ativo" },
+      { tenant_id: "t2", valor_mensal: 249.9, data_vencimento: emDias(-30), carencia_dias: 3, status: "ativo" },
+    ]));
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+    expect(
+      screen.getByText("2 estabelecimentos precisam de atenção e aparecem primeiro.")
+    ).toBeInTheDocument();
+
+    await user.type(campo(), "cafe");
+    expect(
+      screen.getByText("1 estabelecimento precisa de atenção e aparece primeiro.")
+    ).toBeInTheDocument();
+
+    await user.clear(campo());
+    await user.type(campo(), "pizzaria");
+    expect(screen.queryByText(/precisa[m]? de atenção/)).not.toBeInTheDocument();
+  });
+
+  it("base vazia mostra o vazio de cadastro, não o campo de busca", async () => {
+    mockListarEstabelecimentos.mockResolvedValue(ok([]));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Nenhum estabelecimento ainda")).toBeInTheDocument();
+
+    expect(screen.queryByLabelText("Buscar estabelecimento pelo nome")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Criar o primeiro/i })).toBeInTheDocument();
+  });
+
+  it("busca funciona mesmo com a leitura das assinaturas quebrada", async () => {
+    mockListarAssinaturas.mockResolvedValue(falhou());
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.type(campo(), "bar");
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé"]);
+    expect(screen.queryByText(/precisa[m]? de atenção/)).not.toBeInTheDocument();
+  });
+});
