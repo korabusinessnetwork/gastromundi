@@ -1,3 +1,27 @@
+## Rodada 48 — CONSOLE-UX 22: o usuário de acesso nasce do nome do responsável — 2026-08-03
+- Spec: specs/console-usuario-do-responsavel.md
+- Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 199 arquivos / 3455 testes, verde)
+- Aprendido:
+  - `memory/learnings.md` — texto dentro de um `<label>` que cita o rótulo de OUTRO
+    campo quebra o `getByLabelText` daquele outro campo. Terceira vez que a armadilha
+    do nome acessível derruba o Console, e a primeira em que a culpa é de uma mensagem
+    de erro antiga (`traduzirErroProvisionamento`), não do texto novo da tela.
+  - `memory/patterns.md` — campo derivado de outro campo tem três peças: função pura,
+    `xTocado` + `xEfetivo` (nunca `useEffect`), e editar trava a derivação para sempre,
+    inclusive apagando. Mais duas consequências: derivação impossível devolve `""` em
+    vez de um valor que a validação recusaria, e mexer na origem limpa o erro do destino.
+- Commit: ba660f4 na branch main
+- Pendente de decisão: as quatro herdadas — (1) usuário do responsável na mensagem de
+  acesso e verificação de usuário livre antes do envio, ambas dependem de RPC
+  `SECURITY DEFINER` sobre `public.users` (rodada 41); (2) o endereço do cardápio entra
+  na mensagem copiada? (rodada 44); (3) editar o endereço de um estabelecimento já criado
+  precisa de RPC nova, `tenants` só tem SELECT na RLS (rodada 45); (4) subir o mínimo de
+  senha de 6 para 8 mexe na borda e no cliente juntos (rodada 46).
+- Próximo item recomendado: CONSOLE-UX 23 — confirmar antes de descartar o cadastro
+  pela metade. Hoje o "X" e o "Cancelar" do modal de criação jogam fora o formulário
+  inteiro (nome, endereço, plano, mensalidade, responsável e a senha gerada) sem
+  perguntar nada, e o CLAUDE.md manda confirmar ação destrutiva.
+
 ## Rodada 47 — CONSOLE-UX 21 (sugestão de usuário livre quando o usuário já está em uso) — 2026-08-03
 - Spec: specs/console-usuario-livre.md
 - Resultado da review: aprovado sem ressalvas — 14 de 14 (suíte 199 arquivos / 3441 testes, verde)
