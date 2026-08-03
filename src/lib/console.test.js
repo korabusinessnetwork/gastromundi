@@ -30,6 +30,9 @@ import {
   ABAS_CONSOLE,
   normalizarPeriodo,
   PERIODO_PADRAO,
+  filtrarPorPlano,
+  normalizarFiltroPlano,
+  contarPorPlano,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -1122,5 +1125,139 @@ describe("normalizarPeriodo", () => {
   it("o padrão é o mesmo que a tela já abria antes de existir a URL", () => {
     expect(PERIODO_PADRAO).toBe(30);
     expect(PERIODOS_ANALYTICS).toContain(PERIODO_PADRAO);
+  });
+});
+
+describe("filtrarPorPlano", () => {
+  const BASE = [
+    { id: "a", nome: "Café Central", plano_codigo: "basico" },
+    { id: "b", nome: "Bar do Zé", plano_codigo: "avancado" },
+    { id: "c", nome: "Padaria São João", plano_codigo: "basico" },
+    { id: "d", nome: "Sem plano ainda", plano_codigo: null },
+  ];
+  const ids = (lista) => lista.map((t) => t.id);
+
+  it("devolve só quem está no plano pedido, na ordem recebida", () => {
+    expect(ids(filtrarPorPlano(BASE, "basico"))).toEqual(["a", "c"]);
+    expect(ids(filtrarPorPlano(BASE, "avancado"))).toEqual(["b"]);
+  });
+
+  it("'todos' devolve a base inteira, inclusive quem não tem plano", () => {
+    expect(ids(filtrarPorPlano(BASE, "todos"))).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("quem está sem plano não aparece em recorte nenhum de plano", () => {
+    for (const codigo of ["basico", "avancado"]) {
+      expect(ids(filtrarPorPlano(BASE, codigo))).not.toContain("d");
+    }
+  });
+
+  it("plano do catálogo sem ninguém devolve lista vazia, não a base toda", () => {
+    expect(filtrarPorPlano(BASE, "premium")).toEqual([]);
+  });
+
+  it("ausente, nulo e tipos estranhos não escondem ninguém", () => {
+    expect(ids(filtrarPorPlano(BASE))).toEqual(["a", "b", "c", "d"]);
+    expect(ids(filtrarPorPlano(BASE, null))).toEqual(["a", "b", "c", "d"]);
+    expect(filtrarPorPlano(null, "basico")).toEqual([]);
+    expect(filtrarPorPlano()).toEqual([]);
+  });
+
+  it("não muda o array recebido", () => {
+    const copia = [...BASE];
+    filtrarPorPlano(BASE, "basico");
+    filtrarPorPlano(BASE, "todos");
+    expect(BASE).toEqual(copia);
+  });
+});
+
+describe("normalizarFiltroPlano", () => {
+  const CATALOGO = [
+    { codigo: "basico", nome: "Básico" },
+    { codigo: "avancado", nome: "Avançado" },
+  ];
+
+  it("código que existe no catálogo passa", () => {
+    expect(normalizarFiltroPlano("basico", CATALOGO)).toBe("basico");
+    expect(normalizarFiltroPlano("avancado", CATALOGO)).toBe("avancado");
+  });
+
+  it("valida contra o catálogo recebido, não contra lista fixa no código", () => {
+    // Plano que só existe neste catálogo — se houvesse lista fixa, cairia fora.
+    expect(normalizarFiltroPlano("food_truck", [{ codigo: "food_truck" }])).toBe("food_truck");
+    // E o mesmo código, fora do catálogo, não vale.
+    expect(normalizarFiltroPlano("food_truck", CATALOGO)).toBe("todos");
+  });
+
+  it("código inexistente, vazio ou ausente cai em 'todos'", () => {
+    expect(normalizarFiltroPlano("xpto", CATALOGO)).toBe("todos");
+    expect(normalizarFiltroPlano("", CATALOGO)).toBe("todos");
+    expect(normalizarFiltroPlano(null, CATALOGO)).toBe("todos");
+    expect(normalizarFiltroPlano(undefined, CATALOGO)).toBe("todos");
+    expect(normalizarFiltroPlano()).toBe("todos");
+  });
+
+  it("caixa diferente não passa — o código do banco é exato", () => {
+    expect(normalizarFiltroPlano("BASICO", CATALOGO)).toBe("todos");
+    expect(normalizarFiltroPlano("Basico", CATALOGO)).toBe("todos");
+  });
+
+  it("parâmetro repetido (array) e tipos estranhos caem em 'todos'", () => {
+    expect(normalizarFiltroPlano(["basico", "avancado"], CATALOGO)).toBe("todos");
+    expect(normalizarFiltroPlano({ codigo: "basico" }, CATALOGO)).toBe("todos");
+    expect(normalizarFiltroPlano(7, CATALOGO)).toBe("todos");
+  });
+
+  it("catálogo vazio ou que falhou ao carregar não recorta nada", () => {
+    expect(normalizarFiltroPlano("basico", [])).toBe("todos");
+    expect(normalizarFiltroPlano("basico", null)).toBe("todos");
+    expect(normalizarFiltroPlano("basico")).toBe("todos");
+  });
+
+  it("o que ela devolve sempre serve de entrada para filtrarPorPlano", () => {
+    const base = [{ id: "a", plano_codigo: "basico" }];
+    for (const bruto of ["basico", "XPTO", "", null, ["a", "b"]]) {
+      const codigo = normalizarFiltroPlano(bruto, CATALOGO);
+      expect(codigo === "todos" || CATALOGO.some((p) => p.codigo === codigo)).toBe(true);
+      expect(Array.isArray(filtrarPorPlano(base, codigo))).toBe(true);
+    }
+  });
+});
+
+describe("contarPorPlano", () => {
+  const BASE = [
+    { id: "a", plano_codigo: "basico" },
+    { id: "b", plano_codigo: "avancado" },
+    { id: "c", plano_codigo: "basico" },
+    { id: "d", plano_codigo: null },
+  ];
+
+  it("conta quantos estão em cada plano", () => {
+    expect(contarPorPlano(BASE)).toEqual({ basico: 2, avancado: 1 });
+  });
+
+  it("não inventa chave para quem está sem plano", () => {
+    const contagem = contarPorPlano(BASE);
+    expect(contagem).not.toHaveProperty("null");
+    expect(contagem).not.toHaveProperty("undefined");
+    expect(Object.values(contagem).reduce((s, n) => s + n, 0)).toBe(3);
+  });
+
+  it("plano sem ninguém simplesmente não aparece — quem lê usa zero", () => {
+    const contagem = contarPorPlano(BASE);
+    expect(contagem.premium ?? 0).toBe(0);
+  });
+
+  it("lista vazia, nula ou ausente devolve objeto vazio", () => {
+    expect(contarPorPlano([])).toEqual({});
+    expect(contarPorPlano(null)).toEqual({});
+    expect(contarPorPlano()).toEqual({});
+  });
+
+  it("a contagem bate com o tamanho do recorte correspondente", () => {
+    const contagem = contarPorPlano(BASE);
+    for (const codigo of Object.keys(contagem)) {
+      expect(filtrarPorPlano(BASE, codigo).length).toBe(contagem[codigo]);
+    }
   });
 });

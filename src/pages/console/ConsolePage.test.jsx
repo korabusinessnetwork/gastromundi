@@ -862,7 +862,10 @@ describe("ConsolePage — filtro por situação", () => {
   const nomesNaOrdem = () =>
     screen.getAllByRole("listitem").map((li) => li.querySelector(".console__card-nome")?.textContent);
   const campo = () => screen.getByLabelText("Buscar estabelecimento pelo nome");
-  const atalho = (nome) => screen.getByRole("button", { name: new RegExp(`^${nome}`) });
+  // Escopado ao grupo de situação: a linha de planos também tem um botão
+  // que começa com "Todos" ("Todos os planos").
+  const atalho = (nome) =>
+    within(atalhos()).getByRole("button", { name: new RegExp(`^${nome}`) });
   const atalhos = () => screen.queryByRole("group", { name: /Filtrar por situação/i });
 
   // t1 vencido há um mês (precisa de atenção), t2 longe do vencimento (em dia).
@@ -1022,7 +1025,10 @@ describe("ConsolePage — o recorte escolhido fica na URL", () => {
   const nomesNaOrdem = () =>
     screen.getAllByRole("listitem").map((li) => li.querySelector(".console__card-nome")?.textContent);
   const campo = () => screen.getByLabelText("Buscar estabelecimento pelo nome");
-  const atalho = (nome) => screen.getByRole("button", { name: new RegExp(`^${nome}`) });
+  // Escopado ao grupo de situação: a linha de planos também tem um botão
+  // que começa com "Todos" ("Todos os planos").
+  const atalho = (nome) =>
+    within(atalhos()).getByRole("button", { name: new RegExp(`^${nome}`) });
   const atalhos = () => screen.queryByRole("group", { name: /Filtrar por situação/i });
 
   // t1 vencido há um mês (precisa de atenção), t2 longe do vencimento (em dia).
@@ -1332,5 +1338,244 @@ describe("ConsolePage — o período do uso fica na URL", () => {
     await user.click(screen.getByRole("button", { name: /Uso e faturamento/i }));
     await esperarUso();
     expect(periodoBotao("90 dias")).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+describe("ConsolePage — o recorte por plano", () => {
+  // Mesmo espião das rodadas 33 a 35: o MemoryRouter não mexe em
+  // `window.location`, então o endereço se lê pelo roteador.
+  const EspiaoURL = () => {
+    const loc = useLocation();
+    const navigate = useNavigate();
+    return (
+      <>
+        <span data-testid="url">{loc.pathname + loc.search}</span>
+        <button type="button" onClick={() => navigate(-1)}>
+          voltar-teste
+        </button>
+      </>
+    );
+  };
+  const url = () => screen.getByTestId("url").textContent;
+  const renderComEspiao = (route = "/console", anteriores = []) =>
+    render(
+      <MemoryRouter initialEntries={[...anteriores, route]} initialIndex={anteriores.length}>
+        <ConsolePage />
+        <EspiaoURL />
+      </MemoryRouter>
+    );
+
+  // Três estabelecimentos: um em cada plano e um AINDA SEM plano — é ele que
+  // prova que o recorte não afirma o que não sabe.
+  const BASE = [
+    { id: "t1", nome: "Bar do Zé", plano_codigo: "basico", tema: {}, created_at: "2026-01-10T12:00:00Z" },
+    { id: "t2", nome: "Café Central", plano_codigo: "avancado", tema: {}, created_at: "2026-02-11T12:00:00Z" },
+    { id: "t3", nome: "Padaria São João", plano_codigo: null, tema: {}, created_at: "2026-03-12T12:00:00Z" },
+  ];
+  // Catálogo com um plano a mais, que ninguém contratou.
+  const CATALOGO = [
+    { codigo: "basico", nome: "Básico" },
+    { codigo: "avancado", nome: "Avançado" },
+    { codigo: "premium", nome: "Premium" },
+  ];
+  const EM_DIA = BASE.map((t, i) => ({
+    tenant_id: t.id,
+    valor_mensal: 149.9,
+    data_vencimento: `2099-0${i + 1}-10`,
+    carencia_dias: 3,
+    status: "ativo",
+  }));
+
+  const emDias = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const nomes = () =>
+    screen.getAllByRole("listitem").map((li) => li.querySelector(".console__card-nome")?.textContent);
+  const linhaPlanos = () => screen.queryByRole("group", { name: /Filtrar por plano/i });
+  const atalhoPlano = (nome) =>
+    within(linhaPlanos()).getByRole("button", { name: new RegExp(`^${nome}`) });
+  const atalhoSituacao = (nome) =>
+    within(screen.getByRole("group", { name: /Filtrar por situação/i })).getByRole("button", {
+      name: new RegExp(`^${nome}`),
+    });
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(BASE));
+    mockListarPlanos.mockResolvedValue(ok(CATALOGO));
+    mockListarAssinaturas.mockResolvedValue(ok(EM_DIA));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("mostra um atalho por plano do catálogo, com a contagem no próprio botão", async () => {
+    renderComEspiao();
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    const botoes = within(linhaPlanos()).getAllByRole("button");
+    // "Premium" aparece com zero de propósito: "ninguém está nesse plano"
+    // também é resposta, e some da tela seria esconder o catálogo.
+    expect(botoes.map((b) => b.textContent)).toEqual([
+      "Todos os planos3",
+      "Básico1",
+      "Avançado1",
+      "Premium0",
+    ]);
+  });
+
+  it("abrir /console?plano=basico já mostra a lista recortada e o atalho marcado", async () => {
+    renderComEspiao("/console?plano=basico");
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(nomes()).toEqual(["Bar do Zé"]);
+    expect(atalhoPlano("Básico")).toHaveAttribute("aria-pressed", "true");
+    expect(atalhoPlano("Todos os planos")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("quem ainda não tem plano aparece em 'Todos os planos' e em nenhum recorte", async () => {
+    const user = userEvent.setup();
+    renderComEspiao();
+    expect(await screen.findByText("Padaria São João")).toBeInTheDocument();
+
+    await user.click(atalhoPlano("Básico"));
+    expect(nomes()).not.toContain("Padaria São João");
+
+    await user.click(atalhoPlano("Todos os planos"));
+    expect(nomes()).toContain("Padaria São João");
+  });
+
+  it("clicar num plano escreve o parâmetro; 'Todos os planos' o remove", async () => {
+    const user = userEvent.setup();
+    renderComEspiao();
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(atalhoPlano("Avançado"));
+    expect(url()).toBe("/console?plano=avancado");
+
+    await user.click(atalhoPlano("Todos os planos"));
+    expect(url()).toBe("/console");
+  });
+
+  it("plano inventado na URL não esconde ninguém", async () => {
+    renderComEspiao("/console?plano=xpto");
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(nomes()).toEqual(["Bar do Zé", "Café Central", "Padaria São João"]);
+    expect(atalhoPlano("Todos os planos")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("trocar de plano não empilha histórico: 'voltar' sai do Console", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console", ["/inicio"]);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(atalhoPlano("Básico"));
+    await user.click(atalhoPlano("Avançado"));
+    await user.click(atalhoPlano("Todos os planos"));
+
+    await user.click(screen.getByRole("button", { name: "voltar-teste" }));
+    expect(url()).toBe("/inicio");
+  });
+
+  it("plano, situação, aba e período convivem no mesmo endereço", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console?situacao=em_dia&dias=90");
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(atalhoPlano("Básico"));
+    expect(url()).toBe("/console?situacao=em_dia&dias=90&plano=basico");
+
+    // Trocar de aba não apaga nenhum dos recortes da lista.
+    await user.click(screen.getByRole("button", { name: /Planos e assinaturas/i }));
+    expect(url()).toBe("/console?situacao=em_dia&dias=90&plano=basico&aba=planos");
+  });
+
+  it("os três cortes se combinam: situação, depois plano, depois busca", async () => {
+    const user = userEvent.setup();
+    // t1 vencido há um mês (precisa de atenção); os outros dois em dia.
+    mockListarAssinaturas.mockResolvedValue(
+      ok([
+        { tenant_id: "t1", valor_mensal: 149.9, data_vencimento: emDias(-30), carencia_dias: 3, status: "ativo" },
+        { tenant_id: "t2", valor_mensal: 249.9, data_vencimento: "2099-02-11", carencia_dias: 3, status: "ativo" },
+        { tenant_id: "t3", valor_mensal: 249.9, data_vencimento: "2099-03-12", carencia_dias: 3, status: "ativo" },
+      ])
+    );
+    renderComEspiao();
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(atalhoSituacao("Em dia"));
+    expect(nomes()).toEqual(["Café Central", "Padaria São João"]);
+
+    await user.click(atalhoPlano("Avançado"));
+    expect(nomes()).toEqual(["Café Central"]);
+
+    await user.type(screen.getByLabelText("Buscar estabelecimento pelo nome"), "zé");
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+    expect(
+      screen.getByText(/Nenhum estabelecimento com “zé” em “Em dia e Avançado”/)
+    ).toBeInTheDocument();
+  });
+
+  it("o vazio do plano nomeia o plano e volta com um clique só", async () => {
+    const user = userEvent.setup();
+    renderComEspiao();
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(atalhoPlano("Premium"));
+    expect(screen.getByText("Nenhum estabelecimento em “Premium”")).toBeInTheDocument();
+    expect(screen.getByText(/A lista está filtrada por “Premium”/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Ver todos" }));
+    expect(nomes()).toEqual(["Bar do Zé", "Café Central", "Padaria São João"]);
+    expect(url()).toBe("/console");
+  });
+
+  it("o 'Ver todos' do vazio limpa situação e plano de uma vez", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console?situacao=em_dia&plano=premium");
+    await waitFor(() =>
+      expect(screen.getByText(/A lista está filtrada por/)).toBeInTheDocument()
+    );
+
+    expect(screen.getByText("Nenhum estabelecimento em “Em dia e Premium”")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Ver todos" }));
+    expect(url()).toBe("/console");
+  });
+
+  it("com um plano só no catálogo a linha não aparece — não haveria o que recortar", async () => {
+    mockListarPlanos.mockResolvedValue(ok([{ codigo: "basico", nome: "Básico" }]));
+    renderComEspiao();
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(linhaPlanos()).not.toBeInTheDocument();
+  });
+
+  it("catálogo que falhou ao carregar esconde a linha e ignora o parâmetro", async () => {
+    mockListarPlanos.mockResolvedValue(falhou());
+    renderComEspiao("/console?plano=basico");
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(linhaPlanos()).not.toBeInTheDocument();
+    // Sem catálogo confiável, ninguém some da lista por causa da URL.
+    expect(nomes()).toEqual(["Bar do Zé", "Café Central", "Padaria São João"]);
+  });
+
+  it("os rótulos saem do catálogo do banco, não de uma lista fixa no código", async () => {
+    mockListarPlanos.mockResolvedValue(
+      ok([
+        { codigo: "food_truck", nome: "Food Truck" },
+        { codigo: "rede", nome: "Rede" },
+      ])
+    );
+    renderComEspiao();
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    const botoes = within(linhaPlanos()).getAllByRole("button");
+    expect(botoes.map((b) => b.textContent)).toEqual(["Todos os planos3", "Food Truck0", "Rede0"]);
   });
 });

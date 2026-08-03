@@ -265,6 +265,70 @@ export function normalizarPeriodo(bruto) {
 }
 
 /**
+ * Função PURA — recorta a lista pelo plano contratado. `"todos"` (ou qualquer
+ * coisa fora de um código de plano) devolve a lista inteira, na ordem em que
+ * chegou.
+ *
+ * Estabelecimento sem plano (`plano_codigo` nulo) só aparece em "todos": ele
+ * não está em nenhum plano, e mostrá-lo dentro de um recorte de plano seria
+ * afirmar algo falso na tela.
+ *
+ * Não faz I/O e não muda o array recebido.
+ *
+ * @param {Array<{plano_codigo?:string|null}>} itens
+ * @param {string} codigo  "todos" ou o código do plano
+ * @returns {Array<object>}
+ */
+export function filtrarPorPlano(itens = [], codigo = "todos") {
+  const lista = itens ?? [];
+  if (typeof codigo !== "string" || codigo === "todos") return [...lista];
+  return lista.filter((t) => t?.plano_codigo === codigo);
+}
+
+/**
+ * Função PURA — traduz o que veio da URL (`?plano=...`) para um código de
+ * plano que existe no catálogo RECEBIDO, nunca numa lista fixa: o catálogo é
+ * do banco e muda por estabelecimento (decisão 017), então plano novo passa a
+ * valer sozinho e nenhum código fica cravado aqui.
+ *
+ * Código inexistente, vazio, ausente, com caixa diferente ou repetido cai em
+ * "todos" — o estado que não esconde ninguém. Catálogo vazio (ou que falhou ao
+ * carregar) também: sem catálogo confiável não há recorte honesto.
+ *
+ * Não lê `window` nem o roteador — quem faz isso é a tela.
+ *
+ * @param {string|string[]|null|undefined} bruto
+ * @param {Array<{codigo:string}>} planos  catálogo vindo do banco
+ * @returns {string} "todos" ou um código do catálogo
+ */
+export function normalizarFiltroPlano(bruto, planos = []) {
+  if (typeof bruto !== "string" || bruto === "") return "todos";
+  const catalogo = Array.isArray(planos) ? planos : [];
+  return catalogo.some((p) => p?.codigo === bruto) ? bruto : "todos";
+}
+
+/**
+ * Função PURA — quantos estabelecimentos há em cada plano do catálogo, para a
+ * contagem aparecer dentro do próprio atalho (clicar não é aposta).
+ *
+ * Conta sobre a base inteira que foi passada: quem chama decide se manda a
+ * lista já recortada por situação ou a lista completa.
+ *
+ * @param {Array<{plano_codigo?:string|null}>} itens
+ * @returns {Record<string, number>} código do plano → quantidade
+ */
+export function contarPorPlano(itens = []) {
+  const lista = itens ?? [];
+  const contagem = {};
+  for (const t of lista) {
+    const codigo = t?.plano_codigo;
+    if (!codigo) continue;
+    contagem[codigo] = (contagem[codigo] ?? 0) + 1;
+  }
+  return contagem;
+}
+
+/**
  * Função PURA — agrega tenants + planos + assinaturas na visão da
  * plataforma (dashboard do Console): status recalculado por tenant, KPIs,
  * o "alerta de validade" (quem precisa de ação) e a distribuição por

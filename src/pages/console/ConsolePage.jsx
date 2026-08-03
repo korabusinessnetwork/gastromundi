@@ -10,6 +10,7 @@ import {
   listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma, ordenarPorUrgencia,
   filtrarEstabelecimentos, filtrarPorSituacao, FILTROS_SITUACAO, normalizarFiltroSituacao,
   normalizarAba, ABAS_CONSOLE, normalizarPeriodo, PERIODO_PADRAO,
+  filtrarPorPlano, normalizarFiltroPlano, contarPorPlano,
 } from "@/lib/console";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
@@ -135,6 +136,27 @@ export default function ConsolePage() {
         const proximo = new URLSearchParams(atual);
         if (d === PERIODO_PADRAO) proximo.delete("dias");
         else proximo.set("dias", String(d));
+        return proximo;
+      },
+      { replace: true }
+    );
+  };
+
+  // Recorte por plano contratado — responde "quem está no plano mais barato",
+  // candidato natural a upgrade, que hoje só dá para saber abrindo card por
+  // card. Os códigos válidos saem do CATÁLOGO DO BANCO, nunca de uma lista
+  // fixa (decisão 017): plano novo passa a valer sozinho. Sem catálogo
+  // confiável (`erroPlanos`) o parâmetro é ignorado, como o de situação
+  // quando as assinaturas falham.
+  const filtroPlano = erroPlanos
+    ? "todos"
+    : normalizarFiltroPlano(searchParams.get("plano"), planos);
+  const escolherPlano = (codigo) => {
+    setSearchParams(
+      (atual) => {
+        const proximo = new URLSearchParams(atual);
+        if (codigo === "todos") proximo.delete("plano");
+        else proximo.set("plano", codigo);
         return proximo;
       },
       { replace: true }
@@ -288,12 +310,20 @@ export default function ConsolePage() {
     [tenantsOrdenados, filtroSituacao, idsPrecisamAtencao]
   );
 
+  // Recorte por plano — entra entre a situação e a busca: "vendo os que
+  // precisam de atenção, no Básico, procurando o Fulano" é a frase que o dono
+  // monta clicando, na mesma ordem em que os cortes agem.
+  const tenantsDoPlano = useMemo(
+    () => filtrarPorPlano(tenantsDoFiltro, filtroPlano),
+    [tenantsDoFiltro, filtroPlano]
+  );
+
   // Busca por nome — a lista vem inteira do banco, então filtrar é local e
   // instantâneo (nenhuma consulta nova). Filtrar não reordena: o resultado
   // continua com quem precisa de ação no topo.
   const tenantsVisiveis = useMemo(
-    () => filtrarEstabelecimentos(tenantsDoFiltro, busca),
-    [tenantsDoFiltro, busca]
+    () => filtrarEstabelecimentos(tenantsDoPlano, busca),
+    [tenantsDoPlano, busca]
   );
 
   // Contagem de cada atalho: sempre sobre a base inteira, não sobre o que a
@@ -303,6 +333,40 @@ export default function ConsolePage() {
     const atencao = tenantsOrdenados.filter((t) => idsPrecisamAtencao.has(t.id)).length;
     return { todos: tenantsOrdenados.length, atencao, em_dia: tenantsOrdenados.length - atencao };
   }, [tenantsOrdenados, idsPrecisamAtencao]);
+
+  // Contagem por plano, pela mesma régua: sobre a base inteira, não sobre o
+  // que a situação ou a busca deixaram na tela.
+  const contagensPlano = useMemo(() => contarPorPlano(tenantsOrdenados), [tenantsOrdenados]);
+
+  // Com um plano só no catálogo o recorte não recorta nada — seria uma linha
+  // de botões que não muda a lista.
+  const mostrarAtalhosPlano = !erroPlanos && planos.length > 1;
+
+  // Como a tela NOMEIA o que está filtrando, na ordem em que os cortes agem.
+  // Com um corte só, a frase é a de sempre — o vazio de situação não mudou de
+  // texto por causa do plano.
+  const descricaoRecorte = [
+    filtroSituacao !== "todos" ? ROTULOS_FILTRO[filtroSituacao] : null,
+    filtroPlano !== "todos" ? rotularPlano(planos, filtroPlano) : null,
+  ]
+    .filter(Boolean)
+    .join(" e ");
+  const temRecorte = descricaoRecorte !== "";
+
+  // Uma volta só: o botão do vazio limpa os dois recortes de uma vez. Deixar
+  // o dono clicar duas vezes para reaparecer a lista é o tipo de beco que o
+  // Princípio nº1 pede para não existir.
+  const limparRecortes = () => {
+    setSearchParams(
+      (atual) => {
+        const proximo = new URLSearchParams(atual);
+        proximo.delete("situacao");
+        proximo.delete("plano");
+        return proximo;
+      },
+      { replace: true }
+    );
+  };
 
   // Conta só quem está NA TELA: durante uma busca, anunciar pendências que o
   // filtro escondeu mandaria o dono procurar um card que não está ali.
@@ -516,6 +580,37 @@ export default function ConsolePage() {
                   </div>
                 )}
 
+                {/* Atalhos de plano: a pergunta que faltava é "quem está no
+                    plano mais barato", candidato natural a upgrade. Os botões
+                    saem do catálogo do banco — nenhum nome de plano escrito
+                    aqui (decisão 017) — e cada um traz sua contagem sobre a
+                    base inteira. */}
+                {mostrarAtalhosPlano && (
+                  <div className="console__filtros" role="group" aria-label="Filtrar por plano">
+                    <button
+                      type="button"
+                      className="console__filtro"
+                      aria-pressed={filtroPlano === "todos"}
+                      onClick={() => escolherPlano("todos")}
+                    >
+                      Todos os planos
+                      <span className="console__filtro-conta">{contagens.todos}</span>
+                    </button>
+                    {planos.map((p) => (
+                      <button
+                        key={p.codigo}
+                        type="button"
+                        className="console__filtro"
+                        aria-pressed={filtroPlano === p.codigo}
+                        onClick={() => escolherPlano(p.codigo)}
+                      >
+                        {p.nome ?? p.codigo}
+                        <span className="console__filtro-conta">{contagensPlano[p.codigo] ?? 0}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {/* A ordem da lista não pode ser mágica: se algo subiu para o
                     topo, a tela diz quantos são e por quê. */}
                 {quantosPrecisamAtencao > 0 && (
@@ -525,23 +620,25 @@ export default function ConsolePage() {
                       : `${quantosPrecisamAtencao} estabelecimentos precisam de atenção e aparecem primeiro.`}
                   </p>
                 )}
-              {tenantsVisiveis.length === 0 && filtroSituacao !== "todos" ? (
+              {tenantsVisiveis.length === 0 && temRecorte ? (
                 // Vazio do RECORTE — o dono precisa saber que a tela está
                 // filtrando, senão "sumiu tudo" vira susto. Quando há busca
-                // junto, o texto nomeia os dois cortes na ordem em que agem.
+                // junto, o texto nomeia os cortes na ordem em que agem.
                 <div className="console__estado">
                   <LuFilter size={30} aria-hidden />
                   <p className="console__vazio-titulo">
                     {busca.trim()
-                      ? `Nenhum estabelecimento com “${busca.trim()}” em “${ROTULOS_FILTRO[filtroSituacao]}”`
-                      : filtroSituacao === "atencao"
-                        ? "Nenhum estabelecimento precisa de atenção agora"
-                        : "Nenhum estabelecimento está em dia agora"}
+                      ? `Nenhum estabelecimento com “${busca.trim()}” em “${descricaoRecorte}”`
+                      : filtroPlano === "todos"
+                        ? filtroSituacao === "atencao"
+                          ? "Nenhum estabelecimento precisa de atenção agora"
+                          : "Nenhum estabelecimento está em dia agora"
+                        : `Nenhum estabelecimento em “${descricaoRecorte}”`}
                   </p>
                   <p className="console__vazio-texto">
-                    A lista está filtrada por “{ROTULOS_FILTRO[filtroSituacao]}”.
+                    A lista está filtrada por “{descricaoRecorte}”.
                   </p>
-                  <button type="button" className="console__novo" onClick={() => escolherFiltro("todos")}>
+                  <button type="button" className="console__novo" onClick={limparRecortes}>
                     Ver todos
                   </button>
                 </div>
