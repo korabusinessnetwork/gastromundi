@@ -49,10 +49,21 @@ vi.mock("@/lib/console", async () => {
 // A renovação pelo card usa o modal que já existe, e ele grava pela RPC
 // `confirmar_renovacao_assinatura`. Aqui interessa a PORTA (o card abre o
 // modal certo e trata o retorno), não a RPC — que tem teste próprio.
-const { mockConfirmarRenovacao } = vi.hoisted(() => ({ mockConfirmarRenovacao: vi.fn() }));
+// O histórico pelo card segue a mesma ideia: `listarPagamentosAssinatura` é
+// dublada porque quem a testa de verdade é `HistoricoPagamentosModal.test.jsx`.
+const { mockConfirmarRenovacao, mockListarPagamentos, mockEstornarPagamento } = vi.hoisted(() => ({
+  mockConfirmarRenovacao: vi.fn(),
+  mockListarPagamentos: vi.fn(),
+  mockEstornarPagamento: vi.fn(),
+}));
 vi.mock("@/lib/assinatura", async () => {
   const real = await vi.importActual("@/lib/assinatura");
-  return { ...real, confirmarRenovacaoAssinatura: mockConfirmarRenovacao };
+  return {
+    ...real,
+    confirmarRenovacaoAssinatura: mockConfirmarRenovacao,
+    listarPagamentosAssinatura: mockListarPagamentos,
+    estornarPagamentoAssinatura: mockEstornarPagamento,
+  };
 });
 
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
@@ -691,5 +702,152 @@ describe("ConsolePage — registrar pagamento pelo card", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(campo).toHaveValue("cafe");
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CONSOLE-UX rodada 5 — ver pagamentos direto do card
+//
+// A rodada 4 deixou o dono cobrar sem trocar de aba; conferir o que já foi
+// lançado (e desfazer um lançamento errado) ainda mandava para "Planos e
+// assinaturas". Aqui o que importa é a PORTA: quem ganha o botão, quem não
+// ganha, e o que a lista faz quando o histórico desfaz um pagamento.
+// ---------------------------------------------------------------------------
+describe("ConsolePage — ver pagamentos pelo card", () => {
+  const botaoPagamentos = (nome) =>
+    screen.queryByRole("button", { name: `Ver pagamentos de ${nome}` });
+
+  const PAGAMENTO = {
+    id: "pg1",
+    competencia: "2026-07-01",
+    valor: 249.9,
+    metodo: "Pix",
+    confirmado_por: "Plataforma",
+    confirmado_em: "2026-07-01T12:00:00.000Z",
+  };
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarPagamentos.mockReset();
+    mockEstornarPagamento.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    mockListarPagamentos.mockResolvedValue(ok([PAGAMENTO]));
+    mockEstornarPagamento.mockResolvedValue(ok({ id: "pg1" }));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("oferece o histórico em quem tem assinatura, mesmo estando em dia", async () => {
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(botaoPagamentos("Bar do Zé")).toBeInTheDocument();
+    expect(botaoPagamentos("Café Central")).toBeInTheDocument();
+  });
+
+  it("não oferece o histórico em quem está sem assinatura", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok([ASSINATURAS[0]])); // t2 sem linha
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Café Central")).toBeInTheDocument();
+
+    expect(botaoPagamentos("Café Central")).not.toBeInTheDocument();
+    expect(botaoPagamentos("Bar do Zé")).toBeInTheDocument();
+  });
+
+  it("oferece o histórico em estabelecimento cancelado — é onde se confere o que foi pago", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok([
+      ASSINATURAS[0],
+      { tenant_id: "t2", valor_mensal: 249.9, data_vencimento: "2026-05-10", carencia_dias: 3, status: "cancelado" },
+    ]));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Café Central")).toBeInTheDocument();
+
+    expect(botaoPagamentos("Café Central")).toBeInTheDocument();
+  });
+
+  it("com a leitura das assinaturas quebrada, nenhum card oferece o histórico", async () => {
+    mockListarAssinaturas.mockResolvedValue(falhou());
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(botaoPagamentos("Bar do Zé")).not.toBeInTheDocument();
+    expect(botaoPagamentos("Café Central")).not.toBeInTheDocument();
+  });
+
+  it("abre o histórico do estabelecimento clicado", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Café Central")).toBeInTheDocument();
+
+    await user.click(botaoPagamentos("Café Central"));
+
+    const modal = await screen.findByRole("dialog", { name: "Pagamentos da assinatura" });
+    expect(modal).toBeInTheDocument();
+    // Consultou o tenant certo, e não o primeiro da lista.
+    expect(mockListarPagamentos).toHaveBeenCalledWith("t2");
+    expect(await within(modal).findByText("julho/2026")).toBeInTheDocument();
+  });
+
+  it("fechar o histórico não deixa faixa de sucesso nem recarrega a lista", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Café Central")).toBeInTheDocument();
+
+    await user.click(botaoPagamentos("Café Central"));
+    const modal = await screen.findByRole("dialog", { name: "Pagamentos da assinatura" });
+    const antes = mockListarEstabelecimentos.mock.calls.length;
+
+    // O modal tem dois "Fechar" (o X do cabeçalho e o do rodapé) — o do rodapé
+    // é o que o dono usa quando terminou de conferir.
+    const fechar = within(modal).getAllByRole("button", { name: "Fechar" });
+    await user.click(fechar[fechar.length - 1]);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Pagamentos da assinatura" })).not.toBeInTheDocument();
+    });
+    expect(mockListarEstabelecimentos.mock.calls.length).toBe(antes);
+    expect(mockEstornarPagamento).not.toHaveBeenCalled();
+  });
+
+  it("cancelar um pagamento recarrega a lista e mantém o histórico aberto", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Café Central")).toBeInTheDocument();
+
+    await user.click(botaoPagamentos("Café Central"));
+    const modal = await screen.findByRole("dialog", { name: "Pagamentos da assinatura" });
+    const antes = mockListarEstabelecimentos.mock.calls.length;
+
+    await user.click(within(modal).getByRole("button", { name: "Cancelar o pagamento de julho/2026" }));
+    await user.type(
+      within(modal).getByRole("textbox", { name: "Motivo do cancelamento de julho/2026" }),
+      "valor digitado errado",
+    );
+    await user.click(within(modal).getByRole("button", { name: "Cancelar o pagamento" }));
+
+    await waitFor(() => {
+      expect(mockListarEstabelecimentos.mock.calls.length).toBeGreaterThan(antes);
+    });
+    // O vencimento do card mudou por baixo, mas o dono continua no histórico.
+    expect(screen.getByRole("dialog", { name: "Pagamentos da assinatura" })).toBeInTheDocument();
+  });
+
+  it("abrir o histórico durante uma busca preserva o termo buscado", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Café Central")).toBeInTheDocument();
+
+    const campo = screen.getByLabelText("Buscar estabelecimento pelo nome");
+    await user.type(campo, "cafe");
+    await user.click(botaoPagamentos("Café Central"));
+
+    expect(await screen.findByRole("dialog", { name: "Pagamentos da assinatura" })).toBeInTheDocument();
+    expect(campo).toHaveValue("cafe");
+    expect(screen.queryByText("Bar do Zé")).not.toBeInTheDocument();
   });
 });

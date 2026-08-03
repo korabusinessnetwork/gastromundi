@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
-  LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote,
+  LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import {
@@ -18,6 +18,7 @@ import PlanosDashboard from "@/components/console/PlanosDashboard";
 import AnalyticsDashboard from "@/components/console/AnalyticsDashboard";
 import SeloStatus from "@/components/console/SeloStatus";
 import ConfirmarRenovacaoModal from "@/components/console/ConfirmarRenovacaoModal";
+import HistoricoPagamentosModal from "@/components/console/HistoricoPagamentosModal";
 import "./ConsolePage.css";
 
 /**
@@ -55,6 +56,9 @@ export default function ConsolePage() {
   // card. Guarda a LINHA, não o tenant, porque é o que o modal de renovação
   // já sabe consumir na outra aba.
   const [linhaRenovacao, setLinhaRenovacao] = useState(null);
+  // Linha cujo histórico de pagamentos está aberto. Mesmo formato do
+  // `linhaRenovacao` — os dois modais consomem a linha do `resumirPlataforma`.
+  const [linhaHistorico, setLinhaHistorico] = useState(null);
   const [addonsPorTenant, setAddonsPorTenant] = useState({});
   const [addonsMudaram, setAddonsMudaram] = useState(false);
   const [sucesso, setSucesso] = useState(null);
@@ -163,6 +167,11 @@ export default function ConsolePage() {
     setLinhaRenovacao(null);
     setSucesso({ nome, pagamentoAte: assinatura?.data_vencimento ?? null });
     carregar();
+  };
+
+  const aoVerPagamentos = (linha) => {
+    setSucesso(null);
+    setLinhaHistorico(linha);
   };
 
   // Sem catálogo de planos não há o que escolher no cadastro (o plano é
@@ -419,6 +428,12 @@ export default function ConsolePage() {
                   // o caminho é definir a mensalidade na aba de cobrança.
                   const podeCobrar =
                     idsPrecisamAtencao.has(t.id) && situacao?.status !== "sem_assinatura";
+                  // Histórico existe para qualquer um que tenha assinatura —
+                  // inclusive cancelado, que é onde mais se confere o que foi
+                  // pago antes. Sem assinatura não há o que listar, e com a
+                  // leitura quebrada não há nem `tenantId` para consultar.
+                  const temHistorico =
+                    !erroAssinaturas && !!situacao && situacao.status !== "sem_assinatura";
                   return (
                   // Botões IRMÃOS (não aninhados — HTML inválido): o card troca
                   // o plano, o botão de paleta troca o layout e o de peça
@@ -472,6 +487,18 @@ export default function ConsolePage() {
                         <span className="console__cobrar-nome">Registrar pagamento</span>
                       </button>
                     )}
+                    {temHistorico && (
+                      <button
+                        type="button"
+                        className="console__pagamentos"
+                        onClick={() => aoVerPagamentos(situacao)}
+                        aria-label={`Ver pagamentos de ${t.nome}`}
+                        title="Ver os pagamentos já lançados e cancelar um lançamento errado"
+                      >
+                        <LuReceipt size={17} aria-hidden />
+                        <span className="console__pagamentos-nome">Pagamentos</span>
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="console__layout"
@@ -518,6 +545,18 @@ export default function ConsolePage() {
           confirmadoPor={currentUser?.name ?? null}
           onFechar={() => setLinhaRenovacao(null)}
           onConfirmado={aoPagamentoConfirmado}
+        />
+      )}
+
+      {linhaHistorico && (
+        <HistoricoPagamentosModal
+          linha={linhaHistorico}
+          confirmadoPor={currentUser?.name ?? null}
+          onFechar={() => setLinhaHistorico(null)}
+          // Estornar mexe em `data_vencimento` e `status`: sem recarregar, o
+          // card atrás do modal seguiria mostrando o vencimento antigo. O
+          // modal fica aberto — a lista dele já se atualiza sozinha.
+          onEstornado={() => carregar()}
         />
       )}
 

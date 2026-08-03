@@ -185,9 +185,12 @@
 }
 .console__item .console__card--clicavel { flex: 1; min-width: 0; }
 
-/* Botões laterais do item (layout e add-ons) — mesmo idioma visual do card
-   clicável, para que os três se leiam como um bloco só. */
+/* Botões laterais do item (cobrar, pagamentos, layout e add-ons) — mesmo
+   idioma visual do card clicável, para que se leiam como um bloco só. Só
+   "cobrar" foge do neutro, logo abaixo: é ação urgente, os outros são
+   consulta ou ajuste. */
 .console__cobrar,
+.console__pagamentos,
 .console__layout,
 .console__addons {
   display: flex;
@@ -206,12 +209,14 @@
   flex-shrink: 0;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
+.console__pagamentos:hover,
 .console__layout:hover,
 .console__addons:hover {
   border-color: var(--gm-accent);
   background: var(--gm-surface);
   color: var(--gm-accent);
 }
+.console__pagamentos:focus-visible,
 .console__layout:focus-visible,
 .console__addons:focus-visible {
   outline: 2px solid var(--gm-accent);
@@ -219,7 +224,8 @@
 }
 .console__layout-nome,
 .console__addons-nome,
-.console__cobrar-nome {
+.console__cobrar-nome,
+.console__pagamentos-nome {
   font-size: 11px;
   font-weight: 700;
   max-width: 110px;
@@ -362,6 +368,7 @@
   .console__item { flex-wrap: wrap; }
   .console__item .console__card--clicavel { flex: 1 1 100%; }
   .console__cobrar,
+  .console__pagamentos,
   .console__layout,
   .console__addons { flex: 1 1 0; min-width: 0; }
 }

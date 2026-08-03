@@ -2,6 +2,21 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 31 — CONSOLE-UX 5 (histórico do card) — 2026-08-02
+- Spec: specs/console-historico-do-card.md
+- Resultado da review: aprovado sem ressalvas (8/8, suíte 198 arquivos / 3180 testes)
+- O quê: botão "Pagamentos" no card, abrindo o `HistoricoPagamentosModal` que já
+  existia. Fecha o ciclo cobrar/conferir/desfazer sem sair da aba. Aparece em quem
+  tem assinatura, inclusive cancelado; some com a leitura quebrada. Estornar
+  recarrega a lista e mantém o histórico aberto.
+- Aprendido: memory/learnings.md — reusar componente num segundo lugar é redecidir
+  os callbacks, não copiá-los; cada `on*` existe para um estado do chamador anterior.
+- Commit: (ver commit desta rodada) na branch main
+- Pendente de decisão: estabelecimento de cortesia (`valor_mensal = 0`) segue sem
+  poder renovar — a RPC recusa `p_valor <= 0`.
+- Próximo item recomendado: CONSOLE-UX 6 — filtro por situação na lista (ver só quem
+  está bloqueado / vencendo), que é a pergunta que sobra quando a base cresce.
+
 ## Rodada 30 — CONSOLE-UX 4 (cobrar do card) — 2026-08-02
 - Spec: specs/console-cobrar-do-card.md
 - Resultado da review: aprovado sem ressalvas (9/9, suíte 198 arquivos / 3172 testes)
