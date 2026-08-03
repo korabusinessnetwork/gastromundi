@@ -2,6 +2,36 @@
 
 Uma seção por rodada, mais recente no topo. Escrito pelo passo 8 do `/ciclo`.
 
+## Rodada 27 — CONSOLE-UX 1 (situação da cobrança na lista) — 2026-08-02
+- Spec: specs/console-situacao-na-lista.md
+- Resultado da review: **aprovada sem ressalvas** — 9 de 9 critérios, zero rodadas de correção.
+- Suíte: 198 arquivos / 3134 testes verdes (71.75s).
+- O quê: a aba Estabelecimentos passou a mostrar o selo de situação da assinatura e a data
+  de vencimento no próprio card, calculados por `resumirPlataforma` (a mesma função da aba
+  "Planos e assinaturas"). Falha de leitura mostra "Situação indisponível" em vez de um selo
+  inventado. O selo virou `src/components/console/SeloStatus.jsx` + `.css`, usado pelas duas abas.
+- Aprendido: `memory/patterns.md` ("Rótulo de status é componente, nunca cópia entre telas");
+  nota da melhoria em `docs/09_BACKLOG/features.md` (F022).
+- Commit: `7ee38d3` na `main` (push feito, sem pull request).
+- Pendente de decisão: nenhuma nova. Segue aberta a do estabelecimento de **cortesia**
+  (`valor_mensal = 0` não renova) registrada abaixo.
+- Próximo item recomendado: **CONSOLE-UX 2** — ordenar a lista de estabelecimentos por
+  urgência, para quem precisa de ação aparecer no topo em vez de se esconder no meio da base.
+
+## Rodada 26 — PDV do primeiro dia (catálogo vazio) — 2026-08-02
+- Estabelecimento recém-provisionado abria o PDV com "Nenhum produto nesta categoria" — frase
+  falsa (não há categoria nenhuma) e sem próximo passo, na primeira tela que o cliente comprado vê.
+  Agora o vazio de catálogo explica e aponta "Cadastro Produtos"; a barra de categorias com o
+  chip "Todos" sozinho some. Arquivos: `ProductGrid.jsx`/`.css`/`.test.jsx` (3 testes novos).
+- Suíte verde. Commit: `82eda42` na `main`.
+
+## Rodada 25 — Guard textual de `provisionar_tenant` — 2026-08-02
+- `src/lib/provisionamentoSqlGuard.test.js` (12 testes): a última migration que define
+  `provisionar_tenant` precisa continuar semeando assinatura, grupos de categoria e as 24
+  unidades de medida. Fecha a classe de regressão dos dois bugs do dia — cada `CREATE OR
+  REPLACE` reescreve o corpo inteiro e um seed já sumiu assim duas vezes.
+- Suíte verde. Commit: `7692de7` na `main`.
+
 ## Rodada 24 — F018 fatia 11 (primitivos e modal do Relatório) — 2026-08-02
 - Spec: specs/f018-relatorio-primitivos-css.md
 - Resultado da review: **aprovada sem ressalvas** — 15 de 15 critérios, zero rodadas de correção.
