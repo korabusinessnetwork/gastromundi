@@ -142,3 +142,14 @@ Aprendizados não documentados se perdem. Este arquivo captura o conhecimento t�
 | Data | Aprendizado | Lição / Ação |
 |------|-------------|--------------|
 | 2026-06 | O valor central do GastroMundi (integração a partir da venda) precisa ser sentido cedo: o usuário tem que ver uma venda no PDV se propagar para caixa, estoque e relatórios. | Priorizar o "aha moment" da venda-fonte no MVP (PDV → Caixa → Pedidos). |
+
+## Fluxo de criação do Console só é testável com a borda dublada (rodada 37)
+
+`ConsolePage.test.jsx` dubla `@/lib/console` com `...real` e só troca as
+leituras. Para chegar ao cartão de primeiro acesso pelo caminho de verdade
+(preencher o formulário e enviar) foi preciso somar
+`provisionarEstabelecimento` à lista dublada: ela é a única porta que cria
+`auth.users` e chamá-la de verdade num teste não faz sentido. A validação do
+formulário (`validarNovoEstabelecimento`) fica real de propósito — é ela que o
+teste exercita ao digitar. Da próxima vez que um teste do Console precisar
+passar pela criação, o mock já está pronto: `mockProvisionar`.

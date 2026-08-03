@@ -1000,3 +1000,49 @@ export function contarAddonsPorTenant(tenantAddons) {
   }
   return contagem;
 }
+
+/**
+ * Função PURA — monta a mensagem de primeiro acesso que o dono entrega ao
+ * cliente no minuto seguinte à venda (CONSOLE-UX 11).
+ *
+ * A senha NÃO entra aqui de propósito: ela foi digitada pelo dono no
+ * cadastro e não é relida de lugar nenhum. Área de transferência e
+ * histórico de conversa não são lugar de senha — a mensagem pede para
+ * mandá-la por outro canal.
+ *
+ * Nada de marca da plataforma no texto (decisão 017): a mensagem fala do
+ * estabelecimento criado, não de quem vende o sistema.
+ *
+ * Campo ausente some da mensagem em vez de virar "undefined" ou linha
+ * vazia — meia informação correta vale mais do que linha quebrada.
+ *
+ * @param {{estabelecimento?:string, plano?:string, endereco?:string, usuario?:string}} dados
+ * @returns {string} mensagem pronta para colar no WhatsApp/e-mail
+ */
+export function montarMensagemPrimeiroAcesso(dados = {}) {
+  const limpo = (v) => (typeof v === "string" ? v.trim() : "");
+  const estabelecimento = limpo(dados?.estabelecimento);
+  const plano = limpo(dados?.plano);
+  const endereco = limpo(dados?.endereco);
+  const usuario = limpo(dados?.usuario);
+
+  const cabecalho = [
+    estabelecimento ? `Acesso do ${estabelecimento}` : "Acesso ao sistema",
+    plano ? `Plano: ${plano}` : null,
+  ].filter(Boolean);
+
+  const acesso = [
+    endereco ? `Endereço: ${endereco}` : null,
+    usuario ? `Usuário: ${usuario}` : null,
+  ].filter(Boolean);
+
+  const senha = [
+    "Senha: a que foi definida no cadastro.",
+    "Por segurança, envie a senha em uma mensagem separada desta.",
+  ];
+
+  return [cabecalho, acesso, senha]
+    .filter((bloco) => bloco.length > 0)
+    .map((bloco) => bloco.join("\n"))
+    .join("\n\n");
+}

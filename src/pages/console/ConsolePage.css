@@ -448,3 +448,68 @@
   cursor: pointer;
 }
 .console__aviso-acao:hover { background: color-mix(in srgb, var(--gm-warn) 14%, transparent); }
+
+/* ── Cartão de primeiro acesso (CONSOLE-UX 11) ─────────────────── */
+/* Mesma família visual da faixa de sucesso, com corpo: é o que o dono
+   entrega ao cliente logo depois da venda. */
+.console__acesso {
+  padding: 16px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-green) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-green) 40%, transparent);
+  color: var(--gm-green);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.console__acesso-topo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.console__acesso-intro { flex: 1; }
+.console__acesso-titulo { margin: 0; }
+.console__acesso-titulo strong { color: var(--gm-text); }
+.console__acesso-texto {
+  margin: 4px 0 0;
+  color: var(--gm-muted);
+}
+.console__acesso-dados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px 18px;
+  margin: 14px 0 0;
+}
+.console__acesso-dados dt {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--gm-muted);
+}
+.console__acesso-dados dd {
+  margin: 2px 0 0;
+  color: var(--gm-text);
+  overflow-wrap: anywhere;
+}
+.console__acesso-acoes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+.console__acesso-ok { font-weight: 600; }
+.console__acesso-manual { margin-top: 14px; }
+.console__acesso-mensagem {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+}

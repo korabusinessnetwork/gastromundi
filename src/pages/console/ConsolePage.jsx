@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
   LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
+  LuCopy,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import {
@@ -10,7 +11,7 @@ import {
   listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma, ordenarPorUrgencia,
   filtrarEstabelecimentos, filtrarPorSituacao, FILTROS_SITUACAO, normalizarFiltroSituacao,
   normalizarAba, ABAS_CONSOLE, normalizarPeriodo, PERIODO_PADRAO,
-  filtrarPorPlano, normalizarFiltroPlano, contarPorPlano,
+  filtrarPorPlano, normalizarFiltroPlano, contarPorPlano, montarMensagemPrimeiroAcesso,
 } from "@/lib/console";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
@@ -76,6 +77,11 @@ export default function ConsolePage() {
   const [addonsPorTenant, setAddonsPorTenant] = useState({});
   const [addonsMudaram, setAddonsMudaram] = useState(false);
   const [sucesso, setSucesso] = useState(null);
+  // Estado do botão "Copiar dados de acesso" do cartão de primeiro acesso.
+  // `copiaFalhou` existe porque engolir a falha seria pior do que não ter o
+  // botão: o dono acharia que copiou e mandaria uma mensagem vazia.
+  const [copiado, setCopiado] = useState(false);
+  const [copiaFalhou, setCopiaFalhou] = useState(false);
   const [busca, setBusca] = useState("");
   // Recorte da lista por situação de cobrança: todos | atencao | em_dia.
   //
@@ -202,7 +208,12 @@ export default function ConsolePage() {
 
   const aoCriar = (data) => {
     setModalAberto(false);
-    setSucesso(data);
+    setCopiado(false);
+    setCopiaFalhou(false);
+    // `criado: true` distingue a criação das outras confirmações (plano,
+    // layout, pagamento, add-ons): só ela abre o cartão de primeiro acesso,
+    // as demais continuam na faixa de uma linha.
+    setSucesso({ ...data, criado: true });
     carregar();
   };
 
@@ -356,6 +367,31 @@ export default function ConsolePage() {
   // Uma volta só: o botão do vazio limpa os dois recortes de uma vez. Deixar
   // o dono clicar duas vezes para reaparecer a lista é o tipo de beco que o
   // Princípio nº1 pede para não existir.
+  // Cartão de primeiro acesso (CONSOLE-UX 11). O endereço sai do próprio
+  // navegador: é exatamente a porta por onde o dono acabou de entrar, e não
+  // depende de nenhuma URL escrita no código ou variável nova.
+  const enderecoDeEntrada = typeof window !== "undefined" ? window.location.origin : "";
+  const planoDoAcesso = sucesso?.plano_codigo ? rotularPlano(planos, sucesso.plano_codigo) : "";
+  const usuarioDoAcesso = sucesso?.admin?.username ?? "";
+  const mensagemDeAcesso = montarMensagemPrimeiroAcesso({
+    estabelecimento: sucesso?.nome,
+    plano: planoDoAcesso,
+    endereco: enderecoDeEntrada,
+    usuario: usuarioDoAcesso,
+  });
+  const copiarAcesso = async () => {
+    try {
+      await navigator.clipboard.writeText(mensagemDeAcesso);
+      setCopiaFalhou(false);
+      setCopiado(true);
+    } catch {
+      // Sem área de transferência (contexto não seguro, permissão negada): a
+      // tela mostra a mensagem para copiar à mão em vez de fingir que copiou.
+      setCopiado(false);
+      setCopiaFalhou(true);
+    }
+  };
+
   const limparRecortes = () => {
     setSearchParams(
       (atual) => {
@@ -505,7 +541,81 @@ export default function ConsolePage() {
               </div>
             )}
 
-            {sucesso && (
+            {sucesso?.criado ? (
+              <section className="console__acesso" aria-label="Dados de primeiro acesso">
+                <div className="console__acesso-topo">
+                  <LuCircleCheck size={18} aria-hidden />
+                  <div className="console__acesso-intro">
+                    <p className="console__acesso-titulo" role="status">
+                      <strong>{sucesso.nome}</strong> criado.
+                    </p>
+                    <p className="console__acesso-texto">
+                      Entregue estes dados ao responsável — é com eles que ele entra no sistema.
+                    </p>
+                  </div>
+                  <button
+                    className="console__sucesso-fechar"
+                    onClick={() => setSucesso(null)}
+                    aria-label="Dispensar"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <dl className="console__acesso-dados">
+                  <div>
+                    <dt>Estabelecimento</dt>
+                    <dd>{sucesso.nome}</dd>
+                  </div>
+                  {planoDoAcesso && (
+                    <div>
+                      <dt>Plano</dt>
+                      <dd>{planoDoAcesso}</dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt>Endereço de entrada</dt>
+                    <dd>{enderecoDeEntrada}</dd>
+                  </div>
+                  {usuarioDoAcesso && (
+                    <div>
+                      <dt>Usuário</dt>
+                      <dd>{usuarioDoAcesso}</dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt>Senha</dt>
+                    <dd>A que você definiu no cadastro. Mande em uma mensagem separada.</dd>
+                  </div>
+                </dl>
+
+                <div className="console__acesso-acoes">
+                  <button type="button" className="console__novo" onClick={copiarAcesso}>
+                    <LuCopy size={18} aria-hidden /> Copiar dados de acesso
+                  </button>
+                  {copiado && (
+                    <span className="console__acesso-ok" role="status">
+                      Copiado!
+                    </span>
+                  )}
+                </div>
+
+                {copiaFalhou && (
+                  <div className="console__acesso-manual">
+                    <p className="console__acesso-texto">
+                      Não deu para copiar sozinho. Selecione o texto abaixo e copie à mão:
+                    </p>
+                    <textarea
+                      className="console__acesso-mensagem"
+                      readOnly
+                      rows={7}
+                      value={mensagemDeAcesso}
+                      aria-label="Mensagem de primeiro acesso"
+                    />
+                  </div>
+                )}
+              </section>
+            ) : sucesso ? (
               <div className="console__sucesso" role="status">
                 <LuCircleCheck size={18} aria-hidden />
                 <span>
@@ -516,16 +626,13 @@ export default function ConsolePage() {
                   ) : sucesso.pagamentoAte ? (
                     <>Pagamento de <strong>{sucesso.nome}</strong> registrado. Vence agora
                     em <strong>{formatarVencimento(sucesso.pagamentoAte)}</strong>.</>
-                  ) : sucesso.addonsAtualizados ? (
-                    <>Add-ons de <strong>{sucesso.nome}</strong> atualizados.</>
                   ) : (
-                    <><strong>{sucesso.nome}</strong> criado. O responsável já pode entrar com o
-                    usuário <strong>{sucesso.admin?.username}</strong>.</>
+                    <>Add-ons de <strong>{sucesso.nome}</strong> atualizados.</>
                   )}
                 </span>
                 <button className="console__sucesso-fechar" onClick={() => setSucesso(null)} aria-label="Dispensar">×</button>
               </div>
-            )}
+            ) : null}
 
             {tenants.length === 0 ? (
               <div className="console__estado">

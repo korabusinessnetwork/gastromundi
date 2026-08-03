@@ -648,3 +648,26 @@ de terceiro e não deve entrar no histórico do navegador nem em link colado.
 Teste dessa família: `MemoryRouter` nunca toca `window.location` — o endereço só
 pode ser lido por um espião com `useLocation()` renderizado ao lado da tela
 (`EspiaoURL` em `ConsolePage.test.jsx`).
+
+## Botão que copia para a área de transferência (Console, rodada 37)
+
+O cartão de primeiro acesso copia a mensagem que o dono manda ao cliente logo
+depois da venda. O molde vale para qualquer botão de copiar:
+
+1. **O texto nasce de uma função pura** exportada
+   (`montarMensagemPrimeiroAcesso` em `src/lib/console.js`): o JSX não monta
+   string. Assim o teste de tela compara o que foi copiado com o retorno da
+   própria função — se ela mudar, a tela acompanha sozinha.
+2. **`navigator.clipboard.writeText` dentro de `try/catch`**, com dois estados
+   (`copiado` e `copiaFalhou`). Contexto não seguro e permissão negada existem;
+   engolir a falha é pior do que não ter o botão, porque o dono acha que copiou
+   e manda mensagem vazia. No `catch`, a tela mostra a mensagem num `textarea`
+   somente leitura para copiar à mão.
+3. **Senha nunca entra no texto copiado.** Ela é digitada no cadastro e não é
+   relida de lugar nenhum; a mensagem diz para enviá-la em outro canal. Área de
+   transferência e histórico de conversa não são lugar de senha.
+4. **Teste:** jsdom não tem área de transferência. Dublar depois do
+   `userEvent.setup()` com
+   `Object.defineProperty(window.navigator, "clipboard", { value: { writeText }, configurable: true })`
+   — e o caso de falha é `writeText.mockRejectedValue(...)`, que prova que a
+   tela não mente.

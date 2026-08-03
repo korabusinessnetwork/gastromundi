@@ -20,6 +20,7 @@ import {
   PERIODOS_ANALYTICS,
   resumirAddonsDoTenant,
   contarAddonsPorTenant,
+  montarMensagemPrimeiroAcesso,
   traduzirErroProvisionamento,
   ordenarPorUrgencia,
   filtrarEstabelecimentos,
@@ -1259,5 +1260,92 @@ describe("contarPorPlano", () => {
     for (const codigo of Object.keys(contagem)) {
       expect(filtrarPorPlano(BASE, codigo).length).toBe(contagem[codigo]);
     }
+  });
+});
+
+// CONSOLE-UX 11 — a mensagem que o dono entrega ao cliente logo depois de
+// vender. O que se prova aqui é o que ela NÃO diz tanto quanto o que diz:
+// senha nunca, marca da plataforma nunca, campo faltando some.
+describe("montarMensagemPrimeiroAcesso", () => {
+  const COMPLETO = {
+    estabelecimento: "Bar do Zé",
+    plano: "Básico",
+    endereco: "https://sistema.exemplo.com",
+    usuario: "barze",
+  };
+
+  it("monta as três partes na ordem: quem, onde entrar, aviso da senha", () => {
+    expect(montarMensagemPrimeiroAcesso(COMPLETO)).toBe(
+      "Acesso do Bar do Zé\nPlano: Básico\n\n" +
+        "Endereço: https://sistema.exemplo.com\nUsuário: barze\n\n" +
+        "Senha: a que foi definida no cadastro.\n" +
+        "Por segurança, envie a senha em uma mensagem separada desta."
+    );
+  });
+
+  it("não carrega senha nenhuma além do aviso", () => {
+    const texto = montarMensagemPrimeiroAcesso({ ...COMPLETO, senha: "s3nh4-secreta" });
+    expect(texto).not.toContain("s3nh4-secreta");
+  });
+
+  it("não cita a plataforma — a mensagem é do estabelecimento (decisão 017)", () => {
+    const texto = montarMensagemPrimeiroAcesso(COMPLETO);
+    expect(texto).not.toMatch(/gastromundi/i);
+    expect(texto).not.toMatch(/kora/i);
+  });
+
+  it("plano ausente não vira linha vazia nem 'undefined'", () => {
+    const texto = montarMensagemPrimeiroAcesso({ ...COMPLETO, plano: undefined });
+    expect(texto).not.toContain("undefined");
+    expect(texto).not.toMatch(/^Plano:/m);
+    expect(texto.startsWith("Acesso do Bar do Zé\n\nEndereço:")).toBe(true);
+  });
+
+  it("usuário ausente tira só a linha do usuário", () => {
+    const texto = montarMensagemPrimeiroAcesso({ ...COMPLETO, usuario: "" });
+    expect(texto).toContain("Endereço: https://sistema.exemplo.com");
+    expect(texto).not.toMatch(/^Usuário:/m);
+  });
+
+  it("sem endereço e sem usuário, o bloco do meio some inteiro", () => {
+    const texto = montarMensagemPrimeiroAcesso({ estabelecimento: "Bar do Zé", plano: "Básico" });
+    expect(texto).toBe(
+      "Acesso do Bar do Zé\nPlano: Básico\n\n" +
+        "Senha: a que foi definida no cadastro.\n" +
+        "Por segurança, envie a senha em uma mensagem separada desta."
+    );
+  });
+
+  it("sem nome do estabelecimento ainda dá uma mensagem utilizável", () => {
+    const texto = montarMensagemPrimeiroAcesso({ endereco: "https://x.com", usuario: "ana" });
+    expect(texto.startsWith("Acesso ao sistema\n\n")).toBe(true);
+    expect(texto).toContain("Usuário: ana");
+  });
+
+  it("espaço em volta some; valor que não é texto é tratado como ausente", () => {
+    const texto = montarMensagemPrimeiroAcesso({
+      estabelecimento: "  Café Central  ",
+      usuario: 42,
+      endereco: null,
+    });
+    expect(texto).toContain("Acesso do Café Central");
+    expect(texto).not.toContain("42");
+    expect(texto).not.toContain("null");
+  });
+
+  it("nome com aspas, acento ou emoji sai como está, sem escape inventado", () => {
+    const texto = montarMensagemPrimeiroAcesso({ estabelecimento: 'Padaria "São João" 🥐' });
+    expect(texto).toContain('Acesso do Padaria "São João" 🥐');
+  });
+
+  it("sem nenhum dado devolve o aviso da senha, não string vazia", () => {
+    expect(montarMensagemPrimeiroAcesso()).toContain("Senha: a que foi definida no cadastro.");
+    expect(montarMensagemPrimeiroAcesso(null)).toContain("Acesso ao sistema");
+  });
+
+  it("é pura: não altera o objeto recebido", () => {
+    const entrada = { ...COMPLETO };
+    montarMensagemPrimeiroAcesso(entrada);
+    expect(entrada).toEqual(COMPLETO);
   });
 });

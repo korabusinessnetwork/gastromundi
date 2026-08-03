@@ -71,7 +71,10 @@ export default function NovoEstabelecimentoModal({ planos, onFechar, onCriado })
       setErroServidor(campo ? aviso : [mensagem, aviso].filter(Boolean).join(" "));
       return;
     }
-    onCriado(data);
+    // O plano vai junto porque quem o conhece com certeza é o formulário — o
+    // cartão de primeiro acesso do Console precisa dele para dizer ao cliente
+    // o que ele contratou, sem depender do formato da resposta da borda.
+    onCriado({ ...data, plano_codigo: planoCodigo });
   };
 
   return createPortal(

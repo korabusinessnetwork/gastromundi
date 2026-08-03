@@ -27,10 +27,15 @@ vi.mock("@/lib/supabase", async () => {
 
 // Só as três leituras são dubladas; `resumirPlataforma` fica REAL, senão o
 // teste não prova nada sobre o que a tela calcula a partir delas.
-const { mockListarEstabelecimentos, mockListarPlanos, mockListarAssinaturas, banco } = vi.hoisted(() => ({
+// `provisionarEstabelecimento` entra na lista porque é a única porta que cria
+// `auth.users` — chamá-la de verdade num teste não faria sentido. O cartão de
+// primeiro acesso (CONSOLE-UX 11) precisa dela para chegar até a tela de
+// sucesso pelo caminho real: preencher o formulário e enviar.
+const { mockListarEstabelecimentos, mockListarPlanos, mockListarAssinaturas, mockProvisionar, banco } = vi.hoisted(() => ({
   mockListarEstabelecimentos: vi.fn(),
   mockListarPlanos: vi.fn(),
   mockListarAssinaturas: vi.fn(),
+  mockProvisionar: vi.fn(),
   // Holder mutável em vez de vi.fn(): os `mockReset()` dos beforeEach
   // existentes não apagam esta leitura, que toda aba faz.
   banco: { addons: [], erroAddons: null },
@@ -42,6 +47,7 @@ vi.mock("@/lib/console", async () => {
     listarEstabelecimentos: mockListarEstabelecimentos,
     listarPlanos: mockListarPlanos,
     listarAssinaturas: mockListarAssinaturas,
+    provisionarEstabelecimento: mockProvisionar,
     listarAddonsPorTenant: async () =>
       banco.erroAddons ? { data: [], error: banco.erroAddons } : { data: banco.addons, error: null },
   };
@@ -67,6 +73,7 @@ vi.mock("@/lib/assinatura", async () => {
   };
 });
 
+import { montarMensagemPrimeiroAcesso } from "@/lib/console";
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
 import ConsolePage from "./ConsolePage";
 
@@ -1577,5 +1584,140 @@ describe("ConsolePage — o recorte por plano", () => {
 
     const botoes = within(linhaPlanos()).getAllByRole("button");
     expect(botoes.map((b) => b.textContent)).toEqual(["Todos os planos3", "Food Truck0", "Rede0"]);
+  });
+});
+
+// CONSOLE-UX 11 — o minuto seguinte à venda: o dono acabou de criar o
+// estabelecimento e precisa mandar o acesso para o cliente. O cartão é
+// exercitado pela porta de verdade (preencher e enviar o formulário de
+// criação), não injetando estado na página.
+describe("ConsolePage — o cartão de primeiro acesso", () => {
+  const RESPOSTA = { nome: "Bar do Zé", admin: { username: "barze" } };
+
+  // A mensagem esperada é a da própria função pura: se ela mudar, o teste
+  // acompanha; o que se prova aqui é que a tela copia EXATAMENTE o que ela
+  // devolve, e não um texto montado à parte no JSX.
+  const mensagemEsperada = () =>
+    montarMensagemPrimeiroAcesso({
+      estabelecimento: "Bar do Zé",
+      plano: "Avançado",
+      endereco: window.location.origin,
+      usuario: "barze",
+    });
+
+  const prepararTela = () => {
+    const user = userEvent.setup();
+    const escrever = vi.fn().mockResolvedValue(undefined);
+    // Área de transferência dublada depois do setup: em jsdom ela não existe
+    // de verdade, e é justamente a chamada que precisamos observar.
+    Object.defineProperty(window.navigator, "clipboard", {
+      value: { writeText: escrever },
+      configurable: true,
+    });
+    renderWithProviders(<ConsolePage />);
+    return { user, escrever };
+  };
+
+  const criarEstabelecimento = async (user) => {
+    await user.click(await screen.findByRole("button", { name: /Novo estabelecimento/i }));
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
+    await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
+    await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+    await user.click(screen.getByRole("button", { name: /^Criar estabelecimento$/i }));
+    return screen.findByRole("region", { name: /Dados de primeiro acesso/i });
+  };
+
+  const cartao = () => screen.queryByRole("region", { name: /Dados de primeiro acesso/i });
+  const dado = (rotulo) => {
+    const dt = screen.getByText(rotulo, { selector: "dt" });
+    return dt.parentElement.querySelector("dd")?.textContent;
+  };
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockProvisionar.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    mockProvisionar.mockResolvedValue({ data: RESPOSTA, error: null });
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("depois de criar, mostra os dados que o cliente precisa para entrar", async () => {
+    const { user } = prepararTela();
+    await criarEstabelecimento(user);
+
+    expect(dado("Estabelecimento")).toBe("Bar do Zé");
+    expect(dado("Usuário")).toBe("barze");
+    // O plano vem do formulário (pré-selecionado no mais completo) e aparece
+    // pelo NOME, não pelo código.
+    expect(dado("Plano")).toBe("Avançado");
+    expect(dado("Endereço de entrada")).toBe(window.location.origin);
+    expect(screen.getByRole("button", { name: /Copiar dados de acesso/i })).toBeInTheDocument();
+  });
+
+  it("a senha nunca aparece na tela — só a instrução de mandá-la em separado", async () => {
+    const { user } = prepararTela();
+    await criarEstabelecimento(user);
+
+    expect(dado("Senha")).toMatch(/definiu no cadastro/i);
+    expect(screen.queryByText(/senha-forte-123/)).not.toBeInTheDocument();
+  });
+
+  it("copiar põe a mensagem pronta na área de transferência e confirma na tela", async () => {
+    const { user, escrever } = prepararTela();
+    await criarEstabelecimento(user);
+
+    expect(screen.queryByText("Copiado!")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Copiar dados de acesso/i }));
+
+    expect(escrever).toHaveBeenCalledTimes(1);
+    const texto = escrever.mock.calls[0][0];
+    expect(texto).toBe(mensagemEsperada());
+    expect(texto).not.toContain("senha-forte-123");
+    expect(await screen.findByText("Copiado!")).toBeInTheDocument();
+  });
+
+  it("cópia que falha não mente: mostra o texto para copiar à mão", async () => {
+    const { user, escrever } = prepararTela();
+    escrever.mockRejectedValue(new Error("permissão negada"));
+    await criarEstabelecimento(user);
+
+    await user.click(screen.getByRole("button", { name: /Copiar dados de acesso/i }));
+
+    const caixa = await screen.findByLabelText("Mensagem de primeiro acesso");
+    expect(caixa).toHaveValue(mensagemEsperada());
+    expect(screen.queryByText("Copiado!")).not.toBeInTheDocument();
+  });
+
+  it("o cartão é dispensável", async () => {
+    const { user } = prepararTela();
+    await criarEstabelecimento(user);
+
+    await user.click(screen.getByRole("button", { name: "Dispensar" }));
+    expect(cartao()).not.toBeInTheDocument();
+  });
+
+  it("resposta sem usuário não vira 'undefined' na tela", async () => {
+    mockProvisionar.mockResolvedValue({ data: { nome: "Bar do Zé" }, error: null });
+    const { user } = prepararTela();
+    await criarEstabelecimento(user);
+
+    expect(screen.queryByText("Usuário", { selector: "dt" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
+    expect(dado("Estabelecimento")).toBe("Bar do Zé");
+  });
+
+  it("começar outra ação fecha o cartão — a tela não acumula dois avisos", async () => {
+    const { user } = prepararTela();
+    await criarEstabelecimento(user);
+
+    await user.click(screen.getByRole("button", { name: /^Café Central/ }));
+    expect(cartao()).not.toBeInTheDocument();
   });
 });
