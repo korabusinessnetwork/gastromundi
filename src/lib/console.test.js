@@ -21,6 +21,7 @@ import {
   resumirAddonsDoTenant,
   contarAddonsPorTenant,
   traduzirErroProvisionamento,
+  ordenarPorUrgencia,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -762,5 +763,108 @@ describe("traduzirErroProvisionamento", () => {
         aviso: "",
       });
     }
+  });
+});
+
+describe("ordenarPorUrgencia", () => {
+  const linha = (tenantId, status, diasParaVencer = null) => ({ tenantId, status, diasParaVencer });
+  const ids = (lista) => lista.map((t) => t.id);
+
+  it("põe quem precisa de ação no topo, na ordem sem assinatura → bloqueado → carência → vencendo", () => {
+    const tenants = [
+      { id: "folgado" },
+      { id: "vencendo" },
+      { id: "carencia" },
+      { id: "bloqueado" },
+      { id: "sem" },
+    ];
+    const linhas = [
+      linha("folgado", "ativo", 40),
+      linha("vencendo", "ativo", 3),
+      linha("carencia", "carencia", -2),
+      linha("bloqueado", "bloqueado", -30),
+      linha("sem", "sem_assinatura"),
+    ];
+    expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual([
+      "sem",
+      "bloqueado",
+      "carencia",
+      "vencendo",
+      "folgado",
+    ]);
+  });
+
+  it("dentro do mesmo status, quem vence antes vem primeiro", () => {
+    const tenants = [{ id: "b" }, { id: "a" }, { id: "c" }];
+    const linhas = [
+      linha("b", "ativo", 4),
+      linha("a", "ativo", 0),
+      linha("c", "ativo", 2),
+    ];
+    expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual(["a", "c", "b"]);
+  });
+
+  it("mantém a ordem original de quem não precisa de atenção", () => {
+    const tenants = [{ id: "x" }, { id: "y" }, { id: "urgente" }, { id: "z" }];
+    const linhas = [
+      linha("x", "ativo", 30),
+      linha("y", "cancelado", -100),
+      linha("urgente", "bloqueado", -9),
+      linha("z", "ativo", 60),
+    ];
+    expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual(["urgente", "x", "y", "z"]);
+  });
+
+  it("empate total cai na ordem original — a lista não dança entre renders", () => {
+    const tenants = [{ id: "primeiro" }, { id: "segundo" }];
+    const linhas = [linha("primeiro", "carencia", -3), linha("segundo", "carencia", -3)];
+    expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual(["primeiro", "segundo"]);
+    // e ao contrário, para provar que é a ordem de entrada e não o id
+    expect(ids(ordenarPorUrgencia([...tenants].reverse(), linhas))).toEqual([
+      "segundo",
+      "primeiro",
+    ]);
+  });
+
+  it("cancelado não sobe: é decisão já resolvida, não pendência", () => {
+    const tenants = [{ id: "ativo" }, { id: "cancelado" }];
+    const linhas = [linha("ativo", "ativo", 20), linha("cancelado", "cancelado", -50)];
+    expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual(["ativo", "cancelado"]);
+  });
+
+  it("tenant sem linha de situação fica onde estava, sem quebrar", () => {
+    const tenants = [{ id: "orfao" }, { id: "sem" }];
+    const linhas = [linha("sem", "sem_assinatura")];
+    expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual(["sem", "orfao"]);
+  });
+
+  it("é pura: não altera os arrays recebidos", () => {
+    const tenants = [{ id: "a" }, { id: "b" }];
+    const linhas = [linha("a", "ativo", 40), linha("b", "bloqueado", -1)];
+    const copia = [...tenants];
+    ordenarPorUrgencia(tenants, linhas);
+    expect(tenants).toEqual(copia);
+    expect(tenants[0].id).toBe("a");
+  });
+
+  it("aguenta lista vazia, um só item e argumentos ausentes", () => {
+    expect(ordenarPorUrgencia([], [])).toEqual([]);
+    expect(ordenarPorUrgencia()).toEqual([]);
+    expect(ids(ordenarPorUrgencia([{ id: "unico" }], []))).toEqual(["unico"]);
+  });
+
+  it("usa a mesma régua do alerta de validade de resumirPlataforma", () => {
+    const HOJE = new Date("2026-03-10T12:00:00Z");
+    const tenants = [
+      { id: "t1", nome: "Folgado", plano_codigo: "basico" },
+      { id: "t2", nome: "Vencendo", plano_codigo: "basico" },
+    ];
+    const assinaturas = [
+      { tenant_id: "t1", valor_mensal: 100, data_vencimento: "2026-12-01", carencia_dias: 5, status: "ativo" },
+      { tenant_id: "t2", valor_mensal: 100, data_vencimento: "2026-03-12", carencia_dias: 5, status: "ativo" },
+    ];
+    const { linhas, precisamAtencao } = resumirPlataforma(tenants, [], assinaturas, HOJE);
+    expect(precisamAtencao.map((l) => l.tenantId)).toEqual(["t2"]);
+    expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual(["t2", "t1"]);
   });
 });

@@ -361,3 +361,83 @@ describe("ConsolePage — situação da cobrança no card", () => {
     expect(within(cardDe("Café Central")).getByText("Situação indisponível")).toBeInTheDocument();
   });
 });
+
+describe("ConsolePage — ordem da lista por urgência", () => {
+  // data_vencimento é `date` puro: monta a string pelo calendário local.
+  const emDias = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const nomesNaOrdem = () =>
+    screen.getAllByRole("listitem").map((li) => li.querySelector(".console__card-nome")?.textContent);
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("põe quem precisa de ação no topo, mesmo vindo depois do banco", async () => {
+    // t2 (segundo na lista do banco) está bloqueado: venceu há 30 dias.
+    mockListarAssinaturas.mockResolvedValue(ok([
+      ASSINATURAS[0],
+      { tenant_id: "t2", valor_mensal: 249.9, data_vencimento: emDias(-30), carencia_dias: 3, status: "ativo" },
+    ]));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(nomesNaOrdem()).toEqual(["Café Central", "Bar do Zé"]);
+  });
+
+  it("explica a ordem com o número de quem precisa de atenção", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok([
+      ASSINATURAS[0],
+      { tenant_id: "t2", valor_mensal: 249.9, data_vencimento: emDias(-30), carencia_dias: 3, status: "ativo" },
+    ]));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(
+      screen.getByText("1 estabelecimento precisa de atenção e aparece primeiro.")
+    ).toBeInTheDocument();
+  });
+
+  it("usa o plural quando mais de um precisa de atenção", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok([
+      { tenant_id: "t1", valor_mensal: 149.9, data_vencimento: emDias(2), carencia_dias: 3, status: "ativo" },
+      { tenant_id: "t2", valor_mensal: 249.9, data_vencimento: emDias(-30), carencia_dias: 3, status: "ativo" },
+    ]));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(
+      screen.getByText("2 estabelecimentos precisam de atenção e aparecem primeiro.")
+    ).toBeInTheDocument();
+    // bloqueado vem antes de quem só está vencendo
+    expect(nomesNaOrdem()).toEqual(["Café Central", "Bar do Zé"]);
+  });
+
+  it("base toda em dia: mantém a ordem do banco e não mostra legenda", async () => {
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé", "Café Central"]);
+    expect(screen.queryByText(/precisa[m]? de atenção/)).not.toBeInTheDocument();
+  });
+
+  it("com a leitura das assinaturas quebrada, não reordena nem afirma nada", async () => {
+    mockListarAssinaturas.mockResolvedValue(falhou("RLS negou"));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    expect(nomesNaOrdem()).toEqual(["Bar do Zé", "Café Central"]);
+    expect(screen.queryByText(/precisa[m]? de atenção/)).not.toBeInTheDocument();
+  });
+});

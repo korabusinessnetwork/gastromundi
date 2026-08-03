@@ -6,7 +6,7 @@ import {
 import { useApp } from "@/context/AppContext";
 import {
   listarEstabelecimentos, listarPlanos, listarAssinaturas,
-  listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma,
+  listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma, ordenarPorUrgencia,
 } from "@/lib/console";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
@@ -158,10 +158,20 @@ export default function ConsolePage() {
   // diferentes acabariam mostrando "Ativo" aqui e "Em atraso" ali para o
   // mesmo estabelecimento, e o dono não teria como saber qual acreditar.
   // Sem consulta nova — `carregar()` já traz as assinaturas.
-  const situacaoPorTenant = useMemo(() => {
-    const { linhas } = resumirPlataforma(tenants, planos, assinaturas);
-    return new Map(linhas.map((l) => [l.tenantId, l]));
-  }, [tenants, planos, assinaturas]);
+  //
+  // A mesma passada resolve a ORDEM da lista: quem precisa de ação sobe
+  // para o topo (`ordenarPorUrgencia`, a régua do alerta de validade), para
+  // o bloqueado não se esconder no meio da base conforme ela cresce. Com a
+  // leitura das assinaturas quebrada não há dado para ordenar: mantém a
+  // ordem do banco e não afirma nada — sem legenda.
+  const { situacaoPorTenant, tenantsOrdenados, quantosPrecisamAtencao } = useMemo(() => {
+    const { linhas, precisamAtencao } = resumirPlataforma(tenants, planos, assinaturas);
+    return {
+      situacaoPorTenant: new Map(linhas.map((l) => [l.tenantId, l])),
+      tenantsOrdenados: erroAssinaturas ? tenants : ordenarPorUrgencia(tenants, linhas),
+      quantosPrecisamAtencao: erroAssinaturas ? 0 : precisamAtencao.length,
+    };
+  }, [tenants, planos, assinaturas, erroAssinaturas]);
 
   return (
     <div className="console">
@@ -322,8 +332,18 @@ export default function ConsolePage() {
                 </button>
               </div>
             ) : (
+              <>
+                {/* A ordem da lista não pode ser mágica: se algo subiu para o
+                    topo, a tela diz quantos são e por quê. */}
+                {quantosPrecisamAtencao > 0 && (
+                  <p className="console__ordem-aviso">
+                    {quantosPrecisamAtencao === 1
+                      ? "1 estabelecimento precisa de atenção e aparece primeiro."
+                      : `${quantosPrecisamAtencao} estabelecimentos precisam de atenção e aparecem primeiro.`}
+                  </p>
+                )}
               <ul className="console__lista">
-                {tenants.map((t) => {
+                {tenantsOrdenados.map((t) => {
                   const situacao = situacaoPorTenant.get(t.id);
                   return (
                   // Botões IRMÃOS (não aninhados — HTML inválido): o card troca
@@ -390,6 +410,7 @@ export default function ConsolePage() {
                   );
                 })}
               </ul>
+              </>
             )}
           </>
         )}

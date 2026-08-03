@@ -283,6 +283,14 @@
 .console__card-vencimento { font-size: 12px; color: var(--gm-muted); }
 .console__card-sem-situacao { font-size: 12px; color: var(--gm-muted); font-style: italic; }
 
+/* Explica a ordem da lista (quem precisa de ação vem primeiro) — sem isso a
+   reordenação parece aleatória para quem já conhecia a ordem antiga. */
+.console__ordem-aviso {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
 .console__plano {
   padding: 5px 12px;
   border-radius: 999px;

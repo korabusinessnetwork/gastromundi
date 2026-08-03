@@ -98,6 +98,58 @@ export async function listarAssinaturas() {
 // mesmo status, ordena por dias a vencer.
 const URGENCIA_STATUS = { sem_assinatura: 0, bloqueado: 1, carencia: 2, ativo: 3 };
 
+/** Janela do "vencendo em breve" (espelha o banner do tenant). */
+const VENCE_EM_DIAS = 5;
+
+/**
+ * Uma linha de `resumirPlataforma` pede ação da plataforma agora?
+ * Régua única: o alerta de validade e a ordem da lista de estabelecimentos
+ * usam esta mesma função, para as duas telas nunca discordarem sobre quem
+ * é urgente. 'cancelado' fica de fora de propósito (decisão manual já
+ * resolvida, não pendência).
+ */
+function precisaAtencao(l) {
+  return (
+    l.status === "sem_assinatura" ||
+    l.status === "bloqueado" ||
+    l.status === "carencia" ||
+    (l.status === "ativo" && l.diasParaVencer != null && l.diasParaVencer <= VENCE_EM_DIAS)
+  );
+}
+
+/**
+ * Função PURA — reordena uma lista de estabelecimentos colocando quem
+ * precisa de ação no topo, na mesma ordem de urgência do alerta de
+ * validade (`precisamAtencao`). Quem não precisa de nada mantém a ordem
+ * original em que chegou; empate dentro do bloco urgente também cai na
+ * ordem original, para a lista não dançar entre renders.
+ *
+ * Não faz I/O e não muda os arrays recebidos.
+ *
+ * @param {Array<{id:string}>} itens estabelecimentos, na ordem do banco
+ * @param {Array<{tenantId:string, status:string, diasParaVencer:number|null}>} linhas saída de `resumirPlataforma`
+ * @returns {Array<object>} novo array com os mesmos itens, reordenados
+ */
+export function ordenarPorUrgencia(itens = [], linhas = []) {
+  const porId = new Map((linhas ?? []).map((l) => [l.tenantId, l]));
+  return (itens ?? [])
+    .map((item, indice) => ({ item, indice, linha: porId.get(item?.id) ?? null }))
+    .sort((a, b) => {
+      const urgenteA = a.linha && precisaAtencao(a.linha) ? 0 : 1;
+      const urgenteB = b.linha && precisaAtencao(b.linha) ? 0 : 1;
+      if (urgenteA !== urgenteB) return urgenteA - urgenteB;
+      if (urgenteA === 0) {
+        const porStatus =
+          (URGENCIA_STATUS[a.linha.status] ?? 9) - (URGENCIA_STATUS[b.linha.status] ?? 9);
+        if (porStatus !== 0) return porStatus;
+        const porDias = (a.linha.diasParaVencer ?? 0) - (b.linha.diasParaVencer ?? 0);
+        if (porDias !== 0) return porDias;
+      }
+      return a.indice - b.indice;
+    })
+    .map((x) => x.item);
+}
+
 /**
  * Função PURA — agrega tenants + planos + assinaturas na visão da
  * plataforma (dashboard do Console): status recalculado por tenant, KPIs,
@@ -120,8 +172,6 @@ const URGENCIA_STATUS = { sem_assinatura: 0, bloqueado: 1, carencia: 2, ativo: 3
  * @returns {{linhas:Array<object>, kpis:object, precisamAtencao:Array<object>, distribuicaoPlano:Array<object>}}
  */
 export function resumirPlataforma(tenants = [], planos = [], assinaturas = [], hoje = new Date()) {
-  const VENCE_EM_DIAS = 5; // janela do "vencendo em breve" (espelha o banner do tenant)
-
   const porTenant = new Map((assinaturas ?? []).map((a) => [a.tenant_id, a]));
   const nomePlano = new Map((planos ?? []).map((p) => [p.codigo, p.nome]));
 
@@ -181,12 +231,7 @@ export function resumirPlataforma(tenants = [], planos = [], assinaturas = [], h
   // 'cancelado' continua fora de propósito: é decisão manual da plataforma
   // (já resolvido), não pendência.
   const precisamAtencao = linhas
-    .filter((l) =>
-      l.status === "sem_assinatura" ||
-      l.status === "bloqueado" ||
-      l.status === "carencia" ||
-      (l.status === "ativo" && l.diasParaVencer != null && l.diasParaVencer <= VENCE_EM_DIAS)
-    )
+    .filter(precisaAtencao)
     .sort((a, b) =>
       (URGENCIA_STATUS[a.status] ?? 9) - (URGENCIA_STATUS[b.status] ?? 9) ||
       (a.diasParaVencer ?? 0) - (b.diasParaVencer ?? 0)
