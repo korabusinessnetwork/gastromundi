@@ -1,3 +1,11 @@
+## Rodada 34 — CONSOLE-UX 8 (a aba na URL) — 2026-08-02
+- Spec: specs/console-aba-na-url.md
+- Resultado da review: aprovado sem ressalvas (10 de 10) — suíte 198 arquivos / 3226 testes, verde
+- Aprendido: nada novo que passe no filtro — a rodada reusou o molde da 33 (normalizador puro + escrita que apaga o valor padrão + replace)
+- Commit: <preencher> na branch main
+- Pendente de decisão: cortesia (`valor_mensal = 0`) não consegue renovar — a RPC recusa `p_valor <= 0`
+- Próximo item recomendado: CONSOLE-UX 9 — o período da aba "Uso e faturamento" também na URL, fechando o último estado da tela que a recarga apaga
+
 ## Rodada 33 — CONSOLE-UX 7 (o recorte na URL) — 2026-08-02
 - Spec: specs/console-filtro-na-url.md
 - Resultado da review: aprovado sem ressalvas (10 de 10) — suíte 198 arquivos / 3214 testes, verde

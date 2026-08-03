@@ -1136,3 +1136,98 @@ describe("ConsolePage — o recorte escolhido fica na URL", () => {
     expect(atalhos()).not.toBeInTheDocument();
   });
 });
+
+describe("ConsolePage — a aba aberta fica na URL", () => {
+  const EspiaoURL = () => {
+    const loc = useLocation();
+    const navigate = useNavigate();
+    return (
+      <>
+        <span data-testid="url">{loc.pathname + loc.search}</span>
+        <button type="button" onClick={() => navigate(-1)}>
+          voltar-teste
+        </button>
+      </>
+    );
+  };
+  const url = () => screen.getByTestId("url").textContent;
+  const renderComEspiao = (route = "/console", anteriores = []) =>
+    render(
+      <MemoryRouter initialEntries={[...anteriores, route]} initialIndex={anteriores.length}>
+        <ConsolePage />
+        <EspiaoURL />
+      </MemoryRouter>
+    );
+  const abaBotao = (nome) => screen.getByRole("button", { name: new RegExp(nome, "i") });
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("abrir com ?aba=planos já mostra a aba de planos, sem clique", async () => {
+    renderComEspiao("/console?aba=planos");
+
+    expect(await screen.findByText("Receita mensal")).toBeInTheDocument();
+    expect(abaBotao("Planos e assinaturas")).toHaveClass("console__aba--ativa");
+  });
+
+  it("abrir com ?aba=uso já mostra a aba de uso", async () => {
+    renderComEspiao("/console?aba=uso");
+
+    expect(await screen.findByText("Mostrando os últimos")).toBeInTheDocument();
+    expect(abaBotao("Uso e faturamento")).toHaveClass("console__aba--ativa");
+  });
+
+  it("aba inventada na URL cai em Estabelecimentos — o Console nunca abre vazio", async () => {
+    renderComEspiao("/console?aba=PLANOS");
+
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+    expect(abaBotao("Estabelecimentos")).toHaveClass("console__aba--ativa");
+  });
+
+  it("clicar numa aba escreve o parâmetro; voltar para Estabelecimentos o remove", async () => {
+    const user = userEvent.setup();
+    renderComEspiao();
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(abaBotao("Planos e assinaturas"));
+    expect(url()).toBe("/console?aba=planos");
+
+    await user.click(abaBotao("Estabelecimentos"));
+    expect(url()).toBe("/console");
+  });
+
+  it("trocar de aba não empilha histórico: 'voltar' sai do Console", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console", ["/inicio"]);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(abaBotao("Planos e assinaturas"));
+    await user.click(abaBotao("Uso e faturamento"));
+    await user.click(abaBotao("Estabelecimentos"));
+
+    await user.click(screen.getByRole("button", { name: "voltar-teste" }));
+    expect(url()).toBe("/inicio");
+  });
+
+  it("aba e recorte de situação convivem: um não apaga o outro", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console?situacao=em_dia");
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await user.click(abaBotao("Planos e assinaturas"));
+    expect(url()).toContain("situacao=em_dia");
+    expect(url()).toContain("aba=planos");
+
+    await user.click(abaBotao("Estabelecimentos"));
+    expect(url()).toBe("/console?situacao=em_dia");
+  });
+});

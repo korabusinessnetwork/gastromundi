@@ -9,6 +9,7 @@ import {
   listarEstabelecimentos, listarPlanos, listarAssinaturas,
   listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma, ordenarPorUrgencia,
   filtrarEstabelecimentos, filtrarPorSituacao, FILTROS_SITUACAO, normalizarFiltroSituacao,
+  normalizarAba, ABAS_CONSOLE,
 } from "@/lib/console";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
 import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
@@ -60,7 +61,6 @@ export default function ConsolePage() {
   const [erroPlanos, setErroPlanos] = useState(false);
   const [erroAssinaturas, setErroAssinaturas] = useState(false);
   const [erroAddons, setErroAddons] = useState(false);
-  const [aba, setAba] = useState("estabelecimentos"); // 'estabelecimentos' | 'planos' | 'uso'
   const [modalAberto, setModalAberto] = useState(false);
   const [tenantSelecionado, setTenantSelecionado] = useState(null);
   const [tenantLayoutSelecionado, setTenantLayoutSelecionado] = useState(null);
@@ -102,6 +102,23 @@ export default function ConsolePage() {
         const proximo = new URLSearchParams(atual);
         if (f === "todos") proximo.delete("situacao");
         else proximo.set("situacao", f);
+        return proximo;
+      },
+      { replace: true }
+    );
+  };
+
+  // A aba aberta ('estabelecimentos' | 'planos' | 'uso') mora na URL pelo
+  // mesmo motivo, e escreve do mesmo jeito: a primeira aba apaga o parâmetro,
+  // as outras o escrevem, e nunca se empilha histórico. Aba e recorte
+  // convivem no mesmo endereço — cada escrita mexe só na própria chave.
+  const aba = normalizarAba(searchParams.get("aba"));
+  const escolherAba = (a) => {
+    setSearchParams(
+      (atual) => {
+        const proximo = new URLSearchParams(atual);
+        if (a === ABAS_CONSOLE[0]) proximo.delete("aba");
+        else proximo.set("aba", a);
         return proximo;
       },
       { replace: true }
@@ -305,21 +322,21 @@ export default function ConsolePage() {
           <button
             type="button"
             className={`console__aba${aba === "estabelecimentos" ? " console__aba--ativa" : ""}`}
-            onClick={() => setAba("estabelecimentos")}
+            onClick={() => escolherAba("estabelecimentos")}
           >
             <LuBuilding2 size={16} aria-hidden /> Estabelecimentos
           </button>
           <button
             type="button"
             className={`console__aba${aba === "planos" ? " console__aba--ativa" : ""}`}
-            onClick={() => setAba("planos")}
+            onClick={() => escolherAba("planos")}
           >
             <LuChartColumn size={16} aria-hidden /> Planos e assinaturas
           </button>
           <button
             type="button"
             className={`console__aba${aba === "uso" ? " console__aba--ativa" : ""}`}
-            onClick={() => setAba("uso")}
+            onClick={() => escolherAba("uso")}
           >
             <LuActivity size={16} aria-hidden /> Uso e faturamento
           </button>

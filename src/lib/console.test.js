@@ -26,6 +26,8 @@ import {
   filtrarPorSituacao,
   normalizarFiltroSituacao,
   FILTROS_SITUACAO,
+  normalizarAba,
+  ABAS_CONSOLE,
 } from "./console";
 
 describe("normalizarUsername", () => {
@@ -1036,6 +1038,42 @@ describe("normalizarFiltroSituacao", () => {
   it("o que ela devolve é sempre aceito por filtrarPorSituacao", () => {
     for (const bruto of ["atencao", "em_dia", "todos", "xpto", null]) {
       expect(FILTROS_SITUACAO).toContain(normalizarFiltroSituacao(bruto));
+    }
+  });
+});
+
+describe("normalizarAba", () => {
+  it("deixa passar as três seções do Console", () => {
+    expect(normalizarAba("estabelecimentos")).toBe("estabelecimentos");
+    expect(normalizarAba("planos")).toBe("planos");
+    expect(normalizarAba("uso")).toBe("uso");
+  });
+
+  it("valor desconhecido cai na primeira aba — Console nunca abre vazio", () => {
+    expect(normalizarAba("xpto")).toBe("estabelecimentos");
+    expect(normalizarAba("assinaturas")).toBe("estabelecimentos");
+  });
+
+  it("caixa diferente não passa: a URL é comparada como está escrita", () => {
+    expect(normalizarAba("PLANOS")).toBe("estabelecimentos");
+    expect(normalizarAba("Uso")).toBe("estabelecimentos");
+  });
+
+  it("ausente, vazio ou nulo cai na primeira aba", () => {
+    expect(normalizarAba(null)).toBe("estabelecimentos");
+    expect(normalizarAba(undefined)).toBe("estabelecimentos");
+    expect(normalizarAba("")).toBe("estabelecimentos");
+    expect(normalizarAba()).toBe("estabelecimentos");
+  });
+
+  it("parâmetro repetido (array) cai na primeira aba", () => {
+    expect(normalizarAba(["planos", "uso"])).toBe("estabelecimentos");
+    expect(normalizarAba(["planos"])).toBe("estabelecimentos");
+  });
+
+  it("o que ela devolve é sempre uma aba conhecida", () => {
+    for (const bruto of ["planos", "uso", "xpto", null, 7, {}]) {
+      expect(ABAS_CONSOLE).toContain(normalizarAba(bruto));
     }
   });
 });

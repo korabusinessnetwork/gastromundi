@@ -224,6 +224,25 @@ export function normalizarFiltroSituacao(bruto) {
   return FILTROS_SITUACAO.includes(bruto) ? bruto : "todos";
 }
 
+/** Seções do Console, na ordem em que aparecem. A primeira é a padrão. */
+export const ABAS_CONSOLE = ["estabelecimentos", "planos", "uso"];
+
+/**
+ * Função PURA — traduz o que veio da URL (`?aba=...`) para uma aba válida.
+ * Mesmo molde do `normalizarFiltroSituacao`: o parâmetro é texto de fora, e
+ * qualquer coisa que não seja exatamente uma das seções cai na primeira —
+ * o Console nunca abre sem conteúdo por causa de um endereço torto.
+ *
+ * Não lê `window` nem o roteador — quem faz isso é a tela.
+ *
+ * @param {string|string[]|null|undefined} bruto
+ * @returns {"estabelecimentos"|"planos"|"uso"}
+ */
+export function normalizarAba(bruto) {
+  if (typeof bruto !== "string") return ABAS_CONSOLE[0];
+  return ABAS_CONSOLE.includes(bruto) ? bruto : ABAS_CONSOLE[0];
+}
+
 /**
  * Função PURA — agrega tenants + planos + assinaturas na visão da
  * plataforma (dashboard do Console): status recalculado por tenant, KPIs,
