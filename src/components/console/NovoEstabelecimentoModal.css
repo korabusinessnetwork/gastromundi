@@ -27,6 +27,13 @@
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
+/* A caixa recebe o foco quando o modal não tem campo nenhum (CONSOLE-UX 25),
+   só para o Tab começar de dentro — contornar a janela inteira não ajuda
+   ninguém a saber onde está o cursor. */
+.nem-modal:focus {
+  outline: none;
+}
+
 /* ── Cabeçalho ─────────────────────────────────────────────────── */
 .nem-header {
   display: flex;

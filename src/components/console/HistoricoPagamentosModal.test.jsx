@@ -322,3 +322,19 @@ describe("HistoricoPagamentosModal — Esc e clique fora", () => {
     expect(onFechar).toHaveBeenCalledTimes(1);
   });
 });
+
+// CONSOLE-UX 25 — este modal não tem campo nenhum ao abrir (o motivo só
+// aparece com um estorno em confirmação), então o foco fica na própria caixa:
+// o Tab começa de dentro em vez de continuar na tabela lá atrás.
+describe("HistoricoPagamentosModal — foco do teclado", () => {
+  beforeEach(() => {
+    mockListar.mockResolvedValue({ data: [pg("p-ago", "2026-08-01", 300)], error: null });
+  });
+
+  it("sem campo na tela, o foco fica na caixa do modal", async () => {
+    montar();
+    await screen.findByText("agosto/2026");
+
+    expect(document.activeElement).toHaveClass("nem-modal");
+  });
+});

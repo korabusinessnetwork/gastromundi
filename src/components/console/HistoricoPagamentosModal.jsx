@@ -8,6 +8,7 @@ import {
 } from "@/lib/assinatura";
 import { formatarReais } from "@/lib/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";
+import { useFocoDoModal } from "@/hooks/useFocoDoModal";
 // A casca (overlay, modal, header, botões, spinner) é a mesma dos outros
 // modais do Console — decisão 018, sem duplicar CSS.
 import "./NovoEstabelecimentoModal.css";
@@ -118,9 +119,13 @@ export default function HistoricoPagamentosModal({ linha, confirmadoPor, onFecha
   };
   const fundo = useFecharModal(pedirParaFechar, enviando);
 
+  // Foco no primeiro campo ao abrir, Tab preso aqui dentro e foco devolvido
+  // ao botão que abriu este modal (CONSOLE-UX 25).
+  const caixa = useFocoDoModal();
+
   return createPortal(
     <div className="nem-overlay" {...fundo} role="dialog" aria-modal="true" aria-label="Pagamentos da assinatura">
-      <div className="nem-modal hpm-modal">
+      <div className="nem-modal hpm-modal" ref={caixa} tabIndex={-1}>
         <header className="nem-header">
           <div className="nem-header__titulo">
             <LuReceipt size={20} aria-hidden />

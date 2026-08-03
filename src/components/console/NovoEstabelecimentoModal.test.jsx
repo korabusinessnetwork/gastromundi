@@ -822,3 +822,25 @@ describe("NovoEstabelecimentoModal — Esc e clique fora", () => {
     expect(onFechar).not.toHaveBeenCalled();
   });
 });
+
+// CONSOLE-UX 25 — o foco. Abrir um modal e ter de caçar o primeiro campo com o
+// mouse é o que fazia o cadastro ser lento; e o Tab não pode passear pela
+// tabela que ficou por baixo do fundo escuro.
+describe("NovoEstabelecimentoModal — foco do teclado", () => {
+  it("abre com o cursor no primeiro campo, não no botão de fechar", () => {
+    montar();
+
+    expect(screen.getByLabelText(/^Nome do estabelecimento/i)).toHaveFocus();
+  });
+
+  it("o Tab não escapa do modal: do último elemento volta para o primeiro", async () => {
+    const { user } = montar();
+
+    // O "X" é o primeiro focável da caixa; Shift+Tab nele tem de dar a volta
+    // para dentro do modal, nunca cair na página de trás.
+    screen.getByRole("button", { name: /Fechar/i }).focus();
+    await user.tab({ shift: true });
+
+    expect(screen.getByRole("dialog")).toContainElement(document.activeElement);
+  });
+});

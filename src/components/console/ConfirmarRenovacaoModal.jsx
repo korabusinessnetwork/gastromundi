@@ -5,6 +5,7 @@ import { confirmarRenovacaoAssinatura, rotuloCompetencia } from "@/lib/assinatur
 import { valorDigitado } from "@/lib/delivery";
 import { formatarReais } from "@/lib/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";
+import { useFocoDoModal } from "@/hooks/useFocoDoModal";
 // Reaproveita o CSS genérico de modal do Console (overlay, modal, header,
 // campo, footer, botões) — decisão 018 (CSS separado do JSX), sem duplicar.
 import "./NovoEstabelecimentoModal.css";
@@ -102,9 +103,13 @@ export default function ConfirmarRenovacaoModal({
   // Esc e clique no fundo escuro saem por onde o "X" sai (CONSOLE-UX 24).
   const fundo = useFecharModal(onFechar, enviando);
 
+  // Foco no primeiro campo ao abrir, Tab preso aqui dentro e foco devolvido
+  // ao botão que abriu este modal (CONSOLE-UX 25).
+  const caixa = useFocoDoModal();
+
   return createPortal(
     <div className="nem-overlay" {...fundo} role="dialog" aria-modal="true" aria-label="Registrar pagamento da assinatura">
-      <div className="nem-modal">
+      <div className="nem-modal" ref={caixa} tabIndex={-1}>
         <header className="nem-header">
           <div className="nem-header__titulo">
             <LuBanknote size={20} aria-hidden />

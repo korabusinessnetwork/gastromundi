@@ -876,3 +876,28 @@ faltam:
 
 O estado de envio do modal entra como `bloqueado`: durante o envio as duas
 saídas ficam mudas, pela mesma razão que os botões ficam desabilitados.
+
+## Foco dentro de um modal: o que não é óbvio (rodada 51)
+
+`src/hooks/useFocoDoModal.js` — irmão do `useFecharModal`: devolve uma ref para
+a caixa (`div.nem-modal`, com `tabIndex={-1}`) e cuida das três coisas de foco
+que os sete modais do Console não tinham. O que custou pensar:
+
+1. **Foco inicial é no primeiro CAMPO, não no primeiro focável.** O primeiro
+   focável do DOM é sempre o "X" do cabeçalho — abrir um modal com o dedo em
+   cima de "Fechar" é convite a fechar sem querer. Sem campo nenhum
+   (`HistoricoPagamentosModal`, `AddonsModal`), o foco vai para a própria caixa,
+   só para o Tab começar de dentro; daí o `tabIndex={-1}` e o
+   `.nem-modal:focus { outline: none }`.
+2. **A lista de focáveis é recalculada a cada Tab, nunca congelada na
+   montagem.** O conteúdo do modal muda embaixo do dono: a confirmação de
+   descarte troca o rodapé, o histórico carrega a lista depois, o envio
+   desabilita tudo. Lista congelada manda o foco para um botão que já morreu.
+3. **Nada de filtro por visibilidade** (`offsetParent`, `getClientRects`): no
+   jsdom nenhum elemento tem layout, então o filtro zeraria a lista e todo teste
+   de Tab passaria por engano. Filtrar só `disabled` basta aqui porque os modais
+   do Console não escondem campo focável com CSS — quem some, some do DOM.
+4. **Devolver o foco ao desmontar exige checar `isConnected`.** O botão que
+   abriu o modal pode ter sumido na recarga da lista depois de criar ou renovar;
+   `anterior.focus()` num nó solto não faz nada visível, mas ler `.focus` de
+   algo que virou `null` quebra o desmonte.

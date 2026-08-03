@@ -20,6 +20,7 @@ import { urlDoCardapioPublico } from "@/lib/tenantSlug";
 import { valorDigitado } from "@/lib/delivery";
 import { formatarReais } from "@/lib/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";
+import { useFocoDoModal } from "@/hooks/useFocoDoModal";
 import "./NovoEstabelecimentoModal.css";
 
 /**
@@ -201,9 +202,13 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
     enviando
   );
 
+  // Foco no primeiro campo ao abrir, Tab preso aqui dentro e foco devolvido
+  // ao botão que abriu este modal (CONSOLE-UX 25).
+  const caixa = useFocoDoModal();
+
   return createPortal(
     <div className="nem-overlay" {...fundo} role="dialog" aria-modal="true" aria-label="Criar estabelecimento">
-      <div className="nem-modal">
+      <div className="nem-modal" ref={caixa} tabIndex={-1}>
         <header className="nem-header">
           <div className="nem-header__titulo">
             <LuStore size={20} aria-hidden />
