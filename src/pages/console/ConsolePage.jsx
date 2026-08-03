@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
   LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
-  LuCopy,
+  LuCopy, LuTag,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import {
@@ -24,6 +24,7 @@ import AnalyticsDashboard from "@/components/console/AnalyticsDashboard";
 import SeloStatus from "@/components/console/SeloStatus";
 import ConfirmarRenovacaoModal from "@/components/console/ConfirmarRenovacaoModal";
 import HistoricoPagamentosModal from "@/components/console/HistoricoPagamentosModal";
+import DefinirMensalidadeModal from "@/components/console/DefinirMensalidadeModal";
 import "./ConsolePage.css";
 
 /**
@@ -75,6 +76,9 @@ export default function ConsolePage() {
   // Linha cujo histórico de pagamentos está aberto. Mesmo formato do
   // `linhaRenovacao` — os dois modais consomem a linha do `resumirPlataforma`.
   const [linhaHistorico, setLinhaHistorico] = useState(null);
+  // Linha cujo preço está sendo definido pelo card (CONSOLE-UX 13). Mesmo
+  // formato dos outros dois — os três modais consomem a linha do resumo.
+  const [linhaMensalidade, setLinhaMensalidade] = useState(null);
   const [addonsPorTenant, setAddonsPorTenant] = useState({});
   const [addonsMudaram, setAddonsMudaram] = useState(false);
   const [sucesso, setSucesso] = useState(null);
@@ -283,6 +287,21 @@ export default function ConsolePage() {
   const aoVerPagamentos = (linha) => {
     setSucesso(null);
     setLinhaHistorico(linha);
+  };
+
+  // CONSOLE-UX 13 — definir o preço de quem entrou sem ele, sem trocar de aba.
+  // Quem grava é o `DefinirMensalidadeModal` que já existe (RPC
+  // `definir_mensalidade_tenant`); aqui só abrimos com a linha certa.
+  const aoDefinirMensalidade = (linha) => {
+    setSucesso(null);
+    setLinhaMensalidade(linha);
+  };
+
+  const aoMensalidadeDefinida = (assinatura) => {
+    const nome = linhaMensalidade?.nome;
+    setLinhaMensalidade(null);
+    setSucesso({ nome, mensalidadeDefinida: Number(assinatura?.valor_mensal) || 0 });
+    carregar();
   };
 
   // Sem catálogo de planos não há o que escolher no cadastro (o plano é
@@ -648,6 +667,9 @@ export default function ConsolePage() {
                   ) : sucesso.pagamentoAte ? (
                     <>Pagamento de <strong>{sucesso.nome}</strong> registrado. Vence agora
                     em <strong>{formatarVencimento(sucesso.pagamentoAte)}</strong>.</>
+                  ) : sucesso.mensalidadeDefinida !== undefined ? (
+                    <>Mensalidade de <strong>{sucesso.nome}</strong> definida
+                    em <strong>{formatarReais(sucesso.mensalidadeDefinida)}</strong> por mês.</>
                   ) : (
                     <>Add-ons de <strong>{sucesso.nome}</strong> atualizados.</>
                   )}
@@ -802,6 +824,16 @@ export default function ConsolePage() {
                   // leitura quebrada não há nem `tenantId` para consultar.
                   const temHistorico =
                     !erroAssinaturas && !!situacao && situacao.status !== "sem_assinatura";
+                  // Sem mensalidade definida (CONSOLE-UX 13). A régua é a MESMA
+                  // do `kpis.semPreco`: só quem está sendo cobrado (ativo ou em
+                  // carência) e vale zero — senão a lista e o aviso da aba de
+                  // cobrança discordariam sobre quem está sem preço. Bloqueado,
+                  // cancelado e sem assinatura têm outro problema, que os selos
+                  // já contam. Sem saber a situação, não se afirma nada.
+                  const semMensalidade =
+                    !erroAssinaturas &&
+                    (situacao?.status === "ativo" || situacao?.status === "carencia") &&
+                    (situacao?.valorMensal ?? 0) <= 0;
                   return (
                   // Botões IRMÃOS (não aninhados — HTML inválido): o card troca
                   // o plano, o botão de paleta troca o layout e o de peça
@@ -832,6 +864,9 @@ export default function ConsolePage() {
                                   vence {formatarVencimento(situacao.dataVencimento)}
                                 </span>
                               )}
+                              {semMensalidade && (
+                                <span className="console__card-sem-preco">Sem mensalidade</span>
+                              )}
                             </>
                           )}
                         </span>
@@ -853,6 +888,22 @@ export default function ConsolePage() {
                       >
                         <LuBanknote size={17} aria-hidden />
                         <span className="console__cobrar-nome">Registrar pagamento</span>
+                      </button>
+                    )}
+                    {semMensalidade && (
+                      <button
+                        type="button"
+                        className="console__preco"
+                        onClick={() => aoDefinirMensalidade(situacao)}
+                        aria-label={`Definir mensalidade de ${t.nome}`}
+                        title="Definir quanto este estabelecimento paga por mês"
+                      >
+                        {/* Etiqueta de preço, não a nota de dinheiro do "Registrar
+                            pagamento": os dois botões podem aparecer no MESMO card
+                            (vencendo e sem preço), e dois ícones iguais lado a lado
+                            fariam o dono clicar no errado. */}
+                        <LuTag size={17} aria-hidden />
+                        <span className="console__preco-nome">Definir mensalidade</span>
                       </button>
                     )}
                     {temHistorico && (
@@ -942,6 +993,14 @@ export default function ConsolePage() {
           tenant={tenantLayoutSelecionado}
           onFechar={() => setTenantLayoutSelecionado(null)}
           onAlterado={aoLayoutAlterado}
+        />
+      )}
+
+      {linhaMensalidade && (
+        <DefinirMensalidadeModal
+          linha={linhaMensalidade}
+          onFechar={() => setLinhaMensalidade(null)}
+          onDefinido={aoMensalidadeDefinida}
         />
       )}
 

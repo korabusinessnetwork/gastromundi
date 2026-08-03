@@ -190,6 +190,7 @@
    "cobrar" foge do neutro, logo abaixo: é ação urgente, os outros são
    consulta ou ajuste. */
 .console__cobrar,
+.console__preco,
 .console__pagamentos,
 .console__layout,
 .console__addons {
@@ -225,6 +226,7 @@
 .console__layout-nome,
 .console__addons-nome,
 .console__cobrar-nome,
+.console__preco-nome,
 .console__pagamentos-nome {
   font-size: 11px;
   font-weight: 700;
@@ -250,6 +252,40 @@
 .console__cobrar:focus-visible {
   outline: 2px solid var(--gm-green);
   outline-offset: 2px;
+}
+
+/* "Definir mensalidade" (CONSOLE-UX 13) só aparece em quem está sendo cobrado
+   sem preço definido — dinheiro esquecido. Nasce na cor de atenção, a mesma da
+   marca no card, para que a marca e a ação que a resolve se leiam como um par.
+   Não é o verde do "cobrar": ali existe uma dívida vencendo; aqui falta um
+   dado. */
+.console__preco {
+  border-color: color-mix(in srgb, var(--gm-warn) 45%, transparent);
+  background: color-mix(in srgb, var(--gm-warn) 12%, transparent);
+  color: var(--gm-warn);
+}
+.console__preco:hover {
+  border-color: var(--gm-warn);
+  background: color-mix(in srgb, var(--gm-warn) 20%, transparent);
+  color: var(--gm-warn);
+}
+.console__preco:focus-visible {
+  outline: 2px solid var(--gm-warn);
+  outline-offset: 2px;
+}
+
+/* Marca "Sem mensalidade" ao lado da situação do card. Fica junto do que já
+   conta a vida da assinatura, e não vira um selo de status novo: o
+   estabelecimento está ativo — o que falta é o preço. */
+.console__card-sem-preco {
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-warn) 12%, transparent);
+  color: var(--gm-warn);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .console__card {

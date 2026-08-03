@@ -161,3 +161,12 @@ financeiro com `expect(texto).not.toMatch(/300/)` falhou: o endereço de entrada
 `http://localhost:3000` e contém "300". Asserção negativa sobre dinheiro precisa mirar a forma
 do dinheiro (`/R$/`, `/300,00/`, o rótulo "mensalidade"), não o número solto — senão o teste
 quebra por coincidência de dígitos com porta, id ou data.
+
+## Dois botões laterais no mesmo card não podem repetir o ícone (rodada 39)
+
+Em `src/pages/console/ConsolePage.jsx`, "Registrar pagamento" e o novo "Definir mensalidade"
+nasceram os dois com `LuBanknote`. As duas réguas se cruzam — quem está vencendo E sem preço
+mostra os dois botões lado a lado, com o mesmo desenho de nota de dinheiro e ações diferentes
+(uma empurra o vencimento, a outra grava o preço). O segundo virou `LuTag` (etiqueta de preço).
+Regra para os próximos botões de card no Console: antes de escolher o ícone, verificar se a
+condição que mostra o botão pode ser verdadeira junto com a de algum vizinho.

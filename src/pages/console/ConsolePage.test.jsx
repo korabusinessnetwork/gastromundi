@@ -1813,3 +1813,116 @@ describe("ConsolePage — a mensalidade no cartão de primeiro acesso", () => {
     expect(dado("Mensalidade")).toBeNull();
   });
 });
+
+// CONSOLE-UX 13 — quem está sendo cobrado sem preço definido aparece na lista.
+//
+// `provisionar_tenant` (20260908) cria a assinatura com `valor_mensal = 0`, e
+// quem entrou antes da rodada 38 segue assim. Até aqui isso só existia como um
+// número no aviso da outra aba: na lista principal, o cliente de cortesia e o
+// cliente de R$ 300 tinham exatamente a mesma cara.
+describe("ConsolePage — quem está sem mensalidade na lista", () => {
+  const cardDe = (nome) => screen.getByText(nome).closest("li");
+  const semPreco = (extra = {}) => ({
+    tenant_id: "t1",
+    valor_mensal: 0,
+    data_vencimento: "2099-01-10",
+    carencia_dias: 3,
+    status: "ativo",
+    ...extra,
+  });
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockDefinirMensalidade.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok([semPreco(), ASSINATURAS[1]]));
+    mockDefinirMensalidade.mockResolvedValue({ data: { tenant_id: "t1", valor_mensal: 300 }, error: null });
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("card de quem cobra sem preço diz 'Sem mensalidade' — quem tem preço não ganha marca", async () => {
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(within(cardDe("Bar do Zé")).getByText("Sem mensalidade")).toBeInTheDocument()
+    );
+    // Segue ativo: o que falta é o preço, não a assinatura.
+    expect(within(cardDe("Bar do Zé")).getByText("Ativo")).toBeInTheDocument();
+    expect(within(cardDe("Café Central")).queryByText("Sem mensalidade")).not.toBeInTheDocument();
+  });
+
+  it("em carência sem preço também é marcado — continua sendo base que paga", async () => {
+    const ontem = new Date();
+    ontem.setDate(ontem.getDate() - 1);
+    const dia = `${ontem.getFullYear()}-${String(ontem.getMonth() + 1).padStart(2, "0")}-${String(ontem.getDate()).padStart(2, "0")}`;
+    mockListarAssinaturas.mockResolvedValue(ok([semPreco({ data_vencimento: dia }), ASSINATURAS[1]]));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(within(cardDe("Bar do Zé")).getByText("Sem mensalidade")).toBeInTheDocument()
+    );
+  });
+
+  it("cancelado e sem assinatura não ganham a marca — não é dinheiro esquecido", async () => {
+    mockListarAssinaturas.mockResolvedValue(ok([semPreco({ status: "cancelado" })]));
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Café Central")).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(within(cardDe("Café Central")).getByText("Sem assinatura")).toBeInTheDocument()
+    );
+    expect(screen.queryByText("Sem mensalidade")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Definir mensalidade de/i })).not.toBeInTheDocument();
+  });
+
+  it("com a leitura da cobrança quebrada, a tela não afirma que falta preço", async () => {
+    mockListarAssinaturas.mockResolvedValue(falhou());
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(within(cardDe("Bar do Zé")).getByText("Situação indisponível")).toBeInTheDocument()
+    );
+    expect(screen.queryByText("Sem mensalidade")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Definir mensalidade de/i })).not.toBeInTheDocument();
+  });
+
+  it("o botão do card abre o modal do estabelecimento certo, grava e confirma na tela", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    const botao = await screen.findByRole("button", { name: "Definir mensalidade de Bar do Zé" });
+    // Só o card sem preço tem o botão — o outro não é oferecido à toa.
+    expect(
+      screen.queryByRole("button", { name: "Definir mensalidade de Café Central" })
+    ).not.toBeInTheDocument();
+    await user.click(botao);
+
+    const modal = await screen.findByRole("dialog", { name: /Definir mensalidade do estabelecimento/i });
+    expect(within(modal).getByText("Bar do Zé")).toBeInTheDocument();
+
+    // A releitura já traz o preço gravado: a marca some sozinha, sem clique extra.
+    mockListarAssinaturas.mockResolvedValue(ok([semPreco({ valor_mensal: 300 }), ASSINATURAS[1]]));
+    await user.type(within(modal).getByLabelText(/Mensalidade/i), "300");
+    await user.click(within(modal).getByRole("button", { name: /Salvar mensalidade/i }));
+
+    expect(mockDefinirMensalidade).toHaveBeenCalledWith("t1", 300);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: /Definir mensalidade do estabelecimento/i })
+      ).not.toBeInTheDocument()
+    );
+    const faixa = await screen.findByText(/Mensalidade de/i);
+    expect(faixa).toHaveTextContent("Bar do Zé");
+    expect(faixa.textContent.replace(/\s/g, " ")).toContain(formatarReais(300).replace(/\s/g, " "));
+    await waitFor(() => expect(screen.queryByText("Sem mensalidade")).not.toBeInTheDocument());
+  });
+});
