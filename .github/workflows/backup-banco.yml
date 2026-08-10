@@ -1,0 +1,91 @@
+# Backup diário do banco (pré-venda §1.7).
+#
+# O plano Free do Supabase não tem backup diário nem point-in-time recovery.
+# Um restaurante que perca o histórico de vendas é o fim da relação — e até
+# existir Supabase Pro (decidido: com o primeiro cliente pagante), este dump
+# agendado é o que transforma "perdi tudo" em "perdi o dia".
+#
+# Não substitui PITR: o que se recupera aqui é o estado da última execução.
+#
+# Custo: zero. GitHub Actions em repositório privado tem cota gratuita mensal;
+# esta rotina roda uma vez por dia e leva poucos minutos.
+#
+# O QUE O DONO PRECISA FAZER UMA VEZ:
+#   Settings → Secrets and variables → Actions → New repository secret
+#   Nome:  SUPABASE_DB_URL
+#   Valor: a connection string do Postgres (Supabase → Project Settings →
+#          Database → Connection string → URI), com a senha no lugar de
+#          [YOUR-PASSWORD]. Use a porta 5432 (conexão direta), não o pooler.
+#   Sem esse segredo o backup falha de propósito e avisa — silêncio aqui
+#   seria pior do que erro, porque daria a impressão de estar protegido.
+name: Backup do banco
+
+on:
+  schedule:
+    # 06:00 UTC = 03:00 em Brasília — depois do fechamento de caixa e antes
+    # do primeiro turno, então o dump pega o dia inteiro e não disputa banco
+    # com a operação.
+    - cron: "0 6 * * *"
+  # Botão manual, para tirar um dump antes de uma migração de risco.
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Conferir o segredo antes de tentar
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::O segredo SUPABASE_DB_URL não está configurado — nenhum backup foi gerado."
+            echo "::error::Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+
+      - name: Instalar a CLI do Supabase
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Gerar os dumps
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          mkdir -p backup
+          # Três arquivos porque a restauração é feita nesta ordem: papéis,
+          # estrutura, dados. Um dump único obrigaria a editar SQL na mão no
+          # dia em que a pressa é máxima.
+          supabase db dump --db-url "$SUPABASE_DB_URL" --role-only -f backup/01_roles.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL"             -f backup/02_schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only -f backup/03_dados.sql
+
+      - name: Conferir que o dump não veio vazio
+        run: |
+          set -euo pipefail
+          for arquivo in backup/01_roles.sql backup/02_schema.sql backup/03_dados.sql; do
+            tamanho=$(wc -c < "$arquivo")
+            echo "$arquivo: $tamanho bytes"
+            # Arquivo criado e quase vazio é o pior desfecho: passa como
+            # sucesso e só se descobre no dia de restaurar.
+            if [ "$tamanho" -lt 1024 ]; then
+              echo "::error::$arquivo tem menos de 1 KB — o backup não é confiável."
+              exit 1
+            fi
+          done
+          # A estrutura precisa conter as tabelas do negócio; se o dump saiu de
+          # um banco vazio ou de outro projeto, isto acusa.
+          grep -q "CREATE TABLE" backup/02_schema.sql
+          gzip backup/*.sql
+
+      - name: Guardar o backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-banco-${{ github.run_id }}
+          path: backup/
+          # 90 dias é o teto do plano gratuito do GitHub. Backup que expira em
+          # uma semana não cobre o erro que só aparece no fechamento do mês.
+          retention-days: 90
+          if-no-files-found: error
