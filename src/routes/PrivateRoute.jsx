@@ -27,14 +27,23 @@ import SemAcesso from "@/components/desktop/SemAcesso";
  * mas a rota é a fonte de verdade da UI).
  */
 export default function PrivateRoute({ children, requiredPermission, requiredModulo, moduloLabel }) {
-  const { currentUser, moduloHabilitado, assinatura } = useApp();
+  const { currentUser, moduloHabilitado, assinatura, loading } = useApp();
   const location = useLocation();
 
   if (!currentUser) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (assinatura && !assinaturaPermiteOperacao(assinatura.status)) {
+  // Bloqueio só depois do status CONFIRMADO pelo servidor. O status que
+  // vem do bootstrap é calculado no navegador (`calcularStatusAssinatura`)
+  // a partir da linha lida naquele instante — com o bootstrap em voo, ou
+  // com a data/hora da máquina do caixa adiantada, isso mostrava a tela
+  // cheia de "mensalidade atrasada" para quem estava em dia (some ao
+  // recarregar). `statusConfirmado` só fica true quando
+  // `sincronizar_status_assinatura` responde e o AppContext adota a
+  // resposta do banco. Enquanto não confirma, o app segue normal — quem
+  // realmente barra operação bloqueada é a RLS, não esta tela.
+  if (!loading && assinatura?.statusConfirmado && !assinaturaPermiteOperacao(assinatura.status)) {
     return <AssinaturaBloqueada />;
   }
 

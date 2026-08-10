@@ -5,6 +5,7 @@ import {
   validarCnpj,
   validarDocumento,
   formatarDocumento,
+  ocultarDocumento,
 } from "./documento";
 
 describe("apenasDigitos", () => {
@@ -103,5 +104,39 @@ describe("formatarDocumento", () => {
   });
   it("ignora caracteres não numéricos na entrada", () => {
     expect(formatarDocumento("529.982.247-25", "cpf")).toBe("529.982.247-25");
+  });
+});
+
+describe("ocultarDocumento", () => {
+  it("esconde início e fim do CPF, mantendo o miolo para conferência", () => {
+    expect(ocultarDocumento("52998224725", "cpf")).toBe("***.982.247-**");
+  });
+
+  it("aceita o CPF já mascarado (é o que vem da tela)", () => {
+    expect(ocultarDocumento("529.982.247-25", "cpf")).toBe("***.982.247-**");
+  });
+
+  it("CNPJ não é ocultado: documento de empresa é público", () => {
+    expect(ocultarDocumento("11222333000181", "cnpj")).toBe("11.222.333/0001-81");
+  });
+
+  it("CPF com dígitos faltando some por inteiro (melhor esconder demais)", () => {
+    expect(ocultarDocumento("5299822", "cpf")).toBe("•••••••");
+    expect(ocultarDocumento("529982247251", "cpf")).toBe("••••••••••••");
+  });
+
+  it("vazio, nulo ou sem nenhum dígito não vira máscara nenhuma", () => {
+    expect(ocultarDocumento("", "cpf")).toBe("");
+    expect(ocultarDocumento(null, "cpf")).toBe("");
+    expect(ocultarDocumento("abc", "cpf")).toBe("");
+  });
+
+  it("sem tipo é tratado como CPF (mesmo default de formatarDocumento)", () => {
+    expect(ocultarDocumento("52998224725")).toBe("***.982.247-**");
+  });
+
+  it("nunca devolve o documento completo de um CPF", () => {
+    expect(ocultarDocumento("52998224725", "cpf")).not.toContain("529");
+    expect(ocultarDocumento("52998224725", "cpf")).not.toContain("25");
   });
 });

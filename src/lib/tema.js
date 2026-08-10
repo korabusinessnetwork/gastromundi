@@ -140,6 +140,38 @@ export function marcaComAssinatura(nome) {
 }
 
 /**
+ * Marca a exibir no cabeçalho do app (Sidebar e topo do mobile) enquanto o
+ * bootstrap do tenant não respondeu.
+ *
+ * Antes, `tenant` nulo caía direto na marca da plataforma: quem entrava via
+ * casacoffee.kora.codes via "CASA COFFEE by Kora" no login e, ao cair no
+ * app, a sidebar voltava a escrever "KORA" por alguns segundos até o
+ * bootstrap terminar — a mesma marca mudando de nome entre uma tela e a
+ * seguinte. O cache de marca (`lerBrandingCache`) já guarda o nome/logo
+ * deste estabelecimento nesta origem e já é usado na pintura anti-flash;
+ * aqui ele cobre também o texto, então a marca é uma só do login ao PDV.
+ *
+ * O tenant carregado SEMPRE prevalece — o cache é só o degrau intermediário.
+ * Função pura: quem chama passa o cache já lido.
+ *
+ * @param {object|null|undefined} tenant - linha do tenant (com `tema` e `nome`)
+ * @param {{nome?: string|null, logo?: string|null}|null|undefined} cache - lerBrandingCache()
+ * @returns {{ nome: string, logo: string|null, doTenant: boolean }}
+ */
+export function marcaDoCabecalho(tenant, cache) {
+  if (tenant) {
+    const nome = nomeExibicaoTenant(tenant.tema, tenant.nome);
+    return { nome, logo: logoUrlTenant(tenant.tema), doTenant: nome !== MARCA_PLATAFORMA };
+  }
+  const doCache = typeof cache?.nome === "string" ? cache.nome.trim() : "";
+  if (doCache && doCache.toUpperCase() !== MARCA_PLATAFORMA.toUpperCase()) {
+    const logo = typeof cache?.logo === "string" ? cache.logo.trim() : "";
+    return { nome: doCache, logo: logo && logoUrlSeguraParaImg(logo) ? logo : null, doTenant: true };
+  }
+  return { nome: MARCA_PLATAFORMA, logo: null, doTenant: false };
+}
+
+/**
  * X2 — mesma política de `logoUrlSegura` (src/lib/impressao/renderizar.js):
  * o logo vem do CADASTRO DO TENANT (white-label, decisão 017) e cai direto
  * em `<img src>` (SidebarBranding, LoginPage, CardapioPage). Sem validar o

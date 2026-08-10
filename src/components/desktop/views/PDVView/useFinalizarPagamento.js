@@ -144,15 +144,26 @@ export function useFinalizarPagamento() {
       // sem NUNCA dar await (a venda não pode esperar a SEFAZ). Sem callback
       // (ex.: chamador sem UI de cupom) o comportamento é idêntico a antes.
       onNfce?.({ estado: "emitindo", resultado: null, venda: sale });
+      // Nota que não saiu não pode sumir: a venda está registrada e a
+      // obrigação fiscal continua de pé. Vai para a fila local e o sistema
+      // reemite sozinho quando a conexão voltar — seguro repetir porque a
+      // emissão é idempotente por vendaId no servidor (ver nfceIdempotencia).
+      const enfileirarNota = () =>
+        enfileirarOffline({ tipo: "emitir_nfce", vendaId: sale.id, venda: sale, usuario: currentUser?.username });
       emitirDocumentoFiscal(sale, { usuario: currentUser?.username })
-        .then((resultado) => onNfce?.({ estado: "concluido", resultado, venda: sale }))
+        .then((resultado) => {
+          const naFila = resultado?.status === "erro";
+          if (naFila) enfileirarNota();
+          onNfce?.({ estado: "concluido", resultado: { ...resultado, naFila }, venda: sale });
+        })
         .catch((err) => {
           // emitirDocumentoFiscal já é "nunca lança"; o catch é rede de
           // segurança e ainda assim conclui a modal (nunca a deixa girando).
           console.error("fiscal (nf-e):", err);
+          enfileirarNota();
           onNfce?.({
             estado: "concluido",
-            resultado: { status: "erro", vendaId: sale.id, detalhe: err?.message ?? "Falha ao emitir NFC-e." },
+            resultado: { status: "erro", vendaId: sale.id, detalhe: err?.message ?? "Falha ao emitir NFC-e.", naFila: true },
             venda: sale,
           });
         });

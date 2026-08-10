@@ -1321,11 +1321,15 @@
   opacity: 0.75;
 }
 
-/* admin travado: marcado, sem cara de clicável */
+/* admin travado: marcado, sem cara de clicável.
+   O "não editável" é dito pela moldura neutra e pelo cursor — NÃO pelo
+   apagamento do ✓. Com o check em --gm-muted a coluna Administrador ficava
+   ilegível de longe e parecia desmarcada, justo a coluna que tem acesso a
+   tudo. O símbolo usa a cor de texto cheia; só a moldura é discreta. */
 .perm-check--locked.perm-check--on {
   border-color: color-mix(in srgb, var(--gm-muted) 40%, transparent);
   background: color-mix(in srgb, var(--gm-muted) 12%, transparent);
-  color: var(--gm-muted);
+  color: var(--gm-text);
   opacity: 1;
 }
 

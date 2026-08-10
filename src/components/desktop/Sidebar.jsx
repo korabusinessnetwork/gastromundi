@@ -637,6 +637,14 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
                 onChange={e => { setCancelSenha(e.target.value); setCancelSenhaErro(""); }}
                 onKeyDown={e => { if (e.key === "Enter") confirmarCancelamento(); }}
                 placeholder="Senha"
+                // Autorização de gerente — nunca o login de quem está no
+                // terminal. Sem isto o navegador autopreenchia a senha
+                // salva do usuário logado e o cancelamento saía autorizado
+                // sem gerente nenhum (PDV é terminal compartilhado).
+                name="autorizacao-gerente"
+                autoComplete="new-password"
+                data-1p-ignore
+                data-lpignore="true"
                 className="sidebar__input"
                 style={{
                   width: "100%", boxSizing: "border-box",

@@ -22,6 +22,7 @@
 // ──────────────────────────────────────────────────────────────────
 import { supabase } from "@/lib/supabase";
 import { normalizarTexto } from "@/lib/importacao/planilha";
+import { ehCategoriaFixa } from "@/lib/categoriasProduto";
 import { normalizarHorario } from "@/lib/deliveryHorario";
 
 // ════════════════════════════════════════════════════════════════
@@ -29,11 +30,36 @@ import { normalizarHorario } from "@/lib/deliveryHorario";
 // ════════════════════════════════════════════════════════════════
 
 /**
+ * O produto do PDV pode ir para a vitrine pública do delivery?
+ *
+ * Nem tudo que vive em `products` é item de cardápio. Insumo e Produção
+ * moram lá porque a ficha técnica precisa deles para baixar estoque —
+ * mas farinha de trigo e presunto não se vendem por delivery. E produto
+ * sem preço (R$ 0,00) é cadastro pela metade: publicado, o cliente pede
+ * de graça.
+ *
+ * Mesma regra do servidor (`public.categoria_interna` + preço > 0 nas
+ * RPCs `cardapio_publico` / `criar_pedido_delivery`, migration
+ * 20260918). Aqui é só para não OFERECER a importação do que o servidor
+ * não publicaria — quem manda continua sendo o banco.
+ *
+ * @param {{category?:string, price?:number|string}} p - produto do PDV
+ * @returns {boolean}
+ */
+export function produtoPublicavelNoDelivery(p) {
+  if (!p) return false;
+  if (ehCategoriaFixa(p.category)) return false;
+  return Number(p.price) > 0;
+}
+
+/**
  * Produtos do PDV que ainda NÃO estão publicados no delivery.
  * Usada na importação (addon): traz o cardápio inteiro pra dentro do
- * delivery de uma vez, sem duplicar o que já foi importado.
+ * delivery de uma vez, sem duplicar o que já foi importado e sem
+ * arrastar junto o que não é item de cardápio (ver
+ * `produtoPublicavelNoDelivery`).
  *
- * @param {Array<{id:number|string, active?:boolean}>} products - cardápio do PDV
+ * @param {Array<{id:number|string, active?:boolean, category?:string, price?:number}>} products - cardápio do PDV
  * @param {Array<{produto_id:number|string}>} jaPublicados - linhas de produto_delivery
  * @returns {Array} subconjunto de `products` que falta importar
  */
@@ -43,7 +69,11 @@ export function produtosParaImportar(products, jaPublicados) {
     (Array.isArray(jaPublicados) ? jaPublicados : []).map((p) => String(p?.produto_id))
   );
   return lista.filter(
-    (p) => p && p.active !== false && !publicados.has(String(p.id))
+    (p) =>
+      p &&
+      p.active !== false &&
+      produtoPublicavelNoDelivery(p) &&
+      !publicados.has(String(p.id))
   );
 }
 

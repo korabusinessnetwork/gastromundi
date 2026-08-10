@@ -13,10 +13,11 @@ import {
 import { useApp } from "@/context/AppContext";
 import { labelEstoque, fmtQtd } from "@/utils/conversaoUnidades";
 import { normalizarTexto } from "@/lib/importacao/planilha";
+import { controlaEstoque, MINIMO_PADRAO } from "@/lib/estoqueSituacao";
 import "../modulos.css";
 import "./EstoqueModulo.css";
 
-const MINIMO_FALLBACK = 10; // mesmo fallback usado em EstoqueView (src/lib/estoque.js)
+const MINIMO_FALLBACK = MINIMO_PADRAO; // mesmo mínimo do PDV e da EstoqueView
 
 /**
  * EstoqueModulo — tela "Estoque" do hub mobile (Palm).
@@ -33,17 +34,10 @@ const MINIMO_FALLBACK = 10; // mesmo fallback usado em EstoqueView (src/lib/esto
  * inventada.
  */
 
-/**
- * Produto sem linha na tabela `estoque` é produto que NÃO controla estoque — a
- * mesma leitura que o Jarvas faz (`src/lib/jarvasEngine.js`) e que a view
- * desktop faz (`controlaEstoque` em EstoqueView). Tratar a ausência como saldo 0
- * fazia o Palm marcar cada prato do cardápio como ruptura: o cabeçalho anunciava
- * dezenas de alertas, a lista abria vermelha de ponta a ponta e o insumo que
- * acabou de verdade ficava perdido no meio.
- */
-export function controlaEstoque(estoque, produtoId) {
-  return (estoque?.[produtoId] ?? null) !== null;
-}
+// A leitura de "controla estoque" (e a de ruptura/estoque baixo) mora em
+// src/lib/estoqueSituacao.js — PDV, Estoque desktop e este módulo usam a MESMA.
+// Reexportado para não quebrar quem já importava daqui.
+export { controlaEstoque };
 
 function situacaoDoItem(quantidade, minimo, controlado = true) {
   if (!controlado) return "nao_controla";

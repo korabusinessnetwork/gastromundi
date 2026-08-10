@@ -153,6 +153,33 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Aviso de comandas esquecidas (abertas há horas, sem consumo ativo) —
+   topo da aba "Comandas abertas". Cor de ALERTA de tempo (âmbar), não de
+   marca: vem do JSX como o resto das cores condicionais deste arquivo. */
+.comanda-grid__aviso-esquecidas {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.comanda-grid__aviso-esquecidas-texto {
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.comanda-grid__tag-esquecida {
+  font-weight: 700;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
 .comanda-grid__paginacao {
   display: flex;
   justify-content: center;
@@ -246,6 +273,11 @@
 .comanda-card__tag-mesa {
   border-radius: 6px;
   font-size: var(--fs-sm);   /* role: label/tag (era sz.fontSm) */
+  line-height: var(--lh-sm);
+}
+
+.comanda-card__esquecida {
+  font-size: var(--fs-sm);   /* role: label de alerta */
   line-height: var(--lh-sm);
 }
 

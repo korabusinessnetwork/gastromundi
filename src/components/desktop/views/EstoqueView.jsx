@@ -15,6 +15,9 @@ import {
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { normalizarTexto } from "@/lib/importacao/planilha";
 import {
+  classificarEstoque, controlaEstoque, MINIMO_PADRAO,
+} from "@/lib/estoqueSituacao";
+import {
   LuPackage, LuTriangleAlert, LuCircleAlert,
   LuMinus, LuPlus, LuShoppingCart, LuBox,
   LuLock, LuLockOpen, LuEye, LuEyeOff, LuKeyRound,
@@ -22,7 +25,10 @@ import {
 } from "react-icons/lu";
 import "./EstoqueView.css";
 
-const MINIMO_FALLBACK = 10; // usado quando o produto ainda não tem mínimo cadastrado
+// A regra de "sem estoque"/"estoque baixo" mora em src/lib/estoqueSituacao.js —
+// o PDV lê a MESMA conta. Enquanto cada tela tinha a sua, o aviso do PDV
+// ("7 produtos sem estoque") contradizia esta aqui ("0 sem estoque").
+const MINIMO_FALLBACK = MINIMO_PADRAO;
 
 const COLUNAS = [
   { key: "name",     label: "Produto",   align: "left"   },
@@ -39,16 +45,8 @@ function estoqueColor(qty, minimo, controlado = true) {
   return varColor(C.green);
 }
 
-/**
- * Produto sem linha na tabela `estoque` é produto que NÃO controla estoque — a
- * mesma leitura que o Jarvas faz (`src/lib/jarvasEngine.js`). Tratar a ausência
- * como saldo 0 fazia a tela contar cada prato do cardápio como ruptura: o KPI
- * "Sem estoque" mostrava o catálogo quase inteiro e a tabela ficava vermelha de
- * ponta a ponta, escondendo justamente os insumos que acabaram de verdade.
- */
-export function controlaEstoque(estoque, produtoId) {
-  return (estoque?.[produtoId] ?? null) !== null;
-}
+// Reexportado para não quebrar quem já importava daqui; a definição é uma só.
+export { controlaEstoque };
 
 /**
  * Lê o que o operador digitou num campo de quantidade.
@@ -67,7 +65,13 @@ export function lerQuantidade(valor) {
 }
 
 export default function EstoqueView() {
-  const { products, estoque, estoqueMinimos, updateEstoque, entradaEstoque, setMinimoEstoque, users } = useApp();
+  const { products, estoque, estoqueMinimos, updateEstoque, entradaEstoque, setMinimoEstoque, users, loading } = useApp();
+
+  // O bootstrap ainda está em voo e nada chegou: a tela mostrava "0 Total em
+  // estoque · 0 Sem estoque" e uma lista vazia, ou seja, anunciava um estoque
+  // zerado que não existia. "Ainda não sei" e "não tem nada" são coisas
+  // diferentes e precisam parecer diferentes.
+  const carregando = loading && products.length === 0;
   const { width } = useResponsive();
   const sz = getSizes(width);
 
@@ -150,12 +154,9 @@ export default function EstoqueView() {
   const totalSaldo   = fmtQtd(products.reduce((s, p) => s + (estoque[p.id] ?? 0), 0));
   // Só conta ruptura em produto que controla estoque. Um prato do cardápio sem
   // linha de estoque não está "sem estoque" — ele não é contado.
-  const semEstoque   = products.filter(p => controlaEstoque(estoque, p.id) && estoque[p.id] === 0).length;
-  const estoqueBaixo = products.filter(p => {
-    const q   = estoque[p.id] ?? 0;
-    const min = estoqueMinimos[p.id] ?? MINIMO_FALLBACK;
-    return q > 0 && q <= min;
-  }).length;
+  const situacao     = classificarEstoque(products, estoque, estoqueMinimos);
+  const semEstoque   = situacao.semEstoque.length;
+  const estoqueBaixo = situacao.baixos.length;
 
   const getModo = (p) => {
     const stored = modoEntrada[p.id];
@@ -316,9 +317,9 @@ export default function EstoqueView() {
       {/* KPIs */}
       <div className="estoque-view__kpis" style={{ gridTemplateColumns: width < 600 ? "1fr" : "repeat(3, 1fr)", gap: sz.gap, padding: `${sz.pad}px ${sz.pad}px ${sz.padSm}px` }}>
         {[
-          { label: "Total em estoque", value: totalSaldo,   color: varColor(C.green),   Icon: LuPackage       },
-          { label: "Sem estoque",       value: semEstoque,   color: varColor(C.red),     Icon: LuTriangleAlert },
-          { label: "Estoque baixo",     value: estoqueBaixo, color: "#f59e0b", Icon: LuCircleAlert   },
+          { label: "Total em estoque", value: carregando ? "—" : totalSaldo,   color: varColor(C.green),   Icon: LuPackage       },
+          { label: "Sem estoque",       value: carregando ? "—" : semEstoque,   color: varColor(C.red),     Icon: LuTriangleAlert },
+          { label: "Estoque baixo",     value: carregando ? "—" : estoqueBaixo, color: "#f59e0b", Icon: LuCircleAlert   },
         ].map(k => (
           <div key={k.label} className="estoque-view__kpi" style={{ padding: `${sz.padSm + 2}px ${sz.pad - 4}px` }}>
             <k.Icon size={sz.fontXl - 4} color={k.color} />
@@ -344,7 +345,12 @@ export default function EstoqueView() {
 
       {/* Tabela */}
       <div className="estoque-view__tabela-area" style={{ padding: `0 ${sz.pad}px ${sz.pad}px` }}>
-        {lista.length === 0 ? (
+        {carregando ? (
+          <div className="estoque-view__vazio" role="status">
+            <div className="estoque-view__vazio-emoji" style={{ opacity: 0.3 }}>⏳</div>
+            <div className="estoque-view__vazio-texto" style={{ fontWeight: 600 }}>Carregando o estoque…</div>
+          </div>
+        ) : lista.length === 0 ? (
           <div className="estoque-view__vazio">
             <div className="estoque-view__vazio-emoji" style={{ opacity: 0.3 }}>📦</div>
             <div className="estoque-view__vazio-texto" style={{ fontWeight: 600 }}>Nenhum produto encontrado</div>

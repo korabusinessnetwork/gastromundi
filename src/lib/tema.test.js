@@ -6,6 +6,7 @@ import {
   marcaComAssinatura,
   MARCA_PLATAFORMA,
   logoUrlTenant,
+  marcaDoCabecalho,
   aplicarVariaveisTema,
   aplicarTituloDocumento,
   resolverCor,
@@ -158,6 +159,46 @@ describe("logoUrlTenant", () => {
   it("bloqueia entrada vazia/só espaços", () => {
     expect(logoUrlTenant({ logo_url: "" })).toBeNull();
     expect(logoUrlTenant({ logo_url: "   " })).toBeNull();
+  });
+});
+
+describe("marcaDoCabecalho (marca única do login ao PDV)", () => {
+  it("com tenant carregado, usa nome_exibicao e logo do tema", () => {
+    const tenant = { nome: "Casa Coffee LTDA", tema: { nome_exibicao: "Casa Coffee", logo_url: "https://cdn.exemplo.com/logo.png" } };
+    expect(marcaDoCabecalho(tenant, null)).toEqual({
+      nome: "Casa Coffee",
+      logo: "https://cdn.exemplo.com/logo.png",
+      doTenant: true,
+    });
+  });
+
+  it("tenant carregado prevalece sobre o cache (o cache é só o degrau intermediário)", () => {
+    const tenant = { nome: "Casa Coffee", tema: null };
+    const { nome } = marcaDoCabecalho(tenant, { nome: "Nome Antigo", logo: null });
+    expect(nome).toBe("Casa Coffee");
+  });
+
+  it("sem tenant ainda, usa o nome do cache desta origem em vez de piscar a marca da plataforma", () => {
+    expect(marcaDoCabecalho(null, { nome: "Casa Coffee", logo: "https://cdn.exemplo.com/logo.png" })).toEqual({
+      nome: "Casa Coffee",
+      logo: "https://cdn.exemplo.com/logo.png",
+      doTenant: true,
+    });
+  });
+
+  it("sem tenant e sem cache, cai na marca neutra da plataforma — nunca a marca de outro cliente", () => {
+    expect(marcaDoCabecalho(null, null)).toEqual({ nome: MARCA_PLATAFORMA, logo: null, doTenant: false });
+    expect(marcaDoCabecalho(null, { nome: "   ", logo: null }).nome).toBe(MARCA_PLATAFORMA);
+  });
+
+  it("cache com a própria marca da plataforma não vira assinatura ('KORA by Kora')", () => {
+    expect(marcaDoCabecalho(null, { nome: "Kora", logo: null }).doTenant).toBe(false);
+    expect(marcaDoCabecalho(null, { nome: "KORA", logo: null }).doTenant).toBe(false);
+  });
+
+  it("logo do cache passa pela mesma allowlist de esquema (javascript: não vira <img src>)", () => {
+    expect(marcaDoCabecalho(null, { nome: "Casa Coffee", logo: "javascript:alert(1)" }).logo).toBeNull();
+    expect(marcaDoCabecalho(null, { nome: "Casa Coffee", logo: "data:text/html,<script>" }).logo).toBeNull();
   });
 });
 

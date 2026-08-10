@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { garantirUidItens, mesclarItensComanda, totalItensAtivos, cancelarItemComanda } from "./comandaItens";
+import { garantirUidItens, mesclarItensComanda, totalItensAtivos, cancelarItemComanda, comandaEsquecida, HORAS_COMANDA_ESQUECIDA } from "./comandaItens";
 
 describe("garantirUidItens", () => {
   it("adiciona uid a itens sem uid e preserva os existentes", () => {
@@ -109,6 +109,71 @@ describe("cancelarItemComanda", () => {
     expect(cancelarItemComanda(null, 0)).toBe(null);
     const out = cancelarItemComanda([cafe], 0);
     expect(out[0]).toEqual({ ...cafe, cancelado: true, motivoCancelamento: "", canceladoPor: "" });
+  });
+});
+
+describe("comandaEsquecida", () => {
+  const agora = new Date("2026-08-10T20:00:00Z").getTime();
+  const horasAtras = (h) => new Date(agora - h * 3600000).toISOString();
+
+  it("aberta além do limite e sem nenhum item: esquecida, com as horas decorridas", () => {
+    const out = comandaEsquecida({ created_at: horasAtras(9), items: [] }, agora);
+    expect(out).toEqual({ esquecida: true, horas: 9 });
+  });
+
+  it("item cancelado não conta como consumo (a mesa que ficou 107h aberta)", () => {
+    // A comanda tinha um único item, cancelado dias antes: valor zero para
+    // cobrar, mas mesa ocupada no mapa do salão.
+    const out = comandaEsquecida({
+      created_at: horasAtras(107),
+      items: [{ name: "Coca", price: 8, qty: 1, cancelado: true, motivoCancelamento: "m" }],
+    }, agora);
+    expect(out).toEqual({ esquecida: true, horas: 107 });
+  });
+
+  it("aberta há muito tempo mas com consumo ativo não é esquecida (mesa ocupada é normal)", () => {
+    const out = comandaEsquecida({
+      created_at: horasAtras(12),
+      items: [{ name: "Chopp", price: 14, qty: 2 }],
+    }, agora);
+    expect(out).toEqual({ esquecida: false, horas: 12 });
+  });
+
+  it("mistura cancelado + ativo continua sendo consumo", () => {
+    const out = comandaEsquecida({
+      created_at: horasAtras(8),
+      items: [{ price: 8, qty: 1, cancelado: true }, { price: 5, qty: 1 }],
+    }, agora);
+    expect(out.esquecida).toBe(false);
+  });
+
+  it("dentro do limite não é acusada, mesmo vazia (mesa que abriu e ainda não pediu)", () => {
+    const out = comandaEsquecida({ created_at: horasAtras(2), items: [] }, agora);
+    expect(out).toEqual({ esquecida: false, horas: 2 });
+  });
+
+  it("exatamente no limite já conta como esquecida", () => {
+    expect(comandaEsquecida({ created_at: horasAtras(HORAS_COMANDA_ESQUECIDA), items: [] }, agora).esquecida).toBe(true);
+    expect(comandaEsquecida({ created_at: horasAtras(HORAS_COMANDA_ESQUECIDA - 1), items: [] }, agora).esquecida).toBe(false);
+  });
+
+  it("limite configurável pelo chamador", () => {
+    expect(comandaEsquecida({ created_at: horasAtras(3), items: [] }, agora, 2).esquecida).toBe(true);
+    expect(comandaEsquecida({ created_at: horasAtras(3), items: [] }, agora, 24).esquecida).toBe(false);
+  });
+
+  it("sem created_at (ou com data inválida) não acusa nada", () => {
+    expect(comandaEsquecida({ items: [] }, agora)).toEqual({ esquecida: false, horas: 0 });
+    expect(comandaEsquecida({ created_at: "ontem", items: [] }, agora)).toEqual({ esquecida: false, horas: 0 });
+    expect(comandaEsquecida(null, agora)).toEqual({ esquecida: false, horas: 0 });
+  });
+
+  it("comanda sem a lista de itens conta como sem consumo", () => {
+    expect(comandaEsquecida({ created_at: horasAtras(10) }, agora).esquecida).toBe(true);
+  });
+
+  it("relógio adiantado no cliente não vira hora negativa na tela", () => {
+    expect(comandaEsquecida({ created_at: horasAtras(-3), items: [] }, agora).horas).toBe(0);
   });
 });
 

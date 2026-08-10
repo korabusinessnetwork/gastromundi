@@ -189,6 +189,12 @@ export async function buscarBootstrapTenant() {
         carenciaDias: assinaturaData.carenciaDias,
         valorMensal: assinaturaData.valorMensal,
         dataVencimento: assinaturaData.dataVencimento,
+        // Ainda NÃO confirmado pelo banco: este `status` saiu de uma conta
+        // feita no navegador, com o relógio da máquina do caixa. Quem vira
+        // isto para true é o AppContext, ao receber a resposta de
+        // `sincronizar_status_assinatura` — e só então o PrivateRoute pode
+        // mostrar a tela cheia de bloqueio.
+        statusConfirmado: false,
       }
     : null;
 

@@ -116,9 +116,15 @@ function CategoriasComBusca({ categorias, catFiltro, setCatFiltro, busca, setBus
 }
 
 export default function ProdutosView() {
-  const { products, addProduct, updateProduct, removeProduct, currentUser } = useApp();
+  const { products, addProduct, updateProduct, removeProduct, currentUser, loading } = useApp();
   const { width } = useResponsive();
   const sz = getSizes(width);
+
+  // Logo depois do login o bootstrap ainda está em voo e a lista chega vazia.
+  // A tela anunciava "0 cadastrados" e "Nenhum produto cadastrado" num
+  // estabelecimento com 18 produtos — dá pra achar que o cadastro sumiu.
+  // "Ainda não sei" e "não tem nada" precisam parecer coisas diferentes.
+  const carregando = loading && products.length === 0;
 
   const [modal,     setModal]     = useState(null);
   const [form,      setForm]      = useState(EMPTY_FORM);
@@ -429,7 +435,9 @@ export default function ProdutosView() {
       <div className="produtos-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
         <div>
           <div className="produtos-view__titulo" style={{ fontWeight: 800 }}>Produtos</div>
-          <div className="produtos-view__contagem">{products.length} cadastrado{products.length !== 1 ? "s" : ""}</div>
+          <div className="produtos-view__contagem">
+            {carregando ? "Carregando…" : `${products.length} cadastrado${products.length !== 1 ? "s" : ""}`}
+          </div>
         </div>
         <div className="produtos-view__acoes">
           {isAdmin && abaAtiva === "produtos" && (
@@ -488,7 +496,12 @@ export default function ProdutosView() {
 
       {/* Tabela */}
       <div className="produtos-view__tabela-area">
-        {produtosFiltrados.length === 0 ? (
+        {carregando ? (
+          <div className="produtos-view__vazio" role="status">
+            <div className="produtos-view__vazio-emoji" style={{ opacity: 0.3 }}>⏳</div>
+            <div className="produtos-view__vazio-titulo" style={{ fontWeight: 600 }}>Carregando os produtos…</div>
+          </div>
+        ) : produtosFiltrados.length === 0 ? (
           <div className="produtos-view__vazio">
             <div className="produtos-view__vazio-emoji" style={{ opacity: 0.3 }}>📦</div>
             <div className="produtos-view__vazio-titulo" style={{ fontWeight: 600 }}>{busca ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}</div>

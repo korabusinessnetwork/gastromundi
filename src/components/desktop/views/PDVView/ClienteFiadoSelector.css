@@ -60,6 +60,12 @@
   line-height: var(--lh-xs);
 }
 
+.cliente-fiado-cadastro__aviso {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 600;
+}
+
 .cliente-fiado-cadastro__input-telefone {
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);

@@ -76,14 +76,45 @@ describe("<ModalCupomNfce>", () => {
     render(
       <ModalCupomNfce
         estadoEmissao="concluido"
-        resultado={{ status: "erro", detalhe: "cStat 217 — sem retorno" }}
+        resultado={{ status: "erro", detalhe: "Failed to fetch (abc123.supabase.co)" }}
         venda={venda}
         onFechar={() => {}}
       />,
     );
-    expect(screen.getByText("A venda foi concluída.")).toBeInTheDocument();
-    expect(screen.getByText(/cStat 217/)).toBeInTheDocument();
+    // Diz o que houve com a NOTA e deixa claro que a VENDA está registrada.
+    expect(screen.getByText("A nota ainda não foi emitida.")).toBeInTheDocument();
+    expect(screen.getByText(/venda está registrada/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Imprimir/i })).toBeNull();
+
+    // O erro técnico não chega à tela — o endereço do servidor vazava para o
+    // consumidor no cupom.
+    expect(document.body.textContent).not.toMatch(/supabase|Failed to fetch/i);
+  });
+
+  it("status 'erro' com a nota na fila: avisa que o sistema reemite sozinho", () => {
+    render(
+      <ModalCupomNfce
+        estadoEmissao="concluido"
+        resultado={{ status: "erro", detalhe: "Failed to fetch", naFila: true }}
+        venda={venda}
+        onFechar={() => {}}
+      />,
+    );
+    expect(screen.getByText(/tenta emitir sozinho assim que a conexão voltar/i)).toBeInTheDocument();
+  });
+
+  it("status 'rejeitada': mostra o motivo da SEFAZ, já sem detalhe técnico", () => {
+    render(
+      <ModalCupomNfce
+        estadoEmissao="concluido"
+        resultado={{ status: "rejeitada", detalhe: "cStat 217 — NF-e não consta na base (abc.supabase.co)" }}
+        venda={venda}
+        onFechar={() => {}}
+      />,
+    );
+    expect(screen.getByText("A SEFAZ não aceitou esta nota.")).toBeInTheDocument();
+    expect(screen.getByText(/cStat 217/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/supabase/i);
   });
 
   it("Fechar chama onFechar (nunca trava a navegação)", () => {
