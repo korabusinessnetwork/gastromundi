@@ -220,6 +220,30 @@
 }
 .login-page__security-notice strong { color: var(--gm-text); }
 
+/* ── Termos / Privacidade — discretos, abaixo do aviso de segurança ── */
+.login-page__legal {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.login-page__legal-link {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  text-decoration: none;
+  /* Alvo de toque no PDV: o texto é pequeno, a área de clique não. */
+  padding: 6px 2px;
+}
+
+.login-page__legal-link:hover { text-decoration: underline; }
+
+.login-page__legal-sep {
+  font-size: var(--fs-xs);
+}
+
 /* ── Tela de carregamento / validação de tenant ──────────────────── */
 .login-page__loading {
   font-size: var(--fs-sm);

@@ -1662,6 +1662,10 @@ describe("ConsolePage — o cartão de primeiro acesso", () => {
     await user.clear(screen.getByLabelText(/Usuário de acesso/i));
     await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
     await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+    // Sem o aceite dos Termos o botão nasce travado (pré-venda §1.5) — marcar
+    // aqui é o que este helper faz de propósito: quem testa o Console não está
+    // testando o aceite, e sim o que vem depois do cadastro.
+    await user.click(screen.getByRole("checkbox", { name: /Termos de Uso/i }));
     await user.click(screen.getByRole("button", { name: /^Criar estabelecimento$/i }));
     return screen.findByRole("region", { name: /Dados de primeiro acesso/i });
   };
@@ -1845,6 +1849,10 @@ describe("ConsolePage — a mensalidade no cartão de primeiro acesso", () => {
     await user.clear(screen.getByLabelText(/Usuário de acesso/i));
     await user.type(screen.getByLabelText(/Usuário de acesso/i), "barze");
     await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+    // Sem o aceite dos Termos o botão nasce travado (pré-venda §1.5) — marcar
+    // aqui é o que este helper faz de propósito: quem testa o Console não está
+    // testando o aceite, e sim o que vem depois do cadastro.
+    await user.click(screen.getByRole("checkbox", { name: /Termos de Uso/i }));
     await user.click(screen.getByRole("button", { name: /^Criar estabelecimento$/i }));
     return screen.findByRole("region", { name: /Dados de primeiro acesso/i });
   };

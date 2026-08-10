@@ -32,6 +32,26 @@
   color: #77768A;
 }
 
+.apex-rodape__legal {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.apex-rodape__link {
+  font-size: 13px;
+  color: #9997AC;
+  text-decoration: none;
+  /* Alvo de toque confortável sem engordar o rodapé. */
+  padding: 6px 0;
+}
+
+.apex-rodape__link:hover {
+  color: #FFFFFF;
+  text-decoration: underline;
+}
+
 @media (max-width: 1023px) {
   .apex-rodape {
     padding: 22px 32px;

@@ -54,6 +54,12 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
   // nome do responsável. Depois de editado (inclusive apagado), para de seguir.
   const [usernameTocado, setUsernameTocado] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
+  // Aceite dos Termos (pré-venda §1.5). Começa desmarcado de propósito:
+  // aceite pré-marcado não é aceite. É o único campo do formulário cujo
+  // valor não vai no payload — quem carimba `tenants.termos_versao` /
+  // `termos_aceitos_em` é o DEFAULT do INSERT (20260921). Aqui é o ato
+  // humano: alguém confirmou que o cliente conhece o que está contratando.
+  const [termosAceitos, setTermosAceitos] = useState(false);
 
   const [erros, setErros] = useState({});
   const [erroServidor, setErroServidor] = useState("");
@@ -142,7 +148,7 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
   };
 
   const submeter = async () => {
-    if (enviando || erroMensalidade) return;
+    if (enviando || erroMensalidade || !termosAceitos) return;
     setErroServidor("");
 
     const form = {
@@ -465,6 +471,36 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
             </div>
           </section>
 
+          {/* Aceite dos Termos (pré-venda §1.5). Última coisa antes do rodapé,
+              porque é a última coisa que acontece numa venda: os dados já
+              estão na tela e o que falta é o cliente concordar. Os dois links
+              abrem em aba nova — clicar neles no meio do cadastro não pode
+              jogar fora o que foi preenchido. */}
+          <section className="nem-secao nem-termos">
+            <label className="nem-termos__linha">
+              <input
+                className="nem-termos__check"
+                type="checkbox"
+                checked={termosAceitos}
+                disabled={enviando}
+                onChange={(e) => setTermosAceitos(e.target.checked)}
+              />
+              <span className="nem-termos__texto">
+                O cliente leu e aceita os{" "}
+                <a href="/termos" target="_blank" rel="noreferrer">Termos de Uso</a> e a{" "}
+                <a href="/privacidade" target="_blank" rel="noreferrer">Política de Privacidade</a>.
+              </span>
+            </label>
+            {/* Botão desabilitado sem explicação vira "o sistema travou". A
+                frase só aparece enquanto falta o aceite, e diz o que fazer. */}
+            {!termosAceitos && (
+              <span className="nem-dica">
+                Marque para liberar o cadastro — fica registrado qual versão dos Termos o
+                cliente aceitou, com data e hora.
+              </span>
+            )}
+          </section>
+
           {erroServidor && (
             <div className="nem-erro-servidor" role="alert">
               <LuTriangleAlert size={16} aria-hidden /> {erroServidor}
@@ -504,7 +540,7 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFe
             <button
               className="nem-btn nem-btn--primario"
               onClick={submeter}
-              disabled={enviando || Boolean(erroMensalidade)}
+              disabled={enviando || Boolean(erroMensalidade) || !termosAceitos}
             >
               {enviando ? (<><LuLoaderCircle size={16} className="nem-spin" aria-hidden /> Criando…</>) : "Criar estabelecimento"}
             </button>

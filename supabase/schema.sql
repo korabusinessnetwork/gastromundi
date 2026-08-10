@@ -71,13 +71,18 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ── tenants (o estabelecimento) — 20260716_tenants_minimo.sql ──
 -- tema: jsonb de white-label (cores, layout, nome de exibição, logo).
 -- slug (20260740): identificador de URL, usado pelo delivery público.
+-- termos_* (20260921): qual redação do Termo de Uso o contratante aceitou e
+-- quando. Carimbados pelo DEFAULT no INSERT de provisionar_tenant. NULL nos
+-- tenants anteriores aos Termos — aceite não registrado, e é a verdade.
 CREATE TABLE public.tenants (
-  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome         text        NOT NULL,
-  tema         jsonb       NOT NULL DEFAULT '{}',
-  plano_codigo text        NOT NULL DEFAULT 'avancado' REFERENCES public.planos(codigo), -- 20260717
-  slug         text,                                                                     -- 20260740
-  created_at   timestamptz NOT NULL DEFAULT now()
+  id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome              text        NOT NULL,
+  tema              jsonb       NOT NULL DEFAULT '{}',
+  plano_codigo      text        NOT NULL DEFAULT 'avancado' REFERENCES public.planos(codigo), -- 20260717
+  slug              text,                                                                     -- 20260740
+  termos_versao     text        DEFAULT '1',                                                  -- 20260921
+  termos_aceitos_em timestamptz DEFAULT now(),                                                -- 20260921
+  created_at        timestamptz NOT NULL DEFAULT now()
 );
 
 -- ── planos / planos_modulos (F013) — 20260717_planos_modulos.sql ──

@@ -1,0 +1,87 @@
+/**
+ * Console da Plataforma — "Dados do cliente" (LGPD, pré-venda §1.5).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * O overlay, o modal, os campos e os botões vêm de NovoEstabelecimentoModal.css
+ * — aqui fica só o que é próprio desta tela: os dois passos e o tom de perigo
+ * do segundo.
+ */
+
+/* Cada passo numa caixa própria: a separação visual é o que faz "primeiro
+   isto, depois aquilo" ser lido sem ninguém explicar. */
+.ddc-passo {
+  padding: 14px;
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  background: var(--gm-surface);
+}
+
+/* O passo que apaga não pode parecer com o que baixa. A borda vermelha é o
+   aviso que se vê antes de ler qualquer palavra. */
+.ddc-passo--perigo {
+  border-color: color-mix(in srgb, var(--gm-red) 45%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 6%, transparent);
+}
+
+/* Botão de ação dentro do corpo (e não no rodapé): não estica para a largura
+   toda como os do rodapé, senão competiria com o "Fechar". */
+.ddc-acao {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+.ddc-ok {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-accent);
+}
+
+.ddc-aviso {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 600;
+  color: var(--gm-red);
+}
+
+.ddc-apagar {
+  background: var(--gm-red);
+  color: #fff;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding-left: 22px;
+  padding-right: 22px;
+}
+.ddc-apagar:disabled { background: var(--gm-faint); color: var(--gm-muted); }
+
+/* Saída manual quando o navegador não deixa baixar arquivo: os dados já
+   vieram do servidor, então some-los seria perder a exportação. */
+.ddc-manual {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ddc-manual__texto {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+/* Rodapé de um botão só: sem o par "cancelar/confirmar", o "Fechar" sozinho
+   esticado pela largura toda pareceria a ação principal da tela. */
+.ddc-fechar {
+  margin-left: auto;
+}

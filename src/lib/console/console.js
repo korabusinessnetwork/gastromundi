@@ -1375,6 +1375,102 @@ export async function renomearEstabelecimento(tenantId, nome) {
 }
 
 /**
+ * O texto que o operador precisa digitar para confirmar o apagamento dos
+ * dados de um estabelecimento (LGPD art. 18, VI). Função pura — espelha,
+ * letra por letra, a regra da RPC `apagar_dados_estabelecimento` (20260922):
+ * o endereço (slug) do estabelecimento; se ele não existir, o nome.
+ *
+ * Existe no front para que a tela consiga dizer ANTES o que será pedido e
+ * manter o botão travado até bater — prevenção de erro > mensagem de erro
+ * (Princípio nº1). A confirmação que vale continua sendo a do banco: um
+ * chamador que pule esta camada leva a recusa da RPC.
+ *
+ * @param {{slug?: string|null, nome?: string}|null|undefined} tenant
+ * @returns {string} sempre minúsculo e sem espaço nas pontas; "" se não der para identificar
+ */
+export function confirmacaoDeApagamento(tenant) {
+  const slug = String(tenant?.slug ?? "").trim();
+  const nome = String(tenant?.nome ?? "").trim();
+  return (slug || nome).toLowerCase();
+}
+
+/**
+ * Exporta, em JSON, tudo o que a plataforma guarda de um estabelecimento
+ * (LGPD art. 18, V — portabilidade). É a resposta a "me mandem uma cópia
+ * dos meus dados", e também a cópia que tem de existir ANTES de qualquer
+ * apagamento.
+ *
+ * Quem monta o pacote é a RPC `exportar_dados_estabelecimento` (20260922):
+ * ela varre toda tabela de `public` que tenha `tenant_id` — hoje 50 — em vez
+ * de uma lista escrita à mão, que envelheceria no primeiro módulo novo e
+ * deixaria a exportação sair incompleta em silêncio.
+ *
+ * A autorização REAL é do banco: SECURITY DEFINER com guarda
+ * `is_super_admin()`. O admin de um estabelecimento que chame isto leva
+ * exceção — nem os próprios dados alcança por esta porta.
+ *
+ * Senhas não vêm: elas vivem em `auth.users`, como hash, e a RPC não lê lá.
+ *
+ * Nunca lança: falha de rede/RLS volta como { data: null, error }.
+ *
+ * @param {string} tenantId id do estabelecimento
+ * @returns {Promise<{data: object|null, error: object|null}>}
+ */
+export async function exportarDadosEstabelecimento(tenantId) {
+  if (!tenantId) return { data: null, error: { message: "Estabelecimento inválido." } };
+
+  try {
+    const { data, error } = await supabase.rpc("exportar_dados_estabelecimento", {
+      p_tenant_id: tenantId,
+    });
+    if (error) return { data: null, error };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao exportar os dados." } };
+  }
+}
+
+/**
+ * Apaga TUDO de um estabelecimento — dados, contas de acesso e o cadastro
+ * (LGPD art. 18, VI — eliminação). Irreversível: não há lixeira, e o
+ * caminho de volta é o arquivo da exportação.
+ *
+ * Não confundir com `remover_tenant_provisionado` (20260910), que continua
+ * existindo e RECUSA estabelecimento com usuário ou pagamento: aquela é o
+ * desfazer de um provisionamento que falhou pela metade. Esta aqui apaga
+ * pagamento junto, porque é isso que o titular pediu.
+ *
+ * A confirmação digitada (`confirmacaoDeApagamento`) é conferida duas vezes,
+ * aqui e no banco. Sim/não erra com um clique torto; digitar o endereço do
+ * alvo obriga a olhar para quem se está apagando.
+ *
+ * Nunca lança: falha de rede/RLS volta como { data: null, error }.
+ *
+ * @param {string} tenantId    id do estabelecimento
+ * @param {string} confirmacao o endereço (slug) digitado pelo operador
+ * @returns {Promise<{data: object|null, error: object|null}>} data traz a contagem por tabela
+ */
+export async function apagarDadosEstabelecimento(tenantId, confirmacao) {
+  if (!tenantId) return { data: null, error: { message: "Estabelecimento inválido." } };
+
+  const texto = String(confirmacao ?? "").trim();
+  if (!texto) {
+    return { data: null, error: { message: "Digite o endereço do estabelecimento para confirmar." } };
+  }
+
+  try {
+    const { data, error } = await supabase.rpc("apagar_dados_estabelecimento", {
+      p_tenant_id: tenantId,
+      p_confirmacao: texto,
+    });
+    if (error) return { data: null, error };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao apagar os dados." } };
+  }
+}
+
+/**
  * Catálogo de add-ons pagos (`public.addons`) — o que a plataforma tem
  * para oferecer. Add-on é eixo ORTOGONAL ao plano (decisão 019/021):
  * disponível em qualquer tier, contratado à parte.

@@ -45,6 +45,13 @@ function comoRegex(reais) {
 
 const mensalidade = () => screen.getByLabelText(/Mensalidade combinada/i);
 const criar = () => screen.getByRole("button", { name: /Criar estabelecimento|Criando/i });
+const caixaDeAceite = () => screen.getByRole("checkbox", { name: /Termos de Uso/i });
+
+// O aceite dos Termos (§1.5) trava o botão. Todo teste que chega a clicar em
+// "Criar" passa por aqui — é o mesmo gesto que o dono faz na venda real.
+async function aceitarTermos(user) {
+  await user.click(caixaDeAceite());
+}
 
 function montar(slugsEmUso = []) {
   const user = userEvent.setup();
@@ -72,12 +79,14 @@ async function digitarUsuario(user, valor) {
   await user.type(campo, valor);
 }
 
-// Preenche tudo o que a validação real exige, menos a mensalidade.
+// Preenche tudo o que a validação real exige, menos a mensalidade — e aceita
+// os Termos, sem o que o botão de criar continua desabilitado.
 async function preencher(user, nome = "Bar do Zé") {
   await user.type(screen.getByLabelText(/Nome do estabelecimento/i), nome);
   await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
   await digitarUsuario(user, "barze");
   await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+  await aceitarTermos(user);
 }
 
 describe("NovoEstabelecimentoModal — a mensalidade combinada", () => {
@@ -119,6 +128,7 @@ describe("NovoEstabelecimentoModal — a mensalidade combinada", () => {
     expect(criar()).toBeDisabled();
     await user.clear(mensalidade());
     await user.type(mensalidade(), "100000");
+    await aceitarTermos(user);
     expect(criar()).toBeEnabled();
   });
 
@@ -324,6 +334,7 @@ describe("NovoEstabelecimentoModal — a senha provisória", () => {
     await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
     await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
     await digitarUsuario(user, "barze");
+    await aceitarTermos(user);
     await user.click(criar());
     expect(screen.getByText(/Defina uma senha para o responsável/i)).toBeInTheDocument();
 
@@ -361,6 +372,7 @@ describe("NovoEstabelecimentoModal — a senha provisória", () => {
     await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
     await digitarUsuario(user, "barze");
     await user.type(senhaProvisoria(), "123456");
+    await aceitarTermos(user);
 
     expect(screen.getByText(/Senha fraca/i)).toBeInTheDocument();
     expect(criar()).toBeEnabled();
@@ -377,6 +389,7 @@ describe("NovoEstabelecimentoModal — a senha provisória", () => {
     await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
     await digitarUsuario(user, "barze");
     await user.type(senhaProvisoria(), "abc");
+    await aceitarTermos(user);
     await user.click(criar());
 
     expect(mockProvisionar).not.toHaveBeenCalled();
@@ -391,6 +404,7 @@ describe("NovoEstabelecimentoModal — a senha provisória", () => {
     await digitarUsuario(user, "barze");
     await user.click(gerarSenha());
     const senha = senhaProvisoria().value;
+    await aceitarTermos(user);
     await user.click(criar());
 
     const registrado = espiao.mock.calls.flat().map(String).join(" ");
@@ -474,6 +488,7 @@ describe("NovoEstabelecimentoModal — sugestão de usuário livre", () => {
     expect(sugestao()).toBeNull();
 
     await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await aceitarTermos(user);
     await user.click(criar());
     expect(screen.getByText(/Informe o usuário de acesso do responsável/i)).toBeInTheDocument();
     expect(sugestao()).toBeNull();
@@ -571,6 +586,7 @@ describe("NovoEstabelecimentoModal — o usuário de acesso vem do responsável"
     await user.type(responsavel(), "Zé");
     expect(usuario().value).toBe("");
 
+    await aceitarTermos(user);
     await user.click(criar());
     expect(screen.getByText(/Informe o usuário de acesso do responsável/i)).toBeInTheDocument();
     expect(mockProvisionar).not.toHaveBeenCalled();
@@ -594,6 +610,7 @@ describe("NovoEstabelecimentoModal — o usuário de acesso vem do responsável"
     await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
     await user.type(responsavel(), "José Maria");
     await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+    await aceitarTermos(user);
     await user.click(criar());
     await user.click(sugestao());
     expect(usuario().value).toBe("josemaria.bardoze");
@@ -609,6 +626,7 @@ describe("NovoEstabelecimentoModal — o usuário de acesso vem do responsável"
     await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
     await user.type(responsavel(), "José Maria");
     await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+    await aceitarTermos(user);
     await user.click(criar());
     expect(sugestao()).toHaveTextContent("Usar josemaria.bardoze");
 
@@ -623,6 +641,7 @@ describe("NovoEstabelecimentoModal — o usuário de acesso vem do responsável"
     await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
     await user.type(responsavel(), "José Maria");
     await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+    await aceitarTermos(user);
     await user.click(criar());
 
     expect(mockProvisionar).toHaveBeenCalledWith(
@@ -820,6 +839,87 @@ describe("NovoEstabelecimentoModal — Esc e clique fora", () => {
 
     expect(descartar()).toBeNull();
     expect(onFechar).not.toHaveBeenCalled();
+  });
+});
+
+// ── Pré-venda §1.5 — o aceite dos Termos de Uso ──
+//
+// A plataforma passa a guardar venda, caixa e dado de cliente final de
+// terceiros. Vender isso sem registrar que o contratante concordou com alguma
+// coisa é o buraco que estes testes fecham. O aceite é um ato humano na tela —
+// quem carimba `tenants.termos_versao`/`termos_aceitos_em` é o DEFAULT do
+// INSERT (migração 20260921), não este formulário. O que se protege aqui: que
+// a caixa comece desmarcada, que ela realmente barre o cadastro, e que o botão
+// travado sempre venha com a frase que diz o que fazer.
+describe("NovoEstabelecimentoModal — o aceite dos Termos", () => {
+  beforeEach(() => {
+    mockProvisionar.mockReset();
+    mockDefinir.mockReset();
+    mockProvisionar.mockResolvedValue({
+      data: { tenant_id: "t-novo", nome: "Bar do Zé", admin: { username: "barze" } },
+      error: null,
+    });
+    mockDefinir.mockResolvedValue({ data: null, error: null });
+  });
+
+  it("começa desmarcado — aceite pré-marcado não é aceite", () => {
+    montar();
+    expect(caixaDeAceite()).not.toBeChecked();
+  });
+
+  it("oferece o texto dos dois documentos em aba nova, sem perder o cadastro", () => {
+    montar();
+    for (const [nome, href] of [[/Termos de Uso/i, "/termos"], [/Política de Privacidade/i, "/privacidade"]]) {
+      const link = screen.getByRole("link", { name: nome });
+      expect(link).toHaveAttribute("href", href);
+      expect(link).toHaveAttribute("target", "_blank");
+    }
+  });
+
+  it("sem o aceite, o cadastro não sai — mesmo com tudo preenchido", async () => {
+    const { user, onCriado } = montar();
+    await user.type(screen.getByLabelText(/Nome do estabelecimento/i), "Bar do Zé");
+    await user.type(screen.getByLabelText(/Nome do responsável/i), "José da Silva");
+    await digitarUsuario(user, "barze");
+    await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
+
+    expect(criar()).toBeDisabled();
+    await user.click(criar());
+
+    expect(mockProvisionar).not.toHaveBeenCalled();
+    expect(onCriado).not.toHaveBeenCalled();
+  });
+
+  it("botão travado nunca fica mudo: a tela diz o que falta", async () => {
+    const { user } = montar();
+    expect(screen.getByText(/Marque para liberar o cadastro/i)).toBeInTheDocument();
+
+    await aceitarTermos(user);
+    expect(screen.queryByText(/Marque para liberar o cadastro/i)).not.toBeInTheDocument();
+  });
+
+  it("marcar libera o cadastro, e desmarcar trava de novo", async () => {
+    const { user } = montar();
+    await preencher(user);
+    expect(criar()).toBeEnabled();
+
+    await user.click(caixaDeAceite());
+    expect(caixaDeAceite()).not.toBeChecked();
+    expect(criar()).toBeDisabled();
+  });
+
+  it("aceito, o cadastro segue normalmente — o aceite não vai no payload", async () => {
+    const { user, onCriado } = montar();
+    await preencher(user);
+    await user.click(criar());
+
+    expect(mockProvisionar).toHaveBeenCalledTimes(1);
+    // Quem grava versão e data é o DEFAULT do banco (20260921). Mandar isso
+    // pelo navegador seria deixar o cliente carimbar o próprio aceite.
+    const enviado = mockProvisionar.mock.calls[0][0];
+    expect(Object.keys(enviado)).not.toContain("termosAceitos");
+    expect(JSON.stringify(enviado)).not.toMatch(/termos/i);
+    expect(onCriado).toHaveBeenCalledTimes(1);
   });
 });
 

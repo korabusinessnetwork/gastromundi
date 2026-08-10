@@ -15,6 +15,11 @@ const DemoPage = lazy(() => import("@/pages/apex/demo/DemoPage"));
 // Vitrine pública de delivery (cardápio online, anon por slug) — lazy: só
 // quem abre /cardapio baixa esse código; o operador do PDV nunca carrega.
 const CardapioPage = lazy(() => import("@/pages/delivery/CardapioPage"));
+// Documentos legais da PLATAFORMA (Termos de Uso e Política de Privacidade).
+// Lazy pelo mesmo motivo das outras: é texto que se lê uma vez, não pode
+// entrar no bundle de quem abre o caixa toda manhã.
+const TermosPage      = lazy(() => import("@/pages/legal/TermosPage"));
+const PrivacidadePage = lazy(() => import("@/pages/legal/PrivacidadePage"));
 
 // Pages
 import LoginPage        from "@/pages/login/LoginPage";
@@ -98,6 +103,20 @@ const rotasApp = [
         <CardapioPage />
       </Suspense>
     ),
+  },
+
+  // Termos de Uso e Política de Privacidade — públicos, sem login, e em
+  // TODOS os hosts de tenant, não só no apex: o link mora no rodapé do site
+  // e no pé da tela de login de cada estabelecimento. Documento legal que só
+  // existe num endereço é documento que o cliente não acha na hora em que
+  // precisa (e o link que ele recebeu por e-mail precisa abrir).
+  {
+    path: "/termos",
+    element: <Suspense fallback={null}><TermosPage /></Suspense>,
+  },
+  {
+    path: "/privacidade",
+    element: <Suspense fallback={null}><PrivacidadePage /></Suspense>,
   },
 
   // Console da Plataforma (S1-2) — só o super-admin `plataforma`.

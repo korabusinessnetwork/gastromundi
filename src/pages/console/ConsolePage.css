@@ -142,7 +142,8 @@
 .console__preco:disabled,
 .console__renomear:disabled,
 .console__layout:disabled,
-.console__addons:disabled {
+.console__addons:disabled,
+.console__lgpd:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -303,7 +304,8 @@
 .console__copiar,
 .console__renomear,
 .console__layout,
-.console__addons {
+.console__addons,
+.console__lgpd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -329,7 +331,8 @@
 .console__copiar:hover,
 .console__renomear:hover,
 .console__layout:hover,
-.console__addons:hover {
+.console__addons:hover,
+.console__lgpd:hover {
   border-color: var(--gm-accent);
   background: var(--gm-surface);
   color: var(--gm-accent);
@@ -339,11 +342,13 @@
 .console__copiar:focus-visible,
 .console__renomear:focus-visible,
 .console__layout:focus-visible,
-.console__addons:focus-visible {
+.console__addons:focus-visible,
+.console__lgpd:focus-visible {
   outline: 2px solid var(--gm-accent);
   outline-offset: 2px;
 }
 .console__renomear-nome,
+.console__lgpd-nome,
 .console__layout-nome,
 .console__addons-nome,
 .console__cobrar-nome,
@@ -608,7 +613,8 @@
   .console__copiar,
   .console__renomear,
   .console__layout,
-  .console__addons { flex: 1 1 140px; }
+  .console__addons,
+  .console__lgpd { flex: 1 1 140px; }
 
   /* ── O Console no celular (CONSOLE-UX 28) ─────────────────────── */
 
@@ -641,7 +647,8 @@
   .console__copiar,
   .console__renomear,
   .console__layout,
-  .console__addons { min-height: 44px; }
+  .console__addons,
+  .console__lgpd { min-height: 44px; }
 
   /* O card alinha pelo topo porque o nome agora pode ter duas linhas — no
      centro, o resto desceria junto e descolaria da primeira linha. */

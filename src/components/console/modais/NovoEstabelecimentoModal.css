@@ -192,6 +192,40 @@
 .nem-forca--media { color: var(--gm-text); }
 .nem-forca--forte { color: var(--gm-accent); font-weight: 600; }
 
+/* ── Aceite dos Termos ─────────────────────────────────────────── */
+/* A caixa e o texto ficam num <label> só: o alvo de toque é a frase inteira,
+   não o quadradinho de 14px. Alinhamento pelo topo porque o texto quebra em
+   duas linhas no celular e a caixa tem de ficar na primeira delas. */
+.nem-termos__linha {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.nem-termos__check {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--gm-accent);
+  cursor: pointer;
+}
+.nem-termos__check:disabled { cursor: not-allowed; }
+
+.nem-termos__texto {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--gm-text);
+}
+
+.nem-termos__texto a {
+  color: var(--gm-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.nem-termos__texto a:hover { text-decoration: underline; }
+
 /* ── Erro de servidor ──────────────────────────────────────────── */
 .nem-erro-servidor {
   display: flex;

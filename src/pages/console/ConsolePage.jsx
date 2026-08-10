@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
   LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
-  LuCopy, LuTag, LuExternalLink, LuWifiOff, LuPencil,
+  LuCopy, LuTag, LuExternalLink, LuWifiOff, LuPencil, LuShieldCheck,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import { useStatusRede } from "@/hooks/useStatusRede";
@@ -28,6 +28,7 @@ import ConfirmarRenovacaoModal from "@/components/console/modais/ConfirmarRenova
 import HistoricoPagamentosModal from "@/components/console/modais/HistoricoPagamentosModal";
 import DefinirMensalidadeModal from "@/components/console/modais/DefinirMensalidadeModal";
 import RenomearEstabelecimentoModal from "@/components/console/modais/RenomearEstabelecimentoModal";
+import DadosDoClienteModal from "@/components/console/modais/DadosDoClienteModal";
 import "./ConsolePage.css";
 
 /**
@@ -83,6 +84,11 @@ export default function ConsolePage() {
   // tenant (e não a linha de cobrança) porque quem é renomeado é o cadastro:
   // o modal precisa de `id`, `nome` e `slug`, e a linha do resumo não os tem.
   const [tenantRenomear, setTenantRenomear] = useState(null);
+  // Estabelecimento cujos DADOS estão sendo exportados ou apagados a pedido
+  // dele (pré-venda §1.5, LGPD art. 18). Guarda o tenant, como o de renomear:
+  // o modal precisa de `id` para chamar as RPCs, de `nome` para o título e de
+  // `slug` porque é o slug que se digita para confirmar o apagamento.
+  const [tenantDados, setTenantDados] = useState(null);
   // Linha de cobrança (do `resumirPlataforma`) que está sendo renovada pelo
   // card. Guarda a LINHA, não o tenant, porque é o que o modal de renovação
   // já sabe consumir na outra aba.
@@ -300,6 +306,25 @@ export default function ConsolePage() {
   const aoRenomeado = (tenant) => {
     setTenantRenomear(null);
     setSucesso({ nome: tenant?.nome, nomeAlterado: true });
+    carregar();
+  };
+
+  // Pré-venda §1.5 — atender por aqui o cliente que pede uma cópia dos dados
+  // dele ou pede que sejam apagados. Quem lê e quem apaga são as RPCs
+  // `exportar_dados_estabelecimento` e `apagar_dados_estabelecimento`
+  // (20260922); aqui só abrimos o modal com o estabelecimento certo.
+  const aoAbrirDados = (tenant) => {
+    setSucesso(null);
+    setTenantDados(tenant);
+  };
+
+  // Depois de apagar, o estabelecimento não existe mais: fechar o modal e
+  // recarregar é o que tira o card da lista — deixá-lo na tela faria o dono
+  // clicar num cadastro que já não está lá.
+  const aoApagado = (resumo) => {
+    const nome = tenantDados?.nome;
+    setTenantDados(null);
+    setSucesso({ nome, dadosApagados: Number(resumo?.total_de_linhas ?? 0) });
     carregar();
   };
 
@@ -916,6 +941,10 @@ export default function ConsolePage() {
                 <span>
                   {sucesso.nomeAlterado ? (
                     <>Estabelecimento renomeado para <strong>{sucesso.nome}</strong>.</>
+                  ) : sucesso.dadosApagados !== undefined ? (
+                    <>Dados de <strong>{sucesso.nome}</strong> apagados —{" "}
+                    <strong>{sucesso.dadosApagados}</strong> registros. O acesso da equipe dele
+                    também foi removido.</>
                   ) : sucesso.planoAlterado ? (
                     <>Plano de <strong>{sucesso.nome}</strong> atualizado para <strong>{sucesso.planoAlterado}</strong>.</>
                   ) : sucesso.layoutAlterado ? (
@@ -1301,6 +1330,22 @@ export default function ConsolePage() {
                         {rotularAddons(addonsPorTenant[t.id], erroAddons)}
                       </span>
                     </button>
+                    {/* Exportar/apagar os dados a pedido do cliente (LGPD).
+                        É o último da fila de propósito: das ações do card, é
+                        a única que pode acabar em algo sem volta, e nada
+                        deve levar a mão até ela por engano. O escudo diz
+                        "proteção de dados" e não repete nenhum vizinho. */}
+                    <button
+                      type="button"
+                      className="console__lgpd"
+                      onClick={() => aoAbrirDados(t)}
+                      disabled={!online}
+                      aria-label={`Dados de ${t.nome}`}
+                      title={motivoOffline ?? "Exportar ou apagar os dados deste estabelecimento"}
+                    >
+                      <LuShieldCheck size={17} aria-hidden />
+                      <span className="console__lgpd-nome">Dados</span>
+                    </button>
                   </li>
                   );
                 })}
@@ -1395,6 +1440,14 @@ export default function ConsolePage() {
           tenant={tenantRenomear}
           onFechar={() => setTenantRenomear(null)}
           onRenomeado={aoRenomeado}
+        />
+      )}
+
+      {tenantDados && (
+        <DadosDoClienteModal
+          tenant={tenantDados}
+          onFechar={() => setTenantDados(null)}
+          onApagado={aoApagado}
         />
       )}
 

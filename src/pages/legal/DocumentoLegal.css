@@ -1,0 +1,230 @@
+/**
+ * Documentos legais (Termos de Uso e Política de Privacidade).
+ * CSS separado do JSX (decisão 018), co-localizado (decisão 023). Os tokens
+ * --kora-* vêm de ApexPage.css, escopados em .apex — por isso a página inteira
+ * vive dentro dessa classe.
+ *
+ * A medida do texto é a decisão de leitura mais importante aqui: 720px de
+ * coluna (~75 caracteres) é o que se lê sem perder a linha. Documento legal
+ * em linha larga é documento que ninguém termina.
+ */
+
+.legal {
+  background: #FFFFFF;
+}
+
+/* ── Topo: marca à esquerda, uma saída só à direita ─────────────── */
+.legal-topo {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--kora-linha);
+}
+
+.legal-topo__container {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.legal-topo__marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.legal-topo__monograma {
+  width: 24px;
+  height: 24px;
+}
+
+.legal-topo__wordmark {
+  font-family: var(--kora-font-titulo);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 3px;
+  color: var(--kora-tinta);
+}
+
+.legal-topo__voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--kora-linha);
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: var(--kora-grafite);
+  font-family: var(--kora-font-texto);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.legal-topo__voltar:hover {
+  border-color: var(--kora-roxo);
+  color: var(--kora-roxo);
+}
+
+/* ── Corpo do documento ─────────────────────────────────────────── */
+.legal-conteudo {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+  box-sizing: border-box;
+}
+
+.legal-titulo {
+  font-family: var(--kora-font-titulo);
+  font-size: 34px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--kora-tinta);
+  margin: 0;
+}
+
+.legal-vigencia {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--kora-nevoa);
+}
+
+/* Falta a identificação da empresa: aviso franco, não desastre visual. */
+.legal-pendencia {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 24px;
+  padding: 14px 16px;
+  border: 1px solid #F0D8AE;
+  border-left: 4px solid var(--kora-alerta);
+  border-radius: 10px;
+  background: #FDF6E8;
+  color: #7A5A16;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.legal-pendencia code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+/* Resumo em português comum antes das cláusulas: é o que a maioria lê. */
+.legal-resumo {
+  margin: 28px 0 0;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: var(--kora-fundo);
+  border: 1px solid var(--kora-linha);
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--kora-grafite);
+}
+
+.legal-sumario {
+  margin-top: 28px;
+}
+
+.legal-sumario__titulo {
+  margin: 0 0 8px;
+  font-family: var(--kora-font-titulo);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--kora-nevoa);
+}
+
+.legal-sumario__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.legal-sumario__lista a {
+  color: var(--kora-link);
+  text-decoration: none;
+  font-size: 15px;
+  line-height: 1.5;
+  /* Alvo confortável também no celular, sem virar botão. */
+  display: inline-block;
+  padding: 3px 0;
+}
+
+.legal-sumario__lista a:hover {
+  text-decoration: underline;
+}
+
+.legal-secao {
+  margin-top: 40px;
+  /* O topo é sticky: sem isso, a âncora leva o título para debaixo dele. */
+  scroll-margin-top: 80px;
+}
+
+.legal-secao__titulo {
+  font-family: var(--kora-font-titulo);
+  font-size: 20px;
+  line-height: 1.35;
+  font-weight: 700;
+  color: var(--kora-tinta);
+  margin: 0 0 12px;
+}
+
+.legal-secao__paragrafo {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--kora-grafite);
+}
+
+.legal-secao__lista {
+  margin: 0 0 12px;
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+}
+
+.legal-secao__lista li {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--kora-grafite);
+}
+
+@media (max-width: 767px) {
+  .legal-topo__container {
+    padding: 12px 20px;
+  }
+
+  .legal-conteudo {
+    padding: 32px 20px 48px;
+  }
+
+  .legal-titulo {
+    font-size: 27px;
+  }
+
+  .legal-secao {
+    margin-top: 32px;
+  }
+
+  .legal-secao__titulo {
+    font-size: 18px;
+  }
+
+  .legal-resumo,
+  .legal-secao__paragrafo,
+  .legal-secao__lista li {
+    font-size: 15px;
+  }
+}

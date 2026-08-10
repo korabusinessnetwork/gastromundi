@@ -278,6 +278,16 @@ export default function LoginPage() {
             Sessão expira após <strong>30 min</strong> de inatividade. Bloqueio após <strong>5 tentativas</strong>.
           </div>
         </div>
+
+        {/* Documentos legais da plataforma: discretos (quem entra todo dia
+            não precisa deles), mas presentes na única tela pública que todo
+            estabelecimento tem — sem isso, o cliente não teria onde consultar
+            o que aceitou. */}
+        <div className="login-page__legal">
+          <a href="/termos" className="login-page__legal-link" style={{ color: varColor(C.muted) }}>Termos de Uso</a>
+          <span className="login-page__legal-sep" style={{ color: varColor(C.muted) }} aria-hidden="true">·</span>
+          <a href="/privacidade" className="login-page__legal-link" style={{ color: varColor(C.muted) }}>Política de Privacidade</a>
+        </div>
       </div>
     </div>
   );
