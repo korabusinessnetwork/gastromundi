@@ -81,13 +81,15 @@ export async function listarPlanos() {
  *
  * Nunca lança: falha de rede/RLS volta como { data: [], error }.
  *
- * @returns {Promise<{data: Array<{tenant_id:string, valor_mensal:number, data_vencimento:string, carencia_dias:number, status:string}>, error: object|null}>}
+ * @returns {Promise<{data: Array<{tenant_id:string, valor_mensal:number, data_vencimento:string, carencia_dias:number, status:string, isento_ate:string|null, isencao_motivo:string|null}>, error: object|null}>}
  */
 export async function listarAssinaturas() {
   try {
     const { data, error } = await supabase
       .from("assinaturas")
-      .select("tenant_id, valor_mensal, data_vencimento, carencia_dias, status");
+      .select(
+        "tenant_id, valor_mensal, data_vencimento, carencia_dias, status, isento_ate, isencao_motivo"
+      );
     if (error) return { data: [], error };
     return { data: data ?? [], error: null };
   } catch (err) {
@@ -353,11 +355,13 @@ export function contarPorPlano(itens = []) {
  * sem linha de assinatura vira status 'sem_assinatura' (não é erro).
  *
  * MRR = soma das mensalidades da base que efetivamente paga (ativo +
- * carência); bloqueado/cancelado/sem_assinatura não contam como receita.
+ * carência); bloqueado/cancelado/sem_assinatura/isento não contam como
+ * receita — cortesia (`isento_ate`, 20260918) opera sem ser cobrada, e
+ * somá-la ao MRR inventaria receita que ninguém vai receber.
  *
  * @param {Array<{id:string, nome:string, plano_codigo?:string}>} tenants
  * @param {Array<{codigo:string, nome:string}>} planos
- * @param {Array<{tenant_id:string, valor_mensal:number, data_vencimento:string, carencia_dias:number, status:string}>} assinaturas
+ * @param {Array<{tenant_id:string, valor_mensal:number, data_vencimento:string, carencia_dias:number, status:string, isento_ate?:string|null}>} assinaturas
  * @param {Date} [hoje]
  * @returns {{linhas:Array<object>, kpis:object, precisamAtencao:Array<object>, distribuicaoPlano:Array<object>}}
  */
@@ -372,7 +376,7 @@ export function resumirPlataforma(tenants = [], planos = [], assinaturas = [], h
     if (a) {
       status = a.status === "cancelado"
         ? "cancelado"
-        : calcularStatusAssinatura(a.data_vencimento, a.carencia_dias, hoje);
+        : calcularStatusAssinatura(a.data_vencimento, a.carencia_dias, hoje, a.isento_ate ?? null);
       diasParaVencer = calcularDiasParaVencimento(a.data_vencimento, hoje);
     }
     return {
@@ -383,7 +387,9 @@ export function resumirPlataforma(tenants = [], planos = [], assinaturas = [], h
       valorMensal: a ? (Number(a.valor_mensal) || 0) : 0,
       dataVencimento: a?.data_vencimento ?? null,
       diasParaVencer,
-      status, // ativo | carencia | bloqueado | cancelado | sem_assinatura
+      isentoAte: a?.isento_ate ?? null,
+      isencaoMotivo: a?.isencao_motivo ?? null,
+      status, // ativo | carencia | bloqueado | cancelado | isento | sem_assinatura
     };
   });
 
@@ -395,6 +401,10 @@ export function resumirPlataforma(tenants = [], planos = [], assinaturas = [], h
     emCarencia: contar("carencia"),
     bloqueados: contar("bloqueado"),
     cancelados: contar("cancelado"),
+    // Cortesia com prazo (20260918): opera normalmente e não é receita. Fica
+    // contado à parte para a tela não fingir que é "base ativa" nem que é
+    // inadimplência — é uma decisão comercial da plataforma, com data de fim.
+    isentos: contar("isento"),
     semAssinatura: contar("sem_assinatura"),
     mrr: linhas
       .filter((l) => l.status === "ativo" || l.status === "carencia")
@@ -503,14 +513,15 @@ export function diasDesde(iso, hoje) {
  * "Paga" usa o mesmo critério do MRR de `resumirPlataforma` (ativo ou
  * carência, com o status recalculado por `calcularStatusAssinatura`, não o
  * cache do banco). Bloqueado fica fora de propósito: perdeu o acesso, não
- * vender é consequência, não sintoma. Cancelado e sem assinatura também —
- * não pagam.
+ * vender é consequência, não sintoma. Cancelado, sem assinatura e cortesia
+ * (`isento_ate`, 20260918) também — não pagam, então "paga e não usa" não se
+ * aplica a eles.
  *
  * Dinheiro em CENTAVOS INTEIROS do começo ao fim: a RPC já devolve assim e
  * nada aqui divide por 100 — isso é trabalho da formatação, na tela.
  *
  * @param {Array<{id:string, nome:string}>} tenants
- * @param {Array<{tenant_id:string, data_vencimento:string, carencia_dias:number, status:string}>} assinaturas
+ * @param {Array<{tenant_id:string, data_vencimento:string, carencia_dias:number, status:string, isento_ate?:string|null}>} assinaturas
  * @param {Array<{tenant_id:string, faturamento_centavos:number, pedidos:number, ultima_venda:string|null}>} analitico
  * @param {Date} [hoje]
  * @returns {{linhas:Array<object>, kpis:object, pagandoSemUso:Array<object>}}
@@ -531,7 +542,7 @@ export function resumirUso(tenants = [], assinaturas = [], analitico = [], hoje 
     if (a) {
       statusAssinatura = a.status === "cancelado"
         ? "cancelado"
-        : calcularStatusAssinatura(a.data_vencimento, a.carencia_dias, hoje);
+        : calcularStatusAssinatura(a.data_vencimento, a.carencia_dias, hoje, a.isento_ate ?? null);
     }
 
     return {
@@ -1231,6 +1242,56 @@ export async function definirMensalidade(tenantId, valor) {
     return { data, error: null };
   } catch (err) {
     return { data: null, error: { message: err?.message ?? "Falha ao definir a mensalidade." } };
+  }
+}
+
+/** Teto de sanidade da cortesia — o MESMO `c_teto_anos` da RPC (20260918). */
+export const ISENCAO_MAXIMA_ANOS = 5;
+
+/**
+ * Concede (ou revoga) cortesia: até `isentoAte` o estabelecimento opera sem
+ * ser bloqueado por vencimento, mesmo com a mensalidade em aberto.
+ *
+ * Existe porque cortesia NÃO cabia em "pagamento de R$ 0,00": a renovação
+ * (`confirmar_renovacao_assinatura`, 20260909) rejeita valor <= 0 de
+ * propósito, e afrouxar isso abriria caminho para dar ciclo de graça sem
+ * rastro. Cortesia é ausência de cobrança, não um pagamento — por isso vive
+ * em campo próprio (`assinaturas.isento_ate`), com data de fim: sem prazo,
+ * vira cliente esquecido operando de graça para sempre.
+ *
+ * Quem decide de verdade é o banco: `definir_isencao_tenant` (20260918,
+ * SECURITY DEFINER + is_super_admin()) exige motivo, recusa data no passado e
+ * limita o prazo. Passar `isentoAte = null` revoga a cortesia e devolve o
+ * estabelecimento à cobrança normal.
+ *
+ * Nunca lança: falha de rede/RLS volta como { data: null, error }.
+ *
+ * @param {string} tenantId       id do estabelecimento
+ * @param {string|null} isentoAte último dia da cortesia ("YYYY-MM-DD") ou null para revogar
+ * @param {string} [motivo]       por que a cortesia foi dada (obrigatório ao conceder)
+ * @returns {Promise<{data: object|null, error: object|null}>}
+ */
+export async function definirIsencao(tenantId, isentoAte, motivo) {
+  if (!tenantId) return { data: null, error: { message: "Estabelecimento inválido." } };
+
+  const motivoLimpo = String(motivo ?? "").trim();
+  if (isentoAte && motivoLimpo.length < 3) {
+    return {
+      data: null,
+      error: { message: "Escreva o motivo da cortesia — ele fica gravado na assinatura." },
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.rpc("definir_isencao_tenant", {
+      p_tenant_id: tenantId,
+      p_isento_ate: isentoAte || null,
+      p_motivo: motivoLimpo || null,
+    });
+    if (error) return { data: null, error };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao definir a cortesia." } };
   }
 }
 

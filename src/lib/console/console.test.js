@@ -19,6 +19,7 @@ import {
   resumirPlataforma,
   compararModulosDoPlano,
   definirMensalidade,
+  definirIsencao,
   listarAnalitico,
   resumirUso,
   PERIODOS_ANALYTICS,
@@ -775,6 +776,71 @@ describe("resumirPlataforma — mensalidade não definida", () => {
   });
 });
 
+describe("resumirPlataforma — cortesia (isento_ate)", () => {
+  const HOJE = new Date("2026-07-24T12:00:00Z");
+  const planos = [{ codigo: "basico", nome: "Básico" }];
+  const tenants = [
+    { id: "t-cortesia", nome: "Em Cortesia", plano_codigo: "basico" },
+    { id: "t-pago",     nome: "Paga 100",    plano_codigo: "basico" },
+  ];
+  const assinaturas = [
+    // Vencimento estourado: sem a cortesia, este estaria bloqueado.
+    {
+      tenant_id: "t-cortesia", valor_mensal: 300, data_vencimento: "2026-07-14",
+      carencia_dias: 3, status: "ativo", isento_ate: "2026-12-31",
+      isencao_motivo: "3 meses combinados na venda",
+    },
+    {
+      tenant_id: "t-pago", valor_mensal: 100, data_vencimento: "2026-08-13",
+      carencia_dias: 3, status: "ativo",
+    },
+  ];
+
+  it("cortesia tem KPI próprio e não engorda a base ativa", () => {
+    const { kpis } = resumirPlataforma(tenants, planos, assinaturas, HOJE);
+    expect(kpis.isentos).toBe(1);
+    expect(kpis.ativos).toBe(1);
+    expect(kpis.bloqueados).toBe(0);
+  });
+
+  it("cortesia não entra na receita mensal — não é dinheiro que entra", () => {
+    const { kpis } = resumirPlataforma(tenants, planos, assinaturas, HOJE);
+    expect(kpis.mrr).toBe(100);
+  });
+
+  it("cortesia com preço definido não conta como 'sem mensalidade'", () => {
+    // São coisas diferentes: ele TEM preço combinado, só não paga agora.
+    const { kpis } = resumirPlataforma(tenants, planos, assinaturas, HOJE);
+    expect(kpis.semPreco).toBe(0);
+  });
+
+  it("cortesia não aparece no alerta de atenção — ela não é pendência", () => {
+    const { precisamAtencao } = resumirPlataforma(tenants, planos, assinaturas, HOJE);
+    expect(precisamAtencao.map((l) => l.tenantId)).not.toContain("t-cortesia");
+  });
+
+  it("a linha carrega a data e o motivo, para a tabela mostrar sem abrir o modal", () => {
+    const { linhas } = resumirPlataforma(tenants, planos, assinaturas, HOJE);
+    const linha = linhas.find((l) => l.tenantId === "t-cortesia");
+    expect(linha.status).toBe("isento");
+    expect(linha.isentoAte).toBe("2026-12-31");
+    expect(linha.isencaoMotivo).toBe("3 meses combinados na venda");
+  });
+
+  it("cancelado com cortesia continua cancelado — o banco checa cancelado antes", () => {
+    const { linhas } = resumirPlataforma(
+      [{ id: "t1", nome: "Cancelado", plano_codigo: "basico" }],
+      planos,
+      [{
+        tenant_id: "t1", valor_mensal: 300, data_vencimento: "2026-07-14",
+        carencia_dias: 3, status: "cancelado", isento_ate: "2026-12-31",
+      }],
+      HOJE
+    );
+    expect(linhas[0].status).toBe("cancelado");
+  });
+});
+
 // R7L8: a ÚNICA via de escrita de valor_mensal. `assinaturas` não tem policy
 // de UPDATE (20260719/20260726), então isto tem de passar pela RPC — um
 // `.from("assinaturas").update(...)` aqui responderia sucesso sem gravar nada.
@@ -825,6 +891,75 @@ describe("definirMensalidade", () => {
       throw new Error("Failed to fetch");
     });
     const { data, error } = await definirMensalidade("t1", 300);
+    expect(data).toBeNull();
+    expect(error.message).toBe("Failed to fetch");
+  });
+});
+
+// A cortesia (20260918) também não tem policy de UPDATE: `isento_ate` só é
+// escrito por `definir_isencao_tenant`. E ela NÃO pode virar "renovação de R$
+// 0" — `confirmar_renovacao_assinatura` recusa `p_valor <= 0` de propósito.
+describe("definirIsencao", () => {
+  beforeEach(() => {
+    supabase.reset();
+    supabase.rpc.mockClear();
+  });
+
+  it("chama a RPC do banco com os nomes de parâmetro do contrato", async () => {
+    supabase.setRpcResult("definir_isencao_tenant", {
+      data: { tenant_id: "t1", isento_ate: "2026-12-31" },
+      error: null,
+    });
+    const { data, error } = await definirIsencao("t1", "2026-12-31", "Cortesia da venda");
+    expect(error).toBeNull();
+    expect(data).toEqual({ tenant_id: "t1", isento_ate: "2026-12-31" });
+    expect(supabase.rpc).toHaveBeenCalledWith("definir_isencao_tenant", {
+      p_tenant_id: "t1",
+      p_isento_ate: "2026-12-31",
+      p_motivo: "Cortesia da venda",
+    });
+  });
+
+  it("revoga com null e sem motivo — encerrar cortesia não precisa justificar", async () => {
+    await definirIsencao("t1", null, "");
+    expect(supabase.rpc).toHaveBeenCalledWith("definir_isencao_tenant", {
+      p_tenant_id: "t1",
+      p_isento_ate: null,
+      p_motivo: null,
+    });
+  });
+
+  it("recusa conceder sem motivo antes de ir ao banco", async () => {
+    // Cortesia sem motivo gravado é uma assinatura que ninguém sabe explicar
+    // seis meses depois. A RPC também recusa; parar aqui poupa a ida.
+    const { data, error } = await definirIsencao("t1", "2026-12-31", "  ");
+    expect(data).toBeNull();
+    expect(error.message).toMatch(/motivo/i);
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it("sem tenant não chama nada", async () => {
+    const { error } = await definirIsencao("", "2026-12-31", "Cortesia");
+    expect(error.message).toMatch(/inválido/i);
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it("devolve a recusa do banco em vez de inventar sucesso", async () => {
+    supabase.setRpcError("definir_isencao_tenant", {
+      code: "42501",
+      message: "Apenas a plataforma pode definir a cortesia de um estabelecimento.",
+    });
+    const { data, error } = await definirIsencao("t1", "2026-12-31", "Cortesia");
+    expect(data).toBeNull();
+    expect(error.code).toBe("42501");
+    expect(error.message).toMatch(/Apenas a plataforma/);
+  });
+
+  it("não lança quando a chamada explode (queda de rede)", async () => {
+    supabase.rpc.mockImplementationOnce(() => {
+      throw new Error("Failed to fetch");
+    });
+    const { data, error } = await definirIsencao("t1", "2026-12-31", "Cortesia");
     expect(data).toBeNull();
     expect(error.message).toBe("Failed to fetch");
   });

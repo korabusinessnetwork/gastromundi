@@ -58,6 +58,45 @@ describe("calcularStatusAssinatura (fronteiras de data — carência de 3 dias)"
   });
 });
 
+/**
+ * Cortesia (`isento_ate`, 20260918). A ordem de checagem tem de ser a MESMA de
+ * `public.assinatura_ativa`: a isenção vem ANTES do cálculo por data, senão o
+ * front diria "bloqueado" para quem o banco está deixando operar — e a tela
+ * mandaria a pessoa embora de um sistema que está funcionando.
+ */
+describe("calcularStatusAssinatura com cortesia (isento_ate)", () => {
+  const vencimento = "2026-07-20";
+
+  it("cortesia vigente vence o vencimento estourado", () => {
+    expect(calcularStatusAssinatura(vencimento, 3, "2026-09-01", "2026-12-31")).toBe("isento");
+  });
+
+  it("último dia da cortesia ainda é isento (inclusive)", () => {
+    expect(calcularStatusAssinatura(vencimento, 3, "2026-12-31", "2026-12-31")).toBe("isento");
+  });
+
+  it("um dia depois da cortesia volta a valer o vencimento", () => {
+    expect(calcularStatusAssinatura(vencimento, 3, "2027-01-01", "2026-12-31")).toBe("bloqueado");
+  });
+
+  it("cortesia com a assinatura em dia não muda nada visível: segue 'isento'", () => {
+    // Quem está em dia E em cortesia não paga — o rótulo tem de dizer a
+    // verdade, senão a plataforma acha que ele está gerando receita.
+    expect(calcularStatusAssinatura("2026-12-01", 3, "2026-09-01", "2026-12-31")).toBe("isento");
+  });
+
+  it("sem cortesia (null/ausente) o resultado é idêntico ao de antes", () => {
+    expect(calcularStatusAssinatura(vencimento, 3, "2026-09-01", null)).toBe("bloqueado");
+    expect(calcularStatusAssinatura(vencimento, 3, "2026-09-01")).toBe("bloqueado");
+  });
+
+  it("não usa new Date() na data da cortesia: o último dia não encurta no fuso -03", () => {
+    // "2026-12-31" lido como UTC vira 30/12 às 21h no Brasil; se isso
+    // acontecesse, a cortesia terminaria um dia antes do combinado.
+    expect(calcularStatusAssinatura(vencimento, 3, new Date(2026, 11, 31, 23, 0, 0), "2026-12-31")).toBe("isento");
+  });
+});
+
 describe("calcularDiasParaVencimento", () => {
   const vencimento = "2026-07-20";
 
@@ -84,7 +123,16 @@ describe("buscarAssinaturaAtual", () => {
     const { data, error } = await buscarAssinaturaAtual("t1");
 
     expect(error).toBeNull();
-    expect(data).toEqual({ dataVencimento: "2026-08-05", carenciaDias: 3, valorMensal: 199, statusCache: "ativo" });
+    expect(data).toEqual({
+      dataVencimento: "2026-08-05",
+      carenciaDias: 3,
+      valorMensal: 199,
+      statusCache: "ativo",
+      // Sem cortesia a linha vem com os dois campos nulos — e eles precisam
+      // chegar assim mesmo, porque `calcularStatusAssinatura` os lê sempre.
+      isentoAte: null,
+      isencaoMotivo: null,
+    });
   });
 
   it("consulta apenas as colunas necessárias (sem select *)", async () => {
@@ -196,6 +244,12 @@ describe("assinaturaPermiteOperacao (Fase 5 — espelha assinatura_ativa/assinat
   it("status ausente/inválido não permite operar (seguro por padrão)", () => {
     expect(assinaturaPermiteOperacao(undefined)).toBe(false);
     expect(assinaturaPermiteOperacao(null)).toBe(false);
+  });
+
+  it("'isento' permite operar — é para isso que a cortesia existe", () => {
+    // Se esta ficasse de fora, `PrivateRoute` derrubaria justamente o
+    // estabelecimento que a plataforma acabou de liberar de pagar.
+    expect(assinaturaPermiteOperacao("isento")).toBe(true);
   });
 
   it("integra com o cálculo de status: renovar (novo vencimento futuro) volta a permitir operar", () => {
@@ -517,13 +571,37 @@ describe("resumirPlanoDoTenant (a frase que o dono do restaurante lê)", () => {
   it("mensalidade vira centavos inteiros, sem float", () => {
     const r = resumirPlanoDoTenant(assinatura("2026-09-05", { valorMensal: 299.9 }), "2026-08-01T10:00:00");
     expect(r.mensalidadeCentavos).toBe(29990);
-    expect(r.isento).toBe(false);
+    expect(r.semMensalidade).toBe(false);
   });
 
-  it("cortesia (valor zero) é marcada como isenta, não como R$ 0,00 devido", () => {
+  it("preço zero é marcado como sem mensalidade, não como R$ 0,00 devido", () => {
     const r = resumirPlanoDoTenant(assinatura("2026-09-05", { valorMensal: 0 }), "2026-08-01T10:00:00");
     expect(r.mensalidadeCentavos).toBe(0);
-    expect(r.isento).toBe(true);
+    expect(r.semMensalidade).toBe(true);
+  });
+
+  it("cortesia vigente: fala de cortesia, não de vencimento, mesmo vencido", () => {
+    // Preço definido E vencimento estourado: sem a cortesia isto seria
+    // "bloqueado". `semMensalidade` continua false — ele TEM preço; só não
+    // paga agora. Os dois conceitos não podem se confundir na tela.
+    const r = resumirPlanoDoTenant(
+      assinatura("2026-07-20", { isentoAte: "2026-10-31" }),
+      "2026-08-01T10:00:00"
+    );
+    expect(r.status).toBe("isento");
+    expect(r.tom).toBe("ok");
+    expect(r.titulo).toBe("Seu acesso está liberado por cortesia");
+    expect(r.detalhe).toContain("31/10/2026");
+    expect(r.isentoAteBr).toBe("31/10/2026");
+    expect(r.semMensalidade).toBe(false);
+  });
+
+  it("cortesia expirada não segura mais nada: volta a valer o vencimento", () => {
+    const r = resumirPlanoDoTenant(
+      assinatura("2026-07-20", { isentoAte: "2026-07-31" }),
+      "2026-08-01T10:00:00"
+    );
+    expect(r.status).toBe("bloqueado");
   });
 
   it("não usa new Date() na data de vencimento: dia 1º não volta para o mês anterior", () => {

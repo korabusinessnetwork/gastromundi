@@ -69,14 +69,29 @@ function diaDoCalendario(data) {
  *   - hoje <= vencimento + carência   → 'carencia'
  *   - caso contrário                  → 'bloqueado'
  *
+ * Cortesia (`isento_ate`, 20260918) entra ANTES do cálculo por data: enquanto
+ * a isenção não expira, o estabelecimento opera mesmo com o vencimento vencido
+ * — é assim que o banco decide dentro de `assinatura_ativa`. O status devolvido
+ * é 'isento' (e não 'ativo') para a tela poder dizer a verdade ao dono: ele não
+ * está em dia porque pagou, está liberado por cortesia até tal dia.
+ *
  * @param {Date|string} dataVencimento
  * @param {number} carenciaDias
  * @param {Date|string} [hoje]
- * @returns {"ativo"|"carencia"|"bloqueado"}
+ * @param {Date|string|null} [isentoAte] fim da cortesia, inclusive (null = cobrança normal)
+ * @returns {"ativo"|"carencia"|"bloqueado"|"isento"}
  */
-export function calcularStatusAssinatura(dataVencimento, carenciaDias, hoje = new Date()) {
-  const vencimento = diaDoCalendario(dataVencimento);
+export function calcularStatusAssinatura(
+  dataVencimento,
+  carenciaDias,
+  hoje = new Date(),
+  isentoAte = null
+) {
   const agora = diaDoCalendario(hoje);
+
+  if (isentoAte && agora <= diaDoCalendario(isentoAte)) return "isento";
+
+  const vencimento = diaDoCalendario(dataVencimento);
   const diffDias = Math.round((agora - vencimento) / MS_POR_DIA);
 
   if (diffDias <= 0) return "ativo";
@@ -100,15 +115,15 @@ export function calcularDiasParaVencimento(dataVencimento, hoje = new Date()) {
 
 /**
  * Espelha `assinatura_ativa`/`assinatura_atual_ativa` (SQL, Fase 5):
- * 'ativo' e 'carencia' permitem operar; 'bloqueado' e 'cancelado' não.
- * Usada só pela UI (ex.: `PrivateRoute`) para decidir se mostra a tela
+ * 'ativo', 'carencia' e 'isento' permitem operar; 'bloqueado' e 'cancelado'
+ * não. Usada só pela UI (ex.: `PrivateRoute`) para decidir se mostra a tela
  * de bloqueio — a decisão que realmente vale é sempre a do Postgres.
  *
- * @param {"ativo"|"carencia"|"bloqueado"|"cancelado"|undefined|null} status
+ * @param {"ativo"|"carencia"|"bloqueado"|"cancelado"|"isento"|undefined|null} status
  * @returns {boolean}
  */
 export function assinaturaPermiteOperacao(status) {
-  return status === "ativo" || status === "carencia";
+  return status === "ativo" || status === "carencia" || status === "isento";
 }
 
 /**
@@ -117,14 +132,14 @@ export function assinaturaPermiteOperacao(status) {
  * { data: null, error }, para o chamador decidir o fallback.
  *
  * @param {string} tenantId
- * @returns {Promise<{data: {dataVencimento: string, carenciaDias: number, valorMensal: number, statusCache: string}|null, error: object|null}>}
+ * @returns {Promise<{data: {dataVencimento: string, carenciaDias: number, valorMensal: number, statusCache: string, isentoAte: string|null, isencaoMotivo: string|null}|null, error: object|null}>}
  */
 export async function buscarAssinaturaAtual(tenantId) {
   if (!tenantId) return { data: null, error: null };
   try {
     const { data, error } = await supabase
       .from("assinaturas")
-      .select("data_vencimento, carencia_dias, valor_mensal, status")
+      .select("data_vencimento, carencia_dias, valor_mensal, status, isento_ate, isencao_motivo")
       .eq("tenant_id", tenantId)
       .maybeSingle();
     if (error) return { data: null, error };
@@ -135,6 +150,8 @@ export async function buscarAssinaturaAtual(tenantId) {
         carenciaDias: data.carencia_dias,
         valorMensal: data.valor_mensal,
         statusCache: data.status,
+        isentoAte: data.isento_ate ?? null,
+        isencaoMotivo: data.isencao_motivo ?? null,
       },
       error: null,
     };
@@ -361,25 +378,39 @@ function dataBr(iso) {
  *
  * `tom` é a intenção da mensagem, não a cor: quem pinta é o CSS.
  *
- * @param {{dataVencimento: string, carenciaDias: number, valorMensal: number}|null} assinatura
+ * @param {{dataVencimento: string, carenciaDias: number, valorMensal: number, isentoAte?: string|null}|null} assinatura
  * @param {Date|string} [hoje]
- * @returns {{status: string, tom: "ok"|"aviso"|"critico", titulo: string, detalhe: string, vencimentoBr: string, mensalidadeCentavos: number, isento: boolean}|null}
+ * @returns {{status: string, tom: "ok"|"aviso"|"critico", titulo: string, detalhe: string, vencimentoBr: string, mensalidadeCentavos: number, semMensalidade: boolean, isentoAteBr: string}|null}
  */
 export function resumirPlanoDoTenant(assinatura, hoje = new Date()) {
   if (!assinatura || !assinatura.dataVencimento) return null;
 
   const carencia = Number(assinatura.carenciaDias) || 0;
-  const status = calcularStatusAssinatura(assinatura.dataVencimento, carencia, hoje);
+  const isentoAte = assinatura.isentoAte ?? null;
+  const status = calcularStatusAssinatura(assinatura.dataVencimento, carencia, hoje, isentoAte);
   const dias = calcularDiasParaVencimento(assinatura.dataVencimento, hoje);
   const vencimentoBr = dataBr(assinatura.dataVencimento);
+  const isentoAteBr = dataBr(isentoAte);
   const mensalidadeCentavos = Math.round((Number(assinatura.valorMensal) || 0) * 100);
 
   const base = {
     status,
     vencimentoBr,
+    isentoAteBr,
     mensalidadeCentavos,
-    isento: mensalidadeCentavos === 0,
+    semMensalidade: mensalidadeCentavos === 0,
   };
+
+  if (status === "isento") {
+    return {
+      ...base,
+      tom: "ok",
+      titulo: "Seu acesso está liberado por cortesia",
+      detalhe: isentoAteBr
+        ? `Nada a pagar até ${isentoAteBr}. Depois dessa data, volta a valer o vencimento normal.`
+        : "Nada a pagar neste período.",
+    };
+  }
 
   if (status === "carencia") {
     const restantes = Math.max(0, carencia - Math.abs(dias ?? 0));

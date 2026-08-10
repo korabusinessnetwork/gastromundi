@@ -163,7 +163,7 @@ export async function buscarAddonsAtivos(tenantId) {
  * `assinatura.status` já vem CALCULADO (não é o cache do banco) —
  * Fase 4 é só exibição; nenhuma escrita é bloqueada aqui (Fase 5).
  *
- * @returns {Promise<{data: {id: string, nome: string, slug: string|null, tema: object, planoCodigo: string, modulosDisponiveis: string[], addonsAtivos: string[], assinatura: {status: string, diasParaVencer: number, valorMensal: number, dataVencimento: string}|null}|null, error: object|null}>}
+ * @returns {Promise<{data: {id: string, nome: string, slug: string|null, tema: object, planoCodigo: string, modulosDisponiveis: string[], addonsAtivos: string[], assinatura: {status: string, diasParaVencer: number, valorMensal: number, dataVencimento: string, isentoAte: string|null}|null}|null, error: object|null}>}
  */
 export async function buscarBootstrapTenant() {
   const { data: tenantData, error: eTenant } = await buscarTenantAtual();
@@ -184,11 +184,17 @@ export async function buscarBootstrapTenant() {
 
   const assinatura = assinaturaData
     ? {
-        status: calcularStatusAssinatura(assinaturaData.dataVencimento, assinaturaData.carenciaDias),
+        status: calcularStatusAssinatura(
+          assinaturaData.dataVencimento,
+          assinaturaData.carenciaDias,
+          undefined,
+          assinaturaData.isentoAte
+        ),
         diasParaVencer: calcularDiasParaVencimento(assinaturaData.dataVencimento),
         carenciaDias: assinaturaData.carenciaDias,
         valorMensal: assinaturaData.valorMensal,
         dataVencimento: assinaturaData.dataVencimento,
+        isentoAte: assinaturaData.isentoAte ?? null,
       }
     : null;
 

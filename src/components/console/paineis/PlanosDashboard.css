@@ -95,6 +95,7 @@
 .pdash__kpi--ambar .pdash__kpi-icone { color: var(--gm-warn); }
 .pdash__kpi--vermelho .pdash__kpi-icone { color: var(--gm-red); }
 .pdash__kpi--accent .pdash__kpi-icone { color: var(--gm-accent); }
+.pdash__kpi--azul .pdash__kpi-icone { color: var(--gm-blue); }
 
 /* Receita mensal — cartão-herói (a métrica que mais importa no negócio). */
 .pdash__kpi--destaque {
@@ -244,6 +245,34 @@
 .pdash__pagar:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
 .pdash__pagar svg { color: var(--gm-green); }
 
+/* Cortesia: mesma forma do "Registrar pagamento" (é ação, não consulta), mas
+   o ícone puxa para o azul de informação — combinando com o selo "Cortesia" da
+   coluna ao lado, para os dois se lerem como a mesma coisa. Quando já existe
+   cortesia, o botão mostra a data e ganha a moldura azul: a informação fica
+   visível na tabela sem precisar abrir o modal. */
+.pdash__cortesia {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--gm-border);
+  border-radius: 9px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pdash__cortesia:hover { border-color: var(--gm-blue); color: var(--gm-blue); }
+.pdash__cortesia:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
+.pdash__cortesia svg { color: var(--gm-blue); }
+.pdash__cortesia--ativa {
+  border-color: color-mix(in srgb, var(--gm-blue) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-blue) 8%, transparent);
+  color: var(--gm-blue);
+}
+
 /* Registrar pagamento (ação principal) e ver o histórico (consulta) dividem a
    célula. A consulta é discreta de propósito: o caminho feliz da coluna é
    registrar, não conferir. */
@@ -374,6 +403,7 @@
     min-height: 44px;
   }
   .pdash__pagar,
+  .pdash__cortesia,
   .pdash__ver { min-height: 44px; }
 
   /* O X da faixa de confirmação: 26px é metade de um dedo. */

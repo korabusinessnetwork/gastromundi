@@ -18,4 +18,7 @@
 .selo-status--carencia { background: color-mix(in srgb, var(--gm-warn) 15%, transparent); color: var(--gm-warn); }
 .selo-status--bloqueado { background: color-mix(in srgb, var(--gm-red) 14%, transparent); color: var(--gm-red); }
 .selo-status--cancelado { background: var(--gm-surface); color: var(--gm-muted); }
+/* Cortesia: azul de informação — não é verde (não é receita) nem âmbar
+   (não é pendência); é uma decisão comercial da plataforma. */
+.selo-status--isento { background: color-mix(in srgb, var(--gm-blue) 14%, transparent); color: var(--gm-blue); }
 .selo-status--sem { background: var(--gm-surface); color: var(--gm-muted); }

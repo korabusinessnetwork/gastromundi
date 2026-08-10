@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import {
   LuTriangleAlert, LuCircleCheck, LuClock, LuBan, LuBuilding2, LuWallet,
-  LuChartPie, LuBanknote, LuX, LuReceipt,
+  LuChartPie, LuBanknote, LuX, LuReceipt, LuGift,
 } from "react-icons/lu";
 import { resumirPlataforma } from "@/lib/console/console";
 import { formatarReais } from "@/lib/delivery/deliveryPedidos";
 import DefinirMensalidadeModal from "../modais/DefinirMensalidadeModal";
+import IsencaoModal from "../modais/IsencaoModal";
 import ConfirmarRenovacaoModal from "../modais/ConfirmarRenovacaoModal";
 import HistoricoPagamentosModal from "../modais/HistoricoPagamentosModal";
 import SeloStatus from "../SeloStatus";
@@ -50,6 +51,7 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, confirma
   const [linhaPreco, setLinhaPreco] = useState(null);
   const [linhaRenovacao, setLinhaRenovacao] = useState(null);
   const [linhaHistorico, setLinhaHistorico] = useState(null);
+  const [linhaIsencao, setLinhaIsencao] = useState(null);
   const [aviso, setAviso] = useState(null);
   // A RPC devolve o status recalculado a partir do vencimento NOVO. Quem estava
   // quatro meses atrasado continua atrasado depois de um pagamento — a faixa
@@ -86,6 +88,12 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, confirma
         <CartaoKpi icone={<LuCircleCheck size={18} />} rotulo="Base ativa" valor={kpis.ativos} tom="verde" />
         <CartaoKpi icone={<LuClock size={18} />} rotulo="Em atraso" valor={kpis.emCarencia} tom={kpis.emCarencia > 0 ? "ambar" : undefined} />
         <CartaoKpi icone={<LuBan size={18} />} rotulo="Bloqueados" valor={kpis.bloqueados} tom={kpis.bloqueados > 0 ? "vermelho" : undefined} />
+        {/* Só aparece quando existe cortesia. Sem este cartão, a soma dos
+            outros não fecha com "Estabelecimentos" e quem lê não descobre para
+            onde foram os que faltam — nem que eles operam sem pagar. */}
+        {kpis.isentos > 0 && (
+          <CartaoKpi icone={<LuGift size={18} />} rotulo="Em cortesia" valor={kpis.isentos} tom="azul" />
+        )}
         <CartaoKpi icone={<LuWallet size={18} />} rotulo="Receita mensal" valor={formatarReais(kpis.mrr)} tom="accent" destaque />
       </section>
 
@@ -209,6 +217,22 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, confirma
                             <LuBanknote size={14} aria-hidden /> Registrar pagamento
                           </button>
                         )}
+                        {/* Cortesia num cancelado não liberaria nada: o banco
+                            checa 'cancelado' ANTES de olhar `isento_ate`
+                            (20260918). Botão que não faz efeito não aparece. */}
+                        {l.status !== "cancelado" && (
+                          <button
+                            type="button"
+                            className={`pdash__cortesia${l.isentoAte ? " pdash__cortesia--ativa" : ""}`}
+                            onClick={() => setLinhaIsencao(l)}
+                            aria-label={l.isentoAte
+                              ? `Alterar a cortesia de ${l.nome} (hoje até ${formatarData(l.isentoAte)})`
+                              : `Dar cortesia a ${l.nome}`}
+                          >
+                            <LuGift size={14} aria-hidden />
+                            {l.isentoAte ? ` Cortesia até ${formatarData(l.isentoAte)}` : " Dar cortesia"}
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="pdash__ver"
@@ -233,6 +257,17 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, confirma
           onFechar={() => setLinhaPreco(null)}
           onDefinido={() => {
             setLinhaPreco(null);
+            onAtualizado?.();
+          }}
+        />
+      )}
+
+      {linhaIsencao && (
+        <IsencaoModal
+          linha={linhaIsencao}
+          onFechar={() => setLinhaIsencao(null)}
+          onDefinido={() => {
+            setLinhaIsencao(null);
             onAtualizado?.();
           }}
         />

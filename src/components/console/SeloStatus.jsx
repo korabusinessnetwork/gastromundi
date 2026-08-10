@@ -12,7 +12,7 @@ import "./SeloStatus.css";
  * Rótulo em português do dia a dia, sem jargão de billing (Princípio nº1):
  * `carencia` vira "Em atraso", `sem_assinatura` vira "Sem assinatura".
  *
- * @param {"ativo"|"carencia"|"bloqueado"|"cancelado"|"sem_assinatura"} status
+ * @param {"ativo"|"carencia"|"bloqueado"|"cancelado"|"isento"|"sem_assinatura"} status
  * @param {number|null} [dias] dias para vencer (negativo = já venceu)
  */
 export default function SeloStatus({ status, dias }) {
@@ -24,6 +24,10 @@ export default function SeloStatus({ status, dias }) {
     carencia: { classe: "carencia", texto: dias != null ? `Em atraso (${Math.abs(dias)}d)` : "Em atraso" },
     bloqueado: { classe: "bloqueado", texto: "Bloqueado" },
     cancelado: { classe: "cancelado", texto: "Cancelado" },
+    // Cortesia tem selo próprio, e não "Ativo": quem olha a lista precisa
+    // enxergar de longe quem opera sem pagar — senão o estabelecimento em
+    // cortesia se confunde com a base que gera receita.
+    isento: { classe: "isento", texto: "Cortesia" },
     sem_assinatura: { classe: "sem", texto: "Sem assinatura" },
   };
   const { classe, texto } = mapa[status] ?? mapa.sem_assinatura;

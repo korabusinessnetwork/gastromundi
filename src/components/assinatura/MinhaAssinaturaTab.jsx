@@ -137,9 +137,13 @@ export default function MinhaAssinaturaTab() {
           </div>
           {situacao && (
             <p className="massin__mensalidade">
-              {situacao.isento
-                ? "Sem mensalidade"
-                : <>{formatarReais(situacao.mensalidadeCentavos / 100)} <span>por mês</span></>}
+              {/* Cortesia vem antes do preço: mostrar "R$ 199 por mês" para quem
+                  está isento faria o dono achar que tem boleto para pagar. */}
+              {situacao.status === "isento"
+                ? <>Cortesia{situacao.isentoAteBr ? <span>até {situacao.isentoAteBr}</span> : null}</>
+                : situacao.semMensalidade
+                  ? "Sem mensalidade"
+                  : <>{formatarReais(situacao.mensalidadeCentavos / 100)} <span>por mês</span></>}
             </p>
           )}
         </div>
