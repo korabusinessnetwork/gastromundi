@@ -8,6 +8,8 @@ import Sidebar from "@/components/navegacao/Sidebar";
 import AssinaturaBanner from "@/components/assinatura/AssinaturaBanner";
 import Notification, { useNotification } from "@/components/ui/feedback/Notification";
 import JarvasPanel from "@/components/ui/paineis/JarvasPanel";
+import { JARVAS_ATIVO } from "@/constants/features";
+import MODULOS from "@/constants/modulos";
 import FechamentoModal from "@/components/caixa/modais/FechamentoModal";
 import AberturaCaixaModal from "@/components/caixa/modais/AberturaCaixaModal";
 import MovimentoCaixaModal from "@/components/caixa/modais/MovimentoCaixaModal";
@@ -22,7 +24,7 @@ import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import "./DesktopLayout.css";
 
 export default function DesktopLayout() {
-  const { currentUser, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant, users, movimentosCaixa, registrarMovimentoCaixa, limiteSangria } = useApp();
+  const { currentUser, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant, users, movimentosCaixa, registrarMovimentoCaixa, limiteSangria, moduloHabilitado } = useApp();
   // tema.nome_exibicao → nome cadastrado do estabelecimento → marca neutra
   // da plataforma. Nunca a marca de outro cliente (decisão 017).
   const nomeEstabelecimento = nomeExibicaoTenant(tenant?.tema, tenant?.nome);
@@ -73,7 +75,10 @@ export default function DesktopLayout() {
       overflow: "hidden",
     }}>
       <Notification notif={notif} />
-      <JarvasPanel />
+      {/* Jarvas: só aparece quando a plataforma o tem ligado E o plano do
+          estabelecimento inclui o módulo. Antes o sino era montado para todo
+          mundo, inclusive para quem não comprou IA. */}
+      {JARVAS_ATIVO && moduloHabilitado(MODULOS.JARVAS) && <JarvasPanel />}
 
       {/* ── Sidebar desktop (recolhível) ──────────────────────────── */}
       {!isMob && (

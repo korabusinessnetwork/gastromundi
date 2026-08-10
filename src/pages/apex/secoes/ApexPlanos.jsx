@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import ApexAgendamento from "./ApexAgendamento";
+import { JARVAS_ATIVO } from "@/constants/features";
 import "./ApexPlanos.css";
 
 /**
@@ -27,7 +28,7 @@ const ESSENCIAL = {
   itens: ["Cardápio e pedidos", "PDV (1 caixa)", "Controle de caixa"],
 };
 
-const MODULOS = [
+const CATALOGO_MODULOS = [
   {
     codigo: "estoque",
     nome: "Estoque",
@@ -85,6 +86,16 @@ const MODULOS = [
   },
 ];
 
+/**
+ * Catálogo realmente vendável. O Jarvas está desligado na plataforma
+ * (`VITE_JARVAS_ATIVO`) enquanto a chave da IA não for contratada — e o que a
+ * plataforma não entrega não pode aparecer como item comprável no construtor
+ * de plano, nem entrar na soma do preço. Ligando a chave, ele volta sozinho.
+ */
+const MODULOS = CATALOGO_MODULOS.filter(
+  (m) => m.codigo !== "jarvas" || JARVAS_ATIVO
+);
+
 const ADDONS = [
   {
     codigo: "nfe",
@@ -130,7 +141,9 @@ const PLANOS_PRONTOS = [
   {
     codigo: "kora_total",
     nome: "Kora Total",
-    resumo: "Tudo ligado, com JARVAS (IA) e emissão fiscal — o topo de linha",
+    resumo: JARVAS_ATIVO
+      ? "Tudo ligado, com JARVAS (IA) e emissão fiscal — o topo de linha"
+      : "Tudo ligado, com emissão fiscal e maquininha — o topo de linha",
     modulos: MODULOS.map((m) => m.codigo),
     addons: ADDONS.map((a) => a.codigo),
     premium: true,

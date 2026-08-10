@@ -63,7 +63,7 @@ export default function DemoEstoque() {
       </ul>
 
       <p className="demo-estoque__nota">
-        No KORA de verdade, o estoque baixa sozinho a cada venda e o Jarvas te
+        No KORA de verdade, o estoque baixa sozinho a cada venda e o sistema te
         avisa antes de faltar.
       </p>
     </div>

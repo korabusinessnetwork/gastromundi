@@ -21,6 +21,21 @@ beforeEach(() => {
   mockSupabase.current.reset();
 });
 
+/**
+ * Data de vencimento a N dias de HOJE, no formato `date` do Postgres.
+ *
+ * O status da assinatura é sempre derivado na consulta (ADR-006 §3), então uma
+ * fixture com data cravada envelhece: a versão anterior deste arquivo afirmava
+ * "ativo" para 2026-08-05 e passou a receber "bloqueado" sozinha quando a
+ * carência venceu, sem nenhuma mudança de código. Derivando do relógio, o teste
+ * continua verificando a mesma regra ("vence no futuro → ativo") para sempre.
+ */
+const vencimentoEm = (dias) => {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 describe("buscarTenantAtual", () => {
   it("retorna o tenant (com plano) quando a linha existe", async () => {
     mockSupabase.current.setTableResult("tenants", {
@@ -153,8 +168,9 @@ describe("buscarBootstrapTenant", () => {
       data: [{ addon_codigo: "tef" }],
       error: null,
     });
+    const dataVencimento = vencimentoEm(30);
     mockSupabase.current.setTableResult("assinaturas", {
-      data: { data_vencimento: "2026-08-05", carencia_dias: 3, valor_mensal: 199, status: "ativo" },
+      data: { data_vencimento: dataVencimento, carencia_dias: 3, valor_mensal: 199, status: "ativo" },
       error: null,
     });
 
@@ -169,10 +185,11 @@ describe("buscarBootstrapTenant", () => {
     expect(data.addonsAtivos).toEqual(["tef"]);
     expect(data.assinatura).toEqual({
       status: "ativo",
-      diasParaVencer: expect.any(Number),
+      diasParaVencer: 30,
       carenciaDias: 3,
       valorMensal: 199,
-      dataVencimento: "2026-08-05",
+      dataVencimento,
+      isentoAte: null,
     });
   });
 

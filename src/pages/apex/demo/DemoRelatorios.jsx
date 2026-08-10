@@ -4,7 +4,7 @@ import { RELATORIO_DEMO, formatarBRL } from "./demoDados";
 /**
  * Relatórios da demo — painel do dia, só leitura: stat-cards, vendas
  * por hora (barras em CSS puro, sem lib), mais vendidos e meios de
- * pagamento. Fecha com o gancho do Jarvas (diferencial do topo).
+ * pagamento. Fecha reforçando que o número vem da operação, não de planilha.
  */
 export default function DemoRelatorios() {
   const {
@@ -107,8 +107,8 @@ export default function DemoRelatorios() {
       </div>
 
       <p className="demo-relatorios__nota">
-        No KORA de verdade, o Jarvas (nossa IA) lê esses números e te avisa do
-        que precisa de atenção.
+        No KORA de verdade, esses números são os da sua operação — atualizados a
+        cada venda, sem ninguém digitar planilha.
       </p>
     </div>
   );
