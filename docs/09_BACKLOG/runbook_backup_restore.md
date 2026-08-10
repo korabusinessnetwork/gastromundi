@@ -28,9 +28,15 @@ Pro, decidido para o primeiro cliente pagante.
 **Settings → Secrets and variables → Actions → New repository secret**
 
 - Nome: `SUPABASE_DB_URL`
-- Valor: Supabase → **Project Settings → Database → Connection string → URI**,
-  com a senha real no lugar de `[YOUR-PASSWORD]`. Use a porta **5432**
-  (conexão direta), não o pooler.
+- Valor: botão **Connect** no topo do painel da Supabase → aba **Connection
+  String** → **Session pooler**, com a senha real no lugar de
+  `[YOUR-PASSWORD]`. Fica parecido com
+  `postgresql://postgres.<ref>:<senha>@aws-0-<região>.pooler.supabase.com:5432/postgres`.
+
+  **Session pooler, e não as outras duas opções:** a *Direct connection* só
+  atende em IPv6 e o runner do GitHub é IPv4 — o dump não chega no banco. O
+  *Transaction pooler* (porta 6543) não sustenta o que o `pg_dump` faz. Da
+  máquina do dono, onde há IPv6, a direta funciona; do CI, não.
 
 Sem o segredo o workflow falha e avisa — de propósito. Silêncio aqui daria a
 impressão de estar protegido.

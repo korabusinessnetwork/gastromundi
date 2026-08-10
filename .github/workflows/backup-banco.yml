@@ -13,9 +13,13 @@
 # O QUE O DONO PRECISA FAZER UMA VEZ:
 #   Settings → Secrets and variables → Actions → New repository secret
 #   Nome:  SUPABASE_DB_URL
-#   Valor: a connection string do Postgres (Supabase → Project Settings →
-#          Database → Connection string → URI), com a senha no lugar de
-#          [YOUR-PASSWORD]. Use a porta 5432 (conexão direta), não o pooler.
+#   Valor: a connection string do Postgres — botão "Connect" no topo do painel
+#          da Supabase → aba "Connection String" → **Session pooler**, com a
+#          senha no lugar de [YOUR-PASSWORD].
+#          NÃO use "Direct connection": ela só atende em IPv6 e o runner do
+#          GitHub é IPv4 — o dump nem chega no banco. NÃO use "Transaction
+#          pooler" (6543): não sustenta o que o pg_dump faz. Session pooler é
+#          IPv4 e escuta na 5432.
 #   Sem esse segredo o backup falha de propósito e avisa — silêncio aqui
 #   seria pior do que erro, porque daria a impressão de estar protegido.
 name: Backup do banco
