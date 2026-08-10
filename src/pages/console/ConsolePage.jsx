@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
   LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
-  LuCopy, LuTag, LuExternalLink, LuWifiOff,
+  LuCopy, LuTag, LuExternalLink, LuWifiOff, LuPencil,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import { useStatusRede } from "@/hooks/useStatusRede";
@@ -27,6 +27,7 @@ import SeloStatus from "@/components/console/SeloStatus";
 import ConfirmarRenovacaoModal from "@/components/console/modais/ConfirmarRenovacaoModal";
 import HistoricoPagamentosModal from "@/components/console/modais/HistoricoPagamentosModal";
 import DefinirMensalidadeModal from "@/components/console/modais/DefinirMensalidadeModal";
+import RenomearEstabelecimentoModal from "@/components/console/modais/RenomearEstabelecimentoModal";
 import "./ConsolePage.css";
 
 /**
@@ -78,6 +79,10 @@ export default function ConsolePage() {
   const [tenantSelecionado, setTenantSelecionado] = useState(null);
   const [tenantLayoutSelecionado, setTenantLayoutSelecionado] = useState(null);
   const [tenantAddonsSelecionado, setTenantAddonsSelecionado] = useState(null);
+  // Estabelecimento cujo NOME está sendo corrigido (pré-venda §1.8). Guarda o
+  // tenant (e não a linha de cobrança) porque quem é renomeado é o cadastro:
+  // o modal precisa de `id`, `nome` e `slug`, e a linha do resumo não os tem.
+  const [tenantRenomear, setTenantRenomear] = useState(null);
   // Linha de cobrança (do `resumirPlataforma`) que está sendo renovada pelo
   // card. Guarda a LINHA, não o tenant, porque é o que o modal de renovação
   // já sabe consumir na outra aba.
@@ -281,6 +286,20 @@ export default function ConsolePage() {
       nome: tenant.nome,
       planoAlterado: rotularPlano(planos, tenant.plano_codigo),
     });
+    carregar();
+  };
+
+  // Pré-venda §1.8 — corrigir o nome digitado errado no cadastro, sem SQL.
+  // Quem grava é a RPC `renomear_tenant` (20260919); aqui só abrimos o modal
+  // com o estabelecimento certo.
+  const aoRenomear = (tenant) => {
+    setSucesso(null);
+    setTenantRenomear(tenant);
+  };
+
+  const aoRenomeado = (tenant) => {
+    setTenantRenomear(null);
+    setSucesso({ nome: tenant?.nome, nomeAlterado: true });
     carregar();
   };
 
@@ -895,7 +914,9 @@ export default function ConsolePage() {
               <div className="console__sucesso" role="status">
                 <LuCircleCheck size={18} aria-hidden />
                 <span>
-                  {sucesso.planoAlterado ? (
+                  {sucesso.nomeAlterado ? (
+                    <>Estabelecimento renomeado para <strong>{sucesso.nome}</strong>.</>
+                  ) : sucesso.planoAlterado ? (
                     <>Plano de <strong>{sucesso.nome}</strong> atualizado para <strong>{sucesso.planoAlterado}</strong>.</>
                   ) : sucesso.layoutAlterado ? (
                     <>Layout de <strong>{sucesso.nome}</strong> trocado para <strong>{sucesso.layoutAlterado}</strong>.</>
@@ -1242,6 +1263,22 @@ export default function ConsolePage() {
                         />
                       </div>
                     )}
+                    {/* Corrigir o nome errado digitado no cadastro. Fica ao
+                        lado da paleta e da peça porque, como elas, é ajuste do
+                        cadastro — e não da cobrança, que tem seus botões
+                        acima. O lápis é o ícone de "editar este texto" e não
+                        repete nenhum vizinho do card. */}
+                    <button
+                      type="button"
+                      className="console__renomear"
+                      onClick={() => aoRenomear(t)}
+                      disabled={!online}
+                      aria-label={`Renomear ${t.nome}`}
+                      title={motivoOffline ?? "Corrigir o nome deste estabelecimento"}
+                    >
+                      <LuPencil size={17} aria-hidden />
+                      <span className="console__renomear-nome">Renomear</span>
+                    </button>
                     <button
                       type="button"
                       className="console__layout"
@@ -1350,6 +1387,14 @@ export default function ConsolePage() {
           linha={linhaMensalidade}
           onFechar={() => setLinhaMensalidade(null)}
           onDefinido={aoMensalidadeDefinida}
+        />
+      )}
+
+      {tenantRenomear && (
+        <RenomearEstabelecimentoModal
+          tenant={tenantRenomear}
+          onFechar={() => setTenantRenomear(null)}
+          onRenomeado={aoRenomeado}
         />
       )}
 

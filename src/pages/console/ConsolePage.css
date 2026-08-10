@@ -140,6 +140,7 @@
    acima e no `title` de cada um. */
 .console__cobrar:disabled,
 .console__preco:disabled,
+.console__renomear:disabled,
 .console__layout:disabled,
 .console__addons:disabled {
   opacity: 0.5;
@@ -300,6 +301,7 @@
 .console__pagamentos,
 .console__cardapio,
 .console__copiar,
+.console__renomear,
 .console__layout,
 .console__addons {
   display: inline-flex;
@@ -325,6 +327,7 @@
 .console__pagamentos:hover,
 .console__cardapio:hover,
 .console__copiar:hover,
+.console__renomear:hover,
 .console__layout:hover,
 .console__addons:hover {
   border-color: var(--gm-accent);
@@ -334,11 +337,13 @@
 .console__pagamentos:focus-visible,
 .console__cardapio:focus-visible,
 .console__copiar:focus-visible,
+.console__renomear:focus-visible,
 .console__layout:focus-visible,
 .console__addons:focus-visible {
   outline: 2px solid var(--gm-accent);
   outline-offset: 2px;
 }
+.console__renomear-nome,
 .console__layout-nome,
 .console__addons-nome,
 .console__cobrar-nome,
@@ -601,6 +606,7 @@
   .console__pagamentos,
   .console__cardapio,
   .console__copiar,
+  .console__renomear,
   .console__layout,
   .console__addons { flex: 1 1 140px; }
 
@@ -633,6 +639,7 @@
   .console__pagamentos,
   .console__cardapio,
   .console__copiar,
+  .console__renomear,
   .console__layout,
   .console__addons { min-height: 44px; }
 

@@ -33,12 +33,17 @@ vi.mock("@/lib/supabase", async () => {
 // sucesso pelo caminho real: preencher o formulário e enviar.
 // `definirMensalidade` entra pelo mesmo motivo (CONSOLE-UX 12): é a segunda
 // escrita do cadastro, feita pela RPC `definir_mensalidade_tenant`.
-const { mockListarEstabelecimentos, mockListarPlanos, mockListarAssinaturas, mockProvisionar, mockDefinirMensalidade, banco } = vi.hoisted(() => ({
+// `renomearEstabelecimento` entra pelo mesmo motivo (pré-venda §1.8): é a
+// escrita da RPC `renomear_tenant`, e quem a testa de verdade é
+// `RenomearEstabelecimentoModal.test.jsx`. Aqui interessa a PORTA — o card
+// abre o modal do estabelecimento certo e a tela confirma o novo nome.
+const { mockListarEstabelecimentos, mockListarPlanos, mockListarAssinaturas, mockProvisionar, mockDefinirMensalidade, mockRenomear, banco } = vi.hoisted(() => ({
   mockListarEstabelecimentos: vi.fn(),
   mockListarPlanos: vi.fn(),
   mockListarAssinaturas: vi.fn(),
   mockProvisionar: vi.fn(),
   mockDefinirMensalidade: vi.fn(),
+  mockRenomear: vi.fn(),
   // Holder mutável em vez de vi.fn(): os `mockReset()` dos beforeEach
   // existentes não apagam esta leitura, que toda aba faz.
   banco: { addons: [], erroAddons: null },
@@ -52,6 +57,7 @@ vi.mock("@/lib/console/console", async () => {
     listarAssinaturas: mockListarAssinaturas,
     provisionarEstabelecimento: mockProvisionar,
     definirMensalidade: mockDefinirMensalidade,
+    renomearEstabelecimento: mockRenomear,
     listarAddonsPorTenant: async () =>
       banco.erroAddons ? { data: [], error: banco.erroAddons } : { data: banco.addons, error: null },
   };
@@ -2013,6 +2019,68 @@ describe("ConsolePage — quem está sem mensalidade na lista", () => {
     expect(faixa).toHaveTextContent("Bar do Zé");
     expect(faixa.textContent.replace(/\s/g, " ")).toContain(formatarReais(300).replace(/\s/g, " "));
     await waitFor(() => expect(screen.queryByText("Sem mensalidade")).not.toBeInTheDocument());
+  });
+});
+
+// Pré-venda §1.8 — o Console cadastrava e nunca mais consertava.
+//
+// `tenants` é SELECT-only sob RLS e nenhuma RPC escrevia `nome`, então um erro
+// de digitação no cadastro só saía por UPDATE cru no SQL Editor. O modal tem
+// teste próprio (`RenomearEstabelecimentoModal.test.jsx`); o que falta provar
+// aqui é a PORTA: existe botão em cada card, ele abre o modal do
+// estabelecimento certo, e a lista mostra o nome novo sem recarregar a página.
+describe("ConsolePage — renomear um estabelecimento já criado", () => {
+  const cardDe = (nome) => screen.getByText(nome).closest("li");
+
+  beforeEach(() => {
+    mockListarEstabelecimentos.mockReset();
+    mockListarPlanos.mockReset();
+    mockListarAssinaturas.mockReset();
+    mockRenomear.mockReset();
+    mockListarEstabelecimentos.mockResolvedValue(ok(TENANTS));
+    mockListarPlanos.mockResolvedValue(ok(PLANOS));
+    mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS));
+    mockRenomear.mockResolvedValue(ok({ id: "t1", nome: "Bar do Zé — Centro" }));
+    banco.addons = [];
+    banco.erroAddons = null;
+    setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
+  });
+
+  it("o botão do card abre o modal do estabelecimento certo, grava e a lista já mostra o nome novo", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsolePage />);
+    expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
+
+    // O rótulo carrega o nome: com cinco botões por card e vários cards na
+    // tela, "Renomear" sozinho não diria QUAL estabelecimento.
+    const botao = await screen.findByRole("button", { name: "Renomear Bar do Zé" });
+    expect(within(cardDe("Café Central")).getByRole("button", { name: "Renomear Café Central" }))
+      .toBeInTheDocument();
+    await user.click(botao);
+
+    const modal = await screen.findByRole("dialog", { name: /Renomear estabelecimento/i });
+    // Já preenchido com o nome de hoje: corrige-se a letra em vez de redigitar.
+    expect(within(modal).getByRole("textbox")).toHaveValue("Bar do Zé");
+
+    // A releitura traz o nome novo — a lista se corrige sozinha, sem F5.
+    mockListarEstabelecimentos.mockResolvedValue(
+      ok([{ ...TENANTS[0], nome: "Bar do Zé — Centro" }, TENANTS[1]])
+    );
+    await user.clear(within(modal).getByRole("textbox"));
+    await user.type(within(modal).getByRole("textbox"), "Bar do Zé — Centro");
+    await user.click(within(modal).getByRole("button", { name: /Salvar nome/i }));
+
+    expect(mockRenomear).toHaveBeenCalledWith("t1", "Bar do Zé — Centro");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: /Renomear estabelecimento/i })).not.toBeInTheDocument()
+    );
+    const faixa = await screen.findByText(/Estabelecimento renomeado para/i);
+    expect(faixa).toHaveTextContent("Bar do Zé — Centro");
+    // O nome novo entra na LISTA (não só na faixa) e o antigo sai de cena.
+    await waitFor(() => expect(screen.queryByText("Bar do Zé")).not.toBeInTheDocument());
+    expect(
+      screen.getAllByText("Bar do Zé — Centro").some((no) => no.closest("li"))
+    ).toBe(true);
   });
 });
 

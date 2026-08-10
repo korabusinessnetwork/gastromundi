@@ -1295,6 +1295,85 @@ export async function definirIsencao(tenantId, isentoAte, motivo) {
   }
 }
 
+/** Teto do nome do estabelecimento — o MESMO `c_max_nome` da RPC (20260919). */
+export const MAX_NOME_TENANT = 80;
+
+/** Piso do nome — o MESMO `c_min_nome` da RPC (20260919). */
+export const MIN_NOME_TENANT = 2;
+
+/**
+ * Função PURA — valida o novo nome do estabelecimento ANTES de chamar a RPC
+ * (prevenção de erro > mensagem de erro, Princípio nº1). Espelha as três
+ * recusas de `renomear_tenant` (20260919) para que o dono veja o problema
+ * enquanto digita, em vez de tomar exceção do banco depois de clicar.
+ *
+ * O banco continua sendo a autoridade — isto aqui é só o aviso antecipado.
+ *
+ * @param {string} nome nome digitado
+ * @returns {{ok: boolean, erro: string|null, nome: string}} nome já aparado
+ */
+export function validarNomeEstabelecimento(nome) {
+  const limpo = String(nome ?? "").trim();
+  if (!limpo) {
+    return { ok: false, erro: "Informe o nome do estabelecimento.", nome: limpo };
+  }
+  if (limpo.length < MIN_NOME_TENANT) {
+    return {
+      ok: false,
+      erro: `O nome precisa ter ao menos ${MIN_NOME_TENANT} caracteres.`,
+      nome: limpo,
+    };
+  }
+  if (limpo.length > MAX_NOME_TENANT) {
+    return {
+      ok: false,
+      erro: `O nome é longo demais: o máximo é ${MAX_NOME_TENANT} caracteres.`,
+      nome: limpo,
+    };
+  }
+  return { ok: true, erro: null, nome: limpo };
+}
+
+/**
+ * Corrige o NOME de um estabelecimento já criado, via RPC `renomear_tenant`
+ * (20260919). Antes dela o Console cadastrava e nunca mais consertava: um erro
+ * de digitação ficava para sempre na lista, no texto de primeiro acesso mandado
+ * ao cliente e em todo relatório da plataforma — o único conserto era um UPDATE
+ * cru no SQL Editor.
+ *
+ * Só o nome. O ENDEREÇO (slug) fica de fora de propósito: ele é o subdomínio E
+ * o namespace de e-mail do Auth (20260803), então trocá-lo quebraria na hora os
+ * links de cardápio já entregues, os QR codes impressos e a porta de entrada da
+ * equipe. Fica travado até existir redirecionamento do endereço antigo.
+ *
+ * A autorização REAL é do banco: a RPC é SECURITY DEFINER com guarda
+ * `is_super_admin()`, então o admin de um estabelecimento que chame isto leva
+ * exceção mesmo com a chamada saindo daqui.
+ *
+ * Nunca lança: falha de rede/RLS volta como { data: null, error }.
+ *
+ * @param {string} tenantId id do estabelecimento
+ * @param {string} nome     novo nome
+ * @returns {Promise<{data: object|null, error: object|null}>}
+ */
+export async function renomearEstabelecimento(tenantId, nome) {
+  if (!tenantId) return { data: null, error: { message: "Estabelecimento inválido." } };
+
+  const validacao = validarNomeEstabelecimento(nome);
+  if (!validacao.ok) return { data: null, error: { message: validacao.erro } };
+
+  try {
+    const { data, error } = await supabase.rpc("renomear_tenant", {
+      p_tenant_id: tenantId,
+      p_nome: validacao.nome,
+    });
+    if (error) return { data: null, error };
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao renomear o estabelecimento." } };
+  }
+}
+
 /**
  * Catálogo de add-ons pagos (`public.addons`) — o que a plataforma tem
  * para oferecer. Add-on é eixo ORTOGONAL ao plano (decisão 019/021):

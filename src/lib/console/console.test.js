@@ -20,6 +20,9 @@ import {
   compararModulosDoPlano,
   definirMensalidade,
   definirIsencao,
+  validarNomeEstabelecimento,
+  renomearEstabelecimento,
+  MAX_NOME_TENANT,
   listarAnalitico,
   resumirUso,
   PERIODOS_ANALYTICS,
@@ -960,6 +963,108 @@ describe("definirIsencao", () => {
       throw new Error("Failed to fetch");
     });
     const { data, error } = await definirIsencao("t1", "2026-12-31", "Cortesia");
+    expect(data).toBeNull();
+    expect(error.message).toBe("Failed to fetch");
+  });
+});
+
+describe("validarNomeEstabelecimento", () => {
+  it("aceita nome comum e devolve o texto já aparado", () => {
+    expect(validarNomeEstabelecimento("  Bar do Zé  ")).toEqual({
+      ok: true,
+      erro: null,
+      nome: "Bar do Zé",
+    });
+  });
+
+  it("recusa vazio e só-espaço com a mesma mensagem (espaço não é nome)", () => {
+    expect(validarNomeEstabelecimento("").erro).toMatch(/Informe o nome/);
+    expect(validarNomeEstabelecimento("   ").erro).toMatch(/Informe o nome/);
+    expect(validarNomeEstabelecimento(null).erro).toMatch(/Informe o nome/);
+  });
+
+  it("recusa nome de uma letra", () => {
+    const r = validarNomeEstabelecimento("B");
+    expect(r.ok).toBe(false);
+    expect(r.erro).toMatch(/ao menos 2/);
+  });
+
+  it("aceita exatamente o teto e recusa um caractere além", () => {
+    // O teto é contrato com `c_max_nome` da 20260919: se divergir, o dono digita
+    // à vontade aqui e toma exceção do banco ao salvar.
+    expect(validarNomeEstabelecimento("a".repeat(MAX_NOME_TENANT)).ok).toBe(true);
+    const alem = validarNomeEstabelecimento("a".repeat(MAX_NOME_TENANT + 1));
+    expect(alem.ok).toBe(false);
+    expect(alem.erro).toMatch(/longo demais/);
+  });
+});
+
+// R8: `tenants` é SELECT-only sob RLS (ADR-005/008 §7) — um
+// `.from("tenants").update(...)` daqui responderia sucesso sem gravar nada.
+// A correção do nome só existe pela RPC.
+describe("renomearEstabelecimento", () => {
+  beforeEach(() => {
+    supabase.reset();
+    supabase.rpc.mockClear();
+  });
+
+  it("chama a RPC do banco com os nomes de parâmetro do contrato", async () => {
+    supabase.setRpcResult("renomear_tenant", {
+      data: { id: "t1", nome: "Bar do Zé" },
+      error: null,
+    });
+    const { data, error } = await renomearEstabelecimento("t1", "Bar do Zé");
+    expect(error).toBeNull();
+    expect(data).toEqual({ id: "t1", nome: "Bar do Zé" });
+    expect(supabase.rpc).toHaveBeenCalledWith("renomear_tenant", {
+      p_tenant_id: "t1",
+      p_nome: "Bar do Zé",
+    });
+  });
+
+  it("manda o nome aparado — espaço na ponta não vira parte do nome", async () => {
+    await renomearEstabelecimento("t1", "  Bar do Zé  ");
+    expect(supabase.rpc).toHaveBeenCalledWith("renomear_tenant", {
+      p_tenant_id: "t1",
+      p_nome: "Bar do Zé",
+    });
+  });
+
+  it("nunca manda o endereço (slug) junto — trocá-lo quebraria os links já entregues", async () => {
+    await renomearEstabelecimento("t1", "Bar do Zé");
+    const [, params] = supabase.rpc.mock.calls[0];
+    expect(Object.keys(params)).toEqual(["p_tenant_id", "p_nome"]);
+  });
+
+  it("recusa nome inválido antes de ir ao banco", async () => {
+    const { data, error } = await renomearEstabelecimento("t1", "   ");
+    expect(data).toBeNull();
+    expect(error.message).toMatch(/Informe o nome/);
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it("sem tenant não chama nada", async () => {
+    const { error } = await renomearEstabelecimento("", "Bar do Zé");
+    expect(error.message).toMatch(/inválido/i);
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it("devolve a recusa do banco em vez de inventar sucesso", async () => {
+    supabase.setRpcError("renomear_tenant", {
+      code: "42501",
+      message: "Apenas a plataforma pode renomear um estabelecimento.",
+    });
+    const { data, error } = await renomearEstabelecimento("t1", "Bar do Zé");
+    expect(data).toBeNull();
+    expect(error.code).toBe("42501");
+    expect(error.message).toMatch(/Apenas a plataforma/);
+  });
+
+  it("não lança quando a chamada explode (queda de rede)", async () => {
+    supabase.rpc.mockImplementationOnce(() => {
+      throw new Error("Failed to fetch");
+    });
+    const { data, error } = await renomearEstabelecimento("t1", "Bar do Zé");
     expect(data).toBeNull();
     expect(error.message).toBe("Failed to fetch");
   });
