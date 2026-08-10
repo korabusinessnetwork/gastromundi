@@ -35,8 +35,8 @@ import { useIdleTimer } from "./hooks";
 const EVENTOS = ["mousemove", "keydown", "click", "touchstart", "wheel", "scroll"];
 const DELAY = 1000;
 
-function Tela({ cb, delay = DELAY, enabled = true }) {
-  useIdleTimer(cb, delay, enabled);
+function Tela({ cb, delay = DELAY, enabled = true, onAviso = null, avisoMs = 0 }) {
+  useIdleTimer(cb, delay, enabled, onAviso, avisoMs);
   return <div data-testid="painel">conteúdo</div>;
 }
 
@@ -172,5 +172,89 @@ describe("useIdleTimer", () => {
 
     espiaoAdd.mockRestore();
     espiaoRem.mockRestore();
+  });
+
+  // A sessão vencia calada: em horário de pico, o operador voltava do salão e
+  // caía no login sem entender por quê. O aviso corre no MESMO cronômetro do
+  // logout — se ele tivesse contagem própria, os dois sairiam de sincronia.
+  describe("aviso antes de deslogar", () => {
+    const AVISO = 200; // avisa 200ms antes de DELAY (1000ms)
+
+    it("avisa no adiantamento pedido e só depois desloga", () => {
+      const cb = vi.fn();
+      const onAviso = vi.fn();
+      render(<Tela cb={cb} onAviso={onAviso} avisoMs={AVISO} />);
+
+      avancar(DELAY - AVISO - 1);
+      expect(onAviso).not.toHaveBeenCalled();
+
+      avancar(1);
+      expect(onAviso).toHaveBeenCalledWith(true);
+      expect(cb).not.toHaveBeenCalled();
+
+      avancar(AVISO);
+      expect(cb).toHaveBeenCalledTimes(1);
+    });
+
+    it("voltar a mexer derruba o aviso e reinicia a contagem", () => {
+      const cb = vi.fn();
+      const onAviso = vi.fn();
+      render(<Tela cb={cb} onAviso={onAviso} avisoMs={AVISO} />);
+
+      avancar(DELAY - AVISO);
+      expect(onAviso).toHaveBeenLastCalledWith(true);
+
+      disparar(window, "mousemove", true);
+      expect(onAviso).toHaveBeenLastCalledWith(false);
+
+      // contagem inteira de novo: nem aviso nem logout no tempo antigo
+      avancar(DELAY - AVISO - 1);
+      expect(cb).not.toHaveBeenCalled();
+      expect(onAviso).toHaveBeenCalledTimes(2);
+    });
+
+    it("mexer sem aviso de pé não chama o callback à toa (evita render por mousemove)", () => {
+      const cb = vi.fn();
+      const onAviso = vi.fn();
+      render(<Tela cb={cb} onAviso={onAviso} avisoMs={AVISO} />);
+
+      for (let i = 0; i < 5; i++) {
+        avancar(100);
+        disparar(window, "mousemove", true);
+      }
+
+      expect(onAviso).not.toHaveBeenCalled();
+    });
+
+    it("sem aviso configurado o comportamento antigo continua igual", () => {
+      const cb = vi.fn();
+      const onAviso = vi.fn();
+      // avisoMs = 0 (default) desliga o aviso; avisoMs >= delay também.
+      const { unmount } = render(<Tela cb={cb} onAviso={onAviso} avisoMs={0} />);
+      avancar(DELAY);
+      expect(cb).toHaveBeenCalledTimes(1);
+      expect(onAviso).not.toHaveBeenCalled();
+      unmount();
+
+      const cb2 = vi.fn();
+      const onAviso2 = vi.fn();
+      render(<Tela cb={cb2} onAviso={onAviso2} avisoMs={DELAY} />);
+      avancar(DELAY);
+      expect(cb2).toHaveBeenCalledTimes(1);
+      expect(onAviso2).not.toHaveBeenCalled();
+    });
+
+    it("desmontar cancela também o cronômetro do aviso", () => {
+      const cb = vi.fn();
+      const onAviso = vi.fn();
+      const { unmount } = render(<Tela cb={cb} onAviso={onAviso} avisoMs={AVISO} />);
+
+      avancar(DELAY - AVISO - 1);
+      unmount();
+      avancar(DELAY * 5);
+
+      expect(onAviso).not.toHaveBeenCalled();
+      expect(cb).not.toHaveBeenCalled();
+    });
   });
 });

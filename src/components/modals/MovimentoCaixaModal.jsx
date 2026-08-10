@@ -263,6 +263,13 @@ export default function MovimentoCaixaModal({
               onChange={e => { setSenha(e.target.value); setSenhaErro(""); }}
               placeholder="Senha do gerente"
               aria-label="Senha do gerente"
+              // Autorização de gerente — nunca o login de quem está no
+              // terminal. Sem isto o navegador autopreenchia a senha salva
+              // do usuário logado e a sangria saía autorizada sozinha.
+              name="autorizacao-gerente"
+              autoComplete="new-password"
+              data-1p-ignore
+              data-lpignore="true"
               style={{
                 width: "100%", boxSizing: "border-box", borderRadius: 10,
                 border: `1.5px solid ${senhaErro ? varColor(C.red) : "var(--gm-input-border)"}`,

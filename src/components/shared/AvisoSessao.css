@@ -1,0 +1,81 @@
+/*
+ * Aviso de sessão prestes a expirar. Estilo fora do JSX (decisão 018) e cores
+ * por token --gm-* para acompanhar o tema do estabelecimento (decisão 017).
+ *
+ * Alvo de toque grande e texto legível a distância: quem lê isso está voltando
+ * do salão, olhando a tela de longe (princípio nº 1).
+ */
+
+.aviso-sessao {
+  position: fixed;
+  inset: 0;
+  z-index: 9600; /* acima do indicador de rede (9500) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.aviso-sessao__caixa {
+  width: 100%;
+  max-width: 400px;
+  padding: 26px 24px 20px;
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  text-align: center;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+}
+
+.aviso-sessao__icone {
+  color: var(--gm-accent);
+}
+
+.aviso-sessao__titulo {
+  margin: 10px 0 0;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-weight: 800;
+}
+
+.aviso-sessao__texto {
+  margin: 8px 0 0;
+  color: var(--gm-muted);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* tabular-nums para o contador não empurrar o texto a cada segundo. */
+.aviso-sessao__relogio {
+  color: var(--gm-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.aviso-sessao__botao {
+  width: 100%;
+  margin-top: 18px;
+  padding: 14px 18px;
+  border: none;
+  border-radius: 12px;
+  background: var(--gm-accent);
+  color: var(--gm-on-accent, #fff);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 800;
+}
+
+.aviso-sessao__botao:hover {
+  filter: brightness(1.08);
+}
+
+.aviso-sessao__rodape {
+  margin: 12px 0 0;
+  color: var(--gm-muted);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}

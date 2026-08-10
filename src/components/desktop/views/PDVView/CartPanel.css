@@ -283,6 +283,26 @@
   line-height: var(--lh-base);
 }
 
+/* Linha secundária do rodapé: o que ainda não foi lançado. Discreta de
+   propósito — quem manda na leitura é o total da comanda logo abaixo. */
+.cart-panel__subtotal-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+
+.cart-panel__subtotal-label,
+.cart-panel__subtotal-valor {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+}
+
+.cart-panel__subtotal-valor {
+  font-variant-numeric: tabular-nums;
+}
+
 /* Valor do TOTAL do carrinho — número hero (era sz.fontLg). */
 .cart-panel__total-valor {
   font-size: var(--fs-2xl);

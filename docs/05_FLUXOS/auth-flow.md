@@ -95,6 +95,59 @@ Autenticação é gerenciada pelo Supabase Auth. O fluxo usa JWT com refresh tok
     │               └── > 5 falhas → bloqueio temporário + alerta
 ```
 
+## Fluxo: Aviso de sessão expirando (inatividade)
+
+```
+[login]
+    │
+    └── contagem de inatividade (30 min) — qualquer atividade zera:
+        mousemove, teclado, clique, toque, roda do mouse, rolagem
+            │
+            ├── 28 min sem atividade → aviso "Você ainda está aí?"
+            │       com o tempo restante correndo (2:00 → 0:00)
+            │       │
+            │       ├── "Continuar conectado", ou qualquer atividade
+            │       │        → aviso some e a contagem recomeça do zero
+            │       │
+            │       └── nada acontece → 30 min → logout
+            │
+            └── teto absoluto de 8h desde o login → logout mesmo em uso
+```
+
+---
+
+## Sessão no app real (estado atual)
+
+O fluxo acima com Supabase Auth é o modelo-alvo (ADR-002). Hoje o login é próprio,
+contra a tabela `usuarios`, e a sessão vive em `sessionStorage` (`kora_session`) —
+ver ADR-004. As regras de tempo em vigor, todas em `src/utils/session.js`:
+
+| Constante | Valor | O que faz |
+| --- | --- | --- |
+| `SESSION_MS` | 8 h | Teto absoluto desde o login. Vence mesmo com o operador usando o sistema — cobre o turno inteiro e não deixa a sessão viver de um dia para o outro. |
+| `IDLE_MS` | 30 min | Inatividade. Qualquer atividade zera a contagem. |
+| `AVISO_INATIVIDADE_MS` | 2 min | Quanto antes do fim da inatividade o aviso aparece. |
+| `MAX_ATTEMPTS` | 5 | Tentativas de login erradas antes do bloqueio. |
+| `LOCKOUT_MS` | 2 min | Duração do bloqueio. |
+| `JANELA_TENTATIVAS_MS` | 15 min | Janela em que as tentativas erradas são contadas. |
+
+### Por que existe o aviso
+
+A sessão vencia calada: em horário de pico o operador voltava do salão, tocava na
+tela e caía no login sem entender por quê — às vezes no meio de um atendimento.
+Agora, faltando 2 minutos, aparece um aviso central com o tempo correndo e um botão
+grande "Continuar conectado".
+
+- **Um cronômetro só.** O aviso e o logout nascem do mesmo `reset` dentro de
+  `useIdleTimer` (`src/utils/hooks.js`), então não têm como sair de sincronia.
+- **Não pede decisão de quem só voltou a trabalhar:** mexer no mouse, digitar,
+  tocar na tela, rolar ou usar a roda já derruba o aviso e reinicia os 30 minutos.
+  O botão existe para o PDV de toque e para dar uma ação óbvia a quem está olhando.
+- **O contador conta pelo relógio**, não somando ticks: aba em segundo plano faz o
+  navegador atrasar timers, e um contador por subtração mentiria sobre o tempo que sobra.
+- Componente: `src/components/shared/AvisoSessao.jsx` (+ `.css`), montado uma vez
+  dentro do `AppProvider`, do mesmo jeito que o `IndicadorRede`.
+
 ## Fluxo: Recuperação de Senha
 
 ```

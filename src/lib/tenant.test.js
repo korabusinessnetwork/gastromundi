@@ -153,8 +153,12 @@ describe("buscarBootstrapTenant", () => {
       data: [{ addon_codigo: "tef" }],
       error: null,
     });
+    // Vencimento SEMPRE no futuro em relação ao dia em que o teste roda: com
+    // data fixa, o teste passava a acusar "bloqueado" assim que o calendário
+    // real ultrapassava a data — falha por passagem do tempo, não por bug.
+    const vencimentoFuturo = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     mockSupabase.current.setTableResult("assinaturas", {
-      data: { data_vencimento: "2026-08-05", carencia_dias: 3, valor_mensal: 199, status: "ativo" },
+      data: { data_vencimento: vencimentoFuturo, carencia_dias: 3, valor_mensal: 199, status: "ativo" },
       error: null,
     });
 
@@ -172,7 +176,8 @@ describe("buscarBootstrapTenant", () => {
       diasParaVencer: expect.any(Number),
       carenciaDias: 3,
       valorMensal: 199,
-      dataVencimento: "2026-08-05",
+      dataVencimento: vencimentoFuturo,
+      statusConfirmado: false,
     });
   });
 

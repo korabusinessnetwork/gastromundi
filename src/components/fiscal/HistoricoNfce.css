@@ -154,6 +154,27 @@
   color: var(--gm-red, #d02e2e);
 }
 
+/* Aviso de nota que não chegou à SEFAZ — tom de ESPERA (âmbar), nunca de
+   erro: a venda está registrada e a nota sai sozinha depois. */
+.historico-nfce__pendencia {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #f0c060;
+  background: #fdf3d8;
+  color: #92400e;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.historico-nfce__pendencia svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 .historico-nfce__dica {
   max-width: 420px;
   font-size: 13px;

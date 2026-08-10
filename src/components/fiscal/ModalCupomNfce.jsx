@@ -1,8 +1,9 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useMemo } from "react";
-import { LuPrinter, LuX, LuLoaderCircle, LuTriangleAlert } from "react-icons/lu";
+import { LuPrinter, LuX, LuLoaderCircle, LuTriangleAlert, LuClock } from "react-icons/lu";
 import { montarDanfeNfce } from "@/lib/nfceDanfe";
 import { montarVendaFiscal } from "@/lib/nfceVenda";
+import { mensagemDesfechoNfce } from "@/lib/nfceMensagem";
 import CupomNfce from "./CupomNfce";
 import "./ModalCupomNfce.css";
 
@@ -69,6 +70,9 @@ export default function ModalCupomNfce({ estadoEmissao, resultado, venda, onFech
     }
   }, [temCupom, resultado, venda]);
 
+  // Mensagem humana do desfecho sem cupom (rejeitada/erro/sem_chave).
+  const desfecho = useMemo(() => mensagemDesfechoNfce(resultado), [resultado]);
+
   const imprimir = () => window.print();
 
   return (
@@ -129,15 +133,20 @@ export default function ModalCupomNfce({ estadoEmissao, resultado, venda, onFech
           )}
 
           {/* Concluído sem cupom: rejeitada/erro (ou venda sem itens fiscais).
-              Nunca tratamos como falha da VENDA — só da nota. */}
+              Nunca tratamos como falha da VENDA — só da nota. A mensagem vem
+              de `mensagemDesfechoNfce`: diz o que houve e o que acontece a
+              seguir, em vez do erro técnico cru que vazava até o endereço do
+              servidor para o consumidor. */}
           {estadoEmissao === "concluido" && !danfe && (
             <div className="modal-cupom-nfce__estado modal-cupom-nfce__estado--aviso">
-              <LuTriangleAlert size={40} />
-              <p className="modal-cupom-nfce__estado-texto">A venda foi concluída.</p>
-              <p className="modal-cupom-nfce__estado-sub">
-                A nota não pôde ser emitida
-                {resultado?.detalhe ? `: ${resultado.detalhe}` : "."}
-              </p>
+              {desfecho.automatico ? <LuClock size={40} /> : <LuTriangleAlert size={40} />}
+              <p className="modal-cupom-nfce__estado-texto">{desfecho.titulo}</p>
+              <p className="modal-cupom-nfce__estado-sub">{desfecho.texto}</p>
+              {desfecho.motivo && (
+                <p className="modal-cupom-nfce__estado-motivo">
+                  Motivo informado pela SEFAZ: {desfecho.motivo}
+                </p>
+              )}
             </div>
           )}
         </div>

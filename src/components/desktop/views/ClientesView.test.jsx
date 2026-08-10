@@ -130,4 +130,78 @@ describe("ClientesView", () => {
     // some com o modal de edição depois de salvar
     await waitFor(() => expect(screen.queryByRole("button", { name: /^salvar$/i })).not.toBeInTheDocument());
   });
+
+  // LGPD: o CPF ficava impresso por extenso na lista e no cadastro, à vista de
+  // quem passasse pelo balcão, e ver o dado não deixava rastro nenhum.
+  describe("CPF protegido (LGPD)", () => {
+    const clienteComCpf = {
+      id: "c1", nome: "João Silva", telefone: "11977776666",
+      documento: "52998224725", documento_tipo: "cpf", endereco: null, observacoes: null,
+    };
+
+    const prepararLista = () => {
+      mockSupabase.current.setTableResult("clientes", { data: [clienteComCpf], error: null });
+      mockSupabase.current.setTableResult("vendas", { data: [], error: null });
+      mockSupabase.current.setTableResult("lancamentos", { data: [], error: null });
+    };
+
+    it("na lista o CPF aparece oculto, sem botão para abrir", async () => {
+      prepararLista();
+      renderWithProviders(<ClientesView />);
+
+      await waitFor(() => expect(screen.getByText("***.982.247-**")).toBeInTheDocument());
+      expect(screen.queryByText("529.982.247-25")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^ver$/i })).not.toBeInTheDocument();
+    });
+
+    it("caixa abre o cadastro e continua sem poder revelar o CPF", async () => {
+      const user = userEvent.setup();
+      setAppMock({ currentUser: { name: "Caixa Teste", username: "caixa1", role: "caixa" } });
+      prepararLista();
+      renderWithProviders(<ClientesView />);
+
+      await waitFor(() => expect(screen.getByText("João Silva")).toBeInTheDocument());
+      await user.click(screen.getByText("João Silva"));
+
+      await waitFor(() => expect(screen.getByRole("button", { name: /editar/i })).toBeInTheDocument());
+      expect(screen.queryByRole("button", { name: /^ver$/i })).not.toBeInTheDocument();
+      expect(screen.queryByText("529.982.247-25")).not.toBeInTheDocument();
+    });
+
+    it("gerente clica em Ver, o CPF completo aparece e o acesso vai para o log", async () => {
+      const user = userEvent.setup();
+      setAppMock({ currentUser: { name: "Gerente Teste", username: "gerente1", role: "gerente" } });
+      prepararLista();
+      renderWithProviders(<ClientesView />);
+
+      await waitFor(() => expect(screen.getByText("João Silva")).toBeInTheDocument());
+      await user.click(screen.getByText("João Silva"));
+
+      const verBtn = await screen.findByRole("button", { name: /^ver$/i });
+      await user.click(verBtn);
+
+      expect(screen.getByText("529.982.247-25")).toBeInTheDocument();
+
+      await waitFor(() => {
+        const evento = mockSupabase.current.calls.find(
+          (c) => c.table === "jarvas_eventos" && c.method === "insert"
+            && c.args[0]?.tipo === "cliente.documento_visualizado",
+        );
+        expect(evento).toBeDefined();
+        expect(evento.args[0]).toMatchObject({
+          modulo: "clientes",
+          payload: { cliente_id: "c1" },
+          operator_id: "gerente1",
+        });
+        // o documento em si NUNCA entra no log
+        expect(JSON.stringify(evento.args[0])).not.toContain("52998224725");
+      });
+
+      // e dá para esconder de volta (o cartão da lista atrás também está oculto,
+      // por isso a máscara aparece mais de uma vez na tela)
+      await user.click(screen.getByRole("button", { name: /ocultar/i }));
+      expect(screen.queryByText("529.982.247-25")).not.toBeInTheDocument();
+      expect(screen.getAllByText("***.982.247-**").length).toBeGreaterThan(0);
+    });
+  });
 });

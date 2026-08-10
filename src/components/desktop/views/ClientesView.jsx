@@ -8,15 +8,18 @@ import { useApp } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import {
-  LuUsers, LuSearch, LuPlus, LuPhone, LuMapPin, LuFileText,
-  LuX, LuCircleAlert, LuBadgeCheck, LuArrowLeft, LuPencil,
+  LuUsers, LuSearch, LuPlus, LuPhone, LuMapPin,
+  LuX, LuCircleAlert, LuBadgeCheck, LuArrowLeft, LuPencil, LuTrash2,
 } from "react-icons/lu";
 import {
   listarClientes, cadastrarCliente, atualizarCliente, validarCadastroCliente,
   buscarHistoricoCliente, registrarPagamentoFiado, calcularSaldoDevedor,
+  anonimizarCliente, registrarAcessoDocumento,
 } from "@/lib/clientes";
 import { apenasDigitos, validarDocumento, formatarDocumento } from "@/lib/documento";
+import { mascararTelefone, telefoneValido, formatarTelefone } from "@/lib/telefone";
 import CampoDocumento from "@/components/shared/CampoDocumento";
+import DocumentoProtegido from "@/components/shared/DocumentoProtegido";
 import "./ClientesView.css";
 
 /**
@@ -83,7 +86,10 @@ export default function ClientesView() {
   // Documento é opcional: só bloqueia o cadastro se foi preenchido e está inválido.
   const docInvalido = apenasDigitos(novoDocumento).length > 0
     && !validarDocumento(novoDocumento, novoDocTipo);
-  const cadastroBloqueado = salvando || !novoNome.trim() || !novoTelefone.trim() || docInvalido;
+  // Só reclama depois que o operador começou a digitar — avisar num campo
+  // ainda vazio é ruído.
+  const telefoneInvalido = novoTelefone.trim().length > 0 && !telefoneValido(novoTelefone);
+  const cadastroBloqueado = salvando || !novoNome.trim() || !telefoneValido(novoTelefone) || docInvalido;
 
   const handleCadastrar = async () => {
     if (cadastroBloqueado) return;
@@ -168,12 +174,16 @@ export default function ClientesView() {
                 <div className="clientes-view__card-nome">{c.nome}</div>
                 {c.telefone && (
                   <div className="clientes-view__card-linha">
-                    <LuPhone size={13} /> {c.telefone}
+                    <LuPhone size={13} /> {formatarTelefone(c.telefone)}
                   </div>
                 )}
                 {c.documento && (
                   <div className="clientes-view__card-linha">
-                    <LuFileText size={13} /> {c.documento_tipo === "cnpj" ? "CNPJ" : "CPF"} {formatarDocumento(c.documento, c.documento_tipo)}
+                    {/* Na lista o CPF fica sempre oculto: o cartão inteiro já é
+                        um botão (abre o cliente), então não cabe outro botão
+                        aqui dentro. Quem precisa do número completo abre o
+                        cadastro e clica em "Ver" — e aí fica registrado. */}
+                    <DocumentoProtegido documento={c.documento} tipo={c.documento_tipo} />
                   </div>
                 )}
                 {c.endereco && (
@@ -212,14 +222,23 @@ export default function ClientesView() {
                   className="clientes-view__input"
                 />
               </div>
+              {/* Telefone entrava sem nenhuma checagem: "123" era aceito e
+                  salvo calado, enquanto o CPF logo abaixo avisava na hora.
+                  Agora os dois se comportam igual — máscara enquanto digita e
+                  aviso embaixo do campo. */}
               <div>
                 <label className="clientes-view__label">Telefone</label>
                 <input
                   value={novoTelefone}
-                  onChange={(e) => setNovoTelefone(e.target.value)}
+                  onChange={(e) => setNovoTelefone(mascararTelefone(e.target.value))}
                   placeholder="(00) 00000-0000"
+                  inputMode="numeric"
+                  aria-invalid={telefoneInvalido}
                   className="clientes-view__input"
                 />
+                {telefoneInvalido && (
+                  <div className="clientes-view__hint-campo">Telefone incompleto — informe DDD e número.</div>
+                )}
               </div>
               <CampoDocumento
                 tipo={novoDocTipo}
@@ -278,9 +297,18 @@ export default function ClientesView() {
         <ClienteDetalhe
           cliente={clienteAberto}
           usuario={currentUser?.username}
+          podeExcluir={currentUser?.role === "admin" || currentUser?.role === "gerente"}
+          // Mesma régua da exclusão: quem responde pelo cadastro é quem pode
+          // abrir o CPF por inteiro. Garçom e caixa continuam com o cliente
+          // (precisam para delivery e fiado), mas veem o documento oculto.
+          podeVerDocumento={currentUser?.role === "admin" || currentUser?.role === "gerente"}
           sz={sz}
           onClose={() => setClienteAberto(null)}
           onEditar={() => setClienteEditando(clienteAberto)}
+          onExcluido={(id) => {
+            setClienteAberto(null);
+            setClientes((prev) => prev.filter((c) => c.id !== id));
+          }}
         />,
         document.body,
       )}
@@ -302,7 +330,7 @@ export default function ClientesView() {
   );
 }
 
-function ClienteDetalhe({ cliente, usuario, sz, onClose, onEditar }) {
+function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerDocumento, sz, onClose, onEditar, onExcluido }) {
   const [vendas, setVendas] = useState([]);
   const [lancamentosFiado, setLancamentosFiado] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -310,6 +338,9 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose, onEditar }) {
   const [confirmandoId, setConfirmandoId] = useState(null);
   const [baixando, setBaixando] = useState(false);
   const [erroBaixa, setErroBaixa] = useState(null);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+  const [erroExclusao, setErroExclusao] = useState(null);
 
   const carregar = async () => {
     setCarregando(true);
@@ -337,6 +368,21 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose, onEditar }) {
     await carregar();
   };
 
+  // Cliente que ainda deve não pode ser excluído: a conta em aberto ficaria
+  // pendurada num cadastro sem nome nem telefone e ninguém mais cobraria.
+  // Primeiro recebe, depois exclui.
+  const exclusaoBloqueadaPorFiado = saldoDevedor > 0;
+
+  const handleExcluir = async () => {
+    if (excluindo || exclusaoBloqueadaPorFiado) return;
+    setExcluindo(true);
+    setErroExclusao(null);
+    const { error } = await anonimizarCliente(cliente.id, usuario);
+    setExcluindo(false);
+    if (error) { setErroExclusao("Não foi possível excluir o cliente agora."); return; }
+    onExcluido?.(cliente.id);
+  };
+
   return (
     <div
       {...fecharAoClicarFora(onClose)}
@@ -352,20 +398,74 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose, onEditar }) {
           <div style={{ flex: 1 }}>
             <div className="cliente-detalhe__nome">{cliente.nome}</div>
             <div className="cliente-detalhe__contato">
-              {cliente.telefone && <span><LuPhone size={12} style={{ verticalAlign: -1 }} /> {cliente.telefone}</span>}
-              {cliente.documento && <span><LuFileText size={12} style={{ verticalAlign: -1 }} /> {formatarDocumento(cliente.documento, cliente.documento_tipo)}</span>}
+              {cliente.telefone && <span><LuPhone size={12} style={{ verticalAlign: -1 }} /> {formatarTelefone(cliente.telefone)}</span>}
+              {cliente.documento && (
+                <DocumentoProtegido
+                  documento={cliente.documento}
+                  tipo={cliente.documento_tipo}
+                  tamanhoIcone={12}
+                  podeRevelar={podeVerDocumento}
+                  onRevelar={() => registrarAcessoDocumento(cliente.id, usuario)}
+                />
+              )}
               {cliente.endereco && <span><LuMapPin size={12} style={{ verticalAlign: -1 }} /> {cliente.endereco}</span>}
             </div>
           </div>
           <button onClick={onEditar} className="cliente-detalhe__btn-editar">
             <LuPencil size={14} /> Editar
           </button>
+          {/* Não havia nenhuma forma de tirar um cliente do cadastro: só
+              "Editar" e o X de fechar. A ação fica aqui, ao lado de
+              "Editar", em vermelho e atrás de uma confirmação que diz o
+              que acontece — e só para gerente/admin (CLIENTES.md). */}
+          {podeExcluir && (
+            <button
+              onClick={() => { setConfirmandoExclusao(true); setErroExclusao(null); }}
+              className="cliente-detalhe__btn-excluir"
+              title="Excluir cliente"
+            >
+              <LuTrash2 size={14} /> Excluir
+            </button>
+          )}
           <button onClick={onClose} className="cliente-detalhe__btn-icone">
             <LuX size={18} />
           </button>
         </div>
 
         <div className="cliente-detalhe__corpo">
+
+          {confirmandoExclusao && (
+            <div className="cliente-detalhe__confirmar-exclusao" role="alertdialog" aria-label="Confirmar exclusão do cliente">
+              <div className="cliente-detalhe__confirmar-titulo">
+                Excluir {cliente.nome} do cadastro?
+              </div>
+              <div className="cliente-detalhe__confirmar-texto">
+                {exclusaoBloqueadaPorFiado
+                  ? `Este cliente ainda deve R$ ${saldoDevedor.toFixed(2)} de fiado. Registre o pagamento das contas em aberto antes de excluir.`
+                  : "Os dados pessoais (telefone, documento, endereço e observações) são apagados e o cliente sai das listas. As vendas e os lançamentos já registrados continuam no sistema, sem identificação. Não dá para desfazer."}
+              </div>
+              {erroExclusao && (
+                <div className="cliente-detalhe__confirmar-erro">
+                  <LuCircleAlert size={14} /> {erroExclusao}
+                </div>
+              )}
+              <div className="cliente-detalhe__confirmar-acoes">
+                <button onClick={() => setConfirmandoExclusao(false)} className="cliente-detalhe__btn-pequeno">
+                  {exclusaoBloqueadaPorFiado ? "Entendi" : "Cancelar"}
+                </button>
+                {!exclusaoBloqueadaPorFiado && (
+                  <button
+                    onClick={handleExcluir}
+                    disabled={excluindo}
+                    className="cliente-detalhe__btn-confirmar-exclusao"
+                    style={{ cursor: excluindo ? "not-allowed" : "pointer" }}
+                  >
+                    {excluindo ? "Excluindo..." : "Sim, excluir"}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {erro && (
             <div className="clientes-view__alerta" style={{ padding: 14, borderRadius: 10, background: alfa(C.red, "12") }}>
@@ -468,7 +568,7 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose, onEditar }) {
  */
 function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
   const [nome, setNome] = useState(cliente.nome ?? "");
-  const [telefone, setTelefone] = useState(cliente.telefone ?? "");
+  const [telefone, setTelefone] = useState(mascararTelefone(cliente.telefone ?? ""));
   const [docTipo, setDocTipo] = useState(cliente.documento_tipo === "cnpj" ? "cnpj" : "cpf");
   const [documento, setDocumento] = useState(
     cliente.documento ? formatarDocumento(cliente.documento, cliente.documento_tipo) : "",
@@ -485,6 +585,7 @@ function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
   };
 
   const docInvalido = apenasDigitos(documento).length > 0 && !validarDocumento(documento, docTipo);
+  const telefoneInvalido = telefone.trim().length > 0 && !telefoneValido(telefone);
   const { valido } = validarCadastroCliente({ nome, telefone, documento, documentoTipo: docTipo });
   const bloqueado = salvando || !valido;
 
@@ -527,10 +628,15 @@ function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
             <label className="clientes-view__label">Telefone</label>
             <input
               value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
+              onChange={(e) => setTelefone(mascararTelefone(e.target.value))}
               placeholder="(00) 00000-0000"
+              inputMode="numeric"
+              aria-invalid={telefoneInvalido}
               className="clientes-view__input"
             />
+            {telefoneInvalido && (
+              <div className="clientes-view__hint-campo">Telefone incompleto — informe DDD e número.</div>
+            )}
           </div>
           <CampoDocumento
             tipo={docTipo}

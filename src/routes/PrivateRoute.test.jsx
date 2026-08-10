@@ -32,19 +32,19 @@ beforeEach(() => {
 
 describe("PrivateRoute — Fase 5 (bloqueio total por assinatura, ADR-006 §4)", () => {
   it("assinatura ativa: renderiza o conteúdo normalmente", () => {
-    renderRota({ assinatura: { status: "ativo", diasParaVencer: 20 } });
+    renderRota({ assinatura: { status: "ativo", diasParaVencer: 20, statusConfirmado: true } });
 
     expect(screen.getByText("Conteúdo protegido")).toBeInTheDocument();
   });
 
   it("assinatura em carência: ainda renderiza o conteúdo (só bloqueado impede)", () => {
-    renderRota({ assinatura: { status: "carencia", diasParaVencer: -1 } });
+    renderRota({ assinatura: { status: "carencia", diasParaVencer: -1, statusConfirmado: true } });
 
     expect(screen.getByText("Conteúdo protegido")).toBeInTheDocument();
   });
 
   it("assinatura bloqueada: mostra a tela de aviso em vez do conteúdo, mesmo tendo permissão/módulo", () => {
-    renderRota({ assinatura: { status: "bloqueado", diasParaVencer: -10 } }, { requiredPermission: "pdv" });
+    renderRota({ assinatura: { status: "bloqueado", diasParaVencer: -10, statusConfirmado: true } }, { requiredPermission: "pdv" });
 
     expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
     expect(screen.getByText(/sua mensalidade está atrasada/i)).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe("PrivateRoute — Fase 5 (bloqueio total por assinatura, ADR-006 §4)",
 
   it("assinatura bloqueada tem prioridade sobre a checagem de módulo (não mostra convite a upgrade, mostra o bloqueio)", () => {
     renderRota(
-      { assinatura: { status: "bloqueado", diasParaVencer: -10 }, moduloHabilitado: () => false },
+      { assinatura: { status: "bloqueado", diasParaVencer: -10, statusConfirmado: true }, moduloHabilitado: () => false },
       { requiredModulo: "financeiro", moduloLabel: "Financeiro" },
     );
 
@@ -66,8 +66,32 @@ describe("PrivateRoute — Fase 5 (bloqueio total por assinatura, ADR-006 §4)",
     expect(screen.getByText("Conteúdo protegido")).toBeInTheDocument();
   });
 
+  it("status ainda NÃO confirmado pelo banco: não bloqueia, mesmo o cálculo local dizendo 'bloqueado'", () => {
+    // O bloqueio falso do relatório de testes: o status calculado no
+    // navegador dizia 'bloqueado' e a tela cheia aparecia logo após o
+    // login, sumindo ao recarregar. Enquanto o banco não confirma, o app
+    // segue normal — quem barra de verdade é a RLS.
+    renderRota({ assinatura: { status: "bloqueado", diasParaVencer: -10, statusConfirmado: false } });
+
+    expect(screen.getByText("Conteúdo protegido")).toBeInTheDocument();
+    expect(screen.queryByText(/sua mensalidade está atrasada/i)).not.toBeInTheDocument();
+  });
+
+  it("bootstrap ainda em voo (loading): não bloqueia nem com status confirmado", () => {
+    renderRota({ loading: true, assinatura: { status: "bloqueado", diasParaVencer: -10, statusConfirmado: true } });
+
+    expect(screen.getByText("Conteúdo protegido")).toBeInTheDocument();
+  });
+
+  it("a tela de bloqueio oferece saída (Sair) — nunca é um beco sem saída", () => {
+    renderRota({ assinatura: { status: "bloqueado", diasParaVencer: -10, statusConfirmado: true } });
+
+    expect(screen.getByRole("button", { name: /sair/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /já paguei/i })).toBeInTheDocument();
+  });
+
   it("continua redirecionando para /login quando não autenticado, independente da assinatura", () => {
-    renderRota({ currentUser: null, assinatura: { status: "bloqueado", diasParaVencer: -10 } });
+    renderRota({ currentUser: null, assinatura: { status: "bloqueado", diasParaVencer: -10, statusConfirmado: true } });
 
     expect(screen.getByText("Tela de login")).toBeInTheDocument();
   });

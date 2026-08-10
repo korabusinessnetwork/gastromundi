@@ -12,6 +12,7 @@ vi.mock("./supabase", async () => {
   return { supabase: mockSupabase.current };
 });
 
+import { emitirEvento } from "./jarvas";
 import {
   validarCadastroCliente,
   cadastrarCliente,
@@ -20,6 +21,7 @@ import {
   registrarPagamentoFiado,
   calcularSaldoDevedor,
   sanitizarTermoBusca,
+  anonimizarCliente,
 } from "./clientes";
 
 beforeEach(() => {
@@ -154,6 +156,56 @@ describe("buscarClientePorId", () => {
     expect(select.args[0]).toContain("documento");
     const eqId = mockSupabase.current.calls.find((c) => c.method === "eq" && c.args[0] === "id");
     expect(eqId.args[1]).toBe("c1");
+  });
+});
+
+describe("anonimizarCliente", () => {
+  it("não chama o Supabase sem id", async () => {
+    const { data, error } = await anonimizarCliente("", "maria");
+    expect(data).toBeNull();
+    expect(error.message).toMatch(/inválido/i);
+    expect(mockSupabase.current.calls).toHaveLength(0);
+  });
+
+  it("apaga os dados pessoais e marca anonimizado (não deleta a linha)", async () => {
+    mockSupabase.current.setTableResult("clientes", { data: { id: "c1", anonimizado: true }, error: null });
+
+    const { error } = await anonimizarCliente("c1", "maria");
+
+    expect(error).toBeNull();
+    // Remoção física quebraria vendas/lançamentos — a regra do módulo é anonimizar.
+    expect(mockSupabase.current.calls.find((c) => c.method === "delete")).toBeUndefined();
+
+    const update = mockSupabase.current.calls.find((c) => c.table === "clientes" && c.method === "update");
+    expect(update.args[0]).toMatchObject({
+      anonimizado: true,
+      telefone: null,
+      documento: null,
+      documento_tipo: null,
+      endereco: null,
+      observacoes: null,
+    });
+    expect(update.args[0].nome).not.toMatch(/ana|joão/i);
+
+    const eqId = mockSupabase.current.calls.find((c) => c.method === "eq" && c.args[0] === "id");
+    expect(eqId.args[1]).toBe("c1");
+  });
+
+  it("registra o evento de auditoria com o autor", async () => {
+    mockSupabase.current.setTableResult("clientes", { data: { id: "c1", anonimizado: true }, error: null });
+
+    await anonimizarCliente("c1", "maria");
+
+    expect(emitirEvento).toHaveBeenCalledWith("cliente.anonimizado", "clientes", { cliente_id: "c1" }, "maria");
+  });
+
+  it("não registra evento quando o banco recusa", async () => {
+    mockSupabase.current.setTableResult("clientes", { data: null, error: { message: "permission denied" } });
+
+    const { error } = await anonimizarCliente("c1", "maria");
+
+    expect(error).not.toBeNull();
+    expect(emitirEvento).not.toHaveBeenCalled();
   });
 });
 

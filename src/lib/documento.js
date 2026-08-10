@@ -110,3 +110,31 @@ export function formatarDocumento(valor, tipo) {
   }
   return out;
 }
+
+/**
+ * Versão OCULTA para exibição em tela: `***.456.789-**`. É o que aparece por
+ * padrão nas listas e no cadastro — o CPF completo só depois de um clique
+ * explícito (e o clique fica no log de auditoria).
+ *
+ * Por que assim: o CPF é dado pessoal (LGPD) e ficava impresso à vista em
+ * qualquer tela de cliente, ao alcance de quem passasse pelo balcão. Os três
+ * dígitos do meio bastam para o operador confirmar de quem é o cadastro, que
+ * é o uso real do dia a dia, sem expor o documento inteiro.
+ *
+ * CNPJ NÃO é ocultado: é documento de empresa, público por natureza, e
+ * esconder atrapalharia sem proteger ninguém.
+ *
+ * Documento incompleto (menos dígitos do que o tipo exige) é ocultado por
+ * inteiro — melhor esconder demais do que vazar por engano.
+ *
+ * @param {string} valor  dígitos (com ou sem máscara)
+ * @param {'cpf'|'cnpj'} tipo
+ * @returns {string}
+ */
+export function ocultarDocumento(valor, tipo) {
+  if (tipo === "cnpj") return formatarDocumento(valor, "cnpj");
+  const d = apenasDigitos(valor);
+  if (!d) return "";
+  if (d.length !== MAX_DIGITOS.cpf) return "•".repeat(d.length);
+  return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
+}

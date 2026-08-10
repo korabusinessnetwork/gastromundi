@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getPermissions, mesclarPermissoes, ROLES } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
@@ -15,6 +15,7 @@ import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
 import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
 import { criarLancamento } from "@/lib/financeiro";
 import { METODOS_TEF_PADRAO } from "@/lib/tef";
+import { emitirDocumentoFiscal } from "@/lib/fiscal";
 import { LIMITE_SANGRIA_PADRAO, lerValor, limiteSangriaValido, validarMovimento } from "@/lib/caixaMovimentos";
 import { processarBaixaEstoque, gerarAlertaBaixaFalhou, isRpcAusente } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
@@ -22,10 +23,16 @@ import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha, reportarInconsistencia, setTenantObservabilidade } from "@/lib/observabilidade";
-import { criarFila, drenarFila } from "@/lib/offline/fila";
+import { drenarFila } from "@/lib/offline/fila";
+// Fila local de operações offline (Leva 11) — singleton de módulo sobre
+// localStorage: sobrevive a reload/fechamento do app e é compartilhada por
+// todas as instâncias do provider (só existe uma no app real) e pela tela de
+// notas emitidas, que conta as pendências fiscais guardadas nela.
+import { filaOffline, contarPendenciasFiscais } from "@/lib/offline/filaApp";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 import { useStatusRede } from "@/hooks/useStatusRede";
 import IndicadorRede from "@/components/shared/IndicadorRede";
+import AvisoSessao from "@/components/shared/AvisoSessao";
 import PonteLocalBridge from "@/components/shared/PonteLocalBridge";
 import ImpressaoLancamentosBridge from "@/components/shared/ImpressaoLancamentosBridge";
 import {
@@ -33,15 +40,11 @@ import {
   lerSessao, atualizarUsuarioSessao, msRestantesDaSessao, esquecerTokenAuthLocal,
   perfilInativoConfirmado,
   getAttempts, setAttempts, clearAttempts,
-  IDLE_MS, MAX_ATTEMPTS, LOCKOUT_MS,
+  IDLE_MS, MAX_ATTEMPTS, LOCKOUT_MS, AVISO_INATIVIDADE_MS,
 } from "@/utils/session";
 
 const AppContext = createContext(null);
 
-// Fila local de operações offline (Leva 11) — singleton de módulo sobre
-// localStorage: sobrevive a reload/fechamento do app e é compartilhada
-// por todas as instâncias do provider (só existe uma no app real).
-const filaOffline = criarFila({ storage: window.localStorage });
 
 // Monta o mapa de permissões por cargo CIENTE do tenant: parte do default
 // do roles.js (fallback white-label, decisão 017) e mescla por cima as
@@ -116,6 +119,14 @@ export function AppProvider({ children }) {
   const redeOnline = useStatusRede();
   const [pendenciasOffline, setPendenciasOffline] = useState(() => filaOffline.tamanho());
   const drenandoRef = useRef(false);
+  // Notas fiscais que ficaram na fila: a venda saiu, a nota não. Fica visível
+  // para o admin/contador em "Notas emitidas" — pendência fiscal não pode
+  // existir em silêncio.
+  const pendenciasFiscais = useMemo(
+    () => contarPendenciasFiscais(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pendenciasOffline],
+  );
   // Leva 13 — endereço da página do Palm servida pela Ponte KORA
   // (http://IP:porta/palm?t=token). Persistido em config para o Palm
   // saber para onde ir quando a internet cair.
@@ -143,7 +154,12 @@ export function AppProvider({ children }) {
   // O ref sempre aponta para o `logout` da última renderização.
   const logoutRef = useRef(null);
   const logoutCallback = useCallback(() => { logoutRef.current?.(); }, []);
-  useIdleTimer(logoutCallback, IDLE_MS, !!currentUser);
+  // Aviso 2 minutos antes de a inatividade derrubar a sessão. O callback é
+  // estável pela mesma razão do `logoutCallback`: se mudar de identidade, o
+  // cronômetro reinicia e ninguém nunca chega aos 30 minutos.
+  const [avisoSessaoVisivel, setAvisoSessaoVisivel] = useState(false);
+  const aoAvisarSessao = useCallback((visivel) => setAvisoSessaoVisivel(visivel), []);
+  useIdleTimer(logoutCallback, IDLE_MS, !!currentUser, aoAvisarSessao, AVISO_INATIVIDADE_MS);
 
   // Teto absoluto da sessão: 8 horas contadas do login. O `lerSessao` só é
   // consultado ao carregar a página, então numa aba aberta o turno inteiro — o
@@ -535,13 +551,32 @@ export function AppProvider({ children }) {
         // para taguear os eventos do Sentry por estabelecimento (multi-tenant).
         setTenantObservabilidade(tenantData.id ?? null);
         // Fase 4 — camada de comercialização (ADR-006): sincroniza o CACHE
-        // de status no banco (telas administrativas). Fire-and-forget —
-        // nunca bloqueia o bootstrap; o status exibido já foi calculado
-        // localmente em buscarBootstrapTenant, não depende desta chamada.
+        // de status no banco (telas administrativas). Continua sem bloquear
+        // o bootstrap, mas a RESPOSTA agora é adotada: o status que veio do
+        // `buscarBootstrapTenant` foi calculado no navegador, então depende
+        // do relógio da máquina do caixa; o do banco é o que a RLS usa. Só
+        // depois desta confirmação o `PrivateRoute` pode mostrar a tela de
+        // bloqueio — era daqui que vinha o bloqueio falso logo após o login,
+        // que sumia ao recarregar.
         if (tenantData.id) {
-          sincronizarStatusAssinatura(tenantData.id).catch((err) => {
-            console.error("[bootstrap] falha ao sincronizar status da assinatura:", err);
-          });
+          sincronizarStatusAssinatura(tenantData.id)
+            .then(({ data: statusServidor, error }) => {
+              if (error) console.error("[bootstrap] falha ao sincronizar status da assinatura:", error);
+              setTenantLocal((anterior) => {
+                if (!anterior?.assinatura) return anterior;
+                return {
+                  ...anterior,
+                  assinatura: {
+                    ...anterior.assinatura,
+                    status: statusServidor ?? anterior.assinatura.status,
+                    statusConfirmado: true,
+                  },
+                };
+              });
+            })
+            .catch((err) => {
+              console.error("[bootstrap] falha ao sincronizar status da assinatura:", err);
+            });
         }
       }
 
@@ -738,7 +773,26 @@ export function AppProvider({ children }) {
       return supabase.rpc("baixar_estoque_subproduto", { p_subproduto_id: op.subprodutoId, p_qtd: op.qtd, p_op_id: op.opId ?? null });
     }
     if (op.tipo === "insert_lancamento") return criarLancamento(op.dados, op.usuario);
+    // Nota que não saiu (rede caiu, SEFAZ fora do ar, Edge indisponível) não
+    // pode sumir: a venda está registrada e a obrigação fiscal continua de pé.
+    if (op.tipo === "emitir_nfce") return reemitirNfceOffline(op);
     return Promise.resolve({ error: null }); // tipo desconhecido — descarta
+  };
+
+  // Reemissão da NFC-e de uma venda cuja primeira tentativa nem chegou ao
+  // servidor. Seguro repetir: a emissão é IDEMPOTENTE por vendaId no servidor
+  // (ver nfceIdempotencia) — venda com nota já autorizada recebe a mesma nota
+  // de volta, nunca sai uma segunda.
+  const reemitirNfceOffline = async (op) => {
+    const resultado = await emitirDocumentoFiscal(op.venda, { usuario: op.usuario });
+    // Desfecho conclusivo (autorizada, rejeitada, ou pendente em contingência):
+    // a nota tem destino e agora existe em nfce_emitidas — sai da fila.
+    if (["autorizada", "rejeitada", "pendente"].includes(resultado?.status)) return { error: null };
+    // "erro" (rede/servidor) e "sem_chave" (config fiscal incompleta): a nota
+    // FICA na fila. Devolve um erro que `isErroDeRede` reconhece para o dreno
+    // parar aqui em vez de descartar a nota como falha definitiva — insistir a
+    // cada tentativa é justamente o que se quer de uma pendência fiscal.
+    return { error: { message: "fetch failed", motivo_fiscal: resultado?.status ?? "erro" } };
   };
 
   const reenviarVendaOffline = async (op) => {
@@ -1804,7 +1858,7 @@ export function AppProvider({ children }) {
     metodosCustom, setMetodosCustom,
     metodosTef, setMetodosTef,
     // offline-first (Leva 11)
-    redeOnline, pendenciasOffline, enfileirarOffline,
+    redeOnline, pendenciasOffline, enfileirarOffline, pendenciasFiscais,
     // ponte local (Leva 13)
     ponteEndereco, setPonteEndereco,
   };
@@ -1813,6 +1867,14 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={value}>
       {children}
       <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
+      {/* O clique no botão já conta como atividade (o useIdleTimer escuta
+          `click` na captura, o que zera a contagem); esconder aqui é só para o
+          aviso sumir na hora, sem depender da propagação do evento. */}
+      <AvisoSessao
+        visivel={!!currentUser && avisoSessaoVisivel}
+        totalMs={AVISO_INATIVIDADE_MS}
+        onContinuar={() => setAvisoSessaoVisivel(false)}
+      />
       <PonteLocalBridge />
       <ImpressaoLancamentosBridge />
     </AppContext.Provider>

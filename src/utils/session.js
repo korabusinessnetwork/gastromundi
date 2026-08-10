@@ -6,6 +6,13 @@ export const IDLE_MS      = 30 * 60 * 1000;       // 30 min inatividade
 export const MAX_ATTEMPTS = 5;
 export const LOCKOUT_MS   = 2 * 60 * 1000;        // 2 min bloqueio
 
+// Quanto antes do fim da inatividade o aviso aparece. Em hora de pico a sessão
+// vencia calada no meio de um atendimento: o operador só descobria ao tocar na
+// tela e cair no login. Dois minutos é tempo de voltar do salão e clicar em
+// "continuar conectado" — e curto o bastante para não virar mais um aviso que
+// mora na tela.
+export const AVISO_INATIVIDADE_MS = 2 * 60 * 1000; // 2 min
+
 // ── Sessão ────────────────────────────────────────────────────
 // O `at` é o RELÓGIO da sessão: a hora do login. O teto de 8 horas conta dele
 // e de mais nada — quem mexe no `at` renova a sessão. Por isso só o login (e a

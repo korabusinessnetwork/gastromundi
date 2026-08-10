@@ -5,6 +5,7 @@ import {
 } from "react-icons/lu";
 import { listarNfceEmitidas } from "@/lib/nfceEmitidasRepo";
 import { buscarEmitenteFiscal } from "@/lib/fiscal";
+import { contarPendenciasFiscais } from "@/lib/offline/filaApp";
 import BotaoReimprimirNfce from "./BotaoReimprimirNfce";
 import CancelarNfce from "./CancelarNfce";
 import "./HistoricoNfce.css";
@@ -50,6 +51,10 @@ export default function HistoricoNfce() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro]           = useState(false);
   const [emit, setEmit]           = useState(null);
+  // Notas que nem chegaram à SEFAZ (rede/servidor fora): não existem em
+  // nfce_emitidas, então não apareceriam em lugar nenhum desta tela. Sem este
+  // aviso a pendência fiscal fica invisível — que foi exatamente o problema.
+  const [naFila, setNaFila]       = useState(() => contarPendenciasFiscais());
 
   // Identidade do emitente (cabeçalho do cupom na reimpressão) — carrega UMA
   // vez, não por linha.
@@ -62,6 +67,7 @@ export default function HistoricoNfce() {
   const carregarPagina = useCallback(async (p, { anexar }) => {
     setCarregando(true);
     setErro(false);
+    setNaFila(contarPendenciasFiscais());
     const { data, error, temMais: mais } = await listarNfceEmitidas({
       status: filtroStatus,
       busca: buscaAtiva,
@@ -138,6 +144,22 @@ export default function HistoricoNfce() {
       </header>
 
       <div className="historico-nfce__corpo">
+      {/* Pendência fiscal visível: nota que não chegou à SEFAZ não some. */}
+      {naFila > 0 && (
+        <div className="historico-nfce__pendencia" role="status">
+          <LuClock size={18} />
+          <span>
+            <strong>
+              {naFila === 1
+                ? "1 nota ainda não foi emitida."
+                : `${naFila} notas ainda não foram emitidas.`}
+            </strong>{" "}
+            As vendas estão registradas. O sistema tenta emitir sozinho assim que a
+            conexão voltar — enquanto isso elas não aparecem na lista abaixo.
+          </span>
+        </div>
+      )}
+
       {/* Carregando (primeira página) */}
       {carregando && linhas.length === 0 && (
         <div className="historico-nfce__estado">

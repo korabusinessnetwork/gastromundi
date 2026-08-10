@@ -71,13 +71,46 @@ export function useResponsive() {
 
 /**
  * useIdleTimer — dispara callback após X ms de inatividade
+ *
+ * Opcionalmente avisa ANTES de deslogar: passe `onAviso` (callback estável, que
+ * recebe `true` ao entrar na reta final e `false` quando a pessoa volta) e
+ * `avisoMs` (quanto antes do fim). Os dois cronômetros nascem do mesmo `reset`,
+ * então aviso e logout nunca saem de sincronia.
+ *
+ * `onAviso` e `avisoMs` entram como argumentos soltos, e não num objeto de
+ * opções, de propósito: um objeto literal muda de identidade a cada render, o
+ * efeito remontaria e a contagem voltaria ao zero para sempre — que é
+ * exatamente o bug que os 30 minutos de inatividade já tiveram.
  */
-export function useIdleTimer(callback, delay, enabled = true) {
+export function useIdleTimer(callback, delay, enabled = true, onAviso = null, avisoMs = 0) {
   useEffect(() => {
     if (!enabled) return;
 
-    let timer = setTimeout(callback, delay);
-    const reset = () => { clearTimeout(timer); timer = setTimeout(callback, delay); };
+    // Sem aviso quando não há callback, quando o adiantamento é zero/negativo,
+    // ou quando ele não cabe dentro do tempo de inatividade.
+    const comAviso = typeof onAviso === "function" && avisoMs > 0 && avisoMs < delay;
+
+    let timer;
+    let timerAviso;
+    let avisando = false;
+
+    const armar = () => {
+      timer = setTimeout(callback, delay);
+      if (comAviso) {
+        timerAviso = setTimeout(() => { avisando = true; onAviso(true); }, delay - avisoMs);
+      }
+    };
+
+    armar();
+
+    const reset = () => {
+      clearTimeout(timer);
+      clearTimeout(timerAviso);
+      // Só derruba o aviso se ele estava de pé: qualquer mexida do mouse passa
+      // por aqui, e chamar o callback a cada movimento seria renderizar à toa.
+      if (avisando) { avisando = false; onAviso(false); }
+      armar();
+    };
     // `wheel` e `scroll` contam como atividade: ler um relatório longo rolando
     // a página é gente na frente da tela, e sem eles dava logout no meio da
     // leitura. `scroll` de elemento não borbulha, então tudo entra na fase de
@@ -87,9 +120,10 @@ export function useIdleTimer(callback, delay, enabled = true) {
     events.forEach((e) => window.addEventListener(e, reset, true));
     return () => {
       clearTimeout(timer);
+      clearTimeout(timerAviso);
       events.forEach((e) => window.removeEventListener(e, reset, true));
     };
-  }, [callback, delay, enabled]);
+  }, [callback, delay, enabled, onAviso, avisoMs]);
 }
 
 /**

@@ -4,8 +4,8 @@ import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuUser, LuClock, LuLock } from "react-icons/lu";
-import { totalItensAtivos } from "@/lib/comandaItens";
+import { LuUser, LuClock, LuLock, LuTriangleAlert } from "react-icons/lu";
+import { totalItensAtivos, comandaEsquecida, HORAS_COMANDA_ESQUECIDA } from "@/lib/comandaItens";
 import "./ComandaGrid.css";
 
 const TOTAL = 1000;
@@ -44,6 +44,11 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
   const mapa = {};
   (abertas ?? []).forEach(o => { mapa[String(o.comanda)] = o; });
 
+  // Um só instante por render: todos os cards medem "há quanto tempo" contra
+  // a mesma referência (senão dois cards abertos no mesmo minuto podem cair
+  // em faixas diferentes) e não recalculamos Date.now() 50 vezes.
+  const agora = Date.now();
+
   // ── Modo busca / somente abertas ──────────────────────────────
   // `somenteAbertas` (aba "Comandas abertas"): mesma lista compacta da
   // busca, mas SEM slots vazios — só o que existe e ainda não foi pago,
@@ -63,6 +68,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
     const numBusca      = !somenteAbertas && /^\d+$/.test(busca.trim()) ? parseInt(busca.trim(), 10) : null;
     const slotDisponivel = numBusca && !mapa[String(numBusca)] ? numBusca : null;
     const vazio          = aberasFiltradas.length === 0 && !slotDisponivel;
+    const esquecidas     = aberasFiltradas.filter(o => comandaEsquecida(o, agora).esquecida);
 
     return (
       <div style={{ height: "100%", overflowY: "auto", padding: `${sz.pad}px ${sz.pad + 4}px ${sz.pad}px ${sz.pad + 20}px` }}>
@@ -80,6 +86,32 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
           </div>
         ) : (
           <div className="comanda-grid__lista-busca" style={{ maxWidth: Math.min(580, width - sz.pad * 2) }}>
+            {/* Comanda aberta há horas e sem nenhum consumo não aparece como
+                problema em lugar nenhum: some no meio da lista mostrando
+                "Vazio". O aviso junta as duas informações e diz o que fazer —
+                a lista já está ordenada da mais antiga pra mais nova, então
+                elas estão logo abaixo. */}
+            {esquecidas.length > 0 && (
+              <div
+                className="comanda-grid__aviso-esquecidas"
+                style={{ background: alfa(AMBER, "12"), border: `1.5px solid ${alfa(AMBER, "44")}`, color: varColor(C.text) }}
+              >
+                <LuTriangleAlert size={16} color={AMBER} style={{ flexShrink: 0 }} />
+                <div>
+                  <strong>
+                    {esquecidas.length === 1
+                      ? "1 comanda aberta sem nenhum consumo"
+                      : `${esquecidas.length} comandas abertas sem nenhum consumo`}
+                  </strong>
+                  <div className="comanda-grid__aviso-esquecidas-texto" style={{ color: varColor(C.muted) }}>
+                    Aberta{esquecidas.length === 1 ? "" : "s"} há mais de {HORAS_COMANDA_ESQUECIDA}h e sem itens ativos —
+                    ocupa{esquecidas.length === 1 ? "" : "m"} a mesa e distorce{esquecidas.length === 1 ? "" : "m"} o
+                    salão. Abra e cancele para liberar.
+                  </div>
+                </div>
+              </div>
+            )}
+
             {slotDisponivel && (
               <button
                 onClick={() => onOpenEmpty(String(slotDisponivel))}
@@ -109,6 +141,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
               const isSelected = selected?.id === order.id;
               const elapsed    = getElapsed(order.created_at);
               const emUso      = emUsoPor(order);
+              const esquecida  = comandaEsquecida(order, agora);
 
               const borderColor = isSelected ? varColor(C.accent) : isVisitada ? AMBER : hasItems ? alfa(C.blue, "55") : varColor(C.border);
               const bgColor     = isSelected ? alfa(C.accent, "0d") : isVisitada ? alfa(AMBER, "10") : varColor(C.card);
@@ -161,6 +194,11 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
                           <LuUser size={10} /> {order.garcom}
                         </span>
                       )}
+                      {esquecida.esquecida && (
+                        <span className="comanda-grid__tag-esquecida" style={{ background: alfa(AMBER, "18"), color: AMBER }}>
+                          Sem consumo há {esquecida.horas}h
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -201,6 +239,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
               isSelected={selected?.id === order?.id}
               isVisitada={order ? visitadas.has(order.id) : false}
               emUso={order ? emUsoPor(order) : null}
+              esquecida={order ? comandaEsquecida(order, agora) : null}
               onClick={() => order ? onSelect(order) : onOpenEmpty(String(num))}
               sz={sz}
             />
@@ -224,7 +263,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
   );
 }
 
-function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, onClick, sz }) {
+function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esquecida = null, onClick, sz }) {
   const [hovered, setHovered] = useState(false);
 
   if (!order) {
@@ -336,6 +375,17 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, onClick
           display: "flex", alignItems: "center", gap: 4,
         }}>
           <LuLock size={10} /> Em uso · {emUso}
+        </div>
+      )}
+
+      {/* Aberta há horas e sem nada lançado — o card mostrava só "Vazio" e o
+          tempo em cantos opostos, e ninguém somava as duas coisas. */}
+      {esquecida?.esquecida && (
+        <div className="comanda-card__esquecida" style={{
+          fontWeight: 700, color: AMBER,
+          display: "flex", alignItems: "center", gap: 4,
+        }}>
+          <LuTriangleAlert size={10} /> Sem consumo há {esquecida.horas}h
         </div>
       )}
 
