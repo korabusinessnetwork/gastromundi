@@ -20,7 +20,7 @@ import "./CardapioModulo.css";
  * "quanto custa X?" e precisa da resposta em 1 busca, sem abrir o
  * computador. O cadastro completo (categorias, unidades, fornecedores)
  * continua exclusivamente na tela de desktop (ProdutosView, em
- * src/components/desktop/views/ProdutosView.jsx) — aqui não há
+ * src/components/produtos/ProdutosView.jsx) — aqui não há
  * criar/editar/excluir produto, só consultar e, para quem tem permissão,
  * pausar/reativar a venda de um item pontualmente.
  *

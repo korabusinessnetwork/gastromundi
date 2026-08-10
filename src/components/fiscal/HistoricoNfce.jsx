@@ -3,9 +3,9 @@ import {
   LuReceipt, LuSearch, LuCircleCheck, LuClock, LuCircleX, LuBan,
   LuLoaderCircle, LuTriangleAlert, LuRotateCw, LuInbox,
 } from "react-icons/lu";
-import { listarNfceEmitidas } from "@/lib/nfceEmitidasRepo";
-import { buscarEmitenteFiscal } from "@/lib/fiscal";
-import BotaoReimprimirNfce from "./BotaoReimprimirNfce";
+import { listarNfceEmitidas } from "@/lib/fiscal/nfceEmitidasRepo";
+import { buscarEmitenteFiscal } from "@/lib/fiscal/fiscal";
+import BotaoReimprimirNfce from "./botoes/BotaoReimprimirNfce";
 import CancelarNfce from "./CancelarNfce";
 import "./HistoricoNfce.css";
 

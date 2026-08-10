@@ -6,8 +6,8 @@ import { AppProvider } from "@/context/AppContext";
 import router from "@/routes";
 import "@/styles/tema.css";
 import { registerSW } from "virtual:pwa-register";
-import { initObservabilidade } from "@/lib/observabilidade";
-import { instalarRecuperacaoDeploy } from "@/lib/recuperacaoDeploy";
+import { initObservabilidade } from "@/lib/infra/observabilidade";
+import { instalarRecuperacaoDeploy } from "@/lib/infra/recuperacaoDeploy";
 
 // PWA (Leva 11): registra o service worker que deixa o app disponível
 // offline. `immediate` atualiza a versão em segundo plano sem prompt.

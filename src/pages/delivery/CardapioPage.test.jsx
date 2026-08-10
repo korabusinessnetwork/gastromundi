@@ -42,8 +42,8 @@ vi.mock("@/lib/supabase", async () => {
 // Só as idas ao servidor viram dublê. montarPayloadPedido, calcularTroco,
 // valorDigitado, formatarPreco e o carrinho continuam REAIS — são eles que
 // esta prova mede.
-vi.mock("@/lib/delivery", async () => {
-  const real = await vi.importActual("@/lib/delivery");
+vi.mock("@/lib/delivery/delivery", async () => {
+  const real = await vi.importActual("@/lib/delivery/delivery");
   return {
     ...real,
     carregarCardapio: mockCarregarCardapio,
@@ -54,11 +54,11 @@ vi.mock("@/lib/delivery", async () => {
   };
 });
 
-vi.mock("@/lib/tenant", () => ({
+vi.mock("@/lib/tenant/tenant", () => ({
   buscarBrandingPorSlug: vi.fn(() => Promise.resolve({ data: null, error: null })),
 }));
 
-vi.mock("@/lib/tenantSlug", () => ({
+vi.mock("@/lib/host/tenantSlug", () => ({
   slugDoSubdominio: () => SLUG,
   resolverSlugTenant: () => SLUG,
   // Vitrine no endereço da própria loja: o slug vem do subdomínio, não da query.

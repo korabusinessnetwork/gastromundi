@@ -2,32 +2,32 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import { getPermissions, mesclarPermissoes, ROLES } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
-import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
-import { emailDoLogin } from "@/lib/tenantSlug";
-import { ehConsoleHost } from "@/lib/consoleHost";
-import { sincronizarStatusAssinatura } from "@/lib/assinatura";
-import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
+import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant/tenant";
+import { emailDoLogin } from "@/lib/host/tenantSlug";
+import { ehConsoleHost } from "@/lib/host/consoleHost";
+import { sincronizarStatusAssinatura } from "@/lib/console/assinatura";
+import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tenant/tema";
 import { layoutDoTema, varianteDoHorario, temTrocaAutomatica, variaveisDoLayout, msAteProximaTroca } from "@/layouts";
-import { salvarBrandingCache } from "@/lib/brandingCache";
+import { salvarBrandingCache } from "@/lib/tenant/brandingCache";
 import { logAction } from "@/lib/logger";
-import { emitirEvento } from "@/lib/jarvas";
-import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
-import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
-import { criarLancamento } from "@/lib/financeiro";
-import { METODOS_TEF_PADRAO } from "@/lib/tef";
-import { LIMITE_SANGRIA_PADRAO, lerValor, limiteSangriaValido, validarMovimento } from "@/lib/caixaMovimentos";
-import { processarBaixaEstoque, gerarAlertaBaixaFalhou, isRpcAusente } from "@/lib/estoque";
-import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
-import { LOCK_TTL_MS } from "@/lib/comandaLock";
+import { emitirEvento } from "@/lib/jarvas/jarvas";
+import { executarAnaliseJarvas } from "@/lib/jarvas/jarvasEngine";
+import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas/vendas";
+import { criarLancamento } from "@/lib/financeiro/financeiro";
+import { METODOS_TEF_PADRAO } from "@/lib/vendas/tef";
+import { LIMITE_SANGRIA_PADRAO, lerValor, limiteSangriaValido, validarMovimento } from "@/lib/caixa/caixaMovimentos";
+import { processarBaixaEstoque, gerarAlertaBaixaFalhou, isRpcAusente } from "@/lib/estoque/estoque";
+import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/vendas/comandaItens";
+import { LOCK_TTL_MS } from "@/lib/vendas/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
-import { reportarFalha, reportarInconsistencia, setTenantObservabilidade } from "@/lib/observabilidade";
+import { reportarFalha, reportarInconsistencia, setTenantObservabilidade } from "@/lib/infra/observabilidade";
 import { criarFila, drenarFila } from "@/lib/offline/fila";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 import { useStatusRede } from "@/hooks/useStatusRede";
-import IndicadorRede from "@/components/shared/IndicadorRede";
-import PonteLocalBridge from "@/components/shared/PonteLocalBridge";
-import ImpressaoLancamentosBridge from "@/components/shared/ImpressaoLancamentosBridge";
+import IndicadorRede from "@/components/ui/feedback/IndicadorRede";
+import PonteLocalBridge from "@/components/ui/pontes/PonteLocalBridge";
+import ImpressaoLancamentosBridge from "@/components/ui/pontes/ImpressaoLancamentosBridge";
 import {
   saveSession, loadSession, clearSession,
   lerSessao, atualizarUsuarioSessao, msRestantesDaSessao, esquecerTokenAuthLocal,
@@ -1414,7 +1414,7 @@ export function AppProvider({ children }) {
   };
 
   // Baixa atômica no servidor (evita race condition entre dispositivos descontando ao mesmo tempo).
-  // Decisão de alerta de mínimo delegada a processarBaixaEstoque (src/lib/estoque.js) — testável isoladamente.
+  // Decisão de alerta de mínimo delegada a processarBaixaEstoque (src/lib/estoque/estoque.js) — testável isoladamente.
   const baixarEstoque = async (productId, qty) => {
     const anterior = Number(estoque[productId] ?? 0);
     setEstoqueLocal(prev => ({ ...prev, [productId]: Math.max(0, anterior - qty) })); // otimista

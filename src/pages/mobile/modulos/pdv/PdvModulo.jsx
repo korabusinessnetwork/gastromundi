@@ -41,15 +41,15 @@ import {
   LuZap,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
-import { useFinalizarPagamento } from "@/components/desktop/views/PDVView/useFinalizarPagamento";
-import { round2 } from "@/lib/vendas";
-import { metodoUsaTef } from "@/lib/tef";
+import { useFinalizarPagamento } from "@/components/pdv/hooks/useFinalizarPagamento";
+import { round2 } from "@/lib/vendas/vendas";
+import { metodoUsaTef } from "@/lib/vendas/tef";
 import { rotuloMetodo } from "@/utils/pagamentos";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import {
   buscarConfigImpressao,
   montarComprovantePagamento,
-} from "@/lib/impressao";
+} from "@/lib/impressao/impressao";
 import { imprimirDocumento } from "@/lib/impressao/drivers";
 import "../modulos.css";
 import "./PdvModulo.css";

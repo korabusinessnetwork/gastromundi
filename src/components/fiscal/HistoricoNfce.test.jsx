@@ -3,18 +3,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 
 const listarNfceEmitidas = vi.fn();
-vi.mock("@/lib/nfceEmitidasRepo", () => ({
+vi.mock("@/lib/fiscal/nfceEmitidasRepo", () => ({
   listarNfceEmitidas: (...a) => listarNfceEmitidas(...a),
   buscarNfcePorVenda: vi.fn().mockResolvedValue({ data: null, error: null }),
 }));
 
-vi.mock("@/lib/fiscal", () => ({
+vi.mock("@/lib/fiscal/fiscal", () => ({
   buscarEmitenteFiscal: vi.fn().mockResolvedValue(null),
 }));
 
 // Stubs das unidades de ação — o foco do teste é a TELA; as duas já têm testes
 // próprios. Marcam a presença por linha.
-vi.mock("./BotaoReimprimirNfce", () => ({
+vi.mock("./botoes/BotaoReimprimirNfce", () => ({
   default: ({ registroInicial }) => <div data-testid="reimprimir">{registroInicial?.id}</div>,
 }));
 vi.mock("./CancelarNfce", () => ({

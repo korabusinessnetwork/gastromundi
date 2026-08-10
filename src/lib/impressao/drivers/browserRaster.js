@@ -40,7 +40,7 @@ function injetarVariaveisCss(html, variaveis) {
  * (mesma renderização exata que sai na impressão de verdade).
  *
  * @param {object} documento - retorno de montarComprovantePagamento/montarCupomPreNota/montarViaProducao
- * @param {object} [perfil] - perfilImpressora (largura/margem/fonte) — ver src/lib/impressao.js
+ * @param {object} [perfil] - perfilImpressora (largura/margem/fonte) — ver src/lib/impressao/impressao.js
  * @returns {string}
  */
 export function gerarHtmlComPerfil(documento, perfil) {
@@ -49,7 +49,7 @@ export function gerarHtmlComPerfil(documento, perfil) {
 
 /**
  * @param {object} documento - retorno de montarComprovantePagamento/montarCupomPreNota/montarViaProducao
- * @param {object} [perfil] - perfilImpressora (largura/margem/fonte) — ver src/lib/impressao.js
+ * @param {object} [perfil] - perfilImpressora (largura/margem/fonte) — ver src/lib/impressao/impressao.js
  * @returns {Promise<{error: object|null}>}
  */
 export async function imprimir(documento, perfil) {

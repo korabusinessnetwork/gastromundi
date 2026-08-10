@@ -5,7 +5,7 @@ import {
   calcularPeriodo,
   calcularPeriodoAnterior,
   calcularVariacaoPercentual,
-} from "@/lib/relatorios";
+} from "@/lib/relatorios/relatorios";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import "../modulos.css";
 import "./RelatoriosModulo.css";
@@ -17,7 +17,7 @@ import "./RelatoriosModulo.css";
  * por ficha técnica, sem período customizado — isso continua no
  * DesempenhoReport do computador. Aqui é só o número do dia/semana/mês e o
  * top de produtos, para o dono conferir andando pelo salão. Somente
- * leitura, tudo vem da RPC relatorio_vendas via src/lib/relatorios.js —
+ * leitura, tudo vem da RPC relatorio_vendas via src/lib/relatorios/relatorios.js —
  * esta tela não agrega nada por conta própria.
  */
 

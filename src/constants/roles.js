@@ -1,5 +1,5 @@
 import C from "./colors";
-import { varColor } from "@/lib/tema";
+import { varColor } from "@/lib/tenant/tema";
 
 export const ROLES = {
   garcom: {

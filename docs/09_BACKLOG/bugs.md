@@ -96,14 +96,14 @@ mudar de cor, **a borda desaparece**. O caso mais visível é o campo de senha d
 avisa do erro simplesmente some.
 
 **Onde (inventário final, corrigido na rodada 14):**
-`src/components/desktop/Sidebar.jsx` (340, 359, 556) ·
-`src/components/desktop/views/mesas/MesasAdmin.jsx` (521, 688) ·
-`src/components/desktop/views/PDVView/index.jsx` (886, 1201, 1541, 1646, 1740,
+`src/components/navegacao/Sidebar.jsx` (340, 359, 556) ·
+`src/components/mesas/MesasAdmin.jsx` (521, 688) ·
+`src/components/pdv/PDVView.jsx` (886, 1201, 1541, 1646, 1740,
 1749, 1971, 2087, 2092, 2093, 2119, 2442) ·
-`src/components/desktop/views/relatorio/RelatorioView.jsx` (353, 1257, 1449, 1450) ·
-`src/components/modals/FechamentoModal.jsx` (238, 311, 340) ·
-`src/components/desktop/views/ConfiguracoesView.jsx` (747) ·
-`src/components/shared/JarvasPanel.jsx` (301)
+`src/components/relatorios/RelatorioView.jsx` (353, 1257, 1449, 1450) ·
+`src/components/caixa/modais/FechamentoModal.jsx` (238, 311, 340) ·
+`src/components/configuracoes/ConfiguracoesView.jsx` (747) ·
+`src/components/ui/paineis/JarvasPanel.jsx` (301)
 
 > O reporte original dizia 18 ocorrências em 6 arquivos. O número saiu de um grep
 > ancorado em `varColor(`, que perde os pontos onde o token chega por variável

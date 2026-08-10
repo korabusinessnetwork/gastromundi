@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuWallet, LuPlus, LuTrash2, LuCircleCheck } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
-import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
+import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/vendas/tef";
 import "./SecaoPagamentos.css";
 
 /**
  * SecaoPagamentos — aba "Meios de Pagamento" das Configurações, versão nativa do Palm.
  *
- * Espelha `MeiosPagamentoTab` em src/components/desktop/views/ConfiguracoesView.jsx:
+ * Espelha `MeiosPagamentoTab` em src/components/configuracoes/ConfiguracoesView.jsx:
  * mesmo catálogo de métodos, mesmos métodos personalizados, mesma seleção de
  * maquininha (TEF). Nada de regra nova — tudo passa pelas mesmas funções do
  * AppContext (setMeiosPagamento/setMetodosCustom/setMetodosTef) e por

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const enviarImpressaoPonteMock = vi.fn(async () => ({ data: { id: "abc", estado: "na_fila" }, error: null }));
-vi.mock("../../ponte", () => ({ enviarImpressaoPonte: (...args) => enviarImpressaoPonteMock(...args) }));
+vi.mock("../ponte", () => ({ enviarImpressaoPonte: (...args) => enviarImpressaoPonteMock(...args) }));
 
 const { imprimir } = await import("./escposPonte");
 

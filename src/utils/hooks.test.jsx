@@ -26,7 +26,7 @@ vi.mock("@/lib/supabase", () => ({
     removeChannel: vi.fn(),
   },
 }));
-vi.mock("@/lib/deliveryPedidos", () => ({
+vi.mock("@/lib/delivery/deliveryPedidos", () => ({
   listarPedidosDelivery: vi.fn(() => Promise.resolve({ data: [], error: null })),
 }));
 

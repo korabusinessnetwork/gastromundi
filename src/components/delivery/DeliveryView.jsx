@@ -1,0 +1,2700 @@
+// ──────────────────────────────────────────────────────────────────
+// DeliveryView — painel do dono do delivery.
+//
+// CADASTRO SEPARADO do cadastro normal de produtos do PDV (pedido do
+// dono): aqui o dono cuida SÓ do que o cliente final vê no cardápio
+// online — foto, descrição, disponibilidade, complementos e as regras
+// de entrega (taxa/horário/pedido mínimo).
+//
+// Dois modos, derivados do plano (F013/ADR-005) — sem o dono escolher:
+//   • ADDON (o plano também tem PDV): o cardápio JÁ existe em Produtos.
+//     Então aqui não se cria produto do zero — IMPORTA-SE o cardápio do
+//     PDV de uma vez e enriquece cada item com foto/descrição. Assim o
+//     delivery nasce sincronizado com o PDV, sem redigitar nada.
+//   • STANDALONE (só delivery, sem PDV): este é o ÚNICO cadastro que o
+//     estabelecimento tem — então aqui se cria o produto do zero
+//     (nome/preço/categoria) já com a cara do delivery.
+//
+// Intuitividade (Princípio nº 1): uma aba por assunto (Cardápio,
+// Complementos, Entrega), a próxima ação sempre em destaque, importação
+// em um clique com contagem clara, e estados de vazio/carregando/erro
+// com texto humano. Nada de jargão técnico na tela.
+// ──────────────────────────────────────────────────────────────────
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
+import { useApp } from "@/context/AppContext";
+import { logAction } from "@/lib/logger";
+import { usePedidosDelivery } from "@/utils/hooks";
+import MODULOS from "@/constants/modulos";
+import C from "@/constants/colors";
+import { varColor } from "@/lib/tenant/tema";
+import {
+  LuBike,
+  LuDownload,
+  LuPencil,
+  LuTrash2,
+  LuX,
+  LuPlus,
+  LuCheck,
+  LuImage,
+  LuImages,
+  LuUpload,
+  LuUtensils,
+  LuTruck,
+  LuStore,
+  LuClipboardList,
+  LuMapPin,
+  LuPhone,
+  LuMessageCircle,
+  LuChevronRight,
+  LuChevronDown,
+  LuArrowLeft,
+  LuSearch,
+  LuBanknote,
+  LuRefreshCw,
+  LuBell,
+  LuBellOff,
+  LuPower,
+  LuPowerOff,
+  LuClock,
+  LuLock,
+  LuLockOpen,
+  LuExternalLink,
+} from "react-icons/lu";
+import {
+  statusLabel,
+  statusCor,
+  proximoStatus,
+  rotuloAcao,
+  ehTerminal,
+  podeCancelar,
+  agruparPorStatus,
+  resumoEndereco,
+  formatarTelefone,
+  linkWhatsApp,
+  resumoPagamento,
+  tempoDecorrido,
+  carregarItensPedido,
+  atualizarStatusPedido,
+  STATUS_CANCELADO,
+} from "@/lib/delivery/deliveryPedidos";
+import {
+  detectarNovosPedidos,
+  alertarPedidosNovos,
+  permissaoNotificacao,
+  pedirPermissaoNotificacao,
+  notificacoesSuportadas,
+} from "@/lib/delivery/deliveryAlertas";
+import {
+  carregarConfigDelivery,
+  salvarConfigDelivery,
+  listarProdutosDelivery,
+  salvarProdutoDelivery,
+  removerProdutoDelivery,
+  importarProdutosDelivery,
+  produtosParaImportar,
+  filtrarProdutos,
+  filtrarItensDelivery,
+  alternarProdutoId,
+  listarBibliotecaGrupos,
+  vincularGrupoProduto,
+  desvincularGrupoProduto,
+  salvarGrupoComplemento,
+  removerGrupoComplemento,
+  salvarComplemento,
+  removerComplemento,
+  subgrupoCriaCiclo,
+  vincularSubgrupo,
+  desvincularSubgrupo,
+  reordenarSubgrupos,
+  faixaResumo,
+  validarFaixa,
+  formatarReais,
+  formatarCep,
+  temFaixasKm,
+} from "@/lib/delivery/deliveryAdmin";
+import { ajusteAutomaticoAbertura, resumoHorario } from "@/lib/delivery/deliveryHorario";
+import MapaRaioEntrega from "./MapaRaioEntrega";
+import ListaArrastavel from "@/components/ui/listas/ListaArrastavel";
+import { geocodificarEndereco, sugerirEnderecos } from "@/lib/delivery/delivery";
+import { enviarFotoProduto, listarFotosDelivery, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/lib/delivery/deliveryFotos";
+import { fecharAoClicarFora } from "@/lib/comum/overlayFechar";
+import "./DeliveryView.css";
+
+const ABAS = [
+  { id: "pedidos",      label: "Pedidos" },
+  { id: "cardapio",     label: "Cardápio" },
+  { id: "complementos", label: "Complementos" },
+  { id: "entrega",      label: "Entrega e taxas" },
+];
+
+// Chaves de cor semânticas (statusCor) → token do design system. O âmbar era
+// o hex `#f59e0b` cravado aqui; `--gm-warn` vale exatamente esse valor
+// (src/styles/tema.css) e está na lista de tokens que o tenant pode
+// sobrescrever (src/lib/tenant/tema.js), então a cor do status segue o tema como
+// todas as outras — white-label sem exceção (decisão 017).
+const COR_STATUS = {
+  blue:   C.blue,
+  accent: C.accent,
+  green:  C.green,
+  red:    C.red,
+  muted:  C.muted,
+  amber:  C.warn,
+};
+const baseCorStatus = (status) => COR_STATUS[statusCor(status)] || C.muted;
+const cssCor = (base) =>
+  typeof base === "string" && base.startsWith("--gm-") ? varColor(base) : base;
+
+export default function DeliveryView({ notify } = {}) {
+  const { products, tenant, currentUser, moduloHabilitado, addProduct, updateProduct, recarregarProdutos } = useApp();
+
+  // Modo derivado do plano: tem PDV → addon; só delivery → standalone.
+  const ehAddon = moduloHabilitado(MODULOS.PDV);
+
+  // Endereço da prévia: leva o slug DESTE estabelecimento. Sem slug (bootstrap
+  // que falhou, banco antigo), abre a vitrine sem parâmetro — degrada para o
+  // comportamento anterior em vez de sumir com o botão.
+  const urlDaPrevia = tenant?.slug
+    ? `/cardapio?loja=${encodeURIComponent(tenant.slug)}`
+    : "/cardapio";
+
+  const [aba, setAba] = useState("pedidos");
+  const [linhas, setLinhas] = useState([]);      // produto_delivery do tenant
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState("");
+
+  // Estado da loja (config_delivery.aberto): controla se a vitrine pública
+  // aceita pedidos. Espelhado aqui pra dar o botão de abrir/fechar no topo,
+  // sem obrigar o operador a entrar na aba "Entrega e taxas".
+  const [configDelivery, setConfigDelivery] = useState(null);
+  const [salvandoAberto, setSalvandoAberto] = useState(false);
+
+  const aviso = useCallback(
+    (msg, tipo) => (typeof notify === "function" ? notify(msg, tipo) : undefined),
+    [notify]
+  );
+
+  const carregarLinhas = useCallback(async () => {
+    const { data, error } = await listarProdutosDelivery();
+    if (error) {
+      setErro("Não conseguimos carregar o cardápio do delivery. Tente novamente.");
+      return;
+    }
+    setErro("");
+    setLinhas(data);
+  }, []);
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      setCarregando(true);
+      await carregarLinhas();
+      if (ativo) setCarregando(false);
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [carregarLinhas]);
+
+  // Carrega a config só pra saber se a loja está aberta (botão do topo).
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const { data, error } = await carregarConfigDelivery();
+      if (!ativo || error) return;
+      setConfigDelivery(
+        data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] }
+      );
+    })();
+    return () => { ativo = false; };
+  }, []);
+
+  // Junta cada linha de delivery com o produto (nome/preço/emoji vêm de products).
+  const porProdutoId = useMemo(() => {
+    const m = new Map();
+    for (const p of products) m.set(String(p.id), p);
+    return m;
+  }, [products]);
+
+  const itensCardapio = useMemo(
+    () =>
+      linhas.map((l) => ({
+        ...l,
+        produto: porProdutoId.get(String(l.produto_id)) || null,
+      })),
+    [linhas, porProdutoId]
+  );
+
+  const faltamImportar = useMemo(
+    () => (ehAddon ? produtosParaImportar(products, linhas) : []),
+    [ehAddon, products, linhas]
+  );
+
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+
+  // Abrir/fechar a loja direto do topo. Otimista: vira na hora e reverte se
+  // o Supabase recusar. Só admin/gerente mexe.
+  const alternarAberto = useCallback(async () => {
+    if (!isAdmin || salvandoAberto || !configDelivery) return;
+    if (!tenant?.id) return aviso("Estabelecimento não identificado.", "err");
+    const anterior = configDelivery;
+    const proximo = { ...configDelivery, aberto: !configDelivery.aberto };
+    setConfigDelivery(proximo);
+    setSalvandoAberto(true);
+    const { data, error } = await salvarConfigDelivery(tenant.id, proximo);
+    setSalvandoAberto(false);
+    if (error) {
+      setConfigDelivery(anterior);
+      return aviso("Não foi possível mudar o status da loja.", "err");
+    }
+    setConfigDelivery(data || proximo);
+    logAction(currentUser?.username, "delivery:config", {
+      msg: proximo.aberto ? "Delivery aberto" : "Delivery fechado",
+      name: currentUser?.name,
+      role: currentUser?.role,
+    });
+    aviso(proximo.aberto ? "Delivery aberto." : "Delivery fechado.", "ok");
+  }, [isAdmin, salvandoAberto, configDelivery, tenant, currentUser, aviso]);
+
+  // ── Reconciliação da abertura automática (config_delivery.horario) ──
+  // Sem cron no servidor (fase de custo zero): enquanto o agendamento
+  // governa (horario.auto), é o app do operador aberto que mantém o flag
+  // `aberto` casado com o horário. Roda ao montar e a cada 30s. Ref evita
+  // reiniciar o intervalo a cada re-render (só depende de auto ligar/desligar).
+  const configRef = useRef(configDelivery);
+  useEffect(() => { configRef.current = configDelivery; }, [configDelivery]);
+
+  const reconciliarAuto = useCallback(async () => {
+    const cfg = configRef.current;
+    if (!isAdmin || !tenant?.id || !cfg?.horario?.auto) return;
+    const { mudar, aberto } = ajusteAutomaticoAbertura(cfg, new Date());
+    if (!mudar) return;
+    const proximo = { ...cfg, aberto };
+    const { data, error } = await salvarConfigDelivery(tenant.id, proximo);
+    if (error) return; // silencioso: tenta de novo no próximo tick
+    setConfigDelivery(data || proximo);
+    logAction(currentUser?.username, "delivery:auto", {
+      msg: aberto ? "Delivery aberto automaticamente pelo horário" : "Delivery fechado automaticamente pelo horário",
+      name: currentUser?.name,
+      role: currentUser?.role,
+    });
+    aviso(aberto ? "Delivery aberto automaticamente pelo horário." : "Delivery fechado automaticamente pelo horário.", "info");
+  }, [isAdmin, tenant, currentUser, aviso]);
+
+  useEffect(() => {
+    if (!isAdmin || !tenant?.id) return;
+    reconciliarAuto(); // imediato ao montar / ao ligar o agendamento
+    const t = setInterval(reconciliarAuto, 30000);
+    return () => clearInterval(t);
+  }, [isAdmin, tenant?.id, configDelivery?.horario?.auto, reconciliarAuto]);
+
+  return (
+    <div className="delivery-view">
+      {/* Cabeçalho */}
+      <div className="delivery-view__header">
+        <div>
+          <div className="delivery-view__titulo">
+            <LuBike size={20} color={varColor(C.accent)} /> Delivery
+          </div>
+          <div className="delivery-view__sub">
+            {itensCardapio.length} item{itensCardapio.length !== 1 ? "s" : ""} no cardápio online
+          </div>
+        </div>
+        <div className="delivery-view__header-acoes">
+          {/* Prévia clicável: abre o MESMO cardápio que o cliente final vê
+              (rota pública /cardapio, por slug), em nova aba. Padrão "ver
+              minha loja" — o dono confere na hora o resultado do cadastro.
+
+              O `?loja=` NÃO é enfeite: sem subdomínio no ar (o domínio ainda
+              não foi comprado), a vitrine resolveria o slug pelo fallback e
+              mostraria a loja de OUTRO estabelecimento. Com subdomínio, ele
+              ganha da query — ver `slugDaVitrine`. */}
+          <button
+            type="button"
+            className="delivery-view__ver-cardapio"
+            onClick={() => window.open(urlDaPrevia, "_blank", "noopener,noreferrer")}
+            title="Abre, em uma nova aba, o cardápio exatamente como o cliente vê."
+          >
+            <LuExternalLink size={14} />
+            Ver cardápio do cliente
+          </button>
+
+          <span
+            className={`delivery-view__modo-tag delivery-view__modo-tag--${ehAddon ? "addon" : "standalone"}`}
+            title={
+              ehAddon
+                ? "Seu plano tem PDV: o delivery usa o mesmo cardápio do sistema."
+                : "Plano só de delivery: este é o seu cadastro de produtos."
+            }
+          >
+            {ehAddon ? <LuStore size={13} /> : <LuTruck size={13} />}
+            {ehAddon ? "Integrado ao PDV" : "Delivery independente"}
+          </span>
+
+          {isAdmin && configDelivery && (
+            configDelivery.horario?.auto ? (
+              // Agendamento no comando: badge de leitura (não brigar com a
+              // reconciliação). Para ajustar, o dono vai em Configurações › Delivery.
+              <span
+                className={`delivery-view__auto-badge delivery-view__auto-badge--${
+                  configDelivery.aberto ? "aberta" : "fechada"
+                }`}
+                title={
+                  resumoHorario(configDelivery.horario)
+                    ? `Abertura automática: ${resumoHorario(configDelivery.horario)}. Ajuste em Configurações › Delivery.`
+                    : "Abertura automática ligada. Ajuste em Configurações › Delivery."
+                }
+              >
+                <LuClock size={14} />
+                {configDelivery.aberto ? "Aberto no automático" : "Fechado no automático"}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={alternarAberto}
+                disabled={salvandoAberto}
+                className={`delivery-view__toggle-loja delivery-view__toggle-loja--${
+                  configDelivery.aberto ? "aberta" : "fechada"
+                }`}
+                title={
+                  configDelivery.aberto
+                    ? "A loja está aceitando pedidos. Clique para fechar."
+                    : "A loja não está aceitando pedidos. Clique para abrir."
+                }
+              >
+                {configDelivery.aberto ? <LuPowerOff size={14} /> : <LuPower size={14} />}
+                {salvandoAberto
+                  ? "Salvando…"
+                  : configDelivery.aberto
+                    ? "Fechar delivery"
+                    : "Abrir delivery"}
+              </button>
+            )
+          )}
+        </div>
+      </div>
+
+      {/* Abas */}
+      <div className="delivery-view__abas">
+        {ABAS.map((a) => {
+          const ativo = aba === a.id;
+          return (
+            <button
+              key={a.id}
+              onClick={() => setAba(a.id)}
+              className={`delivery-view__aba${ativo ? " delivery-view__aba--ativa" : ""}`}
+            >
+              {a.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="delivery-view__area">
+        {erro && (
+          <div className="delivery-view__aviso delivery-view__aviso--erro delivery-view__aviso--espacado">
+            ⚠️ {erro}
+          </div>
+        )}
+
+        {aba === "pedidos" && (
+          <AbaPedidos isAdmin={isAdmin} ehAddon={ehAddon} aviso={aviso} currentUser={currentUser} />
+        )}
+
+        {aba === "cardapio" && (
+          <AbaCardapio
+            isAdmin={isAdmin}
+            ehAddon={ehAddon}
+            carregando={carregando}
+            itens={itensCardapio}
+            faltamImportar={faltamImportar}
+            products={products}
+            linhas={linhas}
+            tenant={tenant}
+            addProduct={addProduct}
+            updateProduct={updateProduct}
+            recarregarProdutos={recarregarProdutos}
+            currentUser={currentUser}
+            aviso={aviso}
+            recarregar={carregarLinhas}
+          />
+        )}
+
+        {aba === "complementos" && (
+          <AbaComplementos isAdmin={isAdmin} itens={itensCardapio} products={products} aviso={aviso} />
+        )}
+
+        {aba === "entrega" && (
+          <AbaEntrega isAdmin={isAdmin} tenant={tenant} currentUser={currentUser} aviso={aviso} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA 0 — Pedidos (operação: acompanha e toca o pedido até a entrega)
+// ════════════════════════════════════════════════════════════════
+//
+// Superfície de OPERAÇÃO do delivery. O pedido que o cliente enviou pela
+// vitrine já foi gravado (RPC criar_pedido_delivery) em `delivery_pedidos`
+// e espelhado em `pending`. Aqui o operador ACOMPANHA e AVANÇA o status
+// (recebido → em preparo → saiu → entregue) até a entrega.
+//
+// Dinheiro: esta aba só mexe no CICLO DE VIDA (delivery_pedidos.status).
+// Nunca cria venda — no addon a venda é fechada na frente de caixa (a
+// comanda "Delivery NNN" nasce em `pending`); relatórios leem `sales`.
+// Sem contagem dupla. No standalone, `delivery_pedidos` é o registro.
+//
+// Intuitividade (Princípio nº 1): colunas por etapa (kanban) do fluxo, a
+// próxima ação em destaque no cartão, contato do cliente a um toque
+// (WhatsApp), e estados de vazio/carregando/erro com texto humano.
+// Preferência de avisos por navegador (não é dado de negócio → localStorage).
+const CHAVE_AVISOS = "kora.delivery.avisos";
+const lerPrefAvisos = () => {
+  try {
+    return localStorage.getItem(CHAVE_AVISOS) === "1";
+  } catch {
+    return false;
+  }
+};
+
+function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
+  const { pedidos, carregando, erro, recarregar } = usePedidosDelivery();
+  const [tick, setTick] = useState(0); // recalcula "há X min" de tempos em tempos
+
+  // Avisos de pedido novo (Fase 5, Nível 1): som + Notification API. Só
+  // alerta o que chega DEPOIS que a tela já carregou a lista base.
+  const [avisosLigados, setAvisosLigados] = useState(lerPrefAvisos);
+  const idsVistosRef = useRef(null); // null = ainda não semeou (1ª carga)
+
+  // Relógio leve só pro rótulo de tempo respirar (1 min). Sem custo de rede.
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Detecta pedidos novos a cada mudança da lista. A 1ª carga só SEMEIA os ids
+  // conhecidos (sem alertar retroativo); as próximas comparam e alertam.
+  useEffect(() => {
+    if (carregando) return;
+    if (idsVistosRef.current === null) {
+      idsVistosRef.current = new Set(pedidos.map((p) => String(p.id)));
+      return;
+    }
+    const novos = detectarNovosPedidos(idsVistosRef.current, pedidos);
+    for (const p of pedidos) idsVistosRef.current.add(String(p.id));
+    if (avisosLigados && novos.length > 0) {
+      alertarPedidosNovos(novos, { som: true, notificar: true });
+    }
+  }, [pedidos, carregando, avisosLigados]);
+
+  const alternarAvisos = useCallback(async () => {
+    if (avisosLigados) {
+      setAvisosLigados(false);
+      try { localStorage.setItem(CHAVE_AVISOS, "0"); } catch { /* ok */ }
+      return;
+    }
+    // Ligar: pede permissão de notificação (gesto do usuário). O som funciona
+    // mesmo sem permissão — a notificação é o extra que precisa de consentimento.
+    if (notificacoesSuportadas() && permissaoNotificacao() === "default") {
+      await pedirPermissaoNotificacao();
+    }
+    setAvisosLigados(true);
+    try { localStorage.setItem(CHAVE_AVISOS, "1"); } catch { /* ok */ }
+    if (notificacoesSuportadas() && permissaoNotificacao() === "denied") {
+      aviso("Avisos ligados (com som). Para o alerta na tela, libere as notificações no navegador.", "info");
+    } else {
+      aviso("Avisos de pedido novo ligados.", "ok");
+    }
+  }, [avisosLigados, aviso]);
+
+  const colunas = useMemo(() => agruparPorStatus(pedidos), [pedidos, tick]);
+  const abertos = useMemo(
+    () => pedidos.filter((p) => !ehTerminal(p?.status ?? "recebido")).length,
+    [pedidos]
+  );
+
+  const avancar = useCallback(
+    async (pedido) => {
+      const proximo = proximoStatus(pedido.status);
+      if (!proximo) return;
+      const { error } = await atualizarStatusPedido(pedido.id, proximo, {
+        de: pedido.status,
+        operador: currentUser?.username,
+        numero: pedido.numero,
+      });
+      if (error) return aviso("Não foi possível atualizar o pedido. Tente novamente.", "err");
+      aviso(`Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`, "ok");
+      await recarregar();
+    },
+    [aviso, recarregar, currentUser]
+  );
+
+  const cancelar = useCallback(
+    async (pedido) => {
+      const { error } = await atualizarStatusPedido(pedido.id, STATUS_CANCELADO, {
+        de: pedido.status,
+        operador: currentUser?.username,
+        numero: pedido.numero,
+      });
+      if (error) return aviso("Não foi possível cancelar. Tente novamente.", "err");
+      aviso(`Pedido ${pedido.numero} cancelado.`, "ok");
+      await recarregar();
+    },
+    [aviso, recarregar, currentUser]
+  );
+
+  return (
+    <>
+      {/* Barra de topo: resumo + recarregar manual (fallback sem realtime) */}
+      <div className="delivery-view__pedidos-topo">
+        <div className="delivery-view__pedidos-resumo">
+          {carregando
+            ? "Carregando pedidos…"
+            : abertos > 0
+              ? `${abertos} pedido${abertos !== 1 ? "s" : ""} em andamento`
+              : "Nenhum pedido em andamento"}
+        </div>
+        <div className="delivery-view__pedidos-acoes">
+          <button
+            onClick={alternarAvisos}
+            className={`delivery-view__btn delivery-view__btn--sm delivery-view__btn--avisos${avisosLigados ? " delivery-view__btn--avisos-ligados" : ""}`}
+            title={avisosLigados ? "Avisos de pedido novo ligados (som + alerta na tela). Toque para desligar." : "Ligar avisos de pedido novo (som + alerta na tela)."}
+            aria-pressed={avisosLigados}
+          >
+            {avisosLigados ? <LuBell size={13} /> : <LuBellOff size={13} />}
+            {avisosLigados ? "Avisos ligados" : "Ativar avisos"}
+          </button>
+          <button
+            onClick={recarregar}
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--atualizar"
+            title="Atualizar a lista de pedidos"
+          >
+            <LuRefreshCw size={13} /> Atualizar
+          </button>
+        </div>
+      </div>
+
+      {carregando ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji delivery-view__vazio-emoji--carregando">⏳</div>
+          <div className="delivery-view__carregando">Carregando pedidos…</div>
+        </div>
+      ) : erro && pedidos.length === 0 ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">📡</div>
+          <div className="delivery-view__vazio-titulo">Não conseguimos carregar os pedidos</div>
+          <div className="delivery-view__vazio-desc">Verifique a conexão e toque em “Atualizar”.</div>
+        </div>
+      ) : (
+        <>
+          {/* Falha COM pedidos na tela: aviso por cima, lista intacta. A tela
+              de erro cheia trocava o kanban inteiro por um cartaz — o
+              operador perdia de vista todos os pedidos em andamento por uma
+              piscada de rede, inclusive o que ele acabou de aceitar. */}
+          {erro && (
+            <div className="delivery-view__faixa-erro" role="alert">
+              <span className="delivery-view__faixa-erro-texto">
+                Não conseguimos atualizar agora. Estes são os pedidos da última
+                atualização que deu certo.
+              </span>
+              <button
+                type="button"
+                onClick={recarregar}
+                className="delivery-view__faixa-erro-acao"
+              >
+                Tentar de novo
+              </button>
+            </div>
+          )}
+          {colunas.length === 0 ? (
+            <div className="delivery-view__vazio">
+              <div className="delivery-view__vazio-emoji">🛵</div>
+              <div className="delivery-view__vazio-titulo">Nenhum pedido por aqui ainda</div>
+              <div className="delivery-view__vazio-desc">
+                Quando um cliente pedir pelo cardápio online, o pedido aparece aqui na hora.
+              </div>
+            </div>
+          ) : (
+            <div className="delivery-view__kanban">
+              {colunas.map((col) => {
+                const base = baseCorStatus(col.status);
+                // A cor da etapa é calculada em runtime (6 status possíveis), então entra
+                // uma vez como custom property e o CSS da coluna, da bolinha, do contador
+                // e do cartão lê `var(--cor-status)`.
+                return (
+                  <div key={col.status} className="delivery-view__coluna" style={{ "--cor-status": cssCor(base) }}>
+                    <div className="delivery-view__coluna-titulo">
+                      <span className="delivery-view__coluna-bolinha" />
+                      {col.label}
+                      <span className="delivery-view__coluna-contador">
+                        {col.pedidos.length}
+                      </span>
+                    </div>
+                    <div className="delivery-view__coluna-cards">
+                      {col.pedidos.map((p) => (
+                        <CardPedido
+                          key={p.id}
+                          pedido={p}
+                          isAdmin={isAdmin}
+                          ehAddon={ehAddon}
+                          onAvancar={() => avancar(p)}
+                          onCancelar={() => cancelar(p)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
+  const [aberto, setAberto] = useState(false);
+  const [itens, setItens] = useState(null); // null = ainda não buscou
+  const [carregandoItens, setCarregandoItens] = useState(false);
+  const [confirmarCancelar, setConfirmarCancelar] = useState(false);
+
+  const base = baseCorStatus(pedido.status);
+  const acao = rotuloAcao(pedido.status);
+  const endereco = resumoEndereco(pedido);
+  const zap = linkWhatsApp(
+    pedido.cliente_telefone,
+    `Olá! Aqui é do delivery, sobre o seu pedido ${pedido.numero}.`
+  );
+
+  const toggleItens = async () => {
+    const proximo = !aberto;
+    setAberto(proximo);
+    if (proximo && itens === null && !carregandoItens) {
+      setCarregandoItens(true);
+      const { data } = await carregarItensPedido(pedido.id);
+      setItens(Array.isArray(data) ? data : []);
+      setCarregandoItens(false);
+    }
+  };
+
+  return (
+    <div className="delivery-view__pedido">
+      {/* Cabeçalho: número + tempo */}
+      <div className="delivery-view__pedido-topo">
+        <span className="delivery-view__pedido-num">
+          <LuClipboardList size={14} color={cssCor(base)} /> {pedido.numero}
+        </span>
+        <span className="delivery-view__pedido-tempo">
+          {tempoDecorrido(pedido.created_at)}
+        </span>
+      </div>
+
+      {/* Cliente */}
+      <div className="delivery-view__pedido-cliente">
+        {pedido.cliente_nome || "Cliente"}
+      </div>
+
+      {/* Telefone → WhatsApp (só toque; número é do cliente) */}
+      {pedido.cliente_telefone && (
+        <div className="delivery-view__pedido-linha">
+          <LuPhone size={13} /> {formatarTelefone(pedido.cliente_telefone)}
+          {zap && (
+            <a
+              href={zap}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="delivery-view__zap"
+              title="Falar com o cliente no WhatsApp"
+            >
+              <LuMessageCircle size={13} /> WhatsApp
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* Endereço */}
+      {endereco && (
+        <div className="delivery-view__pedido-linha">
+          <LuMapPin size={13} /> {endereco}
+        </div>
+      )}
+
+      {/* Pagamento */}
+      <div className="delivery-view__pedido-linha">
+        <LuBanknote size={13} /> {resumoPagamento(pedido)}
+      </div>
+
+      {/* Itens (sob demanda) */}
+      <button onClick={toggleItens} className="delivery-view__pedido-itens-toggle">
+        {aberto ? <LuChevronDown size={14} /> : <LuChevronRight size={14} />}
+        {aberto ? "Ocultar itens" : "Ver itens"}
+      </button>
+      {aberto && (
+        <div className="delivery-view__pedido-itens">
+          {carregandoItens ? (
+            <div className="delivery-view__pedido-itens-aviso">Carregando itens…</div>
+          ) : itens && itens.length > 0 ? (
+            itens.map((it) => (
+              <div key={it.id} className="delivery-view__pedido-item">
+                <span>{it.qtd}× {it.nome}</span>
+                {it.obs && <span className="delivery-view__pedido-item-obs"> — {it.obs}</span>}
+              </div>
+            ))
+          ) : (
+            <div className="delivery-view__pedido-itens-aviso">Sem itens detalhados.</div>
+          )}
+        </div>
+      )}
+
+      {/* Total */}
+      <div className="delivery-view__pedido-total">
+        Total <strong>{formatarReais(pedido.total)}</strong>
+      </div>
+
+      {/* Ações — só admin/gerente toca o pedido */}
+      {isAdmin && !ehTerminal(pedido.status) && (
+        <div className="delivery-view__pedido-acoes">
+          {acao && (
+            <button
+              onClick={onAvancar}
+              className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-avancar"
+            >
+              {acao}
+            </button>
+          )}
+          {podeCancelar(pedido.status) && (
+            confirmarCancelar ? (
+              <>
+                <button
+                  onClick={onCancelar}
+                  className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-cancelar-confirma"
+                >
+                  Cancelar mesmo
+                </button>
+                <button
+                  onClick={() => setConfirmarCancelar(false)}
+                  className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-voltar"
+                >
+                  Voltar
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setConfirmarCancelar(true)}
+                className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-cancelar"
+                title="Cancelar este pedido"
+              >
+                <LuX size={13} />
+              </button>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA 1 — Cardápio (importação no addon / cadastro no standalone)
+// ════════════════════════════════════════════════════════════════
+function AbaCardapio({
+  isAdmin, ehAddon, carregando, itens, faltamImportar,
+  products, linhas, tenant, addProduct, updateProduct, recarregarProdutos, currentUser, aviso, recarregar,
+}) {
+  const [importando, setImportando] = useState(false);
+  const [modal, setModal] = useState(null); // { modo:'novo'|'editar', item? }
+
+  const importar = async () => {
+    if (importando || faltamImportar.length === 0) return;
+    setImportando(true);
+    const { data, error } = await importarProdutosDelivery(products, linhas);
+    setImportando(false);
+    if (error) {
+      aviso("Não foi possível importar agora. Tente novamente.", "err");
+      return;
+    }
+    logAction(currentUser?.username, "delivery:importar", {
+      msg: `Importou ${data.importados} produto(s) do PDV para o delivery`,
+      name: currentUser?.name, role: currentUser?.role,
+    });
+    aviso(`${data.importados} produto(s) importado(s) para o delivery.`, "ok");
+    await recarregar();
+  };
+
+  return (
+    <>
+      {/* Ação principal por modo */}
+      {isAdmin && ehAddon && (
+        <div className="delivery-view__import">
+          <div className="delivery-view__import-texto">
+            <div className="delivery-view__import-titulo">
+              <LuDownload size={16} color={varColor(C.blue)} /> Importar cardápio do PDV
+            </div>
+            <div className="delivery-view__import-desc">
+              {faltamImportar.length > 0
+                ? `Traz de uma vez os ${faltamImportar.length} produto(s) do sistema que ainda não estão no delivery. Depois é só colocar foto e descrição.`
+                : "Tudo em dia — todos os produtos do PDV já estão no delivery."}
+            </div>
+          </div>
+          <button
+            onClick={importar}
+            disabled={importando || faltamImportar.length === 0}
+            className="delivery-view__btn delivery-view__btn--importar delivery-view__btn--acao-topo"
+          >
+            <LuDownload size={15} />
+            {importando ? "Importando…" : faltamImportar.length > 0 ? `Importar ${faltamImportar.length}` : "Importado"}
+          </button>
+        </div>
+      )}
+
+      {isAdmin && !ehAddon && (
+        <div className="delivery-view__acao-topo">
+          <button
+            onClick={() => setModal({ modo: "novo" })}
+            className="delivery-view__btn delivery-view__btn--primario delivery-view__btn--acao-topo"
+          >
+            <LuPlus size={15} /> Novo produto
+          </button>
+        </div>
+      )}
+
+      {/* Lista / estados */}
+      {carregando ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji delivery-view__vazio-emoji--carregando">⏳</div>
+          <div className="delivery-view__carregando">Carregando o cardápio…</div>
+        </div>
+      ) : itens.length === 0 ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">🛵</div>
+          <div className="delivery-view__vazio-titulo">Nenhum produto no delivery ainda</div>
+          <div className="delivery-view__vazio-desc">
+            {ehAddon
+              ? "Use “Importar cardápio do PDV” acima para trazer seus produtos."
+              : "Clique em “Novo produto” para começar seu cardápio online."}
+          </div>
+        </div>
+      ) : (
+        <div className="delivery-view__cards">
+          {itens.map((it) => (
+            <CardProduto
+              key={it.id}
+              item={it}
+              isAdmin={isAdmin}
+              ehAddon={ehAddon}
+              onEditar={() => setModal({ modo: "editar", item: it })}
+              onRemover={async () => {
+                const { error } = await removerProdutoDelivery(it.id);
+                if (error) return aviso("Não foi possível remover.", "err");
+                aviso("Removido do delivery.", "ok");
+                await recarregar();
+              }}
+              onToggle={async () => {
+                const { error } = await salvarProdutoDelivery({
+                  id: it.id, produto_id: it.produto_id,
+                  foto_url: it.foto_url, descricao: it.descricao,
+                  disponivel: !it.disponivel, ordem: it.ordem,
+                });
+                if (error) return aviso("Não foi possível atualizar.", "err");
+                await recarregar();
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {modal && (
+        <ModalProduto
+          modo={modal.modo}
+          item={modal.item}
+          ehAddon={ehAddon}
+          products={products}
+          tenant={tenant}
+          currentUser={currentUser}
+          addProduct={addProduct}
+          updateProduct={updateProduct}
+          recarregarProdutos={recarregarProdutos}
+          aviso={aviso}
+          onFechar={() => setModal(null)}
+          onSalvo={async () => {
+            setModal(null);
+            await recarregar();
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) {
+  const nome = item.produto?.name || "(produto removido do PDV)";
+  const preco = item.produto?.price;
+  const emoji = item.produto?.emoji || "🍽️";
+  const [confirmar, setConfirmar] = useState(false);
+
+  return (
+    <div className="delivery-view__card">
+      <div className="delivery-view__card-topo">
+        {item.foto_url ? (
+          <img className="delivery-view__card-foto" src={item.foto_url} alt={nome} />
+        ) : (
+          <div className="delivery-view__card-emoji">{emoji}</div>
+        )}
+        <div className="delivery-view__card-corpo">
+          <div className="delivery-view__card-nome">{nome}</div>
+          {item.descricao ? (
+            <div className="delivery-view__card-desc">{item.descricao}</div>
+          ) : (
+            <div className="delivery-view__card-desc delivery-view__card-desc--vazia">
+              Sem descrição — clique em editar para caprichar.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="delivery-view__card-divisor" />
+
+      <div className="delivery-view__card-preco-linha">
+        <span className="delivery-view__card-preco">
+          {preco != null ? formatarReais(preco) : "—"}
+        </span>
+        <button
+          onClick={onToggle}
+          disabled={!isAdmin}
+          className={`delivery-view__pill delivery-view__pill--${item.disponivel ? "on" : "off"}`}
+          title="Ligar/desligar no cardápio"
+        >
+          <span className="delivery-view__card-dot" />
+          {item.disponivel ? "Disponível" : "Indisponível"}
+        </button>
+      </div>
+
+      {isAdmin && (
+        <div className="delivery-view__card-acoes">
+          {confirmar ? (
+            <>
+              <button
+                onClick={onRemover}
+                className="delivery-view__card-editar delivery-view__card-editar--perigo"
+              >
+                <LuTrash2 size={15} /> Confirmar remoção
+              </button>
+              <button
+                onClick={() => setConfirmar(false)}
+                className="delivery-view__card-remover delivery-view__card-remover--neutro"
+                title="Cancelar"
+              >
+                <LuX size={16} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={onEditar}
+                className="delivery-view__card-editar"
+              >
+                <LuPencil size={15} /> Editar
+              </button>
+              <button
+                onClick={() => setConfirmar(true)}
+                className="delivery-view__card-remover"
+                title={ehAddon ? "Tirar do delivery" : "Excluir"}
+              >
+                <LuTrash2 size={16} />
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Modal criar/editar item do delivery.
+// Addon: só a camada de delivery (foto/descrição/disponível/ordem) —
+//   nome/preço vêm do PDV e aparecem só para referência.
+// Standalone: nome/preço/categoria + a camada de delivery, tudo junto.
+function ModalProduto({
+  modo, item, ehAddon, products, tenant, currentUser, addProduct, updateProduct, recarregarProdutos, aviso, onFechar, onSalvo,
+}) {
+  const prod = item?.produto || null;
+  const [nome, setNome] = useState(prod?.name || "");
+  const [preco, setPreco] = useState(prod?.price != null ? String(prod.price) : "");
+  const [categoria, setCategoria] = useState(prod?.category || "");
+  const [emoji, setEmoji] = useState(prod?.emoji || "");
+  const [descricao, setDescricao] = useState(item?.descricao || "");
+  // Foto: a URL já gravada (edição) e, quando o dono escolhe uma nova, o
+  // File local + a prévia (object URL). O upload só acontece no salvar,
+  // quando o produto_id já existe (standalone "novo" cria o produto antes).
+  const [fotoUrl, setFotoUrl] = useState(item?.foto_url || "");
+  const [fotoFile, setFotoFile] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState("");
+  // Foto escolhida da GALERIA (path de origem no bucket). Copiamos para o
+  // slot do produto só no salvar, mantendo os produtos independentes.
+  const [fotoGaleriaOrigem, setFotoGaleriaOrigem] = useState(null);
+  const fotoInputRef = useRef(null);
+  const fotoAlvoRef = useRef(null);
+  const [disponivel, setDisponivel] = useState(item?.disponivel ?? true);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+
+  // Menu de escolha (clicar na foto) + modal da galeria.
+  const [menuFotoAberto, setMenuFotoAberto] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
+  const [galeriaAberta, setGaleriaAberta] = useState(false);
+  const [galeriaFotos, setGaleriaFotos] = useState([]);
+  const [galeriaCarregando, setGaleriaCarregando] = useState(false);
+  const [galeriaErro, setGaleriaErro] = useState("");
+
+  // Libera o object URL da prévia ao trocar/fechar (evita vazamento).
+  useEffect(() => {
+    return () => { if (fotoPreview) URL.revokeObjectURL(fotoPreview); };
+  }, [fotoPreview]);
+
+  const escolherFoto = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite reescolher o mesmo arquivo depois
+    if (!file) return;
+    if (!file.type?.startsWith("image/")) return setErro("Escolha um arquivo de imagem.");
+    setErro("");
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+    setFotoGaleriaOrigem(null); // enviar arquivo novo cancela escolha da galeria
+    setFotoFile(file);
+    setFotoPreview(URL.createObjectURL(file));
+  };
+
+  const removerFoto = () => {
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+    setFotoPreview("");
+    setFotoFile(null);
+    setFotoUrl("");
+    setFotoGaleriaOrigem(null);
+  };
+
+  // Abre/fecha o menu de escolha da foto. O menu é posicionado por coordenadas
+  // (position:fixed via getBoundingClientRect) para NÃO ser recortado pelo
+  // overflow-y do modal — bug real: em tela mais baixa ou com o modal rolado o
+  // menu abria para fora da área visível e parecia "não abrir". Clamp na
+  // viewport garante que ele apareça inteiro em qualquer tela.
+  const alternarMenuFoto = () => {
+    if (menuFotoAberto) return setMenuFotoAberto(false);
+    const r = fotoAlvoRef.current?.getBoundingClientRect();
+    if (r) {
+      const LARG = 210, ALT = 168, M = 8; // dimensões aprox. do menu + margem
+      setMenuPos({
+        top: Math.max(M, Math.min(r.bottom + 6, window.innerHeight - ALT - M)),
+        left: Math.max(M, Math.min(r.left, window.innerWidth - LARG - M)),
+      });
+    }
+    setMenuFotoAberto(true);
+  };
+
+  // Abre a galeria e carrega as fotos já enviadas por este estabelecimento.
+  const abrirGaleria = async () => {
+    setMenuFotoAberto(false);
+    setGaleriaAberta(true);
+    setGaleriaErro("");
+    setGaleriaCarregando(true);
+    const { fotos, error } = await listarFotosDelivery(tenant?.id);
+    if (error) {
+      setGaleriaErro(error.message || "Não foi possível carregar a galeria.");
+      setGaleriaCarregando(false);
+      return;
+    }
+    setGaleriaFotos(fotos);
+    setGaleriaCarregando(false);
+  };
+
+  // Escolhe uma foto da galeria: mostra na prévia e marca para copiar no salvar.
+  const selecionarDaGaleria = (foto) => {
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+    setFotoPreview("");
+    setFotoFile(null);
+    setFotoUrl(foto.url);
+    setFotoGaleriaOrigem(foto.path);
+    setGaleriaAberta(false);
+    setErro("");
+  };
+
+  const temFoto = !!(fotoPreview || fotoUrl);
+
+  const categorias = useMemo(
+    () => [...new Set(products.map((p) => p.category).filter(Boolean))].sort(),
+    [products]
+  );
+
+  const salvar = async () => {
+    if (salvando) return;
+    // Standalone precisa de nome+preço (o produto é criado aqui).
+    if (!ehAddon) {
+      if (!nome.trim()) return setErro("Informe o nome do produto.");
+      const p = parseFloat(String(preco).replace(",", "."));
+      if (isNaN(p) || p <= 0) return setErro("Preço deve ser maior que zero.");
+    }
+    setSalvando(true);
+    setErro("");
+
+    let produtoId = item?.produto_id;
+
+    // Standalone: cria/atualiza o produto em products (este é o cadastro dele).
+    if (!ehAddon) {
+      const payload = {
+        name: nome.trim().toUpperCase(),
+        price: parseFloat(String(preco).replace(",", ".")),
+        category: categoria.trim() || "Delivery",
+        emoji: emoji || null,
+      };
+      if (modo === "novo") {
+        const { data, error } = await addProduct(payload);
+        if (error || !data?.id) {
+          setSalvando(false);
+          return setErro(error?.message || "Não foi possível criar o produto.");
+        }
+        produtoId = data.id;
+        logAction(currentUser?.username, "delivery:produto:criar", { msg: `Produto de delivery criado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
+      } else {
+        const { error } = await updateProduct(item.produto_id, payload);
+        if (error) {
+          setSalvando(false);
+          return setErro(error.message || "Não foi possível salvar o produto.");
+        }
+      }
+    }
+
+    // Foto: se o dono escolheu uma nova, sobe agora (produto_id já existe).
+    let fotoFinal = fotoUrl.trim() || null;
+    if (fotoFile) {
+      const { url, error: eFoto } = await enviarFotoProduto({
+        file: fotoFile,
+        tenantId: tenant?.id,
+        produtoId,
+      });
+      if (eFoto) {
+        setSalvando(false);
+        return setErro(eFoto.message || "Não foi possível enviar a foto.");
+      }
+      fotoFinal = url;
+    } else if (fotoGaleriaOrigem) {
+      // Escolheu da galeria: copia para o slot próprio do produto (independência).
+      const { url, error: eCopy } = await copiarFotoParaProduto({
+        tenantId: tenant?.id,
+        produtoId,
+        origemPath: fotoGaleriaOrigem,
+      });
+      if (eCopy) {
+        setSalvando(false);
+        return setErro(eCopy.message || "Não foi possível usar a foto da galeria.");
+      }
+      fotoFinal = url;
+    }
+
+    // Camada de delivery (sempre).
+    const { error } = await salvarProdutoDelivery({
+      id: item?.id,
+      produto_id: produtoId,
+      foto_url: fotoFinal,
+      descricao: descricao.trim() || null,
+      disponivel,
+      ordem: item?.ordem ?? 0,
+    });
+    setSalvando(false);
+    if (error) return setErro(error.message || "Não foi possível salvar no delivery.");
+
+    if (!ehAddon) await recarregarProdutos();
+    aviso(modo === "novo" ? "Produto adicionado ao delivery." : "Alterações salvas.", "ok");
+    onSalvo();
+  };
+
+  return createPortal(
+    <>
+    <div className="delivery-view__overlay" {...fecharAoClicarFora(onFechar)}>
+      <div className="delivery-view__modal">
+        <div className="delivery-view__modal-topo">
+          <div className="delivery-view__modal-titulo">
+            {modo === "novo" ? "Novo produto do delivery" : "Editar produto do delivery"}
+          </div>
+          <button onClick={onFechar} className="delivery-view__modal-fechar">
+            <LuX size={18} />
+          </button>
+        </div>
+
+        {/* Standalone: dados do produto. Addon: só referência do PDV. */}
+        {ehAddon ? (
+          <div className="delivery-view__aviso delivery-view__aviso--info">
+            <strong>{prod?.name || "Produto"}</strong>
+            {prod?.price != null ? ` · ${formatarReais(prod.price)}` : ""} — nome e preço vêm do
+            cadastro do PDV. Aqui você ajusta como ele aparece no delivery.
+          </div>
+        ) : (
+          <>
+            <div className="delivery-view__campo">
+              <label className="delivery-view__label">Nome *</label>
+              <input className="delivery-view__input" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: X-Salada" maxLength={60} />
+            </div>
+            <div className="delivery-view__campo-linha">
+              <div className="delivery-view__campo delivery-view__campo--flex">
+                <label className="delivery-view__label">Preço (R$) *</label>
+                <input className="delivery-view__input" type="number" min="0" step="0.01" value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" />
+              </div>
+              <div className="delivery-view__campo delivery-view__campo--emoji">
+                <label className="delivery-view__label">Emoji</label>
+                <input className="delivery-view__input delivery-view__input--centro" value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder="🍔" maxLength={4} />
+              </div>
+            </div>
+            <div className="delivery-view__campo">
+              <label className="delivery-view__label">Categoria</label>
+              <input className="delivery-view__input" value={categoria} onChange={(e) => setCategoria(e.target.value)} placeholder="Ex: Lanches" maxLength={40} list="delivery-cats" />
+              <datalist id="delivery-cats">{categorias.map((c) => <option key={c} value={c} />)}</datalist>
+            </div>
+          </>
+        )}
+
+        {/* Camada de delivery (ambos os modos) — foto do produto (upload) */}
+        <div className="delivery-view__campo">
+          <label className="delivery-view__label">
+            <LuImage size={13} className="delivery-view__label-icone" />
+            Foto do produto
+          </label>
+          <div className="delivery-view__foto-upload">
+            <input
+              ref={fotoInputRef}
+              type="file"
+              accept={ACCEPT_IMAGEM}
+              onChange={escolherFoto}
+              className="delivery-view__foto-input"
+            />
+            {/* Clicar na foto abre o menu de escolha (enviar nova / galeria). */}
+            <div className="delivery-view__foto-alvo-wrap">
+              <button
+                ref={fotoAlvoRef}
+                type="button"
+                className="delivery-view__foto-alvo"
+                onClick={alternarMenuFoto}
+                aria-haspopup="menu"
+                aria-expanded={menuFotoAberto}
+                title="Clique para trocar a foto"
+              >
+                {temFoto ? (
+                  <img className="delivery-view__foto-preview" src={fotoPreview || fotoUrl} alt="Prévia da foto do produto" />
+                ) : (
+                  <div className="delivery-view__foto-vazia">
+                    <LuImage size={26} />
+                  </div>
+                )}
+                <span className="delivery-view__foto-editar">
+                  <LuPencil size={12} color="#fff" />
+                </span>
+              </button>
+
+              {menuFotoAberto && (
+                <>
+                  <div className="delivery-view__foto-menu-fundo" onClick={() => setMenuFotoAberto(false)} />
+                  <div className="delivery-view__foto-menu" role="menu" style={{ top: menuPos?.top, left: menuPos?.left }}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="delivery-view__foto-menu-item"
+                      onClick={() => { setMenuFotoAberto(false); fotoInputRef.current?.click(); }}
+                    >
+                      <LuUpload size={15} color={varColor(C.accent)} /> Enviar nova foto
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="delivery-view__foto-menu-item"
+                      onClick={abrirGaleria}
+                    >
+                      <LuImages size={15} color={varColor(C.accent)} /> Escolher da galeria
+                    </button>
+                    {temFoto && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="delivery-view__foto-menu-item delivery-view__foto-menu-item--perigo"
+                        onClick={() => { removerFoto(); setMenuFotoAberto(false); }}
+                      >
+                        <LuTrash2 size={15} /> Remover foto
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <span className="delivery-view__hint">
+              Clique na foto para enviar do celular ou escolher da galeria. Ajustamos o tamanho automaticamente.
+            </span>
+          </div>
+        </div>
+        <div className="delivery-view__campo">
+          <label className="delivery-view__label">Descrição</label>
+          <textarea className="delivery-view__textarea" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Pão, hambúrguer, queijo, alface e tomate." maxLength={280} />
+        </div>
+        <label className="delivery-view__switch">
+          <span>Disponível no cardápio</span>
+          <span className="delivery-view__toggle">
+            <input type="checkbox" checked={disponivel} onChange={(e) => setDisponivel(e.target.checked)} />
+            <span className="delivery-view__toggle-trilho" aria-hidden="true">
+              <span className="delivery-view__toggle-botao" />
+            </span>
+          </span>
+        </label>
+
+        {erro && (
+          <div className="delivery-view__aviso delivery-view__aviso--erro">
+            ⚠️ {erro}
+          </div>
+        )}
+
+        <div className="delivery-view__modal-botoes">
+          <button onClick={onFechar} className="delivery-view__btn delivery-view__btn--secundario">Cancelar</button>
+          <button onClick={salvar} disabled={salvando} className="delivery-view__btn delivery-view__btn--primario">
+            {salvando ? "Salvando…" : "Salvar"}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {/* Galeria: todas as fotos já enviadas por este estabelecimento. */}
+    {galeriaAberta && (
+      <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setGaleriaAberta(false))}>
+        <div className="delivery-view__modal delivery-view__galeria">
+          <div className="delivery-view__modal-topo">
+            <div className="delivery-view__modal-titulo">
+              <LuImages size={16} className="delivery-view__titulo-icone" />
+              Galeria de fotos
+            </div>
+            <button onClick={() => setGaleriaAberta(false)} className="delivery-view__modal-fechar">
+              <LuX size={18} />
+            </button>
+          </div>
+
+          {galeriaCarregando ? (
+            <div className="delivery-view__galeria-estado">
+              <LuRefreshCw size={22} className="delivery-view__girando" />
+              Carregando as fotos…
+            </div>
+          ) : galeriaErro ? (
+            <div className="delivery-view__galeria-estado">
+              <div className="delivery-view__aviso delivery-view__aviso--erro">
+                ⚠️ {galeriaErro}
+              </div>
+              <button
+                type="button"
+                onClick={abrirGaleria}
+                className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--tentar"
+              >
+                <LuRefreshCw size={14} /> Tentar de novo
+              </button>
+            </div>
+          ) : galeriaFotos.length === 0 ? (
+            <div className="delivery-view__galeria-estado">
+              <LuImage size={30} />
+              <div className="delivery-view__galeria-estado-titulo">Nenhuma foto ainda</div>
+              <div className="delivery-view__hint">
+                Envie a primeira foto de um produto e ela aparecerá aqui para reusar.
+              </div>
+            </div>
+          ) : (
+            <div className="delivery-view__galeria-grade">
+              {galeriaFotos.map((foto) => {
+                const selecionada = fotoGaleriaOrigem === foto.path;
+                return (
+                  <button
+                    key={foto.path}
+                    type="button"
+                    className={`delivery-view__galeria-item${selecionada ? " is-sel" : ""}`}
+                    onClick={() => selecionarDaGaleria(foto)}
+                    title="Usar esta foto"
+                  >
+                    <img src={foto.url} alt="Foto do delivery" loading="lazy" />
+                    {selecionada && (
+                      <span className="delivery-view__galeria-check">
+                        <LuCheck size={14} color="#fff" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+    </>,
+    document.body
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA 2 — Complementos (BIBLIOTECA de grupos reutilizáveis)
+//
+// Intuitivo: um só lugar onde o dono cria um grupo UMA vez (ex.:
+// "Adicionais") e marca, num checklist, em quais produtos ele aparece —
+// em vez de recriar o mesmo grupo produto a produto. O mesmo grupo
+// reaparece em todos os itens marcados; editar seus itens reflete em
+// todos de uma vez. Nada some do cardápio: os grupos antigos foram
+// migrados para essa biblioteca com seu produto já vinculado.
+// ════════════════════════════════════════════════════════════════
+function AbaComplementos({ isAdmin, itens, products, aviso }) {
+  const [grupos, setGrupos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [novoGrupo, setNovoGrupo] = useState("");
+  const [salvandoGrupo, setSalvandoGrupo] = useState(false);
+  // Qual grupo está aberto para edição. null = grade de cards.
+  const [grupoAbertoId, setGrupoAbertoId] = useState(null);
+
+  const carregar = useCallback(async () => {
+    setCarregando(true);
+    const { data, error } = await listarBibliotecaGrupos();
+    setCarregando(false);
+    if (error) return aviso("Não foi possível carregar os complementos.", "err");
+    setGrupos(data);
+  }, [aviso]);
+
+  useEffect(() => { carregar(); }, [carregar]);
+
+  const addGrupo = async () => {
+    const nome = novoGrupo.trim();
+    if (!nome || salvandoGrupo) return;
+    setSalvandoGrupo(true);
+    const { data, error } = await salvarGrupoComplemento({ nome, min_escolhas: 0, max_escolhas: 1, ordem: grupos.length });
+    setSalvandoGrupo(false);
+    if (error) return aviso("Não foi possível criar o grupo.", "err");
+    setNovoGrupo("");
+    await carregar();
+    // Abre o grupo recém-criado direto na edição (caminho feliz: criou → já configura).
+    if (data?.id) setGrupoAbertoId(data.id);
+  };
+
+  if (carregando) {
+    return <div className="delivery-view__carregando delivery-view__carregando--bloco">Carregando…</div>;
+  }
+
+  // ── Editor aberto: mostra só o grupo escolhido, limpo, com "voltar" ──
+  const grupoAberto = grupoAbertoId ? grupos.find((g) => g.id === grupoAbertoId) : null;
+  if (grupoAberto) {
+    return (
+      <GrupoEditor
+        isAdmin={isAdmin}
+        grupo={grupoAberto}
+        biblioteca={grupos}
+        products={products}
+        itensCardapio={itens}
+        aviso={aviso}
+        recarregar={carregar}
+        onVoltar={() => setGrupoAbertoId(null)}
+        onRemovido={() => setGrupoAbertoId(null)}
+      />
+    );
+  }
+
+  // ── Grade de cards (visão padrão) ───────────────────────────────────
+  return (
+    <div className="delivery-view__complementos">
+      <div className="delivery-view__complementos-topo">
+        <div className="delivery-view__hint delivery-view__complementos-intro">
+          Crie um grupo uma vez (ex.: “Adicionais”, “Molhos”) e marque em quais produtos ele aparece. Toque num card para editar.
+        </div>
+        {isAdmin && (
+          <div className="delivery-view__novo-grupo">
+            <input
+              className="delivery-view__input"
+              value={novoGrupo}
+              onChange={(e) => setNovoGrupo(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addGrupo()}
+              placeholder="Novo grupo (ex.: Adicionais)"
+              maxLength={60}
+            />
+            <button onClick={addGrupo} disabled={!novoGrupo.trim() || salvandoGrupo} className="delivery-view__btn delivery-view__btn--primario delivery-view__btn--novo-grupo">
+              <LuPlus size={14} /> Grupo
+            </button>
+          </div>
+        )}
+      </div>
+
+      {grupos.length === 0 ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">🧩</div>
+          <div className="delivery-view__vazio-titulo">Nenhum grupo ainda</div>
+          <div className="delivery-view__vazio-desc">Crie o primeiro grupo (ex.: “Adicionais”) e escolha em quais produtos ele aparece.</div>
+        </div>
+      ) : (
+        <div className="delivery-view__grupos-grade">
+          {grupos.map((g) => (
+            <GrupoCardMini
+              key={g.id}
+              grupo={g}
+              onAbrir={() => setGrupoAbertoId(g.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Card médio, clicável, da grade da biblioteca. Só LEITURA: mostra o nome,
+// resumo (obrigatório/opcional), quantos itens tem e em quantos produtos
+// aparece. Tocar abre o editor. Nada de campo editável aqui — a edição
+// mora no menu limpo (GrupoEditor), pra grade ficar fácil de escanear.
+function GrupoCardMini({ grupo, onAbrir }) {
+  const nItens = (grupo.itens || []).length;
+  const nProdutos = (grupo.produtoIds || []).length;
+  const nSubgrupos = (grupo.subgrupoIds || []).length;
+  const obrigatorio = Number(grupo.min_escolhas) > 0;
+
+  return (
+    <button
+      type="button"
+      onClick={onAbrir}
+      className="delivery-view__grupo-card"
+    >
+      <div className="delivery-view__grupo-topo">
+        <span className="delivery-view__grupo-nome">
+          {grupo.nome}
+        </span>
+        <LuChevronRight size={18} className="delivery-view__grupo-seta" />
+      </div>
+
+      <span
+        className={`delivery-view__grupo-selo delivery-view__grupo-selo--${obrigatorio ? "obrigatorio" : "opcional"}`}
+      >
+        {obrigatorio ? "Obrigatório" : "Opcional"} · {grupo.min_escolhas ?? 0}–{grupo.max_escolhas ?? 1}
+      </span>
+
+      <div className="delivery-view__grupo-stats">
+        <span>{nItens} {nItens === 1 ? "item" : "itens"}</span>
+        <span>·</span>
+        <span>{nProdutos} {nProdutos === 1 ? "produto" : "produtos"}</span>
+        {nSubgrupos > 0 && (
+          <>
+            <span>·</span>
+            <span>{nSubgrupos} {nSubgrupos === 1 ? "subgrupo" : "subgrupos"}</span>
+          </>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// Menu de busca para escolher um produto JÁ CRIADO como complemento.
+// Digita → lista os itens do catálogo que casam (menos os já no grupo) →
+// clica para escolher. Sem digitação técnica: só buscar e tocar.
+function SeletorProdutoComplemento({ products, idsExcluir, onEscolher }) {
+  const [termo, setTermo] = useState("");
+  const [aberto, setAberto] = useState(false);
+
+  const resultados = useMemo(
+    () => filtrarProdutos(products, termo, idsExcluir),
+    [products, termo, idsExcluir]
+  );
+
+  return (
+    <div className="delivery-view__busca-inline">
+      <input
+        className="delivery-view__input"
+        value={termo}
+        onChange={(e) => { setTermo(e.target.value); setAberto(true); }}
+        onFocus={() => setAberto(true)}
+        onBlur={() => setTimeout(() => setAberto(false), 120)}
+        placeholder="Buscar item já criado…"
+      />
+      {aberto && (
+        <div className="delivery-view__menu-busca">
+          {resultados.length === 0 ? (
+            <div className="delivery-view__hint delivery-view__menu-vazio">
+              {(products || []).length === 0
+                ? "Nenhum produto criado ainda."
+                : "Nenhum item encontrado."}
+            </div>
+          ) : (
+            resultados.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                // onMouseDown (antes do blur) garante que o clique registra.
+                onMouseDown={(e) => { e.preventDefault(); onEscolher(p); setTermo(""); setAberto(false); }}
+                className="delivery-view__btn delivery-view__menu-opcao"
+              >
+                {p.emoji && <span className="delivery-view__opcao-emoji">{p.emoji}</span>}
+                <span className="delivery-view__menu-opcao-nome">{p.name}</span>
+                <span className="delivery-view__opcao-meta">
+                  {formatarReais(p.price)}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Menu de busca para anexar um grupo JÁ CRIADO como subgrupo (aninhamento
+// reciclável estilo iFood). Digita → lista os grupos candidatos (a lista já
+// vem sem ele mesmo, sem os já anexados e sem os que criariam ciclo) →
+// clica pra anexar. Mesmo padrão do seletor de produto: só buscar e tocar.
+function SeletorSubgrupo({ candidatos, onEscolher }) {
+  const [termo, setTermo] = useState("");
+  const [aberto, setAberto] = useState(false);
+
+  const resultados = useMemo(() => {
+    const t = termo.trim().toLowerCase();
+    const base = Array.isArray(candidatos) ? candidatos : [];
+    if (!t) return base;
+    return base.filter((g) => String(g.nome || "").toLowerCase().includes(t));
+  }, [candidatos, termo]);
+
+  return (
+    <div className="delivery-view__busca">
+      <LuSearch
+        size={15}
+        className="delivery-view__busca-lupa"
+      />
+      <input
+        className="delivery-view__input delivery-view__input--com-icone"
+        value={termo}
+        onChange={(e) => { setTermo(e.target.value); setAberto(true); }}
+        onFocus={() => setAberto(true)}
+        onBlur={() => setTimeout(() => setAberto(false), 120)}
+        placeholder="Buscar grupo para anexar como subgrupo…"
+      />
+      {aberto && (
+        <div className="delivery-view__menu-busca">
+          {resultados.length === 0 ? (
+            <div className="delivery-view__hint delivery-view__menu-vazio">
+              Nenhum grupo encontrado.
+            </div>
+          ) : (
+            resultados.map((g) => {
+              const nSub = (g.itens || []).length;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); onEscolher(g); setTermo(""); setAberto(false); }}
+                  className="delivery-view__btn delivery-view__menu-opcao"
+                >
+                  <LuPlus size={13} className="delivery-view__menu-opcao-icone" />
+                  <span className="delivery-view__menu-opcao-nome">{g.nome}</span>
+                  <span className="delivery-view__opcao-meta">
+                    {nSub} {nSub === 1 ? "item" : "itens"}
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Menu de edição LIMPO de um grupo. Abre a partir de um card da grade
+// (GrupoCardMini). Header com "voltar" + nome; corpo com regras (mín/máx),
+// itens do grupo e a busca multi-seleção de "aparece nestes produtos".
+function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio = [], aviso, recarregar, onVoltar, onRemovido }) {
+  // ── Rascunho local — NADA persiste até "Salvar" ─────────────────────
+  // Todo o editor é um rascunho: nome, mín/máx, itens e "aparece nestes
+  // produtos" ficam só na memória. "Salvar" grava tudo de uma vez; "Voltar"
+  // com pendências pede confirmação. Assim o dono nunca altera um grupo sem
+  // querer — o que estava salvo fica intacto até ele confirmar.
+  const mapItem = (it) => ({ id: it.id, produto_id: it.produto_id, nome: it.nome, preco: it.preco });
+  const [nome, setNome] = useState(grupo.nome);
+  const [min, setMin] = useState(String(grupo.min_escolhas ?? 0));
+  const [max, setMax] = useState(String(grupo.max_escolhas ?? 1));
+  const [itens, setItens] = useState(() => (grupo.itens || []).map(mapItem));
+  const [produtoIds, setProdutoIds] = useState(grupo.produtoIds ?? []);
+  // Subgrupos aninhados (estilo iFood): ids dos grupos-filho, em ordem.
+  const [subgrupoIds, setSubgrupoIds] = useState(() => (grupo.subgrupoIds ?? []).map(String));
+  const [selecionadoProd, setSelecionadoProd] = useState(null);
+  const [novoPreco, setNovoPreco] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [confirmarVoltar, setConfirmarVoltar] = useState(false);
+  const [confirmarRemover, setConfirmarRemover] = useState(false);
+
+  // Ressincroniza o rascunho quando o grupo é recarregado do servidor (só
+  // acontece após salvar/remover — durante a edição a referência do grupo é
+  // estável, então edições em andamento nunca são perdidas por re-render).
+  useEffect(() => {
+    setNome(grupo.nome);
+    setMin(String(grupo.min_escolhas ?? 0));
+    setMax(String(grupo.max_escolhas ?? 1));
+    setItens((grupo.itens || []).map(mapItem));
+    setProdutoIds(grupo.produtoIds ?? []);
+    setSubgrupoIds((grupo.subgrupoIds ?? []).map(String));
+    setSelecionadoProd(null);
+    setNovoPreco("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupo]);
+
+  // Há algo diferente do que está salvo? Controla o botão "Salvar" e o
+  // aviso ao voltar.
+  const sujo = useMemo(() => {
+    if ((nome ?? "").trim() !== (grupo.nome ?? "")) return true;
+    if ((Number(min) || 0) !== (Number(grupo.min_escolhas) || 0)) return true;
+    if ((Number(max) || 1) !== (Number(grupo.max_escolhas) || 1)) return true;
+    if (itens.some((i) => !i.id)) return true; // itens novos ainda não salvos
+    // Ordem importa (reordenar arrastando também é alteração a salvar):
+    // compara os ids preservando a sequência, não como conjunto ordenado.
+    const idsOrig = (grupo.itens || []).map((i) => String(i.id));
+    const idsAtual = itens.filter((i) => i.id).map((i) => String(i.id));
+    if (idsOrig.length !== idsAtual.length) return true;
+    if (idsOrig.some((v, k) => v !== idsAtual[k])) return true;
+    const pOrig = (grupo.produtoIds || []).map(String).sort();
+    const pAtual = produtoIds.map(String).sort();
+    if (pOrig.length !== pAtual.length) return true;
+    if (pOrig.some((v, k) => v !== pAtual[k])) return true;
+    // Subgrupos: ordem também conta (arrastar reordena) → compara em sequência.
+    const sOrig = (grupo.subgrupoIds || []).map(String);
+    const sAtual = subgrupoIds.map(String);
+    if (sOrig.length !== sAtual.length) return true;
+    if (sOrig.some((v, k) => v !== sAtual[k])) return true;
+    return false;
+  }, [nome, min, max, itens, produtoIds, subgrupoIds, grupo]);
+
+  // Marca/desmarca "aparece nestes produtos" — só no rascunho.
+  const alternarProduto = (produtoId) => {
+    setProdutoIds((prev) => alternarProdutoId(prev, produtoId));
+  };
+
+  // produto_id já no rascunho — não deixa adicionar o mesmo item duas vezes.
+  const idsNoGrupo = itens.map((it) => it.produto_id).filter((x) => x != null);
+
+  const escolherProduto = (prod) => {
+    setSelecionadoProd(prod);
+    // Pré-preenche o preço com o do PDV, mas fica editável (preço do
+    // delivery pode ser diferente do balcão — decisão do dono).
+    setNovoPreco(prod?.price != null ? String(prod.price) : "");
+  };
+
+  // Adiciona o item só ao rascunho (o id nasce quando "Salvar" gravar).
+  const addItem = () => {
+    if (!selecionadoProd) return;
+    setItens((prev) => [
+      ...prev,
+      {
+        _tempId: `novo-${Date.now()}`,
+        produto_id: selecionadoProd.id,
+        nome: selecionadoProd.name,
+        preco: parseFloat(String(novoPreco).replace(",", ".")) || 0,
+      },
+    ]);
+    setSelecionadoProd(null);
+    setNovoPreco("");
+  };
+
+  // Remove o item do rascunho (some do banco só quando "Salvar" rodar).
+  const removerItem = (item) => {
+    setItens((prev) => prev.filter((x) => (x.id ?? x._tempId) !== (item.id ?? item._tempId)));
+  };
+
+  // Reordena os itens do rascunho pela nova ordem de ids (arrastar). Só
+  // muda a sequência local; persiste ao "Salvar".
+  const reordenarItens = (idsEmOrdem) => {
+    setItens((prev) => {
+      const chave = (x) => String(x.id ?? x._tempId);
+      const porId = new Map(prev.map((x) => [chave(x), x]));
+      return idsEmOrdem.map((id) => porId.get(String(id))).filter(Boolean);
+    });
+  };
+
+  // ── Subgrupos (grupos aninhados, recicláveis) ───────────────────────
+  // A biblioteca inteira, indexada por id, para resolver nome/resumo do
+  // subgrupo a partir do id guardado no rascunho.
+  const bibliotecaPorId = useMemo(() => {
+    const m = new Map();
+    for (const g of biblioteca || []) m.set(String(g.id), g);
+    return m;
+  }, [biblioteca]);
+
+  // Anexa um grupo existente como subgrupo (só rascunho). O seletor já
+  // exclui candidatos que criariam ciclo, mas revalidamos por garantia.
+  const addSubgrupo = (grupoFilho) => {
+    const fid = String(grupoFilho.id);
+    setSubgrupoIds((prev) => {
+      if (prev.includes(fid)) return prev;
+      if (subgrupoCriaCiclo(biblioteca, grupo.id, fid)) return prev;
+      return [...prev, fid];
+    });
+  };
+
+  const removerSubgrupo = (filhoId) => {
+    setSubgrupoIds((prev) => prev.filter((x) => x !== String(filhoId)));
+  };
+
+  const reordenarSubs = (idsEmOrdem) => {
+    setSubgrupoIds(idsEmOrdem.map(String));
+  };
+
+  // Candidatos a subgrupo: todo grupo da biblioteca menos ele mesmo, os
+  // já anexados e os que fechariam um ciclo (prevenção de erro > erro).
+  const candidatosSubgrupo = useMemo(
+    () =>
+      (biblioteca || []).filter((g) => {
+        const gid = String(g.id);
+        if (gid === String(grupo.id)) return false;
+        if (subgrupoIds.includes(gid)) return false;
+        if (subgrupoCriaCiclo(biblioteca, grupo.id, gid)) return false;
+        return true;
+      }),
+    [biblioteca, grupo.id, subgrupoIds]
+  );
+
+  // Grava TUDO de uma vez: config do grupo, itens (novos/removidos) e vínculos.
+  const salvar = async () => {
+    if (salvando) return;
+    setSalvando(true);
+
+    // 1) Config do grupo (nome, mín, máx).
+    const g = await salvarGrupoComplemento({
+      id: grupo.id, nome: nome.trim() || grupo.nome,
+      min_escolhas: Number(min) || 0, max_escolhas: Number(max) || 1, ordem: grupo.ordem,
+    });
+    if (g.error) { setSalvando(false); return aviso("Não foi possível salvar o grupo.", "err"); }
+
+    // 2) Itens: remove os tirados, grava o resto NA ORDEM do rascunho.
+    // Percorrer `itens` em ordem e gravar ordem = índice persiste tanto os
+    // novos quanto a reordenação por arrasto (upsert atualiza os que já têm id).
+    const idsAtuais = new Set(itens.filter((i) => i.id).map((i) => String(i.id)));
+    const removidos = (grupo.itens || []).filter((o) => !idsAtuais.has(String(o.id)));
+    for (const it of removidos) {
+      const { error } = await removerComplemento(it.id);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar os itens.", "err"); }
+    }
+    for (let k = 0; k < itens.length; k++) {
+      const it = itens[k];
+      const { error } = await salvarComplemento({
+        id: it.id, grupo_id: grupo.id, produto_id: it.produto_id, nome: it.nome,
+        preco: it.preco, disponivel: true, ordem: k,
+      });
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar os itens.", "err"); }
+    }
+
+    // 3) "Aparece nestes produtos": vincula os novos, desvincula os tirados.
+    const pOrig = (grupo.produtoIds || []).map(String);
+    const pAtual = produtoIds.map(String);
+    for (const pid of pAtual.filter((x) => !pOrig.includes(x))) {
+      const { error } = await vincularGrupoProduto(grupo.id, pid);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar onde o grupo aparece.", "err"); }
+    }
+    for (const pid of pOrig.filter((x) => !pAtual.includes(x))) {
+      const { error } = await desvincularGrupoProduto(grupo.id, pid);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar onde o grupo aparece.", "err"); }
+    }
+
+    // 4) Subgrupos aninhados: desanexa os tirados, anexa os novos e grava
+    // a ordem final (arrastar reordena). Diff por id, ordem = índice.
+    const sOrig = (grupo.subgrupoIds || []).map(String);
+    const sAtual = subgrupoIds.map(String);
+    for (const fid of sOrig.filter((x) => !sAtual.includes(x))) {
+      const { error } = await desvincularSubgrupo(grupo.id, fid);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar os subgrupos.", "err"); }
+    }
+    for (let k = 0; k < sAtual.length; k++) {
+      const { error } = await vincularSubgrupo(grupo.id, sAtual[k], k);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar os subgrupos.", "err"); }
+    }
+    // Reforça a ordem dos que já existiam (o upsert com ignoreDuplicates
+    // não atualiza a ordem de um vínculo pré-existente).
+    if (sAtual.length > 0) {
+      const { error } = await reordenarSubgrupos(grupo.id, sAtual);
+      if (error) { setSalvando(false); return aviso("Não foi possível salvar os subgrupos.", "err"); }
+    }
+
+    setSalvando(false);
+    aviso("Grupo salvo.", "ok");
+    await recarregar(); // recarrega → o effect ressincroniza o rascunho.
+  };
+
+  // Voltar: se há rascunho pendente, confirma antes de descartar.
+  const tentarVoltar = () => {
+    if (sujo) { setConfirmarVoltar(true); return; }
+    onVoltar();
+  };
+
+  // Remove o grupo inteiro (ação destrutiva — só após confirmar no modal).
+  const removerGrupo = async () => {
+    const { error } = await removerGrupoComplemento(grupo.id);
+    if (error) return aviso("Não foi possível remover o grupo.", "err");
+    setConfirmarRemover(false);
+    await recarregar();
+    onRemovido?.();
+  };
+
+  return (
+    <div className="delivery-view__editor">
+      {/* Header do editor: voltar + título + Salvar (trava de tudo) */}
+      <div className="delivery-view__editor-topo">
+        <button
+          type="button"
+          onClick={tentarVoltar}
+          className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--voltar"
+        >
+          <LuArrowLeft size={15} /> Voltar
+        </button>
+        <span className="delivery-view__editor-titulo">
+          <span className="delivery-view__editor-titulo-rotulo">nome: </span>
+          {nome || grupo.nome}
+        </span>
+        {isAdmin && (
+          <>
+            {sujo && (
+              <span className="delivery-view__hint delivery-view__editor-sujo">
+                Alterações não salvas
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={salvar}
+              disabled={!sujo || salvando}
+              className={`delivery-view__btn delivery-view__btn--sm delivery-view__btn--salvar delivery-view__btn--${sujo ? "primario" : "inerte"}`}
+            >
+              {salvando ? "Salvando…" : "Salvar"}
+            </button>
+          </>
+        )}
+      </div>
+
+    <div className="delivery-view__editor-caixa">
+      <div className="delivery-view__editor-linha">
+        <input
+          className="delivery-view__input delivery-view__input--titulo"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          disabled={!isAdmin}
+          maxLength={60}
+        />
+        {/* Obrigatório × Opcional — o cliente é obrigado a marcar este grupo?
+            Seletor explícito no lugar do número cru "mín": opcional → min=0,
+            obrigatório → min≥1. O dono escolhe em palavras, sem pensar em
+            número (Princípio nº1 — intuitividade acima de densidade). */}
+        <div
+          role="group"
+          aria-label="O cliente é obrigado a escolher neste grupo?"
+          className="delivery-view__segmentado"
+        >
+          {[
+            { obrig: false, texto: "Opcional" },
+            { obrig: true, texto: "Obrigatório" },
+          ].map((opt) => {
+            const ativo = (Number(min) > 0) === opt.obrig;
+            return (
+              <button
+                key={opt.texto}
+                type="button"
+                aria-pressed={ativo}
+                disabled={!isAdmin}
+                onClick={() => isAdmin && setMin(opt.obrig ? String(Math.max(1, Number(min) || 0)) : "0")}
+                className={`delivery-view__editor-toggle${ativo ? " delivery-view__editor-toggle--ativo" : ""}`}
+              >
+                {opt.texto}
+              </button>
+            );
+          })}
+        </div>
+        <label className="delivery-view__hint delivery-view__editor-max">
+          máx
+          <input className="delivery-view__input delivery-view__input--qtd" type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} disabled={!isAdmin} />
+        </label>
+        {isAdmin && (
+          <button
+            onClick={() => setConfirmarRemover(true)}
+            title="Remover grupo"
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--remover-grupo"
+          >
+            <LuTrash2 size={13} />
+          </button>
+        )}
+      </div>
+      <div className="delivery-view__hint delivery-view__editor-explica">
+        {Number(min) > 0
+          ? `Obrigatório — o cliente precisa escolher ${Number(max) > 1 ? `de ${min || 1} a ${max}` : "1 opção"}`
+          : `Opcional — o cliente pode escolher ${Number(max) > 1 ? `até ${max}` : "1, se quiser"}`}
+      </div>
+
+      {/* Itens do grupo — arraste pela alça (⠿) para reordenar (cima/baixo).
+          A ordem aqui é a mesma que o cliente vê na vitrine. */}
+      <div className="delivery-view__editor-itens">
+        <ListaArrastavel
+          itens={itens}
+          idDe={(it) => it.id ?? it._tempId}
+          onReordenar={reordenarItens}
+          renderItem={(it, { alca }) => (
+            <div className="delivery-view__item-linha delivery-view__item-linha--compacta">
+              {isAdmin && <span {...alca}>⠿</span>}
+              <span className="delivery-view__item-nome">{it.nome}</span>
+              <span className="delivery-view__item-preco">
+                {Number(it.preco) > 0 ? `+ ${formatarReais(it.preco)}` : "Grátis"}
+              </span>
+              {isAdmin && (
+                <button
+                  onClick={() => removerItem(it)}
+                  className="delivery-view__modal-fechar"
+                >
+                  <LuX size={14} />
+                </button>
+              )}
+            </div>
+          )}
+        />
+      </div>
+
+      {isAdmin && (
+        <div className="delivery-view__add-item">
+          {selecionadoProd ? (
+            // Produto escolhido: mostra o item + preço (editável) + confirmar.
+            <>
+              <div className="delivery-view__selecionado">
+                {selecionadoProd.emoji && <span>{selecionadoProd.emoji}</span>}
+                <span className="delivery-view__selecionado-nome">{selecionadoProd.name}</span>
+                <button
+                  type="button"
+                  onClick={() => { setSelecionadoProd(null); setNovoPreco(""); }}
+                  className="delivery-view__modal-fechar delivery-view__modal-fechar--accent"
+                  title="Trocar item"
+                >
+                  <LuX size={14} />
+                </button>
+              </div>
+              <input className="delivery-view__input delivery-view__input--preco" type="number" min="0" step="0.01" value={novoPreco} onChange={(e) => setNovoPreco(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addItem()} placeholder="R$ 0,00" />
+              <button onClick={addItem} className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--primario delivery-view__btn--add-item">
+                <LuPlus size={13} /> Adicionar
+              </button>
+            </>
+          ) : (
+            // Ainda escolhendo: menu de busca dos produtos já criados.
+            <SeletorProdutoComplemento
+              products={products}
+              idsExcluir={idsNoGrupo}
+              onEscolher={escolherProduto}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Subgrupos aninhados (estilo iFood): anexa OUTROS grupos da
+          biblioteca dentro deste. Cada subgrupo continua reutilizável
+          sozinho — aqui só se reaproveita. Arraste pela alça pra ordenar. */}
+      {isAdmin && (
+        <div className="delivery-view__editor-secao">
+          <div className="delivery-view__secao-titulo">
+            <LuClipboardList size={12} className="delivery-view__secao-icone" /> Subgrupos deste grupo
+          </div>
+          <div className="delivery-view__hint delivery-view__secao-desc">
+            Reaproveite grupos já criados aqui dentro. Cada subgrupo mantém suas próprias
+            regras (obrigatório/opcional) e continua disponível sozinho em outros produtos.
+          </div>
+
+          {subgrupoIds.length > 0 && (
+            <div className="delivery-view__secao-lista">
+              <ListaArrastavel
+                itens={subgrupoIds}
+                idDe={(id) => id}
+                onReordenar={reordenarSubs}
+                renderItem={(id, { alca }) => {
+                  const sub = bibliotecaPorId.get(String(id));
+                  const nSub = (sub?.itens || []).length;
+                  const obrig = Number(sub?.min_escolhas) > 0;
+                  return (
+                    <div className="delivery-view__item-linha">
+                      <span {...alca}>⠿</span>
+                      <span className="delivery-view__item-nome delivery-view__item-nome--forte">
+                        {sub?.nome || "(grupo removido)"}
+                      </span>
+                      <span className="delivery-view__hint">
+                        {obrig ? "Obrigatório" : "Opcional"} · {nSub} {nSub === 1 ? "item" : "itens"}
+                      </span>
+                      <button
+                        onClick={() => removerSubgrupo(id)}
+                        className="delivery-view__modal-fechar"
+                        title="Remover subgrupo (não apaga o grupo)"
+                      >
+                        <LuX size={14} />
+                      </button>
+                    </div>
+                  );
+                }}
+              />
+            </div>
+          )}
+
+          {candidatosSubgrupo.length > 0 ? (
+            <SeletorSubgrupo candidatos={candidatosSubgrupo} onEscolher={addSubgrupo} />
+          ) : (
+            <div className="delivery-view__hint">
+              {biblioteca.length <= 1
+                ? "Crie outros grupos na biblioteca para reaproveitá-los aqui como subgrupos."
+                : "Nenhum outro grupo disponível para anexar aqui."}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Onde este grupo aparece — busca multi-seleção dos produtos do cardápio. */}
+      {isAdmin && (
+        <div className="delivery-view__editor-secao">
+          <div className="delivery-view__secao-titulo delivery-view__secao-titulo--respiro">
+            <LuUtensils size={12} className="delivery-view__secao-icone" /> Aparece nestes produtos
+          </div>
+          {itensCardapio.length === 0 ? (
+            <div className="delivery-view__hint">
+              Adicione produtos ao cardápio para vincular este grupo a eles.
+            </div>
+          ) : (
+            <SeletorProdutosMulti
+              itens={itensCardapio}
+              produtoIds={produtoIds}
+              vinculando={false}
+              onAlternar={alternarProduto}
+            />
+          )}
+        </div>
+      )}
+    </div>
+
+      {/* Confirmação ao voltar com rascunho pendente (avisa e confirma) */}
+      {confirmarVoltar && createPortal(
+        <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setConfirmarVoltar(false))}>
+          <div className="delivery-view__modal delivery-view__modal--estreito">
+            <div className="delivery-view__modal-topo">
+              <div className="delivery-view__modal-titulo">Alterações não salvas</div>
+              <button onClick={() => setConfirmarVoltar(false)} className="delivery-view__modal-fechar">
+                <LuX size={18} />
+              </button>
+            </div>
+            <div className="delivery-view__modal-texto">
+              Você tem alterações não salvas neste grupo. Se sair agora, elas serão descartadas e o grupo continua como estava.
+            </div>
+            <div className="delivery-view__modal-botoes">
+              <button onClick={() => setConfirmarVoltar(false)} className="delivery-view__btn delivery-view__btn--secundario">
+                Continuar editando
+              </button>
+              <button onClick={() => { setConfirmarVoltar(false); onVoltar(); }} className="delivery-view__btn delivery-view__btn--perigo">
+                Descartar e sair
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Confirmação da remoção do grupo inteiro (ação destrutiva) */}
+      {confirmarRemover && createPortal(
+        <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setConfirmarRemover(false))}>
+          <div className="delivery-view__modal delivery-view__modal--estreito">
+            <div className="delivery-view__modal-topo">
+              <div className="delivery-view__modal-titulo">Remover grupo</div>
+              <button onClick={() => setConfirmarRemover(false)} className="delivery-view__modal-fechar">
+                <LuX size={18} />
+              </button>
+            </div>
+            <div className="delivery-view__modal-texto">
+              Remover o grupo <strong>{grupo.nome}</strong>? Ele deixará de aparecer em todos os produtos vinculados. Essa ação não pode ser desfeita.
+            </div>
+            <div className="delivery-view__modal-botoes">
+              <button onClick={() => setConfirmarRemover(false)} className="delivery-view__btn delivery-view__btn--secundario">
+                Cancelar
+              </button>
+              <button onClick={removerGrupo} className="delivery-view__btn delivery-view__btn--perigo">
+                Remover grupo
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
+// Busca multi-seleção para "aparece nestes produtos". Em cima, os produtos
+// já vinculados aparecem como chips removíveis; embaixo, uma busca lista os
+// que ainda NÃO estão no combo — digita, filtra e toca pra adicionar (dá
+// pra escolher vários). Substitui o antigo checklist de pílulas: com muitos
+// produtos, procurar é mais intuitivo que varrer uma lista inteira.
+function SeletorProdutosMulti({ itens, produtoIds, vinculando, onAlternar }) {
+  const [termo, setTermo] = useState("");
+  const [aberto, setAberto] = useState(false);
+
+  // Chips: os itens do cardápio cujo produto_id está vinculado.
+  const selecionados = useMemo(
+    () => (itens || []).filter((it) => produtoIds.some((x) => String(x) === String(it.produto_id))),
+    [itens, produtoIds]
+  );
+
+  // Busca: só os que ainda NÃO estão vinculados (exclui os já escolhidos).
+  const resultados = useMemo(
+    () => filtrarItensDelivery(itens, termo, produtoIds),
+    [itens, termo, produtoIds]
+  );
+
+  return (
+    <div className="delivery-view__multi">
+      {/* Chips dos já vinculados */}
+      {selecionados.length > 0 && (
+        <div className="delivery-view__chips">
+          {selecionados.map((it) => (
+            <span
+              key={it.id}
+              className="delivery-view__chip-produto"
+            >
+              {it.produto?.name || "(produto)"}
+              <button
+                type="button"
+                onClick={() => onAlternar(it.produto_id)}
+                disabled={vinculando}
+                className="delivery-view__modal-fechar delivery-view__modal-fechar--accent delivery-view__chip-remover"
+                title="Remover deste combo"
+              >
+                <LuX size={13} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Busca para adicionar mais produtos */}
+      <div className="delivery-view__busca">
+        <LuSearch
+          size={15}
+          className="delivery-view__busca-lupa"
+        />
+        <input
+          className="delivery-view__input delivery-view__input--com-icone"
+          value={termo}
+          onChange={(e) => { setTermo(e.target.value); setAberto(true); }}
+          onFocus={() => setAberto(true)}
+          onBlur={() => setTimeout(() => setAberto(false), 120)}
+          placeholder="Buscar produto para adicionar…"
+        />
+        {aberto && (
+          <div className="delivery-view__menu-busca">
+            {resultados.length === 0 ? (
+              <div className="delivery-view__hint delivery-view__menu-vazio">
+                {termo.trim() ? "Nenhum produto encontrado." : "Todos os produtos já estão neste combo."}
+              </div>
+            ) : (
+              resultados.map((it) => (
+                <button
+                  key={it.id}
+                  type="button"
+                  disabled={vinculando}
+                  // onMouseDown (antes do blur) garante que o clique registra.
+                  onMouseDown={(e) => { e.preventDefault(); onAlternar(it.produto_id); setTermo(""); }}
+                  className="delivery-view__btn delivery-view__menu-opcao"
+                >
+                  <LuPlus size={13} className="delivery-view__menu-opcao-icone" />
+                  <span className="delivery-view__menu-opcao-nome">{it.produto?.name || "(produto)"}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA 3 — Entrega e taxas (config_delivery)
+// ════════════════════════════════════════════════════════════════
+function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
+  const [config, setConfig] = useState(null);
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+
+  // modo da taxa: "area" (bairro/CEP) ou "km" (por distância).
+  const [modoTaxa, setModoTaxa] = useState("area");
+
+  // endereço do estabelecimento (origem do mapa por km). O texto fica
+  // editável aqui; ao "Localizar", geocodifica (Nominatim, grátis) e
+  // posiciona o pino — que segue arrastável para o ajuste fino.
+  const [enderecoOrigem, setEnderecoOrigem] = useState("");
+  const [geocodificando, setGeocodificando] = useState(false);
+
+  // Autocomplete do endereço (Nominatim, grátis): enquanto digita, sugere
+  // opções para o dono escolher — sem precisar acertar o endereço exato.
+  // Debounce + AbortController respeitam o limite do Nominatim (1 req/s) e
+  // descartam buscas obsoletas. O cadeado (config.endereco_origem_bloqueado)
+  // trava a escrita depois de salvo: some o autocomplete, o campo vira
+  // somente-leitura e o pino para de arrastar — evita mexer na origem sem
+  // querer (prevenção de erro > mensagem de erro, Princípio nº 1).
+  const [sugestoes,         setSugestoes]         = useState([]);
+  const [buscandoSugestoes, setBuscandoSugestoes] = useState(false);
+  const [mostrarSugestoes,  setMostrarSugestoes]  = useState(false);
+  const debounceRef = useRef(null);
+  const abortRef    = useRef(null);
+
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+  }, []);
+
+  // nova faixa em edição
+  const [faixaTipo, setFaixaTipo] = useState("bairro");
+  const [faixaBairro, setFaixaBairro] = useState("");
+  const [faixaCepIni, setFaixaCepIni] = useState("");
+  const [faixaCepFim, setFaixaCepFim] = useState("");
+  const [faixaKmAte, setFaixaKmAte] = useState("");
+  const [faixaTaxa, setFaixaTaxa] = useState("");
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const { data, error } = await carregarConfigDelivery();
+      if (!ativo) return;
+      setCarregando(false);
+      if (error) return aviso("Não foi possível carregar as configurações.", "err");
+      const cfg =
+        data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
+      setConfig(cfg);
+      setEnderecoOrigem(cfg.endereco_origem || "");
+      setModoTaxa(temFaixasKm(cfg.faixas_taxa) ? "km" : "area");
+    })();
+    return () => { ativo = false; };
+  }, [aviso]);
+
+  const set = (patch) => setConfig((c) => ({ ...c, ...patch }));
+
+  const salvar = async (extra) => {
+    if (!tenant?.id) return aviso("Estabelecimento não identificado.", "err");
+    const alvo = { ...config, ...(extra || {}) };
+    setSalvando(true);
+    const { data, error } = await salvarConfigDelivery(tenant.id, alvo);
+    setSalvando(false);
+    if (error) return aviso("Não foi possível salvar.", "err");
+    setConfig(data || alvo);
+    logAction(currentUser?.username, "delivery:config", { msg: "Configurações de entrega atualizadas", name: currentUser?.name, role: currentUser?.role });
+    aviso("Configurações salvas.", "ok");
+  };
+
+  const taxaNum = () => parseFloat(String(faixaTaxa).replace(",", ".")) || 0;
+
+  const addFaixa = () => {
+    let nova, erro;
+    if (modoTaxa === "km") {
+      nova = { tipo: "km", km_ate: parseFloat(String(faixaKmAte).replace(",", ".")) || 0, taxa: taxaNum() };
+      erro = "Informe a distância do anel em km (maior que zero).";
+    } else if (faixaTipo === "cep") {
+      nova = { tipo: "cep", cep_ini: faixaCepIni, cep_fim: faixaCepFim, taxa: taxaNum() };
+      erro = "Preencha os dois CEPs (8 dígitos, início ≤ fim).";
+    } else {
+      nova = { tipo: "bairro", bairro: faixaBairro, taxa: taxaNum() };
+      erro = "Informe o nome do bairro.";
+    }
+    if (!validarFaixa(nova)) return aviso(erro, "err");
+    const faixas = [...(config.faixas_taxa || []), nova];
+    setFaixaBairro(""); setFaixaCepIni(""); setFaixaCepFim(""); setFaixaKmAte(""); setFaixaTaxa("");
+    salvar({ faixas_taxa: faixas });
+  };
+
+  const removerFaixa = (idx) => {
+    const alvo = faixasVisiveis[idx];
+    const faixas = (config.faixas_taxa || []).filter((f) => f !== alvo);
+    salvar({ faixas_taxa: faixas });
+  };
+
+  // Ao arrastar o pino no mapa, grava a origem do estabelecimento.
+  const definirOrigem = (lat, lng) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    salvar({ origem_lat: lat, origem_lng: lng });
+  };
+
+  // Geocodifica o endereço digitado (Nominatim, grátis) e posiciona o
+  // pino. Se o endereço não for encontrado, guarda o texto mesmo assim e
+  // pede para arrastar o pino à mão — nunca trava por causa de terceiro.
+  const localizarPeloEndereco = async () => {
+    const texto = enderecoOrigem.trim();
+    if (!texto) {
+      // Limpou o endereço: apaga só o texto, mantém o pino onde está.
+      salvar({ endereco_origem: null });
+      return;
+    }
+    setGeocodificando(true);
+    const { data } = await geocodificarEndereco(texto);
+    setGeocodificando(false);
+    if (data) {
+      salvar({ endereco_origem: texto, origem_lat: data.lat, origem_lng: data.lng });
+      aviso("Endereço localizado no mapa. Arraste o pino se quiser ajustar.", "ok");
+    } else {
+      salvar({ endereco_origem: texto });
+      aviso("Não encontramos esse endereço. Ele foi salvo — marque o ponto arrastando o pino no mapa.", "err");
+    }
+  };
+
+  // Autocomplete: a cada letra (com debounce) busca sugestões no Nominatim.
+  // AbortController cancela a busca anterior para não pintar resultado velho.
+  const aoDigitarEndereco = (valor) => {
+    setEnderecoOrigem(valor);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+    const texto = valor.trim();
+    if (texto.length < 4) {
+      setSugestoes([]); setMostrarSugestoes(false); setBuscandoSugestoes(false);
+      return;
+    }
+    setBuscandoSugestoes(true);
+    setMostrarSugestoes(true);
+    debounceRef.current = setTimeout(async () => {
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+      const { data } = await sugerirEnderecos(texto, { signal: ctrl.signal });
+      if (ctrl.signal.aborted) return;
+      setSugestoes(data || []);
+      setBuscandoSugestoes(false);
+    }, 450);
+  };
+
+  // Operador escolheu uma opção da lista: preenche o campo, posiciona o pino
+  // e salva de uma vez — não precisa clicar em "Localizar".
+  const escolherSugestao = (s) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+    setEnderecoOrigem(s.nome);
+    setSugestoes([]); setMostrarSugestoes(false); setBuscandoSugestoes(false);
+    salvar({ endereco_origem: s.nome, origem_lat: s.lat, origem_lng: s.lng });
+    aviso("Endereço marcado no mapa. Arraste o pino se quiser ajustar.", "ok");
+  };
+
+  // Cadeado: depois de salvo, trava a escrita do endereço (e o pino do mapa).
+  // Alterna o flag e persiste — some o autocomplete, o campo fica só-leitura.
+  const alternarBloqueio = () => {
+    const proximo = !config?.endereco_origem_bloqueado;
+    setSugestoes([]); setMostrarSugestoes(false);
+    salvar({ endereco_origem_bloqueado: proximo });
+    aviso(proximo ? "Endereço bloqueado para edição." : "Endereço liberado para edição.", "ok");
+  };
+
+  // origem e aneisKm são PROPS do mapa (Leaflet). Memoizados por valor para
+  // manter a referência estável entre renders — sem isso, cada re-render do
+  // AbaEntrega (digitar, salvar, tick do pai) recria os objetos, o efeito do
+  // mapa dispara e o fitBounds re-enquadra o mapa "toda hora". Só mudam quando
+  // as coordenadas ou as faixas realmente mudam.
+  // IMPORTANTE: estes hooks ficam ANTES do early-return de carregamento. Hook
+  // depois de um `return` condicional viola as Regras dos Hooks — quando
+  // `carregando` deixa de valer, o número de hooks aumenta entre renders
+  // (React #310: "rendered more hooks than during the previous render").
+  // Por isso usam `config?.` (config é null enquanto carrega).
+  const aneisKm = useMemo(
+    () => (config?.faixas_taxa || []).filter((f) => f?.tipo === "km"),
+    [config?.faixas_taxa]
+  );
+  const origem = useMemo(
+    () =>
+      Number.isFinite(Number(config?.origem_lat)) && Number.isFinite(Number(config?.origem_lng))
+        ? { lat: Number(config.origem_lat), lng: Number(config.origem_lng) }
+        : null,
+    [config?.origem_lat, config?.origem_lng]
+  );
+
+  if (carregando || !config) {
+    return <div className="delivery-view__carregando delivery-view__carregando--bloco">Carregando…</div>;
+  }
+
+  const readOnly = !isAdmin;
+  const bloqueado = !!config?.endereco_origem_bloqueado;
+
+  // Só as faixas do modo atual aparecem na lista (não misturar — "só km").
+  const faixasVisiveis = (config.faixas_taxa || []).filter((f) =>
+    modoTaxa === "km" ? f?.tipo === "km" : f?.tipo !== "km"
+  );
+
+  return (
+    <div className="delivery-view__entrega">
+      {/* Pedido mínimo + tempo de preparo */}
+      <div className="delivery-view__entrega-basico">
+        <div className="delivery-view__campo delivery-view__campo--metade">
+          <label className="delivery-view__label">Pedido mínimo (R$)</label>
+          <input className="delivery-view__input" type="number" min="0" step="0.01" value={config.pedido_minimo ?? 0} disabled={readOnly} onChange={(e) => set({ pedido_minimo: e.target.value })} onBlur={() => salvar()} />
+        </div>
+        <div className="delivery-view__campo delivery-view__campo--metade">
+          <label className="delivery-view__label">Tempo de preparo (min)</label>
+          <input className="delivery-view__input" type="number" min="0" value={config.tempo_preparo_min ?? 30} disabled={readOnly} onChange={(e) => set({ tempo_preparo_min: e.target.value })} onBlur={() => salvar()} />
+        </div>
+      </div>
+
+      {/* Taxa de entrega */}
+      <div>
+        <div className="delivery-view__entrega-titulo">
+          <LuTruck size={16} color={varColor(C.accent)} /> Taxa de entrega
+        </div>
+
+        {/* Seletor de modo: por área (bairro/CEP) ou por distância (km) */}
+        {isAdmin && (
+          <div className="delivery-view__entrega-modos">
+            {[
+              { id: "area", label: "Por bairro / CEP" },
+              { id: "km", label: "Por distância (km)" },
+            ].map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setModoTaxa(m.id)}
+                className={`delivery-view__btn delivery-view__btn--sm delivery-view__entrega-modo${modoTaxa === m.id ? " delivery-view__entrega-modo--ativo" : ""}`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="delivery-view__hint delivery-view__hint--taxa">
+          {modoTaxa === "km"
+            ? "Marque no mapa de onde você entrega e crie anéis por distância (ex.: até 2 km R$ 5, até 5 km R$ 8). Fora do maior anel, o cliente não consegue pedir."
+            : "Cobre por bairro ou por faixa de CEP. Quem estiver fora de todas as faixas não consegue pedir para entrega."}
+        </div>
+
+        {/* Mapa visual (só no modo por distância) */}
+        {modoTaxa === "km" && (
+          <div className="delivery-view__entrega-mapa">
+            {/* Endereço do estabelecimento → origem do mapa */}
+            <div className="delivery-view__campo delivery-view__campo--endereco">
+              <label className="delivery-view__label">
+                Endereço do estabelecimento (ponto de partida das entregas)
+              </label>
+              <div className="delivery-view__endereco-linha">
+                {/* wrapper relativo: a lista de sugestões flutua abaixo do input */}
+                <div className="delivery-view__autocomplete delivery-view__autocomplete--endereco">
+                  <input
+                    className="delivery-view__input"
+                    type="text"
+                    placeholder="Rua, número, bairro, cidade"
+                    value={enderecoOrigem}
+                    disabled={readOnly || bloqueado || geocodificando}
+                    autoComplete="off"
+                    onChange={(e) => aoDigitarEndereco(e.target.value)}
+                    onFocus={() => { if (sugestoes.length) setMostrarSugestoes(true); }}
+                    onBlur={() => setTimeout(() => setMostrarSugestoes(false), 150)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !readOnly && !bloqueado) { setMostrarSugestoes(false); localizarPeloEndereco(); }
+                      if (e.key === "Escape") setMostrarSugestoes(false);
+                    }}
+                  />
+                  {!readOnly && !bloqueado && mostrarSugestoes && (
+                    <ul className="delivery-view__sugestoes">
+                      {buscandoSugestoes && sugestoes.length === 0 && (
+                        <li className="delivery-view__sugestao-vazia">Buscando endereços…</li>
+                      )}
+                      {!buscandoSugestoes && sugestoes.length === 0 && (
+                        <li className="delivery-view__sugestao-vazia">Nenhum endereço encontrado.</li>
+                      )}
+                      {sugestoes.map((s, i) => (
+                        <li key={`${s.lat},${s.lng},${i}`}>
+                          <button
+                            type="button"
+                            className="delivery-view__sugestao"
+                            // onMouseDown (não onClick) para disparar antes do onBlur do input
+                            onMouseDown={(e) => { e.preventDefault(); escolherSugestao(s); }}
+                          >
+                            {s.nome}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {!readOnly && !bloqueado && (
+                  <button
+                    onClick={localizarPeloEndereco}
+                    disabled={geocodificando}
+                    className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--primario delivery-view__btn--localizar"
+                  >
+                    {geocodificando ? "Localizando…" : "Localizar no mapa"}
+                  </button>
+                )}
+
+                {/* Cadeado: trava a escrita do endereço depois de salvo */}
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={alternarBloqueio}
+                    className={`delivery-view__cadeado${bloqueado ? " delivery-view__cadeado--travado" : ""}`}
+                    title={bloqueado ? "Endereço bloqueado — toque para liberar a edição" : "Bloquear edição do endereço"}
+                    aria-label={bloqueado ? "Liberar edição do endereço" : "Bloquear edição do endereço"}
+                    aria-pressed={bloqueado}
+                  >
+                    {bloqueado ? <LuLock size={18} /> : <LuLockOpen size={18} />}
+                  </button>
+                )}
+              </div>
+              {!readOnly && (
+                <div className="delivery-view__hint delivery-view__hint--campo">
+                  {bloqueado
+                    ? "Endereço bloqueado. Toque no cadeado para liberar a edição."
+                    : "Comece a digitar e escolha uma sugestão — o pino vai para lá. Você ainda pode arrastá-lo para o ajuste fino, ou travar com o cadeado."}
+                </div>
+              )}
+            </div>
+
+            <MapaRaioEntrega
+              origem={origem}
+              aneis={aneisKm}
+              onOrigemChange={definirOrigem}
+              readOnly={readOnly || bloqueado}
+            />
+            {!origem && (
+              <div className="delivery-view__hint delivery-view__hint--erro">
+                Marque o ponto de partida no mapa — sem ele o cálculo por distância não funciona.
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="delivery-view__faixas">
+          {faixasVisiveis.length === 0 && (
+            <div className="delivery-view__hint">Nenhuma faixa cadastrada ainda.</div>
+          )}
+          {faixasVisiveis.map((f, idx) => (
+            <div key={idx} className="delivery-view__faixa">
+              <span className="delivery-view__faixa-texto">{faixaResumo(f)}</span>
+              {isAdmin && (
+                <button onClick={() => removerFaixa(idx)} className="delivery-view__modal-fechar">
+                  <LuTrash2 size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {isAdmin && (
+          <div className="delivery-view__faixa-nova">
+            {modoTaxa === "area" && (
+              <div className="delivery-view__faixa-tipos">
+                {["bairro", "cep"].map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setFaixaTipo(t)}
+                    className={`delivery-view__btn delivery-view__btn--sm delivery-view__faixa-tipo${faixaTipo === t ? " delivery-view__faixa-tipo--ativo" : ""}`}
+                  >
+                    {t === "bairro" ? "Por bairro" : "Por CEP"}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="delivery-view__faixa-campos">
+              {modoTaxa === "km" ? (
+                <input className="delivery-view__input delivery-view__input--faixa" type="number" min="0" step="0.1" value={faixaKmAte} onChange={(e) => setFaixaKmAte(e.target.value)} placeholder="Até quantos km" />
+              ) : faixaTipo === "bairro" ? (
+                <input className="delivery-view__input delivery-view__input--faixa" value={faixaBairro} onChange={(e) => setFaixaBairro(e.target.value)} placeholder="Bairro" maxLength={60} />
+              ) : (
+                <>
+                  <input className="delivery-view__input delivery-view__input--faixa-cep" value={formatarCep(faixaCepIni)} onChange={(e) => setFaixaCepIni(e.target.value)} placeholder="CEP inicial" />
+                  <input className="delivery-view__input delivery-view__input--faixa-cep" value={formatarCep(faixaCepFim)} onChange={(e) => setFaixaCepFim(e.target.value)} placeholder="CEP final" />
+                </>
+              )}
+              <input className="delivery-view__input delivery-view__input--taxa" type="number" min="0" step="0.01" value={faixaTaxa} onChange={(e) => setFaixaTaxa(e.target.value)} placeholder="Taxa R$" />
+              <button onClick={addFaixa} disabled={salvando} className="delivery-view__btn delivery-view__btn--primario delivery-view__btn--add-faixa">
+                <LuPlus size={14} /> Adicionar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

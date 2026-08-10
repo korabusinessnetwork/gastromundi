@@ -36,7 +36,7 @@ import "./SecaoMesas.css";
 
 const EMPTY_FORM = { numero: "", capacidade: "4" };
 
-// Mesma lógica de src/components/desktop/views/mesas/MesasAdmin.jsx: a nova
+// Mesma lógica de src/components/mesas/MesasAdmin.jsx: a nova
 // mesa entra numa coluna livre à direita da última, sempre na linha 1. Não é
 // bonito, mas é uma posição SEMPRE válida — o mapa do desktop nunca quebra
 // por causa de uma mesa criada no celular.

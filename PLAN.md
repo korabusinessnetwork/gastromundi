@@ -21,7 +21,7 @@ Cada componente entrega uma frase curta de por que é intuitivo (obrigatório, C
 - Ícones `react-icons/lu` podem ser importados direto pelos componentes (são apresentação).
 - Alvos de toque ≥ 44px; teclas do keypad ~64px; `tabular-nums` em dinheiro/qtd/hora; respeitar `prefers-reduced-motion`.
 
-**A casca (`src/pages/MobilePage.jsx`, dona = orquestrador)** mantém TODO o estado, handlers e integração:
+**A casca (`src/pages/mobile/MobilePage.jsx`, dona = orquestrador)** mantém TODO o estado, handlers e integração:
 - Todo o `useApp()` destructure atual.
 - `persistirLancamento`, `handleLancar`, `porEmEspera`, `enviarEsperas`, `handleAddProduct`, `handleChangeQty`, `abrirDetalhe`/`fecharDetalhe`, `selecionarComanda`, `abrirModalLancar`.
 - Trava: `useTravaComanda`, `travadaPorOutro`, `nomeTrava`.
@@ -139,7 +139,7 @@ export function fmtDinheiro(v) { return `R$ ${Number(v || 0).toFixed(2).replace(
 | 5 | Sonnet | `src/pages/mobile/sheets/lancamento/` |
 | 6 | Sonnet | `src/pages/mobile/sheets/comanda/` |
 | 7 | Haiku  | `src/pages/mobile/chrome/` |
-| — (orq) | Opus | `src/pages/MobilePage.jsx`, `src/pages/MobilePage.css`, `src/pages/mobile/fmt.js` |
+| — (orq) | Opus | `src/pages/mobile/MobilePage.jsx`, `src/pages/mobile/MobilePage.css`, `src/pages/mobile/fmt.js` |
 
 Nenhum agente escreve fora do seu diretório. `fmt.js` é criado pelo orquestrador ANTES do fan-out (os agentes só importam dele).
 

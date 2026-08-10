@@ -4,7 +4,7 @@ import * as escposPonte from "./escposPonte";
 /**
  * F020 — registro de drivers de impressão (decisão 025). Cada driver
  * implementa a MESMA interface — `{ imprimir(documento, perfil) =>
- * Promise<{error}> }` — então templates (src/lib/impressao.js,
+ * Promise<{error}> }` — então templates (src/lib/impressao/impressao.js,
  * renderizar.js) e UI (PerfilImpressora.jsx) nunca falam com um driver
  * específico, só com essa interface. Um driver novo (WebUSB/
  * WebSerial, outro agente local, etc.) só precisa:
@@ -49,7 +49,7 @@ export function selecionarDriver(perfil) {
 
 /**
  * @param {object} documento - retorno de montarComprovantePagamento/montarCupomPreNota/montarViaProducao
- * @param {object} [perfil] - perfilImpressora (ver src/lib/impressao.js)
+ * @param {object} [perfil] - perfilImpressora (ver src/lib/impressao/impressao.js)
  * @returns {Promise<{error: object|null}>}
  */
 export async function imprimirDocumento(documento, perfil) {

@@ -53,30 +53,30 @@ vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
 
 // Folhas com efeito colateral, sem relação com o defeito. `registrarInsight`
 // e `buscarInsights` entram porque a baixa de estoque gera alerta de mínimo
-// pelo Jarvas (src/lib/estoque.js).
-vi.mock("@/lib/jarvas", () => ({
+// pelo Jarvas (src/lib/estoque/estoque.js).
+vi.mock("@/lib/jarvas/jarvas", () => ({
   emitirEvento: vi.fn(),
   registrarInsight: vi.fn(() => Promise.resolve({ error: null })),
   buscarInsights: vi.fn(() => Promise.resolve({ data: [], error: null })),
 }));
-vi.mock("@/lib/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
+vi.mock("@/lib/jarvas/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
-vi.mock("@/lib/observabilidade", () => ({
+vi.mock("@/lib/infra/observabilidade", () => ({
   reportarFalha: vi.fn(),
   reportarInconsistencia: vi.fn(),
   setTenantObservabilidade: vi.fn(),
 }));
-vi.mock("@/components/shared/IndicadorRede", () => ({ default: () => null }));
-vi.mock("@/components/shared/PonteLocalBridge", () => ({ default: () => null }));
-vi.mock("@/components/shared/ImpressaoLancamentosBridge", () => ({ default: () => null }));
-vi.mock("@/lib/tenant", () => ({
+vi.mock("@/components/ui/feedback/IndicadorRede", () => ({ default: () => null }));
+vi.mock("@/components/ui/pontes/PonteLocalBridge", () => ({ default: () => null }));
+vi.mock("@/components/ui/pontes/ImpressaoLancamentosBridge", () => ({ default: () => null }));
+vi.mock("@/lib/tenant/tenant", () => ({
   buscarBootstrapTenant: vi.fn(() => Promise.resolve({ data: null, error: null })),
   moduloHabilitado: () => true,
   addonHabilitado: () => false,
 }));
 
-import { emitirEvento, registrarInsight } from "@/lib/jarvas";
-import { reportarFalha } from "@/lib/observabilidade";
+import { emitirEvento, registrarInsight } from "@/lib/jarvas/jarvas";
+import { reportarFalha } from "@/lib/infra/observabilidade";
 import { AppProvider, useApp, aplicarNumeroRemoto } from "./AppContext";
 
 /** Expõe o contexto para o teste sem depender de nenhuma tela. */

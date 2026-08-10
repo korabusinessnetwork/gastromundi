@@ -1,7 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
-import { rotaInicialPermitida } from "@/lib/navegacaoInicial";
-import SemAcesso from "@/components/desktop/SemAcesso";
+import { rotaInicialPermitida } from "@/lib/comum/navegacaoInicial";
+import SemAcesso from "@/components/assinatura/SemAcesso";
 
 /**
  * Índice de /app — leva o usuário à PRIMEIRA tela que ele realmente pode

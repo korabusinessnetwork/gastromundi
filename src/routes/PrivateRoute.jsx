@@ -1,10 +1,10 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
-import { assinaturaPermiteOperacao } from "@/lib/assinatura";
-import { rotaInicialPermitida } from "@/lib/navegacaoInicial";
-import UpgradeNecessario from "@/components/desktop/UpgradeNecessario";
-import AssinaturaBloqueada from "@/components/desktop/AssinaturaBloqueada";
-import SemAcesso from "@/components/desktop/SemAcesso";
+import { assinaturaPermiteOperacao } from "@/lib/console/assinatura";
+import { rotaInicialPermitida } from "@/lib/comum/navegacaoInicial";
+import UpgradeNecessario from "@/components/assinatura/UpgradeNecessario";
+import AssinaturaBloqueada from "@/components/assinatura/AssinaturaBloqueada";
+import SemAcesso from "@/components/assinatura/SemAcesso";
 
 /**
  * PrivateRoute — redireciona para /login se não autenticado.

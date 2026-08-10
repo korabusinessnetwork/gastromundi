@@ -1,15 +1,15 @@
 import { useEffect } from "react";
 import "./ApexPage.css";
-import ApexNav from "./ApexNav";
-import ApexHero from "./ApexHero";
-import ApexProva from "./ApexProva";
-import ApexInimigo from "./ApexInimigo";
-import ApexFuncionalidades from "./ApexFuncionalidades";
-import ApexComoFunciona from "./ApexComoFunciona";
-import ApexPlanos from "./ApexPlanos";
-import ApexFaq from "./ApexFaq";
-import ApexDemo from "./ApexDemo";
-import ApexRodape from "./ApexRodape";
+import ApexNav from "./chrome/ApexNav";
+import ApexHero from "./secoes/ApexHero";
+import ApexProva from "./secoes/ApexProva";
+import ApexInimigo from "./secoes/ApexInimigo";
+import ApexFuncionalidades from "./secoes/ApexFuncionalidades";
+import ApexComoFunciona from "./secoes/ApexComoFunciona";
+import ApexPlanos from "./secoes/ApexPlanos";
+import ApexFaq from "./secoes/ApexFaq";
+import ApexDemo from "./secoes/ApexDemo";
+import ApexRodape from "./chrome/ApexRodape";
 
 /**
  * Site institucional do apex kora.codes (landing de vendas — handoff

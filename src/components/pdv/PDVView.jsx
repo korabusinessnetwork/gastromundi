@@ -1,0 +1,2198 @@
+﻿import { useState, useEffect, useCallback } from "react";
+import { fecharAoClicarFora } from "@/lib/comum/overlayFechar";
+import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
+import { useApp } from "@/context/AppContext";
+import { logAction } from "@/lib/logger";
+import { emitirEvento } from "@/lib/jarvas/jarvas";
+import { useResponsive, useMesas } from "@/utils/hooks";
+import { totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
+import { getSizes } from "@/constants/sizes";
+import C from "@/constants/colors";
+import { alfa } from "@/constants/colorAlfa";
+import { varColor } from "@/lib/tenant/tema";
+import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList, LuReceipt, LuUser, LuCalendarCheck } from "react-icons/lu";
+import { verificarSenhaAdmin } from "@/lib/console/adminAuth";
+import { produtosVencendo } from "@/lib/estoque/validade";
+import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
+import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
+import { supabase } from "@/lib/supabase";
+import { mesmoItemDeVenda } from "@/lib/produtos/combos";
+import { buscarClientePorId } from "@/lib/clientes/clientes";
+import { imprimirLancamento } from "@/lib/impressao/despacho";
+import { chaveLancamento, registroLancamentos } from "@/lib/impressao/lancamentos";
+import "./PDVView.css";
+import { useFinalizarPagamento } from "./hooks/useFinalizarPagamento";
+import { useTravaComanda } from "@/hooks/useTravaComanda";
+import { travadaPorOutro, nomeTrava } from "@/lib/vendas/comandaLock";
+import { totalItensAtivos } from "@/lib/vendas/comandaItens";
+import { useCancelarComanda } from "./hooks/useCancelarComanda";
+import ComandaGrid   from "./grades/ComandaGrid";
+import ProductGrid   from "./grades/ProductGrid";
+import CartPanel     from "./paineis/CartPanel";
+import CheckoutView  from "./CheckoutView";
+import ClienteComandaModal from "./modais/ClienteComandaModal";
+import MesaMapView   from "./mesas/MesaMapView";
+import MesaReservasView from "./mesas/MesaReservasView";
+import ModalCupomNfce from "@/components/fiscal/modais/ModalCupomNfce";
+
+const fmtComanda = (name) =>
+  /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
+
+export default function PDVView({ notify }) {
+  const {
+    pending, products, estoque,
+    addPending, updatePending, removePending,
+    caixaAberto, currentUser, sales, users, metodosCustom,
+    lancadas, addLancada, diasAlertaValidade,
+    loading: bootstrapLoading,
+  } = useApp();
+  const { finalizarPagamento } = useFinalizarPagamento();
+  const { cancelarComanda } = useCancelarComanda();
+
+  const { width } = useResponsive();
+  const sz = getSizes(width);
+  // isMob alinhado com CartPanel: mobile/tablet usam tabs (cartWidth===0)
+  const isMob = sz.cartWidth === 0;
+  // Celular estreito (<768): o header e as barras de ação empilham em coluna
+  // em vez de usar o grid de 3 colunas do desktop, que espremia o título
+  // ("Frente / de / Caixa") e cortava o botão "Nova Comanda" fora da tela.
+  const isCel = width < 768;
+  const { mesas, loading: mesasLoading, atualizarStatusMesa } = useMesas();
+  const location = useLocation();
+
+  // Reset to lista whenever the sidebar navigates to this page
+  useEffect(() => {
+    setMode("grid");
+    setSelected(null);
+    setCartItems([]);
+  }, [location.key]);
+
+  // "grid" (lista) | "mapa" | "abertas" (só comandas pendentes) | "pedido" | "checkout" — abre direto na lista
+  const [mode,        setMode]        = useState("grid");
+  // Modos de "painel" (com tab bar, alertas e ações de topo) — tudo que não é pedido/checkout
+  const emPainel = mode === "grid" || mode === "mapa" || mode === "abertas" || mode === "reservas";
+  // No celular a Frente de Caixa é só BUSCA + LISTA: cabeçalho, Saldo do Dia,
+  // Nova Comanda, alertas e abas saem da tela. Antes, tudo isso empilhado
+  // empurrava a primeira comanda para ~65% da altura — o operador abria o PDV
+  // e não via comanda nenhuma. Abrir comanda continua a um toque: o slot vazio
+  // da lista ("1 · Disponível") e o número digitado na busca chamam onOpenEmpty.
+  const painelEnxuto = isCel && emPainel;
+  // Sem abas no celular, "mapa"/"comandas abertas" viram becos sem saída (não há
+  // como voltar pra lista). Se a janela encolher nesses modos, volta pra lista.
+  useEffect(() => {
+    if (isCel && (mode === "mapa" || mode === "abertas" || mode === "reservas")) setMode("grid");
+  }, [isCel, mode]);
+
+  const [selected,    setSelected]    = useState(null);
+  const [cartItems,   setCartItems]   = useState([]);
+  const [salvando,    setSalvando]    = useState(false);
+  const [abaAtiva,    setAbaAtiva]    = useState("produtos"); // mobile tab
+
+  const [toast,         setToast]         = useState(false);
+  const [alertaAberto,  setAlertaAberto]  = useState(false);
+  // Modal do cupom NFC-e (Leva 7): abre em 'emitindo' ao finalizar com o
+  // add-on nfe ativo e se atualiza para 'concluido' quando a emissão resolve.
+  const [cupomNfce,     setCupomNfce]     = useState({ aberta: false, estado: "emitindo", resultado: null, venda: null });
+  const [alertaValidadeAberto, setAlertaValidadeAberto] = useState(false);
+  const [buscaComanda,  setBuscaComanda]  = useState("");
+
+  // modal nova comanda
+  const [showNova,          setShowNova]          = useState(false);
+  const [nomeComanda,       setNomeComanda]       = useState("");
+  const [criando,           setCriando]           = useState(false);
+  const [confirmCancelar,        setConfirmCancelar]        = useState(false);
+  const [confirmCancelarMotivo,  setConfirmCancelarMotivo]  = useState("");
+  const [showTransferir,    setShowTransferir]    = useState(false);
+  const [showSaldo,         setShowSaldo]         = useState(false);
+  const [saldoSenha,        setSaldoSenha]        = useState("");
+  // Texto: "senha errada" e "não deu para verificar agora" são coisas diferentes.
+  const [saldoSenhaErro,    setSaldoSenhaErro]    = useState("");
+  const [saldoAutorizado,   setSaldoAutorizado]   = useState(false);
+  const [saldoSenhaVis,     setSaldoSenhaVis]     = useState(false);
+  const [transQtds,         setTransQtds]         = useState({});         // { [itemIdx]: qty }
+  const [transDestino,      setTransDestino]      = useState(null);       // order id destino (null = nova)
+  const [transMode,         setTransMode]         = useState("lista");    // "lista" | "numero" | "nova"
+  const [transNumero,       setTransNumero]       = useState("");         // número digitado manualmente
+  const [transNomeNova,     setTransNomeNova]     = useState("");         // nome da nova comanda
+  const [transNumeroErro,   setTransNumeroErro]   = useState("");
+  const [transferindo,      setTransferindo]      = useState(false);
+  const [showCancelarComanda,    setShowCancelarComanda]    = useState(false);
+  const [cancelarSenha,          setCancelarSenha]          = useState("");
+  const [cancelarSenhaErro,      setCancelarSenhaErro]      = useState("");
+  const [cancelarSenhaVis,       setCancelarSenhaVis]       = useState(false);
+  const [cancelarAutorizado,     setCancelarAutorizado]     = useState(false);
+  const [cancelarMotivo,         setCancelarMotivo]         = useState("");
+  const [cancelandoComanda,      setCancelandoComanda]      = useState(false);
+  const [showMesa,               setShowMesa]               = useState(false);
+  const [mesaInput,         setMesaInput]         = useState("");
+  const [apelidoInput,      setApelidoInput]      = useState("");
+  const [mesaPendingOrder,  setMesaPendingOrder]  = useState(null);
+  const [salvandoMesa,      setSalvandoMesa]      = useState(false);
+
+  // ── Vincular cliente à comanda (botão "Cliente") ──────────────
+  const [showCliente,          setShowCliente]          = useState(false);
+  const [clientePendingOrder,  setClientePendingOrder]  = useState(null);
+  const [clienteSel,           setClienteSel]           = useState(null); // cliente escolhido na modal
+  const [salvandoCliente,      setSalvandoCliente]      = useState(false);
+
+  // ── Barcode scanner (FEATURE_BARCODE_SCANNER) ─────────────────
+  const [barcodeInputOpen,  setBarcodeInputOpen]  = useState(false);
+  const [barcodeValue,      setBarcodeValue]      = useState("");
+  const [barcodeFeedback,   setBarcodeFeedback]   = useState(null); // null | "ok" | "notfound"
+
+  const abertas = pending.filter(o => o.status !== "closed");
+
+  // ── Combos ativos (B4) — vendáveis no PDV ─────────────────────
+  // Carrega uma vez por entrada na tela; a receita (subprodutos com
+  // controla_estoque) viaja junto no item do carrinho para a baixa de
+  // estoque dos componentes na finalização.
+  const [combos, setCombos] = useState([]);
+  useEffect(() => {
+    let ativo = true;
+    supabase
+      .from("combos")
+      .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque)), combo_produtos(quantidade, products(id, name))")
+      .eq("ativo", true)
+      .then(({ data, error }) => {
+        if (error) { console.error("[pdv] erro ao carregar combos:", error); return; }
+        if (ativo) setCombos(data ?? []);
+      });
+    return () => { ativo = false; };
+  }, []);
+
+  // ── Ressincroniza a comanda aberta com o realtime ─────────────
+  // Sem isto, `selected` fica congelado no snapshot de quando a comanda
+  // foi aberta: itens lançados pelo Palm não entravam na conta e a
+  // finalização apagava (sem cobrar) tudo que chegou depois.
+  useEffect(() => {
+    if (!selected || selected._virtual) return;
+    const fresca = pending.find(o => o.id === selected.id);
+    if (fresca) {
+      if (fresca !== selected) setSelected(fresca);
+      return;
+    }
+    // A comanda sumiu do banco. Fluxos locais (finalizar/cancelar/
+    // transferir) navegam por conta própria — só reagimos quando foi
+    // OUTRO dispositivo que encerrou, para não cobrar de novo.
+    if (salvando || transferindo || cancelandoComanda) return;
+    setSelected(null);
+    setCartItems([]);
+    setMode("grid");
+    notify?.(`${fmtComanda(selected.comanda)} foi encerrada em outro dispositivo.`, "err");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, selected, salvando, transferindo, cancelandoComanda]);
+
+  // ── Trava de edição (Leva 14) ─────────────────────────────────
+  // Enquanto o caixa está com a comanda aberta (pedido/checkout), o Palm
+  // não mexe nela — e vice-versa. A checagem síncrona (emUsoPorOutro)
+  // previne a entrada; o hook adquire a trava de verdade no banco e, se
+  // outro dispositivo ganhou a corrida, devolve `bloqueio`.
+  const travaAtiva = (mode === "pedido" || mode === "checkout") && !!selected && !selected._virtual;
+  const { bloqueio } = useTravaComanda(selected, travaAtiva);
+  const emUsoPorOutro = (order) => travadaPorOutro(order, currentUser?.username);
+
+  // Perdeu a corrida da trava (outro dispositivo abriu antes): sai da
+  // comanda com aviso em vez de deixar editar às cegas.
+  useEffect(() => {
+    if (!bloqueio || !travaAtiva || salvando || transferindo || cancelandoComanda) return;
+    notify?.(`${fmtComanda(selected.comanda)} está em uso por ${bloqueio.nome}.`, "err");
+    setMode("grid");
+    setSelected(null);
+    setCartItems([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bloqueio]);
+
+  // ── Selecionar comanda → pede mesa antes de entrar ────────────
+  const handleSelectComanda = (order) => {
+    setBuscaComanda("");
+    // Trava de edição (Leva 14): comanda aberta em outro aparelho → não entra.
+    if (emUsoPorOutro(order)) {
+      notify?.(`${fmtComanda(order.comanda)} está em uso por ${nomeTrava(order)}. Aguarde liberar.`, "err");
+      return;
+    }
+    const temItens = Array.isArray(order.items) && order.items.length > 0;
+    if (order.mesa || temItens) {
+      // Tem mesa definida OU já tem itens (ex: lançado pelo Palm sem mesa) — entra direto
+      setSelected(order);
+      setCartItems([]);
+      setAbaAtiva("produtos");
+      setMode("pedido");
+    } else {
+      // Comanda vazia e sem mesa criada no PDV — pede mesa
+      setMesaInput("");
+      setApelidoInput(order.apelido || "");
+      setMesaPendingOrder(order);
+      setShowMesa(true);
+    }
+  };
+
+  const abrirEditarMesa = () => {
+    setMesaInput(selected?.mesa || "");
+    setApelidoInput(selected?.apelido || "");
+    setMesaPendingOrder(selected);
+    setShowMesa(true);
+  };
+
+  const handleConfirmarMesa = async () => {
+    if (!mesaPendingOrder || salvandoMesa) return;
+    // Trava de edição (Leva 14): alguém abriu a comanda enquanto a modal estava na tela.
+    if (!mesaPendingOrder._virtual) {
+      const fresca = pending.find(o => o.id === mesaPendingOrder.id) ?? mesaPendingOrder;
+      if (emUsoPorOutro(fresca)) {
+        notify?.(`${fmtComanda(fresca.comanda)} está em uso por ${nomeTrava(fresca)}. Aguarde liberar.`, "err");
+        setShowMesa(false);
+        setMesaPendingOrder(null);
+        return;
+      }
+    }
+    const mesa    = mesaInput.trim();
+    const apelido = apelidoInput.trim();
+    setSalvandoMesa(true);
+    try {
+      let order = { ...mesaPendingOrder, mesa, apelido };
+      if (!order._virtual) {
+        // Comanda já existe — atualiza só se mudou
+        const mudou = mesa !== (mesaPendingOrder.mesa || "") || apelido !== (mesaPendingOrder.apelido || "");
+        if (mudou) {
+          const { error } = await updatePending(order.id, { mesa, apelido });
+          if (error) {
+            notify?.("Não foi possível salvar a mesa. Tente novamente.", "err");
+            return;
+          }
+        }
+      }
+      // Se virtual, mantém _virtual — será persistida ao lançar
+      setSelected(order);
+      if (mode !== "pedido") {
+        setCartItems([]);
+        setAbaAtiva("produtos");
+        setMode("pedido");
+      }
+      setShowMesa(false);
+      setMesaPendingOrder(null);
+    } finally {
+      setSalvandoMesa(false);
+    }
+  };
+
+  // ── Vincular cliente à comanda ────────────────────────────────
+  const abrirClienteComanda = async () => {
+    setClientePendingOrder(selected);
+    setShowCliente(true);
+    // Pré-carrega o cliente já vinculado (se houver) para exibir na modal
+    // e permitir trocar/remover. Fallback: só o nome guardado na comanda.
+    if (selected?.cliente_id) {
+      setClienteSel({ id: selected.cliente_id, nome: selected.cliente_nome || "Cliente" });
+      const { data } = await buscarClientePorId(selected.cliente_id);
+      if (data) setClienteSel(data);
+    } else {
+      setClienteSel(null);
+    }
+  };
+
+  const handleConfirmarClienteComanda = async () => {
+    if (!clientePendingOrder || salvandoCliente) return;
+    // Trava de edição (Leva 14): alguém abriu a comanda enquanto a modal estava aberta.
+    if (!clientePendingOrder._virtual) {
+      const fresca = pending.find(o => o.id === clientePendingOrder.id) ?? clientePendingOrder;
+      if (emUsoPorOutro(fresca)) {
+        notify?.(`${fmtComanda(fresca.comanda)} está em uso por ${nomeTrava(fresca)}. Aguarde liberar.`, "err");
+        setShowCliente(false);
+        setClientePendingOrder(null);
+        return;
+      }
+    }
+    const cliente_id   = clienteSel?.id ?? null;
+    const cliente_nome = clienteSel?.nome ?? null;
+    setSalvandoCliente(true);
+    try {
+      const order = { ...clientePendingOrder, cliente_id, cliente_nome };
+      if (!clientePendingOrder._virtual) {
+        const mudou = cliente_id !== (clientePendingOrder.cliente_id ?? null);
+        if (mudou) {
+          const { error } = await updatePending(order.id, { cliente_id, cliente_nome });
+          if (error) {
+            notify?.("Não foi possível vincular o cliente. Tente novamente.", "err");
+            return;
+          }
+        }
+      }
+      // Se virtual, mantém _virtual — o vínculo é persistido junto ao lançar (addPending).
+      if (selected?.id === order.id || clientePendingOrder._virtual) setSelected(order);
+      setShowCliente(false);
+      setClientePendingOrder(null);
+      notify?.(
+        cliente_id ? `${cliente_nome} vinculado à comanda.` : "Cliente desvinculado da comanda.",
+        "ok",
+      );
+    } finally {
+      setSalvandoCliente(false);
+    }
+  };
+
+  const handleBack = () => {
+    setBuscaComanda("");
+    setMode("grid");
+    setSelected(null);
+    setCartItems([]);
+  };
+
+  // ── Adicionar produto ao carrinho ──────────────────────────────
+  const handleAddProduct = (product) => {
+    setCartItems(prev => {
+      // Combo e produto avulso do mesmo principal são linhas diferentes
+      // (mesmoItemDeVenda compara id + comboId) — misturar cobraria errado.
+      const idx = prev.findIndex(i => mesmoItemDeVenda(i, product));
+      if (idx >= 0) return prev.map((i, n) => n === idx ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { ...product, qty: 1, _key: Date.now() + Math.random() }];
+    });
+  };
+
+  // ── Barcode scan handler ──────────────────────────────────────
+  const handleBarcodeScan = useCallback((code) => {
+    if (!FEATURE_BARCODE_SCANNER || mode !== "pedido") return;
+    const found = products.find(p => p.codigo_barras && p.codigo_barras === code && p.active !== false);
+    if (found) {
+      handleAddProduct(found);
+      setBarcodeFeedback("ok");
+      setBarcodeValue("");
+    } else {
+      setBarcodeFeedback("notfound");
+    }
+    setTimeout(() => setBarcodeFeedback(null), 2500);
+  }, [products, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useBarcodeScanner(handleBarcodeScan, FEATURE_BARCODE_SCANNER && mode === "pedido");
+
+  const handleChangeQty = (index, newQty) => {
+    if (newQty <= 0) setCartItems(prev => prev.filter((_, i) => i !== index));
+    else             setCartItems(prev => prev.map((it, i) => i === index ? { ...it, qty: newQty } : it));
+  };
+
+  const handleChangeObs = (index, obs) => {
+    // obs is now an array of strings
+    setCartItems(prev => prev.map((it, i) => i === index ? { ...it, obs } : it));
+  };
+
+  // ── Lançar pedido → acumula itens no Supabase ────────────────
+  const handleLancar = async () => {
+    if (!selected || cartItems.length === 0 || salvando) return;
+    if (bloqueio) { notify?.(`${fmtComanda(selected.comanda)} está em uso por ${bloqueio.nome}.`, "err"); return; }
+    setSalvando(true);
+    try {
+      // Persiste comanda se ainda for virtual
+      let ordem = selected;
+      if (ordem._virtual) {
+        ordem = await persistirVirtual(ordem);
+        setSelected(ordem);
+      }
+      const anteriores = Array.isArray(ordem.items) ? ordem.items : [];
+      // launched_at por item — mesmo padrão do Palm (MobilePage handleLancar):
+      // é a fonte do horário de lançamento na via de produção (B1/F015).
+      const agora      = new Date().toISOString();
+      const novos      = cartItems.map(({ _key, ...rest }) => ({ ...rest, launched_at: agora }));
+      const acumulados = [...anteriores, ...novos];
+      // Item cancelado não entra: senão a cerveja cancelada volta ao total
+      // gravado no próximo lançamento e a comanda passa a mostrar um valor
+      // que o checkout não vai cobrar.
+      const total      = totalItensAtivos(acumulados);
+      // Este lançamento saiu daqui e é impresso logo abaixo: marca ANTES de
+      // gravar para o vigia do realtime (ImpressaoLancamentosBridge) não
+      // mandar o mesmo papel de novo ao ver a comanda mudar. Marcar um
+      // lançamento que acabe falhando não custa nada — não há o que imprimir.
+      registroLancamentos.marcar(chaveLancamento(ordem.id, agora));
+      const { error } = await updatePending(ordem.id, { items: acumulados, total }, { baseItems: anteriores });
+      if (error) throw error;
+      addLancada(ordem.id);
+      // Papel na produção sai sozinho ao lançar (se a chave estiver ligada
+      // em Configurações → Impressão). Fire-and-forget de propósito: o
+      // pedido JÁ está gravado, então impressora fora do ar não pode
+      // travar a tela nem sugerir que o lançamento falhou — só avisa.
+      imprimirLancamento({ ...ordem, items: novos })
+        .then(({ error: erroImpressao }) => {
+          if (erroImpressao) notify?.(`Pedido lançado, mas não saiu na produção: ${erroImpressao.message}`, "err");
+        })
+        .catch(() => {});
+      logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados na ${fmtComanda(ordem.comanda)} · ${novos.length} tipo(s) · R$ ${total.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: ordem.comanda, tipos: novos.length, total });
+      setToast(true);
+      setTimeout(() => setToast(false), 6000);
+      handleBack();
+    } catch (err) {
+      console.error("Erro ao lançar pedido:", err);
+      notify?.("Erro ao lançar o pedido — nada foi salvo. Tente novamente.", "err");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  // ── Ir para checkout — acumula itens locais antes de finalizar ─
+  const handleFinalizar = async () => {
+    if (bloqueio) { notify?.(`${fmtComanda(selected?.comanda)} está em uso por ${bloqueio.nome}.`, "err"); return; }
+    try {
+      let ordem = selected;
+      if (ordem._virtual) {
+        if (cartItems.length === 0) return; // não faz sentido finalizar sem itens
+        ordem = await persistirVirtual(ordem);
+        setSelected(ordem);
+      }
+      if (cartItems.length > 0) {
+        const anteriores = Array.isArray(ordem.items) ? ordem.items : [];
+        const novos      = cartItems.map(({ _key, ...rest }) => rest);
+        const acumulados = [...anteriores, ...novos];
+        const novoTotal  = totalItensAtivos(acumulados);
+        const { error } = await updatePending(ordem.id, { items: acumulados, total: novoTotal }, { baseItems: anteriores });
+        if (error) throw error;
+        setSelected(prev => ({ ...prev, items: acumulados, total: novoTotal }));
+        setCartItems([]);
+      }
+      setMode("checkout");
+    } catch (err) {
+      // Mantém o carrinho e NÃO entra no checkout: cobrar itens que não
+      // foram gravados geraria divergência entre a conta e a comanda.
+      console.error("handleFinalizar error:", err?.message ?? err, err);
+      notify?.("Não foi possível salvar os itens antes de fechar a conta. Tente novamente.", "err");
+    }
+  };
+
+  // ── Confirmar pagamento → grava venda e remove comanda ────────
+  const handleConfirmPayment = async (payload) => {
+    if (!selected) return;
+    if (bloqueio) return { error: new Error(`Comanda em uso por ${bloqueio.nome}. Aguarde liberar.`) };
+    setSalvando(true);
+    try {
+      await finalizarPagamento(selected, cartItems, payload, {
+        // A modal abre já em 'emitindo' e se atualiza sozinha ao concluir —
+        // nunca bloqueia a venda nem a volta à grade de comandas.
+        onNfce: ({ estado, resultado, venda }) =>
+          setCupomNfce({ aberta: true, estado, resultado, venda }),
+      });
+      handleBack();
+      return { error: null };
+    } catch (err) {
+      // não usar JSON.stringify: mascara Error como "{}"
+      console.error("handleConfirmPayment error:", err?.message ?? err, err);
+      // Devolve o erro para o CheckoutView exibir e reabilitar o botão —
+      // engolir aqui deixava o checkout preso em "Processando...".
+      return { error: err instanceof Error ? err : new Error("Não foi possível registrar o pagamento. Tente novamente.") };
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  // ── Remover (cancelar) item na tela de finalizar — Leva 15.1 ──
+  // Recebe o item agrupado do CheckoutView (name+price) e cancela a
+  // quantidade pedida nos itens lançados correspondentes, dividindo o
+  // último em ativo + cancelado quando a remoção é parcial.
+  const handleRemoverItemCheckout = async (itemRef, qtyRemover, motivo) => {
+    if (!selected) return { error: new Error("Comanda não encontrada.") };
+    let restante = qtyRemover;
+    const marcar = (it, qtd) => ({
+      ...it, qty: qtd, cancelado: true,
+      motivoCancelamento: motivo || "",
+      canceladoPor: currentUser?.name || "",
+    });
+    const novos = (selected.items ?? []).map((it) => {
+      if (restante <= 0 || it.cancelado || it.name !== itemRef.name || it.price !== itemRef.price) return it;
+      const qtyIt = it.qty ?? 1;
+      if (qtyIt <= restante) { restante -= qtyIt; return marcar(it, qtyIt); }
+      const cancelar = restante;
+      restante = 0;
+      // O pedaço cancelado é uma LINHA NOVA na comanda e precisa de `uid`
+      // próprio: herdando o uid do pedaço que continua ativo, os dois viravam
+      // o mesmo item aos olhos da reconciliação multi-dispositivo. Como
+      // `mesclarItensComanda` só preserva do banco os uids DESCONHECIDOS, o
+      // pedaço cancelado era descartado no primeiro lançamento vindo do Palm —
+      // o item voltava inteiro para a conta e o cliente pagava o que foi
+      // cancelado. Com uid novo, o cancelamento sobrevive ao merge.
+      return [{ ...it, qty: qtyIt - cancelar }, { ...marcar(it, cancelar), uid: crypto.randomUUID() }];
+    }).flat();
+    const novoTotal = totalItensAtivos(novos);
+    const { error } = await updatePending(selected.id, { items: novos, total: novoTotal }, { baseItems: selected.items });
+    if (error) return { error };
+    setSelected(prev => ({ ...prev, items: novos, total: novoTotal }));
+    logAction(currentUser?.username, "itens:cancelar", {
+      msg: `Item cancelado no fechamento da ${fmtComanda(selected.comanda)} · ${qtyRemover}× ${itemRef.name} · ${motivo}`,
+      name: currentUser?.name, role: currentUser?.role,
+      comanda: selected.comanda, item: itemRef.name, qty: qtyRemover, motivo,
+    });
+    return { error: null };
+  };
+
+  // ── Abrir slot vazio — cria comanda virtual (só persiste ao lançar) ──
+  const handleOpenEmpty = (nome, { mesa } = {}) => {
+    if (!caixaAberto) return;
+    const order = {
+      id:         crypto.randomUUID(),
+      comanda:    nome,
+      mesa:       "",
+      apelido:    "",
+      items:      [],
+      status:     "open",
+      total:      0,
+      garcom:     currentUser?.name     || "",
+      created_by: currentUser?.username || "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      _virtual:   true, // não persistida ainda
+    };
+    setBuscaComanda("");
+    setMesaInput(mesa ?? "");
+    setApelidoInput("");
+    setMesaPendingOrder(order);
+    setShowMesa(true);
+  };
+
+  // ── Persiste comanda virtual no banco ─────────────────────────
+  const persistirVirtual = async (order) => {
+    const { _virtual, ...payload } = order;
+    const { error } = await addPending(payload);
+    if (error) throw error;
+    logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta: ${order.comanda}`, name: currentUser?.name, role: currentUser?.role, comanda: order.comanda });
+    return payload;
+  };
+
+  // ── Transferir itens entre comandas ──────────────────────────
+  const abrirTransferir = () => {
+    const itens = Array.isArray(selected?.items) ? selected.items : [];
+    const qtds = {};
+    itens.forEach((_, idx) => { qtds[idx] = 0; });
+    setTransQtds(qtds);
+    setTransDestino(null);
+    setTransMode("lista");
+    setTransNumero("");
+    setTransNomeNova("");
+    setTransNumeroErro("");
+    setShowTransferir(true);
+  };
+
+  const handleTransferir = async () => {
+    const algumSelecionado = Object.values(transQtds).some(q => q > 0);
+    if (!algumSelecionado || transferindo) return;
+    // Mesma trava de lançar e finalizar: transferir reescreve `items` inteiro,
+    // então mexer numa comanda que outro aparelho tem aberta é exatamente o
+    // conflito que a trava existe para impedir.
+    if (bloqueio) { notify?.(`${fmtComanda(selected?.comanda)} está em uso por ${bloqueio.nome}.`, "err"); return; }
+
+    const itens = Array.isArray(selected?.items) ? selected.items : [];
+
+    // Resolve o destino dependendo do modo
+    let destinoId   = transDestino;
+    let nomeDestino = "";
+
+    if (transMode === "numero") {
+      const num = transNumero.trim();
+      if (!num) { setTransNumeroErro("Digite o número da comanda."); return; }
+      const encontrada = abertas.find(o => String(o.comanda).trim() === num && o.id !== selected?.id);
+      if (!encontrada) { setTransNumeroErro(`Comanda ${num} não encontrada ou é a mesma de origem.`); return; }
+      destinoId   = encontrada.id;
+      nomeDestino = fmtComanda(encontrada.comanda);
+    } else if (transMode === "nova") {
+      const nomeNova = transNomeNova.trim();
+      if (!nomeNova) { setTransNumeroErro("Digite o nome ou número da nova comanda."); return; }
+      const jaExiste = abertas.find(o => String(o.comanda).trim() === nomeNova);
+      if (jaExiste) { setTransNumeroErro(`Comanda "${nomeNova}" já existe.`); return; }
+      destinoId   = null; // será criada
+      nomeDestino = fmtComanda(nomeNova);
+    } else {
+      if (!destinoId) return;
+      const d = abertas.find(o => o.id === destinoId);
+      nomeDestino = d ? fmtComanda(d.comanda) : "";
+    }
+
+    setTransferindo(true);
+    try {
+      const aTransferir = itens
+        .map((it, idx) => ({ it, qty: transQtds[idx] ?? 0 }))
+        .filter(x => x.qty > 0);
+
+      // Origem: subtrai ou remove
+      const novosOrigem = itens.map((it, idx) => {
+        const qRemover = transQtds[idx] ?? 0;
+        if (!qRemover) return it;
+        const novaQty = (it.qty ?? 1) - qRemover;
+        return novaQty > 0 ? { ...it, qty: novaQty } : null;
+      }).filter(Boolean);
+      const totalOrigem = totalItensAtivos(novosOrigem);
+
+      // ── Transferência resiliente (sem Promise.all) ──────────────
+      // O supabase-js NÃO lança em erro — resolve `{ error }`. Se as duas
+      // gravações fossem disparadas juntas e a segunda falhasse, os itens
+      // sumiriam de uma comanda sem entrar na outra (perda silenciosa =
+      // prejuízo). Por isso as escritas são SEQUENCIAIS e o DESTINO é
+      // confirmado ANTES da remoção na ORIGEM: se algo falhar, no pior caso
+      // os itens ficam duplicados (visível/recuperável), nunca sumidos.
+      if (transMode === "nova") {
+        // Cria nova comanda com os itens transferidos.
+        const itensNova = aTransferir.map(({ it, qty }) => ({ ...it, qty }));
+        const totalNova = totalItensAtivos(itensNova);
+        const novaOrder = {
+          id:         crypto.randomUUID(),
+          comanda:    transNomeNova.trim(),
+          garcom:     currentUser?.name || "",
+          items:      itensNova,
+          total:      totalNova,
+          status:     "open",
+          created_at: new Date().toISOString(),
+          mesa:       selected?.mesa    || "",
+          apelido:    selected?.apelido || "",
+        };
+
+        // 1º passo — cria/adiciona no destino. Origem ainda intacta.
+        const { error: erroDestino } = await addPending(novaOrder);
+        if (erroDestino) {
+          notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          return;
+        }
+
+        // 2º passo — remove da origem só depois do destino confirmado.
+        const { error: erroOrigem } = await updatePending(
+          selected.id, { items: novosOrigem, total: totalOrigem }, { baseItems: itens },
+        );
+        if (erroOrigem) {
+          // Destino já criado e origem intacta: desfaz a criação
+          // (compensação) para não duplicar. Se a compensação também
+          // falhar, os itens ficaram duplicados — avisa para conferência.
+          const { error: erroCompensacao } = await removePending(novaOrder.id);
+          if (erroCompensacao) {
+            notify?.("Atenção: os itens podem ter ficado duplicados. Confira as duas comandas.", "err");
+          } else {
+            notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          }
+          return;
+        }
+      } else {
+        // Destino existente.
+        const destino          = abertas.find(o => o.id === destinoId);
+        // O caixa pode ter fechado a comanda de destino entre a abertura desta
+        // modal e o clique. Sem esta checagem, `destino.items` estourava
+        // TypeError: a modal ficava aberta, sem mensagem, e o clique de novo
+        // repetia o erro.
+        if (!destino) {
+          notify?.("A comanda de destino não está mais aberta. Nada foi alterado — escolha outra.", "err");
+          return;
+        }
+        const itensDestinoOrig = Array.isArray(destino.items) ? destino.items : [];
+        const novosDestino     = [...itensDestinoOrig];
+        aTransferir.forEach(({ it, qty }) => {
+          const existIdx = novosDestino.findIndex(d => mesmoItemDeVenda(d, it) && !d.cancelado);
+          if (existIdx >= 0) {
+            novosDestino[existIdx] = { ...novosDestino[existIdx], qty: (novosDestino[existIdx].qty ?? 1) + qty };
+          } else {
+            novosDestino.push({ ...it, qty });
+          }
+        });
+        const totalDestino = totalItensAtivos(novosDestino);
+
+        // 1º passo — adiciona no destino. Origem ainda intacta.
+        const { error: erroDestino } = await updatePending(
+          destinoId, { items: novosDestino, total: totalDestino }, { baseItems: itensDestinoOrig },
+        );
+        if (erroDestino) {
+          notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          return;
+        }
+
+        // 2º passo — remove da origem só depois do destino confirmado.
+        const { error: erroOrigem } = await updatePending(
+          selected.id, { items: novosOrigem, total: totalOrigem }, { baseItems: itens },
+        );
+        if (erroOrigem) {
+          // Destino já recebeu os itens e origem intacta: tenta reverter o
+          // destino ao estado original (compensação). Se a reversão falhar,
+          // os itens podem ficar duplicados (visível/recuperável), nunca
+          // sumidos.
+          const totalDestinoOrig = totalItensAtivos(itensDestinoOrig);
+          const { error: erroCompensacao } = await updatePending(
+            destinoId, { items: itensDestinoOrig, total: totalDestinoOrig }, { baseItems: novosDestino },
+          );
+          if (erroCompensacao) {
+            notify?.("Atenção: os itens podem ter ficado duplicados. Confira as duas comandas.", "err");
+          } else {
+            notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          }
+          return;
+        }
+      }
+
+      const qtdTransf = aTransferir.reduce((s, x) => s + x.qty, 0);
+      logAction(currentUser?.username, "itens:transferir", { msg: `Transferência: ${qtdTransf} item(ns) de ${fmtComanda(selected.comanda)} → ${nomeDestino}`, name: currentUser?.name, role: currentUser?.role, de: selected.comanda, para: nomeDestino, qtd: qtdTransf });
+
+      const itensAtivosRestantes = novosOrigem.filter(i => !i.cancelado);
+      if (itensAtivosRestantes.length === 0) {
+        const { error } = await removePending(selected.id);
+        if (error) notify?.("Itens transferidos, mas a comanda de origem vazia não pôde ser removida.", "err");
+        setSelected(null);
+        setMode("grid");
+      } else {
+        setSelected(prev => ({ ...prev, items: novosOrigem, total: totalOrigem }));
+      }
+      setShowTransferir(false);
+    } finally {
+      setTransferindo(false);
+    }
+  };
+
+  // ── Nova comanda com nome personalizado ───────────────────────
+  const handleNovaComanda = async () => {
+    if (!nomeComanda.trim() || criando) return;
+    setCriando(true);
+    const order = {
+      id:         crypto.randomUUID(),
+      comanda:    nomeComanda.trim(),
+      items:      [],
+      status:     "open",
+      total:      0,
+      garcom:     currentUser?.name     || "",
+      created_by: currentUser?.username || "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await addPending(order);
+    if (error) {
+      notify?.("Não foi possível abrir a comanda. Tente novamente.", "err");
+      setCriando(false);
+      return;
+    }
+    logAction(currentUser?.username, "comanda:abrir", { msg: `Comanda aberta: ${order.comanda}`, name: currentUser?.name, role: currentUser?.role, comanda: order.comanda });
+    setNomeComanda("");
+    setShowNova(false);
+    setCriando(false);
+    setBuscaComanda("");
+    setMesaInput("");
+    setApelidoInput("");
+    setMesaPendingOrder(order);
+    setShowMesa(true);
+  };
+
+  // Enquanto o bootstrap não trouxe o estado real do caixa (o default
+  // local é "aberto"), não deixar operar: evita registrar venda com o
+  // caixa de fato fechado nos primeiros segundos após o login.
+  if (bootstrapLoading) {
+    return (
+      <div className="pdv__loading">
+        Conectando ao caixa…
+      </div>
+    );
+  }
+
+  if (!caixaAberto) {
+    return (
+      <div className="pdv__lock">
+        <div className="pdv__lock-card">
+          <div className="pdv__lock-icone">
+            <LuLock size={36} color={varColor(C.accent)} />
+          </div>
+          <div className="pdv__lock-titulo">Caixa Fechado</div>
+          <div className="pdv__lock-desc">
+            O caixa está fechado. Para realizar operações na frente de caixa, solicite ao responsável que abra o caixa.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pdv__raiz">
+
+      {/* ── Header (oculto no checkout — ele tem o próprio — e no painel
+             enxuto do celular, onde a tela é só busca + lista) ────────── */}
+      {mode !== "checkout" && !painelEnxuto && (
+        <div className="pdv__header" style={{
+          // Faixa de topo compacta: header + alerta + abas + busca empilhados
+          // comiam ~240px antes do primeiro card. Cada bloco perdeu altura sem
+          // perder alvo de toque (ver comentários abaixo).
+          padding: `${sz.padSm - 3}px ${sz.pad}px`,
+          ...(isCel
+            ? { display: "flex", flexDirection: "column", alignItems: "stretch" }
+            : { display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }),
+          gap: sz.gap,
+        }}>
+          {/* Esquerda: título / voltar */}
+          <div className="pdv__header-esq">
+            {mode === "pedido" && (
+              <button
+                onClick={handleBack}
+                className="pdv__voltar-btn"
+                style={{ padding: `${sz.padSm - 2}px ${sz.padSm + 2}px` }}
+              >
+                <LuArrowLeft size={16} /> Voltar
+              </button>
+            )}
+            <div className="pdv__header-info" style={isCel ? { flex: 1, justifyContent: "space-between" } : undefined}>
+              <div className="pdv__header-titulos">
+                <div className="pdv__titulo">
+                  {mode === "pedido" ? fmtComanda(selected?.comanda) : "Frente de Caixa"}
+                </div>
+                <div className="pdv__subtitulo">
+                  {mode === "pedido"
+                    ? <>
+                        {selected?.mesa && <span className="pdv__subtitulo-mesa">🪑 Mesa {selected.mesa}{selected?.apelido ? ` · ${selected.apelido}` : ""} ·</span>}
+                        {cartItems.length} {cartItems.length === 1 ? "tipo de item" : "tipos de item"} no carrinho
+                      </>
+                    : `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} em aberto`}
+                </div>
+              </div>
+              {emPainel && (
+                <button
+                  onClick={() => { setShowSaldo(true); setSaldoSenha(""); setSaldoSenhaErro(""); setSaldoAutorizado(false); setSaldoSenhaVis(false); }}
+                  title="Saldo do dia"
+                  className="pdv__saldo-btn"
+                  style={{ padding: `${sz.padSm - 5}px ${sz.pad - 6}px` }}
+                >
+                  <LuChartBar size={15} /> Saldo do Dia
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Centro: vazio (só no grid do desktop; no celular não vira linha em branco) */}
+          {!isCel && <div />}
+
+          {/* Direita: ações */}
+          <div className="pdv__header-acoes" style={{ justifyContent: isCel ? "flex-start" : "flex-end", gap: sz.gap }}>
+          {/* Toast inline — visível no mapa/lista após lançar */}
+          {emPainel && (
+            <div className={`pdv__toast${toast ? " pdv__toast--visivel" : ""}`}>
+              ✓ Pedido lançado!
+            </div>
+          )}
+          {emPainel && (
+            <button
+              onClick={() => { setShowNova(true); setNomeComanda(""); }}
+              disabled={!caixaAberto}
+              className="pdv__nova-comanda-btn"
+              style={{
+                padding: `${sz.padSm - 5}px ${sz.pad - 2}px`,
+                ...(isCel ? { width: "100%", justifyContent: "center" } : {}),
+              }}
+            >
+              <LuPlus size={sz.fontBase} /> Nova Comanda
+            </button>
+          )}
+
+          {mode === "pedido" && (() => {
+            const itensLancados = Array.isArray(selected?.items) ? selected.items : [];
+            return (
+              <div className="pdv__acoes-pedido">
+
+                {/* ── Barcode scanner UI (FEATURE_BARCODE_SCANNER) ── */}
+                {FEATURE_BARCODE_SCANNER && (
+                  <div className="pdv__barcode-bloco">
+                    <div className="pdv__barcode-linha">
+                      {/* Feedback inline */}
+                      {barcodeFeedback && (
+                        <span className={`pdv__barcode-feedback pdv__barcode-feedback--${barcodeFeedback === "ok" ? "ok" : "erro"}`}>
+                          {barcodeFeedback === "ok" ? "✓ Item adicionado" : "Código não encontrado"}
+                        </span>
+                      )}
+                      {/* Botão toggle scanner */}
+                      <button
+                        type="button"
+                        onClick={() => { setBarcodeInputOpen(v => !v); setBarcodeValue(""); setBarcodeFeedback(null); }}
+                        title="Scanner de código de barras"
+                        className={`pdv__scanner-btn${barcodeInputOpen ? " pdv__scanner-btn--aberto" : ""}`}
+                      >
+                        <LuScanBarcode size={16} />
+                        Scanner
+                      </button>
+                    </div>
+                    {/* Campo de input manual — colapsável */}
+                    {barcodeInputOpen && (
+                      <div className="pdv__barcode-campo">
+                        <input
+                          autoFocus
+                          type="text"
+                          value={barcodeValue}
+                          onChange={e => setBarcodeValue(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") { handleBarcodeScan(barcodeValue.trim()); } }}
+                          placeholder="Digite ou escaneie o código..."
+                          maxLength={64}
+                          className="pdv__barcode-input"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleBarcodeScan(barcodeValue.trim())}
+                          className={`pdv__barcode-ok-btn${barcodeValue.trim() ? " pdv__barcode-ok-btn--ativo" : ""}`}
+                        >
+                          OK
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Botão Editar Mesa — sempre visível no modo pedido */}
+                <button
+                  onClick={abrirEditarMesa}
+                  title="Editar mesa e apelido"
+                  className="pdv__acao-btn pdv__acao-btn--neutro"
+                  style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
+                >
+                  <LuPencil size={sz.fontBase - 2} />
+                  {selected?.mesa ? `Mesa ${selected.mesa}` : "Mesa"}
+                </button>
+
+                {/* Botão Cliente — vincula um cliente cadastrado à comanda */}
+                <button
+                  onClick={abrirClienteComanda}
+                  title="Vincular cliente à comanda"
+                  className={`pdv__acao-btn pdv__acao-btn--cliente${selected?.cliente_id ? " pdv__acao-btn--cliente-vinculado" : ""}`}
+                  style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
+                >
+                  <LuUser size={sz.fontBase - 2} />
+                  <span className="pdv__acao-btn-texto">
+                    {selected?.cliente_nome ? selected.cliente_nome : "Cliente"}
+                  </span>
+                </button>
+
+                {itensLancados.length > 0 ? (
+                  <>
+                  <button
+                    onClick={abrirTransferir}
+                    className="pdv__acao-btn pdv__acao-btn--neutro"
+                    style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
+                  >
+                    <LuArrowLeftRight size={sz.fontBase - 1} /> Transferir
+                  </button>
+                  <button
+                    onClick={() => { setShowCancelarComanda(true); setCancelarSenha(""); setCancelarSenhaErro(""); setCancelarAutorizado(false); setCancelarMotivo(""); }}
+                    className="pdv__acao-btn pdv__acao-btn--cancelar-comanda"
+                    style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
+                  >
+                    <LuX size={sz.fontBase - 1} /> Cancelar Comanda
+                  </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => { setConfirmCancelar(true); setConfirmCancelarMotivo(""); }}
+                    className="pdv__acao-btn pdv__acao-btn--cancelar-pedido"
+                    style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
+                  >
+                    Cancelar Pedido
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+          </div>
+        </div>
+      )}
+
+      {/* ── Alerta de estoque (mapa + lista; fora do painel enxuto) ─── */}
+      {emPainel && !painelEnxuto && (() => {
+        const criticos = products.filter(p => {
+          const q = estoque[p.id] ?? 0;
+          return q === 0;
+        });
+        const baixos = products.filter(p => {
+          const q = estoque[p.id] ?? 0;
+          return q > 0 && q <= 10;
+        });
+        const total = criticos.length + baixos.length;
+        if (total === 0) return null;
+        return (
+          <div className="pdv__alerta pdv__alerta--atencao">
+            {/* Cabeçalho do alerta */}
+            <button
+              onClick={() => setAlertaAberto(v => !v)}
+              className="pdv__alerta-cabecalho"
+            >
+              <LuTriangleAlert size={16} color={varColor(C.warn)} />
+              <span className="pdv__alerta-label">
+                {criticos.length > 0 && `${criticos.length} produto${criticos.length !== 1 ? "s" : ""} sem estoque`}
+                {criticos.length > 0 && baixos.length > 0 && " · "}
+                {baixos.length > 0 && `${baixos.length} produtos com estoque baixo`}
+              </span>
+              <span className="pdv__alerta-toggle">
+                {alertaAberto ? <><LuChevronUp size={14} /> Ocultar</> : <><LuChevronDown size={14} /> Ver</>}
+              </span>
+            </button>
+
+            {/* Lista de itens */}
+            {alertaAberto && (
+              <div className="pdv__alerta-lista">
+                {criticos.map(p => (
+                  <span key={p.id} className="pdv__alerta-chip pdv__alerta-chip--critico">
+                    {p.emoji} {p.name} · <span className="pdv__alerta-chip-valor">0</span>
+                  </span>
+                ))}
+                {baixos.map(p => (
+                  <span key={p.id} className="pdv__alerta-chip pdv__alerta-chip--atencao">
+                    {p.emoji} {p.name} · <span className="pdv__alerta-chip-valor">{estoque[p.id]}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── Alerta de validade (C1) — mesmo padrão do alerta de estoque ── */}
+      {emPainel && !painelEnxuto && (() => {
+        const vencendo = produtosVencendo(products, diasAlertaValidade ?? 7);
+        if (vencendo.length === 0) return null;
+        const vencidos = vencendo.filter(v => v.vencido);
+        const proximos = vencendo.filter(v => !v.vencido);
+        const rotuloDias = (dias) => dias < 0
+          ? `vencido há ${Math.abs(dias)}d`
+          : dias === 0 ? "vence hoje" : `${dias}d`;
+        return (
+          <div className="pdv__alerta pdv__alerta--critico">
+            <button
+              onClick={() => setAlertaValidadeAberto(v => !v)}
+              className="pdv__alerta-cabecalho"
+            >
+              <LuTriangleAlert size={16} color={varColor(C.red)} />
+              <span className="pdv__alerta-label">
+                {vencidos.length > 0 && `${vencidos.length} produto${vencidos.length !== 1 ? "s" : ""} vencido${vencidos.length !== 1 ? "s" : ""}`}
+                {vencidos.length > 0 && proximos.length > 0 && " · "}
+                {proximos.length > 0 && `${proximos.length} vencendo em breve`}
+              </span>
+              <span className="pdv__alerta-toggle">
+                {alertaValidadeAberto ? <><LuChevronUp size={14} /> Ocultar</> : <><LuChevronDown size={14} /> Ver</>}
+              </span>
+            </button>
+            {alertaValidadeAberto && (
+              <div className="pdv__alerta-lista">
+                {vencendo.map(({ produto, dias, vencido }) => (
+                  <span key={produto.id} className={`pdv__alerta-chip pdv__alerta-chip--${vencido ? "critico" : "atencao"}`}>
+                    {produto.emoji} {produto.name} · <span className="pdv__alerta-chip-valor">{rotuloDias(dias)}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── Tab Mapa / Lista (celular fica só na lista) ───────────── */}
+      {emPainel && !painelEnxuto && (
+        <div className="pdv__tabs" style={{ padding: `0 ${sz.pad}px` }}>
+          {[
+            { key: "grid",     label: "Lista",            Icon: LuList },
+            { key: "mapa",     label: "Mapa",             Icon: LuLayoutGrid },
+            { key: "abertas",  label: "Comandas abertas", Icon: LuReceipt },
+            { key: "reservas", label: "Reservas",         Icon: LuCalendarCheck, alignRight: true },
+          ].map(({ key, label, Icon, alignRight }) => (
+            <button
+              key={key}
+              onClick={() => setMode(key)}
+              className={`pdv__tab-btn${mode === key ? " pdv__tab-btn--ativa" : ""}${alignRight ? " pdv__tab-btn--direita" : ""}`}
+            >
+              <Icon size={14} />{label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Toast "Pedido lançado!" no painel enxuto ──────────────
+             O toast normal mora no cabeçalho, que some no celular. Sem esta
+             versão flutuante, lançar pedido no celular não daria retorno. */}
+      {painelEnxuto && (
+        <div className={`pdv__toast pdv__toast--flutuante${toast ? " pdv__toast--visivel" : ""}`}>
+          ✓ Pedido lançado!
+        </div>
+      )}
+
+      {/* ── Busca de comandas (lista e comandas abertas) ─────────── */}
+      {(mode === "grid" || mode === "abertas") && (
+        <div className="pdv__busca">
+          <div className="pdv__busca-campo">
+            <LuSearch
+              size={18}
+              className={`pdv__busca-icone${buscaComanda ? " pdv__busca-icone--ativo" : ""}`}
+            />
+            <input
+              value={buscaComanda}
+              onChange={e => { if (e.target.value === "" || /^\d+$/.test(e.target.value)) setBuscaComanda(e.target.value); }}
+              placeholder="Buscar comanda..."
+              inputMode="numeric"
+              className={`pdv__busca-input${buscaComanda ? " pdv__busca-input--preenchido" : ""}`}
+            />
+            {buscaComanda && (
+              <button
+                onClick={() => setBuscaComanda("")}
+                className="pdv__busca-limpar"
+              >
+                <LuX size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Body ────────────────────────────────────────────────── */}
+      <div className="pdv__body">
+
+        {mode === "mapa" && (
+          <MesaMapView
+            mesas={mesas}
+            loading={mesasLoading}
+            abertas={abertas}
+            onSelectComanda={handleSelectComanda}
+            onOpenEmpty={handleOpenEmpty}
+          />
+        )}
+
+        {mode === "reservas" && (
+          <MesaReservasView
+            mesas={mesas}
+            loading={mesasLoading}
+            abertas={abertas}
+            atualizarStatus={atualizarStatusMesa}
+          />
+        )}
+
+        {mode === "grid" && (
+          <div className="pdv__lista-scroll">
+            <ComandaGrid
+              abertas={abertas}
+              visitadas={lancadas}
+              selected={null}
+              onSelect={handleSelectComanda}
+              onOpenEmpty={handleOpenEmpty}
+              busca={buscaComanda}
+              emUsoPor={(order) => emUsoPorOutro(order) ? nomeTrava(order) : null}
+            />
+          </div>
+        )}
+
+        {/* Só as comandas pendentes de pagamento — o operador localiza
+            rápido quem ainda não pagou, sem os slots vazios da lista. */}
+        {mode === "abertas" && (
+          <div className="pdv__lista-scroll">
+            <ComandaGrid
+              abertas={abertas}
+              visitadas={lancadas}
+              selected={null}
+              onSelect={handleSelectComanda}
+              onOpenEmpty={handleOpenEmpty}
+              busca={buscaComanda}
+              somenteAbertas
+              emUsoPor={(order) => emUsoPorOutro(order) ? nomeTrava(order) : null}
+            />
+          </div>
+        )}
+
+        {mode === "pedido" && (
+          <>
+            {/* Tab bar — só no mobile */}
+            {isMob && (
+              <div className="pdv__mobile-tabs">
+                {[
+                  { key: "produtos",  label: "Produtos",  Icon: LuShoppingBag },
+                  { key: "carrinho", label: `Carrinho${cartItems.length > 0 ? ` (${cartItems.length})` : ""}`, Icon: LuShoppingCart },
+                ].map(({ key, label, Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setAbaAtiva(key)}
+                    className={`pdv__mobile-tab-btn${abaAtiva === key ? " pdv__mobile-tab-btn--ativa" : ""}`}
+                  >
+                    <Icon size={15} />{label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Produtos */}
+            {(!isMob || abaAtiva === "produtos") && (
+              <div className="pdv__produtos-area">
+                <ProductGrid products={products} combos={combos} onAdd={handleAddProduct} />
+              </div>
+            )}
+
+            {/* Carrinho */}
+            {(!isMob || abaAtiva === "carrinho") && (
+              <CartPanel
+                comanda={selected}
+                items={cartItems}
+                onChangeQty={handleChangeQty}
+                onChangeObs={handleChangeObs}
+                onLancar={handleLancar}
+                onFinalizar={handleFinalizar}
+                salvando={salvando}
+                onRemoveAcumulado={async (idx, qty, motivo) => {
+                  const novos = selected.items.map((it, i) => {
+                    if (i !== idx) return it;
+                    const novaQty = (it.qty ?? 1) - qty;
+                    if (novaQty > 0) {
+                      // cancela parcialmente: divide em ativo + cancelado
+                      return [
+                        { ...it, qty: novaQty },
+                        { ...it, qty, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "" },
+                      ];
+                    }
+                    return { ...it, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "" };
+                  }).flat();
+                  const novoTotal = totalItensAtivos(novos);
+                  const { error } = await updatePending(selected.id, { items: novos, total: novoTotal }, { baseItems: selected.items });
+                  if (error) {
+                    notify?.("Não foi possível cancelar o item. Tente novamente.", "err");
+                    return;
+                  }
+                  setSelected(prev => ({ ...prev, items: novos, total: novoTotal }));
+                }}
+              />
+            )}
+          </>
+        )}
+
+        {mode === "checkout" && (
+          <CheckoutView
+            comanda={selected}
+            items={[
+              ...(Array.isArray(selected?.items) ? selected.items : []),
+              ...cartItems.map(({ _key, ...r }) => r),
+            ]}
+            onConfirm={handleConfirmPayment}
+            onBack={() => setMode("pedido")}
+            onRemoverItem={handleRemoverItemCheckout}
+          />
+        )}
+      </div>
+
+      {/* ── Modal: Cupom NFC-e (Leva 7) ──────────────────────────── */}
+      {cupomNfce.aberta && createPortal(
+        <ModalCupomNfce
+          estadoEmissao={cupomNfce.estado}
+          resultado={cupomNfce.resultado}
+          venda={cupomNfce.venda}
+          onFechar={() => setCupomNfce((c) => ({ ...c, aberta: false }))}
+        />,
+        document.body,
+      )}
+
+      {/* ── Modal: Nova Comanda ──────────────────────────────────── */}
+      {showNova && (
+        <div
+          {...fecharAoClicarFora(() => setShowNova(false))}
+          className="pdv__nova-overlay"
+        >
+          <div className="pdv__nova-card">
+            <div className="pdv__modal-titulo pdv__nova-titulo">Nova Comanda</div>
+            <div className="pdv__modal-desc pdv__nova-desc">
+              Informe o nome ou número da mesa
+            </div>
+
+            <label className="pdv__modal-label">
+              Nome / Número
+            </label>
+            <input
+              autoFocus
+              value={nomeComanda}
+              onChange={e => setNomeComanda(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleNovaComanda()}
+              placeholder="Ex: Mesa 1, Balcão, Delivery..."
+              maxLength={30}
+              className="pdv__modal-input pdv__nova-input"
+            />
+
+            <div className="pdv__nova-acoes">
+              <button
+                onClick={() => setShowNova(false)}
+                className="pdv__modal-btn pdv__modal-btn--secundario pdv__nova-btn"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleNovaComanda}
+                disabled={!nomeComanda.trim() || criando}
+                className={`pdv__modal-btn pdv__modal-btn--primario pdv__nova-btn pdv__nova-btn-abrir${nomeComanda.trim() ? " pdv__nova-btn-abrir--ativo" : ""}`}
+              >
+                {criando ? "Abrindo..." : "Abrir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Popup: Cancelar Comanda ─────────────────────────────── */}
+      {showCancelarComanda && createPortal(
+        <div
+          {...fecharAoClicarFora(() => setShowCancelarComanda(false))}
+          className="pdv__cancelar-overlay"
+        >
+          <div className="pdv__cancelar-card">
+            {/* Header */}
+            <div className="pdv__cancelar-header">
+              <div>
+                <div className="pdv__modal-titulo pdv__cancelar-titulo">Cancelar Comanda</div>
+                <div className="pdv__modal-subtitulo pdv__cancelar-subtitulo">{fmtComanda(selected?.comanda)}</div>
+              </div>
+              <button onClick={() => setShowCancelarComanda(false)} className="pdv__modal-icone-btn pdv__cancelar-close-btn">
+                <LuX size={20} />
+              </button>
+            </div>
+
+            <div className="pdv__cancelar-body">
+              {!cancelarAutorizado ? (
+                <>
+                  <div className="pdv__modal-desc">
+                    Esta ação cancelará <strong className="pdv__modal-forte">todos os itens</strong> da comanda. Digite a senha de administrador ou gerente para continuar.
+                  </div>
+                  <div className="pdv__cancelar-senha-wrap">
+                    <input
+                      autoFocus
+                      type={cancelarSenhaVis ? "text" : "password"}
+                      value={cancelarSenha}
+                      onChange={e => { setCancelarSenha(e.target.value); setCancelarSenhaErro(""); }}
+                      onKeyDown={async e => {
+                        if (e.key === "Enter") {
+                          const { ok, erro } = await verificarSenhaAdmin(cancelarSenha);
+                          if (ok) { setCancelarAutorizado(true); setCancelarSenhaErro(""); }
+                          else setCancelarSenhaErro(erro || "Senha incorreta.");
+                        }
+                      }}
+                      placeholder="Senha de admin ou gerente"
+                      aria-invalid={!!cancelarSenhaErro}
+                      className="pdv__modal-input pdv__cancelar-input"
+                    />
+                    <button
+                      onClick={() => setCancelarSenhaVis(v => !v)}
+                      className="pdv__modal-icone-btn pdv__cancelar-olho-btn"
+                    >
+                      {cancelarSenhaVis ? <LuEyeOff size={18} /> : <LuEye size={18} />}
+                    </button>
+                  </div>
+                  {cancelarSenhaErro && <div role="alert" className="pdv__modal-erro">{cancelarSenhaErro}</div>}
+                  <button
+                    onClick={async () => {
+                      const { ok, erro } = await verificarSenhaAdmin(cancelarSenha);
+                      if (ok) { setCancelarAutorizado(true); setCancelarSenhaErro(""); }
+                      else setCancelarSenhaErro(erro || "Senha incorreta.");
+                    }}
+                    disabled={!cancelarSenha}
+                    className="pdv__modal-btn pdv__modal-btn--primario pdv__cancelar-btn-verificar"
+                  >
+                    Verificar Senha
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="pdv__modal-desc">
+                    Motivo do cancelamento <span className="pdv__modal-vermelho">*</span>
+                  </div>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={cancelarMotivo}
+                    onChange={e => setCancelarMotivo(e.target.value)}
+                    placeholder="Ex: cliente desistiu, erro no pedido..."
+                    maxLength={120}
+                    className={`pdv__modal-input pdv__cancelar-motivo-input${cancelarMotivo.trim() ? " pdv__cancelar-motivo-input--preenchido" : ""}`}
+                  />
+                  <div className="pdv__modal-aviso pdv__cancelar-aviso">
+                    ⚠️ {(selected?.items ?? []).filter(i => !i.cancelado).length} item(ns) serão cancelados e enviados para o relatório.
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (cancelandoComanda) return;
+                      setCancelandoComanda(true);
+                      try {
+                        await cancelarComanda(selected, cancelarMotivo);
+                        setShowCancelarComanda(false);
+                        setSelected(null);
+                        setMode("grid");
+                      } catch (err) {
+                        notify?.(err?.message || "Não foi possível cancelar a comanda. Tente novamente.", "err");
+                      } finally {
+                        setCancelandoComanda(false);
+                      }
+                    }}
+                    disabled={cancelandoComanda || !cancelarMotivo.trim()}
+                    className={`pdv__modal-btn pdv__modal-btn--primario pdv__cancelar-btn-confirmar${cancelarMotivo.trim() ? " pdv__cancelar-btn-confirmar--preenchido" : ""}`}
+                  >
+                    {cancelandoComanda ? "Cancelando..." : "✕ Confirmar Cancelamento"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Popup: Transferir Itens ─────────────────────────────── */}
+      {showTransferir && createPortal(
+        <div
+          {...fecharAoClicarFora(() => setShowTransferir(false))}
+          className="pdv__transfer-overlay"
+        >
+          <div className="pdv__transfer-card">
+            {/* Header */}
+            <div className="pdv__transfer-header">
+              <div>
+                <div className="pdv__modal-titulo pdv__transfer-titulo">
+                  <LuArrowLeftRight size={18} /> Transferir itens
+                </div>
+                <div className="pdv__transfer-info pdv__transfer-de">
+                  De: {/^\d+$/.test(String(selected?.comanda ?? "").trim()) ? `Comanda ${selected?.comanda}` : selected?.comanda}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTransferir(false)}
+                className="pdv__modal-close-btn pdv__modal-icone-btn pdv__transfer-close-btn"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="pdv__transfer-body">
+              {/* Seção: itens a transferir */}
+              <div className="pdv__transfer-secao-itens">
+                <div className="pdv__modal-label pdv__transfer-label">
+                  Selecione os itens e quantidades
+                </div>
+                {/* Item cancelado não pode ser transferido: no destino ele se
+                    funde com a linha ativa do mesmo produto (mesmoItemDeVenda)
+                    e volta a ser cobrável. O `idx` original é preservado porque
+                    `transQtds` é indexado por posição na lista de `selected`. */}
+                {(Array.isArray(selected?.items) ? selected.items : [])
+                  .map((item, idx) => ({ item, idx }))
+                  .filter(({ item }) => !item?.cancelado)
+                  .map(({ item, idx }) => {
+                  const qty    = item.qty ?? 1;
+                  const qSel   = transQtds[idx] ?? 0;
+                  const ativo  = qSel > 0;
+                  return (
+                    <div key={idx} className={`pdv__transfer-item${ativo ? " pdv__transfer-item--ativo" : ""}`}>
+                      {item.emoji && <span className="pdv__transfer-item-emoji">{item.emoji}</span>}
+                      <div className="pdv__transfer-item-info">
+                        <div className="pdv__transfer-item-nome">
+                          {item.name}
+                        </div>
+                        <div className="pdv__transfer-item-disponivel">Disponível: {qty}</div>
+                      </div>
+                      {/* Qty selector */}
+                      <div className="pdv__transfer-stepper">
+                        <button
+                          onClick={() => setTransQtds(prev => ({ ...prev, [idx]: Math.max(0, (prev[idx] ?? 0) - 1) }))}
+                          className="pdv__transfer-qty-btn"
+                        >
+                          <span className="pdv__transfer-qty-symbol">−</span>
+                        </button>
+                        <span className={`pdv__transfer-qty-valor${ativo ? " pdv__transfer-qty-valor--ativo" : ""}`}>
+                          {qSel}
+                        </span>
+                        <button
+                          onClick={() => setTransQtds(prev => ({ ...prev, [idx]: Math.min(qty, (prev[idx] ?? 0) + 1) }))}
+                          className="pdv__transfer-qty-btn"
+                        >
+                          <span className="pdv__transfer-qty-symbol">+</span>
+                        </button>
+                        <button
+                          onClick={() => setTransQtds(prev => ({ ...prev, [idx]: prev[idx] === qty ? 0 : qty }))}
+                          className={`pdv__transfer-todos-btn${ativo ? " pdv__transfer-todos-btn--ativo" : ""}`}
+                        >
+                          {ativo && qSel === qty ? "Todos ✓" : "Todos"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Seção: comanda destino */}
+              <div className="pdv__transfer-secao-destino">
+                <div className="pdv__modal-label pdv__transfer-label">
+                  Transferir para
+                </div>
+
+                {/* Abas de modo */}
+                <div className="pdv__transfer-tabs">
+                  {[
+                    { id: "lista",  label: "Comandas abertas" },
+                    { id: "numero", label: "Buscar por número" },
+                    { id: "nova",   label: "+ Nova comanda" },
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => { setTransMode(tab.id); setTransDestino(null); setTransNumeroErro(""); }}
+                      className={`pdv__transfer-tab-btn${transMode === tab.id ? " pdv__transfer-tab-btn--ativa" : ""}`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Modo: lista de comandas abertas */}
+                {transMode === "lista" && (
+                  abertas.filter(o => o.id !== selected?.id).length === 0 ? (
+                    <div className="pdv__transfer-info pdv__transfer-vazio">
+                      Nenhuma outra comanda aberta.
+                    </div>
+                  ) : (
+                    <div className="pdv__transfer-lista">
+                      {abertas.filter(o => o.id !== selected?.id).map(o => {
+                        const nome = fmtComanda(o.comanda) || `#${String(o.id).slice(-4).toUpperCase()}`;
+                        const sel  = transDestino === o.id;
+                        return (
+                          <button
+                            key={o.id}
+                            onClick={() => setTransDestino(o.id)}
+                            className={`pdv__transfer-destino-btn${sel ? " pdv__transfer-destino-btn--selecionado" : ""}`}
+                          >
+                            <div className={`pdv__transfer-avatar${sel ? " pdv__transfer-avatar--selecionado" : ""}`}>
+                              {sel ? "✓" : "#"}
+                            </div>
+                            <div className="pdv__transfer-destino-info">
+                              <div className="pdv__transfer-card-nome">{nome}</div>
+                              {o.garcom && <div className="pdv__transfer-card-meta">{o.garcom}</div>}
+                            </div>
+                            {o.total > 0 && (
+                              <div className="pdv__transfer-card-valor pdv__transfer-lista-valor">
+                                R$ {Number(o.total).toFixed(2)}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )
+                )}
+
+                {/* Modo: buscar por número */}
+                {transMode === "numero" && (
+                  <div className="pdv__transfer-busca">
+                    <div className="pdv__transfer-input-wrap">
+                      <input
+                        autoFocus
+                        type="text"
+                        inputMode="numeric"
+                        value={transNumero}
+                        onChange={e => { setTransNumero(e.target.value.replace(/\D/g, "")); setTransNumeroErro(""); setTransDestino(null); }}
+                        placeholder="Ex: 42"
+                        aria-invalid={!!transNumeroErro}
+                        className="pdv__modal-input pdv__transfer-input"
+                      />
+                    </div>
+                    {transNumeroErro && (
+                      <div className="pdv__modal-erro">{transNumeroErro}</div>
+                    )}
+                    {/* Preview da comanda encontrada */}
+                    {(() => {
+                      if (!transNumero.trim()) return null;
+                      const encontrada = abertas.find(o => String(o.comanda).trim() === transNumero.trim() && o.id !== selected?.id);
+                      if (!encontrada) return (
+                        <div className="pdv__transfer-info pdv__transfer-sem-resultado">
+                          Nenhuma comanda aberta com esse número.
+                        </div>
+                      );
+                      return (
+                        <div className="pdv__transfer-preview">
+                          <div className="pdv__transfer-preview-check">✓</div>
+                          <div>
+                            <div className="pdv__transfer-card-nome pdv__transfer-preview-nome">{fmtComanda(encontrada.comanda)}</div>
+                            {encontrada.garcom && <div className="pdv__transfer-card-meta">{encontrada.garcom}</div>}
+                          </div>
+                          {encontrada.total > 0 && (
+                            <div className="pdv__transfer-card-valor pdv__transfer-preview-valor">
+                              R$ {Number(encontrada.total).toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Modo: nova comanda */}
+                {transMode === "nova" && (
+                  <div className="pdv__transfer-busca">
+                    <div className="pdv__transfer-info pdv__transfer-nova-info">
+                      Uma nova comanda será criada com os itens selecionados.
+                    </div>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={transNomeNova}
+                      onChange={e => { setTransNomeNova(e.target.value); setTransNumeroErro(""); }}
+                      placeholder="Nome ou número da nova comanda (ex: 99)"
+                      aria-invalid={!!transNumeroErro}
+                      className="pdv__modal-input pdv__transfer-input"
+                    />
+                    {transNumeroErro && (
+                      <div className="pdv__modal-erro">{transNumeroErro}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            {(() => {
+              const algumSelecionado = Object.values(transQtds).some(q => q > 0);
+              const qtdTransferir    = Object.values(transQtds).reduce((s, q) => s + q, 0);
+
+              let pode = false;
+              let nomeDestino = "";
+              if (transMode === "lista") {
+                pode = algumSelecionado && !!transDestino;
+                const d = abertas.find(o => o.id === transDestino);
+                nomeDestino = d ? fmtComanda(d.comanda) : "";
+              } else if (transMode === "numero") {
+                const encontrada = abertas.find(o => String(o.comanda).trim() === transNumero.trim() && o.id !== selected?.id);
+                pode = algumSelecionado && !!encontrada;
+                nomeDestino = encontrada ? fmtComanda(encontrada.comanda) : "";
+              } else if (transMode === "nova") {
+                pode = algumSelecionado && !!transNomeNova.trim();
+                nomeDestino = transNomeNova.trim() ? fmtComanda(transNomeNova.trim()) : "nova comanda";
+              }
+
+              return (
+                <div className="pdv__transfer-footer">
+                  <button
+                    onClick={() => setShowTransferir(false)}
+                    className="pdv__modal-btn pdv__modal-btn--secundario pdv__transfer-btn-cancelar"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleTransferir}
+                    disabled={!pode || transferindo}
+                    className={`pdv__modal-btn pdv__modal-btn--primario pdv__transfer-btn-confirmar${pode ? " pdv__transfer-btn-confirmar--pode" : ""}`}
+                  >
+                    {transferindo
+                      ? "Transferindo..."
+                      : pode
+                        ? <><LuArrowLeftRight size={16} /> Transferindo para {nomeDestino}</>
+                        : "Selecione itens e destino"}
+                  </button>
+                </div>
+              );
+            })()}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Popup: Confirmar cancelamento ───────────────────────── */}
+      {confirmCancelar && createPortal(
+        <div
+          {...fecharAoClicarFora(() => setConfirmCancelar(false))}
+          className="pdv__confirm-overlay"
+        >
+          <div className="pdv__confirm-card">
+            <div className="pdv__confirm-header">
+              <div className="pdv__modal-emoji-circulo pdv__confirm-emoji">
+                🗑️
+              </div>
+              <div>
+                <div className="pdv__modal-titulo pdv__confirm-titulo">Cancelar pedido?</div>
+                <div className="pdv__modal-subtitulo pdv__confirm-subtitulo">
+                  {/^\d+$/.test(String(selected?.comanda ?? "").trim()) ? `Comanda ${selected?.comanda}` : selected?.comanda}
+                </div>
+              </div>
+            </div>
+
+            <div className="pdv__modal-aviso pdv__confirm-aviso">
+              A comanda será <strong className="pdv__modal-vermelho">removida permanentemente</strong>. Esta ação não pode ser desfeita.
+            </div>
+
+            <div className="pdv__confirm-campo">
+              <div className="pdv__modal-label">
+                Motivo do cancelamento <span className="pdv__modal-vermelho">*</span>
+              </div>
+              <input
+                autoFocus
+                type="text"
+                value={confirmCancelarMotivo}
+                onChange={e => setConfirmCancelarMotivo(e.target.value)}
+                placeholder="Ex: cliente desistiu, erro no pedido..."
+                maxLength={120}
+                className={`pdv__modal-input pdv__confirm-input${confirmCancelarMotivo.trim() ? " pdv__confirm-input--preenchido" : ""}`}
+              />
+            </div>
+
+            <div className="pdv__confirm-acoes">
+              <button
+                onClick={() => setConfirmCancelar(false)}
+                className="pdv__modal-btn pdv__modal-btn--secundario pdv__confirm-btn"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={async () => {
+                  if (cancelandoComanda) return;
+                  setConfirmCancelar(false);
+                  setCancelandoComanda(true);
+                  try {
+                    const itensComanda = Array.isArray(selected?.items) ? selected.items : [];
+                    // Remove primeiro: log e evento só depois do banco confirmar,
+                    // senão a trilha registra um cancelamento que não aconteceu.
+                    const { error } = await removePending(selected.id);
+                    if (error) {
+                      notify?.("Não foi possível cancelar a comanda. Tente novamente.", "err");
+                      return;
+                    }
+                    logAction(currentUser?.username, "comanda:cancelar", { msg: `Comanda cancelada: ${fmtComanda(selected.comanda)}`, name: currentUser?.name, role: currentUser?.role, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), items: itensComanda });
+                    emitirEvento("pedido.cancelado", "pedidos", { pedido_id: selected.id, comanda: selected.comanda, motivo: confirmCancelarMotivo.trim(), itens: itensComanda.length }, currentUser?.username);
+                    handleBack();
+                  } finally {
+                    setCancelandoComanda(false);
+                  }
+                }}
+                disabled={!confirmCancelarMotivo.trim()}
+                className="pdv__modal-btn pdv__modal-btn--primario pdv__confirm-btn pdv__confirm-btn-sim"
+              >
+                Sim, cancelar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Popup: Mesa ──────────────────────────────────────────── */}
+      {showMesa && mesaPendingOrder && createPortal(
+        <div
+          {...fecharAoClicarFora(() => { handleConfirmarMesa(); })}
+          className="pdv__mesa-overlay"
+        >
+          <div className="pdv__mesa-card">
+            {/* Header */}
+            <div className="pdv__mesa-header">
+              <div className="pdv__modal-emoji-circulo pdv__mesa-emoji">
+                🪑
+              </div>
+              <div>
+                <div className="pdv__modal-titulo pdv__mesa-titulo">
+                  {fmtComanda(mesaPendingOrder.comanda)}
+                </div>
+                <div className="pdv__transfer-info pdv__mesa-sub">
+                  {mesaPendingOrder.mesa ? "Editar mesa e apelido" : "Informe a mesa antes de continuar"}
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="pdv__mesa-body">
+
+              {/* Mesa */}
+              <div className="pdv__mesa-campo">
+                <label className="pdv__modal-label">
+                  Número ou nome da mesa <span className="pdv__modal-vermelho">*</span>
+                </label>
+                <input
+                  autoFocus
+                  type="text"
+                  value={mesaInput}
+                  onChange={e => setMesaInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleConfirmarMesa()}
+                  placeholder="Ex: 5, Varanda, Salão 2..."
+                  maxLength={40}
+                  aria-invalid={!mesaInput.trim()}
+                  className="pdv__modal-input pdv__mesa-input"
+                />
+                {!mesaInput.trim() && (
+                  <div className="pdv__modal-erro">Campo obrigatório.</div>
+                )}
+              </div>
+
+              {/* Apelido */}
+              <div className="pdv__mesa-campo">
+                <label className="pdv__modal-label">
+                  Apelido do cliente <span className="pdv__mesa-label-opcional">(opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={apelidoInput}
+                  onChange={e => setApelidoInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleConfirmarMesa()}
+                  placeholder="Ex: João, Família Silva..."
+                  maxLength={40}
+                  className="pdv__modal-input pdv__mesa-input"
+                />
+              </div>
+
+              <div className="pdv__mesa-hint">
+                Apelido é opcional. Pressione Enter ou clique em Entrar para continuar.
+              </div>
+
+              <div className="pdv__mesa-acoes">
+                <button
+                  onClick={() => { setShowMesa(false); setMesaPendingOrder(null); }}
+                  className="pdv__modal-btn pdv__modal-btn--secundario pdv__mesa-btn-cancelar"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmarMesa}
+                  disabled={salvandoMesa || !mesaInput.trim()}
+                  className={`pdv__modal-btn pdv__modal-btn--primario pdv__mesa-btn-entrar${mesaInput.trim() ? " pdv__mesa-btn-entrar--ativo" : ""}${salvandoMesa ? " pdv__mesa-btn-entrar--salvando" : ""}`}
+                >
+                  {salvandoMesa ? "Entrando..." : "Entrar na comanda →"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Popup: Cliente da comanda ────────────────────────────── */}
+      {showCliente && clientePendingOrder && (
+        <ClienteComandaModal
+          comanda={clientePendingOrder}
+          clienteSel={clienteSel}
+          onSelecionar={setClienteSel}
+          onConfirmar={handleConfirmarClienteComanda}
+          onCancelar={() => { setShowCliente(false); setClientePendingOrder(null); }}
+          salvando={salvandoCliente}
+          usuario={currentUser?.username}
+        />
+      )}
+
+      {/* ── Popup: Saldo do Dia ──────────────────────────────────── */}
+      {showSaldo && createPortal(
+        <SaldoModal
+          onClose={() => setShowSaldo(false)}
+          senha={saldoSenha}
+          setSenha={setSaldoSenha}
+          senhaErro={saldoSenhaErro}
+          setSenhaErro={setSaldoSenhaErro}
+          autorizado={saldoAutorizado}
+          setAutorizado={setSaldoAutorizado}
+          senhaVis={saldoSenhaVis}
+          setSenhaVis={setSaldoSenhaVis}
+          users={users}
+          sales={sales}
+          pending={pending}
+          metodosCustom={metodosCustom}
+        />,
+        document.body
+      )}
+
+    </div>
+  );
+}
+
+// ── Modal de Saldo do Dia ─────────────────────────────────────────
+function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending, metodosCustom }) {
+  const { width } = useResponsive();
+  const sz = getSizes(width);
+  const isNarrow = width < 540;
+  const hoje = new Date().toDateString();
+  const [logsComandaCancelada, setLogsComandaCancelada] = useState([]);
+  const [showCancelList, setShowCancelList] = useState(false);
+
+  useEffect(() => {
+    if (!autorizado) return;
+    const inicioDia = new Date(new Date().toDateString()).toISOString();
+    supabase
+      .from("operator_logs")
+      .select("payload, created_at")
+      .eq("action_type", "comanda:cancelar")
+      .gte("created_at", inicioDia)
+      .then(({ data }) => setLogsComandaCancelada(data ?? []));
+  }, [autorizado]);
+
+  // Leva 15.3 — vendas canceladas não contam no saldo do dia
+  const vendasHoje = (sales ?? []).filter(s => s.at && !s.cancelada && new Date(s.at).toDateString() === hoje);
+  const totalVendas = vendasHoje.reduce((s, v) => s + (v.total ?? 0), 0);
+  const qtdVendas   = vendasHoje.length;
+
+  const abertas = (pending ?? []).filter(p => p.status !== "closed");
+  const totalAberto = abertas.reduce((s, p) => {
+    const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
+    return s + ativos.reduce((x, i) => x + (i.price ?? 0) * (i.qty ?? 1), 0);
+  }, 0);
+
+  // Cancelamentos: itens cancelados em comandas abertas + em vendas do dia + comandas inteiras canceladas
+  const canceladosAbertos = abertas.flatMap(p =>
+    (Array.isArray(p.items) ? p.items : []).filter(i => i.cancelado)
+  );
+  const canceladosFechados = vendasHoje.flatMap(v =>
+    (Array.isArray(v.items) ? v.items : []).filter(i => i.cancelado)
+  );
+  // Itens de comandas inteiras canceladas (vindos dos logs)
+  const canceladosComanda = logsComandaCancelada.flatMap(log => {
+    const items = Array.isArray(log.payload?.items) ? log.payload.items : [];
+    const motivo = log.payload?.motivo || "";
+    const canceladoPor = log.payload?.name || "";
+    const comanda = log.payload?.comanda || "—";
+    return items.map(i => ({ ...i, motivoCancelamento: motivo, canceladoPor, _comanda: comanda, _comandaCancelada: true }));
+  });
+  const todosCancelados = [...canceladosAbertos, ...canceladosFechados, ...canceladosComanda];
+  const totalCancelado  = todosCancelados.reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0);
+  const qtdCancelados   = todosCancelados.reduce((s, i) => s + (i.qty ?? 1), 0);
+
+  const porMetodo = {};
+  vendasHoje.forEach(v => { Object.entries(totalPorMetodo(v)).forEach(([m, val]) => { porMetodo[m] = (porMetodo[m] ?? 0) + val; }); });
+
+  const customLabels = Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label]));
+  const METODOS_COLOR = { dinheiro: "#10b981", credito: "#3b82f6", debito: "#8b5cf6", pix: "#f59e0b" };
+
+  const verificarSenha = async () => {
+    const { ok, erro } = await verificarSenhaAdmin(senha);
+    if (ok) { setAutorizado(true); setSenhaErro(""); }
+    else    { setSenhaErro(erro || "Senha incorreta. Apenas administradores e gerentes têm acesso."); }
+  };
+
+  return (
+    <div {...fecharAoClicarFora(onClose)} className="pdv__saldo-overlay">
+      <div className={`pdv__saldo-modal${autorizado ? " pdv__saldo-modal--autorizado" : ""}`}>
+        {/* Header */}
+        <div className="pdv__saldo-header" style={{ padding: `${sz.padSm + 4}px ${sz.pad}px` }}>
+          <div className="pdv__saldo-header-info">
+            <div className="pdv__saldo-icone">
+              <LuChartBar size={18} color={varColor(C.accent)} />
+            </div>
+            <div>
+              <div className="pdv__saldo-titulo">Saldo do Dia</div>
+              <div className="pdv__saldo-subtitulo">
+                {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} className="pdv__saldo-close-btn">
+            <LuX size={18} />
+          </button>
+        </div>
+
+        {/* Corpo: senha ou dados */}
+        {!autorizado ? (
+          <div className="pdv__saldo-corpo" style={{ padding: sz.pad }}>
+            <div className="pdv__saldo-aviso">
+              <LuLock size={16} color={varColor(C.accent)} />
+              Acesso restrito a administradores e gerentes.
+            </div>
+
+            <div className="pdv__saldo-campo">
+              <label className="pdv__saldo-label">
+                Senha
+              </label>
+              <div className="pdv__saldo-input-wrap">
+                <input
+                  autoFocus
+                  type={senhaVis ? "text" : "password"}
+                  value={senha}
+                  onChange={e => { setSenha(e.target.value); setSenhaErro(""); }}
+                  onKeyDown={e => e.key === "Enter" && verificarSenha()}
+                  placeholder="Digite a senha de acesso"
+                  className="pdv__saldo-input"
+                  aria-invalid={!!senhaErro}
+                />
+                <button
+                  onClick={() => setSenhaVis(v => !v)}
+                  className="pdv__saldo-olho-btn"
+                >
+                  {senhaVis ? <LuEyeOff size={16} /> : <LuEye size={16} />}
+                </button>
+              </div>
+              {senhaErro && (
+                <div role="alert" className="pdv__saldo-erro">
+                  {senhaErro}
+                </div>
+              )}
+            </div>
+
+            <div className="pdv__saldo-acoes">
+              <button onClick={onClose} className="pdv__saldo-modal-btn">
+                Cancelar
+              </button>
+              <button
+                onClick={verificarSenha}
+                disabled={!senha.trim()}
+                className="pdv__saldo-modal-btn pdv__saldo-modal-btn--primario"
+              >
+                Acessar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="pdv__saldo-corpo pdv__saldo-corpo--dados" style={{ padding: sz.pad }}>
+
+            {/* KPIs */}
+            <div className="pdv__saldo-kpis" style={{ gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr" }}>
+              {[
+                { label: "Vendas Finalizadas",    value: `R$ ${totalVendas.toFixed(2)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: varColor(C.green) },
+                { label: "Em Aberto (estimado)",  value: `R$ ${totalAberto.toFixed(2)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: varColor(C.accent) },
+              ].map(k => (
+                <div key={k.label} className="pdv__saldo-kpi">
+                  <div className="pdv__saldo-kpi-label">{k.label}</div>
+                  <div className="pdv__saldo-kpi-valor" style={{ color: k.color }}>{k.value}</div>
+                  <div className="pdv__saldo-kpi-sub">{k.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Card de Cancelamentos */}
+            <div className="pdv__saldo-cancelamentos">
+              <div className="pdv__saldo-cancelamentos-linha" style={{ flexWrap: isNarrow ? "wrap" : "nowrap" }}>
+                <div className="pdv__saldo-cancelamentos-info">
+                  <div className="pdv__saldo-kpi-label">
+                    Cancelamentos do Dia
+                  </div>
+                  <div className="pdv__saldo-kpi-sub">
+                    {qtdCancelados} {qtdCancelados === 1 ? "item cancelado" : "itens cancelados"}
+                  </div>
+                  <div className="pdv__saldo-pills">
+                    {canceladosAbertos.length > 0 && (
+                      <span className="pdv__saldo-pill">
+                        {canceladosAbertos.reduce((s,i)=>s+(i.qty??1),0)} em aberto
+                      </span>
+                    )}
+                    {canceladosFechados.length > 0 && (
+                      <span className="pdv__saldo-pill">
+                        {canceladosFechados.reduce((s,i)=>s+(i.qty??1),0)} em fechadas
+                      </span>
+                    )}
+                    {canceladosComanda.length > 0 && (
+                      <span className="pdv__saldo-pill pdv__saldo-pill--comanda">
+                        {canceladosComanda.reduce((s,i)=>s+(i.qty??1),0)} de comanda{logsComandaCancelada.length !== 1 ? "s" : ""} cancelada{logsComandaCancelada.length !== 1 ? "s" : ""} ({logsComandaCancelada.length})
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="pdv__saldo-kpi-valor">
+                  {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
+                </div>
+              </div>
+            </div>
+
+            {/* Total geral */}
+            <div className="pdv__saldo-total" style={{ flexWrap: isNarrow ? "wrap" : "nowrap" }}>
+              <div className="pdv__saldo-total-info">
+                <div className="pdv__saldo-total-titulo">Total do Dia (projetado)</div>
+                <div className="pdv__saldo-kpi-sub">Fechadas + em aberto · cancelamentos não incluídos</div>
+              </div>
+              <div className="pdv__saldo-total-valor">
+                R$ {(totalVendas + totalAberto).toFixed(2)}
+              </div>
+            </div>
+
+            {/* Por método de pagamento */}
+            {Object.keys(porMetodo).length > 0 && (
+              <div className="pdv__saldo-secao">
+                <div className="pdv__saldo-kpi-label">
+                  Vendas por Método
+                </div>
+                <div className="pdv__saldo-metodos">
+                  {Object.entries(porMetodo).sort((a, b) => b[1] - a[1]).map(([metodo, val]) => (
+                    <div key={metodo} className="pdv__saldo-metodo">
+                      <span className="pdv__saldo-metodo-pill" style={{ color: METODOS_COLOR[metodo] ?? varColor(C.muted), background: alfa(METODOS_COLOR[metodo] ?? varColor(C.muted), "18"), border: `1px solid ${alfa(METODOS_COLOR[metodo] ?? varColor(C.muted), "44")}` }}>
+                        {rotuloMetodo(metodo, customLabels)}
+                      </span>
+                      <span className="pdv__saldo-metodo-valor">
+                        R$ {Number(val).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Detalhe dos itens cancelados — accordion */}
+            {todosCancelados.length > 0 && (
+              <div className="pdv__saldo-accordion">
+                {/* Header clicável */}
+                <button
+                  type="button"
+                  onClick={() => setShowCancelList(v => !v)}
+                  className={`pdv__saldo-accordion-btn${showCancelList ? " pdv__saldo-accordion-btn--aberto" : ""}`}
+                >
+                  <div className="pdv__saldo-accordion-esq">
+                    <div className="pdv__saldo-accordion-icone">
+                      <LuX size={13} color={varColor(C.red)} />
+                    </div>
+                    <span className="pdv__saldo-kpi-label">
+                      Itens Cancelados
+                    </span>
+                    <span className="pdv__saldo-accordion-contagem">
+                      {todosCancelados.reduce((s, i) => s + (i.qty ?? 1), 0)}
+                    </span>
+                  </div>
+                  <div className="pdv__saldo-accordion-dir">
+                    <span className="pdv__saldo-accordion-total">
+                      {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
+                    </span>
+                    <svg
+                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke={varColor(C.red)} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      className="pdv__saldo-chevron"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </div>
+                </button>
+
+                {/* Lista com scroll */}
+                {showCancelList && (
+                  <div className="pdv__saldo-cancelados-lista">
+                    {todosCancelados.map((item, idx) => (
+                      <div key={idx} className="pdv__saldo-cancelado">
+                        <div className="pdv__saldo-cancelado-info">
+                          <div className="pdv__saldo-cancelado-titulo">
+                            <span className="pdv__saldo-item-nome">
+                              {item.emoji ? `${item.emoji} ` : ""}{item.name}{(item.qty ?? 1) > 1 ? ` ×${item.qty}` : ""}
+                            </span>
+                            {item._comandaCancelada && (
+                              <span className="pdv__saldo-item-selo">
+                                comanda cancelada
+                              </span>
+                            )}
+                          </div>
+                          {(item.motivoCancelamento || item.canceladoPor || item._comanda) && (
+                            <div className="pdv__saldo-item-meta">
+                              {item._comanda ? `${item._comanda} · ` : ""}
+                              {item.canceladoPor || ""}
+                              {item.motivoCancelamento && item.motivoCancelamento !== "—" ? ` — ${item.motivoCancelamento}` : ""}
+                            </div>
+                          )}
+                        </div>
+                        <div className="pdv__saldo-item-preco">
+                          - R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Comandas em aberto */}
+            {abertas.length > 0 && (
+              <div className="pdv__saldo-secao">
+                <div className="pdv__saldo-kpi-label">
+                  Comandas em Aberto
+                </div>
+                <div className="pdv__saldo-comandas">
+                  {abertas.map(p => {
+                    const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
+                    const subtotal = ativos.reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0);
+                    return (
+                      <div key={p.id} className="pdv__saldo-comanda">
+                        <div className="pdv__saldo-comanda-info">
+                          <div className="pdv__saldo-comanda-nome">{fmtComanda(p.comanda)}</div>
+                          {p.garcom && <div className="pdv__saldo-comanda-meta">{p.garcom}</div>}
+                        </div>
+                        <div className="pdv__saldo-comanda-dir">
+                          <div className="pdv__saldo-comanda-valor" style={{ color: subtotal > 0 ? varColor(C.accent) : varColor(C.muted) }}>
+                            {subtotal > 0 ? `R$ ${subtotal.toFixed(2)}` : "Sem itens"}
+                          </div>
+                          <div className="pdv__saldo-comanda-meta">
+                            {ativos.reduce((s, i) => s + (i.qty ?? 1), 0)} item(ns)
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={onClose}
+              className="pdv__saldo-modal-btn pdv__saldo-modal-btn--rodape"
+            >
+              Fechar
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

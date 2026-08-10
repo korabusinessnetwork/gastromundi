@@ -109,7 +109,7 @@ Vale para toda tela anônima que mostra os dados de **um** estabelecimento escol
 hoje a vitrine `/cardapio`, amanhã qualquer página pública por tenant.
 
 - **A ordem é subdomínio > query > fallback**, nessa sequência, e quem resolve devolve também **de
-  onde veio** (`slugDaVitrine` em `src/lib/tenantSlug.js`). O endereço publicado sempre ganha: um
+  onde veio** (`slugDaVitrine` em `src/lib/host/tenantSlug.js`). O endereço publicado sempre ganha: um
   `?loja=` na URL nunca sequestra um subdomínio de tenant que já está no ar. Sem essa ordem, ligar
   o subdomínio depois vira uma migração de comportamento; com ela, é ligar a env e pronto.
 - **O que vem da URL é entrada de usuário.** O slug da query passa por `slugValido` antes de virar
@@ -420,7 +420,7 @@ Aplicável às outras propriedades do `sz` e aos **15 arquivos** que ainda chama
 
 ### Migração de estilo em massa: script que conta antes de gravar, e não grava se a conta não bate
 *Adotado em 2026-08-02 (rodada 22 do ciclo, F018 fatia 9). Arquivo da rodada:
-`src/components/desktop/views/DeliveryView.jsx`, 119 → 28 `style={{`.*
+`src/components/delivery/DeliveryView.jsx`, 119 → 28 `style={{`.*
 
 Trocar dezenas de `style={{…}}` por `className` à mão é caro e erra em silêncio; um
 `replace all` cego é barato e erra pior — o mesmo bloco de estilo aparece em componentes
@@ -625,7 +625,7 @@ Recorte de situação, aba aberta e período do uso vivem na URL do Console
 (`/console?aba=uso&situacao=atencao&dias=90`). O molde, já repetido três vezes,
 é sempre o mesmo — copie-o antes de inventar outro:
 
-1. **Normalizador puro** exportado em `src/lib/console.js`
+1. **Normalizador puro** exportado em `src/lib/console/console.js`
    (`normalizarFiltroSituacao`, `normalizarAba`, `normalizarPeriodo`): recebe o
    texto cru do parâmetro e devolve sempre um valor válido. Não lê `window`,
    não toca no roteador — por isso tem teste de unidade barato. URL editada à
@@ -655,7 +655,7 @@ O cartão de primeiro acesso copia a mensagem que o dono manda ao cliente logo
 depois da venda. O molde vale para qualquer botão de copiar:
 
 1. **O texto nasce de uma função pura** exportada
-   (`montarMensagemPrimeiroAcesso` em `src/lib/console.js`): o JSX não monta
+   (`montarMensagemPrimeiroAcesso` em `src/lib/console/console.js`): o JSX não monta
    string. Assim o teste de tela compara o que foi copiado com o retorno da
    própria função — se ela mudar, a tela acompanha sozinha.
 2. **`navigator.clipboard.writeText` dentro de `try/catch`**, com dois estados
@@ -686,7 +686,7 @@ preço combinado. O molde, reusável em qualquer fluxo com uma escrita irrevers�
 4. Valor opcional que vale zero (cortesia, piloto) não chama a RPC à toa: zero e vazio são o
    mesmo caminho.
 
-Implementado em `src/components/console/NovoEstabelecimentoModal.jsx` e no cartão de
+Implementado em `src/components/console/modais/NovoEstabelecimentoModal.jsx` e no cartão de
 `src/pages/console/ConsolePage.jsx` (`.console__acesso-alerta`).
 
 ## Regra do servidor espelhada no cliente: para avisar, nunca para decidir (Console, rodada 45)
@@ -701,7 +701,7 @@ renomeia algo que o usuário digitou:
 
 1. **O cliente reimplementa a regra como função pura exportada** e diz no JSDoc
    de qual objeto do banco ela é espelho (`normalizarSlug`, `sugerirSlugLivre`,
-   `SLUGS_RESERVADOS` em `src/lib/console.js`). O banco continua sendo a
+   `SLUGS_RESERVADOS` em `src/lib/console/console.js`). O banco continua sendo a
    autoridade — CHECK constraint e laço da RPC seguem lá.
 2. **O campo mostra o valor já normalizado a cada tecla.** O que está na tela é
    exatamente o que o servidor vai gravar; nada de o usuário digitar "Bar-do Zé"
@@ -715,7 +715,7 @@ renomeia algo que o usuário digitou:
    endereço livre e um botão que o aplica em um clique — a mesma sugestão que a
    RPC usaria calada.
 5. **Deriva entre as duas pontas é fixada por teste.**
-   `src/lib/provisionamentoValidacao.test.js` importa o `normalizarSlug` da Edge
+   `src/lib/seguranca/provisionamentoValidacao.test.js` importa o `normalizarSlug` da Edge
    Function e o do Console e prova, com `it.each` sobre as mesmas entradas, que
    os dois concordam — inclusive no `MAX_SLUG`. Espelho sem esse teste desalinha
    na primeira mudança de um dos lados.
@@ -750,7 +750,7 @@ A validação que **barra** o envio é a regra da borda (o `MIN_SENHA = 6` da Ed
 Function, espelhado no cliente). A força da senha é outra categoria: opinião, não
 regra.
 
-1. Função pura exportada (`forcaDaSenha` em `src/lib/console.js`) devolvendo
+1. Função pura exportada (`forcaDaSenha` em `src/lib/console/console.js`) devolvendo
    `{ nivel, motivo }` — nunca um booleano. O nível pinta, o motivo explica em
    português o que está errado ("é uma das primeiras que qualquer invasor tenta",
    "é igual ao usuário de acesso"), e a tela não precisa saber a regra.
@@ -773,7 +773,7 @@ regra.
 ## Recusa do servidor vira escolha de um clique, com contagem por texto (Console, rodada 47)
 
 Segunda aplicação do molde da rodada 45 (endereço do cardápio), agora no usuário
-de acesso — `sugerirUsuarioLivre` em `src/lib/console.js`. O que se repete e vale
+de acesso — `sugerirUsuarioLivre` em `src/lib/console/console.js`. O que se repete e vale
 para o próximo campo que colidir:
 
 1. A sugestão só nasce depois de o **servidor** recusar. O Console não lê
@@ -799,7 +799,7 @@ para o próximo campo que colidir:
 
 Segunda aplicação do molde da rodada 45 (endereço do cardápio derivado do nome do
 estabelecimento), agora no usuário de acesso derivado do nome do responsável —
-`usernameSugeridoDoNome` em `src/lib/console.js` e `usernameEfetivo` em
+`usernameSugeridoDoNome` em `src/lib/console/console.js` e `usernameEfetivo` em
 `NovoEstabelecimentoModal.jsx`. O campo derivado tem sempre estas peças:
 
 1. **Uma função pura** que traduz o campo de origem no campo de destino, testada
@@ -838,7 +838,7 @@ formulário longo do sistema:
 2. **Voltar é a ação primária.** "Continuar preenchendo" leva a cor primária,
    "Descartar" fica secundário. A ação destrutiva nunca é a mais bonita da tela.
 3. **Só pergunta se há o que perder, e "o que perder" é o que foi DIGITADO**
-   (`cadastroTemDados`, função pura em `src/lib/console.js`). Campo com valor
+   (`cadastroTemDados`, função pura em `src/lib/console/console.js`). Campo com valor
    padrão — aqui o plano, que já vem escolhido — não conta, senão o modal
    perguntaria sempre e a confirmação viraria ruído que se clica sem ler.
 4. **Espaço em branco não conta como dado, exceto em campo de senha**, onde

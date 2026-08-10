@@ -12,8 +12,8 @@ import {
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
-import { formatarDocumento } from "@/lib/documento";
-import { formatarTelefone } from "@/lib/deliveryPedidos";
+import { formatarDocumento } from "@/lib/comum/documento";
+import { formatarTelefone } from "@/lib/delivery/deliveryPedidos";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import {
   listarClientes,
@@ -21,7 +21,7 @@ import {
   calcularSaldoDevedor,
   sanitizarTermoBusca,
   registrarPagamentoFiado,
-} from "@/lib/clientes";
+} from "@/lib/clientes/clientes";
 import "../modulos.css";
 import "./ClientesModulo.css";
 
@@ -31,9 +31,9 @@ import "./ClientesModulo.css";
  * Propósito no celular: consultar o cliente e o fiado dele na hora do
  * atendimento — não é o cadastro completo do desktop (ClientesView), é
  * uma lista rápida + detalhe com histórico e baixa de fiado. Reusa
- * inteiramente src/lib/clientes.js (mesma fonte de verdade do desktop);
+ * inteiramente src/lib/clientes/clientes.js (mesma fonte de verdade do desktop);
  * a única consulta própria desta tela é o somatório de fiado em aberto
- * por cliente (para ordenar/badge da lista) — src/lib/clientes.js não
+ * por cliente (para ordenar/badge da lista) — src/lib/clientes/clientes.js não
  * expõe isso em lote, então busca-se `lancamentos` direto e o resultado
  * passa por `calcularSaldoDevedor` (a mesma regra pura do resto do app)
  * agrupado por cliente, em vez de reimplementar o filtro de status.

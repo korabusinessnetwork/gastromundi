@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
-import { consoleAtivo, ehConsoleHost } from "@/lib/consoleHost";
+import { consoleAtivo, ehConsoleHost } from "@/lib/host/consoleHost";
 
 /**
  * ConsoleRoute — porta do Console da Plataforma (S1-2, ADR-008 §7).

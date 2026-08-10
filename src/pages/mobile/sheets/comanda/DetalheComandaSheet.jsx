@@ -4,7 +4,7 @@ import {
   LuTrash2, LuEye, LuEyeOff, LuLoaderCircle, LuTriangleAlert,
 } from "react-icons/lu";
 import { fmtComanda, fmtDinheiro } from "@/pages/mobile/fmt";
-import { verificarSenhaAdmin } from "@/lib/adminAuth";
+import { verificarSenhaAdmin } from "@/lib/console/adminAuth";
 import "./DetalheComandaSheet.css";
 
 /**

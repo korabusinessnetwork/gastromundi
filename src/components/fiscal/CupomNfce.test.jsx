@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import CupomNfce from "./CupomNfce";
-import { montarDanfeNfce } from "@/lib/nfceDanfe";
+import { montarDanfeNfce } from "@/lib/fiscal/nfceDanfe";
 
 const CHAVE = "43260712345678000195650010000000011000000017";
 

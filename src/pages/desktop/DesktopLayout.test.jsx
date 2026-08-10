@@ -14,12 +14,12 @@ vi.mock("@/lib/supabase", async () => {
 });
 
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
-vi.mock("@/lib/jarvas", () => ({
+vi.mock("@/lib/jarvas/jarvas", () => ({
   emitirEvento: vi.fn(),
   buscarInsights: vi.fn(() => Promise.resolve({ data: [], error: null })),
   atualizarStatusInsight: vi.fn(() => Promise.resolve({ data: null, error: null })),
 }));
-vi.mock("@/lib/jarvasAssistente", () => ({ perguntarAoJarvas: vi.fn() }));
+vi.mock("@/lib/jarvas/jarvasAssistente", () => ({ perguntarAoJarvas: vi.fn() }));
 
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
 import { logAction } from "@/lib/logger";

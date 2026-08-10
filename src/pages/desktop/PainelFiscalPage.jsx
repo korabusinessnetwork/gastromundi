@@ -1,4 +1,4 @@
-import PainelFiscal from "@/components/fiscal/PainelFiscal";
+import PainelFiscal from "@/components/fiscal/paineis/PainelFiscal";
 
 /**
  * Página de gestão — Configuração fiscal do estabelecimento (Leva 13).

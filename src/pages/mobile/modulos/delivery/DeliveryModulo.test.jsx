@@ -13,7 +13,7 @@ const { carregarItensPedido, usePedidosDelivery } = vi.hoisted(() => ({
   usePedidosDelivery: vi.fn(),
 }));
 
-vi.mock("@/lib/deliveryPedidos", async (importOriginal) => ({
+vi.mock("@/lib/delivery/deliveryPedidos", async (importOriginal) => ({
   ...(await importOriginal()),
   carregarItensPedido,
   atualizarStatusPedido: vi.fn(() => Promise.resolve({ error: null })),

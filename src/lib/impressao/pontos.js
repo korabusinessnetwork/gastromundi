@@ -25,7 +25,7 @@
 
 // Import relativo (não alias): este módulo é puro e roda também fora do
 // bundler do Vite — nos testes de nó e em quem consumir a lib direto.
-import { chaveCategoria } from "../categoriasProduto";
+import { chaveCategoria } from "../produtos/categoriasProduto";
 
 /** Id do primeiro ponto — o que é sintetizado para quem já usava o sistema. */
 export const PONTO_PADRAO_ID = "p1";
@@ -67,7 +67,7 @@ function sanitizarNome(nome, fallback) {
 }
 
 // Só os dois destinos que a Ponte KORA entende (ver PERFIL_IMPRESSORA_PADRAO
-// em src/lib/impressao.js). Destino incompleto (windows sem nome, rede sem
+// em src/lib/impressao/impressao.js). Destino incompleto (windows sem nome, rede sem
 // host) vira `null` de propósito: o driver recusa `null` com uma mensagem
 // clara ("Escolha a impressora em Configurações"), enquanto um destino
 // pela metade viraria trabalho de impressão que falha sem explicação.

@@ -25,23 +25,23 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-vi.mock("@/lib/tenantSlug", () => ({
+vi.mock("@/lib/host/tenantSlug", () => ({
   slugDaVitrine: () => vitrine.current,
   slugDaQuery: () => null,
   slugDoSubdominio: () => null,
   resolverSlugTenant: () => "gastromundi",
 }));
 
-vi.mock("@/lib/tenant", () => ({ buscarBrandingPorSlug: mockBuscarBranding }));
+vi.mock("@/lib/tenant/tenant", () => ({ buscarBrandingPorSlug: mockBuscarBranding }));
 
-vi.mock("@/lib/brandingCache", () => ({
+vi.mock("@/lib/tenant/brandingCache", () => ({
   lerBrandingCache: mockLerCache,
   salvarBrandingCache: mockSalvarCache,
 }));
 
 // Só a ida ao servidor vira dublê; as funções puras da sacola ficam reais.
-vi.mock("@/lib/delivery", async () => {
-  const real = await vi.importActual("@/lib/delivery");
+vi.mock("@/lib/delivery/delivery", async () => {
+  const real = await vi.importActual("@/lib/delivery/delivery");
   return { ...real, carregarCardapio: mockCarregarCardapio };
 });
 

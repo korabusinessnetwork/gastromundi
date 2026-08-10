@@ -1,4 +1,4 @@
-import FinanceiroView from "@/components/desktop/views/FinanceiroView";
+import FinanceiroView from "@/components/financeiro/FinanceiroView";
 
 export default function FinanceiroPage() {
   return <FinanceiroView />;

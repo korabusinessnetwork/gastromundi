@@ -5,7 +5,7 @@
  * Vive aqui, fora dos index.ts, pelo mesmo motivo de
  * `validacaoProvisionamento.ts`: o index.ts chama `Deno.serve` no topo e
  * importa de URL, então nenhum teste consegue carregá-lo. Este módulo não
- * toca em nada do Deno e é exercitado por `src/lib/functionsGuardaEntrada.test.js`.
+ * toca em nada do Deno e é exercitado por `src/lib/seguranca/functionsGuardaEntrada.test.js`.
  *
  * O FURO QUE ISTO FECHA
  * As cinco funções não-fiscais decidiam o acesso olhando só o PAPEL:

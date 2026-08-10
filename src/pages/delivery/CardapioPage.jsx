@@ -18,11 +18,11 @@ import {
   aplicarTituloDocumento,
   nomeExibicaoTenant,
   logoUrlTenant,
-} from "@/lib/tema";
+} from "@/lib/tenant/tema";
 import { layoutDoTema, varianteDoHorario, variaveisDoLayout } from "@/layouts";
-import { slugDaVitrine } from "@/lib/tenantSlug";
-import { buscarBrandingPorSlug } from "@/lib/tenant";
-import { lerBrandingCache, salvarBrandingCache } from "@/lib/brandingCache";
+import { slugDaVitrine } from "@/lib/host/tenantSlug";
+import { buscarBrandingPorSlug } from "@/lib/tenant/tenant";
+import { lerBrandingCache, salvarBrandingCache } from "@/lib/tenant/brandingCache";
 import {
   carregarCardapio,
   enviarPedido,
@@ -30,14 +30,14 @@ import {
   mensagemDeErroDoPedido,
   montarPayloadPedido,
   revisarSacola,
-} from "@/lib/delivery";
-import { useCarrinho } from "./useCarrinho";
-import CardapioLista from "./CardapioLista";
-import ProdutoModal from "./ProdutoModal";
-import SacolaModal from "./SacolaModal";
-import CheckoutEntrega from "./CheckoutEntrega";
-import CheckoutPagamento from "./CheckoutPagamento";
-import Confirmacao from "./Confirmacao";
+} from "@/lib/delivery/delivery";
+import { useCarrinho } from "./hooks/useCarrinho";
+import CardapioLista from "./listas/CardapioLista";
+import ProdutoModal from "./modais/ProdutoModal";
+import SacolaModal from "./modais/SacolaModal";
+import CheckoutEntrega from "./etapas/CheckoutEntrega";
+import CheckoutPagamento from "./etapas/CheckoutPagamento";
+import Confirmacao from "./etapas/Confirmacao";
 import "./vitrine.css";
 
 const ENTREGA_INICIAL = {

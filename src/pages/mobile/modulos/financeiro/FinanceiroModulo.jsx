@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { LuArrowLeft, LuCircleCheck, LuMonitor, LuTriangleAlert } from "react-icons/lu";
-import { listarLancamentos, calcularFluxoCaixa, marcarVencidos } from "@/lib/financeiro";
-import { intervaloDoMes, intervaloUltimosDias } from "@/lib/periodos";
+import { listarLancamentos, calcularFluxoCaixa, marcarVencidos } from "@/lib/financeiro/financeiro";
+import { intervaloDoMes, intervaloUltimosDias } from "@/lib/comum/periodos";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import "../modulos.css";
 import "./FinanceiroModulo.css";
@@ -11,7 +11,7 @@ import "./FinanceiroModulo.css";
  *
  * NÃO é o módulo inteiro: é a versão "dá pra conferir andando pelo salão".
  * Somente leitura — nada de lançar, editar ou dar baixa em conta aqui (isso
- * continua no computador). Reusa por inteiro a lógica de src/lib/financeiro.js
+ * continua no computador). Reusa por inteiro a lógica de src/lib/financeiro/financeiro.js
  * (listarLancamentos, calcularFluxoCaixa, marcarVencidos): esta tela só decide
  * o que mostrar e como, nunca recalcula dinheiro por conta própria.
  */

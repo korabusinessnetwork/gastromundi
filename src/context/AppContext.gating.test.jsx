@@ -47,23 +47,23 @@ const { mockSupabase, mockBootstrapTenant } = vi.hoisted(() => ({
 vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
 
 // Folhas com efeito colateral, sem relação com o defeito.
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
-vi.mock("@/lib/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
+vi.mock("@/lib/jarvas/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/lib/jarvas/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
-vi.mock("@/lib/observabilidade", () => ({
+vi.mock("@/lib/infra/observabilidade", () => ({
   reportarFalha: vi.fn(),
   reportarInconsistencia: vi.fn(),
   setTenantObservabilidade: vi.fn(),
 }));
-vi.mock("@/components/shared/IndicadorRede", () => ({ default: () => null }));
-vi.mock("@/components/shared/PonteLocalBridge", () => ({ default: () => null }));
-vi.mock("@/components/shared/ImpressaoLancamentosBridge", () => ({ default: () => null }));
+vi.mock("@/components/ui/feedback/IndicadorRede", () => ({ default: () => null }));
+vi.mock("@/components/ui/pontes/PonteLocalBridge", () => ({ default: () => null }));
+vi.mock("@/components/ui/pontes/ImpressaoLancamentosBridge", () => ({ default: () => null }));
 
 // Só a BUSCA do tenant é dublê. `moduloHabilitado`/`addonHabilitado` seguem
 // reais de propósito: o defeito está na composição das duas, não em nenhuma
 // delas isolada — um stub aqui esconderia justamente o que se quer medir.
-vi.mock("@/lib/tenant", async () => {
-  const real = await vi.importActual("@/lib/tenant");
+vi.mock("@/lib/tenant/tenant", async () => {
+  const real = await vi.importActual("@/lib/tenant/tenant");
   return { ...real, buscarBootstrapTenant: mockBootstrapTenant };
 });
 

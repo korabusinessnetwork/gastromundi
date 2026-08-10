@@ -8,10 +8,10 @@ do JSX (decisão 018). Escopo travado com o dono: "Núcleo garçom+comanda" +
 
 ## Arquitetura entregue
 
-- **Shell** `src/pages/MobilePage.jsx` — guarda todo o estado e handlers
+- **Shell** `src/pages/mobile/MobilePage.jsx` — guarda todo o estado e handlers
   (idênticos à versão anterior), orquestra componentes puros e faz a
   navegação por 4 abas.
-- **Layout** `src/pages/MobilePage.css` — só esqueleto (coluna rolável +
+- **Layout** `src/pages/mobile/MobilePage.css` — só esqueleto (coluna rolável +
   barra fixa + pill offline). Tokens `--gm-*`, sem hex.
 - **Componentes apresentacionais** em `src/pages/mobile/` (12 + `fmt.js`),
   cada um com CSS co-localizado.

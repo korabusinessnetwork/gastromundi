@@ -28,7 +28,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { transmitirSefazRS } from "../_shared/nfceTransmissao.ts";
-import { decidirDesfechoReenvio } from "../../../src/lib/decidirDesfechoReenvio.js";
+import { decidirDesfechoReenvio } from "../../../src/lib/fiscal/decidirDesfechoReenvio.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

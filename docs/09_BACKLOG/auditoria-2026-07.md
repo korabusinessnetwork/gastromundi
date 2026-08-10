@@ -35,7 +35,7 @@ um `METODOS_LABEL` fixo sem os métodos personalizados do estabelecimento.
 com teste.
 
 ### ✅ nº7 [MÉDIO/Financeiro] Conta que vence HOJE é marcada "vencida" no próprio dia
-`src/lib/financeiro.js` → `marcarVencidos`: compara `new Date(l.vencimento)`
+`src/lib/financeiro/financeiro.js` → `marcarVencidos`: compara `new Date(l.vencimento)`
 (string date-only → **meia-noite UTC**) com `hoje = new Date()` (agora local, com
 hora). Em BRT (UTC−3), uma conta com `vencimento` de hoje é lida como ontem
 21:00 local → `< agora` → marcada **vencido no próprio dia de vencimento**,

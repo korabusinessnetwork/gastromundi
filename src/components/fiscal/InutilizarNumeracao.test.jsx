@@ -4,7 +4,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 
 // Edge/repo mockado (não toca supabase real → suíte hermética, sem .env.local).
 const inutilizarNumeracao = vi.fn().mockResolvedValue({ status: "inutilizada" });
-vi.mock("@/lib/fiscal", () => ({
+vi.mock("@/lib/fiscal/fiscal", () => ({
   inutilizarNumeracao: (...a) => inutilizarNumeracao(...a),
 }));
 

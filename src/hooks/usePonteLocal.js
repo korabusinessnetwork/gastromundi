@@ -18,12 +18,12 @@ import { useEffect, useRef, useState } from "react";
 import {
   pingPonte, buscarInfoPonte, enviarSnapshotPonte,
   buscarPedidosPonte, confirmarPedidosPonte, montarEnderecoPalm, vincularPonte,
-} from "@/lib/ponte";
+} from "@/lib/impressao/ponte";
 import { imprimirLancamento } from "@/lib/impressao/despacho";
 import { chaveLancamento, registroLancamentos } from "@/lib/impressao/lancamentos";
 import {
   assinaturaComandasAbertas, encaixarPedidoDoPalm, pedidoJaGravado, resumirComandasAbertas,
-} from "@/lib/ponteComandas";
+} from "@/lib/impressao/ponteComandas";
 
 const INTERVALO_MS = 5000;
 const SNAPSHOT_MIN_MS = 60 * 1000; // catálogo reenviado no máximo a cada 60s

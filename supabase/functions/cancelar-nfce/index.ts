@@ -26,7 +26,7 @@ import {
   montarXmlEventoCancelamento,
   dentroDoPrazoCancelamento,
   decidirDesfechoCancelamento,
-} from "../../../src/lib/nfceEventoCancelamento.js";
+} from "../../../src/lib/fiscal/nfceEventoCancelamento.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

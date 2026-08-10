@@ -16,7 +16,7 @@ import {
   iniciarPreparo,
   marcarPronto,
   tempoDecorridoMin,
-} from "@/lib/cozinha";
+} from "@/lib/cozinha/cozinha";
 import "../modulos.css";
 import "./CozinhaModulo.css";
 
@@ -27,7 +27,7 @@ import "./CozinhaModulo.css";
  * é a comanda em `public.pending` com itens lançados, lida e sincronizada ao
  * vivo pelo hook `usePedidosCozinha` (select com colunas explícitas + canal
  * realtime na tabela `pending`). As ações reusam `iniciarPreparo` /
- * `marcarPronto` de src/lib/cozinha.js — inclusive o guard otimista que evita
+ * `marcarPronto` de src/lib/cozinha/cozinha.js — inclusive o guard otimista que evita
  * duas estações avançarem a mesma comanda.
  *
  * Aqui, em vez das 3 colunas do desktop (que não cabem no celular), a mesma

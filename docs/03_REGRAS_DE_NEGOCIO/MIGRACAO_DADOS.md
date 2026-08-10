@@ -56,7 +56,7 @@ mexer no banco. Import/export vira parte do produto, não um favor manual.
 
 > Código: núcleo puro em `src/lib/importacao/` (`planilha.js` + `produtos.js`,
 > com testes co-localizados) e tela em
-> `src/components/desktop/views/ImportarExportarTab.jsx`
+> `src/components/configuracoes/ImportarExportarTab.jsx`
 > (aba "Importar / Exportar" das Configurações, só admin). Import de
 > clientes/estoque e de-para de concorrentes seguem na Fase 2.
 

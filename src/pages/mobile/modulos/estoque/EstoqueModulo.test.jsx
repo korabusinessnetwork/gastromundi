@@ -12,7 +12,7 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
  * vermelha de cima a baixo e o insumo que acabou de verdade ficava perdido no
  * meio. O número que devia dizer "vai faltar comida hoje" não dizia nada.
  *
- * A regra correta já existia no Jarvas (`regraEstoque` em src/lib/jarvasEngine.js)
+ * A regra correta já existia no Jarvas (`regraEstoque` em src/lib/jarvas/jarvasEngine.js)
  * e agora na view desktop (`controlaEstoque` em EstoqueView): sem linha na
  * tabela, o produto não controla estoque.
  */

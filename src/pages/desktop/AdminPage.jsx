@@ -1,4 +1,4 @@
-import AdminView from "@/components/desktop/views/AdminView";
+import AdminView from "@/components/admin/AdminView";
 export default function AdminPage() {
   return <AdminView />;
 }

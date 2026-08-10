@@ -8,8 +8,8 @@ import {
   horarioValido,
   normalizarHorario,
   resumoHorario,
-} from "@/lib/deliveryHorario";
-import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/deliveryAdmin";
+} from "@/lib/delivery/deliveryHorario";
+import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/delivery/deliveryAdmin";
 import { logAction } from "@/lib/logger";
 import "./SecaoDelivery.css";
 
@@ -19,8 +19,8 @@ import "./SecaoDelivery.css";
  * Porta o agendamento de abertura/fechamento automático que já existe no
  * desktop (DeliveryTab em ConfiguracoesView.jsx) para o celular. Nada de
  * regra nova aqui: toda a lógica de horário é pura e testada em
- * src/lib/deliveryHorario.js, e a persistência é a mesma de
- * src/lib/deliveryAdmin.js — esta tela só monta a apresentação mobile.
+ * src/lib/delivery/deliveryHorario.js, e a persistência é a mesma de
+ * src/lib/delivery/deliveryAdmin.js — esta tela só monta a apresentação mobile.
  *
  * Por que é intuitiva no celular:
  * - Um único liga/desliga no topo decide tudo: desligado = controle manual

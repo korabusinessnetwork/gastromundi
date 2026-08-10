@@ -22,13 +22,13 @@ Pré-requisito de tudo: hoje não existe `tenant_id` em lugar nenhum (ADR-004: s
 - RLS: `tenants_select_auth` (qualquer autenticado lê; nesta fase, a única linha que existe).
 
 **App:**
-- `src/lib/tenant.js` (novo): `buscarTenantAtual()` — lê a única linha de `tenants` (select com colunas nomeadas, nunca `*`).
+- `src/lib/tenant/tenant.js` (novo): `buscarTenantAtual()` — lê a única linha de `tenants` (select com colunas nomeadas, nunca `*`).
 - `AppContext.jsx`: novo slice `tenant` (id, nome, tema) preenchido dentro do `bootstrap()` já existente, fire-and-forget na falha (não bloqueia o app se a leitura falhar — só fica sem os dados de tenant, com fallback ao nome/identidade atuais hardcoded).
 - Nenhuma tela nova: esta fase não muda nada visível — só estabelece a base de dados e o carregamento.
 
 **Fora desta fase:** qualquer coisa de multi-tenant real (várias linhas, `tenant_id` nas tabelas operacionais, membership usuário↔tenant). Isso é a decisão 002, trabalho futuro e maior, fora do escopo comercial imediato. Também fora: planos, add-ons, billing, theming — vêm nas fases seguintes.
 
-**Testes:** `src/lib/tenant.test.js` (função pura de validação + mock de Supabase, seguindo o padrão de `src/lib/clientes.js`/`src/lib/relatorios.js`).
+**Testes:** `src/lib/tenant/tenant.test.js` (função pura de validação + mock de Supabase, seguindo o padrão de `src/lib/clientes/clientes.js`/`src/lib/relatorios/relatorios.js`).
 
 **Critério de pronto:** `SELECT * FROM tenants` retorna 1 linha; nenhuma tabela existente foi alterada; `npm test`/`npm run build` verdes; app continua funcionando exatamente igual (o slice `tenant` é consumido por ninguém ainda, além de estar disponível para as próximas fases).
 
@@ -46,13 +46,13 @@ Pré-requisito de tudo: hoje não existe `tenant_id` em lugar nenhum (ADR-004: s
 
 **App:**
 - `src/constants/modulos.js` (novo) — códigos de módulo únicos, evita string solta.
-- `src/lib/tenant.js`: `buscarModulosDoPlano(planoCodigo)`, `buscarBootstrapTenant()` (combina tenant+módulos num único bootstrap), `moduloHabilitado(modulosDisponiveis, modulo)` (pura — fonte única de gating no front).
+- `src/lib/tenant/tenant.js`: `buscarModulosDoPlano(planoCodigo)`, `buscarBootstrapTenant()` (combina tenant+módulos num único bootstrap), `moduloHabilitado(modulosDisponiveis, modulo)` (pura — fonte única de gating no front).
 - `AppContext.jsx`: `tenant` ganha `planoCodigo`/`modulosDisponiveis`; novo `moduloHabilitado(modulo)` exposto via `useApp()`.
 - `Sidebar.jsx`: item com permissão de papel OK mas módulo fora do plano aparece **visível e bloqueado** (convite a upgrade, não escondido) — modal explicando e sugerindo contato com o suporte.
 - `PrivateRoute`/`routes/index.jsx`: `requiredModulo`/`moduloLabel` — quem navega direto pela URL vê `UpgradeNecessario` (tela amigável) em vez de a view quebrar ou redirecionar sem explicação.
 - Módulos gated no front: `cardapio` (Produtos), `pdv`, `cozinha`, `clientes`, `relatorios`, `estoque`, `financeiro`. `configuracoes`/`admin` não são gated por plano (só por papel).
 
-**Testes:** `src/lib/tenant.test.js` (12 casos: `buscarModulosDoPlano`, `buscarBootstrapTenant`, `moduloHabilitado` pura) + `src/components/desktop/Sidebar.test.jsx` (3 casos: todos os módulos visíveis no plano avançado; módulo fora do plano aparece bloqueado com convite a upgrade, não escondido; módulo do piso — PDV — nunca bloqueado). Suite completa: 173 testes verdes.
+**Testes:** `src/lib/tenant/tenant.test.js` (12 casos: `buscarModulosDoPlano`, `buscarBootstrapTenant`, `moduloHabilitado` pura) + `src/components/navegacao/Sidebar.test.jsx` (3 casos: todos os módulos visíveis no plano avançado; módulo fora do plano aparece bloqueado com convite a upgrade, não escondido; módulo do piso — PDV — nunca bloqueado). Suite completa: 173 testes verdes.
 
 **Fora desta fase:** add-ons (Fase 3), billing (Fase 4), enforcement total de assinatura (Fase 5). O gating de módulo (RESTRICTIVE nas 3 tabelas citadas acima) já foi implementado nesta fase, adiantado em relação ao rascunho original — risco baixo e cobertura imediata de segurança real.
 
@@ -69,11 +69,11 @@ Pré-requisito de tudo: hoje não existe `tenant_id` em lugar nenhum (ADR-004: s
 
 **App:**
 - `src/constants/addons.js` (novo) — códigos de add-on (`NFE`, `TEF`).
-- `src/lib/tenant.js`: `buscarAddonsAtivos(tenantId)`, `addonHabilitado(addonsAtivos, addon)` (pura — fonte única, equivalente a `moduloHabilitado` mas sem depender de plano); `buscarBootstrapTenant()` agora também retorna `addonsAtivos`.
+- `src/lib/tenant/tenant.js`: `buscarAddonsAtivos(tenantId)`, `addonHabilitado(addonsAtivos, addon)` (pura — fonte única, equivalente a `moduloHabilitado` mas sem depender de plano); `buscarBootstrapTenant()` agora também retorna `addonsAtivos`.
 - `AppContext.jsx`: `addonHabilitado(addon)` exposto via `useApp()`.
-- `src/lib/fiscal.js` (novo) — `emitirDocumentoFiscal(venda, opts)`: **stub**, registra um evento (`fiscal.documento_simulado`) via o Event Bus do Jarvas em vez de chamar um provedor. O comentário no código marca exatamente onde o provedor real (Focus NFe, PlugNotas etc.) entra depois — mesma assinatura, sem mexer em quem chama.
-- `src/lib/tef.js` (novo) — `processarPagamentoTef(pagamento, opts)`: **stub** análogo (evento `tef.pagamento_simulado`), mais `isPagamentoCartao(metodo)` (pura) para restringir TEF a crédito/débito. Mesmo comentário de ponto de extensão para o provedor real (SiTef, PayGo etc.).
-- `src/components/desktop/views/PDVView/useFinalizarPagamento.js`: depois da venda gravada, dois blocos fire-and-forget novos (mesmo padrão do bloco do Financeiro já existente) — só executam se `addonHabilitado('nfe')`/`addonHabilitado('tef')`; sem o add-on, nenhum dos dois módulos sequer é chamado.
+- `src/lib/fiscal/fiscal.js` (novo) — `emitirDocumentoFiscal(venda, opts)`: **stub**, registra um evento (`fiscal.documento_simulado`) via o Event Bus do Jarvas em vez de chamar um provedor. O comentário no código marca exatamente onde o provedor real (Focus NFe, PlugNotas etc.) entra depois — mesma assinatura, sem mexer em quem chama.
+- `src/lib/vendas/tef.js` (novo) — `processarPagamentoTef(pagamento, opts)`: **stub** análogo (evento `tef.pagamento_simulado`), mais `isPagamentoCartao(metodo)` (pura) para restringir TEF a crédito/débito. Mesmo comentário de ponto de extensão para o provedor real (SiTef, PayGo etc.).
+- `src/components/pdv/hooks/useFinalizarPagamento.js`: depois da venda gravada, dois blocos fire-and-forget novos (mesmo padrão do bloco do Financeiro já existente) — só executam se `addonHabilitado('nfe')`/`addonHabilitado('tef')`; sem o add-on, nenhum dos dois módulos sequer é chamado.
 
 **Testes:** `tenant.test.js` (+8 casos: `buscarAddonsAtivos`, `addonHabilitado`, `buscarBootstrapTenant` com add-ons); `fiscal.test.js` (3 casos) e `tef.test.js` (9 casos) novos; `useFinalizarPagamento.test.jsx` (+5 casos: sem add-on nada dispara, `nfe` habilitado dispara o stub fiscal, `tef` habilitado dispara o stub só em cartão, `tef` habilitado não dispara em dinheiro/pix, falha do add-on nunca quebra a venda). Suite completa: 195 testes verdes.
 
@@ -90,15 +90,15 @@ Pré-requisito de tudo: hoje não existe `tenant_id` em lugar nenhum (ADR-004: s
 **Migration:** `supabase/migrations/20260719_assinaturas.sql`
 - `public.assinaturas` (`carencia_dias` default 3, `status` como CACHE — nunca a fonte de verdade) + `public.assinaturas_pagamentos` (histórico de renovações).
 - Seed: uma linha para o tenant existente, `status='ativo'`, `data_vencimento` = hoje + 30 dias, `valor_mensal = 0` (placeholder — ajustar antes de cobrar qualquer cliente real).
-- `public.calcular_status_assinatura(data_vencimento, carencia_dias, hoje)` — função SQL **pura**, mesma lógica espelhada em `src/lib/assinatura.js`.
+- `public.calcular_status_assinatura(data_vencimento, carencia_dias, hoje)` — função SQL **pura**, mesma lógica espelhada em `src/lib/console/assinatura.js`.
 - `public.sincronizar_status_assinatura(tenant_id)` (`SECURITY DEFINER`) — atualiza só o CACHE; chamada lazy no bootstrap, nunca decide o que é exibido (isso já vem calculado do client).
 - `public.confirmar_renovacao_assinatura(tenant_id, competencia, valor, metodo, confirmado_por)` (`SECURITY DEFINER`, restrito a gerente/admin) — grava o pagamento manual e empurra o vencimento por um ciclo.
 
 **App:**
-- `src/lib/assinatura.js` (novo): `calcularStatusAssinatura`/`calcularDiasParaVencimento` (puras, espelham a função SQL), `buscarAssinaturaAtual`, `sincronizarStatusAssinatura`, `confirmarRenovacaoAssinatura`.
-- `src/lib/tenant.js`: `buscarBootstrapTenant()` agora também retorna `assinatura: { status, diasParaVencer, carenciaDias, valorMensal, dataVencimento }` — status **já calculado localmente**, não é o cache do banco.
+- `src/lib/console/assinatura.js` (novo): `calcularStatusAssinatura`/`calcularDiasParaVencimento` (puras, espelham a função SQL), `buscarAssinaturaAtual`, `sincronizarStatusAssinatura`, `confirmarRenovacaoAssinatura`.
+- `src/lib/tenant/tenant.js`: `buscarBootstrapTenant()` agora também retorna `assinatura: { status, diasParaVencer, carenciaDias, valorMensal, dataVencimento }` — status **já calculado localmente**, não é o cache do banco.
 - `AppContext.jsx`: expõe `assinatura` via `useApp()`; dispara `sincronizarStatusAssinatura` fire-and-forget após o bootstrap (só mantém o cache administrativo em dia, não afeta o que é exibido).
-- `src/components/desktop/AssinaturaBanner.jsx` + `.css` (decisão 018): banner não bloqueante — aviso pré-vencimento (≤5 dias, ainda ativo), aviso de carência (com dias restantes) e aviso de bloqueado (só texto, nada impede nada); visível **só para gerente/admin** (evita jargão de faturamento para quem opera o caixa).
+- `src/components/assinatura/AssinaturaBanner.jsx` + `.css` (decisão 018): banner não bloqueante — aviso pré-vencimento (≤5 dias, ainda ativo), aviso de carência (com dias restantes) e aviso de bloqueado (só texto, nada impede nada); visível **só para gerente/admin** (evita jargão de faturamento para quem opera o caixa).
 - Renovação manual: a RPC + `confirmarRenovacaoAssinatura` existem e estão testadas. A tela de administração **não** foi construída nesta passada (o pedido permitia "documentada como manual" como alternativa) — ficou para depois. **Atualização 2026-08-01:** a tela existe desde o F022-RENOVAR — coluna "Pagamento" no `PlanosDashboard` do Console + `ConfirmarRenovacaoModal`. Renovação por SQL Editor não é mais o caminho.
 
 **Testes:** `assinatura.test.js` (19 casos — fronteiras exatas: véspera do vencimento, dia do vencimento, 1 dia de carência, último dia de carência, 1 dia após esgotar a carência, carência=0); `tenant.test.js` (+3 casos, assinatura incluída no bootstrap); `AssinaturaBanner.test.jsx` (6 casos); `useFinalizarPagamento.test.jsx` (+1 caso: venda finalizada normalmente mesmo com assinatura `bloqueado` — prova de que Fase 4 não bloqueia nada). Suite completa: 222 testes verdes.
@@ -120,9 +120,9 @@ Pré-requisito de tudo: hoje não existe `tenant_id` em lugar nenhum (ADR-004: s
 - **Deliberadamente fora do enforcement** (ver comentário completo na migration): `tenants`/`assinaturas` (precisam continuar legíveis para o app saber que está bloqueado); `users` (precisa continuar legível para a autenticação resolver o usuário — bloquear geraria "usuário não encontrado" em vez de "mensalidade atrasada", uma mensagem enganosa); `planos`/`planos_modulos`/`addons`/`tenant_addons` (lookup, nunca foram gated); `jarvas_eventos`/`jarvas_insights`/`operator_logs` (telemetria/auditoria — decisão 010, Jarvas nunca bloqueia); tabelas de cadastro secundário (fichas técnicas, impressão, fiscal por produto) — fora de escopo desta passada.
 
 **App:**
-- `src/lib/assinatura.js`: `assinaturaPermiteOperacao(status)` (pura, espelha a checagem SQL — só para a UI decidir o que mostrar).
+- `src/lib/console/assinatura.js`: `assinaturaPermiteOperacao(status)` (pura, espelha a checagem SQL — só para a UI decidir o que mostrar).
 - `PrivateRoute.jsx`: se `assinatura.status` não permite operar, renderiza `AssinaturaBloqueada` (tela cheia) **antes** de qualquer checagem de permissão/módulo — cobre toda rota (pdv, produtos, financeiro, /palm etc.) num só lugar. Isso acontece **depois** do login (não durante) — decisão consciente: `users` fica de fora do enforcement de RLS justamente para a autenticação funcionar e o app chegar a esse ponto para mostrar o aviso certo, em vez de travar o login com uma mensagem errada.
-- `src/components/desktop/AssinaturaBloqueada.jsx` + `.css` (decisão 018) — tela clara, sem jargão, com orientação de como regularizar.
+- `src/components/assinatura/AssinaturaBloqueada.jsx` + `.css` (decisão 018) — tela clara, sem jargão, com orientação de como regularizar.
 
 **Testes:** `assinatura.test.js` (+6 casos: `assinaturaPermiteOperacao` para os 4 status + status ausente + integração com renovação revertendo o bloqueio); `PrivateRoute.test.jsx` (novo, 6 casos: ativo/carência liberam, bloqueado impede mesmo com permissão/módulo OK, bloqueado tem prioridade sobre convite a upgrade, assinatura `null` não bloqueia por engano, não-autenticado sempre vai pro login independente da assinatura). RLS real não é testável em Vitest — validado pela leitura cuidadosa da migration e pelo mesmo padrão já usado nas Fases 2/3; recomenda-se uma conferência manual no SQL Editor antes de considerar produção (simular tenant com `data_vencimento` vencida e confirmar que um `select`/`insert` em `vendas` falha). Suite completa: 234 testes verdes.
 
@@ -136,9 +136,9 @@ Pré-requisito de tudo: hoje não existe `tenant_id` em lugar nenhum (ADR-004: s
 
 **App:**
 - `src/styles/tema.css` (novo) — os 11 tokens `--gm-*` (cores) com os defaults da marca GastroMundi, importado uma vez em `main.jsx`. Valores idênticos aos hex de `src/constants/colors.js` (documentado como duas fontes que precisam ser mantidas manualmente em sincronia — sem passo de build para gerar uma a partir da outra, ver ADR-007).
-- `src/lib/tema.js` (novo) — `gerarVariaveisTema(tema)` (pura; mapeia só os campos de uma lista fechada — `accent`, `bg`, `card`, `surface`, `border`, `green`, `red`, `blue`, `text`, `muted`, `faint` — para os tokens `--gm-*`; ignora qualquer chave desconhecida, nunca vira CSS arbitrário), `nomeExibicaoTenant(tema)`/`logoUrlTenant(tema)` (fallback explícito para "GastroMundi"/sem logo), `aplicarVariaveisTema(variaveis, root)` (aplica via `element.style.setProperty` — CSSOM valida o valor, mais seguro que concatenar texto CSS).
+- `src/lib/tenant/tema.js` (novo) — `gerarVariaveisTema(tema)` (pura; mapeia só os campos de uma lista fechada — `accent`, `bg`, `card`, `surface`, `border`, `green`, `red`, `blue`, `text`, `muted`, `faint` — para os tokens `--gm-*`; ignora qualquer chave desconhecida, nunca vira CSS arbitrário), `nomeExibicaoTenant(tema)`/`logoUrlTenant(tema)` (fallback explícito para "GastroMundi"/sem logo), `aplicarVariaveisTema(variaveis, root)` (aplica via `element.style.setProperty` — CSSOM valida o valor, mais seguro que concatenar texto CSS).
 - `AppContext.jsx`: novo `useEffect` que chama `aplicarVariaveisTema(gerarVariaveisTema(tenant?.tema))` sempre que `tenant.tema` muda. Sem tema custom (tenant atual), `gerarVariaveisTema` retorna `{}` — nenhuma variável é sobrescrita, os defaults do `:root` continuam valendo.
-- `src/components/desktop/SidebarBranding.jsx` + `.css` (novo) — primeiro pedaço da Sidebar a sair do 100% inline style (adoção incremental da decisão 018, não big-bang): lê `tenant.tema` para nome/logo, cai no fallback "GASTROMUNDI · by Kora" sem tema custom. Fonte do nome em `clamp()` (responsivo a nomes de tamanhos variados, sem depender do token `sz` do componente pai).
+- `src/components/navegacao/SidebarBranding.jsx` + `.css` (novo) — primeiro pedaço da Sidebar a sair do 100% inline style (adoção incremental da decisão 018, não big-bang): lê `tenant.tema` para nome/logo, cai no fallback "GASTROMUNDI · by Kora" sem tema custom. Fonte do nome em `clamp()` (responsivo a nomes de tamanhos variados, sem depender do token `sz` do componente pai).
 - `src/pages/desktop/DesktopLayout.jsx`: a barra superior mobile também usa `nomeExibicaoTenant` em vez do texto fixo "GASTROMUNDI" (mesma lógica de fallback).
 - `src/constants/colors.js` **não foi alterado** nesta fase — continua a fonte para consumidores JS (`C.accent` etc.); migrá-lo para ler dos custom properties é possível depois, mas não é bloqueante e foi deixado de fora para não arriscar quebrar os ~30 componentes que já importam `C` diretamente.
 - Nenhuma tela existente (além da Sidebar/DesktopLayout tocadas aqui) é migrada para `.css` externo nesta fase — isso é o trabalho de F018, incremental, tela por tela (precedentes: `DesempenhoReport.css` do F011, e agora `SidebarBranding.css`).

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { LuBan, LuClock, LuCircleX, LuCircleCheck, LuLoaderCircle, LuTriangleAlert } from "react-icons/lu";
-import { buscarNfcePorVenda } from "@/lib/nfceEmitidasRepo";
-import { cancelarDocumentoFiscal } from "@/lib/fiscal";
-import { dentroDoPrazoCancelamento } from "@/lib/nfceEventoCancelamento";
+import { buscarNfcePorVenda } from "@/lib/fiscal/nfceEmitidasRepo";
+import { cancelarDocumentoFiscal } from "@/lib/fiscal/fiscal";
+import { dentroDoPrazoCancelamento } from "@/lib/fiscal/nfceEventoCancelamento";
 import "./CancelarNfce.css";
 
 const JUST_MIN = 15;

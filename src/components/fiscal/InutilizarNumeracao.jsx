@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   LuFileX, LuTriangleAlert, LuCircleX, LuCircleCheck, LuLoaderCircle,
 } from "react-icons/lu";
-import { inutilizarNumeracao } from "@/lib/fiscal";
+import { inutilizarNumeracao } from "@/lib/fiscal/fiscal";
 import "./InutilizarNumeracao.css";
 
 const JUST_MIN = 15;

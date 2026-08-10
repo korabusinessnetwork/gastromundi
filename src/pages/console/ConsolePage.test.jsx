@@ -43,8 +43,8 @@ const { mockListarEstabelecimentos, mockListarPlanos, mockListarAssinaturas, moc
   // existentes não apagam esta leitura, que toda aba faz.
   banco: { addons: [], erroAddons: null },
 }));
-vi.mock("@/lib/console", async () => {
-  const real = await vi.importActual("@/lib/console");
+vi.mock("@/lib/console/console", async () => {
+  const real = await vi.importActual("@/lib/console/console");
   return {
     ...real,
     listarEstabelecimentos: mockListarEstabelecimentos,
@@ -66,8 +66,8 @@ vi.mock("@/lib/console", async () => {
 // domínio raiz ligado — o estado em que o endereço do Console e o do cliente
 // deixam de ser o mesmo lugar.
 const { dominioRaiz } = vi.hoisted(() => ({ dominioRaiz: { valor: "" } }));
-vi.mock("@/lib/tenantSlug", async () => {
-  const real = await vi.importActual("@/lib/tenantSlug");
+vi.mock("@/lib/host/tenantSlug", async () => {
+  const real = await vi.importActual("@/lib/host/tenantSlug");
   const comRaiz = (opcoes) =>
     dominioRaiz.valor ? { ...opcoes, rootDomain: dominioRaiz.valor } : opcoes;
   return {
@@ -91,8 +91,8 @@ const { mockConfirmarRenovacao, mockListarPagamentos, mockEstornarPagamento } = 
   mockListarPagamentos: vi.fn(),
   mockEstornarPagamento: vi.fn(),
 }));
-vi.mock("@/lib/assinatura", async () => {
-  const real = await vi.importActual("@/lib/assinatura");
+vi.mock("@/lib/console/assinatura", async () => {
+  const real = await vi.importActual("@/lib/console/assinatura");
   return {
     ...real,
     confirmarRenovacaoAssinatura: mockConfirmarRenovacao,
@@ -101,8 +101,8 @@ vi.mock("@/lib/assinatura", async () => {
   };
 });
 
-import { montarMensagemPrimeiroAcesso } from "@/lib/console";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { montarMensagemPrimeiroAcesso } from "@/lib/console/console";
+import { formatarReais } from "@/lib/delivery/deliveryPedidos";
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
 import ConsolePage from "./ConsolePage";
 

@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { montarSvgQrCode } from "@/lib/qrCodeSvg";
+import { montarSvgQrCode } from "@/lib/fiscal/qrCodeSvg";
 import "./CupomNfce.css";
 
 /**
  * <CupomNfce> — DANFE NFC-e (o cupom do consumidor), Leva 4.
  *
- * Renderiza a ESTRUTURA já montada por `montarDanfeNfce` (src/lib/nfceDanfe.js).
+ * Renderiza a ESTRUTURA já montada por `montarDanfeNfce` (src/lib/fiscal/nfceDanfe.js).
  * Toda a lógica do cupom (totais, formatação, tarjas, estado pendente) vive
  * na função pura e testada; aqui é só apresentação — CSS separado do JSX
  * (decisão 018), num layout de cupom térmico estreito.

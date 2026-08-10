@@ -38,19 +38,19 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Núcleo PURO e testado, reaproveitado do front (mesma verdade fiscal):
-import { montarXmlNfce } from "../../../src/lib/nfceXml.js";
-import { montarQrCodeNfce, montarQrCodeNfceContingencia } from "../../../src/lib/nfceQrCode.js";
-import { montarItemFiscal } from "../../../src/lib/nfceItemFiscal.js";
-import { digestInfNfe } from "../../../src/lib/nfceAssinatura.js";
-import { montarRegistroNfceEmitida } from "../../../src/lib/nfceRegistro.js";
-import { montarNotaPendenteTransmissao } from "../../../src/lib/nfceContingencia.js";
-import { escolherNotaReaproveitavel } from "../../../src/lib/nfceIdempotencia.js";
+import { montarXmlNfce } from "../../../src/lib/fiscal/nfceXml.js";
+import { montarQrCodeNfce, montarQrCodeNfceContingencia } from "../../../src/lib/fiscal/nfceQrCode.js";
+import { montarItemFiscal } from "../../../src/lib/fiscal/nfceItemFiscal.js";
+import { digestInfNfe } from "../../../src/lib/fiscal/nfceAssinatura.js";
+import { montarRegistroNfceEmitida } from "../../../src/lib/fiscal/nfceRegistro.js";
+import { montarNotaPendenteTransmissao } from "../../../src/lib/fiscal/nfceContingencia.js";
+import { escolherNotaReaproveitavel } from "../../../src/lib/fiscal/nfceIdempotencia.js";
 import {
   decidirTpEmisInicial,
   deveEntrarContingencia,
   deveSairContingencia,
   decidirDesfechoEmissao,
-} from "../../../src/lib/nfceContingenciaDecisao.js";
+} from "../../../src/lib/fiscal/nfceContingenciaDecisao.js";
 // Transmissão à SEFAZ (assina + TLS mútuo com o A1) — compartilhada com o
 // worker de reenvio (reenviar-nfce). As ÚNICAS funções que tocam no segredo.
 import { assinarXmlDSig, transmitirSefazRS } from "../_shared/nfceTransmissao.ts";

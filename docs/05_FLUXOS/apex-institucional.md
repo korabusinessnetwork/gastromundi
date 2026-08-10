@@ -12,7 +12,7 @@ ao login do estabelecimento**, sem mudança.
 
 ### Detecção
 
-Função `ehApexInstitucional(hostname)` em `src/lib/apex.js`:
+Função `ehApexInstitucional(hostname)` em `src/lib/host/apex.js`:
 
 - Retorna `true` apenas quando **ambas** as condições forem verdadeiras:
   1. `VITE_ROOT_DOMAIN` está configurado

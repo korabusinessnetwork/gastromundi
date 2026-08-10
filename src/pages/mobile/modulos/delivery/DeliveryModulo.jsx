@@ -27,7 +27,7 @@ import {
   statusCor,
   statusLabel,
   tempoDecorrido,
-} from "@/lib/deliveryPedidos";
+} from "@/lib/delivery/deliveryPedidos";
 import { usePedidosDelivery } from "@/utils/hooks";
 import "../modulos.css";
 import "./DeliveryModulo.css";
@@ -37,7 +37,7 @@ import "./DeliveryModulo.css";
  *
  * Mesma fonte de dados da AbaPedidos do desktop (DeliveryView): tudo o que é
  * regra de negócio (fluxo de status, cores, rótulos, WhatsApp, formatação de
- * dinheiro/endereço/tempo) vem pronto de src/lib/deliveryPedidos.js — aqui só
+ * dinheiro/endereço/tempo) vem pronto de src/lib/delivery/deliveryPedidos.js — aqui só
  * existe apresentação + o laço de carregar/recarregar a lista.
  *
  * A lista vem do mesmo hook do desktop (usePedidosDelivery, em

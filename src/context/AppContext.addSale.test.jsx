@@ -33,23 +33,23 @@ const mockSupabase = vi.hoisted(() => ({
 vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
 
 // Folhas que fazem efeito colateral e não têm nada a ver com o defeito.
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
-vi.mock("@/lib/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
+vi.mock("@/lib/jarvas/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/lib/jarvas/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
-vi.mock("@/lib/observabilidade", () => ({
+vi.mock("@/lib/infra/observabilidade", () => ({
   reportarFalha: vi.fn(),
   reportarInconsistencia: vi.fn(),
   setTenantObservabilidade: vi.fn(),
 }));
-vi.mock("@/components/shared/IndicadorRede", () => ({ default: () => null }));
-vi.mock("@/components/shared/PonteLocalBridge", () => ({ default: () => null }));
-vi.mock("@/components/shared/ImpressaoLancamentosBridge", () => ({ default: () => null }));
-vi.mock("@/lib/tenant", () => ({
+vi.mock("@/components/ui/feedback/IndicadorRede", () => ({ default: () => null }));
+vi.mock("@/components/ui/pontes/PonteLocalBridge", () => ({ default: () => null }));
+vi.mock("@/components/ui/pontes/ImpressaoLancamentosBridge", () => ({ default: () => null }));
+vi.mock("@/lib/tenant/tenant", () => ({
   buscarBootstrapTenant: vi.fn(() => Promise.resolve({ data: null, error: null })),
   moduloHabilitado: () => true,
   addonHabilitado: () => false,
 }));
-vi.mock("@/lib/vendas", async (importOriginal) => ({
+vi.mock("@/lib/vendas/vendas", async (importOriginal) => ({
   ...(await importOriginal()),
   persistirVendaNormalizada: vi.fn(() => Promise.resolve()),
 }));

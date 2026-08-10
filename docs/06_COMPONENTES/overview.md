@@ -4,13 +4,26 @@
 Indexar e categorizar todos os componentes React do projeto GastroMundi seguindo a metodologia Atomic Design.
 
 ## Contexto
-GastroMundi adota Atomic Design como modelo mental para organização de componentes: átomos → moléculas → organismos → templates → páginas. Isso facilita reúso, teste e manutenção.
+GastroMundi adota Atomic Design como modelo mental (átomos → moléculas → organismos → páginas).
+Na árvore de pastas isso é aplicado com um **critério híbrido — tipo + domínio**: o que é
+compartilhado entre telas mora em pastas por TIPO dentro de `src/components/ui/`; o que serve
+a uma feature só mora na pasta do DOMÍNIO, com subpastas por tipo quando há volume.
+O objetivo é orientação rápida: o caminho do arquivo já diz o que ele é e a quem serve.
 
 ## Regras Gerais
-- Componentes de UI pura ficam em `src/components/ui/` (átomos e moléculas)
-- Componentes com lógica de domínio ficam em `src/components/` (organismos)
-- Templates ficam em `src/templates/`
-- Páginas ficam em `src/pages/`
+- Componente reutilizado por mais de um domínio → `src/components/ui/<tipo>/`
+  (`botoes/`, `cards/`, `campos/`, `paineis/`, `listas/`, `feedback/`, `marca/`, `pontes/`)
+- Componente que só serve a uma feature → `src/components/<dominio>/`
+  (`pdv/`, `caixa/`, `fiscal/`, `delivery/`, `financeiro/`, `estoque/`, `produtos/`,
+  `clientes/`, `cozinha/`, `admin/`, `configuracoes/`, `relatorios/`, `mesas/`,
+  `impressao/`, `assinatura/`, `navegacao/`, `console/`)
+- Dentro do domínio, subpasta por tipo assim que houver mais de um arquivo do mesmo tipo:
+  `modais/`, `paineis/`, `cards/`, `campos/`, `listas/`, `grades/`, `botoes/`, `hooks/`
+- Páginas roteadas ficam em `src/pages/` (uma pasta por superfície: `desktop/`, `mobile/`,
+  `console/`, `apex/`, `delivery/`, `login/`)
+- Regras de negócio e acesso a dados ficam em `src/lib/<dominio>/`, nunca dentro do componente
+- CSS fica co-localizado com o componente (decisão 018): `Componente.jsx` + `Componente.css`
+  + `Componente.test.jsx` andam sempre juntos
 - Nenhum componente de UI deve importar diretamente do Supabase — isso é responsabilidade de hooks ou containers
 
 ## Validações
@@ -62,8 +75,17 @@ GastroMundi adota Atomic Design como modelo mental para organização de compone
 ```
 src/
 ├── components/
-│   ├── ui/          # Átomos e moléculas (design system)
-│   └── [domínio]/   # Organismos com lógica de negócio
-├── templates/       # Layouts de página
-└── pages/           # Páginas completas (roteadas)
+│   ├── ui/            # compartilhado entre telas, agrupado por TIPO
+│   │   ├── campos/    · feedback/ · listas/ · marca/ · paineis/ · pontes/
+│   │   └── botoes/    · cards/    (reservados — ainda sem primitivo comum)
+│   └── <dominio>/     # serve a uma feature só (pdv/, caixa/, fiscal/, …)
+│       └── <tipo>/    # subpasta por tipo quando há volume:
+│                      #   modais/ paineis/ cards/ campos/ listas/ grades/ botoes/ hooks/
+├── pages/             # páginas roteadas, uma pasta por superfície
+│   ├── desktop/ · mobile/ · console/ · apex/ · delivery/ · login/
+├── layouts/           # cascas de página (equivalente a "templates" no Atomic Design)
+├── lib/<dominio>/     # regras de negócio e acesso a dados
+├── context/ · hooks/ · routes/ · constants/ · styles/ · utils/
 ```
+
+Mapa de orientação completo (componentes + lib): [`src/LEIAME.md`](../../src/LEIAME.md).

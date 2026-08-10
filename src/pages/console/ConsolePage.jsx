@@ -13,20 +13,20 @@ import {
   filtrarEstabelecimentos, filtrarPorSituacao, FILTROS_SITUACAO, normalizarFiltroSituacao,
   normalizarAba, ABAS_CONSOLE, normalizarPeriodo, PERIODO_PADRAO,
   filtrarPorPlano, normalizarFiltroPlano, contarPorPlano, montarMensagemPrimeiroAcesso,
-} from "@/lib/console";
-import { formatarReais } from "@/lib/deliveryPedidos";
-import { urlDoCardapioPublico, urlDeAcessoDoTenant } from "@/lib/tenantSlug";
+} from "@/lib/console/console";
+import { formatarReais } from "@/lib/delivery/deliveryPedidos";
+import { urlDoCardapioPublico, urlDeAcessoDoTenant } from "@/lib/host/tenantSlug";
 import { LAYOUTS, layoutDoTema } from "@/layouts";
-import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
-import AlterarPlanoModal from "@/components/console/AlterarPlanoModal";
-import AlterarLayoutModal from "@/components/console/AlterarLayoutModal";
-import AddonsModal from "@/components/console/AddonsModal";
-import PlanosDashboard from "@/components/console/PlanosDashboard";
-import AnalyticsDashboard from "@/components/console/AnalyticsDashboard";
+import NovoEstabelecimentoModal from "@/components/console/modais/NovoEstabelecimentoModal";
+import AlterarPlanoModal from "@/components/console/modais/AlterarPlanoModal";
+import AlterarLayoutModal from "@/components/console/modais/AlterarLayoutModal";
+import AddonsModal from "@/components/console/modais/AddonsModal";
+import PlanosDashboard from "@/components/console/paineis/PlanosDashboard";
+import AnalyticsDashboard from "@/components/console/paineis/AnalyticsDashboard";
 import SeloStatus from "@/components/console/SeloStatus";
-import ConfirmarRenovacaoModal from "@/components/console/ConfirmarRenovacaoModal";
-import HistoricoPagamentosModal from "@/components/console/HistoricoPagamentosModal";
-import DefinirMensalidadeModal from "@/components/console/DefinirMensalidadeModal";
+import ConfirmarRenovacaoModal from "@/components/console/modais/ConfirmarRenovacaoModal";
+import HistoricoPagamentosModal from "@/components/console/modais/HistoricoPagamentosModal";
+import DefinirMensalidadeModal from "@/components/console/modais/DefinirMensalidadeModal";
 import "./ConsolePage.css";
 
 /**

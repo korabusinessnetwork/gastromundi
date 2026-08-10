@@ -27,8 +27,8 @@ import { decidirAcesso, mensagemRecusa, PAPEIS_ADMIN } from "../_shared/guardaEn
 import {
   montarXmlInutilizacao,
   decidirDesfechoInutilizacao,
-} from "../../../src/lib/nfceInutilizacao.js";
-import { codigoUf } from "../../../src/lib/nfce.js";
+} from "../../../src/lib/fiscal/nfceInutilizacao.js";
+import { codigoUf } from "../../../src/lib/fiscal/nfce.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

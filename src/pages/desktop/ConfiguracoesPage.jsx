@@ -1,5 +1,5 @@
 import { useOutletContext } from "react-router-dom";
-import ConfiguracoesView from "@/components/desktop/views/ConfiguracoesView";
+import ConfiguracoesView from "@/components/configuracoes/ConfiguracoesView";
 
 export default function ConfiguracoesPage() {
   const { notify } = useOutletContext();

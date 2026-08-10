@@ -3,8 +3,8 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import PrivateRoute   from "./PrivateRoute";
 import ConsoleRoute   from "./ConsoleRoute";
 import InicioApp      from "./InicioApp";
-import { ehApexInstitucional } from "@/lib/apex";
-import { consoleAtivo, ehConsoleHost } from "@/lib/consoleHost";
+import { ehApexInstitucional } from "@/lib/host/apex";
+import { consoleAtivo, ehConsoleHost } from "@/lib/host/consoleHost";
 
 // Página institucional do apex (kora.codes) — lazy: quem opera o PDV nos
 // subdomínios nunca baixa esse código; só o visitante do apex.
@@ -17,8 +17,8 @@ const DemoPage = lazy(() => import("@/pages/apex/demo/DemoPage"));
 const CardapioPage = lazy(() => import("@/pages/delivery/CardapioPage"));
 
 // Pages
-import LoginPage        from "@/pages/LoginPage";
-import MobilePage       from "@/pages/MobilePage";
+import LoginPage        from "@/pages/login/LoginPage";
+import MobilePage       from "@/pages/mobile/MobilePage";
 import DesktopLayout    from "@/pages/desktop/DesktopLayout";
 import PDVPage          from "@/pages/desktop/PDVPage";
 import ProdutosPage     from "@/pages/desktop/ProdutosPage";
@@ -68,7 +68,7 @@ const rotasHostConsole = [
 const rotasApp = [
   // Raiz: no apex (kora.codes/www) mostra a vitrine institucional da Kora;
   // em qualquer outro host (subdomínio de tenant, dev, preview) segue o
-  // comportamento de sempre — direto ao login. Decisão em src/lib/apex.js.
+  // comportamento de sempre — direto ao login. Decisão em src/lib/host/apex.js.
   {
     path: "/",
     element: ehApexInstitucional()

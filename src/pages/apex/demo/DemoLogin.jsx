@@ -2,7 +2,7 @@ import "./DemoLogin.css";
 import KoraMonograma from "../KoraMonograma";
 
 /**
- * Tela de login da demo — réplica visual de src/pages/LoginPage.jsx (o
+ * Tela de login da demo — réplica visual de src/pages/login/LoginPage.jsx (o
  * login real do produto), mas 100% estática: campos já preenchidos e
  * somente leitura, sem validação nenhuma. Qualquer interação (Enter,
  * clique) leva direto pra frente — a demo não pode travar ninguém numa

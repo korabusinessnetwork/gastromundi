@@ -6,7 +6,7 @@
  * index.ts chama `Deno.serve` no topo e importa de URL, então nenhum teste
  * consegue carregá-lo. Este módulo não toca em nada do Deno — recebe os
  * clientes prontos por parâmetro — e é exercitado por
- * `src/lib/provisionamentoCompensacao.test.js`.
+ * `src/lib/seguranca/provisionamentoCompensacao.test.js`.
  *
  * O FURO QUE ISTO FECHA
  * As duas compensações descartavam o resultado:

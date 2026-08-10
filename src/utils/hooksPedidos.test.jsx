@@ -15,7 +15,7 @@
 // DL22 (metade de CI) — o conserto do cancelamento é um trigger que APAGA a
 //   comanda espelho em `pending`. Isso só tira o pedido da cozinha se o
 //   painel reagir ao evento DELETE do Realtime. O teste do trigger em si é
-//   estático (src/lib/deliveryEspelhoSqlGuard.test.js, sem Postgres no CI);
+//   estático (src/lib/seguranca/deliveryEspelhoSqlGuard.test.js, sem Postgres no CI);
 //   aqui provamos o outro lado do mecanismo: o DELETE chega e o cartão sai.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
@@ -29,7 +29,7 @@ vi.mock("@/lib/supabase", async () => {
 });
 
 const listarPedidosDelivery = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/deliveryPedidos", () => ({ listarPedidosDelivery }));
+vi.mock("@/lib/delivery/deliveryPedidos", () => ({ listarPedidosDelivery }));
 
 import { usePedidosDelivery, usePedidosCozinha } from "./hooks";
 

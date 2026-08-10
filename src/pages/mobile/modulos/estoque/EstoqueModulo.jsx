@@ -16,12 +16,12 @@ import { normalizarTexto } from "@/lib/importacao/planilha";
 import "../modulos.css";
 import "./EstoqueModulo.css";
 
-const MINIMO_FALLBACK = 10; // mesmo fallback usado em EstoqueView (src/lib/estoque.js)
+const MINIMO_FALLBACK = 10; // mesmo fallback usado em EstoqueView (src/lib/estoque/estoque.js)
 
 /**
  * EstoqueModulo — tela "Estoque" do hub mobile (Palm).
  *
- * Dados: mesma fonte que a view desktop (src/components/desktop/views/EstoqueView.jsx) —
+ * Dados: mesma fonte que a view desktop (src/components/estoque/EstoqueView.jsx) —
  * `products` (nome, categoria, unidade_estoque, codigo_barras) + `estoque`
  * (produto_id → quantidade) + `estoqueMinimos` (produto_id → minimo), todos
  * já carregados pelo AppContext (bootstrap com `select` de campos específicos,
@@ -35,7 +35,7 @@ const MINIMO_FALLBACK = 10; // mesmo fallback usado em EstoqueView (src/lib/esto
 
 /**
  * Produto sem linha na tabela `estoque` é produto que NÃO controla estoque — a
- * mesma leitura que o Jarvas faz (`src/lib/jarvasEngine.js`) e que a view
+ * mesma leitura que o Jarvas faz (`src/lib/jarvas/jarvasEngine.js`) e que a view
  * desktop faz (`controlaEstoque` em EstoqueView). Tratar a ausência como saldo 0
  * fazia o Palm marcar cada prato do cardápio como ruptura: o cabeçalho anunciava
  * dezenas de alertas, a lista abria vermelha de ponta a ponta e o insumo que

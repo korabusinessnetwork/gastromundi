@@ -4,7 +4,7 @@ import { rotuloMetodo } from "@/utils/pagamentos";
 
 /**
  * Renderização/impressão — F015. Constrói o HTML da janela de
- * impressão a partir dos dados já montados por `src/lib/impressao.js`
+ * impressão a partir dos dados já montados por `src/lib/impressao/impressao.js`
  * (comprovante/cupom/via de produção) e abre a janela nativa do
  * navegador para imprimir (`window.print()`) — mesmo mecanismo que já
  * existia em `CheckoutView.jsx`, generalizado para os 3 templates.
