@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant/tenant";
 import { emailDoLogin } from "@/lib/host/tenantSlug";
 import { ehConsoleHost } from "@/lib/host/consoleHost";
+import { consultarTravaDeLogin } from "@/lib/seguranca/travaLogin";
 import { sincronizarStatusAssinatura } from "@/lib/console/assinatura";
 import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tenant/tema";
 import { layoutDoTema, varianteDoHorario, temTrocaAutomatica, variaveisDoLayout, msAteProximaTroca } from "@/layouts";
@@ -833,9 +834,22 @@ export function AppProvider({ children }) {
     // não consome tentativa nem vai à rede — e a mensagem fala do endereço, não
     // da credencial.
     if (!email) return { error: "Endereço de acesso inválido. Confira o link do estabelecimento." };
+
+    const senha = sanitizeInput(password, 100);
+    // Segunda linha da trava, esta no servidor (TD008): o contador acima vive
+    // no `localStorage` e some com um clique no DevTools — quem quer adivinhar
+    // a senha do gerente nem passa por esta tela. A RPC confere a senha de
+    // verdade, então ela conta falha REAL; e quem acerta a senha nunca é
+    // barrado, o que impede que a trava vire arma para deixar o
+    // estabelecimento fora do próprio PDV. Falha ABERTO por dentro.
+    const trava = await consultarTravaDeLogin(email, senha);
+    if (!trava.podeTentar) {
+      return { error: `Conta bloqueada. Aguarde ${trava.segundos}s.` };
+    }
+
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
-      password: sanitizeInput(password, 100),
+      password: senha,
     });
 
     if (authError) {
