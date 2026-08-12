@@ -69,6 +69,12 @@ idempotente (rodar de novo não faz nada) e falha alto se o arquivo não for um
   aberta, o atalho só traz o painel dela — nunca abre uma segunda cópia.
 - **Para parar**, use o botão **Parar a ponte** no fim do painel (ele pergunta
   "Tem certeza?" antes). Para voltar, é o mesmo atalho da Área de Trabalho.
+- **Para tirar do computador**, o painel tem **Desinstalar deste computador**
+  no cartão *Instalação* — também com "Tem certeza?" antes. Ele remove os dois
+  atalhos e o programa copiado; os dados guardados (vínculo, pedidos, fila de
+  impressão) **ficam**, a não ser que se marque a opção de apagar junto. Depois
+  de desinstalar a ponte fecha sozinha — é a única forma de o Windows liberar o
+  `.exe` para ser apagado.
 - **Com internet**: nada muda. O app do caixa detecta a ponte sozinho e
   mantém o catálogo dela atualizado.
 - **No app do caixa**: em *Configurações → Impressão → Pedidos sem Internet*
@@ -110,6 +116,19 @@ tudo certo. Se abrir dizendo *Ponte parada*, clique no atalho de novo.
 **Fechei sem querer / preciso parar.** Só dá para parar pelo botão **Parar a
 ponte**, no fim do painel — e ele pergunta antes de parar mesmo. Não tem mais
 janela para fechar por engano.
+
+**Como desinstalo?** Pelo próprio painel: cartão *Instalação* → **Desinstalar
+deste computador** (pergunta antes). Saem os atalhos da Área de Trabalho e da
+Inicialização e o programa copiado para a pasta do usuário. Os dados só somem
+se a opção **"Apagar também o que está guardado neste PC"** for marcada — sem
+ela, comanda na fila e vínculo continuam lá para uma reinstalação. Não precisa
+de senha de administrador e não passa por "Adicionar ou remover programas",
+porque a instalação nunca foi para o sistema todo, só para o usuário.
+
+**Desinstalei e o `.exe` ainda está lá.** Espere alguns segundos: o Windows não
+deixa um programa apagar o próprio arquivo enquanto ele roda, então quem apaga
+é uma faxina que espera a ponte fechar. Se depois de um minuto continuar,
+apague `%LOCALAPPDATA%\KORA\Ponte` na mão.
 
 **Onde ficam os pedidos?** No próprio PC, em
 `%LOCALAPPDATA%\KORA\Ponte\dados\pedidos.json`. Pedidos já confirmados são
@@ -194,8 +213,20 @@ Exemplos de `destino`:
   (token), `GET /info`, `POST /snapshot`, `GET /pedidos`,
   `POST /pedidos/confirmar`, `GET /impressoras`, `POST /imprimir`,
   `GET /impressao`, `POST /impressao/limpar`, `GET /` (painel),
-  `GET /painel/estado`, `POST /vincular`, `POST /instalar`, `POST /parar`
-  (só localhost).
+  `GET /painel/estado`, `POST /vincular`, `POST /instalar`,
+  `POST /desinstalar`, `POST /parar` (só localhost).
+- **Como se desinstala**: `POST /desinstalar` (só localhost, corpo opcional
+  `{ apagarDados: true }`) desfaz exatamente o que `POST /instalar` fez —
+  primeiro os atalhos (assim, mesmo se o resto falhar, ela não ressuscita no
+  próximo boot), depois o `.exe`. Como o Windows não deixa um programa apagar o
+  próprio arquivo em execução, quem apaga é um **faxineiro**: um PowerShell
+  solto (`detached`, via `-EncodedCommand`, sem `.ps1` em disco) que faz
+  `Wait-Process` no PID da ponte e só então remove o alvo, com repetição. Por
+  isso a rota responde 200 e **encerra a ponte** logo depois. Sem
+  `apagarDados`, o alvo é só o `.exe` e a pasta `dados/` fica intacta; com ele,
+  o alvo é a pasta de instalação inteira. Como em toda chamada ao PowerShell
+  aqui, **nenhum caminho é interpolado no comando** — o script é constante e os
+  caminhos chegam como JSON numa variável de ambiente.
 - **Onde ficam os dados depende de como a ponte roda.** Pelo código
   (`node servidor.js`), em `ponte/dados/` — como sempre foi. Como
   `KoraPonte.exe`, em `%LOCALAPPDATA%\KORA\Ponte\dados\`, porque o sistema de

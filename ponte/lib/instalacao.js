@@ -18,10 +18,17 @@
 //   usuário = zero pop-up de permissão, zero senha de TI. É de propósito.
 // - Zero dependência npm: a cópia é `fs.copyFile` e o atalho (.lnk) sai do
 //   WScript.Shell hospedado no PowerShell, que já vem no Windows.
+// - Instalar sem saber desinstalar é armadilha: quem entra na pasta do
+//   usuário tem que saber sair dela. `desinstalar()` desfaz exatamente o que
+//   `instalar()` fez (atalhos + o .exe copiado) e, se o dono pedir, leva
+//   junto a pasta de dados. Como o Windows não deixa apagar o .exe de um
+//   programa em execução — e o programa em execução é justamente ele —, a
+//   remoção do arquivo fica com um faxineiro: um PowerShell solto que espera
+//   a ponte fechar e só então apaga.
 // - Nada aqui lança para fora: toda função assíncrona resolve `{ok, ...}` /
 //   `{ok:false, erro}`, no mesmo contrato do resto da ponte.
 
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import os from "node:os";
@@ -455,4 +462,149 @@ export async function removerAtalhos(alvos) {
     removidos,
     erro: falhas.length ? `Não foi possível remover ${falhas.length} atalho(s): ${falhas[0]}` : null,
   };
+}
+
+// ── Faxineiro: quem apaga o .exe depois que a ponte fecha ───────────────
+//
+// O Windows tranca o arquivo de um programa enquanto ele roda. Como quem
+// pede a desinstalação É o programa instalado, ele não consegue apagar a si
+// mesmo: nasce daqui um PowerShell SOLTO (detached), que sobrevive à morte da
+// ponte, espera o processo dela sumir e só então apaga os alvos.
+//
+// MESMO CUIDADO DE SEGURANÇA DOS ATALHOS: nenhum caminho é interpolado no
+// script. Ele é constante; os caminhos viajam como JSON numa variável de
+// ambiente que o próprio script lê. Caminho hostil é sempre DADO, nunca
+// comando. Aqui nem arquivo temporário existe — o script vai em
+// `-EncodedCommand` (base64 de UTF-16LE), então não sobra lixo em %TEMP%
+// num momento em que ninguém mais está de olho na máquina.
+const VAR_FAXINA = "KORA_PONTE_FAXINA";
+
+export const TIMEOUT_FAXINA_S = 60;
+export const TENTATIVAS_FAXINA = 20;
+
+const SCRIPT_FAXINA = `$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+$bruto = $env:${VAR_FAXINA}
+if ([string]::IsNullOrWhiteSpace($bruto)) { exit 1 }
+try { $cfg = $bruto | ConvertFrom-Json } catch { exit 1 }
+
+# Espera a ponte fechar. Se ela já fechou, Wait-Process reclama que não achou
+# o processo — que é exatamente o que queremos, então o erro é ignorado.
+try { Wait-Process -Id ([int]$cfg.processo) -Timeout ${TIMEOUT_FAXINA_S} } catch { }
+
+# Cada alvo tenta várias vezes: entre o processo sair e o Windows soltar o
+# arquivo passa um instante, e antivírus às vezes segura mais um pouco.
+foreach ($alvo in @($cfg.alvos)) {
+  for ($i = 0; $i -lt ${TENTATIVAS_FAXINA}; $i++) {
+    try {
+      if (-not (Test-Path -LiteralPath $alvo)) { break }
+      Remove-Item -LiteralPath $alvo -Recurse -Force
+      break
+    } catch {
+      Start-Sleep -Milliseconds 500
+    }
+  }
+}
+`;
+
+/**
+ * O que o faxineiro vai apagar. Versão pura (nada de disco, nada de processo)
+ * — é por aqui que o teste garante que a pasta de dados só some quando o dono
+ * pediu, e que apagar tudo não deixa o .exe para trás.
+ *
+ * @param {{processo: number, dirInstalacao: string, caminhoExe: string, apagarDados?: boolean}} ctx
+ * @returns {{processo: number, alvos: string[]}}
+ */
+export function montarConfigFaxina({ processo, dirInstalacao: dir, caminhoExe, apagarDados = false }) {
+  return {
+    processo,
+    // Apagando os dados, a pasta inteira sai de uma vez — o .exe mora dentro
+    // dela, então listar os dois seria apagar duas vezes o mesmo arquivo.
+    alvos: apagarDados ? [dir] : [caminhoExe],
+  };
+}
+
+/**
+ * Solta o faxineiro. Não espera por ele de propósito: ele só começa a
+ * trabalhar depois que esta ponte morrer.
+ *
+ * @returns {{ok: true} | {ok: false, erro: string}}
+ */
+function agendarFaxina(config) {
+  try {
+    const filho = spawn(
+      "powershell.exe",
+      [...POWERSHELL_BASE, "-EncodedCommand", Buffer.from(SCRIPT_FAXINA, "utf16le").toString("base64")],
+      {
+        detached: true, // sai do grupo de processos da ponte — sobrevive a ela
+        stdio: "ignore", // sem canal aberto para um pai que vai fechar
+        windowsHide: true,
+        env: { ...process.env, [VAR_FAXINA]: JSON.stringify(config) },
+      },
+    );
+    filho.unref(); // libera o Node para encerrar sem esperar o filho
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, erro: e?.message ?? "falha desconhecida" };
+  }
+}
+
+/**
+ * Desinstala a ponte deste computador: tira os dois atalhos (Inicialização e
+ * Área de Trabalho) e agenda a remoção do programa copiado para a pasta do
+ * usuário. Com `apagarDados`, a pasta inteira vai junto — token do
+ * estabelecimento, pedidos, fila de impressão e log.
+ *
+ * Os dados NÃO somem por padrão: pode haver comanda na fila esperando a
+ * impressora voltar, e desinstalar é decisão de conforto — perder comanda não
+ * impressa seria prejuízo. Quem quer a máquina limpa (PC trocando de dono)
+ * pede explicitamente.
+ *
+ * Depois desta chamada quem manda tem que ENCERRAR a ponte: enquanto ela
+ * roda, o Windows não libera o .exe e o faxineiro fica esperando.
+ *
+ * Nunca lança: erro vira `{ok:false, erro}` com texto que o caixa entende.
+ *
+ * @param {{apagarDados?: boolean}} [opcoes]
+ * @returns {Promise<{ok: boolean, atalhosRemovidos: number, apagouDados: boolean, erro: string|null}>}
+ */
+export async function desinstalar({ apagarDados = false } = {}) {
+  const recusa = (erro) => ({ ok: false, atalhosRemovidos: 0, apagouDados: false, erro });
+
+  if (!EMPACOTADO) {
+    return recusa(
+      "Desinstalar só faz sentido no programa pronto (KoraPonte.exe). Em modo de desenvolvimento, basta parar o `node servidor.js`.",
+    );
+  }
+  if (!EH_WINDOWS) {
+    return recusa("A desinstalação automática só existe no Windows. Em outros sistemas, apague a pasta do programa na mão.");
+  }
+
+  // Atalhos primeiro: é o que faz a ponte voltar sozinha no próximo boot. Se
+  // o faxineiro falhar depois, pelo menos ela não ressuscita.
+  const atalhos = await removerAtalhos();
+  if (!atalhos.ok) {
+    return { ok: false, atalhosRemovidos: atalhos.removidos, apagouDados: false, erro: atalhos.erro };
+  }
+
+  const config = montarConfigFaxina({
+    processo: process.pid,
+    dirInstalacao: dirInstalacao(),
+    caminhoExe: caminhoExeInstalado(),
+    apagarDados,
+  });
+  const faxina = agendarFaxina(config);
+  if (!faxina.ok) {
+    // Os atalhos já saíram: a ponte não abre mais sozinha, e é isso que o
+    // dono sente. Só o arquivo ficou — e ele sabe onde, pela mensagem.
+    return {
+      ok: false,
+      atalhosRemovidos: atalhos.removidos,
+      apagouDados: false,
+      erro: `Os atalhos foram removidos, mas o programa não pôde ser apagado automaticamente (${faxina.erro}). Apague a pasta ${dirInstalacao()} na mão.`,
+    };
+  }
+
+  return { ok: true, atalhosRemovidos: atalhos.removidos, apagouDados: apagarDados, erro: null };
 }

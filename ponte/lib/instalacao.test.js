@@ -31,6 +31,8 @@ import {
   montarEstado,
   mesmoCaminho,
   montarConfigAtalhos,
+  montarConfigFaxina,
+  desinstalar,
   ARG_AUTOSTART,
   DESCRICAO_ATALHO,
 } from "./instalacao.js";
@@ -329,5 +331,70 @@ describe("removerAtalhos", () => {
     await removerAtalhos([lnk]);
     expect(fs.existsSync(dados)).toBe(true);
     expect(fs.readFileSync(config, "utf8")).toBe('{"token":"abc"}');
+  });
+});
+
+describe("montarConfigFaxina", () => {
+  const dirInst = path.join("C:\\", "Users", "caixa", "AppData", "Local", "KORA", "Ponte");
+  const exe = path.join(dirInst, "KoraPonte.exe");
+
+  it("por padrão só marca o .exe — os dados ficam", () => {
+    const c = montarConfigFaxina({ processo: 4321, dirInstalacao: dirInst, caminhoExe: exe });
+    expect(c.processo).toBe(4321);
+    expect(c.alvos).toEqual([exe]);
+  });
+
+  it("com apagarDados, leva a pasta inteira (o .exe mora dentro dela)", () => {
+    const c = montarConfigFaxina({
+      processo: 4321,
+      dirInstalacao: dirInst,
+      caminhoExe: exe,
+      apagarDados: true,
+    });
+    expect(c.alvos).toEqual([dirInst]);
+  });
+
+  it("apagarDados só vale quando for exatamente true — nada de valor solto apagar comanda", () => {
+    for (const valor of [undefined, null, 0, "", "sim", "false", 1]) {
+      const c = montarConfigFaxina({
+        processo: 1,
+        dirInstalacao: dirInst,
+        caminhoExe: exe,
+        apagarDados: valor,
+      });
+      expect(c.alvos).toEqual(valor ? [dirInst] : [exe]);
+    }
+  });
+
+  it("a config vira JSON — ela viaja como DADO para o PowerShell, nunca como comando", () => {
+    const c = montarConfigFaxina({ processo: 7, dirInstalacao: dirInst, caminhoExe: exe });
+    expect(JSON.parse(JSON.stringify(c))).toEqual(c);
+  });
+});
+
+describe("desinstalar", () => {
+  // A suíte roda pelo Node (EMPACOTADO = false), então o caminho testável aqui
+  // é a recusa — que é justamente a que não pode apagar nada de ninguém.
+  it("fora do empacotado, recusa com explicação e NÃO lança", async () => {
+    const r = await desinstalar();
+    expect(EMPACOTADO).toBe(false);
+    expect(r.ok).toBe(false);
+    expect(r.atalhosRemovidos).toBe(0);
+    expect(r.apagouDados).toBe(false);
+    expect(typeof r.erro).toBe("string");
+    expect(r.erro).toMatch(/KoraPonte\.exe/);
+  });
+
+  it("devolve sempre o mesmo formato de resultado", async () => {
+    const r = await desinstalar({ apagarDados: true });
+    expect(Object.keys(r).sort()).toEqual(["apagouDados", "atalhosRemovidos", "erro", "ok"]);
+  });
+
+  it("mesmo pedindo para apagar os dados, em dev não encosta na pasta de dados", async () => {
+    const alvo = dirDados();
+    const antes = fs.existsSync(alvo) ? fs.readdirSync(alvo).sort() : null;
+    await desinstalar({ apagarDados: true });
+    const depois = fs.existsSync(alvo) ? fs.readdirSync(alvo).sort() : null;
+    expect(depois).toEqual(antes);
   });
 });

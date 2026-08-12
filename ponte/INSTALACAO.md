@@ -60,6 +60,23 @@ Enquanto o caixa estiver funcionando, o normal é **nunca** parar a Ponte.
 
 ---
 
+## Como desinstalar
+
+Se este PC não vai mais ser o caixa (trocou de máquina, devolveu o computador, encerrou a operação), dá para tirar a Ponte dele sem precisar de técnico e sem mexer em "Adicionar ou remover programas".
+
+1. Abra o painel pelo atalho **KORA Ponte** da Área de Trabalho.
+2. No cartão **Instalação**, clique em **Desinstalar deste computador**.
+3. Ele pergunta *"Tem certeza?"* — só o segundo clique desinstala de verdade.
+4. Entre um clique e outro aparece a opção **"Apagar também o que está guardado neste PC"**. Leia com calma:
+   - **Deixando desmarcado** (o normal): saem os atalhos e o programa; ficam guardados o vínculo com o estabelecimento, os pedidos e as comandas que ainda não imprimiram. Se um dia reinstalar neste mesmo PC, tudo volta como estava.
+   - **Marcando**: apaga também esses dados. Comanda que ainda não saiu na impressora **se perde**. Só marque se este PC não vai mais ser usado com a Ponte.
+
+Depois do segundo clique a Ponte **fecha sozinha** — é assim que o Windows libera o arquivo para ser apagado. O painel vai avisar *"A ponte foi desinstalada deste computador"* e a partir daí não responde mais. Pode fechar a aba.
+
+**E se eu me arrepender?** Nada se perde: é só abrir o `KoraPonte.exe` de novo (aquele arquivo original que você recebeu) e clicar em **Instalar neste computador**.
+
+---
+
 ## Ligar a impressora
 
 Depois de instalar a Ponte, configure qual impressora usar. Abra o sistema e vá para:
@@ -126,6 +143,10 @@ R: Não. A segunda percebe que a primeira já está trabalhando e apenas mostra 
 **P: Apareceu uma página dizendo que a Ponte não conseguiu abrir**
 
 R: É o aviso dela quando algo impediu de subir neste PC (normalmente outro programa ocupando o endereço `8123`). A própria página diz onde fica o arquivo `ponte.log` — mande esse arquivo para o responsável do sistema.
+
+**P: Desinstalei e o `KoraPonte.exe` ainda aparece na pasta**
+
+R: Espere alguns segundos e atualize a pasta. O arquivo só pode ser apagado depois que a Ponte terminar de fechar, então a remoção acontece logo em seguida, sozinha. Se depois de um minuto ele continuar lá, apague a pasta `%LOCALAPPDATA%\KORA\Ponte` na mão (Windows + R, cole o caminho, Enter).
 
 **P: Instalei e abri o sistema, mas não aparece "Vinculada a <nome do estabelecimento>"**
 

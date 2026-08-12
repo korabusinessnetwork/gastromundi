@@ -35,7 +35,7 @@ import {
 } from "./lib/filaImpressao.js";
 import { montarBytes } from "./lib/escpos.js";
 import { listarImpressoras, enviarBytes } from "./lib/impressoras.js";
-import { EMPACOTADO, ARG_AUTOSTART, dirDados, estadoInstalacao, instalar } from "./lib/instalacao.js";
+import { EMPACOTADO, ARG_AUTOSTART, dirDados, estadoInstalacao, instalar, desinstalar } from "./lib/instalacao.js";
 import { validarVinculo, aplicarVinculo, resumoVinculo } from "./lib/vinculo.js";
 import { configurarLog, caminhoLog, logar, logarErro } from "./lib/log.js";
 
@@ -448,6 +448,35 @@ const servidor = http.createServer(async (req, res) => {
     const resultado = await instalar();
     if (resultado.ok) logar(`instalada em ${resultado.caminho}`);
     else logar(`instalação não concluída: ${resultado.erro}`);
+    return responderJson(res, 200, resultado);
+  }
+
+  if (rota === "POST /desinstalar") {
+    // Desfaz o que /instalar fez: atalhos fora e o programa marcado para ser
+    // apagado assim que a ponte fechar (o Windows não deixa um programa
+    // apagar o próprio .exe enquanto roda). Por isso a ponte ENCERRA logo
+    // depois de responder — sem isso, o arquivo ficaria lá para sempre.
+    const { dados } = await lerCorpoJson(req);
+    const apagarDados = dados?.apagarDados === true;
+
+    const resultado = await desinstalar({ apagarDados });
+    if (!resultado.ok) {
+      logar(`desinstalação não concluída: ${resultado.erro}`);
+      return responderJson(res, 200, resultado);
+    }
+
+    logar(
+      `desinstalada — ${resultado.atalhosRemovidos} atalho(s) removido(s), ` +
+      `dados ${apagarDados ? "APAGADOS" : "mantidos"}; encerrando a ponte para o programa poder ser apagado`,
+    );
+    res.once("finish", () => {
+      try {
+        servidor.close();
+      } catch {
+        // Já estava fechando — o exit abaixo resolve de qualquer jeito.
+      }
+      setTimeout(() => process.exit(0), 100);
+    });
     return responderJson(res, 200, resultado);
   }
 

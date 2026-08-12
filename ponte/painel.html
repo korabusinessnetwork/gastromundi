@@ -129,6 +129,38 @@
     padding: 10px 16px;
   }
 
+  /* Desinstalar é raro e sem volta automática: nasce apagado, como uma saída
+     discreta embaixo do estado da instalação — ninguém abre o painel para
+     desinstalar. Só quando o dono confirma é que ele se pinta de vermelho. */
+  .botao.remover {
+    background: transparent;
+    color: var(--mudo);
+    border: 2px solid var(--borda);
+    margin-top: 12px;
+    font-size: 15px;
+    padding: 10px 16px;
+  }
+  .botao.remover.confirmando { background: var(--vermelho); color: #fff; border-color: var(--vermelho); }
+
+  /* Caixa de marcar: alvo grande porque o PC do caixa costuma ser touch. */
+  .opcao {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--mudo);
+    cursor: pointer;
+  }
+  .opcao input {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    accent-color: var(--vermelho);
+    cursor: pointer;
+  }
+
   .resultado { margin-top: 14px; font-size: 15px; font-weight: 700; line-height: 1.5; }
   .resultado.sucesso { color: var(--verde); }
   .resultado.erro { color: var(--vermelho); }
@@ -208,6 +240,17 @@
     <button class="botao" id="btnInstalar" type="button">Instalar neste computador</button>
     <p class="resultado" id="instalacaoResultado" hidden></p>
     <p class="discreto" id="instalacaoDiscreta" hidden></p>
+
+    <!-- A opção fica ABAIXO do botão de propósito: ela só aparece depois do
+         primeiro clique, e se aparecesse acima empurraria o botão para longe
+         do cursor bem na hora de confirmar — o segundo clique cairia na
+         caixinha em vez do botão. -->
+    <button class="botao remover" id="btnDesinstalar" type="button" hidden>Desinstalar deste computador</button>
+    <label class="opcao" id="opcaoApagarDados" hidden>
+      <input type="checkbox" id="chkApagarDados" />
+      <span>Apagar também o que está guardado neste PC: vínculo, pedidos e comandas ainda na fila de impressão.</span>
+    </label>
+    <p class="resultado" id="desinstalacaoResultado" hidden></p>
   </section>
 
   <section class="card" id="cardPalm" hidden>
@@ -250,6 +293,13 @@
   Trabalho. Assim que ela voltar, esta tela se atualiza sozinha.
 </p>
 
+<p class="erro-bloco" id="blocoDesinstalada" hidden>
+  <strong>A ponte foi desinstalada deste computador.</strong><br />
+  Os atalhos saíram e o programa se apaga sozinho agora que ela fechou. Pode
+  fechar esta aba. Para usar de novo, é só abrir o <strong>KoraPonte.exe</strong>
+  outra vez.
+</p>
+
 <footer id="rodape"></footer>
 
 <script>
@@ -275,6 +325,11 @@
   var elBtnInstalar = document.getElementById("btnInstalar");
   var elInstalacaoResultado = document.getElementById("instalacaoResultado");
   var elInstalacaoDiscreta = document.getElementById("instalacaoDiscreta");
+  var elBtnDesinstalar = document.getElementById("btnDesinstalar");
+  var elOpcaoApagarDados = document.getElementById("opcaoApagarDados");
+  var elChkApagarDados = document.getElementById("chkApagarDados");
+  var elDesinstalacaoResultado = document.getElementById("desinstalacaoResultado");
+  var elBlocoDesinstalada = document.getElementById("blocoDesinstalada");
 
   var elCardPalm = document.getElementById("cardPalm");
   var elEnderecoPalm = document.getElementById("enderecoPalm");
@@ -286,6 +341,12 @@
 
   var instalando = false; // trava o polling de sobrescrever o botão no meio da instalação
   var liberandoOrigem = false; // idem, para o botão de liberar o endereço
+  var desinstalando = false; // idem, para o botão de desinstalar
+
+  // Desinstalar encerra a ponte (o Windows só libera o .exe depois que ela
+  // fecha), então o painel logo perde contato — e "sem resposta" aqui não é
+  // defeito, é o resultado esperado. Esta marca é o que separa as duas coisas.
+  var pediuDesinstalar = false;
 
   // Quando o dono mandou parar (0 = nunca). A ponte responde 200 e só depois
   // encerra, então uma consulta que já estava no ar pode voltar "ligada" logo
@@ -312,25 +373,31 @@
     elCartoes.hidden = false;
     elBlocoErro.hidden = true;
     elBlocoParada.hidden = true;
+    elBlocoDesinstalada.hidden = true;
     // Chegou aqui quer dizer que ela respondeu bem FORA da janela de parada
     // (ver aplicarEstado) ⇒ está mesmo de volta no ar, porque o dono reabriu
     // pelo atalho. A tela deixa de falar em parada.
     pedidoDeParadaEm = 0;
+    pediuDesinstalar = false;
   }
 
   function mostrarParada() {
     elPonto.className = "ponto parada";
     elStatusTexto.textContent = "Ponte parada";
-    elStatusSub.textContent = pediuParar()
-      ? "Você parou a ponte neste computador."
-      : "Sem resposta deste computador.";
+    elStatusSub.textContent = pediuDesinstalar
+      ? "Ela foi removida deste computador."
+      : pediuParar()
+        ? "Você parou a ponte neste computador."
+        : "Sem resposta deste computador.";
     // Some com tudo que seria dado velho — nada de mostrar número antigo
     // como se fosse o de agora.
     elCartoes.hidden = true;
-    // Parada porque o dono mandou parar é uma coisa; parada sem explicação é
-    // outra. Cada caso ganha o seu texto, senão o painel vira "deu erro".
-    elBlocoErro.hidden = pediuParar();
-    elBlocoParada.hidden = !pediuParar();
+    // Três motivos bem diferentes para a tela estar parada: o dono desinstalou,
+    // o dono mandou parar, ou ninguém respondeu. Cada um ganha o seu texto,
+    // senão o painel vira "deu erro" até quando deu tudo certo.
+    elBlocoDesinstalada.hidden = !pediuDesinstalar;
+    elBlocoParada.hidden = pediuDesinstalar || !pediuParar();
+    elBlocoErro.hidden = pediuDesinstalar || pediuParar();
   }
 
   function voltarBotaoParar() {
@@ -342,6 +409,29 @@
     elBtnParar.className = "botao perigo";
     elBtnParar.textContent = "Parar a ponte";
     elBtnParar.disabled = false;
+  }
+
+  // Mesma ideia do "Parar", com um tempo maior: aqui o primeiro clique também
+  // ABRE a opção de apagar os dados, e o dono precisa de tempo para ler e
+  // decidir antes de a pergunta se desfazer sozinha.
+  var MS_CONFIRMACAO_REMOCAO = 12000;
+  var confirmandoRemocao = false;
+  var relogioRemocao = null;
+
+  function voltarBotaoDesinstalar() {
+    confirmandoRemocao = false;
+    if (relogioRemocao) {
+      clearTimeout(relogioRemocao);
+      relogioRemocao = null;
+    }
+    elBtnDesinstalar.className = "botao remover";
+    elBtnDesinstalar.textContent = "Desinstalar deste computador";
+    elBtnDesinstalar.disabled = false;
+    // A opção de apagar os dados só existe dentro da pergunta. Fora dela ela
+    // some — e volta desmarcada, para o próximo clique não herdar a escolha
+    // de uma desistência anterior.
+    elOpcaoApagarDados.hidden = true;
+    elChkApagarDados.checked = false;
   }
 
   function textoEstabelecimento(estabelecimento) {
@@ -388,12 +478,19 @@
       elInstalacaoDiscreta.textContent = info.autoStart === false
         ? "Instalada, mas não abre sozinha com o Windows — vale reinstalar."
         : "Instalada e abre junto com o Windows.";
+      // Só quem está instalado pode desinstalar. Sair do computador tem que
+      // ser tão possível quanto entrar nele — mas sem competir com o resto.
+      elBtnDesinstalar.hidden = false;
     } else {
       elBtnInstalar.hidden = false;
       elInstalacaoDiscreta.hidden = true;
       if (!instalando) {
         elBtnInstalar.disabled = false;
         elBtnInstalar.textContent = "Instalar neste computador";
+      }
+      if (!desinstalando) {
+        elBtnDesinstalar.hidden = true;
+        elOpcaoApagarDados.hidden = true;
       }
     }
   }
@@ -503,6 +600,64 @@
         elInstalacaoResultado.textContent = "Não deu para falar com a Ponte para instalar. Tente de novo.";
         elBtnInstalar.disabled = false;
         elBtnInstalar.textContent = "Instalar neste computador";
+      });
+  });
+
+  elBtnDesinstalar.addEventListener("click", function () {
+    // Primeiro clique: só pergunta — e é aqui que aparece a opção de levar
+    // junto os dados guardados. Perguntar "apaga tudo?" antes de o dono ter
+    // dito que quer desinstalar seria assustar sem motivo.
+    if (!confirmandoRemocao) {
+      confirmandoRemocao = true;
+      elBtnDesinstalar.className = "botao remover confirmando";
+      elBtnDesinstalar.textContent = "Tem certeza? Desinstalar mesmo";
+      elOpcaoApagarDados.hidden = false;
+      elDesinstalacaoResultado.hidden = true;
+      relogioRemocao = setTimeout(voltarBotaoDesinstalar, MS_CONFIRMACAO_REMOCAO);
+      return;
+    }
+
+    // Segundo clique: agora vai.
+    if (relogioRemocao) clearTimeout(relogioRemocao);
+    relogioRemocao = null;
+    desinstalando = true;
+    elBtnDesinstalar.disabled = true;
+    elBtnDesinstalar.textContent = "Desinstalando…";
+
+    var apagarDados = elChkApagarDados.checked === true;
+
+    fetch("/desinstalar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apagarDados: apagarDados }),
+    })
+      .then(function (resp) { return resp.json(); })
+      .then(function (r) {
+        desinstalando = false;
+        if (r && r.ok) {
+          // Deu certo ⇒ a ponte está encerrando agora mesmo para o Windows
+          // liberar o arquivo. O painel vai perder contato em seguida, e isso
+          // é o esperado — a marca abaixo faz a tela dizer isso com todas as
+          // letras em vez de gritar "sem resposta".
+          pediuDesinstalar = true;
+          pedidoDeParadaEm = Date.now();
+          mostrarParada();
+          return;
+        }
+        // Não deu: a ponte continua no ar e o dono precisa saber o que sobrou
+        // para trás (a mensagem já vem pronta, dizendo qual pasta apagar).
+        voltarBotaoDesinstalar();
+        elDesinstalacaoResultado.hidden = false;
+        elDesinstalacaoResultado.className = "resultado erro";
+        elDesinstalacaoResultado.textContent = (r && r.erro) || "Não deu para desinstalar agora. Tente de novo.";
+        buscarEstado();
+      })
+      .catch(function () {
+        desinstalando = false;
+        voltarBotaoDesinstalar();
+        elDesinstalacaoResultado.hidden = false;
+        elDesinstalacaoResultado.className = "resultado erro";
+        elDesinstalacaoResultado.textContent = "Não deu para falar com a Ponte para desinstalar. Tente de novo.";
       });
   });
 
