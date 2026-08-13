@@ -1,0 +1,148 @@
+/**
+ * Card de pauta (Pautas da Kora).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * Cada estado tem uma cor só sua, e ela aparece em dois lugares: na borda
+ * lateral do card e no botão aceso. Assim dá para varrer a lista de longe e
+ * saber o que está parado, o que anda e o que acabou.
+ */
+
+.pauta-card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-left: 4px solid var(--gm-faint);
+  border-radius: 14px;
+  padding: 16px;
+  color: var(--gm-text);
+  font-family: "Inter", system-ui, sans-serif;
+}
+.pauta-card--pendente     { border-left-color: var(--gm-faint); }
+.pauta-card--em_progresso { border-left-color: var(--gm-warn); }
+.pauta-card--finalizado   { border-left-color: var(--gm-green); }
+.pauta-card--finalizado .pauta-card__titulo { color: var(--gm-muted); }
+
+/* ── Topo ──────────────────────────────────────────────────────── */
+.pauta-card__topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.pauta-card__titulo {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.pauta-card__editar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.pauta-card__editar:hover { color: var(--gm-text); }
+
+/* ── Conteúdo ──────────────────────────────────────────────────── */
+.pauta-card__intuito,
+.pauta-card__pessoas {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--gm-text);
+}
+.pauta-card__pessoas { color: var(--gm-muted); }
+.pauta-card__icone {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--gm-muted);
+}
+
+.pauta-card__ver-contexto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--gm-accent);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.pauta-card__contexto {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ── Os três botões de estado ──────────────────────────────────── */
+.pauta-card__status {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.pauta-card__botao {
+  flex: 1;
+  padding: 11px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.pauta-card__botao:hover:not(:disabled):not(.pauta-card__botao--atual) {
+  color: var(--gm-text);
+  border-color: var(--gm-faint);
+}
+.pauta-card__botao:disabled { cursor: progress; }
+
+/* O estado atual é o botão aceso — a cor diz qual é sem ler o rótulo. */
+.pauta-card__botao--atual { color: #fff; }
+.pauta-card__botao--pendente.pauta-card__botao--atual {
+  background: var(--gm-faint);
+  border-color: var(--gm-faint);
+}
+.pauta-card__botao--em_progresso.pauta-card__botao--atual {
+  background: var(--gm-warn);
+  border-color: var(--gm-warn);
+  color: #1a1300;
+}
+.pauta-card__botao--finalizado.pauta-card__botao--atual {
+  background: var(--gm-green);
+  border-color: var(--gm-green);
+}
+
+.pauta-card__rodape {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--gm-muted);
+}
+
+/* ── No celular ────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .pauta-card__botao { font-size: 12px; padding: 12px 6px; }
+}

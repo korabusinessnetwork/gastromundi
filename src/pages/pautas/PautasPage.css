@@ -1,0 +1,275 @@
+/**
+ * Tela das Pautas da Kora.
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * Uma coluna só, centralizada, com o topo grudado — a ação principal
+ * ("Nova pauta") acompanha a rolagem e nunca some da vista.
+ */
+
+.pautas {
+  min-height: 100dvh;
+  box-sizing: border-box;
+  padding: 0 16px 40px;
+  background: var(--gm-bg);
+  color: var(--gm-text);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.pautas > * {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── Topo ──────────────────────────────────────────────────────── */
+.pautas__topo {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0 14px;
+  background: var(--gm-bg);
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.pautas__marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.pautas__marca-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--gm-surface);
+  color: var(--gm-accent);
+}
+.pautas__marca-titulo {
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.pautas__marca-sub {
+  font-size: 12px;
+  color: var(--gm-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pautas__acoes-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pautas__nova {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 10px;
+  background: var(--gm-accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+.pautas__nova:hover { filter: brightness(1.08); }
+
+.pautas__sair {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+.pautas__sair:hover { color: var(--gm-text); }
+
+/* ── Filtros ───────────────────────────────────────────────────── */
+.pautas__filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0;
+}
+
+.pautas__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pautas__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.pautas__chip:hover:not(.pautas__chip--ativo) { color: var(--gm-text); }
+
+/* O filtro ligado fica aceso — e na cor do próprio estado, a mesma do
+   card e do botão da pauta, para não haver dois vocabulários de cor. */
+.pautas__chip--ativo {
+  background: color-mix(in srgb, var(--gm-accent) 22%, transparent);
+  border-color: var(--gm-accent);
+  color: var(--gm-text);
+}
+.pautas__chip--em_progresso.pautas__chip--ativo {
+  background: color-mix(in srgb, var(--gm-warn) 20%, transparent);
+  border-color: var(--gm-warn);
+}
+.pautas__chip--finalizado.pautas__chip--ativo {
+  background: color-mix(in srgb, var(--gm-green) 20%, transparent);
+  border-color: var(--gm-green);
+}
+
+.pautas__chip-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* ── Busca ─────────────────────────────────────────────────────── */
+.pautas__busca {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.pautas__busca-icone {
+  position: absolute;
+  left: 14px;
+  color: var(--gm-muted);
+  pointer-events: none;
+}
+.pautas__busca-input {
+  width: 100%;
+  padding: 12px 14px 12px 40px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-size: 15px;
+  font-family: inherit;
+  box-sizing: border-box;
+  outline: none;
+}
+.pautas__busca-input:focus { border-color: var(--gm-accent); }
+
+/* ── Erro, espera e vazio ──────────────────────────────────────── */
+.pautas__erro {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gm-red) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 40%, transparent);
+  color: var(--gm-red);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pautas__tentar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 8px 13px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 45%, transparent);
+  background: transparent;
+  color: var(--gm-red);
+  font-size: 12px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.pautas__aviso {
+  margin: 24px 0;
+  text-align: center;
+  color: var(--gm-muted);
+  font-size: 14px;
+}
+
+.pautas__vazio {
+  margin: 20px 0;
+  padding: 34px 20px;
+  border: 1px dashed var(--gm-border);
+  border-radius: 16px;
+  text-align: center;
+}
+.pautas__vazio-titulo {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 800;
+}
+.pautas__vazio-texto {
+  margin: 0 0 18px;
+  color: var(--gm-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.pautas__limpar {
+  margin-top: 14px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ── Lista ─────────────────────────────────────────────────────── */
+.pautas__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── No celular ────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  /* Abaixo de 16px o Safari do iPhone dá zoom ao focar o campo. */
+  .pautas__busca-input { font-size: 16px; }
+
+  .pautas__nova { padding: 12px 14px; }
+  .pautas__marca-icone { width: 36px; height: 36px; }
+  .pautas__filtros { padding: 14px 0; }
+}

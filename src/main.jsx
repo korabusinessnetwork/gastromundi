@@ -8,10 +8,19 @@ import "@/styles/tema.css";
 import { registerSW } from "virtual:pwa-register";
 import { initObservabilidade } from "@/lib/observabilidade";
 import { instalarRecuperacaoDeploy } from "@/lib/recuperacaoDeploy";
+import { pautasAtivo, ehPautasHost } from "@/lib/pautasHost";
+
+// Host das Pautas (ex.: pautas.kora.codes): superfície interna dos sócios da
+// Kora, sem PDV, sem tenant e sem rotas. Inerte por design — sem
+// VITE_PAUTAS_SUBDOMAIN + VITE_ROOT_DOMAIN isto é sempre false e o app roda
+// exatamente como antes.
+const noHostDasPautas = pautasAtivo() && ehPautasHost();
 
 // PWA (Leva 11): registra o service worker que deixa o app disponível
 // offline. `immediate` atualiza a versão em segundo plano sem prompt.
-registerSW({ immediate: true });
+// Fora do host das pautas: o manifest instalável é o do PDV, e cachear o
+// app inteiro em um subdomínio que só mostra uma lista não serve a ninguém.
+if (!noHostDasPautas) registerSW({ immediate: true });
 
 // Deploy novo com a aba já aberta: os pedaços antigos do app somem do servidor
 // e a tela quebraria em branco. Antes de qualquer render, deixamos armada a
@@ -65,12 +74,28 @@ function TelaDeErro() {
   );
 }
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <Sentry.ErrorBoundary fallback={<TelaDeErro />}>
-      <AppProvider>
-        <RouterProvider router={router} future={{ v7_startTransition: true }} />
-      </AppProvider>
-    </Sentry.ErrorBoundary>
-  </StrictMode>
-);
+const raiz = createRoot(document.getElementById("root"));
+
+if (noHostDasPautas) {
+  // Import dinâmico: as telas das pautas só chegam ao navegador de quem abre
+  // o subdomínio delas — o bundle do PDV não engorda por causa disso.
+  import("@/pages/pautas/PautasApp").then(({ default: PautasApp }) => {
+    raiz.render(
+      <StrictMode>
+        <Sentry.ErrorBoundary fallback={<TelaDeErro />}>
+          <PautasApp />
+        </Sentry.ErrorBoundary>
+      </StrictMode>
+    );
+  });
+} else {
+  raiz.render(
+    <StrictMode>
+      <Sentry.ErrorBoundary fallback={<TelaDeErro />}>
+        <AppProvider>
+          <RouterProvider router={router} future={{ v7_startTransition: true }} />
+        </AppProvider>
+      </Sentry.ErrorBoundary>
+    </StrictMode>
+  );
+}
