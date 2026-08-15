@@ -17,7 +17,7 @@ import { criarLancamento } from "@/lib/financeiro";
 import { METODOS_TEF_PADRAO } from "@/lib/tef";
 import { emitirDocumentoFiscal } from "@/lib/fiscal";
 import { LIMITE_SANGRIA_PADRAO, lerValor, limiteSangriaValido, validarMovimento } from "@/lib/caixaMovimentos";
-import { processarBaixaEstoque, gerarAlertaBaixaFalhou, isRpcAusente } from "@/lib/estoque";
+import { processarBaixaEstoque, gerarAlertaBaixaFalhou, iniciarLoteDeBaixas, fecharLoteDeBaixas, isRpcAusente } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
@@ -833,28 +833,36 @@ export function AppProvider({ children }) {
     drenandoRef.current = true;
     try {
       const { falhas } = await drenarFila({ fila: filaOffline, executar: executarOpOffline, isErroDeRede, tenantAtual: tenantIdRef.current });
-      for (const { op, error } of falhas) {
-        console.error("[offline] operação descartada no reenvio:", op.tipo, error?.message);
-        // Falha NÃO-rede ao drenar: a op foi descartada (não é reenfileirada)
-        // e aqui mora a não-idempotência do estoque / evento reemitido. É bug
-        // silencioso — reporta com o tipo da op (drenarFila já separou rede).
-        reportarFalha(error, { acao: "drenarPendenciasOffline", op: op?.tipo });
-        // Baixa recusada no reenvio é o MESMO furo de inventário do TD012: a
-        // venda saiu, o estoque não desceu, e a op foi descartada de vez. Sem
-        // este alerta o buraco só aparece na contagem física — Sentry e evento
-        // são para quem desenvolve, o Jarvas é o que o gestor abre.
-        if (op?.tipo === "rpc_baixar_estoque") {
-          const produto = products.find(p => String(p.id) === String(op.produtoId));
-          void gerarAlertaBaixaFalhou(
-            { produtoId: op.produtoId, nome: produto?.name ?? null, quantidade: op.qtd, erro: error },
-            currentUser?.username,
-          );
-        } else if (op?.tipo === "rpc_baixar_estoque_subproduto") {
-          void gerarAlertaBaixaFalhou(
-            { subprodutoId: op.subprodutoId, nome: op.nome ?? null, quantidade: op.qtd, erro: error },
-            currentUser?.username,
-          );
+      // Um drain que descarta várias baixas de uma vez é a cara da falha
+      // sistêmica: o lote junta tudo num alerta só em vez de encher o painel
+      // do Jarvas com um cartão por produto da fila.
+      iniciarLoteDeBaixas();
+      try {
+        for (const { op, error } of falhas) {
+          console.error("[offline] operação descartada no reenvio:", op.tipo, error?.message);
+          // Falha NÃO-rede ao drenar: a op foi descartada (não é reenfileirada)
+          // e aqui mora a não-idempotência do estoque / evento reemitido. É bug
+          // silencioso — reporta com o tipo da op (drenarFila já separou rede).
+          reportarFalha(error, { acao: "drenarPendenciasOffline", op: op?.tipo });
+          // Baixa recusada no reenvio é o MESMO furo de inventário do TD012: a
+          // venda saiu, o estoque não desceu, e a op foi descartada de vez. Sem
+          // este alerta o buraco só aparece na contagem física — Sentry e evento
+          // são para quem desenvolve, o Jarvas é o que o gestor abre.
+          if (op?.tipo === "rpc_baixar_estoque") {
+            const produto = products.find(p => String(p.id) === String(op.produtoId));
+            void gerarAlertaBaixaFalhou(
+              { produtoId: op.produtoId, nome: produto?.name ?? null, quantidade: op.qtd, erro: error },
+              currentUser?.username,
+            );
+          } else if (op?.tipo === "rpc_baixar_estoque_subproduto") {
+            void gerarAlertaBaixaFalhou(
+              { subprodutoId: op.subprodutoId, nome: op.nome ?? null, quantidade: op.qtd, erro: error },
+              currentUser?.username,
+            );
+          }
         }
+      } finally {
+        void fecharLoteDeBaixas(currentUser?.username);
       }
     } finally {
       drenandoRef.current = false;

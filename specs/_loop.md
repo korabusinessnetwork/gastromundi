@@ -1,3 +1,40 @@
+## Rodada 61 — TD012 (o resto): falha sistêmica de baixa vira um alerta só — 2026-08-15
+- Spec: specs/td012-alerta-agregado-falha-sistemica-de-baixa.md
+- Resultado: 8 de 8 critérios em sim (suíte 207 arquivos / 3627 testes, verde; +15 testes novos).
+  De 3 baixas recusadas para cima **na mesma operação**, sai um único insight com a chave fixa
+  `estoque:baixa-falhou:sistemica` em vez de um cartão por produto. Uma ou duas falhas continuam
+  no caminho antigo (alerta por item), porque aí ainda pode ser problema do próprio produto.
+- O motivo real de mexer nisso: o alerta por item não estava errado, estava se anulando. Uma
+  comanda de dez itens com a RLS caída enchia o painel do Jarvas com dez cartões idênticos — o
+  gestor lê o primeiro, conclui "problema no Chopp" e ignora os outros nove. Alerta que se repete
+  demais some por excesso, que dá no mesmo que não existir. E a frase individual ainda mandava
+  "confira a contagem deste item", conselho errado quando o sistema inteiro está travado.
+- Chave FIXA é o ponto que faz a coisa funcionar: sem id de item, o dedupe que já existia
+  (`buscarInsights` por `origem.chave`) colapsa uma queda de RLS inteira num alerta aberto só, em
+  vez de um por venda até alguém resolver. Nenhuma linha de dedupe nova foi escrita.
+- Escolha de projeto: `decidirAlertaDeLote(itens, limiar = 3)` é pura e exportada, para que o
+  número 3 seja discutível sem abrir o AppContext. Três é o menor número que não confunde azar
+  com padrão — uma ou duas falhas ainda cabem em causa própria do item.
+- O lote é estado de módulo (com `profundidade` para aninhamento), e não parâmetro: quem chama
+  `gerarAlertaBaixaFalhou` é o AppContext item a item, e passar o lote adiante obrigaria a mudar a
+  assinatura de `baixarEstoque`/`baixarEstoqueSubproduto` só para carregar contexto do alerta. O
+  que segura a escolha é o acúmulo ser síncrono: o `push` acontece antes de qualquer `await`, e
+  todos os pontos de uso chamam com `void` — quando `baixarEstoque` retorna, a falha já está no
+  lote. Abrir/fechar sempre em `try/finally`, porque lote esquecido aberto engoliria os alertas
+  das vendas seguintes.
+- Aplicado nos dois lugares onde as baixas acontecem em série: `useFinalizarPagamento` (a venda) e
+  `AppContext.drenarPendenciasOffline` (o reenvio da fila).
+- Correção de ledger: a linha do TD012 no `tech-debt.md` afirmava que `entradaEstoque` "também só
+  reporta ao Sentry". Não procede — ela emite evento, desfaz o otimista e devolve `{ error }`, que
+  a `EstoqueView` mostra na tela. A linha foi corrigida no backlog.
+- Commit: nesta rodada, na branch claude/verificacao-fraturas-axg0js
+- Pendente de decisão: as cinco herdadas mais a de design system da rodada 60 (`--gm-warn-2`),
+  inalteradas. Nada novo.
+- Próximo item recomendado: o único resto declarado do TD012 — avisar o **operador** na tela do
+  PDV que a baixa não foi aplicada. É decisão de produto, não de código: interromper a fila do
+  caixa com um erro de estoque tem custo próprio, e o dono precisa dizer se quer isso. Alternativas
+  técnicas prontas se não: TD013 (RPC de append atômico) ou TD009 etapa 3 (parar o dual-write).
+
 ## Rodada 60 — TD018 (fatia final): âmbar cru → --gm-warn no app inteiro — 2026-08-15
 - Spec: specs/td018-final-ambar-app-wide.md
 - Resultado: 7 de 7 critérios em sim (suíte 207 arquivos / 3612 testes, verde). Os arquivos que

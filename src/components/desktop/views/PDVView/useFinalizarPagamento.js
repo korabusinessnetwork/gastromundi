@@ -10,6 +10,7 @@ import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/lib/co
 import { isErroDeRede } from "@/lib/offline/rede";
 import { round2 } from "@/lib/vendas";
 import { reportarFalha } from "@/lib/observabilidade";
+import { iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/lib/estoque";
 import { hojeLocalISO, diaLocalDaqui } from "@/utils/datas";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
@@ -209,25 +210,35 @@ export function useFinalizarPagamento() {
     // Baixas recusadas pelo servidor (RLS, constraint...). Offline não conta:
     // a RPC entra na fila local e é reaplicada quando a conexão voltar.
     const baixasFalhadas = [];
-    for (const [prodId, qty] of Object.entries(delta)) {
-      // Produto sem entrada no mapa de estoque = sem controle de estoque.
-      // Estoque zerado NÃO pula a baixa: a RPC clampa em zero e o Jarvas
-      // sinaliza a venda sem estoque (oversell) — pular escondia o furo.
-      if (!(prodId in estoque)) continue;
-      const produto = (products ?? []).find(p => String(p.id) === prodId);
-      // Crítico 7 — converte a quantidade vendida (unidade de consumo)
-      // para unidade de estoque via fator_consumo_estoque do produto.
-      const qtdEstoque = produto ? consumoParaEstoque(qty, produto) : qty;
-      const { error } = (await baixarEstoque(prodId, qtdEstoque)) ?? {};
-      if (error) baixasFalhadas.push({ produto_id: prodId, nome: produto?.name ?? null, quantidade: qtdEstoque });
-    }
+    // Abre o lote antes da primeira baixa: se a venda inteira falhar em
+    // descontar (RLS caída, sessão expirada), o gestor recebe UM alerta
+    // dizendo que o sistema não está descontando, e não um cartão por
+    // produto repetindo a mesma frase. `finally` porque um lote deixado
+    // aberto engoliria os alertas das vendas seguintes.
+    iniciarLoteDeBaixas();
+    try {
+      for (const [prodId, qty] of Object.entries(delta)) {
+        // Produto sem entrada no mapa de estoque = sem controle de estoque.
+        // Estoque zerado NÃO pula a baixa: a RPC clampa em zero e o Jarvas
+        // sinaliza a venda sem estoque (oversell) — pular escondia o furo.
+        if (!(prodId in estoque)) continue;
+        const produto = (products ?? []).find(p => String(p.id) === prodId);
+        // Crítico 7 — converte a quantidade vendida (unidade de consumo)
+        // para unidade de estoque via fator_consumo_estoque do produto.
+        const qtdEstoque = produto ? consumoParaEstoque(qty, produto) : qty;
+        const { error } = (await baixarEstoque(prodId, qtdEstoque)) ?? {};
+        if (error) baixasFalhadas.push({ produto_id: prodId, nome: produto?.name ?? null, quantidade: qtdEstoque });
+      }
 
-    // B4 — combos também descontam o estoque dos subprodutos que os compõem
-    // (a receita viaja no item do carrinho; só entram os com controla_estoque).
-    // Mesma filosofia da baixa do principal: nunca bloqueia nem quebra a venda.
-    for (const baixa of calcularBaixasSubprodutos(itensAtivos)) {
-      const { error } = (await baixarEstoqueSubproduto(baixa.subprodutoId, baixa.qtd, baixa.nome)) ?? {};
-      if (error) baixasFalhadas.push({ subproduto_id: baixa.subprodutoId, nome: baixa.nome ?? null, quantidade: baixa.qtd });
+      // B4 — combos também descontam o estoque dos subprodutos que os compõem
+      // (a receita viaja no item do carrinho; só entram os com controla_estoque).
+      // Mesma filosofia da baixa do principal: nunca bloqueia nem quebra a venda.
+      for (const baixa of calcularBaixasSubprodutos(itensAtivos)) {
+        const { error } = (await baixarEstoqueSubproduto(baixa.subprodutoId, baixa.qtd, baixa.nome)) ?? {};
+        if (error) baixasFalhadas.push({ subproduto_id: baixa.subprodutoId, nome: baixa.nome ?? null, quantidade: baixa.qtd });
+      }
+    } finally {
+      void fecharLoteDeBaixas(currentUser?.username);
     }
 
     const metodoResumo = (pagamentos ?? []).map(p => p?.metodo).filter(Boolean).join(" + ") || "—";
