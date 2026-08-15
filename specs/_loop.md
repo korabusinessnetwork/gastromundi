@@ -1,3 +1,66 @@
+## Rodada 60 — TD018 (fatia final): âmbar cru → --gm-warn no app inteiro — 2026-08-15
+- Spec: specs/td018-final-ambar-app-wide.md
+- Resultado: 7 de 7 critérios em sim (suíte 207 arquivos / 3612 testes, verde). Os arquivos que
+  sobravam do TD018 passaram a usar o token: `PDVView/ComandaGrid.jsx` e `MesaMapView.jsx`,
+  `CozinhaView.jsx`, `EstoqueView.jsx`, `AdminView.jsx`, `ConfiguracoesView.jsx`,
+  `JarvasPanel.jsx`, `FechamentoModal.jsx`, `AssinaturaBanner.jsx`, `constants/roles.js`,
+  `ImportarExportarTab.css`, `DemoClientes.css` e `comprovante.css` (este com fallback
+  `var(--gm-warn, #f59e0b)`, porque a folha vai para a janela de impressão). Cada sufixo de
+  opacidade preservado — nenhum pixel mudou.
+- Achado que barateou a rodada: em `ComandaGrid.jsx` bastou a constante `AMBER` virar
+  `varColor(C.warn)`. `alfa()` só troca por `var(cor)` quando a string começa com `--gm-`, mas no
+  ramo literal ele aplica o `color-mix` por cima da string como veio — e `"var(--gm-warn)"` é uma
+  string válida ali. Os ~15 `alfa(AMBER, "NN")` do arquivo passaram a seguir o tema sem serem
+  tocados um a um.
+- Regra fixada (estava só implícita nas rodadas 56 e 58, e o código se contradizia — `DeliveryView`
+  dizia "white-label sem exceção", `ConfiguracoesView.css` dizia "cor semântica fixa"): âmbar vira
+  `--gm-warn` quando significa **atenção/alerta**, ou quando era o **único hex cru numa paleta já
+  tokenizada**. Paleta categórica inteiramente literal fica como está — tokenizar 1 de 5 amostras
+  quebra a coerência do conjunto, e mapear "gerente" ou "COFINS" num token de *aviso* dá dois
+  significados ao mesmo token. Registrada no `tech-debt.md` (TD018) e no spec §2.
+- Comentários corrigidos: `colorAlfa.js` (usava `#f59e0b` como exemplo de "cor não customizável" —
+  pendência que a rodada 58 deixou anotada), `ConfiguracoesView.css` e o bloco de nota do
+  `ComandaGrid.jsx`.
+- Resíduos declarados, não esquecidos: `COR_TIPO` (impostos) e `METODOS_COLOR` (métodos de
+  pagamento), a rampa de força de senha do `crypto.js`, e o status `aberta` do mapa de mesas
+  (`#eab308`) — este precisa ser distinguível de `reservada` lado a lado, e o design system ainda
+  não tem um segundo tom de atenção.
+- Commit: 26a6328 na branch claude/verificacao-fraturas-axg0js
+- Pendente de decisão: as cinco herdadas, inalteradas. **Uma nova, de design system:** criar um
+  segundo tom de atenção (`--gm-warn-2` ou equivalente) para o status "aberta" do mapa de mesas —
+  hoje é o único âmbar que fica literal por necessidade visual, não por categoria.
+- Próximo item recomendado: TD012 (o que sobrou) — falha sistêmica de RLS gera um alerta por
+  produto distinto em vez de um alerta agregado, e o operador do PDV não é avisado na tela.
+  Conferido nesta rodada: o outro resto citado no ledger da rodada 3 (`entradaEstoque` "também só
+  reporta ao Sentry") **não procede** — ele emite evento no Jarvas, desfaz o update otimista e
+  devolve `{ error }`, que a `EstoqueView` mostra na tela. Não há divergência silenciosa ali.
+
+## Rodada 59 — TD019: suíte refém do relógio e do `.env.local` da máquina — 2026-08-15
+- Spec: specs/td019-suite-refem-do-relogio-e-do-env.md
+- Resultado: 5 de 5 critérios em sim. De `13 arquivos falhando | 194 passando` e `4 testes
+  falhando | 3502 passando` para **207 arquivos / 3612 testes, todos verdes**. Os +106 testes não
+  são novos: são os que estavam mortos.
+- O que estava quebrado, e nenhuma das duas causas era bug de produção:
+  1. 9 arquivos morriam **na importação** com `VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
+     ausentes` (`src/lib/supabase.js:13` ← `utils/hooks.js:2` ← `LoginPage.jsx:4`). Qualquer teste
+     que alcançasse `hooks.js` puxava o client real e explodia antes do primeiro `it()`, mesmo com
+     o Supabase dublado. Sem `.env.local` — que não é versionado — essas suítes nunca rodaram.
+  2. 4 asserções liam o relógio da máquina (`assinatura.test.js:276` e `:324`,
+     `console.test.js:970`, `AnalyticsDashboard.test.jsx:201`). O produto está certo: vencimento,
+     "Hoje"/"Ontem" e "dias sem vender" usam o **calendário local de quem opera**. Os testes é que
+     foram escritos com datas fixas assumindo UTC-3 — passavam no notebook, quebravam em UTC.
+- Solução: bloco `test.env` no `vitest.config.js`, só ele. `TZ: "America/Sao_Paulo"` e credenciais
+  falsas em host `.invalid` (reservado por RFC 2606 — se algo escapar do dublê, falha em DNS em vez
+  de ir para servidor de verdade). Zero linha de produção alterada; a checagem de credencial do
+  `supabase.js` continua rigorosa, que é o certo.
+- Limite declarado no spec: fuso fixo esconde bug real de fuso. Enquanto todo tenant estiver em
+  `America/Sao_Paulo` o custo é zero; no dia em que houver tenant fora dele, o certo é o teste
+  construir as datas a partir do fuso do tenant.
+- Commit: 2bf9df5 na branch claude/verificacao-fraturas-axg0js
+- Pendente de decisão: nenhuma.
+- Próximo item recomendado: TD018 (fatia final) — com a suíte confiável de novo, a varredura de cor
+  app-wide fica verificável.
+
 ## Rodada 58 — TD018 (fatia módulo fiscal): âmbar cru → token --gm-warn — 2026-08-03
 - Spec: specs/td018-fiscal-ambar-token.md
 - Resultado da review: aprovado sem ressalvas — 8 de 8 (suíte 203 arquivos / 3536 testes, verde).
