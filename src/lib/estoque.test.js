@@ -498,6 +498,24 @@ describe("processarBaixaEstoque", () => {
     expect(registrarInsight.mock.calls[0][0].origem.chave).toBe("estoque:oversell:produto:8");
   });
 
+  it("RPC OK sem linha nenhuma é FALHA, não sucesso silencioso", async () => {
+    // O UPDATE não achou o produto em `estoque`: nada foi descontado. Antes
+    // isso passava como sucesso e o app estimava `anterior - qty` — o mesmo
+    // erro do TD012, com a tela caindo enquanto o banco não mexia.
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const chamarRpc = vi.fn(() => Promise.resolve({ data: [], error: null }));
+
+    const { error, quantidade } = await processarBaixaEstoque({
+      produtoId: 9, qty: 3, quantidadeAnterior: 10, nomeProduto: "Pastel",
+      usuario: "maria", chamarRpc,
+    });
+
+    expect(error?.code).toBe("estoque_sem_linha");
+    expect(quantidade).toBe(10); // saldo de antes, não a estimativa 7
+    expect(registrarInsight).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
   it("usa minimoFallback quando a RPC não devolve minimo", async () => {
     buscarInsights.mockResolvedValue({ data: [], error: null });
     const chamarRpc = vi.fn(() => Promise.resolve({ data: [{ quantidade: 4 }], error: null }));

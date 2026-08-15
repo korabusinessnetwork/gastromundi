@@ -937,6 +937,8 @@ CREATE TABLE public.nfce_inutilizacoes (
 --   (SECURITY DEFINER com checagem de role caixa/gerente/admin)
 --   RETURNS TABLE (quantidade numeric, minimo numeric) desde 20260712 — antes RETURNS void (F008)
 --   Idempotente por op_id desde 20260830 (estoque_baixas_aplicadas)
+--   Cria a linha de `estoque` do produto antes de descontar desde 20260919 —
+--   antes, produto sem linha era vendido sem baixa nenhuma, em silêncio
 -- jarvas_resumo_vendas(p_desde timestamptz, p_limite_produtos int) → 20260709_jarvas_resumo_vendas.sql
 --   (agregação SQL de vendas 30d/top produtos para o assistente do Jarvas — TD009 etapa 2)
 -- relatorio_vendas(p_inicio timestamptz, p_fim timestamptz, p_limite_produtos int) → 20260714_relatorio_vendas.sql

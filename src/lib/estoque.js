@@ -385,8 +385,23 @@ export async function processarBaixaEstoque({
   }
 
   const linha = Array.isArray(data) ? data[0] : data;
-  const quantidade = linha ? Number(linha.quantidade) : Math.max(0, Number(quantidadeAnterior) - qty);
-  const minimo = linha?.minimo != null ? Number(linha.minimo) : minimoFallback;
+  // RPC respondeu OK e não devolveu linha nenhuma: o UPDATE não achou o
+  // produto em `estoque`. Nada foi descontado. Estimar `anterior - qty` aqui
+  // era o mesmo erro do TD012 — o saldo da tela seguia caindo enquanto o
+  // banco não mexia. Desde a migration 20260919 a RPC cria a linha antes de
+  // descontar, então cair aqui significa migration não aplicada ou produto de
+  // outro tenant: os dois merecem alerta, não um número inventado.
+  if (!linha) {
+    const semLinha = {
+      code: "estoque_sem_linha",
+      message: "Estoque não descontado: o produto não tem linha de estoque neste estabelecimento.",
+    };
+    console.error("[estoque] baixa sem linha correspondente:", { produtoId, qty });
+    return { quantidade: Math.max(0, Number(quantidadeAnterior) || 0), error: semLinha };
+  }
+
+  const quantidade = Number(linha.quantidade);
+  const minimo = linha.minimo != null ? Number(linha.minimo) : minimoFallback;
 
   // Oversell tem precedência: já é "danger", cobre a ruptura e explica a causa.
   if (verificarOversell(quantidadeAnterior, qty)) {

@@ -1092,7 +1092,22 @@ export function AppProvider({ children }) {
     // omite o id gerado pelo app — o banco gera o uuid via default
     const { id: _ignored, ...payload } = product;
     const { data, error } = await supabase.from("products").insert(payload).select().single();
-    if (data) setProductsLocal(prev => [...prev, data]);
+    if (data) {
+      setProductsLocal(prev => [...prev, data]);
+      // Produto nasce com linha de estoque (saldo 0, mínimo padrão do banco).
+      // Sem ela, a tela de Estoque mostrava "0" para um produto que na verdade
+      // não era contado, e a venda não tinha o que descontar. A RPC de baixa
+      // também cria a linha (migration 20260919); aqui é para a linha existir
+      // ANTES da primeira venda, e não a partir dela.
+      const { error: erroEstoque } = await supabase
+        .from("estoque")
+        .upsert({ produto_id: data.id }, { onConflict: "produto_id", ignoreDuplicates: true });
+      // Falhar aqui não desfaz o produto: ele existe e é vendável. A RPC de
+      // baixa cria a linha na primeira venda, então o furo não volta — mas
+      // fica o rastro de que a linha não nasceu junto.
+      if (erroEstoque) reportarFalha(erroEstoque, { acao: "addProduct:estoque", tabela: "estoque", produto_id: data.id });
+      setEstoqueLocal(prev => (data.id in prev ? prev : { ...prev, [data.id]: 0 }));
+    }
     return { data, error };
   };
 
@@ -1605,14 +1620,27 @@ export function AppProvider({ children }) {
     // Mesma chave de idempotência da baixa de produto (ver acima).
     const opId = crypto.randomUUID();
     let error = null;
+    let data = null;
     try {
-      ({ error } = await supabase.rpc("baixar_estoque_subproduto", {
+      ({ data, error } = await supabase.rpc("baixar_estoque_subproduto", {
         p_subproduto_id: subprodutoId,
         p_qtd: qtd,
         p_op_id: opId,
       }));
     } catch (err) {
       error = { message: err?.message ?? String(err) };
+    }
+    // RPC sem erro e sem linha nenhuma de volta = o UPDATE não achou o
+    // subproduto em `estoque_subprodutos`. Nada foi descontado, e até aqui isso
+    // passava como sucesso — a venda fechava e o saldo não mexia, em silêncio.
+    // Diferente da baixa de produto, aqui a linha NÃO é criada: em subproduto
+    // ela nasce junto com o cadastro, então faltar é inconsistência de dados
+    // que precisa aparecer, não ser remendada.
+    if (!error && Array.isArray(data) && data.length === 0) {
+      error = {
+        code: "estoque_sem_linha",
+        message: "Estoque não descontado: o subproduto não tem linha de estoque neste estabelecimento.",
+      };
     }
     if (error) {
       if (isErroDeRede(error)) {

@@ -1,3 +1,58 @@
+## Rodada 62 — "sempre que der baixa no caixa tem q dar baixa no estoque" (TD020) — 2026-08-15
+- Spec: specs/baixa-no-caixa-sempre-vira-baixa-no-estoque.md
+- Resultado: 9 de 9 critérios em sim (suíte 207 arquivos / 3632 testes, verde; +7 testes novos, 1
+  removido). O pedido era uma invariante, não uma feature — e o sistema não a cumpria.
+- O furo, em uma frase: **não existe `controla_estoque` em `products`** — o que define produto
+  controlado é a EXISTÊNCIA da linha em `estoque` — e `addProduct` nunca criou essa linha. Então
+  todo produto cadastrado pelo app era vendido sem descontar nada, para sempre, enquanto a
+  `EstoqueView` o mostrava com saldo "0", igualzinho a um produto controlado que acabou.
+- Três camadas escondiam isso uma da outra: (1) `addProduct` sem a linha; (2) o PDV com
+  `if (!(prodId in estoque)) continue;` e o comentário "sem entrada no mapa = sem controle de
+  estoque" — comentário que racionalizava um acidente, porque a guarda valia para o catálogo
+  inteiro; (3) `baixar_estoque` é `UPDATE ... WHERE produto_id`, que sem linha afeta zero linhas
+  **sem erro**, e a `processarBaixaEstoque` lia isso como sucesso e devolvia `anterior - qty`.
+  O item 3 é o TD012 literal vivo um andar abaixo de onde ele foi corrigido.
+- Agravante que valia por si só: a guarda dava ao mapa em memória DESTE aparelho poder de veto
+  sobre a baixa. Carga de estoque que falha no bootstrap = mapa vazio = venda inteira sem
+  descontar, calada. Quem decide se há o que descontar é o servidor.
+- Quatro mudanças, e elas só valem juntas — tirar o veto do cliente sem transformar "sem linha" em
+  erro trocaria um pulo silencioso por uma mentira silenciosa:
+  1. Migration `20260919_baixa_estoque_cria_linha.sql`: a RPC cria a linha (`tenant_atual_id()`
+     explícito) antes de descontar, mais backfill dos produtos que já existem. É a correção que
+     sustenta o resto — vale para produto criado pelo app, por importação ou por SQL direto.
+  2. `addProduct` cria a linha junto com o produto. Redundante com a RPC de propósito: a RPC
+     garante a baixa, isto garante que a tela de Estoque esteja honesta ANTES da primeira venda.
+  3. `useFinalizarPagamento` manda todo item vendido para a baixa (item cancelado e item sem
+     produto vinculado seguem de fora, e estoque zerado continua passando: a RPC clampa em zero e
+     o Jarvas sinaliza o oversell).
+  4. `estoque_sem_linha` como erro explícito em `processarBaixaEstoque` e em
+     `baixarEstoqueSubproduto` — esta ignorava o `data` da RPC por completo, então resposta vazia
+     era sucesso. Cai no alerta de baixa recusada que o TD012 já construiu.
+- Detalhe de SQL que não é decorativo: o INSERT vem ANTES da checagem de idempotência. Baixa
+  reenviada da fila offline também precisa receber a linha de volta — senão o app lê "nenhuma
+  linha" e acusa falha numa baixa que já tinha sido aplicada.
+- `estoque_subprodutos` fica de fora de propósito: lá a linha nasce com o cadastro, que tem
+  `controla_estoque` de verdade. Linha faltando é inconsistência de dados — acusar, não remendar.
+- Teste removido: `"não desconta estoque de produto sem controle de estoque (sem entrada no mapa)"`
+  afirmava exatamente o que o dono pediu para não acontecer. Virou o oposto, mais um irmão que
+  prende o caso do mapa vazio.
+- Commit: nesta rodada, na branch claude/verificacao-fraturas-axg0js
+- **AÇÃO DO DONO:** aplicar `supabase/migrations/20260919_baixa_estoque_cria_linha.sql` no painel do
+  Supabase. Sem ela nada regride (produto novo já nasce com linha pelo `addProduct`), mas os
+  produtos antigos seguem sem linha — e agora ACUSAM `estoque_sem_linha` em vez de falhar calados.
+  Nenhuma policy de RLS nova: a função é `SECURITY DEFINER` e continua sendo a única a escrever ali.
+- Efeito colateral declarado: produto que ninguém quer controlar (couvert, taxa de serviço) passa a
+  ter linha e a gerar alerta de venda sem estoque a cada venda. Hoje não dá para desligar o controle
+  por produto — a saída é dar entrada do saldo. É o preço de o inventário ser verdadeiro, e erra
+  para o lado que aparece: alerta demais se vê, baixa de menos não se via.
+- Pendente de decisão: as cinco herdadas, mais a de design system da rodada 60 (`--gm-warn-2`),
+  mais o aviso ao operador na tela do PDV (rodada 61). **Uma nova:** criar `controla_estoque` em
+  `products` para o produto que não se conta — é decisão de produto, e só vale a pena se o barulho
+  do efeito colateral acima incomodar de verdade.
+- Próximo item recomendado: `controla_estoque` em `products`, se o dono confirmar que quer o
+  desligamento por produto. Alternativas técnicas prontas: TD013 (RPC de append atômico) ou TD009
+  etapa 3 (parar o dual-write).
+
 ## Rodada 61 — TD012 (o resto): falha sistêmica de baixa vira um alerta só — 2026-08-15
 - Spec: specs/td012-alerta-agregado-falha-sistemica-de-baixa.md
 - Resultado: 8 de 8 critérios em sim (suíte 207 arquivos / 3627 testes, verde; +15 testes novos).

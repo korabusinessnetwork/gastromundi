@@ -49,7 +49,7 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
  * passa nada (todo o PDV de desktop) segue idêntico a antes.
  */
 export function useFinalizarPagamento() {
-  const { addSale, removePending, estoque, baixarEstoque, baixarEstoqueSubproduto, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
+  const { addSale, removePending, baixarEstoque, baixarEstoqueSubproduto, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
 
   const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId, cliente, dest }, { onNfce, semComanda = false } = {}) => {
     // TEF é só online: a maquininha precisa de comunicação em tempo real —
@@ -202,8 +202,8 @@ export function useFinalizarPagamento() {
     }
     // Combos com múltiplos produtos: cada produto adicional (além do
     // principal, que já entrou pelo id do item) baixa seu próprio estoque.
-    // Entram no mesmo delta para ganhar a conversão de unidade, a guarda
-    // `prodId in estoque` e a agregação com vendas avulsas do mesmo produto.
+    // Entram no mesmo delta para ganhar a conversão de unidade e a agregação
+    // com vendas avulsas do mesmo produto.
     for (const b of calcularBaixasProdutosCombo(itensAtivos)) {
       delta[b.produtoId] = (delta[b.produtoId] ?? 0) + b.qtd;
     }
@@ -218,10 +218,14 @@ export function useFinalizarPagamento() {
     iniciarLoteDeBaixas();
     try {
       for (const [prodId, qty] of Object.entries(delta)) {
-        // Produto sem entrada no mapa de estoque = sem controle de estoque.
-        // Estoque zerado NÃO pula a baixa: a RPC clampa em zero e o Jarvas
-        // sinaliza a venda sem estoque (oversell) — pular escondia o furo.
-        if (!(prodId in estoque)) continue;
+        // Todo item vendido passa pela baixa, sem exceção — quem decide se há
+        // o que descontar é o servidor, não o mapa que este aparelho tem na
+        // memória. Antes, produto fora do mapa era pulado como "sem controle
+        // de estoque"; como `addProduct` nunca criou a linha, isso valia para
+        // TODO produto cadastrado pelo app: vendia sem descontar, para sempre,
+        // e a tela de Estoque mostrava "0" como se fosse saldo. Estoque zerado
+        // também não pula: a RPC clampa em zero e o Jarvas sinaliza a venda
+        // sem estoque (oversell).
         const produto = (products ?? []).find(p => String(p.id) === prodId);
         // Crítico 7 — converte a quantidade vendida (unidade de consumo)
         // para unidade de estoque via fator_consumo_estoque do produto.
