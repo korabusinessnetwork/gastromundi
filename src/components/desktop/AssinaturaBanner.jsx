@@ -41,8 +41,8 @@ export default function AssinaturaBanner() {
     const diasAtraso = Math.abs(diasParaVencer ?? 0);
     const diasRestantes = Math.max(0, (carenciaDias ?? 0) - diasAtraso);
     return (
-      <div className="assinatura-banner assinatura-banner--carencia" style={{ background: "#f59e0b1a", borderColor: "#f59e0b55", color: varColor(C.text) }}>
-        <LuTriangleAlert size={16} color="#f59e0b" />
+      <div className="assinatura-banner assinatura-banner--carencia" style={{ background: `${alfa(C.warn, "1a")}`, borderColor: `${alfa(C.warn, "55")}`, color: varColor(C.text) }}>
+        <LuTriangleAlert size={16} color={varColor(C.warn)} />
         <span>
           Sua mensalidade está atrasada. Regularize em até {diasRestantes} dia{diasRestantes === 1 ? "" : "s"} para não perder o acesso.
         </span>

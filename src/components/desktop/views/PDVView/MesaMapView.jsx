@@ -38,10 +38,14 @@ export function statusMesa(mesa, abertas) {
   return "livre";
 }
 
+// Cores dos quatro status da mesa. Três saem de tokens --gm-* e seguem o tema
+// do tenant (decisão 017). "Aberta" fica no amarelo literal porque precisa ser
+// distinguível de "Reservada" (--gm-warn) lado a lado no mapa, e o design
+// system ainda não tem um segundo tom de atenção — resíduo registrado no TD018.
 export const STATUS = {
   livre:      { label: "Livre",      bg: `${alfa(C.green, "14")}`,  border: `${alfa(C.green, "44")}`,  cor: varColor(C.green)   },
   aberta:     { label: "Aberta",     bg: "#eab30814",     border: "#eab30855",     cor: "#eab308" },
-  reservada:  { label: "Reservada",  bg: "#f59e0b14",     border: "#f59e0b55",     cor: "#f59e0b" },
+  reservada:  { label: "Reservada",  bg: alfa(C.warn, "14"), border: alfa(C.warn, "55"), cor: varColor(C.warn) },
   manutencao: { label: "Manutenção", bg: `${alfa(C.red, "10")}`,    border: `${alfa(C.red, "44")}`,    cor: varColor(C.red)     },
 };
 

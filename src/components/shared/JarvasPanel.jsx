@@ -17,7 +17,7 @@ import "./JarvasPanel.css";
  * info → azul · warning → âmbar · danger → vermelho.
  */
 
-const COR_SEVERIDADE = { info: varColor(C.blue), warning: "#f59e0b", danger: varColor(C.red) };
+const COR_SEVERIDADE = { info: varColor(C.blue), warning: varColor(C.warn), danger: varColor(C.red) };
 const LABEL_TIPO = { insight: "Insight", alerta: "Alerta", sugestao: "Sugestão" };
 const ROTA_ACAO = {
   abrir_estoque: "/app/estoque",

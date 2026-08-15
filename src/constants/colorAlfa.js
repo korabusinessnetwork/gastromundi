@@ -9,8 +9,11 @@
  * em vez de hex. Então:
  * - Se `cor` começa com "--gm-", é um token name → usa `var(cor)` direto
  *   e segue o tema do tenant (decisão 017).
- * - Senão, é uma cor semântica fixa (ex. "#f59e0b" para AMBER de alerta)
- *   que não é customizável por tenant → usa a cor literal.
+ * - Senão, usa a cor como veio. Dois casos caem aqui: uma string `var(--gm-x)`
+ *   já montada por `varColor()` (o color-mix é aplicado por cima do var, então
+ *   o blend segue o tema do tenant do mesmo jeito), e as poucas paletas
+ *   categóricas que ainda são hex literal (impostos, métodos de pagamento,
+ *   força de senha — resíduo do TD018).
  *
  * @param {string} cor - token name (ex. "--gm-accent" via C.xxx) ou hex literal
  * @param {string} hexAlfa - sufixo de alfa em hex, 2 dígitos (ex. "44")

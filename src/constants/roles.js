@@ -26,7 +26,7 @@ export const ROLES = {
   },
   gerente: {
     label: "Gerente",
-    color: "#f59e0b",
+    color: varColor(C.warn),
     description: "Caixa + relatórios e cadastro de produtos",
     icon: "📊",
     permissions: {

@@ -35,7 +35,7 @@ const fmtDt = (d) => d ? new Date(d).toLocaleDateString("pt-BR", { day: "2-digit
 
 
 const STATUS_COMPRA = {
-  pendente:  { label: "Pendente",  color: "#f59e0b" },
+  pendente:  { label: "Pendente",  color: varColor(C.warn)    },
   pago:      { label: "Pago",      color: varColor(C.green)   },
   cancelado: { label: "Cancelado", color: varColor(C.muted)   },
 };
@@ -326,7 +326,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                       const qtdNecEst  = produto ? consumoParaEstoque(qtdNec, produto) : qtdNec;
                       const qtdEstq    = produto ? (estoque[produto.id] ?? 0) : null;
                       const suficiente = qtdEstq === null ? null : qtdEstq >= qtdNecEst;
-                      const corEstq    = qtdEstq === null ? varColor(C.muted) : qtdEstq === 0 ? varColor(C.red) : suficiente ? varColor(C.green) : "#f59e0b";
+                      const corEstq    = qtdEstq === null ? varColor(C.muted) : qtdEstq === 0 ? varColor(C.red) : suficiente ? varColor(C.green) : varColor(C.warn);
                       const ueLabel    = produto ? labelEstoque(produto) : "";
                       const ucLabel    = produto ? labelConsumo(produto) : (ing.unidade || "");
                       const temConv    = produto ? temConversaoConsumo(produto) : false;

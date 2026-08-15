@@ -262,10 +262,10 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
           <div style={{
             display: "flex", alignItems: "flex-start", gap: 10,
             padding: "12px 14px", borderRadius: 12,
-            background: "#f59e0b14", border: "1.5px solid #f59e0b55",
+            background: `${alfa(C.warn, "14")}`, border: `1.5px solid ${alfa(C.warn, "55")}`,
           }}>
-            <LuTriangleAlert size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
-            <div className="fechamento-modal__banner-texto" style={{ color: "#f59e0b" }}>
+            <LuTriangleAlert size={16} color={varColor(C.warn)} style={{ flexShrink: 0, marginTop: 1 }} />
+            <div className="fechamento-modal__banner-texto" style={{ color: varColor(C.warn) }}>
               <strong>
                 R$ {totalNaoMapeado.toFixed(2)} em métodos não configurados:
               </strong>{" "}

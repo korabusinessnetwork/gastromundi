@@ -10,7 +10,10 @@ import "./ComandaGrid.css";
 
 const TOTAL = 1000;
 const PAGE  = 50;
-const AMBER = "#f59e0b";
+// Âmbar de ATENÇÃO (comanda em uso por outro garçom, comanda esquecida). É o
+// token --gm-warn do design system, que o tenant pode sobrescrever — o hex
+// cravado aqui deixava esta cor de fora do white-label (decisão 017, TD018).
+const AMBER = varColor(C.warn);
 
 function fmtComanda(name) {
   return /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -20,10 +23,9 @@ function fmtComanda(name) {
 // usam `alfa(cor, "HH")` (src/constants/colorAlfa.js) — color-mix()
 // sobre `var(--gm-*)` quando `cor` é um token de marca (segue o tema
 // do tenant, decisão 017), preservando a opacidade do antigo sufixo
-// hex (ADR-007). `AMBER` e o vermelho literal de tempo esgotado em
-// `getElapsed` são cores semânticas fixas (alerta de tempo), não de
-// marca — `alfa()` cai para a cor literal nesses casos, o que é
-// esperado (não fazem parte do tema do tenant).
+// hex (ADR-007). `AMBER` já é `var(--gm-warn)` (TD018): `alfa()` monta o
+// color-mix por cima do próprio `var()`, então o blend segue o tema do
+// tenant igual aos demais.
 function getElapsed(dateStr) {
   if (!dateStr) return { label: "", color: varColor(C.muted), warn: false };
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -33,7 +35,7 @@ function getElapsed(dateStr) {
   if (m < 60) return { label: `${m}min`,            color: AMBER,   warn: true  };
   const h = Math.floor(m / 60);
   const r = m % 60;
-  return { label: `${h}h${r > 0 ? `${r}min` : ""}`, color: "#ef4444", warn: true };
+  return { label: `${h}h${r > 0 ? `${r}min` : ""}`, color: varColor(C.red), warn: true };
 }
 
 export default function ComandaGrid({ abertas, visitadas = new Set(), selected, onSelect, onOpenEmpty, busca = "", somenteAbertas = false, emUsoPor = () => null }) {
