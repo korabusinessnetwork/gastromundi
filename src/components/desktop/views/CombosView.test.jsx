@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 //
-// B2 da auditoria — ao editar um combo, a composição é recriada: apaga as
-// junções e insere as novas. Os dois deletes não eram conferidos, então uma
-// falha de permissão deixava a composição antiga somada à nova — o combo
-// passava a levar o dobro dos itens (e a baixar o dobro do estoque).
-// Junto vão os dois outros defeitos da mesma tela: falha de carga virava
-// "Nenhum combo criado", e o toggle Ativo/Inativo mudava a tela sem mudar o
-// banco.
+// Combo flexível (grupos de escolha). Três garantias da tela:
+//  1. Carga: falha ao ler os combos OU os grupos avisa, em vez de dizer
+//     "Nenhum combo criado" — senão o usuário recria o que já existe.
+//  2. Toggle Ativo/Inativo é otimista com desfazer: erro no banco volta a
+//     chave e avisa.
+//  3. B2 — ao editar, a composição é recriada apagando os grupos antigos
+//     antes de inserir os novos. O delete é conferido: se ele falha, o
+//     salvamento para (sem inserir), senão o combo ficaria com os grupos
+//     antigos somados aos novos (cliente escolheria duas vezes).
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -29,22 +31,28 @@ import CombosView from "./CombosView";
 const sz = { pad: 16, padSm: 8, fontSm: 12, fontBase: 14, fontLg: 18 };
 
 const PRODUTO = { id: 7, name: "X-Burguer", price: 20, emoji: "🍔", category: "Lanches" };
-const SUB = { id: 3, nome: "Batata média", preco: 8, categoria: "Acompanhamento", ativo: true };
-const COMBO = {
-  id: 1,
-  nome: "Combo X",
-  item_principal_id: 7,
-  modo: "combo",
-  preco_total: 28,
-  ativo: true,
-  combo_subprodutos: [{ quantidade: 1, subprodutos: { nome: SUB.nome, preco: SUB.preco } }],
-  combo_produtos: [],
+
+// Linha de combos.select(...)
+const COMBO = { id: 1, nome: "Combo X", preco_total: 28, ativo: true, created_at: "2026-01-01" };
+
+// Linha de grupos_escolha.select(SEL_GRUPO) — um grupo "lista" com uma opção.
+const GRUPO_ROW = {
+  id: "g1",
+  produto_id: null,
+  combo_id: 1,
+  nome: "Escolha o hambúrguer",
+  minimo: 1,
+  maximo: 1,
+  origem: "lista",
+  categoria: null,
+  ordem: 0,
+  grupo_escolha_itens: [{ id: "i1", produto_id: 7, preco_customizado: null, ordem: 0 }],
 };
 
-/** Deixa a lista carregada com um combo. */
+/** Deixa a lista carregada com um combo e seu grupo de escolha. */
 async function montarComCombo() {
   mockSupabase.current.setTableResult("combos", { data: [COMBO], error: null });
-  mockSupabase.current.setTableResult("subprodutos", { data: [SUB], error: null });
+  mockSupabase.current.setTableResult("grupos_escolha", { data: [GRUPO_ROW], error: null });
   renderWithProviders(<CombosView sz={sz} />);
   await waitFor(() => expect(screen.getByText("Combo X")).toBeInTheDocument());
 }
@@ -56,7 +64,7 @@ beforeEach(() => {
 });
 
 describe("CombosView — carga da lista", () => {
-  it("falha ao carregar avisa, em vez de dizer que não há combos", async () => {
+  it("falha ao carregar os combos avisa, em vez de dizer que não há combos", async () => {
     mockSupabase.current.setTableError("combos", { message: "network error" });
 
     renderWithProviders(<CombosView sz={sz} />);
@@ -66,9 +74,9 @@ describe("CombosView — carga da lista", () => {
     expect(screen.queryByText("Nenhum combo criado")).not.toBeInTheDocument();
   });
 
-  it("falha só na carga dos subprodutos também avisa", async () => {
+  it("falha só na carga dos grupos de escolha também avisa", async () => {
     mockSupabase.current.setTableResult("combos", { data: [COMBO], error: null });
-    mockSupabase.current.setTableError("subprodutos", { message: "network error" });
+    mockSupabase.current.setTableError("grupos_escolha", { message: "network error" });
 
     renderWithProviders(<CombosView sz={sz} />);
 
@@ -79,6 +87,8 @@ describe("CombosView — carga da lista", () => {
   it("carga com sucesso lista o combo sem aviso", async () => {
     await montarComCombo();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    // A composição vem da contagem de grupos de escolha.
+    expect(screen.getByText("1 grupo de escolha")).toBeInTheDocument();
   });
 });
 
@@ -109,65 +119,36 @@ describe("CombosView — ligar/desligar combo", () => {
 });
 
 describe("CombosView — editar combo (B2)", () => {
-  /** Abre o modal de edição já com a composição carregada. */
+  /** Abre o modal de edição já com os grupos carregados. */
   async function abrirEdicao(user) {
     await user.click(screen.getByTitle("Editar combo"));
     await screen.findByText("Editar Combo");
-    // A composição vem de combo_subprodutos; espera ela aparecer no modal.
-    await screen.findByText(SUB.nome);
+    // Espera o editor de grupos renderizar (sai do "Carregando grupos…").
+    await screen.findByText(/adicionar grupo de escolha/i);
   }
 
-  function composicaoCarregada() {
-    mockSupabase.current.setTableHandler("combo_subprodutos", ({ method }) =>
-      method === "select"
-        ? { data: [{ id: 11, quantidade: 1, preco_customizado: null, subprodutos: SUB }], error: null }
-        : undefined);
-    mockSupabase.current.setTableHandler("combo_produtos", ({ method }) =>
-      method === "select" ? { data: [], error: null } : undefined);
-  }
-
-  it("falha ao apagar os subprodutos antigos interrompe o salvamento (sem duplicar a composição)", async () => {
+  it("falha ao apagar os grupos antigos interrompe o salvamento (sem duplicar a composição)", async () => {
     await montarComCombo();
-    composicaoCarregada();
     const user = userEvent.setup();
     await abrirEdicao(user);
 
-    mockSupabase.current.setTableHandler("combo_subprodutos", ({ method }) =>
+    mockSupabase.current.setTableHandler("grupos_escolha", ({ method }) =>
       method === "delete" ? { data: null, error: { message: "permission denied" } } : undefined);
 
     await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
 
     await waitFor(() => expect(screen.getByText(/permission denied/i)).toBeInTheDocument());
-    // Nenhum insert: senão o combo ficaria com a composição antiga + a nova.
+    // Nenhum insert: senão o combo ficaria com os grupos antigos + os novos.
     const inserts = mockSupabase.current.calls.filter(
-      (c) => c.method === "insert" && (c.table === "combo_subprodutos" || c.table === "combo_produtos"),
+      (c) => c.method === "insert" && (c.table === "grupos_escolha" || c.table === "grupo_escolha_itens"),
     );
     expect(inserts).toHaveLength(0);
     // Modal continua aberto — o salvamento não terminou.
     expect(screen.getByText("Editar Combo")).toBeInTheDocument();
   });
 
-  it("falha ao apagar os produtos antigos interrompe o salvamento", async () => {
-    await montarComCombo();
-    composicaoCarregada();
-    const user = userEvent.setup();
-    await abrirEdicao(user);
-
-    mockSupabase.current.setTableHandler("combo_produtos", ({ method }) =>
-      method === "delete" ? { data: null, error: { message: "delete recusado" } } : undefined);
-
-    await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
-
-    await waitFor(() => expect(screen.getByText(/delete recusado/i)).toBeInTheDocument());
-    const inserts = mockSupabase.current.calls.filter(
-      (c) => c.method === "insert" && (c.table === "combo_subprodutos" || c.table === "combo_produtos"),
-    );
-    expect(inserts).toHaveLength(0);
-  });
-
   it("edição bem-sucedida apaga antes de inserir e fecha o modal", async () => {
     await montarComCombo();
-    composicaoCarregada();
     const user = userEvent.setup();
     await abrirEdicao(user);
 
@@ -175,7 +156,7 @@ describe("CombosView — editar combo (B2)", () => {
 
     await waitFor(() => expect(screen.queryByText("Editar Combo")).not.toBeInTheDocument());
     const ordem = mockSupabase.current.calls
-      .filter(c => c.table === "combo_subprodutos" && (c.method === "delete" || c.method === "insert"))
+      .filter(c => c.table === "grupos_escolha" && (c.method === "delete" || c.method === "insert"))
       .map(c => c.method);
     expect(ordem).toEqual(["delete", "insert"]);
   });

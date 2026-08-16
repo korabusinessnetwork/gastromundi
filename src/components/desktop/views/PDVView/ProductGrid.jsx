@@ -1,21 +1,52 @@
 import { useState, useRef } from "react";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { montarItemCombo } from "@/lib/combos";
+import { montarItemCombo, montarItemProdutoEscolhas } from "@/lib/combos";
+import SeletorEscolhas from "./SeletorEscolhas";
 import "./ProductGrid.css";
 
-export default function ProductGrid({ products, combos = [], onAdd }) {
+const CAT_COMBOS = "Combos";
+
+export default function ProductGrid({ products, combos = [], gruposPorProduto = {}, onAdd }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const categorias = ["Todos", ...new Set(products.map(p => p.category))];
+  // "Combos" só entra na barra quando há combos — vira a aba onde o operador
+  // encontra os combos, além de aparecerem também em "Todos".
+  const categorias = ["Todos", ...new Set(products.map(p => p.category)), ...(combos.length ? [CAT_COMBOS] : [])];
   const [catAtiva, setCatAtiva] = useState("Todos");
+
+  // Item com grupos de escolha (combo flexível ou produto com seleção) abre
+  // o seletor antes de ir ao carrinho; sem grupos, vai direto.
+  // seletor = { tipo:"combo"|"produto", combo?, produto?, grupos, titulo, emoji, precoBase }
+  const [seletor, setSeletor] = useState(null);
+
+  const clicarProduto = (produto) => {
+    const grupos = gruposPorProduto[produto.id] ?? [];
+    if (grupos.length === 0) { onAdd(produto); return; }
+    setSeletor({ tipo: "produto", produto, grupos, titulo: produto.name, emoji: produto.emoji, precoBase: Number(produto.price) || 0 });
+  };
+
+  const clicarCombo = (combo) => {
+    const grupos = combo.grupos ?? [];
+    if (grupos.length === 0) { const item = montarItemCombo(combo); if (item) onAdd(item); return; }
+    setSeletor({ tipo: "combo", combo, grupos, titulo: combo.nome, emoji: undefined, precoBase: Number(combo.preco_total) || 0 });
+  };
+
+  const confirmarEscolhas = (escolhas) => {
+    if (!seletor) return;
+    const item = seletor.tipo === "combo"
+      ? montarItemCombo(seletor.combo, escolhas)
+      : montarItemProdutoEscolhas(seletor.produto, escolhas);
+    if (item) onAdd(item);
+    setSeletor(null);
+  };
 
   // Estabelecimento recém-criado abre o PDV com o cardápio vazio. "Nenhum
   // produto nesta categoria" mentiria — não existe categoria nenhuma — e não
   // diz o que fazer. Aqui os dois vazios são coisas diferentes: catálogo
   // vazio manda a pessoa para a tela de cadastro; categoria vazia é só um
   // filtro sem resultado.
-  const catalogoVazio = products.length === 0;
+  const catalogoVazio = products.length === 0 && combos.length === 0;
 
   // Arrastar-para-rolar a barra de categorias: quando há categorias demais
   // elas transbordam e somem à direita (ex. nomes longos). No mouse não dá
@@ -47,19 +78,14 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
     ? products
     : products.filter(p => p.category === catAtiva);
 
-  // B4 — combos entram na grade junto do produto principal, na mesma
-  // categoria (o operador acha o combo onde procuraria o produto):
-  // modo "combo" vira um card extra ao lado; modo "substituir" toma o
-  // lugar do card do principal enquanto o combo estiver ativo.
+  // Combos são standalone (não têm produto principal). Aparecem primeiro em
+  // "Todos" e são a única coisa na aba "Combos". As demais categorias mostram
+  // só os produtos daquela categoria.
+  const mostrarCombos   = catAtiva === "Todos" || catAtiva === CAT_COMBOS;
+  const mostrarProdutos = catAtiva !== CAT_COMBOS;
   const cards = [];
-  for (const produto of filtrados) {
-    const doProduto = combos.filter(c => String(c.item_principal_id) === String(produto.id));
-    const substituto = doProduto.find(c => c.modo === "substituir");
-    if (!substituto) cards.push({ tipo: "produto", produto });
-    for (const combo of doProduto) {
-      cards.push({ tipo: "combo", combo, produto });
-    }
-  }
+  if (mostrarCombos) for (const combo of combos) cards.push({ tipo: "combo", combo });
+  if (mostrarProdutos) for (const produto of filtrados) cards.push({ tipo: "produto", produto });
 
   return (
     <div className="produto-grid">
@@ -100,9 +126,15 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
         }}
       >
         {cards.map(card => card.tipo === "produto" ? (
-          <ProdutoCard key={card.produto.id} product={card.produto} onAdd={onAdd} sz={sz} />
+          <ProdutoCard
+            key={card.produto.id}
+            product={card.produto}
+            temEscolhas={(gruposPorProduto[card.produto.id]?.length ?? 0) > 0}
+            onSelecionar={clicarProduto}
+            sz={sz}
+          />
         ) : (
-          <ComboCard key={`combo-${card.combo.id}`} combo={card.combo} produto={card.produto} onAdd={onAdd} sz={sz} />
+          <ComboCard key={`combo-${card.combo.id}`} combo={card.combo} onSelecionar={clicarCombo} sz={sz} />
         ))}
         {cards.length === 0 && (
           <div className="produto-grid__vazio">
@@ -120,16 +152,29 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
           </div>
         )}
       </div>
+
+      {/* Seletor de escolhas (combo flexível / produto com seleção) */}
+      {seletor && (
+        <SeletorEscolhas
+          titulo={seletor.titulo}
+          emoji={seletor.emoji}
+          precoBase={seletor.precoBase}
+          grupos={seletor.grupos}
+          products={products}
+          onConfirmar={confirmarEscolhas}
+          onClose={() => setSeletor(null)}
+        />
+      )}
     </div>
   );
 }
 
-function ProdutoCard({ product, onAdd, sz }) {
+function ProdutoCard({ product, temEscolhas, onSelecionar, sz }) {
   const [pressed, setPressed] = useState(false);
 
   const handleClick = () => {
     setPressed(true);
-    onAdd(product);
+    onSelecionar(product);
     setTimeout(() => setPressed(false), 150);
   };
 
@@ -145,34 +190,31 @@ function ProdutoCard({ product, onAdd, sz }) {
       <div className="produto-card__nome">
         {product.name}
       </div>
-      <div className="produto-card__preco">
-        R$ {Number(product.price).toFixed(2)}
-      </div>
+      {temEscolhas ? (
+        <div className="produto-card__preco produto-card__preco--apartir">
+          a partir de R$ {Number(product.price).toFixed(2)}
+        </div>
+      ) : (
+        <div className="produto-card__preco">
+          R$ {Number(product.price).toFixed(2)}
+        </div>
+      )}
     </button>
   );
 }
 
-function ComboCard({ combo, produto, onAdd, sz }) {
+function ComboCard({ combo, onSelecionar, sz }) {
   const [pressed, setPressed] = useState(false);
 
   const handleClick = () => {
-    const item = montarItemCombo(combo);
-    if (!item) return;
     setPressed(true);
-    // Emoji/categoria do principal para o carrinho ficar reconhecível
-    onAdd({ ...item, emoji: produto?.emoji, category: produto?.category });
+    onSelecionar(combo);
     setTimeout(() => setPressed(false), 150);
   };
 
-  // Composição exibida: produtos adicionais do catálogo primeiro, depois
-  // subprodutos (acompanhamentos). O principal é prefixado no JSX.
-  const produtosAdd = (combo.combo_produtos ?? [])
-    .filter(cp => cp?.products?.name)
-    .map(cp => (Number(cp.quantidade ?? 1) > 1 ? `${cp.quantidade}× ${cp.products.name}` : cp.products.name));
-  const subs = (combo.combo_subprodutos ?? [])
-    .filter(cs => cs?.subprodutos?.nome)
-    .map(cs => (Number(cs.quantidade ?? 1) > 1 ? `${cs.quantidade}× ${cs.subprodutos.nome}` : cs.subprodutos.nome));
-  const itens = [...produtosAdd, ...subs];
+  // Composição exibida: os grupos de escolha do combo ("Hambúrguer +
+  // Refrigerante") — o operador vê o que o cliente vai montar.
+  const grupos = (combo.grupos ?? []).filter(g => g?.nome).map(g => g.nome);
 
   return (
     <button
@@ -184,9 +226,9 @@ function ComboCard({ combo, produto, onAdd, sz }) {
       <div className="produto-card__nome">
         {combo.nome}
       </div>
-      {itens.length > 0 && (
+      {grupos.length > 0 && (
         <div className="produto-card__combo-itens">
-          {produto?.name ? `${produto.name} + ` : ""}{itens.join(" + ")}
+          {grupos.join(" + ")}
         </div>
       )}
       <div className="produto-card__preco">

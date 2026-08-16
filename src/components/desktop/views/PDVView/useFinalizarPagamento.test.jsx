@@ -620,24 +620,28 @@ describe("useFinalizarPagamento — Leva D (total arredondado e baixas que falha
     expect(appMock.addSale).toHaveBeenCalledTimes(1);
   });
 
-  it("baixa de subproduto recusada também entra no rastro", async () => {
+  it("baixa de uma opção escolhida (combo) recusada também entra no rastro", async () => {
+    // Combo tem id=null: não baixa estoque próprio. Quem baixa é a opção
+    // escolhida — um produto REAL (Coca), com qtd multiplicada pela do combo.
     const comboNaComanda = {
       ...selectedComanda,
       items: [{
-        id: 1, name: "Combo", price: 30, qty: 2,
-        combo: { subprodutos: [{ id: "sub-1", nome: "Molho da casa", controla_estoque: true, quantidade: 1 }] },
+        id: null, name: "Combo", price: 30, qty: 2,
+        combo: { escolhas: [{ produtoId: 2, nome: "Coca-Cola", qtd: 1, preco: 0 }] },
       }],
     };
     const { finalizarPagamento } = setup({
-      baixarEstoqueSubproduto: vi.fn(() => Promise.resolve({ error: { message: "constraint" } })),
+      products: [{ id: 2, name: "Coca-Cola" }],
+      estoque: { 2: 5 },
+      baixarEstoque: vi.fn(() => Promise.resolve({ error: { message: "violates row-level security policy" } })),
     });
 
-    await expect(finalizarPagamento(comboNaComanda, [], payload)).resolves.toBeDefined();
+    await expect(finalizarPagamento(comboNaComanda, [], { ...payload, total: 60 })).resolves.toBeDefined();
 
     expect(logActionMock).toHaveBeenCalledWith(
       "maria",
       "comanda:finalizar:estoque_falhou",
-      expect.objectContaining({ itens: [{ subproduto_id: "sub-1", nome: "Molho da casa", quantidade: 2 }] }),
+      expect.objectContaining({ itens: [{ produto_id: "2", nome: "Coca-Cola", quantidade: 2 }] }),
     );
   });
 

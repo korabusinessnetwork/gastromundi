@@ -18,6 +18,7 @@ import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { supabase } from "@/lib/supabase";
 import { mesmoItemDeVenda } from "@/lib/combos";
+import { carregarTodosGrupos } from "@/lib/gruposEscolha";
 import { buscarClientePorId } from "@/lib/clientes";
 import { imprimirLancamento } from "@/lib/impressao/despacho";
 import { chaveLancamento, registroLancamentos } from "@/lib/impressao/lancamentos";
@@ -143,21 +144,26 @@ export default function PDVView({ notify }) {
 
   const abertas = pending.filter(o => o.status !== "closed");
 
-  // ── Combos ativos (B4) — vendáveis no PDV ─────────────────────
-  // Carrega uma vez por entrada na tela; a receita (subprodutos com
-  // controla_estoque) viaja junto no item do carrinho para a baixa de
-  // estoque dos componentes na finalização.
+  // ── Combos e grupos de escolha — vendáveis no PDV ─────────────
+  // Carrega uma vez por entrada na tela. O combo flexível é nome + preço +
+  // grupos de escolha; cada grupo vem indexado por dono em carregarTodosGrupos
+  // (porCombo/porProduto). Ao vender, as escolhas viajam no item do carrinho
+  // e baixam o estoque dos produtos reais escolhidos na finalização.
   const [combos, setCombos] = useState([]);
+  const [gruposPorProduto, setGruposPorProduto] = useState({});
   useEffect(() => {
     let ativo = true;
-    supabase
-      .from("combos")
-      .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque)), combo_produtos(quantidade, products(id, name))")
-      .eq("ativo", true)
-      .then(({ data, error }) => {
-        if (error) { console.error("[pdv] erro ao carregar combos:", error); return; }
-        if (ativo) setCombos(data ?? []);
-      });
+    Promise.all([
+      supabase.from("combos").select("id, nome, preco_total").eq("ativo", true),
+      carregarTodosGrupos(),
+    ]).then(([combosRes, gruposRes]) => {
+      if (!ativo) return;
+      if (combosRes.error) console.error("[pdv] erro ao carregar combos:", combosRes.error);
+      if (gruposRes.error) console.error("[pdv] erro ao carregar grupos de escolha:", gruposRes.error);
+      const porCombo = gruposRes.porCombo ?? {};
+      setCombos((combosRes.data ?? []).map(c => ({ ...c, grupos: porCombo[c.id] ?? [] })));
+      setGruposPorProduto(gruposRes.porProduto ?? {});
+    });
     return () => { ativo = false; };
   }, []);
 
@@ -1198,7 +1204,7 @@ export default function PDVView({ notify }) {
             {/* Produtos */}
             {(!isMob || abaAtiva === "produtos") && (
               <div className="pdv__produtos-area">
-                <ProductGrid products={products} combos={combos} onAdd={handleAddProduct} />
+                <ProductGrid products={products} combos={combos} gruposPorProduto={gruposPorProduto} onAdd={handleAddProduct} />
               </div>
             )}
 

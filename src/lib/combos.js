@@ -1,120 +1,129 @@
 /**
- * Combos — decomposição para baixa de estoque (B4).
+ * Combos flexíveis e produtos com seleção — grupos de escolha.
  *
- * Um item de combo no carrinho carrega `combo.subprodutos` (a receita
- * do combo). Na finalização, o produto principal baixa pelo fluxo
- * normal (o item usa `id = item_principal_id`); os subprodutos que
- * controlam estoque baixam via RPC própria (baixar_estoque_subproduto).
- * Estas funções são puras — quem chama o Supabase é o AppContext.
+ * Duas telas usam a MESMA abstração de "grupo de escolha":
+ *
+ *  • COMBO FLEXÍVEL — nome + preço + grupos (ex.: "Hambúrguer + Refri",
+ *    onde o cliente escolhe qualquer hambúrguer e qualquer refri). Não
+ *    tem produto principal: o item de carrinho nasce com `id = null` e
+ *    preço fixo (`preco_total`); as escolhas só baixam estoque.
+ *
+ *  • PRODUTO COM SELEÇÃO — um "Refrigerante" que na venda pede qual
+ *    (Coca, Fanta). O item de carrinho usa `id = produto.id` (o produto
+ *    "casca"); estoque e eventual acréscimo de preço vêm das escolhas.
+ *
+ * Nos dois casos o item carrega `combo.escolhas` — a lista de produtos
+ * REAIS escolhidos ({ produtoId, nome, qtd, preco }). Cada escolha baixa
+ * o próprio estoque na finalização (calcularBaixasEscolhas). Estas
+ * funções são puras — quem chama o Supabase é o AppContext.
  */
 
 /**
- * Agrega as baixas de estoque de subprodutos de uma lista de itens
- * vendidos. Só entram subprodutos com `controla_estoque`; itens
- * cancelados ficam de fora; quantidades somam por subproduto
- * (quantidade na receita × qty do item no carrinho).
+ * Normaliza a lista de escolhas para o shape canônico do carrinho.
+ * Descarta entradas sem produtoId. `preco` é o acréscimo daquela escolha
+ * ao preço da linha (0 quando a escolha não altera o preço).
  *
- * @param {Array<object>} itens - itens do carrinho/comanda ({qty, cancelado, combo:{subprodutos:[{id, nome, quantidade, controla_estoque}]}})
- * @returns {Array<{subprodutoId: string, nome: string, qtd: number}>}
+ * @param {Array<object>} escolhas
+ * @returns {Array<{produtoId: (number|string), nome: string, qtd: number, preco: number}>}
  */
-export function calcularBaixasSubprodutos(itens) {
-  const porSubproduto = new Map();
-
-  for (const item of itens ?? []) {
-    if (!item || item.cancelado) continue;
-    const subs = item.combo?.subprodutos;
-    if (!Array.isArray(subs) || subs.length === 0) continue;
-
-    const qtyItem = Number(item.qty ?? 1) || 0;
-    if (qtyItem <= 0) continue;
-
-    for (const sub of subs) {
-      if (!sub || !sub.id || !sub.controla_estoque) continue;
-      const qtdReceita = Number(sub.quantidade ?? 1) || 0;
-      if (qtdReceita <= 0) continue;
-
-      const qtd = qtdReceita * qtyItem;
-      const atual = porSubproduto.get(sub.id);
-      if (atual) atual.qtd += qtd;
-      else porSubproduto.set(sub.id, { subprodutoId: sub.id, nome: sub.nome ?? "", qtd });
-    }
-  }
-
-  return [...porSubproduto.values()];
+function normalizarEscolhas(escolhas) {
+  return (Array.isArray(escolhas) ? escolhas : [])
+    .filter((e) => e && e.produtoId != null)
+    .map((e) => ({
+      produtoId: e.produtoId,
+      nome: e.nome ?? "",
+      qtd: Number(e.qtd ?? 1) || 1,
+      preco: Number(e.preco ?? 0) || 0,
+    }));
 }
 
 /**
- * Monta o item de carrinho de um combo carregado do banco (shape da
- * query do PDV: combos + combo_subprodutos + subprodutos aninhados).
- * O item usa `id = item_principal_id` de propósito: assim a baixa do
- * produto principal, o dual-write relacional (product_id) e a
- * transferência entre comandas continuam funcionando sem mudança.
- *
- * @param {object} combo - linha de `combos` com `combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque))` e `combo_produtos(quantidade, products(id, name))`
- * @returns {object|null} item pronto para o carrinho (sem qty/_key) ou null se inválido
+ * Soma o acréscimo de preço das escolhas (preço × quantidade da escolha).
+ * @param {Array<{qtd: number, preco: number}>} escolhas
+ * @returns {number}
  */
-export function montarItemCombo(combo) {
-  if (!combo || combo.item_principal_id == null) return null;
+function somaAcrescimos(escolhas) {
+  return (escolhas ?? []).reduce(
+    (s, e) => s + (Number(e?.preco ?? 0) || 0) * (Number(e?.qtd ?? 1) || 1),
+    0,
+  );
+}
 
-  const subprodutos = (combo.combo_subprodutos ?? [])
-    .filter((cs) => cs?.subprodutos?.id)
-    .map((cs) => ({
-      id: cs.subprodutos.id,
-      nome: cs.subprodutos.nome ?? "",
-      quantidade: Number(cs.quantidade ?? 1) || 1,
-      controla_estoque: !!cs.subprodutos.controla_estoque,
-    }));
-
-  // Produtos adicionais do combo (além do principal): viajam no item
-  // para baixar seu próprio estoque na finalização — o principal já
-  // baixa por usar id = item_principal_id (ver calcularBaixasProdutosCombo).
-  const produtos = (combo.combo_produtos ?? [])
-    .filter((cp) => cp?.products?.id != null)
-    .map((cp) => ({
-      id: cp.products.id,
-      nome: cp.products.name ?? "",
-      quantidade: Number(cp.quantidade ?? 1) || 1,
-    }));
-
+/**
+ * Monta o item de carrinho de um COMBO flexível com as escolhas feitas.
+ * `id = null` de propósito: o combo não é um produto de catálogo, então
+ * não baixa estoque por si — quem baixa são as escolhas. O preço é o
+ * `preco_total` do combo mais eventuais acréscimos das escolhas.
+ *
+ * @param {object} combo - linha de `combos` ({ id, nome, preco_total })
+ * @param {Array<object>} escolhas - produtos escolhidos nos grupos
+ * @returns {object|null} item pronto para o carrinho (sem qty/_key) ou null
+ */
+export function montarItemCombo(combo, escolhas = []) {
+  if (!combo) return null;
+  const escs = normalizarEscolhas(escolhas);
   return {
-    id: combo.item_principal_id,
+    id: null,
     name: combo.nome ?? "Combo",
-    price: Number(combo.preco_total ?? 0) || 0,
-    combo: { comboId: combo.id, subprodutos, produtos },
+    price: (Number(combo.preco_total ?? 0) || 0) + somaAcrescimos(escs),
+    combo: { comboId: combo.id, escolhas: escs },
   };
 }
 
 /**
- * Agrega as baixas de estoque dos PRODUTOS adicionais dos combos (os que
- * não são o principal). Cada produto adicional baixa seu próprio estoque,
- * como um produto vendido — quem decide se de fato controla estoque é a
- * finalização (guarda `prodId in estoque` + conversão de unidade), igual
- * ao principal. Itens cancelados ficam de fora; quantidades somam por
- * produto (quantidade no combo × qty do item no carrinho).
+ * Monta o item de carrinho de um PRODUTO COM SELEÇÃO com as escolhas
+ * feitas. `id = produto.id` (a "casca"): se a casca tiver estoque
+ * próprio ela baixa pelo fluxo normal; as escolhas baixam seu próprio
+ * estoque. O preço é o do produto mais os acréscimos das escolhas.
  *
- * @param {Array<object>} itens - itens do carrinho/comanda ({qty, cancelado, combo:{produtos:[{id, nome, quantidade}]}})
+ * @param {object} produto - produto de catálogo ({ id, name, price, ... })
+ * @param {Array<object>} escolhas - produtos escolhidos nos grupos
+ * @returns {object|null} item pronto para o carrinho (sem qty/_key) ou null
+ */
+export function montarItemProdutoEscolhas(produto, escolhas = []) {
+  if (!produto || produto.id == null) return null;
+  const escs = normalizarEscolhas(escolhas);
+  return {
+    id: produto.id,
+    name: produto.name ?? produto.nome ?? "Produto",
+    price: (Number(produto.price ?? 0) || 0) + somaAcrescimos(escs),
+    emoji: produto.emoji,
+    category: produto.category,
+    combo: { escolhas: escs },
+  };
+}
+
+/**
+ * Agrega as baixas de estoque das escolhas de uma lista de itens
+ * vendidos. Cada escolha é um produto REAL do catálogo e baixa seu
+ * próprio estoque (quem decide se de fato controla estoque é a
+ * finalização, com a guarda `prodId in estoque` e a conversão de
+ * unidade). Itens cancelados ficam de fora; quantidades somam por
+ * produto (quantidade da escolha × qty do item no carrinho).
+ *
+ * @param {Array<object>} itens - itens do carrinho/comanda ({qty, cancelado, combo:{escolhas:[{produtoId, nome, qtd}]}})
  * @returns {Array<{produtoId: (number|string), nome: string, qtd: number}>}
  */
-export function calcularBaixasProdutosCombo(itens) {
+export function calcularBaixasEscolhas(itens) {
   const porProduto = new Map();
 
   for (const item of itens ?? []) {
     if (!item || item.cancelado) continue;
-    const prods = item.combo?.produtos;
-    if (!Array.isArray(prods) || prods.length === 0) continue;
+    const escolhas = item.combo?.escolhas;
+    if (!Array.isArray(escolhas) || escolhas.length === 0) continue;
 
     const qtyItem = Number(item.qty ?? 1) || 0;
     if (qtyItem <= 0) continue;
 
-    for (const p of prods) {
-      if (!p || p.id == null) continue;
-      const qtdCombo = Number(p.quantidade ?? 1) || 0;
-      if (qtdCombo <= 0) continue;
+    for (const esc of escolhas) {
+      if (!esc || esc.produtoId == null) continue;
+      const qtdEsc = Number(esc.qtd ?? 1) || 0;
+      if (qtdEsc <= 0) continue;
 
-      const qtd = qtdCombo * qtyItem;
-      const atual = porProduto.get(p.id);
+      const qtd = qtdEsc * qtyItem;
+      const atual = porProduto.get(esc.produtoId);
       if (atual) atual.qtd += qtd;
-      else porProduto.set(p.id, { produtoId: p.id, nome: p.nome ?? "", qtd });
+      else porProduto.set(esc.produtoId, { produtoId: esc.produtoId, nome: esc.nome ?? "", qtd });
     }
   }
 
@@ -122,9 +131,27 @@ export function calcularBaixasProdutosCombo(itens) {
 }
 
 /**
- * Compara a identidade de dois itens de carrinho considerando o combo:
- * um combo nunca se mistura com o produto principal avulso (mesmo id)
- * nem com outro combo. Usado no dedupe de adicionar ao carrinho e na
+ * Assinatura estável das escolhas de um item (produtoId:qtd ordenados).
+ * Dois itens com as mesmas escolhas empilham; escolhas diferentes viram
+ * linhas separadas (a cozinha precisa saber qual hambúrguer sai).
+ *
+ * @param {object} combo - `item.combo`
+ * @returns {string}
+ */
+function assinaturaEscolhas(combo) {
+  const escs = combo?.escolhas;
+  if (!Array.isArray(escs) || escs.length === 0) return "";
+  return escs
+    .map((e) => `${e.produtoId}:${Number(e.qtd ?? 1) || 1}`)
+    .sort()
+    .join("|");
+}
+
+/**
+ * Compara a identidade de dois itens de carrinho: mesmo produto, mesmo
+ * combo e mesmas escolhas. Um combo nunca se mistura com produto avulso
+ * nem com outro combo; um produto com seleção só empilha com outro de
+ * escolhas idênticas. Usado no dedupe de adicionar ao carrinho e na
  * transferência entre comandas.
  *
  * @param {object} a
@@ -133,5 +160,7 @@ export function calcularBaixasProdutosCombo(itens) {
  */
 export function mesmoItemDeVenda(a, b) {
   if (!a || !b) return false;
-  return a.id === b.id && (a.combo?.comboId ?? null) === (b.combo?.comboId ?? null);
+  if (a.id !== b.id) return false;
+  if ((a.combo?.comboId ?? null) !== (b.combo?.comboId ?? null)) return false;
+  return assinaturaEscolhas(a.combo) === assinaturaEscolhas(b.combo);
 }

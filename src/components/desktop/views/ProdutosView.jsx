@@ -13,8 +13,9 @@ import { CATS_FIXAS, chaveCategoria, ehCategoriaFixa } from "@/lib/categoriasPro
 import { labelEstoque, getUnidadesCompra, fmtQtd } from "@/utils/conversaoUnidades";
 import { LuTriangleAlert, LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon, LuRuler } from "react-icons/lu";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
-import SubprodutosView from "./SubprodutosView";
 import CombosView from "./CombosView";
+import EditorGruposEscolha from "./EditorGruposEscolha";
+import { carregarGruposDoProduto, salvarGrupos } from "@/lib/gruposEscolha";
 import "./ProdutosView.css";
 
 const EMPTY_COMPRA = { nome: "", unidade: "", fator: "" };
@@ -133,6 +134,10 @@ export default function ProdutosView() {
   const [editingCompra, setEditingCompra] = useState(null);
   const [isInsumo, setIsInsumo] = useState(false);
   const [isProducao, setIsProducao] = useState(false);
+  // Grupos de escolha do produto ("produto com seleção": ex. Refrigerante →
+  // Coca/Fanta). Cada opção é um produto real do catálogo, com o próprio
+  // estoque. Persistidos à parte (salvarGrupos) depois do produto existir.
+  const [grupos, setGrupos] = useState([]);
 
 
   // ── Categorias ────────────────────────────────────────────────
@@ -261,6 +266,7 @@ export default function ProdutosView() {
     setIsInsumo(insumo);
     setIsProducao(producao);
     setForm({ ...EMPTY_FORM, category: insumo ? "Insumo" : producao ? "Produção" : "" });
+    setGrupos([]);
     setErro("");
     setEditId(null);
     setModal("novo");
@@ -295,7 +301,14 @@ export default function ProdutosView() {
     });
     setErro("");
     setEditId(p.id);
+    setGrupos([]);
     setModal("editar");
+    // Grupos de escolha só existem para produto comum (não insumo/produção).
+    if (!insumo && !producao) {
+      carregarGruposDoProduto(p.id).then(({ data, error }) => {
+        if (!error && Array.isArray(data)) setGrupos(data);
+      });
+    }
   };
 
   const fecharModal = () => {
@@ -382,19 +395,40 @@ export default function ProdutosView() {
       proxima_validade: form.proxima_validade || null,
     };
     let dbError = null;
+    let produtoId = editId;
     if (modal === "novo") {
-      const { error } = await addProduct({ id: crypto.randomUUID(), ...payload });
+      // products.id é bigint gerado pelo banco — só sai no retorno do insert.
+      const { data, error } = await addProduct({ id: crypto.randomUUID(), ...payload });
       dbError = error;
       const tipo = isInsumo ? "Insumo" : isProducao ? "Item de Produção" : "Produto";
-      if (!error) logAction(currentUser?.username, isInsumo ? "insumo:criar" : isProducao ? "producao:criar" : "produto:criar", { msg: `${tipo} cadastrado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
+      if (!error) {
+        produtoId = data?.id;
+        // Estado coerente: o produto agora existe. Se os grupos falharem logo
+        // abaixo, uma nova gravação atualiza (não duplica) — vira modo editar.
+        setEditId(produtoId);
+        setModal("editar");
+        logAction(currentUser?.username, isInsumo ? "insumo:criar" : isProducao ? "producao:criar" : "produto:criar", { msg: `${tipo} cadastrado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
+      }
     } else {
       const tipo = isInsumo ? "Insumo" : isProducao ? "Item de Produção" : "Produto";
       const { error } = await updateProduct(editId, payload);
       dbError = error;
       if (!error) logAction(currentUser?.username, isInsumo ? "insumo:editar" : isProducao ? "producao:editar" : "produto:editar", { msg: `${tipo} editado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
     }
+    if (dbError) { setSalvando(false); setErro(dbError.message ?? "Erro ao salvar. Verifique o console."); return; }
+
+    // Opções de escolha — só produto comum, e depois do produto existir (o
+    // novo já ganhou o id real do banco acima). salvarGrupos é delete-then-
+    // insert idempotente, então salvar de novo é seguro.
+    if (!isInsumo && !isProducao && produtoId != null) {
+      const { error: erroGrupos } = await salvarGrupos({ produtoId, grupos });
+      if (erroGrupos) {
+        setSalvando(false);
+        setErro("O produto foi salvo, mas não deu para salvar as opções de escolha. Clique em salvar de novo.");
+        return;
+      }
+    }
     setSalvando(false);
-    if (dbError) { setErro(dbError.message ?? "Erro ao salvar. Verifique o console."); return; }
     fecharModal();
   };
 
@@ -417,9 +451,8 @@ export default function ProdutosView() {
   const [abaAtiva, setAbaAtiva] = useState("produtos");
 
   const ABAS = [
-    { id: "produtos",    label: "Produtos" },
-    { id: "subprodutos", label: "Subprodutos" },
-    { id: "combos",      label: "Combos" },
+    { id: "produtos", label: "Produtos" },
+    { id: "combos",   label: "Combos" },
   ];
 
   return (
@@ -467,9 +500,6 @@ export default function ProdutosView() {
           );
         })}
       </div>
-
-      {/* Subprodutos */}
-      {abaAtiva === "subprodutos" && <SubprodutosView sz={sz} />}
 
       {/* Combos */}
       {abaAtiva === "combos" && <CombosView sz={sz} />}
@@ -794,6 +824,26 @@ export default function ProdutosView() {
                 )}
               </div>
             </div>
+
+            {/* ── Seção: Opções de escolha (produto com seleção) ──
+                Ex.: "Refrigerante" onde o cliente escolhe Coca ou Fanta —
+                cada opção é um produto real e baixa o próprio estoque. Só
+                faz sentido para produto comum, não insumo/item de produção. */}
+            {!isInsumo && !isProducao && (
+              <div className="produtos-view__secao-escolhas">
+                <div className="produtos-view__secao-titulo">
+                  <LuTag size={15} color={varColor(C.accent)} />
+                  <span>Opções de escolha</span>
+                </div>
+                <div className="produtos-view__secao-ajuda">
+                  Use quando o cliente escolhe entre variações na hora da venda
+                  (ex.: qual refrigerante, qual acompanhamento). Cada opção é um
+                  produto do catálogo e baixa o próprio estoque. Deixe vazio se
+                  o produto é vendido direto.
+                </div>
+                <EditorGruposEscolha grupos={grupos} onChange={setGrupos} products={products} />
+              </div>
+            )}
 
             {/* Erro */}
             {erro && (

@@ -1,0 +1,372 @@
+/**
+ * EditorGruposEscolha — CSS separado do JSX (decisão 018). Tokens --gm-*
+ * (ADR-007); blends translúcidos via alfa() inline no JSX. Escala de fonte
+ * pela tipografia do design system (--fs-* / --lh-*), mesmo padrão de
+ * CombosView.css. Alvos de toque generosos (princípio nº 1 — PDV/admin).
+ */
+
+.editor-grupos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editor-grupos__grupos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Cartão de um grupo ── */
+.editor-grupos__grupo {
+  border: 1.5px solid var(--gm-border);
+  border-radius: 14px;
+  background: var(--gm-surface);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.editor-grupos__grupo-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.editor-grupos__nome-input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  box-sizing: border-box;
+  font-family: inherit;
+  font-weight: 700;
+  outline: none;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.editor-grupos__grupo-remover {
+  padding: 10px 12px;
+  border-radius: 9px;
+  border-width: 1px;
+  border-style: solid;
+  cursor: pointer;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+/* ── Origem (lista / categoria) ── */
+.editor-grupos__origem-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.editor-grupos__origem-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border-width: 2px;
+  border-style: solid;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.editor-grupos__origem-titulo {
+  font-weight: 700;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.editor-grupos__origem-desc {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+/* ── Select de categoria ── */
+.editor-grupos__select {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.editor-grupos__ajuda {
+  color: var(--gm-muted);
+  margin-top: 8px;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+/* ── Lista de opções (origem=lista) ── */
+.editor-grupos__itens-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.editor-grupos__item-card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.editor-grupos__item-emoji {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.editor-grupos__item-nome-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.editor-grupos__item-nome {
+  font-weight: 700;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.editor-grupos__item-info {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.editor-grupos__item-acrescimo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.editor-grupos__item-acrescimo-label {
+  color: var(--gm-muted);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.editor-grupos__acrescimo-campo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1.5px solid var(--gm-border);
+  border-radius: 9px;
+  background: var(--gm-surface);
+  padding: 0 10px;
+}
+
+.editor-grupos__acrescimo-cifrao {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: 1;
+}
+
+.editor-grupos__acrescimo-input {
+  width: 68px;
+  padding: 8px 0;
+  border: none;
+  background: none;
+  color: var(--gm-text);
+  outline: none;
+  font-family: inherit;
+  text-align: right;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+
+/* remove as setinhas do number input (padrão do design system) */
+.editor-grupos__acrescimo-input::-webkit-outer-spin-button,
+.editor-grupos__acrescimo-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.editor-grupos__acrescimo-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.editor-grupos__item-remover {
+  background: none;
+  border: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  line-height: 0;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Busca de opção ── */
+.editor-grupos__busca-wrap {
+  position: relative;
+}
+
+.editor-grupos__busca-icone {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gm-muted);
+  pointer-events: none;
+}
+
+.editor-grupos__input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.editor-grupos__input--busca {
+  padding-left: 36px;
+}
+
+.editor-grupos__dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 10;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  margin-top: 4px;
+}
+
+.editor-grupos__dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.editor-grupos__dropdown-item-emoji {
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+
+.editor-grupos__dropdown-item-nome {
+  font-weight: 600;
+  color: var(--gm-text);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.editor-grupos__dropdown-item-preco {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Quantas o cliente escolhe (min/max) ── */
+.editor-grupos__minmax {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.editor-grupos__minmax-texto {
+  color: var(--gm-text);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.editor-grupos__stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--gm-border);
+  border-radius: 9px;
+  background: var(--gm-card);
+  padding: 3px;
+}
+
+.editor-grupos__stepper-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-grupos__stepper-valor {
+  font-weight: 800;
+  min-width: 22px;
+  text-align: center;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Adicionar grupo ── */
+.editor-grupos__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  border-radius: 12px;
+  border: 1.5px dashed var(--gm-border);
+  background: none;
+  color: var(--gm-accent);
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}

@@ -494,6 +494,23 @@
   line-height: var(--lh-base);
 }
 
+/* Seção "Opções de escolha" — mesmo cartão da seção de unidades */
+.produtos-view__secao-escolhas {
+  background: var(--gm-surface);
+  border-radius: 14px;
+  border: 1px solid var(--gm-border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.produtos-view__secao-ajuda {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
 .produtos-view__bloco {
   display: flex;
   flex-direction: column;

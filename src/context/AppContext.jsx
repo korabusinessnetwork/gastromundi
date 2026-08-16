@@ -1535,10 +1535,10 @@ export function AppProvider({ children }) {
     return { error: null };
   };
 
-  // B4 — baixa atômica de subproduto (componentes de combo). Sem estado
-  // otimista local: o saldo de subproduto não aparece no PDV, só no
-  // cadastro (SubprodutosView recarrega do banco). Nunca deve travar a
-  // venda: erro vira evento para o Jarvas, não bloqueio.
+  // Baixa atômica de subproduto — camada dormente (subprodutos saíram do
+  // front-end; o DB e a RPC seguem para não perder dados/histórico). Sem
+  // estado otimista local: o saldo de subproduto não aparece no PDV. Nunca
+  // deve travar a venda: erro vira evento para o Jarvas, não bloqueio.
   const baixarEstoqueSubproduto = async (subprodutoId, qtd, nome) => {
     // Mesma chave de idempotência da baixa de produto (ver acima).
     const opId = crypto.randomUUID();

@@ -1,0 +1,217 @@
+/**
+ * SeletorEscolhas — CSS separado do JSX (decisão 018). Modal do PDV, então
+ * alvos de toque grandes e legíveis a distância (princípio nº 1). Tokens
+ * --gm-* (ADR-007); blends translúcidos via alfa() inline. Escala de fonte
+ * pela tipografia do design system (--fs-* / --lh-*).
+ */
+
+.seletor-escolhas__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9300;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.seletor-escolhas__modal {
+  background: var(--gm-card);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 92vh;
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Título ── */
+.seletor-escolhas__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}
+
+.seletor-escolhas__titulo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.seletor-escolhas__titulo-emoji {
+  font-size: 26px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.seletor-escolhas__titulo {
+  font-weight: 800;
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seletor-escolhas__fechar {
+  background: none;
+  border: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+/* ── Grupos (área rolável) ── */
+.seletor-escolhas__grupos {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.seletor-escolhas__grupo-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.seletor-escolhas__grupo-nome {
+  font-weight: 800;
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+}
+
+.seletor-escolhas__grupo-instrucao {
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
+
+.seletor-escolhas__vazio {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  padding: 8px 0;
+}
+
+.seletor-escolhas__opcoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+/* Cartão de opção — alvo de toque generoso */
+.seletor-escolhas__opcao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px;
+  border-radius: 14px;
+  border-width: 2px;
+  border-style: solid;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.12s, background 0.12s;
+  min-height: 58px;
+}
+
+.seletor-escolhas__opcao-emoji {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.seletor-escolhas__opcao-nome {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  color: var(--gm-text);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+.seletor-escolhas__opcao-acrescimo {
+  font-weight: 700;
+  color: var(--gm-green);
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.seletor-escolhas__opcao-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border-width: 2px;
+  border-style: solid;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Rodapé ── */
+.seletor-escolhas__rodape {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  border-top: 1px solid var(--gm-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.seletor-escolhas__total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.seletor-escolhas__total-label {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.seletor-escolhas__total-valor {
+  font-weight: 900;
+  color: var(--gm-green);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-2xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.seletor-escolhas__confirmar {
+  flex: 1;
+  min-width: 200px;
+  padding: 16px;
+  border-radius: 12px;
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}

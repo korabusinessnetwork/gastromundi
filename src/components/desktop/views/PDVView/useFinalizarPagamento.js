@@ -6,7 +6,7 @@ import { emitirDocumentoFiscal } from "@/lib/fiscal";
 import { destDoCliente } from "@/lib/nfceVenda";
 import { processarPagamentoTef, metodoUsaTef } from "@/lib/tef";
 import { consumoParaEstoque } from "@/utils/conversaoUnidades";
-import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/lib/combos";
+import { calcularBaixasEscolhas } from "@/lib/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { round2 } from "@/lib/vendas";
 import { reportarFalha } from "@/lib/observabilidade";
@@ -48,7 +48,7 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
  * passa nada (todo o PDV de desktop) segue idêntico a antes.
  */
 export function useFinalizarPagamento() {
-  const { addSale, removePending, estoque, baixarEstoque, baixarEstoqueSubproduto, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
+  const { addSale, removePending, estoque, baixarEstoque, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
 
   const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId, cliente, dest }, { onNfce, semComanda = false } = {}) => {
     // TEF é só online: a maquininha precisa de comunicação em tempo real —
@@ -188,11 +188,13 @@ export function useFinalizarPagamento() {
     for (const item of itensAtivos) {
       delta[item.id] = (delta[item.id] ?? 0) + (item.qty ?? 1);
     }
-    // Combos com múltiplos produtos: cada produto adicional (além do
-    // principal, que já entrou pelo id do item) baixa seu próprio estoque.
+    // Grupos de escolha (combo flexível ou produto com seleção): cada opção
+    // escolhida é um produto REAL e baixa o próprio estoque. Combo tem
+    // id=null e não entra no delta acima — suas baixas vêm só daqui; por
+    // isso a fonte é `todosItens`, não `itensAtivos` (que exige id).
     // Entram no mesmo delta para ganhar a conversão de unidade, a guarda
     // `prodId in estoque` e a agregação com vendas avulsas do mesmo produto.
-    for (const b of calcularBaixasProdutosCombo(itensAtivos)) {
+    for (const b of calcularBaixasEscolhas(todosItens)) {
       delta[b.produtoId] = (delta[b.produtoId] ?? 0) + b.qtd;
     }
     // Baixas recusadas pelo servidor (RLS, constraint...). Offline não conta:
@@ -209,14 +211,6 @@ export function useFinalizarPagamento() {
       const qtdEstoque = produto ? consumoParaEstoque(qty, produto) : qty;
       const { error } = (await baixarEstoque(prodId, qtdEstoque)) ?? {};
       if (error) baixasFalhadas.push({ produto_id: prodId, nome: produto?.name ?? null, quantidade: qtdEstoque });
-    }
-
-    // B4 — combos também descontam o estoque dos subprodutos que os compõem
-    // (a receita viaja no item do carrinho; só entram os com controla_estoque).
-    // Mesma filosofia da baixa do principal: nunca bloqueia nem quebra a venda.
-    for (const baixa of calcularBaixasSubprodutos(itensAtivos)) {
-      const { error } = (await baixarEstoqueSubproduto(baixa.subprodutoId, baixa.qtd, baixa.nome)) ?? {};
-      if (error) baixasFalhadas.push({ subproduto_id: baixa.subprodutoId, nome: baixa.nome ?? null, quantidade: baixa.qtd });
     }
 
     const metodoResumo = (pagamentos ?? []).map(p => p?.metodo).filter(Boolean).join(" + ") || "—";
