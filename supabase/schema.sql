@@ -826,7 +826,8 @@ CREATE TABLE public.delivery_pedidos (
   entrega_lat          numeric,  -- 20260810
   entrega_lng          numeric,  -- 20260810
   entregador_id        uuid REFERENCES public.delivery_entregadores(id) ON DELETE SET NULL,  -- 20260919
-  valor_entregador     numeric   -- 20260919
+  valor_entregador     numeric,  -- 20260919
+  entregador_pago_em   timestamptz  -- 20260920 — carimbo do pagamento (sangria); NULL = a pagar
 );
 
 CREATE TABLE public.delivery_pedido_itens (
@@ -1078,8 +1079,9 @@ CREATE TABLE public.nfce_inutilizacoes (
 --   do próprio tenant.
 -- delivery_pedidos / delivery_pedido_itens → insert público (o cliente faz
 --   o pedido sem conta) ; leitura e update só pelo tenant dono.
--- delivery_entregadores (20260919) → RLS RESTRICTIVE por tenant ; leitura/
---   escrita só pela gerência do próprio tenant (nunca anon).
+-- delivery_entregadores (20260919) → PERMISSIVE leitura p/ authenticated +
+--   escrita p/ gerente/admin (gastro_role) ; RESTRICTIVE de isolamento por
+--   tenant somada via AND. (Só a RESTRICTIVE, sem permissive, negaria tudo.)
 
 -- ── Realtime ──────────────────────────────────────────────────
 -- Habilitado no dashboard para: pending, estoque, jarvas_insights, mesas,

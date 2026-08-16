@@ -15,6 +15,7 @@ import {
   valorPadraoParaPedido,
   filtrarPedidosPorPeriodo,
   calcularFechamento,
+  idsAPagarDoEntregador,
 } from "./entregadores";
 
 describe("nomeEntregadorValido", () => {
@@ -168,12 +169,51 @@ describe("calcularFechamento", () => {
     expect(linhas[0]).toMatchObject({ nome: "Entregador removido", totalPagar: 4 });
   });
 
+  it("separa a pagar de já pago pelo carimbo entregador_pago_em", () => {
+    const comPago = [
+      { id: "p1", entregador_id: "e1", status: "entregue", valor_entregador: 6, entregador_pago_em: "2026-08-16T10:00:00Z" },
+      { id: "p2", entregador_id: "e1", status: "entregue", valor_entregador: 8 }, // a pagar
+    ];
+    const r = calcularFechamento(comPago, entregadores);
+    const bruno = r.linhas.find((l) => l.entregador_id === "e1");
+    expect(bruno).toMatchObject({ totalPagar: 14, aPagar: 8, jaPago: 6 });
+    expect(r.totalAPagar).toBe(8);
+    expect(r.totalJaPago).toBe(6);
+    expect(r.totalGeral).toBe(14);
+  });
+
   it("safe com entradas vazias", () => {
     expect(calcularFechamento(null, null)).toEqual({
       linhas: [],
       totalGeral: 0,
+      totalAPagar: 0,
+      totalJaPago: 0,
       totalEntregues: 0,
       totalEmRota: 0,
     });
+  });
+});
+
+describe("idsAPagarDoEntregador", () => {
+  const pedidos = [
+    { id: "p1", entregador_id: "e1", status: "entregue", valor_entregador: 6 },
+    { id: "p2", entregador_id: "e1", status: "entregue", valor_entregador: 8, entregador_pago_em: "2026-08-16T10:00:00Z" }, // já pago
+    { id: "p3", entregador_id: "e1", status: "saiu_entrega", valor_entregador: 6 }, // em rota
+    { id: "p4", entregador_id: "e2", status: "entregue", valor_entregador: 5 },     // outro entregador
+    { id: "p5", entregador_id: "e1", status: "cancelado", valor_entregador: 6 },    // cancelado
+  ];
+
+  it("retorna só as entregas confirmadas e não pagas do entregador", () => {
+    expect(idsAPagarDoEntregador(pedidos, "e1")).toEqual(["p1"]);
+  });
+
+  it("retorna vazio sem entregador ou sem pedidos", () => {
+    expect(idsAPagarDoEntregador(pedidos, null)).toEqual([]);
+    expect(idsAPagarDoEntregador(null, "e1")).toEqual([]);
+  });
+
+  it("compara id como string (número vs string não vaza corrida de outro)", () => {
+    const mistos = [{ id: 10, entregador_id: 1, status: "entregue", valor_entregador: 5 }];
+    expect(idsAPagarDoEntregador(mistos, "1")).toEqual(["10"]);
   });
 });

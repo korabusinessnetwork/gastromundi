@@ -119,14 +119,22 @@ export function filtrarPedidosPorPeriodo(pedidos, inicio = null, fim = null) {
   });
 }
 
+/** Um pedido já teve o pagamento ao entregador registrado (sangria)? */
+function pedidoPago(p) {
+  return p?.entregador_pago_em != null && p.entregador_pago_em !== "";
+}
+
 /**
  * Fechamento por entregador: para cada entregador com pedido atribuído no
  * conjunto, quantas entregas confirmadas, quantas em rota, e quanto pagar.
  *
  *   • entregues  — pedidos status 'entregue' (base do pagamento);
  *   • emRota     — pedidos status 'saiu_entrega' (ainda na rua, não pagos);
- *   • totalPagar — soma de valor_entregador SÓ das entregas confirmadas
- *                  (nunca paga por corrida não concluída — dinheiro).
+ *   • totalPagar — soma de valor_entregador de TODAS as entregas confirmadas
+ *                  (pagas ou não) — nunca conta corrida não concluída;
+ *   • aPagar     — parte de totalPagar ainda NÃO paga (entregador_pago_em
+ *                  nulo). É o que o botão de pagamento registra como sangria;
+ *   • jaPago     — parte de totalPagar já registrada como saída de caixa.
  *
  * Pedidos sem entregador atribuído são ignorados. Entregador que já foi
  * removido (id no pedido, mas fora da lista) aparece como "Entregador
@@ -134,7 +142,7 @@ export function filtrarPedidosPorPeriodo(pedidos, inicio = null, fim = null) {
  *
  * @param {Array} pedidos
  * @param {Array} entregadores  lista para resolver nome por id
- * @returns {{linhas:Array<{entregador_id:string, nome:string, entregues:number, emRota:number, totalPagar:number}>, totalGeral:number, totalEntregues:number, totalEmRota:number}}
+ * @returns {{linhas:Array<{entregador_id:string, nome:string, entregues:number, emRota:number, totalPagar:number, aPagar:number, jaPago:number}>, totalGeral:number, totalAPagar:number, totalJaPago:number, totalEntregues:number, totalEmRota:number}}
  */
 export function calcularFechamento(pedidos, entregadores = []) {
   const lista = Array.isArray(pedidos) ? pedidos : [];
@@ -153,6 +161,8 @@ export function calcularFechamento(pedidos, entregadores = []) {
         entregues: 0,
         emRota: 0,
         totalPagar: 0,
+        aPagar: 0,
+        jaPago: 0,
       });
     }
     return porEntregador.get(chave);
@@ -161,8 +171,11 @@ export function calcularFechamento(pedidos, entregadores = []) {
     if (!p || p.entregador_id == null) continue; // não atribuído: fora do fechamento
     const linha = garantir(p.entregador_id);
     if (p.status === "entregue") {
+      const valor = sanitizarValorEntrega(p.valor_entregador);
       linha.entregues += 1;
-      linha.totalPagar += sanitizarValorEntrega(p.valor_entregador);
+      linha.totalPagar += valor;
+      if (pedidoPago(p)) linha.jaPago += valor;
+      else linha.aPagar += valor;
     } else if (p.status === "saiu_entrega") {
       linha.emRota += 1;
     }
@@ -173,9 +186,35 @@ export function calcularFechamento(pedidos, entregadores = []) {
   return {
     linhas,
     totalGeral: linhas.reduce((s, l) => s + l.totalPagar, 0),
+    totalAPagar: linhas.reduce((s, l) => s + l.aPagar, 0),
+    totalJaPago: linhas.reduce((s, l) => s + l.jaPago, 0),
     totalEntregues: linhas.reduce((s, l) => s + l.entregues, 0),
     totalEmRota: linhas.reduce((s, l) => s + l.emRota, 0),
   };
+}
+
+/**
+ * IDs das corridas de um entregador que entram NESTE pagamento: entregas
+ * confirmadas ('entregue') ainda não pagas (entregador_pago_em nulo). É o
+ * conjunto que o botão de pagamento carimba como pago ao registrar a sangria
+ * — casando 1:1 o valor da saída de caixa com as corridas quitadas.
+ * @param {Array} pedidos  já filtrados pelo período do fechamento
+ * @param {string} entregadorId
+ * @returns {string[]}
+ */
+export function idsAPagarDoEntregador(pedidos, entregadorId) {
+  if (entregadorId == null) return [];
+  const alvo = String(entregadorId);
+  return (Array.isArray(pedidos) ? pedidos : [])
+    .filter(
+      (p) =>
+        p &&
+        p.id != null &&
+        String(p.entregador_id) === alvo &&
+        p.status === "entregue" &&
+        !pedidoPago(p)
+    )
+    .map((p) => String(p.id));
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -301,6 +340,32 @@ export async function definirAtivoEntregador(id, ativo) {
  * @param {string|null} entregadorId
  * @param {number|string|null} [valor]
  */
+/**
+ * Marca corridas como pagas ao entregador (carimba entregador_pago_em = agora).
+ * Chamada DEPOIS que a sangria em caixa foi registrada com sucesso — o carimbo
+ * é o que impede pagar a mesma entrega de novo no próximo fechamento. Recebe os
+ * ids de idsAPagarDoEntregador. Nunca lança.
+ * @param {string[]} pedidoIds
+ * @returns {Promise<{data:Array|null, error:Error|null}>}
+ */
+export async function registrarPagamentoEntregador(pedidoIds) {
+  const ids = (Array.isArray(pedidoIds) ? pedidoIds : []).filter(Boolean);
+  if (ids.length === 0) {
+    return { data: null, error: new Error("Nenhuma corrida a pagar.") };
+  }
+  try {
+    const { data, error } = await supabase
+      .from("delivery_pedidos")
+      .update({ entregador_pago_em: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .in("id", ids)
+      .select("id,entregador_pago_em");
+    if (error) return { data: null, error };
+    return { data: data ?? [], error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+}
+
 export async function atribuirEntregadorPedido(pedidoId, entregadorId, valor = null) {
   if (!pedidoId) return { data: null, error: new Error("Pedido ausente.") };
   const patch = entregadorId

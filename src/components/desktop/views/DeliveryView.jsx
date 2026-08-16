@@ -126,8 +126,13 @@ import {
   nomeEntregadorValido,
   calcularFechamento,
   filtrarPedidosPorPeriodo,
+  idsAPagarDoEntregador,
+  registrarPagamentoEntregador,
 } from "@/lib/entregadores";
 import { listarPedidosDelivery } from "@/lib/deliveryPedidos";
+import { inicioSessao } from "@/components/modals/FechamentoModal";
+import { movimentosDaSessao, dinheiroDisponivel } from "@/lib/caixaMovimentos";
+import { totalPorMetodo } from "@/utils/pagamentos";
 import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
 import ListaArrastavel from "@/components/shared/ListaArrastavel";
 import { geocodificarEndereco, sugerirEnderecos } from "@/lib/delivery";
@@ -161,7 +166,21 @@ const cssCor = (base) =>
   typeof base === "string" && base.startsWith("--gm-") ? varColor(base) : base;
 
 export default function DeliveryView({ notify } = {}) {
-  const { products, tenant, currentUser, moduloHabilitado, addProduct, updateProduct, recarregarProdutos } = useApp();
+  const {
+    products,
+    tenant,
+    currentUser,
+    moduloHabilitado,
+    addProduct,
+    updateProduct,
+    recarregarProdutos,
+    caixaAberto,
+    registrarMovimentoCaixa,
+    fundoAtual,
+    sales,
+    sessaoAbertaEm,
+    movimentosCaixa,
+  } = useApp();
 
   // Modo derivado do plano: tem PDV → addon; só delivery → standalone.
   const ehAddon = moduloHabilitado(MODULOS.PDV);
@@ -261,6 +280,22 @@ export default function DeliveryView({ notify } = {}) {
   );
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+
+  // Dinheiro na gaveta AGORA — mesma conta do PDV (DesktopLayout): fundo de
+  // troco + vendas em dinheiro da sessão − sangrias + suprimentos. É o teto do
+  // que dá pra pagar ao entregador sem estourar o caixa. Recalcula quando
+  // vendas/movimentos/fundo/sessão mudam.
+  const dinheiroNaGaveta = useMemo(() => {
+    const inicio = inicioSessao(sessaoAbertaEm);
+    const vendasDinheiro = (sales ?? [])
+      .filter((s) => s && !s.cancelada && new Date(s.at).getTime() >= inicio)
+      .reduce((soma, v) => soma + (totalPorMetodo(v).dinheiro ?? 0), 0);
+    return dinheiroDisponivel({
+      fundo: fundoAtual,
+      vendasDinheiro,
+      movimentos: movimentosDaSessao(movimentosCaixa, inicio),
+    });
+  }, [sales, fundoAtual, sessaoAbertaEm, movimentosCaixa]);
 
   // Abrir/fechar a loja direto do topo. Otimista: vira na hora e reverte se
   // o Supabase recusar. Só admin/gerente mexe.
@@ -466,6 +501,10 @@ export default function DeliveryView({ notify } = {}) {
             entregadores={entregadores}
             recarregar={carregarEntregadores}
             aviso={aviso}
+            currentUser={currentUser}
+            caixaAberto={caixaAberto}
+            dinheiroNaGaveta={dinheiroNaGaveta}
+            registrarMovimentoCaixa={registrarMovimentoCaixa}
           />
         )}
 
@@ -2496,7 +2535,16 @@ function SeletorProdutosMulti({ itens, produtoIds, vinculando, onAlternar }) {
 //
 // A lista de entregadores vem de cima (DeliveryView) — a mesma que o
 // seletor do cartão de pedido usa, sem recarregar duplicado.
-function AbaEntregadores({ isAdmin, entregadores, recarregar, aviso }) {
+function AbaEntregadores({
+  isAdmin,
+  entregadores,
+  recarregar,
+  aviso,
+  currentUser,
+  caixaAberto,
+  dinheiroNaGaveta,
+  registrarMovimentoCaixa,
+}) {
   const [secao, setSecao] = useState("equipe");
 
   return (
@@ -2526,7 +2574,15 @@ function AbaEntregadores({ isAdmin, entregadores, recarregar, aviso }) {
           aviso={aviso}
         />
       ) : (
-        <FechamentoEntregadores entregadores={entregadores} aviso={aviso} />
+        <FechamentoEntregadores
+          entregadores={entregadores}
+          aviso={aviso}
+          isAdmin={isAdmin}
+          currentUser={currentUser}
+          caixaAberto={caixaAberto}
+          dinheiroNaGaveta={dinheiroNaGaveta}
+          registrarMovimentoCaixa={registrarMovimentoCaixa}
+        />
       )}
     </div>
   );
@@ -2775,12 +2831,22 @@ const diaLocalISO = (d = new Date()) => {
   return `${y}-${m}-${dia}`;
 };
 
-function FechamentoEntregadores({ entregadores, aviso }) {
+function FechamentoEntregadores({
+  entregadores,
+  aviso,
+  isAdmin,
+  currentUser,
+  caixaAberto,
+  dinheiroNaGaveta,
+  registrarMovimentoCaixa,
+}) {
   const [inicio, setInicio] = useState(diaLocalISO);
   const [fim, setFim] = useState(diaLocalISO);
   const [pedidos, setPedidos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);
+  const [confirmandoId, setConfirmandoId] = useState(null); // linha aguardando confirmação
+  const [pagandoId, setPagandoId] = useState(null);         // linha com pagamento em curso
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -2797,13 +2863,57 @@ function FechamentoEntregadores({ entregadores, aviso }) {
 
   useEffect(() => { carregar(); }, [carregar]);
 
-  const { linhas, totalGeral, totalEntregues, totalEmRota } = useMemo(() => {
+  const { linhas, totalGeral, totalAPagar, totalJaPago, totalEntregues, totalEmRota, noPeriodo } = useMemo(() => {
     // Limites em horário LOCAL: início 00:00, fim 23:59:59.999 do dia escolhido.
     const ini = inicio ? new Date(`${inicio}T00:00:00`) : null;
     const f = fim ? new Date(`${fim}T23:59:59.999`) : null;
-    const noPeriodo = filtrarPedidosPorPeriodo(pedidos, ini, f);
-    return calcularFechamento(noPeriodo, entregadores);
+    const doPeriodo = filtrarPedidosPorPeriodo(pedidos, ini, f);
+    // noPeriodo sobe junto para o pagamento resolver os ids das corridas 1:1
+    // com o valor da sangria (idsAPagarDoEntregador).
+    return { ...calcularFechamento(doPeriodo, entregadores), noPeriodo: doPeriodo };
   }, [pedidos, inicio, fim, entregadores]);
+
+  // Paga um entregador: sai da gaveta como SANGRIA (dinheiro de verdade) e
+  // carimba as corridas como pagas para não pagar a mesma entrega de novo.
+  // Só admin/gerente (autorizam a si mesmos, sem digitar senha). A ordem é
+  // sangria → carimbo: se o carimbo falhar, o dinheiro já saiu e as corridas
+  // seguem "a pagar" — o aviso manda conferir antes de repetir (o oposto,
+  // carimbar primeiro, marcaria como pago sem o dinheiro sair).
+  const pagar = useCallback(async (linha) => {
+    if (!isAdmin || pagandoId) return;
+    const ids = idsAPagarDoEntregador(noPeriodo, linha.entregador_id);
+    if (ids.length === 0) return aviso("Nada a pagar para este entregador.", "err");
+    if (!caixaAberto) return aviso("Abra o caixa antes de pagar o entregador.", "err");
+    if (dinheiroNaGaveta < linha.aPagar) {
+      return aviso("Não há dinheiro suficiente na gaveta para este pagamento.", "err");
+    }
+    setPagandoId(linha.entregador_id);
+    const motivo = `Pagamento entregador ${linha.nome} — ${ids.length} ${ids.length > 1 ? "entregas" : "entrega"}`;
+    const { error } = await registrarMovimentoCaixa({
+      tipo: "sangria",
+      valor: linha.aPagar,
+      motivo,
+      autorizadoPor: currentUser?.username,
+      disponivel: dinheiroNaGaveta,
+    });
+    if (error) {
+      setPagandoId(null);
+      return aviso(error.message || "Não foi possível registrar a saída de caixa.", "err");
+    }
+    const { error: erroCarimbo } = await registrarPagamentoEntregador(ids);
+    setPagandoId(null);
+    setConfirmandoId(null);
+    if (erroCarimbo) {
+      aviso(
+        "A saída de caixa foi registrada, mas não consegui marcar as corridas como pagas. Confira o caixa antes de pagar de novo.",
+        "err"
+      );
+      await carregar();
+      return;
+    }
+    aviso(`Pago ${formatarReais(linha.aPagar)} a ${linha.nome}.`, "ok");
+    await carregar();
+  }, [isAdmin, pagandoId, noPeriodo, caixaAberto, dinheiroNaGaveta, registrarMovimentoCaixa, currentUser, aviso, carregar]);
 
   return (
     <>
@@ -2866,31 +2976,91 @@ function FechamentoEntregadores({ entregadores, aviso }) {
                 <th className="delivery-view__num">Entregues</th>
                 <th className="delivery-view__num">Em rota</th>
                 <th className="delivery-view__num">A pagar</th>
+                {isAdmin && <th className="delivery-view__fechamento-acao-col">Pagamento</th>}
               </tr>
             </thead>
             <tbody>
-              {linhas.map((l) => (
-                <tr key={l.entregador_id}>
-                  <td>
-                    <span className="delivery-view__fechamento-nome">
-                      <LuBike size={14} /> {l.nome}
-                    </span>
-                  </td>
-                  <td className="delivery-view__num">{l.entregues}</td>
-                  <td className="delivery-view__num">
-                    {l.emRota > 0 ? (
-                      <span className="delivery-view__fechamento-emrota" title="Ainda na rua — não entram no pagamento até serem entregues">
-                        {l.emRota}
+              {linhas.map((l) => {
+                const confirmando = confirmandoId === l.entregador_id;
+                const pagandoEsta = pagandoId === l.entregador_id;
+                const semDinheiro = dinheiroNaGaveta < l.aPagar;
+                // Por que o botão está desabilitado — texto direto no title,
+                // prevenção de erro > mensagem depois (Princípio nº 1).
+                const motivoBloqueio = !caixaAberto
+                  ? "Abra o caixa para pagar o entregador."
+                  : semDinheiro
+                    ? "Não há dinheiro suficiente na gaveta."
+                    : "";
+                const podePagar = l.aPagar > 0 && caixaAberto && !semDinheiro;
+                return (
+                  <tr key={l.entregador_id}>
+                    <td>
+                      <span className="delivery-view__fechamento-nome">
+                        <LuBike size={14} /> {l.nome}
                       </span>
-                    ) : (
-                      "—"
+                    </td>
+                    <td className="delivery-view__num">{l.entregues}</td>
+                    <td className="delivery-view__num">
+                      {l.emRota > 0 ? (
+                        <span className="delivery-view__fechamento-emrota" title="Ainda na rua — não entram no pagamento até serem entregues">
+                          {l.emRota}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="delivery-view__num delivery-view__fechamento-valor">
+                      {l.aPagar > 0 ? formatarReais(l.aPagar) : "—"}
+                      {l.jaPago > 0 && (
+                        <span className="delivery-view__fechamento-pago-nota" title="Já saiu do caixa neste período">
+                          {formatarReais(l.jaPago)} pago
+                        </span>
+                      )}
+                    </td>
+                    {isAdmin && (
+                      <td className="delivery-view__fechamento-acao">
+                        {l.aPagar <= 0 ? (
+                          <span className="delivery-view__fechamento-quitado" title="Todas as entregas do período já foram pagas">
+                            <LuCheck size={13} /> Pago
+                          </span>
+                        ) : confirmando ? (
+                          <span className="delivery-view__fechamento-confirma">
+                            <span className="delivery-view__fechamento-confirma-txt">
+                              Sair {formatarReais(l.aPagar)} do caixa?
+                            </span>
+                            <button
+                              type="button"
+                              className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--primario"
+                              onClick={() => pagar(l)}
+                              disabled={pagandoEsta}
+                            >
+                              {pagandoEsta ? "Pagando…" : "Confirmar"}
+                            </button>
+                            <button
+                              type="button"
+                              className="delivery-view__btn delivery-view__btn--sm"
+                              onClick={() => setConfirmandoId(null)}
+                              disabled={pagandoEsta}
+                            >
+                              Cancelar
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--pagar"
+                            onClick={() => setConfirmandoId(l.entregador_id)}
+                            disabled={!podePagar}
+                            title={motivoBloqueio || `Pagar ${formatarReais(l.aPagar)} a ${l.nome} (sai do caixa)`}
+                          >
+                            <LuBanknote size={14} /> Pagar
+                          </button>
+                        )}
+                      </td>
                     )}
-                  </td>
-                  <td className="delivery-view__num delivery-view__fechamento-valor">
-                    {formatarReais(l.totalPagar)}
-                  </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr>
@@ -2898,15 +3068,22 @@ function FechamentoEntregadores({ entregadores, aviso }) {
                 <td className="delivery-view__num">{totalEntregues}</td>
                 <td className="delivery-view__num">{totalEmRota || "—"}</td>
                 <td className="delivery-view__num delivery-view__fechamento-valor">
-                  {formatarReais(totalGeral)}
+                  {formatarReais(totalAPagar)}
+                  {totalJaPago > 0 && (
+                    <span className="delivery-view__fechamento-pago-nota">
+                      {formatarReais(totalJaPago)} pago
+                    </span>
+                  )}
                 </td>
+                {isAdmin && <td />}
               </tr>
             </tfoot>
           </table>
           <p className="delivery-view__fechamento-nota">
             Paga-se apenas a corrida concluída (entregue). Pedidos em rota
             aparecem para acompanhamento e entram no pagamento quando forem
-            confirmados.
+            confirmados. Ao confirmar o pagamento, o valor sai do caixa como
+            uma retirada (sangria) e as corridas ficam marcadas como pagas.
           </p>
         </div>
       )}

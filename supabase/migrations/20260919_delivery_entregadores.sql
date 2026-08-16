@@ -51,9 +51,38 @@ ALTER TABLE public.delivery_pedidos
 CREATE INDEX IF NOT EXISTS delivery_pedidos_entregador_idx
   ON public.delivery_pedidos (tenant_id, entregador_id);
 
--- ── 3. RLS — isolamento por tenant (mesmo padrão da fundação) ──────
+-- ── 3. RLS ──────────────────────────────────────────────────────────
+-- Duas camadas, do mesmo jeito que o cardápio do Delivery (20260804 +
+-- CORREÇÃO 20260807):
+--   • PERMISSIVE de papel — LIBERA o acesso. No PostgreSQL uma policy
+--     RESTRICTIVE só RESTRINGE (AND) linhas já liberadas por ALGUMA
+--     permissive; sem NENHUMA permissive o resultado é "nega tudo" e o
+--     INSERT/SELECT volta 403. (Foi exatamente o bug que a 20260807
+--     corrigiu nas tabelas de Delivery que nasceram sem essa base.)
+--   • RESTRICTIVE de tenant — ISOLA: cada papel só enxerga/escreve
+--     dentro do próprio tenant (soma via AND com a permissive).
+-- Espelha o padrão de gestão do cardápio: leitura para qualquer
+-- autenticado (o painel mostra o nome do entregador no card do pedido
+-- para o caixa também); escrita só para gerente/admin (== isAdmin no
+-- app). Papel lido de app_metadata.gastro_role (NÃO da raiz `role` do
+-- JWT, que o PostgREST reserva para authenticated/anon/service_role).
 ALTER TABLE public.delivery_entregadores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.delivery_entregadores FORCE  ROW LEVEL SECURITY;
+
+-- PERMISSIVE: leitura para autenticado.
+DROP POLICY IF EXISTS delivery_entregadores_select_auth ON public.delivery_entregadores;
+CREATE POLICY delivery_entregadores_select_auth
+  ON public.delivery_entregadores FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+-- PERMISSIVE: escrita (INSERT/UPDATE/DELETE) só para gerente/admin.
+DROP POLICY IF EXISTS delivery_entregadores_write_gerente_admin ON public.delivery_entregadores;
+CREATE POLICY delivery_entregadores_write_gerente_admin
+  ON public.delivery_entregadores FOR ALL
+  USING      ((auth.jwt() -> 'app_metadata' ->> 'gastro_role') IN ('gerente', 'admin'))
+  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'gastro_role') IN ('gerente', 'admin'));
+
+-- RESTRICTIVE: isolamento por tenant (soma via AND com as permissive acima).
 DROP POLICY IF EXISTS delivery_entregadores_tenant_isolamento ON public.delivery_entregadores;
 CREATE POLICY delivery_entregadores_tenant_isolamento
   ON public.delivery_entregadores AS RESTRICTIVE FOR ALL
@@ -61,6 +90,9 @@ CREATE POLICY delivery_entregadores_tenant_isolamento
   WITH CHECK (tenant_id = public.tenant_atual_id());
 
 -- ── Lembrete de RLS (painel Supabase) ──────────────────────────────
--- Tabela nova com RLS já habilitado e policy RESTRICTIVE criada aqui.
--- Nenhuma ação no painel é necessária além de conferir que RLS está
--- ligada em public.delivery_entregadores.
+-- Tabela nova com RLS já habilitado e policies (permissive de papel +
+-- restrictive de tenant) criadas aqui. Nenhuma ação no painel é
+-- necessária além de conferir que RLS está ligada em
+-- public.delivery_entregadores. As colunas novas em delivery_pedidos
+-- (entregador_id/valor_entregador) reaproveitam as policies dessa tabela
+-- (20260807: escrita caixa/gerente/admin) — atribuir entregador é UPDATE.

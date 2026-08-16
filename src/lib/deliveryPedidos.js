@@ -221,7 +221,7 @@ export function tempoDecorrido(createdAt, agora = new Date()) {
 const CAMPOS_PEDIDO =
   "id,numero,cliente_nome,cliente_telefone,cep,bairro,endereco,complemento_endereco," +
   "subtotal,taxa_entrega,total,forma_pagamento,troco_para,levar_maquininha,status,pending_id," +
-  "entregador_id,valor_entregador,created_at,updated_at";
+  "entregador_id,valor_entregador,entregador_pago_em,created_at,updated_at";
 
 /**
  * Lista os pedidos de delivery do tenant (recente → antigo). A RLS já

@@ -2187,3 +2187,51 @@
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
 }
+
+/* Valor já pago no período: nota discreta embaixo do "a pagar", para o dono
+   ver que parte já saiu do caixa sem confundir com o que ainda deve. */
+.delivery-view__fechamento-pago-nota {
+  display: block;
+  margin-top: 2px;
+  color: var(--gm-green);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+/* Coluna de pagamento: à direita como os números, mas sem tabular-nums. */
+.delivery-view__fechamento-acao-col,
+.delivery-view__fechamento-acao {
+  text-align: right;
+  white-space: nowrap;
+}
+/* Botão "Pagar": verde de dinheiro saindo, alinhado ao par de botões da tela. */
+.delivery-view__btn--pagar {
+  background: var(--gm-green);
+  color: #fff;
+}
+.delivery-view__btn--pagar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* Entregador já quitado no período: estado, não ação — verde apagado. */
+.delivery-view__fechamento-quitado {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--gm-green);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+/* Confirmação inline do pagamento: pergunta + Confirmar/Cancelar na própria
+   linha, sem tirar o operador da tabela (prevenção de erro > desfazer). */
+.delivery-view__fechamento-confirma {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.delivery-view__fechamento-confirma-txt {
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
