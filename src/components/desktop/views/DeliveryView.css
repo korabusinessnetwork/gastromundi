@@ -1884,3 +1884,306 @@
   color: var(--gm-accent);
   outline: none;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   ENTREGADORES — atribuição no cartão de pedido, cadastro e fechamento
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Bloco do entregador dentro do cartão de pedido ── */
+.delivery-view__pedido-entregador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--gm-border);
+}
+.delivery-view__pedido-entregador-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+}
+.delivery-view__entregador-select {
+  flex: 1 1 130px;
+  min-width: 120px;
+  padding: 7px 10px;
+  border: 1.5px solid var(--gm-input-border);
+  border-radius: 9px;
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  outline: none;
+  cursor: pointer;
+}
+.delivery-view__entregador-select:focus-visible {
+  border-color: var(--gm-accent);
+}
+.delivery-view__entregador-nome {
+  color: var(--gm-text);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.delivery-view__entregador-vazio {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-style: italic;
+}
+/* Campo do valor da corrida (fotografado no pedido). */
+.delivery-view__entregador-valor {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.delivery-view__entregador-valor-cifrao {
+  color: var(--gm-muted);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+.delivery-view__entregador-valor-input {
+  width: 70px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1.5px solid var(--gm-input-border);
+  border-radius: 9px;
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.delivery-view__entregador-valor-input:focus-visible {
+  border-color: var(--gm-accent);
+}
+.delivery-view__entregador-valor-legenda {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.delivery-view__entregador-valor-salvar {
+  background: var(--gm-green);
+  color: #fff;
+  padding: 6px 8px;
+}
+.delivery-view__entregador-valor-ro {
+  color: var(--gm-text);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+/* ── Sub-abas (Equipe / Fechamento) ── */
+.delivery-view__sub-abas {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.delivery-view__sub-aba {
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.delivery-view__sub-aba--ativa {
+  background: color-mix(in srgb, var(--gm-accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--gm-accent) 35%, transparent);
+  color: var(--gm-accent);
+}
+
+/* ── Formulário de cadastro de entregador ── */
+.delivery-view__entregador-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  margin-bottom: 14px;
+}
+.delivery-view__entregador-form-campos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1 1 320px;
+}
+.delivery-view__entregador-form-campos .delivery-view__input {
+  flex: 1 1 140px;
+  width: auto;
+}
+.delivery-view__entregador-valor-campo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 160px;
+}
+.delivery-view__input--valor {
+  width: 90px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Lista de entregadores ── */
+.delivery-view__entregador-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.delivery-view__entregador-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+}
+.delivery-view__entregador-linha--edit {
+  align-items: center;
+}
+.delivery-view__entregador-linha--edit .delivery-view__input {
+  flex: 1 1 140px;
+  width: auto;
+}
+.delivery-view__entregador-linha--inativo {
+  opacity: 0.62;
+}
+.delivery-view__entregador-linha-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 160px;
+}
+.delivery-view__entregador-linha-nome {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--gm-text);
+  font-weight: 700;
+}
+.delivery-view__entregador-tag-inativo {
+  background: color-mix(in srgb, var(--gm-muted) 15%, transparent);
+  color: var(--gm-muted);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.delivery-view__entregador-linha-detalhe {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.delivery-view__entregador-linha-acoes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.delivery-view__btn--icone {
+  background: color-mix(in srgb, var(--gm-muted) 8%, transparent);
+  color: var(--gm-muted);
+  padding: 8px;
+}
+.delivery-view__entregador-linha--edit .delivery-view__btn {
+  padding: 8px 12px;
+}
+
+/* ── Fechamento do dia ── */
+.delivery-view__fechamento-filtros {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.delivery-view__fechamento-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+.delivery-view__fechamento-campo .delivery-view__input {
+  width: auto;
+}
+.delivery-view__fechamento-tabela-wrap {
+  overflow-x: auto;
+}
+.delivery-view__fechamento-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.delivery-view__fechamento-tabela th,
+.delivery-view__fechamento-tabela td {
+  padding: 11px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--gm-border);
+}
+.delivery-view__fechamento-tabela th {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.delivery-view__fechamento-tabela tbody tr:last-child td {
+  border-bottom: none;
+}
+.delivery-view__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.delivery-view__fechamento-nome {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--gm-text);
+  font-weight: 700;
+}
+.delivery-view__fechamento-emrota {
+  color: var(--gm-blue);
+  font-weight: 700;
+}
+.delivery-view__fechamento-valor {
+  color: var(--gm-text);
+  font-weight: 800;
+}
+.delivery-view__fechamento-tabela tfoot td {
+  border-top: 2px solid var(--gm-border);
+  border-bottom: none;
+  font-weight: 800;
+  color: var(--gm-text);
+  background: color-mix(in srgb, var(--gm-accent) 5%, transparent);
+}
+.delivery-view__fechamento-nota {
+  margin-top: 10px;
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}

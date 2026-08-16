@@ -526,7 +526,7 @@ CREATE TABLE public.subprodutos (
 CREATE TABLE public.combos (
   id                uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
   nome              text    NOT NULL,
-  item_principal_id bigint  NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+  item_principal_id bigint  REFERENCES public.products(id) ON DELETE CASCADE, -- nullable desde 20260918 (combo flexível não tem principal)
   modo              text    NOT NULL DEFAULT 'combo',
   preco_total       numeric,
   ativo             boolean NOT NULL DEFAULT true,
@@ -561,6 +561,46 @@ CREATE TABLE public.combo_produtos (
 );
 CREATE INDEX idx_combo_produtos_combo   ON public.combo_produtos (combo_id);
 CREATE INDEX idx_combo_produtos_produto ON public.combo_produtos (produto_id);
+
+-- ── grupos_escolha / grupo_escolha_itens — 20260918_grupos_escolha.sql ──
+-- Abstração única para "produto com seleção" (produto_id) e "combo
+-- flexível" (combo_id): um grupo com N opções, mínimo e máximo de
+-- seleção. Dono exclusivo (OU produto OU combo). origem='lista' usa os
+-- grupo_escolha_itens; origem='categoria' resolve as opções pelos
+-- produtos ativos da categoria no front.
+CREATE TABLE public.grupos_escolha (
+  id         uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
+  produto_id bigint  REFERENCES public.products(id) ON DELETE CASCADE,
+  combo_id   uuid    REFERENCES public.combos(id)   ON DELETE CASCADE,
+  nome       text    NOT NULL,
+  minimo     integer NOT NULL DEFAULT 1 CHECK (minimo >= 0),
+  maximo     integer NOT NULL DEFAULT 1 CHECK (maximo >= 1),
+  origem     text    NOT NULL DEFAULT 'lista' CHECK (origem IN ('lista', 'categoria')),
+  categoria  text,
+  ordem      integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  tenant_id  uuid    NOT NULL DEFAULT public.tenant_atual_id() REFERENCES public.tenants(id),
+  CONSTRAINT grupos_escolha_dono_unico CHECK (
+    (produto_id IS NOT NULL AND combo_id IS NULL)
+    OR (produto_id IS NULL AND combo_id IS NOT NULL)
+  ),
+  CONSTRAINT grupos_escolha_maximo_valido CHECK (maximo >= minimo)
+);
+CREATE INDEX idx_grupos_escolha_produto ON public.grupos_escolha (produto_id);
+CREATE INDEX idx_grupos_escolha_combo   ON public.grupos_escolha (combo_id);
+
+CREATE TABLE public.grupo_escolha_itens (
+  id                uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  grupo_id          uuid          NOT NULL REFERENCES public.grupos_escolha(id) ON DELETE CASCADE,
+  produto_id        bigint        NOT NULL REFERENCES public.products(id)       ON DELETE CASCADE,
+  preco_customizado numeric(10,2) CHECK (preco_customizado IS NULL OR preco_customizado >= 0),
+  ordem             integer       NOT NULL DEFAULT 0,
+  created_at        timestamptz   NOT NULL DEFAULT now(),
+  tenant_id         uuid          NOT NULL DEFAULT public.tenant_atual_id() REFERENCES public.tenants(id),
+  UNIQUE (grupo_id, produto_id)
+);
+CREATE INDEX idx_grupo_escolha_itens_grupo   ON public.grupo_escolha_itens (grupo_id);
+CREATE INDEX idx_grupo_escolha_itens_produto ON public.grupo_escolha_itens (produto_id);
 
 -- ── impressão (locais e roteamento por categoria) ─────────────
 CREATE TABLE public.locais_impressao (
@@ -752,6 +792,17 @@ CREATE TABLE public.config_delivery (
   fuso                      text    NOT NULL DEFAULT 'America/Sao_Paulo'       -- 20260903
 );
 
+CREATE TABLE public.delivery_entregadores (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id         uuid NOT NULL DEFAULT public.tenant_atual_id() REFERENCES public.tenants(id) ON DELETE CASCADE,
+  nome              text NOT NULL,
+  telefone          text,
+  ativo             boolean NOT NULL DEFAULT true,
+  valor_por_entrega numeric NOT NULL DEFAULT 0,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE public.delivery_pedidos (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id            uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -773,7 +824,9 @@ CREATE TABLE public.delivery_pedidos (
   created_at           timestamptz NOT NULL DEFAULT now(),
   updated_at           timestamptz NOT NULL DEFAULT now(),
   entrega_lat          numeric,  -- 20260810
-  entrega_lng          numeric   -- 20260810
+  entrega_lng          numeric,  -- 20260810
+  entregador_id        uuid REFERENCES public.delivery_entregadores(id) ON DELETE SET NULL,  -- 20260919
+  valor_entregador     numeric   -- 20260919
 );
 
 CREATE TABLE public.delivery_pedido_itens (
@@ -1025,6 +1078,8 @@ CREATE TABLE public.nfce_inutilizacoes (
 --   do próprio tenant.
 -- delivery_pedidos / delivery_pedido_itens → insert público (o cliente faz
 --   o pedido sem conta) ; leitura e update só pelo tenant dono.
+-- delivery_entregadores (20260919) → RLS RESTRICTIVE por tenant ; leitura/
+--   escrita só pela gerência do próprio tenant (nunca anon).
 
 -- ── Realtime ──────────────────────────────────────────────────
 -- Habilitado no dashboard para: pending, estoque, jarvas_insights, mesas,

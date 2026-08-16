@@ -114,6 +114,20 @@ import {
   temFaixasKm,
 } from "@/lib/deliveryAdmin";
 import { ajusteAutomaticoAbertura, resumoHorario } from "@/lib/deliveryHorario";
+import {
+  listarEntregadores,
+  criarEntregador,
+  atualizarEntregador,
+  definirAtivoEntregador,
+  atribuirEntregadorPedido,
+  entregadoresAtivos,
+  valorPadraoParaPedido,
+  sanitizarValorEntrega,
+  nomeEntregadorValido,
+  calcularFechamento,
+  filtrarPedidosPorPeriodo,
+} from "@/lib/entregadores";
+import { listarPedidosDelivery } from "@/lib/deliveryPedidos";
 import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
 import ListaArrastavel from "@/components/shared/ListaArrastavel";
 import { geocodificarEndereco, sugerirEnderecos } from "@/lib/delivery";
@@ -125,6 +139,7 @@ const ABAS = [
   { id: "pedidos",      label: "Pedidos" },
   { id: "cardapio",     label: "Cardápio" },
   { id: "complementos", label: "Complementos" },
+  { id: "entregadores", label: "Entregadores" },
   { id: "entrega",      label: "Entrega e taxas" },
 ];
 
@@ -169,6 +184,11 @@ export default function DeliveryView({ notify } = {}) {
   const [configDelivery, setConfigDelivery] = useState(null);
   const [salvandoAberto, setSalvandoAberto] = useState(false);
 
+  // Entregadores do tenant (cadastro + atribuição no pedido). Fica aqui no
+  // topo porque duas abas dependem da MESMA lista: "Pedidos" usa no seletor
+  // de atribuição do cartão e "Entregadores" no cadastro/fechamento.
+  const [entregadores, setEntregadores] = useState([]);
+
   const aviso = useCallback(
     (msg, tipo) => (typeof notify === "function" ? notify(msg, tipo) : undefined),
     [notify]
@@ -195,6 +215,16 @@ export default function DeliveryView({ notify } = {}) {
       ativo = false;
     };
   }, [carregarLinhas]);
+
+  const carregarEntregadores = useCallback(async () => {
+    const { data, error } = await listarEntregadores();
+    if (error) return; // silencioso: a aba mostra o próprio estado de erro
+    setEntregadores(data);
+  }, []);
+
+  useEffect(() => {
+    carregarEntregadores();
+  }, [carregarEntregadores]);
 
   // Carrega a config só pra saber se a loja está aberta (botão do topo).
   useEffect(() => {
@@ -398,7 +428,13 @@ export default function DeliveryView({ notify } = {}) {
         )}
 
         {aba === "pedidos" && (
-          <AbaPedidos isAdmin={isAdmin} ehAddon={ehAddon} aviso={aviso} currentUser={currentUser} />
+          <AbaPedidos
+            isAdmin={isAdmin}
+            ehAddon={ehAddon}
+            aviso={aviso}
+            currentUser={currentUser}
+            entregadores={entregadores}
+          />
         )}
 
         {aba === "cardapio" && (
@@ -422,6 +458,15 @@ export default function DeliveryView({ notify } = {}) {
 
         {aba === "complementos" && (
           <AbaComplementos isAdmin={isAdmin} itens={itensCardapio} products={products} aviso={aviso} />
+        )}
+
+        {aba === "entregadores" && (
+          <AbaEntregadores
+            isAdmin={isAdmin}
+            entregadores={entregadores}
+            recarregar={carregarEntregadores}
+            aviso={aviso}
+          />
         )}
 
         {aba === "entrega" && (
@@ -459,7 +504,7 @@ const lerPrefAvisos = () => {
   }
 };
 
-function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
+function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, entregadores = [] }) {
   const { pedidos, carregando, erro, recarregar } = usePedidosDelivery();
   const [tick, setTick] = useState(0); // recalcula "há X min" de tempos em tempos
 
@@ -544,6 +589,23 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
     },
     [aviso, recarregar, currentUser]
   );
+
+  // Atribui/troca entregador (e valor fotografado) num pedido. entregadorId
+  // nulo desatribui. Recarrega pra refletir na hora (o realtime também traz,
+  // mas o clique do operador precisa de resposta imediata).
+  const atribuir = useCallback(
+    async (pedido, entregadorId, valor = null) => {
+      const { error } = await atribuirEntregadorPedido(pedido.id, entregadorId || null, valor);
+      if (error) return aviso("Não foi possível atribuir o entregador. Tente novamente.", "err");
+      await recarregar();
+    },
+    [aviso, recarregar]
+  );
+
+  // Só os ativos no seletor, mas garantindo que o entregador já atribuído a um
+  // pedido apareça mesmo se tiver sido desativado depois (senão o cartão
+  // mostraria "sem entregador" para um pedido que tem um).
+  const ativos = useMemo(() => entregadoresAtivos(entregadores), [entregadores]);
 
   return (
     <>
@@ -639,8 +701,11 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
                           pedido={p}
                           isAdmin={isAdmin}
                           ehAddon={ehAddon}
+                          entregadores={entregadores}
+                          entregadoresAtivos={ativos}
                           onAvancar={() => avancar(p)}
                           onCancelar={() => cancelar(p)}
+                          onAtribuirEntregador={atribuir}
                         />
                       ))}
                     </div>
@@ -655,7 +720,16 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
   );
 }
 
-function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
+function CardPedido({
+  pedido,
+  isAdmin,
+  ehAddon,
+  entregadores = [],
+  entregadoresAtivos: ativos = [],
+  onAvancar,
+  onCancelar,
+  onAtribuirEntregador,
+}) {
   const [aberto, setAberto] = useState(false);
   const [itens, setItens] = useState(null); // null = ainda não buscou
   const [carregandoItens, setCarregandoItens] = useState(false);
@@ -668,6 +742,45 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
     pedido.cliente_telefone,
     `Olá! Aqui é do delivery, sobre o seu pedido ${pedido.numero}.`
   );
+
+  // ── Entregador atribuído a este pedido ──────────────────────────
+  const cancelado = pedido.status === STATUS_CANCELADO;
+  const atribuidoId = pedido.entregador_id ? String(pedido.entregador_id) : "";
+  const entregadorAtual = atribuidoId
+    ? entregadores.find((e) => String(e.id) === atribuidoId) || null
+    : null;
+  const nomeAtual = entregadorAtual?.nome || (atribuidoId ? "Entregador removido" : "");
+
+  // Opções do seletor: os ativos + o já atribuído (mesmo se desativado depois),
+  // pra não sumir com quem está tocando este pedido.
+  const opcoes = useMemo(() => {
+    const lista = [...ativos];
+    if (atribuidoId && !lista.some((e) => String(e.id) === atribuidoId)) {
+      lista.push(entregadorAtual || { id: atribuidoId, nome: nomeAtual });
+    }
+    return lista;
+  }, [ativos, atribuidoId, entregadorAtual, nomeAtual]);
+
+  // Valor da corrida (fotografado). Campo editável espelha o salvo e
+  // ressincroniza quando a fonte muda (troca de entregador / realtime).
+  const valorSalvo = sanitizarValorEntrega(pedido.valor_entregador);
+  const [valorTxt, setValorTxt] = useState(valorSalvo ? String(valorSalvo) : "");
+  useEffect(() => {
+    setValorTxt(valorSalvo ? String(valorSalvo) : "");
+  }, [atribuidoId, valorSalvo]);
+  const valorMudou = !!atribuidoId && sanitizarValorEntrega(valorTxt) !== valorSalvo;
+
+  const escolherEntregador = (id) => {
+    if (!onAtribuirEntregador) return;
+    if (!id) return onAtribuirEntregador(pedido, null);
+    const ent = entregadores.find((e) => String(e.id) === String(id));
+    onAtribuirEntregador(pedido, id, valorPadraoParaPedido(ent));
+  };
+
+  const salvarValor = () => {
+    if (!onAtribuirEntregador || !atribuidoId) return;
+    onAtribuirEntregador(pedido, atribuidoId, sanitizarValorEntrega(valorTxt));
+  };
 
   const toggleItens = async () => {
     const proximo = !aberto;
@@ -753,6 +866,74 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
       <div className="delivery-view__pedido-total">
         Total <strong>{formatarReais(pedido.total)}</strong>
       </div>
+
+      {/* Entregador — quem leva o pedido (atribuição + valor da corrida).
+          Oculto em pedido cancelado. Admin escolhe e ajusta o valor; demais
+          veem só quem está com o pedido. */}
+      {!cancelado && (
+        <div className="delivery-view__pedido-entregador">
+          <span className="delivery-view__pedido-entregador-rotulo">
+            <LuBike size={13} /> Entregador
+          </span>
+
+          {isAdmin && onAtribuirEntregador ? (
+            opcoes.length === 0 ? (
+              <span className="delivery-view__entregador-vazio">
+                Cadastre entregadores na aba “Entregadores”.
+              </span>
+            ) : (
+              <select
+                className="delivery-view__entregador-select"
+                value={atribuidoId}
+                onChange={(e) => escolherEntregador(e.target.value)}
+                title="Escolha quem vai levar este pedido"
+              >
+                <option value="">Sem entregador</option>
+                {opcoes.map((e) => (
+                  <option key={e.id} value={e.id}>{e.nome}</option>
+                ))}
+              </select>
+            )
+          ) : (
+            <span className="delivery-view__entregador-nome">
+              {nomeAtual || "Sem entregador"}
+            </span>
+          )}
+
+          {isAdmin && atribuidoId && (
+            <div className="delivery-view__entregador-valor">
+              <span className="delivery-view__entregador-valor-cifrao">R$</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="delivery-view__entregador-valor-input"
+                value={valorTxt}
+                onChange={(e) => setValorTxt(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && valorMudou) salvarValor(); }}
+                title="Quanto pagar ao entregador por esta corrida"
+                aria-label="Valor desta corrida"
+              />
+              <span className="delivery-view__entregador-valor-legenda">por esta entrega</span>
+              {valorMudou && (
+                <button
+                  type="button"
+                  className="delivery-view__btn delivery-view__btn--sm delivery-view__entregador-valor-salvar"
+                  onClick={salvarValor}
+                  title="Salvar o valor desta corrida"
+                >
+                  <LuCheck size={13} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {!isAdmin && atribuidoId && valorSalvo > 0 && (
+            <span className="delivery-view__entregador-valor-ro">
+              {formatarReais(valorSalvo)}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Ações — só admin/gerente toca o pedido */}
       {isAdmin && !ehTerminal(pedido.status) && (
@@ -2297,6 +2478,439 @@ function SeletorProdutosMulti({ itens, produtoIds, vinculando, onAlternar }) {
         )}
       </div>
     </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA — Entregadores (equipe de entrega + fechamento do dia)
+// ════════════════════════════════════════════════════════════════
+//
+// Duas coisas numa aba, por sub-seção (Princípio nº 1 — uma tela, um
+// assunto claro):
+//   • Equipe: cadastrar/editar/ativar entregadores (nome, telefone e o
+//     valor padrão por entrega). Desativar preserva histórico — nunca
+//     apaga, senão o fechamento passado sumia.
+//   • Fechamento do dia: escolhe o período e mostra, por entregador,
+//     quantas entregas confirmadas, quantas em rota e QUANTO PAGAR. Paga
+//     só a corrida concluída (status 'entregue') — dinheiro é conservador.
+//
+// A lista de entregadores vem de cima (DeliveryView) — a mesma que o
+// seletor do cartão de pedido usa, sem recarregar duplicado.
+function AbaEntregadores({ isAdmin, entregadores, recarregar, aviso }) {
+  const [secao, setSecao] = useState("equipe");
+
+  return (
+    <div className="delivery-view__entregadores">
+      <div className="delivery-view__sub-abas">
+        <button
+          type="button"
+          onClick={() => setSecao("equipe")}
+          className={`delivery-view__sub-aba${secao === "equipe" ? " delivery-view__sub-aba--ativa" : ""}`}
+        >
+          Equipe
+        </button>
+        <button
+          type="button"
+          onClick={() => setSecao("fechamento")}
+          className={`delivery-view__sub-aba${secao === "fechamento" ? " delivery-view__sub-aba--ativa" : ""}`}
+        >
+          Fechamento do dia
+        </button>
+      </div>
+
+      {secao === "equipe" ? (
+        <EquipeEntregadores
+          isAdmin={isAdmin}
+          entregadores={entregadores}
+          recarregar={recarregar}
+          aviso={aviso}
+        />
+      ) : (
+        <FechamentoEntregadores entregadores={entregadores} aviso={aviso} />
+      )}
+    </div>
+  );
+}
+
+// ── Equipe: cadastro / edição / ativar-desativar ────────────────────
+function EquipeEntregadores({ isAdmin, entregadores, recarregar, aviso }) {
+  const [novoNome, setNovoNome] = useState("");
+  const [novoTel, setNovoTel] = useState("");
+  const [novoValor, setNovoValor] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  const podeAdicionar = nomeEntregadorValido(novoNome) && !salvando;
+
+  const adicionar = async () => {
+    if (!podeAdicionar) return;
+    setSalvando(true);
+    const { error } = await criarEntregador({
+      nome: novoNome,
+      telefone: novoTel,
+      valor_por_entrega: novoValor,
+    });
+    setSalvando(false);
+    if (error) return aviso(error.message || "Não foi possível cadastrar o entregador.", "err");
+    setNovoNome("");
+    setNovoTel("");
+    setNovoValor("");
+    aviso("Entregador cadastrado.", "ok");
+    await recarregar();
+  };
+
+  const ordenados = useMemo(
+    () =>
+      [...(entregadores || [])].sort((a, b) =>
+        String(a.nome ?? "").localeCompare(String(b.nome ?? ""), "pt-BR")
+      ),
+    [entregadores]
+  );
+
+  return (
+    <>
+      {isAdmin && (
+        <div className="delivery-view__entregador-form">
+          <div className="delivery-view__entregador-form-campos">
+            <input
+              type="text"
+              className="delivery-view__input"
+              placeholder="Nome do entregador"
+              value={novoNome}
+              onChange={(e) => setNovoNome(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && podeAdicionar) adicionar(); }}
+            />
+            <input
+              type="tel"
+              className="delivery-view__input"
+              placeholder="Telefone (opcional)"
+              value={novoTel}
+              onChange={(e) => setNovoTel(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && podeAdicionar) adicionar(); }}
+            />
+            <div className="delivery-view__entregador-valor-campo">
+              <span className="delivery-view__entregador-valor-cifrao">R$</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="delivery-view__input delivery-view__input--valor"
+                placeholder="0,00"
+                value={novoValor}
+                onChange={(e) => setNovoValor(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && podeAdicionar) adicionar(); }}
+                title="Valor padrão por entrega (você pode ajustar por pedido)"
+              />
+              <span className="delivery-view__entregador-valor-legenda">por entrega</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="delivery-view__btn delivery-view__btn--primario"
+            onClick={adicionar}
+            disabled={!podeAdicionar}
+            title={podeAdicionar ? "Cadastrar entregador" : "Informe ao menos o nome"}
+          >
+            <LuPlus size={15} /> Adicionar
+          </button>
+        </div>
+      )}
+
+      {ordenados.length === 0 ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">🛵</div>
+          <div className="delivery-view__vazio-titulo">Nenhum entregador cadastrado</div>
+          <div className="delivery-view__vazio-desc">
+            {isAdmin
+              ? "Cadastre seus entregadores acima para atribuí-los aos pedidos."
+              : "Peça a um administrador para cadastrar a equipe de entrega."}
+          </div>
+        </div>
+      ) : (
+        <div className="delivery-view__entregador-lista">
+          {ordenados.map((e) => (
+            <EntregadorLinha
+              key={e.id}
+              entregador={e}
+              isAdmin={isAdmin}
+              recarregar={recarregar}
+              aviso={aviso}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function EntregadorLinha({ entregador, isAdmin, recarregar, aviso }) {
+  const [editando, setEditando] = useState(false);
+  const [nome, setNome] = useState(entregador.nome || "");
+  const [tel, setTel] = useState(entregador.telefone || "");
+  const [valor, setValor] = useState(
+    entregador.valor_por_entrega ? String(entregador.valor_por_entrega) : ""
+  );
+  const [salvando, setSalvando] = useState(false);
+  const ativo = entregador.ativo !== false;
+
+  const iniciarEdicao = () => {
+    setNome(entregador.nome || "");
+    setTel(entregador.telefone || "");
+    setValor(entregador.valor_por_entrega ? String(entregador.valor_por_entrega) : "");
+    setEditando(true);
+  };
+
+  const salvar = async () => {
+    if (!nomeEntregadorValido(nome) || salvando) return;
+    setSalvando(true);
+    const { error } = await atualizarEntregador(entregador.id, {
+      nome,
+      telefone: tel,
+      valor_por_entrega: valor,
+    });
+    setSalvando(false);
+    if (error) return aviso(error.message || "Não foi possível salvar.", "err");
+    setEditando(false);
+    aviso("Entregador atualizado.", "ok");
+    await recarregar();
+  };
+
+  const alternarAtivo = async () => {
+    const { error } = await definirAtivoEntregador(entregador.id, !ativo);
+    if (error) return aviso("Não foi possível mudar o status do entregador.", "err");
+    aviso(ativo ? "Entregador desativado." : "Entregador reativado.", "ok");
+    await recarregar();
+  };
+
+  if (editando) {
+    return (
+      <div className="delivery-view__entregador-linha delivery-view__entregador-linha--edit">
+        <input
+          type="text"
+          className="delivery-view__input"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          placeholder="Nome"
+          autoFocus
+        />
+        <input
+          type="tel"
+          className="delivery-view__input"
+          value={tel}
+          onChange={(e) => setTel(e.target.value)}
+          placeholder="Telefone (opcional)"
+        />
+        <div className="delivery-view__entregador-valor-campo">
+          <span className="delivery-view__entregador-valor-cifrao">R$</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            className="delivery-view__input delivery-view__input--valor"
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            placeholder="0,00"
+          />
+        </div>
+        <div className="delivery-view__entregador-linha-acoes">
+          <button
+            type="button"
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--primario"
+            onClick={salvar}
+            disabled={!nomeEntregadorValido(nome) || salvando}
+          >
+            <LuCheck size={13} /> Salvar
+          </button>
+          <button
+            type="button"
+            className="delivery-view__btn delivery-view__btn--sm"
+            onClick={() => setEditando(false)}
+          >
+            <LuX size={13} /> Cancelar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`delivery-view__entregador-linha${ativo ? "" : " delivery-view__entregador-linha--inativo"}`}>
+      <div className="delivery-view__entregador-linha-info">
+        <span className="delivery-view__entregador-linha-nome">
+          <LuBike size={14} /> {entregador.nome}
+          {!ativo && <span className="delivery-view__entregador-tag-inativo">inativo</span>}
+        </span>
+        <span className="delivery-view__entregador-linha-detalhe">
+          {entregador.telefone ? formatarTelefone(entregador.telefone) : "Sem telefone"}
+          {" · "}
+          {formatarReais(entregador.valor_por_entrega || 0)} por entrega
+        </span>
+      </div>
+      {isAdmin && (
+        <div className="delivery-view__entregador-linha-acoes">
+          <button
+            type="button"
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--icone"
+            onClick={iniciarEdicao}
+            title="Editar entregador"
+          >
+            <LuPencil size={14} />
+          </button>
+          <button
+            type="button"
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--icone"
+            onClick={alternarAtivo}
+            title={ativo ? "Desativar (não aparece no seletor de pedidos)" : "Reativar entregador"}
+          >
+            {ativo ? <LuPowerOff size={14} /> : <LuPower size={14} />}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Fechamento do dia: quanto pagar cada entregador no período ───────
+const diaLocalISO = (d = new Date()) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dia}`;
+};
+
+function FechamentoEntregadores({ entregadores, aviso }) {
+  const [inicio, setInicio] = useState(diaLocalISO);
+  const [fim, setFim] = useState(diaLocalISO);
+  const [pedidos, setPedidos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
+
+  const carregar = useCallback(async () => {
+    setCarregando(true);
+    const { data, error } = await listarPedidosDelivery();
+    setCarregando(false);
+    if (error) {
+      setErro(true);
+      aviso("Não foi possível carregar os pedidos do fechamento.", "err");
+      return;
+    }
+    setErro(false);
+    setPedidos(data);
+  }, [aviso]);
+
+  useEffect(() => { carregar(); }, [carregar]);
+
+  const { linhas, totalGeral, totalEntregues, totalEmRota } = useMemo(() => {
+    // Limites em horário LOCAL: início 00:00, fim 23:59:59.999 do dia escolhido.
+    const ini = inicio ? new Date(`${inicio}T00:00:00`) : null;
+    const f = fim ? new Date(`${fim}T23:59:59.999`) : null;
+    const noPeriodo = filtrarPedidosPorPeriodo(pedidos, ini, f);
+    return calcularFechamento(noPeriodo, entregadores);
+  }, [pedidos, inicio, fim, entregadores]);
+
+  return (
+    <>
+      <div className="delivery-view__fechamento-filtros">
+        <label className="delivery-view__fechamento-campo">
+          <span>De</span>
+          <input
+            type="date"
+            className="delivery-view__input"
+            value={inicio}
+            max={fim || undefined}
+            onChange={(e) => setInicio(e.target.value)}
+          />
+        </label>
+        <label className="delivery-view__fechamento-campo">
+          <span>Até</span>
+          <input
+            type="date"
+            className="delivery-view__input"
+            value={fim}
+            min={inicio || undefined}
+            onChange={(e) => setFim(e.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--atualizar"
+          onClick={carregar}
+          title="Atualizar os pedidos do período"
+        >
+          <LuRefreshCw size={13} /> Atualizar
+        </button>
+      </div>
+
+      {carregando ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji delivery-view__vazio-emoji--carregando">⏳</div>
+          <div className="delivery-view__carregando">Carregando fechamento…</div>
+        </div>
+      ) : erro ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">📡</div>
+          <div className="delivery-view__vazio-titulo">Não conseguimos carregar</div>
+          <div className="delivery-view__vazio-desc">Toque em “Atualizar” para tentar de novo.</div>
+        </div>
+      ) : linhas.length === 0 ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">🧾</div>
+          <div className="delivery-view__vazio-titulo">Nada a pagar no período</div>
+          <div className="delivery-view__vazio-desc">
+            Nenhuma entrega atribuída a um entregador neste intervalo.
+          </div>
+        </div>
+      ) : (
+        <div className="delivery-view__fechamento-tabela-wrap">
+          <table className="delivery-view__fechamento-tabela">
+            <thead>
+              <tr>
+                <th>Entregador</th>
+                <th className="delivery-view__num">Entregues</th>
+                <th className="delivery-view__num">Em rota</th>
+                <th className="delivery-view__num">A pagar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linhas.map((l) => (
+                <tr key={l.entregador_id}>
+                  <td>
+                    <span className="delivery-view__fechamento-nome">
+                      <LuBike size={14} /> {l.nome}
+                    </span>
+                  </td>
+                  <td className="delivery-view__num">{l.entregues}</td>
+                  <td className="delivery-view__num">
+                    {l.emRota > 0 ? (
+                      <span className="delivery-view__fechamento-emrota" title="Ainda na rua — não entram no pagamento até serem entregues">
+                        {l.emRota}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="delivery-view__num delivery-view__fechamento-valor">
+                    {formatarReais(l.totalPagar)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total</td>
+                <td className="delivery-view__num">{totalEntregues}</td>
+                <td className="delivery-view__num">{totalEmRota || "—"}</td>
+                <td className="delivery-view__num delivery-view__fechamento-valor">
+                  {formatarReais(totalGeral)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+          <p className="delivery-view__fechamento-nota">
+            Paga-se apenas a corrida concluída (entregue). Pedidos em rota
+            aparecem para acompanhamento e entram no pagamento quando forem
+            confirmados.
+          </p>
+        </div>
+      )}
+    </>
   );
 }
 

@@ -220,7 +220,8 @@ export function tempoDecorrido(createdAt, agora = new Date()) {
 // Campos explícitos (nunca select * em tabela sensível — CLAUDE.md).
 const CAMPOS_PEDIDO =
   "id,numero,cliente_nome,cliente_telefone,cep,bairro,endereco,complemento_endereco," +
-  "subtotal,taxa_entrega,total,forma_pagamento,troco_para,levar_maquininha,status,pending_id,created_at,updated_at";
+  "subtotal,taxa_entrega,total,forma_pagamento,troco_para,levar_maquininha,status,pending_id," +
+  "entregador_id,valor_entregador,created_at,updated_at";
 
 /**
  * Lista os pedidos de delivery do tenant (recente → antigo). A RLS já
