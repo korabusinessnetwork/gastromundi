@@ -19,7 +19,15 @@ vi.mock("@/lib/adminAuth", () => ({
   verificarSenhaUsuario: vi.fn(() => Promise.resolve({ ok: true, erro: null })),
 }));
 
+// O modal agora consome `useApp()` (tenant/currentUser) para montar o
+// comprovante — contexto FAKE, como nos demais testes de modal do caixa.
+vi.mock("@/context/AppContext", async () => {
+  const { mockUseApp } = await import("@/test/mockApp");
+  return { useApp: mockUseApp, AppProvider: ({ children }) => children };
+});
+
 import { verificarSenhaUsuario } from "@/lib/adminAuth";
+import { setAppMock } from "@/test/mockApp";
 import MovimentoCaixaModal from "./MovimentoCaixaModal";
 
 const campoValor  = () => document.querySelector(".movimento-caixa__input");
@@ -30,6 +38,8 @@ const botao     = () => document.querySelector(".movimento-caixa__botao-confirma
 const pendencia = () => document.querySelector(".movimento-caixa__pendencia");
 const erro      = () => document.querySelector(".movimento-caixa__erro");
 const botoesTipo = () => [...document.querySelectorAll(".movimento-caixa__tipo")];
+// Passo de sucesso: o modal vira o comprovante e só fecha no "Concluir".
+const botaoConcluir = () => [...document.querySelectorAll("button")].find(b => b.textContent.trim() === "Concluir");
 
 const GERENTES = [{ username: "ana", name: "Ana", role: "gerente" }];
 
@@ -58,6 +68,7 @@ function preencher({ valor, motivo, tipo }) {
 }
 
 beforeEach(() => {
+  setAppMock();
   verificarSenhaUsuario.mockReset();
   verificarSenhaUsuario.mockResolvedValue({ ok: true, erro: null });
 });
@@ -158,6 +169,8 @@ describe("MovimentoCaixaModal — autorização acima do limite", () => {
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({
       tipo: "sangria", valor: 300, motivo: "levado ao cofre", autorizadoPor: "ana",
     }));
+    // Registrado, a tela vira o comprovante; o modal fecha no "Concluir".
+    fireEvent.click(botaoConcluir());
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -201,6 +214,8 @@ describe("MovimentoCaixaModal — gravação", () => {
       autorizadoPor: null,
       disponivel: 500,
     });
+    // Registrado, a tela vira o comprovante; o modal fecha no "Concluir".
+    fireEvent.click(botaoConcluir());
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -241,5 +256,17 @@ describe("MovimentoCaixaModal — gravação", () => {
 
     fireEvent.click(botoesTipo()[1]);
     expect(erro()).toBeNull();
+  });
+
+  it("registrado, a tela vira o comprovante com botão de imprimir — o papel que anexa à gaveta", async () => {
+    montar({ limite: 200 });
+    preencher({ valor: "50", motivo: "levado ao cofre" });
+
+    await act(async () => { fireEvent.click(botao()); });
+
+    // O formulário sai de cena; entra a confirmação + o comprovante.
+    expect(campoValor()).toBeNull();
+    expect([...document.querySelectorAll("button")].some(b => b.textContent.includes("Imprimir comprovante"))).toBe(true);
+    expect(botaoConcluir()).toBeTruthy();
   });
 });

@@ -69,12 +69,17 @@ function linhasItensRecibo(itens) {
     .join("");
 }
 
-function blocoCabecalhoIdentidade(identidade) {
+function blocoCabecalhoIdentidade(identidade, quando) {
   const logoValido = logoUrlSegura(identidade.logoUrl);
+  // `quando` permite carimbar a data de emissão do documento (ex.: o
+  // fechamento registrado às 23h reimpresso no dia seguinte). Sem ele,
+  // ou com data inválida, cai na hora atual — comportamento de antes.
+  const data = quando != null ? new Date(quando) : new Date();
+  const dataValida = !Number.isNaN(data.getTime()) ? data : new Date();
   return `
     <div class="cabecalho">
       ${logoValido ? `<img class="cabecalho__logo" src="${esc(identidade.logoUrl)}" alt="${esc(identidade.nome)}" />` : `<div class="cabecalho__nome">${esc(identidade.nome)}</div>`}
-      <div class="cabecalho__linha">${new Date().toLocaleString("pt-BR")}</div>
+      <div class="cabecalho__linha">${dataValida.toLocaleString("pt-BR")}</div>
     </div>
     ${(identidade.endereco || identidade.cnpj) ? `
       <div class="identidade-fiscal">
@@ -179,6 +184,72 @@ export function renderizarViaProducao(dados) {
   </div>
   <hr/>
   ${itens.length === 0 ? `<div class="rodape">Nenhum item produzível nesta comanda.</div>` : linhasItens}
+</body>
+</html>`;
+}
+
+/**
+ * Monta o HTML de um comprovante de caixa (sangria/suprimento ou
+ * fechamento) — F005. Template genérico e burro de propósito: percorre
+ * destaque/tabela/linhas/notas na ordem, sem saber qual subtipo é. Quem
+ * decide o que preencher são os montadores em `impressao.js`.
+ *
+ * @param {object} dados - retorno de montarComprovanteMovimento/montarComprovanteFechamento
+ * @returns {string} HTML completo do documento
+ */
+export function renderizarComprovanteCaixa(dados) {
+  const { identidade, titulo, emitidoEm, destaque, tabela, linhas, notas } = dados;
+
+  const blocoDestaque = destaque ? `
+    <div class="caixa-destaque">
+      <div class="caixa-destaque__rotulo">${esc(destaque.rotulo)}</div>
+      <div class="caixa-destaque__valor">${fmtR(destaque.valor)}</div>
+    </div>` : "";
+
+  const blocoTabela = (tabela && (tabela.linhas ?? []).length > 0) ? `
+    <table class="caixa-tabela">
+      <thead>
+        <tr>${(tabela.cabecalho ?? []).map((c, i) => `<th${i === 0 ? "" : ' style="text-align:right;"'}>${esc(c)}</th>`).join("")}</tr>
+      </thead>
+      <tbody>
+        ${tabela.linhas.map((l) => `
+          <tr>
+            <td>${esc(l.rotulo)}</td>
+            ${(l.valores ?? []).map((v) => `<td style="text-align:right;">${fmtR(v)}</td>`).join("")}
+          </tr>`).join("")}
+      </tbody>
+    </table>` : "";
+
+  const blocoLinhas = (linhas ?? []).length > 0 ? `
+    <div class="caixa-linhas">
+      ${linhas.map((l) => `
+        <div class="caixa-linha${l.forte ? " caixa-linha--forte" : ""}">
+          <span>${esc(l.rotulo)}</span>
+          <span class="caixa-linha__valor">${l.sinal && l.valor > 0 ? "+" : ""}${fmtR(l.valor)}</span>
+        </div>`).join("")}
+    </div>` : "";
+
+  const blocoNotas = (notas ?? []).length > 0 ? `
+    <div class="caixa-notas">
+      ${notas.map((n) => `<div class="caixa-nota"><span class="caixa-nota__rotulo">${esc(n.rotulo)}:</span> ${esc(n.texto)}</div>`).join("")}
+    </div>` : "";
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>${esc(titulo)}</title>
+  <style>${estilosComprovante}</style>
+</head>
+<body>
+  ${blocoCabecalhoIdentidade(identidade, emitidoEm)}
+  <div class="cabecalho__linha" style="text-align:center;font-weight:bold;">${esc(titulo)}</div>
+  <hr/>
+  ${blocoDestaque}
+  ${blocoTabela}
+  ${blocoLinhas}
+  ${blocoNotas ? `<hr/>${blocoNotas}` : ""}
+  ${identidade.rodape ? `<hr/><div class="rodape">${esc(identidade.rodape)}</div>` : ""}
 </body>
 </html>`;
 }

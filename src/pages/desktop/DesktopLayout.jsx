@@ -206,12 +206,15 @@ export default function DesktopLayout() {
               // Mantém o modal aberto: o operador precisa saber que o
               // fechamento NÃO foi registrado (antes falhava em silêncio).
               notify("Não foi possível registrar o fechamento — verifique sua permissão e tente novamente.", "err");
-              return;
+              return { error };
             }
             logAction(currentUser.username, "caixa:fechar", { msg: `Caixa fechado · vendas R$ ${data.totalVendas.toFixed(2)} · conferido R$ ${data.totalConferido.toFixed(2)}`, name: currentUser.name, role: currentUser.role, conferido: data.totalConferido, totalVendas: data.totalVendas });
             const fechou = await setCaixaAberto(false);
             if (fechou?.error) notify("Fechamento registrado, mas o status do caixa não mudou — tente fechar de novo.", "err");
-            setShowFechamento(false);
+            // O fechamento FOI gravado — o modal avança para o comprovante e
+            // fecha sozinho no "Concluir" (via onClose). Um tropeço no status
+            // do caixa acima já foi avisado, mas não desfaz o registro.
+            return { error: null };
           }}
           onClose={() => setShowFechamento(false)}
         />

@@ -1,5 +1,5 @@
 import { colunasPorLargura } from "../largura";
-import { formatarComprovanteEscpos, formatarViaProducaoEscpos } from "../escposFormatador";
+import { formatarComprovanteEscpos, formatarViaProducaoEscpos, formatarComprovanteCaixaEscpos } from "../escposFormatador";
 import { enviarImpressaoPonte } from "../../ponte";
 
 /**
@@ -22,14 +22,14 @@ import { enviarImpressaoPonte } from "../../ponte";
 // Tamanho de fonte default de cada template — define quantas colunas
 // cabem no papel. Mantido igual ao driver anterior pra que o cupom
 // impresso continue idêntico ao que o estabelecimento já conhece.
-const FONTE_PADRAO_POR_TIPO = { via_producao: 15, comprovante: 13, cupom_pre_nota: 13 };
+const FONTE_PADRAO_POR_TIPO = { via_producao: 15, comprovante: 13, cupom_pre_nota: 13, comprovante_caixa: 13 };
 
 const AVISO_SEM_IMPRESSORA = "Escolha a impressora em Configurações → Impressão.";
 
 function linhasDocumento(documento, colunas) {
-  return documento?.tipo === "via_producao"
-    ? formatarViaProducaoEscpos(documento, colunas)
-    : formatarComprovanteEscpos(documento, colunas);
+  if (documento?.tipo === "via_producao") return formatarViaProducaoEscpos(documento, colunas);
+  if (documento?.tipo === "comprovante_caixa") return formatarComprovanteCaixaEscpos(documento, colunas);
+  return formatarComprovanteEscpos(documento, colunas);
 }
 
 // Destino incompleto (tipo windows sem nome, rede sem host) é tão

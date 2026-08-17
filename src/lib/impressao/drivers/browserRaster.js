@@ -1,4 +1,4 @@
-import { renderizarRecibo, renderizarViaProducao, abrirJanelaImpressao } from "../renderizar";
+import { renderizarRecibo, renderizarViaProducao, renderizarComprovanteCaixa, abrirJanelaImpressao } from "../renderizar";
 import { larguraEmPx } from "../largura";
 
 /**
@@ -11,9 +11,9 @@ import { larguraEmPx } from "../largura";
  */
 
 function renderizarHtml(documento) {
-  return documento?.tipo === "via_producao"
-    ? renderizarViaProducao(documento)
-    : renderizarRecibo(documento);
+  if (documento?.tipo === "via_producao") return renderizarViaProducao(documento);
+  if (documento?.tipo === "comprovante_caixa") return renderizarComprovanteCaixa(documento);
+  return renderizarRecibo(documento);
 }
 
 // Só declara a custom property se o perfil pedir algo diferente do

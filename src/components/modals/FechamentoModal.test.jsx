@@ -192,7 +192,9 @@ describe("FechamentoModal — botão depois de uma falha (Run 1)", () => {
     // Falha de verdade: quem chama avisa o operador e MANTÉM o modal aberto
     // (DesktopLayout). O botão precisa voltar a funcionar, senão o "tente
     // novamente" do aviso é impossível de seguir.
-    const onConfirm = vi.fn(() => Promise.resolve());
+    // Falha real: o contrato do onConfirm (DesktopLayout) devolve { error }.
+    // Com erro, o modal fica no formulário — não avança para o comprovante.
+    const onConfirm = vi.fn(() => Promise.resolve({ error: { message: "Sem permissão." } }));
     montar({ sales: [venda(1, [{ metodo: "dinheiro", valor: 50 }])], onConfirm });
 
     const botao = screen.getByText("Confirmar Fechamento").closest("button");
@@ -219,6 +221,20 @@ describe("FechamentoModal — botão depois de uma falha (Run 1)", () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Fechando...")).toBeInTheDocument();
 
-    await act(async () => { liberar(); });
+    await act(async () => { liberar({ error: null }); });
+  });
+
+  it("fechamento gravado vira o comprovante com botão de imprimir", async () => {
+    const onConfirm = vi.fn(() => Promise.resolve({ error: null }));
+    montar({ sales: [venda(1, [{ metodo: "dinheiro", valor: 50 }])], onConfirm });
+
+    const botao = screen.getByText("Confirmar Fechamento").closest("button");
+    await act(async () => { fireEvent.click(botao); });
+
+    // O formulário sai; entra a confirmação + o comprovante para anexar.
+    expect(screen.getByText("Caixa fechado")).toBeInTheDocument();
+    expect(screen.queryByText("Confirmar Fechamento")).not.toBeInTheDocument();
+    expect(screen.getByText("Imprimir comprovante")).toBeInTheDocument();
+    expect(screen.getByText("Concluir")).toBeInTheDocument();
   });
 });

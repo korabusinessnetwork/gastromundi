@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { verificarSenhaUsuario } from "@/lib/adminAuth";
+import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { validarMovimento, exigeAutorizacao, limiteSangriaValido, lerValor } from "@/lib/caixaMovimentos";
+import { round2 } from "@/lib/vendas";
+import { montarComprovanteMovimento } from "@/lib/impressao";
+import ImprimirComprovanteCaixa from "./ImprimirComprovanteCaixa";
 import "./MovimentoCaixaModal.css";
 
 const fmtR = (v) => `R$ ${Number(v || 0).toFixed(2).replace(".", ",")}`;
@@ -28,6 +32,7 @@ export default function MovimentoCaixaModal({
   onConfirm,
   onClose,
 }) {
+  const { tenant, currentUser } = useApp();
   const [tipo,    setTipo]    = useState("sangria");
   const [valor,   setValor]   = useState("");
   const [motivo,  setMotivo]  = useState("");
@@ -36,6 +41,10 @@ export default function MovimentoCaixaModal({
   const [senhaErro, setSenhaErro] = useState("");
   const [erro,    setErro]    = useState("");
   const [salvando, setSalvando] = useState(false);
+  // Passo de sucesso: registrado o movimento, a tela vira o comprovante
+  // (com botão de imprimir) em vez de fechar direto — o operador tem o
+  // que anexar à gaveta. `null` = ainda no formulário.
+  const [registrado, setRegistrado] = useState(null);
 
   const cor = tipo === "sangria" ? C.red : C.green;
   const limiteEfetivo = limiteSangriaValido(limite);
@@ -66,9 +75,10 @@ export default function MovimentoCaixaModal({
         }
         autorizadoPor = autorizador;
       }
+      const v = lerValor(valor);
       const { error } = await onConfirm({
         tipo,
-        valor: lerValor(valor),
+        valor: v,
         motivo: motivo.trim(),
         autorizadoPor,
         disponivel,
@@ -79,7 +89,14 @@ export default function MovimentoCaixaModal({
         setErro(error.message || "Não foi possível registrar agora. Tente novamente.");
         return;
       }
-      onClose();
+      // Sucesso: avança para o comprovante em vez de fechar.
+      setRegistrado({
+        tipo,
+        valor: v,
+        motivo: motivo.trim(),
+        autorizadoPor,
+        disponivelDepois: round2(tipo === "sangria" ? disponivel - v : disponivel + v),
+      });
     } finally {
       setSalvando(false);
     }
@@ -105,6 +122,52 @@ export default function MovimentoCaixaModal({
           maxHeight: "90vh", overflowY: "auto",
         }}
       >
+        {registrado ? (
+          <>
+            {/* Passo de sucesso — registrado, agora o comprovante */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div
+                style={{
+                  width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                  background: alfa(C.green, "18"), border: `1.5px solid ${alfa(C.green, "44")}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                ✓
+              </div>
+              <div>
+                <div style={{ fontWeight: 800 }}>
+                  {registrado.tipo === "sangria" ? "Retirada registrada" : "Entrada registrada"}
+                </div>
+                <div style={{ color: varColor(C.muted), marginTop: 2 }}>
+                  {fmtR(registrado.valor)} · dinheiro na gaveta agora {fmtR(registrado.disponivelDepois)}
+                </div>
+              </div>
+            </div>
+
+            <ImprimirComprovanteCaixa
+              montarDocumento={(configImpressao) => montarComprovanteMovimento({
+                ...registrado,
+                autor: currentUser?.name,
+                tenant,
+                configImpressao,
+              })}
+            />
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: 13, borderRadius: 10, border: "none",
+                background: varColor(C.green), cursor: "pointer",
+                fontWeight: 700, fontFamily: "inherit",
+              }}
+            >
+              Concluir
+            </button>
+          </>
+        ) : (
+        <>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div
@@ -322,6 +385,8 @@ export default function MovimentoCaixaModal({
               : tipo === "sangria" ? "✓ Registrar retirada" : "✓ Registrar entrada"}
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

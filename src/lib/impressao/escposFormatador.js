@@ -98,6 +98,64 @@ export function formatarComprovanteEscpos(dados, colunas) {
 }
 
 /**
+ * F005 — formata um comprovante de caixa (sangria/suprimento ou
+ * fechamento) como texto em colunas pro driver ESC/POS. Genérico: lê o
+ * mesmo documento `comprovante_caixa` que o renderizador HTML.
+ *
+ * @param {object} dados - retorno de montarComprovanteMovimento/montarComprovanteFechamento
+ * @param {number} colunas
+ * @returns {string[]}
+ */
+export function formatarComprovanteCaixaEscpos(dados, colunas) {
+  const { identidade, titulo, emitidoEm, destaque, tabela, linhas, notas } = dados;
+  const out = [];
+
+  const quando = emitidoEm != null ? new Date(emitidoEm) : new Date();
+  const dataFmt = (Number.isNaN(quando.getTime()) ? new Date() : quando).toLocaleString("pt-BR");
+
+  out.push(centralizar(identidade?.nome ?? "", colunas));
+  out.push(centralizar(dataFmt, colunas));
+  if (identidade?.endereco) out.push(centralizar(identidade.endereco, colunas));
+  if (identidade?.cnpj) out.push(centralizar(`CNPJ: ${identidade.cnpj}`, colunas));
+  out.push(centralizar(titulo ?? "", colunas));
+  out.push(linhaSeparadora(colunas));
+
+  if (destaque) {
+    out.push(centralizar(destaque.rotulo ?? "", colunas));
+    out.push(centralizar(fmtR(destaque.valor), colunas));
+    out.push(linhaSeparadora(colunas));
+  }
+
+  if (tabela && (tabela.linhas ?? []).length > 0) {
+    for (const l of tabela.linhas) {
+      quebrarLinha(l.rotulo ?? "", colunas).forEach(x => out.push(x));
+      const [sistema, conferido] = l.valores ?? [];
+      out.push(linhaValor(`  Sistema ${fmtR(sistema)}`, `Conf ${fmtR(conferido)}`, colunas));
+    }
+    out.push(linhaSeparadora(colunas));
+  }
+
+  for (const l of (linhas ?? [])) {
+    const sinal = l.sinal && l.valor > 0 ? "+" : "";
+    out.push(linhaValor(l.rotulo ?? "", `${sinal}${fmtR(l.valor)}`, colunas));
+  }
+
+  if ((notas ?? []).length > 0) {
+    out.push(linhaSeparadora(colunas));
+    for (const n of notas) {
+      quebrarLinha(`${n.rotulo}: ${n.texto}`, colunas).forEach(x => out.push(x));
+    }
+  }
+
+  if (identidade?.rodape) {
+    out.push(linhaSeparadora(colunas));
+    quebrarLinha(identidade.rodape, colunas).forEach(l => out.push(centralizar(l, colunas)));
+  }
+
+  return out;
+}
+
+/**
  * @param {object} dados - retorno de montarViaProducao
  * @param {number} colunas
  * @returns {string[]}

@@ -51,4 +51,17 @@ td { padding: 6px 4px; border-bottom: 1px dashed #ccc; }
 }
 .identidade-fiscal { text-align: center; font-size: 0.85em; color: #555; margin-bottom: 8px; }
 .rodape { text-align: center; font-size: 0.85em; color: #888; margin-top: 16px; }
+
+/* ── Comprovantes de caixa (F005) ─────────────────────────────────── */
+.caixa-destaque { text-align: center; margin: 10px 0; }
+.caixa-destaque__rotulo { font-size: 0.85em; color: #555; }
+.caixa-destaque__valor { font-size: 1.6em; font-weight: bold; color: var(--gm-accent, #7c3aed); margin-top: 2px; }
+.caixa-tabela { margin: 4px 0; }
+.caixa-linhas { margin: 4px 0; }
+.caixa-linha { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; }
+.caixa-linha__valor { font-variant-numeric: tabular-nums; }
+.caixa-linha--forte { font-weight: bold; font-size: 1.05em; }
+.caixa-notas { margin-top: 4px; }
+.caixa-nota { font-size: 0.9em; color: #555; padding: 2px 0; }
+.caixa-nota__rotulo { font-weight: bold; color: #333; }
 @media print { body { width: 100%; } }
