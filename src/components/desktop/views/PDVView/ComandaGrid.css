@@ -12,7 +12,7 @@
  * extração mais profunda por classes fica para uma leva futura,
  * dedicada só a isso (evita rushed change no fluxo de pagamento).
  *
- * TAMANHO DE FONTE vem da escala do design system (--fs-*/--lh-* de
+ * TAMANHO DE FONTE vem da escala do design system (--fs-* / --lh-* de
  * src/styles/tipografia.css), por classe — não mais inline via sz.*
  * do JSX (mesmo padrão de ProductGrid.css). `sz` continua no JSX só
  * para padding/gap/grid (layout), que seguem no sistema JS por

@@ -1,6 +1,6 @@
 /**
  * F018 — Migração de tipografia (MesaMapView). Decisão 018 (CSS separado do JSX) +
- * tokens --fs-*/--lh-* (ADR-007). Tamanho de fonte agora usa escala do design system
+ * tokens --fs-* / --lh-* (ADR-007). Tamanho de fonte agora usa escala do design system
  * (src/styles/tipografia.css), não mais inline via `sz.*` do JSX. Layout (padding/gap)
  * permanece em estilo inline. `.num` = tabular-nums em dinheiro.
  */

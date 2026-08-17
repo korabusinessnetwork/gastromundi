@@ -1,6 +1,6 @@
 /**
  * Leva "Pontos de impressão" (2026-07-28). Decisão 018 (CSS separado do
- * JSX, zero style={{}} inline) + tokens --gm-*/--fs-*/--lh-*/--tap-min
+ * JSX, zero style={{}} inline) + tokens --gm-* / --fs-* / --lh-* / --tap-min
  * (ADR-007) — cor só por variável, variação por color-mix. Mesmo padrão
  * visual de PerfilImpressora.css (impressora via Ponte KORA), só que
  * repetido por card em vez de uma seção única.
