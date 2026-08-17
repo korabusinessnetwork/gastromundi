@@ -63,7 +63,8 @@ ADRs capturam o "porquê" por trás de decisões técnicas e de produto signific
 | [ADR-008](./adr-008.md) | Isolamento multi-tenant real e Console da Plataforma (super-admin) — `tenant_id` no JWT, RLS por tenant, papel `plataforma` | Aceito (implementação em andamento) | 2026-07-11 |
 | [ADR-009](./adr-009.md) | Login ciente de tenant por subdomínio — `tenants.slug`, `username` por tenant, e-mail no namespace do subdomínio | Aceito e implementado (em produção) | 2026-07-16 |
 | [ADR-010](./adr-010.md) | Laboratório de ciclo contínuo com modelo barato — repo local separado, contexto novo por rodada, Obsidian como ponte | Aceito e em implementação | 2026-08-03 |
-| [ADR-011](./adr-011.md) | Correção das vulnerabilidades de dependência — SheetJS fora do npm, react-router 7, vite 8 e Node 22 | Aceito e implementado | 2026-08-17 |
+| [ADR-011](./adr-011.md) | Pautas dos sócios em subdomínio próprio, fora do multi-tenancy | Aceito e implementado | 2026-08-13 |
+| [ADR-012](./adr-012.md) | Correção das vulnerabilidades de dependência — SheetJS fora do npm, react-router 7, vite 8 e Node 22 | Aceito e implementado | 2026-08-17 |
 
 ---
 
