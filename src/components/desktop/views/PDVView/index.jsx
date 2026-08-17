@@ -473,7 +473,8 @@ export default function PDVView({ notify }) {
         onNfce: ({ estado, resultado, venda }) =>
           setCupomNfce({ aberta: true, estado, resultado, venda }),
       });
-      handleBack();
+      // Não volta à grade aqui: o CheckoutView mostra a confirmação pós-venda
+      // (comprovante + "Concluir"). A navegação de saída é o onConcluir abaixo.
       return { error: null };
     } catch (err) {
       // não usar JSON.stringify: mascara Error como "{}"
@@ -1253,6 +1254,7 @@ export default function PDVView({ notify }) {
             ]}
             onConfirm={handleConfirmPayment}
             onBack={() => setMode("pedido")}
+            onConcluir={handleBack}
             onRemoverItem={handleRemoverItemCheckout}
           />
         )}
