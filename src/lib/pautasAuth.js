@@ -31,11 +31,41 @@ export async function entrar(usuario, senha) {
   if (!password) return { ok: false, slug: null, error: "Digite sua senha." };
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  // Mensagem única para usuário inexistente e senha errada: dizer qual dos
-  // dois falhou confirmaria a lista de sócios para quem estivesse tentando.
-  if (error) return { ok: false, slug: null, error: "Usuário ou senha incorretos." };
+  if (error) return { ok: false, slug: null, error: mensagemDaFalha(error) };
 
   return { ok: true, slug: slugDoSocio(data?.user?.email), error: null };
+}
+
+/**
+ * Traduz a falha do Supabase Auth para uma frase que ajude a resolver.
+ *
+ * Usuário inexistente e senha errada continuam com a MESMA frase de
+ * propósito: dizer qual dos dois falhou confirmaria a lista de sócios para
+ * quem estivesse tentando. Já "conta não confirmada", "muitas tentativas" e
+ * "servidor fora do ar" não contam nada sobre quem existe — e sem elas a
+ * tela culpa a senha por um problema que não é de senha, e quem está
+ * tentando entrar fica sem saber o que fazer a seguir.
+ *
+ * @param {{code?: string, status?: number}} error
+ * @returns {string}
+ */
+export function mensagemDaFalha(error) {
+  const codigo = String(error?.code ?? "");
+  const status = Number(error?.status ?? 0);
+
+  // Conta existe e a senha está certa, mas ninguém confirmou o e-mail no
+  // painel. Insistir na senha aqui é procurar no lugar errado.
+  if (codigo === "email_not_confirmed") {
+    return "Conta ainda não confirmada. Peça para confirmar no painel e tente de novo.";
+  }
+  if (codigo === "over_request_rate_limit" || status === 429) {
+    return "Muitas tentativas seguidas. Espere um minuto e tente de novo.";
+  }
+  // Sem status (falha de rede do fetch) ou 5xx: o problema não é a credencial.
+  if (!status || status >= 500) {
+    return "Não conseguimos falar com o servidor. Confira sua internet e tente de novo.";
+  }
+  return "Usuário ou senha incorretos.";
 }
 
 /**
