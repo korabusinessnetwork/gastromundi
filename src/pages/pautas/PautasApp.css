@@ -1,0 +1,17 @@
+/**
+ * Raiz do host das Pautas.
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ */
+
+.pautas-app__espera {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--gm-bg);
+  color: var(--gm-muted);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 15px;
+}

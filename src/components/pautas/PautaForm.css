@@ -1,0 +1,179 @@
+/**
+ * Formulário de pauta (Pautas da Kora).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ */
+
+.pauta-form__fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.pauta-form {
+  width: 100%;
+  max-width: 560px;
+  max-height: 92dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 18px;
+  color: var(--gm-text);
+  font-family: "Inter", system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* ── Topo ──────────────────────────────────────────────────────── */
+.pauta-form__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--gm-border);
+}
+.pauta-form__titulo {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+.pauta-form__fechar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+.pauta-form__fechar:hover:not(:disabled) { color: var(--gm-text); }
+
+/* ── Corpo ─────────────────────────────────────────────────────── */
+.pauta-form__corpo {
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.pauta-form__campo { margin-bottom: 18px; }
+
+.pauta-form__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gm-text);
+  margin-bottom: 6px;
+}
+.pauta-form__opcional {
+  font-weight: 500;
+  color: var(--gm-muted);
+}
+
+.pauta-form__input,
+.pauta-form__area {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-size: 15px;
+  font-family: inherit;
+  box-sizing: border-box;
+  outline: none;
+}
+.pauta-form__input:focus,
+.pauta-form__area:focus { border-color: var(--gm-accent); }
+
+.pauta-form__area {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* ── Envolvidos ────────────────────────────────────────────────── */
+.pauta-form__pessoas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pauta-form__pessoa {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.pauta-form__pessoa:hover:not(:disabled) { color: var(--gm-text); }
+.pauta-form__pessoa--marcado {
+  background: color-mix(in srgb, var(--gm-accent) 20%, transparent);
+  border-color: var(--gm-accent);
+  color: var(--gm-text);
+}
+
+.pauta-form__erro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gm-red) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 40%, transparent);
+  color: var(--gm-red);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── Ações ─────────────────────────────────────────────────────── */
+.pauta-form__acoes {
+  display: flex;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--gm-border);
+  background: var(--gm-card);
+}
+.pauta-form__cancelar,
+.pauta-form__salvar {
+  flex: 1;
+  padding: 13px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+.pauta-form__cancelar {
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+.pauta-form__cancelar:hover:not(:disabled) { color: var(--gm-text); }
+.pauta-form__salvar {
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+}
+.pauta-form__salvar:hover:not(:disabled) { filter: brightness(1.08); }
+.pauta-form__salvar:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+/* ── No celular ────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  /* Abaixo de 16px o Safari do iPhone dá zoom ao focar o campo. */
+  .pauta-form__input,
+  .pauta-form__area { font-size: 16px; }
+  .pauta-form { max-height: 100dvh; border-radius: 14px; }
+}

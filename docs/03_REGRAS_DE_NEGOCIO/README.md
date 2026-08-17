@@ -19,6 +19,12 @@ Princípio central: **a venda no PDV é a transação-fonte** — ela se propaga
 | Jarvas | [`JARVAS.md`](./JARVAS.md) | Camada transversal de IA | Documentado |
 | Delivery | [`DELIVERY.md`](./DELIVERY.md) | Vitrine pública de pedidos (cardápio online), taxa por CEP, pagamento na entrega | Estrutura aprovada (não implementado) |
 
+## Fora do produto (ferramenta interna)
+
+| Ferramenta | Arquivo | Descrição | Status |
+|------------|---------|-----------|--------|
+| Pautas da Kora | [`PAUTAS.md`](./PAUTAS.md) | Pautas de desenvolvimento dos sócios, em subdomínio próprio (`pautas.kora.codes`) — **não é módulo do produto**: sem `tenant_id`, sem plano, fora do PDV | Implementado |
+
 ## Taxonomia de eventos (Event Bus) — matriz única
 
 Esta é a **matriz única** de eventos — a fonte de verdade dos contratos; os 9 módulos seguem esta tabela (cada evento tem **um único dono/emissor**). A consistência entre módulos é garantida pelo Event Bus (decisão 004). Evento-fonte: **`venda.finalizada`**.

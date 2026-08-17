@@ -919,6 +919,41 @@ CREATE TABLE public.nfce_inutilizacoes (
 );
 
 -- =============================================================
+-- PAUTAS DA KORA (ferramenta interna) — 20260919_pautas.sql
+-- =============================================================
+-- FORA do multi-tenant de propósito: não é dado de estabelecimento, é a
+-- pauta de trabalho dos sócios da Kora, servida no host dedicado
+-- pautas.<dominio>. Por isso NÃO tem tenant_id e não entra no
+-- isolamento por tenant. O acesso é restrito ao namespace de e-mail
+-- @pautas.local (public.eh_socio_pautas()).
+
+CREATE TABLE public.pautas_pessoas (
+  slug       text        PRIMARY KEY,   -- parte do e-mail antes do @
+  nome       text        NOT NULL,      -- como aparece na tela
+  ativo      boolean     NOT NULL DEFAULT true,
+  ordem      smallint    NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+-- Semeada com matheus / guilherme / bonato (ON CONFLICT DO NOTHING).
+
+CREATE TABLE public.pautas (
+  id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  titulo         text        NOT NULL,
+  intuito        text        NOT NULL,           -- para que serve
+  contexto       text        NOT NULL DEFAULT '',
+  envolvidos     text[]      NOT NULL DEFAULT '{}', -- slugs de pautas_pessoas
+  status         text        NOT NULL DEFAULT 'pendente',
+  criada_por     text,
+  atualizada_por text,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now(), -- trigger pautas_updated_at
+  finalizada_em  timestamptz,
+  CONSTRAINT pautas_status_check  CHECK (status IN ('pendente', 'em_progresso', 'finalizado')),
+  CONSTRAINT pautas_titulo_check  CHECK (length(btrim(titulo)) > 0),
+  CONSTRAINT pautas_intuito_check CHECK (length(btrim(intuito)) > 0)
+);
+
+-- =============================================================
 -- TABELAS QUE JÁ EXISTIRAM E NÃO EXISTEM MAIS
 -- =============================================================
 -- public.logs → derrubada em 20260706_drop_logs.sql (substituída por
@@ -949,6 +984,12 @@ CREATE TABLE public.nfce_inutilizacoes (
 -- is_super_admin()           → gastro_role = 'plataforma' (Leva 4 do Console)
 -- plano_do_tenant() / tenant_tem_modulo(text) → 20260717_planos_modulos.sql
 -- assinatura_ativa()         → 20260720 ; usada nas policies para bloquear tenant inadimplente
+--
+-- ── Pautas da Kora (ferramenta interna) ──────────────────────
+-- eh_socio_pautas()          → 20260919 ; true quando o e-mail do JWT
+--   termina em @pautas.local (o namespace do host pautas.<dominio>)
+-- pautas_marcar_atualizacao() → 20260919 ; trigger BEFORE UPDATE que
+--   mantém pautas.updated_at
 --
 -- ── Console da plataforma (F022) — todas SECURITY DEFINER com
 --    guarda is_super_admin() e REVOKE de PUBLIC/anon ───────────
@@ -1027,6 +1068,15 @@ CREATE TABLE public.nfce_inutilizacoes (
 --   do próprio tenant.
 -- delivery_pedidos / delivery_pedido_itens → insert público (o cliente faz
 --   o pedido sem conta) ; leitura e update só pelo tenant dono.
+
+-- ── Pautas da Kora (interna, fora do multi-tenant) ───────────
+-- pautas_pessoas → pautas_pessoas_select_socio (leitura) ; SEM policy de
+--   escrita: sócio entra/sai por SQL no painel, não por botão na tela.
+-- pautas         → pautas_select_socio ; pautas_insert_socio ;
+--   pautas_update_socio. SEM policy de DELETE: pauta encerrada vira
+--   'finalizado' e fica no histórico.
+-- Todas guardadas por public.eh_socio_pautas() — só o namespace
+-- @pautas.local entra, e ele não autentica em nenhum tenant.
 
 -- ── Realtime ──────────────────────────────────────────────────
 -- Habilitado no dashboard para: pending, estoque, jarvas_insights, mesas,
