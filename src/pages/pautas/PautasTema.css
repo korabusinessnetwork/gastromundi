@@ -1,0 +1,47 @@
+/**
+ * Tema CLARO das Pautas da Kora — fundo branco.
+ *
+ * Por que aqui e não em `src/styles/tema.css`: aquele arquivo é a fonte de
+ * verdade da marca da plataforma (o PDV é escuro) e é o que um tenant
+ * sobrescreve. As Pautas são uma superfície própria, em host próprio, fora
+ * da multi-tenancy — então elas trocam os tokens SÓ para si, no mesmo
+ * mecanismo de white-label (decisão 017): redeclarar `--gm-*` em um escopo.
+ * Nenhuma tela do PDV muda por causa disto.
+ *
+ * Os componentes continuam lendo apenas `var(--gm-*)` — nenhum hex claro ou
+ * escuro hardcodado em componente, então trocar a paleta segue sendo editar
+ * um lugar só.
+ */
+
+.pautas,
+.pautas-login,
+.pautas-app__espera {
+  /* Fundo branco de verdade; o que separa os blocos é borda + sombra, não
+     um tom de cinza no fundo. */
+  --gm-bg: #ffffff;
+  --gm-card: #ffffff;
+  /* Superfície dos campos, pílulas e botões secundários: cinza levíssimo,
+     para o input não sumir dentro do card branco. */
+  --gm-surface: #f4f6fa;
+  --gm-border: #e3e8f0;
+  --gm-faint: #64748b;
+  --gm-text: #0f172a;
+  --gm-muted: #5b6779;
+
+  /* Roxo um passo mais escuro que o do tema escuro: em fundo branco, o
+     #7c3aed original passa em texto grande mas fica no limite em rótulo
+     pequeno. Verde e vermelho idem — os originais foram calibrados para
+     texto branco sobre fundo escuro. */
+  --gm-accent: #6d28d9;
+  --gm-green: #0b7a53;
+  --gm-red: #d92d20;
+  --gm-warn: #f59e0b;
+
+  /* Controles nativos (busca, calendário, scrollbar) desenham em claro. */
+  --gm-color-scheme: light;
+  color-scheme: light;
+
+  /* Profundidade: com tudo branco, é a sombra que diz o que está por cima. */
+  --pautas-sombra: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px rgba(15, 23, 42, 0.06);
+  --pautas-sombra-alta: 0 12px 40px rgba(15, 23, 42, 0.16);
+}

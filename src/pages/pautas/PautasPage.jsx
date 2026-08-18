@@ -15,7 +15,9 @@ import "./PautasPage.css";
  * Por que é intuitiva (Princípio nº1): uma coisa só na tela — a lista — e
  * uma única ação principal, sempre visível no topo ("Nova pauta"). Os
  * filtros são botões com o número do que existe atrás deles, então dá para
- * ver o que tem antes de clicar. Os quatro estados têm tratamento humano:
+ * ver o que tem antes de clicar, e cada fileira diz em uma palavra o que
+ * filtra ("Situação", "Pessoa") — sem o rótulo, duas fileiras de pílulas
+ * pareciam a mesma coisa repetida. Os quatro estados têm tratamento humano:
  * carregando ("Carregando as pautas…"), vazio (convite a criar a primeira),
  * erro (aviso + "Tentar de novo") e sucesso (a pauta nova já aparece no
  * topo da lista). Nada de jargão — "Para quê", "Quem entra nessa".
@@ -52,69 +54,77 @@ export default function PautasPage() {
   return (
     <div className="pautas">
       <header className="pautas__topo">
-        <div className="pautas__marca">
-          <span className="pautas__marca-icone" aria-hidden><LuListChecks size={20} /></span>
-          <div>
-            <div className="pautas__marca-titulo">Pautas da Kora</div>
-            <div className="pautas__marca-sub">
-              {pessoaAtual ? `Olá, ${pessoaAtual.nome}` : "Acesso dos sócios"}
+        <div className="pautas__topo-interno">
+          <div className="pautas__marca">
+            <span className="pautas__marca-icone" aria-hidden><LuListChecks size={20} /></span>
+            <div>
+              <div className="pautas__marca-titulo">Pautas da Kora</div>
+              <div className="pautas__marca-sub">
+                {pessoaAtual ? `Olá, ${pessoaAtual.nome}` : "Acesso dos sócios"}
+              </div>
             </div>
           </div>
-        </div>
-        <div className="pautas__acoes-topo">
-          <button type="button" className="pautas__nova" onClick={abrirNova}>
-            <LuPlus size={17} aria-hidden /> Nova pauta
-          </button>
-          <button type="button" className="pautas__sair" onClick={sair} aria-label="Sair">
-            <LuLogOut size={17} aria-hidden />
-          </button>
+          <div className="pautas__acoes-topo">
+            <button type="button" className="pautas__nova" onClick={abrirNova}>
+              <LuPlus size={17} aria-hidden /> Nova pauta
+            </button>
+            <button type="button" className="pautas__sair" onClick={sair} aria-label="Sair">
+              <LuLogOut size={17} aria-hidden />
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="pautas__filtros">
-        <div className="pautas__chips" role="group" aria-label="Filtrar por situação">
-          <button
-            type="button"
-            className={`pautas__chip${filtroStatus === null ? " pautas__chip--ativo" : ""}`}
-            aria-pressed={filtroStatus === null}
-            onClick={() => setFiltroStatus(null)}
-          >
-            Todas <span className="pautas__chip-num">{contagem.total}</span>
-          </button>
-          {STATUS_EM_ORDEM.map((status) => (
+        <div className="pautas__filtro-linha">
+          <span className="pautas__filtro-rotulo" id="pautas-rotulo-situacao">Situação</span>
+          <div className="pautas__chips" role="group" aria-labelledby="pautas-rotulo-situacao">
             <button
-              key={status}
               type="button"
-              className={`pautas__chip pautas__chip--${status}${filtroStatus === status ? " pautas__chip--ativo" : ""}`}
-              aria-pressed={filtroStatus === status}
-              onClick={() => setFiltroStatus(status)}
+              className={`pautas__chip${filtroStatus === null ? " pautas__chip--ativo" : ""}`}
+              aria-pressed={filtroStatus === null}
+              onClick={() => setFiltroStatus(null)}
             >
-              {rotuloStatus(status)} <span className="pautas__chip-num">{contagem[status]}</span>
+              Todas <span className="pautas__chip-num">{contagem.total}</span>
             </button>
-          ))}
+            {STATUS_EM_ORDEM.map((status) => (
+              <button
+                key={status}
+                type="button"
+                className={`pautas__chip pautas__chip--${status}${filtroStatus === status ? " pautas__chip--ativo" : ""}`}
+                aria-pressed={filtroStatus === status}
+                onClick={() => setFiltroStatus(status)}
+              >
+                {rotuloStatus(status)} <span className="pautas__chip-num">{contagem[status]}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {pessoas.length > 0 && (
-          <div className="pautas__chips" role="group" aria-label="Filtrar por pessoa">
-            <button
-              type="button"
-              className={`pautas__chip${filtroPessoa === null ? " pautas__chip--ativo" : ""}`}
-              aria-pressed={filtroPessoa === null}
-              onClick={() => setFiltroPessoa(null)}
-            >
-              Todo mundo
-            </button>
-            {pessoas.map((p) => (
+          <div className="pautas__filtro-linha">
+            <span className="pautas__filtro-rotulo" id="pautas-rotulo-pessoa">Pessoa</span>
+            <div className="pautas__chips" role="group" aria-labelledby="pautas-rotulo-pessoa">
               <button
-                key={p.slug}
                 type="button"
-                className={`pautas__chip${filtroPessoa === p.slug ? " pautas__chip--ativo" : ""}`}
-                aria-pressed={filtroPessoa === p.slug}
-                onClick={() => setFiltroPessoa(p.slug)}
+                className={`pautas__chip${filtroPessoa === null ? " pautas__chip--ativo" : ""}`}
+                aria-pressed={filtroPessoa === null}
+                onClick={() => setFiltroPessoa(null)}
               >
-                {p.nome}
+                Todo mundo
               </button>
-            ))}
+              {pessoas.map((p) => (
+                <button
+                  key={p.slug}
+                  type="button"
+                  className={`pautas__chip${filtroPessoa === p.slug ? " pautas__chip--ativo" : ""}`}
+                  aria-pressed={filtroPessoa === p.slug}
+                  onClick={() => setFiltroPessoa(p.slug)}
+                >
+                  {p.nome}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -148,6 +158,7 @@ export default function PautasPage() {
 
       {!carregandoLista && !erro && pautas.length === 0 && (
         <div className="pautas__vazio">
+          <span className="pautas__vazio-icone" aria-hidden><LuListChecks size={26} /></span>
           <p className="pautas__vazio-titulo">Nenhuma pauta ainda</p>
           <p className="pautas__vazio-texto">
             Crie a primeira: diga o que é, para que serve e quem entra nessa.
@@ -160,7 +171,11 @@ export default function PautasPage() {
 
       {!erro && pautas.length > 0 && visiveis.length === 0 && (
         <div className="pautas__vazio">
+          <span className="pautas__vazio-icone" aria-hidden><LuSearch size={26} /></span>
           <p className="pautas__vazio-titulo">Nada com esse filtro</p>
+          <p className="pautas__vazio-texto">
+            Nenhuma pauta combina com a situação, a pessoa ou a palavra que você escolheu.
+          </p>
           {temFiltro && (
             <button type="button" className="pautas__limpar" onClick={limparFiltros}>
               Mostrar todas

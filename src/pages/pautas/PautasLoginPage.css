@@ -3,19 +3,28 @@
  * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
  *
  * Marca NEUTRA da Kora: no host das pautas nenhum tema de estabelecimento é
- * aplicado, então valem os tokens --gm-* padrão.
+ * aplicado — valem os tokens claros de `PautasTema.css`.
  */
 
 .pautas-login {
-  min-height: 100dvh;
+  /* Rola por conta própria (o `index.html` fixa `body { overflow: hidden }`).
+     `safe center` centraliza quando cabe e encosta no topo quando não cabe —
+     com `center` puro o título sumiria acima da borda em tela baixa. */
+  height: 100dvh;
+  overflow-y: auto;
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
   padding: 24px 16px;
   box-sizing: border-box;
   background: var(--gm-bg);
   color: var(--gm-text);
   font-family: "Inter", system-ui, sans-serif;
+}
+
+.pautas-login :is(button, input):focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
 }
 
 .pautas-login__caixa {
@@ -34,10 +43,11 @@
   justify-content: center;
   width: 52px;
   height: 52px;
-  border-radius: 14px;
-  background: var(--gm-surface);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--gm-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 28%, transparent);
   color: var(--gm-accent);
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .pautas-login__marca-titulo {
   font-size: 24px;
@@ -56,6 +66,7 @@
   border: 1px solid var(--gm-border);
   border-radius: 20px;
   padding: 22px;
+  box-shadow: var(--pautas-sombra, none);
 }
 
 .pautas-login__campo { margin-bottom: 16px; }
@@ -82,7 +93,12 @@
   box-sizing: border-box;
   outline: none;
 }
-.pautas-login__input:focus { border-color: var(--gm-accent); }
+.pautas-login__input::placeholder { color: var(--gm-muted); }
+.pautas-login__input:focus {
+  border-color: var(--gm-accent);
+  background: var(--gm-card);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gm-accent) 15%, transparent);
+}
 .pautas-login__input--senha { padding-right: 44px; }
 
 .pautas-login__senha-wrap { position: relative; }
@@ -129,8 +145,8 @@
 }
 .pautas-login__entrar:hover:not(:disabled) { filter: brightness(1.08); }
 .pautas-login__entrar:disabled {
-  background: var(--gm-faint);
-  cursor: not-allowed;
+  background: color-mix(in srgb, var(--gm-accent) 45%, var(--gm-card));
+  cursor: progress;
 }
 
 /* ── Aviso ─────────────────────────────────────────────────────── */

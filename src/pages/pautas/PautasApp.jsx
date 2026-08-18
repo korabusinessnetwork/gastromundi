@@ -1,6 +1,7 @@
 import { PautasProvider, usePautas } from "@/context/PautasContext";
 import PautasLoginPage from "./PautasLoginPage";
 import PautasPage from "./PautasPage";
+import "./PautasTema.css";
 import "./PautasApp.css";
 
 /**

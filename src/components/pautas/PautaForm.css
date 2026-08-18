@@ -1,13 +1,19 @@
 /**
  * Formulário de pauta (Pautas da Kora).
  * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * Em tela clara o véu é um cinza-ardósia translúcido, não um preto 60%: o
+ * preto sobre branco escurece a tela inteira e o formulário deixa de ser o
+ * ponto de atenção — vira o único lugar iluminado de um cômodo apagado.
  */
 
 .pauta-form__fundo {
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--gm-text) 42%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -27,6 +33,12 @@
   color: var(--gm-text);
   font-family: "Inter", system-ui, sans-serif;
   overflow: hidden;
+  box-shadow: var(--pautas-sombra-alta, 0 24px 60px rgba(0, 0, 0, 0.45));
+}
+
+.pauta-form :is(button, input, textarea):focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
 }
 
 /* ── Topo ──────────────────────────────────────────────────────── */
@@ -55,7 +67,10 @@
   color: var(--gm-muted);
   cursor: pointer;
 }
-.pauta-form__fechar:hover:not(:disabled) { color: var(--gm-text); }
+.pauta-form__fechar:hover:not(:disabled) {
+  color: var(--gm-text);
+  border-color: var(--gm-faint);
+}
 
 /* ── Corpo ─────────────────────────────────────────────────────── */
 .pauta-form__corpo {
@@ -90,8 +105,14 @@
   box-sizing: border-box;
   outline: none;
 }
+.pauta-form__input::placeholder,
+.pauta-form__area::placeholder { color: var(--gm-muted); }
 .pauta-form__input:focus,
-.pauta-form__area:focus { border-color: var(--gm-accent); }
+.pauta-form__area:focus {
+  border-color: var(--gm-accent);
+  background: var(--gm-card);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gm-accent) 15%, transparent);
+}
 
 .pauta-form__area {
   resize: vertical;
@@ -115,7 +136,10 @@
   font-family: inherit;
   cursor: pointer;
 }
-.pauta-form__pessoa:hover:not(:disabled) { color: var(--gm-text); }
+.pauta-form__pessoa:hover:not(:disabled) {
+  color: var(--gm-text);
+  border-color: var(--gm-faint);
+}
 .pauta-form__pessoa--marcado {
   background: color-mix(in srgb, var(--gm-accent) 20%, transparent);
   border-color: var(--gm-accent);
@@ -158,7 +182,10 @@
   background: var(--gm-surface);
   color: var(--gm-muted);
 }
-.pauta-form__cancelar:hover:not(:disabled) { color: var(--gm-text); }
+.pauta-form__cancelar:hover:not(:disabled) {
+  color: var(--gm-text);
+  border-color: var(--gm-faint);
+}
 .pauta-form__salvar {
   border: none;
   background: var(--gm-accent);
@@ -166,7 +193,8 @@
 }
 .pauta-form__salvar:hover:not(:disabled) { filter: brightness(1.08); }
 .pauta-form__salvar:disabled {
-  background: var(--gm-faint);
+  background: color-mix(in srgb, var(--gm-accent) 14%, transparent);
+  color: color-mix(in srgb, var(--gm-accent) 70%, var(--gm-card));
   cursor: not-allowed;
 }
 

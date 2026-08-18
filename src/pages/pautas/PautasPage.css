@@ -4,35 +4,74 @@
  *
  * Uma coluna só, centralizada, com o topo grudado — a ação principal
  * ("Nova pauta") acompanha a rolagem e nunca some da vista.
+ *
+ * A coluna é declarada em UM lugar (--pautas-col) e aplicada por
+ * `.pautas > *`. Antes cada bloco também trazia `margin: X 0`, que por ser
+ * atalho zerava o `margin-inline: auto` da regra da coluna — era por isso
+ * que o vazio e o "carregando" apareciam colados na borda esquerda enquanto
+ * o resto ficava centralizado. Daqui em diante todo espaçamento vertical
+ * usa `margin-block`, que não mexe nas laterais.
  */
 
 .pautas {
-  min-height: 100dvh;
+  --pautas-col: 820px;
+  --pautas-gutter: clamp(16px, 3vw, 28px);
+
+  /* Rola por conta própria: o `index.html` fixa `body { overflow: hidden }`
+     para o PDV não balançar, e sem um contêiner de rolagem aqui a lista de
+     pautas simplesmente não passaria da primeira dobra. */
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   box-sizing: border-box;
-  padding: 0 16px 40px;
+  padding: 0 var(--pautas-gutter) 72px;
   background: var(--gm-bg);
   color: var(--gm-text);
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--gm-font-texto, "Inter", system-ui, sans-serif);
 }
 
+/* A coluna: um limite de largura, centralizado, para todo bloco da tela. */
 .pautas > * {
-  max-width: 720px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  max-width: var(--pautas-col);
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+/* Foco visível em tudo que é clicável: quem navega por teclado precisa ver
+   onde está, e `outline: none` nos campos tirava isso. */
+.pautas :is(button, input, a):focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
 }
 
 /* ── Topo ──────────────────────────────────────────────────────── */
+/* Sangra de ponta a ponta: antes o fundo do topo tinha a largura da coluna
+   e a lista rolava aparecendo pelos lados dele. */
 .pautas__topo {
   position: sticky;
   top: 0;
   z-index: 20;
+  /* Sai do respiro lateral da página para o fundo encostar nas duas bordas;
+     o conteúdo volta para a coluna no bloco de dentro. */
+  width: auto;
+  max-width: none;
+  margin-inline: calc(var(--pautas-gutter) * -1);
+  background: color-mix(in srgb, var(--gm-bg) 82%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.pautas__topo-interno {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 0 14px;
-  background: var(--gm-bg);
-  border-bottom: 1px solid var(--gm-border);
+  max-width: var(--pautas-col);
+  margin-inline: auto;
+  padding: 14px var(--pautas-gutter);
+  box-sizing: border-box;
 }
 
 .pautas__marca {
@@ -45,20 +84,27 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   flex-shrink: 0;
-  border-radius: 12px;
-  background: var(--gm-surface);
+  border-radius: 13px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--gm-accent) 30%, transparent),
+    color-mix(in srgb, var(--gm-accent) 10%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 35%, transparent);
   color: var(--gm-accent);
 }
 .pautas__marca-titulo {
-  font-size: 17px;
+  font-family: var(--gm-font-titulo, inherit);
+  font-size: 18px;
   font-weight: 900;
   line-height: 1.2;
+  letter-spacing: -0.2px;
 }
 .pautas__marca-sub {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--gm-muted);
   margin-top: 2px;
   white-space: nowrap;
@@ -76,18 +122,27 @@
 .pautas__nova {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 12px 18px;
   border: none;
-  border-radius: 10px;
+  border-radius: 11px;
   background: var(--gm-accent);
   color: #fff;
   font-size: 14px;
   font-weight: 800;
   font-family: inherit;
+  white-space: nowrap;
   cursor: pointer;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--gm-accent) 35%, transparent);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
 }
-.pautas__nova:hover { filter: brightness(1.08); }
+.pautas__nova:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--gm-accent) 42%, transparent);
+}
+.pautas__nova:active { transform: translateY(0); }
 
 .pautas__sair {
   display: inline-flex;
@@ -95,20 +150,44 @@
   justify-content: center;
   width: 42px;
   height: 42px;
-  border-radius: 10px;
+  border-radius: 11px;
   border: 1px solid var(--gm-border);
   background: var(--gm-surface);
   color: var(--gm-muted);
   cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
 }
-.pautas__sair:hover { color: var(--gm-text); }
+.pautas__sair:hover {
+  color: var(--gm-text);
+  border-color: var(--gm-faint);
+  background: color-mix(in srgb, var(--gm-text) 5%, var(--gm-surface));
+}
 
 /* ── Filtros ───────────────────────────────────────────────────── */
+/* Um painel só, com os dois eixos rotulados. Duas fileiras de pílulas soltas
+   não diziam que uma filtra a situação e a outra a pessoa. */
 .pautas__filtros {
   display: flex;
   flex-direction: column;
+  gap: 14px;
+  margin-block: 20px 18px;
+}
+
+.pautas__filtro-linha {
+  display: flex;
+  align-items: center;
   gap: 10px;
-  padding: 16px 0;
+  flex-wrap: wrap;
+}
+
+.pautas__filtro-rotulo {
+  flex-shrink: 0;
+  min-width: 62px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--gm-muted);
 }
 
 .pautas__chips {
@@ -130,8 +209,12 @@
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
 }
-.pautas__chip:hover:not(.pautas__chip--ativo) { color: var(--gm-text); }
+.pautas__chip:hover:not(.pautas__chip--ativo) {
+  color: var(--gm-text);
+  border-color: var(--gm-faint);
+}
 
 /* O filtro ligado fica aceso — e na cor do próprio estado, a mesma do
    card e do botão da pauta, para não haver dois vocabulários de cor. */
@@ -156,36 +239,43 @@
   min-width: 20px;
   padding: 1px 6px;
   border-radius: 999px;
-  background: var(--gm-card);
+  background: color-mix(in srgb, var(--gm-text) 9%, transparent);
   color: var(--gm-text);
   font-size: 11px;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Busca ─────────────────────────────────────────────────────── */
+/* Largura limitada: esticada na coluna inteira, a busca virava o elemento
+   mais pesado da tela sem ser a ação principal. */
 .pautas__busca {
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  max-width: 380px;
 }
 .pautas__busca-icone {
   position: absolute;
-  left: 14px;
+  left: 13px;
   color: var(--gm-muted);
   pointer-events: none;
 }
 .pautas__busca-input {
   width: 100%;
-  padding: 12px 14px 12px 40px;
+  padding: 10px 14px 10px 38px;
   border-radius: 10px;
   border: 1px solid var(--gm-border);
   background: var(--gm-surface);
   color: var(--gm-text);
-  font-size: 15px;
+  font-size: 14px;
   font-family: inherit;
   box-sizing: border-box;
   outline: none;
+  transition: border-color 0.12s ease;
 }
+.pautas__busca-input::placeholder { color: var(--gm-muted); }
 .pautas__busca-input:focus { border-color: var(--gm-accent); }
 
 /* ── Erro, espera e vazio ──────────────────────────────────────── */
@@ -194,9 +284,9 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-block: 0 14px;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--gm-red) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--gm-red) 40%, transparent);
   color: var(--gm-red);
@@ -220,32 +310,48 @@
 }
 
 .pautas__aviso {
-  margin: 24px 0;
+  margin-block: 32px;
   text-align: center;
   color: var(--gm-muted);
   font-size: 14px;
 }
 
 .pautas__vazio {
-  margin: 20px 0;
-  padding: 34px 20px;
-  border: 1px dashed var(--gm-border);
-  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-block: 8px;
+  padding: 48px 24px 44px;
+  border: 1.5px dashed color-mix(in srgb, var(--gm-text) 16%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--gm-surface) 60%, transparent);
   text-align: center;
+}
+.pautas__vazio-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--gm-accent) 14%, transparent);
+  color: var(--gm-accent);
 }
 .pautas__vazio-titulo {
   margin: 0 0 6px;
-  font-size: 16px;
+  font-family: var(--gm-font-titulo, inherit);
+  font-size: 18px;
   font-weight: 800;
 }
 .pautas__vazio-texto {
-  margin: 0 0 18px;
+  margin: 0 0 20px;
+  max-width: 42ch;
   color: var(--gm-muted);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 .pautas__limpar {
-  margin-top: 14px;
   padding: 11px 18px;
   border-radius: 10px;
   border: 1px solid var(--gm-border);
@@ -255,6 +361,10 @@
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
+}
+.pautas__limpar:hover {
+  border-color: var(--gm-faint);
+  background: color-mix(in srgb, var(--gm-text) 5%, var(--gm-surface));
 }
 
 /* ── Lista ─────────────────────────────────────────────────────── */
@@ -267,9 +377,26 @@
 /* ── No celular ────────────────────────────────────────────────── */
 @media (max-width: 560px) {
   /* Abaixo de 16px o Safari do iPhone dá zoom ao focar o campo. */
-  .pautas__busca-input { font-size: 16px; }
+  .pautas__busca-input { font-size: 16px; padding-block: 11px; }
+  .pautas__busca { max-width: none; }
 
-  .pautas__nova { padding: 12px 14px; }
-  .pautas__marca-icone { width: 36px; height: 36px; }
-  .pautas__filtros { padding: 14px 0; }
+  .pautas__topo-interno { padding-block: 12px; }
+  .pautas__marca-icone { width: 38px; height: 38px; border-radius: 12px; }
+  .pautas__marca-titulo { font-size: 16px; }
+  .pautas__nova { padding: 11px 14px; }
+
+  .pautas__filtros { gap: 12px; margin-block: 16px 14px; }
+  /* Rótulo em cima das pílulas: lado a lado sobra pouco para as pílulas e
+     elas quebram em três fileiras. */
+  .pautas__filtro-linha { flex-direction: column; align-items: stretch; gap: 7px; }
+  .pautas__filtro-rotulo { min-width: 0; }
+
+  .pautas__vazio { padding: 36px 18px 32px; border-radius: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pautas *,
+  .pautas *::before,
+  .pautas *::after { transition: none !important; }
+  .pautas__nova:hover { transform: none; }
 }
