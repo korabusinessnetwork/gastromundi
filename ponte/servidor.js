@@ -503,8 +503,14 @@ const servidor = http.createServer(async (req, res) => {
       return responderJson(res, 200, { impressoras: await listarImpressoras() });
     } catch (e) {
       // Sem lista o caixa ainda consegue digitar o nome ou usar impressora
-      // de rede — por isso avisa em vez de derrubar a tela.
-      return responderJson(res, 200, { impressoras: [], aviso: e.message });
+      // de rede — por isso avisa em vez de derrubar a tela. O texto cru do
+      // Windows (caminho do PowerShell, linha de comando) fica no log: não
+      // diz nada a quem está no caixa e desenha a máquina para quem lê.
+      console.error("[ponte] falha ao listar impressoras:", e);
+      return responderJson(res, 200, {
+        impressoras: [],
+        aviso: "Não deu para ler a lista de impressoras do Windows. Digite o nome da impressora ou use uma impressora de rede.",
+      });
     }
   }
 

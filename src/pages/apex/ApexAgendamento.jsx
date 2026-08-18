@@ -22,7 +22,12 @@ function mascararWhatsapp(valor) {
   return d.replace(/^(\d{2})(\d{5})(\d{0,4})/, "($1) $2-$3");
 }
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// O domínio é lido em pedaços separados por ponto (`[^\s@.]+` entre pontos),
+// e não como `[^\s@]+\.[^\s@]+`: naquela forma o ponto cabia dentro das duas
+// partes e o motor tinha vários jeitos de dividir o mesmo texto, tentando
+// todos antes de desistir — digitar um e-mail longo e ainda incompleto
+// travava o campo. Aqui a divisão é única e o teste é linear.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
 export default function ApexAgendamento({ aberto, onFechar, plano }) {
   const [nome, setNome] = useState("");

@@ -37,6 +37,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { registrarFalhaInterna } from "../_shared/guardaEntrada.ts";
 // Núcleo PURO e testado, reaproveitado do front (mesma verdade fiscal):
 import { montarXmlNfce } from "../../../src/lib/nfceXml.js";
 import { montarQrCodeNfce, montarQrCodeNfceContingencia } from "../../../src/lib/nfceQrCode.js";
@@ -132,7 +133,7 @@ Deno.serve(async (req: Request) => {
     const segredosProntos = Boolean(certBase64 && certSenha && cscValor && cscId);
 
     const tpAmb = Number(config.ambiente) === 1 ? 1 : 2; // 2 = homologação (seguro)
-    const codigoNumerico = String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
+    const codigoNumerico = sortearCodigoNumerico();
     // Data de emissão ÚNICA para toda a requisição — o mesmo dhEmi vai no XML
     // e volta no JSON, para o cupom (DANFE) bater com a nota. (Leva 7)
     const dataEmissao = new Date();
@@ -280,7 +281,7 @@ Deno.serve(async (req: Request) => {
       p_tenant_id: config.tenant_id,
     });
     if (numError || numero == null) {
-      return json({ error: "Falha ao numerar a NFC-e.", detalhe: numError?.message }, 500);
+      return json({ error: "Falha ao numerar a NFC-e.", detalhe: registrarFalhaInterna("emitir-nfce/numeracao", numError) }, 500);
     }
 
     // ── 6b. REGISTRA A RESERVA do nNF antes de assinar (F4) ───────────
@@ -473,7 +474,7 @@ Deno.serve(async (req: Request) => {
     }
   } catch (e) {
     // Nunca vaza segredo na mensagem de erro.
-    return json({ error: "Falha ao emitir NFC-e.", detalhe: String((e as Error)?.message ?? e) }, 500);
+    return json({ error: "Falha ao emitir NFC-e.", detalhe: registrarFalhaInterna("emitir-nfce", e) }, 500);
   }
 });
 
@@ -677,6 +678,34 @@ async function registrarReservaComFalha(
   } catch (e) {
     console.error(`nfce_emitidas: exceção ao registrar reserva com falha (nNF ${p.numero}): ${String((e as Error)?.message ?? e)}`);
   }
+}
+
+/**
+ * Sorteia o cNF — os 8 dígitos "aleatórios" da chave de acesso de 44.
+ *
+ * É a ÚNICA parte imprevisível da chave: cUF é fixo do estado, AAMM é o mês,
+ * o CNPJ do emitente sai impresso no próprio cupom, mod é 65, a série vem da
+ * config, tpEmis é 1 ou 9 e o nNF é sequencial (o passo 6 desta função
+ * incrementa `proximo_numero`). Ou seja: o cNF é o que impede alguém de, com
+ * um cupom na mão, montar as chaves das vendas seguintes e consultá-las no
+ * portal público da SEFAZ — e ler o faturamento do estabelecimento.
+ *
+ * `Math.random` não serve para isso: é um xorshift128+ sem semente
+ * criptográfica, e a Edge Function fica quente entre requisições, então as
+ * notas seguintes saem do mesmo gerador. Aqui o sorteio é do CSPRNG, com a
+ * cauda que não fecha um ciclo inteiro descartada — o `% 1e8` cru enviesaria
+ * os primeiros códigos. Mesmo padrão de `sortearIndice` em `src/lib/console.js`.
+ */
+function sortearCodigoNumerico(): string {
+  const FAIXA = 100_000_000; // 10^8 — o cNF tem 8 dígitos
+  const teto = Math.floor(0x1_0000_0000 / FAIXA) * FAIXA;
+  const buf = new Uint32Array(1);
+  let n: number;
+  do {
+    crypto.getRandomValues(buf);
+    n = buf[0];
+  } while (n >= teto);
+  return String(n % FAIXA).padStart(8, "0");
 }
 
 /**

@@ -120,3 +120,22 @@ export function sanitizarHistorico(historico: unknown): TurnoConversa[] {
   }
   return turnos;
 }
+
+// ── Falha inesperada: registra dentro, devolve genérico fora ───────────
+//
+// O `catch` de fim de função pega o que ninguém previu — erro do Postgres,
+// timeout de rede, parse de XML da SEFAZ. A mensagem dessas exceções conta
+// nome de tabela, coluna, constraint, host interno e às vezes trecho do
+// payload: material de reconhecimento para quem estiver sondando a API, e
+// nada que ajude o operador do caixa. Então o texto cru vai para o log da
+// função (visível a quem tem acesso ao projeto Supabase) e o cliente recebe
+// só a etiqueta do incidente.
+//
+// Rejeição de negócio (SEFAZ rejeitou, senha curta, número já usado) NÃO
+// passa por aqui — ela tem caminho próprio, com cStat/xMotivo, e continua
+// sendo explicada por extenso na tela.
+export function registrarFalhaInterna(contexto: string, e: unknown): string {
+  const detalhe = e instanceof Error ? (e.stack ?? e.message) : String(e);
+  console.error(`[${contexto}] falha inesperada:`, detalhe);
+  return "Erro interno. O detalhe técnico foi registrado no log da função.";
+}
