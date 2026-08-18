@@ -13,7 +13,7 @@ export default defineConfig({
     // ambiente com o comentário mágico `// @vitest-environment jsdom` na
     // primeira linha do arquivo (suportado nativamente pelo Vitest).
     environment: "node",
-    include: ["src/**/*.test.js", "src/**/*.test.jsx", "ponte/lib/*.test.js"],
+    include: ["src/**/*.test.js", "src/**/*.test.jsx", "ponte/lib/*.test.js", "scripts/**/*.test.mjs"],
     setupFiles: ["src/test/setup.js"],
     env: {
       // Fuso fixo para a suíte. As regras de dia (vencimento de assinatura,

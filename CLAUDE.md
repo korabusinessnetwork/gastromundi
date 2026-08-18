@@ -55,6 +55,15 @@ recomendação de investir **agora** ou **mais pra frente** — o dono decide. D
 - Fluxos críticos do PDV têm testes de componente em `src/**/*.test.jsx` — rode-os antes de mexer no PDV
 - **Separar CSS do JSX** (decisão 018): estilo não deve ficar acoplado à marcação. Em telas novas e ao refatorar, extrair os estilos do JSX (CSS Modules ou `.css` co-localizado, mantendo o Tailwind já em uso) para permitir edição de layout a longo prazo e customização visual por estabelecimento (white-label, decisão 017). Padrão definitivo a ser fixado em ADR de theming/CSS.
 
+## Trabalho em equipe (branches)
+
+Várias pessoas commitam neste repositório. Cada uma trabalha em `seu-nome/assunto`
+(`bonato/...`, `matheus/...`, `guilherme/...`); a `main` só recebe código por Pull
+Request. Isso é imposto por hook, não por convenção: `.githooks/pre-push` e o
+`PreToolUse` em `.claude/hooks/guard-git-branch.mjs` bloqueiam commit/push em
+branch de outra pessoa e nas protegidas. Regra e testes em `scripts/git-guard/`.
+Detalhes e configuração em `CONTRIBUTING.md`.
+
 ## Stack
 
 - React + Vite

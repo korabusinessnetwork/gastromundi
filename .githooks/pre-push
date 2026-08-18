@@ -1,0 +1,23 @@
+#!/bin/sh
+# Guarda de branch no próprio git — pega também o que é digitado à mão
+# no terminal, fora do Claude Code.
+#
+# Ativado por `npm run setup:git` (que aponta core.hooksPath para .githooks).
+
+raiz=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "⚠️  guarda de branch: node não encontrado, push liberado sem checagem." >&2
+  exit 0
+fi
+
+refs=""
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -z "$remote_ref" ] && continue
+  refs="$refs --ref $remote_ref"
+done
+
+[ -z "$refs" ] && exit 0
+
+# shellcheck disable=SC2086
+node "$raiz/scripts/git-guard/guard.mjs" $refs

@@ -7,7 +7,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "setup:git": "node scripts/setup-git.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.67.0",
