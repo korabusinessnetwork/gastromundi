@@ -1,0 +1,30 @@
+# Configuração do gitleaks — GastroMundi
+#
+# Herda todas as regras padrão e apenas marca os arquivos onde um "segredo"
+# é, por construção, material de teste. Sem isto o scanner reabre os mesmos
+# três achados a cada push e o alarme real se perde no meio deles.
+#
+# Nada aqui vale para código de produção: chave, token ou senha de verdade
+# continua sendo achado, e o lugar dela é `import.meta.env.VITE_*` (front),
+# variável de ambiente da Edge Function (Supabase) ou `ponte/.env` (Ponte).
+
+title = "GastroMundi"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fixtures de teste e vetores públicos — nenhum é credencial viva."
+paths = [
+  # Par chave/certificado autoassinado gerado só para os testes da assinatura
+  # XML-DSig da NFC-e (subject CN=NFCe TESTE FAKE). Nunca foi credenciado em
+  # nenhuma SEFAZ e não assina nada fora do `npm test`. O certificado de
+  # verdade do estabelecimento vive no cofre do Supabase, nunca no repositório.
+  '''src/lib/__fixtures__/nfce-teste\.(key|cert)\.pem''',
+  '''src/lib/__fixtures__/nfce-teste\.pfx''',
+
+  # Constantes de teste: o TOKEN hex do log da Ponte e o vetor SHA-1 público
+  # de "abc" usado para conferir o hash do QR Code.
+  '''ponte/lib/log\.test\.js''',
+  '''src/lib/nfceQrCode\.test\.js''',
+]

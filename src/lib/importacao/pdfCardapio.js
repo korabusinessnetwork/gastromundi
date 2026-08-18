@@ -28,8 +28,18 @@ const RE_CERCA_JSON = /^```(?:json)?\s*|\s*```$/g;
 // solto sem R$ ("Pizza 4") NÃO conta como preço — evita falso positivo
 // com quantidade/gramatura no nome. O `$` fixa no fim; leaders de pontos
 // ("X-Salada ...... 24,90") são removidos ao limpar o nome.
-const RE_PRECO_DECIMAL = /(?:r\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}|\d+\.\d{2})\s*$/i;
-const RE_PRECO_RS_INTEIRO = /r\$\s*(\d{1,3}(?:\.\d{3})*|\d+)\s*$/i;
+//
+// Os grupos de dígitos são LIMITADOS de propósito. Com `\d+` solto, uma linha
+// só de dígitos e sem vírgula fazia o motor recomeçar em cada posição, engolir
+// o resto da linha e voltar caractere a caractere procurando a vírgula — custo
+// quadrático. Medido antes do limite: 8 mil caracteres levavam 194 ms e 32 mil
+// levavam 2,7 s, e o texto de um PDF vem comprimido, então uma linha de um
+// milhão de dígitos cabe em poucos KB. Como o cardápio em PDF chega de fora
+// (fornecedor, franqueadora), isso congelava a aba de quem importou, sem aviso
+// e sem cancelar. Preço não tem mais que 9 dígitos inteiros: limitar não recusa
+// nenhum cardápio de verdade e o custo por posição vira constante.
+const RE_PRECO_DECIMAL = /(?:r\$\s*)?(\d{1,3}(?:\.\d{3}){1,3},\d{2}|\d{1,9},\d{2}|\d{1,9}\.\d{2})\s*$/i;
+const RE_PRECO_RS_INTEIRO = /r\$\s*(\d{1,3}(?:\.\d{3}){1,3}|\d{1,9})\s*$/i;
 
 // Sobras de "leader" no fim do nome depois de tirar o preço: pontos de
 // preenchimento, traços, bullets e espaços. Ex.: "X-Salada · · · ".

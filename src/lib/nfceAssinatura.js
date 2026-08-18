@@ -154,13 +154,31 @@ function serializarC14n(no, nsAplicavel, nsDefaultRenderizada) {
 }
 
 /**
+ * Porteiro do nome de elemento antes de ele virar expressão regular.
+ * `canonicalizarElemento` e `assinarElemento` são EXPORTADOS: a tag chega de
+ * quem chama e entra CRUA na regex — um valor como `a|b(.*)+` deixa de nomear
+ * um elemento e vira padrão, recortando o pedaço errado do XML ou travando o
+ * processo em backtracking no meio de uma emissão. Nome de elemento XML é
+ * letra ou `_`, seguido de letra, dígito, `.`, `-`, `_` ou `:` (prefixo de
+ * namespace) — nada aí é metacaractere.
+ */
+function nomeDeTag(tag) {
+  const nome = String(tag ?? "");
+  if (!/^[A-Za-z_][\w.\-:]*$/.test(nome)) {
+    throw new Error(`Assinatura: nome de elemento inválido: "${nome}".`);
+  }
+  return nome;
+}
+
+/**
  * Recorta a substring do único elemento <tag>…</tag> do XML. Agnóstico ao
  * elemento (Leva 10): serve tanto ao <infNFe> da NFe quanto ao <infEvento> do
  * evento de cancelamento — a C14N do subconjunto é a mesma.
  */
 function extrairElemento(xml, tag) {
-  const m = String(xml ?? "").match(new RegExp(`<${tag}\\b[\\s\\S]*?</${tag}>`));
-  if (!m) throw new Error(`Assinatura: <${tag}> não encontrado no XML.`);
+  const nome = nomeDeTag(tag);
+  const m = String(xml ?? "").match(new RegExp(`<${nome}\\b[\\s\\S]*?</${nome}>`));
+  if (!m) throw new Error(`Assinatura: <${nome}> não encontrado no XML.`);
   return m[0];
 }
 
@@ -282,8 +300,9 @@ function lerChave(xml) {
 
 /** Lê o valor do atributo Id="…" de um elemento (ex.: infEvento → ID110111…). */
 function lerId(xml, tag) {
-  const m = String(xml ?? "").match(new RegExp(`<${tag}\\b[^>]*\\bId="([^"]+)"`));
-  if (!m) throw new Error(`Assinatura: Id ausente no <${tag}>.`);
+  const nome = nomeDeTag(tag);
+  const m = String(xml ?? "").match(new RegExp(`<${nome}\\b[^>]*\\bId="([^"]+)"`));
+  if (!m) throw new Error(`Assinatura: Id ausente no <${nome}>.`);
   return m[1];
 }
 

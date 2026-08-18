@@ -23,7 +23,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { assinarInutDSig, transmitirInutSefazRS } from "../_shared/nfceTransmissao.ts";
-import { decidirAcesso, mensagemRecusa, PAPEIS_ADMIN } from "../_shared/guardaEntrada.ts";
+import { decidirAcesso, mensagemRecusa, PAPEIS_ADMIN, registrarFalhaInterna } from "../_shared/guardaEntrada.ts";
 import {
   montarXmlInutilizacao,
   decidirDesfechoInutilizacao,
@@ -205,7 +205,7 @@ Deno.serve(async (req: Request) => {
     }, 200);
   } catch (e) {
     // Nunca vaza segredo na mensagem de erro.
-    return json({ error: "Falha ao inutilizar numeração.", detalhe: String((e as Error)?.message ?? e) }, 500);
+    return json({ error: "Falha ao inutilizar numeração.", detalhe: registrarFalhaInterna("inutilizar-nfce", e) }, 500);
   }
 });
 

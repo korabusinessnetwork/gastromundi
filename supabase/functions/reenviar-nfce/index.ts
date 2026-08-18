@@ -28,6 +28,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { transmitirSefazRS } from "../_shared/nfceTransmissao.ts";
+import { registrarFalhaInterna } from "../_shared/guardaEntrada.ts";
 import { decidirDesfechoReenvio } from "../../../src/lib/decidirDesfechoReenvio.js";
 
 const corsHeaders = {
@@ -192,7 +193,7 @@ Deno.serve(async (req: Request) => {
 
     return json(resumo, 200);
   } catch (e) {
-    return json({ error: "Falha ao reenviar a fila de NFC-e.", detalhe: String((e as Error)?.message ?? e) }, 500);
+    return json({ error: "Falha ao reenviar a fila de NFC-e.", detalhe: registrarFalhaInterna("reenviar-nfce", e) }, 500);
   }
 });
 
