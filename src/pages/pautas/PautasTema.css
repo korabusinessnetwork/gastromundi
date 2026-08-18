@@ -39,6 +39,21 @@
   --gm-color-scheme: light;
   color-scheme: light;
 
+  /* Campos de formulário. Precisa estar AQUI, e não bastam --gm-text/--gm-card
+     acima: `--gm-input-*` é declarado em `:root` (tema.css) como color-mix dos
+     tokens de marca, e as var() de dentro de um custom property resolvem no
+     elemento em que ele é DECLARADO — ou seja, no `:root` escuro do PDV. O
+     valor que desce até aqui já veio pronto e escuro; trocar o texto e o card
+     nesta regra não o alcança. Como `styles/inputs.css` pinta todo input de
+     texto com especificidade alta (~0,8,1), o campo saía preto sobre o papel
+     claro, enquanto os textarea (seletor de elemento, 0,0,1) ficavam certos —
+     era o campo preto do login e do "Qual é a pauta?".
+     Redeclarar os três tokens nesta superfície refaz a mesma mistura já com a
+     paleta clara, sem !important e sem tocar no PDV. */
+  --gm-input-bg: var(--gm-surface);
+  --gm-input-border: var(--gm-border);
+  --gm-input-ring: color-mix(in srgb, var(--gm-accent) 15%, transparent);
+
   /* Sora nos títulos e na marca; texto no stack do sistema, que é o que o
      leitor já lê o dia inteiro. A Sora já vem carregada no index.html —
      nenhuma requisição nova, nenhum custo (bootstrap). */
