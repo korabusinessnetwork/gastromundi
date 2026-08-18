@@ -2,165 +2,206 @@
  * Card de pauta (Pautas da Kora).
  * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
  *
- * Cada estado tem uma cor só sua, e ela aparece em dois lugares: na borda
- * lateral do card e no botão aceso. Assim dá para varrer a lista de longe e
- * saber o que está parado, o que anda e o que acabou.
- *
- * Em fundo claro o card é branco sobre branco: quem separa um do outro é a
- * sombra (--pautas-sombra), não um tom de cinza no fundo.
+ * O card é branco sobre a coluna acinzentada: quem separa um do outro é o
+ * tom da coluna e uma sombra rasa, não uma borda grossa. A cor do estado
+ * agora mora só no botão aceso do rodapé — a coluna já diz a situação, e
+ * repetir a mesma informação numa tarja lateral só polui.
  */
 
 .pauta-card {
   background: var(--gm-card);
-  border: 1px solid var(--gm-border);
-  border-left: 4px solid var(--gm-faint);
+  border: 1px solid var(--pautas-borda-card, var(--gm-border));
   border-radius: 14px;
-  padding: 16px;
+  padding: 15px 16px;
   color: var(--gm-text);
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: inherit;
   box-shadow: var(--pautas-sombra, none);
   transition: box-shadow 0.14s ease, border-color 0.14s ease;
 }
 .pauta-card:hover {
-  border-color: color-mix(in srgb, var(--gm-border) 55%, var(--gm-faint));
+  border-color: var(--pautas-borda-hover, var(--gm-faint));
   box-shadow: var(--pautas-sombra-alta, var(--pautas-sombra, none));
 }
-.pauta-card--pendente     { border-left-color: var(--gm-faint); }
-.pauta-card--em_progresso { border-left-color: var(--gm-warn); }
-.pauta-card--finalizado   { border-left-color: var(--gm-green); }
-.pauta-card--finalizado .pauta-card__titulo { color: var(--gm-muted); }
 
 /* ── Topo ──────────────────────────────────────────────────────── */
 .pauta-card__topo {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: 10px;
 }
 .pauta-card__titulo {
   margin: 0;
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1.35;
+  letter-spacing: -0.1px;
 }
+/* Fantasma até o mouse chegar: "Editar" é ação secundária e não pode
+   competir com o título nem com os botões de estado. */
 .pauta-card__editar {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-shrink: 0;
-  padding: 7px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--gm-border);
-  background: var(--gm-surface);
-  color: var(--gm-muted);
+  padding: 4px 9px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--gm-faint);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
 }
 .pauta-card__editar:hover {
   color: var(--gm-text);
-  border-color: var(--gm-faint);
+  border-color: var(--gm-border);
+  background: var(--gm-bg);
 }
 
 /* ── Conteúdo ──────────────────────────────────────────────────── */
-.pauta-card__intuito,
-.pauta-card__pessoas {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 0 0 8px;
-  font-size: 14px;
+.pauta-card__intuito {
+  margin: 7px 0 0;
+  font-size: 13.5px;
   line-height: 1.5;
-  color: var(--gm-text);
-}
-.pauta-card__pessoas { color: var(--gm-muted); }
-.pauta-card__icone {
-  flex-shrink: 0;
-  margin-top: 3px;
-  color: var(--gm-muted);
+  color: var(--pautas-secundario, var(--gm-muted));
 }
 
 .pauta-card__ver-contexto {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin: 2px 0 8px;
+  gap: 5px;
+  margin: 9px 0 0;
   padding: 0;
   border: none;
   background: none;
   color: var(--gm-accent);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
 }
 
 .pauta-card__contexto {
-  margin: 0 0 12px;
-  padding: 12px 14px;
+  margin: 9px 0 0;
+  padding: 11px 13px;
   border-radius: 10px;
-  background: var(--gm-surface);
-  color: var(--gm-text);
-  font-size: 14px;
-  line-height: 1.6;
+  background: var(--gm-bg);
+  color: var(--pautas-contexto-texto, var(--gm-text));
+  font-size: 13px;
+  line-height: 1.55;
   white-space: pre-wrap;
 }
 
-/* ── Os três botões de estado ──────────────────────────────────── */
+/* ── Rodapé: quem entra nessa, quando nasceu, em que pé está ───── */
+.pauta-card__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 13px;
+}
+
+.pauta-card__quem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Empilhados por seletor de irmão, sem `style` inline no JSX (decisão 018).
+   A própria ordem do DOM dá a sobreposição — o de cima é o último, e é isso
+   que se espera de uma pilha de rostos. */
+.pauta-card__avatares { display: flex; }
+.pauta-card__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  border: 2px solid var(--gm-card);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--pautas-pessoa-1, var(--gm-accent));
+}
+.pauta-card__avatar + .pauta-card__avatar { margin-left: -7px; }
+.pauta-card__avatar--cor-1 { background: var(--pautas-pessoa-1, var(--gm-accent)); }
+.pauta-card__avatar--cor-2 { background: var(--pautas-pessoa-2, var(--gm-accent)); }
+.pauta-card__avatar--cor-3 { background: var(--pautas-pessoa-3, var(--gm-accent)); }
+.pauta-card__avatar--cor-4 { background: var(--pautas-pessoa-4, var(--gm-accent)); }
+.pauta-card__avatar--cor-5 { background: var(--pautas-pessoa-5, var(--gm-accent)); }
+.pauta-card__avatar--cor-6 { background: var(--pautas-pessoa-6, var(--gm-accent)); }
+
+.pauta-card__data {
+  font-size: 11.5px;
+  color: var(--gm-faint);
+  white-space: nowrap;
+}
+
+/* ── Os três atalhos de estado ─────────────────────────────────── */
+/* Uma letra cada, porque a coluna já diz o estado por extenso e o rótulo
+   inteiro continua no `title`/`aria-label`. */
 .pauta-card__status {
   display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 .pauta-card__botao {
-  flex: 1;
-  padding: 11px 8px;
-  border-radius: 10px;
-  border: 1px solid var(--gm-border);
-  background: var(--gm-surface);
-  color: var(--gm-muted);
-  font-size: 13px;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--pautas-inativo-borda, var(--gm-border));
+  background: var(--gm-card);
+  color: var(--pautas-inativo-texto, var(--gm-faint));
+  font-size: 11px;
+  font-weight: 800;
   font-family: inherit;
   cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
 }
 .pauta-card__botao:hover:not(:disabled):not(.pauta-card__botao--atual) {
   color: var(--gm-text);
-  border-color: var(--gm-faint);
+  border-color: var(--pautas-borda-hover, var(--gm-faint));
 }
 .pauta-card__botao:disabled { cursor: progress; }
-.pauta-card__botao:focus-visible {
-  outline: 2px solid var(--gm-accent);
-  outline-offset: 2px;
-}
 
-/* O estado atual é o botão aceso — a cor diz qual é sem ler o rótulo. */
-.pauta-card__botao--atual { color: #fff; }
+/* O estado atual é o botão aceso — e inerte: não dá para mudar para onde já
+   está, então o cursor não promete clique. */
+.pauta-card__botao--atual { cursor: default; }
+.pauta-card__botao--atual:disabled { cursor: default; }
 .pauta-card__botao--pendente.pauta-card__botao--atual {
-  background: color-mix(in srgb, var(--gm-faint) 78%, var(--gm-text));
-  border-color: color-mix(in srgb, var(--gm-faint) 78%, var(--gm-text));
+  color: var(--pautas-pendente, var(--gm-faint));
+  border-color: var(--pautas-pendente, var(--gm-faint));
+  background: var(--pautas-pendente-tenue, transparent);
 }
 .pauta-card__botao--em_progresso.pauta-card__botao--atual {
-  background: var(--gm-warn);
-  border-color: var(--gm-warn);
-  color: #1a1300;
+  color: var(--pautas-em_progresso, var(--gm-warn));
+  border-color: var(--pautas-em_progresso, var(--gm-warn));
+  background: var(--pautas-em_progresso-tenue, transparent);
 }
 .pauta-card__botao--finalizado.pauta-card__botao--atual {
-  background: var(--gm-green);
-  border-color: var(--gm-green);
-}
-
-.pauta-card__rodape {
-  margin: 10px 0 0;
-  font-size: 12px;
-  color: var(--gm-muted);
+  color: var(--pautas-finalizado, var(--gm-green));
+  border-color: var(--pautas-finalizado, var(--gm-green));
+  background: var(--pautas-finalizado-tenue, transparent);
 }
 
 /* ── No celular ────────────────────────────────────────────────── */
+/* 26px é alvo de mouse, não de dedo: no toque os três atalhos crescem para
+   o mínimo confortável sem mudar nada no desktop. */
 @media (max-width: 560px) {
-  .pauta-card__botao { font-size: 12px; padding: 12px 6px; }
+  .pauta-card__botao { width: 34px; height: 34px; font-size: 12px; }
+  .pauta-card__status { gap: 6px; }
+  .pauta-card__editar { padding: 6px 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
