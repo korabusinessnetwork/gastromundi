@@ -49,6 +49,26 @@ export function rotuloStatus(status) {
   return ROTULOS[status] ?? "Pendente";
 }
 
+const ABREVIACOES = {
+  [STATUS_PAUTA.PENDENTE]:     "P",
+  [STATUS_PAUTA.EM_PROGRESSO]: "E",
+  [STATUS_PAUTA.FINALIZADO]:   "F",
+};
+
+/**
+ * A letra do status, para o botão de 26px no rodapé do card.
+ *
+ * A letra sozinha não ensina nada — ela só cabe porque o botão carrega o
+ * rótulo inteiro no `title`/`aria-label` e porque a coluna onde o card está
+ * já diz o estado atual por extenso.
+ *
+ * @param {string} status
+ * @returns {string}
+ */
+export function abreviacaoStatus(status) {
+  return ABREVIACOES[status] ?? ABREVIACOES[STATUS_PAUTA.PENDENTE];
+}
+
 /**
  * O status é um dos três conhecidos? Barra escrita torta antes do banco —
  * o CHECK devolveria um erro cru de constraint na tela.
@@ -153,6 +173,56 @@ export function contarPorStatus(pautas) {
     if (statusValido(p?.status)) contagem[p.status] += 1;
   }
   return contagem;
+}
+
+/**
+ * Reparte a lista nas três colunas do quadro, na ordem em que elas
+ * aparecem. É o formato que a tela consome direto: cada coluna é o próprio
+ * status, então não existe mais "filtro de situação" — a posição já diz.
+ *
+ * @param {object[]} pautas
+ * @returns {{pendente: object[], em_progresso: object[], finalizado: object[]}}
+ */
+export function agruparPorStatus(pautas) {
+  const lista = Array.isArray(pautas) ? pautas : [];
+  const grupos = {
+    [STATUS_PAUTA.PENDENTE]: [],
+    [STATUS_PAUTA.EM_PROGRESSO]: [],
+    [STATUS_PAUTA.FINALIZADO]: [],
+  };
+  for (const p of lista) {
+    // Pauta com status torto (banco antigo, escrita manual) cai em pendente
+    // em vez de sumir do quadro — some é pior do que aparecer no lugar errado.
+    const status = statusValido(p?.status) ? p.status : STATUS_PAUTA.PENDENTE;
+    grupos[status].push(p);
+  }
+  return grupos;
+}
+
+/** Quantas cores de pessoa o CSS define (--pautas-pessoa-1..N). */
+export const CORES_DE_PESSOA = 6;
+
+/**
+ * Qual das cores de avatar cabe a esta pessoa (1..CORES_DE_PESSOA).
+ *
+ * A cor sai da POSIÇÃO na lista de sócios, não do nome: assim nenhuma cor
+ * fica amarrada a um sócio específico no código (decisão 017) e a paleta
+ * continua morando no CSS. Quem já saiu da lista — mas segue citado em
+ * pautas antigas — ganha uma cor estável derivada do próprio slug, para o
+ * avatar não trocar de cor a cada carregamento.
+ *
+ * @param {string} slug
+ * @param {Array<{slug: string}>} pessoas
+ * @returns {number}
+ */
+export function indiceDeCorDaPessoa(slug, pessoas = []) {
+  const posicao = (Array.isArray(pessoas) ? pessoas : []).findIndex((p) => p?.slug === slug);
+  if (posicao >= 0) return (posicao % CORES_DE_PESSOA) + 1;
+
+  const texto = String(slug ?? "");
+  let soma = 0;
+  for (let i = 0; i < texto.length; i += 1) soma = (soma + texto.charCodeAt(i)) % 9973;
+  return (soma % CORES_DE_PESSOA) + 1;
 }
 
 /**

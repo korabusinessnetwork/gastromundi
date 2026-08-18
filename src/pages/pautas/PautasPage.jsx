@@ -1,26 +1,28 @@
 import { useMemo, useState, useEffect } from "react";
 import { LuPlus, LuLogOut, LuSearch, LuTriangleAlert, LuListChecks, LuRefreshCw } from "react-icons/lu";
 import { usePautas } from "@/context/PautasContext";
-import { STATUS_EM_ORDEM, rotuloStatus, filtrarPautas, contarPorStatus } from "@/lib/pautas";
+import { STATUS_EM_ORDEM, rotuloStatus, filtrarPautas, agruparPorStatus } from "@/lib/pautas";
 import PautaCard from "@/components/pautas/PautaCard";
 import PautaForm from "@/components/pautas/PautaForm";
 import "./PautasPage.css";
 
 /**
- * Pautas da Kora — a tela.
+ * Pautas da Kora — o quadro.
  *
- * Lista o que foi estipulado para os sócios programarem, com o estado de
- * cada pauta sempre à vista e mudável em um toque.
+ * Três colunas (Pendente, Em progresso, Finalizado) com o que foi estipulado
+ * para os sócios programarem, e o estado de cada pauta mudável em um toque.
  *
- * Por que é intuitiva (Princípio nº1): uma coisa só na tela — a lista — e
- * uma única ação principal, sempre visível no topo ("Nova pauta"). Os
- * filtros são botões com o número do que existe atrás deles, então dá para
- * ver o que tem antes de clicar, e cada fileira diz em uma palavra o que
- * filtra ("Situação", "Pessoa") — sem o rótulo, duas fileiras de pílulas
- * pareciam a mesma coisa repetida. Os quatro estados têm tratamento humano:
- * carregando ("Carregando as pautas…"), vazio (convite a criar a primeira),
- * erro (aviso + "Tentar de novo") e sucesso (a pauta nova já aparece no
- * topo da lista). Nada de jargão — "Para quê", "Quem entra nessa".
+ * Por que é intuitiva (Princípio nº1): o quadro mostra a situação de tudo de
+ * uma vez, sem ninguém precisar filtrar para descobrir o que está parado — a
+ * coluna É a situação, então o antigo filtro de situação sumiu (era um
+ * controle a menos para entender). Mover uma pauta é tocar no P/E/F do card e
+ * vê-lo pular de coluna na hora. Sobrou um eixo de filtro só, por pessoa, e a
+ * busca — os dois valem para as três colunas ao mesmo tempo, então o que você
+ * vê é sempre o quadro inteiro daquele recorte. A ação principal ("Nova
+ * pauta") fica grudada no topo e nunca sai da vista. Os quatro estados têm
+ * tratamento humano: carregando, vazio (convite a criar a primeira), erro
+ * (aviso + "Tentar de novo") e sucesso (a pauta nova já aparece na coluna
+ * dela). Coluna sem nada diz "Nada por aqui" em vez de ficar em branco.
  */
 export default function PautasPage() {
   const {
@@ -28,7 +30,6 @@ export default function PautasPage() {
     sair, recarregar, criarPauta, atualizarPauta, mudarStatus,
   } = usePautas();
 
-  const [filtroStatus, setFiltroStatus] = useState(null);
   const [filtroPessoa, setFiltroPessoa] = useState(null);
   const [busca,        setBusca]        = useState("");
   const [formAberto,   setFormAberto]   = useState(false);
@@ -38,26 +39,28 @@ export default function PautasPage() {
     if (typeof document !== "undefined") document.title = "Pautas da Kora";
   }, []);
 
-  const contagem = useMemo(() => contarPorStatus(pautas), [pautas]);
   const visiveis = useMemo(
-    () => filtrarPautas(pautas, { status: filtroStatus, pessoa: filtroPessoa, busca }),
-    [pautas, filtroStatus, filtroPessoa, busca],
+    () => filtrarPautas(pautas, { pessoa: filtroPessoa, busca }),
+    [pautas, filtroPessoa, busca],
   );
+  const colunas = useMemo(() => agruparPorStatus(visiveis), [visiveis]);
 
-  const temFiltro = !!filtroStatus || !!filtroPessoa || !!busca.trim();
-  const limparFiltros = () => { setFiltroStatus(null); setFiltroPessoa(null); setBusca(""); };
+  const temFiltro = !!filtroPessoa || !!busca.trim();
+  const limparFiltros = () => { setFiltroPessoa(null); setBusca(""); };
 
   const abrirNova    = () => { setEmEdicao(null); setFormAberto(true); };
   const abrirEdicao  = (pauta) => { setEmEdicao(pauta); setFormAberto(true); };
   const salvar = (dados) => (emEdicao ? atualizarPauta(emEdicao.id, dados) : criarPauta(dados));
+
+  const mostrarQuadro = !erro && pautas.length > 0 && visiveis.length > 0;
 
   return (
     <div className="pautas">
       <header className="pautas__topo">
         <div className="pautas__topo-interno">
           <div className="pautas__marca">
-            <span className="pautas__marca-icone" aria-hidden><LuListChecks size={20} /></span>
-            <div>
+            <span className="pautas__marca-icone" aria-hidden>K</span>
+            <div className="pautas__marca-texto">
               <div className="pautas__marca-titulo">Pautas da Kora</div>
               <div className="pautas__marca-sub">
                 {pessoaAtual ? `Olá, ${pessoaAtual.nome}` : "Acesso dos sócios"}
@@ -76,55 +79,27 @@ export default function PautasPage() {
       </header>
 
       <div className="pautas__filtros">
-        <div className="pautas__filtro-linha">
-          <span className="pautas__filtro-rotulo" id="pautas-rotulo-situacao">Situação</span>
-          <div className="pautas__chips" role="group" aria-labelledby="pautas-rotulo-situacao">
+        {pessoas.length > 0 && (
+          <div className="pautas__chips" role="group" aria-label="Filtrar por pessoa">
             <button
               type="button"
-              className={`pautas__chip${filtroStatus === null ? " pautas__chip--ativo" : ""}`}
-              aria-pressed={filtroStatus === null}
-              onClick={() => setFiltroStatus(null)}
+              className={`pautas__chip${filtroPessoa === null ? " pautas__chip--ativo" : ""}`}
+              aria-pressed={filtroPessoa === null}
+              onClick={() => setFiltroPessoa(null)}
             >
-              Todas <span className="pautas__chip-num">{contagem.total}</span>
+              Todo mundo
             </button>
-            {STATUS_EM_ORDEM.map((status) => (
+            {pessoas.map((p) => (
               <button
-                key={status}
+                key={p.slug}
                 type="button"
-                className={`pautas__chip pautas__chip--${status}${filtroStatus === status ? " pautas__chip--ativo" : ""}`}
-                aria-pressed={filtroStatus === status}
-                onClick={() => setFiltroStatus(status)}
+                className={`pautas__chip${filtroPessoa === p.slug ? " pautas__chip--ativo" : ""}`}
+                aria-pressed={filtroPessoa === p.slug}
+                onClick={() => setFiltroPessoa(p.slug)}
               >
-                {rotuloStatus(status)} <span className="pautas__chip-num">{contagem[status]}</span>
+                {p.nome}
               </button>
             ))}
-          </div>
-        </div>
-
-        {pessoas.length > 0 && (
-          <div className="pautas__filtro-linha">
-            <span className="pautas__filtro-rotulo" id="pautas-rotulo-pessoa">Pessoa</span>
-            <div className="pautas__chips" role="group" aria-labelledby="pautas-rotulo-pessoa">
-              <button
-                type="button"
-                className={`pautas__chip${filtroPessoa === null ? " pautas__chip--ativo" : ""}`}
-                aria-pressed={filtroPessoa === null}
-                onClick={() => setFiltroPessoa(null)}
-              >
-                Todo mundo
-              </button>
-              {pessoas.map((p) => (
-                <button
-                  key={p.slug}
-                  type="button"
-                  className={`pautas__chip${filtroPessoa === p.slug ? " pautas__chip--ativo" : ""}`}
-                  aria-pressed={filtroPessoa === p.slug}
-                  onClick={() => setFiltroPessoa(p.slug)}
-                >
-                  {p.nome}
-                </button>
-              ))}
-            </div>
           </div>
         )}
 
@@ -134,7 +109,7 @@ export default function PautasPage() {
             className="pautas__busca-input"
             type="search"
             value={busca}
-            placeholder="Procurar por palavra na pauta"
+            placeholder="Procurar na pauta"
             aria-label="Procurar por palavra na pauta"
             maxLength={80}
             onChange={(e) => setBusca(e.target.value)}
@@ -174,7 +149,7 @@ export default function PautasPage() {
           <span className="pautas__vazio-icone" aria-hidden><LuSearch size={26} /></span>
           <p className="pautas__vazio-titulo">Nada com esse filtro</p>
           <p className="pautas__vazio-texto">
-            Nenhuma pauta combina com a situação, a pessoa ou a palavra que você escolheu.
+            Nenhuma pauta combina com a pessoa ou a palavra que você escolheu.
           </p>
           {temFiltro && (
             <button type="button" className="pautas__limpar" onClick={limparFiltros}>
@@ -184,17 +159,42 @@ export default function PautasPage() {
         </div>
       )}
 
-      <div className="pautas__lista">
-        {visiveis.map((pauta) => (
-          <PautaCard
-            key={pauta.id}
-            pauta={pauta}
-            pessoas={pessoas}
-            onMudarStatus={mudarStatus}
-            onEditar={abrirEdicao}
-          />
-        ))}
-      </div>
+      {mostrarQuadro && (
+        <div className="pautas__quadro">
+          {STATUS_EM_ORDEM.map((status) => {
+            const daColuna = colunas[status];
+            return (
+              <section
+                key={status}
+                className={`pautas__coluna pautas__coluna--${status}`}
+                aria-label={`${rotuloStatus(status)} (${daColuna.length})`}
+              >
+                <header className="pautas__coluna-topo">
+                  <span className="pautas__coluna-ponto" aria-hidden />
+                  <h2 className="pautas__coluna-titulo">{rotuloStatus(status)}</h2>
+                  <span className="pautas__coluna-num">{daColuna.length}</span>
+                </header>
+
+                {daColuna.length === 0 ? (
+                  <p className="pautas__coluna-vazia">Nada por aqui</p>
+                ) : (
+                  <div className="pautas__coluna-cards">
+                    {daColuna.map((pauta) => (
+                      <PautaCard
+                        key={pauta.id}
+                        pauta={pauta}
+                        pessoas={pessoas}
+                        onMudarStatus={mudarStatus}
+                        onEditar={abrirEdicao}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      )}
 
       {formAberto && (
         <PautaForm

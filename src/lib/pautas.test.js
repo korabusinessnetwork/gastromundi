@@ -13,6 +13,10 @@ import {
   nomesDosEnvolvidos,
   filtrarPautas,
   contarPorStatus,
+  agruparPorStatus,
+  abreviacaoStatus,
+  indiceDeCorDaPessoa,
+  CORES_DE_PESSOA,
 } from "./pautas";
 
 const PESSOAS = [
@@ -149,5 +153,82 @@ describe("contarPorStatus", () => {
     const contagem = contarPorStatus([...PAUTAS, { id: "4", status: "arquivado" }]);
     expect(contagem.total).toBe(4);
     expect(contagem.pendente + contagem.em_progresso + contagem.finalizado).toBe(3);
+  });
+});
+
+describe("agruparPorStatus", () => {
+  it("reparte a lista nas três colunas, na ordem do quadro", () => {
+    const grupos = agruparPorStatus(PAUTAS);
+    expect(Object.keys(grupos)).toEqual(STATUS_EM_ORDEM);
+    expect(grupos.pendente.map((p) => p.id)).toEqual(["1"]);
+    expect(grupos.em_progresso.map((p) => p.id)).toEqual(["2"]);
+    expect(grupos.finalizado.map((p) => p.id)).toEqual(["3"]);
+  });
+
+  it("preserva a ordem de chegada dentro de cada coluna", () => {
+    const grupos = agruparPorStatus([
+      { id: "a", status: STATUS_PAUTA.PENDENTE },
+      { id: "b", status: STATUS_PAUTA.FINALIZADO },
+      { id: "c", status: STATUS_PAUTA.PENDENTE },
+    ]);
+    expect(grupos.pendente.map((p) => p.id)).toEqual(["a", "c"]);
+  });
+
+  it("pauta com status torto cai em pendente em vez de sumir do quadro", () => {
+    const grupos = agruparPorStatus([{ id: "x", status: "arquivado" }, { id: "y" }]);
+    expect(grupos.pendente.map((p) => p.id)).toEqual(["x", "y"]);
+    expect(grupos.em_progresso).toEqual([]);
+    expect(grupos.finalizado).toEqual([]);
+  });
+
+  it("lista vazia devolve as três colunas vazias", () => {
+    for (const entrada of [[], null, undefined]) {
+      expect(agruparPorStatus(entrada)).toEqual({ pendente: [], em_progresso: [], finalizado: [] });
+    }
+  });
+});
+
+describe("abreviacaoStatus", () => {
+  it("uma letra por estado, todas diferentes", () => {
+    const letras = STATUS_EM_ORDEM.map(abreviacaoStatus);
+    expect(letras).toEqual(["P", "E", "F"]);
+    expect(new Set(letras).size).toBe(3);
+  });
+
+  it("status desconhecido cai na letra de pendente", () => {
+    expect(abreviacaoStatus("arquivado")).toBe("P");
+    expect(abreviacaoStatus(undefined)).toBe("P");
+  });
+});
+
+describe("indiceDeCorDaPessoa", () => {
+  it("a cor vem da posição na lista, não do nome do sócio", () => {
+    expect(indiceDeCorDaPessoa("matheus", PESSOAS)).toBe(1);
+    expect(indiceDeCorDaPessoa("guilherme", PESSOAS)).toBe(2);
+    expect(indiceDeCorDaPessoa("bonato", PESSOAS)).toBe(3);
+    // Mesmo slug, outra posição → outra cor: nada está amarrado ao nome.
+    expect(indiceDeCorDaPessoa("bonato", [...PESSOAS].reverse())).toBe(1);
+  });
+
+  it("sempre devolve um índice dentro da paleta que o CSS define", () => {
+    const muitas = Array.from({ length: 20 }, (_, i) => ({ slug: `p${i}` }));
+    for (const p of muitas) {
+      const indice = indiceDeCorDaPessoa(p.slug, muitas);
+      expect(indice).toBeGreaterThanOrEqual(1);
+      expect(indice).toBeLessThanOrEqual(CORES_DE_PESSOA);
+    }
+  });
+
+  it("quem saiu da lista mantém uma cor estável, sem trocar a cada render", () => {
+    const primeira = indiceDeCorDaPessoa("ex-socio", PESSOAS);
+    expect(primeira).toBe(indiceDeCorDaPessoa("ex-socio", PESSOAS));
+    expect(primeira).toBeGreaterThanOrEqual(1);
+    expect(primeira).toBeLessThanOrEqual(CORES_DE_PESSOA);
+  });
+
+  it("sem lista de pessoas ainda devolve uma cor válida", () => {
+    const indice = indiceDeCorDaPessoa("alguem");
+    expect(indice).toBeGreaterThanOrEqual(1);
+    expect(indice).toBeLessThanOrEqual(CORES_DE_PESSOA);
   });
 });
