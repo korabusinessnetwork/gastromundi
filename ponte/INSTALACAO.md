@@ -35,7 +35,15 @@ A Ponte **não abre janela nenhuma** — ela trabalha em segundo plano, como uma
 O programa vai:
 - Copiar a Ponte para a pasta do seu usuário (não pede senha).
 - Criar um atalho na **Área de Trabalho** para facilitar.
-- Criar outro atalho na pasta de **Inicializar** (ela passa a abrir sozinha toda vez que o PC liga).
+- Registrar uma **Tarefa Agendada** do Windows: a Ponte passa a abrir sozinha assim que alguém entra na conta do PC, e a voltar sozinha se ela cair durante o expediente.
+
+> **Atenção:** ela sobe quando alguém **entra na conta**, não quando o PC liga. Se o computador reiniciar de madrugada e ninguém fizer login, a Ponte só volta quando alguém entrar. Deixar a Ponte subir antes do login exigiria instalar como administrador, e a instalação é feita sem pedir senha de propósito.
+
+### 4. Liberar o celular no Wi-Fi (se o painel pedir)
+
+Depois de instalar, o painel pode mostrar o aviso **"O celular do garçom ainda não alcança esta ponte"** com o botão **Liberar o celular no Wi-Fi**. Clique nele e confirme o aviso do Windows que aparecer (este passo, e só este, pede senha de administrador).
+
+É o firewall do Windows: ele bloqueia a ponte **em silêncio**. No PC do caixa parece tudo certo, mas o celular do garçom fica rodando e dá "sem conexão". Se o aviso não aparecer, a passagem já está aberta e não há nada a fazer.
 
 **Pronto — a Ponte está instalada.**
 
@@ -50,7 +58,7 @@ Clique no atalho **"KORA Ponte"** na Área de Trabalho. Ele abre o **painel** no
 - **"Ponte ligada"** — está tudo certo, ela está trabalhando em segundo plano. Pode fechar a aba do navegador à vontade: fechar o painel **não** para a Ponte.
 - **"Ponte parada"** — clique no atalho da Área de Trabalho de novo para ligá-la.
 
-Depois que o PC reinicia, ela sobe sozinha, sem abrir nada na tela.
+Depois que o PC reinicia **e alguém entra na conta**, ela sobe sozinha, sem abrir nada na tela. Se ela cair no meio do expediente, o Windows a levanta de novo em até dois minutos.
 
 ### Parar a Ponte
 
@@ -101,6 +109,10 @@ R: Aconteceu sim — a Ponte não tem janela, ela trabalha em segundo plano. O p
 **P: Como sei se ela está mesmo ligada?**
 
 R: Clique no atalho **KORA Ponte** da Área de Trabalho. O painel abre dizendo **"Ponte ligada"** ou **"Ponte parada"**. Fechar a aba do navegador não para a Ponte.
+
+**P: O garçom escaneou o QR e o celular diz que não conecta**
+
+R: Confirme que o celular está no **mesmo Wi-Fi** do PC do caixa. Se estiver, abra o painel da Ponte no PC (atalho da Área de Trabalho): se aparecer o botão **Liberar o celular no Wi-Fi**, clique e confirme o aviso do Windows. É o firewall barrando — do lado do caixa não dá para perceber, porque lá tudo funciona.
 
 **P: Não está imprimindo a comanda**
 

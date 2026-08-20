@@ -1,0 +1,84 @@
+/*
+ * Aviso de comanda que não saiu na impressora. Estilo fora do JSX (decisão
+ * 018) e cores por token --gm-* para acompanhar o tema do estabelecimento
+ * (decisão 017) — nada de cor de marca fixa aqui.
+ *
+ * Fica em cima do indicador de rede (9500) e abaixo do aviso de sessão
+ * (9600, que é modal): papel faltando é urgente, mas não pode tapar o aviso
+ * que impede o operador de ser deslogado no meio do serviço.
+ */
+
+.aviso-impressao-ponte {
+  position: fixed;
+  bottom: 64px; /* acima do indicador de rede, sem cobri-lo */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9550;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 24px);
+  padding: 12px 16px;
+  border-radius: 14px;
+  /* Vermelho do tema escurecido: sobre o --gm-red puro, o texto branco fica
+     em ~3,3:1 e não se lê de pé, a alguns passos do caixa (princípio nº 1).
+     A cor continua NASCENDO do token do estabelecimento — nada de vermelho
+     inventado aqui (decisão 017). */
+  background: color-mix(in srgb, var(--gm-red) 82%, #000);
+  color: var(--gm-on-accent, #fff);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  text-align: left;
+}
+
+.aviso-impressao-ponte__icone {
+  flex-shrink: 0;
+}
+
+.aviso-impressao-ponte__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Legível a distância: quem lê isso está voltando do salão (princípio nº 1). */
+.aviso-impressao-ponte__titulo {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-weight: 800;
+}
+
+/* A linha do detalhe é a que diz O QUE FAZER — era a menor e a mais apagada
+   da tela (13px com opacity 0.92, abaixo de AA). Sem opacity e no corpo
+   normal ela sustenta o contraste do fundo inteiro. */
+.aviso-impressao-ponte__detalhe {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* Alvo de toque grande — a tela do caixa é operada com o dedo. */
+.aviso-impressao-ponte__botao {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.aviso-impressao-ponte__botao:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+/* Enquanto está lendo a fila da impressora: o botão mostra que está
+   trabalhando em vez de aceitar dez cliques que não fazem nada. */
+.aviso-impressao-ponte__botao:disabled {
+  cursor: progress;
+  opacity: 0.75;
+}

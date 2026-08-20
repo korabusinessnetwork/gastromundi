@@ -1,5 +1,6 @@
 import { buscarConfigImpressao, montarViaProducao } from "../impressao";
 import { agruparItensPorPonto, normalizarPontos, pontoDoItem } from "./pontos";
+import { lancamentosDoPedido } from "./lancamentos";
 import { imprimirDocumento } from "./drivers";
 
 /**
@@ -52,13 +53,54 @@ function consolidarErros(falhas, totalDestinos) {
   };
 }
 
+// --- O id que impede a comanda de sair duas vezes ---------------------
+//
+// A Ponte KORA deduplica pelo campo `id` do trabalho (ponte/servidor.js):
+// id que ela já tem volta como "duplicado", sem gastar papel — exceto
+// quando a tentativa anterior daquele id DESISTIU de imprimir: aí ela
+// trata o reenvio como reimpressão e põe o trabalho na fila de novo,
+// porque aquele papel nunca chegou a sair. Para essa deduplicação
+// valer, o id tem que identificar A AÇÃO que pediu a impressão — não o
+// texto do papel. Texto igual em comandas diferentes viraria o mesmo id
+// (uma delas não sairia), e texto que muda entre o clique e o reenvio
+// viraria id diferente (sairia duas vezes).
+//
+// Aqui a ação é o LANÇAMENTO (qual comanda, qual instante — a chave de
+// `lancamentos.js`) somado ao PONTO de impressão de destino.
+
+// A Ponte corta o id em 64 caracteres. Comanda (UUID) + instante do
+// lançamento + id do ponto passam disso juntos, e um id cortado no fim
+// faria dois pontos diferentes virarem o mesmo id — o segundo papel
+// voltaria como "duplicado" e nunca sairia naquela impressora. Resumir a
+// chave em tamanho fixo mantém as três partes pesando no id inteiro.
+function resumirChave(chave) {
+  let fnv = 0x811c9dc5;
+  let djb = 5381;
+  for (let i = 0; i < chave.length; i += 1) {
+    const c = chave.charCodeAt(i);
+    fnv = Math.imul(fnv ^ c, 0x01000193) >>> 0;
+    djb = (Math.imul(djb, 33) + c) >>> 0;
+  }
+  return fnv.toString(36).padStart(7, "0") + djb.toString(36).padStart(7, "0");
+}
+
+// "imp-" + 14 caracteres = 18: acima do mínimo que a Ponte honra
+// (ID_MINIMO_CARACTERES = 8, em src/lib/ponte.js) e longe do corte de 64.
+function idDaImpressao(chaveDaAcao, pontoId) {
+  return `imp-${resumirChave(`${chaveDaAcao}|${pontoId}`)}`;
+}
+
 /**
  * @param {object} order - shape do pedido/`pending` (comanda, mesa, garçom, items[])
  * @param {object} [configPreLida] - config já lida por quem chamou; evita uma
  *   segunda ida ao banco no caminho do lançamento (ver `imprimirLancamento`).
+ * @param {string} [chaveDaAcao] - identidade do lançamento que pediu esta
+ *   impressão (`lancamentos.js`). Vira o id que a Ponte usa para reconhecer
+ *   o clique repetido. Sem ela, o trabalho vai sem id e a rede de segurança
+ *   por assinatura de conteúdo de `enviarImpressaoPonte` assume.
  * @returns {Promise<{ error: {message: string}|null }>}
  */
-export async function enviarViaProducao(order, configPreLida) {
+export async function enviarViaProducao(order, configPreLida, chaveDaAcao) {
   const configImpressao = configPreLida ?? (await buscarConfigImpressao()).data;
   const documento = montarViaProducao({ pedido: order });
 
@@ -94,6 +136,12 @@ export async function enviarViaProducao(order, configPreLida) {
     if (varios) documentoDoPonto.pontoNome = ponto.nome;
 
     const perfil = { ...configImpressao?.perfilImpressora, impressora: ponto.impressora };
+    // Um id POR PONTO. A mesma ação manda a mesma comanda para impressoras
+    // diferentes; id repetido faria o segundo ponto receber "duplicado" e a
+    // comanda nunca sairia lá. Viaja no perfil porque é ele que já carrega o
+    // destino — nenhum outro driver muda de contrato por causa disso, e quem
+    // ignora o campo (browser-raster) segue igual.
+    if (chaveDaAcao) perfil.idImpressao = idDaImpressao(chaveDaAcao, ponto.id);
 
     let resultado;
     try {
@@ -141,6 +189,19 @@ export async function imprimirLancamento(order) {
   const documento = montarViaProducao({ pedido: order });
   if (documento.itens.length === 0) return { error: null, impresso: false };
 
-  const { error } = await enviarViaProducao(order, configImpressao);
+  // Quem identifica esta impressão é o LANÇAMENTO — comanda mais o instante
+  // em que os itens entraram (`lancamentos.js`) —, não o texto do papel. É
+  // por isso que o mesmo lançamento visto duas vezes (o eco do realtime, o
+  // caixa e o Palm reagindo ao mesmo pedido) rende um papel só, e que dois
+  // lançamentos com o mesmo texto rendem dois.
+  //
+  // Itens sem carimbo rastreável (comanda sem id, item sem `launched_at`)
+  // não têm chave; mais de um lançamento na mesma leva também não tem UMA
+  // chave. Nesses casos o trabalho segue sem id e vale a rede de segurança
+  // por assinatura de conteúdo de `enviarImpressaoPonte`.
+  const lancamentos = lancamentosDoPedido(order);
+  const chaveDaAcao = lancamentos.length === 1 ? lancamentos[0].chave : null;
+
+  const { error } = await enviarViaProducao(order, configImpressao, chaveDaAcao);
   return { error, impresso: true };
 }

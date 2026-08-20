@@ -93,14 +93,127 @@ export async function listarImpressorasPonte() {
   return { data, error: erroAmigavelPonte(error) };
 }
 
+// --- A impressão que não pode sair duas vezes -------------------------
+//
+// O prazo do fetch é curto (3s) e a impressora nem sempre é: com a bandeja
+// ocupada ou o PowerShell lento, a Ponte RECEBE o trabalho e demora a
+// responder. O app mostra erro, o operador clica de novo — e sem
+// identificação os DOIS trabalhos entram na fila. Comanda em dobro na
+// cozinha vira prato em dobro no salão.
+//
+// A Ponte deduplica por `id`: um id que ela já tem volta como
+// { ok: true, id, duplicado: true }, sem papel novo. Para isso servir de
+// alguma coisa, o REENVIO da mesma tentativa precisa levar o MESMO id.
+//
+// O id NÃO pode ser derivado do conteúdo do trabalho: a via de produção de
+// uma comanda é idêntica letra por letra toda vez que alguém a pede, e a
+// reimpressão manual pela tela da Cozinha — que é justamente o remédio que
+// o aviso do caixa manda usar quando a comanda não saiu — nunca mais sairia
+// no papel. Então: id novo a cada TENTATIVA, guardado apenas enquanto a
+// última tentativa daquele mesmo trabalho tiver terminado em ERRO. Deu
+// certo, a memória é apagada e o próximo pedido de impressão é trabalho
+// novo, com id novo, e o papel sai.
+//
+// A memória vive na aba aberta. Recarregar a página no meio de uma falha
+// perde o vínculo e o reenvio vira trabalho novo — é o preço de não guardar
+// isso em disco, e é o caso raro perto de "cliquei de novo porque deu erro".
+//
+// A JANELA É CURTA DE PROPÓSITO, e o número vem do TIMEOUT_MS. Ela só
+// precisa cobrir o intervalo entre o fetch desistir (TIMEOUT_MS) e o
+// operador clicar de novo em cima do erro que acabou de aparecer na tela —
+// clique duplo humano, questão de segundos. Janela longa engole o caso
+// oposto, que é pior: o trabalho chegou na Ponte, a impressora estava com
+// papel preso e ele FALHOU de verdade; o aviso do caixa manda reimprimir
+// pela tela da Cozinha; a via reimpressa é idêntica letra por letra, a
+// assinatura bate, o mesmo id volta — e a comanda que o operador acabou de
+// mandar imprimir some como "duplicada", com a tela dizendo que deu certo.
+// Quatro vezes o prazo do fetch dá folga para a rede local sem chegar perto
+// do tempo de alguém ler um aviso e agir: qualquer clique deliberado vindo
+// do aviso já cai fora da janela e vira impressão NOVA.
+const JANELA_REENVIO_MS = 4 * TIMEOUT_MS; // 12s
+
+// A Ponte só honra o campo `id` quando ele tem 8 caracteres ou mais
+// (ponte/servidor.js). Quem mandar um id mais curto não estaria ativando
+// proteção nenhuma lá — então aqui ele não vale como "id de quem chamou" e
+// a memória desta aba assume o trabalho.
+const ID_MINIMO_CARACTERES = 8;
+
+const reenviosEmAberto = new Map(); // assinatura do trabalho -> { id, falhouEm }
+let sequenciaImpressao = 0;
+
+// Duas abas do PDV abertas no mesmo PC (rotina no caixa) começam a sequência
+// em 1 cada uma; se as duas mandarem a primeira impressão no mesmo
+// milissegundo, o id sairia igual para trabalhos DIFERENTES e a Ponte
+// engoliria uma comanda legítima como duplicata. Este sorteio acontece uma
+// vez por aba e não muda enquanto ela viver — que é exatamente o que a
+// deduplicação precisa.
+const marcaDaAba = Math.random().toString(36).slice(2, 8);
+
+/** O que faz este trabalho ser "o mesmo" trabalho, para efeito de reenvio. */
+function assinarTrabalho(trabalho) {
+  return JSON.stringify([
+    trabalho?.destino ?? null,
+    trabalho?.linhas ?? null,
+    trabalho?.cortaPapel ?? null,
+    trabalho?.copias ?? null,
+  ]);
+}
+
+function esquecerReenviosVencidos(agora) {
+  for (const [assinatura, tentativa] of reenviosEmAberto) {
+    if (agora - tentativa.falhouEm > JANELA_REENVIO_MS) reenviosEmAberto.delete(assinatura);
+  }
+}
+
+/** Id da tentativa: o da falha recente do mesmo trabalho, ou um id novo. */
+function idDaTentativa(assinatura, agora) {
+  esquecerReenviosVencidos(agora);
+  const emAberto = reenviosEmAberto.get(assinatura);
+  if (emAberto) return emAberto.id;
+  sequenciaImpressao += 1;
+  return `imp-${marcaDaAba}-${agora.toString(36)}-${sequenciaImpressao.toString(36)}`;
+}
+
 /**
  * Enfileira um trabalho de impressão na Ponte. (POST /imprimir)
  *
- * @param {{destino: object, linhas: string[], cortaPapel?: boolean, copias?: number}} trabalho
- * @returns {Promise<{data: {id: string, estado: string}|null, error: Error|null}>}
+ * Vai sempre com `id` no corpo — é por ele que a Ponte reconhece reenvio e
+ * responde `duplicado: true` em vez de imprimir de novo. Quem chama pode
+ * mandar o próprio `trabalho.id`, desde que ele tenha PELO MENOS 8
+ * caracteres (é o mínimo que a Ponte honra); aí a responsabilidade de
+ * repetir esse id no reenvio é de quem chamou e a memória daqui não entra.
+ * Id mais curto que isso é ignorado e substituído por um id desta aba —
+ * fosse repassado como veio, quem chamou acharia que ativou a proteção sem
+ * ter ativado nada.
+ *
+ * @param {{destino: object, linhas: string[], cortaPapel?: boolean, copias?: number, id?: string}} trabalho
+ * @returns {Promise<{data: {id: string, estado?: string, duplicado?: boolean}|null, error: Error|null}>}
  */
 export async function enviarImpressaoPonte(trabalho) {
-  const { data, error } = await chamarPonte("/imprimir", { metodo: "POST", corpo: trabalho });
+  const idDeQuemChamou = typeof trabalho?.id === "string" && trabalho.id.length >= ID_MINIMO_CARACTERES
+    ? trabalho.id
+    : null;
+  const agora = Date.now();
+  const assinatura = assinarTrabalho(trabalho);
+  const id = idDeQuemChamou ?? idDaTentativa(assinatura, agora);
+
+  const { data, error } = await chamarPonte("/imprimir", { metodo: "POST", corpo: { ...trabalho, id } });
+
+  if (!idDeQuemChamou) {
+    // Falhou: o trabalho pode ter chegado lá mesmo assim, então o próximo
+    // clique tem que repetir este id. Deu certo (inclusive `duplicado`):
+    // acabou a tentativa, e uma impressão pedida depois é outra impressão.
+    //
+    // O carimbo é o instante em que a falha ficou CONHECIDA, não o do começo
+    // da tentativa. Justamente a falha por tempo esgotado leva TIMEOUT_MS
+    // para aparecer; datada no começo, a janela de reenvio já nasceria
+    // parcialmente gasta e o clique em cima do erro cairia fora dela. O `id`
+    // continua vindo do instante de início — é ele que a próxima tentativa
+    // procura na memória.
+    if (error) reenviosEmAberto.set(assinatura, { id, falhouEm: Date.now() });
+    else reenviosEmAberto.delete(assinatura);
+  }
+
   return { data, error: erroAmigavelPonte(error) };
 }
 
