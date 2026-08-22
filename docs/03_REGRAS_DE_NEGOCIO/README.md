@@ -17,6 +17,7 @@ Princípio central: **a venda no PDV é a transação-fonte** — ela se propaga
 | Clientes | [`CLIENTES.md`](./CLIENTES.md) | Cadastro, histórico, fidelidade | Documentado |
 | Relatórios | [`RELATORIOS.md`](./RELATORIOS.md) | Vendas, margem, desempenho | Documentado |
 | Jarvas | [`JARVAS.md`](./JARVAS.md) | Camada transversal de IA | Documentado |
+| Ponte KORA | [`PONTE.md`](./PONTE.md) | Pedidos sem internet — pedido do celular do garçom cai no PC do caixa e imprime pela rede local; trava global × chave por estabelecimento | Documentado |
 | Delivery | [`DELIVERY.md`](./DELIVERY.md) | Vitrine pública de pedidos (cardápio online), taxa por CEP, pagamento na entrega | Estrutura aprovada (não implementado) |
 
 ## Fora do produto (ferramenta interna)

@@ -296,6 +296,170 @@ describe("enviarViaProducao com vários pontos de impressão", () => {
   });
 });
 
+// A Ponte KORA só sabe que duas impressões são a mesma pelo campo `id`. Se
+// esse id viesse do TEXTO do papel, duas comandas de mesas diferentes com o
+// mesmo texto virariam uma só, e a mesma comanda com o texto alterado entre a
+// tentativa e o reenvio sairia duas vezes. Ele tem que nascer da AÇÃO.
+describe("id de impressão nascido da ação, não do texto do papel", () => {
+  const COZINHA = { tipo: "windows", nome: "EPSON-COZINHA" };
+  const BAR = { tipo: "rede", host: "192.168.0.9", porta: 9100 };
+  const DOIS_PONTOS = [
+    { id: "p1", nome: "Cozinha", impressora: COZINHA, padrao: true },
+    { id: "p2", nome: "Bar", impressora: BAR, padrao: false },
+  ];
+
+  /** Uma comanda com um lançamento só — o que o PDV manda ao lançar. */
+  const lancamento = (pedidoId, quando, items) => ({
+    id: pedidoId,
+    comanda: "12",
+    items: items.map((item) => ({ ...item, launched_at: quando })),
+  });
+
+  const UM_X_BURGUER = [{ id: 1, name: "X-Burguer", qty: 1, category: "Lanches" }];
+
+  const idsEnviados = () => imprimirDocumento.mock.calls.map(([, perfil]) => perfil.idImpressao);
+
+  it("o lançamento sai identificado, com id do tamanho que a Ponte honra", async () => {
+    // Comanda com id de verdade (UUID do banco), que somado ao instante do
+    // lançamento e ao id do ponto já passa dos 64 caracteres crus.
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+
+    await imprimirLancamento(
+      lancamento("6f0f2a7c-6a3f-4c66-9d0f-2b1c7f9a5e31", "2026-07-26T18:00:00.000Z", UM_X_BURGUER)
+    );
+
+    expect(idsEnviados()[0]).toEqual(expect.any(String));
+    // Abaixo de 8 caracteres a Ponte recusa o trabalho com 400 (ponte/servidor.js).
+    expect(idsEnviados()[0].length).toBeGreaterThanOrEqual(8);
+    // Acima de 64 ela corta o id — e o corte apagaria justamente a parte que
+    // separa um ponto de impressão do outro.
+    expect(idsEnviados()[0].length).toBeLessThanOrEqual(64);
+  });
+
+  it("cada ponto de impressão da MESMA ação recebe um id diferente", async () => {
+    // O erro que mata a comanda no segundo ponto: mesmo id nos dois papéis, a
+    // Ponte devolve "duplicado" no segundo e o bar nunca recebe nada.
+    configurarConfig({
+      perfilImpressora: PERFIL_TERMICA,
+      pontosImpressao: DOIS_PONTOS,
+      roteamento: { categorias: { Bebidas: "p2" }, produtos: {} },
+    });
+
+    await imprimirLancamento(
+      lancamento("ped-a", "2026-07-26T18:00:00.000Z", [
+        { id: 1, name: "X-Burguer", qty: 1, category: "Lanches" },
+        { id: 2, name: "Caipirinha", qty: 1, category: "Bebidas" },
+      ])
+    );
+
+    expect(imprimirDocumento).toHaveBeenCalledTimes(2);
+    const [idCozinha, idBar] = idsEnviados();
+    expect(idCozinha).toEqual(expect.any(String));
+    expect(idBar).not.toBe(idCozinha);
+  });
+
+  it("a mesma ação pedida de novo repete o id — é assim que a Ponte segura o papel dobrado", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+    const pedidoLancado = lancamento("ped-a", "2026-07-26T18:00:00.000Z", UM_X_BURGUER);
+
+    await imprimirLancamento(pedidoLancado);
+    await imprimirLancamento(pedidoLancado);
+
+    expect(idsEnviados()[0]).toEqual(expect.any(String));
+    expect(idsEnviados()[1]).toBe(idsEnviados()[0]);
+  });
+
+  it("a mesma ação reenviada com o papel alterado mantém o id (senão a comanda sairia duas vezes)", async () => {
+    // O caixa lança, a impressora falha, o garçom corrige a observação e manda
+    // de novo: é o MESMO lançamento (mesma comanda, mesmo instante), com texto
+    // diferente. Se o id viesse do texto, a Ponte não reconheceria o reenvio e
+    // o prato sairia duas vezes na bancada.
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+
+    await imprimirLancamento(
+      lancamento("ped-a", "2026-07-26T18:00:00.000Z", [
+        { id: 1, name: "X-Burguer", qty: 1, category: "Lanches" },
+      ])
+    );
+    await imprimirLancamento(
+      lancamento("ped-a", "2026-07-26T18:00:00.000Z", [
+        { id: 1, name: "X-Burguer SEM CEBOLA", qty: 2, category: "Lanches" },
+      ])
+    );
+
+    const [primeiro, segundo] = imprimirDocumento.mock.calls.map(([documento]) =>
+      documento.itens.map((i) => `${i.qty}x ${i.nome}`).join("|")
+    );
+    expect(segundo).not.toBe(primeiro); // papel diferente
+    expect(idsEnviados()[0]).toEqual(expect.any(String));
+    expect(idsEnviados()[1]).toBe(idsEnviados()[0]); // mesmo id
+  });
+
+  it("leva com mais de um lançamento junto vai sem id (nenhuma chave representa a leva)", async () => {
+    // Dois instantes diferentes no mesmo papel: a chave de um lançamento não
+    // identifica o outro. Mandar a do primeiro faria a Ponte prometer uma
+    // proteção que não cobre o resto do papel.
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+
+    await imprimirLancamento({
+      id: "ped-a",
+      comanda: "12",
+      items: [
+        { id: 1, name: "X-Burguer", qty: 1, category: "Lanches", launched_at: "2026-07-26T18:00:00.000Z" },
+        { id: 2, name: "Batata", qty: 1, category: "Lanches", launched_at: "2026-07-26T18:05:00.000Z" },
+      ],
+    });
+
+    expect(imprimirDocumento).toHaveBeenCalledTimes(1);
+    expect(idsEnviados()[0]).toBeUndefined();
+  });
+
+  it("dois lançamentos da mesma comanda nunca dividem o mesmo id", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+
+    await imprimirLancamento(lancamento("ped-a", "2026-07-26T18:00:00.000Z", UM_X_BURGUER));
+    await imprimirLancamento(lancamento("ped-a", "2026-07-26T18:05:00.000Z", UM_X_BURGUER));
+
+    expect(idsEnviados()[1]).not.toBe(idsEnviados()[0]);
+  });
+
+  it("comandas diferentes com o mesmo texto no mesmo instante têm ids diferentes", async () => {
+    // Duas mesas pedindo a mesma coisa ao mesmo tempo: o papel é idêntico
+    // letra por letra. Se o id viesse do texto, uma das duas não sairia.
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+
+    await imprimirLancamento(lancamento("ped-a", "2026-07-26T18:00:00.000Z", UM_X_BURGUER));
+    await imprimirLancamento(lancamento("ped-b", "2026-07-26T18:00:00.000Z", UM_X_BURGUER));
+
+    const [primeiro, segundo] = imprimirDocumento.mock.calls.map(([documento]) =>
+      documento.itens.map((i) => i.nome).join("|")
+    );
+    expect(segundo).toBe(primeiro); // mesmo papel
+    expect(idsEnviados()[1]).not.toBe(idsEnviados()[0]); // ids diferentes
+  });
+
+  it("lançamento sem carimbo rastreável vai sem id, em vez de inventar um", async () => {
+    // Item sem `launched_at` (comanda antiga, caminho que não carimba) não
+    // tem ação identificável. Mandar um id qualquer aqui seria prometer uma
+    // proteção que não existe — a rede de segurança de `enviarImpressaoPonte`
+    // é quem assume.
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+
+    await imprimirLancamento({ id: "ped-a", comanda: "12", items: UM_X_BURGUER });
+
+    expect(imprimirDocumento).toHaveBeenCalledTimes(1);
+    expect(idsEnviados()[0]).toBeUndefined();
+  });
+
+  it("via de produção pedida na tela da Cozinha vai sem id (a reimpressão precisa sair no papel)", async () => {
+    configurarConfig({ perfilImpressora: PERFIL_TERMICA });
+
+    await enviarViaProducao(lancamento("ped-a", "2026-07-26T18:00:00.000Z", UM_X_BURGUER));
+
+    expect(idsEnviados()[0]).toBeUndefined();
+  });
+});
+
 describe("imprimirLancamento", () => {
   it("imprime quando a chave está ligada", async () => {
     configurarConfig({ perfilImpressora: PERFIL_TERMICA, imprimirAoLancar: true });

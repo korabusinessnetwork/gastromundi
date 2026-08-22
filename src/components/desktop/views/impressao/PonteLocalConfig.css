@@ -10,6 +10,139 @@
   line-height: var(--lh-sm);
 }
 
+/* Chave de liga/desliga do recurso neste estabelecimento. Mesma forma do
+   card+toggle da aba Geral (Taxa de Serviço) — o dono já conhece o gesto. */
+.ponte-config__chave {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border, #333);
+}
+
+.ponte-config__chave-texto { flex: 1; }
+
+.ponte-config__chave-titulo {
+  font-weight: 700;
+  font-size: var(--fs-lg);   /* role: subtítulo, igual ao geral-tab__titulo */
+  line-height: var(--lh-lg);
+}
+
+.ponte-config__chave-ajuda {
+  color: var(--gm-muted);
+  margin-top: 4px;
+  font-size: var(--fs-sm);   /* role: label/apoio */
+  line-height: var(--lh-sm);
+}
+
+/* Carregando / Salvando / Ligado / Desligado / erro ao salvar / sem internet /
+   não deu para carregar — o estado nunca fica só na posição da bolinha, que
+   quem opera de longe não lê. */
+.ponte-config__chave-estado {
+  margin-top: 8px;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.ponte-config__chave-estado--erro { color: var(--gm-red, #ef4444); }
+
+/* O ajuste não chegou — sem internet ou porque o banco recusou a leitura.
+   Nos dois casos nada quebrou, só não sabemos a resposta: amarelo de atenção,
+   não vermelho de falha — o dono não perdeu nada. */
+.ponte-config__chave-estado--alerta { color: var(--gm-warn, #f59e0b); }
+
+/* Saída do estado "não deu para carregar". Só aparece com rede: sem internet
+   recarregar refaz o mesmo caminho, então lá o botão nem existe. Discreto,
+   mas grande o bastante para o toque no balcão. */
+.ponte-config__recarregar {
+  margin-top: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border, #333);
+  background: var(--gm-surface, #1c1c1e);
+  color: var(--gm-text, #eef2f7);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ponte-config__recarregar:hover { border-color: var(--gm-warn, #f59e0b); }
+
+/* Saída do estado "sem internet". Mesma forma do botão de recarregar — o dono
+   já conhece o gesto — e o mesmo alvo de toque do balcão. Enquanto a busca
+   roda ele fica travado e com cara de ocupado: clique repetido só faria o
+   caixa esperar duas vezes. */
+.ponte-config__buscar {
+  margin-top: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border, #333);
+  background: var(--gm-surface, #1c1c1e);
+  color: var(--gm-text, #eef2f7);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ponte-config__buscar:hover:not(:disabled) { border-color: var(--gm-warn, #f59e0b); }
+
+.ponte-config__buscar:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.ponte-config__toggle {
+  width: 56px;
+  height: 30px;
+  border-radius: 15px;
+  border: none;
+  padding: 0;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  outline: none;
+  cursor: pointer;
+  background: var(--gm-faint, #323d58);
+}
+
+.ponte-config__toggle--on { background: var(--gm-green, #10b981); }
+
+.ponte-config__toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.ponte-config__toggle-bolinha {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s;
+  display: block;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.ponte-config__toggle--on .ponte-config__toggle-bolinha { left: 29px; }
+
+/* Programa rodando mas chave desligada: o pedido do celular ficaria parado.
+   Avisa antes de o garçom escanear qualquer coisa. */
+.ponte-config__aviso {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-warn, #f59e0b);
+  color: var(--gm-warn, #f59e0b);
+}
+
 .ponte-config__status {
   display: flex;
   align-items: center;

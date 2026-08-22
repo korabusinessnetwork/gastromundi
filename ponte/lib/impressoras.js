@@ -99,6 +99,10 @@ function enviarPorRede({ host, porta }, bytes) {
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
     let encerrado = false;
+    // Só vira `true` quando a comanda inteira saiu daqui: todos os bytes
+    // escritos E a despedida (end) concluída. Antes disso, conexão fechada é
+    // comanda perdida, não comanda impressa.
+    let envioCompleto = false;
 
     const encerrar = (erro) => {
       if (encerrado) return;
@@ -110,10 +114,21 @@ function enviarPorRede({ host, porta }, bytes) {
     socket.setTimeout(TIMEOUT_REDE_MS);
     socket.on("timeout", () => encerrar(new Error(`A impressora ${host}:${porta} não respondeu em ${TIMEOUT_REDE_MS / 1000} segundos. Confira se ela está ligada e na rede.`)));
     socket.on("error", (e) => encerrar(new Error(`Não foi possível falar com a impressora ${host}:${porta} (${e.code ?? e.message}).`)));
-    socket.on("close", () => encerrar(null)); // fechou depois do end() = enviado
+    // Impressora sem papel, com buffer cheio ou reiniciando aceita a conexão e
+    // corta no meio. Se tratássemos todo fechamento como sucesso, a fila
+    // apagaria o trabalho e o prato não sairia sem ninguém perceber.
+    socket.on("close", () => {
+      if (envioCompleto) return encerrar(null);
+      encerrar(new Error(`A impressora ${host}:${porta} fechou a conexão antes de receber a comanda inteira. Confira papel e conexão.`));
+    });
 
     socket.connect(porta, host, () => {
-      socket.write(bytes, () => socket.end());
+      socket.write(bytes, (erroEscrita) => {
+        // Escrita que falhou não vira despedida: quem manda a mensagem para o
+        // caixa é o handler de erro/fechamento logo acima.
+        if (erroEscrita) return;
+        socket.end(() => { envioCompleto = true; });
+      });
     });
   });
 }
@@ -124,8 +139,18 @@ function enviarPorRede({ host, porta }, bytes) {
 // à parte e o PowerShell lê de lá. Assim um nome com aspas, acento, `$` ou
 // ponto-e-vírgula não vira comando (o equivalente a SQL injection, só que
 // em shell).
-function montarScriptRaw(caminhoNome, caminhoDados) {
-  return `$ErrorActionPreference = 'Stop'
+//
+// NÃO REMOVA O BOM DA PRIMEIRA LINHA. O PowerShell que vem no Windows (5.1) lê
+// script SEM BOM na página de código antiga do Windows (1252), não em UTF-8. O
+// caminho da pasta temporária vai escrito aqui dentro, e num PC cujo usuário do
+// Windows se chame "José", "João" ou "Conceição" — o normal em restaurante — o
+// acento chegaria quebrado ("JosÃ©"), o arquivo não seria achado e NENHUMA
+// comanda imprimiria naquele computador, sem ninguém entender o motivo.
+const BOM_UTF8 = "\uFEFF"; // vira os bytes EF BB BF ao gravar o arquivo em utf8
+
+// Exportada só para o teste conferir o BOM e o conteúdo do script.
+export function montarScriptRaw(caminhoNome, caminhoDados) {
+  return `${BOM_UTF8}$ErrorActionPreference = 'Stop'
 # Sem isto a mensagem de erro volta na página de código do DOS e o acento
 # chega quebrado no log da ponte / na tela do caixa.
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

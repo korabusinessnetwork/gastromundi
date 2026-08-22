@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { larguraEmPx, colunasPorLargura, quebrarLinha, PX_POR_MM } from "./largura";
+import { larguraEmPx, colunasPorLargura, colunasEscpos, quebrarLinha, PX_POR_MM } from "./largura";
 
 describe("larguraEmPx", () => {
   it("converte mm pra px na escala 3.75 (equivalente aos 300px fixos do F015 pra 80mm)", () => {
@@ -33,6 +33,40 @@ describe("colunasPorLargura", () => {
 
   it("nunca cai abaixo do mínimo de colunas, mesmo em papel muito estreito", () => {
     expect(colunasPorLargura(20, 40)).toBeGreaterThanOrEqual(10);
+  });
+});
+
+describe("colunasEscpos", () => {
+  it("papel de 80mm imprime 48 colunas e o de 58mm imprime 32 (Fonte A do hardware)", () => {
+    expect(colunasEscpos(80)).toBe(48);
+    expect(colunasEscpos(58)).toBe(32);
+  });
+
+  it("não depende do tamanho da fonte do preview: 80mm dá 48 e pronto", () => {
+    expect(colunasEscpos(80)).toBeGreaterThan(colunasPorLargura(80, 15));
+    expect(colunasEscpos(80)).toBe(48);
+  });
+
+  it("largura ausente ou inválida cai no padrão de 80mm", () => {
+    expect(colunasEscpos(undefined)).toBe(48);
+    expect(colunasEscpos(null)).toBe(48);
+    expect(colunasEscpos(0)).toBe(48);
+    expect(colunasEscpos(-10)).toBe(48);
+    expect(colunasEscpos("papel grande")).toBe(48);
+  });
+
+  it("largura fora do padrão usa o papel padrão que ainda cabe, nunca um maior", () => {
+    expect(colunasEscpos(76)).toBe(32);  // entre 58 e 80 → conta como 58mm
+    expect(colunasEscpos(100)).toBe(48); // acima de 80 → segue 80mm, não inventa colunas
+    expect(colunasEscpos(40)).toBe(32);  // não existe padrão menor que 58mm
+  });
+
+  it("devolve sempre um inteiro positivo", () => {
+    for (const mm of [80, 58, 76, 100, 40, 0, -5, undefined, NaN, "x"]) {
+      const colunas = colunasEscpos(mm);
+      expect(Number.isInteger(colunas)).toBe(true);
+      expect(colunas).toBeGreaterThan(0);
+    }
   });
 });
 

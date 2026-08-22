@@ -77,10 +77,24 @@ describe("origemAceita", () => {
   const HOST = "localhost:8123";
   const DONA = "https://app.gastromundi.com";
 
-  it("aceita qualquer origem enquanto a ponte não foi vinculada", () => {
-    // Instalação nova: sem dono gravado, o primeiro vínculo tem que entrar.
-    expect(origemAceita({ origem: DONA, host: HOST })).toBe(true);
-    expect(origemAceita({ origem: "https://qualquer.com", host: HOST, fixada: "" })).toBe(true);
+  it("sem dono, endereço desconhecido entra pelo primeiro vínculo e por mais nada", () => {
+    // Instalação nova (ou logo depois de "liberar para outro endereço"): o
+    // vínculo tem que entrar, senão nenhuma ponte nova funciona. O resto,
+    // não: era por aí que um site qualquer aberto no navegador do caixa lia
+    // /info — que entrega o token do estabelecimento — e ainda parava ou
+    // instalava a ponte, sem o dono ver nada.
+    expect(origemAceita({ origem: DONA, host: HOST, primeiroVinculo: true })).toBe(true);
+    expect(origemAceita({ origem: "https://qualquer.com", host: HOST, fixada: "", primeiroVinculo: true })).toBe(true);
+
+    expect(origemAceita({ origem: DONA, host: HOST })).toBe(false);
+    expect(origemAceita({ origem: "https://qualquer.com", host: HOST, fixada: "" })).toBe(false);
+  });
+
+  it("o passe do primeiro vínculo vale só enquanto não há dono", () => {
+    // Depois de fixado, nem o /vincular aceita endereço estranho — senão
+    // qualquer site tomaria a ponte de um estabelecimento já vinculado.
+    expect(origemAceita({ origem: "https://site-do-atacante.com", host: HOST, fixada: DONA, primeiroVinculo: true })).toBe(false);
+    expect(origemAceita({ origem: DONA, host: HOST, fixada: DONA, primeiroVinculo: true })).toBe(true);
   });
 
   it("depois de fixada, só atende a origem do estabelecimento", () => {
@@ -94,6 +108,8 @@ describe("origemAceita", () => {
   it("pedido sem Origin passa (não é navegador falando de outro site)", () => {
     expect(origemAceita({ host: HOST, fixada: DONA })).toBe(true);
     expect(origemAceita({ origem: "", host: HOST, fixada: DONA })).toBe(true);
+    // Vale também na ponte sem dono: é o curl, é o próprio painel num GET.
+    expect(origemAceita({ host: HOST })).toBe(true);
   });
 
   it("mesma origem passa sempre — é o painel e é o Palm", () => {
@@ -101,6 +117,9 @@ describe("origemAceita", () => {
     // haveria como liberar outro endereço.
     expect(origemAceita({ origem: "http://localhost:8123", host: HOST, fixada: DONA })).toBe(true);
     expect(origemAceita({ origem: "http://192.168.0.42:8123", host: "192.168.0.42:8123", fixada: DONA })).toBe(true);
+    // E antes de existir dono também: é assim que o painel abre numa
+    // instalação nova, que é justo quando ele precisa ser visto.
+    expect(origemAceita({ origem: "http://localhost:8123", host: HOST })).toBe(true);
   });
 });
 
@@ -133,6 +152,14 @@ describe("cabecalhosCors", () => {
 
   it("sem argumento nenhum não devolve o curinga que existia antes", () => {
     expect(cabecalhosCors()["Access-Control-Allow-Origin"]).toBeUndefined();
+  });
+
+  it("ponte sem dono só ecoa a origem na rota do primeiro vínculo", () => {
+    const invasor = "https://site-do-atacante.com";
+    expect(cabecalhosCors({ origem: invasor, host: "localhost:8123" })["Access-Control-Allow-Origin"]).toBeUndefined();
+    expect(
+      cabecalhosCors({ origem: invasor, host: "localhost:8123", primeiroVinculo: true })["Access-Control-Allow-Origin"],
+    ).toBe(invasor);
   });
 });
 

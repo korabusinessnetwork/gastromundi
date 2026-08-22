@@ -208,6 +208,20 @@
     <button class="botao" id="btnInstalar" type="button">Instalar neste computador</button>
     <p class="resultado" id="instalacaoResultado" hidden></p>
     <p class="discreto" id="instalacaoDiscreta" hidden></p>
+
+    <div id="blocoFirewall" hidden>
+      <p class="aviso-instalacao" id="firewallAviso">O celular do garçom ainda não alcança esta ponte: falta liberar a passagem no Wi-Fi deste computador.</p>
+      <button class="botao" id="btnFirewall" type="button">Liberar o celular no Wi-Fi</button>
+      <p class="discreto">O Windows vai abrir uma janela perguntando se pode. Clique em <strong>Sim</strong> — sem isso o celular continua sem conseguir mandar pedido.</p>
+    </div>
+    <p class="resultado" id="firewallResultado" hidden></p>
+
+    <button class="botao discreto-acao" id="btnAutoStart" type="button" hidden>Não abrir sozinha com o Windows</button>
+    <p class="aviso-instalacao" id="autostartAviso" hidden>
+      Tem certeza? A ponte deixa de abrir sozinha quando este computador ligar,
+      e as comandas param de sair até alguém abrir a ponte na mão.
+    </p>
+    <p class="resultado" id="autostartResultado" hidden></p>
   </section>
 
   <section class="card" id="cardPalm" hidden>
@@ -276,6 +290,15 @@
   var elInstalacaoResultado = document.getElementById("instalacaoResultado");
   var elInstalacaoDiscreta = document.getElementById("instalacaoDiscreta");
 
+  var elBlocoFirewall = document.getElementById("blocoFirewall");
+  var elFirewallAviso = document.getElementById("firewallAviso");
+  var elBtnFirewall = document.getElementById("btnFirewall");
+  var elFirewallResultado = document.getElementById("firewallResultado");
+
+  var elBtnAutoStart = document.getElementById("btnAutoStart");
+  var elAutoStartAviso = document.getElementById("autostartAviso");
+  var elAutoStartResultado = document.getElementById("autostartResultado");
+
   var elCardPalm = document.getElementById("cardPalm");
   var elEnderecoPalm = document.getElementById("enderecoPalm");
 
@@ -286,6 +309,24 @@
 
   var instalando = false; // trava o polling de sobrescrever o botão no meio da instalação
   var liberandoOrigem = false; // idem, para o botão de liberar o endereço
+  var liberandoFirewall = false; // idem, para o botão do firewall (o Windows pode demorar a responder)
+  // A resposta do "liberar" se perdeu no caminho e estamos perguntando de novo
+  // à ponte como o firewall ficou. Enquanto isso ninguém pode escrever "não
+  // deu" na tela: a regra pode ter sido criada mesmo assim.
+  var conferindoFirewall = false;
+  // Hora do clique no "Liberar o celular no Wi-Fi" (0 = ninguém clicou).
+  // A ponte NÃO pergunta ao Windows a cada consulta: ela responde a última
+  // sondagem conhecida, que pode ter até um minuto e ser ANTERIOR a este
+  // clique. Comparar o carimbo `firewall.em` com esta hora é o que separa "o
+  // Windows já respondeu sobre o meu clique" de "esta é a mesma resposta de
+  // antes". Os dois relógios são o mesmo: o painel só abre no PC do caixa.
+  var cliqueFirewallEm = 0;
+  // Quanto tempo esperamos por uma resposta nova do Windows antes de devolver
+  // o botão ao dono. Mais que isso é deixar a tela travada em "Conferindo…";
+  // menos é atropelar a janela de permissão, que ainda pode estar aberta.
+  var MS_ESPERA_FIREWALL = 25000;
+  var relogioFirewall = null;
+  var desligandoAutoStart = false; // idem, para o botão de desligar a abertura automática
 
   // Quando o dono mandou parar (0 = nunca). A ponte responde 200 e só depois
   // encerra, então uma consulta que já estava no ar pode voltar "ligada" logo
@@ -304,6 +345,25 @@
   var MS_CONFIRMACAO = 6000;
   var confirmandoParada = false;
   var relogioConfirmacao = null;
+
+  // Mesmo cuidado do "Parar a ponte": o primeiro clique só pergunta, e a
+  // pergunta expira sozinha. Desligar a abertura automática sem querer só
+  // apareceria como problema na manhã seguinte, com o salão abrindo e nenhuma
+  // comanda saindo — e ninguém ligaria uma coisa à outra.
+  var confirmandoAutoStart = false;
+  var relogioAutoStart = null;
+
+  function voltarBotaoAutoStart() {
+    confirmandoAutoStart = false;
+    if (relogioAutoStart) {
+      clearTimeout(relogioAutoStart);
+      relogioAutoStart = null;
+    }
+    elBtnAutoStart.className = "botao discreto-acao";
+    elBtnAutoStart.textContent = "Não abrir sozinha com o Windows";
+    elBtnAutoStart.disabled = false;
+    elAutoStartAviso.hidden = true;
+  }
 
   function mostrarLigada() {
     elPonto.className = "ponto ligada";
@@ -357,12 +417,18 @@
   // se o estabelecimento trocar de endereço.
   function aplicarOrigem(origemPermitida) {
     if (!origemPermitida) {
-      elOrigemTexto.hidden = true;
+      // Sem endereço fixado, a ponte está "à espera de dono": o primeiro
+      // sistema KORA que abrir aqui é que vai prendê-la. Dizer isso na tela é
+      // o que permite ao dono perceber que a ponte ainda está aberta — e,
+      // logo depois, conferir no lugar deste mesmo texto que quem a prendeu
+      // foi o endereço certo. Não há o que liberar, então o botão some.
+      elOrigemTexto.hidden = false;
+      elOrigemTexto.textContent = "Ainda sem endereço: o primeiro sistema KORA aberto neste computador é que vai ficar com esta ponte.";
       elBtnLiberarOrigem.hidden = true;
       return;
     }
     elOrigemTexto.hidden = false;
-    elOrigemTexto.textContent = "Atendendo somente o endereço " + origemPermitida + ".";
+    elOrigemTexto.textContent = "Esta ponte atende só o endereço " + origemPermitida + " — nenhum outro site deste computador fala com ela.";
     elBtnLiberarOrigem.hidden = false;
     if (!liberandoOrigem) {
       elBtnLiberarOrigem.disabled = false;
@@ -395,6 +461,114 @@
         elBtnInstalar.disabled = false;
         elBtnInstalar.textContent = "Instalar neste computador";
       }
+    }
+
+    aplicarFirewall(info.firewall);
+    aplicarAutoStart(info);
+  }
+
+  // O firewall do Windows barra o celular em SILÊNCIO: o garçom abre o Palm e
+  // só vê "sem conexão". O convite para liberar aparece quando a ponte já
+  // perguntou ao Windows e ouviu "está barrado" — e também quando ela TENTOU
+  // saber e não conseguiu (tem `erro` para mostrar). Enquanto ela nunca
+  // perguntou, oferecer o botão seria chute; e quando já está liberado não há
+  // nada a fazer — some da tela para não virar botão que não muda nada.
+  //
+  // O que este bloco NÃO pode fazer é sumir levando junto o botão de tentar de
+  // novo bem na hora em que deu problema: a mensagem de erro ficaria sozinha
+  // na tela mandando clicar num botão que não está mais lá.
+  function aplicarFirewall(firewall) {
+    var info = firewall || {};
+    var bloqueioConfirmado = info.verificado === true && info.liberado === false;
+    var precisaLiberar = info.liberado !== true && (info.verificado === true || !!info.erro);
+    elBlocoFirewall.hidden = !precisaLiberar;
+
+    // Só afirma que o celular está barrado quando o Windows disse isso. Quando
+    // o bloco está na tela por causa de um erro (a ponte não conseguiu
+    // perguntar), a frase diz exatamente isso — e o botão continua valendo,
+    // porque liberar quando já está liberado não faz mal nenhum.
+    elFirewallAviso.textContent = bloqueioConfirmado
+      ? "O celular do garçom ainda não alcança esta ponte: falta liberar a passagem no Wi-Fi deste computador."
+      : "Não deu para conferir com o Windows se o celular do garçom já alcança esta ponte.";
+
+    // O cartão saiu de cena ⇒ a linha de aviso escrita antes vai junto. Um
+    // "não deu" sozinho na tela acusaria um problema que já acabou, e sem o
+    // botão por perto não sobra nem o que clicar. Só o "Liberado!" fica: ele é
+    // a confirmação do que o dono acabou de fazer, e é logo depois dele que o
+    // cartão se esconde.
+    if (!precisaLiberar && elFirewallResultado.className !== "resultado sucesso") {
+      elFirewallResultado.hidden = true;
+    }
+
+    // O contrário do caso acima: o cartão voltou porque o Windows conferiu
+    // DEPOIS do "Liberado!" e disse que a passagem está fechada de novo
+    // (alguém apagou a regra). Deixar o verde ali ao lado poria duas frases
+    // opostas na mesma tela, e o dono não saberia em qual acreditar — o verde
+    // sai.
+    if (bloqueioConfirmado && elFirewallResultado.className === "resultado sucesso") {
+      elFirewallResultado.hidden = true;
+    }
+
+    // Estamos conferindo uma liberação cuja resposta se perdeu no caminho. A
+    // ponte responde a ÚLTIMA sondagem que ela tem, e ela pode ser anterior ao
+    // clique — inclusive a que a própria liberação fez antes de abrir a janela
+    // de permissão. Por isso duas travas: só conta sondagem mais nova que o
+    // clique, e só a passagem para "liberado" vira veredicto. Fracasso não se
+    // declara aqui: a janela do Windows pode estar aberta neste exato momento.
+    if (conferindoFirewall && info.liberado === true && Number(info.em) > cliqueFirewallEm) {
+      conferindoFirewall = false;
+      liberandoFirewall = false;
+      pararRelogioFirewall();
+      elFirewallResultado.hidden = false;
+      elFirewallResultado.className = "resultado sucesso";
+      elFirewallResultado.textContent = "Liberado! Abra o endereço do celular no aparelho do garçom — agora ele chega até este computador.";
+    }
+
+    if (precisaLiberar && !liberandoFirewall && !conferindoFirewall) {
+      elBtnFirewall.disabled = false;
+      elBtnFirewall.textContent = "Liberar o celular no Wi-Fi";
+    }
+  }
+
+  function pararRelogioFirewall() {
+    if (relogioFirewall) {
+      clearTimeout(relogioFirewall);
+      relogioFirewall = null;
+    }
+  }
+
+  // Passou o tempo de espera e nenhuma resposta nova do Windows chegou. Nada
+  // aqui acusa ninguém: a liberação pode ter dado certo, pode estar esperando
+  // o dono na janela de permissão, ou a janela pode nem ter aparecido. O dono
+  // recebe o botão de volta e a frase diz o que fazer em cada caso. A espera
+  // termina aqui: a bandeira volta a false para que uma sondagem atrasada não
+  // caia mais no ramo do veredicto. Se a liberação tiver passado assim mesmo,
+  // o cartão inteiro some sozinho na consulta seguinte, levando esta frase.
+  function devolverBotaoFirewall() {
+    relogioFirewall = null;
+    if (!conferindoFirewall) return;
+    conferindoFirewall = false;
+    elFirewallResultado.hidden = false;
+    elFirewallResultado.className = "resultado";
+    elFirewallResultado.textContent = "Não consegui confirmar. Se a janela do Windows apareceu e você clicou em Sim, aguarde alguns segundos; se ela não apareceu, clique de novo.";
+    elBtnFirewall.disabled = false;
+    elBtnFirewall.textContent = "Liberar o celular no Wi-Fi";
+  }
+
+  // Desligar a abertura automática é o desfazer da instalação (mudar a ponte
+  // de computador, emprestar a máquina, parar de usar). Só aparece quando há
+  // o que desligar, e some assim que ela deixa de abrir sozinha.
+  function aplicarAutoStart(info) {
+    var podeDesligar = info.instalado === true && info.autoStart === true;
+    elBtnAutoStart.hidden = !podeDesligar;
+    if (!podeDesligar) {
+      elAutoStartAviso.hidden = true;
+      return;
+    }
+    if (!desligandoAutoStart && !confirmandoAutoStart) {
+      elBtnAutoStart.disabled = false;
+      elBtnAutoStart.className = "botao discreto-acao";
+      elBtnAutoStart.textContent = "Não abrir sozinha com o Windows";
     }
   }
 
@@ -503,6 +677,101 @@
         elInstalacaoResultado.textContent = "Não deu para falar com a Ponte para instalar. Tente de novo.";
         elBtnInstalar.disabled = false;
         elBtnInstalar.textContent = "Instalar neste computador";
+      });
+  });
+
+  elBtnFirewall.addEventListener("click", function () {
+    liberandoFirewall = true;
+    conferindoFirewall = false;
+    pararRelogioFirewall();
+    // Marca do clique: daqui para a frente, só resposta do Windows apurada
+    // DEPOIS deste instante conta como veredicto (ver aplicarFirewall).
+    cliqueFirewallEm = Date.now();
+    elBtnFirewall.disabled = true;
+    // O Windows pode levar um tempo (e pode abrir a janela de permissão dele
+    // por cima do navegador): o texto do botão diz o que fazer enquanto isso.
+    elBtnFirewall.textContent = "Liberando… responda a janela do Windows";
+    elFirewallResultado.hidden = true;
+
+    fetch("/firewall/liberar", { method: "POST" })
+      .then(function (resp) { return resp.json(); })
+      .then(function (r) {
+        liberandoFirewall = false;
+        elFirewallResultado.hidden = false;
+        if (r && r.ok && r.liberado) {
+          elFirewallResultado.className = "resultado sucesso";
+          elFirewallResultado.textContent = "Liberado! Abra o endereço do celular no aparelho do garçom — agora ele chega até este computador.";
+        } else {
+          elFirewallResultado.className = "resultado erro";
+          elFirewallResultado.textContent = (r && r.erro) || "Não deu para liberar agora. Tente de novo.";
+          elBtnFirewall.disabled = false;
+          elBtnFirewall.textContent = "Liberar o celular no Wi-Fi";
+        }
+        buscarEstado(); // o cartão some sozinho quando o Windows confirmar a liberação
+      })
+      .catch(function () {
+        // Cair aqui NÃO quer dizer que a liberação falhou. Criar a regra passa
+        // pelo Windows, que pode demorar mais do que o navegador espera: o
+        // pedido morre no meio do caminho e a regra fica criada assim mesmo.
+        // Escrever "não deu" neste ponto seria mentir para o dono — e a
+        // própria tela desmentiria segundos depois, quando o cartão do
+        // firewall sumisse sozinho. Então perguntamos à ponte como o firewall
+        // ficou, e só uma resposta apurada depois do clique decide (ver
+        // aplicarFirewall). Se nenhuma chegar, o relógio abaixo devolve o
+        // botão ao dono sem culpar o Windows por nada.
+        conferindoFirewall = true;
+        liberandoFirewall = false;
+        elFirewallResultado.hidden = false;
+        elFirewallResultado.className = "resultado";
+        elFirewallResultado.textContent = "O Windows está demorando a responder — conferindo se a liberação passou.";
+        elBtnFirewall.disabled = true;
+        elBtnFirewall.textContent = "Conferindo…";
+        pararRelogioFirewall();
+        relogioFirewall = setTimeout(devolverBotaoFirewall, MS_ESPERA_FIREWALL);
+        buscarEstado();
+      });
+  });
+
+  elBtnAutoStart.addEventListener("click", function () {
+    // Primeiro clique: só pergunta, com o aviso do que isso custa amanhã cedo.
+    if (!confirmandoAutoStart) {
+      confirmandoAutoStart = true;
+      elBtnAutoStart.className = "botao perigo confirmando";
+      elBtnAutoStart.textContent = "Desligar mesmo assim";
+      elAutoStartAviso.hidden = false;
+      relogioAutoStart = setTimeout(voltarBotaoAutoStart, MS_CONFIRMACAO);
+      return;
+    }
+
+    // Segundo clique: agora vai.
+    if (relogioAutoStart) clearTimeout(relogioAutoStart);
+    relogioAutoStart = null;
+    desligandoAutoStart = true;
+    elBtnAutoStart.disabled = true;
+    elBtnAutoStart.textContent = "Desligando…";
+    elAutoStartResultado.hidden = true;
+
+    fetch("/autostart/desligar", { method: "POST" })
+      .then(function (resp) { return resp.json(); })
+      .then(function (r) {
+        desligandoAutoStart = false;
+        elAutoStartResultado.hidden = false;
+        if (r && r.ok) {
+          elAutoStartResultado.className = "resultado sucesso";
+          elAutoStartResultado.textContent = "Pronto. A partir de agora, abra a ponte pelo atalho \"KORA Ponte\" da Área de Trabalho antes do serviço.";
+        } else {
+          elAutoStartResultado.className = "resultado erro";
+          elAutoStartResultado.textContent = (r && r.erro) || "Não deu para desligar agora. Tente de novo.";
+        }
+        voltarBotaoAutoStart();
+        buscarEstado(); // o botão some sozinho quando ela deixar de abrir sozinha
+      })
+      .catch(function () {
+        desligandoAutoStart = false;
+        elAutoStartResultado.hidden = false;
+        elAutoStartResultado.className = "resultado erro";
+        elAutoStartResultado.textContent = "Não deu para falar com a Ponte para desligar. Tente de novo.";
+        voltarBotaoAutoStart();
       });
   });
 

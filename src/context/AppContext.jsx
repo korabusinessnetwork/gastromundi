@@ -117,6 +117,18 @@ export function AppProvider({ children }) {
 
   // ── Offline-first (Leva 11) ──────────────────────────────────
   const redeOnline = useStatusRede();
+  // A última carga de dados não alcançou o banco e o app seguiu com o que
+  // estava salvo neste computador (o snapshot). É um sinal DIFERENTE do
+  // `redeOnline`: `navigator.onLine` só sabe se a placa de rede deste aparelho
+  // está de pé, e o caso comum do restaurante é justamente o outro — roteador
+  // ligado, link do provedor caído. Aí o navegador continua se dizendo online
+  // enquanto nenhuma leitura chega ao Supabase. Quem precisa separar "o ajuste
+  // ainda vem" de "o ajuste não vem mais" (a aba Pedidos sem Internet) tem de
+  // olhar os dois sinais, não só o do navegador.
+  //
+  // Ele se apaga de duas formas: no começo de cada nova carga (bootstrap) e
+  // quando este computador reconecta (efeito do evento `online`, mais abaixo).
+  const [abriuSemInternet, setAbriuSemInternet] = useState(false);
   const [pendenciasOffline, setPendenciasOffline] = useState(() => filaOffline.tamanho());
   const drenandoRef = useRef(false);
   // Notas fiscais que ficaram na fila: a venda saiu, a nota não. Fica visível
@@ -131,6 +143,12 @@ export function AppProvider({ children }) {
   // (http://IP:porta/palm?t=token). Persistido em config para o Palm
   // saber para onde ir quando a internet cair.
   const [ponteEndereco, setPonteEnderecoLocal] = useState(null);
+  // Liga/desliga a Ponte NESTE estabelecimento (config "ponte_local_ativa").
+  // Nasce `null` de propósito: null é "ainda não sei", e não "desligado".
+  // Enquanto o bootstrap não responde, quem lê isto fica parado — se o padrão
+  // fosse `false`, a bridge ligaria meio segundo depois do login e o ciclo
+  // piscaria; se fosse `true`, quem não tem a Ponte veria erro de conexão.
+  const [ponteLocalAtiva, setPonteLocalAtivaLocal] = useState(null);
 
   // ── Auth ─────────────────────────────────────────────────────
   // `lerSessao` em vez de `loadSession` porque um inicializador de estado não
@@ -199,10 +217,21 @@ export function AppProvider({ children }) {
           // `at` novo quando é aba nova (aí é começo de sessão de verdade).
           if (!atualizarUsuarioSessao(userData)) saveSession(userData);
           await bootstrap();
-        } else if (loadSession() && typeof navigator !== "undefined" && navigator.onLine === false) {
+        } else if (loadSession() && (isErroDeRede(erroPerfil) || (typeof navigator !== "undefined" && navigator.onLine === false))) {
           // Sem internet a busca do usuário falha mesmo com sessão válida.
           // A sessão local basta para operar: o bootstrap hidrata do
           // snapshot e o app segue offline em vez de travar no login.
+          //
+          // São dois sinais porque só o do navegador não pega o caso mais
+          // comum do restaurante: roteador de pé e link do provedor caído. Aí
+          // `navigator.onLine` continua `true` e quem denuncia a queda é o
+          // próprio erro desta leitura, que saiu pelo mesmo caminho de rede
+          // que todas as outras. Sem isso o app parava aqui, o bootstrap nunca
+          // rodava e nada carimbava "abriu sem internet".
+          //
+          // Erro que NÃO é de rede (o banco respondeu, só não achou usuário
+          // ativo) segue caindo nos ramos de baixo: este ramo nunca decide
+          // conta desativada, e falha de rede nunca vira logout.
           await bootstrap();
         } else if (perfilInativoConfirmado(erroPerfil)) {
           // O JWT ainda vale, mas o banco respondeu com CERTEZA que não há
@@ -414,7 +443,23 @@ export function AppProvider({ children }) {
   }
 
   // ── Fetch inicial do Supabase (só roda autenticado) ───────────
+  // O `loading` liga AQUI, e não só no `useState(true)` da montagem. No login
+  // o app já tinha aberto sem sessão e desligado o loading; o bootstrap então
+  // rodava com a tela montada e `loading === false`, e quem lê isso como
+  // "terminou de abrir" (a aba Pedidos sem Internet) anunciava "não deu para
+  // carregar o ajuste" com o ajuste ainda a caminho. Nas outras três chamadas
+  // — restauração de sessão ao carregar a página — o loading já está ligado,
+  // então lá isto não muda nada e nenhuma tela pisca no meio da sessão.
+  // O `finally` é o que garante a volta: bootstrap que lance no meio (storage
+  // bloqueado, promessa rejeitada) não pode deixar o caixa preso em
+  // "Conectando ao caixa…" nem a tela da Ponte em "Carregando…" para sempre.
   async function bootstrap() {
+    setLoading(true);
+    // Cada carga recomeça sem o carimbo de "abriu sem internet": um bootstrap
+    // que agora deu certo (login depois de a conexão voltar) não pode deixar a
+    // tela dizendo que o estabelecimento está sem rede.
+    setAbriuSemInternet(false);
+    try {
       const [
         { data: productsData, error: eProducts },
         { data: pendingData,  error: ePending  },
@@ -435,7 +480,7 @@ export function AppProvider({ children }) {
         buscarSalesData(),
         buscarUsers(),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","metodos_tef","dias_alerta_validade","ponte_endereco","limite_sangria"]),
+        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","metodos_tef","dias_alerta_validade","ponte_endereco","ponte_local_ativa","limite_sangria"]),
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
         // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
         buscarBootstrapTenant(),
@@ -467,6 +512,17 @@ export function AppProvider({ children }) {
       // ── Offline (Leva 11): sem internet, hidrata do último snapshot ──
       // e deixa o PDV operar; os pedidos entram na fila local.
       if (isErroDeRede(eProducts) || isErroDeRede(ePending)) {
+        // Quem viu a rede cair foi AQUI, não o `navigator.onLine`: é este erro
+        // que manda o app operar com o que já estava salvo. Marca antes de
+        // olhar o snapshot porque o fato vale mesmo quando não há snapshot
+        // nenhum para hidratar — em ambos os casos o banco ficou fora de
+        // alcance e o que não veio agora não vem sozinho.
+        //
+        // Chegar até aqui com o roteador de pé e o link do provedor caído
+        // depende do ramo lá em cima que chama o bootstrap quando a leitura do
+        // perfil falha por rede e existe sessão local salva — sem ele a
+        // restauração parava antes e este trecho nunca rodava nesse cenário.
+        setAbriuSemInternet(true);
         const snapshot = lerSnapshot(window.localStorage, tenantIdRef.current);
         if (snapshot) {
           if (snapshot.products?.length) setProductsLocal(snapshot.products);
@@ -482,9 +538,15 @@ export function AppProvider({ children }) {
           if (Array.isArray(config.metodosTef))    setMetodosTefLocal(config.metodosTef);
           if (config.taxaServico !== undefined) setTaxaServicoLocal(!!config.taxaServico);
           if (typeof config.ponteEndereco === "string" && config.ponteEndereco) setPonteEnderecoLocal(config.ponteEndereco);
+          // Sem internet a Ponte é justamente o que segura o serviço, então a
+          // chave de liga/desliga vem do snapshot como qualquer outro ajuste.
+          // Só que snapshot SEM a chave não é "desligado": é snapshot que não
+          // sabe. Forçar `false` aqui desligava a Ponte na primeira abertura
+          // sem internet depois de o dono ligar a chave — e sem internet não
+          // dá para religar. Continua "ainda não sei" até alguém dizer.
+          if (config.ponteLocalAtiva !== undefined) setPonteLocalAtivaLocal(!!config.ponteLocalAtiva);
         }
-        setLoading(false);
-        return;
+        return; // o `finally` lá embaixo é quem desliga o loading
       }
 
       if (gruposData)   setGruposCategoriaLocal(gruposData);
@@ -543,6 +605,12 @@ export function AppProvider({ children }) {
         // Leva 13 — endereço do Palm na ponte local (salvo pela bridge)
         const ponte = configData.find(c => c.key === "ponte_endereco");
         if (typeof ponte?.value === "string" && ponte.value) setPonteEnderecoLocal(ponte.value);
+        // Chave por estabelecimento (decisão 017): é ela que liga o recebimento
+        // dos pedidos do celular neste computador. Chave ausente É resposta —
+        // quem nunca ligou está desligado, e a partir daqui já sabemos disso
+        // (sai do "ainda não sei" para um `false` explícito).
+        const ponteAtiva = configData.find(c => c.key === "ponte_local_ativa");
+        setPonteLocalAtivaLocal(ponteAtiva?.value === true || ponteAtiva?.value === "true");
       }
 
       if (tenantData) {
@@ -598,11 +666,13 @@ export function AppProvider({ children }) {
             metodosTef: Array.isArray(configMap.metodos_tef) ? configMap.metodos_tef : undefined,
             taxaServico: configMap.taxa_servico !== undefined ? !!configMap.taxa_servico : undefined,
             ponteEndereco: typeof configMap.ponte_endereco === "string" ? configMap.ponte_endereco : undefined,
+            ponteLocalAtiva: configMap.ponte_local_ativa === true || configMap.ponte_local_ativa === "true",
           },
         }, tenantData?.id ?? tenantIdRef.current);
       }
-
+    } finally {
       setLoading(false);
+    }
   }
 
   // ── Atualiza currentUser quando a lista de usuários muda ──────
@@ -874,6 +944,24 @@ export function AppProvider({ children }) {
     if (redeOnline && !loading) drenarPendenciasOffline();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [redeOnline, loading, pendenciasOffline]);
+
+  // O carimbo conta o que aconteceu na ÚLTIMA carga, e nada relê os dados
+  // sozinho depois. Se ele nunca se apagasse, a tela seguiria afirmando no
+  // presente que o estabelecimento está sem internet com a conexão já de
+  // volta — e escondendo o botão "Recarregar a tela", que nessa hora é
+  // justamente o que resolve. Quando este computador reconecta, o navegador
+  // avisa (mesmo evento que o `redeOnline` já escuta) e o carimbo cai.
+  //
+  // O aviso só existe quando é ESTE aparelho que perde e recupera a rede.
+  // Link do provedor que volta sem o computador ter caído não emite evento
+  // nenhum: nesse caso quem apaga o carimbo é uma pessoa, pedindo a carga de
+  // novo pela tela (`recarregarDadosDoEstabelecimento`, exposto no contexto).
+  // Nada aqui tenta sozinho de tempos em tempos.
+  useEffect(() => {
+    const aoVoltarAConexao = () => setAbriuSemInternet(false);
+    window.addEventListener("online", aoVoltarAConexao);
+    return () => window.removeEventListener("online", aoVoltarAConexao);
+  }, []);
 
   // ── Actions: Auth ─────────────────────────────────────────────
   const login = async (username, password) => {
@@ -1758,6 +1846,35 @@ export function AppProvider({ children }) {
     return gravarConfig("ponte_endereco", val, () => setPonteEnderecoLocal(anterior));
   };
 
+  // Liga/desliga o recebimento dos pedidos do celular neste estabelecimento.
+  // Ajuste do dono, gravado em `config` como qualquer outro — não é variável
+  // de build: ligar para um cliente não pode obrigar a recompilar o site de
+  // todos os outros (decisão 017).
+  const setPonteLocalAtiva = async (val) => {
+    const anterior = ponteLocalAtiva;
+    setPonteLocalAtivaLocal(!!val);
+    const resultado = await gravarConfig("ponte_local_ativa", !!val, () => setPonteLocalAtivaLocal(anterior));
+    // O snapshot desta abertura já foi gravado com o valor ANTIGO, e ele é
+    // quem manda quando o PC abre sem internet. Sem corrigi-lo aqui, o dono
+    // ligava a chave hoje e amanhã, na queda de internet — exatamente para o
+    // que a Ponte existe —, ela voltava desligada e não dava nem para
+    // religar (gravar config precisa de banco). Fire-and-forget: o snapshot é
+    // conforto, e falhar aqui não pode desfazer um ajuste que o banco aceitou.
+    if (!resultado?.error) {
+      try {
+        const snapshot = lerSnapshot(window.localStorage, tenantIdRef.current);
+        if (snapshot) {
+          salvarSnapshot(
+            window.localStorage,
+            { ...snapshot, config: { ...(snapshot.config ?? {}), ponteLocalAtiva: !!val } },
+            tenantIdRef.current,
+          );
+        }
+      } catch { /* storage cheio/bloqueado não pode derrubar o clique */ }
+    }
+    return resultado;
+  };
+
   const setDiasAlertaValidade = async (val) => {
     const anterior = diasAlertaValidade;
     const n = Math.max(1, Math.min(365, Number(val) || 7));
@@ -1894,9 +2011,20 @@ export function AppProvider({ children }) {
     metodosCustom, setMetodosCustom,
     metodosTef, setMetodosTef,
     // offline-first (Leva 11)
-    redeOnline, pendenciasOffline, enfileirarOffline, pendenciasFiscais,
+    // `abriuSemInternet` = a última carga caiu no caminho offline (o banco não
+    // respondeu). Vale junto com o `redeOnline`, nunca no lugar dele: o
+    // navegador se diz online com o link do provedor caído.
+    redeOnline, abriuSemInternet, pendenciasOffline, enfileirarOffline, pendenciasFiscais,
+    // Refaz a carga do estabelecimento a pedido de uma pessoa — é o mesmo
+    // caminho da abertura do sistema. Serve para quando o link do provedor
+    // volta sem este computador ter perdido a rede: o navegador não avisa
+    // nada, então quem avisa é o dono, pela tela. Zera o carimbo no começo e
+    // só o religa se a leitura esbarrar em rede de novo. Nada a chama sozinho.
+    recarregarDadosDoEstabelecimento: bootstrap,
     // ponte local (Leva 13)
     ponteEndereco, setPonteEndereco,
+    // `null` enquanto o bootstrap não respondeu = "ainda não sei".
+    ponteLocalAtiva, setPonteLocalAtiva,
   };
 
   return (
