@@ -7,9 +7,12 @@ import "./ApexPlanos.css";
  * Caixa, sempre incluído) e vai ligando os módulos que o negócio dela
  * precisa; o preço soma em tempo real.
  *
- * Os módulos e preços aqui são REFERENCIAIS — servem para dar uma
- * noção de investimento antes da demonstração, não são a tabela de
- * cobrança final (isso é fechado na demonstração/proposta comercial).
+ * O preço que aparece aqui é o preço que a gente cobra. Antes a tela
+ * terminava com "valores de referência · confirmados na demonstração",
+ * o que desfazia o próprio construtor: se o número da tela não é o
+ * número da conta, montar o plano não decide nada. O que a demonstração
+ * faz é ajudar a escolher os módulos — não renegociar a soma.
+ *
  * Os códigos de módulo espelham os mesmos nomes usados em
  * `planos_modulos` no banco (docs/08_DECISOES/adr-005.md), então
  * amanhã dá pra ligar isso a uma origem de preço real sem remexer
@@ -80,7 +83,6 @@ const MODULOS = [
     nome: "JARVAS — gerente virtual com IA",
     descricao: "Alertas de queda de venda, sugestões de compra e resumo diário",
     preco: 700,
-    destaque: true,
   },
 ];
 
@@ -135,6 +137,17 @@ const PLANOS_PRONTOS = [
     premium: true,
   },
 ];
+
+// O JARVAS continua dentro de MODULOS — o cálculo, os presets e o resumo
+// do plano são os mesmos —, mas NÃO é desenhado junto com os outros. No
+// meio de itens de R$ 40, um item de R$ 700 parece erro de digitação: o
+// degrau de preço precisa de explicação, e explicação não cabe num
+// cartãozinho de grade. Ele ganhou bloco próprio logo abaixo.
+const CODIGO_JARVAS = "jarvas";
+const JARVAS = MODULOS.find((m) => m.codigo === CODIGO_JARVAS);
+const MODULOS_DA_GRADE = MODULOS.filter((m) => m.codigo !== CODIGO_JARVAS);
+// Custo por dia, arredondado: R$ 700/mês é um número que assusta sozinho.
+const JARVAS_POR_DIA = JARVAS ? Math.round(JARVAS.preco / 30) : 0;
 
 const formatarPreco = (valor) =>
   valor.toLocaleString("pt-BR", { minimumFractionDigits: 0 });
@@ -217,6 +230,10 @@ export default function ApexPlanos({ onAgendar }) {
 
   const qtdSelecionados = modulosSelecionados.length + addonsSelecionados.length;
 
+  const jarvasNoPlano = JARVAS
+    ? modulosSelecionados.includes(JARVAS.codigo)
+    : false;
+
   return (
     <section id="planos" className="apex-planos">
       <div className="apex-container apex-planos__conteudo">
@@ -227,8 +244,9 @@ export default function ApexPlanos({ onAgendar }) {
           </h2>
           <p className="apex-planos__subtitulo">
             Todo plano já sai com cardápio, PDV e caixa. A partir daí, você só
-            liga o que o seu negócio realmente usa. Sem fidelidade, sem multa
-            — valores de referência, fechados de verdade na demonstração.
+            liga o que o seu negócio realmente usa — e o valor que aparecer
+            aqui é o que a gente cobra, por mês, sem fidelidade e sem taxa
+            de instalação.
           </p>
         </div>
 
@@ -296,7 +314,7 @@ export default function ApexPlanos({ onAgendar }) {
 
             <span className="apex-construtor__secao-titulo">Módulos</span>
             <div className="apex-construtor__grade">
-              {MODULOS.map((modulo) => {
+              {MODULOS_DA_GRADE.map((modulo) => {
                 const ativo = modulosSelecionados.includes(modulo.codigo);
                 return (
                   <button
@@ -304,8 +322,7 @@ export default function ApexPlanos({ onAgendar }) {
                     type="button"
                     className={
                       "apex-construtor__item" +
-                      (ativo ? " apex-construtor__item--ativo" : "") +
-                      (modulo.destaque ? " apex-construtor__item--destaque" : "")
+                      (ativo ? " apex-construtor__item--ativo" : "")
                     }
                     aria-pressed={ativo}
                     onClick={() => alternarModulo(modulo.codigo)}
@@ -322,6 +339,48 @@ export default function ApexPlanos({ onAgendar }) {
                 );
               })}
             </div>
+
+            {JARVAS && (
+              <div
+                className={
+                  "apex-jarvas" + (jarvasNoPlano ? " apex-jarvas--ativo" : "")
+                }
+              >
+                <span className="apex-jarvas__selo">Upgrade à parte</span>
+                <span className="apex-jarvas__titulo">{JARVAS.nome}</span>
+                <p className="apex-jarvas__texto">
+                  Os outros módulos são telas: a gente escreve uma vez e elas
+                  rodam para todo mundo. O JARVAS lê o movimento do seu negócio
+                  todo dia — venda, estoque, horário, cancelamento — e devolve
+                  alerta de queda, sugestão de compra e resumo do dia. Isso é
+                  inteligência artificial processando os dados do seu
+                  estabelecimento, e processamento se paga por uso. É por isso
+                  que ele custa R$ {formatarPreco(JARVAS.preco)} por mês, cerca
+                  de R$ {JARVAS_POR_DIA} por dia — e não R$ 40 como um módulo
+                  comum.
+                </p>
+                <p className="apex-jarvas__texto">
+                  Ele nunca faz nada sozinho: sugere, e quem decide é você. E
+                  não é pré-requisito de nada — ele só tem o que ler depois que
+                  a sua operação já está registrando venda no KORA. Dá para
+                  começar sem ele e ligar quando fizer sentido, sem refazer
+                  nada do que já estiver rodando.
+                </p>
+                <button
+                  type="button"
+                  className={
+                    "apex-botao apex-jarvas__botao " +
+                    (jarvasNoPlano ? "apex-botao--primario" : "apex-botao--outline")
+                  }
+                  aria-pressed={jarvasNoPlano}
+                  onClick={() => alternarModulo(JARVAS.codigo)}
+                >
+                  {jarvasNoPlano
+                    ? "JARVAS no seu plano · tocar para tirar"
+                    : `Somar JARVAS · + R$ ${formatarPreco(JARVAS.preco)}/mês`}
+                </button>
+              </div>
+            )}
 
             <span className="apex-construtor__secao-titulo">Complementos</span>
             <div className="apex-construtor__grade">
@@ -380,7 +439,7 @@ export default function ApexPlanos({ onAgendar }) {
             </div>
 
             <div className="apex-construtor__resumo-total">
-              <span>Total estimado</span>
+              <span>Total por mês</span>
               <span className="apex-construtor__resumo-total-valor">
                 R$ {formatarPreco(total)}<span>/mês</span>
               </span>
@@ -393,9 +452,15 @@ export default function ApexPlanos({ onAgendar }) {
             >
               Agendar demonstração
             </button>
-            <span className="apex-construtor__resumo-nota">
-              Valores de referência · confirmados na demonstração
-            </span>
+            {/* Onde antes ficava a ressalva que desfazia o preço, agora
+                ficam os compromissos — o que a pessoa mais quer saber
+                antes de deixar o contato é o que acontece se ela quiser
+                sair ou diminuir. */}
+            <ul className="apex-construtor__compromissos">
+              <li>Cobrança mensal, sem fidelidade e sem multa para sair.</li>
+              <li>Ligou um módulo e não usou? Desliga, e o mês seguinte já vem sem ele.</li>
+              <li>Implantação personalizada inclusa — sem taxa de instalação.</li>
+            </ul>
           </aside>
         </div>
 

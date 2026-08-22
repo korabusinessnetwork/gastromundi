@@ -14,23 +14,19 @@ import "./ApexHero.css";
 export default function ApexHero({ onAgendar }) {
   return (
     <header className="apex-hero">
-      {/* Badge com duas variantes de copy: no mobile o artboard pede a
-          curta (cabe numa linha do pill); o CSS mostra uma por vez. */}
+      {/* Um badge só, igual em qualquer tela. Antes havia duas versões
+          — a longa no desktop e uma curta no celular que cortava padaria
+          e mercado da lista. Quem abria pelo celular concluía que o KORA
+          não era para o negócio dele. No singular cabe em todo mundo e
+          fica curto o bastante para o pill. */}
       <span className="apex-hero__badge">
-        <span className="apex-hero__badge-longo">
-          PDV para restaurantes, bares, cafés, padarias e mercados
-        </span>
-        <span className="apex-hero__badge-curto">
-          PDV para restaurantes, bares e cafés
-        </span>
+        PDV para restaurante, bar, café, padaria e mercado
       </span>
-      <h1 className="apex-hero__titulo">
-        Seu negócio vendendo pelo KORA no mesmo dia — caixa, comanda, Pix e nota fiscal
-      </h1>
+      <h1 className="apex-hero__titulo">Seu negócio vendendo no mesmo dia</h1>
       <p className="apex-hero__paragrafo">
-        Sem semanas de implantação, sem treinamento de manual grosso. A gente monta
-        seu cardápio na demonstração, sua equipe aprende no primeiro turno e o
-        sistema fica com a cara da sua operação.
+        Caixa, comanda, Pix e nota fiscal rodando desde o primeiro turno — sem
+        semanas de implantação e sem manual grosso. A gente monta seu cardápio
+        na demonstração e o sistema já fica com a cara da sua operação.
       </p>
       <div className="apex-hero__ctas">
         {/* O CTA mais visível da página é o que PEDE CONTATO. Antes os dois
@@ -53,7 +49,12 @@ export default function ApexHero({ onAgendar }) {
         Demonstração ao vivo de 30 min · Sem fidelidade · 30 dias de garantia
       </span>
 
-      <span className="apex-hero__mock-label">O KORA do jeito que ele é de verdade</span>
+      <span className="apex-hero__mock-label">
+        Ilustração da tela de comanda ·{" "}
+        <a className="apex-hero__mock-link" href="/demo">
+          ver o sistema de verdade no protótipo
+        </a>
+      </span>
       <div className="apex-hero__mock" aria-hidden="true">
         <div className="apex-hero__mock-comanda">
           <div className="apex-hero__mock-comanda-topo">

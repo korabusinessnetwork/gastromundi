@@ -263,6 +263,57 @@
   color: var(--kora-nevoa);
 }
 
+/* ── JARVAS: o upgrade que sai da grade ─────────────────────
+   Cartão largo, roxo, com espaço para o texto que explica o degrau de
+   preço. Não é um item de grade: é uma decisão à parte, e a tela mostra
+   isso pela forma antes de mostrar pelo texto. */
+
+.apex-jarvas {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--kora-roxo);
+  border-radius: 16px;
+  padding: 20px;
+  background: linear-gradient(160deg, oklch(0.97 0.02 285), #fff 60%);
+}
+
+.apex-jarvas--ativo {
+  box-shadow: 0 0 0 1px var(--kora-roxo) inset;
+}
+
+.apex-jarvas__selo {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--kora-roxo);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.apex-jarvas__titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 19px;
+  color: var(--kora-tinta);
+  line-height: 1.25;
+}
+
+.apex-jarvas__texto {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--kora-grafite);
+  max-width: 62ch;
+}
+
+.apex-jarvas__botao {
+  margin-top: 4px;
+}
+
 .apex-construtor__grade {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -290,10 +341,6 @@
 .apex-construtor__item--ativo {
   border-color: var(--kora-roxo);
   background: oklch(0.97 0.02 280);
-}
-
-.apex-construtor__item--destaque .apex-construtor__item-nome {
-  color: var(--kora-roxo);
 }
 
 .apex-construtor__item-check {
@@ -431,10 +478,32 @@
   width: 100%;
 }
 
-.apex-construtor__resumo-nota {
-  font-size: 11.5px;
-  color: var(--kora-nevoa);
-  text-align: center;
+.apex-construtor__compromissos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--kora-grafite);
+}
+
+/* Marcador de "pode contar com isso" — o mesmo ✓ do essencial, na cor
+   verde, para não confundir com item que ainda dá para ligar/desligar. */
+.apex-construtor__compromissos li {
+  position: relative;
+  padding-left: 18px;
+}
+
+.apex-construtor__compromissos li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--kora-verde);
+  font-weight: 700;
 }
 
 @media (max-width: 860px) {

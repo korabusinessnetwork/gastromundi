@@ -19,6 +19,27 @@
   color: var(--kora-tinta);
 }
 
+/* O único item que é link: leva ao protótipo. Sublinhado porque link
+   que não parece link não é clicado — e este é a prova principal da
+   barra. */
+.apex-prova__item--link {
+  color: var(--kora-roxo);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.apex-prova__item--link .apex-prova__chave {
+  color: var(--kora-roxo);
+}
+
+.apex-prova__item--link:hover {
+  color: var(--kora-tinta);
+}
+
+.apex-prova__item--link:hover .apex-prova__chave {
+  color: var(--kora-tinta);
+}
+
 /* Tablet (~768–1023px): vira grid 2×2 — cabem 4 dos 5 itens no
    artboard 834px; "funciona offline" é o que sai (é o menos decisivo
    pro visitante ainda decidindo, os outros 4 seguram mais peso). */
@@ -38,8 +59,8 @@
 }
 
 /* Mobile (<768px): itens empilhados, só os 3 essenciais do artboard
-   390px (mesmo dia, 1 turno, personalizado) — na tela pequena, menos
-   itens = mais fácil de escanear em 1 segundo de rolagem. */
+   390px (protótipo, sem fidelidade, personalizado) — na tela pequena,
+   menos itens = mais fácil de escanear em 1 segundo de rolagem. */
 @media (max-width: 767px) {
   .apex-prova {
     display: flex;
@@ -55,5 +76,15 @@
 
   .apex-prova__item--essencial {
     display: inline;
+  }
+
+  /* Alvo de toque de 44px no único item clicável da barra (princípio
+     nº1 — no celular, dedo). Vem depois de --essencial de propósito:
+     mesma especificidade, então a ordem decide e o display: inline-flex
+     prevalece. */
+  .apex-prova__item--link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
 }

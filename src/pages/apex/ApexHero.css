@@ -26,8 +26,6 @@
 }
 
 /* Badge tem copy longa (desktop/tablet) e curta (mobile) — uma por vez */
-.apex-hero__badge-curto { display: none; }
-
 .apex-hero__titulo {
   font-family: var(--kora-font-titulo);
   font-weight: 800;
@@ -67,6 +65,17 @@
   font-size: 13px;
   color: #77768A;
   margin-top: 56px;
+  text-align: center;
+}
+
+.apex-hero__mock-link {
+  color: var(--kora-verde);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.apex-hero__mock-link:hover {
+  color: #fff;
 }
 
 .apex-hero__mock {
@@ -265,12 +274,13 @@
 
   .apex-hero__badge {
     font-size: 12px;
-    padding: 6px 14px;
+    padding: 8px 14px;
+    /* O badge agora é um só, então no celular ele pode quebrar em duas
+       linhas — centralizado e com respiro, a pílula de duas linhas fica
+       proposital em vez de espremida. */
+    text-align: center;
+    line-height: 1.35;
   }
-
-  /* Copy curta do badge no mobile (artboard 390px) */
-  .apex-hero__badge-longo { display: none; }
-  .apex-hero__badge-curto { display: inline; }
 
   .apex-hero__titulo {
     font-size: 29px;
