@@ -21,6 +21,16 @@ beforeEach(() => {
   mockSupabase.current.reset();
 });
 
+// Data no calendário local, deslocada de `dias` a partir de hoje. Vencimento
+// escrito à mão vira teste com prazo de validade: passa hoje, quebra sozinho
+// quando a data chega. Mesmo padrão de assinatura.test.js.
+function dataEm(dias) {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 describe("buscarTenantAtual", () => {
   it("retorna o tenant (com plano) quando a linha existe", async () => {
     mockSupabase.current.setTableResult("tenants", {
@@ -153,8 +163,9 @@ describe("buscarBootstrapTenant", () => {
       data: [{ addon_codigo: "tef" }],
       error: null,
     });
+    const vencimento = dataEm(30);
     mockSupabase.current.setTableResult("assinaturas", {
-      data: { data_vencimento: "2026-08-05", carencia_dias: 3, valor_mensal: 199, status: "ativo" },
+      data: { data_vencimento: vencimento, carencia_dias: 3, valor_mensal: 199, status: "ativo" },
       error: null,
     });
 
@@ -172,7 +183,7 @@ describe("buscarBootstrapTenant", () => {
       diasParaVencer: expect.any(Number),
       carenciaDias: 3,
       valorMensal: 199,
-      dataVencimento: "2026-08-05",
+      dataVencimento: vencimento,
     });
   });
 
