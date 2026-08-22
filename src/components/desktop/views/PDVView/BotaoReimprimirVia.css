@@ -1,0 +1,54 @@
+/* Reimpressão da via de produção na comanda aberta do PDV. Decisão 018
+   (CSS separado do JSX) + tokens --gm-* — o botão vive na árvore React
+   do app e herda o :root normalmente. */
+
+.reimprimir-via {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reimprimir-via__botao {
+  background: var(--gm-surface);
+  border: 1.5px solid var(--gm-border);
+  border-radius: 10px;
+  color: var(--gm-text);
+  cursor: pointer;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 13px;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.reimprimir-via__botao:hover:not(:disabled) {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
+.reimprimir-via__botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reimprimir-via__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.reimprimir-via__status--erro {
+  color: var(--gm-red);
+}
+
+.reimprimir-via__status--sucesso {
+  color: var(--gm-green);
+}

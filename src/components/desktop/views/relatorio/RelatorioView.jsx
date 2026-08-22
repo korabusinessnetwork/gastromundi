@@ -14,6 +14,7 @@ import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor, nomeExibicaoTenant, marcaComAssinatura } from "@/lib/tema";
 import DesempenhoReport from "./DesempenhoReport";
+import BotaoReimprimirComprovante from "./BotaoReimprimirComprovante";
 import "./RelatorioView.css";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
@@ -831,6 +832,7 @@ export default function RelatorioView() {
                         <Th right>Método</Th>
                         <Th right>Total</Th>
                         <Th right>Data / Hora</Th>
+                        <Th right></Th>
                       </tr>
                     </thead>
                     <tbody>
@@ -868,6 +870,9 @@ export default function RelatorioView() {
                             <span style={{ fontWeight: 800 }}>{fmtR(v.total)}</span>
                           </Td>
                           <Td sz={sz} right muted nowrap>{fmtData(v.at)}</Td>
+                          <Td sz={sz} right>
+                            <BotaoReimprimirComprovante venda={v} compacto />
+                          </Td>
                         </tr>
                       ))}
                     </tbody>
@@ -1003,6 +1008,14 @@ export default function RelatorioView() {
                               </tbody>
                             </table>
                           )}
+
+                          {/* Rodapé da comanda — reimpressão manual do comprovante */}
+                          <div style={{
+                            display: "flex", justifyContent: "flex-end",
+                            padding: "12px 20px", borderTop: `1px solid var(${C.border})`,
+                          }}>
+                            <BotaoReimprimirComprovante venda={v} />
+                          </div>
                         </div>
                       );
                     })}

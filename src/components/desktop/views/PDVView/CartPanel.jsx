@@ -9,6 +9,7 @@ import { getSizes } from "@/constants/sizes";
 import { useApp } from "@/context/AppContext";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
+import BotaoReimprimirVia from "./BotaoReimprimirVia";
 import "./CartPanel.css";
 
 const fmtComanda = (name) =>
@@ -115,6 +116,13 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
         {comanda?.garcom && (
           <div className="cart-panel__garcom" style={{ color: varColor(C.muted), marginTop: 4 }}>
             <LuUser size={12} /> {comanda.garcom}
+          </div>
+        )}
+        {/* Reimpressão da via de produção — só faz sentido quando já há
+            itens lançados (mandados para a cozinha). */}
+        {itensAtivos.length > 0 && (
+          <div className="cart-panel__header-acoes" style={{ marginTop: 10 }}>
+            <BotaoReimprimirVia pedido={comanda} />
           </div>
         )}
       </div>
