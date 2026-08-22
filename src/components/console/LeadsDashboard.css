@@ -1,0 +1,282 @@
+/**
+ * Leads da landing (Console da Plataforma).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * Escrita para parecer a mesma tela das abas vizinhas: mesmos raios,
+ * mesmo cartão de KPI, mesmos estados de carregando/erro/vazio do
+ * AnalyticsDashboard. Trocar de aba não pode parecer trocar de sistema.
+ *
+ * A lista é de CARTÕES, não tabela: cada lead é uma pessoa que se liga
+ * agora, e os dois botões de ação precisam de alvo de dedo (44px) —
+ * numa linha de tabela eles virariam links de 20px.
+ */
+
+.leads {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ── Estados (carregando / erro / vazio) ──────────────────────────── */
+.leads__estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 44px 20px;
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: var(--gm-card);
+  color: var(--gm-muted);
+  font-size: 14px;
+  text-align: center;
+}
+.leads__estado p { margin: 0; max-width: 46ch; line-height: 1.55; }
+.leads__estado > svg { color: var(--gm-muted); }
+
+.leads__estado--erro {
+  border-color: color-mix(in srgb, var(--gm-red) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  color: var(--gm-text);
+}
+.leads__estado--erro > svg { color: var(--gm-red); }
+
+.leads__vazio-titulo { font-size: 15px; font-weight: 800; color: var(--gm-text); }
+.leads__vazio-texto { font-size: 13px; }
+
+.leads__tentar {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--gm-border);
+  border-radius: 9px;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.leads__tentar:hover { border-color: var(--gm-accent); color: var(--gm-accent); }
+.leads__tentar:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
+
+.leads__spin { animation: leads-girar 1s linear infinite; }
+@keyframes leads-girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .leads__spin { animation: none; }
+}
+
+.leads__erro-salvar {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-text);
+}
+
+/* ── KPIs ─────────────────────────────────────────────────────────── */
+.leads__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 12px;
+}
+.leads__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  background: var(--gm-card);
+  min-width: 0;
+}
+/* "A atender" com número acima de zero é a única coisa desta tela que
+   pede ação — e por isso é a única que muda de cor. */
+.leads__kpi--alerta {
+  border-color: color-mix(in srgb, var(--gm-warn) 45%, transparent);
+  background: color-mix(in srgb, var(--gm-warn) 8%, transparent);
+}
+.leads__kpi--alerta .leads__kpi-icone,
+.leads__kpi--alerta .leads__kpi-valor { color: var(--gm-warn); }
+
+.leads__kpi-icone { color: var(--gm-muted); }
+.leads__kpi-rotulo { font-size: 12px; color: var(--gm-muted); font-weight: 600; }
+.leads__kpi-valor {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  color: var(--gm-text);
+}
+
+/* ── Filtros ──────────────────────────────────────────────────────── */
+/* Dois botões à vista, com a contagem dentro: o dono vê quantos faltam
+   sem precisar clicar para descobrir. */
+.leads__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.leads__filtro {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.leads__filtro:hover { border-color: var(--gm-accent); color: var(--gm-accent); }
+.leads__filtro:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
+.leads__filtro--ativo {
+  background: var(--gm-alow);
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+  font-weight: 800;
+}
+
+/* ── Lista de contatos ────────────────────────────────────────────── */
+.leads__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.leads__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: var(--gm-card);
+  min-width: 0;
+}
+/* Quem já foi atendido continua na lista, mas recuado: o olho encontra
+   primeiro quem ainda espera. */
+.leads__card--atendido { opacity: 0.72; }
+
+.leads__card-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.leads__nome {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--gm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.leads__quando {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+
+.leads__contato {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.leads__contato dt {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gm-muted);
+}
+.leads__contato dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gm-text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.leads__email { font-weight: 500; }
+
+.leads__plano {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--gm-border);
+  border-radius: 12px;
+}
+.leads__plano-rotulo { font-size: 11px; font-weight: 700; color: var(--gm-muted); }
+.leads__plano strong { font-size: 15px; font-weight: 800; color: var(--gm-accent); }
+.leads__plano-itens { font-size: 12.5px; line-height: 1.45; color: var(--gm-muted); }
+
+/* ── Ações ────────────────────────────────────────────────────────── */
+/* 44px de altura nos dois: esta tela é usada com o celular na mão,
+   ligando para a pessoa. */
+.leads__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+.leads__falar,
+.leads__marcar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 11px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+.leads__falar {
+  border: 1px solid var(--gm-green);
+  background: color-mix(in srgb, var(--gm-green) 12%, transparent);
+  color: var(--gm-green);
+}
+.leads__falar:hover { background: color-mix(in srgb, var(--gm-green) 20%, transparent); }
+.leads__falar:focus-visible { outline: 2px solid var(--gm-green); outline-offset: 1px; }
+
+.leads__marcar {
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+}
+.leads__marcar:hover { border-color: var(--gm-accent); color: var(--gm-accent); }
+.leads__marcar:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
+.leads__marcar:disabled { opacity: 0.6; cursor: progress; }
+.leads__marcar--desfazer { color: var(--gm-muted); font-weight: 600; }
+
+.leads__sem-numero {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 12.5px;
+  color: var(--gm-muted);
+}
+
+.leads__atendido-nota {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gm-muted);
+}

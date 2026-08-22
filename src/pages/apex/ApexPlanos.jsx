@@ -201,12 +201,21 @@ export default function ApexPlanos() {
       mesmoConjunto(p.addons, addonsSelecionados)
   )?.codigo;
 
-  const total = useMemo(() => {
+  // O plano montado, inteiro — não só o preço. O agendamento leva os
+  // itens junto para que o lead chegue no Console já dizendo o que a
+  // pessoa quer, e a mensagem do WhatsApp já saia com essa lista.
+  const plano = useMemo(() => {
     const modulos = MODULOS.filter((m) => modulosSelecionados.includes(m.codigo));
     const addons = ADDONS.filter((a) => addonsSelecionados.includes(a.codigo));
     const soma = [...modulos, ...addons].reduce((acc, item) => acc + item.preco, 0);
-    return ESSENCIAL.preco + soma;
+    return {
+      total: ESSENCIAL.preco + soma,
+      modulos: modulos.map(({ codigo, nome }) => ({ codigo, nome })),
+      addons: addons.map(({ codigo, nome }) => ({ codigo, nome })),
+    };
   }, [modulosSelecionados, addonsSelecionados]);
+
+  const total = plano.total;
 
   const qtdSelecionados = modulosSelecionados.length + addonsSelecionados.length;
 
@@ -401,7 +410,7 @@ export default function ApexPlanos() {
       <ApexAgendamento
         aberto={agendamentoAberto}
         onFechar={() => setAgendamentoAberto(false)}
-        plano={{ total }}
+        plano={plano}
       />
     </section>
   );

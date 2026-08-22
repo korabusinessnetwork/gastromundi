@@ -1,49 +1,83 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  mascararWhatsapp,
+  mensagemDeContatoDoLead,
+  montarLinkWhatsapp,
+  registrarLead,
+  validarLead,
+} from "@/lib/leads";
 import "./ApexAgendamento.css";
 
 /**
  * Aba de agendamento de demonstração — captura de lead do apex.
  *
  * Abre a partir do botão "Agendar demonstração" do construtor de plano.
- * Coleta Nome, WhatsApp e E-mail, valida na hora e, ao enviar, mostra uma
- * mensagem de parabéns/boas-vindas.
+ * Coleta Nome, WhatsApp e E-mail, valida na hora e GRAVA o contato em
+ * `leads` (RPC pública `registrar_lead`, migração 20260920_leads.sql).
+ * O lead aparece no Console, aba "Leads".
  *
- * Bootstrap/gratuito: por enquanto só confirma no front — NÃO há
- * persistência ainda. Ligar isto a uma tabela `leads` no Supabase
- * (com RLS) é o próximo passo para capturar o lead de verdade.
+ * Três decisões que valem explicar:
+ *
+ * 1. A tela nunca afirma o que não aconteceu. Antes ela dizia "Parabéns
+ *    por adquirir seu plano!" e "nossa equipe já vai te chamar" — nada
+ *    disso tinha acontecido, e o contato nem era guardado. Agora ela diz
+ *    o que de fato houve ("recebemos seu contato") e o prazo de retorno.
+ *
+ * 2. Se a gravação falhar, a pessoa NÃO sai de mãos vazias: aparece o
+ *    botão do WhatsApp com a mensagem já escrita, incluindo o plano que
+ *    ela montou. Falha de rede não pode custar um cliente.
+ *
+ * 3. O aceite (LGPD) é condição de envio, não letra miúda: sem marcar,
+ *    o botão explica o que falta — e o banco recusa igual, porque a
+ *    regra também está no CHECK da tabela.
  */
 
-// Máscara de telefone BR: (##) #####-#### — só formata, sem validar aqui.
-function mascararWhatsapp(valor) {
-  const d = valor.replace(/\D/g, "").slice(0, 11);
-  if (d.length <= 2) return d.replace(/^(\d{0,2})/, "($1");
-  if (d.length <= 6) return d.replace(/^(\d{2})(\d{0,4})/, "($1) $2");
-  if (d.length <= 10) return d.replace(/^(\d{2})(\d{4})(\d{0,4})/, "($1) $2-$3");
-  return d.replace(/^(\d{2})(\d{5})(\d{0,4})/, "($1) $2-$3");
-}
+// Onde o foco pode parar dentro do painel — base do laço de Tab.
+const FOCAVEIS =
+  'a[href], button:not([disabled]), input:not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])';
 
-// O domínio é lido em pedaços separados por ponto (`[^\s@.]+` entre pontos),
-// e não como `[^\s@]+\.[^\s@]+`: naquela forma o ponto cabia dentro das duas
-// partes e o motor tinha vários jeitos de dividir o mesmo texto, tentando
-// todos antes de desistir — digitar um e-mail longo e ainda incompleto
-// travava o campo. Aqui a divisão é única e o teste é linear.
-const EMAIL_REGEX = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+const CONTATO_URL = import.meta.env.VITE_CONTATO_URL || "";
 
 export default function ApexAgendamento({ aberto, onFechar, plano }) {
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
+  const [consentimento, setConsentimento] = useState(false);
   const [erros, setErros] = useState({});
+  const [enviando, setEnviando] = useState(false);
+  const [falhou, setFalhou] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const nomeRef = useRef(null);
+  const painelRef = useRef(null);
 
-  // Foco no primeiro campo ao abrir + fechar no Esc.
+  // Foco no primeiro campo ao abrir, Esc fecha e Tab não escapa do
+  // painel: com o modal aberto, o resto da página não é alcançável —
+  // quem navega por teclado ficava tabulando na landing atrás do modal.
   useEffect(() => {
     if (!aberto) return;
     const t = setTimeout(() => nomeRef.current?.focus(), 60);
+
     const aoTeclar = (e) => {
-      if (e.key === "Escape") onFechar();
+      if (e.key === "Escape") {
+        onFechar();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const alvos = painelRef.current?.querySelectorAll(FOCAVEIS);
+      if (!alvos?.length) return;
+      const primeiro = alvos[0];
+      const ultimo = alvos[alvos.length - 1];
+
+      if (e.shiftKey && document.activeElement === primeiro) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && document.activeElement === ultimo) {
+        e.preventDefault();
+        primeiro.focus();
+      }
     };
+
     document.addEventListener("keydown", aoTeclar);
     document.body.style.overflow = "hidden";
     return () => {
@@ -59,35 +93,62 @@ export default function ApexAgendamento({ aberto, onFechar, plano }) {
       setNome("");
       setWhatsapp("");
       setEmail("");
+      setConsentimento(false);
       setErros({});
+      setEnviando(false);
+      setFalhou(false);
       setEnviado(false);
     }
   }, [aberto]);
 
   if (!aberto) return null;
 
-  const validar = () => {
-    const novos = {};
-    if (nome.trim().length < 2) novos.nome = "Diga como podemos te chamar.";
-    const digitos = whatsapp.replace(/\D/g, "");
-    if (digitos.length < 10 || digitos.length > 11)
-      novos.whatsapp = "Informe um WhatsApp com DDD.";
-    if (!EMAIL_REGEX.test(email.trim()))
-      novos.email = "Confira o e-mail digitado.";
-    setErros(novos);
-    return Object.keys(novos).length === 0;
-  };
+  // Conversa já escrita com o comercial, com o plano que a pessoa
+  // montou. Vira `null` quando não há número configurado
+  // (VITE_CONTATO_URL vazio) — aí a tela simplesmente não oferece.
+  const linkWhatsapp = montarLinkWhatsapp(
+    CONTATO_URL,
+    mensagemDeContatoDoLead({ nome, plano })
+  );
 
-  const aoEnviar = (e) => {
+  const aoEnviar = async (e) => {
     e.preventDefault();
-    if (!validar()) return;
-    // Bootstrap: apenas confirma no front. TODO: gravar lead em `leads` (Supabase + RLS).
+    if (enviando) return;
+
+    const { ok, erros: novos } = validarLead({
+      nome,
+      whatsapp,
+      email,
+      consentimento,
+    });
+    setErros(novos);
+    if (!ok) return;
+
+    setEnviando(true);
+    setFalhou(false);
+    const { error } = await registrarLead({
+      nome,
+      whatsapp,
+      email,
+      consentimento,
+      plano,
+    });
+    setEnviando(false);
+
+    if (error) {
+      setFalhou(true);
+      return;
+    }
     setEnviado(true);
   };
 
   const aoClicarFundo = (e) => {
     if (e.target === e.currentTarget) onFechar();
   };
+
+  const primeiroNome = nome.trim().split(/\s+/)[0];
+  const qtdItens =
+    (plano?.modulos?.length ?? 0) + (plano?.addons?.length ?? 0);
 
   return (
     <div
@@ -97,7 +158,7 @@ export default function ApexAgendamento({ aberto, onFechar, plano }) {
       aria-modal="true"
       aria-labelledby="apex-agendamento-titulo"
     >
-      <div className="apex-agendamento__painel">
+      <div className="apex-agendamento__painel" ref={painelRef}>
         <button
           type="button"
           className="apex-agendamento__fechar"
@@ -121,7 +182,15 @@ export default function ApexAgendamento({ aberto, onFechar, plano }) {
 
             {plano?.total != null && (
               <div className="apex-agendamento__plano">
-                <span>Plano montado por você</span>
+                <span>
+                  Plano montado por você
+                  {qtdItens > 0 && (
+                    <small>
+                      {" "}
+                      · {qtdItens} {qtdItens === 1 ? "item" : "itens"}
+                    </small>
+                  )}
+                </span>
                 <strong>
                   R$ {plano.total.toLocaleString("pt-BR")}
                   <span>/mês</span>
@@ -177,28 +246,81 @@ export default function ApexAgendamento({ aberto, onFechar, plano }) {
                 )}
               </label>
 
+              <label className="apex-agendamento__consentimento">
+                <input
+                  type="checkbox"
+                  checked={consentimento}
+                  onChange={(e) => setConsentimento(e.target.checked)}
+                  aria-invalid={!!erros.consentimento}
+                />
+                <span>
+                  Pode guardar meu nome, WhatsApp e e-mail para falar comigo
+                  sobre a demonstração. Não usamos para mais nada e você pode
+                  pedir a exclusão quando quiser.
+                </span>
+              </label>
+              {erros.consentimento && (
+                <span className="apex-agendamento__erro">
+                  {erros.consentimento}
+                </span>
+              )}
+
               <button
                 type="submit"
                 className="apex-botao apex-botao--primario apex-agendamento__enviar"
+                disabled={enviando}
               >
-                Agendar demonstração
+                {enviando ? "Enviando…" : "Agendar demonstração"}
               </button>
+
+              {falhou && (
+                <div className="apex-agendamento__falha" role="alert">
+                  <strong>Não conseguimos guardar seu contato agora.</strong>
+                  <p>
+                    Pode ter sido a conexão. Tente de novo em instantes —
+                    {linkWhatsapp
+                      ? " ou fale com a gente agora mesmo, a mensagem já vai pronta."
+                      : " seus dados continuam preenchidos aqui."}
+                  </p>
+                  {linkWhatsapp && (
+                    <a
+                      href={linkWhatsapp}
+                      className="apex-botao apex-botao--outline apex-agendamento__whatsapp"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Falar no WhatsApp
+                    </a>
+                  )}
+                </div>
+              )}
             </form>
           </>
         ) : (
           <div className="apex-agendamento__sucesso">
             <div className="apex-agendamento__sucesso-icone" aria-hidden="true">
-              🎉
+              ✅
             </div>
-            <h3 className="apex-agendamento__titulo">
-              Parabéns por adquirir seu plano!
+            <h3 id="apex-agendamento-titulo" className="apex-agendamento__titulo">
+              Recebemos seu contato{primeiroNome ? `, ${primeiroNome}` : ""}!
             </h3>
             <p className="apex-agendamento__subtitulo">
-              Bem-vindo ao KORA, {nome.trim().split(" ")[0]}. A partir de agora é o
-              seu negócio no comando — a gente cuida da tecnologia, você cuida de
-              vender. Nossa equipe já vai te chamar no WhatsApp para deixar tudo
-              com a sua cara.
+              Guardamos o plano que você montou e vamos te chamar no WhatsApp{" "}
+              <strong>em até 1 dia útil</strong> para marcar a demonstração no
+              horário que der pra você. Nenhum pagamento foi feito e nada foi
+              contratado — a conversa vem primeiro.
             </p>
+
+            {linkWhatsapp && (
+              <a
+                href={linkWhatsapp}
+                className="apex-botao apex-botao--outline apex-agendamento__whatsapp"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Não quer esperar? Fale agora no WhatsApp
+              </a>
+            )}
 
             <button
               type="button"

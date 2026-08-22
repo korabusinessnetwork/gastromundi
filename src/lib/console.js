@@ -237,7 +237,7 @@ export function normalizarFiltroSituacao(bruto) {
 }
 
 /** Seções do Console, na ordem em que aparecem. A primeira é a padrão. */
-export const ABAS_CONSOLE = ["estabelecimentos", "planos", "uso"];
+export const ABAS_CONSOLE = ["estabelecimentos", "planos", "uso", "leads"];
 
 /**
  * Função PURA — traduz o que veio da URL (`?aba=...`) para uma aba válida.
@@ -248,7 +248,7 @@ export const ABAS_CONSOLE = ["estabelecimentos", "planos", "uso"];
  * Não lê `window` nem o roteador — quem faz isso é a tela.
  *
  * @param {string|string[]|null|undefined} bruto
- * @returns {"estabelecimentos"|"planos"|"uso"}
+ * @returns {"estabelecimentos"|"planos"|"uso"|"leads"}
  */
 export function normalizarAba(bruto) {
   if (typeof bruto !== "string") return ABAS_CONSOLE[0];

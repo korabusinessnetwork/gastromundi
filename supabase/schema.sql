@@ -954,6 +954,43 @@ CREATE TABLE public.pautas (
 );
 
 -- =============================================================
+-- LEADS DA LANDING (kora.codes) — 20260920_leads.sql
+-- =============================================================
+-- FORA do multi-tenant de propósito: um lead ainda não é cliente de
+-- ninguém. É o funil comercial da própria Kora, não dado de
+-- estabelecimento — por isso NÃO tem tenant_id e não entra no
+-- isolamento por tenant.
+--
+-- É a ÚNICA tabela do sistema em que a chave pública escreve: qualquer
+-- visitante anônimo do apex chama registrar_lead(). O caminho é estreito
+-- porque o conteúdo é dado pessoal de terceiro (nome, WhatsApp, e-mail):
+-- a escrita passa só pela RPC (SECURITY DEFINER), a leitura só por
+-- is_super_admin(), e sem `consentimento` o CHECK recusa a linha — o
+-- aceite da LGPD é regra do banco, não só da tela.
+
+CREATE TABLE public.leads (
+  id                   uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome                 text        NOT NULL,
+  whatsapp             text        NOT NULL,      -- só dígitos, com DDD (monta o wa.me direto)
+  email                text        NOT NULL,
+  origem               text        NOT NULL DEFAULT 'apex_planos',
+  plano_total_centavos integer,                   -- o plano que a PESSOA montou no site
+  plano_modulos        text[]      NOT NULL DEFAULT '{}',
+  plano_addons         text[]      NOT NULL DEFAULT '{}',
+  consentimento        boolean     NOT NULL DEFAULT false,
+  atendido_em          timestamptz,               -- carimbo de "já falei com essa pessoa"
+  atendido_por         text,
+  created_at           timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT leads_consentimento_check CHECK (consentimento),
+  CONSTRAINT leads_nome_check          CHECK (length(btrim(nome)) BETWEEN 2 AND 120),
+  CONSTRAINT leads_whatsapp_check      CHECK (whatsapp ~ '^[0-9]{10,11}$'),
+  CONSTRAINT leads_email_check         CHECK (email ~ '^[^[:space:]@]+@[^[:space:]@.]+([.][^[:space:]@.]+)+$'
+                                              AND length(email) <= 200)
+);
+-- Índices: leads_recentes_idx (created_at DESC) e leads_pendentes_idx
+-- (parcial, WHERE atendido_em IS NULL) — a aba abre no que exige ação.
+
+-- =============================================================
 -- TABELAS QUE JÁ EXISTIRAM E NÃO EXISTEM MAIS
 -- =============================================================
 -- public.logs → derrubada em 20260706_drop_logs.sql (substituída por
@@ -1005,6 +1042,17 @@ CREATE TABLE public.pautas (
 -- atualizar_identidade_tenant(text, text)                     → 20260914  (aplicada 2026-08-02)
 --   sem parâmetro de tenant de propósito: o alvo é sempre tenant_do_usuario_atual()
 -- alternar_addon_tenant(uuid, text, boolean)                  → 20260915  (aplicada 2026-08-02)
+--
+-- ── Leads da landing (fora do multi-tenant) ──────────────────
+-- registrar_lead(text, text, text, boolean, text, integer, text[], text[])
+--   → 20260920 ; SECURITY DEFINER com GRANT EXECUTE a anon — é assim que
+--   o formulário público grava numa tabela em que ele não tem permissão
+--   nenhuma. Recusa sem p_consentimento (IS NOT TRUE) e reaproveita a
+--   linha do mesmo WhatsApp nos últimos 10 minutos, em vez de duplicar.
+-- marcar_lead_atendido(uuid, boolean, text) → 20260920 ; guarda
+--   is_super_admin() IS NOT TRUE e GRANT só a authenticated.
+-- Ambas com REVOKE EXECUTE ... FROM PUBLIC antes dos GRANTs (anon está
+-- em PUBLIC — lição da 20260730).
 
 -- =============================================================
 -- ROW LEVEL SECURITY
@@ -1077,6 +1125,15 @@ CREATE TABLE public.pautas (
 --   'finalizado' e fica no histórico.
 -- Todas guardadas por public.eh_socio_pautas() — só o namespace
 -- @pautas.local entra, e ele não autentica em nenhum tenant.
+
+-- ── Leads da landing (funil da Kora, fora do multi-tenant) ───
+-- leads → leads_select_plataforma ; leads_update_plataforma (as duas
+--   com public.is_super_admin()). SEM policy de INSERT: com RLS ligada e
+--   sem policy o banco NEGA, e é isso que impede a chave pública de
+--   inserir linha crua — o anônimo entra por registrar_lead(), que
+--   valida, ou não entra. SEM policy de DELETE: apagar lead é ato
+--   manual e deliberado (é também como se atende um pedido de exclusão
+--   pela LGPD).
 
 -- ── Realtime ──────────────────────────────────────────────────
 -- Habilitado no dashboard para: pending, estoque, jarvas_insights, mesas,

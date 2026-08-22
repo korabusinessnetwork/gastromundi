@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
   LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
-  LuCopy, LuTag, LuExternalLink, LuWifiOff,
+  LuCopy, LuTag, LuExternalLink, LuWifiOff, LuInbox,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import { useStatusRede } from "@/hooks/useStatusRede";
@@ -23,6 +23,7 @@ import AlterarLayoutModal from "@/components/console/AlterarLayoutModal";
 import AddonsModal from "@/components/console/AddonsModal";
 import PlanosDashboard from "@/components/console/PlanosDashboard";
 import AnalyticsDashboard from "@/components/console/AnalyticsDashboard";
+import LeadsDashboard from "@/components/console/LeadsDashboard";
 import SeloStatus from "@/components/console/SeloStatus";
 import ConfirmarRenovacaoModal from "@/components/console/ConfirmarRenovacaoModal";
 import HistoricoPagamentosModal from "@/components/console/HistoricoPagamentosModal";
@@ -656,8 +657,9 @@ export default function ConsolePage() {
 
       <main className="console__conteudo">
         {/* Abas: gestão da base (estabelecimentos), quem paga (planos +
-            assinaturas) e quem usa (uso e faturamento). Sempre visíveis —
-            trocar de aba é a navegação principal do Console (Princípio nº1). */}
+            assinaturas), quem usa (uso e faturamento) e quem AINDA não é
+            cliente (leads da landing). Sempre visíveis — trocar de aba é a
+            navegação principal do Console (Princípio nº1). */}
         <nav className="console__abas" aria-label="Seções do console">
           <button
             type="button"
@@ -680,9 +682,21 @@ export default function ConsolePage() {
           >
             <LuActivity size={16} aria-hidden /> Uso e faturamento
           </button>
+          <button
+            type="button"
+            className={`console__aba${aba === "leads" ? " console__aba--ativa" : ""}`}
+            onClick={() => escolherAba("leads")}
+          >
+            <LuInbox size={16} aria-hidden /> Leads
+          </button>
         </nav>
 
-        {carregando ? (
+        {/* Leads vêm antes do portão de carregando/erro: são da landing,
+            não da base de clientes. Se a leitura dos estabelecimentos
+            falhar, o dono ainda consegue ver quem pediu demonstração. */}
+        {aba === "leads" ? (
+          <LeadsDashboard operador={currentUser?.name ?? null} />
+        ) : carregando ? (
           <div className="console__estado">
             <LuLoaderCircle size={26} className="console__spin" aria-hidden />
             <p>Carregando…</p>

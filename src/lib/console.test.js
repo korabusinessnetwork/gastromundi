@@ -1500,10 +1500,11 @@ describe("normalizarFiltroSituacao", () => {
 });
 
 describe("normalizarAba", () => {
-  it("deixa passar as três seções do Console", () => {
+  it("deixa passar as seções do Console", () => {
     expect(normalizarAba("estabelecimentos")).toBe("estabelecimentos");
     expect(normalizarAba("planos")).toBe("planos");
     expect(normalizarAba("uso")).toBe("uso");
+    expect(normalizarAba("leads")).toBe("leads");
   });
 
   it("valor desconhecido cai na primeira aba — Console nunca abre vazio", () => {
@@ -1529,7 +1530,7 @@ describe("normalizarAba", () => {
   });
 
   it("o que ela devolve é sempre uma aba conhecida", () => {
-    for (const bruto of ["planos", "uso", "xpto", null, 7, {}]) {
+    for (const bruto of ["planos", "uso", "leads", "xpto", null, 7, {}]) {
       expect(ABAS_CONSOLE).toContain(normalizarAba(bruto));
     }
   });

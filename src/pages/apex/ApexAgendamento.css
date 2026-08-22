@@ -41,10 +41,14 @@
 
 .apex-agendamento__fechar {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 34px;
-  height: 34px;
+  top: 10px;
+  right: 10px;
+  /* 44px é o mínimo de alvo de toque — o X era 34px e escapava do dedo. */
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   border-radius: 50%;
   background: var(--kora-fundo);
@@ -165,7 +169,76 @@
   cursor: pointer;
 }
 
-/* ── Sucesso: mensagem de parabéns/boas-vindas ──────────────── */
+/* ── Aceite de dados (LGPD) ─────────────────────────────────── */
+/* Caixa clicável inteira: o texto também marca, porque mirar num
+   quadradinho de 16px no celular é o erro mais fácil de cometer. */
+
+.apex-agendamento__consentimento {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--kora-linha);
+  border-radius: 12px;
+  background: var(--kora-fundo);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.apex-agendamento__consentimento:hover {
+  border-color: var(--kora-roxo);
+}
+
+.apex-agendamento__consentimento input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  accent-color: var(--kora-roxo);
+  cursor: pointer;
+}
+
+.apex-agendamento__consentimento input[aria-invalid="true"] {
+  outline: 2px solid oklch(0.6 0.2 25);
+  outline-offset: 2px;
+}
+
+.apex-agendamento__consentimento > span {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--kora-nevoa);
+}
+
+/* ── Falha ao gravar: a saída pelo WhatsApp ─────────────────── */
+
+.apex-agendamento__falha {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid oklch(0.75 0.13 25);
+  border-radius: 12px;
+  background: oklch(0.97 0.03 25);
+  padding: 14px 16px;
+}
+
+.apex-agendamento__falha strong {
+  font-size: 14px;
+  color: oklch(0.45 0.17 25);
+}
+
+.apex-agendamento__falha p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--kora-nevoa);
+}
+
+.apex-agendamento__whatsapp {
+  width: 100%;
+  margin-top: 2px;
+}
+
+/* ── Sucesso: confirmação de que o contato foi guardado ─────── */
 
 .apex-agendamento__sucesso {
   display: flex;
