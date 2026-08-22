@@ -3,12 +3,18 @@ import KoraMonograma from "./KoraMonograma";
 
 /**
  * Seção "#demo" — CTA final da página: fundo escuro igual ao hero pra
- * fechar o funil no mesmo tom visual. Se não houver fluxo de contato
- * configurado (VITE_CONTATO_URL vazio), o CTA vira um convite pra abrir
- * o protótipo navegável ("Ver o KORA rodando" → /demo) em vez de mandar
- * o visitante pro login real (beco sem saída pra quem ainda não é cliente).
+ * fechar o funil no mesmo tom visual.
+ *
+ * O botão abre o formulário (ApexPage) — que grava o contato mesmo
+ * fora do horário comercial. Antes, sem VITE_CONTATO_URL configurado
+ * (o caso em produção), o fechamento da página mandava o visitante
+ * para o protótipo: a última seção do funil não pedia contato.
+ *
+ * O WhatsApp direto continua aqui como segunda saída, para quem quer
+ * falar agora — e só aparece quando existe número comercial
+ * configurado, em vez de virar link quebrado.
  */
-export default function ApexDemo({ contatoUrl }) {
+export default function ApexDemo({ contatoUrl, onAgendar }) {
   return (
     <section id="demo" className="apex-demo">
       <div className="apex-container apex-demo__conteudo">
@@ -22,13 +28,22 @@ export default function ApexDemo({ contatoUrl }) {
           implantação por mês — garanta a sua.
         </p>
 
-        {contatoUrl ? (
-          <a href={contatoUrl} className="apex-botao apex-botao--verde apex-demo__cta">
-            Agendar minha demonstração
-          </a>
-        ) : (
-          <a href="/demo" className="apex-botao apex-botao--branco apex-demo__cta">
-            Ver o KORA rodando
+        <button
+          type="button"
+          className="apex-botao apex-botao--verde apex-demo__cta"
+          onClick={onAgendar}
+        >
+          Agendar minha demonstração
+        </button>
+
+        {contatoUrl && (
+          <a
+            href={contatoUrl}
+            className="apex-demo__whatsapp"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Prefere falar agora? Chame no WhatsApp
           </a>
         )}
 

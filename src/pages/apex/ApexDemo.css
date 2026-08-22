@@ -38,6 +38,24 @@
   margin-top: 8px;
 }
 
+/* Saída secundária: link, não botão — quem quer falar agora acha, quem
+   está decidindo não se distrai. 44px de altura porque é alvo de toque
+   (Princípio nº1), mesmo parecendo texto. */
+.apex-demo__whatsapp {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: 15px;
+  color: var(--kora-verde);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.apex-demo__whatsapp:hover {
+  color: #fff;
+}
+
 .apex-demo__microcopy {
   font-size: 13px;
   color: #77768A;

@@ -7,8 +7,11 @@ import "./ApexHero.css";
  * (tema.css) em vez dos --kora-* do site: é a vitrine real do KORA,
  * não uma peça de marketing genérica. Decorativo (aria-hidden), sem
  * elementos interativos reais.
+ *
+ * `onAgendar` abre o formulário de contato que mora em ApexPage — o
+ * herói não guarda estado, só avisa que alguém clicou.
  */
-export default function ApexHero() {
+export default function ApexHero({ onAgendar }) {
   return (
     <header className="apex-hero">
       {/* Badge com duas variantes de copy: no mobile o artboard pede a
@@ -30,13 +33,20 @@ export default function ApexHero() {
         sistema fica com a cara da sua operação.
       </p>
       <div className="apex-hero__ctas">
-        {/* CTA primário abre o protótipo navegável (/demo): o visitante vê o
-            produto rodando na hora, sem esperar a demonstração agendada. */}
-        <a href="/demo" className="apex-botao apex-botao--primario-claro">
+        {/* O CTA mais visível da página é o que PEDE CONTATO. Antes os dois
+            botões daqui levavam para o protótipo e para a tabela de preços:
+            dava para ler o site inteiro, gostar, e ir embora sem que a gente
+            soubesse que a pessoa existiu. Ver o produto rodando continua a um
+            clique, agora como segunda opção. */}
+        <button
+          type="button"
+          className="apex-botao apex-botao--primario-claro"
+          onClick={onAgendar}
+        >
+          Agendar demonstração
+        </button>
+        <a href="/demo" className="apex-botao apex-botao--outline-escuro">
           Ver o KORA rodando
-        </a>
-        <a href="#planos" className="apex-botao apex-botao--outline-escuro">
-          Ver planos
         </a>
       </div>
       <span className="apex-hero__microcopy">

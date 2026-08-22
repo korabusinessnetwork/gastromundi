@@ -11,7 +11,10 @@ import "./ApexAgendamento.css";
 /**
  * Aba de agendamento de demonstração — captura de lead do apex.
  *
- * Abre a partir do botão "Agendar demonstração" do construtor de plano.
+ * Abre a partir de qualquer CTA da landing (nav, herói, banner de
+ * funcionalidades, construtor de plano e fechamento) — quem controla é
+ * ApexPage, que diz de onde veio o clique em `origem` e passa o `plano`
+ * só quando a pessoa realmente montou um.
  * Coleta Nome, WhatsApp e E-mail, valida na hora e GRAVA o contato em
  * `leads` (RPC pública `registrar_lead`, migração 20260920_leads.sql).
  * O lead aparece no Console, aba "Leads".
@@ -38,7 +41,15 @@ const FOCAVEIS =
 
 const CONTATO_URL = import.meta.env.VITE_CONTATO_URL || "";
 
-export default function ApexAgendamento({ aberto, onFechar, plano }) {
+export default function ApexAgendamento({
+  aberto,
+  onFechar,
+  plano,
+  // De onde o visitante clicou. Vai junto com o lead para o Console:
+  // "veio do herói" e "montou R$ 389 em módulos" pedem conversas
+  // diferentes. Sem valor, `registrarLead` usa a origem padrão.
+  origem,
+}) {
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
@@ -131,6 +142,7 @@ export default function ApexAgendamento({ aberto, onFechar, plano }) {
       whatsapp,
       email,
       consentimento,
+      ...(origem ? { origem } : {}),
       plano,
     });
     setEnviando(false);

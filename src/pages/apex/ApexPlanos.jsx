@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import ApexAgendamento from "./ApexAgendamento";
 import "./ApexPlanos.css";
 
 /**
@@ -150,10 +149,9 @@ const somarPrecos = (codigos, catalogo) =>
 const mesmoConjunto = (a, b) =>
   a.length === b.length && a.every((codigo) => b.includes(codigo));
 
-export default function ApexPlanos() {
+export default function ApexPlanos({ onAgendar }) {
   const [modulosSelecionados, setModulosSelecionados] = useState([]);
   const [addonsSelecionados, setAddonsSelecionados] = useState([]);
-  const [agendamentoAberto, setAgendamentoAberto] = useState(false);
 
   const alternarModulo = (codigo) => {
     setModulosSelecionados((atual) =>
@@ -391,7 +389,7 @@ export default function ApexPlanos() {
             <button
               type="button"
               className="apex-botao apex-botao--primario apex-construtor__cta"
-              onClick={() => setAgendamentoAberto(true)}
+              onClick={() => onAgendar?.(plano)}
             >
               Agendar demonstração
             </button>
@@ -406,12 +404,6 @@ export default function ApexPlanos() {
           abrimos um número limitado de ativações por mês.
         </span>
       </div>
-
-      <ApexAgendamento
-        aberto={agendamentoAberto}
-        onFechar={() => setAgendamentoAberto(false)}
-        plano={plano}
-      />
     </section>
   );
 }

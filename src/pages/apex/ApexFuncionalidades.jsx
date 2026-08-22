@@ -66,7 +66,7 @@ const FUNCIONALIDADES = [
   },
 ];
 
-export default function ApexFuncionalidades({ contatoUrl }) {
+export default function ApexFuncionalidades({ onAgendar }) {
   return (
     <section id="funcionalidades" className="apex-func">
       <div className="apex-container apex-func__container">
@@ -114,12 +114,16 @@ export default function ApexFuncionalidades({ contatoUrl }) {
               não se adapta ao KORA; o KORA se adapta a você.
             </span>
           </div>
-          <a
-            href={contatoUrl || "#demo"}
+          {/* Abre o formulário direto. Antes esse botão descia até a
+              seção de fechamento (#demo) e a pessoa tinha que clicar de
+              novo lá embaixo — dois passos para dizer a mesma coisa. */}
+          <button
+            type="button"
             className="apex-botao apex-botao--branco apex-func__bannerCta"
+            onClick={onAgendar}
           >
             Quero do meu jeito
-          </a>
+          </button>
         </div>
       </div>
     </section>

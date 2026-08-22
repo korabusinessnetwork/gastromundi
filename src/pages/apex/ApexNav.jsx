@@ -5,7 +5,8 @@ import "./ApexNav.css";
 /**
  * Nav do site institucional (sticky, branca). Monograma + wordmark à
  * esquerda; links âncora para as seções de prova/oferta à direita,
- * terminando no CTA "Ver o KORA rodando". "Entrar" é uma adição nossa
+ * terminando no CTA "Agendar demonstração" — o mesmo formulário do
+ * herói e do construtor de plano (ApexPage). "Entrar" é uma adição nossa
  * ao handoff: quem cai aqui já sendo cliente (ou por engano) precisa
  * de uma saída óbvia para o login, sem competir visualmente com o CTA
  * de conversão — por isso 14px, cor névoa, sem peso de botão.
@@ -18,7 +19,7 @@ import "./ApexNav.css";
  * grande. O drawer fecha ao tocar num link (o visitante queria ir pra
  * seção, não admirar o menu) ou ao tocar fora dele.
  */
-export default function ApexNav() {
+export default function ApexNav({ onAgendar }) {
   const [menuAberto, setMenuAberto] = useState(false);
 
   const links = [
@@ -47,9 +48,13 @@ export default function ApexNav() {
             </a>
           ))}
           <a href="/login" className="apex-nav__entrar">Entrar</a>
-          <a href="/demo" className="apex-botao apex-botao--primario apex-nav__cta">
-            Ver o KORA rodando
-          </a>
+          <button
+            type="button"
+            className="apex-botao apex-botao--primario apex-nav__cta"
+            onClick={onAgendar}
+          >
+            Agendar demonstração
+          </button>
         </div>
 
         <button
@@ -93,13 +98,19 @@ export default function ApexNav() {
         <a href="/login" className="apex-nav__drawer-link" onClick={fecharMenu}>
           Entrar
         </a>
-        <a
-          href="/demo"
+        <button
+          type="button"
           className="apex-botao apex-botao--primario apex-nav__drawer-cta"
-          onClick={fecharMenu}
+          onClick={() => {
+            // Fecha o drawer ANTES de abrir o formulário: os dois abertos
+            // ao mesmo tempo deixariam dois "X" na tela e o scroll travado
+            // por duas mãos diferentes.
+            fecharMenu();
+            onAgendar?.();
+          }}
         >
-          Ver o KORA rodando
-        </a>
+          Agendar demonstração
+        </button>
       </div>
     </nav>
   );
