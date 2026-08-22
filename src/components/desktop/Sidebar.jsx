@@ -18,7 +18,7 @@ import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
   LuHistory, LuX, LuUser, LuArrowLeft, LuShieldAlert, LuWallet, LuChefHat, LuUsers,
-  LuSparkles, LuFileText, LuFileCheck, LuTrash2, LuBike, LuBanknote,
+  LuSparkles, LuFileText, LuFileCheck, LuTrash2, LuBike,
 } from "react-icons/lu";
 
 // F005 — quem opera a gaveta. Mesma lista da policy de INSERT em
@@ -780,7 +780,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                 }}
               >
-                <LuBanknote size={15} /> Retirar / Colocar Dinheiro
+                Retirar / Colocar Dinheiro
               </button>
             )}
             <button
