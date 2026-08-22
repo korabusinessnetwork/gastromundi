@@ -7,3 +7,6 @@ dist/
 
 # Config pessoal do Obsidian (vault apontado para memory/ ou raiz)
 .obsidian/
+
+# Rascunhos de trabalho (anotações, resumos, arquivos temporários de sessão)
+scratchpad/
