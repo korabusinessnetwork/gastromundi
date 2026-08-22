@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
@@ -20,6 +20,7 @@ import { varColor } from "@/lib/tema";
 import { marcaDoCabecalho } from "@/lib/tema";
 import { lerBrandingCache } from "@/lib/brandingCache";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
+import TelaCarregando from "@/routes/TelaCarregando";
 import "./DesktopLayout.css";
 
 export default function DesktopLayout() {
@@ -192,7 +193,14 @@ export default function DesktopLayout() {
         <AssinaturaBanner />
 
         <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <Outlet context={{ notify }} />
+          {/* As telas de /app são baixadas quando abertas, não todas no
+              primeiro acesso (o navegador do caixa não precisa carregar
+              relatório, estoque e financeiro para abrir o PDV). O Suspense
+              fica AQUI, em volta do conteúdo: o menu e o cabeçalho
+              continuam na tela e só a área de conteúdo mostra a espera. */}
+          <Suspense fallback={<TelaCarregando />}>
+            <Outlet context={{ notify }} />
+          </Suspense>
         </main>
       </div>
 

@@ -1,0 +1,32 @@
+/* Espera entre a rota e a tela dela (ver TelaCarregando.jsx). CSS fora
+   do JSX (decisão 018), co-localizado (023), tokens --gm-* do produto. */
+
+.tela-carregando {
+  min-height: 40vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  color: var(--gm-muted, #9aa8c4);
+  font-size: 0.95rem;
+}
+
+.tela-carregando__ponto {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: tela-carregando-pulso 1.1s ease-in-out infinite;
+}
+
+@keyframes tela-carregando-pulso {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50%      { opacity: 1;    transform: scale(1); }
+}
+
+/* Quem pediu menos animação no sistema não vê o pulso — só o aviso. */
+@media (prefers-reduced-motion: reduce) {
+  .tela-carregando__ponto { animation: none; opacity: 0.6; }
+}

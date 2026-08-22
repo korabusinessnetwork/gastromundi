@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import PrivateRoute   from "./PrivateRoute";
 import ConsoleRoute   from "./ConsoleRoute";
 import InicioApp      from "./InicioApp";
+import TelaCarregando from "./TelaCarregando";
 import { ehApexInstitucional } from "@/lib/apex";
 import { consoleAtivo, ehConsoleHost } from "@/lib/consoleHost";
 
@@ -19,25 +20,47 @@ const ApexNaoEncontrada = lazy(() => import("@/pages/apex/ApexNaoEncontrada"));
 // quem abre /cardapio baixa esse código; o operador do PDV nunca carrega.
 const CardapioPage = lazy(() => import("@/pages/delivery/CardapioPage"));
 
-// Pages
-import LoginPage        from "@/pages/LoginPage";
-import MobilePage       from "@/pages/MobilePage";
-import DesktopLayout    from "@/pages/desktop/DesktopLayout";
-import PDVPage          from "@/pages/desktop/PDVPage";
-import ProdutosPage     from "@/pages/desktop/ProdutosPage";
-import DeliveryPage     from "@/pages/desktop/DeliveryPage";
-import RelatorioPage    from "@/pages/desktop/RelatorioPage";
-import ConfiguracoesPage from "@/pages/desktop/ConfiguracoesPage";
-import EstoquePage        from "@/pages/desktop/EstoquePage";
-import FinanceiroPage     from "@/pages/desktop/FinanceiroPage";
-import CozinhaPage        from "@/pages/desktop/CozinhaPage";
-import AdminPage          from "@/pages/desktop/AdminPage";
-import ClientesPage       from "@/pages/desktop/ClientesPage";
-import HistoricoNfcePage  from "@/pages/desktop/HistoricoNfcePage";
-import PainelFiscalPage   from "@/pages/desktop/PainelFiscalPage";
-import ConsolePage        from "@/pages/console/ConsolePage";
-import ConsoleLoginPage   from "@/pages/console/ConsoleLoginPage";
+// Login: única tela que continua vindo junto com o app. É a porta de
+// entrada de todo estabelecimento — baixá-la sob demanda custaria uma ida
+// ao servidor bem no primeiro instante, que é justamente onde o tempo pesa.
+import LoginPage from "@/pages/LoginPage";
+
+// TODAS as outras telas são baixadas quando abertas.
+//
+// Antes, este arquivo importava as dezoito páginas de uma vez, e por isso
+// TODO MUNDO baixava TUDO: quem só abria a vitrine em kora.codes recebia o
+// PDV inteiro; o caixa que só usa o PDV recebia relatório, estoque,
+// financeiro, o console da plataforma e as bibliotecas pesadas penduradas
+// nelas (mapa do delivery, planilha da importação, PDF do relatório).
+// Eram 2,4 MB num pedaço só. Cada tela agora traz o que é dela, quando é
+// aberta — o Suspense de /app fica dentro do DesktopLayout, para o menu
+// não piscar entre uma tela e outra.
+const MobilePage        = lazy(() => import("@/pages/MobilePage"));
+const DesktopLayout     = lazy(() => import("@/pages/desktop/DesktopLayout"));
+const PDVPage           = lazy(() => import("@/pages/desktop/PDVPage"));
+const ProdutosPage      = lazy(() => import("@/pages/desktop/ProdutosPage"));
+const DeliveryPage      = lazy(() => import("@/pages/desktop/DeliveryPage"));
+const RelatorioPage     = lazy(() => import("@/pages/desktop/RelatorioPage"));
+const ConfiguracoesPage = lazy(() => import("@/pages/desktop/ConfiguracoesPage"));
+const EstoquePage       = lazy(() => import("@/pages/desktop/EstoquePage"));
+const FinanceiroPage    = lazy(() => import("@/pages/desktop/FinanceiroPage"));
+const CozinhaPage       = lazy(() => import("@/pages/desktop/CozinhaPage"));
+const AdminPage         = lazy(() => import("@/pages/desktop/AdminPage"));
+const ClientesPage      = lazy(() => import("@/pages/desktop/ClientesPage"));
+const HistoricoNfcePage = lazy(() => import("@/pages/desktop/HistoricoNfcePage"));
+const PainelFiscalPage  = lazy(() => import("@/pages/desktop/PainelFiscalPage"));
+const ConsolePage       = lazy(() => import("@/pages/console/ConsolePage"));
+const ConsoleLoginPage  = lazy(() => import("@/pages/console/ConsoleLoginPage"));
+
 import MODULOS from "@/constants/modulos";
+
+/**
+ * Embrulha a tela na espera padrão. Fora de /app cada rota traz a sua
+ * (não há layout em volta para segurar a tela enquanto o pedaço chega).
+ */
+const comEspera = (elemento) => (
+  <Suspense fallback={<TelaCarregando />}>{elemento}</Suspense>
+);
 
 // Recurso "Console em subdomínio próprio" (Task #18). Calculado UMA vez no
 // carregamento do módulo (como ehApexInstitucional). Master switch inerte:
@@ -54,16 +77,16 @@ const consoleForaDoHost = consoleLigado && !naHostDoConsole;
 // de app de estabelecimento, apex ou demo. Sem marca de tenant, sem porta
 // de login do estabelecimento — qualquer outra rota volta pra raiz.
 const rotasHostConsole = [
-  { path: "/login",   element: <ConsoleLoginPage /> },
+  { path: "/login",   element: comEspera(<ConsoleLoginPage />) },
   {
     path: "/console",
-    element: (
+    element: comEspera(
       <ConsoleRoute>
         <ConsolePage />
       </ConsoleRoute>
     ),
   },
-  { path: "/",  element: <ConsoleLoginPage /> },
+  { path: "/",  element: comEspera(<ConsoleLoginPage />) },
   { path: "*",  element: <Navigate to="/" replace /> },
 ];
 
@@ -115,7 +138,7 @@ const rotasApp = [
     path: "/console",
     element: consoleForaDoHost
       ? <Navigate to="/login" replace />
-      : (
+      : comEspera(
         <ConsoleRoute>
           <ConsolePage />
         </ConsoleRoute>
@@ -125,7 +148,7 @@ const rotasApp = [
   // Palm — tirar pedidos
   {
     path: "/palm",
-    element: (
+    element: comEspera(
       <PrivateRoute requiredPermission="palm">
         <MobilePage />
       </PrivateRoute>
@@ -135,7 +158,7 @@ const rotasApp = [
   // Desktop — gestão completa
   {
     path: "/app",
-    element: (
+    element: comEspera(
       <PrivateRoute>
         <DesktopLayout />
       </PrivateRoute>
