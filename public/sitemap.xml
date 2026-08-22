@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sitemap da vitrine da KORA. Só as duas páginas públicas do apex: a
+  landing e o protótipo navegável. Login, app, console e cardápio de
+  estabelecimento não entram — não são páginas da plataforma para
+  buscador.
+
+  Sem <lastmod>/<changefreq>/<priority> de propósito: data escrita à mão
+  envelhece e passa a mentir para o buscador (que aprende a ignorar), e
+  os outros dois são dicas que o Google declara não usar. URL é o que
+  importa aqui.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://kora.codes/</loc>
+  </url>
+  <url>
+    <loc>https://kora.codes/demo</loc>
+  </url>
+</urlset>

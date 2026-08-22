@@ -1,0 +1,105 @@
+/**
+ * Tela de endereço inexistente do site (apex). Mesmo fundo tinta do
+ * herói para a pessoa reconhecer na hora que continua na KORA — não
+ * caiu numa tela de erro de servidor. CSS separado do JSX (decisão
+ * 018), co-localizado (decisão 023); tokens --kora-* vêm de .apex.
+ */
+
+.apex-404 {
+  min-height: 100dvh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 56px 24px;
+  text-align: center;
+  background: var(--kora-tinta);
+}
+
+.apex-404__marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 8px;
+  margin-bottom: 8px;
+  text-decoration: none;
+}
+
+.apex-404__monograma {
+  width: 26px;
+  height: 26px;
+}
+
+.apex-404__wordmark {
+  font-family: var(--kora-font-titulo);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 3px;
+  color: #fff;
+}
+
+.apex-404__codigo {
+  font-family: var(--kora-font-titulo);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--kora-verde);
+}
+
+.apex-404__titulo {
+  margin: 0;
+  font-family: var(--kora-font-titulo);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #fff;
+}
+
+.apex-404__texto {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 17px;
+  color: #B8B6C8;
+}
+
+.apex-404__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.apex-404__ajuda {
+  margin: 20px 0 0;
+  max-width: 52ch;
+  font-size: 14px;
+  color: #77768A;
+}
+
+@media (max-width: 767px) {
+  .apex-404 {
+    padding: 40px 20px;
+  }
+
+  .apex-404__titulo {
+    font-size: 30px;
+  }
+
+  .apex-404__texto {
+    font-size: 15px;
+  }
+
+  .apex-404__ctas {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .apex-404__ctas .apex-botao {
+    width: 100%;
+  }
+}

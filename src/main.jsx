@@ -9,6 +9,7 @@ import { registerSW } from "virtual:pwa-register";
 import { initObservabilidade } from "@/lib/observabilidade";
 import { instalarRecuperacaoDeploy } from "@/lib/recuperacaoDeploy";
 import { pautasAtivo, ehPautasHost } from "@/lib/pautasHost";
+import { aplicarSeoDaRota } from "@/lib/seo";
 
 // Host das Pautas (ex.: pautas.kora.codes): superfície interna dos sócios da
 // Kora, sem PDV, sem tenant e sem rotas. Inerte por design — sem
@@ -31,6 +32,15 @@ instalarRecuperacaoDeploy();
 // produção — sem VITE_SENTRY_DSN o app roda idêntico (fail-open). Precede o
 // render para já capturar erros da árvore desde o primeiro frame.
 initObservabilidade();
+
+// Canonical e "não indexe" da rota inicial. Isto NÃO cabe no index.html: o
+// mesmo HTML é servido para o apex (kora.codes) e para o subdomínio de cada
+// estabelecimento, então uma tag fixa apontaria o buscador para o endereço
+// errado. Aqui a decisão é por host e por caminho: a vitrine e a
+// demonstração ganham canonical; login, PDV, console e endereço inexistente
+// saem do índice. Cada rota que muda isso depois (o 404, por exemplo)
+// reaplica ao sair.
+aplicarSeoDaRota();
 
 // Fallback amigável quando o render React estoura (o que try/catch não pega).
 // Intuitividade (princípio nº 1): mensagem humana em português, sem jargão,

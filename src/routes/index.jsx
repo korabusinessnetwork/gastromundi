@@ -12,6 +12,9 @@ const ApexPage = lazy(() => import("@/pages/apex/ApexPage"));
 // Protótipo navegável ("Ver o KORA rodando") — só existe no apex; nos
 // subdomínios de tenant a rota nem se registra e cai no fallback /login.
 const DemoPage = lazy(() => import("@/pages/apex/demo/DemoPage"));
+// Endereço que não existe no site (kora.codes/qualquer-coisa) — lazy pelo
+// mesmo motivo dos outros: só o visitante do apex baixa esse código.
+const ApexNaoEncontrada = lazy(() => import("@/pages/apex/ApexNaoEncontrada"));
 // Vitrine pública de delivery (cardápio online, anon por slug) — lazy: só
 // quem abre /cardapio baixa esse código; o operador do PDV nunca carrega.
 const CardapioPage = lazy(() => import("@/pages/delivery/CardapioPage"));
@@ -242,8 +245,16 @@ const rotasApp = [
     ],
   },
 
-  // Fallback
-  { path: "*", element: <Navigate to="/login" replace /> },
+  // Fallback. No apex, endereço errado tem tela própria: quem clicou num
+  // link quebrado do nosso site lê o que houve e tem o caminho de volta,
+  // em vez de ser despejado numa tela de senha de estabelecimento. Fora
+  // do apex (subdomínio de tenant, dev), segue indo para o login.
+  {
+    path: "*",
+    element: ehApexInstitucional()
+      ? <Suspense fallback={null}><ApexNaoEncontrada /></Suspense>
+      : <Navigate to="/login" replace />,
+  },
 ];
 
 // No host dedicado do console, servimos APENAS as rotas do console; em

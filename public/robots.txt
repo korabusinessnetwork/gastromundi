@@ -1,0 +1,21 @@
+# robots.txt da plataforma KORA (kora.codes).
+#
+# Um único deploy serve o apex E os subdomínios de estabelecimento, então
+# este arquivo é lido também em casacoffee.kora.codes. Por isso ele não
+# bloqueia "/": lá a raiz é o login do estabelecimento, e quem tira essa
+# porta do buscador é a meta robots aplicada em runtime (src/lib/seo.js),
+# que sabe em qual host está. Aqui ficam só os caminhos que NUNCA devem
+# ser rastreados, em nenhum host.
+#
+# O arquivo é servido pelo sistema de arquivos da Vercel antes do rewrite
+# de SPA (ordem: headers → redirects → filesystem → rewrites) — sem ele,
+# /robots.txt respondia o HTML do app.
+
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /app
+Disallow: /console
+Disallow: /palm
+
+Sitemap: https://kora.codes/sitemap.xml

@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
+<!--
+  FONTE da imagem de compartilhamento (public/og-kora.png) — o que o
+  WhatsApp/LinkedIn/X mostram quando alguém cola o link de kora.codes.
+  Editar aqui e gerar de novo; o PNG no public/ é o resultado, não a fonte.
+
+  Gerar (Chromium headless; a janela vai mais alta que 630 porque a
+  viewport do headless é menor que a janela pedida, e o corte final
+  volta para 1200x630 — proporção 1.91:1 que as redes esperam):
+
+    chromium --headless --no-sandbox --hide-scrollbars \
+      --force-device-scale-factor=1 --window-size=1200,717 \
+      --screenshot=og-kora.png file://$PWD/scripts/og-kora.html
+
+  Cores e tipografia são os tokens --kora-* do site (ApexPage.css).
+  Nada de número inventado nem print falso: só a marca e a promessa
+  que a página cumpre.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Space+Grotesk:wght@400;500&display=swap" />
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1200px;height:630px}
+body{
+  background:#1B1930;
+  font-family:'Space Grotesk',sans-serif;
+  color:#F8F8FB;
+  position:relative;
+  overflow:hidden;
+}
+.brilho{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5}
+.b1{width:620px;height:620px;background:#473CA8;right:-160px;top:-220px}
+.b2{width:460px;height:460px;background:#37BFA7;right:60px;bottom:-260px;opacity:.32}
+.conteudo{position:relative;padding:74px 80px;height:100%;display:flex;flex-direction:column;justify-content:space-between}
+.marca{display:flex;align-items:center;gap:16px}
+.marca svg{width:42px;height:auto;display:block}
+.wordmark{font-family:'Sora',sans-serif;font-weight:800;font-size:34px;letter-spacing:6px}
+h1{font-family:'Sora',sans-serif;font-weight:800;font-size:70px;line-height:1.08;letter-spacing:-1.5px;max-width:900px}
+h1 em{font-style:normal;color:#6FE3CD}
+p{font-size:27px;line-height:1.45;color:#C9C7DA;max-width:820px;margin-top:24px}
+.rodape{display:flex;align-items:center;gap:20px;font-size:22px;color:#9C9AB4}
+.dominio{font-family:'Sora',sans-serif;font-weight:700;font-size:24px;color:#F8F8FB;letter-spacing:.5px}
+.ponto{width:6px;height:6px;border-radius:50%;background:#3E8DD6}
+.fita{position:absolute;left:0;right:0;bottom:0;height:8px;background:linear-gradient(90deg,#473CA8 0%,#3E8DD6 50%,#37BFA7 100%)}
+</style></head><body>
+<div class="brilho b1"></div><div class="brilho b2"></div>
+<div class="conteudo">
+  <div class="marca">
+    <svg viewBox="-3 -8 36 44">
+      <rect x="2" y="0" width="7" height="30" rx="3.5" fill="#B8B0F0"/>
+      <rect x="9" y="-4" width="7" height="19" rx="3.5" fill="#3E8DD6" transform="rotate(45 9 15)"/>
+      <rect x="9" y="15" width="7" height="19" rx="3.5" fill="#37BFA7" transform="rotate(-45 9 15)"/>
+    </svg>
+    <span class="wordmark">KORA</span>
+  </div>
+  <div>
+    <h1>O PDV que <em>se adapta</em> a você</h1>
+    <p>Caixa, comanda, delivery, Pix e nota fiscal — do jeito que a sua operação já funciona.</p>
+  </div>
+  <div class="rodape">
+    <span class="dominio">kora.codes</span>
+    <span class="ponto"></span>
+    <span>Demonstração ao vivo de 30 min · Sem fidelidade</span>
+  </div>
+</div>
+<div class="fita"></div>
+</body></html>

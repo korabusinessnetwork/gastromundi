@@ -10,6 +10,53 @@
          aplicada pelo script de branding abaixo (cache) ou pelo app após o
          bootstrap. Nunca a marca de UM cliente hardcodada (decisão 017). -->
     <title>Kora</title>
+    <link rel="icon" type="image/svg+xml" href="/icone-kora.svg" />
+    <!-- Compartilhamento e busca (achado #4 da auditoria do site: mandar o
+         link de kora.codes no WhatsApp não mostrava nada — sem descrição,
+         sem imagem, sem cartão).
+
+         Um ÚNICO index.html serve o apex (kora.codes) E todo subdomínio de
+         tenant, então tudo daqui é da PLATAFORMA, neutro, nunca a marca de
+         um cliente (decisão 017). Três escolhas que parecem falta:
+
+         - SEM <link rel="canonical"> fixo. Apontar todo mundo para
+           https://kora.codes/ declararia casacoffee.kora.codes uma cópia do
+           apex. O canônico é aplicado em runtime, só no apex — src/lib/seo.js.
+         - SEM og:url fixo, pela mesma razão: na falta dele o WhatsApp/Facebook
+           usam a própria URL aberta, que é a certa em qualquer host.
+         - <title> continua "Kora". O título de venda é aplicado em runtime
+           pela landing (buscador executa JS); estático, ele apareceria na aba
+           do login de cada estabelecimento.
+
+         O endereço da imagem é absoluto e literal porque precisa resolver
+         para robô que não executa JS — e porque o cartão inteiro (imagem,
+         título, texto) é a marca KORA: um segundo domínio white-label troca
+         este bloco junto com a arte. A imagem é gerada por
+         scripts/og-kora.html (o cabeçalho de lá tem o comando). -->
+    <meta
+      name="description"
+      content="KORA é o PDV que se adapta à sua operação: caixa, comanda, delivery, Pix e nota fiscal. Demonstração ao vivo de 30 minutos, sem fidelidade."
+    />
+    <meta name="theme-color" content="#473CA8" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="KORA" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content="KORA — O PDV que se adapta a você" />
+    <meta
+      property="og:description"
+      content="Caixa, comanda, delivery, Pix e nota fiscal do jeito que a sua operação já funciona. Demonstração ao vivo de 30 minutos, sem fidelidade."
+    />
+    <meta property="og:image" content="https://kora.codes/og-kora.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="KORA — o PDV que se adapta a você" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="KORA — O PDV que se adapta a você" />
+    <meta
+      name="twitter:description"
+      content="Caixa, comanda, delivery, Pix e nota fiscal do jeito que a sua operação já funciona. Demonstração ao vivo de 30 minutos, sem fidelidade."
+    />
+    <meta name="twitter:image" content="https://kora.codes/og-kora.png" />
     <!-- Anti-flash de troca de estabelecimento: aplica a marca/tema em cache
          (gravado por src/lib/brandingCache.js; localStorage é POR ORIGEM,
          então cada subdomínio só vê a própria marca) ANTES da primeira
