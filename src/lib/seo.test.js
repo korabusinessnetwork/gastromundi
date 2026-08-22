@@ -143,7 +143,7 @@ describe("seo — canônico e indexação por host", () => {
     });
   });
 
-  it("a lista de caminhos públicos é só a vitrine", () => {
-    expect(CAMINHOS_PUBLICOS).toEqual(["/", "/demo"]);
+  it("a lista de caminhos públicos é a vitrine, a demo e a privacidade", () => {
+    expect(CAMINHOS_PUBLICOS).toEqual(["/", "/demo", "/privacidade"]);
   });
 });

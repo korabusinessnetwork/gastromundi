@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Sitemap da vitrine da KORA. Só as duas páginas públicas do apex: a
-  landing e o protótipo navegável. Login, app, console e cardápio de
-  estabelecimento não entram — não são páginas da plataforma para
-  buscador.
+  Sitemap da vitrine da KORA. Só as páginas públicas do apex: a landing,
+  o protótipo navegável e a política de privacidade. Login, app, console
+  e cardápio de estabelecimento não entram — não são páginas da
+  plataforma para buscador.
 
   Sem <lastmod>/<changefreq>/<priority> de propósito: data escrita à mão
   envelhece e passa a mentir para o buscador (que aprende a ignorar), e
@@ -16,5 +16,8 @@
   </url>
   <url>
     <loc>https://kora.codes/demo</loc>
+  </url>
+  <url>
+    <loc>https://kora.codes/privacidade</loc>
   </url>
 </urlset>

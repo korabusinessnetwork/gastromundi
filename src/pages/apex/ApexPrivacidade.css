@@ -1,0 +1,151 @@
+/**
+ * Página de documento do site (política de privacidade). Layout de
+ * LEITURA, não de venda: fundo claro, uma coluna estreita e texto
+ * grande. Quem abre isto está desconfiado — o mínimo é não fazer a
+ * pessoa apertar os olhos.
+ *
+ * CSS separado do JSX (decisão 018), co-localizado (023); tokens
+ * --kora-* vêm de .apex.
+ */
+
+.apex-doc__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 64px;
+  border-bottom: 1px solid var(--kora-linha);
+  background: #fff;
+}
+
+.apex-doc__marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  /* 44px de alvo de toque, igual à nav do site. */
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.apex-doc__monograma {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.apex-doc__wordmark {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 4px;
+  color: var(--kora-tinta);
+}
+
+.apex-doc__voltar {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--kora-grafite);
+  text-decoration: none;
+}
+
+.apex-doc__voltar:hover {
+  color: var(--kora-roxo);
+}
+
+.apex-doc {
+  /* 680px é medida de leitura: linha longa demais faz o olho perder a
+     volta, e este é um texto que precisa ser lido até o fim. */
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 56px 24px 72px;
+  color: var(--kora-grafite);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.apex-doc__titulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1.2;
+  color: var(--kora-tinta);
+  margin: 12px 0 0;
+}
+
+.apex-doc__resumo {
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--kora-tinta);
+  margin: 20px 0 0;
+}
+
+.apex-doc__data {
+  display: block;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--kora-nevoa);
+}
+
+.apex-doc__secao {
+  margin-top: 36px;
+}
+
+.apex-doc__subtitulo {
+  font-family: var(--kora-font-titulo);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.3;
+  color: var(--kora-tinta);
+  margin: 0 0 10px;
+}
+
+.apex-doc p {
+  margin: 0 0 12px;
+}
+
+.apex-doc p:last-child {
+  margin-bottom: 0;
+}
+
+.apex-doc__lista {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+
+.apex-doc__lista li {
+  margin-bottom: 6px;
+}
+
+.apex-doc__link {
+  color: var(--kora-roxo);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 1023px) {
+  .apex-doc__topo {
+    padding: 14px 32px;
+  }
+}
+
+@media (max-width: 767px) {
+  .apex-doc__topo {
+    padding: 12px 20px;
+  }
+
+  .apex-doc {
+    padding: 40px 20px 56px;
+  }
+
+  .apex-doc__titulo {
+    font-size: 27px;
+  }
+
+  .apex-doc__resumo {
+    font-size: 16px;
+  }
+}

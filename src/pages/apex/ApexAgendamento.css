@@ -209,6 +209,19 @@
   color: var(--kora-nevoa);
 }
 
+/* Link da política dentro do aceite. Sublinhado e na cor da marca: quem
+   está desconfiado precisa ENXERGAR que existe um documento — é o que
+   faz o aceite ser aceite, e não uma frase. Inline (segue o texto), com
+   um respiro vertical para não virar alvo de agulha no celular. */
+.apex-agendamento__politica {
+  display: inline-block;
+  padding: 3px 0;
+  color: var(--kora-roxo);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ── Falha ao gravar: a saída pelo WhatsApp ─────────────────── */
 
 .apex-agendamento__falha {

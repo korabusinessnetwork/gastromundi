@@ -2,7 +2,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import * as Sentry from "@sentry/react";
-import { AppProvider } from "@/context/AppContext";
 import router from "@/routes";
 import "@/styles/tema.css";
 import { registerSW } from "virtual:pwa-register";
@@ -99,12 +98,15 @@ if (noHostDasPautas) {
     );
   });
 } else {
+  // O AppProvider NÃO fica mais aqui: ele virou rota-mãe das telas do
+  // produto (src/routes/ComContextoDoApp.jsx). Em volta do roteador
+  // inteiro, ele fazia a vitrine de kora.codes — que não tem login nem
+  // mostra dado do banco — restaurar sessão e abrir conexão de realtime
+  // com o Supabase para cada visitante anônimo.
   raiz.render(
     <StrictMode>
       <Sentry.ErrorBoundary fallback={<TelaDeErro />}>
-        <AppProvider>
-          <RouterProvider router={router} future={{ v7_startTransition: true }} />
-        </AppProvider>
+        <RouterProvider router={router} future={{ v7_startTransition: true }} />
       </Sentry.ErrorBoundary>
     </StrictMode>
   );

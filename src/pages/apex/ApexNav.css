@@ -18,6 +18,10 @@
 .apex-nav__marca {
   display: flex;
   align-items: center;
+  /* 44px é o mínimo confortável para o dedo (princípio nº 1). Como a
+     linha do topo já é centralizada, crescer a área NÃO move o texto:
+     o alvo aumenta, o desenho continua igual. Vale para toda a nav. */
+  min-height: 44px;
   gap: 12px;
   text-decoration: none;
 }
@@ -45,6 +49,9 @@
 }
 
 .apex-nav__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--kora-grafite);
   text-decoration: none;
 }
@@ -54,6 +61,9 @@
 }
 
 .apex-nav__entrar {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-size: 14px;
   color: var(--kora-nevoa);
   text-decoration: none;
@@ -64,7 +74,7 @@
 }
 
 .apex-nav__cta {
-  min-height: auto;
+  min-height: 44px;
   padding: 10px 22px;
   font-size: 14px;
   font-weight: 600;

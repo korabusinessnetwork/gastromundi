@@ -139,6 +139,13 @@
 
 .apex-construtor__selecionar-todos {
   flex: none;
+  /* Pílula de 44px: é um botão de dedo, no meio de uma tela que se monta
+     tocando. Antes tinha 31px de altura — acertava mais a borda do que o
+     alvo. Centralizado, o texto fica onde estava. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   border: 1px solid var(--kora-roxo);
   background: #fff;
   color: var(--kora-roxo);

@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import PrivateRoute   from "./PrivateRoute";
 import ConsoleRoute   from "./ConsoleRoute";
 import InicioApp      from "./InicioApp";
+import ComContextoDoApp from "./ComContextoDoApp";
 import TelaCarregando from "./TelaCarregando";
 import { ehApexInstitucional } from "@/lib/apex";
 import { consoleAtivo, ehConsoleHost } from "@/lib/consoleHost";
@@ -16,6 +17,10 @@ const DemoPage = lazy(() => import("@/pages/apex/demo/DemoPage"));
 // Endereço que não existe no site (kora.codes/qualquer-coisa) — lazy pelo
 // mesmo motivo dos outros: só o visitante do apex baixa esse código.
 const ApexNaoEncontrada = lazy(() => import("@/pages/apex/ApexNaoEncontrada"));
+// Política de privacidade — documento público que o rodapé e o aceite do
+// formulário linkam. Lazy: quase ninguém abre, mas quem abre precisa que
+// esteja lá (LGPD, e é o que a pessoa procura antes de deixar o contato).
+const ApexPrivacidade = lazy(() => import("@/pages/apex/ApexPrivacidade"));
 // Vitrine pública de delivery (cardápio online, anon por slug) — lazy: só
 // quem abre /cardapio baixa esse código; o operador do PDV nunca carrega.
 const CardapioPage = lazy(() => import("@/pages/delivery/CardapioPage"));
@@ -77,16 +82,23 @@ const consoleForaDoHost = consoleLigado && !naHostDoConsole;
 // de app de estabelecimento, apex ou demo. Sem marca de tenant, sem porta
 // de login do estabelecimento — qualquer outra rota volta pra raiz.
 const rotasHostConsole = [
-  { path: "/login",   element: comEspera(<ConsoleLoginPage />) },
   {
-    path: "/console",
-    element: comEspera(
-      <ConsoleRoute>
-        <ConsolePage />
-      </ConsoleRoute>
-    ),
+    // Tudo aqui é tela de dentro (login de desenvolvedor + painel), então
+    // tudo aqui precisa do estado do app.
+    element: <ComContextoDoApp />,
+    children: [
+      { path: "/login",   element: comEspera(<ConsoleLoginPage />) },
+      {
+        path: "/console",
+        element: comEspera(
+          <ConsoleRoute>
+            <ConsolePage />
+          </ConsoleRoute>
+        ),
+      },
+      { path: "/",  element: comEspera(<ConsoleLoginPage />) },
+    ],
   },
-  { path: "/",  element: comEspera(<ConsoleLoginPage />) },
   { path: "*",  element: <Navigate to="/" replace /> },
 ];
 
@@ -111,159 +123,180 @@ const rotasApp = [
       : <Navigate to="/login" replace />,
   },
 
-  // Autenticação
-  { path: "/login", element: <LoginPage /> },
-
-  // Vitrine pública de delivery — SEM login (cliente final pede pelo slug do
-  // subdomínio). Fica fora do PrivateRoute de propósito: é a única superfície
-  // anônima do app além do login. Segurança real nas RPCs SECURITY DEFINER.
+  // Política de privacidade (apex). Fica FORA do ComContextoDoApp de
+  // propósito: é uma página de texto: abrir a política não pode acender
+  // sessão nem realtime — ainda mais sendo a página que explica
+  // justamente o que a gente faz com dado.
   {
-    path: "/cardapio",
-    element: (
-      <Suspense fallback={null}>
-        <CardapioPage />
-      </Suspense>
-    ),
+    path: "/privacidade",
+    element: ehApexInstitucional()
+      ? <Suspense fallback={null}><ApexPrivacidade /></Suspense>
+      : <Navigate to="/login" replace />,
   },
 
-  // Console da Plataforma (S1-2) — só o super-admin `plataforma`.
-  // Rota à parte de /app: a plataforma não opera o estabelecimento.
-  //
-  // Com o recurso de console-em-subdomínio LIGADO, o /console NÃO existe
-  // nos hosts de tenant — ele só mora no host dedicado. Aqui vira um beco
-  // sem saída (volta ao login do tenant), removendo a porta da plataforma
-  // dos subdomínios de estabelecimento. Com o switch desligado, é o
-  // comportamento de sempre (ConsoleRoute decide pelo papel).
+  // ── Telas do produto: SÓ ELAS montam o estado do app ──────────────
+  // O AppProvider saiu do main.jsx e virou esta rota-mãe. Vitrine,
+  // demonstração e endereço inexistente (acima e abaixo) ficam de fora:
+  // abrem sem restaurar sessão, sem buscar tenant e sem abrir conexão de
+  // realtime com o Supabase. Ver ComContextoDoApp.jsx.
   {
-    path: "/console",
-    element: consoleForaDoHost
-      ? <Navigate to="/login" replace />
-      : comEspera(
-        <ConsoleRoute>
-          <ConsolePage />
-        </ConsoleRoute>
-      ),
-  },
-
-  // Palm — tirar pedidos
-  {
-    path: "/palm",
-    element: comEspera(
-      <PrivateRoute requiredPermission="palm">
-        <MobilePage />
-      </PrivateRoute>
-    ),
-  },
-
-  // Desktop — gestão completa
-  {
-    path: "/app",
-    element: comEspera(
-      <PrivateRoute>
-        <DesktopLayout />
-      </PrivateRoute>
-    ),
+    element: <ComContextoDoApp />,
     children: [
-      { index: true, element: <InicioApp /> },
+      // Autenticação
+      { path: "/login", element: <LoginPage /> },
+
+      // Vitrine pública de delivery — SEM login (cliente final pede pelo slug do
+      // subdomínio). Fica fora do PrivateRoute de propósito: é a única superfície
+      // anônima do app além do login. Segurança real nas RPCs SECURITY DEFINER.
       {
-        path: "pdv",
+        path: "/cardapio",
         element: (
-          <PrivateRoute requiredPermission="pdv">
-            <PDVPage />
+          <Suspense fallback={null}>
+            <CardapioPage />
+          </Suspense>
+        ),
+      },
+
+      // Console da Plataforma (S1-2) — só o super-admin `plataforma`.
+      // Rota à parte de /app: a plataforma não opera o estabelecimento.
+      //
+      // Com o recurso de console-em-subdomínio LIGADO, o /console NÃO existe
+      // nos hosts de tenant — ele só mora no host dedicado. Aqui vira um beco
+      // sem saída (volta ao login do tenant), removendo a porta da plataforma
+      // dos subdomínios de estabelecimento. Com o switch desligado, é o
+      // comportamento de sempre (ConsoleRoute decide pelo papel).
+      {
+        path: "/console",
+        element: consoleForaDoHost
+          ? <Navigate to="/login" replace />
+          : comEspera(
+            <ConsoleRoute>
+              <ConsolePage />
+            </ConsoleRoute>
+          ),
+      },
+
+      // Palm — tirar pedidos
+      {
+        path: "/palm",
+        element: comEspera(
+          <PrivateRoute requiredPermission="palm">
+            <MobilePage />
           </PrivateRoute>
         ),
       },
+
+      // Desktop — gestão completa
       {
-        path: "produtos",
-        element: (
-          <PrivateRoute requiredPermission="produtos" requiredModulo={MODULOS.CARDAPIO} moduloLabel="Cadastro de Produtos">
-            <ProdutosPage />
+        path: "/app",
+        element: comEspera(
+          <PrivateRoute>
+            <DesktopLayout />
           </PrivateRoute>
         ),
-      },
-      {
-        path: "delivery",
-        element: (
-          <PrivateRoute requiredPermission="produtos" requiredModulo={MODULOS.DELIVERY} moduloLabel="Delivery">
-            <DeliveryPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "relatorio",
-        element: (
-          <PrivateRoute requiredPermission="relatorio" requiredModulo={MODULOS.RELATORIOS} moduloLabel="Relatórios">
-            <RelatorioPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "configuracoes",
-        element: (
-          <PrivateRoute requiredPermission="configuracoes">
-            <ConfiguracoesPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "estoque",
-        element: (
-          <PrivateRoute requiredPermission="estoque" requiredModulo={MODULOS.ESTOQUE} moduloLabel="Estoque">
-            <EstoquePage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "financeiro",
-        element: (
-          <PrivateRoute requiredPermission="financeiro" requiredModulo={MODULOS.FINANCEIRO} moduloLabel="Financeiro">
-            <FinanceiroPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "cozinha",
-        element: (
-          <PrivateRoute requiredPermission="cozinha" requiredModulo={MODULOS.COZINHA} moduloLabel="Cozinha">
-            <CozinhaPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "clientes",
-        element: (
-          <PrivateRoute requiredPermission="clientes" requiredModulo={MODULOS.CLIENTES} moduloLabel="Clientes">
-            <ClientesPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        path: "admin",
-        element: (
-          <PrivateRoute requiredPermission="configuracoes">
-            <AdminPage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        // Histórico fiscal — consulta do gestor (reimpressão/cancelamento),
-        // fora do fluxo do caixa (Leva 12).
-        path: "notas-fiscais",
-        element: (
-          <PrivateRoute requiredPermission="relatorio">
-            <HistoricoNfcePage />
-          </PrivateRoute>
-        ),
-      },
-      {
-        // Configuração fiscal do estabelecimento — onboarding fiscal do gestor
-        // (CNPJ/série/ambiente/endpoints), junto das Configurações (Leva 13).
-        path: "fiscal",
-        element: (
-          <PrivateRoute requiredPermission="configuracoes">
-            <PainelFiscalPage />
-          </PrivateRoute>
-        ),
+        children: [
+          { index: true, element: <InicioApp /> },
+          {
+            path: "pdv",
+            element: (
+              <PrivateRoute requiredPermission="pdv">
+                <PDVPage />
+              </PrivateRoute>
+            ),
+          },
+          {
+            path: "produtos",
+            element: (
+              <PrivateRoute requiredPermission="produtos" requiredModulo={MODULOS.CARDAPIO} moduloLabel="Cadastro de Produtos">
+                <ProdutosPage />
+              </PrivateRoute>
+            ),
+          },
+          {
+            path: "delivery",
+            element: (
+              <PrivateRoute requiredPermission="produtos" requiredModulo={MODULOS.DELIVERY} moduloLabel="Delivery">
+                <DeliveryPage />
+              </PrivateRoute>
+            ),
+          },
+          {
+            path: "relatorio",
+            element: (
+              <PrivateRoute requiredPermission="relatorio" requiredModulo={MODULOS.RELATORIOS} moduloLabel="Relatórios">
+                <RelatorioPage />
+              </PrivateRoute>
+            ),
+          },
+          {
+            path: "configuracoes",
+            element: (
+              <PrivateRoute requiredPermission="configuracoes">
+                <ConfiguracoesPage />
+              </PrivateRoute>
+            ),
+          },
+          {
+            path: "estoque",
+            element: (
+              <PrivateRoute requiredPermission="estoque" requiredModulo={MODULOS.ESTOQUE} moduloLabel="Estoque">
+                <EstoquePage />
+              </PrivateRoute>
+            ),
+          },
+          {
+            path: "financeiro",
+            element: (
+              <PrivateRoute requiredPermission="financeiro" requiredModulo={MODULOS.FINANCEIRO} moduloLabel="Financeiro">
+                <FinanceiroPage />
+              </PrivateRoute>
+            ),
+          },
+          {
+            path: "cozinha",
+            element: (
+              <PrivateRoute requiredPermission="cozinha" requiredModulo={MODULOS.COZINHA} moduloLabel="Cozinha">
+                <CozinhaPage />
+              </PrivateRoute>
+            ),
+          },
+          {
+            path: "clientes",
+            element: (
+              <PrivateRoute requiredPermission="clientes" requiredModulo={MODULOS.CLIENTES} moduloLabel="Clientes">
+                <ClientesPage />
+              </PrivateRoute>
+            ),
+          },
+          {
+            path: "admin",
+            element: (
+              <PrivateRoute requiredPermission="configuracoes">
+                <AdminPage />
+              </PrivateRoute>
+            ),
+          },
+          {
+            // Histórico fiscal — consulta do gestor (reimpressão/cancelamento),
+            // fora do fluxo do caixa (Leva 12).
+            path: "notas-fiscais",
+            element: (
+              <PrivateRoute requiredPermission="relatorio">
+                <HistoricoNfcePage />
+              </PrivateRoute>
+            ),
+          },
+          {
+            // Configuração fiscal do estabelecimento — onboarding fiscal do gestor
+            // (CNPJ/série/ambiente/endpoints), junto das Configurações (Leva 13).
+            path: "fiscal",
+            element: (
+              <PrivateRoute requiredPermission="configuracoes">
+                <PainelFiscalPage />
+              </PrivateRoute>
+            ),
+          },
+        ],
       },
     ],
   },

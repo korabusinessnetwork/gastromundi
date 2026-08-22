@@ -1,11 +1,31 @@
+/**
+ * Rodapé do site. Duas partes: identificação da empresa (esquerda) e os
+ * links de confiança (direita), com o copyright fechando embaixo.
+ *
+ * CSS separado do JSX (decisão 018), co-localizado (023); tokens
+ * --kora-* vêm de .apex.
+ */
+
 .apex-rodape {
   background: var(--kora-footer);
-  padding: 32px 24px;
+  padding: 32px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.apex-rodape__conteudo {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 20px;
+}
+
+.apex-rodape__coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .apex-rodape__marca {
@@ -27,20 +47,52 @@
   color: #9997AC;
 }
 
+.apex-rodape__dado {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #77768A;
+}
+
+.apex-rodape__links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+/* 44px de alvo: no rodapé de um site que pede contato, o link da
+   política é justamente o que a pessoa desconfiada vai tocar. */
+.apex-rodape__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13px;
+  color: #9997AC;
+  text-decoration: none;
+}
+
+.apex-rodape__link:hover {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .apex-rodape__copyright {
   font-size: 13px;
   color: #77768A;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 16px;
 }
 
 @media (max-width: 1023px) {
   .apex-rodape {
-    padding: 22px 32px;
+    padding: 22px 32px 20px;
   }
 }
 
 @media (max-width: 767px) {
   .apex-rodape {
-    padding: 18px 20px;
+    padding: 18px 20px 16px;
   }
 
   .apex-rodape__wordmark {
@@ -50,11 +102,15 @@
   .apex-rodape__copyright {
     font-size: 12px;
   }
+
+  .apex-rodape__links {
+    gap: 4px 20px;
+  }
 }
 
 @media (max-width: 480px) {
-  .apex-rodape {
-    justify-content: center;
-    text-align: center;
+  .apex-rodape__conteudo {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

@@ -15,8 +15,9 @@ import { ehApexInstitucional } from "./apex";
  *     robots.txt (que é por caminho) não consegue separar.
  *
  * Como o que muda é o host, e não a rota, isto roda uma vez no
- * carregamento (src/main.jsx): dentro do apex só existem "/" e "/demo",
- * e a navegação entre elas é link normal, com recarga de página.
+ * carregamento (src/main.jsx): dentro do apex só existem "/", "/demo" e
+ * "/privacidade", e a navegação entre elas é link normal, com recarga de
+ * página.
  * Navegação interna que caia numa rota inexistente é tratada pela
  * própria tela de 404, que reaplica o "não indexe" enquanto está aberta.
  *
@@ -27,7 +28,7 @@ import { ehApexInstitucional } from "./apex";
 const ROOT_DOMAIN = (import.meta.env.VITE_ROOT_DOMAIN || "").toLowerCase();
 
 /** Rotas do apex que podem aparecer em buscador. O resto é operação. */
-export const CAMINHOS_PUBLICOS = ["/", "/demo"];
+export const CAMINHOS_PUBLICOS = ["/", "/demo", "/privacidade"];
 
 /**
  * Caminho comparável: minúsculo e sem barra no fim ("/demo/" e "/Demo"

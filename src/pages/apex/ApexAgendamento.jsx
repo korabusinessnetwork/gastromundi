@@ -268,7 +268,17 @@ export default function ApexAgendamento({
                 <span>
                   Pode guardar meu nome, WhatsApp e e-mail para falar comigo
                   sobre a demonstração. Não usamos para mais nada e você pode
-                  pedir a exclusão quando quiser.
+                  pedir a exclusão quando quiser.{" "}
+                  {/* Em aba nova de propósito: ler a política não pode
+                      custar o formulário já preenchido. */}
+                  <a
+                    className="apex-agendamento__politica"
+                    href="/privacidade"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Ver a política de privacidade
+                  </a>
                 </span>
               </label>
               {erros.consentimento && (

@@ -122,21 +122,28 @@
   box-shadow: 0 0 0 3px var(--gm-alow);
 }
 .login-page__input:disabled { opacity: 0.6; cursor: not-allowed; }
-.login-page__input--senha { padding-right: 44px; }
+.login-page__input--senha { padding-right: 52px; }
 
 .login-page__senha-wrap { position: relative; }
 
 .login-page__olho {
   position: absolute;
-  right: 12px;
+  right: 6px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
   color: var(--gm-muted);
   cursor: pointer;
+  /* 44x44: mostrar/ocultar senha é o toque mais errado da tela de login —
+     o olho tinha 26px e ficava colado na borda do campo. A caixa cresce,
+     o ícone continua centralizado no mesmo canto. O campo reserva 52px à
+     direita (--senha) para o texto nunca passar por baixo do botão. */
   display: flex;
   align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   padding: 4px;
   border-radius: 8px;
   transition: color 0.15s, background 0.15s;
