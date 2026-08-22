@@ -1,0 +1,39 @@
+KoraPonte.exe — a Ponte KORA pronta para rodar
+==============================================
+
+O que é
+-------
+A ponte leva o pedido do celular ate o caixa/impressora pela rede local,
+mesmo sem internet. Este .exe ja carrega o Node inteiro dentro dele: a
+maquina do caixa NAO precisa ter nada instalado.
+
+Como usar
+---------
+1. Copie o KoraPonte.exe para o PC do caixa (pendrive, e-mail, download).
+2. De um duplo clique.
+3. Nao vai abrir janela nenhuma. Isso e proposital — o programa roda em
+   segundo plano. Ele se instala sozinho em:
+      %LOCALAPPDATA%\KORA\Ponte\
+   e cria os atalhos de inicializacao.
+4. O painel abre no navegador. O passo a passo completo esta em
+   ../ponte/INSTALACAO.md
+
+Na primeira execucao o Windows Defender / SmartScreen costuma avisar,
+porque o executavel nao tem assinatura digital. E esperado:
+"Mais informacoes" -> "Executar assim mesmo".
+
+Como gerar de novo
+------------------
+Esta e uma copia. O original sai do build:
+
+    cd ponte
+    npm install
+    npm run build:exe
+
+Isso escreve ponte/dist/KoraPonte.exe. Depois e so copiar para ca.
+
+Por que o .exe nao esta no repositorio
+--------------------------------------
+Sao 56 MB. Versionar binario desse tamanho incha o repositorio a cada
+build. O .gitignore da raiz ignora executavel/*.exe — este LEIAME fica,
+o executavel nao.

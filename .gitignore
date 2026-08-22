@@ -7,3 +7,8 @@ dist/
 
 # Config pessoal do Obsidian (vault apontado para memory/ ou raiz)
 .obsidian/
+
+# Cópia pronta do KoraPonte.exe para acesso rápido (gerada com
+# `npm run build:exe` dentro de ponte/). São 56 MB de binário — o LEIAME
+# da pasta vai para o repositório, o executável não.
+executavel/*.exe
