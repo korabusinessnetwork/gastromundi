@@ -221,7 +221,7 @@ export async function registrarPagamentoFiado(lancamentoId, usuario) {
 export function sanitizarTermoBusca(termo) {
   if (!termo) return "";
   // Remove caracteres perigosos no PostgREST: , ( ) " \ * %
-  return String(termo).replace(/[,()"\\\*%]/g, " ").trim();
+  return String(termo).replace(/[,()"\\*%]/g, " ").trim();
 }
 
 /**

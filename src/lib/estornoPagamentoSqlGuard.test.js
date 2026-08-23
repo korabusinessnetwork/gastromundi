@@ -188,7 +188,7 @@ describe("a RPC do estorno", () => {
     expect(lockAssinatura).toBeGreaterThan(0);
     // Ordem de lock igual à da renovação: assinaturas antes de pagamentos.
     expect(lockPagamento).toBeGreaterThan(lockAssinatura);
-    expect(corpo).toMatch(/FOR UPDATE;\n\n  IF v_estornado IS NOT NULL THEN/);
+    expect(corpo).toMatch(/FOR UPDATE;\n\n {2}IF v_estornado IS NOT NULL THEN/);
     expect(corpo).toMatch(/Este pagamento já foi cancelado em %\./);
   });
 

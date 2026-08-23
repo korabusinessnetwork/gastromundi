@@ -64,7 +64,6 @@ export default function ClientesView() {
   useEffect(() => {
     const t = setTimeout(() => carregar(busca), 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busca]);
 
   const abrirCadastro = () => {
@@ -321,7 +320,7 @@ function ClienteDetalhe({ cliente, usuario, sz, onClose, onEditar }) {
     setLancamentosFiado(l);
   };
 
-  useEffect(() => { carregar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [cliente.id]);
+  useEffect(() => { carregar(); }, [cliente.id]);
 
   const saldoDevedor = calcularSaldoDevedor(lancamentosFiado);
   const contasEmAberto = lancamentosFiado.filter((l) => l.status === "previsto" || l.status === "vencido");

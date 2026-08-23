@@ -249,12 +249,12 @@ describe("resumoPagamento", () => {
 
 describe("formatarReais", () => {
   it("formata como moeda BRL", () => {
-    expect(formatarReais(50).replace(/ /g, " ")).toBe("R$ 50,00");
-    expect(formatarReais(1234.5).replace(/ /g, " ")).toBe("R$ 1.234,50");
+    expect(formatarReais(50).replace(/\u00A0/g, " ")).toBe("R$ 50,00");
+    expect(formatarReais(1234.5).replace(/\u00A0/g, " ")).toBe("R$ 1.234,50");
   });
   it("trata inválido como zero", () => {
-    expect(formatarReais(null).replace(/ /g, " ")).toBe("R$ 0,00");
-    expect(formatarReais("abc").replace(/ /g, " ")).toBe("R$ 0,00");
+    expect(formatarReais(null).replace(/\u00A0/g, " ")).toBe("R$ 0,00");
+    expect(formatarReais("abc").replace(/\u00A0/g, " ")).toBe("R$ 0,00");
   });
 });
 

@@ -1949,7 +1949,6 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
     setSubgrupoIds((grupo.subgrupoIds ?? []).map(String));
     setSelecionadoProd(null);
     setNovoPreco("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grupo]);
 
   // Há algo diferente do que está salvo? Controla o botão "Salvar" e o

@@ -119,7 +119,6 @@ export default function ClientesModulo({ onVoltar }) {
 
   useEffect(() => {
     carregarEstatisticas();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const listaOrdenada = useMemo(() => {

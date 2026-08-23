@@ -367,7 +367,7 @@ export default function PDVView({ notify }) {
       setBarcodeFeedback("notfound");
     }
     setTimeout(() => setBarcodeFeedback(null), 2500);
-  }, [products, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [products, mode]);
 
   useBarcodeScanner(handleBarcodeScan, FEATURE_BARCODE_SCANNER && mode === "pedido");
 

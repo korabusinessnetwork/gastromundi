@@ -174,7 +174,7 @@ describe("MinhaAssinaturaTab — histórico de pagamentos", () => {
     expect(screen.getByText(/valor digitado errado/i)).toBeInTheDocument();
     const total = screen.getByText(/pagos em 1 mensalidade\./i);
     // `formatarReais` usa espaço não-quebrável entre "R$" e o número.
-    expect(total.textContent.replace(/ /g, " ")).toContain("R$ 300,00");
+    expect(total.textContent.replace(/\u00A0/g, " ")).toContain("R$ 300,00");
   });
 
   it("com tudo cancelado, o zero é afirmado — não parece falha de carregamento", async () => {

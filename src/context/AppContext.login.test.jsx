@@ -114,7 +114,6 @@ describe("AppContext — login com endereço de acesso torto (Run 5, leva 7)", (
     const app = await montar();
 
     for (let i = 0; i < 6; i++) {
-      // eslint-disable-next-line no-await-in-loop
       await act(async () => { await app.current.login("admin", "SenhaCerta#123"); });
     }
 

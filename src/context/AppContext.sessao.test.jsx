@@ -446,7 +446,6 @@ describe("AppContext — bloqueio por tentativas (Run 5, leva 8)", () => {
 
     let r;
     for (let i = 0; i < MAX_ATTEMPTS; i++) {
-      // eslint-disable-next-line no-await-in-loop
       await act(async () => { r = await app.current.login("gerente", "chute"); });
     }
     expect(r.error).toMatch(/bloquead/i);

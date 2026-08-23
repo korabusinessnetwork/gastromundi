@@ -228,7 +228,7 @@ async function enviarPorWindows({ nome }, bytes) {
     await fs.writeFile(arqScript, montarScriptRaw(arqNome, arqDados), "utf8");
     await rodarPowershell(["-File", arqScript], TIMEOUT_ENVIO_MS);
   } catch (e) {
-    throw new Error(`A impressora "${nome}" não aceitou o trabalho: ${e.message}`);
+    throw new Error(`A impressora "${nome}" não aceitou o trabalho: ${e.message}`, { cause: e });
   } finally {
     // Sempre limpa, inclusive em erro — senão a pasta temporária do PC do
     // caixa vai acumulando comanda por comanda.
