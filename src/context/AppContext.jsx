@@ -343,6 +343,12 @@ export function AppProvider({ children }) {
   // overrides ficam desligados e o app opera pelo cargo, sem quebrar.
   const permsColunaIndisponivelRef = useRef(false);
 
+  // TD013 — gravação atômica de itens da comanda: fica true quando a função
+  // `gravar_itens_comanda` ainda não existe no banco (migration 20260922 não
+  // aplicada). Aí o app volta ao caminho antigo (ler → mesclar → gravar) pelo
+  // resto da sessão, sem quebrar o PDV — só sem o ganho.
+  const rpcItensIndisponivelRef = useRef(false);
+
   // Mapa de permissões de um cargo, ciente do tenant. Fallback total no
   // roles.js quando a matriz ainda não carregou (login) ou o cargo não foi
   // customizado neste estabelecimento.
@@ -934,31 +940,79 @@ export function AppProvider({ children }) {
   // `baseItems` = snapshot de onde o chamador derivou `changes.items`.
   // Com ele, itens lançados por outro dispositivo (Palm) entre o snapshot
   // e a gravação são preservados em vez de sobrescritos ("última escrita
-  // vence" fazia itens sumirem da conta). A janela de corrida residual
-  // (leitura→gravação não é atômica) fica registrada como dívida técnica —
-  // a solução definitiva é um RPC de append em jsonb no Postgres.
+  // vence" fazia itens sumirem da conta).
+  //
+  // TD013 — quando a mudança é só de itens (com ou sem total), quem lê,
+  // mescla e grava é o próprio Postgres, numa transação só e com a linha
+  // travada (função `gravar_itens_comanda`, migration 20260922). Pelo
+  // caminho antigo são três idas à rede, e um item lançado por outro
+  // aparelho entre a nossa leitura e a nossa gravação ainda sumia da conta.
   const updatePending = async (id, changes, { baseItems } = {}) => {
-    if (Array.isArray(changes.items)) {
-      changes = { ...changes, items: garantirUidItens(changes.items) };
-      if (Array.isArray(baseItems)) {
-        const { data: atual, error: erroLeitura } = await supabase
-          .from("pending").select("items").eq("id", id).maybeSingle();
-        if (!erroLeitura && atual) {
-          const { items, houveMescla } = mesclarItensComanda({ base: baseItems, propostos: changes.items, banco: atual.items });
-          if (houveMescla) {
-            changes = { ...changes, items };
-            if ("total" in changes) changes.total = totalItensAtivos(items);
-          }
+    const podeMesclar = Array.isArray(changes.items) && Array.isArray(baseItems);
+    if (Array.isArray(changes.items)) changes = { ...changes, items: garantirUidItens(changes.items) };
+
+    // Só vai pelo caminho atômico a mudança que a função sabe gravar:
+    // exatamente itens, com ou sem um total numérico. Qualquer outro campo
+    // (mesa, apelido, cliente) segue no update comum, como sempre foi.
+    const atomico = podeMesclar && !rpcItensIndisponivelRef.current
+      && Object.keys(changes).every(campo => campo === "items" || campo === "total")
+      && (!("total" in changes) || Number.isFinite(changes.total));
+
+    // Caminho antigo: lê o banco, mescla no cliente e ajusta `changes`.
+    const mesclarNoCliente = async () => {
+      const { data: atual, error: erroLeitura } = await supabase
+        .from("pending").select("items").eq("id", id).maybeSingle();
+      if (erroLeitura || !atual) return;
+      const { items, houveMescla } = mesclarItensComanda({ base: baseItems, propostos: changes.items, banco: atual.items });
+      if (!houveMescla) return;
+      changes = { ...changes, items };
+      if ("total" in changes) changes.total = totalItensAtivos(items);
+    };
+
+    if (podeMesclar && !atomico) await mesclarNoCliente();
+
+    let anterior = null;
+    const aplicarLocal = (patch) => setPendingLocal(prev => prev.map(o => {
+      if (o.id !== id) return o;
+      if (anterior === null) anterior = o;
+      return { ...o, ...patch };
+    }));
+    aplicarLocal(changes);
+
+    const gravarComum = () => supabase.from("pending")
+      .update({ ...changes, updated_at: new Date().toISOString() }).eq("id", id);
+
+    let error;
+    if (atomico) {
+      const res = await supabase.rpc("gravar_itens_comanda", {
+        p_id: id,
+        p_items: changes.items,
+        p_base_uids: baseItems.map(item => item?.uid).filter(Boolean),
+        p_total: "total" in changes ? changes.total : null,
+      });
+      // Migration ainda não rodou neste banco (PostgREST: PGRST202;
+      // Postgres: 42883). Desliga o caminho atômico pelo resto da sessão e
+      // grava como antes — dá para publicar o front-end antes da migration.
+      if (res.error?.code === "PGRST202" || res.error?.code === "42883") {
+        rpcItensIndisponivelRef.current = true;
+        await mesclarNoCliente();
+        aplicarLocal(changes);
+        ({ error } = await gravarComum());
+      } else {
+        error = res.error ?? null;
+        // O banco mesclou item lançado por outro aparelho: a tela tem que
+        // mostrar a conta inteira, não só o que este aqui conhecia.
+        if (!error && res.data?.houve_mescla) {
+          aplicarLocal({
+            items: res.data.items,
+            ...(res.data.total == null ? {} : { total: Number(res.data.total) }),
+          });
         }
       }
+    } else {
+      ({ error } = await gravarComum());
     }
-    let anterior = null;
-    setPendingLocal(prev => prev.map(o => {
-      if (o.id !== id) return o;
-      anterior = o;
-      return { ...o, ...changes };
-    }));
-    const { error } = await supabase.from("pending").update({ ...changes, updated_at: new Date().toISOString() }).eq("id", id);
+
     if (error) {
       if (isErroDeRede(error)) {
         enfileirarOffline({ tipo: "update", id, changes: { ...changes, updated_at: new Date().toISOString() } });
@@ -966,7 +1020,11 @@ export function AppProvider({ children }) {
       }
       console.error("updatePending error:", error);
       reportarFalha(error, { acao: "updatePending", tabela: "pending", id });
-      if (anterior) setPendingLocal(prev => prev.map(o => o.id === id ? anterior : o));
+      // `anterior` é preenchido quando o React roda o updater do otimismo, o
+      // que pode acontecer depois desta linha (erro que volta rápido demais).
+      // Por isso a leitura fica DENTRO do updater do desfazer, que a fila do
+      // React executa depois do primeiro — aí o valor já está lá.
+      setPendingLocal(prev => prev.map(o => (o.id === id && anterior) ? anterior : o));
       return { error };
     }
     return { error: null };

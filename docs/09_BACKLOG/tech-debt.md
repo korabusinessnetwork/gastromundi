@@ -253,11 +253,17 @@ Um andar abaixo, `processarBaixaEstoque` ainda devolvia `quantidadeAnterior - qt
 
 ### [TD013] `updatePending` sem merge atômico no banco (RPC de append JSONB)
 
-**Categoria:** Arquitetura · **Impacto:** Médio · **Esforço:** Médio · **Prioridade:** 🟡 Medium · **Status:** Identificado (2026-07-16, Leva 2)
+**Categoria:** Arquitetura · **Impacto:** Médio · **Esforço:** Médio · **Prioridade:** 🟡 Medium · **Status:** Resolvido (2026-08-23) — função `gravar_itens_comanda` (migration `20260922`) lê, mescla e grava dentro do Postgres, numa transação só e com `SELECT … FOR UPDATE` na linha da comanda
 
 **Descrição:** a Leva 2 resolveu a perda de itens entre dispositivos no lado do cliente (merge por `uid` + resync do `selected` via Realtime), mas o update em `pending.items` continua sendo read-modify-write do array inteiro no cliente. Dois lançamentos simultâneos na mesma comanda em janelas muito curtas ainda podem se sobrescrever antes de o Realtime sincronizar.
 
 **Solução proposta:** RPC `SECURITY DEFINER` de append atômico no JSONB (`items = items || novos_itens` com lock de linha), no mesmo padrão de `baixar_estoque`/`limpar_reserva_mesa`, e o cliente passar a enviar só os itens novos.
+
+**Como ficou:** a função é `SECURITY INVOKER`, não DEFINER — a comanda é isolada por estabelecimento pela RLS de `pending`, e DEFINER contornaria esse isolamento e obrigaria a reescrevê-lo dentro da função. O cliente continua enviando a lista inteira mais os `uid` que ele conhecia (`p_base_uids`); o banco devolve o que mesclou, e o app aplica isso na tela na hora, sem esperar o Realtime. A regra de mescla é a mesma de `src/lib/comandaItens.js`, e o total só é recalculado quando a mescla trouxe algum item de volta (recalcular sempre apagaria desconto/taxa aplicados pelo chamador).
+
+**Fail-open:** as migrations são rodadas à mão no SQL Editor, então o front-end pode chegar à produção antes desta. Quando a função ainda não existe, a chamada volta com `PGRST202`/`42883`, o app grava pelo caminho antigo na mesma chamada (sem perder o lançamento) e desliga o caminho atômico pelo resto da sessão.
+
+**Referências:** `supabase/migrations/20260922_gravar_itens_comanda.sql`; guards em `src/lib/gravarItensComandaSqlGuard.test.js` e `src/context/AppContext.comandaAtomica.test.jsx`.
 
 ### [TD015] `key={i}` (índice) em listas React
 
