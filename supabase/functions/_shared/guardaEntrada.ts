@@ -33,6 +33,15 @@ export const PAPEIS_GERENCIA = ["admin", "gerente"] as const;
 export const PAPEIS_IMPORTACAO = ["plataforma", "admin"] as const;
 /** Só o Console da Plataforma — criar estabelecimento não é ação de cliente. */
 export const PAPEIS_PLATAFORMA = ["plataforma"] as const;
+/**
+ * Emitir NFC-e (e reenviar a que ficou em contingência) é ato de CAIXA: o
+ * cupom sai junto com o pagamento e o front chama a função com o JWT de quem
+ * está na frente de caixa. Por isso a lista é mais larga que PAPEIS_GERENCIA —
+ * mas o GARÇOM fica de fora: quem só tira pedido não emite documento fiscal em
+ * nome do estabelecimento. Cancelar continua em PAPEIS_GERENCIA e inutilizar
+ * faixa em PAPEIS_ADMIN — atos irreversíveis pesam mais que emitir.
+ */
+export const PAPEIS_FISCAL_EMISSAO = ["admin", "gerente", "caixa"] as const;
 
 export type MotivoRecusa = "sem_perfil" | "inativo" | "papel";
 

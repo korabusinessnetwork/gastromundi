@@ -28,7 +28,12 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { transmitirSefazRS } from "../_shared/nfceTransmissao.ts";
-import { registrarFalhaInterna } from "../_shared/guardaEntrada.ts";
+import {
+  decidirAcesso,
+  mensagemRecusa,
+  PAPEIS_FISCAL_EMISSAO,
+  registrarFalhaInterna,
+} from "../_shared/guardaEntrada.ts";
 import { decidirDesfechoReenvio } from "../../../src/lib/decidirDesfechoReenvio.js";
 
 const corsHeaders = {
@@ -68,6 +73,30 @@ Deno.serve(async (req: Request) => {
     );
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return json({ error: "Sessão inválida." }, 401);
+
+    // ── 1b. GATE DE PAPEL: reenviar é retransmitir documento fiscal ───
+    // Mesma lista de emitir-nfce: a nota pendente que sai daqui é documento
+    // fiscal fechando na SEFAZ, então caixa/gerente/admin — não o garçom.
+    // Antes bastava estar logado no tenant.
+    // `active` entra no select porque desativar alguém em public.users NÃO
+    // invalida o JWT já emitido (decidirAcesso falha FECHADO sem a coluna).
+    // QUANDO O AGENDAMENTO FOR LIGADO (pg_cron, no cabeçalho): o job precisa
+    // chamar com o JWT de um usuário ATIVO e de papel permitido — chamada com
+    // anon key ou com token de conta desativada volta 403 aqui, de propósito.
+    const { data: perfil } = await supabase
+      .from("users")
+      .select("role, active")
+      .eq("auth_id", user.id)
+      .single();
+    const acesso = decidirAcesso(perfil, PAPEIS_FISCAL_EMISSAO);
+    if (!acesso.ok) {
+      return json({
+        error: mensagemRecusa(
+          acesso.motivo,
+          "Seu acesso não permite reenviar nota fiscal. Fale com o gerente.",
+        ),
+      }, 403);
+    }
 
     // ── 2. Config fiscal do tenant (NÃO-secreta) — precisa da URL SEFAZ ──
     const { data: config, error: cfgError } = await supabase

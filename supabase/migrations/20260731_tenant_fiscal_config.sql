@@ -104,6 +104,10 @@ CREATE POLICY "fiscal_config_write_admin" ON public.tenant_fiscal_config
     AND tenant_id = public.tenant_atual_id()
   );
 
--- NOTA: a emissão em si (Leva 3) roda na Edge Function com service_role,
--- que ignora RLS — estas policies protegem a TELA de configuração no app,
--- não o caminho de emissão.
+-- NOTA (corrigida em 20260922_fiscal_config_leitura_por_papel.sql):
+-- a versão original deste comentário dizia que a emissão roda com
+-- service_role e ignora RLS. Não é o caso: as quatro funções fiscais
+-- (emitir/reenviar/cancelar/inutilizar-nfce) usam SUPABASE_ANON_KEY com o
+-- header Authorization do chamador, justamente para a RLS resolver o
+-- tenant. Estas policies protegem a tela E são o caminho de emissão —
+-- apertá-las demais quebra o cupom no caixa.
