@@ -12,7 +12,7 @@ const FUNCIONALIDADES = [
     numero: "01",
     titulo: "Frente de caixa",
     descricao:
-      "Venda rápida no balcão com atalhos, busca e teclado — o caixa novo aprende no primeiro turno.",
+      "Venda rápida no balcão com atalhos, busca e teclado, o caixa novo aprende no primeiro turno.",
     cor: "roxo",
   },
   {
@@ -47,7 +47,7 @@ const FUNCIONALIDADES = [
     numero: "06",
     titulo: "Cardápio digital",
     descricao:
-      "QR code na mesa com cardápio sempre atualizado — mudou o preço no PDV, mudou pra todo mundo.",
+      "QR code na mesa com cardápio sempre atualizado, mudou o preço no PDV, mudou pra todo mundo.",
     cor: "verde",
   },
   {
@@ -103,14 +103,14 @@ export default function ApexFuncionalidades({ contatoUrl }) {
         <div className="apex-func__banner">
           <div className="apex-func__bannerTexto">
             <span className="apex-kicker apex-kicker--verde">
-              Do nosso jeito? Não — do seu.
+              Do nosso jeito? Não, do seu.
             </span>
             <span className="apex-func__bannerTitulo">
               A gente faz o sistema ficar com a sua cara
             </span>
             <span className="apex-func__bannerParagrafo">
               Telas, atalhos, impressões e fluxos personalizados para a sua
-              operação — do balcão da padaria ao salão do restaurante. Você
+              operação, do balcão da padaria ao salão do restaurante. Você
               não se adapta ao KORA; o KORA se adapta a você.
             </span>
           </div>

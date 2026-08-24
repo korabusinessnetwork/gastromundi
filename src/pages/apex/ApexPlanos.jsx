@@ -78,7 +78,7 @@ const MODULOS = [
   },
   {
     codigo: "jarvas",
-    nome: "JARVAS — gerente virtual com IA",
+    nome: "JARVAS, gerente virtual com IA",
     descricao: "Alertas de queda de venda, sugestões de compra e resumo diário",
     preco: 700,
     destaque: true,
@@ -130,7 +130,7 @@ const PLANOS_PRONTOS = [
   {
     codigo: "kora_total",
     nome: "Kora Total",
-    resumo: "Tudo ligado, com JARVAS (IA) e emissão fiscal — o topo de linha",
+    resumo: "Tudo ligado, com JARVAS (IA) e emissão fiscal, o topo de linha",
     modulos: MODULOS.map((m) => m.codigo),
     addons: ADDONS.map((a) => a.codigo),
     premium: true,
@@ -220,8 +220,8 @@ export default function ApexPlanos() {
           </h2>
           <p className="apex-planos__subtitulo">
             Todo plano já sai com cardápio, PDV e caixa. A partir daí, você só
-            liga o que o seu negócio realmente usa. Sem fidelidade, sem multa
-            — valores de referência, fechados de verdade na demonstração.
+            liga o que o seu negócio realmente usa. Sem fidelidade, sem multa,
+            valores de referência, fechados de verdade na demonstração.
           </p>
         </div>
 
@@ -393,7 +393,7 @@ export default function ApexPlanos() {
         </div>
 
         <span className="apex-planos__urgencia">
-          Implantação personalizada incluída em todos os planos — por isso
+          Implantação personalizada incluída em todos os planos, por isso
           abrimos um número limitado de ativações por mês.
         </span>
       </div>

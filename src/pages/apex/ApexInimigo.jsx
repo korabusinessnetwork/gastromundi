@@ -18,7 +18,7 @@ const COMPARATIVOS = [
   },
   {
     genericoTexto: "Fidelidade de 12 meses e multa pra sair",
-    koraTexto: "Mensal, sem multa — a gente se garante pela entrega",
+    koraTexto: "Mensal, sem multa, a gente se garante pela entrega",
   },
   {
     genericoTexto: 'Fiscal como "módulo extra" que dá dor de cabeça',
@@ -40,7 +40,7 @@ export default function ApexInimigo() {
           </h2>
           <p className="apex-inimigo__paragrafo">
             Telas cheias de botão que ninguém usa, implantação que leva
-            semanas, suporte que abre chamado e some — e no fim quem se
+            semanas, suporte que abre chamado e some, e no fim quem se
             adapta ao sistema é você. O KORA nasceu do outro lado: a gente
             molda as telas, os atalhos e os fluxos à SUA operação, e você
             começa a vender no mesmo dia.

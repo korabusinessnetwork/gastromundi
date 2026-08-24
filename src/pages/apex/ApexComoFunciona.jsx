@@ -12,7 +12,7 @@ const PASSOS = [
     cor: "roxo",
     titulo: "Demonstração com o SEU cardápio",
     texto:
-      "30 minutos ao vivo. A gente já monta seus produtos e simula um dia de movimento do seu negócio — não um demo genérico.",
+      "30 minutos ao vivo. A gente já monta seus produtos e simula um dia de movimento do seu negócio, não um demo genérico.",
   },
   {
     numero: "2",
