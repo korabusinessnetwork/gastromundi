@@ -78,11 +78,10 @@ e a aba "Pedidos sem Internet". Os dois apontam para o mesmo endereço, que vem
 da variável `VITE_PONTE_DOWNLOAD_URL` — vazia, os botões nem aparecem e as
 telas seguem pedindo o arquivo por fora.
 
-O arquivo mora num bucket público do Supabase, `ponte-download`, criado pela
-migration `supabase/migrations/20260925_ponte_download_bucket.sql` (rodar uma
-vez, no SQL Editor). Ele sobe **compactado**: o teto de upload do plano
-gratuito é de 50 MB (Storage → Settings) e o `.exe` tem ~58 MB, então cru ele
-é recusado. Para publicar uma versão nova:
+O arquivo mora no bucket público `branding` do Supabase. Ele sobe
+**compactado**: o teto de upload do plano gratuito é de 50 MB (Storage →
+Settings) e o `.exe` tem ~58 MB, então cru ele é recusado — o zip fica em
+~21 MB. Para publicar uma versão nova:
 
 1. `npm run build:exe` (acima) — sai em `ponte/dist/KoraPonte.exe`.
 2. Compacte esse `.exe` num `.zip` com o nome **exatamente** `KoraPonte.zip`.
@@ -91,16 +90,20 @@ gratuito é de 50 MB (Storage → Settings) e o `.exe` tem ~58 MB, então cru el
    ele clicar. Confira que o zip ficou abaixo de 50 MB; se não ficou, use um
    asset de Release do GitHub (gratuito, teto de 2 GB por arquivo, e como o
    repositório é público o link baixa direto) e aponte a variável para lá.
-3. No painel do Supabase: **Storage → `ponte-download` → Upload**, com o nome
+3. No painel do Supabase: **Storage → `branding` → Upload**, com o nome
    **exatamente** `KoraPonte.zip`, sobrescrevendo o que estiver lá. É o nome
    que mantém o endereço fixo — não coloque a versão no nome do arquivo.
 4. Só na primeira vez: copie o endereço público
-   `{VITE_SUPABASE_URL}/storage/v1/object/public/ponte-download/KoraPonte.zip`
+   `{VITE_SUPABASE_URL}/storage/v1/object/public/branding/KoraPonte.zip`
    para `VITE_PONTE_DOWNLOAD_URL` na Vercel e refaça o deploy.
 
-Escrever no bucket é só pelo painel: o app não tem permissão nenhuma de
-escrita ali (nem uma policy), senão um estabelecimento poderia trocar o
-executável que todos os outros baixam.
+Escrever no bucket é só pelo painel. A RLS de `storage.objects` está ligada e
+não existe nenhuma policy de insert/update/delete para o `branding` — as
+únicas policies de storage do projeto são as do `delivery-fotos` —, então nem
+`anon` nem `authenticated` gravam ali; só a `service_role`, que é o painel.
+Isso é o que impede um estabelecimento de trocar o executável que todos os
+outros baixam, e precisa continuar valendo: se um dia o `branding` ganhar
+policy de escrita para usuário logado, este arquivo tem de sair dele.
 
 > **Se um dia o arquivo passar a ser publicado cru** (plano pago, ou um `.exe`
 > que caiba nos 50 MB), o texto das duas telas precisa mudar junto: hoje elas

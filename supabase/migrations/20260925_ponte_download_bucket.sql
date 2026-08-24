@@ -1,4 +1,21 @@
 -- ──────────────────────────────────────────────────────────────────
+-- NÃO É MAIS USADA — leia antes de rodar.
+--
+--   Este bucket foi criado, mas o KoraPonte.zip acabou publicado no bucket
+--   `branding`, que já existia. É de lá que o app baixa hoje:
+--     {VITE_SUPABASE_URL}/storage/v1/object/public/branding/KoraPonte.zip
+--   O passo a passo de publicação está em ponte/README.md e aponta para o
+--   `branding`. Este arquivo fica como registro do que já foi aplicado no
+--   banco (o bucket `ponte-download` existe lá, vazio) — rodar de novo não
+--   quebra nada, só recria um bucket que ninguém usa. Para limpar, veja o
+--   comando comentado no fim.
+--
+--   O resto do texto abaixo descreve o desenho original e continua valendo
+--   como explicação de POR QUE o arquivo mora num bucket sem policy de
+--   escrita — o `branding` também não tem nenhuma, que é o que segura o
+--   executável no lugar.
+-- ──────────────────────────────────────────────────────────────────
+--
 -- Ponte KORA — bucket público de DOWNLOAD do programa (KoraPonte.zip).
 --
 -- Rodar MANUALMENTE no SQL Editor do Supabase (não é aplicado automático).
@@ -84,3 +101,8 @@ on conflict (id) do update set
 select id, public, file_size_limit
 from storage.buckets
 where id = 'ponte-download';
+
+-- Limpeza opcional — some com o bucket vazio que ficou sobrando. Só rode
+-- depois de conferir que ele está mesmo vazio (Storage → ponte-download): o
+-- delete falha se houver qualquer arquivo dentro, e é assim que tem de ser.
+-- delete from storage.buckets where id = 'ponte-download';
