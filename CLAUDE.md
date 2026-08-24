@@ -106,6 +106,14 @@ tarefa inteira; se algo ficou de fora, diga o que e por quê em vez de reportar
 Não adicione features, refactor, abstração, error handling ou fallback além do que a
 tarefa exige. Correção de bug não pede faxina em volta.
 
+### Git — a main é minha
+
+Merge na `main` exige aprovação explícita do dono, sempre. Você pode desenvolver na
+branch, commitar, dar push na branch e abrir o PR; **mergear, não** — pare no PR
+aberto e me avise. Vale também para auto-merge e para push direto na `main`. A regra
+de permissão em `.claude/settings.json` faz o Claude Code perguntar antes de mergear;
+a proteção de branch no GitHub é a trava de verdade.
+
 ### Comunicação
 
 Seu texto entre chamadas de ferramenta é o que eu leio — eu não vejo seu raciocínio
