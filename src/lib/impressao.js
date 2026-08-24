@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { nomeExibicaoTenant, logoUrlTenant } from "./tema";
 import { normalizarPontos } from "./impressao/pontos";
+import { layoutComandaDeConfig, normalizarLayoutComanda } from "./impressao/layoutComanda";
 
 /**
  * Impressão — F015 (docs/09_BACKLOG/features.md).
@@ -80,6 +81,11 @@ export const CONFIG_IMPRESSAO_PADRAO = {
   // "Comprovante" e "Pré-nota" do checkout continuam existindo dos dois jeitos.
   imprimirContaNoCheckout: false,
   perfilImpressora: PERFIL_IMPRESSORA_PADRAO,
+  // Layout da comanda montado pelo dono (blocos: ordem, o que aparece,
+  // alinhamento, texto livre) — ver `impressao/layoutComanda.js`. Vazio
+  // = nunca editado: aí vale o padrão de fábrica semeado com os campos
+  // acima, e o papel sai idêntico ao de sempre.
+  layoutComanda: [],
   // Vazio no default e SEMPRE preenchido pela normalização da leitura —
   // ninguém consome a config sem pelo menos um ponto (ver
   // `mesclarConfigImpressao`).
@@ -185,6 +191,9 @@ function mesclarConfigImpressao(valor) {
     // Também é aqui que dado sujo (dois padrões, id repetido) é reparado
     // antes de chegar na tela ou no despacho.
     pontosImpressao: normalizarPontos(valor?.pontosImpressao, perfilImpressora),
+    // JSON livre do banco: tipo desconhecido, bloco único repetido e id
+    // colidindo são reparados aqui, antes de chegar na tela ou no papel.
+    layoutComanda: normalizarLayoutComanda(valor?.layoutComanda),
     roteamento: {
       categorias: mapaDeRotas(valor?.roteamento?.categorias),
       produtos: mapaDeRotas(valor?.roteamento?.produtos),
@@ -301,6 +310,10 @@ export function montarComprovantePagamento({ venda, tenant, configImpressao } = 
   return {
     tipo: "comprovante",
     identidade: resolverIdentidadeTenant(tenant, configImpressao),
+    // O layout viaja DENTRO do documento: assim todo caminho de
+    // impressão que já monta o comprovante (checkout, pré-nota, mobile)
+    // passa a respeitar o que o dono montou, sem mudar nenhum chamador.
+    layout: layoutComandaDeConfig(configImpressao),
     comanda: venda?.comanda ?? null,
     itens,
     subtotal,

@@ -1,160 +1,243 @@
 // @vitest-environment jsdom
-//
-// Layout da comanda — o que sai impresso no papel do cliente.
-//
-// Esta tela é a primeira a deixar o dono digitar texto que vai PARAR
-// dentro do HTML de impressão (endereço, CNPJ, rodapé). Dois riscos
-// concretos, os dois cobertos aqui: texto digitado virar HTML executável
-// na janela de impressão (stored XSS), e a pré-visualização mentir —
-// mostrar uma coisa e o papel sair outra.
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, act, screen, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import LayoutComanda from "./LayoutComanda";
 
-// Só o que fala com o Supabase vira dublê; o renderizador do cupom
-// (montarCupomPreNota + gerarHtmlComPerfil) fica REAL — é ele que
-// produz o HTML avaliado aqui, o mesmo que sai na impressora.
+/**
+ * Editor do layout da comanda. O que estes testes protegem: o papel que
+ * o dono VÊ é o papel que a impressora recebe, nas duas saídas, e salvar
+ * o layout nunca leva junto nada que não seja dele.
+ *
+ * Só o que fala com o Supabase é dublado — o renderizador é o de
+ * verdade, senão a pré-visualização estaria sendo testada contra uma
+ * imitação dela mesma.
+ */
 const { mockBuscarConfig, mockSalvarConfig } = vi.hoisted(() => ({
   mockBuscarConfig: vi.fn(),
   mockSalvarConfig: vi.fn(),
 }));
+
 vi.mock("@/lib/impressao", async () => {
   const real = await vi.importActual("@/lib/impressao");
   return { ...real, buscarConfigImpressao: mockBuscarConfig, salvarConfigImpressao: mockSalvarConfig };
 });
 
-// O tenant vem do contexto do app; aqui só interessa o que ele empresta
-// pro papel (nome e logo).
 const { mockTenant } = vi.hoisted(() => ({ mockTenant: { valor: null } }));
-vi.mock("@/context/AppContext", () => ({
-  useApp: () => ({ tenant: mockTenant.valor }),
-}));
+vi.mock("@/context/AppContext", () => ({ useApp: () => ({ tenant: mockTenant.valor }) }));
 
-import LayoutComanda, { formatarCnpj, normalizarLayout } from "./LayoutComanda";
-import { CONFIG_IMPRESSAO_PADRAO } from "@/lib/impressao";
-
-const CONFIG_SALVA = {
-  ...CONFIG_IMPRESSAO_PADRAO,
+const CONFIG_BASE = {
+  mostrarLogo: true,
   mostrarEnderecoCnpj: true,
-  endereco: "Rua das Palmeiras, 100 — Centro",
+  endereco: "Rua das Flores, 10",
   cnpj: "12.345.678/0001-90",
-  rodapePersonalizado: "Volte sempre!",
+  rodapePersonalizado: "Obrigado pela preferência!",
+  perfilImpressora: { larguraMm: 58, driver: "browser-raster", margemMm: 2, cortaPapel: true, fonteBase: null, impressora: null },
+  layoutComanda: [],
 };
 
-/** HTML do cupom de exemplo, exatamente como vai para o iframe da tela. */
-const previewHtml = () =>
-  document.querySelector(".layout-comanda__preview-iframe")?.getAttribute("srcdoc") ?? "";
+// O HTML que o navegador imprimiria, exatamente como está na tela.
+const papel = () => document.querySelector(".layout-comanda__preview-iframe")?.getAttribute("srcdoc") ?? "";
 
-const abrir = async () => {
-  await act(async () => { render(<LayoutComanda />); });
-};
-
-const digitar = (rotulo, valor) => {
-  fireEvent.change(screen.getByLabelText(rotulo), { target: { value: valor } });
-};
+const acharBloco = (rotulo) => screen.getByText(rotulo).closest("li");
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockTenant.valor = { nome: "Restaurante do Teste", tema: null };
-  mockBuscarConfig.mockResolvedValue({ data: CONFIG_SALVA, error: null });
+  mockTenant.valor = { nome: "Restaurante Exemplo", tema: {} };
+  mockBuscarConfig.mockResolvedValue({ data: { ...CONFIG_BASE }, error: null });
   mockSalvarConfig.mockResolvedValue({ error: null });
 });
 
-describe("LayoutComanda", () => {
-  it("mostra no papel de exemplo o que já está salvo", async () => {
-    await abrir();
+async function abrirEditor() {
+  render(<LayoutComanda />);
+  await waitFor(() => expect(screen.getByText("Lista dos itens")).toBeInTheDocument());
+}
 
-    const html = previewHtml();
-    expect(html).toContain("Restaurante do Teste");
-    expect(html).toContain("Rua das Palmeiras, 100");
-    expect(html).toContain("CNPJ: 12.345.678/0001-90");
-    expect(html).toContain("Volte sempre!");
+describe("LayoutComanda — a lista mostra a comanda de cima para baixo", () => {
+  it("abre com os blocos do estabelecimento e o papel já montado", async () => {
+    await abrirEditor();
+
+    expect(screen.getByText("Nome do estabelecimento")).toBeInTheDocument();
+    expect(screen.getByText("Mensagem final")).toBeInTheDocument();
+    expect(papel()).toContain("Restaurante Exemplo");
+    expect(papel()).toContain("Obrigado pela preferência!");
+    expect(papel()).toContain("Rua das Flores, 10");
   });
 
-  it("a pré-visualização acompanha o que o dono digita, antes de salvar", async () => {
-    await abrir();
+  it("mostra na própria linha o texto que aquele bloco imprime", async () => {
+    await abrirEditor();
 
-    digitar("Mensagem no fim da comanda", "Wi-fi: convidado");
+    expect(within(acharBloco("Endereço")).getByText("Rua das Flores, 10")).toBeInTheDocument();
+  });
+});
 
-    expect(previewHtml()).toContain("Wi-fi: convidado");
-    expect(previewHtml()).not.toContain("Volte sempre!");
+describe("mexer no layout muda o papel na hora, antes de salvar", () => {
+  it("desligar um bloco tira ele do papel — e não salva nada", async () => {
+    await abrirEditor();
+
+    await userEvent.click(screen.getByRole("switch", { name: "Imprimir Mensagem final" }));
+
+    await waitFor(() => expect(papel()).not.toContain("Obrigado pela preferência!"));
+    expect(papel()).toContain("Restaurante Exemplo");
     expect(mockSalvarConfig).not.toHaveBeenCalled();
   });
 
-  it("desligar endereço e CNPJ tira os dois do papel, mesmo preenchidos", async () => {
-    await abrir();
+  it("subir um bloco muda a ordem impressa", async () => {
+    await abrirEditor();
 
-    fireEvent.click(screen.getByRole("switch", { name: "Imprimir endereço e CNPJ" }));
+    const antes = papel();
+    expect(antes.indexOf("Restaurante Exemplo")).toBeLessThan(antes.indexOf("Obrigado pela preferência!"));
 
-    const html = previewHtml();
-    expect(html).not.toContain("Rua das Palmeiras");
-    expect(html).not.toContain("CNPJ:");
-    expect(html).toContain("Restaurante do Teste");
+    const linha = acharBloco("Mensagem final");
+    for (let i = 0; i < 20; i += 1) {
+      const subir = within(linha).getByRole("button", { name: "Subir Mensagem final" });
+      if (subir.disabled) break;
+      await userEvent.click(subir);
+    }
+
+    await waitFor(() => {
+      const depois = papel();
+      expect(depois.indexOf("Obrigado pela preferência!")).toBeLessThan(depois.indexOf("Restaurante Exemplo"));
+    });
   });
 
-  it("texto digitado nunca vira HTML na janela de impressão", async () => {
-    await abrir();
+  it("acrescentar um texto livre imprime o que foi digitado", async () => {
+    await abrirEditor();
 
-    digitar("Mensagem no fim da comanda", '<img src=x onerror="alert(1)">');
+    await userEvent.click(screen.getByRole("button", { name: /Texto livre/ }));
+    await userEvent.type(screen.getByLabelText("O que escrever"), "Wi-fi: gastro2026");
 
-    const html = previewHtml();
-    expect(html).not.toContain("<img src=x");
-    expect(html).toContain("&lt;img src=x");
+    await waitFor(() => expect(papel()).toContain("Wi-fi: gastro2026"));
   });
 
-  it("só salva a fatia de layout — a impressora escolhida na outra aba fica", async () => {
+  it("o que o dono digita nunca vira HTML no papel (XSS na janela de impressão)", async () => {
+    await abrirEditor();
+
+    await userEvent.click(screen.getByRole("button", { name: /Texto livre/ }));
+    await userEvent.type(screen.getByLabelText("O que escrever"), "<img src=x onerror=alert(1)>");
+
+    await waitFor(() => expect(papel()).toContain("&lt;img src=x"));
+    expect(papel()).not.toContain("<img src=x");
+  });
+
+  it("editar o texto de um bloco muda o papel", async () => {
+    await abrirEditor();
+
+    await userEvent.click(screen.getByText("Mensagem final"));
+    const campo = screen.getByLabelText("Texto");
+    await userEvent.clear(campo);
+    await userEvent.type(campo, "Volte sempre!");
+
+    await waitFor(() => expect(papel()).toContain("Volte sempre!"));
+    expect(papel()).not.toContain("Obrigado pela preferência!");
+  });
+});
+
+describe("as duas saídas de impressão", () => {
+  it("a aba da térmica mostra o texto puro, na largura real do papel", async () => {
+    await abrirEditor();
+
+    await userEvent.click(screen.getByRole("button", { name: "Na térmica" }));
+
+    const termica = document.querySelector(".layout-comanda__preview-termica");
+    expect(termica).toBeInTheDocument();
+    expect(termica.textContent).toContain("Restaurante Exemplo");
+    expect(termica.textContent).toContain("Obrigado pela preferência!");
+    // 58mm = 32 colunas de hardware; nenhuma linha pode passar disso.
+    for (const linha of termica.textContent.split("\n")) expect(linha.length).toBeLessThanOrEqual(32);
+  });
+
+  it("quem imprime na térmica já abre a tela vendo a térmica", async () => {
     mockBuscarConfig.mockResolvedValue({
-      data: { ...CONFIG_SALVA, perfilImpressora: { ...CONFIG_IMPRESSAO_PADRAO.perfilImpressora, larguraMm: 58 } },
+      data: { ...CONFIG_BASE, perfilImpressora: { ...CONFIG_BASE.perfilImpressora, driver: "escpos-ponte" } },
       error: null,
     });
-    await abrir();
 
-    digitar("Mensagem no fim da comanda", "Obrigado!");
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /salvar layout/i })); });
+    await abrirEditor();
 
-    const salvo = mockSalvarConfig.mock.calls[0][0];
-    expect(salvo.rodapePersonalizado).toBe("Obrigado!");
-    expect(salvo.perfilImpressora.larguraMm).toBe(58);
-  });
-
-  it("sem nada alterado, não há o que salvar", async () => {
-    await abrir();
-
-    expect(screen.getByRole("button", { name: /salvar layout/i })).toBeDisabled();
-  });
-
-  it("falha ao ler tranca a tela em vez de mostrar o layout de fábrica", async () => {
-    mockBuscarConfig.mockResolvedValue({ data: null, error: { message: "sem internet" } });
-    await abrir();
-
-    expect(screen.getByText(/não deu para carregar o layout da comanda/i)).toBeTruthy();
-    expect(document.querySelector(".layout-comanda__preview-iframe")).toBeNull();
-    expect(screen.queryByRole("button", { name: /salvar layout/i })).toBeNull();
+    expect(document.querySelector(".layout-comanda__preview-termica")).toBeInTheDocument();
   });
 });
 
-describe("formatarCnpj", () => {
-  it("põe a pontuação enquanto o dono digita só os números", () => {
-    expect(formatarCnpj("12345678000190")).toBe("12.345.678/0001-90");
-    expect(formatarCnpj("12345")).toBe("12.345");
-    expect(formatarCnpj("")).toBe("");
+describe("salvar", () => {
+  it("grava o layout e mantém o que é da outra aba", async () => {
+    await abrirEditor();
+
+    await userEvent.click(screen.getByRole("switch", { name: "Imprimir Mensagem final" }));
+    await userEvent.click(screen.getByRole("button", { name: "Salvar layout" }));
+
+    await waitFor(() => expect(mockSalvarConfig).toHaveBeenCalledTimes(1));
+    const gravado = mockSalvarConfig.mock.calls[0][0];
+
+    expect(gravado.layoutComanda.find((b) => b.tipo === "rodape").visivel).toBe(false);
+    expect(gravado.perfilImpressora.larguraMm).toBe(58);
   });
 
-  it("ignora o que não é número e não passa de 14 dígitos", () => {
-    expect(formatarCnpj("12.345.678/0001-90")).toBe("12.345.678/0001-90");
-    expect(formatarCnpj("123456780001909999")).toBe("12.345.678/0001-90");
+  it("desligar endereço e CNPJ desliga também a flag antiga que a identidade lê", async () => {
+    await abrirEditor();
+
+    await userEvent.click(screen.getByRole("switch", { name: "Imprimir Endereço" }));
+    await userEvent.click(screen.getByRole("switch", { name: "Imprimir CNPJ" }));
+    await userEvent.click(screen.getByRole("button", { name: "Salvar layout" }));
+
+    await waitFor(() => expect(mockSalvarConfig).toHaveBeenCalledTimes(1));
+    expect(mockSalvarConfig.mock.calls[0][0].mostrarEnderecoCnpj).toBe(false);
+  });
+
+  it("o botão fica desabilitado enquanto nada mudou", async () => {
+    await abrirEditor();
+
+    expect(screen.getByRole("button", { name: "Salvar layout" })).toBeDisabled();
+    expect(screen.getByText("Tudo salvo.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("switch", { name: "Imprimir Mensagem final" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Salvar layout" })).toBeEnabled());
+  });
+
+  it("falha ao salvar avisa e não finge que salvou", async () => {
+    mockSalvarConfig.mockResolvedValue({ error: { message: "sem internet" } });
+    await abrirEditor();
+
+    await userEvent.click(screen.getByRole("switch", { name: "Imprimir Mensagem final" }));
+    await userEvent.click(screen.getByRole("button", { name: "Salvar layout" }));
+
+    await waitFor(() => expect(screen.getByText(/Falha ao salvar/)).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Salvar layout" })).toBeEnabled();
   });
 });
 
-describe("normalizarLayout", () => {
-  it("tira espaço sobrando e corta texto grande demais para o papel", () => {
-    const r = normalizarLayout({ endereco: "  Rua A  ", rodapePersonalizado: "x".repeat(200) });
-    expect(r.endereco).toBe("Rua A");
-    expect(r.rodapePersonalizado).toHaveLength(120);
+describe("voltar ao padrão", () => {
+  it("pede confirmação antes e preserva o conteúdo — só a arrumação volta ao padrão", async () => {
+    await abrirEditor();
+
+    await userEvent.click(screen.getByRole("button", { name: /Voltar ao padrão/ }));
+    expect(screen.getByText(/O que você escreveu e o que está\s+imprimindo continuam/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Sim, voltar ao padrão" }));
+
+    await waitFor(() => expect(papel()).toContain("Obrigado pela preferência!"));
+    expect(papel()).toContain("Rua das Flores, 10");
   });
 
-  it("mantém os defaults: logo ligada, endereço/CNPJ desligados", () => {
-    const r = normalizarLayout({});
-    expect(r.mostrarLogo).toBe(true);
-    expect(r.mostrarEnderecoCnpj).toBe(false);
+  it("cancelar não mexe em nada", async () => {
+    await abrirEditor();
+
+    await userEvent.click(screen.getByRole("button", { name: /Voltar ao padrão/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.getByRole("button", { name: "Salvar layout" })).toBeDisabled();
+  });
+});
+
+describe("erro de leitura", () => {
+  it("tranca a tela em vez de mostrar o layout de fábrica", async () => {
+    mockBuscarConfig.mockResolvedValue({ data: null, error: { message: "sem conexão" } });
+
+    render(<LayoutComanda />);
+
+    await waitFor(() => expect(screen.getByText(/Não deu para carregar o layout/)).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "Salvar layout" })).not.toBeInTheDocument();
+    expect(document.querySelector(".layout-comanda__preview-iframe")).not.toBeInTheDocument();
   });
 });

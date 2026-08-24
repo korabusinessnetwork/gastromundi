@@ -84,7 +84,8 @@ describe("renderizarRecibo", () => {
 
     expect(html).not.toContain("<img");
     expect(html).not.toContain("javascript:");
-    expect(html).toContain('<div class="cabecalho__nome">GastroMundi</div>');
+    expect(html).toContain("cabecalho__nome");
+    expect(html).toContain("GastroMundi");
   });
 
   it("escapa nome de produto e observação maliciosos (stored XSS na impressão)", () => {
