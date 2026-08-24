@@ -60,7 +60,7 @@ export default function DemoLogin({ aoEntrar }) {
         </div>
 
         <div className="demo-login__aviso">
-          Isto é um protótipo com dados fictícios — nada aqui é salvo.
+          Isto é um protótipo com dados fictícios, nada aqui é salvo.
         </div>
 
         <a href="/" className="demo-login__voltar">← Voltar ao site</a>

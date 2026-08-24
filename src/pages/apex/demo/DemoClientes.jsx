@@ -25,7 +25,7 @@ export default function DemoClientes() {
       {
         id: Date.now(),
         nome,
-        telefone: novoTelefone.trim() || "—",
+        telefone: novoTelefone.trim() || "-",
         fiado: 0,
         ultimaVisita: "agora",
       },
@@ -88,7 +88,7 @@ export default function DemoClientes() {
 
       {visiveis.length === 0 ? (
         <div className="demo-clientes__vazio">
-          Nenhum cliente com esse nome — cadastre no botão acima.
+          Nenhum cliente com esse nome, cadastre no botão acima.
         </div>
       ) : (
         <ul className="demo-clientes__lista">
