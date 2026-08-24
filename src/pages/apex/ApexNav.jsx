@@ -24,6 +24,7 @@ export default function ApexNav() {
   const links = [
     { href: "#inimigo", texto: "Por que o KORA" },
     { href: "#funcionalidades", texto: "Funcionalidades" },
+    { href: "#como-funciona", texto: "Como funciona" },
     { href: "#planos", texto: "Planos" },
     { href: "#faq", texto: "Dúvidas" },
   ];
@@ -35,7 +36,12 @@ export default function ApexNav() {
   return (
     <nav className="apex-nav" aria-label="Navegação principal">
       <div className="apex-nav__container">
-        <a href="#" className="apex-nav__marca">
+        {/* href="#" não volta ao topo aqui: quem rola é o container .apex
+            (o CSS global trava a rolagem do body), e o fragmento vazio manda
+            o navegador rolar o DOCUMENTO, que não rola. O alvo é o hero
+            (id="topo"), e não esta nav: nav sticky fica sempre no topo da
+            tela, então o navegador a considera já visível e não rola nada. */}
+        <a href="#topo" className="apex-nav__marca" aria-label="KORA, ir para o topo">
           <KoraMonograma className="apex-nav__monograma" />
           <span className="apex-nav__wordmark">KORA</span>
         </a>

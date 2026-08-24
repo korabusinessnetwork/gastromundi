@@ -31,7 +31,7 @@ export default function DemoPage() {
   const [etapa, setEtapa] = useState("login");
 
   useEffect(() => {
-    document.title = "Demonstração — KORA";
+    document.title = "Kora PDV, demonstração";
   }, []);
 
   if (etapa === "login") {

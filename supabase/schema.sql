@@ -201,6 +201,23 @@ CREATE TABLE public.ia_uso (
   PRIMARY KEY (tenant_id, dia)
 );
 
+-- ── leads (site institucional) — 20260925_leads_apex.sql ──────
+-- Quem preencheu "Agendar demonstração" no apex. SEM tenant_id de
+-- propósito: é alguém que ainda NÃO é estabelecimento, a plataforma
+-- vendendo (decisão 017). Fechada para anon; a única escrita é a RPC
+-- public.registrar_lead_apex (SECURITY DEFINER, valida e limita), e a
+-- leitura é do super-admin da plataforma.
+CREATE TABLE public.leads (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome        text        NOT NULL,
+  whatsapp    text        NOT NULL,
+  email       text        NOT NULL,
+  plano_total numeric(10,2),
+  plano_itens text[],
+  origem      text        NOT NULL DEFAULT 'apex',
+  criado_em   timestamptz NOT NULL DEFAULT now()
+);
+
 -- =============================================================
 -- NÚCLEO OPERACIONAL
 -- Todas as tabelas desta seção são isoladas por tenant_id

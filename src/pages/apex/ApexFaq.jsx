@@ -36,8 +36,8 @@ export default function ApexFaq() {
         <div className="apex-faq__grade">
           {PERGUNTAS.map((item) => (
             <div className="apex-faq__card" key={item.pergunta}>
-              <span className="apex-faq__pergunta">{item.pergunta}</span>
-              <span className="apex-faq__resposta">{item.resposta}</span>
+              <h3 className="apex-faq__pergunta">{item.pergunta}</h3>
+              <p className="apex-faq__resposta">{item.resposta}</p>
             </div>
           ))}
         </div>

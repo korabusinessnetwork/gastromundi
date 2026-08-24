@@ -10,7 +10,7 @@ import "./ApexHero.css";
  */
 export default function ApexHero() {
   return (
-    <header className="apex-hero">
+    <header id="topo" className="apex-hero">
       {/* Badge com duas variantes de copy: no mobile o artboard pede a
           curta (cabe numa linha do pill); o CSS mostra uma por vez. */}
       <span className="apex-hero__badge">

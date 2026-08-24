@@ -10,6 +10,30 @@
          aplicada pelo script de branding abaixo (cache) ou pelo app após o
          bootstrap. Nunca a marca de UM cliente hardcodada (decisão 017). -->
     <title>Kora</title>
+    <!-- Identidade da PLATAFORMA para busca e para o preview de link.
+         Precisa estar no HTML estático porque quem lê isto (robô do
+         WhatsApp, do Google, do Instagram) NÃO executa JavaScript: nada
+         que o React define depois entra no card compartilhado — e o link
+         do site de vendas circula justamente por WhatsApp.
+
+         Sem marca de cliente nenhum (decisão 017) e sem og:url/canonical:
+         este mesmo shell serve os subdomínios de estabelecimento, e uma
+         URL fixa aqui apontaria todos eles para o site institucional.
+         O domínio da imagem vem de VITE_ROOT_DOMAIN (Vite troca %VAR% no
+         build), não hardcodado — og:image exige URL absoluta. -->
+    <meta name="description" content="Sistema de PDV para restaurantes, bares, cafés, padarias e mercados. Caixa, comanda, Pix, NFC-e e estoque, com as telas adaptadas à sua operação e sem fidelidade." />
+    <meta name="theme-color" content="#473CA8" />
+    <link rel="icon" type="image/svg+xml" href="/icone-kora.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kora" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content="Kora PDV, o sistema que se adapta ao seu negócio" />
+    <meta property="og:description" content="Caixa, comanda, Pix, NFC-e e estoque num sistema só. Você monta seu plano por módulo, vê o preço na hora e começa a vender no mesmo dia." />
+    <meta property="og:image" content="https://%VITE_ROOT_DOMAIN%/og-kora.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="KORA, o PDV que se adapta a você" />
+    <meta name="twitter:card" content="summary_large_image" />
     <!-- Anti-flash de troca de estabelecimento: aplica a marca/tema em cache
          (gravado por src/lib/brandingCache.js; localStorage é POR ORIGEM,
          então cada subdomínio só vê a própria marca) ANTES da primeira
