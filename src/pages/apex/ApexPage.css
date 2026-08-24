@@ -42,6 +42,22 @@
      precisa descontar isso, senão o topo do elemento some por baixo. */
   --kora-nav-altura: 84px;
 
+  /* Campos de formulário do SITE.
+     O baseline global (src/styles/inputs.css) pinta todo input da
+     aplicação com --gm-input-bg, e de propósito usa uma cadeia de :not()
+     para ganhar de qualquer regra por classe — inclusive das daqui. Como
+     o tema padrão do produto é ESCURO, o campo do formulário de
+     agendamento saía com fundo escuro e o texto em --kora-tinta, também
+     escuro: quem digitava não lia o que digitou.
+     Remapear os tokens dentro de .apex é o caminho previsto pelo próprio
+     baseline (ele lê variável, não cor fixa) e vale para qualquer campo
+     que o site venha a ter. --gm-accent NÃO entra aqui: o mock do produto
+     no hero usa esse token de propósito, para mostrar o KORA de verdade. */
+  --gm-input-bg: #fff;
+  --gm-input-border: var(--kora-linha);
+  --gm-input-ring: color-mix(in srgb, var(--kora-roxo) 22%, transparent);
+  --gm-color-scheme: light;
+
   /* O CSS global do produto trava o scroll do body (o PDV rola por
      dentro dos painéis), então o site rola AQUI: .apex é o contêiner
      de rolagem — com scrollbar visível e âncoras suaves, ao contrário
@@ -57,6 +73,16 @@
   font-family: var(--kora-font-texto);
   font-size: 16px;
   line-height: 1.6;
+}
+
+/* Destino das âncoras da nav ("Planos", "Dúvidas", ...). A nav é sticky e
+   cobre o topo do contêiner, então o link precisa parar ANTES dela: sem
+   esta reserva, o visitante clica em "Planos" e o título da seção chega
+   escondido por baixo da nav, dando a impressão de que o clique errou o
+   alvo. Mesma altura usada pelo card que gruda na rolagem. */
+.apex section[id],
+.apex header[id] {
+  scroll-margin-top: var(--kora-nav-altura);
 }
 
 /* Restaura a scrollbar que o global esconde (::-webkit-scrollbar 0) */
@@ -127,7 +153,8 @@
 .apex-botao--branco { background: #fff; color: var(--kora-tinta); }
 .apex-botao--branco:hover { background: var(--kora-linha); }
 
-/* A nav encolhe em tablet (padding e CTA menores) — o token acompanha. */
-@media (max-width: 1023px) {
+/* A nav encolhe (padding e CTA menores) — o token acompanha, no mesmo
+   ponto de corte usado em ApexNav.css. */
+@media (max-width: 1199px) {
   .apex { --kora-nav-altura: 78px; }
 }

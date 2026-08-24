@@ -32,7 +32,7 @@ const PASSOS = [
 
 export default function ApexComoFunciona() {
   return (
-    <section className="apex-passos">
+    <section id="como-funciona" className="apex-passos">
       <div className="apex-container apex-passos__container">
         <div className="apex-passos__intro">
           <span className="apex-kicker">Como funciona</span>
@@ -49,7 +49,7 @@ export default function ApexComoFunciona() {
               >
                 {passo.numero}
               </span>
-              <span className="apex-passos__cardTitulo">{passo.titulo}</span>
+              <h3 className="apex-passos__cardTitulo">{passo.titulo}</h3>
               <span className="apex-passos__cardTexto">{passo.texto}</span>
             </div>
           ))}

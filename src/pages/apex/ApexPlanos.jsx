@@ -210,6 +210,17 @@ export default function ApexPlanos() {
 
   const qtdSelecionados = modulosSelecionados.length + addonsSelecionados.length;
 
+  // Nomes do que a pessoa ligou, para viajar junto com o lead: saber que
+  // ela marcou "Cozinha (KDS)" e "Multi-loja" é o que faz a demonstração
+  // já começar no assunto certo, em vez de repetir a descoberta.
+  const itensSelecionados = useMemo(
+    () => [
+      ...MODULOS.filter((m) => modulosSelecionados.includes(m.codigo)).map((m) => m.nome),
+      ...ADDONS.filter((a) => addonsSelecionados.includes(a.codigo)).map((a) => a.nome),
+    ],
+    [modulosSelecionados, addonsSelecionados]
+  );
+
   return (
     <section id="planos" className="apex-planos">
       <div className="apex-container apex-planos__conteudo">
@@ -242,9 +253,9 @@ export default function ApexPlanos() {
 
             <div className="apex-construtor__planos-prontos">
               <div className="apex-construtor__planos-prontos-topo">
-                <span className="apex-construtor__secao-titulo">
+                <h3 className="apex-construtor__secao-titulo">
                   Comece por um plano pronto
-                </span>
+                </h3>
                 <button
                   type="button"
                   className="apex-construtor__selecionar-todos"
@@ -287,7 +298,7 @@ export default function ApexPlanos() {
               </div>
             </div>
 
-            <span className="apex-construtor__secao-titulo">Módulos</span>
+            <h3 className="apex-construtor__secao-titulo">Módulos</h3>
             <div className="apex-construtor__grade">
               {MODULOS.map((modulo) => {
                 const ativo = modulosSelecionados.includes(modulo.codigo);
@@ -316,7 +327,7 @@ export default function ApexPlanos() {
               })}
             </div>
 
-            <span className="apex-construtor__secao-titulo">Complementos</span>
+            <h3 className="apex-construtor__secao-titulo">Complementos</h3>
             <div className="apex-construtor__grade">
               {ADDONS.map((addon) => {
                 const ativo = addonsSelecionados.includes(addon.codigo);
@@ -346,7 +357,7 @@ export default function ApexPlanos() {
           </div>
 
           <aside className="apex-construtor__resumo">
-            <span className="apex-construtor__resumo-titulo">Seu plano</span>
+            <h3 className="apex-construtor__resumo-titulo">Seu plano</h3>
 
             <div className="apex-construtor__resumo-lista">
               <span className="apex-construtor__resumo-linha">
@@ -401,7 +412,7 @@ export default function ApexPlanos() {
       <ApexAgendamento
         aberto={agendamentoAberto}
         onFechar={() => setAgendamentoAberto(false)}
-        plano={{ total }}
+        plano={{ total, itens: itensSelecionados }}
       />
     </section>
   );

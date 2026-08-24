@@ -1,0 +1,43 @@
+/* Cores literais (e não tokens --kora-*): estes tokens moram no CSS do
+   apex, que é justamente o arquivo que ainda não chegou quando esta tela
+   aparece. São as mesmas do site (fundo, tinta, névoa). */
+.apex-carregando {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #F8F8FB;
+
+  /* Atraso de 200ms antes de aparecer: em conexão boa o site chega antes
+     e o visitante não vê um piscar de tela de espera. */
+  opacity: 0;
+  animation: apex-carregando-surge 240ms ease-out 200ms forwards;
+}
+
+.apex-carregando__marca {
+  font-family: "Sora", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: 1px;
+  color: #1B1930;
+}
+
+.apex-carregando__texto {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: 14px;
+  color: #77768A;
+}
+
+@keyframes apex-carregando-surge {
+  to { opacity: 1; }
+}
+
+/* Quem pediu menos movimento no sistema recebe a tela direto, sem fade. */
+@media (prefers-reduced-motion: reduce) {
+  .apex-carregando {
+    opacity: 1;
+    animation: none;
+  }
+}

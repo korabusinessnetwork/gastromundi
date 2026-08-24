@@ -91,7 +91,7 @@ export default function ApexFuncionalidades({ contatoUrl }) {
                   direita) — o wrapper é o que permite girar só o texto
                   junto, sem separar número de título/descrição. */}
               <div className="apex-func__cardTexto">
-                <span className="apex-func__cardTitulo">{item.titulo}</span>
+                <h3 className="apex-func__cardTitulo">{item.titulo}</h3>
                 <span className="apex-func__cardDescricao">
                   {item.descricao}
                 </span>
