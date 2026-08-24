@@ -5,8 +5,22 @@ import { buscarConfigImpressao, salvarConfigImpressao, PERFIL_IMPRESSORA_PADRAO 
 import { gerarHtmlComPerfil } from "@/lib/impressao/drivers/browserRaster";
 import { imprimirDocumento, OPCOES_DRIVER } from "@/lib/impressao/drivers";
 import { listarImpressorasPonte } from "@/lib/ponte";
-import { LuCircleCheck, LuCircleAlert, LuLoader, LuRefreshCw, LuPrinter } from "react-icons/lu";
+import { LuCircleCheck, LuCircleAlert, LuLoader, LuRefreshCw, LuPrinter, LuDownload } from "react-icons/lu";
 import "./PerfilImpressora.css";
+
+// Onde o dono baixa a Ponte KORA — o programa que faz a térmica imprimir.
+// A tela sempre mandou "dê dois cliques no KoraPonte.exe" sem nunca dizer de
+// onde vem esse arquivo: quem não recebeu o instalador por fora ficava preso
+// aqui. O endereço vem do ambiente porque o arquivo tem 56 MB (não entra no
+// repositório) e cada instalação pode servi-lo de um lugar — nada de URL
+// fixa no código.
+//
+// Só http(s) passa: endereço vazio ou escrito errado no build não pode virar
+// um botão que leva a lugar nenhum (nem a um `javascript:`) — sem endereço
+// válido, o botão simplesmente não existe e a tela segue como era antes.
+const ENDERECO_DOWNLOAD_PONTE = /^https?:\/\//i.test(import.meta.env.VITE_PONTE_DOWNLOAD_URL ?? "")
+  ? import.meta.env.VITE_PONTE_DOWNLOAD_URL
+  : "";
 
 // Documento de exemplo só pra preview/teste — nunca é uma venda real, só
 // usado localmente pra mostrar como o layout fica na largura escolhida
@@ -246,22 +260,37 @@ export default function PerfilImpressora({ sz }) {
                   </div>
                 )}
 
-                <button
-                  type="button"
-                  onClick={buscarImpressorasNaPonte}
-                  disabled={statusPonte === "buscando"}
-                  className="perfil-impressora__btn-detectar"
-                >
-                  {statusPonte === "buscando"
-                    ? <LuLoader size={14} className="perfil-impressora__spin" color={varColor(C.blue)} />
-                    : <LuRefreshCw size={14} />}
-                  Procurar impressoras
-                </button>
+                <div className="perfil-impressora__acoes-ponte">
+                  <button
+                    type="button"
+                    onClick={buscarImpressorasNaPonte}
+                    disabled={statusPonte === "buscando"}
+                    className="perfil-impressora__btn-detectar"
+                  >
+                    {statusPonte === "buscando"
+                      ? <LuLoader size={14} className="perfil-impressora__spin" color={varColor(C.blue)} />
+                      : <LuRefreshCw size={14} />}
+                    Procurar impressoras
+                  </button>
+
+                  {ENDERECO_DOWNLOAD_PONTE && (
+                    <a
+                      href={ENDERECO_DOWNLOAD_PONTE}
+                      download
+                      rel="noreferrer"
+                      className="perfil-impressora__btn-baixar"
+                    >
+                      <LuDownload size={14} /> Baixar o programa da impressora
+                    </a>
+                  )}
+                </div>
 
                 {statusPonte === "ausente" && (
                   <div className="perfil-impressora__status perfil-impressora__status--atencao">
-                    <LuCircleAlert size={13} color={varColor(C.warn)} /> A Ponte não está rodando neste computador. Dê dois
-                    cliques no KoraPonte.exe — ele trabalha em segundo plano, sem abrir janela — e procure de novo.
+                    <LuCircleAlert size={13} color={varColor(C.warn)} />{" "}
+                    {ENDERECO_DOWNLOAD_PONTE
+                      ? "A Ponte não está rodando neste computador. Baixe o programa no botão acima e dê dois cliques no arquivo — ele trabalha em segundo plano, sem abrir janela — e procure de novo."
+                      : "A Ponte não está rodando neste computador. Dê dois cliques no KoraPonte.exe — ele trabalha em segundo plano, sem abrir janela — e procure de novo."}
                   </div>
                 )}
                 {statusPonte === "erro" && (

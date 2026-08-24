@@ -255,6 +255,16 @@
   gap: 10px;
 }
 
+/* "Procurar impressoras" e "Baixar o programa" na mesma linha: quem abre este
+   bloco ou já tem a Ponte instalada (procura) ou ainda não tem (baixa), e as
+   duas saídas precisam estar à vista sem rolar a tela. */
+.perfil-impressora__acoes-ponte {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .perfil-impressora__btn-detectar {
   display: flex;
   align-items: center;
@@ -275,6 +285,26 @@
 .perfil-impressora__btn-detectar:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* É um link (baixa um arquivo), mas na tela precisa parecer botão. Contorno
+   colorido em vez de preenchido: chama atenção de quem está travado sem o
+   programa sem competir com o "Salvar" do fim da tela. */
+.perfil-impressora__btn-baixar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap-min);
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gm-accent);
+  background: none;
+  color: var(--gm-accent);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  text-decoration: none;
 }
 
 .perfil-impressora__lista-impressoras {

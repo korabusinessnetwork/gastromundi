@@ -7,8 +7,8 @@
 // código. Enquanto o nome dele era a marca de um cliente específico, o dono
 // de qualquer outro restaurante abria a tela e via o cupom de outra empresa
 // como modelo do próprio (decisão 017).
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, act, cleanup } from "@testing-library/react";
 
 // Só o que fala com o Supabase vira dublê; o renderizador do cupom
 // (gerarHtmlComPerfil) fica REAL — é ele que produz o HTML avaliado aqui.
@@ -51,5 +51,72 @@ describe("PerfilImpressora — cupom de exemplo (Run 5, leva 11)", () => {
     expect(previewHtml()).toContain("Seu Estabelecimento");
     expect(previewHtml()).not.toContain("GastroMundi");
     expect(previewHtml()).not.toContain("GASTROMUNDI");
+  });
+});
+
+// ── O botão que baixa o programa da impressora ─────────────────────────────
+//
+// Quem escolhe a impressora térmica precisa da Ponte KORA rodando no PC, e a
+// tela sempre mandou "dê dois cliques no KoraPonte.exe" sem nunca dizer de
+// onde vem esse arquivo — o dono que não recebeu o instalador por fora ficava
+// travado aqui. O endereço do download mora no ambiente (o .exe tem 56 MB e
+// não entra no repositório), então o botão só pode existir quando há endereço
+// de verdade: botão que não leva a lugar nenhum é pior que botão nenhum.
+const CONFIG_TERMICA = {
+  ...CONFIG_IMPRESSAO_PADRAO,
+  perfilImpressora: { ...PERFIL_IMPRESSORA_PADRAO, driver: "escpos-ponte" },
+};
+
+const ENDERECO = "https://exemplo.invalid/KoraPonte.exe";
+
+/** Abre a tela como se o build tivesse recebido este endereço de download. */
+const abrirComEndereco = async (endereco) => {
+  vi.resetModules();
+  vi.stubEnv("VITE_PONTE_DOWNLOAD_URL", endereco);
+  const { default: Tela } = await import("./PerfilImpressora");
+  await act(async () => { render(<Tela />); });
+};
+
+const botaoBaixar = () => document.querySelector(".perfil-impressora__btn-baixar");
+
+describe("PerfilImpressora — baixar o programa da impressora", () => {
+  beforeEach(() => {
+    mockBuscarConfig.mockResolvedValue({ data: CONFIG_TERMICA, error: null });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllEnvs();
+  });
+
+  it("mostra o botão apontando para o endereço configurado", async () => {
+    await abrirComEndereco(ENDERECO);
+
+    const botao = botaoBaixar();
+    expect(botao).not.toBeNull();
+    expect(botao.getAttribute("href")).toBe(ENDERECO);
+    expect(botao.textContent).toContain("Baixar o programa da impressora");
+  });
+
+  it("sem endereço configurado, não existe botão nenhum", async () => {
+    await abrirComEndereco("");
+
+    expect(botaoBaixar()).toBeNull();
+    // A tela continua inteira: o bloco da Ponte e a busca de impressoras
+    // seguem lá, só sem o botão que não teria para onde levar.
+    expect(document.querySelector(".perfil-impressora__btn-detectar")).not.toBeNull();
+  });
+
+  it("endereço escrito errado no build vale o mesmo que endereço nenhum", async () => {
+    await abrirComEndereco("peça-o-ao-suporte");
+
+    expect(botaoBaixar()).toBeNull();
+  });
+
+  it("só aparece para quem escolheu a impressora térmica", async () => {
+    mockBuscarConfig.mockResolvedValue({ data: CONFIG_SALVA, error: null });
+    await abrirComEndereco(ENDERECO);
+
+    expect(botaoBaixar()).toBeNull();
   });
 });
