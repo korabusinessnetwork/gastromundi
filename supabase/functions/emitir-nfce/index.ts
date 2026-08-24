@@ -37,7 +37,12 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { registrarFalhaInterna } from "../_shared/guardaEntrada.ts";
+import {
+  decidirAcesso,
+  mensagemRecusa,
+  PAPEIS_FISCAL_EMISSAO,
+  registrarFalhaInterna,
+} from "../_shared/guardaEntrada.ts";
 // Núcleo PURO e testado, reaproveitado do front (mesma verdade fiscal):
 import { montarXmlNfce } from "../../../src/lib/nfceXml.js";
 import { montarQrCodeNfce, montarQrCodeNfceContingencia } from "../../../src/lib/nfceQrCode.js";
@@ -78,6 +83,32 @@ Deno.serve(async (req: Request) => {
     );
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return json({ error: "Sessão inválida." }, 401);
+
+    // ── 1b. GATE DE PAPEL: emitir NFC-e é ato de CAIXA pra cima ───────
+    // Autenticar não basta: até aqui QUALQUER pessoa logada no tenant — o
+    // garçom que só tira pedido no Palm, inclusive — emitia documento fiscal
+    // válido em nome do estabelecimento, queimando numeração de série e
+    // gravando nota na SEFAZ. Emissão é operação de frente de caixa, então a
+    // lista é caixa/gerente/admin (mais larga que a de cancelar, que é
+    // PAPEIS_GERENCIA, porque cancelar pesa mais que emitir).
+    // `active` entra no select porque desativar alguém em public.users NÃO
+    // invalida o JWT já emitido: sem a coluna, quem foi tirado de circulação
+    // seguiria emitindo pelo tempo de vida do token (decidirAcesso falha
+    // FECHADO se a coluna vier ausente).
+    const { data: perfil } = await supabase
+      .from("users")
+      .select("role, active")
+      .eq("auth_id", user.id)
+      .single();
+    const acesso = decidirAcesso(perfil, PAPEIS_FISCAL_EMISSAO);
+    if (!acesso.ok) {
+      return json({
+        error: mensagemRecusa(
+          acesso.motivo,
+          "Seu acesso não permite emitir nota fiscal. Fale com o gerente.",
+        ),
+      }, 403);
+    }
 
     // ── 2. Carrega a config fiscal do tenant (NÃO-secreta) ────────────
     // RLS de tenant_fiscal_config garante que só vem a linha do tenant do

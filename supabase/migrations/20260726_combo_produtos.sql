@@ -43,6 +43,12 @@ ALTER TABLE combo_produtos ENABLE ROW LEVEL SECURITY;
 
 -- Policy permissiva base (mesmo padrão de combo_subprodutos). O
 -- isolamento REAL por tenant é a RESTRICTIVE adicionada no bloco abaixo.
+--
+-- ⚠️ SUBSTITUÍDA por 20260923_combo_produtos_isolamento_tenant.sql: esta
+-- permissiva libera escrita para qualquer autenticado (o padrão de 20240104,
+-- aposentado pelo laço de limpeza de 20240107 — que já tinha passado quando
+-- este arquivo nasceu). Se precisar reexecutar esta migration, rode a 20260923
+-- logo em seguida, senão a permissiva volta.
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE tablename = 'combo_produtos' AND policyname = 'allow_all_combo_produtos'
