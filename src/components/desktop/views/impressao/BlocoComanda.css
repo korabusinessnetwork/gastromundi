@@ -1,0 +1,221 @@
+/**
+ * F020 — uma linha da lista de blocos da comanda (LayoutComanda.jsx):
+ * a linha em si e o painel de propriedades que abre ao selecioná-la.
+ *
+ * Decisão 018 (CSS separado do JSX) + tokens --gm-* / --tap-min
+ * (ADR-007). Alvos grandes de propósito: esta tela também é usada em
+ * tablet no balcão.
+ */
+
+.bloco-comanda {
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  background: var(--gm-surface);
+}
+
+.bloco-comanda--selecionado {
+  border-color: var(--gm-accent);
+  box-shadow: 0 0 0 1px var(--gm-accent);
+}
+
+/* Bloco desligado continua na lista (é o catálogo do que a comanda pode
+   ter), mas apagado: bate o olho e se vê que aquilo não sai no papel. */
+.bloco-comanda--desligado .bloco-comanda__nome,
+.bloco-comanda--desligado .bloco-comanda__resumo {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.bloco-comanda__linha {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 4px 4px;
+}
+
+.bloco-comanda__pegador {
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  color: var(--gm-muted);
+  cursor: grab;
+}
+
+.bloco-comanda__titulo {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap-min, 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 4px;
+  border: none;
+  background: transparent;
+  color: var(--gm-text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bloco-comanda__nome {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bloco-comanda__resumo {
+  max-width: 100%;
+  font-size: 12px;
+  color: var(--gm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bloco-comanda__acoes {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.bloco-comanda__botao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+
+.bloco-comanda__botao:hover:not(:disabled) {
+  background: var(--gm-faint);
+  color: var(--gm-text);
+}
+
+.bloco-comanda__botao:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.bloco-comanda__botao--perigo:hover:not(:disabled) {
+  color: var(--gm-red);
+}
+
+/* ── Painel de propriedades ─────────────────────────────────────────── */
+
+.bloco-comanda__props {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 12px 14px 34px;
+  border-top: 1px solid var(--gm-border);
+  margin-top: 2px;
+  padding-top: 12px;
+}
+
+.bloco-comanda__ajuda {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--gm-muted);
+}
+
+.bloco-comanda__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bloco-comanda__rotulo {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gm-muted);
+}
+
+.bloco-comanda__entrada {
+  min-height: var(--tap-min);
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.bloco-comanda__aviso {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gm-warn);
+}
+
+.bloco-comanda__segmentado {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--gm-faint);
+  align-self: flex-start;
+}
+
+.bloco-comanda__opcao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gm-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bloco-comanda__opcao:hover {
+  color: var(--gm-text);
+}
+
+.bloco-comanda__opcao--ativa {
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.bloco-comanda__caixa {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: var(--tap-min, 40px);
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--gm-text);
+  cursor: pointer;
+}
+
+.bloco-comanda__caixa input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--gm-accent);
+  cursor: pointer;
+}
+
+.bloco-comanda__caixa span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}

@@ -1,37 +1,45 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useApp } from "@/context/AppContext";
-import { buscarConfigImpressao, salvarConfigImpressao, montarCupomPreNota, CONFIG_IMPRESSAO_PADRAO } from "@/lib/impressao";
+import { buscarConfigImpressao, salvarConfigImpressao, montarCupomPreNota } from "@/lib/impressao";
+import {
+  TIPOS_BLOCO,
+  LAYOUT_COMANDA_PADRAO,
+  layoutComandaDeConfig,
+  completarLayoutComanda,
+  normalizarLayoutComanda,
+  configLegadoDeLayout,
+  blocoNovo,
+} from "@/lib/impressao/layoutComanda";
 import { gerarHtmlComPerfil } from "@/lib/impressao/drivers/browserRaster";
+import { formatarComprovanteEscpos } from "@/lib/impressao/escposFormatador";
+import { colunasEscpos } from "@/lib/impressao/largura";
 import { logoUrlTenant } from "@/lib/tema";
-import { LuCircleCheck, LuCircleAlert, LuRefreshCw } from "react-icons/lu";
+import BlocoComanda from "./BlocoComanda";
+import { LuCircleCheck, LuCircleAlert, LuRefreshCw, LuPlus, LuRotateCcw, LuType } from "react-icons/lu";
 import "./LayoutComanda.css";
 
 /**
- * Layout da comanda — o que sai IMPRESSO no papel que vai para a mão do
- * cliente: cabeçalho (logo, endereço, CNPJ) e rodapé (mensagem). É a
- * outra metade da aba Impressão: "Impressora e papel" cuida do
- * equipamento (driver, largura, fonte), esta cuida do conteúdo.
+ * Editor do layout da comanda — o papel que vai para a mão do cliente,
+ * montado bloco a bloco pelo dono: o que aparece, em que ordem, como e
+ * com que texto.
  *
- * Os campos já existiam em `CONFIG_IMPRESSAO_PADRAO` e já eram lidos por
- * `resolverIdentidadeTenant` nos DOIS caminhos de impressão (HTML do
- * navegador e texto ESC/POS da Ponte) — só não havia tela para editá-los.
- * Nada do pipeline de renderização muda aqui.
+ * Por que uma PILHA de blocos e não uma tela livre de arrastar em
+ * qualquer posição: papel térmico é uma coluna de largura fixa (32 ou
+ * 48 caracteres) e a impressora imprime linha a linha. Uma tela livre
+ * mostraria um resultado que a impressora não sabe reproduzir — e a
+ * pré-visualização passaria a mentir, que é o pior que uma tela dessas
+ * pode fazer.
+ *
+ * A pré-visualização passa pelo MESMO caminho da impressão de verdade
+ * (`montarCupomPreNota` → renderizador), nas duas saídas: o papel do
+ * navegador e o texto puro da térmica. Ver `lib/impressao/layoutComanda.js`.
  *
  * Multi-tenant (decisão 017): nome e logo vêm do tenant, nunca do código.
  */
 
-// Limites de tamanho. São prevenção de erro, não validação de tela: papel
-// térmico tem 32 (58mm) ou 48 (80mm) colunas — texto muito maior que isso
-// vira um bloco ilegível no rodapé do cupom.
-const MAX_ENDERECO = 120;
-const MAX_RODAPE = 120;
-const DIGITOS_CNPJ = 14;
-
-// Venda de exemplo da pré-visualização — nunca é uma venda real. Passa
-// pelo MESMO montador que o fechamento usa (`montarCupomPreNota`), então
-// o que o dono vê aqui é a renderização exata que sai no papel, não uma
-// imitação. Itens genéricos de propósito: é um exemplo mostrado a todo
-// estabelecimento, não pode ser o cardápio de nenhum (decisão 017).
+// Venda de exemplo da pré-visualização — nunca é uma venda real. Itens
+// genéricos de propósito: é um exemplo mostrado a todo estabelecimento,
+// não pode ser o cardápio de nenhum (decisão 017).
 const VENDA_EXEMPLO = {
   comanda: "42",
   items: [
@@ -43,96 +51,50 @@ const VENDA_EXEMPLO = {
   pagamentos: [{ metodo: "pix", valor: 78.1, troco: 0 }],
 };
 
-const CHAVES_LAYOUT = ["mostrarLogo", "mostrarEnderecoCnpj", "endereco", "cnpj", "rodapePersonalizado"];
+// Blocos que o dono acrescenta quantas vezes quiser. Os demais já
+// nascem na lista (ligados ou não) — ver `completarLayoutComanda`.
+const ADICIONAVEIS = [
+  { tipo: "texto", rotulo: "Texto livre", Icone: LuType },
+  { tipo: "separador", rotulo: "Linha divisória", Icone: LuPlus },
+  { tipo: "espaco", rotulo: "Espaço em branco", Icone: LuPlus },
+];
 
-/**
- * Aplica a máscara 00.000.000/0000-00 conforme se digita. Prevenção de
- * erro (princípio nº1): o dono digita só números e o CNPJ sai formatado
- * igual no papel de todo mundo, sem depender de ele acertar a pontuação.
- * Pura.
- *
- * @param {any} valor
- * @returns {string}
- */
-export function formatarCnpj(valor) {
-  const d = String(valor ?? "").replace(/\D/g, "").slice(0, DIGITOS_CNPJ);
-  if (d.length <= 2) return d;
-  if (d.length <= 5) return `${d.slice(0, 2)}.${d.slice(2)}`;
-  if (d.length <= 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
-  if (d.length <= 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
-  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
-}
-
-/**
- * Normaliza a fatia de layout: é ela que vai para o banco E a que
- * alimenta a pré-visualização — assim o que o dono vê é exatamente o
- * que ele salva, sem espaço sobrando nem pontuação torta no meio. Pura.
- *
- * @param {object} valores
- * @returns {{mostrarLogo: boolean, mostrarEnderecoCnpj: boolean, endereco: string, cnpj: string, rodapePersonalizado: string}}
- */
-export function normalizarLayout(valores) {
-  return {
-    mostrarLogo: valores?.mostrarLogo !== false,
-    mostrarEnderecoCnpj: valores?.mostrarEnderecoCnpj === true,
-    endereco: String(valores?.endereco ?? "").trim().slice(0, MAX_ENDERECO),
-    cnpj: formatarCnpj(valores?.cnpj),
-    rodapePersonalizado: String(valores?.rodapePersonalizado ?? "").trim().slice(0, MAX_RODAPE),
-  };
-}
-
-// Uma linha = um interruptor com o texto que explica o que acontece nos
-// dois estados. O texto muda com a chave de propósito: quem lê descobre
-// o efeito sem precisar clicar para descobrir (mesmo padrão de
-// "Onde cada item imprime").
-function LinhaChave({ titulo, descricao, ligado, onAlternar }) {
-  return (
-    <div className="layout-comanda__linha-toggle">
-      <div>
-        <div className="layout-comanda__label layout-comanda__label--inline">{titulo}</div>
-        <div className="layout-comanda__ajuda">{descricao}</div>
-      </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={ligado}
-        aria-label={titulo}
-        onClick={onAlternar}
-        className={`layout-comanda__toggle${ligado ? " layout-comanda__toggle--on" : ""}`}
-      >
-        <span className="layout-comanda__toggle-bolinha" />
-      </button>
-    </div>
-  );
-}
+const mesmoLayout = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 export default function LayoutComanda() {
   const { tenant } = useApp();
 
-  const [layout, setLayout] = useState(() => normalizarLayout(CONFIG_IMPRESSAO_PADRAO));
-  // Última fatia gravada — é contra ela que "Salvar" decide se há algo a
-  // salvar, para o botão não convidar a gravar o que já está no banco.
-  const [layoutSalvo, setLayoutSalvo] = useState(null);
+  const [blocos, setBlocos] = useState([]);
+  // Última versão gravada (já normalizada) — é contra ela que "Salvar"
+  // decide se há algo a salvar, para o botão não convidar a gravar o
+  // que já está no banco.
+  const [blocosSalvos, setBlocosSalvos] = useState(null);
   const [configCompleta, setConfigCompleta] = useState(null);
+  const [selecionado, setSelecionado] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erroCarga, setErroCarga] = useState(null);
   const [salvando, setSalvando] = useState(false);
   const [status, setStatus] = useState(null); // null | "sucesso" | "erro"
+  const [confirmandoPadrao, setConfirmandoPadrao] = useState(false);
+  const [visao, setVisao] = useState("papel"); // papel | termica
+  const arrastando = useRef(null);
 
-  // Falha na LEITURA não pode virar tela normal com os valores de
-  // fábrica: o dono veria o rodapé padrão no lugar do dele e, ao salvar
-  // por cima, apagaria a configuração real que só não foi lida. Erro de
-  // leitura tranca a tela (mesma regra de "Impressora e papel").
+  // Falha na LEITURA não pode virar tela normal com o layout de
+  // fábrica: o dono veria um papel que não é o dele e, ao salvar por
+  // cima, apagaria o layout real que só não foi lido.
   const carregar = useCallback(() => {
     setCarregando(true);
     setErroCarga(null);
     buscarConfigImpressao()
       .then(({ data, error }) => {
         if (error || !data) throw error ?? new Error("Não deu para ler a configuração de impressão.");
-        const fatia = normalizarLayout(data);
+        const lista = completarLayoutComanda(layoutComandaDeConfig(data));
         setConfigCompleta(data);
-        setLayout(fatia);
-        setLayoutSalvo(fatia);
+        setBlocos(lista);
+        setBlocosSalvos(normalizarLayoutComanda(lista));
+        // Quem imprime na térmica vê primeiro a saída da térmica: é a
+        // dele que vale, e é a que não tem letra grande nem negrito.
+        setVisao(data?.perfilImpressora?.driver === "escpos-ponte" ? "termica" : "papel");
         setCarregando(false);
       })
       .catch((e) => {
@@ -145,33 +107,91 @@ export default function LayoutComanda() {
     carregar();
   }, [carregar]);
 
-  const atualizarCampo = (campo, valor) => {
-    setLayout((prev) => ({ ...prev, [campo]: valor }));
+  const mexer = (proximos) => {
+    setBlocos(proximos);
     setStatus(null);
+    setConfirmandoPadrao(false);
   };
 
-  const paraSalvar = useMemo(() => normalizarLayout(layout), [layout]);
+  const alterarBloco = (id, patch) =>
+    mexer(blocos.map((b) => (b.id === id ? { ...b, ...patch } : b)));
 
-  const alterado = useMemo(
-    () => layoutSalvo != null && CHAVES_LAYOUT.some((k) => paraSalvar[k] !== layoutSalvo[k]),
-    [paraSalvar, layoutSalvo],
-  );
+  const moverBloco = (indice, delta) => {
+    const destino = indice + delta;
+    if (destino < 0 || destino >= blocos.length) return;
+    const proximos = [...blocos];
+    [proximos[indice], proximos[destino]] = [proximos[destino], proximos[indice]];
+    mexer(proximos);
+  };
 
-  // Grava só a fatia de layout por cima do que já está salvo — salvar o
-  // cabeçalho nunca descarta a impressora escolhida na outra aba.
+  const soltarEm = (destino) => {
+    const origem = arrastando.current;
+    arrastando.current = null;
+    if (origem == null || origem === destino) return;
+    const proximos = [...blocos];
+    const [movido] = proximos.splice(origem, 1);
+    proximos.splice(destino, 0, movido);
+    mexer(proximos);
+  };
+
+  const removerBloco = (id) => {
+    mexer(blocos.filter((b) => b.id !== id));
+    setSelecionado((atual) => (atual === id ? null : atual));
+  };
+
+  // Bloco novo entra logo abaixo do que está selecionado (é ali que o
+  // dono está olhando) e já abre aberto para ser preenchido.
+  const adicionarBloco = (tipo) => {
+    const novo = blocoNovo(tipo, blocos);
+    if (!novo) return;
+    const indice = blocos.findIndex((b) => b.id === selecionado);
+    const proximos = [...blocos];
+    proximos.splice(indice >= 0 ? indice + 1 : proximos.length, 0, novo);
+    mexer(proximos);
+    setSelecionado(novo.id);
+  };
+
+  // Volta à ARRUMAÇÃO de fábrica (ordem, alinhamento, tamanho) sem mexer
+  // no CONTEÚDO: o que o dono escreveu e o que ele escolheu imprimir
+  // continuam. Apagar o endereço do papel num clique seria perda
+  // silenciosa — quem clica aqui quer desentortar o layout, não parar de
+  // imprimir os próprios dados. Bloco escondido por engano volta com um
+  // clique no olho, à vista de todos na pré-visualização.
+  const restaurarPadrao = () => {
+    mexer(LAYOUT_COMANDA_PADRAO.map((padrao) => {
+      const atual = blocos.find((b) => b.tipo === padrao.tipo);
+      const restaurado = { ...padrao };
+      if (atual) {
+        restaurado.visivel = atual.visivel !== false;
+        if (Object.prototype.hasOwnProperty.call(padrao, "texto")) restaurado.texto = atual.texto ?? padrao.texto;
+      }
+      return restaurado;
+    }));
+    setSelecionado(null);
+  };
+
+  // O que vai para o banco é o mesmo que alimenta a pré-visualização:
+  // o dono salva exatamente o papel que está vendo.
+  const paraSalvar = useMemo(() => normalizarLayoutComanda(blocos), [blocos]);
+  const alterado = blocosSalvos != null && !mesmoLayout(paraSalvar, blocosSalvos);
+
+  // Grava o layout E o espelho dos campos antigos (endereço, CNPJ,
+  // rodapé, mostrar logo), que a identidade resolvida ainda lê. Só a
+  // fatia do layout é tocada: salvar aqui nunca descarta a impressora
+  // escolhida na aba "Impressora e papel".
   const salvar = async () => {
     if (salvando || !alterado) return;
     setSalvando(true);
     setStatus(null);
     try {
-      const config = { ...(configCompleta ?? {}), ...paraSalvar };
+      const config = { ...(configCompleta ?? {}), ...configLegadoDeLayout(paraSalvar), layoutComanda: paraSalvar };
       const { error } = await salvarConfigImpressao(config);
       if (error) {
         setStatus("erro");
         return;
       }
       setConfigCompleta(config);
-      setLayoutSalvo(paraSalvar);
+      setBlocosSalvos(paraSalvar);
       setStatus("sucesso");
     } finally {
       setSalvando(false);
@@ -179,22 +199,30 @@ export default function LayoutComanda() {
     }
   };
 
-  // Pré-visualização ao vivo — é o que torna a tela intuitiva: o dono vê
-  // o cupom mudar enquanto mexe, com o NOME e a LOGO do próprio
-  // estabelecimento, na largura e na fonte já configuradas na aba
-  // "Impressora e papel". Nada de imaginar o resultado.
-  const htmlPreview = useMemo(() => {
-    const documento = montarCupomPreNota({ venda: VENDA_EXEMPLO, tenant, configImpressao: paraSalvar });
-    return gerarHtmlComPerfil(documento, configCompleta?.perfilImpressora);
+  const documento = useMemo(() => {
+    const configPreview = {
+      ...(configCompleta ?? {}),
+      ...configLegadoDeLayout(paraSalvar),
+      layoutComanda: paraSalvar,
+    };
+    return montarCupomPreNota({ venda: VENDA_EXEMPLO, tenant, configImpressao: configPreview });
   }, [paraSalvar, tenant, configCompleta]);
 
-  // Ligar "mostrar logo" sem logo cadastrada não dá erro nenhum — o
-  // cabeçalho só cai para o nome escrito. Sem este aviso o dono ligaria a
-  // chave e ficaria procurando a logo que nunca existiu.
-  const semLogoCadastrada = !logoUrlTenant(tenant?.tema);
+  const htmlPreview = useMemo(
+    () => gerarHtmlComPerfil(documento, configCompleta?.perfilImpressora),
+    [documento, configCompleta],
+  );
 
-  const digitosCnpj = paraSalvar.cnpj.replace(/\D/g, "").length;
-  const cnpjIncompleto = digitosCnpj > 0 && digitosCnpj < DIGITOS_CNPJ;
+  const textoTermica = useMemo(
+    () => formatarComprovanteEscpos(documento, colunasEscpos(configCompleta?.perfilImpressora?.larguraMm)).join("\n"),
+    [documento, configCompleta],
+  );
+
+  // Ligar o bloco do logo sem logo cadastrada não dá erro nenhum — ele
+  // só não sai. Sem este aviso o dono ficaria procurando na tela a
+  // imagem que nunca existiu.
+  const logoLigadoSemImagem =
+    blocos.some((b) => b.tipo === "logo" && b.visivel !== false) && !logoUrlTenant(tenant?.tema);
 
   if (erroCarga) {
     return (
@@ -219,110 +247,43 @@ export default function LayoutComanda() {
   return (
     <div className="layout-comanda">
       <p className="layout-comanda__intro">
-        Escolha o que sai impresso na comanda do cliente — a conta que vai para a mesa e o
-        comprovante do pagamento. A via da cozinha não muda aqui: ela sai só com os itens,
-        sem logo e sem endereço, para o cozinheiro ler rápido.
+        Monte a comanda do cliente do jeito que você quiser: arraste para mudar a ordem, clique
+        num bloco para editar e use o olho para escolher o que sai impresso. O papel ao lado
+        muda junto. A via da cozinha não muda aqui — ela sai só com os itens, para o cozinheiro
+        ler rápido.
       </p>
 
       <div className="layout-comanda__colunas">
-        <div className="layout-comanda__form">
+        <div className="layout-comanda__editor">
+          <h3 className="layout-comanda__titulo-secao">Blocos da comanda, de cima para baixo</h3>
 
-          {/* ── Seção 1 — Cabeçalho (topo do papel) ─────────────────── */}
-          <section className="layout-comanda__secao">
-            <h3 className="layout-comanda__titulo-secao">Cabeçalho</h3>
-
-            <LinhaChave
-              titulo="Imprimir a logo do estabelecimento"
-              descricao={layout.mostrarLogo
-                ? "A logo sai no topo da comanda. Sem logo cadastrada, sai o nome escrito."
-                : "Sai só o nome do estabelecimento escrito, sem imagem — gasta menos tinta e imprime mais rápido."}
-              ligado={layout.mostrarLogo}
-              onAlternar={() => atualizarCampo("mostrarLogo", !layout.mostrarLogo)}
-            />
-            {layout.mostrarLogo && semLogoCadastrada && (
-              <div className="layout-comanda__status layout-comanda__status--atencao">
-                <LuCircleAlert size={13} />
-                Este estabelecimento ainda não tem logo. Cadastre em Configurações → Identidade;
-                até lá o cabeçalho sai com o nome escrito.
-              </div>
-            )}
-
-            <LinhaChave
-              titulo="Imprimir endereço e CNPJ"
-              descricao={layout.mostrarEnderecoCnpj
-                ? "Saem logo abaixo do nome, no topo da comanda."
-                : "A comanda sai só com o nome do estabelecimento no topo."}
-              ligado={layout.mostrarEnderecoCnpj}
-              onAlternar={() => atualizarCampo("mostrarEnderecoCnpj", !layout.mostrarEnderecoCnpj)}
-            />
-
-            {/* Os campos só aparecem com a chave ligada: preencher um
-                endereço que não vai ser impresso é trabalho jogado fora. */}
-            {layout.mostrarEnderecoCnpj && (
-              <div className="layout-comanda__campos-fiscais">
-                {/* Rótulo é <label for> e o texto de ajuda fica FORA dele:
-                    dentro, o leitor de tela anuncia a explicação inteira
-                    como se fosse o nome do campo. */}
-                <div className="layout-comanda__campo">
-                  <label className="layout-comanda__label" htmlFor="layout-comanda-endereco">Endereço</label>
-                  <input
-                    id="layout-comanda-endereco"
-                    type="text"
-                    value={layout.endereco}
-                    maxLength={MAX_ENDERECO}
-                    onChange={(e) => atualizarCampo("endereco", e.target.value)}
-                    placeholder="Rua, número, bairro — cidade/UF"
-                    className="layout-comanda__input"
-                  />
-                </div>
-
-                <div className="layout-comanda__campo">
-                  <label className="layout-comanda__label" htmlFor="layout-comanda-cnpj">CNPJ</label>
-                  <input
-                    id="layout-comanda-cnpj"
-                    type="text"
-                    inputMode="numeric"
-                    value={layout.cnpj}
-                    onChange={(e) => atualizarCampo("cnpj", formatarCnpj(e.target.value))}
-                    placeholder="00.000.000/0000-00"
-                    className="layout-comanda__input"
-                  />
-                  {cnpjIncompleto && (
-                    <span className="layout-comanda__status layout-comanda__status--atencao">
-                      <LuCircleAlert size={13} /> Faltam {DIGITOS_CNPJ - digitosCnpj} números para o CNPJ ficar completo.
-                    </span>
-                  )}
-                </div>
-
-                <div className="layout-comanda__ajuda">
-                  Em branco, a linha simplesmente não é impressa. A comanda não é
-                  documento fiscal — isso aqui é só a identificação do estabelecimento.
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* ── Seção 2 — Rodapé (fim do papel) ─────────────────────── */}
-          <section className="layout-comanda__secao">
-            <h3 className="layout-comanda__titulo-secao">Rodapé</h3>
-
-            <div className="layout-comanda__campo">
-              <label className="layout-comanda__label" htmlFor="layout-comanda-rodape">Mensagem no fim da comanda</label>
-              <input
-                id="layout-comanda-rodape"
-                type="text"
-                value={layout.rodapePersonalizado}
-                maxLength={MAX_RODAPE}
-                onChange={(e) => atualizarCampo("rodapePersonalizado", e.target.value)}
-                placeholder="Ex.: Obrigado pela preferência!"
-                className="layout-comanda__input"
+          <ul className="layout-comanda__lista">
+            {blocos.map((bloco, i) => (
+              <BlocoComanda
+                key={bloco.id}
+                bloco={bloco}
+                selecionado={selecionado === bloco.id}
+                primeiro={i === 0}
+                ultimo={i === blocos.length - 1}
+                removivel={TIPOS_BLOCO[bloco.tipo]?.repetivel === true}
+                onSelecionar={() => setSelecionado((atual) => (atual === bloco.id ? null : bloco.id))}
+                onAlterar={(patch) => alterarBloco(bloco.id, patch)}
+                onMover={(delta) => moverBloco(i, delta)}
+                onRemover={() => removerBloco(bloco.id)}
+                onArrastarInicio={() => { arrastando.current = i; }}
+                onSoltarAqui={() => soltarEm(i)}
               />
-              <span className="layout-comanda__ajuda">
-                Sai na última linha, para o cliente ler ao guardar o papel. Wi-fi, telefone,
-                Instagram, horário — o que você quiser. Em branco, nada é impresso no rodapé.
-              </span>
-            </div>
-          </section>
+            ))}
+          </ul>
+
+          <div className="layout-comanda__adicionar">
+            <span className="layout-comanda__rotulo-adicionar">Acrescentar:</span>
+            {ADICIONAVEIS.map(({ tipo, rotulo, Icone }) => (
+              <button key={tipo} type="button" onClick={() => adicionarBloco(tipo)} className="layout-comanda__btn-adicionar">
+                <Icone size={14} /> {rotulo}
+              </button>
+            ))}
+          </div>
 
           <div className="layout-comanda__acoes">
             <button
@@ -334,6 +295,24 @@ export default function LayoutComanda() {
             >
               {salvando ? "Salvando…" : "Salvar layout"}
             </button>
+
+            {confirmandoPadrao ? (
+              <span className="layout-comanda__confirmar">
+                Voltar à ordem e ao visual de fábrica? O que você escreveu e o que está
+                imprimindo continuam; os blocos que você acrescentou serão removidos.
+                <button type="button" onClick={restaurarPadrao} className="layout-comanda__btn-confirmar">
+                  Sim, voltar ao padrão
+                </button>
+                <button type="button" onClick={() => setConfirmandoPadrao(false)} className="layout-comanda__btn-cancelar">
+                  Cancelar
+                </button>
+              </span>
+            ) : (
+              <button type="button" onClick={() => setConfirmandoPadrao(true)} className="layout-comanda__btn-padrao">
+                <LuRotateCcw size={14} /> Voltar ao padrão
+              </button>
+            )}
+
             {status === "sucesso" && (
               <span className="layout-comanda__status layout-comanda__status--sucesso">
                 <LuCircleCheck size={13} /> Salvo — a próxima comanda já sai assim
@@ -350,16 +329,42 @@ export default function LayoutComanda() {
           </div>
         </div>
 
-        {/* Pré-visualização ao vivo — mesma renderização que sai no papel. */}
+        {/* Pré-visualização — o mesmo caminho da impressão de verdade, nas
+            duas saídas possíveis. Quem imprime na térmica precisa ver a
+            térmica: lá não existe logo, letra grande nem negrito. */}
         <div className="layout-comanda__preview-coluna">
-          <div className="layout-comanda__label">Como vai sair no papel</div>
+          <div className="layout-comanda__abas-preview" role="group" aria-label="Como vai sair">
+            <button type="button" aria-pressed={visao === "papel"} onClick={() => setVisao("papel")}
+                    className={`layout-comanda__aba${visao === "papel" ? " layout-comanda__aba--ativa" : ""}`}>
+              No papel
+            </button>
+            <button type="button" aria-pressed={visao === "termica"} onClick={() => setVisao("termica")}
+                    className={`layout-comanda__aba${visao === "termica" ? " layout-comanda__aba--ativa" : ""}`}>
+              Na térmica
+            </button>
+          </div>
+
           <div className="layout-comanda__preview-moldura">
-            <iframe title="Pré-visualização da comanda" srcDoc={htmlPreview} className="layout-comanda__preview-iframe" />
+            {visao === "papel" ? (
+              <iframe title="Pré-visualização da comanda" srcDoc={htmlPreview} className="layout-comanda__preview-iframe" />
+            ) : (
+              <pre className="layout-comanda__preview-termica">{textoTermica}</pre>
+            )}
           </div>
+
           <div className="layout-comanda__ajuda">
-            Exemplo com uma venda de mentira. A largura e o tamanho da letra vêm da aba
-            “Impressora e papel”.
+            {visao === "papel"
+              ? "Exemplo com uma venda de mentira. A largura e o tamanho da letra vêm da aba “Impressora e papel”."
+              : "Como a impressora térmica imprime: só texto, na largura real do papel. Logo, tamanho de letra e negrito não existem nela."}
           </div>
+
+          {logoLigadoSemImagem && (
+            <div className="layout-comanda__status layout-comanda__status--atencao">
+              <LuCircleAlert size={13} />
+              Este estabelecimento ainda não tem logo cadastrada, então o bloco “Logo” não sai no
+              papel. Cadastre em Configurações → Identidade.
+            </div>
+          )}
         </div>
       </div>
     </div>
