@@ -200,7 +200,7 @@ describe("PonteLocalConfig — chave de liga/desliga do estabelecimento", () => 
 // Quem não recebeu o instalador por fora não tem o que fazer com o passo 1.
 // O botão fecha isso — mas só pode existir com endereço de verdade no build:
 // botão que não leva a lugar nenhum é pior que instrução sem botão.
-const ENDERECO = "https://exemplo.invalid/KoraPonte.exe";
+const ENDERECO = "https://exemplo.invalid/KoraPonte.zip";
 
 /** Abre a tela sem a ponte instalada, como se o build tivesse este endereço. */
 const abrirComEndereco = async (endereco) => {
@@ -235,11 +235,24 @@ describe("PonteLocalConfig — baixar o programa da ponte", () => {
     expect(passo1()).toContain("acabou de baixar");
   });
 
+  // O programa é publicado compactado (o plano gratuito do Storage recusa o
+  // .exe cru). Um passo 1 que mandasse dar dois cliques direto no arquivo
+  // baixado pararia o dono no .zip, sem nada acontecendo.
+  it("com o botão, o passo 1 manda descompactar antes do duplo clique", async () => {
+    await abrirComEndereco(ENDERECO);
+
+    expect(passo1()).toContain("Descompacte");
+    expect(passo1()).toContain("KoraPonte.exe");
+  });
+
   it("sem endereço configurado, não existe botão e o passo a passo segue como era", async () => {
     await abrirComEndereco("");
 
     expect(botaoBaixar()).toBeNull();
     expect(passo1()).toContain("Copie o arquivo");
+    // Quem recebeu o arquivo por fora já tem o .exe na mão: mandar
+    // descompactar aqui seria pedir um zip que ele não tem.
+    expect(passo1()).not.toContain("Descompacte");
   });
 
   it("endereço escrito errado no build vale o mesmo que endereço nenhum", async () => {

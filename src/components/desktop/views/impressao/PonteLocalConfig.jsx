@@ -282,7 +282,7 @@ export default function PonteLocalConfig({ sz }) {
             <ol className="ponte-config__passos">
               <li>
                 {ENDERECO_DOWNLOAD_PONTE
-                  ? <>Dê dois cliques no arquivo <code>KoraPonte.exe</code> que você acabou de baixar.</>
+                  ? <>Descompacte o <code>KoraPonte.zip</code> que você acabou de baixar — clique nele com o botão direito e escolha <strong>Extrair tudo</strong> — e dê dois cliques no <code>KoraPonte.exe</code> que aparecer.</>
                   : <>Copie o arquivo <code>KoraPonte.exe</code> para este computador e dê dois cliques nele.</>}
               </li>
               <li>No painel que abrir, clique em <strong>Instalar neste computador</strong> — ela passa a abrir sozinha junto com o Windows.</li>
