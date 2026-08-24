@@ -13,7 +13,7 @@ import { imprimirDocumento } from "@/lib/impressao/drivers";
 import { metodoUsaTef } from "@/lib/tef";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { buscarClientePorId } from "@/lib/clientes";
-import { AJUSTE_PERCENTUAL_MAX, ajusteExigeSenha, validarAjuste } from "@/lib/vendas";
+import { AJUSTE_PERCENTUAL_MAX, ajusteExigeSenha, round2, validarAjuste } from "@/lib/vendas";
 import ClienteFiadoSelector from "./ClienteFiadoSelector";
 import ImpressaoAcoes from "./ImpressaoAcoes";
 import ModalCpfNota from "./ModalCpfNota";
@@ -116,9 +116,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
 
   // Todo valor cobrado é arredondado a centavos: taxa de 10% e ajuste
   // percentual geram frações de centavo que estouravam a tolerância do
-  // split e chegavam ao pagamento com casas fantasma.
-  const round2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
-
+  // split e chegavam ao pagamento com casas fantasma. O `round2` vem de
+  // @/lib/vendas — é o mesmo que a gravação da venda usa, e dinheiro
+  // arredondado de dois jeitos diferentes na mesma tela é como nasce a
+  // diferença de um centavo no fechamento.
   const subtotal      = round2(itensVisiveis.reduce((s, i) => s + i.price * i.qty, 0));
   const valorTaxa     = aplicarTaxa ? round2(subtotal * 0.10) : 0;
   const baseComTaxa   = round2(subtotal + valorTaxa);
