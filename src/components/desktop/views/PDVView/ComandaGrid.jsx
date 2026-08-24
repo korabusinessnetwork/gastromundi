@@ -291,7 +291,7 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esqueci
           </div>
           <span className="comanda-card__tempo" style={{
             color: varColor(C.faint),
-            background: varColor(C.surface), border: `1px solid var(${C.border})`,
+            background: varColor(C.chip), border: `1px solid var(${C.border})`,
             opacity: 0,
           }}>
             <LuClock size={10} /> —
@@ -356,7 +356,7 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esqueci
         </div>
         <span className="comanda-card__tempo" style={{
           color: elapsed.color,
-          background: elapsed.warn ? alfa(elapsed.color, "14") : varColor(C.surface),
+          background: elapsed.warn ? alfa(elapsed.color, "14") : varColor(C.chip),
           border: elapsed.warn ? `1px solid ${alfa(elapsed.color, "33")}` : `1px solid var(${C.border})`,
         }}>
           <LuClock size={10} /> {elapsed.label}
@@ -422,7 +422,7 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esqueci
       <div className="comanda-card__rodape" style={{ paddingTop: sz.padSm - 2 }}>
         <span className="comanda-card__rodape-tag" style={{
           color: hasItems ? varColor(C.muted) : varColor(C.faint),
-          background: hasItems ? varColor(C.surface) : "transparent",
+          background: hasItems ? varColor(C.chip) : "transparent",
           padding: hasItems ? "2px 7px" : "0",
         }}>
           {hasItems ? `${qtdTotal} ${qtdTotal === 1 ? "item" : "itens"}` : "Vazio"}
