@@ -19,7 +19,7 @@ const PERGUNTAS = [
   {
     pergunta: '"Personalizado" não vai demorar mais pra implantar?',
     resposta:
-      "Não — é o contrário. Como a gente configura as telas pro seu fluxo na ativação, sua equipe não precisa aprender o que não usa. É isso que faz dar pra vender no mesmo dia.",
+      "Não, é o contrário. Como a gente configura as telas pro seu fluxo na ativação, sua equipe não precisa aprender o que não usa. É isso que faz dar pra vender no mesmo dia.",
   },
   {
     pergunta: "Tem fidelidade ou multa de cancelamento?",

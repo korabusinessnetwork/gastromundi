@@ -32,7 +32,7 @@ const CONTATO_URL = import.meta.env.VITE_CONTATO_URL || "";
 
 export default function ApexPage() {
   useEffect(() => {
-    document.title = "KORA — O PDV que se adapta a você";
+    document.title = "Kora PDV";
   }, []);
 
   return (

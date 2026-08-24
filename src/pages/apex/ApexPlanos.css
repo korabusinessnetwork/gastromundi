@@ -348,8 +348,12 @@
 /* ── Resumo (coluna fixa) ───────────────────────────────────── */
 
 .apex-construtor__resumo {
+  /* Gruda ABAIXO da nav (que já ocupa o topo da tela) e nunca passa da
+     altura útil: com muitos módulos ligados a lista é que rola por
+     dentro, então título, total e botão continuam sempre à vista. */
   position: sticky;
-  top: 24px;
+  top: calc(var(--kora-nav-altura) + 24px);
+  max-height: calc(100dvh - var(--kora-nav-altura) - 48px);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -361,6 +365,7 @@
 }
 
 .apex-construtor__resumo-titulo {
+  flex: none;
   font-family: var(--kora-font-titulo);
   font-weight: 700;
   font-size: 15px;
@@ -372,6 +377,16 @@
   flex-direction: column;
   gap: 8px;
   min-height: 24px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* O global esconde a scrollbar (index.html: ::-webkit-scrollbar 0). Aqui ela
+   precisa aparecer: é o único sinal de que a lista continua abaixo. */
+.apex-construtor__resumo-lista::-webkit-scrollbar { width: 6px; height: 0; }
+.apex-construtor__resumo-lista::-webkit-scrollbar-thumb {
+  background: #C9C7D6;
+  border-radius: 3px;
 }
 
 .apex-construtor__resumo-linha {
@@ -395,6 +410,7 @@
 }
 
 .apex-construtor__resumo-total {
+  flex: none;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -421,10 +437,12 @@
 }
 
 .apex-construtor__cta {
+  flex: none;
   width: 100%;
 }
 
 .apex-construtor__resumo-nota {
+  flex: none;
   font-size: 11.5px;
   color: var(--kora-nevoa);
   text-align: center;
@@ -437,6 +455,7 @@
 
   .apex-construtor__resumo {
     position: static;
+    max-height: none;
     order: -1;
   }
 }
