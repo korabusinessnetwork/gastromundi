@@ -310,6 +310,16 @@
   text-decoration: none;
 }
 
+/* Aviso de que o download vem compactado. Discreto como apoio, mas logo abaixo
+   do botão e sempre junto dele: é a diferença entre o dono instalar a ponte e
+   ficar clicando num .zip sem entender por que nada abre. */
+.perfil-impressora__dica-baixar {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
 .perfil-impressora__lista-impressoras {
   display: flex;
   flex-direction: column;
