@@ -199,3 +199,30 @@
 }
 
 .ponte-config__muted { opacity: 0.75; }
+
+/* Baixar o programa da ponte — a próxima ação de quem chegou aqui sem o
+   arquivo. Gêmeo do botão da tela de impressão (mesmo ícone, mesma cor de
+   destaque): é o mesmo arquivo, e quem viu um reconhece o outro. Ganha a cor
+   de destaque, em vez da forma discreta dos outros botões desta tela, porque
+   é o único caminho para frente enquanto a ponte não está instalada.
+   `inline-flex` para o botão não esticar na largura toda do card, e o alvo de
+   toque do balcão continua o mesmo dos vizinhos. */
+.ponte-config__baixar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap-min, 40px);
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-accent);
+  background: none;
+  color: var(--gm-accent);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ponte-config__baixar:hover {
+  background: color-mix(in srgb, var(--gm-accent) 12%, transparent);
+}
