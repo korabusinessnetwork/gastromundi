@@ -5,22 +5,13 @@ import { buscarConfigImpressao, salvarConfigImpressao, PERFIL_IMPRESSORA_PADRAO 
 import { gerarHtmlComPerfil } from "@/lib/impressao/drivers/browserRaster";
 import { imprimirDocumento, OPCOES_DRIVER } from "@/lib/impressao/drivers";
 import { listarImpressorasPonte } from "@/lib/ponte";
+// Endereço de onde o dono baixa a Ponte KORA — o programa que faz a térmica
+// imprimir. Vem do ambiente e é compartilhado com a aba "Pedidos sem
+// Internet", que pede o mesmo arquivo; vazio quando o build não recebeu
+// endereço válido, e aí o botão nem existe.
+import { ENDERECO_DOWNLOAD_PONTE } from "@/lib/ponteDownload";
 import { LuCircleCheck, LuCircleAlert, LuLoader, LuRefreshCw, LuPrinter, LuDownload } from "react-icons/lu";
 import "./PerfilImpressora.css";
-
-// Onde o dono baixa a Ponte KORA — o programa que faz a térmica imprimir.
-// A tela sempre mandou "dê dois cliques no KoraPonte.exe" sem nunca dizer de
-// onde vem esse arquivo: quem não recebeu o instalador por fora ficava preso
-// aqui. O endereço vem do ambiente porque o arquivo tem 56 MB (não entra no
-// repositório) e cada instalação pode servi-lo de um lugar — nada de URL
-// fixa no código.
-//
-// Só http(s) passa: endereço vazio ou escrito errado no build não pode virar
-// um botão que leva a lugar nenhum (nem a um `javascript:`) — sem endereço
-// válido, o botão simplesmente não existe e a tela segue como era antes.
-const ENDERECO_DOWNLOAD_PONTE = /^https?:\/\//i.test(import.meta.env.VITE_PONTE_DOWNLOAD_URL ?? "")
-  ? import.meta.env.VITE_PONTE_DOWNLOAD_URL
-  : "";
 
 // Documento de exemplo só pra preview/teste — nunca é uma venda real, só
 // usado localmente pra mostrar como o layout fica na largura escolhida
@@ -285,11 +276,24 @@ export default function PerfilImpressora({ sz }) {
                   )}
                 </div>
 
+                {/* O download vem compactado porque o executável sozinho não
+                    cabe no limite de upload do plano gratuito. A instrução mora
+                    aqui, colada no botão, e não só na mensagem de "não está
+                    rodando": quem baixa em qualquer outro estado da tela também
+                    precisa saber que tem de descompactar antes — senão dá dois
+                    cliques no .zip e nada acontece. */}
+                {ENDERECO_DOWNLOAD_PONTE && (
+                  <p className="perfil-impressora__dica-baixar">
+                    Vem compactado: descompacte o arquivo e dê dois cliques no <code>KoraPonte.exe</code> que aparecer.
+                    Ele trabalha em segundo plano, sem abrir janela.
+                  </p>
+                )}
+
                 {statusPonte === "ausente" && (
                   <div className="perfil-impressora__status perfil-impressora__status--atencao">
                     <LuCircleAlert size={13} color={varColor(C.warn)} />{" "}
                     {ENDERECO_DOWNLOAD_PONTE
-                      ? "A Ponte não está rodando neste computador. Baixe o programa no botão acima e dê dois cliques no arquivo — ele trabalha em segundo plano, sem abrir janela — e procure de novo."
+                      ? "A Ponte não está rodando neste computador. Baixe e abra o programa no botão acima e procure de novo."
                       : "A Ponte não está rodando neste computador. Dê dois cliques no KoraPonte.exe — ele trabalha em segundo plano, sem abrir janela — e procure de novo."}
                   </div>
                 )}

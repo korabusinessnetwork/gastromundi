@@ -67,7 +67,7 @@ const CONFIG_TERMICA = {
   perfilImpressora: { ...PERFIL_IMPRESSORA_PADRAO, driver: "escpos-ponte" },
 };
 
-const ENDERECO = "https://exemplo.invalid/KoraPonte.exe";
+const ENDERECO = "https://exemplo.invalid/KoraPonte.zip";
 
 /** Abre a tela como se o build tivesse recebido este endereço de download. */
 const abrirComEndereco = async (endereco) => {
@@ -78,6 +78,7 @@ const abrirComEndereco = async (endereco) => {
 };
 
 const botaoBaixar = () => document.querySelector(".perfil-impressora__btn-baixar");
+const dicaBaixar = () => document.querySelector(".perfil-impressora__dica-baixar");
 
 describe("PerfilImpressora — baixar o programa da impressora", () => {
   beforeEach(() => {
@@ -98,10 +99,27 @@ describe("PerfilImpressora — baixar o programa da impressora", () => {
     expect(botao.textContent).toContain("Baixar o programa da impressora");
   });
 
+  // O programa é publicado compactado (o plano gratuito do Storage recusa o
+  // .exe cru, que tem ~58 MB). Sem essa frase o dono baixa, dá dois cliques no
+  // .zip, não acontece nada, e ele conclui que o programa está quebrado. A
+  // dica fica colada no botão — e não só na mensagem de "a Ponte não está
+  // rodando" — porque o botão aparece em qualquer estado da tela.
+  it("avisa que o arquivo vem compactado, junto do botão", async () => {
+    await abrirComEndereco(ENDERECO);
+
+    const dica = dicaBaixar();
+    expect(dica).not.toBeNull();
+    expect(dica.textContent).toContain("descompacte");
+    expect(dica.textContent).toContain("KoraPonte.exe");
+  });
+
   it("sem endereço configurado, não existe botão nenhum", async () => {
     await abrirComEndereco("");
 
     expect(botaoBaixar()).toBeNull();
+    // Sem download não há zip para descompactar: quem recebeu o arquivo por
+    // fora já tem o .exe na mão, e a dica só confundiria.
+    expect(dicaBaixar()).toBeNull();
     // A tela continua inteira: o bloco da Ponte e a busca de impressoras
     // seguem lá, só sem o botão que não teria para onde levar.
     expect(document.querySelector(".perfil-impressora__btn-detectar")).not.toBeNull();

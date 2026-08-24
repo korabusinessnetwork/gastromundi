@@ -1,5 +1,8 @@
 /**
- * F020 — Layout da comanda (era "Perfil de Impressão"). Leva "Impressão do
+ * F020 — Impressora e papel (era "Layout da comanda", antes disso
+ * "Perfil de Impressão"). O nome "Layout da comanda" passou para a
+ * página irmã (LayoutComanda.jsx), que configura o que sai ESCRITO no
+ * papel; esta aqui configura o equipamento que imprime. Leva "Impressão do
  * zero, sem QZ Tray": impressora agora é escolhida via Ponte KORA (Windows
  * ou rede), não mais QZ Tray. Decisão 018 (CSS separado do JSX, zero
  * style={{}} inline) + tokens --gm-* / --fs-* / --lh-* (ADR-007) — cor só por
@@ -305,6 +308,16 @@
   font-size: 13px;
   font-family: inherit;
   text-decoration: none;
+}
+
+/* Aviso de que o download vem compactado. Discreto como apoio, mas logo abaixo
+   do botão e sempre junto dele: é a diferença entre o dono instalar a ponte e
+   ficar clicando num .zip sem entender por que nada abre. */
+.perfil-impressora__dica-baixar {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--gm-muted);
 }
 
 .perfil-impressora__lista-impressoras {
