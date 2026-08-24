@@ -43,7 +43,7 @@ const ROLES = [
   { id: "admin",   label: "Administrador", color: varColor(C.accent) },
   { id: "gerente", label: "Gerente",       color: varColor(C.blue)   },
   { id: "caixa",   label: "Caixa",         color: varColor(C.green)  },
-  { id: "garcom",  label: "Garçom",        color: "#f59e0b"},
+  { id: "garcom",  label: "Garçom",        color: varColor(C.warn)   },
 ];
 
 const ROLE_MAP = Object.fromEntries(ROLES.map(r => [r.id, r]));
@@ -997,7 +997,7 @@ function MeiosPagamentoTab({ sz }) {
 const TIPOS_UNIDADE = [
   { tipo: "estoque", label: "Unidade de estoque", color: varColor(C.blue)   },
   { tipo: "compra",  label: "Unidade de compra",  color: varColor(C.green)  },
-  { tipo: "consumo", label: "Unidade de consumo", color: "#f59e0b" },
+  { tipo: "consumo", label: "Unidade de consumo", color: varColor(C.warn)   },
 ];
 
 const EMPTY_ADD = { abbr: "", nome: "" };

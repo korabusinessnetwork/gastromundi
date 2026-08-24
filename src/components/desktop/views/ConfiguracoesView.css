@@ -1,9 +1,9 @@
 /**
  * F018 — leva 3, sub-lote 3C. Decisão 018 (CSS separado do JSX) +
  * tokens --gm-* (ADR-007). Cores sólidas viram var(--gm-*); blends com
- * transparência usam alfa() (src/constants/colorAlfa.js). O laranja de
- * "garçom"/"consumo" (#f59e0b) é cor semântica fixa, não de marca —
- * segue literal, como AMBER em ComandaGrid.jsx.
+ * transparência usam alfa() (src/constants/colorAlfa.js). O âmbar de
+ * "garçom"/"consumo" passou a usar o token --gm-warn no TD018: é a mesma
+ * cor de alerta do resto do sistema, então acompanha o tema do tenant.
  */
 
 /* ── View principal ── */

@@ -13,12 +13,12 @@ import "./CozinhaView.css";
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
-// AMBER ("em preparo") é uma cor semântica de status, não de marca —
-// segue fixa, como AMBER em ComandaGrid.jsx (não faz parte do tema do tenant).
-const AMBER = "#f59e0b";
+// As três cores de status saem do tema do tenant (TD018, decisão 017):
+// "em preparo" usa o mesmo token de alerta do resto do sistema, então quem
+// trocar a cor de alerta do estabelecimento troca também esta coluna.
 const COLUNAS = [
   { status: "aguardando", titulo: "Aguardando", cor: "var(--gm-blue)" },
-  { status: "em_preparo", titulo: "Em Preparo", cor: AMBER },
+  { status: "em_preparo", titulo: "Em Preparo", cor: "var(--gm-warn)" },
   { status: "pronto",     titulo: "Pronto",      cor: "var(--gm-green)" },
 ];
 

@@ -1930,6 +1930,10 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   vendasHoje.forEach(v => { Object.entries(totalPorMetodo(v)).forEach(([m, val]) => { porMetodo[m] = (porMetodo[m] ?? 0) + val; }); });
 
   const customLabels = Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label]));
+  // Paleta categórica de método de pagamento: cada método tem sua cor, e
+  // nenhuma delas é semântica. O âmbar do Pix fica literal de propósito
+  // (TD018) — vira `--gm-warn` e o chip do Pix passaria a seguir a cor de
+  // alerta do estabelecimento, destoando dos outros três.
   const METODOS_COLOR = { dinheiro: "#10b981", credito: "#3b82f6", debito: "#8b5cf6", pix: "#f59e0b" };
 
   const verificarSenha = async () => {

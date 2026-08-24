@@ -9,8 +9,10 @@
  * em vez de hex. Então:
  * - Se `cor` começa com "--gm-", é um token name → usa `var(cor)` direto
  *   e segue o tema do tenant (decisão 017).
- * - Senão, é uma cor semântica fixa (ex. "#f59e0b" para AMBER de alerta)
- *   que não é customizável por tenant → usa a cor literal.
+ * - Senão, é uma cor literal (hex) que não tem token → usa como veio.
+ *   Depois do TD018 isso cobre só paletas categóricas, onde cada cor
+ *   serve para distinguir um item do outro e nenhuma é de tema: método
+ *   de pagamento, tipo de imposto, escala de força de senha.
  *
  * @param {string} cor - token name (ex. "--gm-accent" via C.xxx) ou hex literal
  * @param {string} hexAlfa - sufixo de alfa em hex, 2 dígitos (ex. "44")

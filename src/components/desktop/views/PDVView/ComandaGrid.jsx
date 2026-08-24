@@ -10,7 +10,6 @@ import "./ComandaGrid.css";
 
 const TOTAL = 1000;
 const PAGE  = 50;
-const AMBER = "#f59e0b";
 
 function fmtComanda(name) {
   return /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -18,19 +17,19 @@ function fmtComanda(name) {
 
 // Nota (F018, leva 1 fechamento): os blends com transparência abaixo
 // usam `alfa(cor, "HH")` (src/constants/colorAlfa.js) — color-mix()
-// sobre `var(--gm-*)` quando `cor` é um token de marca (segue o tema
-// do tenant, decisão 017), preservando a opacidade do antigo sufixo
-// hex (ADR-007). `AMBER` e o vermelho literal de tempo esgotado em
-// `getElapsed` são cores semânticas fixas (alerta de tempo), não de
-// marca — `alfa()` cai para a cor literal nesses casos, o que é
-// esperado (não fazem parte do tema do tenant).
+// sobre `var(--gm-*)`, seguindo o tema do tenant (decisão 017) e
+// preservando a opacidade do antigo sufixo hex (ADR-007). O âmbar de
+// comanda visitada / em uso vem de `C.warn` (TD018): é o mesmo token
+// que o restante do sistema usa para alerta, então um estabelecimento
+// que troque a cor de alerta troca aqui também. O vermelho literal de
+// tempo esgotado em `getElapsed` ainda é hex fixo.
 function getElapsed(dateStr) {
   if (!dateStr) return { label: "", color: varColor(C.muted), warn: false };
   const diff = Date.now() - new Date(dateStr).getTime();
   const m    = Math.floor(diff / 60000);
   if (m < 1)  return { label: "agora",             color: varColor(C.green), warn: false };
   if (m < 30) return { label: `${m}min`,            color: varColor(C.muted), warn: false };
-  if (m < 60) return { label: `${m}min`,            color: AMBER,   warn: true  };
+  if (m < 60) return { label: `${m}min`,            color: varColor(C.warn),   warn: true  };
   const h = Math.floor(m / 60);
   const r = m % 60;
   return { label: `${h}h${r > 0 ? `${r}min` : ""}`, color: "#ef4444", warn: true };
@@ -110,8 +109,8 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
               const elapsed    = getElapsed(order.created_at);
               const emUso      = emUsoPor(order);
 
-              const borderColor = isSelected ? varColor(C.accent) : isVisitada ? AMBER : hasItems ? alfa(C.blue, "55") : varColor(C.border);
-              const bgColor     = isSelected ? alfa(C.accent, "0d") : isVisitada ? alfa(AMBER, "10") : varColor(C.card);
+              const borderColor = isSelected ? varColor(C.accent) : isVisitada ? varColor(C.warn) : hasItems ? alfa(C.blue, "55") : varColor(C.border);
+              const bgColor     = isSelected ? alfa(C.accent, "0d") : isVisitada ? alfa(C.warn, "10") : varColor(C.card);
 
               return (
                 <button
@@ -122,15 +121,15 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
                     border: `1.5px solid ${borderColor}`,
                     background: bgColor,
                     color: varColor(C.text),
-                    boxShadow: isSelected ? `0 4px 20px ${alfa(C.accent, "22")}` : isVisitada ? `0 2px 12px ${alfa(AMBER, "18")}` : "none",
+                    boxShadow: isSelected ? `0 4px 20px ${alfa(C.accent, "22")}` : isVisitada ? `0 2px 12px ${alfa(C.warn, "18")}` : "none",
                   }}
                   onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 16px rgba(0,0,0,0.15)`; e.currentTarget.style.borderColor = isSelected ? varColor(C.accent) : alfa(C.accent, "66"); }}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow = isSelected ? `0 4px 20px ${alfa(C.accent, "22")}` : isVisitada ? `0 2px 12px ${alfa(AMBER, "18")}` : "none"; e.currentTarget.style.borderColor = borderColor; }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = isSelected ? `0 4px 20px ${alfa(C.accent, "22")}` : isVisitada ? `0 2px 12px ${alfa(C.warn, "18")}` : "none"; e.currentTarget.style.borderColor = borderColor; }}
                 >
                   {/* Badge número */}
                   <div className="comanda-grid__badge" style={{
-                    background: isSelected ? varColor(C.accent) : isVisitada ? AMBER : hasItems ? alfa(C.blue, "18") : varColor(C.surface),
-                    border: `1.5px solid ${isSelected ? varColor(C.accent) : isVisitada ? AMBER : hasItems ? alfa(C.blue, "44") : varColor(C.border)}`,
+                    background: isSelected ? varColor(C.accent) : isVisitada ? varColor(C.warn) : hasItems ? alfa(C.blue, "18") : varColor(C.surface),
+                    border: `1.5px solid ${isSelected ? varColor(C.accent) : isVisitada ? varColor(C.warn) : hasItems ? alfa(C.blue, "44") : varColor(C.border)}`,
                     color: isSelected ? "#fff" : isVisitada ? "#fff" : hasItems ? varColor(C.blue) : varColor(C.muted),
                   }}>
                     {/^\d+$/.test(String(order.comanda ?? "").trim()) ? order.comanda : "C"}
@@ -142,7 +141,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
                     </div>
                     <div className="comanda-grid__item-meta" style={{ color: varColor(C.muted), display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
                       {emUso && (
-                        <span className="comanda-grid__item-emuso" style={{ fontWeight: 700, color: AMBER, display: "flex", alignItems: "center", gap: 3 }}>
+                        <span className="comanda-grid__item-emuso" style={{ fontWeight: 700, color: varColor(C.warn), display: "flex", alignItems: "center", gap: 3 }}>
                           <LuLock size={10} /> Em uso · {emUso}
                         </span>
                       )}
@@ -282,14 +281,14 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, onClick
   const elapsed  = getElapsed(order.created_at);
 
   const borderColor = isSelected ? varColor(C.accent)
-                    : isVisitada ? AMBER
+                    : isVisitada ? varColor(C.warn)
                     : hasItems   ? alfa(C.blue, "55")
                     : varColor(C.border);
   const bgColor     = isSelected ? alfa(C.accent, "0d")
-                    : isVisitada ? alfa(AMBER, "10")
+                    : isVisitada ? alfa(C.warn, "10")
                     : varColor(C.card);
   const shadow      = isSelected ? `0 4px 24px ${alfa(C.accent, "28")}`
-                    : isVisitada ? `0 2px 12px ${alfa(AMBER, "20")}`
+                    : isVisitada ? `0 2px 12px ${alfa(C.warn, "20")}`
                     : hovered    ? "0 4px 16px rgba(0,0,0,0.14)"
                     : "none";
 
@@ -332,7 +331,7 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, onClick
       {/* Em uso por outra pessoa (trava de edição) */}
       {emUso && (
         <div className="comanda-card__emuso" style={{
-          fontWeight: 700, color: AMBER,
+          fontWeight: 700, color: varColor(C.warn),
           display: "flex", alignItems: "center", gap: 4,
         }}>
           <LuLock size={10} /> Em uso · {emUso}

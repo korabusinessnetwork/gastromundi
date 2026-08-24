@@ -35,7 +35,7 @@ const fmtDt = (d) => d ? new Date(d).toLocaleDateString("pt-BR", { day: "2-digit
 
 
 const STATUS_COMPRA = {
-  pendente:  { label: "Pendente",  color: "#f59e0b" },
+  pendente:  { label: "Pendente",  color: varColor(C.warn)    },
   pago:      { label: "Pago",      color: varColor(C.green)   },
   cancelado: { label: "Cancelado", color: varColor(C.muted)   },
 };
@@ -326,7 +326,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                       const qtdNecEst  = produto ? consumoParaEstoque(qtdNec, produto) : qtdNec;
                       const qtdEstq    = produto ? (estoque[produto.id] ?? 0) : null;
                       const suficiente = qtdEstq === null ? null : qtdEstq >= qtdNecEst;
-                      const corEstq    = qtdEstq === null ? varColor(C.muted) : qtdEstq === 0 ? varColor(C.red) : suficiente ? varColor(C.green) : "#f59e0b";
+                      const corEstq    = qtdEstq === null ? varColor(C.muted) : qtdEstq === 0 ? varColor(C.red) : suficiente ? varColor(C.green) : varColor(C.warn);
                       const ueLabel    = produto ? labelEstoque(produto) : "";
                       const ucLabel    = produto ? labelConsumo(produto) : (ing.unidade || "");
                       const temConv    = produto ? temConversaoConsumo(produto) : false;
@@ -968,6 +968,10 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
 
 const TIPOS_IMPOSTO = ["ISS", "ICMS", "PIS", "COFINS", "Simples Nacional", "Outro"];
 
+// Paleta categórica de tipo de imposto — as seis cores só servem para
+// distinguir um tipo do outro. O âmbar do COFINS fica literal (TD018):
+// virar `--gm-warn` faria só esse chip seguir a cor de alerta do tema,
+// quebrando a paleta.
 const COR_TIPO = {
   "ISS":              "#3b82f6",
   "ICMS":             "#8b5cf6",

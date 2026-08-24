@@ -35,7 +35,7 @@ const COLUNAS = [
 function estoqueColor(qty, minimo, controlado = true) {
   if (!controlado)    return varColor(C.muted);
   if (qty === 0)      return varColor(C.red);
-  if (qty <= minimo)  return "#f59e0b";
+  if (qty <= minimo)  return varColor(C.warn);
   return varColor(C.green);
 }
 
@@ -318,7 +318,7 @@ export default function EstoqueView() {
         {[
           { label: "Total em estoque", value: totalSaldo,   color: varColor(C.green),   Icon: LuPackage       },
           { label: "Sem estoque",       value: semEstoque,   color: varColor(C.red),     Icon: LuTriangleAlert },
-          { label: "Estoque baixo",     value: estoqueBaixo, color: "#f59e0b", Icon: LuCircleAlert   },
+          { label: "Estoque baixo",     value: estoqueBaixo, color: varColor(C.warn),    Icon: LuCircleAlert   },
         ].map(k => (
           <div key={k.label} className="estoque-view__kpi" style={{ padding: `${sz.padSm + 2}px ${sz.pad - 4}px` }}>
             <k.Icon size={sz.fontXl - 4} color={k.color} />
