@@ -1,5 +1,8 @@
 /**
- * F020 — Layout da comanda (era "Perfil de Impressão"). Leva "Impressão do
+ * F020 — Impressora e papel (era "Layout da comanda", antes disso
+ * "Perfil de Impressão"). O nome "Layout da comanda" passou para a
+ * página irmã (LayoutComanda.jsx), que configura o que sai ESCRITO no
+ * papel; esta aqui configura o equipamento que imprime. Leva "Impressão do
  * zero, sem QZ Tray": impressora agora é escolhida via Ponte KORA (Windows
  * ou rede), não mais QZ Tray. Decisão 018 (CSS separado do JSX, zero
  * style={{}} inline) + tokens --gm-* / --fs-* / --lh-* (ADR-007) — cor só por
