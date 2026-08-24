@@ -70,6 +70,37 @@ de console. O script confere a assinatura do arquivo antes de escrever, é
 idempotente (rodar de novo não faz nada) e falha alto se o arquivo não for um
 `.exe` 64-bit — a lógica pura fica em `lib/pe.js`, com testes.
 
+### Como publicar (é daqui que sai o botão de download no app)
+
+O app tem um botão **Baixar o programa** em dois lugares: Configurações →
+Impressão → "Impressora e papel" (quando o dono escolhe a impressora térmica)
+e a aba "Pedidos sem Internet". Os dois apontam para o mesmo endereço, que vem
+da variável `VITE_PONTE_DOWNLOAD_URL` — vazia, os botões nem aparecem e as
+telas seguem pedindo o arquivo por fora.
+
+O arquivo mora num bucket público do Supabase, `ponte-download`, criado pela
+migration `supabase/migrations/20260925_ponte_download_bucket.sql` (rodar uma
+vez, no SQL Editor). Para publicar uma versão nova:
+
+1. `npm run build:exe` (acima) — sai em `ponte/dist/KoraPonte.exe`.
+2. No painel do Supabase: **Storage → `ponte-download` → Upload**, com o nome
+   **exatamente** `KoraPonte.exe`, sobrescrevendo o que estiver lá. É o nome
+   que mantém o endereço fixo — não coloque a versão no nome do arquivo.
+3. Só na primeira vez: copie o endereço público
+   `{VITE_SUPABASE_URL}/storage/v1/object/public/ponte-download/KoraPonte.exe`
+   para `VITE_PONTE_DOWNLOAD_URL` na Vercel e refaça o deploy.
+
+Escrever no bucket é só pelo painel: o app não tem permissão nenhuma de
+escrita ali (nem uma policy), senão um estabelecimento poderia trocar o
+executável que todos os outros baixam.
+
+> **O plano gratuito não aceita 58 MB.** O teto de upload do projeto no plano
+> Free é de 50 MB (Storage → Settings) e o `.exe` passa disso, então o upload
+> do passo 2 é recusado hoje. As saídas — publicar compactado, usar um asset
+> de Release do GitHub (gratuito, cabe, e como o repositório é público o link
+> baixa direto; a variável aponta para lá sem mudar uma linha de código) ou
+> subir de plano — estão na própria migration; a escolha é do dono.
+
 ## Como usar no dia a dia
 
 - **A ponte é invisível.** Ela roda em segundo plano; não tem janela preta,
