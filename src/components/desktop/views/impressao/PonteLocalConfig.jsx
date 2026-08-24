@@ -13,6 +13,10 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { useApp } from "@/context/AppContext";
 import { pingPonte, buscarInfoPonte, montarEnderecoPalm } from "@/lib/ponte";
+// Endereço de onde o dono baixa a Ponte — o mesmo arquivo que a tela de
+// impressão oferece. Vazio quando o build não recebeu endereço válido.
+import { ENDERECO_DOWNLOAD_PONTE } from "@/lib/ponteDownload";
+import { LuDownload } from "react-icons/lu";
 import "./PonteLocalConfig.css";
 
 const INTERVALO_MS = 5000;
@@ -259,9 +263,28 @@ export default function PonteLocalConfig({ sz }) {
               A ponte é um programinha <strong>gratuito</strong> que roda neste computador e faz o pedido do
               celular chegar no caixa e na impressora <strong>mesmo sem internet</strong>.
             </p>
+            {/* O que falta aqui é o arquivo — então baixá-lo é a próxima ação,
+                e vem antes do passo a passo para ser a coisa mais visível do
+                card. Sem endereço configurado no build o botão não existe e o
+                passo 1 volta a pedir o arquivo por fora: botão que não leva a
+                lugar nenhum é pior que instrução sem botão. */}
+            {ENDERECO_DOWNLOAD_PONTE && (
+              <a
+                href={ENDERECO_DOWNLOAD_PONTE}
+                download
+                rel="noreferrer"
+                className="ponte-config__baixar"
+              >
+                <LuDownload size={16} /> Baixar o programa da ponte
+              </a>
+            )}
             <p><strong>Para ligar:</strong></p>
             <ol className="ponte-config__passos">
-              <li>Copie o arquivo <code>KoraPonte.exe</code> para este computador e dê dois cliques nele.</li>
+              <li>
+                {ENDERECO_DOWNLOAD_PONTE
+                  ? <>Dê dois cliques no arquivo <code>KoraPonte.exe</code> que você acabou de baixar.</>
+                  : <>Copie o arquivo <code>KoraPonte.exe</code> para este computador e dê dois cliques nele.</>}
+              </li>
               <li>No painel que abrir, clique em <strong>Instalar neste computador</strong> — ela passa a abrir sozinha junto com o Windows.</li>
               <li>Volte aqui e ligue a chave <strong>Receber pedidos do celular do garçom neste computador</strong>.</li>
             </ol>

@@ -4,7 +4,7 @@
 // lugar onde o dono liga a Ponte sozinho. Se ela mentir o estado (aparecer
 // desligada enquanto o ajuste ainda carrega, ou continuar ligada depois de a
 // gravação falhar), o dono conclui que o recurso não funciona e desiste.
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act, fireEvent } from "@testing-library/react";
 
 const { mockUseApp, mockPingPonte } = vi.hoisted(() => ({
@@ -192,5 +192,60 @@ describe("PonteLocalConfig — chave de liga/desliga do estabelecimento", () => 
 
     expect(screen.getByText(/a chave acima está desligada/i)).toBeTruthy();
     expect(screen.queryByAltText(/QR code/i)).toBeNull();
+  });
+});
+
+// O outro buraco do mesmo tamanho: a tela manda "copie o arquivo
+// KoraPonte.exe para este computador" sem nunca dizer de onde vem o arquivo.
+// Quem não recebeu o instalador por fora não tem o que fazer com o passo 1.
+// O botão fecha isso — mas só pode existir com endereço de verdade no build:
+// botão que não leva a lugar nenhum é pior que instrução sem botão.
+const ENDERECO = "https://exemplo.invalid/KoraPonte.exe";
+
+/** Abre a tela sem a ponte instalada, como se o build tivesse este endereço. */
+const abrirComEndereco = async (endereco) => {
+  vi.resetModules();
+  vi.stubEnv("VITE_PONTE_DOWNLOAD_URL", endereco);
+  mockUseApp.mockReturnValue({
+    ponteLocalAtiva: true, setPonteLocalAtiva, loading: false,
+    recarregarDadosDoEstabelecimento,
+  });
+  const { default: Tela } = await import("./PonteLocalConfig");
+  await act(async () => { render(<Tela />); });
+};
+
+const botaoBaixar = () => document.querySelector(".ponte-config__baixar");
+const passo1 = () => document.querySelector(".ponte-config__passos li").textContent;
+
+describe("PonteLocalConfig — baixar o programa da ponte", () => {
+  afterEach(() => { vi.unstubAllEnvs(); });
+
+  it("mostra o botão apontando para o endereço configurado", async () => {
+    await abrirComEndereco(ENDERECO);
+
+    const botao = botaoBaixar();
+    expect(botao).not.toBeNull();
+    expect(botao.getAttribute("href")).toBe(ENDERECO);
+    expect(botao.textContent).toContain("Baixar o programa da ponte");
+  });
+
+  it("com o botão, o passo 1 fala do arquivo baixado em vez de pedir cópia por fora", async () => {
+    await abrirComEndereco(ENDERECO);
+
+    expect(passo1()).toContain("acabou de baixar");
+  });
+
+  it("sem endereço configurado, não existe botão e o passo a passo segue como era", async () => {
+    await abrirComEndereco("");
+
+    expect(botaoBaixar()).toBeNull();
+    expect(passo1()).toContain("Copie o arquivo");
+  });
+
+  it("endereço escrito errado no build vale o mesmo que endereço nenhum", async () => {
+    await abrirComEndereco("peça-o-ao-suporte");
+
+    expect(botaoBaixar()).toBeNull();
+    expect(passo1()).toContain("Copie o arquivo");
   });
 });
