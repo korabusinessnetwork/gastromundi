@@ -38,6 +38,10 @@
   --kora-font-titulo: "Sora", system-ui, sans-serif;
   --kora-font-texto: "Space Grotesk", system-ui, sans-serif;
 
+  /* Altura da nav (sticky em top: 0). Quem gruda na rolagem depois dela
+     precisa descontar isso, senão o topo do elemento some por baixo. */
+  --kora-nav-altura: 84px;
+
   /* O CSS global do produto trava o scroll do body (o PDV rola por
      dentro dos painéis), então o site rola AQUI: .apex é o contêiner
      de rolagem — com scrollbar visível e âncoras suaves, ao contrário
@@ -122,3 +126,8 @@
 /* CTA branco (banner escuro) */
 .apex-botao--branco { background: #fff; color: var(--kora-tinta); }
 .apex-botao--branco:hover { background: var(--kora-linha); }
+
+/* A nav encolhe em tablet (padding e CTA menores) — o token acompanha. */
+@media (max-width: 1023px) {
+  .apex { --kora-nav-altura: 78px; }
+}

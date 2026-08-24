@@ -195,7 +195,7 @@ export default function ApexAgendamento({ aberto, onFechar, plano }) {
             </h3>
             <p className="apex-agendamento__subtitulo">
               Bem-vindo ao KORA, {nome.trim().split(" ")[0]}. A partir de agora é o
-              seu negócio no comando — a gente cuida da tecnologia, você cuida de
+              seu negócio no comando, a gente cuida da tecnologia, você cuida de
               vender. Nossa equipe já vai te chamar no WhatsApp para deixar tudo
               com a sua cara.
             </p>
