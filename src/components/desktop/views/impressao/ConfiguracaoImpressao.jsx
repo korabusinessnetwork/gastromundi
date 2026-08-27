@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PerfilImpressora from "./PerfilImpressora";
+import LayoutComanda from "./LayoutComanda";
 import PontosImpressao from "./PontosImpressao";
 import PonteLocalConfig from "./PonteLocalConfig";
 import "./ConfiguracaoImpressao.css";
@@ -18,8 +19,20 @@ import "./ConfiguracaoImpressao.css";
 // dono sem impressão. O rótulo da aba já diz o que ela resolve ("onde
 // cada item imprime"), não como ela resolve ("roteamento") — é o mesmo
 // motivo do Princípio nº1: a tela fala a língua do restaurante.
+//
+// Leva "Layout da comanda" (2026-08-27): a aba `comanda` nunca foi layout —
+// é largura do papel, corte e tamanho da letra, ou seja, característica do
+// EQUIPAMENTO. Passa a se chamar "Papel e impressora", que é o que ela faz,
+// e o nome "Layout da comanda" vai para a aba nova, que decide o CONTEÚDO do
+// papel (logo, endereço/CNPJ e mensagem do rodapé). Duas abas chamadas
+// "layout" seria exatamente o tipo de rótulo que obriga a abrir as duas pra
+// descobrir qual é qual — o oposto do Princípio nº1.
+//
+// A aba padrão continua sendo `comanda`: quem já usa o sistema abre a tela e
+// cai onde sempre caiu, mesmo com o rótulo novo.
 const ABAS = [
-  { id: "comanda", label: "Layout da comanda" },
+  { id: "comanda", label: "Papel e impressora" },
+  { id: "layout",  label: "Layout da comanda" },
   { id: "pontos",  label: "Onde cada item imprime" },
   { id: "ponte",   label: "Pedidos sem Internet" },
 ];
@@ -42,6 +55,7 @@ export default function ConfiguracaoImpressao({ sz }) {
       </div>
 
       {aba === "comanda" && <PerfilImpressora sz={sz} />}
+      {aba === "layout"  && <LayoutComanda />}
       {aba === "pontos"  && <PontosImpressao sz={sz} />}
       {aba === "ponte"   && <PonteLocalConfig sz={sz} />}
     </div>

@@ -1,0 +1,274 @@
+/**
+ * Aba "Layout da comanda" (Configurações → Impressão) — o conteúdo do papel
+ * que o cliente leva. Decisão 018 (CSS separado do JSX, zero estilo inline)
+ * + tokens --gm-, --fs- e --lh- (ADR-007): cor só por variável, para a tela
+ * seguir o tema de cada estabelecimento (decisão 017).
+ *
+ * A gramática visual é a mesma da aba "Papel e impressora"
+ * (PerfilImpressora.css) de propósito: as duas ficam lado a lado no mesmo
+ * grupo de abas, e alternar entre elas não pode parecer trocar de sistema
+ * (Princípio nº1 — consistência total com o design system).
+ */
+
+.layout-comanda {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.layout-comanda__intro {
+  margin: 0 0 20px;
+  max-width: 720px;
+  color: var(--gm-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.layout-comanda__colunas {
+  display: flex;
+  gap: 32px;
+  max-width: 920px;
+}
+
+.layout-comanda__form {
+  flex: 1;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.layout-comanda__secao {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.layout-comanda__titulo-secao {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gm-border);
+  font-size: var(--fs-lg, 17px);
+  font-weight: 800;
+  color: var(--gm-text);
+}
+
+.layout-comanda__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layout-comanda__label {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--gm-muted);
+  margin-bottom: 4px;
+}
+
+.layout-comanda__label--inline {
+  margin-bottom: 0;
+}
+
+.layout-comanda__ajuda {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
+.layout-comanda__input {
+  min-height: var(--tap-min);
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.layout-comanda__input:focus {
+  border-color: var(--gm-accent);
+}
+
+/* CNPJ digitado errado sai errado no papel de todo cliente: a borda
+   vermelha aparece já na digitação, antes de o dono tentar salvar. */
+.layout-comanda__input[aria-invalid="true"] {
+  border-color: var(--gm-red);
+}
+
+.layout-comanda__linha-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.layout-comanda__toggle {
+  width: 48px;
+  height: 26px;
+  border-radius: 13px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  background: var(--gm-faint);
+  transition: background 0.2s;
+}
+
+.layout-comanda__toggle--on {
+  background: var(--gm-green);
+}
+
+.layout-comanda__toggle-bolinha {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  display: block;
+  transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.layout-comanda__toggle--on .layout-comanda__toggle-bolinha {
+  left: 25px;
+}
+
+/* ── Ações e status ──────────────────────────────────────────────────── */
+
+.layout-comanda__acoes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.layout-comanda__btn-salvar {
+  min-height: var(--tap-min);
+  padding: 11px 24px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.layout-comanda__btn-salvar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.layout-comanda__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.layout-comanda__status--sucesso { color: var(--gm-green); }
+.layout-comanda__status--erro { color: var(--gm-red); }
+
+/* ── Prévia ao vivo ──────────────────────────────────────────────────── */
+
+.layout-comanda__preview-coluna {
+  flex-shrink: 0;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layout-comanda__preview-moldura {
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  max-height: 560px;
+}
+
+.layout-comanda__preview-iframe {
+  width: 320px;
+  height: 520px;
+  border: none;
+  background: #fff;
+}
+
+/* ── Carregando e falha de leitura ───────────────────────────────────── */
+
+.layout-comanda__carregando {
+  padding: 40px;
+  text-align: center;
+  color: var(--gm-muted);
+}
+
+/* Falha ao LER a configuração: a tela não abre com os valores de fábrica,
+   porque salvar por cima apagaria o rodapé/CNPJ reais que só não foram lidos. */
+.layout-comanda__erro-carga {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 720px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  border-left: 3px solid var(--gm-red);
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.layout-comanda__erro-carga p {
+  margin: 6px 0 0;
+  color: var(--gm-muted);
+}
+
+.layout-comanda__botao-recarregar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+  min-height: var(--tap-min, 40px);
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.layout-comanda__botao-recarregar:hover {
+  background: color-mix(in srgb, var(--gm-text) 6%, var(--gm-surface));
+}
+
+/* Celular: o form e a coluna da prévia (340px) não cabem lado a lado,
+   então empilham e a prévia passa a ocupar a largura toda. */
+@media (max-width: 767px) {
+  .layout-comanda__colunas {
+    flex-direction: column;
+  }
+  .layout-comanda__form {
+    min-width: 0;
+  }
+  .layout-comanda__preview-coluna {
+    width: 100%;
+  }
+  .layout-comanda__preview-iframe {
+    width: 100%;
+  }
+}
