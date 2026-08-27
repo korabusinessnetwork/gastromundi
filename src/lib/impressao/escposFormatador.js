@@ -1,5 +1,5 @@
 import { quebrarLinha } from "./largura";
-import { resolverBlocosComanda, fmtComanda, fmtR } from "./layoutComanda";
+import { resolverBlocosComanda, fmtComanda, fmtR, largurasEmCaracteres } from "./layoutComanda";
 
 /**
  * F020 — formata os dados já montados por `src/lib/impressao.js`
@@ -47,6 +47,9 @@ function linhasAlinhadas(textos, colunas, alinhamento) {
   return saida;
 }
 
+// Formato empilhado — o de sempre: nome numa linha, valor à direita na
+// seguinte. É a saída quando não há papel suficiente para as colunas
+// caberem sem picotar valor (ver `largurasEmCaracteres`).
 function linhasDoItem(item, colunas) {
   const linhas = [];
   linhas.push(...quebrarLinha(`${item.qty}x ${item.nome}`, colunas));
@@ -54,6 +57,34 @@ function linhasDoItem(item, colunas) {
   for (const obs of item.obs ?? []) {
     linhas.push(...quebrarLinha(`  📝 ${obs}`, colunas));
   }
+  return linhas;
+}
+
+// Preenche até a largura da coluna. Nunca corta: quem chama já garantiu
+// que o conteúdo cabe (cortar "R$ 32.50" imprimiria um valor errado).
+function celula(texto, largura, alinhamento = "esquerda") {
+  const t = String(texto ?? "");
+  const sobra = Math.max(0, largura - t.length);
+  if (alinhamento === "direita") return " ".repeat(sobra) + t;
+  return t + " ".repeat(sobra);
+}
+
+// Item em COLUNAS, na mesma proporção que o dono arrastou no editor: o
+// nome ocupa a sua coluna (quebrando em mais linhas quando preciso) e os
+// números ficam alinhados um embaixo do outro, como no papel do
+// navegador. `larg` vem em caracteres, já conferido contra o conteúdo.
+function linhasDoItemEmColunas(item, larg, mostrarUnitario) {
+  const partes = quebrarLinha(item.nome, larg.nome);
+  const numeros =
+    celula(`${item.qty}x`, larg.qtd, "direita") +
+    (mostrarUnitario ? celula(item.unitario, larg.unitario, "direita") : "") +
+    celula(item.total, larg.total, "direita");
+
+  const linhas = [celula(partes[0] ?? "", larg.nome) + numeros];
+  // Resto do nome desce sozinho: repetir o número em cada linha faria o
+  // papel parecer ter mais itens do que tem.
+  for (const parte of partes.slice(1)) linhas.push(celula(parte, larg.nome));
+  for (const obs of item.obs ?? []) linhas.push(...quebrarLinha(`  📝 ${obs}`, larg.nome + larg.qtd));
   return linhas;
 }
 
@@ -88,9 +119,16 @@ export function formatarComprovanteEscpos(dados, colunas) {
       case "valor":
         linhas.push(linhaValor(bloco.rotulo, bloco.valor, colunas));
         break;
-      case "itens":
-        for (const item of bloco.itens) linhas.push(...linhasDoItem(item, colunas));
+      case "itens": {
+        // Mesma proporção do papel do navegador, convertida em
+        // caracteres. Vem `null` quando não cabe sem picotar valor — aí
+        // o item volta ao formato empilhado, que é feio mas está certo.
+        const larg = largurasEmCaracteres(bloco.itens, colunas, bloco.larguras, bloco.unitario);
+        for (const item of bloco.itens) {
+          linhas.push(...(larg ? linhasDoItemEmColunas(item, larg, bloco.unitario) : linhasDoItem(item, colunas)));
+        }
         break;
+      }
       case "separador":
         linhas.push(linhaSeparadora(colunas));
         break;

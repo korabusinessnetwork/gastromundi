@@ -64,12 +64,12 @@ hr { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
 .espaco--3 { height: 24px; }
 
 /* --- Itens ---------------------------------------------------------
-   `table-layout: fixed` + larguras em porcentagem porque o papel de
-   58mm não tem folga: com a largura automática do navegador, as colunas
-   de número exigiam o tamanho do conteúdo, a tabela ficava mais larga
-   que o papel e a coluna "Total" saía 22px FORA da margem — o valor do
-   item, justamente, era o que não imprimia. Em porcentagem a soma é
-   sempre 100% do papel, seja ele 58mm ou 80mm.
+   `table-layout: fixed` porque o papel de 58mm não tem folga: com a
+   largura automática do navegador, as colunas de número exigiam o
+   tamanho do conteúdo, a tabela ficava mais larga que o papel e a coluna
+   "Total" saía 22px FORA da margem — o valor do item, justamente, era o
+   que não imprimia. Com largura fixa a soma é sempre 100% do papel, seja
+   ele 58mm ou 80mm.
 
    `overflow-wrap: anywhere` fecha o mesmo buraco pelo outro lado: nome
    de produto comprido (ou uma palavra só, sem espaço) quebra dentro da
@@ -82,18 +82,15 @@ th:nth-child(2) { text-align: center; }
 th:nth-child(3), th:nth-child(4) { text-align: right; }
 td { padding: 6px 4px; border-bottom: 1px dashed #ccc; }
 
-/* Com preço unitário são 4 colunas; sem ele, 3. A 2ª é sempre Qtd e a
-   última é sempre Total — daí os seletores, que servem aos dois casos
-   sem o template precisar avisar qual está montando. */
-.itens th:nth-child(2) { width: 10%; }
-.itens th:nth-child(3):not(:last-child) { width: 25%; }
-.itens th:last-child { width: 28%; }
-/* Sem preço unitário são 3 colunas e sobra espaço: 37% é o que faz
-   "R$ 32.50" (62px em Courier 13px) caber numa linha até no papel de
-   58mm. Com as 4 colunas, em 58mm, não existe largura que sirva — ali o
-   valor quebra em duas linhas, mas nada sai fora do papel, e quem quiser
-   o papel limpo desliga "Preço de cada unidade" no próprio editor. */
-.itens th:nth-child(3):last-child { width: 37%; }
+/* A largura de cada coluna NÃO mora aqui: ela é escolha do dono, chega
+   no `<colgroup>` que o template monta a partir do layout e é a mesma
+   proporção que a térmica usa em caracteres. Fixar largura no CSS de
+   novo faria o arrastar da divisória não ter efeito nenhum.
+
+   Vale lembrar do papel de 58mm: com as quatro colunas ali não existe
+   proporção que faça "R$ 32.50" caber numa linha — o valor quebra em
+   duas, nada sai fora do papel, e quem quiser o papel limpo desliga
+   "Preço de cada unidade" no próprio editor. */
 
 .obs { font-size: 0.85em; color: #666; padding: 2px 4px 6px 16px; }
 

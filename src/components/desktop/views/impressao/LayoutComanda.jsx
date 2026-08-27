@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useApp } from "@/context/AppContext";
 import { buscarConfigImpressao, salvarConfigImpressao, montarCupomPreNota } from "@/lib/impressao";
 import {
@@ -9,6 +9,8 @@ import {
   normalizarLayoutComanda,
   configLegadoDeLayout,
   blocoNovo,
+  resolverBlocosComanda,
+  largurasEmCaracteres,
 } from "@/lib/impressao/layoutComanda";
 import { gerarHtmlComPerfil } from "@/lib/impressao/drivers/browserRaster";
 import { formatarComprovanteEscpos } from "@/lib/impressao/escposFormatador";
@@ -77,7 +79,16 @@ export default function LayoutComanda() {
   const [status, setStatus] = useState(null); // null | "sucesso" | "erro"
   const [confirmandoPadrao, setConfirmandoPadrao] = useState(false);
   const [visao, setVisao] = useState("papel"); // papel | termica
-  const arrastando = useRef(null);
+  // Índice do bloco em movimento. É estado, e não ref, porque a lista
+  // precisa se redesenhar durante o arrasto: é o que apaga o bloco de
+  // origem e acende a marca de destino.
+  const [arrastando, setArrastando] = useState(null);
+  // Índice da linha que está com a alça pressionada. Só ela fica
+  // `draggable`, para clicar no olho/lixeira continuar sendo clique.
+  const [pegando, setPegando] = useState(null);
+  // Onde o bloco vai cair: {indice, posicao}. Existe para DESENHAR a
+  // marca — sem ela o arrasto é cego, você solta e descobre depois.
+  const [alvo, setAlvo] = useState(null);
 
   // Falha na LEITURA não pode virar tela normal com o layout de
   // fábrica: o dono veria um papel que não é o dele e, ao salvar por
@@ -124,13 +135,43 @@ export default function LayoutComanda() {
     mexer(proximos);
   };
 
-  const soltarEm = (destino) => {
-    const origem = arrastando.current;
-    arrastando.current = null;
-    if (origem == null || origem === destino) return;
+  const encerrarArrasto = () => {
+    setArrastando(null);
+    setPegando(null);
+    setAlvo(null);
+  };
+
+  // A marca só aparece nas bordas que MOVEM alguma coisa: desenhar a
+  // linha onde o bloco já está prometeria uma mudança que não acontece.
+  const marcarAlvo = (indice, posicao) => {
+    const origem = arrastando;
+    if (origem == null) return;
+    const destino = indice + (posicao === "depois" ? 1 : 0);
+    const inerte = destino === origem || destino === origem + 1;
+    setAlvo((atual) => {
+      const proximo = inerte ? null : { indice, posicao };
+      if (atual?.indice === proximo?.indice && atual?.posicao === proximo?.posicao) return atual;
+      return proximo;
+    });
+  };
+
+  // Solta o bloco ANTES ou DEPOIS da linha em que o cursor está — é a
+  // mesma posição que a marca de destino desenhou durante o arrasto.
+  const soltarEm = (destino, posicao) => {
+    const origem = arrastando;
+    encerrarArrasto();
+    if (origem == null) return;
+
+    const alvo = destino + (posicao === "depois" ? 1 : 0);
+    // Cair na própria borda é ficar onde já estava: não é alteração e não
+    // pode acender o botão "Salvar".
+    if (alvo === origem || alvo === origem + 1) return;
+
     const proximos = [...blocos];
     const [movido] = proximos.splice(origem, 1);
-    proximos.splice(destino, 0, movido);
+    // Tirar o bloco da lista puxa para trás todo mundo que vinha depois
+    // dele — inclusive o ponto de destino, quando fica adiante da origem.
+    proximos.splice(alvo > origem ? alvo - 1 : alvo, 0, movido);
     mexer(proximos);
   };
 
@@ -224,6 +265,15 @@ export default function LayoutComanda() {
     [documento, colunas],
   );
 
+  // Na térmica as colunas só valem se o nome do produto couber inteiro
+  // na coluna dele — senão o pedido sai empilhado, como sempre saiu.
+  // Dizer isso é o que impede o dono de arrastar a divisória, ver a
+  // térmica não mudar e achar que a tela está quebrada.
+  const semColunasNaTermica = useMemo(() => {
+    const itens = resolverBlocosComanda(documento?.layout, documento).find((b) => b.tipo === "itens");
+    return Boolean(itens) && largurasEmCaracteres(itens.itens, colunas, itens.larguras, itens.unitario) == null;
+  }, [documento, colunas]);
+
   // O papel cresce com a quantidade de itens, então a altura é medida
   // depois de montado em vez de cravada: iframe de altura fixa rolava por
   // dentro, dentro da moldura que também rola, e escondia o fim da
@@ -283,12 +333,19 @@ export default function LayoutComanda() {
                 primeiro={i === 0}
                 ultimo={i === blocos.length - 1}
                 removivel={TIPOS_BLOCO[bloco.tipo]?.repetivel === true}
+                arrastavel={pegando === i}
+                arrastado={arrastando === i}
+                alvo={alvo?.indice === i ? alvo.posicao : null}
                 onSelecionar={() => setSelecionado((atual) => (atual === bloco.id ? null : bloco.id))}
                 onAlterar={(patch) => alterarBloco(bloco.id, patch)}
                 onMover={(delta) => moverBloco(i, delta)}
                 onRemover={() => removerBloco(bloco.id)}
-                onArrastarInicio={() => { arrastando.current = i; }}
-                onSoltarAqui={() => soltarEm(i)}
+                onPegar={() => setPegando(i)}
+                onLargar={() => setPegando((atual) => (atual === i ? null : atual))}
+                onArrastarInicio={() => setArrastando(i)}
+                onArrastarFim={encerrarArrasto}
+                onArrastarSobre={(posicao) => marcarAlvo(i, posicao)}
+                onSoltarAqui={(posicao) => soltarEm(i, posicao)}
               />
             ))}
           </ul>
@@ -377,6 +434,14 @@ export default function LayoutComanda() {
               ? "Exemplo com uma venda de mentira. A largura e o tamanho da letra vêm da aba “Impressora e papel”."
               : "Como a impressora térmica imprime: só texto, na largura real do papel. Logo, tamanho de letra e negrito não existem nela."}
           </div>
+
+          {visao === "termica" && semColunasNaTermica && (
+            <div className="layout-comanda__ajuda">
+              Aqui os nomes dos produtos não cabem em coluna dentro de {colunas} caracteres, então
+              cada item sai em duas linhas — nome em cima, valor à direita embaixo. A largura das
+              colunas continua valendo para a impressão pelo navegador.
+            </div>
+          )}
 
           {logoLigadoSemImagem && (
             <div className="layout-comanda__status layout-comanda__status--atencao">

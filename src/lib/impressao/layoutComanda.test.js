@@ -9,6 +9,12 @@ import {
   blocoNovo,
   completarLayoutComanda,
   resolverBlocosComanda,
+  COLUNAS_ITENS,
+  LARGURAS_ITENS_PADRAO,
+  MIN_LARGURA_COLUNA,
+  normalizarLargurasItens,
+  largurasVisiveis,
+  largurasEmCaracteres,
 } from "./layoutComanda";
 import { renderizarRecibo } from "./renderizar";
 import { formatarComprovanteEscpos } from "./escposFormatador";
@@ -351,6 +357,105 @@ describe("divisórias não sobram no papel", () => {
     ]);
 
     expect(resolverBlocosComanda(layout, venda()).map((b) => b.tipo)).toEqual(["texto", "separador", "valor"]);
+  });
+});
+
+const soma = (obj) => Object.values(obj).reduce((t, n) => t + n, 0);
+
+describe("largura das colunas da lista de itens", () => {
+  it("normaliza qualquer lixo do banco para larguras que somam 100", () => {
+    for (const bruto of [null, undefined, {}, { nome: "x" }, { nome: -5, qtd: 0 }, { nome: 900 }]) {
+      const l = normalizarLargurasItens(bruto);
+      expect(Object.keys(l), JSON.stringify(bruto)).toEqual(COLUNAS_ITENS);
+      expect(soma(l), JSON.stringify(bruto)).toBeCloseTo(100, 1);
+    }
+  });
+
+  it("mantém a proporção que o dono arrastou", () => {
+    const l = normalizarLargurasItens({ nome: 50, qtd: 10, unitario: 20, total: 20 });
+
+    expect(l.nome).toBeGreaterThan(l.unitario);
+    expect(soma(l)).toBeCloseTo(100, 1);
+  });
+
+  it("nenhuma coluna fica abaixo do próprio piso, nem quando o valor gravado é zero", () => {
+    const l = normalizarLargurasItens({ nome: 97, qtd: 1, unitario: 1, total: 1 });
+
+    for (const coluna of COLUNAS_ITENS) {
+      expect(l[coluna], `piso de ${coluna}`).toBeGreaterThanOrEqual(MIN_LARGURA_COLUNA[coluna]);
+    }
+    expect(soma(l)).toBeCloseTo(100, 1);
+  });
+
+  it("sem preço unitário sobram três colunas e o espaço dele é redistribuído", () => {
+    const visiveis = largurasVisiveis(LARGURAS_ITENS_PADRAO, false);
+
+    expect(Object.keys(visiveis)).toEqual(["nome", "qtd", "total"]);
+    expect(soma(visiveis)).toBeCloseTo(100, 1);
+    expect(visiveis.nome).toBeGreaterThan(LARGURAS_ITENS_PADRAO.nome);
+  });
+
+  // Ida e volta: o editor mostra a projeção de 3 colunas, grava o objeto
+  // de 4 e projeta de novo. Se a proporção mudasse no caminho, a barra
+  // saltaria sozinha depois de salvar.
+  it("a proporção entre as colunas visíveis sobrevive à ida e volta pelo banco", () => {
+    const editado = { nome: 55, qtd: 10, total: 35 };
+    const gravado = normalizarLargurasItens({ ...LARGURAS_ITENS_PADRAO, ...editado });
+
+    const devolta = largurasVisiveis(gravado, false);
+
+    expect(devolta.nome).toBeCloseTo(editado.nome, 0);
+    expect(devolta.qtd).toBeCloseTo(editado.qtd, 0);
+    expect(devolta.total).toBeCloseTo(editado.total, 0);
+  });
+});
+
+describe("largurasEmCaracteres (a mesma proporção, na régua da térmica)", () => {
+  const itensCurtos = [
+    { nome: "Coca lata", qty: 2, unitario: "R$ 6.00", total: "R$ 12.00", obs: [] },
+    { nome: "Pastel", qty: 1, unitario: "R$ 8.50", total: "R$ 8.50", obs: [] },
+  ];
+
+  it("em 48 colunas com nomes curtos, devolve colunas que somam o papel inteiro", () => {
+    const larg = largurasEmCaracteres(itensCurtos, 48, LARGURAS_ITENS_PADRAO, true);
+
+    expect(larg).not.toBeNull();
+    expect(larg.nome + larg.qtd + larg.unitario + larg.total).toBe(48);
+  });
+
+  // Cortar "R$ 32.50" em "R$ 32" imprimiria um valor ERRADO no papel do
+  // cliente — a coluna cresce além da proporção pedida antes disso.
+  it("coluna de valor nunca fica menor que o valor que precisa mostrar", () => {
+    const caros = [{ nome: "Prato", qty: 1, unitario: "R$ 1234.50", total: "R$ 1234.50", obs: [] }];
+
+    const larg = largurasEmCaracteres(caros, 48, { nome: 80, qtd: 7, unitario: 14, total: 16 }, true);
+
+    expect(larg.total).toBeGreaterThanOrEqual("R$ 1234.50".length);
+    expect(larg.unitario).toBeGreaterThanOrEqual("R$ 1234.50".length);
+  });
+
+  // É o que preserva o ganho das 48 colunas: nome comprido continua
+  // usando a linha toda em vez de ser espremido numa coluna estreita.
+  it("desiste das colunas quando o nome não cabe inteiro", () => {
+    const compridos = [
+      { nome: "Filé à parmegiana com fritas e arroz", qty: 1, unitario: "R$ 62.00", total: "R$ 62.00", obs: [] },
+    ];
+
+    expect(largurasEmCaracteres(compridos, 48, LARGURAS_ITENS_PADRAO, true)).toBeNull();
+  });
+
+  // Em 58mm (32 colunas) sobram 12 caracteres para o nome com as quatro
+  // colunas ligadas: nome curtinho passa, o resto cai no empilhado.
+  it("no papel de 58mm as quatro colunas só servem a nome bem curto", () => {
+    expect(largurasEmCaracteres(itensCurtos, 32, LARGURAS_ITENS_PADRAO, true)).not.toBeNull();
+
+    const medio = [{ nome: "Suco de laranja", qty: 1, unitario: "R$ 9.00", total: "R$ 9.00", obs: [] }];
+    expect(largurasEmCaracteres(medio, 32, LARGURAS_ITENS_PADRAO, true)).toBeNull();
+  });
+
+  it("sem lista de itens não inventa coluna", () => {
+    expect(largurasEmCaracteres([], 48, LARGURAS_ITENS_PADRAO, true)).not.toBeNull();
+    expect(() => largurasEmCaracteres(null, 48, null, false)).not.toThrow();
   });
 });
 

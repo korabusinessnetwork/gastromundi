@@ -1,0 +1,90 @@
+/**
+ * F020 — régua de largura das colunas da lista de itens
+ * (LarguraColunas.jsx). Cada faixa tem a proporção que a coluna vai ter
+ * no papel; entre elas, a divisória que se arrasta.
+ *
+ * Decisão 018 (CSS separado do JSX) + tokens --gm-* (ADR-007). As
+ * larguras chegam como custom properties (`--l-nome`, `--l-qtd`…)
+ * escritas pelo componente: o VALOR é dado do layout, mas a regra de
+ * estilo continua morando aqui.
+ */
+
+.larguras {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 40px; /* alvo de toque: esta tela também roda em tablet no balcão */
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-faint);
+  overflow: hidden;
+  user-select: none;
+}
+
+.larguras__col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-muted);
+}
+
+/* Uma regra por coluna porque a largura é escolha do dono e chega numa
+   custom property — a proporção é dado, o jeito de aplicar é estilo. */
+.larguras__col--nome { flex: 0 0 var(--l-nome, 37%); }
+.larguras__col--qtd { flex: 0 0 var(--l-qtd, 10%); }
+.larguras__col--unitario { flex: 0 0 var(--l-unitario, 25%); }
+.larguras__col--total { flex: 0 0 var(--l-total, 28%); }
+
+/* A faixa do nome é a elástica (é ela que quebra em mais linhas no
+   papel), então ganha o fundo cheio para se distinguir das de número. */
+.larguras__col--nome {
+  background: color-mix(in srgb, var(--gm-accent) 12%, transparent);
+  color: var(--gm-text);
+}
+
+.larguras__rotulo {
+  padding: 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Largura 2px com -1px de margem de cada lado: a divisória não consome
+   porcentagem nenhuma da barra, senão as colunas somariam mais que 100%
+   e a régua deixaria de bater com o papel. A área de pegada de verdade
+   é o ::before, bem maior que a linha — 2px é fino demais para acertar
+   com o dedo. */
+.larguras__divisoria {
+  position: relative;
+  flex: 0 0 2px;
+  margin: 0 -1px;
+  padding: 0;
+  border: none;
+  background: var(--gm-border);
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 1;
+}
+
+.larguras__divisoria::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -9px;
+  width: 20px;
+}
+
+.larguras__divisoria:hover,
+.larguras__divisoria:focus-visible {
+  background: var(--gm-accent);
+  outline: none;
+}
+
+.larguras__divisoria:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gm-accent) 40%, transparent);
+}

@@ -64,11 +64,21 @@ function htmlItens(bloco) {
     `)
     .join("");
 
+  // As larguras vêm do layout (o dono arrasta a divisória no editor) e
+  // chegam aqui já somando 100%. Vão num `<colgroup>` porque é o único
+  // lugar em que a largura vale para a coluna inteira; com
+  // `table-layout: fixed` no CSS, é ele que manda.
+  const colunasLargura = ["nome", "qtd", bloco.unitario ? "unitario" : null, "total"]
+    .filter(Boolean)
+    .map((c) => `<col style="width:${Number(bloco.larguras?.[c]) || 0}%" />`)
+    .join("");
+
   // A classe distingue esta tabela da `.caixa-tabela` dos comprovantes de
   // caixa: só a lista de itens tem largura de coluna fixada (é ela que
   // precisa caber num papel de 58mm sem jogar o valor para fora).
   return `
     <table class="itens">
+      <colgroup>${colunasLargura}</colgroup>
       <thead>
         <tr><th>Item</th><th>Qtd</th>${bloco.unitario ? "<th>Unit.</th>" : ""}<th>Total</th></tr>
       </thead>

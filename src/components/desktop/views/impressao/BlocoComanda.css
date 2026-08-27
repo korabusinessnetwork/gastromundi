@@ -18,6 +18,35 @@
   box-shadow: 0 0 0 1px var(--gm-accent);
 }
 
+/* ── Arrastar para reordenar ─────────────────────────────────────────
+   O bloco em movimento fica apagado no lugar antigo e uma barra mostra
+   onde ele vai cair. Sem a barra, o arrasto é cego: você solta e só
+   então descobre para onde foi — e desfazer é refazer o gesto. */
+.bloco-comanda--arrastado {
+  opacity: 0.4;
+}
+
+.bloco-comanda--alvo-antes,
+.bloco-comanda--alvo-depois {
+  position: relative;
+}
+
+/* A barra fica no vão de 6px entre as linhas da lista (o `gap` de
+   .layout-comanda__lista), então não empurra nada ao aparecer. */
+.bloco-comanda--alvo-antes::before,
+.bloco-comanda--alvo-depois::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--gm-accent);
+}
+
+.bloco-comanda--alvo-antes::before { top: -5px; }
+.bloco-comanda--alvo-depois::after { bottom: -5px; }
+
 /* Bloco desligado continua na lista (é o catálogo do que a comanda pode
    ter), mas apagado: bate o olho e se vê que aquilo não sai no papel. */
 .bloco-comanda--desligado .bloco-comanda__nome,
@@ -33,12 +62,22 @@
   padding: 4px 8px 4px 4px;
 }
 
+/* A alça é o ÚNICO ponto que inicia o arrasto (ver BlocoComanda.jsx), e
+   por isso precisa de área de toque de verdade — não só do ícone. */
 .bloco-comanda__pegador {
   display: flex;
   align-items: center;
-  padding: 0 2px;
+  justify-content: center;
+  width: 28px;
+  align-self: stretch;
   color: var(--gm-muted);
   cursor: grab;
+  touch-action: none;
+}
+
+.bloco-comanda__pegador:active {
+  cursor: grabbing;
+  color: var(--gm-text);
 }
 
 .bloco-comanda__titulo {
