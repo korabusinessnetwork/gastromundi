@@ -98,6 +98,10 @@ let chamadasTabela = [];
 let falhasUmaVez = {};
 const comFalhaNaTabela = (tabela, metodo, error) => { falhasUmaVez[`${tabela}:${metodo}`] = { data: null, error }; };
 
+/** Mesma ideia, mas para preparar uma resposta de SUCESSO (o insert que
+ *  devolve a linha criada, por exemplo). */
+const comRespostaNaTabela = (tabela, metodo, resposta) => { falhasUmaVez[`${tabela}:${metodo}`] = resposta; };
+
 /** Qualquer leitura/escrita de tabela resolve vazia — não é o alvo aqui. */
 function comTabelasVazias() {
   mockSupabase.from.mockImplementation((tabela) => {
@@ -675,5 +679,62 @@ describe("AppContext — alerta de baixa recusada (TD012)", () => {
     const [alerta] = alertasDeBaixa();
     expect(alerta?.origem.chave).toBe("estoque:baixa-falhou:subproduto:sub-1");
     expect(alerta.titulo).toContain("Molho da casa");
+  });
+});
+
+// ── Baixa no caixa SEMPRE vira baixa no estoque ────────────────────
+// O controle de estoque de um produto é a EXISTÊNCIA da linha em `estoque` —
+// não há flag `controla_estoque` em `products`. Como `addProduct` nunca criava
+// essa linha, todo produto cadastrado pelo app era vendido sem descontar nada,
+// enquanto a tela de Estoque o mostrava com saldo "0". A linha passa a nascer
+// junto com o produto, e "RPC sem linha de volta" deixa de ser sucesso.
+describe("AppContext — produto nasce com linha de estoque", () => {
+  it("cadastrar produto cria a linha de estoque junto", async () => {
+    comRespostaNaTabela("products", "insert", { data: { id: 42, name: "Chopp" }, error: null });
+    const app = montar();
+
+    await act(async () => { await app.current.addProduct({ id: "local-1", name: "Chopp", price: 10 }); });
+
+    const linhas = chamadasTabela.filter((c) => c.tabela === "estoque" && c.metodo === "upsert");
+    expect(linhas).toHaveLength(1);
+    expect(linhas[0].args[0]).toEqual({ produto_id: 42 });
+  });
+
+  it("falha ao criar a linha não desfaz o produto — ele existe e é vendável", async () => {
+    comRespostaNaTabela("products", "insert", { data: { id: 43, name: "Água" }, error: null });
+    comFalhaNaTabela("estoque", "upsert", { code: "42501", message: "row-level security" });
+    const app = montar();
+
+    let resultado;
+    await act(async () => { resultado = await app.current.addProduct({ name: "Água", price: 5 }); });
+
+    expect(resultado.error).toBeNull();
+    expect(resultado.data).toMatchObject({ id: 43 });
+    expect(reportarFalha).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "42501" }),
+      expect.objectContaining({ acao: "addProduct:estoque", produto_id: 43 }),
+    );
+  });
+
+  it("subproduto: RPC sem linha de volta é falha, não sucesso silencioso", async () => {
+    // Em subproduto a linha nasce com o cadastro, então faltar é inconsistência
+    // de dados — o app acusa em vez de criar por conta própria.
+    comRpcPorNome({ baixar_estoque_subproduto: { data: [], error: null } });
+    const app = montar();
+
+    let resultado;
+    await act(async () => { resultado = await app.current.baixarEstoqueSubproduto("sub-9", 2, "Queijo"); });
+    await act(async () => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); });
+
+    expect(resultado.error?.code).toBe("estoque_sem_linha");
+    const alerta = registrarInsight.mock.calls
+      .map(([i]) => i)
+      .find((i) => i?.origem?.chave === "estoque:baixa-falhou:subproduto:sub-9");
+    expect(alerta?.titulo).toContain("Queijo");
+    expect(emitirEvento).toHaveBeenCalledWith(
+      "estoque.baixa.falhou", "estoque",
+      expect.objectContaining({ subproduto_id: "sub-9" }),
+      undefined,
+    );
   });
 });

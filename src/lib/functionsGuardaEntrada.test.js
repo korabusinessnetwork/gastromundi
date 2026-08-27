@@ -9,6 +9,7 @@ import {
   MAX_TEXTO_HISTORICO,
   MAX_TURNOS_HISTORICO,
   PAPEIS_ADMIN,
+  PAPEIS_FISCAL_EMISSAO,
   PAPEIS_GERENCIA,
   PAPEIS_IMPORTACAO,
   PAPEIS_PLATAFORMA,
@@ -56,14 +57,21 @@ const FUNCOES = {
 };
 
 /**
- * As duas fiscais que ESCAPARAM da primeira leva. Cancelar uma NFC-e
- * autorizada e queimar uma faixa de numeração são os atos mais irreversíveis
- * do sistema, e as duas seguiam decidindo acesso só pelo papel — o mesmo furo
- * que a guarda fecha nas outras cinco. Ficam num mapa separado porque o gate
- * delas nasceu com outro formato (`perfil?.role !== ...`, não `callerData`),
- * e é justamente esse formato que não pode voltar.
+ * As fiscais. Cancelar uma NFC-e autorizada e queimar uma faixa de numeração
+ * são os atos mais irreversíveis do sistema, e as duas seguiam decidindo
+ * acesso só pelo papel — o mesmo furo que a guarda fecha nas outras cinco.
+ * Ficam num mapa separado porque o gate delas nasceu com outro formato
+ * (`perfil?.role !== ...`, não `callerData`), e é justamente esse formato que
+ * não pode voltar.
+ *
+ * Emitir e reenviar entraram depois, e por um furo PIOR: elas não tinham gate
+ * NENHUM. Bastava um JWT válido — o do garçom serve — para emitir documento
+ * fiscal em nome do estabelecimento, ou para reenviar em lote as notas que
+ * ficaram em contingência. Autenticação sem autorização.
  */
 const FUNCOES_FISCAIS = {
+  "emitir-nfce": join(RAIZ, "supabase/functions/emitir-nfce/index.ts"),
+  "reenviar-nfce": join(RAIZ, "supabase/functions/reenviar-nfce/index.ts"),
   "cancelar-nfce": join(RAIZ, "supabase/functions/cancelar-nfce/index.ts"),
   "inutilizar-nfce": join(RAIZ, "supabase/functions/inutilizar-nfce/index.ts"),
 };
@@ -152,6 +160,27 @@ describe("decidirAcesso — as listas de papel espelham o gate da tela", () => {
   it("o super-admin DESATIVADO não provisiona mais — é o papel mais poderoso", () => {
     expect(decidirAcesso({ role: "plataforma", active: false }, PAPEIS_PLATAFORMA))
       .toEqual({ ok: false, motivo: "inativo" });
+  });
+
+  it("emitir NFC-e é ato de caixa pra cima — garçom fica de fora", () => {
+    for (const papel of ["caixa", "gerente", "admin"]) {
+      expect(decidirAcesso({ role: papel, active: true }, PAPEIS_FISCAL_EMISSAO).ok).toBe(true);
+    }
+    for (const papel of ["garcom", "cozinha", "plataforma", ""]) {
+      expect(decidirAcesso({ role: papel, active: true }, PAPEIS_FISCAL_EMISSAO).ok).toBe(false);
+    }
+  });
+
+  it("o caixa DESATIVADO não emite mais, mesmo com o JWT ainda de pé", () => {
+    expect(decidirAcesso({ role: "caixa", active: false }, PAPEIS_FISCAL_EMISSAO))
+      .toEqual({ ok: false, motivo: "inativo" });
+  });
+
+  it("emissão é mais larga que gerência, e cancelamento continua mais estreito", () => {
+    const caixa = { role: "caixa", active: true };
+    expect(decidirAcesso(caixa, PAPEIS_FISCAL_EMISSAO).ok).toBe(true);
+    expect(decidirAcesso(caixa, PAPEIS_GERENCIA).ok).toBe(false);
+    expect(decidirAcesso(caixa, PAPEIS_ADMIN).ok).toBe(false);
   });
 
   it("garçom e caixa não passam em nenhuma", () => {
@@ -248,7 +277,7 @@ describe("as cinco funções não-fiscais consultam users com `active`", () => {
   });
 });
 
-describe("as duas funções fiscais também barram a conta desativada", () => {
+describe("as quatro funções fiscais barram a conta desativada e o papel errado", () => {
   for (const [nome, caminho] of Object.entries(FUNCOES_FISCAIS)) {
     it(`${nome} pede a coluna active e chama decidirAcesso`, () => {
       const fonte = semComentariosTs(caminho);
@@ -272,6 +301,27 @@ describe("as duas funções fiscais também barram a conta desativada", () => {
       .toContain("decidirAcesso(perfil, PAPEIS_GERENCIA)");
     expect(semComentariosTs(FUNCOES_FISCAIS["inutilizar-nfce"]))
       .toContain("decidirAcesso(perfil, PAPEIS_ADMIN)");
+  });
+
+  it("emitir e reenviar usam a lista de emissão — caixa entra, garçom não", () => {
+    expect(semComentariosTs(FUNCOES_FISCAIS["emitir-nfce"]))
+      .toContain("decidirAcesso(perfil, PAPEIS_FISCAL_EMISSAO)");
+    expect(semComentariosTs(FUNCOES_FISCAIS["reenviar-nfce"]))
+      .toContain("decidirAcesso(perfil, PAPEIS_FISCAL_EMISSAO)");
+  });
+
+  it("o gate vem ANTES de qualquer leitura de config fiscal ou de venda", () => {
+    // Ordem importa: se o 403 sair depois da consulta, quem não pode emitir
+    // ainda descobre se o estabelecimento tem fiscal ligado e se a venda
+    // existe — 403 vira oráculo. O gate é o passo 1b, logo após o getUser.
+    for (const nome of ["emitir-nfce", "reenviar-nfce"]) {
+      const fonte = semComentariosTs(FUNCOES_FISCAIS[nome]);
+      const gate = fonte.indexOf("decidirAcesso(");
+      const config = fonte.indexOf('from("tenant_fiscal_config")');
+      expect(gate).toBeGreaterThan(-1);
+      expect(config).toBeGreaterThan(-1);
+      expect(gate).toBeLessThan(config);
+    }
   });
 });
 

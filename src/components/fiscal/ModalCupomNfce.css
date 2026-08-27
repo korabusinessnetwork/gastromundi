@@ -140,6 +140,19 @@
   color: #92400e;
 }
 
+/* Motivo da SEFAZ (só em nota rejeitada): informação fiscal secundária —
+   presente para quem precisa resolver, discreta para quem não precisa. */
+.modal-cupom-nfce__estado-motivo {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--gm-muted, #6b7280);
+  max-width: 300px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--gm-surface-2, #f3f4f6);
+}
+
 .modal-cupom-nfce__spinner {
   animation: modal-cupom-nfce-girar 0.9s linear infinite;
   color: var(--gm-accent, #2563eb);

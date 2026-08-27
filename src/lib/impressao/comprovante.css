@@ -11,6 +11,12 @@
  * 13px de fonte) reproduzem o comportamento fixo do F015 quando não
  * há perfil configurado — nada muda pra quem já usa hoje.
  *
+ * BLOCOS (Leva 16): o papel é montado bloco a bloco pelo dono
+ * (impressao/layoutComanda.js). Por isso as classes semânticas abaixo
+ * (.rodape, .metodo…) cuidam só de COR e espaçamento: alinhamento,
+ * tamanho e negrito são escolha por bloco e chegam nas classes `.b-*`.
+ * Fixar tamanho aqui de novo faria o editor mentir.
+ *
  * Tamanhos de fonte em `em` (relativos a --print-font-base) pra que
  * um estabelecimento com impressora que "corta" texto pequeno consiga
  * aumentar tudo de uma vez, sem reescrever cada seletor.
@@ -30,33 +36,57 @@ body {
   margin: 0 auto;
   padding: 16px var(--print-padding-h, 8px);
 }
-.cabecalho { text-align: center; margin-bottom: 12px; }
+
+/* --- Estilo por bloco (o que o editor de layout controla) ---------- */
+.b-esq { text-align: left; }
+.b-centro { text-align: center; }
+.b-dir { text-align: right; }
+.b-esq, .b-centro, .b-dir { margin: 2px 0; }
+.b-peq { font-size: 0.85em; }
+.b-gr { font-size: 1.3em; }
+.b-negrito { font-weight: bold; }
+
+/* --- Cor/espaçamento por papel do bloco ---------------------------- */
 .cabecalho__logo { max-width: 160px; max-height: 64px; object-fit: contain; margin: 0 auto 6px; display: block; }
-.cabecalho__nome { font-size: 1.38em; font-weight: bold; }
-.cabecalho__linha { color: #555; font-size: 0.85em; margin-top: 2px; }
+.cabecalho__linha { color: #555; }
+.identidade-fiscal { color: #555; }
+.metodo { color: #555; }
+.rodape { color: #888; }
+.livre { color: #111; }
+
 hr { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
+.espaco--1 { height: 8px; }
+.espaco--2 { height: 16px; }
+.espaco--3 { height: 24px; }
+
+/* --- Itens --------------------------------------------------------- */
 table { width: 100%; border-collapse: collapse; }
 th { font-size: 0.85em; text-align: left; padding: 4px; border-bottom: 2px solid #111; }
 th:nth-child(2) { text-align: center; }
 th:nth-child(3), th:nth-child(4) { text-align: right; }
 td { padding: 6px 4px; border-bottom: 1px dashed #ccc; }
 .obs { font-size: 0.85em; color: #666; padding: 2px 4px 6px 16px; }
-.total-row td { font-size: 1.15em; font-weight: bold; padding: 10px 4px 4px; border-bottom: none; }
-.total-row .valor { color: var(--gm-accent, #7c3aed); }
-.metodo { text-align: center; font-size: 0.92em; color: #555; margin-top: 8px; }
+
+/* --- Linhas de valor (subtotal, taxa, TOTAL, troco) ----------------
+   Rótulo à esquerda e valor à direita, como sai na térmica: as duas
+   saídas precisam mostrar a mesma coisa no mesmo lugar. */
+.linha-valor { display: flex; justify-content: space-between; gap: 8px; padding: 2px 4px; }
+.linha-valor .valor { color: var(--gm-accent, #7c3aed); }
+
 /* TD018: a janela de impressão não herda o tema do app (o driver só injeta
-   as `--print-*`), então o token vem com fallback literal, igual ao
-   `--gm-accent` acima. O bege do fundo e o marrom do texto não têm token
-   e seguem literais — o aviso precisa continuar legível em térmica. */
+   as `--print-*`), então todo token aqui vem com fallback literal. O bege do
+   fundo e o marrom do texto não têm token e seguem literais — o aviso precisa
+   continuar legível em térmica. */
 .aviso-nao-fiscal {
-  text-align: center; font-size: 0.85em; color: #b45309;
+  color: #b45309;
   background: #fef3c7; border: 1px solid var(--gm-warn, #f59e0b);
   border-radius: 6px; padding: 6px 8px; margin: 10px 0;
 }
-.identidade-fiscal { text-align: center; font-size: 0.85em; color: #555; margin-bottom: 8px; }
-.rodape { text-align: center; font-size: 0.85em; color: #888; margin-top: 16px; }
 
-/* ── Comprovantes de caixa (F005) ─────────────────────────────────── */
+/* ── Comprovantes de caixa (F005) ─────────────────────────────────────
+   Sangria, suprimento e fechamento não passam pelo editor de blocos (não
+   são a comanda do cliente), então estas classes continuam cuidando do
+   próprio alinhamento e tamanho — nada aqui é escolha do dono. */
 .caixa-destaque { text-align: center; margin: 10px 0; }
 .caixa-destaque__rotulo { font-size: 0.85em; color: #555; }
 .caixa-destaque__valor { font-size: 1.6em; font-weight: bold; color: var(--gm-accent, #7c3aed); margin-top: 2px; }
@@ -68,4 +98,5 @@ td { padding: 6px 4px; border-bottom: 1px dashed #ccc; }
 .caixa-notas { margin-top: 4px; }
 .caixa-nota { font-size: 0.9em; color: #555; padding: 2px 0; }
 .caixa-nota__rotulo { font-weight: bold; color: #333; }
+
 @media print { body { width: 100%; } }

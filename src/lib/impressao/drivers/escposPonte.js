@@ -1,4 +1,4 @@
-import { colunasPorLargura } from "../largura";
+import { colunasEscpos } from "../largura";
 import { formatarComprovanteEscpos, formatarViaProducaoEscpos, formatarComprovanteCaixaEscpos } from "../escposFormatador";
 import { enviarImpressaoPonte } from "../../ponte";
 
@@ -17,12 +17,9 @@ import { enviarImpressaoPonte } from "../../ponte";
  *
  * O destino vem do perfil (`perfil.impressora`) e é repassado cru pra
  * Ponte — `{ tipo: "windows", nome }` ou `{ tipo: "rede", host, porta }`.
+ * Junto com ele viaja o `perfil.idImpressao`, o identificador da ação que
+ * pediu o papel (ver impressao/despacho.js).
  */
-
-// Tamanho de fonte default de cada template — define quantas colunas
-// cabem no papel. Mantido igual ao driver anterior pra que o cupom
-// impresso continue idêntico ao que o estabelecimento já conhece.
-const FONTE_PADRAO_POR_TIPO = { via_producao: 15, comprovante: 13, cupom_pre_nota: 13, comprovante_caixa: 13 };
 
 const AVISO_SEM_IMPRESSORA = "Escolha a impressora em Configurações → Impressão.";
 
@@ -54,15 +51,26 @@ export async function imprimir(documento, perfil) {
       return { error: { message: AVISO_SEM_IMPRESSORA } };
     }
 
-    const larguraMm = Number(perfil?.larguraMm) || 80;
-    const fontePx = Number(perfil?.fonteBase) || FONTE_PADRAO_POR_TIPO[documento?.tipo] || 13;
-    const colunas = colunasPorLargura(larguraMm, fontePx);
+    // Quantos caracteres cabem na linha é decisão da IMPRESSORA, não da
+    // tela: 48 no papel de 80mm, 32 no de 58mm. O tamanho de fonte do
+    // preview (perfil.fonteBase) não entra nessa conta — quando entrava,
+    // a comanda saía quebrada em 33 colunas num papel de 48, gastando
+    // papel em todo pedido e desalinhando os preços da direita.
+    // O que continua vindo do perfil, porque muda de estabelecimento
+    // pra estabelecimento, é a largura do papel.
+    const colunas = colunasEscpos(perfil?.larguraMm);
 
     const { error } = await enviarImpressaoPonte({
       destino: perfil.impressora,
       linhas: linhasDocumento(documento, colunas),
       cortaPapel: perfil?.cortaPapel !== false,
       copias: Number(perfil?.copias) > 0 ? Number(perfil.copias) : 1,
+      // Id da ação que pediu a impressão, montado em impressao/despacho.js
+      // (um para cada ponto de impressão). É por ele que a Ponte reconhece o
+      // clique repetido e responde "duplicado" em vez de gastar papel de
+      // novo. Perfil sem `idImpressao` manda `undefined`, que sai do corpo no
+      // JSON: aí vale a rede de segurança de `enviarImpressaoPonte`.
+      id: perfil?.idImpressao,
     });
     if (error) return { error: { message: error.message ?? "Falha ao enviar a impressão para a Ponte KORA." } };
     return { error: null };

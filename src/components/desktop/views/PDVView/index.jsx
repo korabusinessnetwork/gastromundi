@@ -14,6 +14,7 @@ import { varColor } from "@/lib/tema";
 import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuTriangleAlert, LuChevronDown, LuChevronUp, LuShoppingBag, LuShoppingCart, LuLock, LuSearch, LuX, LuChartBar, LuEye, LuEyeOff, LuPencil, LuScanBarcode, LuLayoutGrid, LuList, LuReceipt, LuUser, LuCalendarCheck } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { produtosVencendo } from "@/lib/validade";
+import { classificarEstoque } from "@/lib/estoqueSituacao";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { supabase } from "@/lib/supabase";
@@ -42,7 +43,7 @@ const fmtComanda = (name) =>
 
 export default function PDVView({ notify }) {
   const {
-    pending, products, estoque,
+    pending, products, estoque, estoqueMinimos,
     addPending, updatePending, removePending,
     caixaAberto, currentUser, sales, users, metodosCustom,
     lancadas, addLancada, diasAlertaValidade,
@@ -988,14 +989,11 @@ export default function PDVView({ notify }) {
 
       {/* ── Alerta de estoque (mapa + lista; fora do painel enxuto) ─── */}
       {emPainel && !painelEnxuto && (() => {
-        const criticos = products.filter(p => {
-          const q = estoque[p.id] ?? 0;
-          return q === 0;
-        });
-        const baixos = products.filter(p => {
-          const q = estoque[p.id] ?? 0;
-          return q > 0 && q <= 10;
-        });
+        // Mesma conta da tela de Estoque (src/lib/estoqueSituacao.js). Antes o
+        // PDV somava por conta própria — tratava prato sem controle de estoque
+        // como zerado e ignorava o mínimo cadastrado — e as duas telas exibiam
+        // números diferentes no mesmo instante.
+        const { semEstoque: criticos, baixos } = classificarEstoque(products, estoque, estoqueMinimos);
         const total = criticos.length + baixos.length;
         if (total === 0) return null;
         return (

@@ -325,10 +325,25 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
       {/* Rodapé */}
       <div className="cart-panel__rodape" style={{ padding: `${sz.padSm + 2}px ${sz.pad - 4}px` }}>
+        {/* Este "Total" somava só o que ainda NÃO tinha sido lançado. Depois de
+            "Lançar Pedido" ele zerava e a tela mostrava "Total: R$ 0,00" numa
+            comanda de R$ 69,00 — o operador lia como se nada tivesse sido
+            cobrado. Agora cada número diz de quem ele é, e o valor grande é o
+            mesmo que o botão "Finalizar Comanda" vai cobrar. */}
+        {temItensNovos && (
+          <div className="cart-panel__subtotal-linha">
+            <span className="cart-panel__subtotal-label" style={{ color: varColor(C.muted) }}>
+              Novos itens (a lançar)
+            </span>
+            <span className="cart-panel__subtotal-valor" style={{ color: varColor(C.text) }}>
+              R$ {total.toFixed(2)}
+            </span>
+          </div>
+        )}
         <div className="cart-panel__total-linha" style={{ marginBottom: sz.padSm }}>
-          <span className="cart-panel__total-label" style={{ fontWeight: 800 }}>Total</span>
+          <span className="cart-panel__total-label" style={{ fontWeight: 800 }}>Total da comanda</span>
           <span className="cart-panel__total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>
-            R$ {total.toFixed(2)}
+            R$ {totalGeral.toFixed(2)}
           </span>
         </div>
 

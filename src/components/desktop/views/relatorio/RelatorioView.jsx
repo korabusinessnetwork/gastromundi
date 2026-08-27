@@ -1504,8 +1504,16 @@ export default function RelatorioView() {
               </table>
             </div>
 
+            {/*
+              A nota antiga ("redefina-as para que apareçam aqui") prometia
+              mostrar senha na tela — o relatório de testes leu isso como
+              senha guardada em texto puro. Não é, e nunca vai ser: a senha
+              só existe como hash no Supabase Auth e é conferida no servidor
+              (`verificar_senha_admin`). Esta aba lista QUEM tem acesso, não
+              com o quê.
+            */}
             <div className="relatorio-view__cred-nota" style={{ marginTop: 12, color: varColor(C.muted) }}>
-              * Senhas marcadas como "não registrada" foram definidas antes desta funcionalidade. Redefina-as nas Configurações para que apareçam aqui.
+              Senhas nunca são exibidas aqui — ficam criptografadas e não podem ser lidas por ninguém, nem pelo administrador. Para dar uma nova senha a um funcionário, use <strong>Configurações › Usuários › Redefinir senha</strong>.
             </div>
           </div>
         )}

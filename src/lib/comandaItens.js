@@ -73,6 +73,43 @@ export function cancelarItemComanda(items, indice, { motivo = "", por = "" } = {
 }
 
 /**
+ * Horas de comanda aberta sem nenhum item ativo a partir das quais o PDV
+ * passa a tratá-la como esquecida. Seis horas cobrem um turno inteiro: uma
+ * comanda aberta por engano de manhã já aparece marcada na virada da tarde,
+ * mas a mesa que abriu antes do almoço e ainda não pediu não é acusada.
+ */
+export const HORAS_COMANDA_ESQUECIDA = 6;
+
+/**
+ * Comanda aberta há muito tempo e sem nenhum consumo ativo — item cancelado
+ * não conta como consumo.
+ *
+ * Existe porque uma comanda nesse estado some da conta de todo mundo: ela
+ * não tem valor para cobrar, ninguém lembra de fechar, e mesmo assim ocupa a
+ * mesa no mapa do salão e entra na lista de "comandas em aberto" (uma mesa
+ * ficou 107h assim). O PDV mostra "Vazio" e o tempo decorrido em campos
+ * separados — a leitura de que a soma dos dois é um problema fica por conta
+ * do operador. Aqui essa leitura vira um estado com nome.
+ *
+ * Puro: quem chama passa o instante atual (facilita teste e evita recalcular
+ * Date.now() por card).
+ *
+ * @param {{created_at?: string|null, items?: Array<object>}|null|undefined} order
+ * @param {number} agora - Date.now()
+ * @param {number} [limiteHoras]
+ * @returns {{ esquecida: boolean, horas: number }}
+ */
+export function comandaEsquecida(order, agora, limiteHoras = HORAS_COMANDA_ESQUECIDA) {
+  const abertaEm = order?.created_at ? new Date(order.created_at).getTime() : NaN;
+  if (!Number.isFinite(abertaEm)) return { esquecida: false, horas: 0 };
+  const horas = Math.floor((agora - abertaEm) / 3600000);
+  if (horas < limiteHoras) return { esquecida: false, horas: Math.max(0, horas) };
+  const temConsumo = (Array.isArray(order?.items) ? order.items : [])
+    .some((i) => !i?.cancelado && (i?.qty ?? 1) > 0);
+  return { esquecida: !temConsumo, horas };
+}
+
+/**
  * Total da conta: soma apenas itens não cancelados, arredondado.
  *
  * O round2 não é enfeite: o retorno daqui é gravado em `pending.total` e é

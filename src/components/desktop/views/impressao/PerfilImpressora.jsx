@@ -5,7 +5,12 @@ import { buscarConfigImpressao, salvarConfigImpressao, PERFIL_IMPRESSORA_PADRAO 
 import { gerarHtmlComPerfil } from "@/lib/impressao/drivers/browserRaster";
 import { imprimirDocumento, OPCOES_DRIVER } from "@/lib/impressao/drivers";
 import { listarImpressorasPonte } from "@/lib/ponte";
-import { LuCircleCheck, LuCircleAlert, LuLoader, LuRefreshCw, LuPrinter } from "react-icons/lu";
+// Endereço de onde o dono baixa a Ponte KORA — o programa que faz a térmica
+// imprimir. Vem do ambiente e é compartilhado com a aba "Pedidos sem
+// Internet", que pede o mesmo arquivo; vazio quando o build não recebeu
+// endereço válido, e aí o botão nem existe.
+import { ENDERECO_DOWNLOAD_PONTE } from "@/lib/ponteDownload";
+import { LuCircleCheck, LuCircleAlert, LuLoader, LuRefreshCw, LuPrinter, LuDownload } from "react-icons/lu";
 import "./PerfilImpressora.css";
 
 // Documento de exemplo só pra preview/teste — nunca é uma venda real, só
@@ -246,22 +251,50 @@ export default function PerfilImpressora({ sz }) {
                   </div>
                 )}
 
-                <button
-                  type="button"
-                  onClick={buscarImpressorasNaPonte}
-                  disabled={statusPonte === "buscando"}
-                  className="perfil-impressora__btn-detectar"
-                >
-                  {statusPonte === "buscando"
-                    ? <LuLoader size={14} className="perfil-impressora__spin" color={varColor(C.blue)} />
-                    : <LuRefreshCw size={14} />}
-                  Procurar impressoras
-                </button>
+                <div className="perfil-impressora__acoes-ponte">
+                  <button
+                    type="button"
+                    onClick={buscarImpressorasNaPonte}
+                    disabled={statusPonte === "buscando"}
+                    className="perfil-impressora__btn-detectar"
+                  >
+                    {statusPonte === "buscando"
+                      ? <LuLoader size={14} className="perfil-impressora__spin" color={varColor(C.blue)} />
+                      : <LuRefreshCw size={14} />}
+                    Procurar impressoras
+                  </button>
+
+                  {ENDERECO_DOWNLOAD_PONTE && (
+                    <a
+                      href={ENDERECO_DOWNLOAD_PONTE}
+                      download
+                      rel="noreferrer"
+                      className="perfil-impressora__btn-baixar"
+                    >
+                      <LuDownload size={14} /> Baixar o programa da impressora
+                    </a>
+                  )}
+                </div>
+
+                {/* O download vem compactado porque o executável sozinho não
+                    cabe no limite de upload do plano gratuito. A instrução mora
+                    aqui, colada no botão, e não só na mensagem de "não está
+                    rodando": quem baixa em qualquer outro estado da tela também
+                    precisa saber que tem de descompactar antes — senão dá dois
+                    cliques no .zip e nada acontece. */}
+                {ENDERECO_DOWNLOAD_PONTE && (
+                  <p className="perfil-impressora__dica-baixar">
+                    Vem compactado: descompacte o arquivo e dê dois cliques no <code>KoraPonte.exe</code> que aparecer.
+                    Ele trabalha em segundo plano, sem abrir janela.
+                  </p>
+                )}
 
                 {statusPonte === "ausente" && (
                   <div className="perfil-impressora__status perfil-impressora__status--atencao">
-                    <LuCircleAlert size={13} color={varColor(C.warn)} /> A Ponte não está rodando neste computador. Dê dois
-                    cliques no KoraPonte.exe — ele trabalha em segundo plano, sem abrir janela — e procure de novo.
+                    <LuCircleAlert size={13} color={varColor(C.warn)} />{" "}
+                    {ENDERECO_DOWNLOAD_PONTE
+                      ? "A Ponte não está rodando neste computador. Baixe e abra o programa no botão acima e procure de novo."
+                      : "A Ponte não está rodando neste computador. Dê dois cliques no KoraPonte.exe — ele trabalha em segundo plano, sem abrir janela — e procure de novo."}
                   </div>
                 )}
                 {statusPonte === "erro" && (

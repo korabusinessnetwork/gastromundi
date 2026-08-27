@@ -4,6 +4,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { LuUser, LuSearch, LuCheck, LuX } from "react-icons/lu";
 import { listarClientes, cadastrarCliente } from "@/lib/clientes";
+import { mascararTelefone, telefoneValido, formatarTelefone } from "@/lib/telefone";
 import "./ClienteFiadoSelector.css";
 
 /**
@@ -40,8 +41,13 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, p
     return () => clearTimeout(debounceRef.current);
   }, [busca, cliente]);
 
+  // Mesmo cadastro rápido, mesma regra de telefone do módulo de Clientes:
+  // aqui também dava para salvar "123" e descobrir depois, na hora de cobrar
+  // o fiado, que o número não existe.
+  const telefoneOk = telefoneValido(novoTelefone);
+
   const handleCadastrarRapido = async () => {
-    if (salvando) return;
+    if (salvando || !telefoneOk) return;
     setSalvando(true);
     setErro(null);
     const { data, error } = await cadastrarCliente({ nome: busca, telefone: novoTelefone }, usuario);
@@ -61,7 +67,7 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, p
         <LuCheck size={16} color={varColor(C.accent)} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="cliente-fiado-selecionado__nome" style={{ color: varColor(C.text) }}>{cliente.nome}</div>
-          {cliente.telefone && <div className="cliente-fiado-selecionado__telefone" style={{ color: varColor(C.muted) }}>{cliente.telefone}</div>}
+          {cliente.telefone && <div className="cliente-fiado-selecionado__telefone" style={{ color: varColor(C.muted) }}>{formatarTelefone(cliente.telefone)}</div>}
         </div>
         <button
           onClick={() => onSelecionar(null)}
@@ -112,7 +118,7 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, p
               <LuUser size={14} color={varColor(C.muted)} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="cliente-fiado-resultado__nome" style={{ color: varColor(C.text) }}>{c.nome}</div>
-                {c.telefone && <div className="cliente-fiado-resultado__telefone" style={{ color: varColor(C.muted) }}>{c.telefone}</div>}
+                {c.telefone && <div className="cliente-fiado-resultado__telefone" style={{ color: varColor(C.muted) }}>{formatarTelefone(c.telefone)}</div>}
               </div>
             </button>
           ))}
@@ -141,14 +147,21 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, p
           <div className="cliente-fiado-cadastro__label" style={{ color: varColor(C.muted) }}>Telefone de <strong>{busca}</strong> (obrigatório)</div>
           <input
             value={novoTelefone}
-            onChange={(e) => setNovoTelefone(e.target.value)}
+            onChange={(e) => setNovoTelefone(mascararTelefone(e.target.value))}
             placeholder="(00) 00000-0000"
+            inputMode="numeric"
+            aria-invalid={novoTelefone.trim().length > 0 && !telefoneOk}
             className="cliente-fiado-cadastro__input-telefone"
             style={{
               padding: "8px 10px", borderRadius: 8, border: `1.5px solid var(--gm-input-border)`,
               background: "var(--gm-input-bg)", color: varColor(C.text), outline: "none",
             }}
           />
+          {novoTelefone.trim().length > 0 && !telefoneOk && (
+            <div className="cliente-fiado-cadastro__aviso" style={{ color: varColor(C.red) }}>
+              Telefone incompleto — informe DDD e número.
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8 }}>
             <button
               onClick={() => setMostrarCadastro(false)}
@@ -162,12 +175,12 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, p
             </button>
             <button
               onClick={handleCadastrarRapido}
-              disabled={salvando || !novoTelefone.trim()}
+              disabled={salvando || !telefoneOk}
               className="cliente-fiado-cadastro__botao-confirmar"
               style={{
                 flex: 2, padding: "8px", borderRadius: 8, border: "none",
-                background: (salvando || !novoTelefone.trim()) ? varColor(C.faint) : varColor(C.accent),
-                color: "#fff", cursor: (salvando || !novoTelefone.trim()) ? "not-allowed" : "pointer",
+                background: (salvando || !telefoneOk) ? varColor(C.faint) : varColor(C.accent),
+                color: "#fff", cursor: (salvando || !telefoneOk) ? "not-allowed" : "pointer",
               }}
             >
               {salvando ? "Salvando..." : "Cadastrar e usar"}

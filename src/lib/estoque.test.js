@@ -7,7 +7,7 @@ const { registrarInsight, buscarInsights } = vi.hoisted(() => ({
 
 vi.mock("./jarvas", () => ({ registrarInsight, buscarInsights }));
 
-import { verificarEstoqueMinimo, verificarOversell, gerarAlertaEstoque, gerarAlertaOversell, gerarAlertaBaixaFalhou, processarBaixaEstoque, isRpcAusente } from "./estoque";
+import { verificarEstoqueMinimo, verificarOversell, gerarAlertaEstoque, gerarAlertaOversell, gerarAlertaBaixaFalhou, decidirAlertaDeLote, iniciarLoteDeBaixas, fecharLoteDeBaixas, LIMIAR_FALHA_SISTEMICA, processarBaixaEstoque, isRpcAusente } from "./estoque";
 
 describe("verificarEstoqueMinimo", () => {
   it("detecta quando a baixa cruza o mínimo (estava acima, ficou em/abaixo)", () => {
@@ -253,6 +253,159 @@ describe("gerarAlertaBaixaFalhou", () => {
   });
 });
 
+describe("decidirAlertaDeLote", () => {
+  const item = (n) => ({ produtoId: n, nome: `Item ${n}`, quantidade: 1 });
+
+  it("lote vazio não vira alerta nenhum", () => {
+    expect(decidirAlertaDeLote([]).modo).toBe("nenhum");
+    expect(decidirAlertaDeLote(null).modo).toBe("nenhum");
+    expect(decidirAlertaDeLote(undefined).modo).toBe("nenhum");
+  });
+
+  it("poucas falhas continuam sendo alerta por item — pode ser problema do produto", () => {
+    expect(decidirAlertaDeLote([item(1)]).modo).toBe("individual");
+    expect(decidirAlertaDeLote([item(1), item(2)]).modo).toBe("individual");
+  });
+
+  it("do limiar em diante é falha sistêmica: o problema é o sistema, não o item", () => {
+    expect(decidirAlertaDeLote([item(1), item(2), item(3)]).modo).toBe("sistemica");
+    expect(decidirAlertaDeLote([item(1), item(2), item(3), item(4)]).modo).toBe("sistemica");
+    expect(LIMIAR_FALHA_SISTEMICA).toBe(3);
+  });
+
+  it("limiar é ajustável, e valor inválido cai no padrão", () => {
+    expect(decidirAlertaDeLote([item(1), item(2)], 2).modo).toBe("sistemica");
+    expect(decidirAlertaDeLote([item(1), item(2)], 0).modo).toBe("individual");
+    expect(decidirAlertaDeLote([item(1), item(2)], null).modo).toBe("individual");
+  });
+
+  it("descarta buracos da lista antes de contar", () => {
+    expect(decidirAlertaDeLote([item(1), null, undefined]).modo).toBe("individual");
+    expect(decidirAlertaDeLote([null, null]).modo).toBe("nenhum");
+  });
+});
+
+describe("lote de baixas recusadas", () => {
+  const falha = (id, nome) => ({ produtoId: id, nome, quantidade: 2, erro: { message: "RLS" } });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    buscarInsights.mockResolvedValue({ data: [], error: null });
+    registrarInsight.mockResolvedValue({ data: null, error: null });
+  });
+
+  it("com lote aberto, nada é registrado até o fechamento", async () => {
+    iniciarLoteDeBaixas();
+    await gerarAlertaBaixaFalhou(falha(1, "Chopp"), "maria");
+    await gerarAlertaBaixaFalhou(falha(2, "Água"), "maria");
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+
+    await fecharLoteDeBaixas("maria");
+    expect(registrarInsight).toHaveBeenCalledTimes(2);
+  });
+
+  it("uma venda que falha em tudo vira UM alerta, não um cartão por produto", async () => {
+    iniciarLoteDeBaixas();
+    await gerarAlertaBaixaFalhou(falha(1, "Chopp"), "maria");
+    await gerarAlertaBaixaFalhou(falha(2, "Água"), "maria");
+    await gerarAlertaBaixaFalhou({ subprodutoId: 7, nome: "Molho", quantidade: 0.2, erro: { message: "RLS" } }, "maria");
+    await fecharLoteDeBaixas("maria");
+
+    expect(registrarInsight).toHaveBeenCalledTimes(1);
+    const insight = registrarInsight.mock.calls[0][0];
+    expect(insight).toMatchObject({ tipo: "alerta", severidade: "danger", modulo: "estoque" });
+    expect(insight.origem.chave).toBe("estoque:baixa-falhou:sistemica");
+    expect(insight.origem.dados.total).toBe(3);
+    expect(insight.acao.params).toEqual({ produto_ids: [1, 2], subproduto_ids: [7] });
+  });
+
+  it("o texto do alerta sistêmico nomeia os itens sem despejar o erro do banco", async () => {
+    iniciarLoteDeBaixas();
+    for (const [id, nome] of [[1, "Chopp"], [2, "Água"], [3, "Suco"]]) {
+      await gerarAlertaBaixaFalhou(falha(id, nome), "maria");
+    }
+    await fecharLoteDeBaixas("maria");
+
+    const insight = registrarInsight.mock.calls[0][0];
+    expect(insight.descricao).toContain("Chopp");
+    expect(insight.descricao).toContain("Suco");
+    expect(insight.descricao).not.toContain("RLS");
+    expect(insight.origem.dados.erro).toBe("RLS");
+  });
+
+  it("com muitos itens, a descrição corta a lista em vez de virar um paredão", async () => {
+    iniciarLoteDeBaixas();
+    for (let i = 1; i <= 8; i++) await gerarAlertaBaixaFalhou(falha(i, `Item ${i}`), "maria");
+    await fecharLoteDeBaixas("maria");
+
+    const insight = registrarInsight.mock.calls[0][0];
+    expect(insight.descricao).toContain("Item 5");
+    expect(insight.descricao).not.toContain("Item 6");
+    expect(insight.descricao).toContain("e mais 3");
+  });
+
+  it("um alerta sistêmico aberto não é repetido a cada venda seguinte", async () => {
+    buscarInsights.mockResolvedValue({
+      data: [{ origem: { chave: "estoque:baixa-falhou:sistemica" } }],
+      error: null,
+    });
+
+    iniciarLoteDeBaixas();
+    for (let i = 1; i <= 4; i++) await gerarAlertaBaixaFalhou(falha(i, `Item ${i}`), "maria");
+    await fecharLoteDeBaixas("maria");
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("venda sem nenhuma falha fecha o lote sem alertar nada", async () => {
+    iniciarLoteDeBaixas();
+    await fecharLoteDeBaixas("maria");
+
+    expect(registrarInsight).not.toHaveBeenCalled();
+    expect(buscarInsights).not.toHaveBeenCalled();
+  });
+
+  it("fechar sem lote aberto é inofensivo", async () => {
+    await expect(fecharLoteDeBaixas("maria")).resolves.toBeUndefined();
+    expect(registrarInsight).not.toHaveBeenCalled();
+  });
+
+  it("lote aninhado só publica no fechamento mais externo", async () => {
+    iniciarLoteDeBaixas();
+    iniciarLoteDeBaixas();
+    await gerarAlertaBaixaFalhou(falha(1, "Chopp"), "maria");
+
+    await fecharLoteDeBaixas("maria");
+    expect(registrarInsight).not.toHaveBeenCalled();
+
+    await fecharLoteDeBaixas("maria");
+    expect(registrarInsight).toHaveBeenCalledTimes(1);
+  });
+
+  it("fechado o lote, a próxima falha volta a alertar na hora", async () => {
+    iniciarLoteDeBaixas();
+    await fecharLoteDeBaixas("maria");
+
+    await gerarAlertaBaixaFalhou(falha(9, "Chopp"), "maria");
+
+    expect(registrarInsight).toHaveBeenCalledTimes(1);
+    expect(registrarInsight.mock.calls[0][0].origem.chave).toBe("estoque:baixa-falhou:produto:9");
+  });
+
+  it("falha do próprio Jarvas ao publicar o lote não quebra a venda", async () => {
+    buscarInsights.mockRejectedValue(new Error("falha de rede"));
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    iniciarLoteDeBaixas();
+    for (let i = 1; i <= 3; i++) await gerarAlertaBaixaFalhou(falha(i, `Item ${i}`), "maria");
+
+    await expect(fecharLoteDeBaixas("maria")).resolves.toBeUndefined();
+    expect(registrarInsight).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});
+
 describe("processarBaixaEstoque", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -343,6 +496,24 @@ describe("processarBaixaEstoque", () => {
 
     await vi.waitFor(() => expect(registrarInsight).toHaveBeenCalledTimes(1));
     expect(registrarInsight.mock.calls[0][0].origem.chave).toBe("estoque:oversell:produto:8");
+  });
+
+  it("RPC OK sem linha nenhuma é FALHA, não sucesso silencioso", async () => {
+    // O UPDATE não achou o produto em `estoque`: nada foi descontado. Antes
+    // isso passava como sucesso e o app estimava `anterior - qty` — o mesmo
+    // erro do TD012, com a tela caindo enquanto o banco não mexia.
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const chamarRpc = vi.fn(() => Promise.resolve({ data: [], error: null }));
+
+    const { error, quantidade } = await processarBaixaEstoque({
+      produtoId: 9, qty: 3, quantidadeAnterior: 10, nomeProduto: "Pastel",
+      usuario: "maria", chamarRpc,
+    });
+
+    expect(error?.code).toBe("estoque_sem_linha");
+    expect(quantidade).toBe(10); // saldo de antes, não a estimativa 7
+    expect(registrarInsight).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 
   it("usa minimoFallback quando a RPC não devolve minimo", async () => {

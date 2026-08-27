@@ -1,8 +1,12 @@
 /**
- * F020 — conversões puras de largura de papel térmico (58mm/80mm) pra
- * pixels de CSS e pra colunas de texto monoespaçado (usado tanto no
- * preview raster quanto na quebra de linha do driver ESC/POS, que não
- * tem CSS e precisa quebrar o texto ele mesmo).
+ * F020 — conversões puras de largura de papel térmico (58mm/80mm).
+ *
+ * São dois mundos diferentes e eles não se misturam:
+ * - o PREVIEW na tela, que é HTML com CSS: `larguraEmPx` e
+ *   `colunasPorLargura` estimam quanto cabe numa fonte de tela;
+ * - a IMPRESSORA térmica, que não tem CSS nenhum: `colunasEscpos` dá o
+ *   número de colunas fixado pelo hardware.
+ * Quem manda papel pra impressora usa `colunasEscpos`.
  *
  * Escala escolhida (3.75 px/mm) preserva o comportamento do F015: os
  * 300px fixos de body{width} equivaliam a 80mm (300/80 = 3.75).
@@ -39,6 +43,35 @@ export function colunasPorLargura(larguraMm, fontePx = 13) {
   const fonte = Number(fontePx) > 0 ? Number(fontePx) : 13;
   const colunas = Math.floor(larguraPx / (fonte * LARGURA_CHAR_EM_EMS));
   return Math.max(MINIMO_COLUNAS, colunas);
+}
+
+// Colunas REAIS da impressora térmica, na Fonte A (a que a Ponte usa —
+// ela manda `ESC @` e nunca troca de fonte). Isso é hardware: o papel de
+// 80mm imprime 48 caracteres por linha e o de 58mm imprime 32, sempre,
+// não importa o que a tela mostra. NADA a ver com `colunasPorLargura`,
+// que é conta de pixel de CSS e serve só pro preview raster do navegador.
+const COLUNAS_FONTE_A_POR_LARGURA = { 80: 48, 58: 32 };
+
+// Papel fora do padrão (nem 80mm nem 58mm) não existe em impressora
+// térmica comum, mas o campo é digitável no perfil do estabelecimento.
+// Regra: usamos as colunas do maior papel padrão que ainda CABE no que
+// foi informado — assim a linha nunca fica mais larga que o papel, que é
+// o erro que embaralha a comanda. Papel mais estreito que 58mm cai no 32
+// (não há padrão menor), e largura ausente/inválida cai em 80mm, o mesmo
+// default do resto do módulo.
+const LARGURA_PADRAO_MM = 80;
+
+/**
+ * Quantas colunas de texto a impressora térmica realmente imprime nesta
+ * largura de papel. É essa a conta que vale pra comanda impressa.
+ *
+ * @param {number} larguraMm - largura do papel configurada no perfil do estabelecimento
+ * @returns {number} colunas (inteiro positivo)
+ */
+export function colunasEscpos(larguraMm) {
+  const mm = Number(larguraMm) > 0 ? Number(larguraMm) : LARGURA_PADRAO_MM;
+  if (mm >= 80) return COLUNAS_FONTE_A_POR_LARGURA[80];
+  return COLUNAS_FONTE_A_POR_LARGURA[58];
 }
 
 /**

@@ -19,7 +19,8 @@ import { LuWifiOff } from "react-icons/lu";
 
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
-import { nomeExibicaoTenant } from "@/lib/tema";
+import { marcaDoCabecalho } from "@/lib/tema";
+import { lerBrandingCache } from "@/lib/brandingCache";
 import {
   totalLancamentosGarcom,
   radarOportunidades,
@@ -518,7 +519,10 @@ export default function MobilePage() {
   }));
 
   // (d) MaisTab
-  const tenantNome = nomeExibicaoTenant(tenant?.tema, tenant?.nome);
+  // Mesma marca da sidebar do desktop: enquanto o bootstrap do tenant não
+  // responde, o cache de marca desta origem evita o "KORA" piscando por
+  // segundos logo depois de o login já ter mostrado o estabelecimento.
+  const tenantNome = marcaDoCabecalho(tenant, lerBrandingCache()).nome;
   const usuarioIniciais =
     (currentUser?.name || "")
       .trim()

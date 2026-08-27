@@ -10,7 +10,7 @@ import "./ApexHero.css";
  */
 export default function ApexHero() {
   return (
-    <header className="apex-hero">
+    <header id="topo" className="apex-hero">
       {/* Badge com duas variantes de copy: no mobile o artboard pede a
           curta (cabe numa linha do pill); o CSS mostra uma por vez. */}
       <span className="apex-hero__badge">
@@ -22,7 +22,7 @@ export default function ApexHero() {
         </span>
       </span>
       <h1 className="apex-hero__titulo">
-        Seu negócio vendendo pelo KORA no mesmo dia — caixa, comanda, Pix e nota fiscal
+        Seu negócio vendendo pelo KORA no mesmo dia, caixa, comanda, Pix e nota fiscal
       </h1>
       <p className="apex-hero__paragrafo">
         Sem semanas de implantação, sem treinamento de manual grosso. A gente monta

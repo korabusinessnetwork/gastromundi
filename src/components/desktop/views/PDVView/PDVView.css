@@ -9,7 +9,7 @@
  * moram no JSX. O que depende de runtime (sz.*, isCel, estado) segue inline
  * de propósito; o que é literal mora aqui.
  *
- * TAMANHO DE FONTE agora vem da escala do design system (--fs-*/--lh-* de
+ * TAMANHO DE FONTE agora vem da escala do design system (--fs-* / --lh-* de
  * src/styles/tipografia.css), por classe de componente — não mais inline via
  * sz.* do JSX. `sz` continua no JSX só para padding/gap/grid (layout), que
  * seguem no sistema JS por breakpoint. `tabular-nums` = alinhamento de

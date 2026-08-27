@@ -108,7 +108,7 @@ export default function DemoPDV() {
 
         {sucesso !== null && (
           <div className="demo-pdv__sucesso" role="status">
-            ✅ Venda registrada — {formatarBRL(sucesso)}
+            ✅ Venda registrada, {formatarBRL(sucesso)}
           </div>
         )}
 

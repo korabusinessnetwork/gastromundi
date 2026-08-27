@@ -1,5 +1,5 @@
 import { quebrarLinha } from "./largura";
-import { rotuloMetodo } from "@/utils/pagamentos";
+import { resolverBlocosComanda, fmtComanda, fmtR } from "./layoutComanda";
 
 /**
  * F020 — formata os dados já montados por `src/lib/impressao.js`
@@ -8,14 +8,6 @@ import { rotuloMetodo } from "@/utils/pagamentos";
  * imprime nada, só devolve `string[]` (uma por linha) — quem imprime
  * é `drivers/escposQzTray.js`.
  */
-
-function fmtR(v) {
-  return "R$ " + Number(v ?? 0).toFixed(2);
-}
-
-function fmtComanda(nome) {
-  return /^\d+$/.test(String(nome ?? "").trim()) ? `Comanda ${nome}` : (nome ?? "—");
-}
 
 function centralizar(texto, colunas) {
   const t = String(texto ?? "");
@@ -37,61 +29,77 @@ function linhaValor(rotulo, valor, colunas) {
   return r + " ".repeat(espacos) + v;
 }
 
+function alinhar(texto, colunas, alinhamento) {
+  const t = String(texto ?? "");
+  if (t.length >= colunas) return t.slice(0, colunas);
+  if (alinhamento === "centro") return centralizar(t, colunas);
+  if (alinhamento === "direita") return " ".repeat(colunas - t.length) + t;
+  return t;
+}
+
+// Texto que pode não caber na coluna: quebra primeiro, alinha cada
+// pedaço depois — quebrar depois de alinhar deixaria o espaço no meio.
+function linhasAlinhadas(textos, colunas, alinhamento) {
+  const saida = [];
+  for (const texto of textos ?? []) {
+    for (const parte of quebrarLinha(texto, colunas)) saida.push(alinhar(parte, colunas, alinhamento));
+  }
+  return saida;
+}
+
+function linhasDoItem(item, colunas) {
+  const linhas = [];
+  linhas.push(...quebrarLinha(`${item.qty}x ${item.nome}`, colunas));
+  linhas.push(linhaValor("", item.total, colunas));
+  for (const obs of item.obs ?? []) {
+    linhas.push(...quebrarLinha(`  📝 ${obs}`, colunas));
+  }
+  return linhas;
+}
+
 /**
+ * Formata o comprovante/cupom como texto puro em colunas, a partir do
+ * MESMO layout de blocos que o HTML do navegador usa
+ * (`layoutComanda.js`). É isso que faz a pré-visualização da tela valer
+ * também para quem imprime na térmica: os dois leem a mesma lista
+ * resolvida e só mudam a forma de vestir.
+ *
+ * O que o papel térmico não sabe fazer, e por isso é ignorado aqui: o
+ * logo (é imagem) e o tamanho/negrito de cada bloco — a Ponte manda
+ * texto puro, a letra é a da própria impressora.
+ *
  * @param {object} dados - retorno de montarComprovantePagamento/montarCupomPreNota
  * @param {number} colunas
  * @returns {string[]}
  */
 export function formatarComprovanteEscpos(dados, colunas) {
-  const { identidade, comanda, itens, subtotal, valorTaxa, ajuste, valorAjuste, total, pagamentos, trocoTotal, naoFiscal, avisoNaoFiscal } = dados;
   const linhas = [];
 
-  linhas.push(centralizar(identidade?.nome ?? "", colunas));
-  linhas.push(centralizar(new Date().toLocaleString("pt-BR"), colunas));
-  if (identidade?.endereco) linhas.push(centralizar(identidade.endereco, colunas));
-  if (identidade?.cnpj) linhas.push(centralizar(`CNPJ: ${identidade.cnpj}`, colunas));
-  linhas.push(centralizar(fmtComanda(comanda), colunas));
-  linhas.push(linhaSeparadora(colunas));
+  for (const bloco of resolverBlocosComanda(dados?.layout, dados)) {
+    const alinhamento = bloco.estilo?.alinhamento ?? "esquerda";
 
-  for (const it of (itens ?? [])) {
-    const nome = `${it.qty}x ${it.emoji ? `${it.emoji} ` : ""}${it.nome}`;
-    quebrarLinha(nome, colunas).forEach(l => linhas.push(l));
-    linhas.push(linhaValor("", fmtR(it.preco * it.qty), colunas));
-    for (const obs of (it.obs ?? [])) {
-      quebrarLinha(`  📝 ${obs}`, colunas).forEach(l => linhas.push(l));
+    switch (bloco.tipo) {
+      case "logo":
+        break; // imagem não existe em texto puro
+      case "texto":
+      case "aviso":
+        linhas.push(...linhasAlinhadas(bloco.linhas, colunas, alinhamento));
+        break;
+      case "valor":
+        linhas.push(linhaValor(bloco.rotulo, bloco.valor, colunas));
+        break;
+      case "itens":
+        for (const item of bloco.itens) linhas.push(...linhasDoItem(item, colunas));
+        break;
+      case "separador":
+        linhas.push(linhaSeparadora(colunas));
+        break;
+      case "espaco":
+        for (let i = 0; i < bloco.linhas; i += 1) linhas.push("");
+        break;
+      default:
+        break;
     }
-  }
-  linhas.push(linhaSeparadora(colunas));
-
-  if (valorTaxa > 0 || valorAjuste !== 0) {
-    linhas.push(linhaValor("Subtotal", fmtR(subtotal), colunas));
-    if (valorTaxa > 0) linhas.push(linhaValor("Taxa de Serviço", fmtR(valorTaxa), colunas));
-    if (valorAjuste !== 0) {
-      const rotuloAjuste = ajuste?.tipo === "desconto" ? "Desconto" : "Acréscimo";
-      const sinal = valorAjuste < 0 ? "-" : "+";
-      linhas.push(linhaValor(rotuloAjuste, `${sinal}${fmtR(Math.abs(valorAjuste))}`, colunas));
-    }
-  }
-  linhas.push(linhaValor("TOTAL", fmtR(total), colunas));
-  if (trocoTotal > 0) linhas.push(linhaValor("Troco", fmtR(trocoTotal), colunas));
-
-  const pagamentosComMetodo = (pagamentos ?? []).filter(p => p?.metodo);
-  if (pagamentosComMetodo.length > 0) {
-    linhas.push(linhaSeparadora(colunas));
-    for (const p of pagamentosComMetodo) {
-      const prefixo = pagamentosComMetodo.length > 1 ? `${fmtR(p.valor)} · ` : "";
-      linhas.push(`${prefixo}Pagamento: ${rotuloMetodo(p.metodo)}`);
-    }
-  }
-
-  if (naoFiscal) {
-    linhas.push(linhaSeparadora(colunas));
-    quebrarLinha(avisoNaoFiscal ?? "", colunas).forEach(l => linhas.push(centralizar(l, colunas)));
-  }
-
-  if (identidade?.rodape) {
-    linhas.push(linhaSeparadora(colunas));
-    quebrarLinha(identidade.rodape, colunas).forEach(l => linhas.push(centralizar(l, colunas)));
   }
 
   return linhas;

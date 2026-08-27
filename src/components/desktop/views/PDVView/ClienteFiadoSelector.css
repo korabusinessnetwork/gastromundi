@@ -1,6 +1,6 @@
 /**
  * F010 — seletor de cliente para fiado (PDV). Decisão 018 (CSS separado do JSX) +
- * tokens --fs-*/--lh-* (tipografia.css). Cores e padding/gap ficam inline (por enquanto).
+ * tokens --fs-* / --lh-* (tipografia.css). Cores e padding/gap ficam inline (por enquanto).
  * TAMANHO DE FONTE migrante em das classes do componente, nunca mais via sz.* no JSX.
  */
 
@@ -58,6 +58,12 @@
 .cliente-fiado-cadastro__label {
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
+}
+
+.cliente-fiado-cadastro__aviso {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 600;
 }
 
 .cliente-fiado-cadastro__input-telefone {

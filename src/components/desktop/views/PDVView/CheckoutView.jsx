@@ -22,6 +22,19 @@ import "./CheckoutView.css";
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
+/**
+ * Dinheiro na mão nunca é negativo. `min="0"` num <input type="number"> só
+ * limita a setinha e a validação nativa do form — digitar "-50" passa direto.
+ * E "-50" fazia mais do que exibir número errado: a trava de dinheiro
+ * insuficiente perguntava `recebido > 0`, então valor negativo escapava dela
+ * e LIBERAVA o "Confirmar Pagamento" de uma conta que não foi paga. Prevenir
+ * na entrada é melhor do que avisar depois.
+ */
+export const valorRecebido = (texto) => {
+  const n = parseFloat(texto);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
 const METODOS_CATALOG = [
   { id: "dinheiro", label: "Dinheiro", Icon: LuBanknote   },
   { id: "credito",  label: "Crédito",  Icon: LuCreditCard },
@@ -177,11 +190,14 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
   // de R$ 80 com R$ 50 na mão — a venda entrava cheia e o caixa nascia com
   // R$ 30 de furo, sem nada na tela dizendo que faltou. É a mesma regra do
   // PDV mobile (PdvModulo: `!ehDinheiro || recebidoNum >= total`).
+  // `!== 0` e não `> 0`: valor negativo também é valor digitado. Com `> 0` um
+  // "-50" escapava da trava inteira e liberava a confirmação (o campo já
+  // impede digitar negativo, isto aqui é a segunda tranca).
   const dinheiroInsuficiente = isSplit
     ? pagamentos.some(
-        p => p.metodo === "dinheiro" && (p.recebido || 0) > 0 && p.recebido < p.valor - 0.005
+        p => p.metodo === "dinheiro" && (p.recebido || 0) !== 0 && p.recebido < p.valor - 0.005
       )
-    : singleMetodo === "dinheiro" && singleRecebido > 0 && singleRecebido < total - 0.005;
+    : singleMetodo === "dinheiro" && singleRecebido !== 0 && singleRecebido < total - 0.005;
 
   // Quanto falta de dinheiro na mão, para o aviso do botão dizer o número em
   // vez de mandar "selecione a forma de pagamento" (que já está selecionada).
@@ -863,7 +879,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                             <input
                               type="number" min="0" step="0.01"
                               value={p.recebido || ""}
-                              onChange={e => updatePagamento(idx, { recebido: parseFloat(e.target.value) || 0 })}
+                              onChange={e => updatePagamento(idx, { recebido: valorRecebido(e.target.value) })}
                               placeholder={p.valor.toFixed(2)}
                               className="checkout-view__recebido-input"
                               style={{
@@ -975,7 +991,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                         min="0"
                         step="0.01"
                         value={singleRecebido || ""}
-                        onChange={e => updatePagamento(0, { recebido: parseFloat(e.target.value) || 0 })}
+                        onChange={e => updatePagamento(0, { recebido: valorRecebido(e.target.value) })}
                         placeholder={total.toFixed(2)}
                         className="checkout-view__troco-input"
                         style={{
@@ -1185,6 +1201,16 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                       onChange={e => { setAjusteSenha(e.target.value); setAjusteSenhaErro(""); }}
                       onKeyDown={e => { if (e.key === "Enter") aplicarAjuste(); }}
                       placeholder="Digite a senha"
+                      // Autorização de GERENTE, não login de quem está no
+                      // terminal. Sem isto o navegador preenchia sozinho a
+                      // senha salva do usuário logado e o desconto saía
+                      // "autorizado" com um clique — num PDV compartilhado,
+                      // qualquer um passa por gerente. `name` genérico +
+                      // new-password mantêm o gerenciador de senhas fora.
+                      name="autorizacao-gerente"
+                      autoComplete="new-password"
+                      data-1p-ignore
+                      data-lpignore="true"
                       className="checkout-view__ajuste-senha"
                       style={{
                         border: `1.5px solid ${ajusteSenhaErro ? varColor(C.red) : "var(--gm-input-border)"}`,
@@ -1349,6 +1375,13 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                     value={remSenha}
                     onChange={e => { setRemSenha(e.target.value); setRemSenhaErro(""); }}
                     placeholder="Digite a senha"
+                    // Ver o comentário do campo de autorização do desconto:
+                    // autopreenchimento aqui vira remoção de item autorizada
+                    // sem gerente nenhum.
+                    name="autorizacao-gerente"
+                    autoComplete="new-password"
+                    data-1p-ignore
+                    data-lpignore="true"
                     className="checkout-view__remocao-senha"
                     style={{
                       border: `1.5px solid ${remSenhaErro ? varColor(C.red) : "var(--gm-input-border)"}`,

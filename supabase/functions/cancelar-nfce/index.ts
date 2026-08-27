@@ -21,7 +21,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { assinarEventoDSig, transmitirEventoSefazRS } from "../_shared/nfceTransmissao.ts";
-import { decidirAcesso, mensagemRecusa, PAPEIS_GERENCIA } from "../_shared/guardaEntrada.ts";
+import { decidirAcesso, mensagemRecusa, PAPEIS_GERENCIA, registrarFalhaInterna } from "../_shared/guardaEntrada.ts";
 import {
   montarXmlEventoCancelamento,
   dentroDoPrazoCancelamento,
@@ -199,7 +199,7 @@ Deno.serve(async (req: Request) => {
     }, 200);
   } catch (e) {
     // Nunca vaza segredo na mensagem de erro.
-    return json({ error: "Falha ao cancelar NFC-e.", detalhe: String((e as Error)?.message ?? e) }, 500);
+    return json({ error: "Falha ao cancelar NFC-e.", detalhe: registrarFalhaInterna("cancelar-nfce", e) }, 500);
   }
 });
 

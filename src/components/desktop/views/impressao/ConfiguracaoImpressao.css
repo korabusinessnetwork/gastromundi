@@ -1,6 +1,6 @@
 /**
  * F018 — Configuração de Impressão. Decisão 018 (CSS separado do JSX) +
- * tokens --fs-*/--lh-*/--gm-* (ADR-007). Cores/transições/cursor/layout
+ * tokens --fs-* / --lh-* / --gm-* (ADR-007). Cores/transições/cursor/layout
  * fixo são classe, nunca style={{}} inline.
  */
 

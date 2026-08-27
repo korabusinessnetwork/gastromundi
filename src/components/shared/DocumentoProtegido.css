@@ -1,0 +1,54 @@
+/*
+ * CPF/CNPJ oculto por padrão (LGPD). Decisão 018 (estilo fora do JSX) e
+ * tokens --gm-* para recolorir por estabelecimento (decisão 017).
+ *
+ * Herda tamanho de fonte de quem o usa (lista de clientes e cabeçalho do
+ * cadastro têm escalas diferentes) — aqui só o alinhamento, o botão e a
+ * tipografia do próprio número.
+ */
+
+.documento-protegido {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.documento-protegido__icone {
+  flex-shrink: 0;
+}
+
+.documento-protegido__rotulo {
+  font-weight: 700;
+}
+
+/* tabular-nums para o número não "dançar" ao alternar oculto/completo. */
+.documento-protegido__valor {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2px;
+}
+
+.documento-protegido__botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--gm-border);
+  border-radius: 7px;
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.documento-protegido__botao:hover {
+  color: var(--gm-text);
+  border-color: var(--gm-accent);
+}
+
+.documento-protegido__botao[aria-pressed="true"] {
+  color: var(--gm-text);
+}

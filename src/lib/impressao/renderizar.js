@@ -1,6 +1,11 @@
 import estilosComprovante from "./comprovante.css?raw";
 import estilosProducao from "./producao.css?raw";
-import { rotuloMetodo } from "@/utils/pagamentos";
+import { resolverBlocosComanda, fmtComanda, fmtR, logoUrlSegura } from "./layoutComanda";
+
+// Reexportada: a allowlist de esquema do logo mora com o resolvedor de
+// blocos (é ele quem decide se o logo sai), mas quem já importava daqui
+// continua funcionando.
+export { logoUrlSegura };
 
 /**
  * Renderização/impressão — F015. Constrói o HTML da janela de
@@ -31,44 +36,49 @@ export function esc(v) {
     .replaceAll("'", "&#39;");
 }
 
-/**
- * X2 — o logo vem do CADASTRO DO TENANT (white-label, decisão 017): sem
- * validar o esquema, um `javascript:`/`data:text/html` salvo ali vira
- * XSS na janela de impressão. Allowlist: só `http:`, `https:` (logo
- * hospedado) ou `data:image/…` (logo embutido em base64) passam — o
- * resto é descartado e o cabeçalho cai pro nome em texto.
- *
- * @param {any} url
- * @returns {boolean}
- */
-export function logoUrlSegura(url) {
-  const s = String(url ?? "").trim();
-  if (!s) return false;
-  return /^https?:/i.test(s) || /^data:image\//i.test(s);
+// --- Blocos do layout → HTML ------------------------------------------
+// O QUE sai e em que ordem é decidido em `layoutComanda.js`, junto com o
+// formatador da térmica. Aqui só se veste o resultado com tags: assim o
+// preview da tela e o papel da impressora nunca discordam.
+
+function classesEstilo(estilo, extra = "") {
+  const classes = [extra];
+  classes.push(`b-${{ esquerda: "esq", centro: "centro", direita: "dir" }[estilo?.alinhamento] ?? "esq"}`);
+  if (estilo?.tamanho === "pequeno") classes.push("b-peq");
+  if (estilo?.tamanho === "grande") classes.push("b-gr");
+  if (estilo?.negrito) classes.push("b-negrito");
+  return classes.filter(Boolean).join(" ");
 }
 
-function fmtR(v) {
-  return "R$ " + Number(v ?? 0).toFixed(2);
-}
-
-function fmtComanda(nome) {
-  return /^\d+$/.test(String(nome ?? "").trim()) ? `Comanda ${nome}` : (nome ?? "—");
-}
-
-function linhasItensRecibo(itens) {
-  return itens
+function htmlItens(bloco) {
+  const colunas = bloco.unitario ? 4 : 3;
+  const linhas = bloco.itens
     .map((it) => `
       <tr>
-        <td>${it.emoji ? `${esc(it.emoji)} ` : ""}${esc(it.nome)}</td>
+        <td>${esc(it.nome)}</td>
         <td style="text-align:center;">${esc(it.qty)}</td>
-        <td style="text-align:right;">${fmtR(it.preco)}</td>
-        <td style="text-align:right;font-weight:bold;">${fmtR(it.preco * it.qty)}</td>
+        ${bloco.unitario ? `<td style="text-align:right;">${esc(it.unitario)}</td>` : ""}
+        <td style="text-align:right;font-weight:bold;">${esc(it.total)}</td>
       </tr>
-      ${it.obs.map((o) => `<tr><td colspan="4" class="obs">📝 ${esc(o)}</td></tr>`).join("")}
+      ${it.obs.map((o) => `<tr><td colspan="${colunas}" class="obs">📝 ${esc(o)}</td></tr>`).join("")}
     `)
     .join("");
+
+  return `
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Qtd</th>${bloco.unitario ? "<th>Unit.</th>" : ""}<th>Total</th></tr>
+      </thead>
+      <tbody>${linhas}</tbody>
+    </table>`;
 }
 
+/**
+ * Cabeçalho de identidade dos COMPROVANTES DE CAIXA (F005: sangria,
+ * suprimento, fechamento) e das reimpressões. Esses papéis não são a
+ * comanda do cliente e por isso não passam pelo editor de blocos — o
+ * dono não escolhe o layout de um comprovante de conferência de caixa.
+ */
 function blocoCabecalhoIdentidade(identidade, quando) {
   const logoValido = logoUrlSegura(identidade.logoUrl);
   // `quando` permite carimbar a data de emissão do documento (ex.: o
@@ -90,21 +100,43 @@ function blocoCabecalhoIdentidade(identidade, quando) {
   `;
 }
 
+/** Um bloco do layout da comanda (impressao/layoutComanda.js) vira HTML. */
+function htmlBloco(bloco) {
+  switch (bloco.tipo) {
+    case "logo":
+      return `<div class="${classesEstilo(bloco.estilo)}"><img class="cabecalho__logo" src="${esc(bloco.url)}" alt="${esc(bloco.alt)}" /></div>`;
+    case "texto":
+      return `<div class="${classesEstilo(bloco.estilo, bloco.classe)}">${bloco.linhas.map(esc).join("<br/>")}</div>`;
+    case "valor":
+      return `<div class="${classesEstilo(bloco.estilo, "linha-valor")}"><span>${esc(bloco.rotulo)}</span><span${bloco.destaque ? ' class="valor"' : ""}>${esc(bloco.valor)}</span></div>`;
+    case "itens":
+      return htmlItens(bloco);
+    case "aviso":
+      return `<div class="${classesEstilo(bloco.estilo, "aviso-nao-fiscal")}">${bloco.linhas.map(esc).join("<br/>")}</div>`;
+    case "separador":
+      return "<hr/>";
+    case "espaco":
+      return `<div class="espaco espaco--${Math.min(3, Math.max(1, bloco.linhas))}"></div>`;
+    default:
+      return "";
+  }
+}
+
 /**
  * Monta o HTML do comprovante de pagamento OU do cupom/pré-nota — os
  * dois compartilham o mesmo template; o cupom só acrescenta o aviso
  * de "sem valor fiscal" (`dados.naoFiscal`).
  *
+ * A ordem e a aparência de cada pedaço vêm de `dados.layout` (o layout
+ * montado pelo dono em Configurações → Impressão → Layout da comanda).
+ * Sem layout gravado, cai no padrão de fábrica — o papel de sempre.
+ *
  * @param {object} dados - retorno de montarComprovantePagamento/montarCupomPreNota
  * @returns {string} HTML completo do documento
  */
 export function renderizarRecibo(dados) {
-  const { identidade, comanda, itens, subtotal, valorTaxa, ajuste, valorAjuste, total, pagamentos, trocoTotal, naoFiscal, avisoNaoFiscal } = dados;
-
-  const linhasPagamento = (pagamentos ?? [])
-    .filter((p) => p?.metodo)
-    .map((p) => `<div class="metodo">${pagamentos.length > 1 ? `${fmtR(p.valor)} · ` : ""}Pagamento: ${esc(rotuloMetodo(p.metodo))}</div>`)
-    .join("");
+  const { comanda, naoFiscal } = dados ?? {};
+  const corpo = resolverBlocosComanda(dados?.layout, dados).map(htmlBloco).join("\n  ");
 
   return `<!DOCTYPE html>
 <html>
@@ -114,28 +146,7 @@ export function renderizarRecibo(dados) {
   <style>${estilosComprovante}</style>
 </head>
 <body>
-  ${blocoCabecalhoIdentidade(identidade)}
-  <div class="cabecalho__linha" style="text-align:center;">${esc(fmtComanda(comanda))}</div>
-  <hr/>
-  <table>
-    <thead>
-      <tr><th>Item</th><th>Qtd</th><th>Unit.</th><th>Total</th></tr>
-    </thead>
-    <tbody>${linhasItensRecibo(itens)}</tbody>
-    <tfoot>
-      ${(valorTaxa > 0 || valorAjuste !== 0) ? `
-        <tr><td colspan="3" style="padding:6px 4px 2px;font-size:12px;color:#555;">Subtotal</td><td style="text-align:right;padding:6px 4px 2px;font-size:12px;color:#555;">${fmtR(subtotal)}</td></tr>
-        ${valorTaxa > 0 ? `<tr><td colspan="3" style="padding:2px 4px;font-size:12px;color:#555;">Taxa de Serviço</td><td style="text-align:right;padding:2px 4px;font-size:12px;color:#555;">${fmtR(valorTaxa)}</td></tr>` : ""}
-        ${valorAjuste !== 0 ? `<tr><td colspan="3" style="padding:2px 4px;font-size:12px;color:#555;">${ajuste?.tipo === "desconto" ? "Desconto" : "Acréscimo"}</td><td style="text-align:right;padding:2px 4px;font-size:12px;color:#555;">${valorAjuste < 0 ? "-" : "+"}${fmtR(Math.abs(valorAjuste))}</td></tr>` : ""}
-      ` : ""}
-      <tr class="total-row"><td colspan="3">TOTAL</td><td style="text-align:right;" class="valor">${fmtR(total)}</td></tr>
-      ${trocoTotal > 0 ? `<tr><td colspan="3" style="padding:4px;font-size:12px;color:#555;">Troco</td><td style="text-align:right;padding:4px;font-size:12px;color:#555;">${fmtR(trocoTotal)}</td></tr>` : ""}
-    </tfoot>
-  </table>
-  ${linhasPagamento}
-  ${naoFiscal ? `<div class="aviso-nao-fiscal">${esc(avisoNaoFiscal)}</div>` : ""}
-  <hr/>
-  <div class="rodape">${esc(identidade.rodape)}</div>
+  ${corpo}
 </body>
 </html>`;
 }

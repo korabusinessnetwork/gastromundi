@@ -59,15 +59,32 @@ export function montarEnvelopeEnviNfe({ xmlAssinado, idLote, indSinc = 1, versao
 
 // ── Leitura do retorno ─────────────────────────────────────────────────
 
+/**
+ * Porteiro do nome de elemento antes de ele virar expressão regular. Hoje todo
+ * chamador passa literal ("cStat", "protNFe"…), mas o nome entra CRU na regex:
+ * no dia em que alguém encadear um valor vindo do retorno da SEFAZ, um `(.*)+`
+ * deixa de nomear elemento e vira padrão. Nome de elemento XML é letra ou `_`,
+ * seguido de letra, dígito, `.`, `-` ou `_` — nada aí é metacaractere.
+ */
+function nomeDeTag(nome) {
+  const t = String(nome ?? "");
+  if (!/^[A-Za-z_][\w.-]*$/.test(t)) {
+    throw new Error(`SEFAZ: nome de elemento inválido: "${t}".`);
+  }
+  return t;
+}
+
 /** Conteúdo textual de uma tag (tolerante a prefixo de namespace). */
 function tagTexto(xml, nome) {
-  const m = String(xml ?? "").match(new RegExp(`<(?:\\w+:)?${nome}\\b[^>]*>([\\s\\S]*?)</(?:\\w+:)?${nome}>`));
+  const t = nomeDeTag(nome);
+  const m = String(xml ?? "").match(new RegExp(`<(?:\\w+:)?${t}\\b[^>]*>([\\s\\S]*?)</(?:\\w+:)?${t}>`));
   return m ? m[1].trim() : null;
 }
 
 /** Elemento inteiro (com as tags) — usado para recortar o protNFe. */
 function tagBloco(xml, nome) {
-  const m = String(xml ?? "").match(new RegExp(`<(?:\\w+:)?${nome}\\b[^>]*>[\\s\\S]*?</(?:\\w+:)?${nome}>`));
+  const t = nomeDeTag(nome);
+  const m = String(xml ?? "").match(new RegExp(`<(?:\\w+:)?${t}\\b[^>]*>[\\s\\S]*?</(?:\\w+:)?${t}>`));
   return m ? m[0] : null;
 }
 

@@ -114,13 +114,17 @@
   display: none;
 }
 
-@media (max-width: 1023px) {
+/* Até 1199px, e não 1023px: com 5 links, a régua completa (logo + links +
+   Entrar + CTA) na medida do desktop passa a quebrar em duas linhas por
+   volta de 1100px, e uma nav de duas linhas empurra tudo que depende da
+   altura dela (âncoras e o card que gruda na rolagem). */
+@media (max-width: 1199px) {
   .apex-nav__container {
     padding: 16px 32px;
     gap: 16px;
   }
 
-  /* Em 834px a régua completa (logo + 4 links + Entrar + CTA) só cabe
+  /* Em 834px a régua completa (logo + links + Entrar + CTA) só cabe
      compacta — sem deixar link ou CTA quebrar em duas linhas. */
   .apex-nav__links {
     gap: 16px;
@@ -139,7 +143,12 @@
   }
 }
 
-@media (max-width: 767px) {
+/* Hambúrguer a partir de 900px, e não de 767px: com 5 links a régua
+   completa (logo + links + Entrar + CTA) deixa de caber pouco abaixo dos
+   900px e a nav estoura na horizontal. Nessa faixa o drawer é melhor
+   negócio que uma fileira espremida — são os mesmos links, com alvo de
+   toque grande, num tamanho de tela que já costuma ser toque. */
+@media (max-width: 900px) {
   .apex-nav__container {
     padding: 14px 20px;
   }

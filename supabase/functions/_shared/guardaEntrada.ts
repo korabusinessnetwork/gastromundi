@@ -33,6 +33,15 @@ export const PAPEIS_GERENCIA = ["admin", "gerente"] as const;
 export const PAPEIS_IMPORTACAO = ["plataforma", "admin"] as const;
 /** Só o Console da Plataforma — criar estabelecimento não é ação de cliente. */
 export const PAPEIS_PLATAFORMA = ["plataforma"] as const;
+/**
+ * Emitir NFC-e (e reenviar a que ficou em contingência) é ato de CAIXA: o
+ * cupom sai junto com o pagamento e o front chama a função com o JWT de quem
+ * está na frente de caixa. Por isso a lista é mais larga que PAPEIS_GERENCIA —
+ * mas o GARÇOM fica de fora: quem só tira pedido não emite documento fiscal em
+ * nome do estabelecimento. Cancelar continua em PAPEIS_GERENCIA e inutilizar
+ * faixa em PAPEIS_ADMIN — atos irreversíveis pesam mais que emitir.
+ */
+export const PAPEIS_FISCAL_EMISSAO = ["admin", "gerente", "caixa"] as const;
 
 export type MotivoRecusa = "sem_perfil" | "inativo" | "papel";
 
@@ -119,4 +128,23 @@ export function sanitizarHistorico(historico: unknown): TurnoConversa[] {
     turnos.push({ role: papel === "jarvas" ? "assistant" : "user", content });
   }
   return turnos;
+}
+
+// ── Falha inesperada: registra dentro, devolve genérico fora ───────────
+//
+// O `catch` de fim de função pega o que ninguém previu — erro do Postgres,
+// timeout de rede, parse de XML da SEFAZ. A mensagem dessas exceções conta
+// nome de tabela, coluna, constraint, host interno e às vezes trecho do
+// payload: material de reconhecimento para quem estiver sondando a API, e
+// nada que ajude o operador do caixa. Então o texto cru vai para o log da
+// função (visível a quem tem acesso ao projeto Supabase) e o cliente recebe
+// só a etiqueta do incidente.
+//
+// Rejeição de negócio (SEFAZ rejeitou, senha curta, número já usado) NÃO
+// passa por aqui — ela tem caminho próprio, com cStat/xMotivo, e continua
+// sendo explicada por extenso na tela.
+export function registrarFalhaInterna(contexto: string, e: unknown): string {
+  const detalhe = e instanceof Error ? (e.stack ?? e.message) : String(e);
+  console.error(`[${contexto}] falha inesperada:`, detalhe);
+  return "Erro interno. O detalhe técnico foi registrado no log da função.";
 }

@@ -1,9 +1,10 @@
 /**
  * F018 — leva 3, sub-lote 3C. Decisão 018 (CSS separado do JSX) +
  * tokens --gm-* (ADR-007). Cores sólidas viram var(--gm-*); blends com
- * transparência usam alfa() (src/constants/colorAlfa.js). O âmbar de
- * "garçom"/"consumo" passou a usar o token --gm-warn no TD018: é a mesma
- * cor de alerta do resto do sistema, então acompanha o tema do tenant.
+ * transparência usam alfa() (src/constants/colorAlfa.js). O laranja de
+ * "garçom"/"consumo" saiu do hex cravado e virou --gm-warn (TD018): os
+ * outros três cargos já eram tokens, e só o âmbar ficava de fora do tema
+ * do tenant (decisão 017).
  */
 
 /* ── View principal ── */
@@ -1321,11 +1322,15 @@
   opacity: 0.75;
 }
 
-/* admin travado: marcado, sem cara de clicável */
+/* admin travado: marcado, sem cara de clicável.
+   O "não editável" é dito pela moldura neutra e pelo cursor — NÃO pelo
+   apagamento do ✓. Com o check em --gm-muted a coluna Administrador ficava
+   ilegível de longe e parecia desmarcada, justo a coluna que tem acesso a
+   tudo. O símbolo usa a cor de texto cheia; só a moldura é discreta. */
 .perm-check--locked.perm-check--on {
   border-color: color-mix(in srgb, var(--gm-muted) 40%, transparent);
   background: color-mix(in srgb, var(--gm-muted) 12%, transparent);
-  color: var(--gm-muted);
+  color: var(--gm-text);
   opacity: 1;
 }
 

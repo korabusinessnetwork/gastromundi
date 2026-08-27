@@ -148,12 +148,25 @@ describe("useFinalizarPagamento (regressão do incidente)", () => {
     expect(appMock.baixarEstoque).toHaveBeenCalledWith("1", 1);
   });
 
-  it("não desconta estoque de produto sem controle de estoque (sem entrada no mapa)", async () => {
+  it("produto fora do mapa de estoque do aparelho TAMBÉM passa pela baixa", async () => {
+    // Quem decide se há o que descontar é o servidor, não o mapa que este
+    // aparelho tem na memória. Antes, produto fora do mapa era pulado como
+    // "sem controle de estoque" — e como `addProduct` nunca criava a linha,
+    // isso valia para todo produto cadastrado pelo app: vendia sem descontar.
     const { appMock, finalizarPagamento } = setup({ estoque: { 2: 5 } }); // produto 1 fora do mapa
 
     await finalizarPagamento(selectedComanda, [], payload);
 
-    expect(appMock.baixarEstoque).not.toHaveBeenCalled();
+    expect(appMock.baixarEstoque).toHaveBeenCalledWith("1", 1);
+  });
+
+  it("mapa de estoque vazio (carga falhou) não impede a baixa de nenhum item", async () => {
+    const { appMock, finalizarPagamento } = setup({ estoque: {} });
+
+    await finalizarPagamento(selectedComanda, [], payload);
+
+    expect(appMock.baixarEstoque).toHaveBeenCalledTimes(1);
+    expect(appMock.baixarEstoque).toHaveBeenCalledWith("1", 1);
   });
 
   it("crítico 7: converte a quantidade vendida para unidade de estoque via fator_consumo_estoque", async () => {

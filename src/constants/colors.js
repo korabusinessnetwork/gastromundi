@@ -15,6 +15,10 @@ const C = {
   bg:      "--gm-bg",
   card:    "--gm-card",
   surface: "--gm-surface",
+  // Fundo de chip/pílula DENTRO de um card — translúcido, acompanha o fundo
+  // em que está (ver --gm-chip em tema.css). `surface` é cor absoluta e vira
+  // um retângulo branco sobre card tingido em paletas claras.
+  chip:    "--gm-chip",
   border:  "--gm-border",
   accent:  "--gm-accent",
   alow:    "--gm-alow",

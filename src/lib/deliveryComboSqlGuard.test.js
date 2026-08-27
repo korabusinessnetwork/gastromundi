@@ -69,6 +69,13 @@ function corpoDaFuncao(sql, nomeFuncao) {
 }
 
 const arquivos = readdirSync(MIGRATIONS_DIR).filter((n) => n.endsWith(".sql"));
+
+/** Toda migração que (re)cria a RPC, em ordem cronológica (nome = data). */
+function versoesDaRpc(rpc) {
+  const marca = new RegExp(`CREATE OR REPLACE FUNCTION public\\.${rpc}\\b`);
+  return arquivos.filter((n) => marca.test(semComentarios(ler(n)))).sort();
+}
+
 const conteudo = ler(CORRETIVA);
 const ativo = semComentarios(conteudo);
 const predicado = corpoDaFuncao(ativo, "combo_indisponivel");
@@ -87,21 +94,28 @@ describe("Delivery público — guard do combo que respeita o item indisponível
     // E depois de toda versão anterior das duas RPCs — CREATE OR REPLACE
     // é destrutivo: rodar antes deixaria um corpo antigo por cima.
     for (const rpc of RPCS) {
-      const versoes = arquivos.filter(
-        (n) =>
-          n !== CORRETIVA &&
-          new RegExp(`CREATE OR REPLACE FUNCTION public\\.${rpc}\\b`).test(
-            semComentarios(ler(n))
-          )
-      );
-      expect(versoes.length, `nenhuma migração anterior define ${rpc}`).toBeGreaterThan(0);
-      for (const anterior of versoes) {
-        expect(CORRETIVA > anterior, `${CORRETIVA} não roda depois de ${anterior}`).toBe(
-          true
-        );
-      }
+      const anteriores = versoesDaRpc(rpc).filter((n) => n < CORRETIVA);
+      expect(anteriores.length, `nenhuma migração anterior define ${rpc}`).toBeGreaterThan(0);
       // A base da cópia é mesmo a mais nova das anteriores.
-      expect(versoes.sort().pop()).toBe(BASE_DA_COPIA);
+      expect(anteriores.sort().pop()).toBe(BASE_DA_COPIA);
+    }
+  });
+
+  it("quem redefinir as RPCs depois desta migração continua carregando a guarda", () => {
+    // A corretiva não é a última palavra: levas seguintes recriam as mesmas
+    // RPCs (a DL34, por exemplo, tirou insumo e preço zero da vitrine). Cada
+    // uma copia o corpo mais novo e acrescenta a sua guarda — se alguém
+    // copiar um corpo anterior à DL33, o combo com item que acabou volta ao
+    // ar sem nada quebrar. Por isso a checagem não é "a corretiva é a mais
+    // nova", e sim "a MAIS NOVA ainda cobra combo_indisponivel".
+    for (const rpc of RPCS) {
+      const maisNova = versoesDaRpc(rpc).sort().pop();
+      const corpo = corpoDaFuncao(semComentarios(ler(maisNova)), rpc);
+      expect(corpo, `${maisNova} não define ${rpc} por inteiro`).not.toBeNull();
+      expect(
+        corpo,
+        `${maisNova} recria ${rpc} sem a guarda de combo indisponível (DL33)`
+      ).toMatch(/public\.combo_indisponivel\(/);
     }
   });
 

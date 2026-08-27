@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import PrivateRoute   from "./PrivateRoute";
 import ConsoleRoute   from "./ConsoleRoute";
 import InicioApp      from "./InicioApp";
+import CarregandoApex from "./CarregandoApex";
 import { ehApexInstitucional } from "@/lib/apex";
 import { consoleAtivo, ehConsoleHost } from "@/lib/consoleHost";
 
@@ -72,7 +73,7 @@ const rotasApp = [
   {
     path: "/",
     element: ehApexInstitucional()
-      ? <Suspense fallback={null}><ApexPage /></Suspense>
+      ? <Suspense fallback={<CarregandoApex />}><ApexPage /></Suspense>
       : <Navigate to="/login" replace />,
   },
 
@@ -81,7 +82,7 @@ const rotasApp = [
   {
     path: "/demo",
     element: ehApexInstitucional()
-      ? <Suspense fallback={null}><DemoPage /></Suspense>
+      ? <Suspense fallback={<CarregandoApex />}><DemoPage /></Suspense>
       : <Navigate to="/login" replace />,
   },
 

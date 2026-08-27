@@ -22,10 +22,10 @@ export default function ApexProva() {
         <strong className="apex-prova__chave">NFC-e</strong> em um toque, com contingência
       </span>
       <span className="apex-prova__item apex-prova__item--tablet-oculto">
-        Funciona <strong className="apex-prova__chave">offline</strong> — o movimento não para
+        Funciona <strong className="apex-prova__chave">offline</strong>, o movimento não para
       </span>
       <span className="apex-prova__item apex-prova__item--essencial">
-        <strong className="apex-prova__chave">Personalizado</strong> — o sistema com a sua cara
+        <strong className="apex-prova__chave">Personalizado</strong>, o sistema com a sua cara
       </span>
     </div>
   );

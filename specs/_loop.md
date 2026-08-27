@@ -1,3 +1,158 @@
+## Rodada 62 — "sempre que der baixa no caixa tem q dar baixa no estoque" (TD020) — 2026-08-15
+- Spec: specs/baixa-no-caixa-sempre-vira-baixa-no-estoque.md
+- Resultado: 9 de 9 critérios em sim (suíte 207 arquivos / 3632 testes, verde; +7 testes novos, 1
+  removido). O pedido era uma invariante, não uma feature — e o sistema não a cumpria.
+- O furo, em uma frase: **não existe `controla_estoque` em `products`** — o que define produto
+  controlado é a EXISTÊNCIA da linha em `estoque` — e `addProduct` nunca criou essa linha. Então
+  todo produto cadastrado pelo app era vendido sem descontar nada, para sempre, enquanto a
+  `EstoqueView` o mostrava com saldo "0", igualzinho a um produto controlado que acabou.
+- Três camadas escondiam isso uma da outra: (1) `addProduct` sem a linha; (2) o PDV com
+  `if (!(prodId in estoque)) continue;` e o comentário "sem entrada no mapa = sem controle de
+  estoque" — comentário que racionalizava um acidente, porque a guarda valia para o catálogo
+  inteiro; (3) `baixar_estoque` é `UPDATE ... WHERE produto_id`, que sem linha afeta zero linhas
+  **sem erro**, e a `processarBaixaEstoque` lia isso como sucesso e devolvia `anterior - qty`.
+  O item 3 é o TD012 literal vivo um andar abaixo de onde ele foi corrigido.
+- Agravante que valia por si só: a guarda dava ao mapa em memória DESTE aparelho poder de veto
+  sobre a baixa. Carga de estoque que falha no bootstrap = mapa vazio = venda inteira sem
+  descontar, calada. Quem decide se há o que descontar é o servidor.
+- Quatro mudanças, e elas só valem juntas — tirar o veto do cliente sem transformar "sem linha" em
+  erro trocaria um pulo silencioso por uma mentira silenciosa:
+  1. Migration `20260919_baixa_estoque_cria_linha.sql`: a RPC cria a linha (`tenant_atual_id()`
+     explícito) antes de descontar, mais backfill dos produtos que já existem. É a correção que
+     sustenta o resto — vale para produto criado pelo app, por importação ou por SQL direto.
+  2. `addProduct` cria a linha junto com o produto. Redundante com a RPC de propósito: a RPC
+     garante a baixa, isto garante que a tela de Estoque esteja honesta ANTES da primeira venda.
+  3. `useFinalizarPagamento` manda todo item vendido para a baixa (item cancelado e item sem
+     produto vinculado seguem de fora, e estoque zerado continua passando: a RPC clampa em zero e
+     o Jarvas sinaliza o oversell).
+  4. `estoque_sem_linha` como erro explícito em `processarBaixaEstoque` e em
+     `baixarEstoqueSubproduto` — esta ignorava o `data` da RPC por completo, então resposta vazia
+     era sucesso. Cai no alerta de baixa recusada que o TD012 já construiu.
+- Detalhe de SQL que não é decorativo: o INSERT vem ANTES da checagem de idempotência. Baixa
+  reenviada da fila offline também precisa receber a linha de volta — senão o app lê "nenhuma
+  linha" e acusa falha numa baixa que já tinha sido aplicada.
+- `estoque_subprodutos` fica de fora de propósito: lá a linha nasce com o cadastro, que tem
+  `controla_estoque` de verdade. Linha faltando é inconsistência de dados — acusar, não remendar.
+- Teste removido: `"não desconta estoque de produto sem controle de estoque (sem entrada no mapa)"`
+  afirmava exatamente o que o dono pediu para não acontecer. Virou o oposto, mais um irmão que
+  prende o caso do mapa vazio.
+- Commit: nesta rodada, na branch claude/verificacao-fraturas-axg0js
+- **AÇÃO DO DONO:** aplicar `supabase/migrations/20260919_baixa_estoque_cria_linha.sql` no painel do
+  Supabase. Sem ela nada regride (produto novo já nasce com linha pelo `addProduct`), mas os
+  produtos antigos seguem sem linha — e agora ACUSAM `estoque_sem_linha` em vez de falhar calados.
+  Nenhuma policy de RLS nova: a função é `SECURITY DEFINER` e continua sendo a única a escrever ali.
+- Efeito colateral declarado: produto que ninguém quer controlar (couvert, taxa de serviço) passa a
+  ter linha e a gerar alerta de venda sem estoque a cada venda. Hoje não dá para desligar o controle
+  por produto — a saída é dar entrada do saldo. É o preço de o inventário ser verdadeiro, e erra
+  para o lado que aparece: alerta demais se vê, baixa de menos não se via.
+- Pendente de decisão: as cinco herdadas, mais a de design system da rodada 60 (`--gm-warn-2`),
+  mais o aviso ao operador na tela do PDV (rodada 61). **Uma nova:** criar `controla_estoque` em
+  `products` para o produto que não se conta — é decisão de produto, e só vale a pena se o barulho
+  do efeito colateral acima incomodar de verdade.
+- Próximo item recomendado: `controla_estoque` em `products`, se o dono confirmar que quer o
+  desligamento por produto. Alternativas técnicas prontas: TD013 (RPC de append atômico) ou TD009
+  etapa 3 (parar o dual-write).
+
+## Rodada 61 — TD012 (o resto): falha sistêmica de baixa vira um alerta só — 2026-08-15
+- Spec: specs/td012-alerta-agregado-falha-sistemica-de-baixa.md
+- Resultado: 8 de 8 critérios em sim (suíte 207 arquivos / 3627 testes, verde; +15 testes novos).
+  De 3 baixas recusadas para cima **na mesma operação**, sai um único insight com a chave fixa
+  `estoque:baixa-falhou:sistemica` em vez de um cartão por produto. Uma ou duas falhas continuam
+  no caminho antigo (alerta por item), porque aí ainda pode ser problema do próprio produto.
+- O motivo real de mexer nisso: o alerta por item não estava errado, estava se anulando. Uma
+  comanda de dez itens com a RLS caída enchia o painel do Jarvas com dez cartões idênticos — o
+  gestor lê o primeiro, conclui "problema no Chopp" e ignora os outros nove. Alerta que se repete
+  demais some por excesso, que dá no mesmo que não existir. E a frase individual ainda mandava
+  "confira a contagem deste item", conselho errado quando o sistema inteiro está travado.
+- Chave FIXA é o ponto que faz a coisa funcionar: sem id de item, o dedupe que já existia
+  (`buscarInsights` por `origem.chave`) colapsa uma queda de RLS inteira num alerta aberto só, em
+  vez de um por venda até alguém resolver. Nenhuma linha de dedupe nova foi escrita.
+- Escolha de projeto: `decidirAlertaDeLote(itens, limiar = 3)` é pura e exportada, para que o
+  número 3 seja discutível sem abrir o AppContext. Três é o menor número que não confunde azar
+  com padrão — uma ou duas falhas ainda cabem em causa própria do item.
+- O lote é estado de módulo (com `profundidade` para aninhamento), e não parâmetro: quem chama
+  `gerarAlertaBaixaFalhou` é o AppContext item a item, e passar o lote adiante obrigaria a mudar a
+  assinatura de `baixarEstoque`/`baixarEstoqueSubproduto` só para carregar contexto do alerta. O
+  que segura a escolha é o acúmulo ser síncrono: o `push` acontece antes de qualquer `await`, e
+  todos os pontos de uso chamam com `void` — quando `baixarEstoque` retorna, a falha já está no
+  lote. Abrir/fechar sempre em `try/finally`, porque lote esquecido aberto engoliria os alertas
+  das vendas seguintes.
+- Aplicado nos dois lugares onde as baixas acontecem em série: `useFinalizarPagamento` (a venda) e
+  `AppContext.drenarPendenciasOffline` (o reenvio da fila).
+- Correção de ledger: a linha do TD012 no `tech-debt.md` afirmava que `entradaEstoque` "também só
+  reporta ao Sentry". Não procede — ela emite evento, desfaz o otimista e devolve `{ error }`, que
+  a `EstoqueView` mostra na tela. A linha foi corrigida no backlog.
+- Commit: nesta rodada, na branch claude/verificacao-fraturas-axg0js
+- Pendente de decisão: as cinco herdadas mais a de design system da rodada 60 (`--gm-warn-2`),
+  inalteradas. Nada novo.
+- Próximo item recomendado: o único resto declarado do TD012 — avisar o **operador** na tela do
+  PDV que a baixa não foi aplicada. É decisão de produto, não de código: interromper a fila do
+  caixa com um erro de estoque tem custo próprio, e o dono precisa dizer se quer isso. Alternativas
+  técnicas prontas se não: TD013 (RPC de append atômico) ou TD009 etapa 3 (parar o dual-write).
+
+## Rodada 60 — TD018 (fatia final): âmbar cru → --gm-warn no app inteiro — 2026-08-15
+- Spec: specs/td018-final-ambar-app-wide.md
+- Resultado: 7 de 7 critérios em sim (suíte 207 arquivos / 3612 testes, verde). Os arquivos que
+  sobravam do TD018 passaram a usar o token: `PDVView/ComandaGrid.jsx` e `MesaMapView.jsx`,
+  `CozinhaView.jsx`, `EstoqueView.jsx`, `AdminView.jsx`, `ConfiguracoesView.jsx`,
+  `JarvasPanel.jsx`, `FechamentoModal.jsx`, `AssinaturaBanner.jsx`, `constants/roles.js`,
+  `ImportarExportarTab.css`, `DemoClientes.css` e `comprovante.css` (este com fallback
+  `var(--gm-warn, #f59e0b)`, porque a folha vai para a janela de impressão). Cada sufixo de
+  opacidade preservado — nenhum pixel mudou.
+- Achado que barateou a rodada: em `ComandaGrid.jsx` bastou a constante `AMBER` virar
+  `varColor(C.warn)`. `alfa()` só troca por `var(cor)` quando a string começa com `--gm-`, mas no
+  ramo literal ele aplica o `color-mix` por cima da string como veio — e `"var(--gm-warn)"` é uma
+  string válida ali. Os ~15 `alfa(AMBER, "NN")` do arquivo passaram a seguir o tema sem serem
+  tocados um a um.
+- Regra fixada (estava só implícita nas rodadas 56 e 58, e o código se contradizia — `DeliveryView`
+  dizia "white-label sem exceção", `ConfiguracoesView.css` dizia "cor semântica fixa"): âmbar vira
+  `--gm-warn` quando significa **atenção/alerta**, ou quando era o **único hex cru numa paleta já
+  tokenizada**. Paleta categórica inteiramente literal fica como está — tokenizar 1 de 5 amostras
+  quebra a coerência do conjunto, e mapear "gerente" ou "COFINS" num token de *aviso* dá dois
+  significados ao mesmo token. Registrada no `tech-debt.md` (TD018) e no spec §2.
+- Comentários corrigidos: `colorAlfa.js` (usava `#f59e0b` como exemplo de "cor não customizável" —
+  pendência que a rodada 58 deixou anotada), `ConfiguracoesView.css` e o bloco de nota do
+  `ComandaGrid.jsx`.
+- Resíduos declarados, não esquecidos: `COR_TIPO` (impostos) e `METODOS_COLOR` (métodos de
+  pagamento), a rampa de força de senha do `crypto.js`, e o status `aberta` do mapa de mesas
+  (`#eab308`) — este precisa ser distinguível de `reservada` lado a lado, e o design system ainda
+  não tem um segundo tom de atenção.
+- Commit: 26a6328 na branch claude/verificacao-fraturas-axg0js
+- Pendente de decisão: as cinco herdadas, inalteradas. **Uma nova, de design system:** criar um
+  segundo tom de atenção (`--gm-warn-2` ou equivalente) para o status "aberta" do mapa de mesas —
+  hoje é o único âmbar que fica literal por necessidade visual, não por categoria.
+- Próximo item recomendado: TD012 (o que sobrou) — falha sistêmica de RLS gera um alerta por
+  produto distinto em vez de um alerta agregado, e o operador do PDV não é avisado na tela.
+  Conferido nesta rodada: o outro resto citado no ledger da rodada 3 (`entradaEstoque` "também só
+  reporta ao Sentry") **não procede** — ele emite evento no Jarvas, desfaz o update otimista e
+  devolve `{ error }`, que a `EstoqueView` mostra na tela. Não há divergência silenciosa ali.
+
+## Rodada 59 — TD019: suíte refém do relógio e do `.env.local` da máquina — 2026-08-15
+- Spec: specs/td019-suite-refem-do-relogio-e-do-env.md
+- Resultado: 5 de 5 critérios em sim. De `13 arquivos falhando | 194 passando` e `4 testes
+  falhando | 3502 passando` para **207 arquivos / 3612 testes, todos verdes**. Os +106 testes não
+  são novos: são os que estavam mortos.
+- O que estava quebrado, e nenhuma das duas causas era bug de produção:
+  1. 9 arquivos morriam **na importação** com `VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
+     ausentes` (`src/lib/supabase.js:13` ← `utils/hooks.js:2` ← `LoginPage.jsx:4`). Qualquer teste
+     que alcançasse `hooks.js` puxava o client real e explodia antes do primeiro `it()`, mesmo com
+     o Supabase dublado. Sem `.env.local` — que não é versionado — essas suítes nunca rodaram.
+  2. 4 asserções liam o relógio da máquina (`assinatura.test.js:276` e `:324`,
+     `console.test.js:970`, `AnalyticsDashboard.test.jsx:201`). O produto está certo: vencimento,
+     "Hoje"/"Ontem" e "dias sem vender" usam o **calendário local de quem opera**. Os testes é que
+     foram escritos com datas fixas assumindo UTC-3 — passavam no notebook, quebravam em UTC.
+- Solução: bloco `test.env` no `vitest.config.js`, só ele. `TZ: "America/Sao_Paulo"` e credenciais
+  falsas em host `.invalid` (reservado por RFC 2606 — se algo escapar do dublê, falha em DNS em vez
+  de ir para servidor de verdade). Zero linha de produção alterada; a checagem de credencial do
+  `supabase.js` continua rigorosa, que é o certo.
+- Limite declarado no spec: fuso fixo esconde bug real de fuso. Enquanto todo tenant estiver em
+  `America/Sao_Paulo` o custo é zero; no dia em que houver tenant fora dele, o certo é o teste
+  construir as datas a partir do fuso do tenant.
+- Commit: 2bf9df5 na branch claude/verificacao-fraturas-axg0js
+- Pendente de decisão: nenhuma.
+- Próximo item recomendado: TD018 (fatia final) — com a suíte confiável de novo, a varredura de cor
+  app-wide fica verificável.
+
 ## Rodada 58 — TD018 (fatia módulo fiscal): âmbar cru → token --gm-warn — 2026-08-03
 - Spec: specs/td018-fiscal-ambar-token.md
 - Resultado da review: aprovado sem ressalvas — 8 de 8 (suíte 203 arquivos / 3536 testes, verde).

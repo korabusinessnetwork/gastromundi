@@ -4,7 +4,7 @@
  * em `C` (muitas usam hex+alfa condicional — ver nota em
  * ComandaGrid.jsx sobre por que isso não é tokenizado nesta leva).
  *
- * TAMANHO DE FONTE migrado para a escala do design system (--fs-*/--lh-*
+ * TAMANHO DE FONTE migrado para a escala do design system (--fs-* / --lh-*
  * de src/styles/tipografia.css), por classe — não mais inline via sz.*
  * no JSX (mesmo padrão de ProductGrid.css). `sz` continua no JSX só
  * para padding/gap/grid (layout). Total/troco são números HERO

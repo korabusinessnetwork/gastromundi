@@ -163,6 +163,9 @@ describe("buscarBootstrapTenant", () => {
       data: [{ addon_codigo: "tef" }],
       error: null,
     });
+    // Vencimento SEMPRE no futuro em relação ao dia em que o teste roda: com
+    // data fixa, o teste passava a acusar "bloqueado" assim que o calendário
+    // real ultrapassava a data — falha por passagem do tempo, não por bug.
     const vencimento = dataEm(30);
     mockSupabase.current.setTableResult("assinaturas", {
       data: { data_vencimento: vencimento, carencia_dias: 3, valor_mensal: 199, status: "ativo" },
@@ -184,6 +187,7 @@ describe("buscarBootstrapTenant", () => {
       carenciaDias: 3,
       valorMensal: 199,
       dataVencimento: vencimento,
+      statusConfirmado: false,
     });
   });
 

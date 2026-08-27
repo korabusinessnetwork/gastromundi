@@ -138,18 +138,11 @@ export function resumoEndereco(pedido) {
   return partes.join(" · ");
 }
 
-/** Só dígitos de um telefone (para montar link/comparar). */
-export function apenasDigitosTelefone(tel) {
-  return String(tel ?? "").replace(/\D/g, "");
-}
-
-/** Formata telefone BR: (11) 91234-5678 / (11) 1234-5678. Sem casar, devolve como veio. */
-export function formatarTelefone(tel) {
-  const d = apenasDigitosTelefone(tel);
-  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return String(tel ?? "").trim();
-}
+// Máscara e dígitos de telefone moram em src/lib/telefone.js — regra única,
+// a mesma que o cadastro de cliente usa para validar. Reexportadas aqui para
+// quem já importava deste módulo.
+import { apenasDigitosTelefone } from "./telefone";
+export { apenasDigitosTelefone, formatarTelefone } from "./telefone";
 
 /**
  * Link do WhatsApp (wa.me) para falar com o cliente. Assume DDI 55 (Brasil)

@@ -154,6 +154,18 @@ const textoDoErro = (erro) => (erro ? (erro.message ?? erro.code ?? String(erro)
  * @returns {Promise<void>}
  */
 export async function gerarAlertaBaixaFalhou({ produtoId, subprodutoId, nome, quantidade, erro }, usuario) {
+  // Com um lote aberto, a falha só é acumulada: quem fecha o lote decide se
+  // isso vira um alerta por item ou um único alerta de falha sistêmica. O
+  // acúmulo acontece ANTES de qualquer `await`, então quem chama com `void`
+  // (todos os pontos de uso) tem a falha registrada no lote no mesmo tick.
+  if (lote) {
+    lote.itens.push({ produtoId, subprodutoId, nome, quantidade, erro, usuario });
+    return;
+  }
+  return registrarAlertaBaixaFalhou({ produtoId, subprodutoId, nome, quantidade, erro }, usuario);
+}
+
+async function registrarAlertaBaixaFalhou({ produtoId, subprodutoId, nome, quantidade, erro }, usuario) {
   try {
     const alvo = produtoId != null ? "produto" : "subproduto";
     const id = produtoId != null ? produtoId : subprodutoId;
@@ -183,6 +195,152 @@ export async function gerarAlertaBaixaFalhou({ produtoId, subprodutoId, nome, qu
   } catch (err) {
     // intencionalmente silencioso — alerta do Jarvas nunca pode quebrar a venda
     console.error("[estoque] falha ao gerar alerta de baixa recusada:", err);
+  }
+}
+
+/**
+ * A partir de quantas baixas recusadas na MESMA operação a falha deixa de ser
+ * "um produto com problema" e passa a ser "o sistema não está conseguindo mexer
+ * no estoque". Três é o menor número que não confunde azar com padrão: uma ou
+ * duas falhas ainda cabem em causa própria do item (produto apagado, saldo
+ * inconsistente); da terceira em diante, numa venda só, a causa é comum —
+ * quase sempre RLS, sessão expirada ou migration faltando.
+ */
+export const LIMIAR_FALHA_SISTEMICA = 3;
+
+/**
+ * Decide o que fazer com as baixas recusadas de uma mesma operação (função
+ * pura, sem I/O — é aqui que a regra fica testável).
+ *
+ * O motivo de existir: quando a RLS da `baixar_estoque` quebra, TODA baixa da
+ * venda falha. Um alerta por produto vira dez cartões dizendo a mesma coisa no
+ * painel do Jarvas, o gestor lê o primeiro, acha que é problema daquele item e
+ * ignora o resto — o alerta some por excesso, que é o mesmo que não existir.
+ *
+ * @param {Array<object>} itens - baixas recusadas na operação
+ * @param {number} [limiar]
+ * @returns {{ modo: "nenhum"|"individual"|"sistemica", itens: Array<object> }}
+ */
+export function decidirAlertaDeLote(itens, limiar = LIMIAR_FALHA_SISTEMICA) {
+  const lista = Array.isArray(itens) ? itens.filter(Boolean) : [];
+  const corte = Number(limiar) > 0 ? Number(limiar) : LIMIAR_FALHA_SISTEMICA;
+  if (lista.length === 0) return { modo: "nenhum", itens: [] };
+  if (lista.length < corte) return { modo: "individual", itens: lista };
+  return { modo: "sistemica", itens: lista };
+}
+
+/**
+ * Lote aberto de baixas recusadas. Módulo-nível de propósito: quem chama
+ * `gerarAlertaBaixaFalhou` (o AppContext, item a item) não sabe que faz parte
+ * de uma venda maior, e passar o lote por parâmetro obrigaria a mudar a
+ * assinatura de `baixarEstoque`/`baixarEstoqueSubproduto` só para carregar
+ * contexto. `profundidade` protege o caso de um lote ser aberto dentro de
+ * outro: só o fechamento mais externo publica.
+ */
+let lote = null;
+
+/**
+ * Abre um lote: daqui até `fecharLoteDeBaixas`, as falhas de baixa são
+ * acumuladas em vez de alertadas uma a uma. Sempre em `try/finally` — lote
+ * deixado aberto por uma exceção engoliria os alertas seguintes.
+ */
+export function iniciarLoteDeBaixas() {
+  if (lote) { lote.profundidade += 1; return; }
+  lote = { profundidade: 1, itens: [] };
+}
+
+/**
+ * Fecha o lote e publica o que ficou: nada, um alerta por item, ou um único
+ * alerta de falha sistêmica. Fire-and-forget como os irmãos — nunca lança.
+ *
+ * @param {string} [usuario]
+ * @returns {Promise<void>}
+ */
+export async function fecharLoteDeBaixas(usuario) {
+  if (!lote) return;
+  lote.profundidade -= 1;
+  if (lote.profundidade > 0) return;
+
+  const { itens } = lote;
+  lote = null; // fecha antes de publicar: os alertas abaixo não podem reentrar no lote
+
+  try {
+    const { modo } = decidirAlertaDeLote(itens);
+    if (modo === "nenhum") return;
+    if (modo === "individual") {
+      for (const item of itens) {
+        await registrarAlertaBaixaFalhou(item, item.usuario ?? usuario);
+      }
+      return;
+    }
+    await gerarAlertaBaixaSistemica(itens, usuario);
+  } catch (err) {
+    // intencionalmente silencioso — alerta do Jarvas nunca pode quebrar a venda
+    console.error("[estoque] falha ao fechar lote de baixas:", err);
+  }
+}
+
+// Chave FIXA (não leva id de item): é o que faz uma queda de RLS inteira
+// colapsar num único alerta aberto, em vez de um por venda até alguém resolver.
+const CHAVE_BAIXA_SISTEMICA = "estoque:baixa-falhou:sistemica";
+
+const NOMES_NA_DESCRICAO = 5;
+
+/**
+ * Alerta único de "o sistema não está conseguindo descontar do estoque".
+ * Fire-and-forget, com o mesmo dedupe dos irmãos.
+ *
+ * @param {Array<object>} itens
+ * @param {string} [usuario]
+ * @returns {Promise<void>}
+ */
+async function gerarAlertaBaixaSistemica(itens, usuario) {
+  try {
+    const { data: abertos } = await buscarInsights({ status: ["novo", "lido"], limite: 200 });
+    const jaExiste = (abertos ?? []).some((i) => i?.origem?.chave === CHAVE_BAIXA_SISTEMICA);
+    if (jaExiste) return;
+
+    const produtoIds = itens.filter((i) => i?.produtoId != null).map((i) => i.produtoId);
+    const subprodutoIds = itens.filter((i) => i?.produtoId == null && i?.subprodutoId != null).map((i) => i.subprodutoId);
+    const nomes = itens.map((i) => i?.nome).filter(Boolean);
+    const mostrados = nomes.slice(0, NOMES_NA_DESCRICAO).join(", ");
+    const restantes = nomes.length - Math.min(nomes.length, NOMES_NA_DESCRICAO);
+    const lista = mostrados
+      ? ` Itens afetados: ${mostrados}${restantes > 0 ? ` e mais ${restantes}` : ""}.`
+      : "";
+
+    const { error } = (await registrarInsight({
+      tipo: "alerta",
+      severidade: "danger",
+      visibilidade: "operacional",
+      modulo: "estoque",
+      titulo: `Estoque não está sendo descontado (${itens.length} itens)`,
+      descricao: `A venda foi registrada, mas o sistema não conseguiu descontar ${itens.length} itens do estoque de uma vez só. Falhar em vários itens ao mesmo tempo quase nunca é problema de um produto: é o sistema que está impedido de mexer no estoque. Enquanto isso não for resolvido, todos os saldos na tela ficam maiores do que o real.${lista} Chame o suporte.`,
+      acao: {
+        label: "Ver estoque",
+        tipo: "abrir_estoque",
+        params: { produto_ids: produtoIds, subproduto_ids: subprodutoIds },
+      },
+      origem: {
+        chave: CHAVE_BAIXA_SISTEMICA,
+        dados: {
+          total: itens.length,
+          // O erro cru do banco fica aqui, no diagnóstico — nunca no texto que
+          // o gestor lê. O primeiro basta: numa falha sistêmica todos repetem.
+          erro: textoDoErro(itens.find((i) => i?.erro)?.erro),
+          itens: itens.map((i) => ({
+            produto_id: i?.produtoId ?? null,
+            subproduto_id: i?.subprodutoId ?? null,
+            nome: i?.nome ?? null,
+            quantidade: i?.quantidade ?? null,
+          })),
+        },
+      },
+    })) ?? {};
+    if (error) console.error("[estoque] alerta de falha sistêmica não registrado:", error);
+  } catch (err) {
+    // intencionalmente silencioso — alerta do Jarvas nunca pode quebrar a venda
+    console.error("[estoque] falha ao gerar alerta de falha sistêmica:", err);
   }
 }
 
@@ -227,8 +385,23 @@ export async function processarBaixaEstoque({
   }
 
   const linha = Array.isArray(data) ? data[0] : data;
-  const quantidade = linha ? Number(linha.quantidade) : Math.max(0, Number(quantidadeAnterior) - qty);
-  const minimo = linha?.minimo != null ? Number(linha.minimo) : minimoFallback;
+  // RPC respondeu OK e não devolveu linha nenhuma: o UPDATE não achou o
+  // produto em `estoque`. Nada foi descontado. Estimar `anterior - qty` aqui
+  // era o mesmo erro do TD012 — o saldo da tela seguia caindo enquanto o
+  // banco não mexia. Desde a migration 20260919 a RPC cria a linha antes de
+  // descontar, então cair aqui significa migration não aplicada ou produto de
+  // outro tenant: os dois merecem alerta, não um número inventado.
+  if (!linha) {
+    const semLinha = {
+      code: "estoque_sem_linha",
+      message: "Estoque não descontado: o produto não tem linha de estoque neste estabelecimento.",
+    };
+    console.error("[estoque] baixa sem linha correspondente:", { produtoId, qty });
+    return { quantidade: Math.max(0, Number(quantidadeAnterior) || 0), error: semLinha };
+  }
+
+  const quantidade = Number(linha.quantidade);
+  const minimo = linha.minimo != null ? Number(linha.minimo) : minimoFallback;
 
   // Oversell tem precedência: já é "danger", cobre a ruptura e explica a causa.
   if (verificarOversell(quantidadeAnterior, qty)) {

@@ -64,18 +64,28 @@ export function normalizarOrigem(origem) {
  * aberto no navegador do caixa fala com a ponte" sem quebrar o white-label,
  * porque o endereço não é escolhido por nós — é aprendido de quem vinculou.
  *
- * Três passagens livres, todas necessárias:
+ * Duas passagens livres valem para qualquer rota, e as duas são necessárias:
  * - Sem `Origin`: não é navegador falando de outro site (curl, o próprio
  *   painel num GET). Quem manda o pedido de fora do navegador já está dentro
  *   da máquina, e aí a origem não protege mais nada.
  * - Mesma origem do pedido: é o painel ou o Palm, servidos pela própria
  *   ponte. É também a porta de saída se o endereço fixado ficar errado — o
  *   painel continua alcançável para liberar de novo.
- * - Nada fixado ainda: instalação nova, o primeiro vínculo precisa entrar.
  *
- * @param {{origem?: string, host?: string, fixada?: string}} req
+ * A terceira, "nada fixado ainda", é a delicada: enquanto a ponte não tem
+ * dono, ela precisa deixar o primeiro vínculo acontecer — mas valia para
+ * TUDO. Numa instalação nova (ou logo depois de "liberar para outro
+ * endereço") qualquer site aberto no navegador do caixa lia /info, que
+ * entrega o token do estabelecimento, e ainda podia vincular a ponte a outro
+ * dono, instalar ou parar o programa. Agora essa passagem só vale para as
+ * rotas do primeiro vínculo — quem diz quais são é o servidor, por
+ * `primeiroVinculo`.
+ *
+ * @param {{origem?: string, host?: string, fixada?: string, primeiroVinculo?: boolean}} req
+ *   `primeiroVinculo`: esta rota é uma das que o primeiro vínculo precisa
+ *   (descobrir a ponte e vincular). Só ela passa antes de haver dono.
  */
-export function origemAceita({ origem, host, fixada } = {}) {
+export function origemAceita({ origem, host, fixada, primeiroVinculo = false } = {}) {
   const daVez = normalizarOrigem(origem);
   if (!daVez) return true;
 
@@ -83,7 +93,7 @@ export function origemAceita({ origem, host, fixada } = {}) {
   if (proprio && (daVez === `http://${proprio}` || daVez === `https://${proprio}`)) return true;
 
   const dona = normalizarOrigem(fixada);
-  if (!dona) return true;
+  if (!dona) return primeiroVinculo === true;
   return daVez === dona;
 }
 
@@ -98,9 +108,9 @@ export function origemAceita({ origem, host, fixada } = {}) {
  *
  * `Vary: Origin` sempre, porque a resposta agora depende do pedido.
  *
- * @param {{origem?: string, host?: string, fixada?: string}} [req]
+ * @param {{origem?: string, host?: string, fixada?: string, primeiroVinculo?: boolean}} [req]
  */
-export function cabecalhosCors({ origem, host, fixada } = {}) {
+export function cabecalhosCors({ origem, host, fixada, primeiroVinculo = false } = {}) {
   const base = {
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-Ponte-Token",
@@ -108,7 +118,7 @@ export function cabecalhosCors({ origem, host, fixada } = {}) {
     Vary: "Origin",
   };
   const daVez = normalizarOrigem(origem);
-  if (!daVez || !origemAceita({ origem, host, fixada })) return base;
+  if (!daVez || !origemAceita({ origem, host, fixada, primeiroVinculo })) return base;
   return {
     ...base,
     "Access-Control-Allow-Origin": daVez,

@@ -1,0 +1,345 @@
+/**
+ * F020 — Editor do layout da comanda: a pilha de blocos que forma o
+ * papel do cliente, com a pré-visualização ao lado. Irmã de
+ * PerfilImpressora.css, que cuida do equipamento — mesma gramática
+ * visual de propósito, para as páginas da aba Impressão parecerem a
+ * mesma tela. O estilo de UMA linha da lista mora em BlocoComanda.css.
+ *
+ * Decisão 018 (CSS separado do JSX, zero style={{}} inline) + tokens
+ * --gm-* / --fs-* / --lh-* (ADR-007): cor só por variável, variação por
+ * color-mix, nada de valor de marca escrito aqui (decisão 017).
+ */
+
+.layout-comanda__carregando {
+  padding: 40px;
+  text-align: center;
+  color: var(--gm-muted);
+}
+
+/* Falha ao LER a configuração: a tela não abre com o layout de fábrica,
+   porque salvar por cima apagaria o layout real que só não foi lido.
+   Mesma regra de "Impressora e papel". */
+.layout-comanda__erro-carga {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 720px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  border-left: 3px solid var(--gm-red);
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.layout-comanda__erro-carga p {
+  margin: 6px 0 0;
+  color: var(--gm-muted);
+}
+
+.layout-comanda__botao-recarregar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+  min-height: var(--tap-min, 40px);
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.layout-comanda__botao-recarregar:hover {
+  background: color-mix(in srgb, var(--gm-text) 6%, var(--gm-surface));
+}
+
+.layout-comanda {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.layout-comanda__intro {
+  margin: 0 0 20px;
+  max-width: 760px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
+.layout-comanda__colunas {
+  display: flex;
+  gap: 32px;
+  max-width: 1040px;
+  align-items: flex-start;
+}
+
+.layout-comanda__editor {
+  flex: 1;
+  min-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.layout-comanda__titulo-secao {
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gm-border);
+  font-size: var(--fs-lg, 17px);
+  font-weight: 800;
+  color: var(--gm-text);
+}
+
+.layout-comanda__ajuda {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
+.layout-comanda__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Acrescentar blocos ─────────────────────────────────────────────── */
+
+.layout-comanda__adicionar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.layout-comanda__rotulo-adicionar {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gm-muted);
+}
+
+.layout-comanda__btn-adicionar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap-min, 40px);
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px dashed var(--gm-border);
+  background: transparent;
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.layout-comanda__btn-adicionar:hover {
+  border-style: solid;
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  border-color: var(--gm-accent);
+}
+
+/* ── Ações e status ─────────────────────────────────────────────────── */
+
+.layout-comanda__acoes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--gm-border);
+}
+
+.layout-comanda__btn-salvar {
+  min-height: var(--tap-min);
+  padding: 11px 24px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.layout-comanda__btn-salvar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.layout-comanda__btn-padrao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap-min);
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.layout-comanda__btn-padrao:hover {
+  color: var(--gm-text);
+  background: color-mix(in srgb, var(--gm-text) 6%, var(--gm-surface));
+}
+
+/* Confirmação de ação destrutiva na própria linha: dizer o que se perde
+   ANTES de perder é mais barato que desfazer depois. */
+.layout-comanda__confirmar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  border-left: 3px solid var(--gm-warn);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--gm-text);
+}
+
+.layout-comanda__btn-confirmar,
+.layout-comanda__btn-cancelar {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.layout-comanda__btn-confirmar {
+  border: none;
+  background: var(--gm-warn);
+  color: #fff;
+}
+
+.layout-comanda__btn-cancelar {
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-muted);
+}
+
+.layout-comanda__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.layout-comanda__status--sucesso { color: var(--gm-green); }
+.layout-comanda__status--erro { color: var(--gm-red); }
+.layout-comanda__status--atencao { color: var(--gm-warn); }
+
+/* ── Pré-visualização ao vivo ───────────────────────────────────────── */
+
+.layout-comanda__preview-coluna {
+  flex-shrink: 0;
+  width: 340px;
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Duas saídas de verdade: o papel do navegador e o texto da térmica.
+   Quem imprime na térmica precisa ver a térmica — lá não existe logo,
+   letra grande nem negrito, e esconder isso seria a tela mentindo. */
+.layout-comanda__abas-preview {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--gm-faint);
+}
+
+.layout-comanda__aba {
+  flex: 1;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gm-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.layout-comanda__aba--ativa {
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.layout-comanda__preview-moldura {
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  max-height: 560px;
+}
+
+.layout-comanda__preview-iframe {
+  width: 320px;
+  height: 520px;
+  border: none;
+  background: #fff;
+}
+
+/* A térmica é texto puro em colunas — mostrar em fonte monoespaçada é o
+   que faz o alinhamento na tela bater com o do papel. */
+.layout-comanda__preview-termica {
+  margin: 0;
+  width: 100%;
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: pre;
+  overflow-x: auto;
+  color: #111;
+  background: #fff;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+/* Celular: o editor e a coluna de preview (340px) não cabem lado a lado,
+   então empilham em coluna e o preview ocupa a largura toda. */
+@media (max-width: 767px) {
+  .layout-comanda__colunas {
+    flex-direction: column;
+  }
+  .layout-comanda__editor {
+    min-width: 0;
+  }
+  .layout-comanda__preview-coluna {
+    width: 100%;
+    position: static;
+  }
+  .layout-comanda__preview-iframe {
+    width: 100%;
+  }
+}

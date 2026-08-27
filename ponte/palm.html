@@ -266,7 +266,7 @@
       var no = qtdNoCarrinho(p.id);
       return "<button class=\"produto\" data-i=\"" + i + "\">" +
         (no > 0 ? "<span class=\"badge\">" + no + "×</span>" : "") +
-        "<span class=\"nome\">" + (p.emoji ? p.emoji + " " : "") + escapar(p.name) + "</span>" +
+        "<span class=\"nome\">" + (p.emoji ? escapar(p.emoji) + " " : "") + escapar(p.name) + "</span>" +
         "<span class=\"preco\">" + fmt(Number(p.price) || 0) + "</span></button>";
     }).join("");
     Array.prototype.forEach.call(grid.children, function (b) {
@@ -326,7 +326,7 @@
   function desenharCarrinho() {
     $("listaCarrinho").innerHTML = carrinho.map(function (i) {
       return "<div class=\"item\"><div class=\"info\">" +
-        "<div class=\"nome\">" + (i.emoji ? i.emoji + " " : "") + escapar(i.name) + "</div>" +
+        "<div class=\"nome\">" + (i.emoji ? escapar(i.emoji) + " " : "") + escapar(i.name) + "</div>" +
         "<div class=\"preco\">" + fmt(i.price) + " cada</div></div>" +
         "<div class=\"qtde\">" +
         "<button data-id=\"" + i.id + "\" data-d=\"-1\">−</button>" +

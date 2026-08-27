@@ -12,13 +12,12 @@ export const SEED_PRODUCTS = [
   { id: 10, name: "Combo 2 Cervejas", price: 24, category: "Combos"  },
 ];
 
-/** Flag usada para detectar senhas de seed não migradas */
-export const SEED_FLAG = "SEED:";
-
-/** Usuários padrão — senhas serão hasheadas na primeira execução */
-export const DEFAULT_USERS = [
-  { id: 1, name: "Administrador", username: "admin",   password: SEED_FLAG + "Admin@2025!",   role: "admin"   },
-  { id: 2, name: "Caixa",         username: "caixa",   password: SEED_FLAG + "Caixa@2025!",   role: "caixa"   },
-  { id: 3, name: "Garçom",        username: "garcom",  password: SEED_FLAG + "Garcom@2025!",  role: "garcom"  },
-  { id: 4, name: "Gerente",       username: "gerente", password: SEED_FLAG + "Gerente@2025!", role: "gerente" },
-];
+/*
+ * Os usuários-semente (`DEFAULT_USERS`/`SEED_FLAG`) foram REMOVIDOS: traziam
+ * usuário e senha fixos no código-fonte e não eram consumidos por
+ * nenhum ponto do sistema — resquício do protótipo em localStorage,
+ * antes do Supabase Auth. Credencial padrão em SaaS
+ * multi-estabelecimento é porta destrancada: o primeiro acesso de cada
+ * estabelecimento nasce no provisionamento (`src/lib/console.js`), com senha
+ * provisória sorteada por CSPRNG.
+ */

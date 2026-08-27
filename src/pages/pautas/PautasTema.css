@@ -1,0 +1,106 @@
+/**
+ * Tema das Pautas da Kora — claro, quente, com o quadro em destaque.
+ *
+ * Por que aqui e não em `src/styles/tema.css`: aquele arquivo é a fonte de
+ * verdade da marca da plataforma (o PDV é escuro) e é o que um tenant
+ * sobrescreve. As Pautas são uma superfície própria, em host próprio, fora
+ * da multi-tenancy — então elas trocam os tokens SÓ para si, no mesmo
+ * mecanismo de white-label (decisão 017): redeclarar `--gm-*` em um escopo.
+ * Nenhuma tela do PDV muda por causa disto.
+ *
+ * Os componentes continuam lendo apenas `var(--*)` — nenhum hex em
+ * componente (ADR-007), então trocar a paleta segue sendo editar um lugar só.
+ *
+ * A lógica das cores: a página é um papel levemente quente (--gm-bg), a
+ * coluna do quadro é um pouco mais fria e mais escura (--pautas-coluna) e o
+ * card é branco puro. São três camadas de profundidade sem uma linha sequer:
+ * dá para ver onde a coluna começa e onde o card termina só pelo tom.
+ */
+
+.pautas,
+.pautas-login,
+.pautas-app__espera {
+  --gm-bg: #f5f4f1;
+  --gm-card: #ffffff;
+  /* Fundo dos campos do formulário: some no branco só o suficiente para o
+     campo parecer "para preencher" — vira branco puro no foco. */
+  --gm-surface: #fafaf8;
+  --gm-border: #e7e4ee;
+  --gm-faint: #9a95ab;
+  --gm-text: #241f36;
+  --gm-muted: #6f6a80;
+
+  --gm-accent: #6c3be0;
+  --gm-green: #1f8a4c;
+  --gm-red: #d92d20;
+  --gm-warn: #b45309;
+
+  /* Controles nativos (busca, calendário, scrollbar) desenham em claro. */
+  --gm-color-scheme: light;
+  color-scheme: light;
+
+  /* Campos de formulário. Precisa estar AQUI, e não bastam --gm-text/--gm-card
+     acima: `--gm-input-*` é declarado em `:root` (tema.css) como color-mix dos
+     tokens de marca, e as var() de dentro de um custom property resolvem no
+     elemento em que ele é DECLARADO — ou seja, no `:root` escuro do PDV. O
+     valor que desce até aqui já veio pronto e escuro; trocar o texto e o card
+     nesta regra não o alcança. Como `styles/inputs.css` pinta todo input de
+     texto com especificidade alta (~0,8,1), o campo saía preto sobre o papel
+     claro, enquanto os textarea (seletor de elemento, 0,0,1) ficavam certos —
+     era o campo preto do login e do "Qual é a pauta?".
+     Redeclarar os três tokens nesta superfície refaz a mesma mistura já com a
+     paleta clara, sem !important e sem tocar no PDV. */
+  --gm-input-bg: var(--gm-surface);
+  --gm-input-border: var(--gm-border);
+  --gm-input-ring: color-mix(in srgb, var(--gm-accent) 15%, transparent);
+
+  /* Sora nos títulos e na marca; texto no stack do sistema, que é o que o
+     leitor já lê o dia inteiro. A Sora já vem carregada no index.html —
+     nenhuma requisição nova, nenhum custo (bootstrap). */
+  --gm-font-titulo: "Sora", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --gm-font-texto: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* ── Superfícies do quadro ───────────────────────────────────── */
+  --pautas-coluna: #edebf2;
+  --pautas-borda-card: #e9e6f0;
+  --pautas-borda-hover: #c9c3da;
+  --pautas-tracejado: #d4cfe2;
+  --pautas-secundario: #57516b;
+  --pautas-contexto-texto: #45405a;
+
+  --gm-accent-hover: #5b2fc8;
+  --gm-accent-escuro: #4e27ae;
+  --pautas-acento-tenue: rgba(108, 59, 224, 0.14);
+
+  /* Botão de status desligado: quase invisível de propósito — o aceso é que
+     tem de saltar. */
+  --pautas-inativo-borda: #ece9f2;
+  --pautas-inativo-texto: #b9b4c7;
+
+  /* ── Cores de estado ─────────────────────────────────────────── */
+  --pautas-pendente: #7a7690;
+  --pautas-pendente-tenue: rgba(122, 118, 144, 0.15);
+  --pautas-em_progresso: #b45309;
+  --pautas-em_progresso-tenue: rgba(180, 83, 9, 0.13);
+  --pautas-finalizado: #1f8a4c;
+  --pautas-finalizado-tenue: rgba(31, 138, 76, 0.13);
+
+  /* ── Cores de avatar ─────────────────────────────────────────── */
+  /* Uma paleta, não um mapa de sócios: quem recebe qual cor é decidido pela
+     POSIÇÃO na lista de pessoas (`indiceDeCorDaPessoa`), então nenhum nome
+     de cliente fica amarrado a um hex no código (decisão 017). Trocar a
+     paleta é editar estas seis linhas. */
+  --pautas-pessoa-1: #6c3be0;
+  --pautas-pessoa-2: #0e8c7f;
+  --pautas-pessoa-3: #c2571b;
+  --pautas-pessoa-4: #b03a6e;
+  --pautas-pessoa-5: #2a6bb8;
+  --pautas-pessoa-6: #6d7a1c;
+
+  /* ── Profundidade ────────────────────────────────────────────── */
+  --pautas-sombra: 0 1px 2px rgba(36, 31, 54, 0.05);
+  --pautas-sombra-alta: 0 6px 20px rgba(36, 31, 54, 0.1);
+  --pautas-sombra-modal: 0 24px 60px rgba(20, 15, 40, 0.35);
+  --pautas-sombra-acento: 0 6px 18px rgba(108, 59, 224, 0.32);
+  --pautas-anel: 0 0 0 3px rgba(108, 59, 224, 0.13);
+}

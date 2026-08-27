@@ -17,18 +17,19 @@ import { totalPorMetodo } from "@/utils/pagamentos";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
-import { nomeExibicaoTenant, MARCA_PLATAFORMA } from "@/lib/tema";
+import { marcaDoCabecalho } from "@/lib/tema";
+import { lerBrandingCache } from "@/lib/brandingCache";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import "./DesktopLayout.css";
 
 export default function DesktopLayout() {
   const { currentUser, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant, users, movimentosCaixa, registrarMovimentoCaixa, limiteSangria } = useApp();
-  // tema.nome_exibicao → nome cadastrado do estabelecimento → marca neutra
-  // da plataforma. Nunca a marca de outro cliente (decisão 017).
-  const nomeEstabelecimento = nomeExibicaoTenant(tenant?.tema, tenant?.nome);
-  // Sem estabelecimento resolvido, o nome exibido JÁ é o da plataforma —
-  // assinar ao lado leria "KORA by Kora".
-  const marcaDoTenant = nomeEstabelecimento !== MARCA_PLATAFORMA;
+  // tema.nome_exibicao → nome cadastrado do estabelecimento → cache de marca
+  // desta origem (enquanto o bootstrap não responde) → marca neutra da
+  // plataforma. Nunca a marca de outro cliente (decisão 017). Sem
+  // estabelecimento resolvido, o nome exibido JÁ é o da plataforma — assinar
+  // ao lado leria "KORA by Kora".
+  const { nome: nomeEstabelecimento, doTenant: marcaDoTenant } = marcaDoCabecalho(tenant, lerBrandingCache());
   const { width } = useResponsive();
   const sz = getSizes(width);
   const { notif, notify } = useNotification();

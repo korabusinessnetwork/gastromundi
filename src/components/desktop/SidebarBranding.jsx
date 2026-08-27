@@ -1,5 +1,6 @@
 import { useApp } from "@/context/AppContext";
-import { nomeExibicaoTenant, logoUrlTenant, MARCA_PLATAFORMA } from "@/lib/tema";
+import { marcaDoCabecalho } from "@/lib/tema";
+import { lerBrandingCache } from "@/lib/brandingCache";
 import "./SidebarBranding.css";
 
 /**
@@ -8,17 +9,20 @@ import "./SidebarBranding.css";
  * CADASTRADO do estabelecimento (`tenant.nome`) e, sem tenant carregado,
  * a marca neutra da plataforma — nunca a marca de outro cliente.
  *
+ * Enquanto o bootstrap do tenant não responde, usa o cache de marca desta
+ * origem (mesmo cache da pintura anti-flash), para a sidebar não escrever
+ * "KORA" por alguns segundos logo depois de o login já ter mostrado a marca
+ * do estabelecimento. Regra em `marcaDoCabecalho`.
+ *
  * Primeiro pedaço da Sidebar a sair do padrão 100% inline style —
  * adoção incremental do CSS separado do JSX (decisão 018), não um
  * big-bang: o resto do arquivo continua como está até ser tocado.
  */
 export default function SidebarBranding() {
   const { tenant } = useApp();
-  const nome = nomeExibicaoTenant(tenant?.tema, tenant?.nome);
-  const logoUrl = logoUrlTenant(tenant?.tema);
   // Sem estabelecimento resolvido, o nome exibido JÁ é o da plataforma —
   // assinar embaixo leria "KORA / by Kora".
-  const doTenant = nome !== MARCA_PLATAFORMA;
+  const { nome, logo: logoUrl, doTenant } = marcaDoCabecalho(tenant, lerBrandingCache());
 
   return (
     <div className="sidebar-branding">

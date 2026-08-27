@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { formatarComprovanteEscpos, formatarViaProducaoEscpos } from "./escposFormatador";
-import { colunasPorLargura } from "./largura";
+import { colunasPorLargura, colunasEscpos } from "./largura";
 
 const identidade = { nome: "GastroMundi", logoUrl: null, endereco: "", cnpj: "", rodape: "Obrigado pela preferência!" };
 
@@ -58,6 +58,42 @@ describe("formatarComprovanteEscpos", () => {
       colunas
     ).join("\n");
     expect(comAviso).toContain("sem valor fiscal");
+  });
+});
+
+// A comanda que sai na impressora usa as colunas do hardware (48 no papel
+// de 80mm), não a conta de pixel do preview. Antes ela saía em 33 colunas:
+// quebrava no meio de nomes que cabiam inteiros, gastando papel em todo
+// pedido e jogando o preço da direita pra coluna errada.
+describe("comanda no papel de 80mm usa as 48 colunas reais da impressora", () => {
+  const PRATO = "Filé à parmegiana com fritas e arroz";
+  const pedido = comprovante({
+    itens: [{ nome: PRATO, qty: 1, preco: 48.9, emoji: "", obs: [] }],
+    subtotal: 48.9, valorTaxa: 0, total: 48.9,
+    pagamentos: [{ metodo: "pix", valor: 48.9, troco: 0 }],
+  });
+
+  it("nenhuma linha passa de 48 caracteres", () => {
+    const linhas = formatarComprovanteEscpos(pedido, colunasEscpos(80));
+    for (const linha of linhas) expect(linha.length).toBeLessThanOrEqual(48);
+  });
+
+  it("prato que cabe em 48 sai numa linha só — e em 33 saía quebrado", () => {
+    const linhaCompleta = `1x ${PRATO}`;
+    expect(linhaCompleta.length).toBeLessThanOrEqual(48);
+
+    const em48 = formatarComprovanteEscpos(pedido, colunasEscpos(80));
+    expect(em48).toContain(linhaCompleta);
+
+    const em33 = formatarComprovanteEscpos(pedido, 33);
+    expect(em33).not.toContain(linhaCompleta);
+  });
+
+  it("o TOTAL alinha à direita na coluna 48, não na 33", () => {
+    const linhas = formatarComprovanteEscpos(pedido, colunasEscpos(80));
+    const linhaTotal = linhas.find((l) => l.startsWith("TOTAL"));
+    expect(linhaTotal).toHaveLength(48);
+    expect(linhaTotal.endsWith("R$ 48.90")).toBe(true);
   });
 });
 

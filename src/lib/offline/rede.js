@@ -7,7 +7,11 @@
 // (op vai para a fila local e será reenviada) de erro definitivo
 // (RLS/constraint/validação — rollback imediato, reenviar não resolve).
 
-const PADROES_REDE = /failed to fetch|networkerror|network request failed|fetch failed|load failed|timeout|timed out|socket hang up|ENOTFOUND|ECONNREFUSED|ECONNRESET|aborted?/i;
+// "tempo limite" é o nosso próprio estouro de prazo (redeTimeout.js), já em
+// português porque essa mensagem vai para a tela: sem ele aqui, a requisição
+// que ficou pendurada seria tratada como falha definitiva e a operação seria
+// dada como perdida em vez de esperar a conexão voltar.
+const PADROES_REDE = /failed to fetch|networkerror|network request failed|fetch failed|load failed|timeout|timed out|tempo limite|socket hang up|ENOTFOUND|ECONNREFUSED|ECONNRESET|aborted?/i;
 
 export function isErroDeRede(error) {
   if (!error) return false;

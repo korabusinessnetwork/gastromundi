@@ -19,7 +19,7 @@ const PERGUNTAS = [
   {
     pergunta: '"Personalizado" não vai demorar mais pra implantar?',
     resposta:
-      "Não — é o contrário. Como a gente configura as telas pro seu fluxo na ativação, sua equipe não precisa aprender o que não usa. É isso que faz dar pra vender no mesmo dia.",
+      "Não, é o contrário. Como a gente configura as telas pro seu fluxo na ativação, sua equipe não precisa aprender o que não usa. É isso que faz dar pra vender no mesmo dia.",
   },
   {
     pergunta: "Tem fidelidade ou multa de cancelamento?",
@@ -36,8 +36,8 @@ export default function ApexFaq() {
         <div className="apex-faq__grade">
           {PERGUNTAS.map((item) => (
             <div className="apex-faq__card" key={item.pergunta}>
-              <span className="apex-faq__pergunta">{item.pergunta}</span>
-              <span className="apex-faq__resposta">{item.resposta}</span>
+              <h3 className="apex-faq__pergunta">{item.pergunta}</h3>
+              <p className="apex-faq__resposta">{item.resposta}</p>
             </div>
           ))}
         </div>

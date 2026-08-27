@@ -18,7 +18,7 @@ import {
   LuReceipt, LuPackage, LuChartBar, LuArchive, LuSettings, LuBriefcase,
   LuLock, LuLockOpen, LuLogOut, LuChevronLeft, LuCircle,
   LuHistory, LuX, LuUser, LuArrowLeft, LuShieldAlert, LuWallet, LuChefHat, LuUsers,
-  LuSparkles, LuFileText, LuFileCheck, LuTrash2, LuBike, LuBanknote,
+  LuSparkles, LuFileText, LuFileCheck, LuTrash2, LuBike,
 } from "react-icons/lu";
 
 // F005 — quem opera a gaveta. Mesma lista da policy de INSERT em
@@ -637,6 +637,14 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
                 onChange={e => { setCancelSenha(e.target.value); setCancelSenhaErro(""); }}
                 onKeyDown={e => { if (e.key === "Enter") confirmarCancelamento(); }}
                 placeholder="Senha"
+                // Autorização de gerente — nunca o login de quem está no
+                // terminal. Sem isto o navegador autopreenchia a senha
+                // salva do usuário logado e o cancelamento saía autorizado
+                // sem gerente nenhum (PDV é terminal compartilhado).
+                name="autorizacao-gerente"
+                autoComplete="new-password"
+                data-1p-ignore
+                data-lpignore="true"
                 className="sidebar__input"
                 style={{
                   width: "100%", boxSizing: "border-box",
@@ -772,7 +780,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
                 }}
               >
-                <LuBanknote size={15} /> Retirar / Colocar Dinheiro
+                Retirar / Colocar Dinheiro
               </button>
             )}
             <button

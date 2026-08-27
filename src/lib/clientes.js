@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { emitirEvento } from "./jarvas";
 import { baixarConta } from "./financeiro";
 import { apenasDigitos, validarDocumento } from "./documento";
+import { telefoneValido, apenasDigitosTelefone } from "./telefone";
 
 /**
  * Clientes — F010 (docs/03_REGRAS_DE_NEGOCIO/CLIENTES.md).
@@ -32,6 +33,10 @@ export function validarCadastroCliente(dados) {
   const telefone = String(dados?.telefone ?? "").trim();
   if (!nome) return { valido: false, erro: "Nome é obrigatório." };
   if (!telefone) return { valido: false, erro: "Telefone é obrigatório (contato mínimo para fiado/delivery)." };
+  // Antes bastava não estar vazio: "123" era salvo calado, e o número só se
+  // revelava inútil no dia em que alguém precisava ligar para o cliente.
+  if (!telefoneValido(telefone))
+    return { valido: false, erro: "Telefone inválido — informe DDD e número, ex: (11) 91234-5678." };
 
   const documento = apenasDigitos(dados?.documento);
   if (documento) {
@@ -59,7 +64,10 @@ export async function cadastrarCliente(dados, usuario) {
   if (!valido) return { data: null, error: { message: erro } };
 
   const nome = String(dados.nome).trim();
-  const telefone = String(dados.telefone).trim();
+  // Guarda só os dígitos: a checagem de duplicidade compara o telefone exato e
+  // a busca casa por trecho — com máscara, "(11) 98888-7777" e "11988887777"
+  // seriam dois clientes diferentes para o banco.
+  const telefone = apenasDigitosTelefone(dados.telefone);
   // Guarda só os dígitos (sem máscara); o tipo só faz sentido com documento.
   const documento = apenasDigitos(dados.documento) || null;
   const documento_tipo = documento ? (dados.documentoTipo === "cnpj" ? "cnpj" : "cpf") : null;
@@ -106,7 +114,7 @@ export async function cadastrarCliente(dados, usuario) {
 export async function atualizarCliente(id, dados, usuario) {
   const payload = { updated_at: new Date().toISOString() };
   if (dados.nome != null) payload.nome = String(dados.nome).trim();
-  if (dados.telefone != null) payload.telefone = String(dados.telefone).trim();
+  if (dados.telefone != null) payload.telefone = apenasDigitosTelefone(dados.telefone);
   if (dados.documento !== undefined) {
     const doc = apenasDigitos(dados.documento) || null;
     payload.documento = doc;
@@ -136,7 +144,15 @@ export async function listarClientes({ busca } = {}) {
   const termo = busca?.trim();
   if (termo) {
     const termoSanitizado = sanitizarTermoBusca(termo);
-    query = query.or(`nome.ilike.%${termoSanitizado}%,telefone.ilike.%${termoSanitizado}%`);
+    const filtros = [`nome.ilike.%${termoSanitizado}%`, `telefone.ilike.%${termoSanitizado}%`];
+    // O telefone é guardado só em dígitos. Quem digita a busca com máscara
+    // ("(11) 98888-7777") não acharia ninguém — então, quando o termo é só
+    // número/pontuação de telefone, procura também pelos dígitos puros.
+    const digitos = apenasDigitosTelefone(termo);
+    if (digitos && /^[\d\s()+.-]+$/.test(termo) && digitos !== termoSanitizado) {
+      filtros.push(`telefone.ilike.%${digitos}%`);
+    }
+    query = query.or(filtros.join(","));
   }
 
   const { data, error } = await query;
@@ -192,6 +208,70 @@ export async function buscarHistoricoCliente(clienteId) {
     lancamentosFiado: lancamentosRes.data ?? [],
     error: vendasRes.error ?? lancamentosRes.error ?? null,
   };
+}
+
+/**
+ * Exclui um cliente — que, pela regra do módulo, é **anonimização**:
+ * "Exclusão de cliente com histórico é anonimização (preserva
+ * integridade de vendas/lançamentos), não remoção física"
+ * (CLIENTES.md, Exceções). É também o caminho de remoção de dados
+ * pessoais por LGPD.
+ *
+ * Na prática: apaga os dados pessoais da linha e marca `anonimizado`.
+ * Todas as leituras deste módulo já filtram `anonimizado = false`, então
+ * o cliente some das listas na hora, enquanto `vendas.cliente_id` e
+ * `lancamentos.cliente_id` continuam apontando para uma linha existente —
+ * nenhum histórico financeiro se perde.
+ *
+ * @param {string} id
+ * @param {string} [usuario]
+ * @returns {Promise<{data: object|null, error: object|null}>}
+ */
+export async function anonimizarCliente(id, usuario) {
+  if (!id) return { data: null, error: { message: "Cliente inválido." } };
+
+  const payload = {
+    anonimizado: true,
+    // Anonimizar é apagar o dado pessoal, não só escondê-lo: o nome vira
+    // um rótulo neutro e o resto sai do banco.
+    nome: "Cliente removido",
+    telefone: null,
+    documento: null,
+    documento_tipo: null,
+    endereco: null,
+    observacoes: null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from("clientes")
+    .update(payload)
+    .eq("id", id)
+    .select("id, anonimizado")
+    .single();
+  if (!error) emitirEvento("cliente.anonimizado", "clientes", { cliente_id: id }, usuario);
+  return { data, error };
+}
+
+/**
+ * Registra no log que alguém ABRIU o documento (CPF) de um cliente na tela.
+ *
+ * O log de cliente só guardava alteração (criado/atualizado/anonimizado) —
+ * ver um dado pessoal não deixava rastro nenhum. Pela LGPD, o acesso a dado
+ * sensível também precisa ser auditável: sem isso, não há como responder
+ * "quem viu o CPF deste cliente?".
+ *
+ * Grava apenas o `cliente_id` e quem abriu: o documento em si NUNCA vai para
+ * o log. É fire-and-forget como todo evento do Jarvas — se o registro falhar,
+ * a tela do operador não pode travar por causa disso.
+ *
+ * @param {string} clienteId
+ * @param {string} [usuario]
+ * @returns {void}
+ */
+export function registrarAcessoDocumento(clienteId, usuario) {
+  if (!clienteId) return;
+  emitirEvento("cliente.documento_visualizado", "clientes", { cliente_id: clienteId }, usuario);
 }
 
 /**

@@ -10,6 +10,7 @@ import { calcularBaixasEscolhas } from "@/lib/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { round2 } from "@/lib/vendas";
 import { reportarFalha } from "@/lib/observabilidade";
+import { iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/lib/estoque";
 import { hojeLocalISO, diaLocalDaqui } from "@/utils/datas";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
@@ -48,7 +49,7 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
  * passa nada (todo o PDV de desktop) segue idêntico a antes.
  */
 export function useFinalizarPagamento() {
-  const { addSale, removePending, estoque, baixarEstoque, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
+  const { addSale, removePending, baixarEstoque, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
 
   const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId, cliente, dest }, { onNfce, semComanda = false } = {}) => {
     // TEF é só online: a maquininha precisa de comunicação em tempo real —
@@ -144,15 +145,26 @@ export function useFinalizarPagamento() {
       // sem NUNCA dar await (a venda não pode esperar a SEFAZ). Sem callback
       // (ex.: chamador sem UI de cupom) o comportamento é idêntico a antes.
       onNfce?.({ estado: "emitindo", resultado: null, venda: sale });
+      // Nota que não saiu não pode sumir: a venda está registrada e a
+      // obrigação fiscal continua de pé. Vai para a fila local e o sistema
+      // reemite sozinho quando a conexão voltar — seguro repetir porque a
+      // emissão é idempotente por vendaId no servidor (ver nfceIdempotencia).
+      const enfileirarNota = () =>
+        enfileirarOffline({ tipo: "emitir_nfce", vendaId: sale.id, venda: sale, usuario: currentUser?.username });
       emitirDocumentoFiscal(sale, { usuario: currentUser?.username })
-        .then((resultado) => onNfce?.({ estado: "concluido", resultado, venda: sale }))
+        .then((resultado) => {
+          const naFila = resultado?.status === "erro";
+          if (naFila) enfileirarNota();
+          onNfce?.({ estado: "concluido", resultado: { ...resultado, naFila }, venda: sale });
+        })
         .catch((err) => {
           // emitirDocumentoFiscal já é "nunca lança"; o catch é rede de
           // segurança e ainda assim conclui a modal (nunca a deixa girando).
           console.error("fiscal (nf-e):", err);
+          enfileirarNota();
           onNfce?.({
             estado: "concluido",
-            resultado: { status: "erro", vendaId: sale.id, detalhe: err?.message ?? "Falha ao emitir NFC-e." },
+            resultado: { status: "erro", vendaId: sale.id, detalhe: err?.message ?? "Falha ao emitir NFC-e.", naFila: true },
             venda: sale,
           });
         });
@@ -192,25 +204,40 @@ export function useFinalizarPagamento() {
     // escolhida é um produto REAL e baixa o próprio estoque. Combo tem
     // id=null e não entra no delta acima — suas baixas vêm só daqui; por
     // isso a fonte é `todosItens`, não `itensAtivos` (que exige id).
-    // Entram no mesmo delta para ganhar a conversão de unidade, a guarda
-    // `prodId in estoque` e a agregação com vendas avulsas do mesmo produto.
+    // Entram no mesmo delta para ganhar a conversão de unidade e a agregação
+    // com vendas avulsas do mesmo produto.
     for (const b of calcularBaixasEscolhas(todosItens)) {
       delta[b.produtoId] = (delta[b.produtoId] ?? 0) + b.qtd;
     }
     // Baixas recusadas pelo servidor (RLS, constraint...). Offline não conta:
     // a RPC entra na fila local e é reaplicada quando a conexão voltar.
     const baixasFalhadas = [];
-    for (const [prodId, qty] of Object.entries(delta)) {
-      // Produto sem entrada no mapa de estoque = sem controle de estoque.
-      // Estoque zerado NÃO pula a baixa: a RPC clampa em zero e o Jarvas
-      // sinaliza a venda sem estoque (oversell) — pular escondia o furo.
-      if (!(prodId in estoque)) continue;
-      const produto = (products ?? []).find(p => String(p.id) === prodId);
-      // Crítico 7 — converte a quantidade vendida (unidade de consumo)
-      // para unidade de estoque via fator_consumo_estoque do produto.
-      const qtdEstoque = produto ? consumoParaEstoque(qty, produto) : qty;
-      const { error } = (await baixarEstoque(prodId, qtdEstoque)) ?? {};
-      if (error) baixasFalhadas.push({ produto_id: prodId, nome: produto?.name ?? null, quantidade: qtdEstoque });
+    // Abre o lote antes da primeira baixa: se a venda inteira falhar em
+    // descontar (RLS caída, sessão expirada), o gestor recebe UM alerta
+    // dizendo que o sistema não está descontando, e não um cartão por
+    // produto repetindo a mesma frase. `finally` porque um lote deixado
+    // aberto engoliria os alertas das vendas seguintes.
+    iniciarLoteDeBaixas();
+    try {
+      for (const [prodId, qty] of Object.entries(delta)) {
+        // Todo item vendido passa pela baixa, sem exceção — quem decide se há
+        // o que descontar é o servidor, não o mapa que este aparelho tem na
+        // memória. Antes, produto fora do mapa era pulado como "sem controle
+        // de estoque"; como `addProduct` nunca criou a linha, isso valia para
+        // TODO produto cadastrado pelo app: vendia sem descontar, para sempre,
+        // e a tela de Estoque mostrava "0" como se fosse saldo. Estoque zerado
+        // também não pula: a RPC clampa em zero e o Jarvas sinaliza a venda
+        // sem estoque (oversell).
+        const produto = (products ?? []).find(p => String(p.id) === prodId);
+        // Crítico 7 — converte a quantidade vendida (unidade de consumo)
+        // para unidade de estoque via fator_consumo_estoque do produto.
+        const qtdEstoque = produto ? consumoParaEstoque(qty, produto) : qty;
+        const { error } = (await baixarEstoque(prodId, qtdEstoque)) ?? {};
+        if (error) baixasFalhadas.push({ produto_id: prodId, nome: produto?.name ?? null, quantidade: qtdEstoque });
+      }
+
+    } finally {
+      void fecharLoteDeBaixas(currentUser?.username);
     }
 
     const metodoResumo = (pagamentos ?? []).map(p => p?.metodo).filter(Boolean).join(" + ") || "—";

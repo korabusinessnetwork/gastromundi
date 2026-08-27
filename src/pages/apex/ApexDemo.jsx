@@ -19,7 +19,7 @@ export default function ApexDemo({ contatoUrl }) {
         <p className="apex-demo__paragrafo">
           Demonstração ao vivo de 30 minutos, sem compromisso. Como cada
           ativação inclui personalização, abrimos poucas vagas de
-          implantação por mês — garanta a sua.
+          implantação por mês, garanta a sua.
         </p>
 
         {contatoUrl ? (

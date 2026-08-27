@@ -26,11 +26,15 @@ import {
 } from "./deliveryAdmin";
 
 describe("produtosParaImportar", () => {
+  // Todo produto de cardápio tem categoria de venda e preço — as fixtures
+  // refletem isso porque a importação passou a exigir os dois.
+  const vendavel = (extra) => ({ category: "Lanches", price: 10, ...extra });
+
   it("traz só os produtos ativos que ainda não estão no delivery", () => {
     const products = [
-      { id: 1, active: true },
-      { id: 2, active: true },
-      { id: 3, active: true },
+      vendavel({ id: 1, active: true }),
+      vendavel({ id: 2, active: true }),
+      vendavel({ id: 3, active: true }),
     ];
     const jaPublicados = [{ produto_id: 2 }];
     const faltantes = produtosParaImportar(products, jaPublicados);
@@ -38,22 +42,43 @@ describe("produtosParaImportar", () => {
   });
 
   it("compara id por string (id number x produto_id string do jsonb/uuid)", () => {
-    const products = [{ id: 10 }, { id: 20 }];
+    const products = [vendavel({ id: 10 }), vendavel({ id: 20 })];
     const jaPublicados = [{ produto_id: "10" }];
     expect(produtosParaImportar(products, jaPublicados).map((p) => p.id)).toEqual([20]);
   });
 
   it("ignora produtos inativos (active === false)", () => {
     const products = [
-      { id: 1, active: false },
-      { id: 2, active: true },
+      vendavel({ id: 1, active: false }),
+      vendavel({ id: 2, active: true }),
     ];
     expect(produtosParaImportar(products, []).map((p) => p.id)).toEqual([2]);
   });
 
   it("trata active ausente como ativo", () => {
-    const products = [{ id: 1 }, { id: 2 }];
+    const products = [vendavel({ id: 1 }), vendavel({ id: 2 })];
     expect(produtosParaImportar(products, []).map((p) => p.id)).toEqual([1, 2]);
+  });
+
+  it("não importa insumo nem item de produção (não são cardápio)", () => {
+    const products = [
+      vendavel({ id: 1 }),
+      { id: 2, category: "Insumo", price: 0 },
+      { id: 3, category: "Produção", price: 12 },
+      { id: 4, category: "producao", price: 12 }, // sem acento/caixa
+      { id: 5, category: " INSUMO ", price: 30 }, // com preço, ainda assim insumo
+    ];
+    expect(produtosParaImportar(products, []).map((p) => p.id)).toEqual([1]);
+  });
+
+  it("não importa produto sem preço de venda (R$ 0,00 vira pedido de graça)", () => {
+    const products = [
+      vendavel({ id: 1 }),
+      { id: 2, category: "Lanches", price: 0 },
+      { id: 3, category: "Lanches" }, // preço ausente
+      { id: 4, category: "Lanches", price: -5 },
+    ];
+    expect(produtosParaImportar(products, []).map((p) => p.id)).toEqual([1]);
   });
 
   it("é robusto a entradas não-array", () => {
@@ -62,7 +87,7 @@ describe("produtosParaImportar", () => {
   });
 
   it("nada a importar quando tudo já foi publicado", () => {
-    const products = [{ id: 1 }, { id: 2 }];
+    const products = [vendavel({ id: 1 }), vendavel({ id: 2 })];
     const jaPublicados = [{ produto_id: 1 }, { produto_id: 2 }];
     expect(produtosParaImportar(products, jaPublicados)).toEqual([]);
   });

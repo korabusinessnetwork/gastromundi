@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { criarFetchComTimeout } from "./redeTimeout";
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -15,4 +16,8 @@ if (!url || !key) {
   );
 }
 
-export const supabase = createClient(url, key);
+// `fetch` com prazo: requisição pendurada vira erro tratável em vez de deixar
+// a tela parada sem resposta (ver redeTimeout.js).
+export const supabase = createClient(url, key, {
+  global: { fetch: criarFetchComTimeout((...args) => fetch(...args)) },
+});

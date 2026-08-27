@@ -1,0 +1,226 @@
+/**
+ * Formulário de pauta (Pautas da Kora).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * Em tela clara o véu é um cinza-ardósia translúcido, não um preto 60%: o
+ * preto sobre branco escurece a tela inteira e o formulário deixa de ser o
+ * ponto de atenção — vira o único lugar iluminado de um cômodo apagado.
+ */
+
+.pauta-form__fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: color-mix(in srgb, var(--gm-text) 42%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.pauta-form {
+  width: 100%;
+  max-width: 540px;
+  max-height: 92dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 18px;
+  color: var(--gm-text);
+  font-family: inherit;
+  overflow: hidden;
+  box-shadow: var(--pautas-sombra-modal, var(--pautas-sombra-alta, none));
+}
+
+.pauta-form :is(button, input, textarea):focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
+}
+
+/* ── Topo ──────────────────────────────────────────────────────── */
+.pauta-form__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--gm-border);
+}
+.pauta-form__titulo {
+  margin: 0;
+  font-family: var(--gm-font-titulo, inherit);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+.pauta-form__fechar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+.pauta-form__fechar:hover:not(:disabled) {
+  color: var(--gm-text);
+  border-color: var(--gm-faint);
+}
+
+/* ── Corpo ─────────────────────────────────────────────────────── */
+.pauta-form__corpo {
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.pauta-form__campo { margin-bottom: 16px; }
+
+.pauta-form__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gm-text);
+  margin-bottom: 6px;
+}
+.pauta-form__opcional {
+  font-weight: 500;
+  color: var(--gm-muted);
+}
+
+/* O campo nasce levemente acinzentado e vira branco no foco: sem ler nada,
+   dá para ver onde se escreve e onde se está escrevendo agora. */
+.pauta-form__input,
+.pauta-form__area {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font-size: 14.5px;
+  font-family: inherit;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+.pauta-form__input::placeholder,
+.pauta-form__area::placeholder { color: var(--gm-muted); }
+.pauta-form__input:focus,
+.pauta-form__area:focus {
+  border-color: var(--gm-accent);
+  background: var(--gm-card);
+  box-shadow: var(--pautas-anel, none);
+}
+
+.pauta-form__area {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* ── Envolvidos ────────────────────────────────────────────────── */
+/* Mesmo formato do chip de filtro da tela: marcar quem entra na pauta e
+   filtrar por pessoa são o mesmo gesto, então são o mesmo objeto. */
+.pauta-form__pessoas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pauta-form__pessoa {
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.pauta-form__pessoa:hover:not(:disabled) {
+  color: var(--gm-text);
+  border-color: var(--gm-faint);
+}
+.pauta-form__pessoa--marcado {
+  background: var(--pautas-acento-tenue, transparent);
+  border-color: var(--gm-accent);
+  color: var(--gm-accent-escuro, var(--gm-accent));
+}
+
+.pauta-form__erro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gm-red) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 40%, transparent);
+  color: var(--gm-red);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── Ações ─────────────────────────────────────────────────────── */
+.pauta-form__acoes {
+  display: flex;
+  gap: 10px;
+  padding: 18px 22px 20px;
+  border-top: 1px solid var(--gm-border);
+  background: var(--gm-card);
+}
+.pauta-form__cancelar,
+.pauta-form__salvar {
+  flex: 1;
+  padding: 13px;
+  border-radius: 11px;
+  font-size: 14.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.pauta-form__cancelar {
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+.pauta-form__cancelar:hover:not(:disabled) {
+  color: var(--gm-text);
+  border-color: var(--gm-faint);
+}
+.pauta-form__salvar {
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  box-shadow: var(--pautas-sombra-acento, none);
+}
+.pauta-form__salvar:hover:not(:disabled) { background: var(--gm-accent-hover, var(--gm-accent)); }
+/* Desligado enquanto falta o obrigatório: prevenir o erro em vez de avisar
+   depois (Princípio nº1) — o botão só acende quando dá para salvar. */
+.pauta-form__salvar:disabled {
+  background: var(--pautas-acento-tenue, transparent);
+  color: color-mix(in srgb, var(--gm-accent-escuro, var(--gm-accent)) 55%, transparent);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ── No celular ────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  /* Abaixo de 16px o Safari do iPhone dá zoom ao focar o campo. */
+  .pauta-form__input,
+  .pauta-form__area { font-size: 16px; }
+  .pauta-form { max-height: 100dvh; border-radius: 14px; }
+  .pauta-form__acoes { padding: 14px 16px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pauta-form__input,
+  .pauta-form__area,
+  .pauta-form__pessoa { transition: none; }
+}

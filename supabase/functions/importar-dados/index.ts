@@ -258,11 +258,17 @@ Deno.serve(async (req) => {
     if (r.error) {
       // Parou no primeiro erro: devolve o que já entrou — reenviar o
       // MESMO arquivo continua de onde parou (o plano é idempotente).
+      //
+      // O texto do Postgres fica no log: "duplicate key ... constraint
+      // produtos_tenant_id_nome_key" desenha o schema para quem estiver
+      // sondando e não diz nada ao dono do restaurante. O que resolve a
+      // vida dele — quanto entrou e que basta reenviar — continua na tela.
+      console.error("[importar-dados] gravação interrompida:", r.error);
       return json({
         ...base,
         criados: r.criados,
         atualizados: r.atualizados,
-        error: `A gravação parou no meio: ${r.error.message ?? "erro no banco"}. Reenvie o mesmo arquivo que o resto continua de onde parou.`,
+        error: `A gravação parou no meio depois de ${r.criados} criado(s) e ${r.atualizados} atualizado(s). Reenvie o mesmo arquivo que o resto continua de onde parou.`,
       }, 500);
     }
 

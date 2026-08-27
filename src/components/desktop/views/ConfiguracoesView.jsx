@@ -109,11 +109,15 @@ function Field({ label, children }) {
   );
 }
 
-function TextInput({ value, onChange, placeholder, type = "text", maxLength, disabled, sz, autoFocus }) {
+function TextInput({ value, onChange, placeholder, type = "text", maxLength, disabled, sz, autoFocus, name, autoComplete, ignorarGerenciadorDeSenha }) {
   return (
     <input
       autoFocus={autoFocus}
       type={type}
+      name={name}
+      autoComplete={autoComplete}
+      data-1p-ignore={ignorarGerenciadorDeSenha ? "" : undefined}
+      data-lpignore={ignorarGerenciadorDeSenha ? "true" : undefined}
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
@@ -571,8 +575,23 @@ export function UsuariosTab({ sz }) {
               <TextInput value={form.name} onChange={v => setF("name", v)} placeholder="Ex: João Silva" maxLength={40} sz={sz} autoFocus />
             </Field>
 
+            {/* O navegador reconhecia este par login+senha como a tela de login
+                e preenchia sozinho com o usuário logado: quem abria "Novo
+                Usuário" via "matheus" já escrito no campo, editável e válido —
+                a um clique de sobrescrever a própria conta de admin. Campo de
+                cadastro novo nunca pode vir preenchido com uma identidade que
+                já existe. */}
             <Field label="Usuário (login) *">
-              <TextInput value={form.username} onChange={v => setF("username", v.toLowerCase())} placeholder="Ex: joao" maxLength={30} sz={sz} />
+              <TextInput
+                value={form.username}
+                onChange={v => setF("username", v.toLowerCase())}
+                placeholder="Ex: joao"
+                maxLength={30}
+                sz={sz}
+                name="novo-usuario-login"
+                autoComplete="off"
+                ignorarGerenciadorDeSenha
+              />
               <div className="usuarios-tab__ajuda">Apenas letras, números e _ (sem espaços)</div>
             </Field>
 
@@ -648,6 +667,9 @@ export function UsuariosTab({ sz }) {
                       onChange={v => setF("password", v)}
                       placeholder="••••••••"
                       sz={sz}
+                      name="novo-usuario-senha"
+                      autoComplete="new-password"
+                      ignorarGerenciadorDeSenha
                     />
                     <button
                       type="button"
@@ -667,6 +689,9 @@ export function UsuariosTab({ sz }) {
                       onChange={v => setF("confirmPassword", v)}
                       placeholder="••••••••"
                       sz={sz}
+                      name="novo-usuario-senha-confirmacao"
+                      autoComplete="new-password"
+                      ignorarGerenciadorDeSenha
                     />
                     <button
                       type="button"

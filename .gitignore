@@ -10,3 +10,8 @@ dist/
 
 # Rascunhos de trabalho (anotações, resumos, arquivos temporários de sessão)
 scratchpad/
+
+# Cópia pronta do KoraPonte.exe para acesso rápido (gerada com
+# `npm run build:exe` dentro de ponte/). São 56 MB de binário — o LEIAME
+# da pasta vai para o repositório, o executável não.
+executavel/*.exe
