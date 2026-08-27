@@ -361,12 +361,9 @@ export default function PerfilImpressora({ sz }) {
             </div>
           </section>
 
-          {/* ── Seção 2 — Papel ─────────────────────────────────────── */}
-          {/* Chamava-se "Layout da comanda", nome que passou para a aba nova
-              (LayoutComanda), que cuida do CONTEÚDO impresso. Aqui é o papel
-              em si: largura, corte e tamanho da letra. */}
+          {/* ── Seção 2 — Layout da comanda ─────────────────────────── */}
           <section className="perfil-impressora__secao">
-            <h3 className="perfil-impressora__titulo-secao">Papel</h3>
+            <h3 className="perfil-impressora__titulo-secao">Layout da comanda</h3>
 
             <div className="perfil-impressora__campo">
               <div className="perfil-impressora__label">Largura do papel</div>

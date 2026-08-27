@@ -2,7 +2,7 @@
  * F020 — Layout da comanda (era "Perfil de Impressão"). Leva "Impressão do
  * zero, sem QZ Tray": impressora agora é escolhida via Ponte KORA (Windows
  * ou rede), não mais QZ Tray. Decisão 018 (CSS separado do JSX, zero
- * estilo inline) + tokens --gm-, --fs- e --lh- (ADR-007) — cor só por
+ * style={{}} inline) + tokens --gm-*/--fs-*/--lh-* (ADR-007) — cor só por
  * variável, variação por color-mix. Cores de icone passadas via prop
  * `color={varColor(C.x)}` no JSX não são inline style: são apenas props
  * de componente, resolvidas para os mesmos tokens --gm-*.
