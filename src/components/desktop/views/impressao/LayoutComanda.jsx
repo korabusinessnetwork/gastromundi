@@ -213,10 +213,27 @@ export default function LayoutComanda() {
     [documento, configCompleta],
   );
 
+  // Colunas REAIS da impressora (48 no papel de 80mm, 32 no de 58mm).
+  // Mandam em duas coisas: no texto da prévia e no tamanho da fonte com
+  // que ele é exibido — sem isso a linha de 48 colunas não cabia na
+  // moldura e os preços, que ficam na direita, sumiam atrás da rolagem.
+  const colunas = colunasEscpos(configCompleta?.perfilImpressora?.larguraMm);
+
   const textoTermica = useMemo(
-    () => formatarComprovanteEscpos(documento, colunasEscpos(configCompleta?.perfilImpressora?.larguraMm)).join("\n"),
-    [documento, configCompleta],
+    () => formatarComprovanteEscpos(documento, colunas).join("\n"),
+    [documento, colunas],
   );
+
+  // O papel cresce com a quantidade de itens, então a altura é medida
+  // depois de montado em vez de cravada: iframe de altura fixa rolava por
+  // dentro, dentro da moldura que também rola, e escondia o fim da
+  // comanda. Mudar `srcDoc` recarrega o iframe e cai aqui de novo.
+  const ajustarAlturaPapel = (e) => {
+    const frame = e.currentTarget;
+    const corpo = frame.contentDocument?.body;
+    if (!corpo) return;
+    frame.style.height = `${corpo.scrollHeight}px`;
+  };
 
   // Ligar o bloco do logo sem logo cadastrada não dá erro nenhum — ele
   // só não sai. Sem este aviso o dono ficaria procurando na tela a
@@ -346,9 +363,12 @@ export default function LayoutComanda() {
 
           <div className="layout-comanda__preview-moldura">
             {visao === "papel" ? (
-              <iframe title="Pré-visualização da comanda" srcDoc={htmlPreview} className="layout-comanda__preview-iframe" />
+              <iframe title="Pré-visualização da comanda" srcDoc={htmlPreview} onLoad={ajustarAlturaPapel}
+                      className="layout-comanda__preview-iframe" />
             ) : (
-              <pre className="layout-comanda__preview-termica">{textoTermica}</pre>
+              <pre className={`layout-comanda__preview-termica layout-comanda__preview-termica--c${colunas}`}>
+                {textoTermica}
+              </pre>
             )}
           </div>
 

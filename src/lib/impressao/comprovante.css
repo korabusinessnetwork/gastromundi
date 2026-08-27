@@ -47,7 +47,11 @@ body {
 .b-negrito { font-weight: bold; }
 
 /* --- Cor/espaçamento por papel do bloco ---------------------------- */
-.cabecalho__logo { max-width: 160px; max-height: 64px; object-fit: contain; margin: 0 auto 6px; display: block; }
+/* `inline-block` (e não `block` + margin auto) porque o bloco "Logo" tem
+   alinhamento próprio no editor: centralizar aqui à força fazia a tela
+   oferecer esquerda/direita e o papel sair sempre no meio. Quem alinha é
+   o `text-align` da classe `.b-*` do bloco. */
+.cabecalho__logo { max-width: min(160px, 100%); max-height: 64px; object-fit: contain; margin-bottom: 6px; display: inline-block; }
 .cabecalho__linha { color: #555; }
 .identidade-fiscal { color: #555; }
 .metodo { color: #555; }
@@ -59,12 +63,38 @@ hr { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
 .espaco--2 { height: 16px; }
 .espaco--3 { height: 24px; }
 
-/* --- Itens --------------------------------------------------------- */
+/* --- Itens ---------------------------------------------------------
+   `table-layout: fixed` + larguras em porcentagem porque o papel de
+   58mm não tem folga: com a largura automática do navegador, as colunas
+   de número exigiam o tamanho do conteúdo, a tabela ficava mais larga
+   que o papel e a coluna "Total" saía 22px FORA da margem — o valor do
+   item, justamente, era o que não imprimia. Em porcentagem a soma é
+   sempre 100% do papel, seja ele 58mm ou 80mm.
+
+   `overflow-wrap: anywhere` fecha o mesmo buraco pelo outro lado: nome
+   de produto comprido (ou uma palavra só, sem espaço) quebra dentro da
+   própria coluna em vez de empurrar as outras para fora do papel. */
 table { width: 100%; border-collapse: collapse; }
+table.itens { table-layout: fixed; }
+th, td { overflow-wrap: anywhere; }
 th { font-size: 0.85em; text-align: left; padding: 4px; border-bottom: 2px solid #111; }
 th:nth-child(2) { text-align: center; }
 th:nth-child(3), th:nth-child(4) { text-align: right; }
 td { padding: 6px 4px; border-bottom: 1px dashed #ccc; }
+
+/* Com preço unitário são 4 colunas; sem ele, 3. A 2ª é sempre Qtd e a
+   última é sempre Total — daí os seletores, que servem aos dois casos
+   sem o template precisar avisar qual está montando. */
+.itens th:nth-child(2) { width: 10%; }
+.itens th:nth-child(3):not(:last-child) { width: 25%; }
+.itens th:last-child { width: 28%; }
+/* Sem preço unitário são 3 colunas e sobra espaço: 37% é o que faz
+   "R$ 32.50" (62px em Courier 13px) caber numa linha até no papel de
+   58mm. Com as 4 colunas, em 58mm, não existe largura que sirva — ali o
+   valor quebra em duas linhas, mas nada sai fora do papel, e quem quiser
+   o papel limpo desliga "Preço de cada unidade" no próprio editor. */
+.itens th:nth-child(3):last-child { width: 37%; }
+
 .obs { font-size: 0.85em; color: #666; padding: 2px 4px 6px 16px; }
 
 /* --- Linhas de valor (subtotal, taxa, TOTAL, troco) ----------------
@@ -86,7 +116,23 @@ td { padding: 6px 4px; border-bottom: 1px dashed #ccc; }
 /* ── Comprovantes de caixa (F005) ─────────────────────────────────────
    Sangria, suprimento e fechamento não passam pelo editor de blocos (não
    são a comanda do cliente), então estas classes continuam cuidando do
-   próprio alinhamento e tamanho — nada aqui é escolha do dono. */
+   próprio alinhamento e tamanho — nada aqui é escolha do dono.
+
+   O cabeçalho tem classe PRÓPRIA (`.caixa-cabecalho*`) em vez de
+   reaproveitar as `.cabecalho*` da comanda: quando os blocos chegaram,
+   aquelas classes largaram alinhamento e tamanho (quem manda lá é o
+   editor) e o comprovante de caixa, que continuava usando as mesmas
+   classes, passou a sair com o nome do estabelecimento e a data
+   encostados à esquerda, em corpo de texto normal. Duas gramáticas
+   diferentes não cabem no mesmo nome de classe. */
+.caixa-cabecalho { text-align: center; margin-bottom: 12px; }
+.caixa-cabecalho__logo { max-width: min(160px, 100%); max-height: 64px; object-fit: contain; margin: 0 auto 6px; display: block; }
+.caixa-cabecalho__nome { font-size: 1.38em; font-weight: bold; }
+.caixa-cabecalho__linha { color: #555; font-size: 0.85em; margin-top: 2px; }
+.caixa-cabecalho__titulo { text-align: center; font-weight: bold; color: #555; }
+.caixa-identidade { text-align: center; color: #555; font-size: 0.85em; }
+.caixa-rodape { text-align: center; color: #888; font-size: 0.85em; }
+
 .caixa-destaque { text-align: center; margin: 10px 0; }
 .caixa-destaque__rotulo { font-size: 0.85em; color: #555; }
 .caixa-destaque__valor { font-size: 1.6em; font-weight: bold; color: var(--gm-accent, #7c3aed); margin-top: 2px; }

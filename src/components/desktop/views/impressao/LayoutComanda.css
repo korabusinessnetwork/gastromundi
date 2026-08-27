@@ -251,9 +251,13 @@
 
 /* ── Pré-visualização ao vivo ───────────────────────────────────────── */
 
+/* `flex: 0 1 400px` e não largura fixa: 400px é o que faz uma linha de 48
+   colunas da térmica caber inteira (48 × 0.6em × 12px + as bordas), mas
+   em tela estreita a coluna precisa poder encolher em vez de empurrar o
+   editor para fora. */
 .layout-comanda__preview-coluna {
-  flex-shrink: 0;
-  width: 340px;
+  flex: 0 1 400px;
+  min-width: 320px; /* abaixo disso a linha de 48 colunas passa do piso de 9px e volta a ser cortada */
   position: sticky;
   top: 16px;
   display: flex;
@@ -292,6 +296,11 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
+/* A altura acompanha a janela: com 560px cravados a coluna inteira
+   passava de 700px, ficava mais alta que o painel que rola e, sendo
+   `sticky`, o fim do papel (TOTAL, pagamento, mensagem final) não era
+   alcançável por rolagem nenhuma. `container-type` é o que deixa a
+   prévia da térmica calcular a fonte pela largura real desta moldura. */
 .layout-comanda__preview-moldura {
   border: 1px solid var(--gm-border);
   background: var(--gm-surface);
@@ -300,23 +309,33 @@
   display: flex;
   justify-content: center;
   overflow: auto;
-  max-height: 560px;
+  max-height: max(260px, calc(100vh - 280px));
+  container-type: inline-size;
 }
 
+/* A altura vem do papel, medida no `onLoad` (LayoutComanda.jsx): antes,
+   com 520px fixos, uma comanda de 12 itens (583px) rolava POR DENTRO do
+   iframe, dentro da moldura que também rolava — duas barras aninhadas e
+   o fim do papel escondido. Agora rola só a moldura. */
 .layout-comanda__preview-iframe {
-  width: 320px;
-  height: 520px;
+  width: 100%;
+  height: 360px;
   border: none;
   background: #fff;
 }
 
 /* A térmica é texto puro em colunas — mostrar em fonte monoespaçada é o
-   que faz o alinhamento na tela bater com o do papel. */
+   que faz o alinhamento na tela bater com o do papel.
+   A fonte sai da LARGURA da moldura, não de um valor cravado: em 12px
+   uma linha de 48 colunas mede 346px e só 282px apareciam, escondendo
+   atrás da rolagem justamente a direita do papel, onde ficam os preços.
+   O piso de 9px é deliberado — abaixo disso ninguém lê, e aí é melhor
+   rolar de lado do que fingir que coube. */
 .layout-comanda__preview-termica {
   margin: 0;
   width: 100%;
   font-family: "Courier New", monospace;
-  font-size: 12px;
+  font-size: 12px; /* piso de segurança: as classes --c32/--c48 abaixo mandam */
   line-height: 1.35;
   white-space: pre;
   overflow-x: auto;
@@ -325,6 +344,12 @@
   padding: 12px;
   border-radius: 6px;
 }
+
+/* 0.6em por caractere é a largura da Courier New — a mesma constante que
+   `lib/impressao/largura.js` usa para estimar colunas. 24px é o padding
+   do próprio <pre>. */
+.layout-comanda__preview-termica--c48 { font-size: clamp(9px, calc((100cqi - 24px) / 48 / 0.6), 12px); }
+.layout-comanda__preview-termica--c32 { font-size: clamp(9px, calc((100cqi - 24px) / 32 / 0.6), 12px); }
 
 /* Celular: o editor e a coluna de preview (340px) não cabem lado a lado,
    então empilham em coluna e o preview ocupa a largura toda. */
@@ -336,10 +361,9 @@
     min-width: 0;
   }
   .layout-comanda__preview-coluna {
+    flex: 1 1 auto;
+    min-width: 0;
     width: 100%;
     position: static;
-  }
-  .layout-comanda__preview-iframe {
-    width: 100%;
   }
 }

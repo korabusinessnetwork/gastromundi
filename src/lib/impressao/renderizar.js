@@ -64,8 +64,11 @@ function htmlItens(bloco) {
     `)
     .join("");
 
+  // A classe distingue esta tabela da `.caixa-tabela` dos comprovantes de
+  // caixa: só a lista de itens tem largura de coluna fixada (é ela que
+  // precisa caber num papel de 58mm sem jogar o valor para fora).
   return `
-    <table>
+    <table class="itens">
       <thead>
         <tr><th>Item</th><th>Qtd</th>${bloco.unitario ? "<th>Unit.</th>" : ""}<th>Total</th></tr>
       </thead>
@@ -87,12 +90,12 @@ function blocoCabecalhoIdentidade(identidade, quando) {
   const data = quando != null ? new Date(quando) : new Date();
   const dataValida = !Number.isNaN(data.getTime()) ? data : new Date();
   return `
-    <div class="cabecalho">
-      ${logoValido ? `<img class="cabecalho__logo" src="${esc(identidade.logoUrl)}" alt="${esc(identidade.nome)}" />` : `<div class="cabecalho__nome">${esc(identidade.nome)}</div>`}
-      <div class="cabecalho__linha">${dataValida.toLocaleString("pt-BR")}</div>
+    <div class="caixa-cabecalho">
+      ${logoValido ? `<img class="caixa-cabecalho__logo" src="${esc(identidade.logoUrl)}" alt="${esc(identidade.nome)}" />` : `<div class="caixa-cabecalho__nome">${esc(identidade.nome)}</div>`}
+      <div class="caixa-cabecalho__linha">${dataValida.toLocaleString("pt-BR")}</div>
     </div>
     ${(identidade.endereco || identidade.cnpj) ? `
-      <div class="identidade-fiscal">
+      <div class="caixa-identidade">
         ${identidade.endereco ? `${esc(identidade.endereco)}<br/>` : ""}
         ${identidade.cnpj ? `CNPJ: ${esc(identidade.cnpj)}` : ""}
       </div>
@@ -254,13 +257,13 @@ export function renderizarComprovanteCaixa(dados) {
 </head>
 <body>
   ${blocoCabecalhoIdentidade(identidade, emitidoEm)}
-  <div class="cabecalho__linha" style="text-align:center;font-weight:bold;">${esc(titulo)}</div>
+  <div class="caixa-cabecalho__titulo">${esc(titulo)}</div>
   <hr/>
   ${blocoDestaque}
   ${blocoTabela}
   ${blocoLinhas}
   ${blocoNotas ? `<hr/>${blocoNotas}` : ""}
-  ${identidade.rodape ? `<hr/><div class="rodape">${esc(identidade.rodape)}</div>` : ""}
+  ${identidade.rodape ? `<hr/><div class="caixa-rodape">${esc(identidade.rodape)}</div>` : ""}
 </body>
 </html>`;
 }
