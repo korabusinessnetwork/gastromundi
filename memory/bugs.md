@@ -74,7 +74,13 @@ revisão item a item com o dono antes de merge.
 - ✅ **Realtime habilitado na tabela `sales`** (Database → Publications →
   `supabase_realtime`) pelo dono em 2026-07-18 — Leva 15.4 completa: saldo do
   dia sincronizado entre dispositivos.
-- Nenhuma ação manual pendente no momento.
+- ⏳ Migration **20260926** (`solicitacoes_conta` + RPCs `registrar_solicitacao_conta`
+  e `decidir_solicitacao_conta`) — **pendente de aplicação em produção**. Sem ela,
+  o cadastro de conta do site (`kora.codes/criar-conta`) falha no envio e a aba
+  "Pedidos de conta" do Console fica sem leitura. Rodar no SQL Editor do Supabase;
+  o SELECT de conferência no fim do arquivo diz se o `anon` ficou de fora da tabela.
+  **RLS**: a migration já habilita e cria a policy de leitura do super-admin —
+  nada a configurar no painel além de rodar o arquivo.
 
 ## Leva 15 — pedidos do dono (2026-07-18)
 

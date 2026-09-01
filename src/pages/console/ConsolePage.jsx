@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
   LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
-  LuCopy, LuTag, LuExternalLink, LuWifiOff,
+  LuCopy, LuTag, LuExternalLink, LuWifiOff, LuInbox,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import { useStatusRede } from "@/hooks/useStatusRede";
@@ -13,6 +13,7 @@ import {
   filtrarEstabelecimentos, filtrarPorSituacao, FILTROS_SITUACAO, normalizarFiltroSituacao,
   normalizarAba, ABAS_CONSOLE, normalizarPeriodo, PERIODO_PADRAO,
   filtrarPorPlano, normalizarFiltroPlano, contarPorPlano, montarMensagemPrimeiroAcesso,
+  listarSolicitacoes, decidirSolicitacao, pendentesPrimeiro, mensagemDeErroDoConsole,
 } from "@/lib/console";
 import { formatarReais } from "@/lib/deliveryPedidos";
 import { urlDoCardapioPublico, urlDeAcessoDoTenant } from "@/lib/tenantSlug";
@@ -22,6 +23,7 @@ import AlterarPlanoModal from "@/components/console/AlterarPlanoModal";
 import AlterarLayoutModal from "@/components/console/AlterarLayoutModal";
 import AddonsModal from "@/components/console/AddonsModal";
 import PlanosDashboard from "@/components/console/PlanosDashboard";
+import SolicitacoesFila from "@/components/console/SolicitacoesFila";
 import AnalyticsDashboard from "@/components/console/AnalyticsDashboard";
 import SeloStatus from "@/components/console/SeloStatus";
 import ConfirmarRenovacaoModal from "@/components/console/ConfirmarRenovacaoModal";
@@ -75,6 +77,15 @@ export default function ConsolePage() {
   const [erroAssinaturas, setErroAssinaturas] = useState(false);
   const [erroAddons, setErroAddons] = useState(false);
   const [modalAberto, setModalAberto] = useState(false);
+  // Fila de pedidos de conta feitos no site (20260926). Vive ao lado dos
+  // estabelecimentos porque é a MESMA gestão de base vista um passo antes:
+  // quem ainda vai virar cliente.
+  const [solicitacoes, setSolicitacoes] = useState([]);
+  const [erroSolicitacoes, setErroSolicitacoes] = useState(false);
+  // Pedido que o dono está aprovando AGORA: é ele que preenche o formulário
+  // de criação e, quando o estabelecimento nascer, sai da fila vinculado a
+  // ele. `null` = criação avulsa, do botão "Novo estabelecimento".
+  const [solicitacaoAprovando, setSolicitacaoAprovando] = useState(null);
   const [tenantSelecionado, setTenantSelecionado] = useState(null);
   const [tenantLayoutSelecionado, setTenantLayoutSelecionado] = useState(null);
   const [tenantAddonsSelecionado, setTenantAddonsSelecionado] = useState(null);
@@ -216,11 +227,13 @@ export default function ConsolePage() {
       { data: listaPlanos, error: ePlanos },
       { data: listaAssinaturas, error: eAssinaturas },
       { data: listaAddons, error: eAddons },
+      { data: listaSolicitacoes, error: eSolicitacoes },
     ] = await Promise.all([
       listarEstabelecimentos(),
       listarPlanos(),
       listarAssinaturas(),
       listarAddonsPorTenant(),
+      listarSolicitacoes(),
     ]);
     if (!montado.current) return !eTenants;
     if (eTenants) {
@@ -250,6 +263,11 @@ export default function ConsolePage() {
     setErroPlanos(Boolean(ePlanos));
     setErroAssinaturas(Boolean(eAssinaturas));
     setErroAddons(Boolean(eAddons));
+    // A fila falha devolvendo lista vazia, e vazio é indistinguível de "não
+    // tem ninguém esperando" — que é justamente a leitura que faria o dono
+    // deixar um cliente novo sem resposta. A aba diz que não sabe.
+    setSolicitacoes(listaSolicitacoes ?? []);
+    setErroSolicitacoes(Boolean(eSolicitacoes));
     // Só apaga o "carregando…" quem o acendeu: na recarga silenciosa ele nunca
     // subiu, e mexer nele aqui desligaria por engano a primeira carga que
     // ainda estivesse em voo.
@@ -259,15 +277,58 @@ export default function ConsolePage() {
 
   useEffect(() => { carregar(); }, [carregar]);
 
-  const aoCriar = (data) => {
+  const aoCriar = async (data) => {
     setModalAberto(false);
     setCopiado(false);
     setCopiaFalhou(false);
     // `criado: true` distingue a criação das outras confirmações (plano,
     // layout, pagamento, add-ons): só ela abre o cartão de primeiro acesso,
     // as demais continuam na faixa de uma linha.
-    setSucesso({ ...data, criado: true });
+    //
+    // Se o estabelecimento nasceu de um PEDIDO do site, o pedido sai da fila
+    // agora, vinculado ao tenant que acabou de nascer. São duas escritas: o
+    // estabelecimento já existe e nada o desfaz, então uma falha aqui vira
+    // AVISO — o cartão de acesso continua valendo, e o dono precisa saber que
+    // o pedido continua pendente para não aprovar (e criar) duas vezes.
+    const pedido = solicitacaoAprovando;
+    setSolicitacaoAprovando(null);
+    let filaFalhou = false;
+    if (pedido?.id && data?.tenant_id) {
+      const { error } = await decidirSolicitacao(pedido.id, "aprovada", {
+        tenantId: data.tenant_id,
+      });
+      filaFalhou = Boolean(error);
+    }
+    setSucesso({ ...data, criado: true, filaFalhou });
+    // O cartão de primeiro acesso — usuário e senha que o cliente precisa —
+    // mora na aba dos estabelecimentos. Aprovar a partir da fila e ficar nela
+    // esconderia justamente a credencial que acabou de nascer.
+    if (pedido) escolherAba("estabelecimentos");
     carregar();
+  };
+
+  // Aprovar = criar. O formulário abre com o que a pessoa mandou pelo site
+  // (nome do negócio, endereço pedido, responsável), e o resto — plano de
+  // verdade, usuário e senha — o dono completa como em qualquer cadastro.
+  const aoAprovarSolicitacao = (s) => {
+    setSucesso(null);
+    setSolicitacaoAprovando(s);
+    setModalAberto(true);
+  };
+
+  // Devolve o desfecho para a própria fila mostrar no cartão: a faixa de
+  // sucesso do Console vive na aba dos estabelecimentos, e quem recusou está
+  // olhando para a lista de pedidos.
+  const aoRecusarSolicitacao = async (s, observacao) => {
+    const { error } = await decidirSolicitacao(s.id, "recusada", { observacao });
+    if (error) {
+      return {
+        ok: false,
+        erro: mensagemDeErroDoConsole(error, "Não foi possível recusar agora. Tente de novo."),
+      };
+    }
+    carregar();
+    return { ok: true, erro: null };
   };
 
   const aoAlterarPlano = (tenant) => {
@@ -356,6 +417,9 @@ export default function ConsolePage() {
   // obrigatório): a ação principal fica desabilitada e a tela diz por quê,
   // em vez de abrir um formulário sem saída — prevenção de erro > mensagem
   // de erro (Princípio nº1).
+  // Quantos pedidos de conta esperam decisão — vira o selo ao lado da aba.
+  const pendentesDeConta = useMemo(() => pendentesPrimeiro(solicitacoes).length, [solicitacoes]);
+
   const semPlanos = planos.length === 0;
 
   // Sem internet o Console vira só leitura (CONSOLE-UX 26): a lista que já
@@ -666,6 +730,20 @@ export default function ConsolePage() {
           >
             <LuBuilding2 size={16} aria-hidden /> Estabelecimentos
           </button>
+          {/* O número de quem está esperando fica NO nome da aba: pedido de
+              conta parado é cliente novo sem resposta, e isso não pode
+              depender de o dono lembrar de abrir a aba (Princípio nº1 —
+              estado sempre visível). */}
+          <button
+            type="button"
+            className={`console__aba${aba === "solicitacoes" ? " console__aba--ativa" : ""}`}
+            onClick={() => escolherAba("solicitacoes")}
+          >
+            <LuInbox size={16} aria-hidden /> Pedidos de conta
+            {pendentesDeConta > 0 && (
+              <span className="console__aba-selo">{pendentesDeConta}</span>
+            )}
+          </button>
           <button
             type="button"
             className={`console__aba${aba === "planos" ? " console__aba--ativa" : ""}`}
@@ -723,6 +801,16 @@ export default function ConsolePage() {
             assinaturas={assinaturas}
             dias={dias}
             aoTrocarPeriodo={escolherPeriodo}
+          />
+        ) : aba === "solicitacoes" ? (
+          <SolicitacoesFila
+            solicitacoes={solicitacoes}
+            carregando={carregando}
+            erro={erroSolicitacoes ? true : null}
+            online={online && !semPlanos}
+            onAprovar={aoAprovarSolicitacao}
+            onRecusar={aoRecusarSolicitacao}
+            onRecarregar={() => carregar()}
           />
         ) : aba === "planos" ? (
           <PlanosDashboard
@@ -799,6 +887,18 @@ export default function ConsolePage() {
                     o estabelecimento existe e o cartão continua valendo — o
                     que o dono precisa saber é que o preço ficou de fora e
                     onde defini-lo, não que "deu erro". */}
+                {/* Terceira escrita possível: dar baixa no pedido do site.
+                    O estabelecimento existe de qualquer jeito — o risco aqui
+                    é o dono ver o pedido ainda pendente amanhã e criar o
+                    mesmo cliente duas vezes. */}
+                {sucesso.filaFalhou && (
+                  <p className="console__acesso-alerta" role="alert">
+                    <LuTriangleAlert size={16} aria-hidden /> O estabelecimento foi criado, mas o
+                    pedido continua na fila. Recuse-o em "Pedidos de conta" para não criar o
+                    mesmo cliente de novo.
+                  </p>
+                )}
+
                 {sucesso.mensalidadeFalhou && (
                   <p className="console__acesso-alerta" role="alert">
                     <LuTriangleAlert size={16} aria-hidden /> O estabelecimento foi criado, mas a
@@ -1297,11 +1397,20 @@ export default function ConsolePage() {
       {modalAberto && (
         <NovoEstabelecimentoModal
           planos={planos}
+          // Aprovação de pedido do site: o formulário abre com o que o
+          // cliente já digitou, para o dono conferir em vez de redigitar.
+          inicial={
+            solicitacaoAprovando && {
+              nome: solicitacaoAprovando.estabelecimento,
+              slug: solicitacaoAprovando.slug_desejado,
+              adminNome: solicitacaoAprovando.nome,
+            }
+          }
           // Os endereços já ocupados (CONSOLE-UX 19). Sem consulta nova: a
           // lista de estabelecimentos já traz o `slug` de cada um, e o modal
           // só precisa saber quais nomes não estão livres.
           slugsEmUso={tenants.map((t) => t.slug).filter(Boolean)}
-          onFechar={() => setModalAberto(false)}
+          onFechar={() => { setModalAberto(false); setSolicitacaoAprovando(null); }}
           onCriado={aoCriar}
         />
       )}

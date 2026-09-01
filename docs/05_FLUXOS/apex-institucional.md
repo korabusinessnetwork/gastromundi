@@ -8,6 +8,10 @@ vitrine comercial do produto — em vez de cair direto no login do GastroMundi.
 Subdomínios de tenant (ex: `casacoffeecolab.kora.codes`, `gastromundi.kora.codes`) **continuam indo direto
 ao login do estabelecimento**, sem mudança.
 
+Quem chega ao apex já sendo cliente entra por `/entrar`; quem ainda não é cliente pede a conta em
+`/criar-conta` — as duas portas estão documentadas em
+[cadastro-de-conta.md](cadastro-de-conta.md).
+
 ## Como funciona
 
 ### Detecção
@@ -23,8 +27,12 @@ Função `ehApexInstitucional(hostname)` em `src/lib/apex.js`:
 ### Roteamento
 
 - `/` **no apex** renderiza a página institucional; **nos demais hosts** redireciona para `/login` como sempre
-- `/login` continua funcionando no apex (fallback GastroMundi) — clientes antigos com bookmark não quebram,
-  só ganham um clique ("Entrar")
+- `/entrar` e `/criar-conta` (apex) são as portas de entrada da plataforma — ver
+  [cadastro-de-conta.md](cadastro-de-conta.md). Fora do apex as duas redirecionam para `/login`
+- `/login` continua funcionando no apex (fallback GastroMundi) — clientes antigos com bookmark não
+  quebram. Mas o botão "Entrar" **não aponta mais para lá**: no domínio nu esse login resolve o
+  estabelecimento de fallback, ou seja, a porta da plataforma abria o login de UM cliente, com a
+  marca dele (decisão 035)
 
 ## Página
 
@@ -34,13 +42,13 @@ de design hi-fi `design_handoff_site_kora` (funil: atenção → confiança/prov
 
 | Seção | Arquivo | Conteúdo |
 |-------|---------|----------|
-| Nav | `ApexNav.jsx` | Sticky; âncoras das seções + "Entrar" (`/login`) + CTA demo |
+| Nav | `ApexNav.jsx` | Sticky; âncoras das seções + "Entrar" (`/entrar`) + CTA demo |
 | Hero | `ApexHero.jsx` | Fundo escuro, promessa, mock real do PDV (tokens `--gm-*` de propósito) |
 | Prova | `ApexProva.jsx` | Barra com 5 provas rápidas (mesmo dia, 1 turno, NFC-e, offline, personalizado) |
 | Inimigo | `ApexInimigo.jsx` | "PDV genérico" vs KORA — 4 comparações |
 | Funcionalidades | `ApexFuncionalidades.jsx` | 8 cards + banner escuro "do nosso jeito? não — do SEU" |
 | Como funciona | `ApexComoFunciona.jsx` | 3 passos até a primeira venda |
-| Planos | `ApexPlanos.jsx` | 5 planos (decisão 029); add-ons NF-e/TEF em faixa separada (ADR-005) |
+| Planos | `ApexPlanos.jsx` | Construtor de plano por módulo; catálogo e preços em `catalogoDoSite.js` (compartilhado com o cadastro de conta) |
 | FAQ | `ApexFaq.jsx` | 4 objeções de compra |
 | Demo | `ApexDemo.jsx` | Fechamento escuro; CTA verde de demo (ou "Entrar" sem `VITE_CONTATO_URL`) |
 | Rodapé | `ApexRodape.jsx` | Monograma + copyright dinâmico |
@@ -109,4 +117,5 @@ fictícia do produto, **só no apex** (fora dele a rota redireciona pro login):
 
 - **Visitante vê vitrine**: chega em `kora.codes` e conhece o produto antes de logar — conota profissionalismo
 - **Cliente vê seu login direto**: `casacoffeecolab.kora.codes` vai direto ao login — nenhuma confusão
-- **Um clique separa os dois**: botão "Entrar" no apex leva ao login GastroMundi — transição clara, sem detour
+- **Um clique separa os dois**: o botão "Entrar" no apex leva a `/entrar`, que pergunta qual é o
+  estabelecimento da pessoa e a manda para o login DELE — nunca para o de outro cliente
