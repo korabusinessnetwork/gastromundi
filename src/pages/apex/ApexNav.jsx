@@ -7,8 +7,14 @@ import "./ApexNav.css";
  * esquerda; links âncora para as seções de prova/oferta à direita,
  * terminando no CTA "Ver o KORA rodando". "Entrar" é uma adição nossa
  * ao handoff: quem cai aqui já sendo cliente (ou por engano) precisa
- * de uma saída óbvia para o login, sem competir visualmente com o CTA
- * de conversão — por isso 14px, cor névoa, sem peso de botão.
+ * de uma saída óbvia para a porta dele, sem competir visualmente com o
+ * CTA de conversão — por isso 14px, cor névoa, sem peso de botão.
+ *
+ * O destino é `/entrar`, NÃO `/login`: no domínio nu o login cai no
+ * estabelecimento de fallback, ou seja, a porta da plataforma abria o
+ * login de UM cliente, com a marca dele (decisão 017). Em `/entrar` a
+ * pessoa diz qual é o estabelecimento dela — e quem ainda não tem conta
+ * encontra ali mesmo a porta de cadastro.
  *
  * Responsivo: em tablet (≤1023px) os links continuam visíveis, só o
  * espaçamento encolhe. Em mobile (<768px) não cabe link nenhum sem
@@ -52,7 +58,7 @@ export default function ApexNav() {
               {link.texto}
             </a>
           ))}
-          <a href="/login" className="apex-nav__entrar">Entrar</a>
+          <a href="/entrar" className="apex-nav__entrar">Entrar</a>
           <a href="/demo" className="apex-botao apex-botao--primario apex-nav__cta">
             Ver o KORA rodando
           </a>
@@ -96,7 +102,7 @@ export default function ApexNav() {
             {link.texto}
           </a>
         ))}
-        <a href="/login" className="apex-nav__drawer-link" onClick={fecharMenu}>
+        <a href="/entrar" className="apex-nav__drawer-link" onClick={fecharMenu}>
           Entrar
         </a>
         <a

@@ -13,6 +13,13 @@ const ApexPage = lazy(() => import("@/pages/apex/ApexPage"));
 // Protótipo navegável ("Ver o KORA rodando") — só existe no apex; nos
 // subdomínios de tenant a rota nem se registra e cai no fallback /login.
 const DemoPage = lazy(() => import("@/pages/apex/demo/DemoPage"));
+// Portas do site institucional (apex): "Entrar" pergunta o endereço do
+// estabelecimento e leva ao login DELE; "Criar conta" registra o pedido de
+// conta na fila do Console. Lazy pelo mesmo motivo da institucional — quem
+// opera o PDV nunca baixa esse código.
+const ApexEntrarPage = lazy(() => import("@/pages/apex/ApexEntrarPage"));
+const ApexCriarContaPage = lazy(() => import("@/pages/apex/ApexCriarContaPage"));
+
 // Vitrine pública de delivery (cardápio online, anon por slug) — lazy: só
 // quem abre /cardapio baixa esse código; o operador do PDV nunca carrega.
 const CardapioPage = lazy(() => import("@/pages/delivery/CardapioPage"));
@@ -83,6 +90,27 @@ const rotasApp = [
     path: "/demo",
     element: ehApexInstitucional()
       ? <Suspense fallback={<CarregandoApex />}><DemoPage /></Suspense>
+      : <Navigate to="/login" replace />,
+  },
+
+  // Porta de entrada da PLATAFORMA (apex): pergunta em qual estabelecimento
+  // a pessoa entra, em vez de despejá-la no login do tenant de fallback —
+  // que é a marca de UM cliente na porta de todos (decisão 017). Fora do
+  // apex não existe ambiguidade nenhuma: o host já diz o estabelecimento, e
+  // a rota cai no login de sempre.
+  {
+    path: "/entrar",
+    element: ehApexInstitucional()
+      ? <Suspense fallback={<CarregandoApex />}><ApexEntrarPage /></Suspense>
+      : <Navigate to="/login" replace />,
+  },
+
+  // Cadastro de conta (apex): o visitante pede seu estabelecimento e o plano.
+  // Não provisiona nada — entra na fila do Console (decisão 027).
+  {
+    path: "/criar-conta",
+    element: ehApexInstitucional()
+      ? <Suspense fallback={<CarregandoApex />}><ApexCriarContaPage /></Suspense>
       : <Navigate to="/login" replace />,
   },
 

@@ -218,6 +218,35 @@ CREATE TABLE public.leads (
   criado_em   timestamptz NOT NULL DEFAULT now()
 );
 
+-- ── solicitacoes_conta (site institucional) — 20260926_solicitacoes_conta.sql
+-- Quem preencheu "Criar minha conta" no apex: pede um estabelecimento e um
+-- plano. NÃO é isolada por tenant — quem pede ainda não é estabelecimento
+-- (decisão 017), e `tenant_id` aqui é o vínculo com o tenant que NASCE na
+-- aprovação, não uma chave de isolamento (por isso nullable e sem policy
+-- RESTRICTIVE). Fechada para anon; a única escrita pública é a RPC
+-- public.registrar_solicitacao_conta (SECURITY DEFINER, valida, recusa
+-- endereço em uso e limita); a decisão passa por
+-- public.decidir_solicitacao_conta, guardada por is_super_admin().
+CREATE TABLE public.solicitacoes_conta (
+  id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome            text        NOT NULL,
+  whatsapp        text        NOT NULL,
+  email           text        NOT NULL,
+  estabelecimento text        NOT NULL,
+  slug_desejado   text        NOT NULL,
+  plano_codigo    text,
+  plano_nome      text,
+  plano_itens     text[],
+  plano_total     numeric(10,2),
+  status          text        NOT NULL DEFAULT 'pendente'
+                              CHECK (status IN ('pendente', 'aprovada', 'recusada')),
+  tenant_id       uuid        REFERENCES public.tenants(id),
+  observacao      text,
+  criado_em       timestamptz NOT NULL DEFAULT now(),
+  decidido_em     timestamptz,
+  decidido_por    uuid
+);
+
 -- =============================================================
 -- NÚCLEO OPERACIONAL
 -- Todas as tabelas desta seção são isoladas por tenant_id

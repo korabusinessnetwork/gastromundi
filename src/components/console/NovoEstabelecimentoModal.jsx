@@ -38,17 +38,22 @@ import "./NovoEstabelecimentoModal.css";
  * (revalida o papel `plataforma`, cria auth + perfil de forma atômica).
  * Aqui só montamos o payload e mostramos o resultado.
  */
-export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], onFechar, onCriado }) {
-  const [nome, setNome] = useState("");
-  const [slug, setSlug] = useState("");
+export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], inicial = null, onFechar, onCriado }) {
+  // `inicial` chega quando a criação vem de um PEDIDO feito no site
+  // (20260926): o cliente já digitou o nome do negócio, o endereço que quer e
+  // quem é o responsável. O dono confere em vez de redigitar — e redigitar
+  // seria pior do que trabalhoso: um endereço datilografado diferente do que
+  // a pessoa pediu manda a equipe dela para uma porta que não abre.
+  const [nome, setNome] = useState(() => inicial?.nome ?? "");
+  const [slug, setSlug] = useState(() => inicial?.slug ?? "");
   // Enquanto o dono não editar o endereço, ele segue o nome. Depois de
   // editado, para de seguir — senão o Console apagaria a escolha dele a cada
   // letra corrigida no nome.
-  const [slugTocado, setSlugTocado] = useState(false);
+  const [slugTocado, setSlugTocado] = useState(() => Boolean(inicial?.slug));
   const [endereco, setEndereco] = useState("");
   const [planoCodigo, setPlanoCodigo] = useState("");
   const [mensalidade, setMensalidade] = useState("");
-  const [adminNome, setAdminNome] = useState("");
+  const [adminNome, setAdminNome] = useState(() => inicial?.adminNome ?? "");
   const [adminUsername, setAdminUsername] = useState("");
   // Mesma ideia do endereço: enquanto o dono não editar o usuário, ele segue o
   // nome do responsável. Depois de editado (inclusive apagado), para de seguir.

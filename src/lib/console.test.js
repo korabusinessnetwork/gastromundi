@@ -34,6 +34,10 @@ import {
   FILTROS_SITUACAO,
   normalizarAba,
   ABAS_CONSOLE,
+  pendentesPrimeiro,
+  resumirPlanoSolicitado,
+  listarSolicitacoes,
+  decidirSolicitacao,
   normalizarPeriodo,
   PERIODO_PADRAO,
   filtrarPorPlano,
@@ -1901,5 +1905,115 @@ describe("mensagemDeErroDoConsole", () => {
     expect(traduzirErroProvisionamento("Sessão expirada. Entre novamente.").mensagem).toBe(
       "Sessão expirada. Entre novamente."
     );
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   Pedidos de conta feitos no site institucional (20260926)
+   ══════════════════════════════════════════════════════════════════ */
+
+describe("pendentesPrimeiro", () => {
+  const fila = [
+    { id: "c", status: "aprovada", criado_em: "2026-08-01T10:00:00Z" },
+    { id: "a", status: "pendente", criado_em: "2026-08-03T10:00:00Z" },
+    { id: "b", status: "pendente", criado_em: "2026-08-02T10:00:00Z" },
+    { id: "d", status: "recusada", criado_em: "2026-08-04T10:00:00Z" },
+  ];
+
+  it("mostra só quem ainda espera decisão", () => {
+    expect(pendentesPrimeiro(fila).map((s) => s.id)).toEqual(["b", "a"]);
+  });
+
+  it("quem pediu primeiro aparece primeiro — é quem espera há mais tempo", () => {
+    const [primeiro] = pendentesPrimeiro(fila);
+    expect(primeiro.id).toBe("b");
+  });
+
+  it("não altera a lista recebida (função pura)", () => {
+    const original = [...fila];
+    pendentesPrimeiro(fila);
+    expect(fila).toEqual(original);
+  });
+
+  it("não quebra com lista vazia, ausente ou com buracos", () => {
+    expect(pendentesPrimeiro([])).toEqual([]);
+    expect(pendentesPrimeiro()).toEqual([]);
+    expect(pendentesPrimeiro([null, undefined, {}])).toEqual([]);
+  });
+});
+
+describe("resumirPlanoSolicitado", () => {
+  it("prefere o nome do plano que a pessoa escolheu", () => {
+    expect(resumirPlanoSolicitado({ plano_nome: "Restaurante", plano_itens: ["Estoque"] }))
+      .toBe("Restaurante");
+  });
+
+  it("sem nome, lista os módulos escolhidos", () => {
+    expect(resumirPlanoSolicitado({ plano_itens: ["Estoque", "Cozinha (KDS)"] }))
+      .toBe("Estoque, Cozinha (KDS)");
+  });
+
+  it("sem nada escolhido, DIZ que não escolheu — nunca uma linha vazia", () => {
+    expect(resumirPlanoSolicitado({})).toMatch(/não escolheu/i);
+    expect(resumirPlanoSolicitado()).toMatch(/não escolheu/i);
+    expect(resumirPlanoSolicitado({ plano_nome: "   ", plano_itens: [] })).toMatch(/não escolheu/i);
+  });
+});
+
+describe("listarSolicitacoes", () => {
+  beforeEach(() => {
+    supabase.from.mockClear();
+  });
+
+  it("lê campos explícitos, do mais recente para o mais antigo", async () => {
+    supabase.setTableResult("solicitacoes_conta", { data: [{ id: "1" }], error: null });
+    const { data, error } = await listarSolicitacoes();
+
+    expect(error).toBeNull();
+    expect(data).toEqual([{ id: "1" }]);
+    expect(supabase.from).toHaveBeenCalledWith("solicitacoes_conta");
+    const select = supabase.calls.find((c) => c.table === "solicitacoes_conta" && c.method === "select");
+    expect(select.args[0]).not.toContain("*");
+    expect(select.args[0]).toContain("slug_desejado");
+  });
+
+  it("falha de leitura volta como erro, com lista vazia — nunca lança", async () => {
+    supabase.setTableError("solicitacoes_conta", { message: "rls" });
+    const { data, error } = await listarSolicitacoes();
+    expect(data).toEqual([]);
+    expect(error).toBeTruthy();
+  });
+});
+
+describe("decidirSolicitacao", () => {
+  beforeEach(() => {
+    supabase.rpc.mockClear();
+    supabase.setRpcResult("decidir_solicitacao_conta", { data: { id: "1", status: "aprovada" }, error: null });
+  });
+
+  it("aprovar leva o estabelecimento que nasceu do pedido", async () => {
+    await decidirSolicitacao("1", "aprovada", { tenantId: "t-1" });
+    expect(supabase.rpc).toHaveBeenCalledWith("decidir_solicitacao_conta", {
+      p_id: "1",
+      p_status: "aprovada",
+      p_tenant_id: "t-1",
+      p_observacao: null,
+    });
+  });
+
+  it("recusar guarda o motivo junto do pedido", async () => {
+    await decidirSolicitacao("1", "recusada", { observacao: "já é cliente" });
+    expect(supabase.rpc.mock.calls[0][1]).toMatchObject({
+      p_status: "recusada",
+      p_tenant_id: null,
+      p_observacao: "já é cliente",
+    });
+  });
+
+  it("erro do banco volta tratável — nunca lança na tela", async () => {
+    supabase.setRpcError("decidir_solicitacao_conta", { message: "42501" });
+    const { data, error } = await decidirSolicitacao("1", "aprovada", { tenantId: "t-1" });
+    expect(data).toBeNull();
+    expect(error).toBeTruthy();
   });
 });

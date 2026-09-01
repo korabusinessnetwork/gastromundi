@@ -1,0 +1,370 @@
+/**
+ * Portas do site institucional — `/entrar` e `/criar-conta`.
+ * CSS separado do JSX (decisão 018), co-localizado (decisão 023).
+ *
+ * As duas telas herdam os tokens --kora-* de `.apex` (ApexPage.css), que
+ * também é quem faz a rolagem acontecer aqui dentro — o CSS global do
+ * produto trava a rolagem do body.
+ *
+ * Alvos grandes (48px de altura mínima nos campos e botões) e texto de
+ * 16px nos inputs: menos de 16px faz o iOS dar zoom ao focar o campo, e
+ * quem cria a conta no celular é a maioria.
+ */
+
+.apex-porta {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/* ── Topo: marca da plataforma + saída óbvia ───────────────────── */
+.apex-porta__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  max-width: 1160px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.apex-porta__marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.apex-porta__monograma { width: 30px; height: 30px; }
+
+.apex-porta__wordmark {
+  font-family: var(--kora-font-titulo);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--kora-tinta);
+}
+
+.apex-porta__voltar {
+  font-size: 14px;
+  color: var(--kora-nevoa);
+  text-decoration: none;
+  padding: 8px 4px;
+}
+
+.apex-porta__voltar:hover { color: var(--kora-roxo); }
+
+/* ── Cartão central ────────────────────────────────────────────── */
+.apex-porta__conteudo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 24px 56px;
+  box-sizing: border-box;
+}
+
+.apex-porta__cartao {
+  width: 100%;
+  max-width: 520px;
+  background: #fff;
+  border: 1px solid var(--kora-linha);
+  border-radius: 16px;
+  padding: 32px;
+  box-sizing: border-box;
+  box-shadow: 0 12px 32px rgba(27, 25, 48, 0.06);
+}
+
+.apex-porta__titulo {
+  font-family: var(--kora-font-titulo);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--kora-tinta);
+  margin: 0;
+}
+
+.apex-porta__subtitulo {
+  font-size: 15px;
+  color: var(--kora-nevoa);
+  margin: 10px 0 0;
+}
+
+/* ── Formulário ────────────────────────────────────────────────── */
+.apex-porta__form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.apex-porta__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.apex-porta__campo > span:first-child {
+  font-family: var(--kora-font-titulo);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--kora-grafite);
+}
+
+.apex-porta__campo input {
+  min-height: 48px;
+  padding: 12px 14px;
+  font-family: var(--kora-font-texto);
+  font-size: 16px;
+  color: var(--kora-tinta);
+  background: #fff;
+  border: 1.5px solid var(--kora-linha);
+  border-radius: 10px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.apex-porta__campo input:focus {
+  outline: none;
+  border-color: var(--kora-roxo);
+  box-shadow: 0 0 0 3px var(--gm-input-ring);
+}
+
+.apex-porta__campo input[aria-invalid="true"] { border-color: var(--kora-erro); }
+
+.apex-porta__campo input:disabled {
+  background: var(--kora-fundo);
+  color: var(--kora-nevoa);
+}
+
+/* Campo de endereço: o sufixo do domínio fica DENTRO da moldura, colado
+   no que a pessoa digita — ela lê o endereço inteiro de uma vez. */
+.apex-porta__endereco {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1.5px solid var(--kora-linha);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.apex-porta__endereco:focus-within {
+  border-color: var(--kora-roxo);
+  box-shadow: 0 0 0 3px var(--gm-input-ring);
+}
+
+.apex-porta__endereco input {
+  border: none;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.apex-porta__endereco input:focus { box-shadow: none; }
+
+.apex-porta__sufixo {
+  padding: 0 14px 0 0;
+  font-size: 15px;
+  color: var(--kora-nevoa);
+  white-space: nowrap;
+}
+
+.apex-porta__ajuda {
+  font-size: 13px;
+  color: var(--kora-nevoa);
+  line-height: 1.5;
+}
+
+.apex-porta__erro,
+.apex-porta__erro-envio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--kora-erro);
+  line-height: 1.5;
+}
+
+/* Sugestão de endereço livre: ação de um clique dentro da própria
+   mensagem de erro — a pessoa não precisa inventar outro nome. */
+.apex-porta__sugestao {
+  border: 1.5px solid var(--kora-roxo);
+  background: #fff;
+  color: var(--kora-roxo);
+  font-family: var(--kora-font-titulo);
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 6px 12px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.apex-porta__sugestao:hover { background: var(--kora-roxo); color: #fff; }
+
+.apex-porta__enviar {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.apex-porta__aviso {
+  font-size: 12px;
+  color: var(--kora-nevoa);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ── Escolha de plano ──────────────────────────────────────────── */
+.apex-porta__planos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.apex-porta__planos legend {
+  font-family: var(--kora-font-titulo);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--kora-grafite);
+  padding: 0 0 8px;
+}
+
+.apex-porta__plano {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  min-height: 48px;
+  border: 1.5px solid var(--kora-linha);
+  border-radius: 12px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.apex-porta__plano:hover { border-color: #C9C5E8; }
+
+.apex-porta__plano--ativo {
+  border-color: var(--kora-roxo);
+  background: color-mix(in srgb, var(--kora-roxo) 4%, #fff);
+}
+
+.apex-porta__plano input { width: 20px; height: 20px; accent-color: var(--kora-roxo); flex: none; }
+
+.apex-porta__plano-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.apex-porta__plano-texto strong {
+  font-family: var(--kora-font-titulo);
+  font-size: 15px;
+  color: var(--kora-tinta);
+}
+
+.apex-porta__plano-texto span {
+  font-size: 13px;
+  color: var(--kora-nevoa);
+  line-height: 1.4;
+}
+
+.apex-porta__plano-preco {
+  font-family: var(--kora-font-titulo);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--kora-roxo);
+  white-space: nowrap;
+}
+
+.apex-porta__plano-preco span {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--kora-nevoa);
+}
+
+/* ── Segunda porta (cadastro na tela de entrar) ────────────────── */
+.apex-porta__separador {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 28px 0 20px;
+  color: var(--kora-nevoa);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.apex-porta__separador::before,
+.apex-porta__separador::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--kora-linha);
+}
+
+.apex-porta__cadastro {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: stretch;
+  text-align: center;
+}
+
+.apex-porta__cadastro-texto {
+  font-size: 14px;
+  color: var(--kora-grafite);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.apex-porta__cadastro-cta { width: 100%; }
+
+.apex-porta__rodape {
+  font-size: 14px;
+  color: var(--kora-nevoa);
+  text-align: center;
+  margin: 0;
+}
+
+.apex-porta__rodape a {
+  color: var(--kora-link);
+  font-weight: 600;
+}
+
+/* ── Sucesso ───────────────────────────────────────────────────── */
+.apex-porta__sucesso {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.apex-porta__sucesso-icone { font-size: 40px; line-height: 1; }
+
+.apex-porta__sucesso-texto {
+  font-size: 15px;
+  color: var(--kora-grafite);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Mobile ────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .apex-porta__topo { padding: 16px 20px; }
+  .apex-porta__conteudo { padding: 4px 16px 40px; }
+  .apex-porta__cartao { padding: 22px 18px; border-radius: 14px; }
+  .apex-porta__titulo { font-size: 22px; }
+  .apex-porta__plano { padding: 12px; }
+  .apex-porta__plano-preco { font-size: 15px; }
+}
