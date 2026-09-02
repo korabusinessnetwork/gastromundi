@@ -76,8 +76,18 @@ hr { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
    própria coluna em vez de empurrar as outras para fora do papel. */
 table { width: 100%; border-collapse: collapse; }
 table.itens { table-layout: fixed; }
-th, td { overflow-wrap: anywhere; }
-th { font-size: 0.85em; text-align: left; padding: 4px; border-bottom: 2px solid #111; }
+
+/* `break-word` e não `anywhere`: os dois impedem a palavra comprida de
+   empurrar a tabela para fora do papel, mas `anywhere` quebra no meio da
+   palavra mesmo quando ela caberia na linha seguinte — "Refrigerante"
+   saía "Refriger / ante" com espaço sobrando logo abaixo. */
+th, td { overflow-wrap: break-word; }
+
+/* Cabeçalho não quebra: são palavras de três a cinco letras, e em coluna
+   estreita a quebra empilhava "Qtd" uma letra por linha, com cara de tela
+   quebrada. Se não couber, corta — o que é legível como falta de espaço. */
+th { font-size: 0.85em; text-align: left; padding: 4px; border-bottom: 2px solid #111;
+     white-space: nowrap; overflow: hidden; }
 th:nth-child(2) { text-align: center; }
 th:nth-child(3), th:nth-child(4) { text-align: right; }
 td { padding: 6px 4px; border-bottom: 1px dashed #ccc; }

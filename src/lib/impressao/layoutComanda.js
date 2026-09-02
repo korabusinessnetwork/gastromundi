@@ -69,9 +69,12 @@ export const COLUNAS_ITENS = ["nome", "qtd", "unitario", "total"];
 // customização, é estragar o papel (prevenção de erro, princípio nº1).
 export const MIN_LARGURA_COLUNA = Object.freeze({ nome: 20, qtd: 7, unitario: 14, total: 16 });
 
-// Fábrica: mesma proporção que o papel já saía antes de a largura virar
-// escolha do dono.
-export const LARGURAS_ITENS_PADRAO = Object.freeze({ nome: 37, qtd: 10, unitario: 25, total: 28 });
+// Fábrica, medida no papel de 58mm, que é o estreito: 14% é o mínimo em
+// que o cabeçalho "Qtd" cabe numa linha, e 25% é o mínimo em que "32.50"
+// não quebra no meio do número. O nome fica com o que sobra — é ele que
+// aceita quebrar em mais linhas sem virar valor errado. Em 80mm tudo isso
+// folga, e o dono pode arrastar a divisória do jeito que quiser.
+export const LARGURAS_ITENS_PADRAO = Object.freeze({ nome: 33, qtd: 14, unitario: 25, total: 28 });
 
 // Nome menor que isto na térmica não é coluna, é uma letra por linha.
 const MIN_CHARS_NOME = 10;
