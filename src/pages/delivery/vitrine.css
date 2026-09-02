@@ -125,6 +125,11 @@
   gap: 12px;
 }
 
+/* `color: inherit` como em `.forma` mais abaixo: o cartão é um <button>, e
+   botão não herda a cor do documento — o navegador aplica a dele
+   (`buttontext`, preto). Sem esta linha o NOME do produto saía preto no
+   cartão escuro, ilegível, na tela que o cliente vê. Preço e descrição não
+   sumiam porque declaram cor própria. */
 .card-produto {
   display: flex;
   gap: 12px;
@@ -135,6 +140,7 @@
   border-radius: 14px;
   background: var(--gm-card);
   border: 1px solid var(--gm-border);
+  color: inherit;
   cursor: pointer;
   transition: border-color 0.15s, transform 0.05s;
 }

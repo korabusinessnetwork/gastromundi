@@ -104,10 +104,28 @@ function tabelasComTenantNoInicioDeAlgumIndice() {
   return nomes;
 }
 
+/**
+ * Tabelas da PLATAFORMA: têm `tenant_id`, mas ele não é chave de
+ * isolamento — nenhuma consulta chega nelas com o filtro invisível da RLS
+ * por tenant, e por isso o índice não serviria a consulta nenhuma enquanto
+ * custaria em todo INSERT.
+ *
+ * `solicitacoes_conta` (20260926) guarda pedidos de conta feitos no site:
+ * quem pede ainda NÃO é estabelecimento, e o `tenant_id` só aparece na
+ * aprovação, como ligação para o tenant que foi criado. A policy de leitura
+ * é `is_super_admin()`, não `tenant_atual_id()`.
+ *
+ * Só entra aqui tabela cuja policy de leitura comprovadamente não filtra por
+ * tenant. Na dúvida, o índice é mais barato que a investigação.
+ */
+const PLATAFORMA_SEM_ISOLAMENTO = new Set(["solicitacoes_conta"]);
+
 const CONSULTADAS = tabelasConsultadasPeloApp();
 const COM_TENANT = tabelasIsoladasPorTenant();
 const INDEXADAS = tabelasComTenantNoInicioDeAlgumIndice();
-const PRECISAM_DE_INDICE = [...CONSULTADAS].filter((t) => COM_TENANT.has(t)).sort();
+const PRECISAM_DE_INDICE = [...CONSULTADAS]
+  .filter((t) => COM_TENANT.has(t) && !PLATAFORMA_SEM_ISOLAMENTO.has(t))
+  .sort();
 
 describe("índices de tenant_id (decisão 002)", () => {
   it("as três listas foram extraídas — se alguma vier vazia, o guard não está guardando nada", () => {
