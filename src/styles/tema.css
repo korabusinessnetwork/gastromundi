@@ -122,8 +122,28 @@
  *
  * O tenant continua mandando: a cor sai de --gm-text, sobrescrevível como
  * qualquer token (decisão 017). */
+/* O app é uma casca do tamanho exato da tela (DesktopLayout usa 100dvh) e
+   quem rola é sempre um painel de dentro. O DOCUMENTO, portanto, nunca
+   deveria rolar — mas `overflow: hidden` só no `body` (index.html) não
+   impede: rolagem programática (o navegador levando o foco para dentro da
+   tela, um `scrollIntoView`) ainda move o `html`. Quando isso acontecia, o
+   topo da barra lateral subia para fora da tela e sobrava uma faixa
+   descoberta embaixo. Travar no `html` fecha o caminho.
+   As telas que rolam de verdade — a landing do apex, as Pautas — já rolam
+   por um contêiner próprio, não pelo documento. */
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   color: var(--gm-text);
+  /* O app cobre a tela inteira, então normalmente ninguém vê o fundo do
+     documento — até o dia em que alguma coisa rola a página um pouco além
+     dele. Aí o pedaço descoberto saía BRANCO, porque o `body` nunca pintou
+     fundo nenhum: branco puro no meio de um app escuro, com cara de tela
+     quebrada. Pintar aqui custa uma linha e fecha a categoria inteira. */
+  background: var(--gm-bg);
 }
 
 /* Celular muito pequeno (<360): único degrau real da curva antiga — o

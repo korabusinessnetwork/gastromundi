@@ -19,6 +19,12 @@
  */
 
 .chave {
+  /* Âncora do campo escondido. Sem ela o `position: absolute` do
+     `.chave__campo` procurava um ancestral posicionado lá em cima e o campo
+     ia parar longe da linha; ao clicar no rótulo o navegador rolava a página
+     até esse ponto para "mostrar o campo que ganhou o foco" — dava um salto
+     e aparecia área vazia no fim da tela. */
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 10px;
