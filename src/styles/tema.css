@@ -108,6 +108,24 @@
   --gm-pad: min(14.9px + 0.86vw, 48px);
 }
 
+/* Cor de texto PADRÃO do documento.
+ *
+ * Sem esta regra o `body` fica com a cor inicial do navegador — PRETO, porque
+ * a página não declara `color-scheme` — e todo elemento que esquece de
+ * declarar `color` sai preto no fundo escuro, ou seja, invisível. Foi assim
+ * que os números do "o cliente escolhe de 1 a 2 opções" (editor de grupos de
+ * escolha) sumiram: o `<span>` do valor não tinha `color` e herdava o preto.
+ *
+ * Corrigir aqui e não no componente é de propósito: o defeito não é daquela
+ * tela, é do documento não ter cor de texto. Um `color` esquecido em qualquer
+ * componente novo produziria exatamente o mesmo sumiço.
+ *
+ * O tenant continua mandando: a cor sai de --gm-text, sobrescrevível como
+ * qualquer token (decisão 017). */
+body {
+  color: var(--gm-text);
+}
+
 /* Celular muito pequeno (<360): único degrau real da curva antiga — o
    getSizes caía de 18px para 12px de uma vez, porque aí cada pixel de
    conteúdo conta. clamp() não faz degrau, então esta exceção fica explícita.

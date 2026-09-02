@@ -37,8 +37,17 @@ import AnalyticsDashboard from "./AnalyticsDashboard";
 
 // A tela usa `new Date()` (não recebe "hoje"), então as datas são relativas —
 // data fixa aqui viraria bomba de tempo.
-function horasAtras(n) {
-  return new Date(Date.now() - n * 3600 * 1000).toISOString();
+//
+// Relativas ao DIA, e não à hora: "2 horas atrás" parece hoje, mas entre a
+// meia-noite e as 2h da manhã cai no dia anterior, e o teste que espera "Hoje"
+// quebrava sozinho nessa faixa (TD019 — suíte refém do relógio). Ancorar na
+// meia-noite local do dia desejado dá a mesma intenção sem depender da hora em
+// que a suíte roda.
+function diasAtras(n) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - n);
+  return d.toISOString();
 }
 
 const TENANTS = [
@@ -53,8 +62,8 @@ const EM_DIA = TENANTS.map((t) => ({
   status: "ativo",
 }));
 const USO = [
-  { tenant_id: "t-forte", faturamento_centavos: 250075, pedidos: 25, ultima_venda: horasAtras(2) },
-  { tenant_id: "t-fraco", faturamento_centavos: 4050, pedidos: 2, ultima_venda: horasAtras(26) },
+  { tenant_id: "t-forte", faturamento_centavos: 250075, pedidos: 25, ultima_venda: diasAtras(0) },
+  { tenant_id: "t-fraco", faturamento_centavos: 4050, pedidos: 2, ultima_venda: diasAtras(1) },
   // t-novo não vem da RPC: nunca vendeu.
 ];
 
