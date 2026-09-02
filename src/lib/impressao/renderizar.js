@@ -55,7 +55,7 @@ function htmlItens(bloco) {
   const linhas = bloco.itens
     .map((it) => `
       <tr>
-        <td>${esc(it.nome)}</td>
+        <td>${it.emoji ? `${esc(it.emoji)} ` : ""}${esc(it.nome)}</td>
         <td style="text-align:center;">${esc(it.qty)}</td>
         ${bloco.unitario ? `<td style="text-align:right;">${esc(it.unitario)}</td>` : ""}
         <td style="text-align:right;font-weight:bold;">${esc(it.total)}</td>

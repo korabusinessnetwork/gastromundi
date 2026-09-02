@@ -4,6 +4,7 @@ import {
   LuAlignLeft, LuAlignCenter, LuAlignRight, LuBold, LuCaseUpper, LuCircleAlert,
 } from "react-icons/lu";
 import LarguraColunas from "./LarguraColunas";
+import "@/styles/chave.css";
 import "./BlocoComanda.css";
 
 /**
@@ -236,15 +237,17 @@ export default function BlocoComanda({
               <div className="bloco-comanda__campo">
                 <span className="bloco-comanda__rotulo">O que mostrar em cada item</span>
                 {OPCOES_ITENS.map(({ chave, rotulo, ajuda }) => (
-                  <label key={chave} className="bloco-comanda__caixa">
+                  <label key={chave} className="chave">
                     <input
                       type="checkbox"
+                      className="chave__campo"
                       checked={bloco.opcoes?.[chave] !== false}
                       onChange={(e) => onAlterar({ opcoes: { ...bloco.opcoes, [chave]: e.target.checked } })}
                     />
-                    <span>
-                      {rotulo}
-                      <span className="bloco-comanda__ajuda">{ajuda}</span>
+                    <span className="chave__pino" />
+                    <span className="chave__texto">
+                      <span className="chave__titulo">{rotulo}</span>
+                      <span className="chave__ajuda">{ajuda}</span>
                     </span>
                   </label>
                 ))}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { LuPlus, LuX, LuCircleAlert } from "react-icons/lu";
+import "@/styles/chave.css";
 import "./NovosProdutosInline.css";
 
 /**
@@ -143,34 +144,34 @@ export default function NovosProdutosInline({ nomeInicial = "", categorias = [],
         <LuPlus size={14} /> Acrescentar linha
       </button>
 
-      <label className="novos-produtos__opcao">
+      <label className="chave">
         <input
           type="checkbox"
           checked={vendeAvulso}
           onChange={(e) => setVendeAvulso(e.target.checked)}
-          className="novos-produtos__chave-campo"
+          className="chave__campo"
         />
-        <span className="novos-produtos__chave" />
-        <span className="novos-produtos__opcao-texto">
-          <span className="novos-produtos__opcao-titulo">Vender também avulso, no cardápio</span>
-          <span className="novos-produtos__ajuda">
+        <span className="chave__pino" />
+        <span className="chave__texto">
+          <span className="chave__titulo">Vender também avulso, no cardápio</span>
+          <span className="chave__ajuda">
             Ligado: é produto de cardápio — conta estoque, tem margem e pode ser vendido sozinho
             (uma lata de refrigerante). Desligado: entra como Insumo e só existe dentro do combo.
           </span>
         </span>
       </label>
 
-      <label className="novos-produtos__opcao">
+      <label className="chave">
         <input
           type="checkbox"
           checked={vaiParaCozinha}
           onChange={(e) => setVaiParaCozinha(e.target.checked)}
-          className="novos-produtos__chave-campo"
+          className="chave__campo"
         />
-        <span className="novos-produtos__chave" />
-        <span className="novos-produtos__opcao-texto">
-          <span className="novos-produtos__opcao-titulo">Vai para a cozinha preparar</span>
-          <span className="novos-produtos__ajuda">
+        <span className="chave__pino" />
+        <span className="chave__texto">
+          <span className="chave__titulo">Vai para a cozinha preparar</span>
+          <span className="chave__ajuda">
             Desligue para bebida de geladeira e afins, que saem sem passar pela produção.
           </span>
         </span>

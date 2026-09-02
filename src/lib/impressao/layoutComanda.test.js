@@ -263,6 +263,29 @@ describe("o layout manda nas DUAS impressões (navegador e térmica)", () => {
     expect(termica(dados)).not.toContain("sem cebola");
   });
 
+  // A térmica imprime texto puro na fonte da própria impressora, que não
+  // tem emoji: mandar assim mesmo saía símbolo estranho no papel E ocupava
+  // espaço na conta das colunas — era o que empurrava o pedido para o
+  // formato empilhado mesmo quando as colunas caberiam.
+  it("o emoji sai no papel do navegador e NÃO vai para a térmica", () => {
+    const layout = normalizarLayoutComanda([{ tipo: "itens" }]);
+    const dados = { ...venda(), layout };
+
+    expect(papel(dados)).toContain("🍽️");
+    expect(termica(dados)).not.toContain("🍽️");
+    // E o nome continua saindo nos dois, sem o emoji comer parte dele.
+    expect(papel(dados)).toContain("Prato do dia");
+    expect(termica(dados)).toContain("Prato do dia");
+  });
+
+  it("desligar o emoji tira ele também do navegador", () => {
+    const layout = normalizarLayoutComanda([
+      { tipo: "itens", opcoes: { unitario: true, observacoes: true, emoji: false } },
+    ]);
+
+    expect(papel({ ...venda(), layout })).not.toContain("🍽️");
+  });
+
   it("desligar o preço unitário tira a coluna do papel do navegador", () => {
     const comUnitario = normalizarLayoutComanda([{ tipo: "itens" }]);
     const semUnitario = normalizarLayoutComanda([

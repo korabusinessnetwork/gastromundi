@@ -232,7 +232,10 @@ export function formatarViaProducaoEscpos(dados, colunas) {
   }
 
   for (const it of itens) {
-    const nome = `${it.qty}x ${it.emoji ? `${it.emoji} ` : ""}${it.nome}`;
+    // Sem o emoji: a Ponte manda texto puro na fonte da própria impressora,
+    // que não tem esse caractere — saía símbolo estranho no meio do nome do
+    // prato, justamente no papel que o cozinheiro lê com pressa.
+    const nome = `${it.qty}x ${it.nome}`;
     quebrarLinha(nome, colunas).forEach(l => linhas.push(l));
     for (const obs of (it.obs ?? [])) {
       quebrarLinha(`  📝 ${obs}`, colunas).forEach(l => linhas.push(l));

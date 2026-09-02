@@ -541,10 +541,16 @@ function linhasDeTexto(texto) {
     .filter(Boolean);
 }
 
+// O emoji vai SEPARADO do nome, e não colado nele, porque os dois papéis
+// discordam sobre ele: o navegador desenha, a térmica não sabe imprimir
+// (a Ponte manda texto puro na fonte da própria impressora). Colado, ele
+// viajava junto para a térmica — saía caractere estranho no papel e, pior,
+// ocupava espaço na conta das colunas: era o que empurrava o pedido para o
+// formato empilhado mesmo quando as colunas caberiam.
 function itemResolvido(item, opcoes) {
-  const emoji = opcoes.emoji && item.emoji ? `${item.emoji} ` : "";
   return {
-    nome: `${emoji}${item.nome ?? ""}`,
+    emoji: opcoes.emoji && item.emoji ? String(item.emoji) : "",
+    nome: String(item.nome ?? ""),
     qty: Number(item.qty) || 1,
     unitario: fmtR(item.preco),
     total: fmtR((Number(item.preco) || 0) * (Number(item.qty) || 1)),

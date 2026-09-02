@@ -260,6 +260,7 @@ export default function LayoutComanda() {
   // moldura e os preços, que ficam na direita, sumiam atrás da rolagem.
   const colunas = colunasEscpos(configCompleta?.perfilImpressora?.larguraMm);
 
+
   const textoTermica = useMemo(
     () => formatarComprovanteEscpos(documento, colunas).join("\n"),
     [documento, colunas],
