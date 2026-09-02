@@ -143,23 +143,35 @@ export default function NovosProdutosInline({ nomeInicial = "", categorias = [],
         <LuPlus size={14} /> Acrescentar linha
       </button>
 
-      <label className="novos-produtos__caixa">
-        <input type="checkbox" checked={vendeAvulso} onChange={(e) => setVendeAvulso(e.target.checked)} />
-        <span>
-          Vender também avulso, no cardápio
+      <label className="novos-produtos__opcao">
+        <input
+          type="checkbox"
+          checked={vendeAvulso}
+          onChange={(e) => setVendeAvulso(e.target.checked)}
+          className="novos-produtos__chave-campo"
+        />
+        <span className="novos-produtos__chave" />
+        <span className="novos-produtos__opcao-texto">
+          <span className="novos-produtos__opcao-titulo">Vender também avulso, no cardápio</span>
           <span className="novos-produtos__ajuda">
-            Marcado: é produto de cardápio — conta estoque, tem margem e pode ser vendido sozinho
-            (uma lata de refrigerante). Desmarcado: entra como Insumo e só existe dentro do combo.
+            Ligado: é produto de cardápio — conta estoque, tem margem e pode ser vendido sozinho
+            (uma lata de refrigerante). Desligado: entra como Insumo e só existe dentro do combo.
           </span>
         </span>
       </label>
 
-      <label className="novos-produtos__caixa">
-        <input type="checkbox" checked={vaiParaCozinha} onChange={(e) => setVaiParaCozinha(e.target.checked)} />
-        <span>
-          Vai para a cozinha preparar
+      <label className="novos-produtos__opcao">
+        <input
+          type="checkbox"
+          checked={vaiParaCozinha}
+          onChange={(e) => setVaiParaCozinha(e.target.checked)}
+          className="novos-produtos__chave-campo"
+        />
+        <span className="novos-produtos__chave" />
+        <span className="novos-produtos__opcao-texto">
+          <span className="novos-produtos__opcao-titulo">Vai para a cozinha preparar</span>
           <span className="novos-produtos__ajuda">
-            Desmarque para bebida de geladeira e afins, que saem sem passar pela produção.
+            Desligue para bebida de geladeira e afins, que saem sem passar pela produção.
           </span>
         </span>
       </label>
