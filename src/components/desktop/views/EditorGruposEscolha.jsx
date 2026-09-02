@@ -3,6 +3,7 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { LuPlus, LuX, LuSearch, LuMinus, LuTrash2, LuList, LuLayoutGrid } from "react-icons/lu";
+import NovosProdutosInline from "./NovosProdutosInline";
 import "./EditorGruposEscolha.css";
 
 /**
@@ -48,6 +49,9 @@ function fmtBRL(v) {
 function GrupoCard({ grupo, products, onChange, onRemover }) {
   const [busca, setBusca] = useState("");
   const [show, setShow] = useState(false);
+  // Painel de cadastrar produto sem sair daqui. Guarda o nome digitado na
+  // busca: quem escreveu "Heineken 600ml" e não achou já quer criar ESSE.
+  const [criando, setCriando] = useState(null);
 
   const set = (patch) => onChange({ ...grupo, ...patch });
 
@@ -77,6 +81,15 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
 
   const addItem = (p) => {
     set({ itens: [...(grupo.itens ?? []), { produtoId: p.id, preco: "" }] });
+    setBusca("");
+    setShow(false);
+  };
+
+  // Produtos recém-cadastrados entram no grupo de uma vez só: uma chamada
+  // a `set` por produto perderia as anteriores (todas partiriam do mesmo
+  // `grupo` da closure).
+  const addVarios = (novos) => {
+    set({ itens: [...(grupo.itens ?? []), ...novos.map((p) => ({ produtoId: p.id, preco: "" }))] });
     setBusca("");
     setShow(false);
   };
@@ -211,7 +224,7 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
               placeholder="Buscar e adicionar opção…"
               className="editor-grupos__input editor-grupos__input--busca"
             />
-            {show && filtrados.length > 0 && (
+            {show && (filtrados.length > 0 || busca.trim()) && (
               <div className="editor-grupos__dropdown">
                 {filtrados.slice(0, 20).map((p) => (
                   <button
@@ -230,9 +243,32 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
                     <LuPlus size={14} color={varColor(C.accent)} />
                   </button>
                 ))}
+
+                {/* Não achou porque ainda não existe: cadastrar daqui evita
+                    abandonar a montagem do grupo, ir em Produtos e voltar. */}
+                {busca.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => { setCriando(busca.trim()); setShow(false); }}
+                    className="editor-grupos__dropdown-criar"
+                  >
+                    <LuPlus size={14} />
+                    Cadastrar “{busca.trim()}” como produto novo
+                  </button>
+                )}
               </div>
             )}
           </div>
+
+          {criando != null && (
+            <NovosProdutosInline
+              nomeInicial={criando}
+              categorias={categorias}
+              onCriados={addVarios}
+              onCancelar={() => setCriando(null)}
+            />
+          )}
+
           <div className="editor-grupos__ajuda">
             O acréscimo é quanto aquela opção soma ao preço — deixe zerado quando não muda nada.
           </div>
