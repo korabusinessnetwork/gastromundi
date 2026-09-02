@@ -160,7 +160,17 @@ describe("migration 20260923 — dinheiro com precisão declarada", () => {
     expect(SQL).toMatch(/c\.numeric_scale IS NULL/);
     // E confere que o que era para ficar de fora ficou.
     expect(SQL).toMatch(/coordenada de entrega ganhou precisão fixa/);
-    expect(SQL).toMatch(/quantidade ou alíquota ganhou precisão de dinheiro/);
+    expect(SQL).toMatch(/quantidade ou alíquota ficou com precisão de dinheiro/);
+  });
+
+  // O que se procura numa coluna de quantidade é PRECISÃO DE DINHEIRO, não
+  // "qualquer escala": as colunas de nota fiscal são numeric(12,4) desde a
+  // 20240101, e 4 casas é exatamente o que uma quantidade precisa. Enquanto
+  // a conferência reprovava qualquer escala, ela reprovava o certo — a
+  // migration não passava em banco nenhum que tivesse rodado a 20240101.
+  it("na quantidade, só reprova escala menor que a de uma quantidade de verdade", () => {
+    expect(SQL).toMatch(/c\.numeric_scale < 4/);
+    expect(SQL).not.toMatch(/numeric_scale IS NOT NULL\s*\n\s*AND \(c\.column_name LIKE 'aliquota%'/);
   });
 
   it("não deixa a temporária da lista virar tabela de verdade", () => {

@@ -255,16 +255,33 @@ BEGIN
     RAISE EXCEPTION 'FALHA: coordenada de entrega ganhou precisão fixa — isso erra a posição em quilômetros e quebra a taxa por distância.';
   END IF;
 
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns c
-     WHERE c.table_schema = 'public'
-       AND c.data_type = 'numeric'
-       AND c.numeric_scale IS NOT NULL
-       AND (c.column_name LIKE 'aliquota%'
-         OR c.column_name = 'reducao_base_icms'
-         OR c.column_name IN ('quantidade', 'quantidade_estoque', 'qtd', 'minimo', 'fator_conversao', 'fator_consumo_estoque'))
-  ) THEN
-    RAISE EXCEPTION 'FALHA: quantidade ou alíquota ganhou precisão de dinheiro — meio quilo viraria zero e alíquota de 1,65%% viraria 2%%.';
+  -- O que se procura aqui é PRECISÃO DE DINHEIRO (escala 2) numa coluna
+  -- que não é dinheiro, e não "qualquer escala declarada": desde a
+  -- 20240101 as colunas de nota fiscal são numeric(12,4) de propósito, e
+  -- 4 casas é exatamente o que uma quantidade precisa. Reprovar escala 4
+  -- reprovava o certo — foi o que aconteceu no primeiro banco em que esta
+  -- migration rodou.
+  --
+  -- O corte é em 4 casas: abaixo disso, quantidade fracionada e alíquota
+  -- perdem dígito significativo (0,125 kg vira 0,13; 1,65% vira 1,7%).
+  -- Escala ausente (numeric livre) continua válida — é como a maioria
+  -- destas colunas nasceu.
+  SELECT string_agg(format('%s.%s (numeric(%s,%s))', c.table_name, c.column_name, c.numeric_precision, c.numeric_scale),
+                    ', ' ORDER BY c.table_name, c.column_name)
+    INTO v_soltas
+    FROM information_schema.columns c
+    JOIN information_schema.tables t
+      ON t.table_schema = c.table_schema AND t.table_name = c.table_name AND t.table_type = 'BASE TABLE'
+   WHERE c.table_schema = 'public'
+     AND c.data_type = 'numeric'
+     AND c.numeric_scale IS NOT NULL
+     AND c.numeric_scale < 4
+     AND (c.column_name LIKE 'aliquota%'
+       OR c.column_name = 'reducao_base_icms'
+       OR c.column_name IN ('quantidade', 'quantidade_estoque', 'qtd', 'minimo', 'fator_conversao', 'fator_consumo_estoque'));
+
+  IF v_soltas IS NOT NULL THEN
+    RAISE EXCEPTION 'FALHA: quantidade ou alíquota ficou com precisão de dinheiro: %. Meio quilo perderia casa e alíquota de 1,65%% viraria 1,7%%.', v_soltas;
   END IF;
 
   -- Prova de que a coluna agora arredonda de verdade, e não só no nome.
