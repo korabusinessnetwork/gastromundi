@@ -184,6 +184,7 @@ GRANT EXECUTE ON FUNCTION public.gravar_itens_comanda(text, jsonb, text[], numer
 DO $conf$
 DECLARE
   v_id       text := 'autoteste-td013-' || gen_random_uuid()::text;
+  v_tenant   uuid;
   v_ret      jsonb;
   v_gravado  jsonb;
   v_total    numeric;
@@ -210,11 +211,27 @@ BEGIN
     RAISE EXCEPTION 'FALHA: gravar_itens_comanda continua executável por anon.';
   END IF;
 
+  -- Tenant da comanda descartável, escolhido À MÃO de propósito: o DEFAULT
+  -- de pending.tenant_id é tenant_atual_id(), que lê o tenant do JWT de
+  -- quem chama. No app existe usuário logado e ele resolve; aqui, rodando
+  -- no SQL Editor, não há sessão nenhuma e ele volta NULL — a coluna é NOT
+  -- NULL e o autoteste morria antes de testar coisa alguma.
+  SELECT id INTO v_tenant FROM public.tenants ORDER BY created_at LIMIT 1;
+
+  -- Banco ainda sem nenhum estabelecimento: as conferências de estrutura
+  -- acima já passaram, e não há em que tenant pendurar a comanda de teste.
+  -- Avisa e sai — melhor pular a parte de comportamento do que inventar um
+  -- tenant só para o teste rodar.
+  IF v_tenant IS NULL THEN
+    RAISE NOTICE 'gravar_itens_comanda criada e conferida na estrutura. A parte de comportamento foi pulada: não há nenhum tenant cadastrado para receber a comanda descartável.';
+    RETURN;
+  END IF;
+
   -- 2. Mescla de verdade. A comanda tem A e B; o chamador partiu de A e
   --    quer gravar só A — B foi lançado por outro aparelho e tem de voltar.
-  INSERT INTO public.pending (id, comanda, items, total)
+  INSERT INTO public.pending (id, tenant_id, comanda, items, total)
   VALUES (
-    v_id, 'AUTOTESTE',
+    v_id, v_tenant, 'AUTOTESTE',
     '[{"uid":"a","name":"A","price":10,"qty":1},
       {"uid":"b","name":"B","price":5,"qty":2}]'::jsonb,
     20
