@@ -1,0 +1,289 @@
+/**
+ * Fila de pedidos de conta (Console da Plataforma).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007) — nada de
+ * hex cravado: o Console segue o tema como o resto do app.
+ */
+
+.sfila {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.sfila__cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.sfila__estado {
+  color: var(--gm-muted);
+  font-size: 15px;
+}
+
+/* ── Aviso de falha de leitura ─────────────────────────────────── */
+.sfila__aviso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-warn) 8%, transparent);
+  color: var(--gm-text);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 14px;
+}
+
+.sfila__aviso-acao {
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-text);
+  border-radius: 8px;
+  padding: 8px 14px;
+  min-height: 36px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* ── Vazio ─────────────────────────────────────────────────────── */
+.sfila__vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 44px 20px;
+  border: 1px dashed var(--gm-border);
+  border-radius: 16px;
+  color: var(--gm-muted);
+}
+
+.sfila__vazio-titulo {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gm-text);
+  margin: 6px 0 0;
+}
+
+.sfila__vazio-texto { margin: 0; font-size: 14px; }
+
+/* ── Cartões pendentes ─────────────────────────────────────────── */
+.sfila__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.sfila__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+
+.sfila__card-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sfila__negocio {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--gm-accent);
+  min-width: 0;
+}
+
+.sfila__negocio > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sfila__negocio-nome {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--gm-text);
+  overflow-wrap: anywhere;
+}
+
+/* O endereço pedido é o dado que mais decide a aprovação — ele vira o
+   subdomínio e o namespace de login do cliente. Fonte mono para ler
+   caractere a caractere, sem confundir l/1 ou 0/O. */
+.sfila__endereco {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.sfila__quando {
+  font-size: 12px;
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+
+.sfila__contato {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.sfila__responsavel { color: var(--gm-text); font-weight: 600; }
+
+.sfila__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gm-accent);
+  text-decoration: none;
+  min-height: 32px;
+}
+
+.sfila__link:hover { text-decoration: underline; }
+
+.sfila__plano {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  border-top: 1px solid var(--gm-border);
+  padding-top: 12px;
+  font-size: 14px;
+}
+
+.sfila__plano-nome { color: var(--gm-text); font-weight: 600; }
+.sfila__plano-valor { color: var(--gm-muted); font-size: 13px; }
+
+/* ── Ações ─────────────────────────────────────────────────────── */
+.sfila__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sfila__botao {
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sfila__botao:hover:not(:disabled) { border-color: var(--gm-accent); }
+
+.sfila__botao:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sfila__botao--primario {
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+  color: #fff;
+}
+
+.sfila__botao--perigo {
+  background: var(--gm-red);
+  border-color: var(--gm-red);
+  color: #fff;
+}
+
+/* ── Confirmação de recusa ─────────────────────────────────────── */
+.sfila__recusa {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--gm-border);
+  padding-top: 12px;
+}
+
+.sfila__recusa-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.sfila__recusa-campo input {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  font-size: 15px;
+}
+
+/* ── Histórico ─────────────────────────────────────────────────── */
+.sfila__historico { display: flex; flex-direction: column; gap: 10px; }
+
+.sfila__historico-titulo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sfila__historico-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sfila__historico-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.sfila__historico-nome { color: var(--gm-text); font-weight: 600; }
+
+.sfila__historico-endereco {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.sfila__historico-quando { margin-left: auto; white-space: nowrap; }
+
+.sfila__historico-obs { flex-basis: 100%; font-style: italic; }
+
+.sfila__icone--ok { color: var(--gm-green); }
+.sfila__icone--recusado { color: var(--gm-red); }
+
+@media (max-width: 640px) {
+  .sfila__card { padding: 14px; }
+  .sfila__historico-quando { margin-left: 0; }
+  .sfila__botao { width: 100%; }
+}
+
+.sfila__erro {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gm-red);
+  font-size: 13px;
+}

@@ -3,6 +3,12 @@ import { LAYOUT_PADRAO_NOVOS } from "@/layouts";
 import { geocodificarEndereco } from "@/lib/delivery";
 import { calcularStatusAssinatura, calcularDiasParaVencimento } from "./assinatura";
 import { ROTULOS_MODULO } from "@/constants/modulos";
+import {
+  MAX_SLUG,
+  SLUGS_RESERVADOS,
+  normalizarSlug,
+  sugerirSlugLivre,
+} from "./slugEstabelecimento";
 
 /**
  * Console da Plataforma (S1-2, ADR-008 §7) — camada de dados.
@@ -237,7 +243,7 @@ export function normalizarFiltroSituacao(bruto) {
 }
 
 /** Seções do Console, na ordem em que aparecem. A primeira é a padrão. */
-export const ABAS_CONSOLE = ["estabelecimentos", "planos", "uso"];
+export const ABAS_CONSOLE = ["estabelecimentos", "solicitacoes", "planos", "uso"];
 
 /**
  * Função PURA — traduz o que veio da URL (`?aba=...`) para uma aba válida.
@@ -248,7 +254,7 @@ export const ABAS_CONSOLE = ["estabelecimentos", "planos", "uso"];
  * Não lê `window` nem o roteador — quem faz isso é a tela.
  *
  * @param {string|string[]|null|undefined} bruto
- * @returns {"estabelecimentos"|"planos"|"uso"}
+ * @returns {"estabelecimentos"|"solicitacoes"|"planos"|"uso"}
  */
 export function normalizarAba(bruto) {
   if (typeof bruto !== "string") return ABAS_CONSOLE[0];
@@ -675,70 +681,12 @@ export function sugerirUsuarioLivre(usuario, { slug = "", tentativa = 1 } = {}) 
   return candidato.length >= 3 ? candidato : base + String(numero);
 }
 
-/** Limite de tamanho do slug — mesmo `MAX_SLUG` da borda. */
-export const MAX_SLUG = 40;
-
-/**
- * Rótulos que nenhum estabelecimento pode ocupar. Espelho da função
- * `public.slug_reservado` (migration 20260803): o slug é o subdomínio E o
- * namespace de e-mail do Auth, então 'console' na mão de um tenant colidiria
- * com o próprio Console. O banco continua sendo a autoridade (CHECK
- * constraint + laço da RPC); a lista aqui existe para AVISAR antes do envio,
- * em vez de deixar o dono descobrir depois que virou 'console2'.
- */
-export const SLUGS_RESERVADOS = [
-  "console",
-  "www", "app", "api",
-  "admin", "painel", "plataforma", "sistema", "kora",
-  "auth", "login", "static", "assets", "cdn", "mail", "smtp",
-  "ftp", "ns", "ns1", "ns2", "root", "suporte", "status",
-];
-
-/**
- * Normaliza o endereço (slug) do estabelecimento exatamente como o servidor
- * fará: espelho de `public.slugify_tenant` (20260741) e de `normalizarSlug`
- * em `supabase/functions/_shared/validacaoProvisionamento.ts`.
- *
- * Repare que TUDO que não é letra ou número some — inclusive hífen e ponto.
- * "Bar do Zé" vira "bardoze", não "bar-do-ze". A regra é do banco; o campo
- * do formulário só precisa mostrar a verdade enquanto o dono digita.
- *
- * @param {string} raw
- * @returns {string}
- */
-export function normalizarSlug(raw) {
-  return String(raw ?? "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove acentos
-    .replace(/[^a-z0-9]/g, "")
-    .slice(0, MAX_SLUG);
-}
-
-/**
- * Primeiro endereço livre a partir de uma base, pela MESMA regra do laço de
- * `provisionar_tenant` (20260803): base, base2, base3… pulando os que já
- * estão em uso e os reservados. Serve para sugerir na tela o que o banco
- * faria calado.
- *
- * @param {string} base slug pretendido (já normalizado ou não)
- * @param {string[]} emUso slugs dos estabelecimentos existentes
- * @returns {string} slug livre, ou "" se a base for vazia
- */
-export function sugerirSlugLivre(base, emUso = []) {
-  const raiz = normalizarSlug(base);
-  if (!raiz) return "";
-  const ocupados = new Set((emUso ?? []).map((s) => normalizarSlug(s)).filter(Boolean));
-  const indisponivel = (s) => ocupados.has(s) || SLUGS_RESERVADOS.includes(s);
-
-  let candidato = raiz;
-  let n = 1;
-  while (indisponivel(candidato)) {
-    n += 1;
-    candidato = raiz + String(n);
-  }
-  return candidato;
-}
+// Endereço (slug) do estabelecimento: as regras moram em
+// `@/lib/slugEstabelecimento` porque o site institucional (apex) precisa das
+// MESMAS — e não pode arrastar este módulo, que puxa supabase, layouts e
+// geocodificação para dentro de uma página pública. Reexportadas aqui para
+// quem já as importava do Console.
+export { MAX_SLUG, SLUGS_RESERVADOS, normalizarSlug, sugerirSlugLivre };
 
 /**
  * Função pura — valida o formulário de "Criar estabelecimento" ANTES de
@@ -1411,4 +1359,91 @@ export function montarMensagemPrimeiroAcesso(dados = {}) {
     .filter((bloco) => bloco.length > 0)
     .map((bloco) => bloco.join("\n"))
     .join("\n\n");
+}
+
+/**
+ * Fila de solicitações de conta feitas no site institucional
+ * (20260926). Leitura cross-tenant do Console: a policy
+ * `solicitacoes_conta_leitura_plataforma` só devolve linhas para
+ * `is_super_admin()`, então um token de estabelecimento vê zero.
+ * Campos explícitos (nunca `select *` em tabela com dado pessoal).
+ *
+ * Nunca lança: falha de rede/RLS volta como { data: [], error } para o
+ * chamador tratar o estado de erro na UI.
+ *
+ * @returns {Promise<{data: Array<object>, error: object|null}>}
+ */
+export async function listarSolicitacoes() {
+  try {
+    const { data, error } = await supabase
+      .from("solicitacoes_conta")
+      .select(
+        "id, nome, whatsapp, email, estabelecimento, slug_desejado, plano_codigo, plano_nome, plano_itens, plano_total, status, tenant_id, observacao, criado_em, decidido_em"
+      )
+      .order("criado_em", { ascending: false });
+    if (error) return { data: [], error };
+    return { data: data ?? [], error: null };
+  } catch (err) {
+    return { data: [], error: { message: err?.message ?? "Falha ao listar as solicitações." } };
+  }
+}
+
+/**
+ * Aprova (vinculando o estabelecimento criado) ou recusa uma solicitação.
+ * A autorização é do BANCO: a RPC `decidir_solicitacao_conta` exige
+ * `is_super_admin()` antes de qualquer escrita — o front aqui é só a casca.
+ *
+ * Aprovar sem `tenantId` é recusado pelo próprio banco: sair de "pendente"
+ * sem que nada tenha sido criado seria mentir na fila.
+ *
+ * @param {string} id id da solicitação
+ * @param {"aprovada"|"recusada"} status decisão
+ * @param {{tenantId?: string|null, observacao?: string|null}} [opcoes]
+ * @returns {Promise<{data: object|null, error: object|null}>}
+ */
+export async function decidirSolicitacao(id, status, opcoes = {}) {
+  try {
+    const { data, error } = await supabase.rpc("decidir_solicitacao_conta", {
+      p_id: id,
+      p_status: status,
+      p_tenant_id: opcoes?.tenantId ?? null,
+      p_observacao: opcoes?.observacao ?? null,
+    });
+    if (error) return { data: null, error };
+    return { data: data ?? null, error: null };
+  } catch (err) {
+    return { data: null, error: { message: err?.message ?? "Falha ao registrar a decisão." } };
+  }
+}
+
+/**
+ * Só as solicitações que ainda esperam decisão — é o que a aba do Console
+ * mostra por padrão, e o número que vai no selo ao lado do nome da aba.
+ * Função pura (a lista já veio do banco): ordena da mais antiga para a mais
+ * nova, porque quem pediu primeiro é quem está esperando há mais tempo.
+ *
+ * @param {Array<{status?: string, criado_em?: string}>} solicitacoes
+ * @returns {Array<object>}
+ */
+export function pendentesPrimeiro(solicitacoes = []) {
+  return (solicitacoes ?? [])
+    .filter((s) => s?.status === "pendente")
+    .slice()
+    .sort((a, b) => String(a?.criado_em ?? "").localeCompare(String(b?.criado_em ?? "")));
+}
+
+/**
+ * Texto do plano que a pessoa montou no site, para o card da fila. O nome do
+ * preset quando existe; senão a lista de módulos escolhidos; senão o aviso de
+ * que ela não escolheu nada — nunca uma linha vazia que o dono lê como erro.
+ *
+ * @param {{plano_nome?: string|null, plano_itens?: string[]|null}} s
+ * @returns {string}
+ */
+export function resumirPlanoSolicitado(s = {}) {
+  const nome = typeof s?.plano_nome === "string" ? s.plano_nome.trim() : "";
+  if (nome) return nome;
+  const itens = (s?.plano_itens ?? []).filter((i) => typeof i === "string" && i.trim());
+  if (itens.length > 0) return itens.join(", ");
+  return "Não escolheu plano no site";
 }
