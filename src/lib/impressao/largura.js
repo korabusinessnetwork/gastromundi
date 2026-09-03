@@ -12,6 +12,8 @@
  * 300px fixos de body{width} equivaliam a 80mm (300/80 = 3.75).
  */
 
+import { TAMANHO_TERMICA_PADRAO, fatorLarguraTermica, usaFonteMiuda } from "./tamanhoFonte";
+
 export const PX_POR_MM = 3.75;
 
 // Largura média de um caractere de "Courier New" monoespaçada, em
@@ -45,12 +47,16 @@ export function colunasPorLargura(larguraMm, fontePx = 13) {
   return Math.max(MINIMO_COLUNAS, colunas);
 }
 
-// Colunas REAIS da impressora térmica, na Fonte A (a que a Ponte usa —
-// ela manda `ESC @` e nunca troca de fonte). Isso é hardware: o papel de
-// 80mm imprime 48 caracteres por linha e o de 58mm imprime 32, sempre,
-// não importa o que a tela mostra. NADA a ver com `colunasPorLargura`,
-// que é conta de pixel de CSS e serve só pro preview raster do navegador.
+// Colunas REAIS da impressora térmica. Isso é hardware: na Fonte A (a
+// padrão) o papel de 80mm imprime 48 caracteres por linha e o de 58mm
+// imprime 32, sempre, não importa o que a tela mostra. NADA a ver com
+// `colunasPorLargura`, que é conta de pixel de CSS e serve só pro
+// preview raster do navegador.
 const COLUNAS_FONTE_A_POR_LARGURA = { 80: 48, 58: 32 };
+
+// A Fonte B é a letra miúda da mesma impressora (9 pontos de largura
+// contra 12 da Fonte A) — mesma folha, mais caracteres por linha.
+const COLUNAS_FONTE_B_POR_LARGURA = { 80: 64, 58: 42 };
 
 // Papel fora do padrão (nem 80mm nem 58mm) não existe em impressora
 // térmica comum, mas o campo é digitável no perfil do estabelecimento.
@@ -63,15 +69,27 @@ const LARGURA_PADRAO_MM = 80;
 
 /**
  * Quantas colunas de texto a impressora térmica realmente imprime nesta
- * largura de papel. É essa a conta que vale pra comanda impressa.
+ * largura de papel, NO TAMANHO DE LETRA escolhido. É essa a conta que
+ * vale pra comanda impressa.
+ *
+ * O tamanho entra aqui porque ele muda o caractere, não só a aparência:
+ * letra miúda (Fonte B) cabe mais por linha e letra grande (largura
+ * dobrada) cabe metade. Formatar num número de colunas diferente do que
+ * a impressora vai usar é o que embaralha a comanda — por isso quem
+ * manda o tamanho pra Ponte tem que pedir as colunas com o mesmo
+ * tamanho.
  *
  * @param {number} larguraMm - largura do papel configurada no perfil do estabelecimento
+ * @param {string} [tamanho] - tamanho da letra na térmica (ver impressao/tamanhoFonte.js)
  * @returns {number} colunas (inteiro positivo)
  */
-export function colunasEscpos(larguraMm) {
+export function colunasEscpos(larguraMm, tamanho = TAMANHO_TERMICA_PADRAO) {
   const mm = Number(larguraMm) > 0 ? Number(larguraMm) : LARGURA_PADRAO_MM;
-  if (mm >= 80) return COLUNAS_FONTE_A_POR_LARGURA[80];
-  return COLUNAS_FONTE_A_POR_LARGURA[58];
+  const papel = mm >= 80 ? 80 : 58;
+  const base = usaFonteMiuda(tamanho)
+    ? COLUNAS_FONTE_B_POR_LARGURA[papel]
+    : COLUNAS_FONTE_A_POR_LARGURA[papel];
+  return Math.floor(base / fatorLarguraTermica(tamanho));
 }
 
 /**

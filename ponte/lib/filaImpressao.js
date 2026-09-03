@@ -11,6 +11,10 @@
 //   avançar de estado, podar). Quem persiste e agenda é servidor.js — assim
 //   cada regra nasce com teste (lib/filaImpressao.test.js).
 
+// Os tamanhos de letra válidos moram junto dos bytes que eles viram
+// (lib/escpos.js) — a fila só precisa saber quais nomes existem.
+import { TAMANHOS_FONTE, TAMANHO_FONTE_PADRAO } from "./escpos.js";
+
 // Espera entre tentativas: 5s → 15s → 60s (a partir da 3ª falha, 60s).
 export const BACKOFF_MS = [5000, 15000, 60000];
 
@@ -84,7 +88,7 @@ export function validarDestino(destino) {
 /**
  * Valida o corpo de POST /imprimir e devolve o registro pronto para a fila.
  *
- * @param {{destino: object, linhas: string[], cortaPapel?: boolean, copias?: number}} corpo
+ * @param {{destino: object, linhas: string[], cortaPapel?: boolean, copias?: number, tamanhoFonte?: string}} corpo
  * @param {{agora?: string|number, id?: string}} [opts]
  * @returns {{ok: true, trabalho: object} | {ok: false, erro: string}}
  */
@@ -118,6 +122,12 @@ export function criarTrabalho(corpo, { agora, id } = {}) {
       linhas: corpo.linhas.map((l) => l.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, MAX_CARACTERES_LINHA)),
       cortaPapel: corpo.cortaPapel === false ? false : true,
       copias: copiasBrutas,
+      // Tamanho da letra pedido pelo caixa. Nome desconhecido (app mais
+      // novo que esta Ponte, campo digitado errado) NÃO recusa a
+      // impressão: cai no padrão e o papel sai — deixar a cozinha sem
+      // comanda por causa do tamanho da fonte seria trocar um
+      // incômodo por um problema.
+      tamanhoFonte: TAMANHOS_FONTE.includes(corpo.tamanhoFonte) ? corpo.tamanhoFonte : TAMANHO_FONTE_PADRAO,
       estado: "na_fila",
       tentativas: 0,
       proximaTentativaEm: criadoEm,

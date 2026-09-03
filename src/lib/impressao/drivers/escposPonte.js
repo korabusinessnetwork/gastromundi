@@ -1,4 +1,5 @@
 import { colunasEscpos } from "../largura";
+import { tamanhoTermicaDeFonteBase } from "../tamanhoFonte";
 import { formatarComprovanteEscpos, formatarViaProducaoEscpos } from "../escposFormatador";
 import { enviarImpressaoPonte } from "../../ponte";
 
@@ -51,18 +52,30 @@ export async function imprimir(documento, perfil) {
       return { error: { message: AVISO_SEM_IMPRESSORA } };
     }
 
+    // Tamanho da letra na térmica. Os pixels do perfil (`fonteBase`) são
+    // medida de TELA; a impressora muda de tamanho por comando, em
+    // degraus (ver ../tamanhoFonte.js). Aqui traduzimos o slider naquele
+    // degrau e mandamos junto — foi o que faltou durante um tempo: o
+    // dono aumentava a letra, o preview crescia e a térmica continuava
+    // imprimindo igual, porque nada sobre fonte saía deste driver.
+    const tamanhoFonte = tamanhoTermicaDeFonteBase(perfil?.fonteBase);
+
     // Quantos caracteres cabem na linha é decisão da IMPRESSORA, não da
-    // tela: 48 no papel de 80mm, 32 no de 58mm. O tamanho de fonte do
-    // preview (perfil.fonteBase) não entra nessa conta — quando entrava,
-    // a comanda saía quebrada em 33 colunas num papel de 48, gastando
-    // papel em todo pedido e desalinhando os preços da direita.
-    // O que continua vindo do perfil, porque muda de estabelecimento
-    // pra estabelecimento, é a largura do papel.
-    const colunas = colunasEscpos(perfil?.larguraMm);
+    // tela: 48 no papel de 80mm e 32 no de 58mm na letra padrão, mais na
+    // letra miúda, metade na letra grande (que dobra a largura do
+    // caractere). Por isso as colunas vêm do MESMO tamanho que a Ponte
+    // vai mandar pra impressora: pedir 48 colunas e imprimir em 24 é a
+    // comanda quebrada e o preço desalinhado — foi o que aconteceu
+    // quando este driver tentou tirar colunas direto dos pixels.
+    const colunas = colunasEscpos(perfil?.larguraMm, tamanhoFonte);
 
     const { error } = await enviarImpressaoPonte({
       destino: perfil.impressora,
       linhas: linhasDocumento(documento, colunas),
+      // A Ponte é quem monta os bytes ESC/POS do tamanho (ESC M / GS !).
+      // Ponte antiga ignora este campo e imprime como sempre — nada
+      // quebra, só não cresce até o dono atualizar o programa.
+      tamanhoFonte,
       cortaPapel: perfil?.cortaPapel !== false,
       copias: Number(perfil?.copias) > 0 ? Number(perfil.copias) : 1,
       // Id da ação que pediu a impressão, montado em impressao/despacho.js

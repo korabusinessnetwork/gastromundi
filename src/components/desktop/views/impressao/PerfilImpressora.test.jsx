@@ -19,8 +19,11 @@ vi.mock("@/lib/impressao", async () => {
   const real = await vi.importActual("@/lib/impressao");
   return { ...real, buscarConfigImpressao: mockBuscarConfig, salvarConfigImpressao: vi.fn() };
 });
+const { mockListarImpressoras } = vi.hoisted(() => ({
+  mockListarImpressoras: vi.fn(),
+}));
 vi.mock("@/lib/ponte", () => ({
-  listarImpressorasPonte: vi.fn(() => Promise.resolve({ data: [], error: null })),
+  listarImpressorasPonte: (...args) => mockListarImpressoras(...args),
 }));
 
 import PerfilImpressora from "./PerfilImpressora";
@@ -42,6 +45,8 @@ const abrir = async () => {
 beforeEach(() => {
   vi.clearAllMocks();
   mockBuscarConfig.mockResolvedValue({ data: CONFIG_SALVA, error: null });
+  // Ponte atual, do tamanho da letra em diante.
+  mockListarImpressoras.mockResolvedValue({ data: { impressoras: [], versao: "1.1.0" }, error: null });
 });
 
 describe("PerfilImpressora — cupom de exemplo (Run 5, leva 11)", () => {
@@ -136,5 +141,96 @@ describe("PerfilImpressora — baixar o programa da impressora", () => {
     await abrirComEndereco(ENDERECO);
 
     expect(botaoBaixar()).toBeNull();
+  });
+});
+
+
+// ── Tamanho da letra ──────────────────────────────────────────────────────
+//
+// A queixa que originou estes testes: "o botão que aumenta o tamanho não
+// aumenta a letra na térmica". Ele aumentava a pré-visualização (CSS) e nada
+// mais — o driver ESC/POS não mandava tamanho nenhum pra impressora. Agora a
+// tela oferece os degraus que a impressora TEM (a térmica não tem escala de
+// pixel) e avisa quando o programa instalado é antigo demais pra obedecer.
+const CONFIG_COM_FONTE = (fonteBase) => ({
+  ...CONFIG_IMPRESSAO_PADRAO,
+  perfilImpressora: { ...PERFIL_IMPRESSORA_PADRAO, driver: "escpos-ponte", fonteBase },
+});
+
+const botoesTamanho = () => [...document.querySelectorAll(".perfil-impressora__opcao-tamanho")];
+const tamanhoAtivo = () =>
+  document.querySelector(".perfil-impressora__opcao-tamanho--ativa")?.textContent ?? null;
+const avisoPonteVelha = () => document.querySelector(".perfil-impressora__aviso-ponte-velha");
+const slider = () => document.querySelector(".perfil-impressora__slider");
+
+describe("PerfilImpressora — tamanho da letra", () => {
+  afterEach(cleanup);
+
+  it("na térmica oferece os degraus da impressora, não o slider de pixels", async () => {
+    mockBuscarConfig.mockResolvedValue({ data: CONFIG_TERMICA, error: null });
+    await abrir();
+
+    expect(botoesTamanho().map((b) => b.textContent)).toEqual(["Miúda", "Padrão", "Alta", "Grande"]);
+    expect(slider()).toBeNull();
+    expect(tamanhoAtivo()).toBe("Padrão");
+  });
+
+  it("na janela do navegador o slider de pixels continua — ali o px vale", async () => {
+    await abrir();
+
+    expect(slider()).not.toBeNull();
+    expect(botoesTamanho()).toHaveLength(0);
+  });
+
+  it("marca o degrau que corresponde à fonte salva", async () => {
+    mockBuscarConfig.mockResolvedValue({ data: CONFIG_COM_FONTE(18), error: null });
+    await abrir();
+
+    expect(tamanhoAtivo()).toBe("Alta");
+  });
+
+  it("clicar num degrau troca a escolha e explica o que muda no papel", async () => {
+    mockBuscarConfig.mockResolvedValue({ data: CONFIG_TERMICA, error: null });
+    await abrir();
+
+    const grande = botoesTamanho().find((b) => b.textContent === "Grande");
+    await act(async () => { grande.click(); });
+
+    expect(tamanhoAtivo()).toBe("Grande");
+    expect(document.body.textContent).toContain("cabe metade do texto por linha");
+  });
+
+  it("Ponte antiga: avisa que o tamanho escolhido não vai valer no papel", async () => {
+    // Ponte anterior a esta funcionalidade não devolve versão nenhuma.
+    mockListarImpressoras.mockResolvedValue({ data: { impressoras: [] }, error: null });
+    mockBuscarConfig.mockResolvedValue({ data: CONFIG_COM_FONTE(22), error: null });
+    await abrir();
+
+    expect(avisoPonteVelha()?.textContent).toContain("antiga");
+  });
+
+  it("Ponte antiga no tamanho padrão não avisa nada — não há o que atualizar", async () => {
+    mockListarImpressoras.mockResolvedValue({ data: { impressoras: [] }, error: null });
+    mockBuscarConfig.mockResolvedValue({ data: CONFIG_TERMICA, error: null });
+    await abrir();
+
+    expect(avisoPonteVelha()).toBeNull();
+  });
+
+  it("Ponte atualizada não recebe aviso nenhum", async () => {
+    mockBuscarConfig.mockResolvedValue({ data: CONFIG_COM_FONTE(22), error: null });
+    await abrir();
+
+    expect(avisoPonteVelha()).toBeNull();
+  });
+
+  it("Ponte fechada não vira acusação de programa antigo", async () => {
+    const fora = new Error("A Ponte KORA não está rodando neste computador.");
+    fora.foraDoAr = true;
+    mockListarImpressoras.mockResolvedValue({ data: null, error: fora });
+    mockBuscarConfig.mockResolvedValue({ data: CONFIG_COM_FONTE(22), error: null });
+    await abrir();
+
+    expect(avisoPonteVelha()).toBeNull();
   });
 });

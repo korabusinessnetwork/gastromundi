@@ -156,6 +156,7 @@ function assinarTrabalho(trabalho) {
     trabalho?.linhas ?? null,
     trabalho?.cortaPapel ?? null,
     trabalho?.copias ?? null,
+    trabalho?.tamanhoFonte ?? null,
   ]);
 }
 

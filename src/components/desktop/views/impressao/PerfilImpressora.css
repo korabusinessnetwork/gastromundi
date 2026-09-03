@@ -119,13 +119,17 @@
   margin-bottom: 4px;
 }
 
-.perfil-impressora__opcoes-largura {
+.perfil-impressora__opcoes-largura,
+.perfil-impressora__opcoes-tamanho {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.perfil-impressora__opcao-larga {
+/* Os degraus de tamanho da térmica usam o mesmo botão da largura do
+   papel — mesma pergunta na tela ("escolha uma destas"), mesma cara. */
+.perfil-impressora__opcao-larga,
+.perfil-impressora__opcao-tamanho {
   padding: 10px 22px;
   min-height: var(--tap-min);
   border-radius: 10px;
@@ -138,7 +142,14 @@
   transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
-.perfil-impressora__opcao-larga--ativa {
+/* São quatro botões em vez de dois: um respiro menor nas laterais para
+   os quatro caberem lado a lado sem quebrar linha. */
+.perfil-impressora__opcao-tamanho {
+  padding-inline: 16px;
+}
+
+.perfil-impressora__opcao-larga--ativa,
+.perfil-impressora__opcao-tamanho--ativa {
   border-color: var(--gm-accent);
   background: var(--gm-alow);
   color: var(--gm-accent);
@@ -520,4 +531,21 @@
   .perfil-impressora__preview-iframe {
     width: 100%;
   }
+}
+
+/* Aviso de Ponte antiga, embaixo dos tamanhos de letra: o dono escolheu
+   um tamanho que este programa não sabe imprimir. Âmbar de atenção
+   (TD018) — não é erro, é "atualize antes de contar com isso". */
+.perfil-impressora__aviso-ponte-velha {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-warn);
+  background: color-mix(in srgb, var(--gm-warn) 12%, transparent);
+  color: var(--gm-text);
+  font-size: 13px;
+  line-height: 1.5;
 }

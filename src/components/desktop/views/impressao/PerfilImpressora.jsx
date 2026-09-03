@@ -5,6 +5,10 @@ import { buscarConfigImpressao, salvarConfigImpressao, PERFIL_IMPRESSORA_PADRAO 
 import { gerarHtmlComPerfil } from "@/lib/impressao/drivers/browserRaster";
 import { imprimirDocumento, OPCOES_DRIVER } from "@/lib/impressao/drivers";
 import { listarImpressorasPonte } from "@/lib/ponte";
+import {
+  tamanhoTermicaDeFonteBase, OPCOES_TAMANHO_TERMICA, EXPLICACAO_TAMANHO_TERMICA,
+  ponteEntendeTamanho,
+} from "@/lib/impressao/tamanhoFonte";
 // Endereço de onde o dono baixa a Ponte KORA — o programa que faz a térmica
 // imprimir. Vem do ambiente e é compartilhado com a aba "Pedidos sem
 // Internet", que pede o mesmo arquivo; vazio quando o build não recebeu
@@ -62,6 +66,9 @@ export default function PerfilImpressora({ sz }) {
   const [statusPonte, setStatusPonte] = useState("idle"); // idle | buscando | ok | ausente | erro
   const [impressorasPonte, setImpressorasPonte] = useState([]);
   const [erroPonte, setErroPonte] = useState("");
+  // Versão do programa que respondeu — Ponte antiga não sabe mudar o
+  // tamanho da letra, e a tela só descobre isso perguntando.
+  const [versaoPonte, setVersaoPonte] = useState(null);
 
   // Impressora de rede (IP:porta) — formulário simples, porta já vem
   // preenchida com o padrão ESC/POS (9100) pra não obrigar o dono a saber isso.
@@ -107,6 +114,7 @@ export default function PerfilImpressora({ sz }) {
     setErroPonte("");
     const { data, error } = await listarImpressorasPonte();
     if (error) {
+      setVersaoPonte(null);
       // Timeout/conexão recusada é o caso comum (Ponte fechada) — mensagem
       // de ação, não de erro técnico. Qualquer outra coisa é erro mesmo.
       // Quem classifica é o cliente da Ponte (`erroAmigavelPonte`), que já
@@ -122,8 +130,21 @@ export default function PerfilImpressora({ sz }) {
       return;
     }
     setImpressorasPonte(data?.impressoras ?? []);
+    // Ponte anterior ao tamanho da letra nem devolvia versão aqui — é
+    // assim que a tela sabe que precisa avisar pra atualizar.
+    setVersaoPonte(data?.versao ?? null);
     setStatusPonte("ok");
   }, []);
+
+  // Abriu a tela já configurada pra térmica: pergunta à Ponte quem ela é.
+  // É dessa mesma resposta que saem a lista de impressoras e a versão do
+  // programa — e é a versão que diz se o tamanho da letra escolhido vai
+  // valer no papel. Sem esta busca, quem volta aqui só pra aumentar a
+  // letra nunca falaria com a Ponte, e não seria avisado quando o
+  // programa instalado for antigo demais para obedecer.
+  useEffect(() => {
+    if (perfil.driver === "escpos-ponte" && statusPonte === "idle") buscarImpressorasNaPonte();
+  }, [perfil.driver, statusPonte, buscarImpressorasNaPonte]);
 
   const escolherImpressoraWindows = (nome) => atualizarCampo("impressora", { tipo: "windows", nome });
 
@@ -180,6 +201,18 @@ export default function PerfilImpressora({ sz }) {
   // Prevenção de erro (princípio nº1): sem impressora escolhida, a Ponte
   // recusaria o trabalho — desabilita o teste antes de deixar o dono errar.
   const precisaEscolherImpressora = perfil.driver === "escpos-ponte" && !perfil.impressora;
+
+  // Quem imprime na térmica escolhe entre os degraus reais da impressora;
+  // quem imprime pela janela do navegador continua no slider de pixels,
+  // que ali vale de verdade (é CSS).
+  const naTermica = perfil.driver === "escpos-ponte";
+  const tamanhoNaTermica = tamanhoTermicaDeFonteBase(perfil.fonteBase);
+  // Só avisa quando dá pra ter certeza (falamos com a Ponte) E quando o
+  // aviso muda alguma coisa (o dono pediu um tamanho diferente do
+  // padrão): Ponte velha imprime sempre no padrão, e a comanda ainda
+  // sairia com a largura calculada pro tamanho escolhido.
+  const ponteVelhaParaTamanho =
+    naTermica && statusPonte === "ok" && !ponteEntendeTamanho(versaoPonte) && tamanhoNaTermica !== "normal";
 
   const imprimirTeste = async () => {
     if (teste === "testando" || precisaEscolherImpressora) return;
@@ -430,29 +463,67 @@ export default function PerfilImpressora({ sz }) {
               </button>
             </div>
 
+            {/* A térmica não tem escala de pixel: ela troca de tamanho em
+                degraus (fonte miúda, padrão, altura dobrada, altura e
+                largura dobradas). Mostrar um slider de 11 a 22px pra quem
+                imprime nela é prometer o que o aparelho não faz — o dono
+                arrasta, o preview cresce e o papel sai igual. Então cada
+                driver mostra o controle que ele sabe cumprir. */}
             <div className="perfil-impressora__campo">
               <div className="perfil-impressora__label">
-                Tamanho da letra {perfil.fonteBase ? `(${perfil.fonteBase}px)` : "(padrão do modelo)"}
+                Tamanho da letra {naTermica ? "" : perfil.fonteBase ? `(${perfil.fonteBase}px)` : "(padrão do modelo)"}
               </div>
               <div className="perfil-impressora__ajuda perfil-impressora__ajuda--slider">
                 Se a impressora corta ou borra letra pequena, aumente aqui.
               </div>
-              <input
-                type="range"
-                min={11}
-                max={22}
-                value={perfil.fonteBase || 13}
-                onChange={(e) => atualizarCampo("fonteBase", Number(e.target.value))}
-                className="perfil-impressora__slider"
-              />
-              {perfil.fonteBase != null && (
-                <button
-                  type="button"
-                  onClick={() => atualizarCampo("fonteBase", null)}
-                  className="perfil-impressora__link-reset"
-                >
-                  Voltar ao padrão do modelo
-                </button>
+              {naTermica ? (
+                <>
+                  <div className="perfil-impressora__opcoes-tamanho">
+                    {OPCOES_TAMANHO_TERMICA.map(({ tamanho, rotulo, px }) => (
+                      <button
+                        key={tamanho}
+                        type="button"
+                        onClick={() => atualizarCampo("fonteBase", px)}
+                        aria-pressed={tamanhoNaTermica === tamanho}
+                        className={`perfil-impressora__opcao-tamanho${tamanhoNaTermica === tamanho ? " perfil-impressora__opcao-tamanho--ativa" : ""}`}
+                      >
+                        {rotulo}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="perfil-impressora__ajuda">
+                    {EXPLICACAO_TAMANHO_TERMICA[tamanhoNaTermica]}
+                  </div>
+                  {ponteVelhaParaTamanho && (
+                    <div className="perfil-impressora__aviso-ponte-velha">
+                      <LuCircleAlert size={14} />
+                      <span>
+                        A Ponte KORA instalada neste computador é antiga e imprime sempre na letra
+                        padrão. Baixe a Ponte de novo e abra a versão nova para o tamanho valer no papel.
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <input
+                    type="range"
+                    min={11}
+                    max={22}
+                    value={perfil.fonteBase || 13}
+                    onChange={(e) => atualizarCampo("fonteBase", Number(e.target.value))}
+                    className="perfil-impressora__slider"
+                  />
+                  {perfil.fonteBase != null && (
+                    <button
+                      type="button"
+                      onClick={() => atualizarCampo("fonteBase", null)}
+                      className="perfil-impressora__link-reset"
+                    >
+                      Voltar ao padrão do modelo
+                    </button>
+                  )}
+                </>
               )}
             </div>
 

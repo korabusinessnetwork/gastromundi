@@ -16,6 +16,51 @@ export const INICIALIZAR = Buffer.from([0x1b, 0x40]); // ESC @  — reset da imp
 export const SELECIONAR_CP850 = Buffer.from([0x1b, 0x74, 0x02]); // ESC t 2 — tabela CP850
 export const CORTE_PARCIAL = Buffer.from([0x1d, 0x56, 0x41, 0x03]); // GS V A 3 — corte parcial
 
+// Tamanho da letra. A térmica não tem CSS: o tamanho é comando, e são
+// dois comandos diferentes que se somam.
+// - ESC M n  → troca a FONTE do aparelho: 0 = Fonte A (12x24 pontos, a
+//   padrão) e 1 = Fonte B (9x17, a miúda, que cabe mais por linha).
+// - GS ! n   → MULTIPLICA o caractere: o nibble alto é a largura e o
+//   baixo é a altura, cada um de 0 (1x) a 7 (8x). Usamos só 1x e 2x —
+//   0x01 dobra só a altura (a letra cresce e o número de colunas não
+//   muda) e 0x11 dobra altura e largura (cabe metade do texto na linha).
+// O app manda o NOME do tamanho e a conta de colunas dele bate com esta
+// tabela (src/lib/impressao/tamanhoFonte.js) — os dois lados precisam
+// concordar, senão a linha sai maior que o papel.
+export const FONTE_A = Buffer.from([0x1b, 0x4d, 0x00]); // ESC M 0
+export const FONTE_B = Buffer.from([0x1b, 0x4d, 0x01]); // ESC M 1
+export const TAMANHO_FONTE_PADRAO = "normal";
+
+const TAMANHOS = {
+  pequena: { fonte: FONTE_B, multiplicador: 0x00 },
+  normal: { fonte: FONTE_A, multiplicador: 0x00 },
+  alta: { fonte: FONTE_A, multiplicador: 0x01 },   // altura 2x
+  grande: { fonte: FONTE_A, multiplicador: 0x11 }, // altura e largura 2x
+};
+
+// Nomes que a Ponte aceita em POST /imprimir (a fila valida por esta
+// lista — ver lib/filaImpressao.js).
+export const TAMANHOS_FONTE = Object.keys(TAMANHOS);
+
+/**
+ * Bytes que colocam a impressora no tamanho pedido. Tamanho
+ * desconhecido cai no padrão — o papel sai, só não sai maior.
+ *
+ * No tamanho padrão não sai comando NENHUM: o `ESC @` que abre todo
+ * documento já devolve a impressora à Fonte A em 1x. Quem não mexeu no
+ * tamanho recebe byte por byte o mesmo fluxo de sempre — nenhum modelo
+ * de impressora precisa provar que entende comando novo por causa de
+ * uma funcionalidade que ele não está usando.
+ *
+ * @param {string} [tamanho]
+ * @returns {Buffer}
+ */
+export function bytesDoTamanho(tamanho) {
+  const escolha = TAMANHOS[tamanho] ?? TAMANHOS[TAMANHO_FONTE_PADRAO];
+  if (escolha === TAMANHOS[TAMANHO_FONTE_PADRAO]) return Buffer.alloc(0);
+  return Buffer.concat([escolha.fonte, Buffer.from([0x1d, 0x21, escolha.multiplicador])]);
+}
+
 // Linhas em branco antes do corte: sem esse avanço a última linha fica presa
 // dentro do mecanismo e o corte passa no meio do texto.
 export const LINHAS_DE_AVANCO = 4;
@@ -132,14 +177,17 @@ export function paraCp850(texto) {
 /**
  * Monta o fluxo ESC/POS completo de um documento.
  *
- * Sequência: reset → tabela CP850 → linhas → avanço → corte (opcional).
+ * Sequência: reset → tabela CP850 → tamanho da letra → linhas → avanço
+ * → corte (opcional). O tamanho vem depois do reset porque `ESC @`
+ * devolve a impressora à fonte padrão — mandar antes seria apagar o
+ * pedido do dono.
  *
  * @param {string[]} linhas - texto já formatado (colunas, alinhamento etc.)
- * @param {{cortaPapel?: boolean}} [opcoes]
+ * @param {{cortaPapel?: boolean, tamanhoFonte?: string}} [opcoes]
  * @returns {Buffer}
  */
-export function montarBytes(linhas, { cortaPapel = true } = {}) {
-  const partes = [INICIALIZAR, SELECIONAR_CP850];
+export function montarBytes(linhas, { cortaPapel = true, tamanhoFonte } = {}) {
+  const partes = [INICIALIZAR, SELECIONAR_CP850, bytesDoTamanho(tamanhoFonte)];
   const quebra = Buffer.from([0x0a]); // LF — avança uma linha na térmica
 
   for (const linha of Array.isArray(linhas) ? linhas : []) {
