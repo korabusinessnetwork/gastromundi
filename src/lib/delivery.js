@@ -11,6 +11,7 @@
 // ──────────────────────────────────────────────────────────────────
 import { supabase } from "@/lib/supabase";
 import { ehUuid } from "@/lib/deliveryDispositivo";
+import { apenasDigitosTelefone } from "@/lib/telefone";
 
 // ── CEP ────────────────────────────────────────────────────────────
 
@@ -390,7 +391,11 @@ export function montarPayloadPedido({ cliente, entrega, pagamento, itens, dispos
     ...(ehUuid(dispositivo) ? { dispositivo_id: dispositivo } : {}),
     cliente: {
       nome: (cliente?.nome ?? "").trim(),
-      telefone: (cliente?.telefone ?? "").trim() || null,
+      // Só os dígitos, como o cadastro de clientes já guarda (clientes.js):
+      // o painel formata na hora de mostrar, e o link de WhatsApp precisa do
+      // número limpo. Gravar "(11) 91234-5678" faria a mesma pessoa virar
+      // dois contatos diferentes conforme quem digitou a máscara.
+      telefone: apenasDigitosTelefone(cliente?.telefone) || null,
     },
     entrega: retirada
       ? // Retirada: o cliente vai buscar. Mandar CEP, endereço e coordenada

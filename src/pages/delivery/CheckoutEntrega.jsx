@@ -21,6 +21,7 @@
 // coordenada. O preço por anel é sempre do servidor.
 // ──────────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from "react";
+import { apenasDigitosTelefone, mascararTelefone, telefoneValido } from "@/lib/telefone";
 import {
   apenasDigitosCep,
   buscarEnderecoViaCep,
@@ -47,6 +48,10 @@ export default function CheckoutEntrega({
   const [erroTaxa, setErroTaxa] = useState("");
   const [calculandoTaxa, setCalculandoTaxa] = useState(false);
   const [tentativa, setTentativa] = useState(0);
+  // O aviso do telefone só aparece depois que a pessoa saiu do campo:
+  // acusar "número inválido" no segundo dígito é brigar com quem ainda
+  // está digitando.
+  const [telefoneTocado, setTelefoneTocado] = useState(false);
   const cepAnterior = useRef("");
 
   // Sair daqui: tocar fora ou apertar Esc. Arrastar para selecionar
@@ -193,12 +198,18 @@ export default function CheckoutEntrega({
   const semArea = taxa?.motivo === "sem_area";
   const foraDeArea = taxa && !taxa.ok && !semCoordenada && !indisponivelKm && !semArea;
   const temTaxa = taxa?.ok;
+  const telefoneOk = telefoneValido(dados.telefone);
+  const telefoneRuim = telefoneTocado && !telefoneOk;
+
   // O CEP saiu daqui de propósito: quem manda é a TAXA ter sido resolvida.
   // Exigir os 8 dígitos travava quem não sabe o próprio CEP mesmo com o
-  // bairro atendido e a taxa já na tela.
+  // bairro atendido e a taxa já na tela. O telefone, ao contrário, entrou:
+  // sem ele ninguém consegue falar com o cliente quando o pedido trava.
   const podeAvancar = retirada
-    ? Boolean(dados.nome.trim())
-    : Boolean(dados.nome.trim() && dados.endereco.trim() && temTaxa && !calculandoTaxa);
+    ? Boolean(dados.nome.trim() && telefoneOk)
+    : Boolean(
+        dados.nome.trim() && telefoneOk && dados.endereco.trim() && temTaxa && !calculandoTaxa
+      );
 
   // Trocar de caminho zera o que era do outro: a taxa de uma entrega não
   // pode sobreviver a "vou buscar" (o cliente pagaria por uma corrida que
@@ -264,20 +275,44 @@ export default function CheckoutEntrega({
             />
           </div>
 
+          {/* Telefone é obrigatório: é o único caminho que o estabelecimento
+              tem até o cliente quando algo dá errado — o entregador não acha
+              o endereço, um item acabou, a campainha não toca. Sem ele o
+              pedido vira um bilhete sem remetente, e o botão de WhatsApp no
+              painel de quem despacha fica inerte. A máscara vai fechando
+              sozinha enquanto se digita, e o aviso só aparece depois que a
+              pessoa saiu do campo — cobrar erro no meio da digitação é
+              acusar quem ainda está escrevendo. */}
           <div className="campo">
             <label className="campo__label" htmlFor="ent-tel">
-              Telefone (opcional)
+              Telefone
             </label>
             <input
               id="ent-tel"
               className="campo__input"
               autoComplete="tel"
-              value={dados.telefone}
-              maxLength={20}
+              value={mascararTelefone(dados.telefone)}
+              // 15 = "(11) 91234-5678". A máscara já corta em 11 dígitos,
+              // mas o teto declarado é o que o guard de limites confere
+              // contra a coluna do banco (deliveryLimitesSqlGuard).
+              maxLength={15}
               inputMode="tel"
-              onChange={(e) => onMudar({ telefone: e.target.value })}
-              placeholder="Pra falar com você se precisar"
+              onChange={(e) => onMudar({ telefone: apenasDigitosTelefone(e.target.value) })}
+              onBlur={() => setTelefoneTocado(true)}
+              aria-invalid={telefoneRuim || undefined}
+              placeholder="(11) 91234-5678"
             />
+            {telefoneRuim ? (
+              <p className="linha-sacola__extra checkout-entrega__erro" role="alert">
+                Confira o telefone: DDD e o número completo.
+              </p>
+            ) : (
+              <p className="linha-sacola__extra checkout-entrega__ajuda">
+                {retirada
+                  ? "É como avisamos que seu pedido está pronto para retirar."
+                  : "É como o entregador fala com você se precisar."}
+              </p>
+            )}
           </div>
 
           {retirada ? (

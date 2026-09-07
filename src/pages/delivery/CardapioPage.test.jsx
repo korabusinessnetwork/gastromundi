@@ -81,6 +81,8 @@ const CARDAPIO = {
   combos: [],
 };
 
+const TELEFONE = "11912345678";
+
 /** Uma linha na sacola, no formato que o useCarrinho persiste. */
 const ITEM_NA_SACOLA = {
   _linha: "linha-1",
@@ -109,6 +111,9 @@ async function irAtePagamento(user) {
   await user.click(screen.getByRole("button", { name: /Ir para a entrega/ }));
 
   await user.type(screen.getByLabelText("Seu nome"), "Ana");
+  // Telefone é obrigatório: é o único caminho do estabelecimento até o
+  // cliente quando o pedido trava.
+  await user.type(screen.getByLabelText("Telefone"), TELEFONE);
   await user.type(screen.getByLabelText("Endereço (rua, número)"), "Rua X, 10");
   await user.type(screen.getByLabelText(/^CEP/), "90000000");
   await assentar();
@@ -505,6 +510,7 @@ describe("CardapioPage — sacola velha contra cardápio novo (Run 6, leva 4)", 
 
     await user.click(screen.getByRole("button", { name: /Ir para a entrega/ }));
     await user.type(screen.getByLabelText("Seu nome"), "Ana");
+    await user.type(screen.getByLabelText("Telefone"), TELEFONE);
     await user.type(screen.getByLabelText("Endereço (rua, número)"), "Rua X, 10");
     await user.type(screen.getByLabelText(/^CEP/), "90000000");
     await assentar();
@@ -759,6 +765,7 @@ describe("CardapioPage — retirar no local", () => {
 
     await user.click(screen.getByRole("button", { name: /Retirar no local/ }));
     await user.type(screen.getByLabelText("Seu nome"), "Ana");
+    await user.type(screen.getByLabelText("Telefone"), TELEFONE);
     await user.click(screen.getByRole("button", { name: "Ir para o pagamento" }));
 
     // O resumo não inventa uma taxa grátis para um pedido que ninguém entrega.
@@ -787,6 +794,7 @@ describe("CardapioPage — retirar no local", () => {
 
     // Preenche a entrega inteira, com taxa calculada…
     await user.type(screen.getByLabelText("Seu nome"), "Ana");
+    await user.type(screen.getByLabelText("Telefone"), TELEFONE);
     await user.type(screen.getByLabelText("Endereço (rua, número)"), "Rua X, 10");
     await user.type(screen.getByLabelText(/^CEP/), "90000000");
     await assentar();

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "fs";
+import { readFileSync } from "fs";
 import { join } from "path";
+import { MIGRATIONS_DIR, ultimaDefinicaoDe } from "@/test/migracoes";
 import { montarPayloadPedido } from "./delivery";
 
 /**
@@ -26,25 +27,20 @@ import { montarPayloadPedido } from "./delivery";
  * aqui se confere que essas guardas estão escritas, e que o front fala a
  * mesma língua que o servidor lê.
  */
-const MIGRATIONS_DIR = join(__dirname, "../../supabase/migrations");
 const MIGRACAO = "20260929_delivery_sem_cep_e_meus_pedidos.sql";
 
 const sql = readFileSync(join(MIGRATIONS_DIR, MIGRACAO), "utf8");
 
-describe("a migração é a última a definir criar_pedido_delivery", () => {
-  it("nenhuma migração posterior redefine a RPC do pedido", () => {
-    // Migrations são histórico imutável: as anteriores continuam no disco
-    // com a versão sem cidade e sem dispositivo. Uma corretiva posterior
-    // apagaria as duas sem avisar.
-    const posteriores = readdirSync(MIGRATIONS_DIR)
-      .filter((f) => f.endsWith(".sql") && f > MIGRACAO)
-      .filter((f) =>
-        /CREATE OR REPLACE FUNCTION public\.criar_pedido_delivery/.test(
-          readFileSync(join(MIGRATIONS_DIR, f), "utf8")
-        )
-      );
+describe("a regra continua no ar depois das migrações seguintes", () => {
+  it("a última definição da RPC ainda grava cidade e aparelho", () => {
+    // Migrations são histórico imutável e vale a ÚLTIMA definição. Uma
+    // corretiva posterior que copie a RPC sem estes campos os apaga do
+    // banco sem erro nenhum — o histórico voltaria a nascer vazio e a
+    // cidade sumiria do pedido, os dois em silêncio.
+    const rpc = ultimaDefinicaoDe("criar_pedido_delivery");
 
-    expect(posteriores).toEqual([]);
+    expect(rpc).toContain("p_payload -> 'entrega' ->> 'cidade'");
+    expect(rpc).toContain("v_dispositivo");
   });
 });
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "fs";
+import { readFileSync } from "fs";
 import { join } from "path";
+import { MIGRATIONS_DIR, ultimaDefinicaoDe } from "@/test/migracoes";
 import { montarPayloadPedido } from "./delivery";
 
 /**
@@ -37,27 +38,9 @@ import { montarPayloadPedido } from "./delivery";
  *       (`entrega.tipo`), porque um payload com outro nome de campo
  *       passaria calado como pedido de entrega comum.
  */
-const MIGRATIONS_DIR = join(__dirname, "../../supabase/migrations");
 const MIGRACAO = "20260928_delivery_retirada_no_local.sql";
 
 const sql = readFileSync(join(MIGRATIONS_DIR, MIGRACAO), "utf8");
-
-/**
- * Migrations são histórico imutável: as anteriores continuam no disco com
- * a versão antiga de cada função, e vale a ÚLTIMA que a define. Uma
- * corretiva posterior que copie a RPC sem as guardas de retirada as apaga
- * do banco sem erro nenhum — por isso as provas abaixo miram sempre o
- * texto da última definição, não o da migração que a introduziu.
- */
-function ultimaDefinicaoDe(nomeFuncao) {
-  const re = new RegExp(`CREATE OR REPLACE FUNCTION public\\.${nomeFuncao}\\b`);
-  const arquivos = readdirSync(MIGRATIONS_DIR)
-    .filter((f) => f.endsWith(".sql"))
-    .sort()
-    .filter((f) => re.test(readFileSync(join(MIGRATIONS_DIR, f), "utf8")));
-  const ultimo = arquivos.at(-1);
-  return ultimo ? readFileSync(join(MIGRATIONS_DIR, ultimo), "utf8") : "";
-}
 
 const sqlPedido = ultimaDefinicaoDe("criar_pedido_delivery");
 const sqlCardapio = ultimaDefinicaoDe("cardapio_publico");

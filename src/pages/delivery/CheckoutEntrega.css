@@ -21,6 +21,18 @@
   margin-top: 6px;
 }
 
+/* Erro de campo: mesma posição da frase de ajuda que ele substitui, para
+   a linha não pular quando um vira o outro. */
+.linha-sacola__extra.checkout-entrega__erro {
+  margin-top: 6px;
+  color: var(--gm-red);
+  font-weight: 700;
+}
+
+.campo__input[aria-invalid="true"] {
+  border-color: var(--gm-red);
+}
+
 /* "(opcional)" sem peso: o rótulo continua sendo "CEP". */
 .campo__label .campo__opcional {
   font-weight: 400;

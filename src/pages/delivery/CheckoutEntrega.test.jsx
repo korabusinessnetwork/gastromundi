@@ -95,12 +95,17 @@ async function assentar(ms = 800) {
   await act(async () => {});
 }
 
-/** Nome + endereço + CEP completo, com a taxa já resolvida. */
+// Telefone válido de verdade: ele passou a ser obrigatório, e é o único
+// caminho do estabelecimento até o cliente quando o pedido trava.
+const TELEFONE = "11912345678";
+
+/** Nome + telefone + endereço + CEP completo, com a taxa já resolvida. */
 async function preencherAteTaxa(onAvancar = vi.fn()) {
   await act(async () => {
     render(<Palco onAvancar={onAvancar} />);
   });
   digitar("Seu nome", "Ana");
+  digitar("Telefone", TELEFONE);
   digitar("Endereço (rua, número)", "Rua X, 10");
   digitar("CEP", "90000000");
   await assentar();
@@ -180,6 +185,7 @@ describe("CheckoutEntrega — a taxa na tela é a do endereço na tela (Run 6, l
       render(<Palco onAvancar={vi.fn()} />);
     });
     digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
     digitar("Endereço (rua, número)", "Rua X, 10");
     digitar("CEP", "90000000");
 
@@ -625,6 +631,7 @@ describe("CheckoutEntrega — retirar no local", () => {
 
     expect(avancar()).toBeDisabled();
     digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
 
     expect(avancar()).toBeEnabled();
     // Nenhuma taxa foi pedida ao servidor: ninguém sai para entregar.
@@ -635,6 +642,7 @@ describe("CheckoutEntrega — retirar no local", () => {
     const patches = [];
     await montar({ aoMudar: (p) => patches.push(p) });
     digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
     digitar("Endereço (rua, número)", "Rua X, 10");
     digitar("CEP", "90000000");
     await assentar();
@@ -650,6 +658,7 @@ describe("CheckoutEntrega — retirar no local", () => {
     mockCalcularTaxa.mockResolvedValue({ data: { ok: false, motivo: "sem_area" }, error: null });
     await montar();
     digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
     digitar("Endereço (rua, número)", "Rua X, 10");
     digitar("CEP", "90000000");
     await assentar();
@@ -671,6 +680,7 @@ describe("CheckoutEntrega — retirar no local", () => {
       render(<Palco onAvancar={vi.fn()} />);
     });
     digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
     digitar("Endereço (rua, número)", "Rua X, 10");
     digitar("CEP", "90000000");
     await assentar();
@@ -706,6 +716,7 @@ describe("CheckoutEntrega — o CEP é opcional", () => {
     });
 
     digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
     digitar("Cidade", "Porto Alegre/RS");
     digitar("Bairro", "Centro");
     digitar("Endereço (rua, número)", "Rua X, 10");
@@ -726,6 +737,7 @@ describe("CheckoutEntrega — o CEP é opcional", () => {
     });
 
     digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
     digitar("Endereço (rua, número)", "Rua X, 10");
     await assentar();
 
@@ -741,11 +753,117 @@ describe("CheckoutEntrega — o CEP é opcional", () => {
     });
 
     digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
     digitar("Bairro", "Outra Cidade");
     digitar("Endereço (rua, número)", "Rua X, 10");
     await assentar();
 
     expect(screen.getByText(/fora da nossa área de entrega/)).toBeInTheDocument();
     expect(avancar()).toBeDisabled();
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Telefone obrigatório.
+//
+// Ele era opcional, e é o ÚNICO caminho do estabelecimento até o cliente
+// depois que o pedido entra: o entregador não acha o endereço, um item
+// acabou, a campainha não toca. Sem ele o pedido vira um bilhete sem
+// remetente — e o botão de WhatsApp no painel de quem despacha fica
+// inerte, porque não há número para abrir.
+// ══════════════════════════════════════════════════════════════════
+describe("CheckoutEntrega — o telefone virou obrigatório", () => {
+  it("o rótulo não promete mais que é opcional", async () => {
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+
+    expect(campo("Telefone").labels[0]).toHaveTextContent(/^Telefone$/);
+  });
+
+  it("sem telefone, o pedido não avança nem com todo o resto pronto", async () => {
+    const onAvancar = vi.fn();
+    await act(async () => {
+      render(<Palco onAvancar={onAvancar} />);
+    });
+    digitar("Seu nome", "Ana");
+    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("CEP", "90000000");
+    await assentar();
+
+    // A taxa está resolvida — o que falta é só o telefone.
+    expect(screen.getByText("R$ 7,50")).toBeInTheDocument();
+    expect(avancar()).toBeDisabled();
+    fireEvent.click(avancar());
+    expect(onAvancar).not.toHaveBeenCalled();
+  });
+
+  it("número quebrado não passa por ser 'preenchido'", async () => {
+    await preencherAteTaxa();
+
+    // Um telefone que ninguém consegue discar é pior que campo vazio: dá
+    // a impressão de que há como falar com o cliente.
+    digitar("Telefone", "1234");
+
+    expect(avancar()).toBeDisabled();
+  });
+
+  it("celular sem o 9 e DDD inexistente também não passam", async () => {
+    await preencherAteTaxa();
+
+    digitar("Telefone", "11812345678"); // celular de 11 dígitos sem o 9
+    expect(avancar()).toBeDisabled();
+
+    digitar("Telefone", "09912345678"); // DDD que não existe
+    expect(avancar()).toBeDisabled();
+  });
+
+  it("telefone fixo é aceito — nem todo cliente tem celular", async () => {
+    await preencherAteTaxa();
+
+    digitar("Telefone", "1132145678");
+
+    expect(avancar()).toBeEnabled();
+  });
+
+  it("a máscara se fecha sozinha enquanto a pessoa digita", async () => {
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+
+    digitar("Telefone", "11912345678");
+
+    expect(campo("Telefone")).toHaveValue("(11) 91234-5678");
+  });
+
+  it("o aviso só aparece depois que a pessoa sai do campo", async () => {
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+
+    // Cobrar "número inválido" no segundo dígito é brigar com quem ainda
+    // está escrevendo.
+    digitar("Telefone", "119");
+    expect(screen.queryByText(/Confira o telefone/)).toBeNull();
+
+    fireEvent.blur(campo("Telefone"));
+    expect(screen.getByText(/Confira o telefone/)).toBeInTheDocument();
+
+    // E some assim que o número fica bom, sem precisar sair do campo de novo.
+    digitar("Telefone", "11912345678");
+    expect(screen.queryByText(/Confira o telefone/)).toBeNull();
+  });
+
+  it("na retirada o telefone continua obrigatório — é como se avisa que ficou pronto", async () => {
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} permiteRetirada enderecoRetirada="Rua da Praia, 100" />);
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Retirar no local/ }));
+    digitar("Seu nome", "Ana");
+
+    expect(avancar()).toBeDisabled();
+
+    digitar("Telefone", TELEFONE);
+    expect(avancar()).toBeEnabled();
   });
 });

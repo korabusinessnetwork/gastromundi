@@ -60,7 +60,8 @@ confiável):
 1. **Cardápio** — categorias + cards de produto (foto, descrição, preço).
 2. **Produto** — complementos (add-ons) e/ou **"monte seu"** (combo montável).
 3. **Sacola** — revisão dos itens, subtotal.
-4. **Como receber** — quando o estabelecimento aceita as duas coisas, o cliente
+4. **Quem é** — nome e telefone. O telefone é obrigatório (ver Validações).
+5. **Como receber** — quando o estabelecimento aceita as duas coisas, o cliente
    escolhe primeiro entre **receber em casa** e **retirar no local**; a escolha
    decide o que a tela pergunta a seguir.
    - *Receber em casa*: **CEP é opcional**. Sabendo o CEP, o ViaCEP preenche
@@ -70,10 +71,10 @@ confiável):
    - *Retirar no local*: só nome/telefone. A tela mostra o endereço da loja e
      **não há taxa** — o cálculo nem é chamado, para não recusar quem mora fora
      da área e está justamente indo buscar.
-5. **Pagamento na entrega (ou na retirada)** — escolhe a forma pro motoboy levar,
+6. **Pagamento na entrega (ou na retirada)** — escolhe a forma pro motoboy levar,
    ou para pagar no balcão (ver abaixo).
-6. **Confirmação / status** — nº do pedido e acompanhamento.
-7. **Acompanhamento sem conta** — o navegador guarda uma identidade anônima
+7. **Confirmação / status** — nº do pedido e acompanhamento.
+8. **Acompanhamento sem conta** — o navegador guarda uma identidade anônima
    (`dispositivo_id`, UUID gerado no aparelho) e o pedido nasce carimbado com
    ela. "Meus pedidos", no cabeçalho do cardápio, mostra os pedidos daquele
    aparelho com o status em linguagem de cliente ("Saiu para entrega"). O
@@ -84,7 +85,7 @@ confiável):
    - Vale só naquele aparelho: trocar de celular ou limpar o navegador apaga o
      histórico dali. A tela diz isso, e oferece "Limpar deste aparelho" para
      quem pediu no celular de outra pessoa.
-8. **Login (opcional)** — só para salvar endereço/histórico entre aparelhos;
+9. **Login (opcional)** — só para salvar endereço/histórico entre aparelhos;
    nunca obrigatório. **Ainda não existe**: conta por telefone exige SMS pago
    (~US$ 0,055/mensagem, sem camada gratuita), o que está adiado por padrão na
    fase de bootstrap. A identidade por aparelho cobre o caso comum sem custo, e
@@ -167,6 +168,11 @@ gateway/TEF é necessário.
 - Estabelecimento **fechado** (config/horário) → cardápio visível mas checkout
   desabilitado, com aviso humano.
 - Complementos respeitam `min`/`max` por grupo antes de permitir avançar.
+- **Telefone é obrigatório** e validado nas duas pontas (DDD 11..99 + 8 dígitos
+  de fixo ou 9 de celular começando em 9). É o único caminho do estabelecimento
+  até o cliente depois que o pedido entra — sem ele o pedido é um bilhete sem
+  remetente e o botão de WhatsApp do painel fica inerte. Gravado só com os
+  dígitos, como o cadastro de clientes.
 - Inputs do cliente (CEP, endereço, observações) validados antes de qualquer
   operação no Supabase.
 
