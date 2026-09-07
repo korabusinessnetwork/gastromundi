@@ -6,6 +6,7 @@ import { formatarPreco } from "@/lib/delivery";
 import "./Confirmacao.css";
 
 export default function Confirmacao({ resultado, tempoPreparo, onFechar }) {
+  const retirada = resultado?.tipo === "retirada";
   return (
     // Sem fechar no fundo, ao contrário de todos os outros modais da vitrine.
     // Aqui o número do pedido é a ÚNICA cópia que o cliente tem: não existe
@@ -19,6 +20,7 @@ export default function Confirmacao({ resultado, tempoPreparo, onFechar }) {
           <div className="confirma">
             <div className="confirma__check">✓</div>
             <h2 className="confirma__titulo">Pedido enviado!</h2>
+            {retirada && <p className="confirma__tipo">Retirada no local</p>}
             <p className="confirma__numero">
               Nº do pedido: <strong>{resultado?.numero}</strong>
             </p>
@@ -27,9 +29,16 @@ export default function Confirmacao({ resultado, tempoPreparo, onFechar }) {
             )}
             <p className="linha-sacola__extra">
               O estabelecimento já recebeu seu pedido
-              {tempoPreparo ? ` · preparo em ~${tempoPreparo} min` : ""}. O pagamento
-              é na entrega.
+              {tempoPreparo ? ` · preparo em ~${tempoPreparo} min` : ""}.{" "}
+              {retirada ? "O pagamento é na hora de retirar." : "O pagamento é na entrega."}
             </p>
+            {/* Onde buscar, na tela que o cliente guarda. O número do pedido
+                sozinho não serve para quem ainda precisa sair de casa. */}
+            {retirada && resultado?.endereco_retirada && (
+              <p className="confirma__retirada">
+                Retire em <strong>{resultado.endereco_retirada}</strong>
+              </p>
+            )}
             <button
               className="btn btn--fantasma confirma__voltar"
               onClick={onFechar}

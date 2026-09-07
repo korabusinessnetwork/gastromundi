@@ -18,3 +18,94 @@
 .btn.checkout-entrega__avancar {
   margin-top: 8px;
 }
+
+/* ── Receber em casa × retirar no local ─────────────────────────────
+   Dois cartões grandes lado a lado, antes de qualquer campo: a escolha
+   decide o que a tela vai perguntar, então ela vem primeiro e ocupa
+   espaço de decisão, não de formulário. Alvo generoso — a vitrine é
+   usada quase toda no celular, com o polegar. */
+.entrega-tipo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.entrega-tipo__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 2px solid var(--gm-border);
+  background: var(--gm-card);
+  /* Botão não herda a cor do documento (o navegador aplica `buttontext`,
+     preto) — mesma armadilha de `.card-produto`. Sem esta linha o título
+     saía preto no cartão escuro. */
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.entrega-tipo__card--ativo {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 12%, transparent);
+}
+
+.entrega-tipo__emoji {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.entrega-tipo__titulo {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.entrega-tipo__card--ativo .entrega-tipo__titulo {
+  color: var(--gm-accent);
+}
+
+.entrega-tipo__desc {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--gm-muted);
+}
+
+/* ── Onde retirar ──────────────────────────────────────────────────
+   Substitui o bloco inteiro de endereço quando o cliente vai buscar.
+   Fica em destaque porque é a única informação que ele precisa anotar. */
+.retirada-box {
+  border: 1px solid var(--gm-border);
+  border-left: 3px solid var(--gm-accent);
+  border-radius: 12px;
+  background: var(--gm-card);
+  padding: 12px 14px;
+}
+
+.retirada-box__titulo {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--gm-muted);
+}
+
+.retirada-box__endereco {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--gm-text);
+}
+
+.retirada-box__nota {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--gm-muted);
+}

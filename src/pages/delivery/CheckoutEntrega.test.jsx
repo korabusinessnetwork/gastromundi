@@ -57,13 +57,18 @@ const ENTREGA_INICIAL = {
 };
 
 /** Segura o estado da entrega como a CardapioPage segura (patch por patch). */
-function Palco({ onAvancar }) {
+function Palco({ onAvancar, permiteRetirada = false, enderecoRetirada = "", aoMudar }) {
   const [dados, setDados] = useState(ENTREGA_INICIAL);
   return (
     <CheckoutEntrega
       slug={SLUG}
       dados={dados}
-      onMudar={(patch) => setDados((d) => ({ ...d, ...patch }))}
+      permiteRetirada={permiteRetirada}
+      enderecoRetirada={enderecoRetirada}
+      onMudar={(patch) => {
+        aoMudar?.(patch);
+        setDados((d) => ({ ...d, ...patch }));
+      }}
       onVoltar={() => {}}
       onAvancar={onAvancar}
     />
@@ -551,5 +556,115 @@ describe("CheckoutEntrega — terceiro pendurado não mata o checkout (Run 6, le
     expect(screen.queryByText("Buscando endereço…")).toBeNull();
     // E o CEP não fica marcado como resolvido: redigitar tenta de novo.
     expect(campo("Bairro")).toHaveValue("");
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Retirada no local — o caminho que não passa por endereço nenhum.
+//
+// Antes só existia entrega: quem queria buscar no balcão precisava
+// inventar um endereço para conseguir passar desta tela, e ainda pagava
+// taxa por uma corrida que ninguém ia fazer.
+// ══════════════════════════════════════════════════════════════════
+describe("CheckoutEntrega — retirar no local", () => {
+  const ENDERECO_LOJA = "Rua da Praia, 100 — Centro";
+
+  const escolherRetirada = () =>
+    fireEvent.click(screen.getByRole("button", { name: /Retirar no local/ }));
+
+  async function montar(props = {}) {
+    await act(async () => {
+      render(
+        <Palco
+          onAvancar={vi.fn()}
+          permiteRetirada
+          enderecoRetirada={ENDERECO_LOJA}
+          {...props}
+        />,
+      );
+    });
+  }
+
+  it("a escolha só aparece quando o estabelecimento aceita retirada", async () => {
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+
+    expect(screen.queryByRole("button", { name: /Retirar no local/ })).toBeNull();
+    expect(screen.getByLabelText("CEP")).toBeInTheDocument();
+  });
+
+  it("escolhendo retirada, some tudo que é de endereço e aparece onde buscar", async () => {
+    await montar();
+    escolherRetirada();
+
+    // O que a pessoa NÃO precisa mais responder — pedir isso era o que
+    // fazia ela inventar um endereço só para conseguir avançar.
+    expect(screen.queryByLabelText("CEP")).toBeNull();
+    expect(screen.queryByLabelText("Bairro")).toBeNull();
+    expect(screen.queryByLabelText("Endereço (rua, número)")).toBeNull();
+    // E o que ela precisa saber.
+    expect(screen.getByText(ENDERECO_LOJA)).toBeInTheDocument();
+    expect(screen.getByText(/Sem taxa de entrega/)).toBeInTheDocument();
+  });
+
+  it("na retirada, o nome basta para avançar — não há endereço nem taxa", async () => {
+    await montar();
+    escolherRetirada();
+
+    expect(avancar()).toBeDisabled();
+    digitar("Seu nome", "Ana");
+
+    expect(avancar()).toBeEnabled();
+    // Nenhuma taxa foi pedida ao servidor: ninguém sai para entregar.
+    expect(mockCalcularTaxa).not.toHaveBeenCalled();
+  });
+
+  it("trocar para retirada zera a taxa que a entrega já tinha calculado", async () => {
+    const patches = [];
+    await montar({ aoMudar: (p) => patches.push(p) });
+    digitar("Seu nome", "Ana");
+    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("CEP", "90000000");
+    await assentar();
+
+    escolherRetirada();
+
+    // Sem isso o cliente pagaria os R$ 7,50 de uma entrega que ele mesmo
+    // cancelou ao dizer que vai buscar.
+    expect(patches.at(-1)).toEqual({ tipo: "retirada", taxa: 0, lat: null, lng: null });
+  });
+
+  it("loja sem área de entrega cadastrada: diz isso, e oferece a retirada", async () => {
+    mockCalcularTaxa.mockResolvedValue({ data: { ok: false, motivo: "sem_area" }, error: null });
+    await montar();
+    digitar("Seu nome", "Ana");
+    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("CEP", "90000000");
+    await assentar();
+
+    // O recado é sobre o cadastro da LOJA, não sobre o CEP do cliente —
+    // era essa confusão que fazia o campo de CEP parecer quebrado.
+    expect(screen.getByText(/ainda não configurou as áreas de entrega/)).toBeInTheDocument();
+    expect(screen.queryByText(/fora da nossa área de entrega/)).toBeNull();
+
+    // E o beco tem saída: o próprio aviso leva ao caminho que funciona.
+    fireEvent.click(screen.getByRole("button", { name: "Retirar no local" }));
+    expect(screen.getByText(ENDERECO_LOJA)).toBeInTheDocument();
+    expect(avancar()).toBeEnabled();
+  });
+
+  it("sem retirada disponível, 'sem área' explica e manda falar com a loja", async () => {
+    mockCalcularTaxa.mockResolvedValue({ data: { ok: false, motivo: "sem_area" }, error: null });
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+    digitar("Seu nome", "Ana");
+    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("CEP", "90000000");
+    await assentar();
+
+    expect(screen.getByText(/Fale com ele para combinar a entrega/)).toBeInTheDocument();
+    expect(avancar()).toBeDisabled();
   });
 });

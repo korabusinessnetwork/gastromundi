@@ -1559,6 +1559,49 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+
+/* Retirada no local: cartão próprio, separado da taxa de entrega. São
+   duas decisões diferentes — uma diz se a loja entrega e por quanto, a
+   outra se o cliente pode buscar — e misturá-las no mesmo bloco fazia a
+   retirada parecer mais uma faixa de preço. */
+.delivery-view__retirada {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  background: var(--gm-surface);
+}
+
+/* O switch alinha o texto ao topo porque o rótulo tem duas linhas: com o
+   alinhamento central o interruptor descia para o meio da explicação e
+   deixava de parecer o par do título. */
+.delivery-view__retirada .delivery-view__switch {
+  align-items: flex-start;
+}
+.delivery-view__retirada .delivery-view__switch > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.delivery-view__retirada-hint {
+  margin: 0;
+}
+
+/* Etiqueta no cartão do pedido: o cliente vem buscar, ninguém sai. */
+.delivery-view__pedido-retirada {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-accent);
+  color: var(--gm-accent);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  vertical-align: middle;
+}
 /* Cada um ocupa metade da linha, mas nunca afina abaixo de 180px — abaixo
    disso o número digitado começa a ser cortado. */
 .delivery-view__campo--metade {

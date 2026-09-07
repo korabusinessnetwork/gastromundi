@@ -890,7 +890,8 @@ CREATE TABLE public.config_delivery (
   origem_lng                numeric,  -- 20260810
   endereco_origem           text,     -- 20260811
   endereco_origem_bloqueado boolean NOT NULL DEFAULT false,                    -- 20260827
-  fuso                      text    NOT NULL DEFAULT 'America/Sao_Paulo'       -- 20260903
+  fuso                      text    NOT NULL DEFAULT 'America/Sao_Paulo',      -- 20260903
+  permite_retirada          boolean NOT NULL DEFAULT false                     -- 20260928 — aceita retirada no balcão
 );
 
 CREATE TABLE public.delivery_entregadores (
@@ -928,7 +929,8 @@ CREATE TABLE public.delivery_pedidos (
   entrega_lng          numeric,  -- 20260810
   entregador_id        uuid REFERENCES public.delivery_entregadores(id) ON DELETE SET NULL,  -- 20260919
   valor_entregador     numeric(12,2),  -- 20260919
-  entregador_pago_em   timestamptz  -- 20260920 — carimbo do pagamento (sangria); NULL = a pagar
+  entregador_pago_em   timestamptz,  -- 20260920 — carimbo do pagamento (sangria); NULL = a pagar
+  tipo_entrega         text NOT NULL DEFAULT 'entrega'  -- 20260928 — 'entrega' | 'retirada' (CHECK na migração)
 );
 
 CREATE TABLE public.delivery_pedido_itens (

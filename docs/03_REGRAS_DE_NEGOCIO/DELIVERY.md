@@ -59,8 +59,15 @@ confiável):
 1. **Cardápio** — categorias + cards de produto (foto, descrição, preço).
 2. **Produto** — complementos (add-ons) e/ou **"monte seu"** (combo montável).
 3. **Sacola** — revisão dos itens, subtotal.
-4. **Entrega** — informa CEP → ViaCEP traz o bairro → taxa calculada; endereço.
-5. **Pagamento na entrega** — escolhe a forma pro motoboy levar (ver abaixo).
+4. **Como receber** — quando o estabelecimento aceita as duas coisas, o cliente
+   escolhe primeiro entre **receber em casa** e **retirar no local**; a escolha
+   decide o que a tela pergunta a seguir.
+   - *Receber em casa*: informa CEP → ViaCEP traz o bairro → taxa calculada; endereço.
+   - *Retirar no local*: só nome/telefone. A tela mostra o endereço da loja e
+     **não há taxa** — o cálculo nem é chamado, para não recusar quem mora fora
+     da área e está justamente indo buscar.
+5. **Pagamento na entrega (ou na retirada)** — escolhe a forma pro motoboy levar,
+   ou para pagar no balcão (ver abaixo).
 6. **Confirmação / status** — nº do pedido e acompanhamento.
 7. **Login (opcional)** — só para salvar endereço/histórico; nunca obrigatório.
 
@@ -102,11 +109,16 @@ gateway/TEF é necessário.
 - `grupos_complemento` + `complementos` — add-ons por produto (ex.: "Ponto da
   carne", "Adicionais": +bacon R$4), com `min`/`max` de escolha por grupo.
 - `config_delivery` — 1 linha por tenant: aberto/fechado, horário de
-  funcionamento, pedido mínimo, tempo de preparo, e as **faixas de taxa**
-  (jsonb: `[{ tipo: 'bairro'|'cep', ...valor, taxa }]`).
+  funcionamento, pedido mínimo, tempo de preparo, as **faixas de taxa**
+  (jsonb: `[{ tipo: 'bairro'|'cep', ...valor, taxa }]`) e `permite_retirada`
+  (aceita retirada no balcão — o endereço mostrado ao cliente é o
+  `endereco_origem`, o mesmo da taxa por km).
 - `delivery_pedidos` + `delivery_pedido_itens` — histórico próprio do delivery
-  (cliente, endereço, taxa aplicada, forma de pagamento, troco, flag maquininha),
-  espelhado no `pending` para o fluxo operacional.
+  (cliente, endereço, taxa aplicada, forma de pagamento, troco, flag maquininha,
+  e `tipo_entrega`: `'entrega' | 'retirada'`), espelhado no `pending` para o
+  fluxo operacional. Na retirada o espelho começa com **RETIRADA NO LOCAL** —
+  é a primeira palavra que a bancada lê, e é o que evita o pedido sair na
+  mochila de um entregador.
 
 > **RLS:** ao criar as tabelas/funções no Supabase, a RLS precisa ser configurada
 > no painel. As RPCs públicas são a **única** porta do anon; tabelas ficam fechadas.
@@ -124,6 +136,12 @@ gateway/TEF é necessário.
 - Preço e taxa **sempre** recalculados no servidor no momento do pedido.
 - Pedido abaixo do **mínimo** configurado é bloqueado no checkout (mensagem clara).
 - CEP fora de qualquer faixa → bloqueia com "fora da área de entrega".
+- Estabelecimento **sem nenhuma faixa cadastrada** → motivo próprio
+  (`sem_area`), com o recado de que faltam as áreas de entrega. Não é a mesma
+  coisa que endereço fora da área: tratar os dois igual fazia todo CEP ser
+  recusado com "confira o CEP", e o campo parecia quebrado.
+- Pedido de **retirada** em estabelecimento que não habilitou → recusado no
+  servidor. O interruptor é do dono, e o payload é do cliente.
 - Estabelecimento **fechado** (config/horário) → cardápio visível mas checkout
   desabilitado, com aviso humano.
 - Complementos respeitam `min`/`max` por grupo antes de permitir avançar.

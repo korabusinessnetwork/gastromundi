@@ -377,21 +377,28 @@ export function montarPayloadPedido({ cliente, entrega, pagamento, itens }) {
   const lat = coordenada(entrega?.lat);
   const lng = coordenada(entrega?.lng);
   const trocoPara = valorDigitado(pagamento?.trocoPara);
+  const retirada = entrega?.tipo === "retirada";
   return {
     cliente: {
       nome: (cliente?.nome ?? "").trim(),
       telefone: (cliente?.telefone ?? "").trim() || null,
     },
-    entrega: {
-      cep: apenasDigitosCep(entrega?.cep),
-      bairro: (entrega?.bairro ?? "").trim(),
-      endereco: (entrega?.endereco ?? "").trim(),
-      complemento: (entrega?.complemento ?? "").trim() || null,
-      // Coordenadas só entram quando o modo é por km e o navegador
-      // conseguiu geocodificar o endereço. O servidor recalcula a taxa a
-      // partir delas (haversine); quando ausentes, cai no fluxo CEP/bairro.
-      ...(lat !== null && lng !== null ? { lat, lng } : {}),
-    },
+    entrega: retirada
+      ? // Retirada: o cliente vai buscar. Mandar CEP, endereço e coordenada
+        // dele seria mandar dado de endereço que ninguém vai usar — e o
+        // servidor guardaria isso no pedido sem necessidade nenhuma.
+        { tipo: "retirada" }
+      : {
+          tipo: "entrega",
+          cep: apenasDigitosCep(entrega?.cep),
+          bairro: (entrega?.bairro ?? "").trim(),
+          endereco: (entrega?.endereco ?? "").trim(),
+          complemento: (entrega?.complemento ?? "").trim() || null,
+          // Coordenadas só entram quando o modo é por km e o navegador
+          // conseguiu geocodificar o endereço. O servidor recalcula a taxa a
+          // partir delas (haversine); quando ausentes, cai no fluxo CEP/bairro.
+          ...(lat !== null && lng !== null ? { lat, lng } : {}),
+        },
     pagamento: {
       forma: pagamento?.forma ?? null,
       troco_para:

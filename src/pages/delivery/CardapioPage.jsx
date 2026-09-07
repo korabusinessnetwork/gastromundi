@@ -41,6 +41,9 @@ import Confirmacao from "./Confirmacao";
 import "./vitrine.css";
 
 const ENTREGA_INICIAL = {
+  // Entrega é o padrão porque era o único caminho que existia — e continua
+  // sendo o que a maioria quer. Quem vai buscar troca em um toque.
+  tipo: "entrega",
   nome: "",
   telefone: "",
   cep: "",
@@ -139,6 +142,7 @@ export default function CardapioPage() {
   }, [slug, tentativa]);
 
   const aberto = !!cardapio?.aberto;
+  const retirada = entrega.tipo === "retirada";
 
   // A sacola vive em sessionStorage e sobrevive à aba recarregada; o cardápio
   // é carregado uma vez e não se atualiza sozinho. Se o dono mexer no cardápio
@@ -241,9 +245,14 @@ export default function CardapioPage() {
 
   return (
     <div className="vitrine">
-      <div className="vitrine__wrap">
-        {/* Cabeçalho fixo com a marca do estabelecimento + status */}
-        <header className="vitrine__header">
+      {/* Cabeçalho fixo com a marca do estabelecimento + status. Fica FORA
+          do `__wrap`: ele é uma barra que atravessa a tela inteira, e quem
+          centraliza o conteúdo dentro dela é o `__header-inner` (que o CSS
+          sempre esperou). Dentro do wrap, a barra herdava a largura da
+          coluna e o miolo ficava sem nenhum espaçamento — logo colado no
+          canto e nome do estabelecimento embaixo dele, não ao lado. */}
+      <header className="vitrine__header">
+        <div className="vitrine__header-inner">
           {marca.logo ? (
             <img className="vitrine__logo" src={marca.logo} alt={marca.nome || "Logo"} />
           ) : null}
@@ -254,9 +263,18 @@ export default function CardapioPage() {
             >
               {aberto ? "Aberto agora" : "Fechado no momento"}
             </span>
+            {/* Quem prefere buscar precisa saber disso ANTES de montar a
+                sacola — descobrir só no checkout é descobrir tarde. */}
+            {cardapio.permite_retirada && (
+              <span className="vitrine__status vitrine__status--retirada">
+                Retirada no local
+              </span>
+            )}
           </div>
-        </header>
+        </div>
+      </header>
 
+      <div className="vitrine__wrap">
         {/* Loja fechada: mostra o cardápio, mas avisa e bloqueia o pedido */}
         {!aberto && (
           <div className="vitrine__aviso">
@@ -318,6 +336,8 @@ export default function CardapioPage() {
         <CheckoutEntrega
           slug={slug}
           dados={entrega}
+          permiteRetirada={!!cardapio.permite_retirada}
+          enderecoRetirada={cardapio.endereco_retirada ?? ""}
           onMudar={(patch) => setEntrega((d) => ({ ...d, ...patch }))}
           onVoltar={() => setTela("sacola")}
           onAvancar={() => setTela("pagamento")}
@@ -328,7 +348,8 @@ export default function CardapioPage() {
         <CheckoutPagamento
           dados={pagamento}
           subtotal={subtotal}
-          taxa={entrega.taxa}
+          taxa={retirada ? 0 : entrega.taxa}
+          retirada={retirada}
           onMudar={(patch) => setPagamento((d) => ({ ...d, ...patch }))}
           onVoltar={() => setTela("entrega")}
           onConfirmar={confirmarPedido}

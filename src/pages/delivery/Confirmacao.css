@@ -13,3 +13,28 @@
 .btn.confirma__voltar {
   margin-top: 24px;
 }
+
+/* Retirada: a etiqueta logo abaixo do "Pedido enviado!" e o endereço em
+   destaque. Quem vai buscar precisa sair de casa com essas duas linhas —
+   o número do pedido sozinho não diz para onde ir. */
+.confirma__tipo {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--gm-accent);
+}
+
+.confirma__retirada {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  border-left: 3px solid var(--gm-accent);
+  background: var(--gm-card);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--gm-text);
+  text-align: left;
+}

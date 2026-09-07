@@ -64,6 +64,16 @@
 }
 .vitrine__status--aberto { color: var(--gm-green); }
 .vitrine__status--fechado { color: var(--gm-red); }
+/* Selo de retirada: informação, não estado da loja — por isso vem como
+   etiqueta discreta ao lado do "Aberto agora", e não competindo com ele. */
+.vitrine__status--retirada {
+  margin-left: 10px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-accent);
+  color: var(--gm-accent);
+  font-size: 12px;
+}
 .vitrine__status-bolinha {
   width: 8px; height: 8px; border-radius: 50%;
   background: currentColor;
@@ -169,19 +179,65 @@
   color: var(--gm-green);
 }
 
+/* A miniatura era um quadrado de 88px: a foto do prato aparecia pequena e,
+   por ser quadrada, o `cover` cortava as laterais de quase toda foto de
+   comida (que é tirada deitada). Agora ela é maior e 4:3 — o mesmo
+   enquadramento em que a foto foi tirada, então sobra imagem em vez de
+   corte. `aspect-ratio` mantém a proporção em qualquer largura. */
 .card-produto__foto {
-  width: 88px;
-  height: 88px;
+  width: 116px;
+  aspect-ratio: 4 / 3;
+  height: auto;
   border-radius: 10px;
   object-fit: cover;
   background: var(--gm-surface);
   flex-shrink: 0;
+  align-self: center;
 }
 .card-produto__foto--emoji {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
+  font-size: 44px;
+}
+
+/* ── Computador: o cardápio vira grade ─────────────────────────────
+   Em uma coluna só, cada card ficava com 720px de largura e uma tarja de
+   foto perdida na ponta direita — cara de página de celular esticada. A
+   partir de 720px a lista vira grade e o card se reorganiza: foto grande
+   em cima (4:3, largura inteira), texto embaixo. É o formato em que se
+   escolhe comida olhando, que é o que a vitrine é. */
+@media (min-width: 720px) {
+  .vitrine__grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .card-produto {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  /* A foto vem antes do texto na tela sem mudar a ordem do HTML: no
+     código ela continua depois do nome do produto, que é a ordem certa
+     para quem lê com leitor de tela. */
+  .card-produto__foto {
+    order: -1;
+    width: 100%;
+  }
+
+  /* Preço no rodapé do card, alinhado entre os cards da mesma linha,
+     mesmo quando um tem descrição de duas linhas e o outro nenhuma. */
+  .card-produto__texto {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .card-produto__preco {
+    margin-top: auto;
+    padding-top: 4px;
+  }
 }
 
 /* ── Modal (produto / checkout / confirmação) ───────────────────── */
@@ -259,9 +315,13 @@
   gap: 14px;
   margin-bottom: 20px;
 }
+/* Ao abrir o produto, a foto é a razão de ele ter sido aberto — 72px de
+   selo ao lado do nome não mostrava o prato. Mesma proporção 4:3 do card,
+   em tamanho de olhar. */
 .produto-hero__foto {
-  width: 72px;
-  height: 72px;
+  width: 124px;
+  aspect-ratio: 4 / 3;
+  height: auto;
   border-radius: 14px;
   object-fit: cover;
   background: var(--gm-surface);
@@ -271,7 +331,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
+  font-size: 52px;
 }
 .produto-hero__desc {
   margin: 0;

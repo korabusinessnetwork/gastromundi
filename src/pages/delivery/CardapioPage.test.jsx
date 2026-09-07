@@ -695,3 +695,99 @@ describe("CardapioPage — a vitrine que não carregou tem saída (Run 6, leva 1
     expect(screen.queryByRole("button", { name: "Tentar de novo" })).toBeNull();
   });
 });
+
+// ══════════════════════════════════════════════════════════════════
+// Retirada no local — o caminho inteiro, do selo no cabeçalho ao
+// payload que chega no servidor.
+//
+// O que isto protege: que a escolha do cliente atravesse a página
+// INTEIRA. Antes de existir retirada, cada tela dava por certo que
+// alguém sairia para entregar — e é fácil ligar a opção na primeira
+// tela e ela se perder no caminho, fazendo o cliente pagar taxa de uma
+// entrega que ele mesmo dispensou.
+// ══════════════════════════════════════════════════════════════════
+describe("CardapioPage — retirar no local", () => {
+  const CARDAPIO_COM_RETIRADA = {
+    ...CARDAPIO,
+    permite_retirada: true,
+    endereco_retirada: "Rua da Praia, 100 — Centro",
+  };
+
+  it("sem retirada configurada, a vitrine não promete o que a loja não faz", async () => {
+    await abrirVitrine();
+
+    expect(screen.queryByText("Retirada no local")).toBeNull();
+  });
+
+  it("o selo no cabeçalho avisa antes de a sacola ser montada", async () => {
+    mockCarregarCardapio.mockResolvedValue({ data: CARDAPIO_COM_RETIRADA, error: null });
+
+    await abrirVitrine();
+
+    // Descobrir só no checkout é descobrir tarde: quem prefere buscar
+    // decide isso antes de escolher o que vai comer.
+    expect(screen.getByText("Retirada no local")).toBeInTheDocument();
+  });
+
+  it("o pedido de retirada chega ao servidor sem endereço e sem taxa", async () => {
+    mockCarregarCardapio.mockResolvedValue({ data: CARDAPIO_COM_RETIRADA, error: null });
+    mockEnviarPedido.mockResolvedValue({
+      data: {
+        ok: true,
+        numero: "260730-002",
+        total: 25,
+        tipo: "retirada",
+        endereco_retirada: "Rua da Praia, 100 — Centro",
+      },
+      error: null,
+    });
+
+    const user = await abrirVitrine();
+    await user.click(screen.getByRole("button", { name: "Ver a sacola" }));
+    await user.click(screen.getByRole("button", { name: /Ir para a entrega/ }));
+
+    await user.click(screen.getByRole("button", { name: /Retirar no local/ }));
+    await user.type(screen.getByLabelText("Seu nome"), "Ana");
+    await user.click(screen.getByRole("button", { name: "Ir para o pagamento" }));
+
+    // O resumo não inventa uma taxa grátis para um pedido que ninguém entrega.
+    expect(screen.getByText("Sem taxa")).toBeInTheDocument();
+
+    await user.click(screen.getByText("Pix na retirada"));
+    await act(async () => {
+      botaoConfirmar().click();
+    });
+
+    const [, payload] = mockEnviarPedido.mock.calls.at(-1);
+    expect(payload.entrega).toEqual({ tipo: "retirada" });
+
+    // E a tela de sucesso diz para onde ir — o número do pedido sozinho
+    // não serve para quem ainda precisa sair de casa.
+    expect(screen.getByText("Pedido enviado!")).toBeInTheDocument();
+    expect(screen.getByText(/Rua da Praia, 100/)).toBeInTheDocument();
+  });
+
+  it("a taxa da entrega não sobrevive à troca para retirada", async () => {
+    mockCarregarCardapio.mockResolvedValue({ data: CARDAPIO_COM_RETIRADA, error: null });
+
+    const user = await abrirVitrine();
+    await user.click(screen.getByRole("button", { name: "Ver a sacola" }));
+    await user.click(screen.getByRole("button", { name: /Ir para a entrega/ }));
+
+    // Preenche a entrega inteira, com taxa calculada…
+    await user.type(screen.getByLabelText("Seu nome"), "Ana");
+    await user.type(screen.getByLabelText("Endereço (rua, número)"), "Rua X, 10");
+    await user.type(screen.getByLabelText("CEP"), "90000000");
+    await assentar();
+    expect(screen.getByText("R$ 7,50")).toBeInTheDocument();
+
+    // …e então muda de ideia.
+    await user.click(screen.getByRole("button", { name: /Retirar no local/ }));
+    await user.click(screen.getByRole("button", { name: "Ir para o pagamento" }));
+
+    // O total é só o da comida: cobrar os R$ 7,50 seria cobrar uma corrida
+    // que o cliente acabou de dispensar.
+    expect(screen.getByText("Sem taxa")).toBeInTheDocument();
+    expect(screen.queryByText("R$ 32,50")).toBeNull();
+  });
+});

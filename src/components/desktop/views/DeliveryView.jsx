@@ -847,6 +847,12 @@ function CardPedido({
       {/* Cliente */}
       <div className="delivery-view__pedido-cliente">
         {pedido.cliente_nome || "Cliente"}
+        {/* Sem esta etiqueta o pedido de retirada era idêntico a um de
+            entrega, com o endereço da PRÓPRIA loja no lugar do endereço do
+            cliente — e alguém sairia para entregar no balcão de onde saiu. */}
+        {pedido.tipo_entrega === "retirada" && (
+          <span className="delivery-view__pedido-retirada">Retirada</span>
+        )}
       </div>
 
       {/* Telefone → WhatsApp (só toque; número é do cliente) */}
@@ -3306,6 +3312,51 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
           <label className="delivery-view__label">Tempo de preparo (min)</label>
           <input className="delivery-view__input" type="number" min="0" value={config.tempo_preparo_min ?? 30} disabled={readOnly} onChange={(e) => set({ tempo_preparo_min: e.target.value })} onBlur={() => salvar()} />
         </div>
+      </div>
+
+      {/* Retirada no local — vem ANTES da taxa de propósito: é o caminho
+          que não depende de faixa nenhuma configurada, e quem está abrindo
+          a loja hoje consegue vender por ele antes de desenhar as áreas
+          de entrega. */}
+      <div className="delivery-view__retirada">
+        <label className="delivery-view__switch">
+          <span>
+            <span className="delivery-view__entrega-titulo">
+              <LuStore size={16} color={varColor(C.accent)} /> Retirada no local
+            </span>
+            <span className="delivery-view__hint delivery-view__retirada-hint">
+              O cliente escolhe buscar no balcão e não paga taxa. Aparece como opção
+              na página do cardápio.
+            </span>
+          </span>
+          <span className="delivery-view__toggle">
+            <input
+              type="checkbox"
+              checked={!!config.permite_retirada}
+              disabled={readOnly}
+              onChange={(e) => salvar({ permite_retirada: e.target.checked })}
+            />
+            <span className="delivery-view__toggle-trilho" aria-hidden="true">
+              <span className="delivery-view__toggle-botao" />
+            </span>
+          </span>
+        </label>
+
+        {/* Ligado sem endereço, o cliente leria "retire no local" sem saber
+            onde é o local — então o servidor não oferece a opção e aqui a
+            tela diz por quê, em vez de o dono achar que ligou e não ligou. */}
+        {config.permite_retirada && !String(config.endereco_origem || "").trim() && (
+          <div className="delivery-view__hint delivery-view__hint--erro">
+            Falta o endereço do estabelecimento — sem ele a retirada não aparece
+            para o cliente. Preencha em “Endereço do estabelecimento”, no modo de
+            taxa por distância.
+          </div>
+        )}
+        {config.permite_retirada && String(config.endereco_origem || "").trim() && (
+          <div className="delivery-view__hint">
+            O cliente vai buscar em: <strong>{config.endereco_origem}</strong>
+          </div>
+        )}
       </div>
 
       {/* Taxa de entrega */}

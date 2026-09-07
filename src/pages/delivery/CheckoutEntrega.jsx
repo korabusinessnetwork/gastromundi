@@ -1,14 +1,24 @@
 // ──────────────────────────────────────────────────────────────────
-// CheckoutEntrega — nome/telefone + CEP → ViaCEP traz bairro/rua → taxa
-// calculada no servidor (calcularTaxaEntrega). Degradação graciosa: se o
-// ViaCEP falhar, o cliente digita bairro/endereço à mão (nunca trava por
-// terceiro). "Fora da área de entrega" bloqueia o avanço com aviso claro.
+// CheckoutEntrega — como o pedido chega até o cliente.
 //
-// Dois modos, decididos pelo SERVIDOR (o cliente não sabe qual é): por
-// área (bairro/CEP) resolve na 1ª chamada; por distância (km) o servidor
-// responde motivo:'sem_coordenada' — então geocodificamos o endereço
-// digitado (Nominatim/OSM, grátis) e recalculamos com a coordenada. O
-// preço por anel é sempre do servidor.
+// Dois caminhos, quando o estabelecimento aceita os dois: RECEBER EM
+// CASA (nome/telefone + CEP → ViaCEP traz bairro/rua → taxa calculada no
+// servidor) ou RETIRAR NO LOCAL (só nome/telefone + o endereço da loja,
+// sem taxa). A escolha vem primeiro porque ela decide o que a tela
+// pergunta: quem vai buscar não precisa digitar endereço nenhum, e pedir
+// isso antes era o que fazia a pessoa inventar um endereço para
+// conseguir avançar.
+//
+// Degradação graciosa: se o ViaCEP falhar, o cliente digita bairro/
+// endereço à mão (nunca trava por terceiro). "Fora da área de entrega"
+// bloqueia o avanço com aviso claro — e quando a loja simplesmente não
+// cadastrou área nenhuma, a tela diz ISSO, não que o CEP dele é ruim.
+//
+// Dois modos de taxa, decididos pelo SERVIDOR (o cliente não sabe qual
+// é): por área (bairro/CEP) resolve na 1ª chamada; por distância (km) o
+// servidor responde motivo:'sem_coordenada' — então geocodificamos o
+// endereço digitado (Nominatim/OSM, grátis) e recalculamos com a
+// coordenada. O preço por anel é sempre do servidor.
 // ──────────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from "react";
 import {
@@ -22,13 +32,23 @@ import {
 } from "@/lib/delivery";
 import "./CheckoutEntrega.css";
 
-export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvancar }) {
+export default function CheckoutEntrega({
+  slug,
+  dados,
+  permiteRetirada = false,
+  enderecoRetirada = "",
+  onMudar,
+  onVoltar,
+  onAvancar,
+}) {
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [taxa, setTaxa] = useState(null); // { ok, taxa, motivo, km }
   const [erroTaxa, setErroTaxa] = useState("");
   const [calculandoTaxa, setCalculandoTaxa] = useState(false);
   const [tentativa, setTentativa] = useState(0);
   const cepAnterior = useRef("");
+
+  const retirada = dados.tipo === "retirada";
 
   // O que está nos campos AGORA, para as respostas que chegam atrasadas. A
   // closure do efeito congela `dados` no instante em que ele foi agendado.
@@ -39,6 +59,7 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
 
   // Quando o CEP fica completo: ViaCEP preenche bairro/rua (uma vez por CEP).
   useEffect(() => {
+    if (retirada) return;
     const cep = apenasDigitosCep(dados.cep);
     if (!cepCompleto(cep) || cep === cepAnterior.current) return;
 
@@ -78,12 +99,21 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
       setBuscandoCep(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dados.cep, slug]);
+  }, [dados.cep, slug, retirada]);
 
   // Calcula a taxa (servidor decide o modo). Recalcula com debounce quando
   // CEP/bairro/endereço mudam. No modo por km, o servidor pede coordenada
   // (motivo:'sem_coordenada') → geocodificamos o endereço e tentamos de novo.
   useEffect(() => {
+    // Retirada não tem taxa a calcular: ninguém sai para entregar. Chamar o
+    // servidor aqui recusaria o pedido de quem mora fora da área e está
+    // justamente indo buscar no balcão.
+    if (retirada) {
+      setTaxa(null);
+      setErroTaxa("");
+      setCalculandoTaxa(false);
+      return;
+    }
     const cep = apenasDigitosCep(dados.cep);
     if (!cepCompleto(cep)) {
       setTaxa(null);
@@ -145,30 +175,75 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
       clearTimeout(t);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dados.cep, dados.bairro, dados.endereco, slug, tentativa]);
+  }, [dados.cep, dados.bairro, dados.endereco, slug, tentativa, retirada]);
 
   const semCoordenada = taxa?.motivo === "sem_coordenada";
   const indisponivelKm = taxa?.motivo === "origem_indefinida";
-  const foraDeArea = taxa && !taxa.ok && !semCoordenada && !indisponivelKm;
+  // A loja não cadastrou faixa nenhuma. Isso NÃO é "seu endereço é fora da
+  // área": era essa confusão que fazia todo CEP ser recusado e o campo
+  // parecer quebrado.
+  const semArea = taxa?.motivo === "sem_area";
+  const foraDeArea = taxa && !taxa.ok && !semCoordenada && !indisponivelKm && !semArea;
   const temTaxa = taxa?.ok;
-  const podeAvancar =
-    dados.nome.trim() &&
-    cepCompleto(dados.cep) &&
-    dados.endereco.trim() &&
-    temTaxa &&
-    !calculandoTaxa;
+  const podeAvancar = retirada
+    ? Boolean(dados.nome.trim())
+    : Boolean(
+        dados.nome.trim() &&
+          cepCompleto(dados.cep) &&
+          dados.endereco.trim() &&
+          temTaxa &&
+          !calculandoTaxa
+      );
+
+  // Trocar de caminho zera o que era do outro: a taxa de uma entrega não
+  // pode sobreviver a "vou buscar" (o cliente pagaria por uma corrida que
+  // não vai acontecer).
+  const escolherTipo = (tipo) => {
+    if (tipo === dados.tipo) return;
+    onMudar(
+      tipo === "retirada"
+        ? { tipo, taxa: 0, lat: null, lng: null }
+        : { tipo, taxa: 0 }
+    );
+  };
 
   return (
     <div className="modal-fundo" onClick={onVoltar}>
       <div className="modal-painel" onClick={(e) => e.stopPropagation()}>
         <div className="modal-topo">
-          <h2 className="modal-titulo">Entrega</h2>
+          <h2 className="modal-titulo">{retirada ? "Retirada" : "Entrega"}</h2>
           <button className="modal-fechar" onClick={onVoltar} aria-label="Voltar">
             ×
           </button>
         </div>
 
         <div className="modal-corpo">
+          {/* A primeira pergunta, porque ela decide todas as outras. Só
+              aparece quando o estabelecimento realmente aceita os dois. */}
+          {permiteRetirada && (
+            <div className="entrega-tipo" role="group" aria-label="Como você quer receber">
+              {[
+                { id: "entrega", emoji: "🛵", titulo: "Receber em casa", desc: "Levamos no seu endereço" },
+                { id: "retirada", emoji: "🏪", titulo: "Retirar no local", desc: "Você busca no balcão · sem taxa" },
+              ].map((o) => {
+                const ativo = (dados.tipo ?? "entrega") === o.id;
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    className={`entrega-tipo__card${ativo ? " entrega-tipo__card--ativo" : ""}`}
+                    aria-pressed={ativo}
+                    onClick={() => escolherTipo(o.id)}
+                  >
+                    <span className="entrega-tipo__emoji" aria-hidden="true">{o.emoji}</span>
+                    <span className="entrega-tipo__titulo">{o.titulo}</span>
+                    <span className="entrega-tipo__desc">{o.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div className="campo">
             <label className="campo__label" htmlFor="ent-nome">
               Seu nome
@@ -198,109 +273,153 @@ export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvan
             />
           </div>
 
-          <div className="campo">
-            <label className="campo__label" htmlFor="ent-cep">
-              CEP
-            </label>
-            <input
-              id="ent-cep"
-              className="campo__input"
-              value={formatarCep(dados.cep)}
-              inputMode="numeric"
-              onChange={(e) => onMudar({ cep: apenasDigitosCep(e.target.value) })}
-              placeholder="00000-000"
-            />
-            {buscandoCep && (
-              <p className="linha-sacola__extra checkout-entrega__buscando">
-                Buscando endereço…
+          {retirada ? (
+            // Onde buscar, quando fica pronto e quanto custa a entrega
+            // (nada) — as três coisas que quem vai retirar precisa saber.
+            <div className="retirada-box">
+              <p className="retirada-box__titulo">Retire em</p>
+              <p className="retirada-box__endereco">{enderecoRetirada}</p>
+              <p className="retirada-box__nota">
+                Sem taxa de entrega. Avisamos quando estiver pronto para retirar.
               </p>
-            )}
-          </div>
-
-          <div className="campo">
-            <label className="campo__label" htmlFor="ent-bairro">
-              Bairro
-            </label>
-            <input
-              id="ent-bairro"
-              className="campo__input"
-              value={dados.bairro}
-              maxLength={80}
-              onChange={(e) => onMudar({ bairro: e.target.value })}
-              placeholder="Seu bairro"
-            />
-          </div>
-
-          <div className="campo">
-            <label className="campo__label" htmlFor="ent-end">
-              Endereço (rua, número)
-            </label>
-            <input
-              id="ent-end"
-              className="campo__input"
-              value={dados.endereco}
-              maxLength={160}
-              onChange={(e) => onMudar({ endereco: e.target.value })}
-              placeholder="Rua, número"
-            />
-          </div>
-
-          <div className="campo">
-            <label className="campo__label" htmlFor="ent-compl">
-              Complemento (opcional)
-            </label>
-            <input
-              id="ent-compl"
-              className="campo__input"
-              value={dados.complemento}
-              maxLength={80}
-              onChange={(e) => onMudar({ complemento: e.target.value })}
-              placeholder="Apto, bloco, referência"
-            />
-          </div>
-
-          {calculandoTaxa && (
-            <div className="vitrine__aviso">Calculando a taxa de entrega…</div>
-          )}
-          {!calculandoTaxa && erroTaxa && (
-            <div className="vitrine__aviso vitrine__aviso--erro" role="alert">
-              <span>{erroTaxa}</span>
-              <button
-                type="button"
-                className="vitrine__aviso-acao"
-                onClick={() => setTentativa((n) => n + 1)}
-              >
-                Tentar de novo
-              </button>
             </div>
-          )}
-          {!calculandoTaxa && semCoordenada && (
-            <div className="vitrine__aviso vitrine__aviso--erro">
-              Não consegui localizar seu endereço no mapa. Confira a rua e o número
-              para calcular a entrega.
-            </div>
-          )}
-          {!calculandoTaxa && indisponivelKm && (
-            <div className="vitrine__aviso vitrine__aviso--erro">
-              A entrega por distância está indisponível no momento. Fale com o
-              estabelecimento.
-            </div>
-          )}
-          {!calculandoTaxa && foraDeArea && (
-            <div className="vitrine__aviso vitrine__aviso--erro">
-              Esse endereço está fora da nossa área de entrega. Confira o CEP ou o
-              bairro.
-            </div>
-          )}
-          {temTaxa && (
-            <div className="resumo">
-              <div className="resumo__linha">
-                <span>Taxa de entrega{Number(taxa?.km) > 0 ? ` · ${String(taxa.km).replace(".", ",")} km` : ""}</span>
-                <span>
-                  {Number(dados.taxa) > 0 ? formatarPreco(dados.taxa) : "Grátis"}
-                </span>
+          ) : (
+            <>
+              <div className="campo">
+                <label className="campo__label" htmlFor="ent-cep">
+                  CEP
+                </label>
+                <input
+                  id="ent-cep"
+                  className="campo__input"
+                  value={formatarCep(dados.cep)}
+                  inputMode="numeric"
+                  onChange={(e) => onMudar({ cep: apenasDigitosCep(e.target.value) })}
+                  placeholder="00000-000"
+                />
+                {buscandoCep && (
+                  <p className="linha-sacola__extra checkout-entrega__buscando">
+                    Buscando endereço…
+                  </p>
+                )}
               </div>
-            </div>
+
+              <div className="campo">
+                <label className="campo__label" htmlFor="ent-bairro">
+                  Bairro
+                </label>
+                <input
+                  id="ent-bairro"
+                  className="campo__input"
+                  value={dados.bairro}
+                  maxLength={80}
+                  onChange={(e) => onMudar({ bairro: e.target.value })}
+                  placeholder="Seu bairro"
+                />
+              </div>
+
+              <div className="campo">
+                <label className="campo__label" htmlFor="ent-end">
+                  Endereço (rua, número)
+                </label>
+                <input
+                  id="ent-end"
+                  className="campo__input"
+                  value={dados.endereco}
+                  maxLength={160}
+                  onChange={(e) => onMudar({ endereco: e.target.value })}
+                  placeholder="Rua, número"
+                />
+              </div>
+
+              <div className="campo">
+                <label className="campo__label" htmlFor="ent-compl">
+                  Complemento (opcional)
+                </label>
+                <input
+                  id="ent-compl"
+                  className="campo__input"
+                  value={dados.complemento}
+                  maxLength={80}
+                  onChange={(e) => onMudar({ complemento: e.target.value })}
+                  placeholder="Apto, bloco, referência"
+                />
+              </div>
+
+              {calculandoTaxa && (
+                <div className="vitrine__aviso">Calculando a taxa de entrega…</div>
+              )}
+              {!calculandoTaxa && erroTaxa && (
+                <div className="vitrine__aviso vitrine__aviso--erro" role="alert">
+                  <span>{erroTaxa}</span>
+                  <button
+                    type="button"
+                    className="vitrine__aviso-acao"
+                    onClick={() => setTentativa((n) => n + 1)}
+                  >
+                    Tentar de novo
+                  </button>
+                </div>
+              )}
+              {!calculandoTaxa && semArea && (
+                <div className="vitrine__aviso vitrine__aviso--erro" role="alert">
+                  <span>
+                    Este estabelecimento ainda não configurou as áreas de entrega
+                    {permiteRetirada
+                      ? " — por enquanto dá para retirar no local."
+                      : ". Fale com ele para combinar a entrega."}
+                  </span>
+                  {permiteRetirada && (
+                    <button
+                      type="button"
+                      className="vitrine__aviso-acao"
+                      onClick={() => escolherTipo("retirada")}
+                    >
+                      Retirar no local
+                    </button>
+                  )}
+                </div>
+              )}
+              {!calculandoTaxa && semCoordenada && (
+                <div className="vitrine__aviso vitrine__aviso--erro">
+                  Não consegui localizar seu endereço no mapa. Confira a rua e o número
+                  para calcular a entrega.
+                </div>
+              )}
+              {!calculandoTaxa && indisponivelKm && (
+                <div className="vitrine__aviso vitrine__aviso--erro">
+                  A entrega por distância está indisponível no momento. Fale com o
+                  estabelecimento.
+                </div>
+              )}
+              {!calculandoTaxa && foraDeArea && (
+                <div className="vitrine__aviso vitrine__aviso--erro" role="alert">
+                  <span>
+                    Esse endereço está fora da nossa área de entrega. Confira o CEP ou o
+                    bairro.
+                  </span>
+                  {permiteRetirada && (
+                    <button
+                      type="button"
+                      className="vitrine__aviso-acao"
+                      onClick={() => escolherTipo("retirada")}
+                    >
+                      Retirar no local
+                    </button>
+                  )}
+                </div>
+              )}
+              {temTaxa && (
+                <div className="resumo">
+                  <div className="resumo__linha">
+                    <span>Taxa de entrega{Number(taxa?.km) > 0 ? ` · ${String(taxa.km).replace(".", ",")} km` : ""}</span>
+                    <span>
+                      {Number(dados.taxa) > 0 ? formatarPreco(dados.taxa) : "Grátis"}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <button

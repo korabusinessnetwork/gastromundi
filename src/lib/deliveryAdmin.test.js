@@ -252,6 +252,7 @@ describe("sanitizarConfig", () => {
       origem_lng: null,
       endereco_origem: null,
       endereco_origem_bloqueado: false,
+      permite_retirada: false,
     });
   });
 

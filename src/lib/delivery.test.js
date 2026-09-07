@@ -386,10 +386,46 @@ describe("montarPayloadPedido", () => {
     });
     expect(payload).toEqual({
       cliente: { nome: "Ana", telefone: "5199" },
-      entrega: { cep: "90000000", bairro: "Centro", endereco: "Rua X, 10", complemento: null },
+      entrega: { tipo: "entrega", cep: "90000000", bairro: "Centro", endereco: "Rua X, 10", complemento: null },
       pagamento: { forma: "dinheiro", troco_para: 50, levar_maquininha: false },
       itens: [{ produto_id: 7, combo_id: null, qtd: 2, complementos: ["c1"], obs: "sem cebola" }],
     });
+
+    // A retirada é o outro caminho: nada de endereço, e o servidor sabe
+    // disso pelo `tipo`.
+  });
+
+  it("retirada não manda endereço nenhum — o cliente é quem vai até lá", () => {
+    const payload = montarPayloadPedido({
+      cliente: { nome: "Ana", telefone: "" },
+      // Mesmo com o formulário de entrega preenchido de uma tentativa
+      // anterior, o que vale é a escolha: mandar CEP e rua de quem vai
+      // buscar seria guardar endereço de cliente sem nenhum uso.
+      entrega: {
+        tipo: "retirada",
+        cep: "90000-000",
+        bairro: "Centro",
+        endereco: "Rua X, 10",
+        complemento: "ap 3",
+        lat: -30,
+        lng: -51,
+      },
+      pagamento: { forma: "pix" },
+      itens: [{ produto_id: 7, qtd: 1 }],
+    });
+
+    expect(payload.entrega).toEqual({ tipo: "retirada" });
+  });
+
+  it("sem escolher nada, o pedido continua sendo de entrega (era o único caminho)", () => {
+    const payload = montarPayloadPedido({
+      cliente: { nome: "Ana" },
+      entrega: { cep: "90000000", endereco: "Rua X, 10" },
+      pagamento: { forma: "pix" },
+      itens: [{ produto_id: 7, qtd: 1 }],
+    });
+
+    expect(payload.entrega.tipo).toBe("entrega");
   });
 
   it("troco_para só vai quando é dinheiro e > 0; maquininha só quando é cartão", () => {
