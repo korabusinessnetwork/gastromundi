@@ -368,6 +368,31 @@ describe("primeiroGrupoPendente", () => {
   });
 });
 
+describe("revisarSacola — o ícone acompanha o cardápio de agora", () => {
+  it("a linha guardada ontem ganha o emoji do produto de hoje", () => {
+    const cardapio = {
+      produtos: [{ produto_id: 7, nome: "Pizza", preco: 25, emoji: "🍕", grupos: [] }],
+      combos: [],
+    };
+    // Sacola antiga, gravada antes de a vitrine passar a guardar o ícone.
+    const itens = [{ produto_id: 7, combo_id: null, nome: "Pizza", preco: 25, qtd: 1 }];
+
+    const { linhas } = revisarSacola(itens, cardapio);
+
+    expect(linhas[0].emoji).toBe("🍕");
+  });
+
+  it("o ícone acompanha a troca feita pelo dono no cadastro", () => {
+    const cardapio = {
+      produtos: [{ produto_id: 7, nome: "Pizza", preco: 25, emoji: "🍕", grupos: [] }],
+      combos: [],
+    };
+    const itens = [{ produto_id: 7, combo_id: null, nome: "Pizza", preco: 25, qtd: 1, emoji: "🥧" }];
+
+    expect(revisarSacola(itens, cardapio).linhas[0].emoji).toBe("🍕");
+  });
+});
+
 describe("montarPayloadPedido", () => {
   it("não envia preço; envia só a intenção do cliente", () => {
     const payload = montarPayloadPedido({

@@ -30,6 +30,7 @@ import {
   formatarPreco,
   geocodificarEndereco,
 } from "@/lib/delivery";
+import { useSairDoModal } from "./useSairDoModal";
 import "./CheckoutEntrega.css";
 
 export default function CheckoutEntrega({
@@ -48,6 +49,9 @@ export default function CheckoutEntrega({
   const [tentativa, setTentativa] = useState(0);
   const cepAnterior = useRef("");
 
+  // Sair daqui: tocar fora ou apertar Esc. Arrastar para selecionar
+  // texto dentro do painel NÃO fecha — era esse o defeito.
+  const fundo = useSairDoModal(onVoltar);
   const retirada = dados.tipo === "retirada";
 
   // O que está nos campos AGORA, para as respostas que chegam atrasadas. A
@@ -209,8 +213,8 @@ export default function CheckoutEntrega({
   };
 
   return (
-    <div className="modal-fundo" onClick={onVoltar}>
-      <div className="modal-painel" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-fundo" {...fundo}>
+      <div className="modal-painel">
         <div className="modal-topo">
           <h2 className="modal-titulo">{retirada ? "Retirada" : "Entrega"}</h2>
           <button className="modal-fechar" onClick={onVoltar} aria-label="Voltar">
@@ -252,6 +256,7 @@ export default function CheckoutEntrega({
             <input
               id="ent-nome"
               className="campo__input"
+              autoComplete="name"
               value={dados.nome}
               maxLength={60}
               onChange={(e) => onMudar({ nome: e.target.value })}
@@ -266,6 +271,7 @@ export default function CheckoutEntrega({
             <input
               id="ent-tel"
               className="campo__input"
+              autoComplete="tel"
               value={dados.telefone}
               maxLength={20}
               inputMode="tel"
@@ -297,6 +303,7 @@ export default function CheckoutEntrega({
                 <input
                   id="ent-cep"
                   className="campo__input"
+                  autoComplete="postal-code"
                   value={formatarCep(dados.cep)}
                   inputMode="numeric"
                   onChange={(e) => onMudar({ cep: apenasDigitosCep(e.target.value) })}
@@ -321,6 +328,7 @@ export default function CheckoutEntrega({
                 <input
                   id="ent-cidade"
                   className="campo__input"
+                  autoComplete="address-level2"
                   value={dados.cidade ?? ""}
                   maxLength={80}
                   onChange={(e) => onMudar({ cidade: e.target.value })}
@@ -335,6 +343,7 @@ export default function CheckoutEntrega({
                 <input
                   id="ent-bairro"
                   className="campo__input"
+                  autoComplete="address-level3"
                   value={dados.bairro}
                   maxLength={80}
                   onChange={(e) => onMudar({ bairro: e.target.value })}
@@ -349,6 +358,7 @@ export default function CheckoutEntrega({
                 <input
                   id="ent-end"
                   className="campo__input"
+                  autoComplete="address-line1"
                   value={dados.endereco}
                   maxLength={160}
                   onChange={(e) => onMudar({ endereco: e.target.value })}
@@ -363,6 +373,7 @@ export default function CheckoutEntrega({
                 <input
                   id="ent-compl"
                   className="campo__input"
+                  autoComplete="address-line2"
                   value={dados.complemento}
                   maxLength={80}
                   onChange={(e) => onMudar({ complemento: e.target.value })}

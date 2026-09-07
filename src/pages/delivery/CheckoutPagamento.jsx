@@ -5,6 +5,7 @@
 // o servidor revalida tudo ao gravar o pedido.
 // ──────────────────────────────────────────────────────────────────
 import { calcularTroco, formatarPreco, valorDigitado } from "@/lib/delivery";
+import { useSairDoModal } from "./useSairDoModal";
 import "./CheckoutPagamento.css";
 
 // "na entrega" vira "na retirada" quando o cliente vai buscar: prometer
@@ -30,6 +31,9 @@ export default function CheckoutPagamento({
   enviando,
   erro,
 }) {
+  // Sair daqui: tocar fora ou apertar Esc. Arrastar para selecionar
+  // texto dentro do painel NÃO fecha — era esse o defeito.
+  const fundo = useSairDoModal(onVoltar);
   const FORMAS = formasDePagamento(retirada);
   const total = (Number(subtotal) || 0) + (Number(taxa) || 0);
   const troco = calcularTroco(dados.trocoPara, total);
@@ -40,8 +44,8 @@ export default function CheckoutPagamento({
   const podeConfirmar = !!dados.forma && !trocoParaInvalido && !enviando;
 
   return (
-    <div className="modal-fundo" onClick={onVoltar}>
-      <div className="modal-painel" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-fundo" {...fundo}>
+      <div className="modal-painel">
         <div className="modal-topo">
           <h2 className="modal-titulo">Pagamento</h2>
           <button className="modal-fechar" onClick={onVoltar} aria-label="Voltar">

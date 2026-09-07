@@ -193,3 +193,49 @@ describe("SacolaModal — sacola em ordem (Run 6, leva 4)", () => {
     expect(botaoAvancar()).toBeDisabled();
   });
 });
+
+// ══════════════════════════════════════════════════════════════════
+// A sacola como CARTÃO, e o "−" que apagava o item sem avisar.
+// ══════════════════════════════════════════════════════════════════
+describe("SacolaModal — tirar da sacola é ação com lugar próprio", () => {
+  const diminuir = () => screen.getByRole("button", { name: "Diminuir" });
+  const aumentar = () => screen.getByRole("button", { name: "Aumentar" });
+
+  it("na quantidade 1, o '−' fica trancado — ele apagava o item sem uma palavra", () => {
+    const { onAlterarQtd } = abrir({ itens: [linha({ qtd: 1 })] });
+
+    expect(diminuir()).toBeDisabled();
+    // E a saída de verdade continua visível ao lado.
+    expect(screen.getByRole("button", { name: "Remover" })).toBeEnabled();
+    expect(onAlterarQtd).not.toHaveBeenCalled();
+  });
+
+  it("acima de 1, diminuir volta a funcionar normalmente", async () => {
+    const { onAlterarQtd } = abrir({ itens: [linha({ qtd: 2 })], subtotal: 50 });
+
+    expect(diminuir()).toBeEnabled();
+    await userEvent.click(diminuir());
+    expect(onAlterarQtd).toHaveBeenCalledWith("L1", -1);
+
+    await userEvent.click(aumentar());
+    expect(onAlterarQtd).toHaveBeenCalledWith("L1", +1);
+  });
+
+  it("mostra o ícone do item — a sacola é a continuação do cardápio", () => {
+    abrir({ itens: [linha({ emoji: "🍕" })] });
+
+    expect(screen.getByText("🍕")).toBeInTheDocument();
+  });
+
+  it("item sem ícone cadastrado não deixa buraco na linha", () => {
+    abrir({ itens: [linha({ emoji: null })] });
+
+    expect(screen.getByText("🍽️")).toBeInTheDocument();
+  });
+
+  it("diz onde entra a taxa — 'Subtotal' no fim da sacola parecia o valor final", () => {
+    abrir();
+
+    expect(screen.getByText(/taxa de entrega é calculada no passo seguinte/i)).toBeInTheDocument();
+  });
+});

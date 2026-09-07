@@ -10,6 +10,7 @@
 // clique, por uma recusa do servidor que não diz qual item é.
 // ──────────────────────────────────────────────────────────────────
 import { formatarPreco, precoLinha } from "@/lib/delivery";
+import { useSairDoModal } from "./useSairDoModal";
 import "./SacolaModal.css";
 
 export default function SacolaModal({
@@ -23,12 +24,15 @@ export default function SacolaModal({
   onRemover,
   onAvancar,
 }) {
+  // Sair daqui: tocar fora ou apertar Esc. Arrastar para selecionar
+  // texto dentro do painel NÃO fecha — era esse o defeito.
+  const fundo = useSairDoModal(onFechar);
   const abaixoMinimo = subtotal < (Number(pedidoMinimo) || 0);
   const faltam = (Number(pedidoMinimo) || 0) - subtotal;
 
   return (
-    <div className="modal-fundo" onClick={onFechar}>
-      <div className="modal-painel" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-fundo" {...fundo}>
+      <div className="modal-painel">
         <div className="modal-topo">
           <h2 className="modal-titulo">Sua sacola</h2>
           <button className="modal-fechar" onClick={onFechar} aria-label="Fechar">
@@ -55,26 +59,49 @@ export default function SacolaModal({
                     className={`linha-sacola${fora ? " linha-sacola--fora" : ""}`}
                     key={item._linha}
                   >
-                    <div className="linha-sacola__texto">
-                      <p className="linha-sacola__nome">{item.nome}</p>
-                      {extras && <p className="linha-sacola__extra">{extras}</p>}
-                      {item.obs && <p className="linha-sacola__extra">Obs.: {item.obs}</p>}
-                      {fora && (
-                        <p className="linha-sacola__selo linha-sacola__selo--fora">
-                          Saiu do cardápio — remova para continuar
-                        </p>
-                      )}
-                      {item.situacao === "preco" && (
-                        <p className="linha-sacola__selo">Preço atualizado pelo estabelecimento</p>
-                      )}
+                    {/* Cabeça da linha: o que é, e quanto custa. O ícone dá à
+                        sacola a mesma cara do cardápio de onde o item veio —
+                        uma lista de texto puro não parece a escolha que a
+                        pessoa acabou de fazer. */}
+                    <div className="linha-sacola__cabeca">
+                      <span className="linha-sacola__emoji" aria-hidden="true">
+                        {item.emoji || "🍽️"}
+                      </span>
+                      <div className="linha-sacola__texto">
+                        <p className="linha-sacola__nome">{item.nome}</p>
+                        {extras && <p className="linha-sacola__extra">{extras}</p>}
+                        {item.obs && <p className="linha-sacola__extra">Obs.: {item.obs}</p>}
+                        {fora && (
+                          <p className="linha-sacola__selo linha-sacola__selo--fora">
+                            Saiu do cardápio — remova para continuar
+                          </p>
+                        )}
+                        {item.situacao === "preco" && (
+                          <p className="linha-sacola__selo">Preço atualizado pelo estabelecimento</p>
+                        )}
+                      </div>
+                      <span className="linha-sacola__preco">{formatarPreco(precoLinha(item))}</span>
+                    </div>
+
+                    {/* Pé da linha: as duas ações, separadas nas pontas. Antes
+                        "Remover" ficava logo abaixo do preço, em vermelho, e
+                        disputava o olhar com o valor do item. */}
+                    <div className="linha-sacola__acoes">
                       {/* Mexer na quantidade de um item que saiu do ar não leva
                           a lugar nenhum. A única saída é "Remover", e ela fica
                           sozinha na linha para não competir com nada. */}
                       {!fora && (
-                        <div className="qtd" style={{ marginTop: 6 }}>
+                        <div className="qtd qtd--sacola">
+                          {/* Trancado na quantidade 1. Antes o "−" ali
+                              apagava o item da sacola sem uma palavra —
+                              um toque a mais no botão de diminuir e o
+                              produto sumia. Tirar da sacola é destrutivo
+                              e agora tem lugar próprio: o "Remover" ao
+                              lado (prevenção de erro > mensagem de erro). */}
                           <button
                             className="qtd__botao"
                             onClick={() => onAlterarQtd(item._linha, -1)}
+                            disabled={item.qtd <= 1}
                             aria-label="Diminuir"
                           >
                             −
@@ -89,22 +116,10 @@ export default function SacolaModal({
                           </button>
                         </div>
                       )}
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <span className="linha-sacola__preco">{formatarPreco(precoLinha(item))}</span>
-                      <br />
                       <button
+                        type="button"
                         onClick={() => onRemover(item._linha)}
                         className="sacola-modal__remover"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "var(--gm-red)",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          marginTop: 8,
-                          padding: 0,
-                        }}
                       >
                         Remover
                       </button>
@@ -114,10 +129,17 @@ export default function SacolaModal({
               })}
 
               <div className="resumo">
-                <div className="resumo__linha resumo__linha--total">
+                {/* Subtotal, não total: a taxa de entrega entra na tela
+                    seguinte. Ele vinha com o peso de TOTAL e parecia o valor
+                    final do pedido — quem lia isso levava um susto no
+                    pagamento. */}
+                <div className="resumo__linha">
                   <span>Subtotal</span>
-                  <span>{formatarPreco(subtotal)}</span>
+                  <span className="resumo__valor">{formatarPreco(subtotal)}</span>
                 </div>
+                <p className="sacola-modal__nota">
+                  A taxa de entrega é calculada no passo seguinte, pelo seu endereço.
+                </p>
               </div>
 
               {temFora && (
@@ -142,10 +164,9 @@ export default function SacolaModal({
               )}
 
               <button
-                className="btn btn--primario"
+                className="btn btn--primario sacola-modal__avancar"
                 onClick={onAvancar}
                 disabled={abaixoMinimo || temFora}
-                style={{ marginTop: 8 }}
               >
                 <span>Ir para a entrega</span>
                 <span className="btn__preco">{formatarPreco(subtotal)}</span>

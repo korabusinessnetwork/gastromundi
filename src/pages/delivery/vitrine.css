@@ -579,14 +579,12 @@
 }
 
 /* ── Linha da sacola (revisão) ──────────────────────────────────── */
-.linha-sacola {
-  display: flex;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--gm-border);
-}
+/* A caixa da linha (cartão, espaçamento, borda) mora em SacolaModal.css —
+   é lá que a sacola é desenhada. Aqui ficam só o texto e o preço, que a
+   tela de entrega e a de pagamento também reaproveitam
+   (`.linha-sacola__extra` é a frase de apoio dos dois checkouts). */
 .linha-sacola__texto { flex: 1; min-width: 0; }
-.linha-sacola__nome { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.linha-sacola__nome { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
 .linha-sacola__extra { font-size: 12px; color: var(--gm-muted); margin: 0 0 6px; line-height: 1.4; }
 .linha-sacola__preco { font-size: 14px; font-weight: 800; color: var(--gm-green); white-space: nowrap; }
 

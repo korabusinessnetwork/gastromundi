@@ -1,14 +1,121 @@
 /**
- * F018 — Decisão 018 (CSS separado do JSX) + tokens --gm-* (ADR-007).
+ * SacolaModal — decisão 018 (CSS separado do JSX) + tokens --gm-* (ADR-007).
+ * Escala de fonte pela tipografia do design system (--fs-* / --lh-*).
  *
- * TAMANHO DE FONTE agora vem da escala do design system (--fs-* e --lh-* de
- * src/styles/tipografia.css), por classe de componente — não mais inline via
- * style={{}}. Cores/transições/cursor/layout permanecem inline ou em padrão.
+ * As classes base (.modal-*, .qtd, .btn, .resumo) moram em vitrine.css,
+ * importado pelo PAI (CardapioPage). O Vite não garante que o arquivo do
+ * filho entre depois no bundle, então toda regra que sobrescreve uma
+ * propriedade já declarada lá usa SELETOR DE DUAS CLASSES: quem decide é a
+ * especificidade, não a ordem de concatenação.
+ *
+ * A sacola era uma pilha de linhas soltas separadas por fio, com o preço
+ * boiando à direita e um "Remover" vermelho logo abaixo dele — as duas
+ * coisas mais chamativas da linha eram o valor e a ação de destruí-la.
+ * Agora cada item é um CARTÃO com a mesma gramática do resto da vitrine
+ * (`.card-produto`, `.meu-pedido`): ícone, texto, preço no alto à direita;
+ * e as ações num pé próprio, separadas nas pontas.
  */
 
+/* ── Item da sacola ─────────────────────────────────────────────── */
+.linha-sacola {
+  display: block;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  background: var(--gm-surface);
+}
+
+.linha-sacola__cabeca {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Mesma proporção do ícone de reserva do cardápio: a sacola tem que
+   parecer a continuação da tela de onde o item veio. */
+.linha-sacola__emoji {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--gm-card);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.linha-sacola__texto {
+  flex: 1;
+  min-width: 0;
+}
+
+/* `.linha-sacola__extra` declara `margin: 0 0 6px` em vitrine.css — o
+   shorthand zera o topo, então o último parágrafo do bloco de texto
+   deixaria uma folga só embaixo. Aqui a folga é do cartão. */
+.linha-sacola__texto > :last-child {
+  margin-bottom: 0;
+}
+
+.linha-sacola__preco {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Pé: quantidade à esquerda, remover à direita ───────────────── */
+.linha-sacola__acoes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--gm-border);
+}
+
+/* Item fora do cardápio não tem stepper: sem ele, o "Remover" ficaria
+   encostado à esquerda, fora do lugar onde ele sempre está. */
+.linha-sacola--fora .linha-sacola__acoes {
+  justify-content: flex-end;
+}
+
+/* O stepper do cartão de produto tem 36px de botão — grande demais para o
+   pé de uma linha de lista, onde ele empurrava a altura do item inteiro. */
+.qtd.qtd--sacola {
+  padding: 3px;
+  background: var(--gm-card);
+}
+.qtd.qtd--sacola .qtd__botao {
+  width: 30px;
+  height: 30px;
+  font-size: var(--fs-base);
+  background: var(--gm-surface);
+}
+.qtd.qtd--sacola .qtd__valor {
+  min-width: 24px;
+  font-size: var(--fs-base);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Remover é ação secundária e destrutiva: fica discreta até o cursor
+   chegar nela. Em vermelho permanente, competia com o preço do item. */
 .sacola-modal__remover {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--gm-muted);
+  font-family: inherit;
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+.sacola-modal__remover:hover {
+  background: color-mix(in srgb, var(--gm-red) 12%, transparent);
+  color: var(--gm-red);
 }
 
 /* Run 6, leva 4 — a linha que não bate mais com o cardápio.
@@ -29,8 +136,35 @@
 
 /* Item fora do ar fica visivelmente apagado, mas o botão "Remover"
    (a única ação que resolve) continua com contraste cheio. */
+.linha-sacola--fora {
+  border-color: color-mix(in srgb, var(--gm-red) 40%, var(--gm-border));
+}
+.linha-sacola--fora .linha-sacola__emoji,
 .linha-sacola--fora .linha-sacola__nome,
 .linha-sacola--fora .linha-sacola__extra,
 .linha-sacola--fora .linha-sacola__preco {
   opacity: 0.5;
+}
+.linha-sacola--fora .sacola-modal__remover {
+  color: var(--gm-red);
+}
+
+/* ── Resumo e avanço ────────────────────────────────────────────── */
+.resumo__valor {
+  color: var(--gm-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Diz onde entra a taxa. Sem isso, quem lia "Subtotal" no fim da sacola
+   achava que era o valor final e levava um susto no pagamento. */
+.sacola-modal__nota {
+  margin: 4px 0 0;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.btn.sacola-modal__avancar {
+  margin-top: 8px;
 }

@@ -338,6 +338,10 @@ export function revisarSacola(itens, cardapio) {
     const precoMudou = centavos(atual.preco) !== centavos(item?.preco);
     return {
       ...item,
+      // O emoji vem do cardápio de AGORA, não da sacola: assim a sacola
+      // guardada de ontem também mostra o ícone, e ele acompanha o produto
+      // se o dono trocar o emoji no cadastro.
+      emoji: atual.emoji ?? item?.emoji ?? null,
       preco: Number(atual.preco) || 0,
       complementosEscolhidos: complementosAtuais,
       situacao: precoMudou || complementoMudouPreco ? "preco" : "ok",

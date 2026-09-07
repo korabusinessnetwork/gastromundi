@@ -12,6 +12,7 @@
 // último pedido é o motivo nº 1 de alguém abrir esta tela.
 // ──────────────────────────────────────────────────────────────────
 import { formatarPreco } from "@/lib/delivery";
+import { useSairDoModal } from "./useSairDoModal";
 import "./MeusPedidos.css";
 
 // Os mesmos estados do painel do estabelecimento (lib/deliveryPedidos.js),
@@ -125,11 +126,14 @@ export default function MeusPedidos({
   onTentarDeNovo,
   onEsquecer,
 }) {
+  // Sair daqui: tocar fora ou apertar Esc. Arrastar para selecionar
+  // texto dentro do painel NÃO fecha — era esse o defeito.
+  const fundo = useSairDoModal(onFechar);
   const vazio = !carregando && !erro && (pedidos ?? []).length === 0;
 
   return (
-    <div className="modal-fundo" onClick={onFechar}>
-      <div className="modal-painel" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-fundo" {...fundo}>
+      <div className="modal-painel">
         <div className="modal-topo">
           <h2 className="modal-titulo">Meus pedidos</h2>
           <button className="modal-fechar" onClick={onFechar} aria-label="Fechar">
