@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
-import { LuPlus, LuX, LuSearch, LuMinus, LuTrash2, LuList, LuLayoutGrid } from "react-icons/lu";
+import { LuPlus, LuX, LuSearch, LuMinus, LuTrash2, LuList, LuLayoutGrid, LuEye, LuEyeOff } from "react-icons/lu";
 import NovosProdutosInline from "./NovosProdutosInline";
 import "./EditorGruposEscolha.css";
 
@@ -80,7 +80,7 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
   }, [products, busca, grupo.itens]);
 
   const addItem = (p) => {
-    set({ itens: [...(grupo.itens ?? []), { produtoId: p.id, preco: "" }] });
+    set({ itens: [...(grupo.itens ?? []), { produtoId: p.id, preco: "", ativo: true }] });
     setBusca("");
     setShow(false);
   };
@@ -89,13 +89,19 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
   // a `set` por produto perderia as anteriores (todas partiriam do mesmo
   // `grupo` da closure).
   const addVarios = (novos) => {
-    set({ itens: [...(grupo.itens ?? []), ...novos.map((p) => ({ produtoId: p.id, preco: "" }))] });
+    set({ itens: [...(grupo.itens ?? []), ...novos.map((p) => ({ produtoId: p.id, preco: "", ativo: true }))] });
     setBusca("");
     setShow(false);
   };
   const removeItem = (idx) => set({ itens: grupo.itens.filter((_, i) => i !== idx) });
   const setPreco = (idx, v) =>
     set({ itens: grupo.itens.map((it, i) => (i === idx ? { ...it, preco: v } : it)) });
+
+  // Desligar não apaga: a opção continua cadastrada, com o acréscimo dela,
+  // e só deixa de ser oferecida no PDV. É o "acabou hoje" sem o dono ter de
+  // recadastrar amanhã.
+  const setAtivo = (idx, ativo) =>
+    set({ itens: grupo.itens.map((it, i) => (i === idx ? { ...it, ativo } : it)) });
 
   // mínimo ≥ 0; ao subir o mínimo além do máximo, o máximo o acompanha
   const setMin = (v) => {
@@ -178,8 +184,9 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
             <div className="editor-grupos__itens-lista">
               {grupo.itens.map((it, idx) => {
                 const p = prodMap[String(it.produtoId)];
+                const ligada = it.ativo !== false;
                 return (
-                  <div key={idx} className="editor-grupos__item-card">
+                  <div key={idx} className={`editor-grupos__item-card${ligada ? "" : " editor-grupos__item-card--desligada"}`}>
                     <span className="editor-grupos__item-emoji">{p?.emoji ?? "📦"}</span>
                     <div className="editor-grupos__item-nome-wrap">
                       <div className="editor-grupos__item-nome">{p?.name ?? "Produto removido"}</div>
@@ -200,6 +207,17 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
                         />
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={ligada}
+                      aria-label={`Oferecer ${p?.name ?? "esta opção"}`}
+                      title={ligada ? "Sendo oferecida — clique para desligar (o acréscimo fica salvo)" : "Não está sendo oferecida — clique para ligar"}
+                      onClick={() => setAtivo(idx, !ligada)}
+                      className="editor-grupos__item-ligar"
+                    >
+                      {ligada ? <LuEye size={16} /> : <LuEyeOff size={16} />}
+                    </button>
                     <button
                       type="button"
                       onClick={() => removeItem(idx)}

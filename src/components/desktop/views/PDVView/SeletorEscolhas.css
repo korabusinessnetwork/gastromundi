@@ -215,3 +215,41 @@
   font-size: var(--fs-base);
   line-height: var(--lh-base);
 }
+
+/* ── Repetir a mesma opção (double cheddar) ──────────────────────────
+   O cartão soma uma unidade a cada toque e o "−" tira uma. O "−" fica
+   FORA do <button> do cartão (botão dentro de botão é inválido) e é
+   posicionado por cima do canto — daí o `position: relative` no wrap. */
+.seletor-escolhas__opcao-wrap {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+.seletor-escolhas__opcao-wrap > .seletor-escolhas__opcao {
+  flex: 1;
+  min-width: 0;
+}
+
+.seletor-escolhas__menos {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.seletor-escolhas__menos:hover {
+  border-color: var(--gm-red);
+  color: var(--gm-red);
+}

@@ -215,6 +215,37 @@
   appearance: textfield;
 }
 
+/* Opção desligada continua na lista, apagada: bate o olho e se vê que
+   aquilo não está sendo oferecido hoje — sem perder o acréscimo. */
+.editor-grupos__item-card--desligada .editor-grupos__item-emoji,
+.editor-grupos__item-card--desligada .editor-grupos__item-nome-wrap,
+.editor-grupos__item-card--desligada .editor-grupos__item-acrescimo {
+  opacity: 0.45;
+}
+
+.editor-grupos__item-card--desligada .editor-grupos__item-nome {
+  text-decoration: line-through;
+}
+
+.editor-grupos__item-ligar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.editor-grupos__item-ligar:hover {
+  background: var(--gm-faint);
+  color: var(--gm-text);
+}
+
 .editor-grupos__item-remover {
   background: none;
   border: none;

@@ -105,8 +105,10 @@ describe("carregarGruposDoProduto / carregarGruposDoCombo", () => {
         ordem: 1,
         // Ordenados por `ordem`, não pela ordem que vieram do banco.
         itens: [
-          { id: "i1", produtoId: 11, preco: 0 },
-          { id: "i2", produtoId: 22, preco: 4.5 },
+          // `ativo` chega true por omissão: linha antiga, gravada antes da
+          // coluna existir, continua sendo oferecida.
+          { id: "i1", produtoId: 11, preco: 0, ativo: true },
+          { id: "i2", produtoId: 22, preco: 4.5, ativo: true },
         ],
       },
     ]);
@@ -312,9 +314,20 @@ describe("salvarGrupos", () => {
     });
 
     expect(payloadsDeItens()[0]).toEqual([
-      { grupo_id: "novo-grupo", produto_id: 11, preco_customizado: null, ordem: 0 },
-      { grupo_id: "novo-grupo", produto_id: 22, preco_customizado: 3.5, ordem: 1 },
-      { grupo_id: "novo-grupo", produto_id: 33, preco_customizado: null, ordem: 2 },
+      { grupo_id: "novo-grupo", produto_id: 11, preco_customizado: null, ativo: true, ordem: 0 },
+      { grupo_id: "novo-grupo", produto_id: 22, preco_customizado: 3.5, ativo: true, ordem: 1 },
+      { grupo_id: "novo-grupo", produto_id: 33, preco_customizado: null, ativo: true, ordem: 2 },
+    ]);
+  });
+
+  it("grava a opção desligada como desligada, sem perder o acréscimo dela", async () => {
+    await salvarGrupos({
+      produtoId: 10,
+      grupos: [{ nome: "Adicionais", itens: [{ produtoId: 11, preco: 3, ativo: false }] }],
+    });
+
+    expect(payloadsDeItens()[0]).toEqual([
+      { grupo_id: "novo-grupo", produto_id: 11, preco_customizado: 3, ativo: false, ordem: 0 },
     ]);
   });
 
@@ -352,6 +365,22 @@ describe("resolverOpcoes", () => {
   it("sem grupo, sem opções", () => {
     expect(resolverOpcoes(null)).toEqual([]);
     expect(resolverOpcoes(undefined, produtos)).toEqual([]);
+  });
+
+  // "Acabou a cerveja hoje": a opção continua cadastrada, com o acréscimo
+  // que o dono configurou, mas não é oferecida ao operador. Apagar para
+  // esconder perderia essa configuração.
+  it("opção desligada não é oferecida, e as ligadas continuam", () => {
+    const grupo = {
+      origem: "lista",
+      itens: [
+        { produtoId: 1, preco: 0, ativo: true },
+        { produtoId: 2, preco: 3, ativo: false },
+        { produtoId: 4, preco: 0 },
+      ],
+    };
+
+    expect(resolverOpcoes(grupo, produtos).map((o) => o.produtoId)).toEqual([1, 4]);
   });
 
   it("origem categoria devolve os produtos ativos daquela categoria, sem acréscimo", () => {

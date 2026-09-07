@@ -29,7 +29,7 @@ import { supabase } from "./supabase";
 
 const SEL_GRUPO =
   "id, produto_id, combo_id, nome, minimo, maximo, origem, categoria, ordem, " +
-  "grupo_escolha_itens(id, produto_id, preco_customizado, ordem)";
+  "grupo_escolha_itens(id, produto_id, preco_customizado, ordem, ativo)";
 
 function mapGrupo(row) {
   return {
@@ -47,6 +47,9 @@ function mapGrupo(row) {
         id: i.id,
         produtoId: i.produto_id,
         preco: Number(i.preco_customizado ?? 0) || 0,
+        // Opção desligada continua cadastrada, com o acréscimo dela — só
+        // não é oferecida ao operador (ver resolverOpcoes).
+        ativo: i.ativo !== false,
       })),
   };
 }
@@ -145,6 +148,7 @@ export async function salvarGrupos({ produtoId = null, comboId = null, grupos = 
           grupo_id: grupoRow.id,
           produto_id: Number(it.produtoId),
           preco_customizado: Number(it.preco) > 0 ? Number(it.preco) : null,
+          ativo: it.ativo !== false,
           ordem: idx,
         }));
       if (itensPayload.length > 0) {
@@ -174,6 +178,9 @@ export function resolverOpcoes(grupo, products = []) {
   }
   const porId = new Map((products ?? []).map((p) => [String(p.id), p]));
   return (grupo.itens ?? [])
+    // Desligada não é oferecida: é o "acabou hoje" sem perder a
+    // configuração da opção.
+    .filter((it) => it.ativo !== false)
     .map((it) => {
       const p = porId.get(String(it.produtoId));
       return {

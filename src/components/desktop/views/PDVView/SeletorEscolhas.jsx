@@ -5,7 +5,7 @@ import { resolverOpcoes } from "@/lib/gruposEscolha";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
-import { LuX, LuCheck } from "react-icons/lu";
+import { LuX, LuCheck, LuMinus } from "react-icons/lu";
 import "./SeletorEscolhas.css";
 
 /**
@@ -27,13 +27,17 @@ function fmtBRL(v) {
   return `R$ ${Number(v || 0).toFixed(2)}`;
 }
 
-// Texto de instrução do grupo em português claro.
+// Texto de instrução do grupo em português claro. O número conta UNIDADES,
+// não opções diferentes: "escolha até 2" aceita dois cheddar, e é assim que
+// o cliente pede — "double cheddar", não "dois adicionais distintos".
 function instrucaoGrupo(min, max) {
   if (min === 0 && max === 1) return "Opcional — escolha 1 se quiser";
   if (min === 0) return `Opcional — até ${max}`;
   if (min === max) return `Escolha ${min}`;
   return `Escolha de ${min} a ${max}`;
 }
+
+const unidades = (qtds) => Object.values(qtds ?? {}).reduce((t, n) => t + n, 0);
 
 export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos = [], products = [], onConfirmar, onClose }) {
   // opções resolvidas por grupo, uma vez
@@ -42,24 +46,34 @@ export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos =
     [grupos, products],
   );
 
-  // seleção: para cada grupo (índice), lista de produtoId escolhidos
-  const [selecao, setSelecao] = useState(() => grupos.map(() => []));
+  // Seleção: por grupo, quantas unidades de cada opção. Era uma lista de
+  // ids (marcado/desmarcado), o que impedia pedir a MESMA opção duas vezes
+  // — o "double cheddar" não tinha como ser lançado. O carrinho e a baixa
+  // de estoque já sabiam somar `qtd`; só a escolha não deixava passar de 1.
+  const [selecao, setSelecao] = useState(() => grupos.map(() => ({})));
 
-  const toggle = (gi, produtoId) => {
+  const alterar = (gi, produtoId, passo) => {
     setSelecao((prev) => {
       const g = gruposResolvidos[gi];
-      const atual = prev[gi] ?? [];
-      const jaTem = atual.some((id) => String(id) === String(produtoId));
-      let nova;
-      if (jaTem) {
-        nova = atual.filter((id) => String(id) !== String(produtoId));
-      } else if ((g.maximo ?? 1) === 1) {
-        nova = [produtoId]; // seleção única: substitui
-      } else if (atual.length >= (g.maximo ?? 1)) {
-        return prev; // já no máximo — ignora (o cartão fica desabilitado)
-      } else {
-        nova = [...atual, produtoId];
+      const max = g.maximo ?? 1;
+      const atual = prev[gi] ?? {};
+      const chave = String(produtoId);
+      const qtd = atual[chave] ?? 0;
+
+      // Escolha única: clicar troca de opção em vez de somar — é o que o
+      // operador espera de "qual hambúrguer?".
+      if (max === 1) {
+        const nova = qtd > 0 ? {} : { [chave]: 1 };
+        return prev.map((s, i) => (i === gi ? nova : s));
       }
+
+      const proxima = qtd + passo;
+      if (proxima < 0) return prev;
+      if (passo > 0 && unidades(atual) >= max) return prev;
+
+      const nova = { ...atual };
+      if (proxima === 0) delete nova[chave];
+      else nova[chave] = proxima;
       return prev.map((s, i) => (i === gi ? nova : s));
     });
   };
@@ -68,9 +82,9 @@ export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos =
   const escolhas = useMemo(() => {
     const out = [];
     gruposResolvidos.forEach((g, gi) => {
-      for (const id of selecao[gi] ?? []) {
+      for (const [id, qtd] of Object.entries(selecao[gi] ?? {})) {
         const op = g.opcoes.find((o) => String(o.produtoId) === String(id));
-        if (op) out.push({ produtoId: op.produtoId, nome: op.nome, qtd: 1, preco: Number(op.preco) || 0 });
+        if (op && qtd > 0) out.push({ produtoId: op.produtoId, nome: op.nome, qtd, preco: Number(op.preco) || 0 });
       }
     });
     return out;
@@ -82,7 +96,7 @@ export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos =
   );
 
   // todas as escolhas obrigatórias satisfeitas?
-  const faltando = gruposResolvidos.filter((g, gi) => (selecao[gi]?.length ?? 0) < (g.minimo ?? 0));
+  const faltando = gruposResolvidos.filter((g, gi) => unidades(selecao[gi]) < (g.minimo ?? 0));
   const podeConfirmar = faltando.length === 0;
 
   const confirmar = () => {
@@ -105,9 +119,14 @@ export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos =
         {/* Grupos */}
         <div className="seletor-escolhas__grupos">
           {gruposResolvidos.map((g, gi) => {
-            const sel = selecao[gi] ?? [];
-            const noMax = sel.length >= (g.maximo ?? 1);
-            const incompleto = sel.length < (g.minimo ?? 0);
+            const sel = selecao[gi] ?? {};
+            const usadas = unidades(sel);
+            const max = g.maximo ?? 1;
+            const noMax = usadas >= max;
+            const incompleto = usadas < (g.minimo ?? 0);
+            // Só faz sentido repetir a mesma opção quando o grupo aceita
+            // mais de uma unidade; com "escolha 1" o clique troca.
+            const repetivel = max > 1;
             return (
               <div key={g.id ?? gi} className="seletor-escolhas__grupo">
                 <div className="seletor-escolhas__grupo-topo">
@@ -128,37 +147,57 @@ export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos =
                 ) : (
                   <div className="seletor-escolhas__opcoes">
                     {g.opcoes.map((op) => {
-                      const escolhida = sel.some((id) => String(id) === String(op.produtoId));
-                      const bloqueada = !escolhida && noMax && (g.maximo ?? 1) > 1;
+                      const qtd = sel[String(op.produtoId)] ?? 0;
+                      const escolhida = qtd > 0;
+                      // Cheia a cota, o que já foi escolhido continua clicável
+                      // (para tirar); só o que ainda não entrou é barrado.
+                      const bloqueada = !escolhida && noMax && max > 1;
                       return (
-                        <button
-                          key={op.produtoId}
-                          type="button"
-                          disabled={bloqueada}
-                          onClick={() => toggle(gi, op.produtoId)}
-                          className="seletor-escolhas__opcao"
-                          style={{
-                            borderColor: escolhida ? varColor(C.accent) : varColor(C.border),
-                            background: escolhida ? alfa(C.accent, "12") : varColor(C.surface),
-                            opacity: bloqueada ? 0.45 : 1,
-                            cursor: bloqueada ? "not-allowed" : "pointer",
-                          }}
-                        >
-                          <span className="seletor-escolhas__opcao-emoji">{op.emoji ?? "📦"}</span>
-                          <span className="seletor-escolhas__opcao-nome">{op.nome}</span>
-                          {op.preco > 0 && (
-                            <span className="seletor-escolhas__opcao-acrescimo">+{fmtBRL(op.preco)}</span>
-                          )}
-                          <span
-                            className="seletor-escolhas__opcao-check"
+                        <div key={op.produtoId} className="seletor-escolhas__opcao-wrap">
+                          <button
+                            type="button"
+                            disabled={bloqueada || (escolhida && repetivel && noMax)}
+                            onClick={() => alterar(gi, op.produtoId, 1)}
+                            aria-label={repetivel ? `Somar um ${op.nome}` : op.nome}
+                            className="seletor-escolhas__opcao"
                             style={{
                               borderColor: escolhida ? varColor(C.accent) : varColor(C.border),
-                              background: escolhida ? varColor(C.accent) : "transparent",
+                              background: escolhida ? alfa(C.accent, "12") : varColor(C.surface),
+                              opacity: bloqueada ? 0.45 : 1,
+                              cursor: bloqueada ? "not-allowed" : "pointer",
                             }}
                           >
-                            {escolhida && <LuCheck size={14} color="#fff" />}
-                          </span>
-                        </button>
+                            <span className="seletor-escolhas__opcao-emoji">{op.emoji ?? "📦"}</span>
+                            <span className="seletor-escolhas__opcao-nome">{op.nome}</span>
+                            {op.preco > 0 && (
+                              <span className="seletor-escolhas__opcao-acrescimo">+{fmtBRL(op.preco)}</span>
+                            )}
+                            <span
+                              className="seletor-escolhas__opcao-check"
+                              style={{
+                                borderColor: escolhida ? varColor(C.accent) : varColor(C.border),
+                                background: escolhida ? varColor(C.accent) : "transparent",
+                              }}
+                            >
+                              {escolhida && (repetivel ? <b>{qtd}</b> : <LuCheck size={14} color="#fff" />)}
+                            </span>
+                          </button>
+
+                          {/* Fora do <button> porque botão dentro de botão é
+                              marcação inválida — visualmente ele fica no canto
+                              do cartão, ver SeletorEscolhas.css. */}
+                          {escolhida && repetivel && (
+                            <button
+                              type="button"
+                              onClick={() => alterar(gi, op.produtoId, -1)}
+                              aria-label={`Tirar um ${op.nome}`}
+                              title="Tirar um"
+                              className="seletor-escolhas__menos"
+                            >
+                              <LuMinus size={14} />
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
