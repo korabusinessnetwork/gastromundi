@@ -17,6 +17,10 @@
 /* Retirada: a etiqueta logo abaixo do "Pedido enviado!" e o endereço em
    destaque. Quem vai buscar precisa sair de casa com essas duas linhas —
    o número do pedido sozinho não diz para onde ir. */
+.confirma__acompanhar {
+  margin-top: 16px;
+}
+
 .confirma__tipo {
   margin: 4px 0 0;
   font-size: 13px;

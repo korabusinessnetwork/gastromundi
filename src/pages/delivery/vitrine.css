@@ -39,6 +39,29 @@
   gap: 12px;
 }
 
+/* "Meus pedidos" no canto do cabeçalho: acompanhamento é secundário
+   diante do cardápio, mas precisa estar sempre à mão — quem volta na
+   página está voltando justamente para ver isso. `margin-left: auto`
+   empurra para a ponta sem depender da ordem dos irmãos. */
+.vitrine__meus-pedidos {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.vitrine__meus-pedidos:hover {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
 .vitrine__logo {
   width: 44px;
   height: 44px;

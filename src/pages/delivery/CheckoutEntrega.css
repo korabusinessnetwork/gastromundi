@@ -15,6 +15,18 @@
   margin-top: 6px;
 }
 
+/* A frase que diz que o CEP é dispensável. Fica presa ao campo, não solta
+   no formulário: é resposta à pergunta que aquele campo faz. */
+.linha-sacola__extra.checkout-entrega__ajuda {
+  margin-top: 6px;
+}
+
+/* "(opcional)" sem peso: o rótulo continua sendo "CEP". */
+.campo__label .campo__opcional {
+  font-weight: 400;
+  color: var(--gm-muted);
+}
+
 .btn.checkout-entrega__avancar {
   margin-top: 8px;
 }

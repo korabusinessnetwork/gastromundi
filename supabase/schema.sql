@@ -930,7 +930,9 @@ CREATE TABLE public.delivery_pedidos (
   entregador_id        uuid REFERENCES public.delivery_entregadores(id) ON DELETE SET NULL,  -- 20260919
   valor_entregador     numeric(12,2),  -- 20260919
   entregador_pago_em   timestamptz,  -- 20260920 — carimbo do pagamento (sangria); NULL = a pagar
-  tipo_entrega         text NOT NULL DEFAULT 'entrega'  -- 20260928 — 'entrega' | 'retirada' (CHECK na migração)
+  tipo_entrega         text NOT NULL DEFAULT 'entrega',  -- 20260928 — 'entrega' | 'retirada' (CHECK na migração)
+  cidade               text,  -- 20260929 — quem não sabe o CEP informa cidade + bairro
+  dispositivo_id       uuid   -- 20260929 — identidade anônima do navegador (histórico sem conta)
 );
 
 CREATE TABLE public.delivery_pedido_itens (

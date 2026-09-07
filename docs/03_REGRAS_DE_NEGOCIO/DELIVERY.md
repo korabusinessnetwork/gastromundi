@@ -49,6 +49,7 @@ confiável):
 | `cardapio_publico(slug)` | slug do tenant | categorias, produtos ativos disponíveis p/ delivery (foto, descrição, preço), grupos de complemento, combos "monte seu", status aberto/fechado |
 | `calcular_taxa_entrega(slug, cep)` | slug + CEP | bairro (ViaCEP), taxa da faixa, tempo estimado — ou "fora da área de entrega" |
 | `criar_pedido_delivery(slug, payload)` | carrinho + endereço + pagamento | nº do pedido + status; **revalida cada preço e a taxa server-side** antes de gravar |
+| `meus_pedidos_delivery(slug, dispositivo)` | slug + UUID do aparelho | os pedidos DAQUELE aparelho (máx. 20), com status — o acompanhamento sem conta |
 
 - As RPCs são `SECURITY DEFINER`, com `REVOKE FROM PUBLIC/anon` no que for tabela e
   `GRANT EXECUTE` só nas próprias funções.
@@ -62,14 +63,32 @@ confiável):
 4. **Como receber** — quando o estabelecimento aceita as duas coisas, o cliente
    escolhe primeiro entre **receber em casa** e **retirar no local**; a escolha
    decide o que a tela pergunta a seguir.
-   - *Receber em casa*: informa CEP → ViaCEP traz o bairro → taxa calculada; endereço.
+   - *Receber em casa*: **CEP é opcional**. Sabendo o CEP, o ViaCEP preenche
+     cidade, bairro e rua; sem ele, o cliente informa **cidade + bairro** e a
+     taxa sai da faixa por bairro — que nunca precisou de CEP. O avanço é
+     liberado pela TAXA ter sido resolvida, não pelos 8 dígitos.
    - *Retirar no local*: só nome/telefone. A tela mostra o endereço da loja e
      **não há taxa** — o cálculo nem é chamado, para não recusar quem mora fora
      da área e está justamente indo buscar.
 5. **Pagamento na entrega (ou na retirada)** — escolhe a forma pro motoboy levar,
    ou para pagar no balcão (ver abaixo).
 6. **Confirmação / status** — nº do pedido e acompanhamento.
-7. **Login (opcional)** — só para salvar endereço/histórico; nunca obrigatório.
+7. **Acompanhamento sem conta** — o navegador guarda uma identidade anônima
+   (`dispositivo_id`, UUID gerado no aparelho) e o pedido nasce carimbado com
+   ela. "Meus pedidos", no cabeçalho do cardápio, mostra os pedidos daquele
+   aparelho com o status em linguagem de cliente ("Saiu para entrega"). O
+   formulário de entrega também volta preenchido na visita seguinte.
+   - É **portador de segredo**: quem tiver o UUID vê aqueles pedidos. Por isso
+     ele é gerado com `crypto.randomUUID`, a RPC devolve no máximo 20 pedidos e
+     **não devolve telefone nem complemento do endereço**.
+   - Vale só naquele aparelho: trocar de celular ou limpar o navegador apaga o
+     histórico dali. A tela diz isso, e oferece "Limpar deste aparelho" para
+     quem pediu no celular de outra pessoa.
+8. **Login (opcional)** — só para salvar endereço/histórico entre aparelhos;
+   nunca obrigatório. **Ainda não existe**: conta por telefone exige SMS pago
+   (~US$ 0,055/mensagem, sem camada gratuita), o que está adiado por padrão na
+   fase de bootstrap. A identidade por aparelho cobre o caso comum sem custo, e
+   os pedidos dela poderão ser reivindicados por uma conta futura.
 
 ## Pagamento na entrega (grátis — sem gateway)
 O cliente **seleciona a forma pro motoboy levar**:
@@ -115,7 +134,8 @@ gateway/TEF é necessário.
   `endereco_origem`, o mesmo da taxa por km).
 - `delivery_pedidos` + `delivery_pedido_itens` — histórico próprio do delivery
   (cliente, endereço, taxa aplicada, forma de pagamento, troco, flag maquininha,
-  e `tipo_entrega`: `'entrega' | 'retirada'`), espelhado no `pending` para o
+  `tipo_entrega`: `'entrega' | 'retirada'`, `cidade` e `dispositivo_id`),
+  espelhado no `pending` para o
   fluxo operacional. Na retirada o espelho começa com **RETIRADA NO LOCAL** —
   é a primeira palavra que a bancada lê, e é o que evita o pedido sair na
   mochila de um entregador.
@@ -135,7 +155,9 @@ gateway/TEF é necessário.
 ## Validações
 - Preço e taxa **sempre** recalculados no servidor no momento do pedido.
 - Pedido abaixo do **mínimo** configurado é bloqueado no checkout (mensagem clara).
-- CEP fora de qualquer faixa → bloqueia com "fora da área de entrega".
+- CEP **não é obrigatório**: o pedido é aceito com cidade + bairro quando a
+  faixa por bairro cobre o endereço. CEP em branco é gravado como NULL.
+- Endereço fora de qualquer faixa → bloqueia com "fora da área de entrega".
 - Estabelecimento **sem nenhuma faixa cadastrada** → motivo próprio
   (`sem_area`), com o recado de que faltam as áreas de entrega. Não é a mesma
   coisa que endereço fora da área: tratar os dois igual fazia todo CEP ser

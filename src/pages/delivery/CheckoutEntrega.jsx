@@ -83,11 +83,12 @@ export default function CheckoutEntrega({
       const atual = dadosRef.current;
       onMudar({
         bairro: atual.bairro || data.bairro || "",
-        endereco:
-          atual.endereco ||
-          [data.logradouro, data.cidade && `${data.cidade}/${data.uf}`]
-            .filter(Boolean)
-            .join(" - "),
+        // A cidade tem campo próprio agora. Antes ela era grudada no fim do
+        // endereço ("Rua X - Porto Alegre/RS"), então o cliente apagava
+        // aquilo junto ao escrever o número da casa e a cidade sumia do
+        // pedido — e "Centro" sozinho não diz de qual cidade é.
+        cidade: atual.cidade || [data.cidade, data.uf].filter(Boolean).join("/"),
+        endereco: atual.endereco || data.logradouro || "",
       });
     })();
     return () => {
@@ -115,13 +116,16 @@ export default function CheckoutEntrega({
       return;
     }
     const cep = apenasDigitosCep(dados.cep);
-    if (!cepCompleto(cep)) {
+    const bairro = (dados.bairro || "").trim();
+    // Dá para calcular com CEP completo OU com bairro — a faixa por bairro
+    // nunca precisou de CEP. Sem nenhum dos dois não há o que perguntar ao
+    // servidor, e ficar "calculando" seria a tela fingindo que trabalha.
+    if (!cepCompleto(cep) && !bairro) {
       setTaxa(null);
       setErroTaxa("");
       setCalculandoTaxa(false);
       return;
     }
-    const bairro = dados.bairro || "";
     const endereco = dados.endereco || "";
 
     // JÁ marca como recalculando — não daqui a 700 ms, quando o debounce
@@ -185,15 +189,12 @@ export default function CheckoutEntrega({
   const semArea = taxa?.motivo === "sem_area";
   const foraDeArea = taxa && !taxa.ok && !semCoordenada && !indisponivelKm && !semArea;
   const temTaxa = taxa?.ok;
+  // O CEP saiu daqui de propósito: quem manda é a TAXA ter sido resolvida.
+  // Exigir os 8 dígitos travava quem não sabe o próprio CEP mesmo com o
+  // bairro atendido e a taxa já na tela.
   const podeAvancar = retirada
     ? Boolean(dados.nome.trim())
-    : Boolean(
-        dados.nome.trim() &&
-          cepCompleto(dados.cep) &&
-          dados.endereco.trim() &&
-          temTaxa &&
-          !calculandoTaxa
-      );
+    : Boolean(dados.nome.trim() && dados.endereco.trim() && temTaxa && !calculandoTaxa);
 
   // Trocar de caminho zera o que era do outro: a taxa de uma entrega não
   // pode sobreviver a "vou buscar" (o cliente pagaria por uma corrida que
@@ -285,9 +286,13 @@ export default function CheckoutEntrega({
             </div>
           ) : (
             <>
+              {/* Onde você está vem PRIMEIRO: é o que decide se a loja
+                  entrega aí e por quanto. Perguntar a rua antes disso é
+                  pedir para a pessoa digitar tudo para só então descobrir
+                  que não é atendida. */}
               <div className="campo">
                 <label className="campo__label" htmlFor="ent-cep">
-                  CEP
+                  CEP <span className="campo__opcional">(opcional)</span>
                 </label>
                 <input
                   id="ent-cep"
@@ -297,11 +302,30 @@ export default function CheckoutEntrega({
                   onChange={(e) => onMudar({ cep: apenasDigitosCep(e.target.value) })}
                   placeholder="00000-000"
                 />
-                {buscandoCep && (
+                {buscandoCep ? (
                   <p className="linha-sacola__extra checkout-entrega__buscando">
                     Buscando endereço…
                   </p>
+                ) : (
+                  <p className="linha-sacola__extra checkout-entrega__ajuda">
+                    Sabendo o CEP, a gente preenche o resto. Não sabe? Preencha a
+                    cidade e o bairro abaixo.
+                  </p>
                 )}
+              </div>
+
+              <div className="campo">
+                <label className="campo__label" htmlFor="ent-cidade">
+                  Cidade
+                </label>
+                <input
+                  id="ent-cidade"
+                  className="campo__input"
+                  value={dados.cidade ?? ""}
+                  maxLength={80}
+                  onChange={(e) => onMudar({ cidade: e.target.value })}
+                  placeholder="Sua cidade"
+                />
               </div>
 
               <div className="campo">

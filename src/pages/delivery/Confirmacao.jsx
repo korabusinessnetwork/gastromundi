@@ -39,6 +39,13 @@ export default function Confirmacao({ resultado, tempoPreparo, onFechar }) {
                 Retire em <strong>{resultado.endereco_retirada}</strong>
               </p>
             )}
+            {/* O número acima é a única cópia que o cliente tem. Dizer aqui
+                que ele não precisa anotar nada — nem criar conta — é o que
+                transforma a tela de despedida em acompanhamento. */}
+            <p className="linha-sacola__extra confirma__acompanhar">
+              Você acompanha este pedido em <strong>Meus pedidos</strong>, aqui mesmo
+              no cardápio. Sem cadastro.
+            </p>
             <button
               className="btn btn--fantasma confirma__voltar"
               onClick={onFechar}

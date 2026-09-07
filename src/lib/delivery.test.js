@@ -386,7 +386,7 @@ describe("montarPayloadPedido", () => {
     });
     expect(payload).toEqual({
       cliente: { nome: "Ana", telefone: "5199" },
-      entrega: { tipo: "entrega", cep: "90000000", bairro: "Centro", endereco: "Rua X, 10", complemento: null },
+      entrega: { tipo: "entrega", cep: "90000000", cidade: "", bairro: "Centro", endereco: "Rua X, 10", complemento: null },
       pagamento: { forma: "dinheiro", troco_para: 50, levar_maquininha: false },
       itens: [{ produto_id: 7, combo_id: null, qtd: 2, complementos: ["c1"], obs: "sem cebola" }],
     });

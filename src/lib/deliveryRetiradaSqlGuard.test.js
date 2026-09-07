@@ -42,22 +42,30 @@ const MIGRACAO = "20260928_delivery_retirada_no_local.sql";
 
 const sql = readFileSync(join(MIGRATIONS_DIR, MIGRACAO), "utf8");
 
-describe("retirada no local — a migração existe e roda por último", () => {
-  it("é a última a redefinir criar_pedido_delivery e cardapio_publico", () => {
-    // Migrations são histórico imutável: as anteriores continuam no disco
-    // com a versão antiga das funções. Se alguém adicionar uma corretiva
-    // dessas RPCs com nome posterior, ela apaga a retirada sem avisar.
-    const posteriores = readdirSync(MIGRATIONS_DIR)
-      .filter((f) => f.endsWith(".sql") && f > MIGRACAO)
-      .filter((f) => {
-        const texto = readFileSync(join(MIGRATIONS_DIR, f), "utf8");
-        return (
-          /CREATE OR REPLACE FUNCTION public\.criar_pedido_delivery/.test(texto) ||
-          /CREATE OR REPLACE FUNCTION public\.cardapio_publico/.test(texto)
-        );
-      });
+/**
+ * Migrations são histórico imutável: as anteriores continuam no disco com
+ * a versão antiga de cada função, e vale a ÚLTIMA que a define. Uma
+ * corretiva posterior que copie a RPC sem as guardas de retirada as apaga
+ * do banco sem erro nenhum — por isso as provas abaixo miram sempre o
+ * texto da última definição, não o da migração que a introduziu.
+ */
+function ultimaDefinicaoDe(nomeFuncao) {
+  const re = new RegExp(`CREATE OR REPLACE FUNCTION public\\.${nomeFuncao}\\b`);
+  const arquivos = readdirSync(MIGRATIONS_DIR)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .filter((f) => re.test(readFileSync(join(MIGRATIONS_DIR, f), "utf8")));
+  const ultimo = arquivos.at(-1);
+  return ultimo ? readFileSync(join(MIGRATIONS_DIR, ultimo), "utf8") : "";
+}
 
-    expect(posteriores).toEqual([]);
+const sqlPedido = ultimaDefinicaoDe("criar_pedido_delivery");
+const sqlCardapio = ultimaDefinicaoDe("cardapio_publico");
+
+describe("retirada no local — a migração existe e não foi desfeita depois", () => {
+  it("a última definição de cada RPC ainda conhece a retirada", () => {
+    expect(sqlPedido).toContain("v_retirada");
+    expect(sqlCardapio).toContain("permite_retirada");
   });
 
   it("cria as duas colunas de forma idempotente (a migração pode ser reaplicada)", () => {
@@ -76,21 +84,21 @@ describe("retirada no local — a migração existe e roda por último", () => {
 
 describe("retirada no local — as guardas que o payload do cliente não fura", () => {
   it("pedido de retirada em loja que não habilitou é recusado no servidor", () => {
-    expect(sql).toContain("IF NOT COALESCE(v_cfg.permite_retirada, false) THEN");
-    expect(sql).toContain("Este estabelecimento não aceita retirada no local.");
+    expect(sqlPedido).toContain("IF NOT COALESCE(v_cfg.permite_retirada, false) THEN");
+    expect(sqlPedido).toContain("Este estabelecimento não aceita retirada no local.");
   });
 
   it("retirada não passa pelo cálculo de taxa", () => {
     // Sem este ramo, quem mora fora da área e está indo BUSCAR teria o
     // pedido recusado por causa de uma entrega que não vai acontecer.
-    expect(sql).toContain("IF NOT v_retirada THEN");
-    expect(sql).toMatch(/v_taxa\s*:=\s*0;/);
+    expect(sqlPedido).toContain("IF NOT v_retirada THEN");
+    expect(sqlPedido).toMatch(/v_taxa\s*:=\s*0;/);
   });
 
   it("a vitrine só oferece retirada quando há endereço para ir buscar", () => {
     // Ligado sem endereço, a tela mandaria o cliente "retirar no local"
     // sem dizer onde é o local.
-    expect(sql).toMatch(
+    expect(sqlCardapio).toMatch(
       /'permite_retirada',\s*COALESCE\(v_cfg\.permite_retirada, false\)\s*\n\s*AND NULLIF\(btrim\(COALESCE\(v_cfg\.endereco_origem, ''\)\), ''\) IS NOT NULL/
     );
   });
@@ -98,7 +106,7 @@ describe("retirada no local — as guardas que o payload do cliente não fura", 
   it("a comanda da cozinha diz RETIRADA na primeira palavra", () => {
     // É o que a bancada lê com pressa. Sem isso, o pedido sai na mochila
     // de um entregador com o cliente vindo buscar.
-    expect(sql).toContain("'RETIRADA NO LOCAL'");
+    expect(sqlPedido).toContain("'RETIRADA NO LOCAL'");
   });
 });
 
@@ -110,8 +118,8 @@ describe("o CEP não estava quebrado — faltava faixa cadastrada", () => {
   });
 
   it("e o envio do pedido explica isso em vez de culpar o endereço do cliente", () => {
-    expect(sql).toContain("IF v_motivo = 'sem_area' THEN");
-    expect(sql).toContain("Este estabelecimento ainda não configurou as áreas de entrega.");
+    expect(sqlPedido).toContain("IF v_motivo = 'sem_area' THEN");
+    expect(sqlPedido).toContain("Este estabelecimento ainda não configurou as áreas de entrega.");
   });
 });
 
@@ -127,7 +135,7 @@ describe("front e servidor falam a mesma língua", () => {
     // Se o front renomear este campo, o servidor lê 'entrega' no COALESCE
     // e grava o pedido como entrega comum — sem erro nenhum, com o cliente
     // esperando em casa uma comida que está no balcão.
-    expect(sql).toContain("p_payload -> 'entrega' ->> 'tipo'");
+    expect(sqlPedido).toContain("p_payload -> 'entrega' ->> 'tipo'");
     expect(payload.entrega.tipo).toBe("retirada");
   });
 
@@ -140,6 +148,6 @@ describe("front e servidor falam a mesma língua", () => {
     });
 
     expect(payload.entrega.tipo).toBe("entrega");
-    expect(sql).toContain("COALESCE(p_payload -> 'entrega' ->> 'tipo', 'entrega') = 'retirada'");
+    expect(sqlPedido).toContain("COALESCE(p_payload -> 'entrega' ->> 'tipo', 'entrega') = 'retirada'");
   });
 });

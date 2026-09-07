@@ -10,6 +10,7 @@
 // Funções puras (carrinho, CEP, payload) nascem com teste (delivery.test.js).
 // ──────────────────────────────────────────────────────────────────
 import { supabase } from "@/lib/supabase";
+import { ehUuid } from "@/lib/deliveryDispositivo";
 
 // ── CEP ────────────────────────────────────────────────────────────
 
@@ -373,12 +374,16 @@ function coordenada(valor) {
  * recalcula tudo. Envia só a intenção (o que o cliente escolheu).
  * @param {{cliente: object, entrega: object, pagamento: object, itens: Array}} dados
  */
-export function montarPayloadPedido({ cliente, entrega, pagamento, itens }) {
+export function montarPayloadPedido({ cliente, entrega, pagamento, itens, dispositivo }) {
   const lat = coordenada(entrega?.lat);
   const lng = coordenada(entrega?.lng);
   const trocoPara = valorDigitado(pagamento?.trocoPara);
   const retirada = entrega?.tipo === "retirada";
   return {
+    // Identidade anônima do aparelho — é ela que deixa a pessoa acompanhar
+    // o pedido e ver o histórico sem criar conta. Ausente (armazenamento
+    // bloqueado), o pedido segue normal e só não entra no histórico.
+    ...(ehUuid(dispositivo) ? { dispositivo_id: dispositivo } : {}),
     cliente: {
       nome: (cliente?.nome ?? "").trim(),
       telefone: (cliente?.telefone ?? "").trim() || null,
@@ -390,7 +395,11 @@ export function montarPayloadPedido({ cliente, entrega, pagamento, itens }) {
         { tipo: "retirada" }
       : {
           tipo: "entrega",
+          // CEP é opcional: a faixa por bairro — que é a que a maioria dos
+          // estabelecimentos cadastra — nunca precisou dele. Quem não sabe
+          // o próprio CEP informa cidade e bairro e pede do mesmo jeito.
           cep: apenasDigitosCep(entrega?.cep),
+          cidade: (entrega?.cidade ?? "").trim(),
           bairro: (entrega?.bairro ?? "").trim(),
           endereco: (entrega?.endereco ?? "").trim(),
           complemento: (entrega?.complemento ?? "").trim() || null,
@@ -515,6 +524,35 @@ export async function enviarPedido(slug, payload) {
     return {
       data: null,
       error: { message: err?.message ?? "Falha ao enviar o pedido." },
+    };
+  }
+}
+
+/**
+ * Os pedidos DESTE aparelho no estabelecimento — o acompanhamento sem
+ * conta. `dispositivo` é o UUID de `deliveryDispositivo.js`; o servidor
+ * filtra por tenant + aparelho e devolve no máximo os 20 últimos.
+ *
+ * Nunca lança e nunca deixa a vitrine em erro por causa disto: histórico
+ * é conveniência, e uma falha aqui não pode atrapalhar quem só quer pedir.
+ *
+ * @param {string} slug
+ * @param {string} dispositivo - UUID do aparelho
+ * @returns {Promise<{data: Array, error: object|null}>}
+ */
+export async function meusPedidos(slug, dispositivo) {
+  if (!slug || !dispositivo) return { data: [], error: null };
+  try {
+    const { data, error } = await supabase.rpc("meus_pedidos_delivery", {
+      p_slug: slug,
+      p_dispositivo: dispositivo,
+    });
+    if (error) return { data: [], error };
+    return { data: Array.isArray(data) ? data : [], error: null };
+  } catch (err) {
+    return {
+      data: [],
+      error: { message: err?.message ?? "Falha ao carregar seus pedidos." },
     };
   }
 }

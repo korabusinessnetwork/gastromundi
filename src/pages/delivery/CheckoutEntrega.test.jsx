@@ -75,7 +75,10 @@ function Palco({ onAvancar, permiteRetirada = false, enderecoRetirada = "", aoMu
   );
 }
 
-const campo = (rotulo) => screen.getByLabelText(rotulo);
+// O rótulo do CEP passou a dizer "CEP (opcional)" — casar pelo começo
+// mantém os testes falando a língua da tela sem prender no sufixo.
+const campo = (rotulo) =>
+  screen.getByLabelText(new RegExp(`^${rotulo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
 const avancar = () => screen.getByRole("button", { name: "Ir para o pagamento" });
 const calculando = () => screen.queryByText("Calculando a taxa de entrega…");
 
@@ -265,7 +268,12 @@ const VIACEP_OK = {
   error: null,
 };
 
-const RUA_VIACEP = "Rua das Flores - Porto Alegre/RS";
+// A cidade tem campo PRÓPRIO agora. Antes ela vinha grudada no fim do
+// endereço ("Rua das Flores - Porto Alegre/RS") e o cliente apagava aquilo
+// junto ao escrever o número da casa — a cidade sumia do pedido, e "Centro"
+// sozinho não diz de qual cidade é.
+const RUA_VIACEP = "Rua das Flores";
+const CIDADE_VIACEP = "Porto Alegre/RS";
 
 async function montar() {
   await act(async () => {
@@ -314,6 +322,7 @@ describe("CheckoutEntrega — a busca do CEP não pode mentir nem travar (Run 6,
     expect(buscando()).toBeNull();
     expect(campo("Bairro")).toHaveValue("Centro");
     expect(campo("Endereço (rua, número)")).toHaveValue(RUA_VIACEP);
+    expect(campo("Cidade")).toHaveValue(CIDADE_VIACEP);
   });
 
   it("ViaCEP que falhou pode ser tentado de novo no mesmo CEP", async () => {
@@ -369,6 +378,7 @@ describe("CheckoutEntrega — a busca do CEP não pode mentir nem travar (Run 6,
     expect(campo("Bairro")).toHaveValue("Vila Nova");
     // A rua, que ele não digitou, o ViaCEP pode preencher.
     expect(campo("Endereço (rua, número)")).toHaveValue(RUA_VIACEP);
+    expect(campo("Cidade")).toHaveValue(CIDADE_VIACEP);
   });
 
   it("a rua digitada durante a busca também sobrevive", async () => {
@@ -395,6 +405,7 @@ describe("CheckoutEntrega — a busca do CEP não pode mentir nem travar (Run 6,
 
     expect(campo("Bairro")).toHaveValue("Centro");
     expect(campo("Endereço (rua, número)")).toHaveValue(RUA_VIACEP);
+    expect(campo("Cidade")).toHaveValue(CIDADE_VIACEP);
   });
 });
 
@@ -591,7 +602,7 @@ describe("CheckoutEntrega — retirar no local", () => {
     });
 
     expect(screen.queryByRole("button", { name: /Retirar no local/ })).toBeNull();
-    expect(screen.getByLabelText("CEP")).toBeInTheDocument();
+    expect(screen.getByLabelText(/^CEP/)).toBeInTheDocument();
   });
 
   it("escolhendo retirada, some tudo que é de endereço e aparece onde buscar", async () => {
@@ -600,7 +611,7 @@ describe("CheckoutEntrega — retirar no local", () => {
 
     // O que a pessoa NÃO precisa mais responder — pedir isso era o que
     // fazia ela inventar um endereço só para conseguir avançar.
-    expect(screen.queryByLabelText("CEP")).toBeNull();
+    expect(screen.queryByLabelText(/^CEP/)).toBeNull();
     expect(screen.queryByLabelText("Bairro")).toBeNull();
     expect(screen.queryByLabelText("Endereço (rua, número)")).toBeNull();
     // E o que ela precisa saber.
@@ -665,6 +676,76 @@ describe("CheckoutEntrega — retirar no local", () => {
     await assentar();
 
     expect(screen.getByText(/Fale com ele para combinar a entrega/)).toBeInTheDocument();
+    expect(avancar()).toBeDisabled();
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Pedir sem saber o CEP.
+//
+// A tela só liberava o avanço com 8 dígitos de CEP, e a taxa só era
+// pedida depois deles. Só que a faixa por BAIRRO — a que a maioria dos
+// estabelecimentos cadastra — nunca precisou de CEP nenhum. Quem não
+// sabe o próprio CEP (e é muita gente) não conseguia pedir, mesmo com o
+// bairro atendido.
+// ══════════════════════════════════════════════════════════════════
+describe("CheckoutEntrega — o CEP é opcional", () => {
+  it("o rótulo diz que é opcional e a tela ensina a saída", async () => {
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+
+    expect(screen.getByLabelText(/^CEP/).labels[0]).toHaveTextContent("(opcional)");
+    expect(screen.getByText(/Não sabe\? Preencha a cidade e o bairro/)).toBeInTheDocument();
+  });
+
+  it("com cidade e bairro, a taxa é calculada e o pedido avança sem CEP", async () => {
+    const onAvancar = vi.fn();
+    await act(async () => {
+      render(<Palco onAvancar={onAvancar} />);
+    });
+
+    digitar("Seu nome", "Ana");
+    digitar("Cidade", "Porto Alegre/RS");
+    digitar("Bairro", "Centro");
+    digitar("Endereço (rua, número)", "Rua X, 10");
+    await assentar();
+
+    // O servidor recebe o CEP vazio e resolve pela faixa de bairro.
+    expect(mockCalcularTaxa).toHaveBeenCalledWith(SLUG, "", "Centro");
+    expect(screen.getByText("R$ 7,50")).toBeInTheDocument();
+    expect(avancar()).toBeEnabled();
+
+    fireEvent.click(avancar());
+    expect(onAvancar).toHaveBeenCalled();
+  });
+
+  it("sem CEP e sem bairro não há o que perguntar — nada de 'calculando' girando à toa", async () => {
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+
+    digitar("Seu nome", "Ana");
+    digitar("Endereço (rua, número)", "Rua X, 10");
+    await assentar();
+
+    expect(mockCalcularTaxa).not.toHaveBeenCalled();
+    expect(calculando()).toBeNull();
+    expect(avancar()).toBeDisabled();
+  });
+
+  it("bairro fora da área continua barrando — opcional não é 'passa qualquer um'", async () => {
+    mockCalcularTaxa.mockResolvedValue({ data: { ok: false, motivo: "fora_area" }, error: null });
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+
+    digitar("Seu nome", "Ana");
+    digitar("Bairro", "Outra Cidade");
+    digitar("Endereço (rua, número)", "Rua X, 10");
+    await assentar();
+
+    expect(screen.getByText(/fora da nossa área de entrega/)).toBeInTheDocument();
     expect(avancar()).toBeDisabled();
   });
 });
