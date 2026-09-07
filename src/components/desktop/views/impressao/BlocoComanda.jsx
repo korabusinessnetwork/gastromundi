@@ -1,4 +1,7 @@
-import { TIPOS_BLOCO, MAX_TEXTO_BLOCO, DIGITOS_CNPJ, formatarCnpj, largurasVisiveis } from "@/lib/impressao/layoutComanda";
+import {
+  TIPOS_BLOCO, MAX_TEXTO_BLOCO, DIGITOS_CNPJ, formatarCnpj, largurasVisiveis,
+  MIN_TAMANHO_PX, MAX_TAMANHO_PX, TAMANHO_PADRAO_PX,
+} from "@/lib/impressao/layoutComanda";
 import {
   LuGripVertical, LuEye, LuEyeOff, LuChevronUp, LuChevronDown, LuTrash2,
   LuAlignLeft, LuAlignCenter, LuAlignRight, LuBold, LuCaseUpper, LuCircleAlert,
@@ -22,12 +25,6 @@ const ALINHAMENTOS = [
   { valor: "esquerda", rotulo: "À esquerda", Icone: LuAlignLeft },
   { valor: "centro", rotulo: "No meio", Icone: LuAlignCenter },
   { valor: "direita", rotulo: "À direita", Icone: LuAlignRight },
-];
-
-const TAMANHOS = [
-  { valor: "pequeno", rotulo: "Pequena" },
-  { valor: "normal", rotulo: "Média" },
-  { valor: "grande", rotulo: "Grande" },
 ];
 
 const OPCOES_ITENS = [
@@ -81,6 +78,7 @@ export default function BlocoComanda({
   const aceita = (prop) => meta.props.includes(prop);
   const visivel = bloco.visivel !== false;
   const idCampo = `bloco-${bloco.id}-texto`;
+  const idTamanho = `bloco-${bloco.id}-tamanho`;
   const digitosCnpj = bloco.tipo === "cnpj" ? String(bloco.texto ?? "").replace(/\D/g, "").length : 0;
   const opcoesItens = bloco.opcoes ?? {};
   const mostrarUnitario = opcoesItens.unitario !== false;
@@ -206,8 +204,26 @@ export default function BlocoComanda({
           )}
 
           {aceita("tamanho") && (
-            <Segmentado legenda="Tamanho da letra" opcoes={TAMANHOS}
-                        valor={bloco.tamanho} onEscolher={(v) => onAlterar({ tamanho: v })} />
+            <div className="bloco-comanda__campo">
+              <label className="bloco-comanda__rotulo" htmlFor={idTamanho}>Tamanho da letra</label>
+              <div className="bloco-comanda__medida">
+                <input
+                  id={idTamanho}
+                  type="number"
+                  min={MIN_TAMANHO_PX}
+                  max={MAX_TAMANHO_PX}
+                  step="1"
+                  value={bloco.tamanho ?? TAMANHO_PADRAO_PX}
+                  onChange={(e) => onAlterar({ tamanho: e.target.value })}
+                  className="bloco-comanda__numero"
+                />
+                <span className="bloco-comanda__unidade">px</span>
+              </div>
+              <span className="bloco-comanda__ajuda">
+                De {MIN_TAMANHO_PX} a {MAX_TAMANHO_PX}. Vale na impressão pelo navegador — a
+                impressora térmica imprime na fonte dela, sempre do mesmo tamanho.
+              </span>
+            </div>
           )}
 
           {(aceita("negrito") || aceita("maiuscula")) && (

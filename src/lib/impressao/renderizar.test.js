@@ -84,7 +84,7 @@ describe("renderizarRecibo", () => {
 
     expect(html).not.toContain("<img");
     expect(html).not.toContain("javascript:");
-    expect(html).toContain('class="cabecalho__nome b-centro b-gr b-negrito"');
+    expect(html).toContain('class="cabecalho__nome b-centro b-negrito" style="font-size:17px"');
     expect(html).toContain("GastroMundi");
   });
 

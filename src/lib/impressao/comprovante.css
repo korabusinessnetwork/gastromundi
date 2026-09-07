@@ -42,8 +42,9 @@ body {
 .b-centro { text-align: center; }
 .b-dir { text-align: right; }
 .b-esq, .b-centro, .b-dir { margin: 2px 0; }
-.b-peq { font-size: 0.85em; }
-.b-gr { font-size: 1.3em; }
+/* O tamanho da letra não tem classe: é número em pixels escolhido bloco a
+   bloco e vem no `style` do próprio elemento (ver renderizar.js). Três
+   degraus fixos não davam conta de "quero o TOTAL bem grande". */
 .b-negrito { font-weight: bold; }
 
 /* --- Cor/espaçamento por papel do bloco ---------------------------- */

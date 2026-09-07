@@ -44,10 +44,18 @@ export function esc(v) {
 function classesEstilo(estilo, extra = "") {
   const classes = [extra];
   classes.push(`b-${{ esquerda: "esq", centro: "centro", direita: "dir" }[estilo?.alinhamento] ?? "esq"}`);
-  if (estilo?.tamanho === "pequeno") classes.push("b-peq");
-  if (estilo?.tamanho === "grande") classes.push("b-gr");
   if (estilo?.negrito) classes.push("b-negrito");
   return classes.filter(Boolean).join(" ");
+}
+
+// O tamanho é escolha do dono, em pixels, e por isso vai no próprio
+// elemento — não dá para ter uma classe por valor possível. Sai como
+// atributo do bloco, do mesmo jeito que a largura das colunas sai no
+// `<colgroup>`: regra no CSS, número no template.
+function atributosEstilo(estilo, extra = "") {
+  const px = Number(estilo?.tamanho);
+  const tamanho = Number.isFinite(px) ? ` style="font-size:${px}px"` : "";
+  return `class="${classesEstilo(estilo, extra)}"${tamanho}`;
 }
 
 function htmlItens(bloco) {
@@ -117,15 +125,15 @@ function blocoCabecalhoIdentidade(identidade, quando) {
 function htmlBloco(bloco) {
   switch (bloco.tipo) {
     case "logo":
-      return `<div class="${classesEstilo(bloco.estilo)}"><img class="cabecalho__logo" src="${esc(bloco.url)}" alt="${esc(bloco.alt)}" /></div>`;
+      return `<div ${atributosEstilo(bloco.estilo)}><img class="cabecalho__logo" src="${esc(bloco.url)}" alt="${esc(bloco.alt)}" /></div>`;
     case "texto":
-      return `<div class="${classesEstilo(bloco.estilo, bloco.classe)}">${bloco.linhas.map(esc).join("<br/>")}</div>`;
+      return `<div ${atributosEstilo(bloco.estilo, bloco.classe)}>${bloco.linhas.map(esc).join("<br/>")}</div>`;
     case "valor":
-      return `<div class="${classesEstilo(bloco.estilo, "linha-valor")}"><span>${esc(bloco.rotulo)}</span><span${bloco.destaque ? ' class="valor"' : ""}>${esc(bloco.valor)}</span></div>`;
+      return `<div ${atributosEstilo(bloco.estilo, "linha-valor")}><span>${esc(bloco.rotulo)}</span><span${bloco.destaque ? ' class="valor"' : ""}>${esc(bloco.valor)}</span></div>`;
     case "itens":
       return htmlItens(bloco);
     case "aviso":
-      return `<div class="${classesEstilo(bloco.estilo, "aviso-nao-fiscal")}">${bloco.linhas.map(esc).join("<br/>")}</div>`;
+      return `<div ${atributosEstilo(bloco.estilo, "aviso-nao-fiscal")}>${bloco.linhas.map(esc).join("<br/>")}</div>`;
     case "separador":
       return "<hr/>";
     case "espaco":

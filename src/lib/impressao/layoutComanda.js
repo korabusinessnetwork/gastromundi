@@ -53,7 +53,38 @@ export const DIGITOS_CNPJ = 14;
 export const MAX_BLOCOS = 60;
 
 export const ALINHAMENTOS = ["esquerda", "centro", "direita"];
-export const TAMANHOS = ["pequeno", "normal", "grande"];
+
+// --- Tamanho da letra, em PIXELS --------------------------------------
+// Era "pequeno/normal/grande". Virou número porque três degraus não davam
+// conta: quem quer o TOTAL bem grande na conta do cliente e quem quer o
+// papel compacto precisavam de coisas diferentes, e nenhuma das duas era
+// um dos três.
+//
+// Pixel vale na impressão PELO NAVEGADOR. A térmica não tem pixel — ela
+// imprime na fonte da própria impressora — e por isso ignora o tamanho,
+// como sempre ignorou.
+export const MIN_TAMANHO_PX = 8;
+export const MAX_TAMANHO_PX = 40;
+export const TAMANHO_PADRAO_PX = 13;
+
+// Layouts salvos antes da mudança guardam o nome do degrau. A conversão
+// reproduz o que aqueles nomes desenhavam (0.85em, 1em e 1.3em sobre a
+// base de 13px), para o papel de quem já usava não mudar de aparência.
+const PX_DO_NOME_ANTIGO = { pequeno: 11, normal: 13, grande: 17 };
+
+/**
+ * Tamanho válido a partir do que veio do banco: número dentro dos limites,
+ * nome antigo convertido, qualquer outra coisa vira o padrão. Pura.
+ *
+ * @param {any} bruto
+ * @returns {number} pixels
+ */
+export function tamanhoEmPx(bruto) {
+  if (typeof bruto === "string" && bruto in PX_DO_NOME_ANTIGO) return PX_DO_NOME_ANTIGO[bruto];
+  const n = Math.round(Number(bruto));
+  if (!Number.isFinite(n)) return TAMANHO_PADRAO_PX;
+  return Math.min(MAX_TAMANHO_PX, Math.max(MIN_TAMANHO_PX, n));
+}
 
 // --- Largura das colunas da lista de itens ----------------------------
 // O dono arrasta a divisória entre as colunas e decide quanto do papel
@@ -309,23 +340,23 @@ function aceita(tipo, prop) {
  */
 export const LAYOUT_COMANDA_PADRAO = Object.freeze([
   { id: "logo", tipo: "logo", visivel: true, alinhamento: "centro" },
-  { id: "nome", tipo: "nome", visivel: true, alinhamento: "centro", tamanho: "grande", negrito: true },
-  { id: "dataHora", tipo: "dataHora", visivel: true, alinhamento: "centro", tamanho: "pequeno" },
-  { id: "endereco", tipo: "endereco", visivel: false, alinhamento: "centro", tamanho: "pequeno", texto: "" },
-  { id: "cnpj", tipo: "cnpj", visivel: false, alinhamento: "centro", tamanho: "pequeno", texto: "" },
-  { id: "comanda", tipo: "comanda", visivel: true, alinhamento: "centro", tamanho: "pequeno" },
+  { id: "nome", tipo: "nome", visivel: true, alinhamento: "centro", tamanho: 17, negrito: true },
+  { id: "dataHora", tipo: "dataHora", visivel: true, alinhamento: "centro", tamanho: 11 },
+  { id: "endereco", tipo: "endereco", visivel: false, alinhamento: "centro", tamanho: 11, texto: "" },
+  { id: "cnpj", tipo: "cnpj", visivel: false, alinhamento: "centro", tamanho: 11, texto: "" },
+  { id: "comanda", tipo: "comanda", visivel: true, alinhamento: "centro", tamanho: 11 },
   { id: "separador-1", tipo: "separador", visivel: true },
   { id: "itens", tipo: "itens", visivel: true, opcoes: { unitario: true, observacoes: true, emoji: true } },
   { id: "separador-2", tipo: "separador", visivel: true },
-  { id: "subtotal", tipo: "subtotal", visivel: true, tamanho: "pequeno" },
-  { id: "taxa", tipo: "taxa", visivel: true, tamanho: "pequeno" },
-  { id: "ajuste", tipo: "ajuste", visivel: true, tamanho: "pequeno" },
-  { id: "total", tipo: "total", visivel: true, tamanho: "grande", negrito: true },
-  { id: "troco", tipo: "troco", visivel: true, tamanho: "pequeno" },
-  { id: "pagamento", tipo: "pagamento", visivel: true, alinhamento: "centro", tamanho: "pequeno" },
-  { id: "avisoNaoFiscal", tipo: "avisoNaoFiscal", visivel: true, alinhamento: "centro", tamanho: "pequeno" },
+  { id: "subtotal", tipo: "subtotal", visivel: true, tamanho: 11 },
+  { id: "taxa", tipo: "taxa", visivel: true, tamanho: 11 },
+  { id: "ajuste", tipo: "ajuste", visivel: true, tamanho: 11 },
+  { id: "total", tipo: "total", visivel: true, tamanho: 17, negrito: true },
+  { id: "troco", tipo: "troco", visivel: true, tamanho: 11 },
+  { id: "pagamento", tipo: "pagamento", visivel: true, alinhamento: "centro", tamanho: 11 },
+  { id: "avisoNaoFiscal", tipo: "avisoNaoFiscal", visivel: true, alinhamento: "centro", tamanho: 11 },
   { id: "separador-3", tipo: "separador", visivel: true },
-  { id: "rodape", tipo: "rodape", visivel: true, alinhamento: "centro", tamanho: "pequeno", texto: "" },
+  { id: "rodape", tipo: "rodape", visivel: true, alinhamento: "centro", tamanho: 11, texto: "" },
 ]);
 
 function textoLimpo(valor) {
@@ -346,7 +377,7 @@ function normalizarBloco(bruto, id) {
   const bloco = { id, tipo, visivel: bruto?.visivel !== false };
 
   if (aceita(tipo, "alinhamento")) bloco.alinhamento = umDe(bruto?.alinhamento, ALINHAMENTOS, "centro");
-  if (aceita(tipo, "tamanho")) bloco.tamanho = umDe(bruto?.tamanho, TAMANHOS, "normal");
+  if (aceita(tipo, "tamanho")) bloco.tamanho = tamanhoEmPx(bruto?.tamanho);
   if (aceita(tipo, "negrito")) bloco.negrito = bruto?.negrito === true;
   if (aceita(tipo, "maiuscula")) bloco.maiuscula = bruto?.maiuscula === true;
   if (aceita(tipo, "texto")) bloco.texto = textoLimpo(bruto?.texto);
@@ -527,7 +558,7 @@ function aplicarCaixa(texto, bloco) {
 function estiloDoBloco(bloco) {
   return {
     alinhamento: bloco.alinhamento ?? "esquerda",
-    tamanho: bloco.tamanho ?? "normal",
+    tamanho: tamanhoEmPx(bloco.tamanho),
     negrito: bloco.negrito === true,
   };
 }

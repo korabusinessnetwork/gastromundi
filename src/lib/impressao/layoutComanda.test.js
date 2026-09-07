@@ -15,6 +15,9 @@ import {
   normalizarLargurasItens,
   largurasVisiveis,
   largurasEmCaracteres,
+  MIN_TAMANHO_PX,
+  MAX_TAMANHO_PX,
+  TAMANHO_PADRAO_PX,
 } from "./layoutComanda";
 import { renderizarRecibo } from "./renderizar";
 import { formatarComprovanteEscpos } from "./escposFormatador";
@@ -78,7 +81,31 @@ describe("normalizarLayoutComanda", () => {
     const [bloco] = normalizarLayoutComanda([{ tipo: "nome", alinhamento: "diagonal", tamanho: "gigante" }]);
 
     expect(bloco.alinhamento).toBe("centro");
-    expect(bloco.tamanho).toBe("normal");
+    expect(bloco.tamanho).toBe(TAMANHO_PADRAO_PX);
+  });
+
+  // O tamanho virou pixel. Layout salvo antes disso guarda o nome do
+  // degrau, e converter é o que faz o papel de quem já usava continuar
+  // igual em vez de encolher para o padrão.
+  it("converte o tamanho antigo (pequeno/normal/grande) para o pixel equivalente", () => {
+    const blocos = normalizarLayoutComanda([
+      { tipo: "nome", tamanho: "grande" },
+      { tipo: "comanda", tamanho: "pequeno" },
+      { tipo: "total", tamanho: "normal" },
+    ]);
+
+    expect(blocos.map((b) => b.tamanho)).toEqual([17, 11, 13]);
+  });
+
+  it("segura o tamanho dentro dos limites e arredonda", () => {
+    const blocos = normalizarLayoutComanda([
+      { tipo: "nome", tamanho: 999 },
+      { tipo: "comanda", tamanho: 0 },
+      { tipo: "total", tamanho: "22,7" },
+      { tipo: "troco", tamanho: 22.4 },
+    ]);
+
+    expect(blocos.map((b) => b.tamanho)).toEqual([MAX_TAMANHO_PX, MIN_TAMANHO_PX, TAMANHO_PADRAO_PX, 22]);
   });
 
   it("não grava propriedade que o tipo não aceita (separador não tem alinhamento)", () => {
