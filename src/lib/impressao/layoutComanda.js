@@ -385,6 +385,7 @@ function normalizarBloco(bruto, id) {
     bloco.opcoes = {
       unitario: bruto?.opcoes?.unitario !== false,
       observacoes: bruto?.opcoes?.observacoes !== false,
+      escolhas: bruto?.opcoes?.escolhas !== false,
       emoji: bruto?.opcoes?.emoji !== false,
       larguras: normalizarLargurasItens(bruto?.opcoes?.larguras),
     };
@@ -582,6 +583,9 @@ function itemResolvido(item, opcoes) {
   return {
     emoji: opcoes.emoji && item.emoji ? String(item.emoji) : "",
     nome: String(item.nome ?? ""),
+    // Composição do combo: "2x Cheddar", "1x Coca". Sai abaixo do item,
+    // como a observação — é o que o cliente confere no papel.
+    escolhas: opcoes.escolhas === false ? [] : (Array.isArray(item.escolhas) ? item.escolhas : []),
     qty: Number(item.qty) || 1,
     unitario: fmtR(item.preco),
     total: fmtR((Number(item.preco) || 0) * (Number(item.qty) || 1)),

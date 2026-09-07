@@ -95,7 +95,7 @@ describe("montarComprovantePagamento (itens, totais, troco, identidade)", () => 
   it("exclui itens cancelados e calcula o subtotal só dos ativos", () => {
     const comprovante = montarComprovantePagamento({ venda: vendaBase });
 
-    expect(comprovante.itens).toEqual([{ nome: "X-Burguer", qty: 2, preco: 30, emoji: "🍔", obs: [] }]);
+    expect(comprovante.itens).toEqual([{ nome: "X-Burguer", qty: 2, preco: 30, emoji: "🍔", obs: [], escolhas: [] }]);
     expect(comprovante.subtotal).toBe(60);
   });
 
@@ -163,7 +163,7 @@ describe("montarCupomPreNota (base para o futuro add-on fiscal, F019)", () => {
 
     const cupom = montarCupomPreNota({ venda });
 
-    expect(cupom.itens).toEqual([{ nome: "Suco", qty: 1, preco: 10, emoji: "", obs: [] }]);
+    expect(cupom.itens).toEqual([{ nome: "Suco", qty: 1, preco: 10, emoji: "", obs: [], escolhas: [] }]);
     expect(cupom.total).toBe(10);
   });
 
@@ -256,6 +256,43 @@ describe("montarViaProducao (só itens produzíveis, sem preço/pagamento)", () 
     };
     // usa o lançamento mais recente, não o created_at da comanda
     expect(montarViaProducao({ pedido }).horario).toBe("2026-07-21T12:20:00.000Z");
+  });
+});
+
+describe("composição do combo nos dados de impressão", () => {
+  // O que o cliente confere no papel e o que a bancada precisa montar: sem
+  // isso os dois recebiam só "1x Combo do Dia".
+  const itemCombo = {
+    name: "Combo do Dia",
+    qty: 1,
+    price: 45,
+    combo: { escolhas: [{ produtoId: 3, nome: "Cheddar", qtd: 2, preco: 4 }, { produtoId: 9, nome: "Coca", qtd: 1, preco: 0 }] },
+  };
+
+  it("o comprovante leva o que foi escolhido e quantos", () => {
+    const comp = montarComprovantePagamento({ venda: { items: [itemCombo], total: 45, pagamentos: [] } });
+
+    expect(comp.itens[0].escolhas).toEqual([{ nome: "Cheddar", qtd: 2 }, { nome: "Coca", qtd: 1 }]);
+  });
+
+  it("a via de produção leva a mesma composição (é o que a cozinha monta)", () => {
+    const via = montarViaProducao({ pedido: { items: [itemCombo] } });
+
+    expect(via.itens[0].escolhas).toEqual([{ nome: "Cheddar", qtd: 2 }, { nome: "Coca", qtd: 1 }]);
+  });
+
+  it("item sem combo fica com lista vazia, não com undefined", () => {
+    const via = montarViaProducao({ pedido: { items: [{ name: "X-Burguer", qty: 1 }] } });
+
+    expect(via.itens[0].escolhas).toEqual([]);
+  });
+
+  it("escolha sem nome não vai pro papel e qtd inválida vira 1", () => {
+    const pedido = {
+      items: [{ name: "Combo", qty: 1, combo: { escolhas: [{ nome: "", qtd: 2 }, { nome: "Coca", qtd: 0 }] } }],
+    };
+
+    expect(montarViaProducao({ pedido }).itens[0].escolhas).toEqual([{ nome: "Coca", qtd: 1 }]);
   });
 });
 

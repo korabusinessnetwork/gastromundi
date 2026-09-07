@@ -103,6 +103,10 @@ td { padding: 6px 4px; border-bottom: 1px dashed #ccc; }
    duas, nada sai fora do papel, e quem quiser o papel limpo desliga
    "Preço de cada unidade" no próprio editor. */
 
+/* Composição do combo, abaixo do item: "2x Cheddar", "1x Coca". Recuada
+   como a observação, para o cliente ler como detalhe DAQUELE item e não
+   confundir com outro produto do pedido. */
+.composicao { font-size: 0.85em; color: #444; padding: 1px 4px 1px 16px; }
 .obs { font-size: 0.85em; color: #666; padding: 2px 4px 6px 16px; }
 
 /* --- Linhas de valor (subtotal, taxa, TOTAL, troco) ----------------

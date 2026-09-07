@@ -30,6 +30,7 @@ const ALINHAMENTOS = [
 const OPCOES_ITENS = [
   { chave: "unitario", rotulo: "Preço de cada unidade", ajuda: "Só na impressão pelo navegador — na térmica sai só o total do item." },
   { chave: "observacoes", rotulo: "Observações do pedido", ajuda: "“sem cebola”, “ponto da carne”." },
+  { chave: "escolhas", rotulo: "O que veio no combo", ajuda: "Lista embaixo do item o que o cliente escolheu — “2x Cheddar”, “1x Coca”." },
   { chave: "emoji", rotulo: "Emoji do produto", ajuda: "Impressora térmica não imprime emoji; no navegador, sim." },
 ];
 

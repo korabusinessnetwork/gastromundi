@@ -113,6 +113,29 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
 
   const ehCategoria = grupo.origem === "categoria";
 
+  // Produtos que a categoria escolhida traria hoje. É a prévia do que o
+  // botão abaixo transforma em lista.
+  const daCategoria = useMemo(
+    () => (grupo.categoria
+      ? products.filter((p) => p.active !== false && p.category === grupo.categoria)
+      : []),
+    [products, grupo.categoria],
+  );
+
+  // "Categoria inteira" é uma REGRA: produto novo na categoria entra
+  // sozinho, e por isso não dá para tirar um item específico dela. Quem
+  // quer escolher quais entram está pedindo uma LISTA — então o botão
+  // traz os produtos da categoria já preenchidos e muda a origem. A troca
+  // é explícita porque tem um preço: a partir dali, produto novo na
+  // categoria não entra mais sozinho.
+  const virarLista = () => {
+    set({
+      origem: "lista",
+      categoria: null,
+      itens: daCategoria.map((p) => ({ produtoId: p.id, preco: "", ativo: true })),
+    });
+  };
+
   return (
     <div className="editor-grupos__grupo">
       {/* Topo: nome do grupo + remover */}
@@ -175,8 +198,23 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
             ))}
           </select>
           <div className="editor-grupos__ajuda">
-            O cliente escolhe entre todos os produtos ativos desta categoria — cada um baixa o próprio estoque.
+            O cliente escolhe entre todos os produtos ativos desta categoria — cada um baixa o próprio
+            estoque. Produto novo nesta categoria passa a aparecer sozinho, sem você mexer aqui.
           </div>
+
+          {grupo.categoria && (
+            <button type="button" onClick={virarLista} className="editor-grupos__virar-lista">
+              <LuList size={15} />
+              <span>
+                Escolher quais entram
+                <span className="editor-grupos__virar-lista-ajuda">
+                  Traz {daCategoria.length === 1 ? "o produto" : `os ${daCategoria.length} produtos`} de
+                  “{grupo.categoria}” para uma lista, onde você tira o que não quer e põe acréscimo em
+                  cada um. Aí produto novo na categoria não entra mais sozinho.
+                </span>
+              </span>
+            </button>
+          )}
         </div>
       ) : (
         <div>

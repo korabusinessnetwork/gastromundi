@@ -116,6 +116,47 @@
   line-height: 1.5;
 }
 
+/* Atalho de "categoria inteira" para "lista": traz os produtos da
+   categoria já preenchidos, para o dono tirar o que não quer. Fica
+   pontilhado porque é ação de montagem, não um campo do formulário. */
+.editor-grupos__virar-lista {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--gm-border);
+  background: transparent;
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.editor-grupos__virar-lista:hover {
+  border-style: solid;
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+}
+
+.editor-grupos__virar-lista > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.editor-grupos__virar-lista-ajuda {
+  color: var(--gm-muted);
+  font-weight: 400;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-sm);
+}
+
 /* ── Lista de opções (origem=lista) ── */
 .editor-grupos__itens-lista {
   display: flex;

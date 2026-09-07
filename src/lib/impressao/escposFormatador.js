@@ -54,8 +54,23 @@ function linhasDoItem(item, colunas) {
   const linhas = [];
   linhas.push(...quebrarLinha(`${item.qty}x ${item.nome}`, colunas));
   linhas.push(linhaValor("", item.total, colunas));
+  linhas.push(...linhasDaComposicao(item, colunas));
   for (const obs of item.obs ?? []) {
     linhas.push(...quebrarLinha(`  📝 ${obs}`, colunas));
+  }
+  return linhas;
+}
+
+// Composição do combo, recuada: "  2x Cheddar". Sem ela o papel do cliente
+// dizia só "Combo X" e não contava o que ele estava levando.
+function linhasDaComposicao(item, colunas) {
+  const linhas = [];
+  // `quebrarLinha` normaliza os espaços do texto (é o que faz o nome do
+  // produto caber), então o recuo entra DEPOIS — e a largura já desconta
+  // ele, senão a linha recuada estouraria o papel.
+  const util = Math.max(1, colunas - 2);
+  for (const e of item.escolhas ?? []) {
+    for (const parte of quebrarLinha(`${e.qtd}x ${e.nome}`, util)) linhas.push(`  ${parte}`);
   }
   return linhas;
 }
@@ -84,6 +99,7 @@ function linhasDoItemEmColunas(item, larg, mostrarUnitario) {
   // Resto do nome desce sozinho: repetir o número em cada linha faria o
   // papel parecer ter mais itens do que tem.
   for (const parte of partes.slice(1)) linhas.push(celula(parte, larg.nome));
+  linhas.push(...linhasDaComposicao(item, larg.nome + larg.qtd));
   for (const obs of item.obs ?? []) linhas.push(...quebrarLinha(`  📝 ${obs}`, larg.nome + larg.qtd));
   return linhas;
 }
@@ -237,6 +253,9 @@ export function formatarViaProducaoEscpos(dados, colunas) {
     // prato, justamente no papel que o cozinheiro lê com pressa.
     const nome = `${it.qty}x ${it.nome}`;
     quebrarLinha(nome, colunas).forEach(l => linhas.push(l));
+    // A cozinha precisa da composição mais que o cliente: sem ela o ticket
+    // diz "1x Combo" e ninguém na bancada sabe qual hambúrguer montar.
+    linhasDaComposicao(it, colunas).forEach(l => linhas.push(l));
     for (const obs of (it.obs ?? [])) {
       quebrarLinha(`  📝 ${obs}`, colunas).forEach(l => linhas.push(l));
     }

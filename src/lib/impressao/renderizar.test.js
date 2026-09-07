@@ -98,6 +98,38 @@ describe("renderizarRecibo", () => {
     expect(html).toContain('<table class="itens">');
   });
 
+  it("lista a composição do combo abaixo do item, com a quantidade de cada escolha", () => {
+    const html = renderizarRecibo({
+      ...dadosBase,
+      itens: [{ nome: "Combo do Dia", qty: 1, preco: 45, emoji: "", obs: [], escolhas: [{ nome: "Cheddar", qtd: 2 }, { nome: "Coca", qtd: 1 }] }],
+    });
+
+    expect(html).toContain("2x Cheddar");
+    expect(html).toContain("1x Coca");
+    expect(html).toContain("composicao");
+  });
+
+  it("desligar “O que veio no combo” tira a composição do papel", () => {
+    const html = renderizarRecibo({
+      ...dadosBase,
+      layout: [{ tipo: "itens", opcoes: { escolhas: false } }],
+      itens: [{ nome: "Combo do Dia", qty: 1, preco: 45, emoji: "", obs: [], escolhas: [{ nome: "Cheddar", qtd: 2 }] }],
+    });
+
+    expect(html).toContain("Combo do Dia");
+    expect(html).not.toContain("2x Cheddar");
+  });
+
+  it("escapa nome de escolha malicioso (vem do cadastro de produto)", () => {
+    const html = renderizarRecibo({
+      ...dadosBase,
+      itens: [{ nome: "Combo", qty: 1, preco: 10, emoji: "", obs: [], escolhas: [{ nome: "<img src=x onerror=alert(1)>", qtd: 1 }] }],
+    });
+
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+  });
+
   it("escapa nome de produto e observação maliciosos (stored XSS na impressão)", () => {
     const html = renderizarRecibo({
       ...dadosBase,
@@ -120,6 +152,26 @@ describe("renderizarViaProducao", () => {
     expect(html).toContain("X-Burguer");
     expect(html).toContain("sem cebola");
     expect(html).not.toContain("R$");
+  });
+
+  it("mostra a composição do combo — sem ela a bancada lê só “1x Combo”", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "Combo do Dia", qty: 1, emoji: "", obs: [], escolhas: [{ nome: "Cheddar", qtd: 2 }, { nome: "Coca", qtd: 1 }] }],
+    });
+
+    expect(html).toContain("2x Cheddar");
+    expect(html).toContain("1x Coca");
+  });
+
+  it("escapa nome de escolha malicioso na via de produção", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "Combo", qty: 1, emoji: "", obs: [], escolhas: [{ nome: "<svg onload=alert(1)>", qtd: 1 }] }],
+    });
+
+    expect(html).not.toContain("<svg");
+    expect(html).toContain("&lt;svg onload=alert(1)&gt;");
   });
 
   it("escapa observação maliciosa na via de produção", () => {

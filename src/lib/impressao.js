@@ -283,6 +283,16 @@ export function resolverIdentidadeTenant(tenant, configImpressao) {
 
 // Normaliza os itens de uma venda para o formato de impressão —
 // exclui cancelados (nunca aparecem em comprovante/cupom).
+// As escolhas do item (combo flexível ou produto com seleção) reduzidas ao
+// que o papel precisa: o que foi escolhido e quantos. Pura.
+function escolhasDoItem(item) {
+  const escolhas = item?.combo?.escolhas;
+  if (!Array.isArray(escolhas)) return [];
+  return escolhas
+    .filter((e) => e?.nome)
+    .map((e) => ({ nome: String(e.nome), qtd: Math.max(1, Number(e.qtd) || 1) }));
+}
+
 function normalizarItensVenda(itens) {
   return (Array.isArray(itens) ? itens : [])
     .filter((i) => !i?.cancelado)
@@ -292,6 +302,10 @@ function normalizarItensVenda(itens) {
       preco: Number(i.price) || 0,
       emoji: i.emoji ?? "",
       obs: Array.isArray(i.obs) ? i.obs : (i.obs ? [i.obs] : []),
+      // Composição do combo / produto com seleção. Sem ela o papel do
+      // cliente dizia só "Combo X", sem contar QUAL hambúrguer e qual
+      // refrigerante ele está levando — e é isso que ele confere.
+      escolhas: escolhasDoItem(i),
     }));
 }
 
@@ -370,6 +384,9 @@ export function montarViaProducao({ pedido } = {}) {
       qty: Number(i.qty) || 1,
       emoji: i.emoji ?? "",
       obs: Array.isArray(i.obs) ? i.obs : (i.obs ? [i.obs] : []),
+      // A cozinha PRECISA da composição: sem ela o ticket diz "1x Combo"
+      // e ninguém na bancada sabe qual hambúrguer montar.
+      escolhas: escolhasDoItem(i),
     }));
 
   return {
