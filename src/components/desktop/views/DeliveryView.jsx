@@ -23,6 +23,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
+import BotaoReimprimirPedido from "./BotaoReimprimirPedido";
 import { logAction } from "@/lib/logger";
 import { usePedidosDelivery } from "@/utils/hooks";
 import MODULOS from "@/constants/modulos";
@@ -76,6 +77,8 @@ import {
   tempoDecorrido,
   carregarItensPedido,
   atualizarStatusPedido,
+  registrarVendaDelivery,
+  linkConfirmacaoWhatsApp,
   STATUS_CANCELADO,
 } from "@/lib/deliveryPedidos";
 import {
@@ -547,6 +550,19 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, entregadores = [] })
   const { pedidos, carregando, erro, recarregar } = usePedidosDelivery();
   const [tick, setTick] = useState(0); // recalcula "há X min" de tempos em tempos
 
+  // A config do delivery decide duas coisas desta aba: se a confirmação
+  // no WhatsApp abre ao aceitar, e quanto tempo de preparo prometer na
+  // mensagem. Falha ao carregar não trava nada — as duas são opcionais.
+  const { tenant } = useApp();
+  const [config, setConfig] = useState(null);
+  useEffect(() => {
+    let ativo = true;
+    carregarConfigDelivery().then(({ data }) => {
+      if (ativo) setConfig(data ?? null);
+    });
+    return () => { ativo = false; };
+  }, []);
+
   // Avisos de pedido novo (Fase 5, Nível 1): som + Notification API. Só
   // alerta o que chega DEPOIS que a tela já carregou a lista base.
   const [avisosLigados, setAvisosLigados] = useState(lerPrefAvisos);
@@ -603,16 +619,51 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, entregadores = [] })
     async (pedido) => {
       const proximo = proximoStatus(pedido.status);
       if (!proximo) return;
+
+      // ENTREGUE é o fim do dinheiro: é aqui que o pedido vira venda, com
+      // registro próprio (origem = 'delivery'). A venda vem ANTES do
+      // status: se ela falhar, o pedido continua como estava e o operador
+      // tenta de novo. Ao contrário, um pedido marcado como entregue com a
+      // venda faltando some do painel levando o dinheiro junto.
+      if (proximo === "entregue") {
+        const { error: erroVenda } = await registrarVendaDelivery(pedido.id);
+        if (erroVenda) {
+          return aviso(
+            "Não foi possível registrar a venda deste pedido. Ele continua em rota — tente de novo.",
+            "err",
+          );
+        }
+      }
+
       const { error } = await atualizarStatusPedido(pedido.id, proximo, {
         de: pedido.status,
         operador: currentUser?.username,
         numero: pedido.numero,
       });
       if (error) return aviso("Não foi possível atualizar o pedido. Tente novamente.", "err");
-      aviso(`Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`, "ok");
+
+      // Aceitar é o momento em que o cliente ainda não sabe se a loja viu o
+      // pedido dele — é a angústia dos primeiros minutos. A confirmação
+      // abre escrita, para o operador conferir e enviar num toque. Só abre
+      // quando o dono ligou a chave e quando há telefone utilizável: aba
+      // que se abre sozinha sem nada dentro é pior que aba nenhuma.
+      if (proximo === "em_preparo" && config?.whatsapp_no_aceite) {
+        const link = linkConfirmacaoWhatsApp(pedido, {
+          nome: tenant?.nome,
+          tempoPreparo: config?.tempo_preparo_min,
+        });
+        if (link) window.open(link, "_blank", "noopener,noreferrer");
+      }
+
+      aviso(
+        proximo === "entregue"
+          ? `Pedido ${pedido.numero} entregue — venda registrada.`
+          : `Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`,
+        "ok",
+      );
       await recarregar();
     },
-    [aviso, recarregar, currentUser]
+    [aviso, recarregar, currentUser, config, tenant]
   );
 
   const cancelar = useCallback(
@@ -885,11 +936,18 @@ function CardPedido({
         <LuBanknote size={13} /> {resumoPagamento(pedido)}
       </div>
 
-      {/* Itens (sob demanda) */}
-      <button onClick={toggleItens} className="delivery-view__pedido-itens-toggle">
-        {aberto ? <LuChevronDown size={14} /> : <LuChevronRight size={14} />}
-        {aberto ? "Ocultar itens" : "Ver itens"}
-      </button>
+      {/* Itens (sob demanda) + reimpressão da via.
+          A via sai sozinha quando o pedido chega, mas a impressora fica sem
+          papel, alguém joga o papel fora, a bancada precisa de outra cópia.
+          Antes a única saída era achar a comanda na tela da Cozinha — e ela
+          nem aparece mais nas comandas do PDV. */}
+      <div className="delivery-view__pedido-acoes-linha">
+        <button onClick={toggleItens} className="delivery-view__pedido-itens-toggle">
+          {aberto ? <LuChevronDown size={14} /> : <LuChevronRight size={14} />}
+          {aberto ? "Ocultar itens" : "Ver itens"}
+        </button>
+        <BotaoReimprimirPedido pedido={pedido} />
+      </div>
       {aberto && (
         <div className="delivery-view__pedido-itens">
           {carregandoItens ? (
@@ -3355,6 +3413,38 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
         {config.permite_retirada && String(config.endereco_origem || "").trim() && (
           <div className="delivery-view__hint">
             O cliente vai buscar em: <strong>{config.endereco_origem}</strong>
+          </div>
+        )}
+      </div>
+
+      {/* Confirmação no WhatsApp ao aceitar o pedido */}
+      <div className="delivery-view__retirada">
+        <label className="delivery-view__switch">
+          <span>
+            <span className="delivery-view__entrega-titulo">
+              <LuMessageCircle size={16} color={varColor(C.accent)} /> Confirmar no WhatsApp
+            </span>
+            <span className="delivery-view__hint delivery-view__retirada-hint">
+              Ao aceitar um pedido, abre o WhatsApp do cliente com a confirmação já
+              escrita — você confere e envia. Grátis, sem integração.
+            </span>
+          </span>
+          <span className="delivery-view__toggle">
+            <input
+              type="checkbox"
+              checked={!!config.whatsapp_no_aceite}
+              disabled={readOnly}
+              onChange={(e) => salvar({ whatsapp_no_aceite: e.target.checked })}
+            />
+            <span className="delivery-view__toggle-trilho" aria-hidden="true">
+              <span className="delivery-view__toggle-botao" />
+            </span>
+          </span>
+        </label>
+        {config.whatsapp_no_aceite && (
+          <div className="delivery-view__hint">
+            Abre uma aba por pedido aceito. Se você aceita vários de uma vez, talvez
+            prefira deixar desligado.
           </div>
         )}
       </div>

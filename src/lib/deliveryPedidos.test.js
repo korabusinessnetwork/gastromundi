@@ -19,6 +19,10 @@ import {
   transicaoValida,
   agruparPorStatus,
   resumoEndereco,
+  ehComandaDeDelivery,
+  comandasDoSalao,
+  mensagemPedidoAceito,
+  linkConfirmacaoWhatsApp,
   apenasDigitosTelefone,
   formatarTelefone,
   linkWhatsApp,
@@ -351,5 +355,126 @@ describe("atualizarStatusPedido (DL2)", () => {
     const { data, error } = await atualizarStatusPedido("p1", "em_preparo");
     expect(error).toBeNull();
     expect(data).toEqual({ id: "p1", numero: 7, status: "em_preparo" });
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// O pedido de delivery não é comanda do salão.
+//
+// O espelho em `pending` aparecia na lista de comandas do PDV como
+// qualquer mesa — e ninguém vai servir aquela comanda. Ele continua
+// existindo porque é o que a COZINHA lê e a impressora imprime; só
+// deixou de aparecer onde não havia o que fazer com ele.
+// ══════════════════════════════════════════════════════════════════
+describe("separar o delivery das comandas do salão", () => {
+  const mesa = { id: "c1", comanda: "5", created_by: "joao" };
+  const delivery = { id: "dlv_x", comanda: "Delivery 260930-001", created_by: "delivery" };
+
+  it("reconhece o espelho pelo carimbo que a RPC pública põe", () => {
+    expect(ehComandaDeDelivery(delivery)).toBe(true);
+    expect(ehComandaDeDelivery(mesa)).toBe(false);
+  });
+
+  it("é seguro com lixo", () => {
+    expect(ehComandaDeDelivery(null)).toBe(false);
+    expect(ehComandaDeDelivery({})).toBe(false);
+  });
+
+  it("a lista do salão fica só com as comandas de verdade", () => {
+    expect(comandasDoSalao([mesa, delivery, { ...mesa, id: "c2" }]).map((c) => c.id)).toEqual([
+      "c1",
+      "c2",
+    ]);
+  });
+
+  it("lista vazia ou ausente não quebra", () => {
+    expect(comandasDoSalao([])).toEqual([]);
+    expect(comandasDoSalao(null)).toEqual([]);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// A confirmação que sai no aceite.
+//
+// O cliente já viu "Pedido enviado!" na tela dele. O que ele ainda não
+// sabe é se a loja VIU e vai fazer — é a angústia dos primeiros minutos,
+// e é isso que a mensagem responde.
+// ══════════════════════════════════════════════════════════════════
+describe("mensagemPedidoAceito", () => {
+  const pedido = {
+    numero: "260930-001",
+    cliente_nome: "Ana Paula Souza",
+    cliente_telefone: "11912345678",
+    total: 32.5,
+    forma_pagamento: "pix",
+    tipo_entrega: "entrega",
+  };
+
+  it("diz o essencial: que foi recebido, o número, o total e como paga", () => {
+    const msg = mensagemPedidoAceito(pedido, { nome: "GastroMundi", tempoPreparo: 40 });
+
+    expect(msg).toContain("260930-001");
+    expect(msg).toContain("GastroMundi");
+    expect(msg).toContain(formatarReais(32.5));
+    expect(msg).toContain("Pix");
+    expect(msg).toContain("40 min");
+  });
+
+  it("chama a pessoa pelo primeiro nome — não pelo nome inteiro do cadastro", () => {
+    expect(mensagemPedidoAceito(pedido)).toContain("Oi, Ana!");
+    expect(mensagemPedidoAceito(pedido)).not.toContain("Ana Paula Souza");
+  });
+
+  it("sem nome do cliente, cumprimenta assim mesmo (não sai 'Oi, undefined')", () => {
+    const msg = mensagemPedidoAceito({ ...pedido, cliente_nome: "" });
+
+    expect(msg.startsWith("Oi!")).toBe(true);
+    expect(msg).not.toContain("undefined");
+  });
+
+  it("na retirada, promete retirar — e não que alguém vai levar", () => {
+    const msg = mensagemPedidoAceito(
+      { ...pedido, tipo_entrega: "retirada" },
+      { tempoPreparo: 30 },
+    );
+
+    expect(msg).toContain("pronto para retirar");
+    expect(msg).toContain("retirada no local");
+    expect(msg).not.toContain("Deve chegar");
+  });
+
+  it("avisa o troco quando o cliente pediu troco", () => {
+    const msg = mensagemPedidoAceito({
+      ...pedido,
+      forma_pagamento: "dinheiro",
+      troco_para: 50,
+    });
+
+    // Sem esta linha o entregador sai sem saber, e a confirmação promete
+    // menos do que o pedido combinou.
+    expect(msg).toContain(`troco para ${formatarReais(50)}`);
+  });
+
+  it("sem tempo de preparo configurado, não promete prazo nenhum", () => {
+    const msg = mensagemPedidoAceito(pedido, { nome: "GastroMundi" });
+
+    expect(msg).not.toContain("min");
+  });
+});
+
+describe("linkConfirmacaoWhatsApp", () => {
+  it("monta o link com DDI e a mensagem escrita", () => {
+    const link = linkConfirmacaoWhatsApp(
+      { numero: "1", cliente_telefone: "11912345678", total: 10, forma_pagamento: "pix" },
+      { nome: "Loja" },
+    );
+
+    expect(link.startsWith("https://wa.me/5511912345678?text=")).toBe(true);
+    expect(decodeURIComponent(link)).toContain("Loja");
+  });
+
+  it("sem telefone utilizável devolve null — o botão some em vez de abrir aba morta", () => {
+    expect(linkConfirmacaoWhatsApp({ numero: "1", cliente_telefone: "" })).toBeNull();
+    expect(linkConfirmacaoWhatsApp({ numero: "1", cliente_telefone: "123" })).toBeNull();
   });
 });

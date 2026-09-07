@@ -335,7 +335,9 @@ CREATE TABLE public.vendas (
   cashier      text,
   cliente_id   uuid        REFERENCES public.clientes(id) ON DELETE SET NULL, -- F010, 20260713_clientes.sql
   at           timestamptz NOT NULL DEFAULT now(),
-  tenant_id    uuid        NOT NULL DEFAULT public.tenant_atual_id() REFERENCES public.tenants(id) -- 20260724
+  tenant_id    uuid        NOT NULL DEFAULT public.tenant_atual_id() REFERENCES public.tenants(id), -- 20260724
+  origem       text        NOT NULL DEFAULT 'pdv',  -- 20261002 — 'pdv' | 'delivery' (CHECK na migração)
+  delivery_pedido_id uuid  REFERENCES public.delivery_pedidos(id) ON DELETE SET NULL  -- 20261002 — UNIQUE parcial
 );
 
 CREATE TABLE public.venda_itens (
@@ -891,7 +893,8 @@ CREATE TABLE public.config_delivery (
   endereco_origem           text,     -- 20260811
   endereco_origem_bloqueado boolean NOT NULL DEFAULT false,                    -- 20260827
   fuso                      text    NOT NULL DEFAULT 'America/Sao_Paulo',      -- 20260903
-  permite_retirada          boolean NOT NULL DEFAULT false                     -- 20260928 — aceita retirada no balcão
+  permite_retirada          boolean NOT NULL DEFAULT false,                    -- 20260928 — aceita retirada no balcão
+  whatsapp_no_aceite        boolean NOT NULL DEFAULT false                     -- 20261003 — confirma no WhatsApp ao aceitar
 );
 
 CREATE TABLE public.delivery_entregadores (

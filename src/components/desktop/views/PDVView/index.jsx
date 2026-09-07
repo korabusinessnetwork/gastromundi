@@ -22,6 +22,7 @@ import { mesmoItemDeVenda } from "@/lib/combos";
 import { carregarTodosGrupos } from "@/lib/gruposEscolha";
 import { buscarClientePorId } from "@/lib/clientes";
 import { imprimirLancamento } from "@/lib/impressao/despacho";
+import { comandasDoSalao } from "@/lib/deliveryPedidos";
 import { chaveLancamento, registroLancamentos } from "@/lib/impressao/lancamentos";
 import "./PDVView.css";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
@@ -143,7 +144,12 @@ export default function PDVView({ notify }) {
   const [barcodeValue,      setBarcodeValue]      = useState("");
   const [barcodeFeedback,   setBarcodeFeedback]   = useState(null); // null | "ok" | "notfound"
 
-  const abertas = pending.filter(o => o.status !== "closed");
+  // O pedido de delivery NÃO é comanda do salão: ninguém vai servi-lo na
+  // mesa, e desde 20261002 quem fecha a venda dele é a própria aba
+  // Delivery. O espelho continua em `pending` porque é ele que a Cozinha
+  // lê e a impressora imprime — só deixou de aparecer aqui, onde não
+  // havia o que fazer com ele além de confundir quem atende.
+  const abertas = comandasDoSalao(pending).filter(o => o.status !== "closed");
 
   // ── Combos e grupos de escolha — vendáveis no PDV ─────────────
   // Carrega uma vez por entrada na tela. O combo flexível é nome + preço +
@@ -1899,7 +1905,10 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   const totalVendas = vendasHoje.reduce((s, v) => s + (v.total ?? 0), 0);
   const qtdVendas   = vendasHoje.length;
 
-  const abertas = (pending ?? []).filter(p => p.status !== "closed");
+  // Mesma régua da lista: o delivery não é comanda do salão. Contá-lo aqui
+  // diria "R$ 300 em aberto" com zero comandas na tela — e esse dinheiro
+  // não é do caixa até a entrega, quando a aba Delivery registra a venda.
+  const abertas = comandasDoSalao(pending).filter(p => p.status !== "closed");
   const totalAberto = abertas.reduce((s, p) => {
     const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
     return s + ativos.reduce((x, i) => x + (i.price ?? 0) * (i.qty ?? 1), 0);

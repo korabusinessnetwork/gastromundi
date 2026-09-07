@@ -252,6 +252,10 @@ export function sanitizarConfig(config) {
     // — e é o servidor que só oferece a opção quando ele existe, para a
     // vitrine nunca dizer "retire no local" sem dizer onde é o local.
     permite_retirada: !!config?.permite_retirada,
+    // Confirmação no WhatsApp ao aceitar o pedido. Desligado por padrão:
+    // é uma aba que se abre sozinha, e isso só pode acontecer para quem
+    // pediu. Quem aceita dez pedidos seguidos não quer dez abas.
+    whatsapp_no_aceite: !!config?.whatsapp_no_aceite,
   };
 }
 
@@ -383,7 +387,7 @@ function coordOuNull(bruto, min, max) {
 export async function carregarConfigDelivery() {
   const { data, error } = await supabase
     .from("config_delivery")
-    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, endereco_origem, endereco_origem_bloqueado, permite_retirada, updated_at")
+    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, endereco_origem, endereco_origem_bloqueado, permite_retirada, whatsapp_no_aceite, updated_at")
     .maybeSingle();
   return { data, error };
 }

@@ -2278,3 +2278,65 @@
   font-size: var(--fs-sm);
   font-weight: 700;
 }
+
+/* ── Reimpressão da via, no cartão do pedido ───────────────────────
+   Fica na mesma linha do "Ver itens" porque as duas são ações de apoio
+   do cartão: nenhuma delas avança o pedido, e nenhuma pode competir com
+   o botão de avançar, que é o que se aperta o dia inteiro. */
+.delivery-view__pedido-acoes-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.delivery-view__reimprimir-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.delivery-view__reimprimir {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-muted);
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+.delivery-view__reimprimir:hover:not(:disabled) {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+.delivery-view__reimprimir:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.delivery-view__reimprimir-ok,
+.delivery-view__reimprimir-erro {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+}
+.delivery-view__reimprimir-ok { color: var(--gm-green); }
+/* O erro pode ser longo (mensagem do driver): corta na linha em vez de
+   esticar o cartão do pedido. O texto inteiro fica no `title`. */
+.delivery-view__reimprimir-erro {
+  color: var(--gm-red);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

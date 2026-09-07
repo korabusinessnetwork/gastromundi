@@ -176,6 +176,39 @@ gateway/TEF é necessário.
 - Inputs do cliente (CEP, endereço, observações) validados antes de qualquer
   operação no Supabase.
 
+## Onde a venda do delivery é registrada
+- **Mudou em 20261002.** Antes o espelho em `pending` aparecia na lista de
+  comandas do PDV e era ELE que o caixa fechava para registrar a venda. Isso
+  poluía a tela de quem atende no salão (ninguém vai servir aquela comanda) e
+  fazia a venda de delivery nascer indistinguível de uma venda de balcão.
+- Agora a venda é fechada pela **própria aba Delivery**, ao marcar o pedido como
+  entregue, via `registrar_venda_delivery(pedido_id)` — venda, itens e pagamento
+  numa transação só. Ela nasce com `vendas.origem = 'delivery'` e
+  `vendas.delivery_pedido_id`, então o faturamento do delivery é separável do
+  balcão.
+- **Idempotente**: `delivery_pedido_id` é UNIQUE e a RPC devolve a venda que já
+  existe. Clique duplo, eco do realtime e operador voltando na tela não rendem
+  venda dobrada. Pedido **cancelado não vira venda**.
+- A venda vem **antes** da mudança de status: se ela falhar, o pedido continua em
+  rota e o operador tenta de novo. O contrário sumiria com o pedido do painel
+  levando o dinheiro junto.
+- O espelho em `pending` deixou de ser peça financeira e é apagado ao fechar a
+  venda. Ele continua existindo para o que sempre foi útil de fato: a comanda que
+  a **Cozinha** lê e a impressora imprime. O PDV não o lista mais
+  (`comandasDoSalao`), nem na grade de comandas nem no total em aberto do caixa.
+
+## Confirmação no WhatsApp ao aceitar
+- Interruptor por estabelecimento (`config_delivery.whatsapp_no_aceite`), **nasce
+  desligado**: é uma aba que se abre sozinha, e isso só pode acontecer para quem
+  pediu — quem aceita dez pedidos seguidos não quer dez abas.
+- Ao aceitar (recebido → em preparo), abre o WhatsApp do cliente com a
+  confirmação já escrita (`mensagemPedidoAceito`): número do pedido, prazo, total
+  e forma de pagamento. O operador confere e envia. **Grátis** — é o navegador
+  abrindo `wa.me`, sem API paga.
+- Por que no aceite: o cliente já viu "Pedido enviado!" na tela dele; o que ele
+  ainda não sabe é se a loja **viu** e vai fazer.
+- Sem telefone utilizável, nada abre (o pedido exige telefone desde 20260930).
+
 ## Impressão da via de produção
 - O pedido de delivery espelha em `pending` **com `launched_at` carimbado** — é
   esse carimbo que o vigia de lançamentos (`useImpressaoLancamentos`, no
@@ -184,8 +217,9 @@ gateway/TEF é necessário.
   estivesse com a tela da Cozinha aberta e clicasse, pedido a pedido.
 - Todos os itens levam o MESMO instante: um pedido de delivery é **um**
   lançamento, e é isso que faz o eco do realtime render um papel, não um por item.
-- Reimpressão manual continua existindo na **Cozinha** (botão por pedido). A aba
-  Delivery ainda não tem botão próprio de reimpressão.
+- Reimpressão manual existe na **Cozinha** e, desde 20261002, em cada pedido da
+  aba **Delivery** — a via sai sozinha, mas a impressora fica sem papel e a
+  bancada precisa de outra cópia.
 
 ## Notificação de pedido novo (merchant)
 Dois níveis, **ambos grátis** (sem serviço pago):

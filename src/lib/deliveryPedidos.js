@@ -7,14 +7,18 @@
 // `pending` (Realtime) para a Cozinha/caixa consumirem. Aqui o
 // dono/operador ACOMPANHA e TOCA esse pedido até a entrega.
 //
-// IMPORTANTE (dinheiro): esta camada só mexe no CICLO DE VIDA do
-// pedido (`delivery_pedidos.status`). Ela NUNCA cria uma venda:
-//   • Addon (tem PDV): a venda é fechada na frente de caixa (a comanda
-//     "Delivery NNN" nasce em `pending`). Relatórios leem `sales` — a
-//     `delivery_pedidos` é só rastreio, não entra na receita → sem
-//     contagem dupla.
-//   • Standalone (só delivery): não há caixa; a própria `delivery_pedidos`
-//     é o registro do pedido.
+// DINHEIRO (mudou em 20261002): a venda do delivery é fechada AQUI, e
+// não mais na frente de caixa. Antes o espelho em `pending` aparecia na
+// lista de comandas do PDV e o caixa o fechava como se fosse uma mesa —
+// o que poluía a tela de quem atende no salão (ninguém vai servir aquela
+// comanda) e fazia a venda de delivery nascer indistinguível de uma venda
+// de balcão. Agora `registrarVendaDelivery` grava a venda com
+// `origem = 'delivery'` e o vínculo com o pedido, e o espelho volta a ser
+// só o que sempre foi útil de fato: a comanda que a COZINHA lê e a
+// impressora imprime.
+//
+// Contagem dupla não existe: a venda entra uma vez, pela RPC, que é
+// idempotente por pedido (UNIQUE em vendas.delivery_pedido_id).
 //
 // Puras (dinheiro/status/formatos) nascem com teste — deliveryPedidos.test.js.
 // Nunca faz select * em tabela sensível (CLAUDE.md): campos explícitos.
@@ -308,4 +312,122 @@ export async function atualizarStatusPedido(pedidoId, novoStatus, contexto = {})
   } catch (error) {
     return { data: null, error };
   }
+}
+
+/**
+ * Fecha o pedido entregue como VENDA, com registro próprio de delivery
+ * (`vendas.origem = 'delivery'`).
+ *
+ * Antes, quem registrava a venda do delivery era o PDV: o espelho em
+ * `pending` aparecia na lista de comandas e o caixa o fechava como se
+ * fosse uma mesa. Isso poluía a tela de quem atende no salão — ninguém
+ * vai servir aquela comanda — e fazia a venda de delivery nascer
+ * indistinguível de uma venda de balcão, sem como separar quanto o
+ * delivery vendeu.
+ *
+ * Venda, itens e pagamento entram JUNTOS ou não entram: por isso é uma
+ * RPC, e não três gravações daqui. A aba fechando no meio deixaria uma
+ * venda sem itens no relatório — dinheiro registrado sem lastro.
+ *
+ * Idempotente no servidor: o mesmo pedido devolve sempre a mesma venda
+ * (`ja_existia: true`), então clique duplo, eco do realtime e operador
+ * voltando na tela não rendem venda dobrada.
+ *
+ * @param {string} pedidoId
+ * @returns {Promise<{data: {venda_id: string, ja_existia: boolean}|null, error: object|null}>}
+ */
+export async function registrarVendaDelivery(pedidoId) {
+  if (!pedidoId) return { data: null, error: new Error("Pedido ausente.") };
+  try {
+    const { data, error } = await supabase.rpc("registrar_venda_delivery", {
+      p_pedido_id: pedidoId,
+    });
+    if (error) return { data: null, error };
+    if (!data?.ok) {
+      return { data: null, error: new Error("Não foi possível registrar a venda deste pedido.") };
+    }
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+}
+
+/**
+ * O pedido de delivery é do delivery: ele não é uma comanda do salão.
+ * O espelho em `pending` existe para a COZINHA ler e a impressora
+ * imprimir — não para o garçom atender nem para o caixa fechar.
+ *
+ * `created_by` é o carimbo que a RPC pública põe em todo espelho
+ * (`'delivery'`), e é o único jeito de distinguir a comanda espelho de
+ * uma comanda de mesa olhando só para `pending`. Pura.
+ *
+ * @param {object} comanda - linha de `pending`
+ */
+export function ehComandaDeDelivery(comanda) {
+  return comanda?.created_by === "delivery";
+}
+
+/** As comandas do salão — sem os espelhos do delivery. Pura. */
+export function comandasDoSalao(pendentes) {
+  return (pendentes ?? []).filter((c) => !ehComandaDeDelivery(c));
+}
+
+/**
+ * A mensagem de confirmação que o estabelecimento manda ao ACEITAR o
+ * pedido. Pura — é ela que os testes conferem, não o link.
+ *
+ * Por que no aceite e não no envio: o cliente já viu "Pedido enviado!" na
+ * tela dele. O que ele ainda não sabe é se a loja VIU e vai fazer. É essa
+ * a angústia dos primeiros minutos, e é isso que a mensagem responde.
+ *
+ * Curta de propósito: quem lê está no celular esperando comida, não
+ * conferindo nota fiscal. Número do pedido (para ele responder citando),
+ * o que vai chegar, quanto custa, e como recebe.
+ *
+ * @param {object} pedido - linha de delivery_pedidos
+ * @param {{nome?: string, tempoPreparo?: number}} loja
+ * @returns {string}
+ */
+export function mensagemPedidoAceito(pedido, loja = {}) {
+  const nome = String(loja?.nome ?? "").trim();
+  const cliente = String(pedido?.cliente_nome ?? "").trim();
+  const retirada = pedido?.tipo_entrega === "retirada";
+  const preparo = Math.round(Number(loja?.tempoPreparo) || 0);
+
+  // Saudação com o primeiro nome quando há: é a diferença entre parecer um
+  // robô e parecer o restaurante da esquina.
+  const saudacao = cliente ? `Oi, ${cliente.split(" ")[0]}!` : "Oi!";
+  const linhas = [`${saudacao} ${nome ? `Aqui é do ${nome}.` : "Tudo certo por aqui."}`];
+  linhas.push("");
+  linhas.push(`Recebemos seu pedido *${pedido?.numero ?? ""}* e já começamos a preparar. ✅`);
+
+  if (preparo > 0) {
+    linhas.push(
+      retirada
+        ? `Fica pronto para retirar em cerca de ${preparo} min.`
+        : `Deve chegar em cerca de ${preparo} min.`,
+    );
+  }
+
+  linhas.push("");
+  linhas.push(`Total: ${formatarReais(pedido?.total)} — ${formatarFormaPagamento(pedido?.forma_pagamento)}`);
+  if (pedido?.forma_pagamento === "dinheiro" && Number(pedido?.troco_para) > 0) {
+    linhas.push(`Levamos troco para ${formatarReais(pedido.troco_para)}.`);
+  }
+
+  if (retirada) {
+    linhas.push("");
+    linhas.push("É retirada no local — avisamos assim que estiver pronto.");
+  }
+
+  return linhas.join("\n").trim();
+}
+
+/**
+ * Link pronto para abrir a conversa do WhatsApp com a confirmação já
+ * escrita. `null` quando o pedido não tem telefone utilizável — aí o
+ * botão simplesmente não aparece, em vez de abrir uma aba morta.
+ */
+export function linkConfirmacaoWhatsApp(pedido, loja) {
+  return linkWhatsApp(pedido?.cliente_telefone, mensagemPedidoAceito(pedido, loja));
 }
