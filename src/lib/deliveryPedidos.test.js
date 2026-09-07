@@ -172,6 +172,21 @@ describe("resumoEndereco", () => {
       "Rua A, 10 · Centro",
     );
   });
+  it("fecha com a cidade — bairro de nome comum não diz de qual cidade é", () => {
+    expect(
+      resumoEndereco({
+        endereco: "Rua A, 10",
+        complemento_endereco: "ap 2",
+        bairro: "Centro",
+        cidade: "Porto Alegre/RS",
+      }),
+    ).toBe("Rua A, 10 · ap 2 · Centro · Porto Alegre/RS");
+  });
+  it("pedido antigo, sem cidade, sai como sempre saiu", () => {
+    expect(resumoEndereco({ endereco: "Rua A, 10", bairro: "Centro" })).toBe(
+      "Rua A, 10 · Centro",
+    );
+  });
   it("é seguro com pedido nulo", () => {
     expect(resumoEndereco(null)).toBe("");
   });

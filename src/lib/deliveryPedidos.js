@@ -132,6 +132,10 @@ export function resumoEndereco(pedido) {
     pedido.endereco,
     pedido.complemento_endereco,
     pedido.bairro,
+    // A cidade fecha a linha porque bairro de nome comum não diz de qual
+    // cidade é — "Centro" sozinho manda o entregador adivinhar. Pedido
+    // antigo não tem o campo e a linha sai como sempre saiu.
+    pedido.cidade,
   ]
     .map((p) => (typeof p === "string" ? p.trim() : ""))
     .filter(Boolean);

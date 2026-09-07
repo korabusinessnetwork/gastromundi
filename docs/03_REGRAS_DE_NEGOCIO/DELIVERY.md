@@ -176,6 +176,17 @@ gateway/TEF é necessário.
 - Inputs do cliente (CEP, endereço, observações) validados antes de qualquer
   operação no Supabase.
 
+## Impressão da via de produção
+- O pedido de delivery espelha em `pending` **com `launched_at` carimbado** — é
+  esse carimbo que o vigia de lançamentos (`useImpressaoLancamentos`, no
+  computador marcado como o que imprime) usa para achar o que é novo. Sem ele o
+  pedido entrava no painel e **não saía papel nenhum**: só imprimia se alguém
+  estivesse com a tela da Cozinha aberta e clicasse, pedido a pedido.
+- Todos os itens levam o MESMO instante: um pedido de delivery é **um**
+  lançamento, e é isso que faz o eco do realtime render um papel, não um por item.
+- Reimpressão manual continua existindo na **Cozinha** (botão por pedido). A aba
+  Delivery ainda não tem botão próprio de reimpressão.
+
 ## Notificação de pedido novo (merchant)
 Dois níveis, **ambos grátis** (sem serviço pago):
 - **Nível 1 (MVP):** app aberto ou em segundo plano com tela ligada → Realtime (já
