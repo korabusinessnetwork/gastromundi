@@ -7,6 +7,6 @@
 - início: 2026-09-10
 - fase: 2, loop de execução
 - base verificada: commit `8513a1c2`, `npm test` com 229 arquivos e 4067 testes verdes
-- tarefa atual: T01, ADR do PDV offline-first (F021)
-- próximo passo: rodar o `/ciclo` do T01, escrever `docs/08_DECISOES/adr-013.md`, listar no `overview.md`, atualizar a linha do F021 no `features.md`, rodar a suíte e commitar
-- progresso: 0 de 7
+- tarefa atual: T02, TD009 etapa 3, encerrar a escrita dupla de venda no `AppContext.jsx`
+- próximo passo: rodar o `/ciclo` do T02, tirar o `from("sales")` do `finalizarVenda` e do `reenviarVendaOffline`, cobrir o caminho único com teste, rodar a suíte e commitar
+- progresso: 1 de 7

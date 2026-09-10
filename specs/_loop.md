@@ -1,3 +1,30 @@
+## Rodada 63 — F021, ADR do PDV offline-first (ADR-013) — 2026-09-10
+- Spec: specs/f021-adr-pdv-offline-first.md
+- Resultado: 8 de 8 critérios em sim (suíte 229 arquivos / 4067 testes, verde; mudança só em
+  markdown, nenhum teste novo). Rodada de documentação, zero código de produção tocado.
+- O F021 pedia "PDV offline-first" e exigia um ADR antes do código. O código veio primeiro, na
+  Leva 11, e o backlog passou meses acusando "sem o ADR que o item exigia". O ADR-013 registra
+  retroativamente o que foi construído e separa o que foi decidido do que segue em aberto.
+- O que o ADR fixa: (1) outbox em `src/lib/offline/fila.js` com `uid` por operação, para o dreno
+  não apagar o que chegou no meio dele; (2) dreno FIFO com três desfechos, sucesso sai, erro de
+  rede para tudo e preserva, erro definitivo sai e volta como aviso; (3) carimbo `__tenant` na
+  porta única `enfileirarOffline`, operação de outro tenant é pulada e mantida, e o snapshot de
+  bootstrap descarta quando o carimbo não bate, porque snapshot é cache; (4) snapshot mais PWA
+  para abrir sem rede; (5) a tabela dos oito tipos de operação com como cada um aguenta o replay.
+- O ponto que sustenta o desenho: pela decisão 009 a venda é transação-fonte, então a fila não
+  podia reenviar só `pedidos`, ela reproduz a cascata inteira e cada elo precisa aguentar replay.
+  A idempotência da baixa de estoque, que é o elo mais perigoso porque `baixar_estoque` é `UPDATE`
+  relativo, veio da migration `20260830_idempotencia_baixa_estoque.sql` e fecha o pré-requisito (1)
+  do F021.
+- Seis pendências ficaram nomeadas no próprio ADR, não escondidas: IndexedDB, conflito
+  multi-dispositivo, expiração de JWT no período offline, realtime degradado, contingência fiscal
+  e TEF, e idempotência do reenvio de venda (essa cruza com o TD009 etapa 3).
+- Pendente de decisão: nenhuma nesta rodada.
+- Próximo item recomendado: **TD009 etapa 3** — encerrar a escrita dupla de venda no
+  `AppContext.jsx`, porque as leituras já foram invertidas para `vendas`/`venda_itens`/
+  `venda_pagamentos` e a escrita em `sales` é hoje a única razão de o fallback legado existir,
+  além de ser a raiz da pendência 6 do ADR-013.
+
 ## Rodada 62 — "sempre que der baixa no caixa tem q dar baixa no estoque" (TD020) — 2026-08-15
 - Spec: specs/baixa-no-caixa-sempre-vira-baixa-no-estoque.md
 - Resultado: 9 de 9 critérios em sim (suíte 207 arquivos / 3632 testes, verde; +7 testes novos, 1

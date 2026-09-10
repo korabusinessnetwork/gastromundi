@@ -65,6 +65,7 @@ ADRs capturam o "porquê" por trás de decisões técnicas e de produto signific
 | [ADR-010](./adr-010.md) | Laboratório de ciclo contínuo com modelo barato — repo local separado, contexto novo por rodada, Obsidian como ponte | Aceito e em implementação | 2026-08-03 |
 | [ADR-011](./adr-011.md) | Pautas dos sócios em subdomínio próprio, fora do multi-tenancy | Aceito e implementado | 2026-08-13 |
 | [ADR-012](./adr-012.md) | Correção das vulnerabilidades de dependência — SheetJS fora do npm, react-router 7, vite 8 e Node 22 | Aceito e implementado | 2026-08-17 |
+| [ADR-013](./adr-013.md) | PDV offline-first: outbox local, replay da cascata e limites conhecidos | Aceito e implementado (parcial) | 2026-09-10 |
 
 ---
 
