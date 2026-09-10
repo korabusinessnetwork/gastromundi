@@ -1,3 +1,26 @@
+## Rodada 66 — TD015, chaves estáveis nas listas React — 2026-09-10
+- Spec: specs/td015-chaves-estaveis-em-listas.md
+- Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (suíte 232 arquivos / 4102 testes para
+  233 arquivos / 4118 testes, verde; nenhum teste existente removido ou enfraquecido).
+- As 40 ocorrências de `key={i}` foram separadas em três baldes, e o balde é a decisão: 10 já tinham
+  chave de domínio e só precisavam usá-la, 11 são listas editáveis de verdade e ganharam `uid` de
+  `src/lib/uidLista.js` (novo, 16 testes), e 19 são lugares onde a posição É a identidade, cabeçalho
+  literal, pip de tentativa de login, aba selecionada por índice, e ficaram com o índice mais um
+  comentário `// TD015:` dizendo por quê. Chave honesta com o motivo escrito vale mais que chave
+  maquiada.
+- O que a rodada revelou de não óbvio: `uid` é chave de renderização, não dado do estabelecimento, e
+  os saves que espalham a linha inteira num jsonb livre aceitariam o campo caladamente e o
+  devolveriam como se fosse dado do cliente. Por isso `listaSemUid` existe e está nos dois saves do
+  AdminView; os demais saves foram lidos um por um e montam o payload campo a campo. `comUid` também
+  precisou devolver a MESMA referência do array quando não há nada a carimbar, senão o efeito de
+  carga que atribui a lista se reagenda para sempre.
+- A parte que quase passou batido: no `ProdutosView` a chave `c.uid ?? idx` já estava escrita, com a
+  cara certa, e nenhuma linha de `form.compras` recebia `uid` em lugar nenhum, então ela caía sempre
+  no índice. Build, suíte e o grep do critério 1 passariam por cima disso sem apitar, porque a chave
+  existe. Só a leitura do arquivo inteiro pega. O `uid` passou a nascer nos dois pontos onde a linha
+  nasce, e o save continua montando `unidades_compra` campo a campo.
+- Próximo item recomendado: T05, F021 fatia 2, trocar o `localStorage` da fila offline por IndexedDB
+  preservando o storage injetável.
 ## Rodada 65 — TD008, o bloqueio de tentativas de login sai do navegador — 2026-09-10
 - Spec: specs/td008-bloqueio-de-login-no-servidor.md
 - Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (suíte 232 arquivos / 4102 testes,

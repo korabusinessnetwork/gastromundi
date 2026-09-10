@@ -15,6 +15,12 @@ import { AJUSTE_PERCENTUAL_MAX, ajusteExigeSenha, validarAjuste } from "@/lib/ve
 import ClienteFiadoSelector from "./ClienteFiadoSelector";
 import ImpressaoAcoes from "./ImpressaoAcoes";
 import ModalCpfNota from "./ModalCpfNota";
+// TD015: no split, cada entrada de pagamento é adicionada e removida do meio da
+// lista, e cada uma carrega estado próprio de tela (o método selecionado, o campo de
+// valor com foco). A chave não pode ser a posição. O `uid` vive só no state daqui:
+// `buildPayloadPagamentos` e `buildPrintPagamentos` montam campo a campo, então ele
+// não chega à venda nem ao cupom.
+import { novoUid } from "@/lib/uidLista";
 import "./CheckoutView.css";
 
 const fmtComanda = (name) =>
@@ -51,7 +57,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
   const ativos = meiosPagamento?.length ? meiosPagamento : METODOS_CATALOG.map(m => m.id);
   const METODOS = ativos.map(id => catalogCompleto.find(m => m.id === id)).filter(Boolean);
 
-  const [pagamentos,    setPagamentos]    = useState([{ metodo: null, valor: 0, recebido: 0 }]);
+  const [pagamentos,    setPagamentos]    = useState([{ metodo: null, valor: 0, recebido: 0, uid: novoUid() }]);
   const [showDivisor,   setShowDivisor]   = useState(false);
   const [nPessoas,      setNPessoas]      = useState(2);
   const [confirmando,   setConfirmando]   = useState(false);
@@ -212,7 +218,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
     setPagamentos(prev => {
       const soma = prev.reduce((s, p) => s + (p.valor || 0), 0);
       const restante = parseFloat(Math.max(0, total - soma).toFixed(2));
-      return [...prev, { metodo: null, valor: restante, recebido: 0 }];
+      return [...prev, { metodo: null, valor: restante, recebido: 0, uid: novoUid() }];
     });
   };
 
@@ -221,12 +227,12 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
     const base = Math.floor(totalCents / n);
     const resto = totalCents - base * n;
     const valores = Array.from({ length: n }, (_, i) => parseFloat(((i < resto ? base + 1 : base) / 100).toFixed(2)));
-    setPagamentos(valores.map(v => ({ metodo: null, valor: v, recebido: 0 })));
+    setPagamentos(valores.map(v => ({ metodo: null, valor: v, recebido: 0, uid: novoUid() })));
     setShowDivisor(false);
   };
 
   const voltarParaUnico = () => {
-    setPagamentos(prev => [{ metodo: prev[0]?.metodo ?? null, valor: total, recebido: 0 }]);
+    setPagamentos(prev => [{ metodo: prev[0]?.metodo ?? null, valor: total, recebido: 0, uid: prev[0]?.uid ?? novoUid() }]);
     setShowDivisor(false);
   };
 
@@ -478,7 +484,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
               const obsArr = Array.isArray(item.obs) ? item.obs : [];
               const qty = item.qty;
               return (
-                <div key={i} className="checkout-view__item" style={{ borderBottom: `1px solid var(${C.border})` }}>
+                <div key={item.uid ?? i} className="checkout-view__item" style={{ borderBottom: `1px solid var(${C.border})` }}>
                   <div className="checkout-view__item-icone" style={{
                     background: "var(--gm-alow)", border: `1.5px solid ${alfa(C.accent, "44")}`,
                   }}>
@@ -715,7 +721,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                 {pagamentos.map((p, idx) => {
                   const trocoP = p.metodo === "dinheiro" ? (p.recebido || 0) - p.valor : 0;
                   return (
-                    <div key={idx} className="checkout-view__split-item" style={{
+                    <div key={p.uid} className="checkout-view__split-item" style={{
                       background: varColor(C.surface),
                       border: `1.5px solid ${p.metodo ? alfa(C.accent, "44") : varColor(C.border)}`,
                     }}>

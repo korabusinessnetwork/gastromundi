@@ -39,3 +39,66 @@ Data: 2026-09-10.
 `supabase/migrations/20260919_baixa_estoque_cria_linha.sql` precisa ser aplicada no painel do
 Supabase. Eu não aplico nada em banco de produção, então o item foi para
 `PENDENCIAS-DO-MATHEUS.md` e a execução segue sem ele.
+
+## D07 TD015: `uid` é chave de renderização, não vira dado do estabelecimento
+Data: 2026-09-10.
+As listas editáveis sem chave de domínio ganharam um campo `uid` gerado por `novoUid()`
+(`src/lib/uidLista.js`). Ele existe só para o React reconciliar a linha certa e não pode virar
+coluna nem campo salvo. Onde o save monta o payload campo a campo (`CheckoutView`,
+`DeliveryView`, `SecaoDelivery`), conferi lendo o código que o `uid` não é espalhado. Onde o
+destino é um jsonb livre, que aceitaria o campo caladamente e o devolveria depois como se fosse
+dado do cliente, o save passa por `listaSemUid` antes de gravar.
+**Por quê:** o risco real de carimbar identidade de tela num objeto de negócio é ela vazar para o
+banco e virar contrato sem ninguém decidir isso.
+**Como reverter:** apagar `src/lib/uidLista.js` e voltar as chaves para o índice.
+
+## D08 TD015: `CombosView` desceu para o balde A, não precisou de `uid`
+Data: 2026-09-10.
+O spec previa `uid` nos itens do combo, mas a lista já carrega o `id` do produto do catálogo,
+que é único dentro de um combo por construção (o mesmo produto não entra duas vezes).
+**Por quê:** chave de domínio existente sempre vence chave inventada, é menos código e menos
+estado para manter sincronizado.
+
+## D09 TD015: `AdminView.jsx:342` subiu do balde A para o C
+Data: 2026-09-10.
+O spec planejava `ing.produtoId ?? ing.nome ?? i` para a lista de ingredientes da ficha técnica.
+Ler o arquivo derrubou a premissa: o ingrediente adicionado à mão nasce sem `produtoId`, e o nome
+não é único dentro de uma ficha, nada impede duas linhas "Leite". A cadeia de fallback produziria
+chave duplicada exatamente nas fichas mais bagunçadas, que é o pior lugar para isso acontecer. A
+lista é só de leitura, então o índice ficou, com a justificativa escrita no código.
+**Por quê:** chave duplicada é pior que chave por índice, o React descarta o segundo nó.
+
+## D10 TD015: `AdminView` tira o `uid` na hora de salvar
+Data: 2026-09-10.
+Fichas e compras vão para a tabela `config`, num jsonb sem colunas fixas. O save espalha o objeto
+inteiro da linha, então o `uid` entraria no banco sem reclamação nenhuma. Por isso o payload passa
+por `listaSemUid`. Atenção para não confundir com o `uid()` local que o próprio `AdminView` já
+tinha: aquele gera **id de entidade** e continua indo para o banco de propósito.
+
+## D11 TD015: os helpers de faixa de horário ficaram duplicados nas duas telas
+Data: 2026-09-10.
+`faixaNova` e `horarioParaEdicao` foram escritos localmente em `DeliveryView` e em
+`SecaoDelivery` em vez de exportados de `src/lib/deliveryHorario.js`.
+**Por quê:** aquele módulo se declara puro no cabeçalho, "sem I/O, sem env", e `novoUid` toca
+`crypto` e `Date.now()`. Duplicar duas funções de três linhas custa menos que quebrar a promessa
+do módulo, que é o que permite testá-lo sem ambiente.
+
+## D12 TD015: `RelatorioView` passou a usar o `uid` do próprio item
+Data: 2026-09-10.
+A tabela de cancelamentos monta linhas achatando os itens das vendas, então o `uid` que o item
+já carrega desde `comandaItens.js` passou a ser copiado para a linha achatada. A chave ficou
+`c.uid ?? i` de propósito: venda fechada antes de os itens nascerem com identidade não tem `uid`
+nenhum para usar, e o relatório continua abrindo o histórico inteiro.
+
+## D13, o `uid` dos fornecedores do produto
+
+A review do ciclo encontrou uma chave escrita mas sem lastro: `ProdutosView` renderizava os
+cartões de fornecedor com `c.uid ?? idx`, e `uid` não existia em linha nenhuma, então a chave
+caía sempre no índice sem avisar. O plano dizia que esse `uid` viria do balde B, mas o balde B
+não tinha essa lista.
+
+Decidi carimbar em vez de reverter para `key={idx}` com comentário. A lista é adicionada e
+removida do meio, e o cartão em edição é apontado por posição, que é exatamente o cenário que
+o TD015 descreve. O `uid` entra nos dois pontos de criação da linha e não chega ao banco: o
+save monta `unidades_compra` campo a campo, o que já estava verificado no quadro de veredito
+do spec.

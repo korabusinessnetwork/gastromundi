@@ -256,6 +256,7 @@ export default function LoginPage() {
           {attempts > 0 && (
             <div className="login-page__attempts">
               {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
+                // TD015: pips de tamanho fixo (`MAX_ATTEMPTS`) em que a posição É o número da tentativa.
                 <div key={i} className={`login-page__attempt-pip${i < attempts ? " login-page__attempt-pip--usada" : ""}`} />
               ))}
             </div>

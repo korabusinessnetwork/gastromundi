@@ -12,6 +12,9 @@ import { hojeLocalISO } from "@/utils/datas";
 // A quantidade convertida vai direto para o saldo do estoque: sem arredondar,
 // 3 × 0,35 grava 1.0499999999999998 e o saldo carrega a sujeira para sempre.
 import { arredondarQtd } from "@/utils/conversaoUnidades";
+// TD015: a linha da nota carrega estado próprio (busca do produto, dropdown
+// aberto), então a chave de renderização não pode ser a posição na lista.
+import { novoUid } from "@/lib/uidLista";
 import "./NotasFiscaisTab.css";
 import {
   LuUpload, LuFileText, LuCheck, LuX, LuSearch,
@@ -223,6 +226,8 @@ function VinculaRow({ item, products, onChange }) {
 // ── Componente principal ──────────────────────────────────────────
 
 const ITEM_MANUAL_VAZIO = { descricaoXml: "", quantidade: "", unidadeXml: "", precoUnitario: "" };
+/** Linha nova do formulário manual, já com a identidade de renderização. */
+const novoItemManual = () => ({ ...ITEM_MANUAL_VAZIO, uid: novoUid() });
 
 export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor }) {
   const { products, entradaEstoque } = useApp();
@@ -253,7 +258,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
     numero: "", serie: "",
     dataEmissao: hojeLocalISO(),
   });
-  const [manualItens, setManualItens] = useState([{ ...ITEM_MANUAL_VAZIO }]);
+  const [manualItens, setManualItens] = useState([novoItemManual()]);
   const [manualErro,  setManualErro]  = useState("");
   const [fromManual,    setFromManual]    = useState(false);
   const [pendingFornNome, setPendingFornNome] = useState(null);
@@ -329,7 +334,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
   const startManual = () => {
     setManualForm({ numero: "", serie: "", dataEmissao: hojeLocalISO() });
-    setManualItens([{ ...ITEM_MANUAL_VAZIO }]);
+    setManualItens([novoItemManual()]);
     setManualErro("");
     setManualFornId(""); setManualFornBusca(""); setShowFornDD(false);
     setShowNovoForn(false); setNovoFornForm({ nome: "", cnpj: "" }); setNovoFornErro("");
@@ -367,6 +372,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
     setFromManual(true);
     setXmlString("");
     setItensVinc(itensValidos.map((it, idx) => ({
+      uid: it.uid,
       numero: idx + 1,
       descricaoXml: it.descricaoXml.trim(),
       codigoXml: null,
@@ -441,7 +447,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
   const initItens = () => {
     setItensVinc((parsed?.itens || []).map(item => ({
-      ...item, produto: null, fator: 1, fatorAuto: false, qtdEstoque: arredondarQtd(item.quantidade),
+      ...item, uid: novoUid(), produto: null, fator: 1, fatorAuto: false, qtdEstoque: arredondarQtd(item.quantidade),
     })));
   };
 
@@ -557,7 +563,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
   if (view === "manual") {
     const setManualItem = (idx, patch) =>
       setManualItens(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
-    const addItem = () => setManualItens(prev => [...prev, { ...ITEM_MANUAL_VAZIO }]);
+    const addItem = () => setManualItens(prev => [...prev, novoItemManual()]);
     const removeItem = (idx) => setManualItens(prev => prev.filter((_, i) => i !== idx));
 
     const inpStyle = {
@@ -746,13 +752,14 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
               <thead>
                 <tr style={{ borderBottom: `1px solid var(${C.border})`, background: varColor(C.surface) }}>
                   {["#", "Descrição *", "Qtd *", "Unidade", "Preço Unit. (R$)", ""].map((h, i) => (
+                    // TD015: cabeçalho literal dos itens manuais, não vem de dado.
                     <th key={i} className="nf-tab__th" style={{ textAlign: i >= 2 ? "center" : "left" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {manualItens.map((it, idx) => (
-                  <tr key={idx} style={{ borderBottom: `1px solid var(${C.border})` }}>
+                  <tr key={it.uid} style={{ borderBottom: `1px solid var(${C.border})` }}>
                     <td className="nf-tab__num" style={{ padding: "8px 12px", color: varColor(C.muted), fontWeight: 600 }}>{idx + 1}</td>
                     <td style={{ padding: "8px 12px" }}>
                       <input
@@ -878,6 +885,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             <thead>
               <tr style={{ borderBottom: `1px solid var(${C.border})`, background: varColor(C.surface) }}>
                 {["#", "Descrição XML", "Cód.", "Qtd", "Unid.", "Preço Unit.", "Produto", "Qtd Estoque"].map((h, i) => (
+                  // TD015: cabeçalho literal da lista de notas, não vem de dado.
                   <th key={i} className="nf-tab__th" style={{ textAlign: i >= 3 ? "center" : "left" }}>{h}</th>
                 ))}
               </tr>
@@ -1087,13 +1095,14 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                   <thead>
                     <tr style={{ borderBottom: `1px solid var(${C.border})`, background: varColor(C.surface) }}>
                       {["#", "Descrição XML", "Qtd / Unid", "Preço Unit.", "Produto", "Unid. Estoque", "Fator", "Qtd Convertida"].map((h, i) => (
+                        // TD015: cabeçalho literal da tela de vínculo, não vem de dado.
                         <th key={i} className="nf-tab__th" style={{ textAlign: i >= 2 ? "center" : "left" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {itensVinc.map((item, i) => (
-                      <VinculaRow key={i} item={item} products={products} onChange={updated => updateItem(i, updated)} />
+                      <VinculaRow key={item.uid} item={item} products={products} onChange={updated => updateItem(i, updated)} />
                     ))}
                   </tbody>
                 </table>
@@ -1146,8 +1155,8 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                 <div>
                   <div className="nf-tab__label" style={{ marginBottom: 10 }}>Entradas que serão criadas</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {vinculados.map((item, i) => (
-                      <div key={i} className="nf-tab__entrada-linha" style={{ background: alfa(C.green, "0c"), border: `1px solid ${alfa(C.green, "22")}` }}>
+                    {vinculados.map(item => (
+                      <div key={item.uid} className="nf-tab__entrada-linha" style={{ background: alfa(C.green, "0c"), border: `1px solid ${alfa(C.green, "22")}` }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <span className="nf-tab__emoji-lg">{item.produto.emoji || "📦"}</span>
                           <div>
@@ -1169,8 +1178,8 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
                 <div style={{ marginTop: 14 }}>
                   <div className="nf-tab__label" style={{ marginBottom: 8 }}>Itens ignorados</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    {naoVinculados.map((item, i) => (
-                      <div key={i} className="nf-tab__sub" style={{ color: varColor(C.muted), padding: "6px 0", borderBottom: `1px solid var(${C.border})` }}>
+                    {naoVinculados.map(item => (
+                      <div key={item.uid} className="nf-tab__sub" style={{ color: varColor(C.muted), padding: "6px 0", borderBottom: `1px solid var(${C.border})` }}>
                         {item.descricaoXml} <span className="nf-tab__cap">({item.quantidade} {item.unidadeXml})</span>
                       </div>
                     ))}
@@ -1285,6 +1294,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
             <thead>
               <tr style={{ borderBottom: `1px solid var(${C.border})`, background: varColor(C.surface) }}>
                 {["Data", "Fornecedor", "Nº Nota", "Série", "Valor Total", "Itens", "Status", ""].map((h, i) => (
+                  // TD015: cabeçalho literal do histórico, não vem de dado.
                   <th key={i} className="nf-tab__th" style={{ textAlign: i >= 4 ? "center" : "left" }}>{h}</th>
                 ))}
               </tr>

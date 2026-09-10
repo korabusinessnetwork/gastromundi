@@ -25,6 +25,11 @@ import {
   consumoParaEstoque, labelEstoque, labelConsumo,
   temConversaoConsumo, fmtQtd,
 } from "@/utils/conversaoUnidades";
+// TD015: as linhas de ingrediente e de item de compra são adicionadas e removidas
+// do meio da lista, então precisam de identidade própria. Não confundir com o `uid`
+// local deste arquivo, que é id de entidade (a ficha, a compra) e vai para o banco.
+// O `novoUid` daqui é chave de renderização, e sai do objeto antes de gravar.
+import { novoUid, comUid, listaSemUid } from "@/lib/uidLista";
 import "./AdminView.css";
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -175,7 +180,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
   const buscaPratoRef = useRef(null);
 
   const abrirNova   = () => { setForm({ ...FICHA_VAZIA, id: uid() }); setBusca(""); setBuscaPrato(""); setShowPratoDD(false); setCatFiltroIng("Todos"); setShowFiltroIng(false); };
-  const abrirEditar = (f) => { setForm({ ...f }); setBusca(""); setBuscaPrato(""); setShowPratoDD(false); setCatFiltroIng("Todos"); setShowFiltroIng(false); };
+  const abrirEditar = (f) => { setForm({ ...f, ingredientes: comUid(f.ingredientes ?? []) }); setBusca(""); setBuscaPrato(""); setShowPratoDD(false); setCatFiltroIng("Todos"); setShowFiltroIng(false); };
   const fechar      = () => { setForm(null); setBusca(""); setBuscaPrato(""); setShowPratoDD(false); setCatFiltroIng("Todos"); setShowFiltroIng(false); };
   const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -192,7 +197,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
       ...f,
       ingredientes: [
         ...f.ingredientes,
-        { ...ING_VAZIO, produtoId: produto.id, nome: produto.name, emoji: produto.emoji || "", unidade: unidadePadrao },
+        { ...ING_VAZIO, uid: novoUid(), produtoId: produto.id, nome: produto.name, emoji: produto.emoji || "", unidade: unidadePadrao },
       ],
     }));
     if (buscaRef.current) buscaRef.current.focus();
@@ -201,7 +206,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
   // Adicionar ingrediente manual
   const adicionarManual = () => setForm(f => ({
     ...f,
-    ingredientes: [...f.ingredientes, { ...ING_VAZIO }],
+    ingredientes: [...f.ingredientes, { ...ING_VAZIO, uid: novoUid() }],
   }));
 
   const removeIng = (i) => setForm(f => ({ ...f, ingredientes: f.ingredientes.filter((_, idx) => idx !== i) }));
@@ -241,7 +246,9 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
   const salvar = async () => {
     if (!form?.produtoId) return;
     setSaving(true);
-    const nova = [...fichas.filter(f => f.id !== form.id), { ...form }];
+    // O `uid` das linhas é chave de renderização: o destino aqui é um jsonb livre,
+    // que aceitaria o campo calado e o devolveria como se fosse dado da ficha.
+    const nova = [...fichas.filter(f => f.id !== form.id), { ...form, ingredientes: listaSemUid(form.ingredientes ?? []) }];
     // Fecha só quando gravou. Antes o modal fechava mesmo com o banco
     // recusando, e a ficha inteira que o usuário digitou ia embora com ele.
     const { error } = await onSave("fichas_tecnicas", nova);
@@ -331,6 +338,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                       const ucLabel    = produto ? labelConsumo(produto) : (ing.unidade || "");
                       const temConv    = produto ? temConversaoConsumo(produto) : false;
                       return (
+                        // TD015: lista só de leitura de uma ficha já salva, e sem chave de domínio possível: o ingrediente manual nasce sem `produtoId` e o nome repete dentro da mesma ficha.
                         <div
                           key={i}
                           className="fichas-tab__ing-linha"
@@ -489,6 +497,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                 {form.ingredientes.length > 0 && (
                   <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr 56px 44px 28px" : "1fr 64px 54px 80px 28px", gap: 6, paddingBottom: 4, borderBottom: `1px solid var(${C.border})` }}>
                     {(isNarrow ? ["Ingrediente", "Qtd", "Un", ""] : ["Ingrediente", "Qtd", "Un", "R$/un", ""]).map((h, i) => (
+                      // TD015: cabeçalho literal, escrito na linha acima, tamanho fixo.
                       <div key={i} className="fichas-tab__ing-col-header" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 0.8, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
                     ))}
                   </div>
@@ -500,7 +509,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
                   const nomeChip   = prodVinc?.name  ?? ing.nome;
                   const emojiChip  = prodVinc?.emoji ?? ing.emoji;
                   return (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr 56px 44px 28px" : "1fr 64px 54px 80px 28px", gap: 6, alignItems: "center" }}>
+                  <div key={ing.uid} style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr 56px 44px 28px" : "1fr 64px 54px 80px 28px", gap: 6, alignItems: "center" }}>
                     {/* Nome — chip se vinculado, input se manual */}
                     {prodVinc ? (
                       <div className="fichas-tab__ing-chip" style={{ background: alfa(C.accent, "12"), border: `1px solid ${alfa(C.accent, "33")}` }}>
@@ -748,6 +757,7 @@ function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
             <thead>
               <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                 {["Nome", "Categoria", "Contato", "Telefone", ""].map((h, i) => (
+                  // TD015: cabeçalho literal da tabela de fichas, não vem de dado.
                   <th key={i} className="admin__th">{h}</th>
                 ))}
               </tr>
@@ -812,11 +822,11 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
   const [deleteId, setDeleteId] = useState(null);
 
   const abrirNova   = () => setForm({ ...COMPRA_VAZIA, id: uid(), data: hojeLocalISO() });
-  const abrirEditar = (c) => setForm({ ...c });
+  const abrirEditar = (c) => setForm({ ...c, itens: comUid(c.itens ?? []) });
   const fechar      = () => setForm(null);
   const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const addItem    = () => setForm(f => ({ ...f, itens: [...f.itens, { ...ITEM_VAZIO }] }));
+  const addItem    = () => setForm(f => ({ ...f, itens: [...f.itens, { ...ITEM_VAZIO, uid: novoUid() }] }));
   const setItem    = (i, k, v) => setForm(f => ({ ...f, itens: f.itens.map((it, idx) => idx === i ? { ...it, [k]: v } : it) }));
   const removeItem = (i) => setForm(f => ({ ...f, itens: f.itens.filter((_, idx) => idx !== i) }));
 
@@ -828,7 +838,8 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
     const forn = form.fornecedor === "__outro" ? (form._fornecedorCustom?.trim() || "") : form.fornecedor;
     const total = form.itens.reduce((s, it) => s + (parseFloat(it.qtd) || 0) * (parseFloat(it.valorUnit) || 0), 0);
     const { _fornecedorCustom, ...rest } = form;
-    const atualizada = [...compras.filter(c => c.id !== form.id), { ...rest, fornecedor: forn, total }]
+    // Mesmo motivo da ficha: `config` é jsonb livre e guardaria o `uid` sem reclamar.
+    const atualizada = [...compras.filter(c => c.id !== form.id), { ...rest, fornecedor: forn, total, itens: listaSemUid(rest.itens ?? []) }]
       .sort((a, b) => new Date(b.data) - new Date(a.data));
     const { error } = await onSave("compras", atualizada);
     setSaving(false);
@@ -859,6 +870,7 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
             <thead>
               <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                 {["Data", "Fornecedor", "Itens", "Total", "Status", ""].map((h, i) => (
+                  // TD015: cabeçalho literal da tabela de compras, não vem de dado.
                   <th key={i} className="admin__th" style={{ textAlign: i >= 2 ? "right" : "left" }}>{h}</th>
                 ))}
               </tr>
@@ -922,7 +934,7 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {form.itens.map((it, i) => (
-                <div key={i} className="compras-tab__item-linha">
+                <div key={it.uid} className="compras-tab__item-linha">
                   <Inp value={it.nome} onChange={v => setItem(i, "nome", v)} placeholder="Produto / insumo" />
                   <Inp type="number" value={it.qtd} onChange={v => setItem(i, "qtd", v)} placeholder="Qtd" />
                   <Inp value={it.unidade} onChange={v => setItem(i, "unidade", v)} placeholder="Un" />

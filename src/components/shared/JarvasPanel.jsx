@@ -7,6 +7,7 @@ import { perguntarAoJarvas } from "@/lib/jarvasAssistente";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
+import { novoUid } from "@/lib/uidLista";
 import { LuSparkles, LuX, LuCheck, LuTrash2, LuArrowRight, LuSend } from "react-icons/lu";
 import "./JarvasPanel.css";
 
@@ -45,6 +46,10 @@ export default function JarvasPanel() {
 
   // ── Assistente conversacional (fase 5 — só admin/gerente) ──
   const [aba, setAba] = useState("insights");
+  // TD015: a conversa é append-only hoje, mas cada balão é um nó que o React reusa
+  // pela chave, e a lista rola sozinha a cada mensagem nova. Identidade própria
+  // mantém cada balão no lugar certo quando a tela ganhar "limpar conversa" ou
+  // reenvio. O `uid` vive só aqui: nada desta lista vai para o banco.
   const [mensagens, setMensagens] = useState([]);
   const [texto, setTexto] = useState("");
   const [perguntando, setPerguntando] = useState(false);
@@ -60,10 +65,10 @@ export default function JarvasPanel() {
     if (!pergunta || perguntando) return;
     setTexto("");
     const historico = mensagens.slice(-6);
-    setMensagens((prev) => [...prev, { papel: "usuario", texto: pergunta }]);
+    setMensagens((prev) => [...prev, { papel: "usuario", texto: pergunta, uid: novoUid() }]);
     setPerguntando(true);
     const { resposta, error } = await perguntarAoJarvas(pergunta, historico);
-    setMensagens((prev) => [...prev, { papel: "jarvas", texto: resposta ?? error ?? "Não consegui responder agora." }]);
+    setMensagens((prev) => [...prev, { papel: "jarvas", texto: resposta ?? error ?? "Não consegui responder agora.", uid: novoUid() }]);
     setPerguntando(false);
   };
 
@@ -224,8 +229,8 @@ export default function JarvasPanel() {
                       <span className="jarvas-chat__help" style={{ color: varColor(C.muted) }}>O Jarvas responde só com base nos seus dados reais.</span>
                     </div>
                   )}
-                  {mensagens.map((m, idx) => (
-                    <div key={idx} style={{ display: "flex", justifyContent: m.papel === "usuario" ? "flex-end" : "flex-start", marginBottom: 10 }}>
+                  {mensagens.map((m) => (
+                    <div key={m.uid} style={{ display: "flex", justifyContent: m.papel === "usuario" ? "flex-end" : "flex-start", marginBottom: 10 }}>
                       <div className="jarvas-message" style={{
                         maxWidth: "85%", padding: "9px 12px", borderRadius: 12,
                         whiteSpace: "pre-wrap",

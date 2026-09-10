@@ -218,6 +218,7 @@ export default function LancarSheet({
               aria-label="Teclado ABC da mesa"
             >
               {LINHAS_ABC.map((linha, i) => (
+                // TD015: `LINHAS_ABC` é constante de módulo, nunca reordena nem muda de tamanho.
                 <div key={i} className="lancar-sheet__abc-linha">
                   {linha.map((l) => (
                     <button

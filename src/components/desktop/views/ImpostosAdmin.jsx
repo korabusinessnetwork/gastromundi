@@ -546,6 +546,7 @@ export default function ImpostosAdmin({ sz }) {
           { label: `${totalConf} configurado${totalConf !== 1 ? "s" : ""}`, color: varColor(C.green) },
           { label: `${totalPend} pendente${totalPend !== 1 ? "s" : ""}`, color: varColor(C.warn) },
         ].map((b, i) => (
+          // TD015: dois badges montados na própria expressão acima, quantidade fixa.
           <span key={i} className="impostos-admin__badge" style={{ background: alfa(b.color, "18"), color: b.color, border: `1px solid ${alfa(b.color, "33")}` }}>
             {b.label}
           </span>

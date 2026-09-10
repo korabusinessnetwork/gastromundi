@@ -32,6 +32,7 @@ import {
   resumoHorario,
   deliveryDeveEstarAberto,
 } from "@/lib/deliveryHorario";
+import { novoUid, comUid } from "@/lib/uidLista";
 import ConfiguracaoImpressao from "./impressao/ConfiguracaoImpressao";
 import MesasAdmin from "./mesas/MesasAdmin";
 import ImportarExportarTab from "./ImportarExportarTab";
@@ -140,6 +141,7 @@ function StrengthBar({ pwd }) {
     <div style={{ marginTop: 8 }}>
       <div className="usuarios-tab__strength-barras">
         {[1, 2, 3, 4].map(i => (
+          // TD015: barras de tamanho fixo em que a posição É o dado, ela indica o nível da senha.
           <div key={i} className="usuarios-tab__strength-barra" style={{ background: i <= s.level ? s.color : varColor(C.border) }} />
         ))}
       </div>
@@ -495,6 +497,7 @@ export function UsuariosTab({ sz }) {
           <thead>
             <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
               {["", "Nome", "Usuário", "Cargo", "Acesso", ""].map((h, i) => (
+                // TD015: cabeçalho literal da tabela de usuários, não vem de dado.
                 <th key={i} className="usuarios-tab__th">
                   {h}
                 </th>
@@ -1473,6 +1476,17 @@ function GeralTab({ sz }) {
 // horário é o app do operador aberto (ver DeliveryView) — sem cron no
 // servidor (fase de custo zero). Toda a lógica de horário é pura e testada
 // em src/lib/deliveryHorario.js.
+//
+// TD015: as faixas são adicionadas e removidas do meio da lista, então cada uma
+// precisa de identidade própria para renderizar. Esse `uid` vive SÓ no state desta
+// tela: `normalizarHorario` reconstrói cada faixa como `{ abre, fecha }`, então ele
+// morre na fronteira do save sem precisar de limpeza explícita. O módulo de horário
+// se declara puro, por isso o carimbo mora aqui e não lá.
+const faixaNova = () => ({ ...FAIXA_PADRAO, uid: novoUid() });
+const horarioParaEdicao = (bruto) => {
+  const h = normalizarHorario(bruto);
+  return { ...h, faixas: comUid(h.faixas) };
+};
 function DeliveryTab({ sz }) {
   const { tenant, currentUser } = useApp();
   const [config, setConfig] = useState(null);
@@ -1496,7 +1510,7 @@ function DeliveryTab({ sz }) {
       }
       const base = data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
       setConfig(base);
-      setHorario(normalizarHorario(base.horario));
+      setHorario(horarioParaEdicao(base.horario));
       setErro("");
       setCarregando(false);
     })();
@@ -1513,11 +1527,11 @@ function DeliveryTab({ sz }) {
       if (h.auto) return { ...h, auto: false };
       const vazio = h.faixas.length === 0 && h.dias.length === 0;
       if (vazio) {
-        return { auto: true, dias: [...HORARIO_PADRAO.dias], faixas: [{ ...FAIXA_PADRAO }] };
+        return { auto: true, dias: [...HORARIO_PADRAO.dias], faixas: [faixaNova()] };
       }
       // Já tinha algo configurado: religa preservando, mas garante ao menos
       // uma faixa visível para o dono editar.
-      return { ...h, auto: true, faixas: h.faixas.length ? h.faixas : [{ ...FAIXA_PADRAO }] };
+      return { ...h, auto: true, faixas: h.faixas.length ? h.faixas : [faixaNova()] };
     });
   };
 
@@ -1532,7 +1546,7 @@ function DeliveryTab({ sz }) {
   // dias marcados. O dono pode ter várias no mesmo dia (ex.: almoço e jantar).
   const setFaixa = (i, patch) =>
     setCampo({ faixas: horario.faixas.map((f, idx) => (idx === i ? { ...f, ...patch } : f)) });
-  const addFaixa = () => setCampo({ faixas: [...horario.faixas, { ...FAIXA_PADRAO }] });
+  const addFaixa = () => setCampo({ faixas: [...horario.faixas, faixaNova()] });
   const removeFaixa = (i) => setCampo({ faixas: horario.faixas.filter((_, idx) => idx !== i) });
 
   const valido = horario ? horarioValido(horario) : false;
@@ -1557,7 +1571,7 @@ function DeliveryTab({ sz }) {
     if (error) { setErro("Não foi possível salvar. Tente novamente."); return; }
     const salvo = data || proximo;
     setConfig(salvo);
-    setHorario(normalizarHorario(salvo.horario));
+    setHorario(horarioParaEdicao(salvo.horario));
     setOkMsg(horario.auto ? "Abertura automática salva." : "Abertura automática desligada.");
     logAction(currentUser?.username, "delivery:horario", {
       msg: horario.auto ? `Delivery automático: ${preview || "configurado"}` : "Delivery automático desligado",
@@ -1622,7 +1636,7 @@ function DeliveryTab({ sz }) {
             <div className="delivery-tab__rotulo">Horários</div>
             <div className="delivery-tab__faixas">
               {horario.faixas.map((f, i) => (
-                <div className="delivery-tab__faixa" key={i}>
+                <div className="delivery-tab__faixa" key={f.uid}>
                   <div className="delivery-tab__horas">
                     <label className="delivery-tab__hora">
                       <span>Abre</span>

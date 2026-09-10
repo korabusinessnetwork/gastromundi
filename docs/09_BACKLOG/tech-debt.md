@@ -80,7 +80,7 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 | TD011 | Fluxos críticos do PDV sem testes de componente (só funções puras são testadas) | 🧪 Testes | Alto | Médio | 🟠 High | Resolvido (2026-07-05) |
 | TD012 | `estoque.js` engole exceção da baixa e mostra estimativa local como se fosse sucesso — mascarou o bug de RLS (`baixar_estoque`) por semanas. Falha de baixa precisa ser visível (alerta/log), não silenciosa | 🔒 Confiabilidade | Alto (quando estoque for real) | Baixo | 🟠 High | Resolvido (2026-08-01; agregação em 2026-08-15) — `gerarAlertaBaixaFalhou` leva a falha ao painel do Jarvas (o único destes destinos que o gestor abre); `processarBaixaEstoque` devolve o saldo anterior em vez do estimado e embrulha a RPC em `try/catch`; offline não alerta; **falha sistêmica (3+ baixas recusadas na mesma operação) vira um alerta único de chave fixa em vez de um cartão por produto** |
 | TD014 | Guard `deliveryHorarioSqlGuard.test.js` proibia o token `lpad(` e **exigia** `'FM000'` — obrigava a reintroduzir o bug D14 (número do pedido) para a suíte passar; a âncora ainda casava o comentário da migration, não o código | 🧪 Testes | Alto (travava o commit do conserto já aplicado em produção) | Baixo | 🟠 High | Resolvido (2026-08-01) — proíbe a forma (`lpad(x, 3, '0')` / `FM000`), regex provada nos dois lados, `blocosDaFuncao` sem comentários |
-| TD015 | `key={i}` (índice) em listas React — **40 ocorrências** (recontagem de 2026-08-02; eram ~25 em 2026-07-17); item existia desde 2026-07-17 com o número TD012, duplicando o ID do item de estoque e sem linha nesta tabela | 🧹 Code Quality | Baixo | Médio | 🟢 Low | Identificado (2026-07-17, varredura; renumerado em 2026-08-01) — **conferido em 2026-08-02, continua aberto e cresceu** |
+| TD015 | `key={i}` (índice) em listas React — **40 ocorrências** (recontagem de 2026-08-02; eram ~25 em 2026-07-17); item existia desde 2026-07-17 com o número TD012, duplicando o ID do item de estoque e sem linha nesta tabela | 🧹 Code Quality | Baixo | Médio | 🟢 Low | Resolvido (2026-09-10, rodada 66) — 10 trocadas por chave de domínio, 11 por `uid` de `src/lib/uidLista.js`, 19 mantidas com justificativa escrita no código |
 | TD016 | `supabase/schema.sql` e o `docs/09_BACKLOG/` afirmando o que o código desmente — 28 tabelas e a camada multi-tenant inteira fora do schema, 13 itens de backlog com status errado | 🧹 Code Quality | Alto (manda refazer o que existe) | Médio | 🟠 High | Resolvido (2026-08-02) — schema em 54 tabelas com `tenant_id`, backlog conferido item a item, e `src/lib/schemaSqlGuard.test.js` quebrando a suíte na próxima divergência |
 | TD017 | Âmbar de status em `#f59e0b` literal — **8 ocorrências** no Console (`PlanosDashboard.css`, `AnalyticsDashboard.css`, `AssinaturaBanner`), com comentário afirmando que "não tem token --gm-*"; o token existe desde sempre em `src/styles/tema.css:50` (`--gm-warn`) | 🧹 Code Quality | Médio (cor que o tenant white-label não consegue trocar, decisão 017) | Baixo | 🟡 Medium | Resolvido no Console (2026-08-03, rodada 56 / CONSOLE-UX 30) — as 35 cores cruas dos nove CSS do Console viraram `color-mix` sobre `--gm-*`, e os dois comentários que negavam o token foram corrigidos; o `AssinaturaBanner` e o resto do aplicativo seguem no TD018 |
 | TD018 | Âmbar de status em `#f59e0b` literal **fora** do Console — mais de 30 ocorrências em `PDVView`, `CozinhaView`, `EstoqueView`, `NotasFiscaisTab`, `ImpostosAdmin`, `ImportarExportarTab`, `ConfiguracoesView`, `JarvasPanel`, `FechamentoModal`, `AssinaturaBanner`, `roles.js` e `crypto.js`, boa parte delas em `style=` inline no JSX | 🧹 Code Quality | Médio (cor que o tenant white-label não consegue trocar, decisão 017) | Médio (mexe em JSX, não só em CSS) | 🟡 Medium | Resolvido (2026-08-15) — varredura final app-wide: `PDVView/ComandaGrid` e `MesaMapView`, `CozinhaView`, `EstoqueView`, `AdminView`, `ConfiguracoesView`, `JarvasPanel`, `FechamentoModal`, `AssinaturaBanner`, `roles.js`, `ImportarExportarTab.css`, `DemoClientes.css` e `comprovante.css` passaram a usar `--gm-warn`; o comentário de `colorAlfa.js` foi corrigido. Resíduos declarados e justificados na seção abaixo |
@@ -321,11 +321,28 @@ Um andar abaixo, `processarBaixaEstoque` ainda devolvia `quantidadeAnterior - qt
 
 ### [TD015] `key={i}` (índice) em listas React
 
-**Categoria:** Code Quality · **Impacto:** Baixo · **Esforço:** Médio · **Prioridade:** 🟢 Low · **Status:** Identificado (2026-07-17, varredura; renumerado de TD012 em 2026-08-01, ID duplicado)
+**Categoria:** Code Quality · **Impacto:** Baixo · **Esforço:** Médio · **Prioridade:** 🟢 Low · **Status:** Resolvido (2026-09-10, rodada 66)
 
-**Descrição:** ~25 ocorrências de `key={i}`/`key={idx}` em `.map()` (cabeçalhos de tabela, itens de comanda, entradas de split de pagamento etc.). Verificado na varredura de 2026-07-17: as listas afetadas ou são estáticas (headers) ou têm todos os inputs controlados (valor vem do state), então não há bug de comportamento hoje — o risco é futuro, se alguma dessas listas passar a reordenar/ter estado não-controlado por item.
+**Descrição:** 40 ocorrências de `key={i}`/`key={idx}` em `.map()` na recontagem de 2026-08-02 (eram ~25 na varredura de 2026-07-17, quando o item ainda se chamava TD012 e duplicava o ID do débito de estoque). `key={i}` diz ao React "a terceira linha é a terceira linha", não "a terceira linha é o item tal". Enquanto todos os inputs da linha são controlados isso passa despercebido, porque o valor vem do state; no dia em que a linha ganha estado próprio (dropdown aberto, foco, seleção de texto), o estado gruda na posição e reaparece na linha errada depois de remover uma linha do meio.
 
-**Solução proposta:** ao tocar em cada tela, trocar por chave estável (id do item, `metodo`, texto do header). Não vale um refactor em massa isolado.
+**Regra adotada, vale para toda lista nova:** a chave é a identidade do item, nunca a posição. Três casos, nesta ordem:
+
+1. **Existe chave de domínio** (`id` do banco, `produtoId`, um `metodo` que não repete na lista): use ela.
+2. **Não existe, e a lista é editável** (o usuário adiciona, remove do meio, reordena, ou cada linha carrega estado próprio de tela): carimbe um `uid` no objeto com `novoUid()` de `src/lib/uidLista.js`. É chave de renderização, não dado do estabelecimento: quem grava monta o payload campo a campo, ou tira a chave com `semUid`/`listaSemUid` quando o destino é um jsonb livre, que aceitaria o campo caladamente e o devolveria como se fosse dado do cliente.
+3. **A posição É a identidade** (cabeçalho literal escrito na própria linha, pip de tentativa de login, aba selecionada por índice, render de impressão imutável): `key={i}` fica, com um comentário `// TD015:` logo acima dizendo por quê.
+
+**Solução aplicada:** as 40 ocorrências foram separadas em três baldes.
+
+| Balde | Quantas | O que foi feito |
+|---|---|---|
+| A, chave de domínio disponível | 10 | trocada pela chave que o item já carregava, o `id` do banco ou o `uid` que `garantirUidItens` põe no item de comanda, com o índice preservado como fallback para linha antiga |
+| B, lista editável sem chave de domínio | 11 | `uid` de `src/lib/uidLista.js`, com 16 testes em `src/lib/uidLista.test.js` |
+| C, o índice É a identidade | 19 | mantido, com a justificativa escrita no código |
+
+`comUid` é idempotente e devolve a MESMA referência do array quando não há nada a carimbar: estas listas moram em `useState` e são atribuídas dentro de efeitos de carga, e um array novo a cada passada reagendaria o efeito para sempre. `novoUid` não depende de `crypto.randomUUID`, que lança fora de contexto seguro, porque um PDV aberto por IP na rede local do restaurante é exatamente esse caso.
+
+**Verificação:** nenhuma ocorrência de `key={i}`, `key={idx}` ou `key={index}` sobrou em `src/` sem um comentário `// TD015:` acima. Suíte de 232 arquivos / 4102 testes para 233 arquivos / 4118 testes, toda verde, e `npm run build` limpo na entrega. Spec completo, com a lista arquivo a arquivo e as decisões de reclassificação, em `specs/td015-chaves-estaveis-em-listas.md`.
+
 
 ---
 

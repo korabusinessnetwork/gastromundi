@@ -340,7 +340,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
           {itensProd.length > 0 && (
             <div className="combos-view__itens-lista">
               {itensProd.map((it, idx) => (
-                <div key={idx} className="combos-view__item-card">
+                <div key={it.produto.id} className="combos-view__item-card">
                   <div className="combos-view__item-linha" style={{ marginBottom: it.usarCustom ? 8 : 0 }}>
                     {/* Nome */}
                     <div style={{ flex: 1 }}>
@@ -445,7 +445,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
           {itens.length > 0 && (
             <div className="combos-view__itens-lista">
               {itens.map((it, idx) => (
-                <div key={idx} className="combos-view__item-card">
+                <div key={it.subproduto.id} className="combos-view__item-card">
                   <div className="combos-view__item-linha" style={{ marginBottom: it.usarCustom ? 8 : 0 }}>
                     {/* Nome */}
                     <div style={{ flex: 1 }}>

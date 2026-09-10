@@ -6,7 +6,7 @@
 - branch: full-auto/gastromundi
 - início: 2026-09-10
 - fase: 2, loop de execução
-- base verificada: commit `8513a1c2`, `npm test` com 229 arquivos e 4067 testes verdes
-- tarefa atual: T04, TD015, trocar `key={i}` por chave estável nas listas React
-- próximo passo: rodar o `/ciclo` do T04, mapear as 40 ocorrências de `key={i}`/`key={index}` com grep, trocar por chave estável (id do domínio) onde a lista reordena ou muda de tamanho, deixar justificativa escrita nas que forem legitimamente estáticas, rodar a suíte e commitar
-- progresso: 3 de 7
+- base verificada: T04 fechado, `npm test` com 233 arquivos e 4118 testes verdes
+- tarefa atual: T05, F021 fatia 2, trocar o `localStorage` da fila offline por IndexedDB
+- próximo passo: rodar o `/ciclo` do T05, ler `src/lib/offline/fila.js` e seus testes, trocar o backend de `localStorage` para IndexedDB preservando o storage injetável, garantir fallback para memória onde não há IDB, rodar a suíte e commitar
+- progresso: 4 de 7

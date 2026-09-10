@@ -119,6 +119,11 @@ import ListaArrastavel from "@/components/shared/ListaArrastavel";
 import { geocodificarEndereco, sugerirEnderecos } from "@/lib/delivery";
 import { enviarFotoProduto, listarFotosDelivery, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
+// TD015: as faixas de taxa entram e saem do meio da lista, então a chave de
+// renderização não pode ser a posição. O `uid` vive só no state desta tela:
+// `sanitizarConfig` reconstrói cada faixa antes de gravar, então ele morre na
+// fronteira do save sem precisar de limpeza explícita.
+import { comUid } from "@/lib/uidLista";
 import "./DeliveryView.css";
 
 const ABAS = [
@@ -2352,7 +2357,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
       if (error) return aviso("Não foi possível carregar as configurações.", "err");
       const cfg =
         data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
-      setConfig(cfg);
+      setConfig({ ...cfg, faixas_taxa: comUid(cfg.faixas_taxa ?? []) });
       setEnderecoOrigem(cfg.endereco_origem || "");
       setModoTaxa(temFaixasKm(cfg.faixas_taxa) ? "km" : "area");
     })();
@@ -2368,7 +2373,8 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
     const { data, error } = await salvarConfigDelivery(tenant.id, alvo);
     setSalvando(false);
     if (error) return aviso("Não foi possível salvar.", "err");
-    setConfig(data || alvo);
+    const salvo = data || alvo;
+    setConfig({ ...salvo, faixas_taxa: comUid(salvo.faixas_taxa ?? []) });
     logAction(currentUser?.username, "delivery:config", { msg: "Configurações de entrega atualizadas", name: currentUser?.name, role: currentUser?.role });
     aviso("Configurações salvas.", "ok");
   };
@@ -2650,7 +2656,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
             <div className="delivery-view__hint">Nenhuma faixa cadastrada ainda.</div>
           )}
           {faixasVisiveis.map((f, idx) => (
-            <div key={idx} className="delivery-view__faixa">
+            <div key={f.uid} className="delivery-view__faixa">
               <span className="delivery-view__faixa-texto">{faixaResumo(f)}</span>
               {isAdmin && (
                 <button onClick={() => removerFaixa(idx)} className="delivery-view__modal-fechar">

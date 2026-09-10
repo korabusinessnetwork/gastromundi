@@ -505,6 +505,7 @@ export default function EstoqueView() {
                             {/* Tabs: uma por unidade de compra + estoque direto */}
                             <div className="estoque-view__entrada-tabs">
                               {units.map((u, idx) => (
+                                // TD015: aqui o índice É a seleção, `setModo(p.id, idx)` guarda a posição da aba.
                                 <button
                                   key={idx}
                                   onClick={() => setModo(p.id, idx)}

@@ -439,6 +439,7 @@ export default function RelatorioView() {
       (Array.isArray(v.items) ? v.items : [])
         .filter(it => it.cancelado)
         .forEach(it => linhas.push({
+          uid:           it.uid,
           comanda:       v.comanda ?? "—",
           cashier:       v.cashier ?? "—",
           canceladoPor:  it.canceladoPor || "—",
@@ -458,6 +459,7 @@ export default function RelatorioView() {
       (Array.isArray(p.items) ? p.items : [])
         .filter(it => it.cancelado)
         .forEach(it => linhas.push({
+          uid:           it.uid,
           comanda:       p.comanda ?? "—",
           cashier:       p.garcom  ?? "—",
           canceladoPor:  it.canceladoPor || "—",
@@ -1125,8 +1127,10 @@ export default function RelatorioView() {
                   </thead>
                   <tbody>
                     {cancelamentos.map((c, i) => (
+                      // TD015: o `uid` vem do item da comanda (`comandaItens.js`). O `?? i` cobre
+                      // venda antiga, fechada antes de os itens passarem a nascer com identidade.
                       <tr
-                        key={i}
+                        key={c.uid ?? i}
                         onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                         style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}

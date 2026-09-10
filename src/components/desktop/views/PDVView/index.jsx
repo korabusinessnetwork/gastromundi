@@ -1454,7 +1454,7 @@ export default function PDVView({ notify }) {
                   const qSel   = transQtds[idx] ?? 0;
                   const ativo  = qSel > 0;
                   return (
-                    <div key={idx} className={`pdv__transfer-item${ativo ? " pdv__transfer-item--ativo" : ""}`}>
+                    <div key={item.uid ?? idx} className={`pdv__transfer-item${ativo ? " pdv__transfer-item--ativo" : ""}`}>
                       {item.emoji && <span className="pdv__transfer-item-emoji">{item.emoji}</span>}
                       <div className="pdv__transfer-item-info">
                         <div className="pdv__transfer-item-nome">
@@ -2120,7 +2120,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                 {showCancelList && (
                   <div className="pdv__saldo-cancelados-lista">
                     {todosCancelados.map((item, idx) => (
-                      <div key={idx} className="pdv__saldo-cancelado">
+                      <div key={item.uid ?? idx} className="pdv__saldo-cancelado">
                         <div className="pdv__saldo-cancelado-info">
                           <div className="pdv__saldo-cancelado-titulo">
                             <span className="pdv__saldo-item-nome">

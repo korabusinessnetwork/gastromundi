@@ -368,6 +368,7 @@ export default function SubprodutosView({ sz }) {
               <thead>
                 <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                   {["Nome", "Categoria", "Unidade", "Preço", "Estoque", "Status", ""].map((h, i) => (
+                    // TD015: cabeçalho literal da tabela de subprodutos, não vem de dado.
                     <th key={i} className="subprodutos-view__th" style={{ textAlign: i >= 3 ? "center" : "left" }}>{h}</th>
                   ))}
                 </tr>

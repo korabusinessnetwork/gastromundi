@@ -62,6 +62,7 @@ export default function CupomNfce({ danfe }) {
       {avisos?.length > 0 && (
         <div className="cupom-nfce__avisos">
           {avisos.map((aviso, i) => (
+            // TD015: avisos de um cupom já emitido, render de impressão sem interação nem estado.
             <p key={i} className="cupom-nfce__aviso">
               {aviso}
             </p>
@@ -134,6 +135,7 @@ export default function CupomNfce({ danfe }) {
       {/* Pagamentos */}
       <dl className="cupom-nfce__pagamentos">
         {pagamentos.map((p, i) => (
+          // TD015: mesma impressão imutável, e o método não serve de chave porque repete num split.
           <div key={i}>
             <dt>{p.rotulo}</dt>
             <dd>R$ {p.valor}</dd>
