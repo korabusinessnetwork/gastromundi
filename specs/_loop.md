@@ -1,3 +1,36 @@
+## Rodada 65 — TD008, o bloqueio de tentativas de login sai do navegador — 2026-09-10
+- Spec: specs/td008-bloqueio-de-login-no-servidor.md
+- Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (suíte 232 arquivos / 4102 testes,
+  verde; base era 230 / 4082, e nenhum teste foi removido).
+- O "Bloqueio após 5 tentativas" prometido na tela de login era contado no `localStorage` do
+  navegador de quem estava tentando entrar, ou seja, o atacante era o dono do contador e
+  `localStorage.clear()` devolvia as cinco tentativas. A migration `20260927_login_tentativas_servidor.sql`
+  move a contagem para `public.login_tentativas`, com RLS ligada e nenhuma policy, e `AppContext.login`
+  consulta o servidor antes do `signInWithPassword` e registra o desfecho depois. O contador local
+  virou eco da última resposta do banco, para os pips da tela responderem sem uma viagem por tecla.
+- O que a rodada revelou de não óbvio: o login é pré-sessão, então não existe `auth.uid()` para usar
+  como chave e as funções precisam ser alcançáveis pelo `anon`. A chave virou `md5(usuario@slug.local)`,
+  digest e não e-mail legível, senão a tabela seria uma lista de logins válidos com nome e slug do
+  tenant. A leitura de estado devolve a mesma forma para chave conhecida e desconhecida, então não
+  serve para enumerar usuário.
+- A parte que quase passou batido: a primeira versão era uma função só,
+  `login_tentativas_registrar(p_chave, p_sucesso)`, concedida ao `anon`. Isso é um freio que o
+  próprio freado desarma, bastava chamá-la com `p_sucesso = true` entre as tentativas. Virou três
+  funções, e a que zera o contador não recebe chave por parâmetro nenhuma: ela tira a identidade de
+  `auth.jwt() ->> 'email'` e só é concedida a `authenticated`. O bloco de verificação no fim da
+  migration recusa a aplicação se a concessão ao `anon` vazar, e há teste travando o contrato do
+  lado do cliente, `expect(mockRpc.mock.calls[0]).toHaveLength(1)`.
+- Falha ABERTA de propósito, e o contraste com a rodada anterior é o ponto: a TD009 etapa 3 escolheu
+  falhar FECHADO porque lá o risco é venda que não existe. Aqui o risco é o caixa não abrir por
+  causa de um soluço no banco, e o rate limit do próprio Supabase Auth continua no caminho de
+  qualquer jeito. RPC sem resposta devolve `disponivel: false` e o login volta ao contador local.
+- Limite conhecido e declarado, não escondido: com o contador por identidade no servidor, quem
+  souber um nome de usuário consegue gastar cinco tentativas erradas e deixar aquela conta bloqueada
+  por dois minutos. Isso não existia quando o contador era do navegador. O bloqueio se dissolve
+  sozinho, e o remédio de verdade seria prova de humanidade no formulário, que é feature própria.
+- Pendência do dono: P04 no `.full-auto/PENDENCIAS-DO-MATHEUS.md`, aplicar a migration antes do
+  deploy do frontend, com a URL do GitHub e a ordem de deploy.
+
 ## Rodada 64 — TD009 etapa 3, fim da escrita dupla de venda — 2026-09-10
 - Spec: specs/td009-etapa3-fim-da-escrita-dupla-de-venda.md
 - Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (suíte 230 arquivos / 4082 testes,

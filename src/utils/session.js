@@ -170,9 +170,11 @@ export const esquecerTokenAuthLocal = () => {
 // senha do gerente.
 //
 // Isto não é barreira de segurança: o storage é do navegador de quem está lá, e
-// quem sabe abrir o console limpa. A barreira de verdade é o rate limit do
-// Supabase Auth, no servidor. O objetivo aqui é a promessa da tela ser verdade
-// no uso normal, em vez de ser um enfeite.
+// quem sabe abrir o console limpa. Desde o TD008 (migration 20260927) a barreira
+// é a tabela `login_tentativas`, no banco, consultada em `AppContext.login`; o
+// que sobrou aqui é o eco da última resposta dela, para a tela responder na hora
+// e os pips mostrarem o número certo sem uma ida ao servidor a cada tecla. Quem
+// limpar o storage passa desta checagem e esbarra na do banco.
 //
 // A janela existe para o contador não virar armadilha: guardado para sempre,
 // quatro erros de ontem fariam um único erro de digitação hoje bloquear a conta.

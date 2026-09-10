@@ -4,6 +4,7 @@ import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
 import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
 import { emailDoLogin } from "@/lib/tenantSlug";
+import { consultarBloqueio, registrarFalha, registrarSucesso } from "@/lib/loginTentativas";
 import { ehConsoleHost } from "@/lib/consoleHost";
 import { sincronizarStatusAssinatura } from "@/lib/assinatura";
 import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
@@ -1007,6 +1008,10 @@ export function AppProvider({ children }) {
     const clean = sanitizeInput(username);
     const att   = getAttempts(clean);
 
+    // O contador local responde na hora e não custa viagem, então ele continua
+    // sendo a primeira parada. Ele não é mais a barreira, é o eco da última
+    // resposta do servidor: quem limpar o storage passa daqui e esbarra na
+    // consulta abaixo, que é a que decide de verdade (TD008).
     if (att.lockedUntil && att.lockedUntil > Date.now()) {
       const secs = Math.ceil((att.lockedUntil - Date.now()) / 1000);
       return { error: `Conta bloqueada. Aguarde ${secs}s.` };
@@ -1022,18 +1027,41 @@ export function AppProvider({ children }) {
     // não consome tentativa nem vai à rede — e a mensagem fala do endereço, não
     // da credencial.
     if (!email) return { error: "Endereço de acesso inválido. Confira o link do estabelecimento." };
+
+    // A barreira de verdade: o contador do banco, que o navegador não alcança.
+    // Vem antes do `signInWithPassword` para bloqueio não gastar viagem à rede
+    // de auth. Se a RPC não responder, `disponivel` vem false e o login segue
+    // pelo contador local, como era antes (falha aberta, decisão do spec).
+    const bloqueio = await consultarBloqueio(email);
+    if (bloqueio.disponivel && bloqueio.bloqueado) {
+      setAttempts(clean, { count: MAX_ATTEMPTS, lockedUntil: Date.now() + bloqueio.segundos * 1000 });
+      return { error: `Conta bloqueada. Aguarde ${bloqueio.segundos}s.` };
+    }
+
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password: sanitizeInput(password, 100),
     });
 
     if (authError) {
-      const count       = (att.count || 0) + 1;
-      const lockedUntil = count >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_MS : null;
+      // Quem conta é o servidor; o local só guarda o que ele respondeu, para os
+      // pips da tela terem o número certo antes da próxima ida ao banco.
+      const servidor = await registrarFalha(email);
+      const count = servidor.disponivel && servidor.restantes !== null
+        ? MAX_ATTEMPTS - servidor.restantes
+        : (att.count || 0) + 1;
+      const lockedUntil = servidor.disponivel
+        ? (servidor.bloqueado ? Date.now() + servidor.segundos * 1000 : null)
+        : (count >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_MS : null);
+
       setAttempts(clean, { count, lockedUntil });
       if (lockedUntil) return { error: "Muitas tentativas. Bloqueado por 2 minutos." };
-      return { error: `Usuário ou senha incorretos. ${MAX_ATTEMPTS - count} tentativa(s) restante(s).` };
+      return { error: `Usuário ou senha incorretos. ${Math.max(MAX_ATTEMPTS - count, 0)} tentativa(s) restante(s).` };
     }
+
+    // Senha certa: zera o contador do servidor. Só agora dá para chamar, porque
+    // a função tira a identidade do token da sessão que acabou de nascer.
+    registrarSucesso();
 
     const { usuario: userData } = await buscarDadosUsuario(authData.user.id);
     if (!userData) {
