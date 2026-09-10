@@ -45,6 +45,10 @@ import {
 
 const AppContext = createContext(null);
 
+// Código Postgres de coluna inexistente: o app pediu uma coluna que a
+// migration correspondente ainda não criou no banco.
+const PG_COLUNA_INEXISTENTE = "42703";
+
 
 // Monta o mapa de permissões por cargo CIENTE do tenant: parte do default
 // do roles.js (fallback white-label, decisão 017) e mescla por cima as
@@ -321,18 +325,31 @@ export function AppProvider({ children }) {
     };
   }
 
-  // TD009 (etapa 2) — leituras agora vêm de vendas/venda_itens/venda_pagamentos
-  // (remontadas no shape legado via montarVendaLegada); sales segue recebendo
-  // a gravação dupla como backup. Se a leitura nova falhar por qualquer
-  // motivo, cai para a query antiga em sales (resiliência na transição).
+  // TD009 (etapa 2) — leituras vêm de vendas/venda_itens/venda_pagamentos
+  // (remontadas no shape legado via montarVendaLegada). Etapa 3: `sales` não
+  // recebe mais escrita nenhuma; a query antiga fica só como fallback de
+  // resiliência, e cobre o período anterior ao corte.
   async function buscarSalesData() {
     const desde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     try {
-      const { data: vendasData, error: eVendas } = await supabase
+      const COLUNAS_BASE = "id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at";
+      const lerVendas = (colunas) => supabase
         .from("vendas")
-        .select("id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at")
+        .select(colunas)
         .gte("at", desde)
         .order("at", { ascending: false });
+
+      let { data: vendasData, error: eVendas } = await lerVendas(
+        `${COLUNAS_BASE},cancelada,motivo_cancelamento,cancelada_por,cancelada_em`
+      );
+      // Migration 20260920 ainda não aplicada: relê sem as colunas de
+      // cancelamento em vez de cair no fallback de `sales`, que hoje só tem
+      // o histórico antigo — sem isso, um banco desatualizado sumiria com as
+      // vendas do dia na tela do caixa.
+      if (eVendas?.code === PG_COLUNA_INEXISTENTE) {
+        console.warn("[bootstrap] colunas de cancelamento ausentes em vendas (migration 20260920 pendente)");
+        ({ data: vendasData, error: eVendas } = await lerVendas(COLUNAS_BASE));
+      }
       if (eVendas) throw eVendas;
 
       const ids = (vendasData ?? []).map(v => v.id);
@@ -865,29 +882,51 @@ export function AppProvider({ children }) {
     return { error: { message: "fetch failed", motivo_fiscal: resultado?.status ?? "erro" } };
   };
 
+  // TD009 (etapa 3) — o reenvio grava só nas tabelas relacionais. `sales`
+  // não recebe mais venda nenhuma.
+  //
+  // Idempotência (fecha a pendência 6 do ADR-013): o cabeçalho em `vendas`
+  // bate em violação de unicidade quando a venda já subiu, e as filhas não
+  // são reinseridas. Antes, o `upsert` protegia a LINHA mas não o EVENTO —
+  // cada passada do dreno reemitia `venda.finalizada` e o Jarvas via a
+  // mesma venda várias vezes. Agora o evento só sai quando a venda foi
+  // gravada de fato.
   const reenviarVendaOffline = async (op) => {
     const sale = op.payload.data;
-    const { error } = await supabase.from("sales").upsert({ id: op.payload.id, data: sale }, { onConflict: "id" });
-    if (error) return { error };
-    // DÍVIDA (auditoria P3/P4): reenvio pode reaplicar efeitos — precisa de chave de idempotência na RPC
-    // (o upsert acima não duplica a venda, mas o evento e o dual-write abaixo podem reemitir no dreno).
-    emitirEvento("venda.finalizada", "pdv", {
-      venda_id: sale.id,
-      total: sale.total ?? null,
-      metodo: sale.metodo ?? sale.payment ?? null,
-      itens: Array.isArray(sale.items) ? sale.items.length : null,
-    }, currentUser?.username);
-    void persistirVendaNormalizada(supabase, sale, {
+    const resultado = await persistirVendaNormalizada(supabase, sale, {
       onFalha: ({ etapa, error: e, venda_id }) => {
-        console.error(`dual-write vendas (${etapa}) venda ${venda_id}:`, e);
+        // Rede caiu no meio do dreno: a op fica na fila e volta na próxima
+        // passada. Isso é o dreno funcionando, não inconsistência de dado.
+        if (isErroDeRede(e)) return;
+        console.error(`gravação de venda (${etapa}) venda ${venda_id}:`, e);
         reportarFalha(e, { acao: "persistirVendaNormalizada", etapa, tabela: "vendas", venda_id, origem: "reenvioOffline" });
-        emitirEvento("venda.dualwrite.falhou", "pdv", {
+        emitirEvento("venda.gravacao.incompleta", "pdv", {
           venda_id,
           etapa,
           erro: e?.message ?? e?.code ?? String(e),
         }, currentUser?.username);
       },
     });
+
+    // Cabeçalho não gravou = a venda não existe. Devolve o erro para o dreno
+    // decidir: erro de rede para a fila inteira e preserva a venda; erro
+    // definitivo (RLS, constraint) tira a op e vira aviso na tela.
+    if (!resultado.cabecalhoGravado) {
+      return { error: resultado.falhas[0]?.error ?? { message: "falha ao gravar a venda reenviada" } };
+    }
+
+    // Cabeçalho gravou e alguma filha falhou: a venda EXISTE e está
+    // incompleta. Manter na fila reprocessaria só o cabeçalho (unicidade),
+    // sem nunca consertar a filha — então a op sai e a inconsistência já
+    // foi registrada pelo onFalha acima.
+    if (!resultado.jaExistia) {
+      emitirEvento("venda.finalizada", "pdv", {
+        venda_id: sale.id,
+        total: sale.total ?? null,
+        metodo: sale.metodo ?? sale.payment ?? null,
+        itens: Array.isArray(sale.items) ? sale.items.length : null,
+      }, currentUser?.username);
+    }
     return { error: null };
   };
 
@@ -1254,13 +1293,35 @@ export function AppProvider({ children }) {
   };
 
   // ── Actions: Sales ────────────────────────────────────────────
+  // TD009 (etapa 3) — a venda é gravada SÓ nas tabelas relacionais.
+  // `sales` era a fonte de verdade e a gravação relacional era backup
+  // fire-and-forget; invertida a fonte, o contrato inverteu junto: aqui se
+  // espera o resultado e se decide a partir dele.
   const addSale = async (sale) => {
     setSalesLocal(prev => [sale, ...prev]);
-    const { error } = await supabase.from("sales").insert({ id: sale.id, data: sale });
-    if (error) {
+
+    const resultado = await persistirVendaNormalizada(supabase, sale, {
+      onFalha: ({ etapa, error, venda_id }) => {
+        // Sem internet a venda vai para a fila offline logo abaixo e sobe
+        // depois: caminho previsto, não inconsistência. Registrar aqui
+        // encheria a trilha do Jarvas toda vez que o wi-fi do salão cai.
+        if (isErroDeRede(error)) return;
+        console.error(`gravação de venda (${etapa}) venda ${venda_id}:`, error);
+        reportarFalha(error, { acao: "persistirVendaNormalizada", etapa, tabela: "vendas", venda_id });
+        // Trilha durável: em vez de só console, deixa rastro pro Jarvas.
+        emitirEvento("venda.gravacao.incompleta", "pdv", {
+          venda_id,
+          etapa,
+          erro: error?.message ?? error?.code ?? String(error),
+        }, currentUser?.username);
+      },
+    });
+
+    if (!resultado.cabecalhoGravado) {
+      const error = resultado.falhas[0]?.error ?? { message: "Falha ao gravar a venda." };
       // Sem internet (métodos não-TEF): a venda fica na fila local e sobe
-      // sozinha quando a conexão voltar. Evento + gravação dupla ficam para
-      // o reenvio confirmado (executarOpOffline), senão duplicariam.
+      // sozinha quando a conexão voltar. O evento fica para o reenvio
+      // confirmado (executarOpOffline), senão duplicaria.
       if (isErroDeRede(error)) {
         enfileirarOffline({ tipo: "insert_venda", payload: { id: sale.id, data: sale } });
         return { error: null, offline: true };
@@ -1270,81 +1331,89 @@ export function AppProvider({ children }) {
       // alguém recarregar a página: o caixa fechava o dia com dinheiro que
       // nunca foi gravado. addPending/updatePending/removePending já
       // desfaziam; a única ação que mexe em dinheiro era a que não desfazia.
+      // (o reportarFalha já saiu no onFalha acima, com a etapa que falhou)
       setSalesLocal(prev => prev.filter(v => v.id !== sale.id));
       console.error("addSale error:", JSON.stringify(error, null, 2));
-      reportarFalha(error, { acao: "addSale", tabela: "sales", venda_id: sale.id });
       throw error;
     }
-    emitirEvento("venda.finalizada", "pdv", {
-      venda_id: sale.id,
-      total: sale.total ?? null,
-      metodo: sale.metodo ?? sale.payment ?? null,
-      itens: Array.isArray(sale.items) ? sale.items.length : null,
-    }, currentUser?.username);
 
-    // TD009 (etapa 1) — gravação dupla nas tabelas relacionais novas.
-    // sales continua a fonte de verdade: falha aqui nunca pode quebrar a
-    // venda. persistirVendaNormalizada checa o .error de cada insert (o
-    // supabase-js não lança em RLS/constraint) e nos avisa via onFalha —
-    // fim do furo silencioso que gerou buracos na janela do 20260722.
-    void persistirVendaNormalizada(supabase, sale, {
-      onFalha: ({ etapa, error, venda_id }) => {
-        console.error(`dual-write vendas (${etapa}) venda ${venda_id}:`, error);
-        reportarFalha(error, { acao: "persistirVendaNormalizada", etapa, tabela: "vendas", venda_id });
-        // Trilha durável: em vez de só console, deixa rastro pro Jarvas.
-        emitirEvento("venda.dualwrite.falhou", "pdv", {
-          venda_id,
-          etapa,
-          erro: error?.message ?? error?.code ?? String(error),
-        }, currentUser?.username);
-      },
-    });
+    // Cabeçalho gravou e uma filha falhou: a venda EXISTE e está incompleta.
+    // Não se desfaz nem se lança — mandar o operador refazer duplicaria a
+    // receita. A inconsistência já foi registrada no onFalha acima, e o
+    // retorno diz a verdade sobre o dinheiro: a venda aconteceu.
+    // `jaExistia` cobre o clique duplo em finalizar: venda já gravada não
+    // vira um segundo `venda.finalizada` para o Jarvas.
+    if (!resultado.jaExistia) {
+      emitirEvento("venda.finalizada", "pdv", {
+        venda_id: sale.id,
+        total: sale.total ?? null,
+        metodo: sale.metodo ?? sale.payment ?? null,
+        itens: Array.isArray(sale.items) ? sale.items.length : null,
+      }, currentUser?.username);
+    }
 
     // Mesmo contrato das demais actions: { error } sempre presente.
     return { error: null };
   };
 
   // Leva 15.3 — cancela uma venda já fechada (comanda fechada).
-  // O blob em `sales` NÃO é apagado: marcamos data.cancelada (trilha de
-  // auditoria) e removemos as linhas relacionais (TD009), já que o caminho
-  // de leitura é relacional-first — apagar as linhas tira a venda dos
-  // relatórios sem precisar de migration. Lançamentos financeiros da venda
-  // (receita automática / fiado) também são removidos.
+  //
+  // TD009 (etapa 3): cancelar virou MARCA em `vendas`, não remoção.
+  // Antes o cancelamento marcava `data.cancelada` no blob de `sales` e
+  // APAGAVA as linhas relacionais: o blob guardava a auditoria e apagar as
+  // linhas tirava a venda dos relatórios sem precisar de migration. Sem o
+  // blob, apagar as linhas apagaria a venda cancelada do banco inteiro.
+  // Agora as quatro colunas de `vendas` (migration 20260920) guardam o
+  // estado, e itens e pagamentos ficam de pé como trilha de auditoria.
+  // Lançamentos financeiros continuam removidos: receita cancelada não é
+  // receita.
   const cancelarVendaFechada = async (vendaId, motivo) => {
     const alvo = sales.find(s => s && s.id === vendaId);
     if (!alvo) return { error: { code: "venda_nao_encontrada", message: "Venda não encontrada." } };
     if (alvo.cancelada) return { error: { code: "ja_cancelada", message: "Esta venda já foi cancelada." } };
 
+    const canceladaPor = currentUser?.name ?? currentUser?.username ?? null;
+    const canceladaEm = new Date().toISOString();
     const cancelada = {
       ...alvo,
       cancelada: true,
       motivoCancelamento: motivo,
-      canceladaPor: currentUser?.name ?? currentUser?.username ?? null,
-      canceladaEm: new Date().toISOString(),
+      canceladaPor,
+      canceladaEm,
     };
 
     // .select() após o update: PostgREST devolve sucesso HTTP com 0 linhas
     // quando a RLS filtra tudo ou o id não existe (mesmo padrão do
     // updateUser) — sem checar, a UI fingiria que cancelou.
     const { data: linhas, error } = await supabase
-      .from("sales")
-      .update({ data: cancelada })
+      .from("vendas")
+      .update({
+        cancelada: true,
+        motivo_cancelamento: motivo,
+        cancelada_por: canceladaPor,
+        cancelada_em: canceladaEm,
+      })
       .eq("id", vendaId)
       .select("id");
-    if (error) return { error };
+    if (error) {
+      // 42703 = coluna inexistente: a migration 20260920 não foi aplicada.
+      // Falha explícita de propósito. Fingir sucesso seria pior que o erro:
+      // o operador acharia que cancelou e a venda seguiria somando no
+      // relatório. Não há fallback pelo caminho antigo — a venda nova nem
+      // existe mais em `sales` para receber a marca no blob.
+      if (error.code === PG_COLUNA_INEXISTENTE) {
+        reportarInconsistencia("cancelamento sem a coluna no banco", { acao: "cancelarVendaFechada", tabela: "vendas", venda_id: vendaId });
+        return { error: {
+          code: "migration_pendente",
+          message: "Cancelamento indisponível: a atualização do banco (20260920_vendas_cancelamento) ainda não foi aplicada. Avise o responsável pelo sistema.",
+        } };
+      }
+      return { error };
+    }
     if (!linhas || linhas.length === 0) {
-      reportarInconsistencia("write afetou 0 linhas", { acao: "cancelarVendaFechada", tabela: "sales", venda_id: vendaId });
+      reportarInconsistencia("write afetou 0 linhas", { acao: "cancelarVendaFechada", tabela: "vendas", venda_id: vendaId });
       return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada — venda inexistente ou sem permissão." } };
     }
-
-    // Espelho relacional: filhos antes do cabeçalho (FK). Falha aqui não
-    // desfaz o cancelamento (o blob é a fonte de verdade) — só registra.
-    const { error: ePag } = await supabase.from("venda_pagamentos").delete().eq("venda_id", vendaId);
-    if (ePag) console.error("cancelarVendaFechada venda_pagamentos:", ePag);
-    const { error: eIt } = await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
-    if (eIt) console.error("cancelarVendaFechada venda_itens:", eIt);
-    const { error: eVen } = await supabase.from("vendas").delete().eq("id", vendaId);
-    if (eVen) console.error("cancelarVendaFechada vendas:", eVen);
 
     const { error: eLanc } = await supabase.from("lancamentos").delete().eq("venda_id", vendaId);
     if (eLanc) console.error("cancelarVendaFechada lancamentos:", eLanc);

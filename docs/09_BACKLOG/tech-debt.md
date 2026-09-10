@@ -75,7 +75,7 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 | TD006 | `supabase/schema.sql` defasado vs migrações (policies `acesso_total` já substituídas) | 🧹 Code Quality | Médio (onboarding perigoso) | Baixo | 🟡 Medium | Resolvido (2026-07-04) |
 | TD007 | `dist/` commitado no repositório | 🧹 Code Quality | Baixo | Baixo | 🟢 Low | Resolvido (2026-07-04) |
 | TD008 | Rate limiting de login só no cliente (contornável) | 🔒 Segurança | Baixo (Supabase Auth tem proteção própria) | Baixo | 🟢 Low | Identificado — **conferido em 2026-08-02, continua aberto**: o bloqueio ainda é do cliente (`src/context/AppContext.jsx:787`, "Bloqueado por 2 minutos"), com o contador em `localStorage` (não `sessionStorage`, como dizia esta linha — `src/pages/LoginPage.jsx:158`). O caminho servidor já tem precedente no projeto: `senha_admin_tentativas` (`20260802_leva16_hardening_rpcs.sql`) conta tentativas da senha de gerente no banco |
-| TD009 | `sales`/`fechamentos` como blobs JSONB — relatórios/consultas SQL limitados | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Em andamento — etapa 2 concluída (2026-07-04); **conferido em 2026-08-02, etapa 3 continua aberta**: `src/context/AppContext.jsx` ainda grava nos dois formatos (`from("sales")` + `persistirVendaNormalizada`) |
+| TD009 | `sales`/`fechamentos` como blobs JSONB — relatórios/consultas SQL limitados | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Resolvido (2026-09-10) — etapa 3 encerrou a escrita dupla: nenhum caminho do app grava em `sales`, as tabelas relacionais viraram fonte de verdade da escrita e o cancelamento de venda fechada virou coluna em `vendas` (migration `20260920_vendas_cancelamento.sql`) em vez de apagar as linhas filhas |
 | TD010 | Realtime só em `pending` — estoque/config/insights não sincronizam entre dispositivos | 🏗️ Arquitetura | Médio | Médio | 🟡 Medium | Resolvido (2026-07-04) |
 | TD011 | Fluxos críticos do PDV sem testes de componente (só funções puras são testadas) | 🧪 Testes | Alto | Médio | 🟠 High | Resolvido (2026-07-05) |
 | TD012 | `estoque.js` engole exceção da baixa e mostra estimativa local como se fosse sucesso — mascarou o bug de RLS (`baixar_estoque`) por semanas. Falha de baixa precisa ser visível (alerta/log), não silenciosa | 🔒 Confiabilidade | Alto (quando estoque for real) | Baixo | 🟠 High | Resolvido (2026-08-01; agregação em 2026-08-15) — `gerarAlertaBaixaFalhou` leva a falha ao painel do Jarvas (o único destes destinos que o gestor abre); `processarBaixaEstoque` devolve o saldo anterior em vez do estimado e embrulha a RPC em `try/catch`; offline não alerta; **falha sistêmica (3+ baixas recusadas na mesma operação) vira um alerta único de chave fixa em vez de um cartão por produto** |
@@ -224,7 +224,7 @@ Dois agravantes independentes: a guarda dava ao **mapa em memória do aparelho**
 
 ### [TD009] `sales`/`fechamentos` como blobs JSONB
 
-**Categoria:** Arquitetura · **Impacto:** Médio · **Esforço:** Alto · **Prioridade:** 🟡 Medium · **Status:** Em andamento — etapa 2 concluída (2026-07-04)
+**Categoria:** Arquitetura · **Impacto:** Médio · **Esforço:** Alto · **Prioridade:** 🟡 Medium · **Status:** Resolvido (2026-09-10)
 
 **Descrição:** `sales` grava a venda inteira como um blob `data jsonb` — relatórios (top produtos, faturamento por método de pagamento) e o Jarvas processam tudo no cliente, sem poder usar SQL/índices. Alinhado ao modelo-alvo (`docs/04_MODELAGEM`).
 
@@ -236,13 +236,26 @@ Dois agravantes independentes: a guarda dava ao **mapa em memória do aparelho**
 
 **~~Observação (fora do escopo desta etapa)~~ — resolvida:** esta nota dizia que `jarvas-assistente` ainda lia estoque via `config.key='estoque'` (removida no TD004), deixando `estoque_atual` sempre vazio. **Não é mais verdade** (conferido em 2026-08-02): `supabase/functions/jarvas-assistente/index.ts:89` lê `from("estoque").select("produto_id, quantidade, minimo")`, com o comentário citando a migração `20260705`. A nota ficou desatualizada por semanas — é a origem do TD016.
 
-**Falta (etapa 3):** após um período de confiança rodando em produção, parar de gravar em `sales` (mantendo-a só como arquivo histórico, ou removê-la). **Conferido em 2026-08-02: continua aberta** — `src/context/AppContext.jsx` grava a venda em `sales` e, logo depois, em `vendas`/`venda_itens`/`venda_pagamentos` via `persistirVendaNormalizada`; o reenvio offline (`reenviarVendaOffline`) faz o mesmo par.
+**Etapa 3 (concluída em 2026-09-10):** o app parou de gravar em `sales`. Os três caminhos de escrita passaram a gravar só nas tabelas relacionais: `addSale`, `reenviarVendaOffline` e `cancelarVendaFechada`. `sales` continua no banco como arquivo histórico e é lida em um único lugar, o fallback de resiliência do bootstrap (`AppContext.jsx`), quando a leitura relacional falha.
+
+O que a etapa exigiu, além de apagar o insert:
+
+- **`persistirVendaNormalizada` deixou de ser fire-and-forget.** Antes qualquer erro só logava, porque `sales` era a gravação que valia. Sem `sales`, um erro engolido é uma venda que não existe. A função passou a devolver `{ ok, jaExistia, cabecalhoGravado, falhas }` e continua sem lançar; quem decide é o chamador.
+- **Assimetria deliberada entre cabeçalho e filhas.** Sem transação única (a alternativa 2 do ADR-013 segue não escolhida), o cabeçalho pode gravar e a filha falhar. Cabeçalho que falha significa venda inexistente: desfaz o otimista do estado local e propaga o erro (ou enfileira, se for queda de rede). Filha que falha depois do cabeçalho significa venda existente e incompleta: **não** desfaz, porque mandar o operador refazer duplicaria a receita; vira `reportarFalha` e o evento `venda.gravacao.incompleta`.
+- **Cancelar virou marcar, não apagar.** `cancelarVendaFechada` apagava as linhas de `vendas`, `venda_itens` e `venda_pagamentos` e guardava a trilha no blob. Sem o blob, apagar apagaria a auditoria junto. A migration `20260920_vendas_cancelamento.sql` adiciona `cancelada`, `motivo_cancelamento`, `cancelada_por` e `cancelada_em` em `vendas` (nenhuma política de RLS nova: `vendas_all_caixa_up` da `20260707` já cobre o UPDATE e o isolamento por `tenant_id` veio na `20260724`). As telas já filtravam `cancelada` no cliente, então a venda marcada continua fora dos relatórios, agora com os itens preservados.
+- **Falha explícita se a migration não estiver aplicada.** Com a coluna faltando (`42703`), o cancelamento devolve `migration_pendente` com mensagem em português nomeando o arquivo, em vez de fingir sucesso. Marcar `sales.data.cancelada` como fallback seria inútil justamente para as vendas novas, que não têm linha em `sales`.
+- **Evento idempotente.** `jaExistia` fecha a pendência 6 do ADR-013: `venda.finalizada` só sai quando a linha nasceu naquela gravação, o que cobre tanto o clique duplo no caixa quanto cada passada do dreno offline.
+
+Spec em `specs/td009-etapa3-fim-da-escrita-dupla-de-venda.md`. Cobertura em `AppContext.addSale.test.jsx` (9 testes), `AppContext.vendaCancelamento.test.jsx` (9 testes) e `vendas.test.js`.
 
 **Pendente (ação manual) — ordem de deploy:**
 1. Rodar `20260708_backfill_vendas.sql` no SQL Editor do Supabase (a migração `20260707` já deveria estar aplicada da etapa 1; `20260709_jarvas_resumo_vendas.sql` também precisa rodar).
 2. Validar com a query de conferência (comentada no final de `20260708_backfill_vendas.sql`) — contagem e soma de totais por mês, `sales` vs `vendas`.
-3. Deployar o frontend.
-4. Redeployar a edge function: `supabase functions deploy jarvas-assistente --no-verify-jwt`.
+3. **Rodar `20260920_vendas_cancelamento.sql` ANTES de deployar o frontend.** O app novo cancela marcando as colunas; sem elas o cancelamento falha com mensagem explícita. O app antigo continua funcionando com as colunas presentes, então a ordem é segura nos dois sentidos.
+4. Deployar o frontend.
+5. Redeployar a edge function: `supabase functions deploy jarvas-assistente --no-verify-jwt`.
+
+**Resíduo declarado:** `fechamentos` continua sendo blob JSONB. A etapa 3 tratou de `sales`, que é a tabela que o TD009 dizia estar em escrita dupla; normalizar o fechamento de caixa é trabalho próprio, sem escrita dupla envolvida, e ainda não tem item de backlog.
 
 ### [TD010] Realtime só em `pending`
 

@@ -302,6 +302,46 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
 
     expect(reconstruida).toEqual(original);
   });
+
+  // TD009 etapa 3 — o cancelamento saiu do blob de `sales` e virou coluna em
+  // `vendas`. Sem estes campos na volta, a venda cancelada reaparecia no
+  // relatório depois de um F5: as telas filtram `cancelada` no cliente, e o
+  // filtro não tinha o que ler.
+  it("venda cancelada volta com o cancelamento no shape legado", () => {
+    const reconstruida = montarVendaLegada({
+      venda: {
+        id: "vc1",
+        comanda: "9",
+        subtotal: 40,
+        total: 40,
+        at: "2026-09-10T18:00:00.000Z",
+        cancelada: true,
+        motivo_cancelamento: "cliente desistiu",
+        cancelada_por: "Maria",
+        cancelada_em: "2026-09-10T18:05:00.000Z",
+      },
+      itens: [],
+      pagamentos: [],
+    });
+
+    expect(reconstruida).toMatchObject({
+      cancelada: true,
+      motivoCancelamento: "cliente desistiu",
+      canceladaPor: "Maria",
+      canceladaEm: "2026-09-10T18:05:00.000Z",
+    });
+  });
+
+  it("venda normal não ganha campos de cancelamento (shape legado intacto)", () => {
+    const reconstruida = montarVendaLegada({
+      venda: { id: "vn1", comanda: "9", subtotal: 40, total: 40, at: "2026-09-10T18:00:00.000Z", cancelada: false },
+      itens: [],
+      pagamentos: [],
+    });
+
+    expect(reconstruida).not.toHaveProperty("cancelada");
+    expect(reconstruida).not.toHaveProperty("canceladaPor");
+  });
 });
 
 describe("persistirVendaNormalizada (dual-write — detecção de falha)", () => {
@@ -340,7 +380,7 @@ describe("persistirVendaNormalizada (dual-write — detecção de falha)", () =>
 
     const res = await persistirVendaNormalizada(client, saleBase, { onFalha });
 
-    expect(res).toEqual({ ok: true, falhas: [] });
+    expect(res).toEqual({ ok: true, jaExistia: false, cabecalhoGravado: true, falhas: [] });
     expect(onFalha).not.toHaveBeenCalled();
     expect(client.calls.map((c) => c.table)).toEqual(["vendas", "venda_itens", "venda_pagamentos"]);
   });
@@ -354,6 +394,9 @@ describe("persistirVendaNormalizada (dual-write — detecção de falha)", () =>
 
     // (a) o erro é detectado/registrado — fim do furo silencioso
     expect(res.ok).toBe(false);
+    // TD009 etapa 3: sem cabeçalho a venda não existe, e é isso que manda o
+    // addSale desfazer o otimista em vez de dar a venda por gravada.
+    expect(res.cabecalhoGravado).toBe(false);
     expect(res.falhas).toEqual([{ etapa: "vendas", error: erro }]);
     expect(onFalha).toHaveBeenCalledWith({ etapa: "vendas", error: erro, venda_id: "vp1" });
     // filhas não são tentadas quando o header falha
@@ -367,7 +410,9 @@ describe("persistirVendaNormalizada (dual-write — detecção de falha)", () =>
 
     const res = await persistirVendaNormalizada(client, saleBase, { onFalha });
 
-    expect(res).toEqual({ ok: true, falhas: [] });
+    // TD009 etapa 3: `jaExistia` é o que impede o reenvio offline de reemitir
+    // `venda.finalizada` a cada passada do dreno (pendência 6 do ADR-013).
+    expect(res).toEqual({ ok: true, jaExistia: true, cabecalhoGravado: true, falhas: [] });
     expect(onFalha).not.toHaveBeenCalled();
     // não reinsere itens/pagamentos (evita duplicar linhas sem chave natural)
     expect(client.calls.map((c) => c.table)).toEqual(["vendas"]);
@@ -381,6 +426,9 @@ describe("persistirVendaNormalizada (dual-write — detecção de falha)", () =>
     const res = await persistirVendaNormalizada(client, saleBase, { onFalha });
 
     expect(res.ok).toBe(false);
+    // a venda EXISTE e ficou incompleta: quem chama registra a inconsistência
+    // e NÃO desfaz, senão o operador refaria uma venda que já foi cobrada.
+    expect(res.cabecalhoGravado).toBe(true);
     expect(res.falhas).toEqual([{ etapa: "venda_itens", error: erro }]);
     expect(client.calls.map((c) => c.table)).toEqual(["vendas", "venda_itens", "venda_pagamentos"]);
   });
@@ -397,7 +445,7 @@ describe("persistirVendaNormalizada (dual-write — detecção de falha)", () =>
       lancou = true;
     }
 
-    // (b) addSale nunca lança: a finalização (sales, já gravada) segue normal
+    // (b) persistirVendaNormalizada nunca lança: quem chama decide pelo retorno
     expect(lancou).toBe(false);
     expect(res.ok).toBe(false);
     expect(res.falhas[0].etapa).toBe("excecao");

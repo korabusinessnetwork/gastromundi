@@ -1,3 +1,30 @@
+## Rodada 64 — TD009 etapa 3, fim da escrita dupla de venda — 2026-09-10
+- Spec: specs/td009-etapa3-fim-da-escrita-dupla-de-venda.md
+- Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (suíte 230 arquivos / 4082 testes,
+  verde; base era 229 / 4067, e nenhum teste foi removido).
+- O TD009 dizia desde 2026-07-04 que a etapa 3 estava "para depois de um período de confiança". Ela
+  já tinha rodado: as leituras são relacionais desde a etapa 2 e o backfill está aplicado. O que
+  faltava era parar de gravar em `sales`, o que esta rodada fez nos três caminhos de escrita,
+  `addSale`, `reenviarVendaOffline` e `cancelarVendaFechada`. `sales` continua no banco e é lida em
+  um lugar só, o fallback de resiliência do bootstrap.
+- O que a rodada revelou de não óbvio: `persistirVendaNormalizada` era fire-and-forget porque
+  `sales` é que valia. Sem `sales`, erro engolido é venda que não existe. A função passou a devolver
+  `{ ok, jaExistia, cabecalhoGravado, falhas }` e quem decide virou o chamador, com uma assimetria
+  deliberada, cabeçalho que falha desfaz o otimista e propaga, filha que falha depois do cabeçalho
+  não desfaz, porque mandar o operador refazer a venda duplicaria a receita, e vira trilha.
+- Cancelar deixou de ser apagar. `cancelarVendaFechada` apagava as linhas de `vendas`, `venda_itens`
+  e `venda_pagamentos` e guardava a trilha no blob. Sem o blob, apagar apagaria a auditoria junto.
+  A migration `20260920_vendas_cancelamento.sql` traz as quatro colunas de cancelamento, sem
+  política de RLS nova e sem `SECURITY DEFINER`. Se ela não estiver aplicada, o cancelamento falha
+  com mensagem em português nomeando o arquivo em vez de fingir sucesso, porque marcar
+  `sales.data.cancelada` como fallback seria inútil justamente para as vendas novas, que não têm
+  linha em `sales`.
+- Fechou de carona a pendência 6 do ADR-013: o `upsert` protegia a linha e não o evento, então cada
+  passada do dreno reemitia `venda.finalizada`. Com `jaExistia`, o evento só sai quando a linha
+  nasceu ali, o que cobre também o clique duplo no caixa.
+- Pendência do dono: P03 no `.full-auto/PENDENCIAS-DO-MATHEUS.md`, aplicar a migration antes do
+  deploy do frontend, com a URL do GitHub e a ordem de deploy.
+
 ## Rodada 63 — F021, ADR do PDV offline-first (ADR-013) — 2026-09-10
 - Spec: specs/f021-adr-pdv-offline-first.md
 - Resultado: 8 de 8 critérios em sim (suíte 229 arquivos / 4067 testes, verde; mudança só em
