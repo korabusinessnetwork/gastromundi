@@ -102,7 +102,10 @@
       "Bash(cd \"C:/Users/bonas/OneDrive/Documentos/Projetos/gastromundi\" && cp \"/c/Users/bonas/AppData/Local/Temp/claude/C--Users-bonas-OneDrive-Documentos-Projetos-gastromundi/3a6924a3-83ca-422b-9d9b-e6bdb9baaf55/scratchpad/repro-foto-menu.html\" \"./_repro_foto_menu.html\" && echo \"copiado\")",
       "PowerShell(npx vitest run src/constants/roles.test.js 2>&1)",
       "Bash(node --test)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Read(//c/Users/bonas/Downloads/**)",
+      "Bash(mkdir -p driveroff)",
+      "Bash(unzip -o \"/c/Users/bonas/Downloads/driver-offline.zip\" -d driveroff)"
     ]
   }
 }
