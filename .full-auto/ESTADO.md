@@ -6,7 +6,7 @@
 - branch: full-auto/gastromundi
 - início: 2026-09-10
 - fase: 2, loop de execução
-- base verificada: T05 fechado, `npm test` com 235 arquivos e 4148 testes verdes, `npm run build` limpo
-- tarefa atual: T06, F018 fatia, extrair o CSS inline dos 5 arquivos com mais `style={{`
-- próximo passo: rodar o `/ciclo` do T06, contar `style={{` por arquivo, escolher os 5 maiores, extrair os estilos para CSS co-localizado seguindo a decisão 018, medir a queda, rodar a suíte e commitar
-- progresso: 5 de 7
+- base verificada: T06 fechado, `npm test` com 235 arquivos e 4148 testes verdes, `npm run build` limpo
+- tarefa atual: T07, console do dev, aba de analytics operacional lendo por RPC agregada
+- próximo passo: rodar o `/ciclo` do T07, ler o que já existe em `src/components/console/AnalyticsDashboard.*`, desenhar a RPC agregada (o Console lê a operação por agregado, nunca por policy), montar a aba nova com testes de tela, rodar a suíte e commitar
+- progresso: 6 de 7

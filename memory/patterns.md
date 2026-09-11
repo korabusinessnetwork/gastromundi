@@ -1024,3 +1024,32 @@ Rodada 56 (CONSOLE-UX 30), aplicável a qualquer módulo com `rgba()` de marca e
 6. **Corrija o comentário junto com o código.** O hardcode costuma vir com uma
    justificativa escrita ao lado; deixá-la lá faz o próximo achar que a decisão foi
    deliberada e repetir.
+
+### Estado discreto com vários descendentes: modificador no ancestral, não custom property
+*Adotado em 2026-09-11 (rodada 68 do ciclo, F018 fatia 11). Arquivo da rodada:
+`src/components/desktop/views/NotasFiscaisTab.jsx`, 195 → 124 `style={{`.*
+
+É o caso irmão de "Cor calculada em runtime: custom property local no ancestral". O
+`Stepper` das notas fiscais tinha o mesmo defeito de forma, cinco ternários de cor no JSX
+pintando bola, borda, rótulo e linha do passo, mas a causa era outra: a cor não vinha de
+runtime, ela vinha de um estado com **três valores possíveis** (feito, ativo, futuro).
+
+Quando o conjunto de estados é fechado e conhecido na escrita do CSS, o ancestral leva um
+modificador (`nf-tab__stepper-item--${estado}`) e o CSS pinta os descendentes por
+descendência. Custom property aqui seria pior: ela transporta **uma** cor, e os três
+estados diferem em quatro propriedades ao mesmo tempo (fundo, borda, peso do texto e cor do
+texto), com combinações que não derivam umas das outras.
+
+- **A pergunta que separa os dois casos:** o JavaScript sabe enumerar os valores? Se sabe,
+  é modificador. Se o valor vem de dado (a cor da etapa do kanban vem do banco), é custom
+  property.
+- **O modificador entra uma vez, no ancestral.** Os quatro descendentes não ganham classe
+  nova nenhuma: eles já tinham a sua, e a regra passa a ser
+  `.item--feito .descendente { … }`.
+- **O estado de repouso mora na regra base**, não num terceiro modificador. `--futuro`
+  existe no nome da classe (o literal de template sempre produz um dos três) mas não tem
+  regra, e isso é de propósito: inventar `.item--futuro` duplicaria a base.
+- **Cuidado com a conferência automática de classes.** `` `nf-tab__X--${estado}` `` faz o
+  extrator de classes do JSX enxergar `nf-tab__X--` e marcar `--feito`/`--ativo` como
+  "regra sem uso". É ruído esperado do literal de template, não classe órfã — vale
+  reconhecer o padrão antes de sair apagando regra.

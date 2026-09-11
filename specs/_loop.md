@@ -1,3 +1,27 @@
+## Rodada 68 — F018 fatia 11, NotasFiscaisTab: Stepper, vínculo, Lista e Detalhe — 2026-09-11
+- Spec: specs/f018-notas-lista-detalhe-css.md
+- Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (195 → 124 `style={{` no arquivo,
+  1600 → 1529 no `src` inteiro; suíte 235 arquivos / 4148 testes verde; `npm run build` limpo;
+  `NotasFiscaisTab.test.jsx` verde sem uma asserção tocada).
+- O recorte, e por que ele: o arquivo tinha 195 inline em 1340 linhas e vai sair em três fatias,
+  como saíram o `PDVView` (4 rodadas) e o `DeliveryView` (6). Esta pegou as quatro regiões que
+  não são formulário. As duas que sobraram, o formulário manual e o wizard de XML, têm estado de
+  erro, e a regra da rodada 15 manda `aria-invalid` entrar na mesma edição em que a borda sai do
+  inline: misturar isso com tabela faria uma fatia grande demais para revisar de verdade.
+- O que a rodada revelou de não óbvio: o `Stepper` parecia o caso do kanban do `DeliveryView`,
+  cor espalhada por descendente, mas não era. Lá a cor vem de dado e a saída é custom property no
+  ancestral; aqui o estado tem três valores que o JavaScript sabe enumerar, e a saída é
+  modificador. A pergunta que separa os dois: o JavaScript consegue listar os valores? Custom
+  property também seria pior por transportar uma cor só, e os três estados diferem em quatro
+  propriedades ao mesmo tempo. Está em `memory/patterns.md`.
+- A parte que quase passou batido: o critério 3 da própria spec estava com a conta errada, dizia
+  12 `currentTarget.style` na fatia e 2 fora, quando são 8 dentro (quatro pares de handler) e 6
+  fora. A spec foi corrigida para o número medido. E `.nf-tab__voltar-btn` quase ganhou
+  `margin-bottom` na classe base: enumerados os três usuários antes, só o do Detalhe tem a
+  margem, os outros dois vivem numa linha com título.
+- Fica em aberto: os 124 restantes do arquivo, em duas fatias (formulário manual, 52; wizard, 72).
+  E `.nf-tab__input` é regra órfã no CSS, sem usuário no JSX — já estava órfã antes desta fatia,
+  sai quando o formulário manual for reescrito.
 ## Rodada 67 — F021 fatia 2, a fila offline no IndexedDB — 2026-09-10
 - Spec: specs/f021-fila-offline-em-indexeddb.md
 - Resultado: 14 de 14 critérios em sim, aprovado sem ressalvas (suíte 233 arquivos / 4118 testes
