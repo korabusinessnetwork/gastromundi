@@ -217,6 +217,9 @@
   flex-shrink: 0;
   align-self: center;
 }
+/* O ícone de reserva acompanha o tamanho do quadro: 44px era o certo para
+   a miniatura do celular e virava um ponto perdido no meio do cartão do
+   computador, onde a foto ocupa a largura inteira. */
 .card-produto__foto--emoji {
   display: flex;
   align-items: center;
@@ -248,6 +251,9 @@
   .card-produto__foto {
     order: -1;
     width: 100%;
+  }
+  .card-produto__foto--emoji {
+    font-size: 72px;
   }
 
   /* Preço no rodapé do card, alinhado entre os cards da mesma linha,
@@ -570,7 +576,34 @@
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0));
   background: linear-gradient(to top, var(--gm-bg) 70%, transparent);
 }
-.sacola-barra__inner { max-width: 720px; margin: 0 auto; }
+/* A barra é um <button>, e tinha só largura e margem: o navegador
+   desenhava o botão NATIVO dele — cinza, do tamanho do texto, encostado
+   no canto de baixo à esquerda, com "Ver sacola" colado no preço. Era o
+   caminho para o checkout parecendo um defeito da página. `margin: auto`
+   também não centralizava nada, porque botão é inline-block.
+
+   Agora ela veste o mesmo botão primário do resto da vitrine — é a mesma
+   ação (avançar no pedido), tem que ter a mesma cara. */
+.sacola-barra__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 15px 18px;
+  border: none;
+  border-radius: 12px;
+  background: var(--gm-accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+.sacola-barra__inner:active { transform: scale(0.995); }
 .sacola-barra__badge {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 999px;
