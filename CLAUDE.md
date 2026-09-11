@@ -120,6 +120,14 @@ divergir, esta regra manda.
 O que continua fora, sempre: `push --force` em qualquer branch, mesclar rodada que
 não fechou, e reescrever histórico já empurrado.
 
+**O PR não é formalidade, é o que a proteção de branch exige.** Medido em 11/09/2026:
+`git push origin main` é aceito quando os commits empurrados estão cobertos por um PR
+aberto (o push fecha o PR como merged), e é **recusado** com "protected branch hook
+declined" quando não estão. Commit avulso feito direto na `main` não sobe. Então o
+caminho é sempre: commitar na branch, abrir o PR, e só então `git merge --ff-only`
+mais `git push origin main`. O `gh pr merge` está bloqueado pelo classificador do modo
+automático, por isso o merge é feito pelo git e não pelo `gh`.
+
 **Efeito colateral que precisa de aviso:** a integração da Vercel sobe **produção** a
 cada push na `main` (não há `git.deploymentEnabled: false` no `vercel.json`). Se a
 rodada tiver migration ainda não aplicada no Supabase, isso deploya frontend novo
