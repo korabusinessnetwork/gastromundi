@@ -25,11 +25,13 @@ import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha, reportarInconsistencia, setTenantObservabilidade } from "@/lib/observabilidade";
 import { drenarFila } from "@/lib/offline/fila";
-// Fila local de operações offline (Leva 11) — singleton de módulo sobre
-// localStorage: sobrevive a reload/fechamento do app e é compartilhada por
-// todas as instâncias do provider (só existe uma no app real) e pela tela de
-// notas emitidas, que conta as pendências fiscais guardadas nela.
-import { filaOffline, contarPendenciasFiscais } from "@/lib/offline/filaApp";
+// Fila local de operações offline (Leva 11) — singleton de módulo sobre o
+// IndexedDB (F021 fatia 2): sobrevive a reload/fechamento do app e é
+// compartilhada por todas as instâncias do provider (só existe uma no app
+// real) e pela tela de notas emitidas, que conta as pendências fiscais
+// guardadas nela. O banco responde depois do primeiro render, por isso o
+// contador reassina em `assinarFilaOffline`.
+import { filaOffline, contarPendenciasFiscais, assinarFilaOffline } from "@/lib/offline/filaApp";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 import { useStatusRede } from "@/hooks/useStatusRede";
 import IndicadorRede from "@/components/shared/IndicadorRede";
@@ -144,6 +146,10 @@ export function AppProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pendenciasOffline],
   );
+  // A fila mora no IndexedDB (F021 fatia 2), que responde depois do primeiro
+  // render: o `useState` acima leu o espelho ainda vazio. Quando a hidratação
+  // traz o que ficou da sessão anterior, o número chega por aqui.
+  useEffect(() => assinarFilaOffline(() => setPendenciasOffline(filaOffline.tamanho())), []);
   // Leva 13 — endereço da página do Palm servida pela Ponte KORA
   // (http://IP:porta/palm?t=token). Persistido em config para o Palm
   // saber para onde ir quando a internet cair.

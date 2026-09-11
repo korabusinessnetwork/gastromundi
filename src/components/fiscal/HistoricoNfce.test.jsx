@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 
 const listarNfceEmitidas = vi.fn();
 vi.mock("@/lib/nfceEmitidasRepo", () => ({
@@ -10,6 +10,22 @@ vi.mock("@/lib/nfceEmitidasRepo", () => ({
 
 vi.mock("@/lib/fiscal", () => ({
   buscarEmitenteFiscal: vi.fn().mockResolvedValue(null),
+}));
+
+// A fila offline mora no IndexedDB (F021 fatia 2) e responde depois do primeiro
+// render. Este falso deixa a hidratação acontecer na hora que o teste quiser.
+let pendenciasNaFila = 0;
+const assinantes = new Set();
+const hidratacaoTermina = (quantas) => {
+  pendenciasNaFila = quantas;
+  for (const fn of [...assinantes]) fn();
+};
+vi.mock("@/lib/offline/filaApp", () => ({
+  contarPendenciasFiscais: () => pendenciasNaFila,
+  assinarFilaOffline: (fn) => {
+    assinantes.add(fn);
+    return () => assinantes.delete(fn);
+  },
 }));
 
 // Stubs das unidades de ação — o foco do teste é a TELA; as duas já têm testes
@@ -32,7 +48,11 @@ function nota(over = {}) {
   };
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  pendenciasNaFila = 0;
+  assinantes.clear();
+});
 
 describe("<HistoricoNfce> — histórico de NFC-e (Leva 12)", () => {
   it("estado carregando: mostra o spinner com texto humano", async () => {
@@ -77,6 +97,31 @@ describe("<HistoricoNfce> — histórico de NFC-e (Leva 12)", () => {
     // Ações presentes em cada linha (uma reimpressão + um cancelar por nota).
     expect(screen.getAllByTestId("reimprimir")).toHaveLength(2);
     expect(screen.getAllByTestId("cancelar")).toHaveLength(2);
+  });
+
+  it("pendência fiscal da sessão anterior aparece quando a hidratação termina", async () => {
+    listarNfceEmitidas.mockResolvedValue({ data: [], error: null, temMais: false });
+    const { unmount } = render(<HistoricoNfce />);
+
+    // Primeiro render: o espelho do IndexedDB ainda está vazio, nada a avisar.
+    expect(screen.queryByText(/ainda não foi emitida/i)).toBeNull();
+
+    await act(async () => hidratacaoTermina(1));
+    expect(screen.getByText(/1 nota ainda não foi emitida/i)).toBeTruthy();
+
+    await act(async () => hidratacaoTermina(3));
+    expect(screen.getByText(/3 notas ainda não foram emitidas/i)).toBeTruthy();
+
+    unmount();
+  });
+
+  it("desmontar cancela a assinatura da hidratação", async () => {
+    listarNfceEmitidas.mockResolvedValue({ data: [], error: null, temMais: false });
+    const { unmount } = render(<HistoricoNfce />);
+
+    expect(assinantes.size).toBe(1);
+    unmount();
+    expect(assinantes.size).toBe(0);
   });
 
   it("troca de filtro de status dispara nova busca", async () => {

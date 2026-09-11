@@ -20,6 +20,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, act } from "@testing-library/react";
 import { CHAVE_FILA_PENDING } from "@/lib/offline/fila";
+import { filaOffline, storageFilaOffline } from "@/lib/offline/filaApp";
 
 const mockSupabase = vi.hoisted(() => {
   // Callbacks de realtime por nome de canal — é o que permite ao teste simular
@@ -145,8 +146,10 @@ const comRpcPorNome = (mapa, padrao = RPC_OK) =>
 const argsRpc = (nome) =>
   mockSupabase.rpc.mock.calls.filter(([fn]) => fn === nome).map(([, args]) => args);
 
-const filaGravada = () => JSON.parse(window.localStorage.getItem(CHAVE_FILA_PENDING) ?? "[]");
-const semearFila = (ops) => window.localStorage.setItem(CHAVE_FILA_PENDING, JSON.stringify(ops));
+// A fila mora no IndexedDB (F021 fatia 2), não mais no `localStorage`. Ler e
+// semear pela porta da própria fila mantém o teste válido em qualquer banco.
+const filaGravada = () => filaOffline.listar();
+const semearFila = (ops) => storageFilaOffline.setItem(CHAVE_FILA_PENDING, JSON.stringify(ops));
 
 function montar() {
   const app = { current: null };
@@ -175,6 +178,7 @@ const chegaDoRealtime = async (payload) => {
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
+  filaOffline.limpar(); // a fila é singleton de módulo: não vaza de um teste para o outro
   chamadasTabela = [];
   falhasUmaVez = {};
   for (const nome of Object.keys(mockSupabase.canais)) delete mockSupabase.canais[nome];

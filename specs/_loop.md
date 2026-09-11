@@ -1,3 +1,30 @@
+## Rodada 67 — F021 fatia 2, a fila offline no IndexedDB — 2026-09-10
+- Spec: specs/f021-fila-offline-em-indexeddb.md
+- Resultado: 14 de 14 critérios em sim, aprovado sem ressalvas (suíte 233 arquivos / 4118 testes
+  para 235 arquivos / 4148 testes, verde; `npm run build` limpo; nenhum teste existente removido
+  ou enfraquecido).
+- O obstáculo que o ADR-013 não tinha antecipado: o storage injetável foi construído para essa
+  troca acontecer sem tocar na fila, mas a API da fila é síncrona e o IndexedDB não é. Dois
+  `useState` preguiçosos (`AppContext` e `HistoricoNfce`) chamam `filaOffline.tamanho()` e não
+  podem esperar promessa. A saída foi não trocar o `localStorage` pelo IndexedDB, e sim colocar o
+  IndexedDB EMBAIXO de um espelho síncrono em memória. `fila.js` e `fila.test.js` fecharam a
+  rodada sem uma linha alterada, que era a premissa da fatia.
+- O que a rodada revelou de não óbvio: a hidratação é uma janela, não um instante. Entre o
+  primeiro render e a resposta do banco o operador pode enfileirar uma venda, então a hidratação
+  mescla por `uid` em vez de sobrescrever, e as gravações são serializadas para que uma escrita
+  antiga não aterrisse depois de uma nova e ressuscite op já drenada. A transação resolve no
+  `oncomplete`, não no `onsuccess` da requisição, porque durabilidade só existe quando a
+  transação fecha.
+- A parte que quase passou batido: oito testes de `AppContext.estoqueIdempotencia.test.jsx`
+  quebraram porque liam e semeavam a fila direto no `window.localStorage`, e o `clear()` do
+  `beforeEach` deixou de zerar uma fila que não mora mais lá. Corrigir enfraquecendo asserção
+  seria maquiar; a correção foi expor `storageFilaOffline` e fazer o teste ler a fila pela porta
+  dela, o que o deixa válido em qualquer banco que venha embaixo. E o critério 11 estava correto
+  no arquivo mas não trancado por teste nenhum: virou quatro testes, dois de cada lado da
+  costura.
+- Fica em aberto: a janela entre enfileirar e o banco confirmar (fechar a aba dentro dela ainda
+  perde a última op), registrada como pendência residual no ADR-013. As pendências 2 a 5 do
+  ADR-013 seguem intocadas.
 ## Rodada 66 — TD015, chaves estáveis nas listas React — 2026-09-10
 - Spec: specs/td015-chaves-estaveis-em-listas.md
 - Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (suíte 232 arquivos / 4102 testes para

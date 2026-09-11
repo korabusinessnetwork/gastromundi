@@ -5,7 +5,7 @@ import {
 } from "react-icons/lu";
 import { listarNfceEmitidas } from "@/lib/nfceEmitidasRepo";
 import { buscarEmitenteFiscal } from "@/lib/fiscal";
-import { contarPendenciasFiscais } from "@/lib/offline/filaApp";
+import { contarPendenciasFiscais, assinarFilaOffline } from "@/lib/offline/filaApp";
 import BotaoReimprimirNfce from "./BotaoReimprimirNfce";
 import CancelarNfce from "./CancelarNfce";
 import "./HistoricoNfce.css";
@@ -55,6 +55,11 @@ export default function HistoricoNfce() {
   // nfce_emitidas, então não apareceriam em lugar nenhum desta tela. Sem este
   // aviso a pendência fiscal fica invisível — que foi exatamente o problema.
   const [naFila, setNaFila]       = useState(() => contarPendenciasFiscais());
+
+  // A fila mora no IndexedDB (F021 fatia 2): no primeiro render o espelho
+  // ainda está vazio, e a pendência fiscal da sessão anterior só aparece
+  // quando a hidratação termina.
+  useEffect(() => assinarFilaOffline(() => setNaFila(contarPendenciasFiscais())), []);
 
   // Identidade do emitente (cabeçalho do cupom na reimpressão) — carrega UMA
   // vez, não por linha.

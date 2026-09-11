@@ -102,3 +102,46 @@ removida do meio, e o cartão em edição é apontado por posição, que é exat
 o TD015 descreve. O `uid` entra nos dois pontos de criação da linha e não chega ao banco: o
 save monta `unidades_compra` campo a campo, o que já estava verificado no quadro de veredito
 do spec.
+
+## D14, o IndexedDB entrou EMBAIXO da fila, não no lugar dela
+
+Data: 2026-09-10.
+
+O T05 pedia trocar o `localStorage` da fila offline por IndexedDB preservando o storage
+injetável. Na hora de cumprir apareceu o furo: a API da fila é síncrona e o IndexedDB é
+assíncrono. `filaOffline.tamanho()` é chamado dentro de inicializador preguiçoso de
+`useState` em dois lugares (`AppContext` e `HistoricoNfce`), e inicializador de `useState`
+não espera promessa.
+
+As três saídas possíveis eram: reescrever a fila inteira para `async`, o que espalharia
+`await` por dois componentes e por toda a suíte da fila, exatamente o que o storage
+injetável foi construído para evitar; deixar como está e adiar o F021, o que mantém o
+`catch` vazio transformando cota estourada em venda perdida em silêncio; ou colocar o
+IndexedDB embaixo de um espelho síncrono em memória.
+
+Escolhi a terceira. O espelho é um `Map` que atende `getItem`, `setItem` e `removeItem` na
+hora, com a cara do `localStorage`, e cada escrita nele agenda uma gravação no banco. Na
+subida, a hidratação lê o banco e traz o que ficou da sessão anterior. `fila.js` e
+`fila.test.js` não mudaram uma linha, que era a premissa da fatia.
+
+Três consequências que precisaram de decisão própria:
+
+1. **A hidratação mescla, não sobrescreve.** Entre o primeiro render e a resposta do banco
+   o operador pode enfileirar uma venda. Uma gravação ingênua apagaria o que estava no
+   banco. A mesclagem é união por `uid`, persistidas primeiro, porque `fila.js` já carimba
+   `uid` em toda op no `enfileirar` e a ordem de reenvio precisa ser preservada. Quem
+   decide como mesclar é quem monta o storage, não o storage.
+2. **O legado só é apagado depois da confirmação.** Quem já usa o sistema tem fila pendente
+   no `localStorage`. A chave antiga só some quando a gravação no IndexedDB confirmar; se
+   falhar, a fila antiga fica onde está para a próxima subida tentar de novo.
+3. **Sem IndexedDB, degrada em silêncio assumido.** Navegador antigo, aba privada com IDB
+   bloqueado, jsdom da suíte: a hidratação resolve `{ idb: false }` e a fila vive só em
+   memória. Isso é pior que o `localStorage`, e está escrito assim no código e no ADR, em
+   vez de fingir equivalência.
+
+Nenhuma biblioteca em runtime. Dexie e `idb` resolveriam um problema que aqui não existe,
+são uma chave e um object store, e dependência em runtime é peso no bundle do PDV.
+`fake-indexeddb` entrou só em `devDependencies`.
+
+O que a decisão não fecha: a janela entre enfileirar e o banco confirmar. Fechar a aba
+dentro dela ainda perde a última op. Está registrado como pendência residual no ADR-013.

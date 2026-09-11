@@ -6,7 +6,7 @@
 - branch: full-auto/gastromundi
 - início: 2026-09-10
 - fase: 2, loop de execução
-- base verificada: T04 fechado, `npm test` com 233 arquivos e 4118 testes verdes
-- tarefa atual: T05, F021 fatia 2, trocar o `localStorage` da fila offline por IndexedDB
-- próximo passo: rodar o `/ciclo` do T05, ler `src/lib/offline/fila.js` e seus testes, trocar o backend de `localStorage` para IndexedDB preservando o storage injetável, garantir fallback para memória onde não há IDB, rodar a suíte e commitar
-- progresso: 4 de 7
+- base verificada: T05 fechado, `npm test` com 235 arquivos e 4148 testes verdes, `npm run build` limpo
+- tarefa atual: T06, F018 fatia, extrair o CSS inline dos 5 arquivos com mais `style={{`
+- próximo passo: rodar o `/ciclo` do T06, contar `style={{` por arquivo, escolher os 5 maiores, extrair os estilos para CSS co-localizado seguindo a decisão 018, medir a queda, rodar a suíte e commitar
+- progresso: 5 de 7
