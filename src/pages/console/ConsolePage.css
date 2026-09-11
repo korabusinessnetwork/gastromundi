@@ -304,14 +304,42 @@
    um item pode ter sete (cobrar, definir mensalidade, pagamentos, cardápio,
    copiar acesso, marca e add-ons) e, como nenhuma encolhe, quem encolhia era
    o card — o nome do estabelecimento virava "C…" e a data quebrava em três
-   linhas. Quem manda na largura é a informação, não a barra de ações. */
+   linhas. Quem manda na largura é a informação, não a barra de ações.
+
+   E um estabelecimento é UM bloco. Até 11/09/2026 a moldura era do cartão e
+   as ações ficavam soltas sobre o fundo da página, 8px abaixo dele,
+   parecendo pertencer a outra coisa. A moldura passou para o <li>, o cartão
+   de dentro ficou transparente e a fileira virou o rodapé do mesmo bloco,
+   que é o que a regra das ações, logo abaixo, já dizia querer. */
 .console__item {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  background: var(--gm-card);
 }
-.console__item .console__card--clicavel { flex: 1 1 100%; min-width: 0; }
+
+/* O cartão continua sendo o alvo de clique (troca de plano), então mantém
+   o próprio hover; o que ele perde é a moldura, que agora é do bloco. O
+   padding negativo na horizontal faz o realce do hover sangrar até a borda
+   do bloco, em vez de deixar uma calha de 16px sem pintar. */
+.console__item .console__card--clicavel {
+  flex: 1 1 100%;
+  min-width: 0;
+  border-color: transparent;
+  background: transparent;
+  border-radius: 10px;
+  padding: 4px 8px 12px;
+  margin: 0 -8px;
+  width: calc(100% + 16px);
+}
+.console__item .console__card--clicavel:hover {
+  border-color: transparent;
+  background: var(--gm-surface);
+}
 
 /* Ações do item (cobrar, pagamentos, cardápio, copiar, layout e add-ons) —
    mesmo idioma visual do card, para que se leiam como um bloco só. Ícone e
@@ -334,7 +362,10 @@
   padding: 8px 13px;
   border: 1px solid var(--gm-border);
   border-radius: 11px;
-  background: var(--gm-card);
+  /* Agora a fileira mora DENTRO do bloco, que é --gm-card: com o mesmo
+     fundo os botões sumiriam na moldura. --gm-surface os destaca sem
+     precisar de sombra. */
+  background: var(--gm-surface);
   color: var(--gm-muted);
   font-family: inherit;
   /* Tamanho de fonte explícito porque a fileira mistura <button> e <a>: sem
@@ -353,7 +384,9 @@
 .console__layout:hover,
 .console__addons:hover {
   border-color: var(--gm-accent);
-  background: var(--gm-surface);
+  /* --gm-surface virou o fundo de repouso destes botões, então o hover
+     precisa de outro tom, senão passar o mouse não muda nada. */
+  background: color-mix(in srgb, var(--gm-accent) 12%, transparent);
   color: var(--gm-accent);
 }
 .console__pagamentos:focus-visible,
