@@ -243,7 +243,7 @@ export function normalizarFiltroSituacao(bruto) {
 }
 
 /** Seções do Console, na ordem em que aparecem. A primeira é a padrão. */
-export const ABAS_CONSOLE = ["estabelecimentos", "solicitacoes", "planos", "uso"];
+export const ABAS_CONSOLE = ["estabelecimentos", "solicitacoes", "planos", "uso", "saude"];
 
 /**
  * Função PURA — traduz o que veio da URL (`?aba=...`) para uma aba válida.
@@ -254,7 +254,7 @@ export const ABAS_CONSOLE = ["estabelecimentos", "solicitacoes", "planos", "uso"
  * Não lê `window` nem o roteador — quem faz isso é a tela.
  *
  * @param {string|string[]|null|undefined} bruto
- * @returns {"estabelecimentos"|"solicitacoes"|"planos"|"uso"}
+ * @returns {"estabelecimentos"|"solicitacoes"|"planos"|"uso"|"saude"}
  */
 export function normalizarAba(bruto) {
   if (typeof bruto !== "string") return ABAS_CONSOLE[0];
@@ -587,6 +587,135 @@ export function resumirUso(tenants = [], assinaturas = [], analitico = [], hoje 
       semUso: pagandoSemUso.length,
     },
     pagandoSemUso,
+  };
+}
+
+/**
+ * Saúde da operação por estabelecimento (F022-SAUDE) via RPC
+ * `saude_plataforma` (20260928): nota fiscal recusada ou parada e
+ * impressão com erro ou parada.
+ *
+ * Por que RPC e não `.from("nfce_emitidas")`: as duas tabelas são
+ * OPERACIONAIS, e a policy de tabela operacional não tem o ramo
+ * `OR is_super_admin()` — decisão escrita (ADR-008, decisão v2 nº 2).
+ * Uma leitura direta daqui voltaria vazia, e é assim que tem que ser.
+ * A RPC devolve contagem e a data do mais antigo, nunca a linha do
+ * documento: nem a chave da nota, nem o que a comanda mandava imprimir.
+ *
+ * Nunca lança: falha de rede/RLS/função ausente volta como
+ * { data: [], error } — a tela precisa dizer que não sabe, não afirmar
+ * que está tudo certo numa base onde a leitura falhou.
+ *
+ * @param {number} dias 7, 30 ou 90 (o banco recusa o resto)
+ * @returns {Promise<{data: Array<object>, error: object|null}>}
+ */
+export async function listarSaude(dias = 30) {
+  try {
+    const { data, error } = await supabase.rpc("saude_plataforma", { p_dias: dias });
+    if (error) return { data: [], error };
+    return { data: data ?? [], error: null };
+  } catch (err) {
+    return { data: [], error: { message: err?.message ?? "Falha ao carregar a saúde dos estabelecimentos." } };
+  }
+}
+
+/**
+ * Função PURA — cruza os estabelecimentos com o agregado de saúde na
+ * visão "para quem o sistema está quebrado". Não faz I/O (CLAUDE.md:
+ * função pura nasce com teste).
+ *
+ * A distinção que o produto exige, e que a RPC já entrega separada:
+ *
+ *   • RECUSADA e COM ERRO são eventos do período. Contam quantas vezes
+ *     falhou, e servem para ver se o problema é crônico.
+ *   • PARADA é estado de agora, sem corte de período. É o que precisa de
+ *     ação hoje, e é por ela que a lista é ordenada.
+ *
+ * A gravidade não é a soma das duas: um estabelecimento com 1 nota parada
+ * há 40 dias está pior que outro com 30 notas paradas desde hoje de manhã.
+ * Por isso a ordenação é por há quanto tempo está parado primeiro, e só
+ * depois por quantidade.
+ *
+ * Tenant que a RPC não devolveu (nunca emitiu nota nem imprimiu nada) entra
+ * na lista com tudo zerado, e NÃO entra em `quebrados`: ausência de linha
+ * é ausência de falha, não falha desconhecida.
+ *
+ * @param {Array<{id:string, nome:string}>} tenants
+ * @param {Array<object>} saude  linhas da RPC `saude_plataforma`
+ * @param {Date} [hoje]
+ * @returns {{linhas:Array<object>, kpis:object, quebrados:Array<object>}}
+ */
+export function resumirSaude(tenants = [], saude = [], hoje = new Date()) {
+  const saudeDe = new Map((saude ?? []).map((s) => [s.tenant_id, s]));
+
+  const inteiro = (v) => Math.max(0, Math.trunc(Number(v) || 0));
+
+  const linhas = (tenants ?? []).map((t) => {
+    const s = saudeDe.get(t.id) ?? null;
+    const fiscaisParadas = inteiro(s?.fiscais_paradas);
+    const impressoesParadas = inteiro(s?.impressoes_paradas);
+
+    // A data só vale quando existe pendência. O banco já devolve `null`
+    // quando não há nenhuma, mas depender disso deixaria a tela mostrar
+    // "parado desde terça" para quem tem zero parado se a RPC mudar.
+    const fiscalParadaDesde = fiscaisParadas > 0 ? (s?.fiscal_parada_desde ?? null) : null;
+    const impressaoParadaDesde = impressoesParadas > 0 ? (s?.impressao_parada_desde ?? null) : null;
+
+    const diasFiscal = diasDesde(fiscalParadaDesde, hoje);
+    const diasImpressao = diasDesde(impressaoParadaDesde, hoje);
+
+    return {
+      tenantId: t.id,
+      nome: t.nome,
+      fiscaisRecusadas: inteiro(s?.fiscais_recusadas),
+      fiscaisParadas,
+      fiscalParadaDesde,
+      diasFiscalParada: diasFiscal,
+      impressoesComErro: inteiro(s?.impressoes_com_erro),
+      impressoesParadas,
+      impressaoParadaDesde,
+      diasImpressaoParada: diasImpressao,
+      paradas: fiscaisParadas + impressoesParadas,
+      // Há quanto tempo a coisa mais antiga está parada, seja qual for.
+      // `null` quando não há nada parado — a tela distingue isso de "há 0
+      // dias", que é a pendência que nasceu hoje.
+      diasParado: diasFiscal == null && diasImpressao == null
+        ? null
+        : Math.max(diasFiscal ?? 0, diasImpressao ?? 0),
+    };
+  });
+
+  // Quebrado é quem tem algo PARADO agora. Recusa antiga já resolvida não
+  // põe ninguém na lista de ação: ela conta no histórico, ao lado.
+  const quebrados = linhas
+    .filter((l) => l.paradas > 0)
+    .sort(
+      (x, y) =>
+        (y.diasParado ?? 0) - (x.diasParado ?? 0) ||
+        y.paradas - x.paradas ||
+        String(x.nome ?? "").localeCompare(String(y.nome ?? ""), "pt-BR")
+    );
+
+  // A tabela de baixo mostra a base inteira, do mais quebrado para o menos,
+  // e quem está limpo no fim, por nome.
+  const ordenadas = [...linhas].sort(
+    (x, y) =>
+      y.paradas - x.paradas ||
+      (y.diasParado ?? -1) - (x.diasParado ?? -1) ||
+      y.fiscaisRecusadas + y.impressoesComErro - (x.fiscaisRecusadas + x.impressoesComErro) ||
+      String(x.nome ?? "").localeCompare(String(y.nome ?? ""), "pt-BR")
+  );
+
+  return {
+    linhas: ordenadas,
+    kpis: {
+      estabelecimentosQuebrados: quebrados.length,
+      fiscaisParadas: linhas.reduce((s, l) => s + l.fiscaisParadas, 0),
+      impressoesParadas: linhas.reduce((s, l) => s + l.impressoesParadas, 0),
+      fiscaisRecusadas: linhas.reduce((s, l) => s + l.fiscaisRecusadas, 0),
+      impressoesComErro: linhas.reduce((s, l) => s + l.impressoesComErro, 0),
+    },
+    quebrados,
   };
 }
 

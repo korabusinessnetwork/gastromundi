@@ -14,4 +14,4 @@ Toda tarefa roda pela skill `/ciclo`. Critério de pronto sempre inclui a suíte
 | [x] T04 | TD015, trocar `key={i}` por chave estável nas listas React (40 ocorrências) | nenhuma ocorrência de `key={i}`/`key={index}` sobrando sem justificativa escrita, suíte verde, TD015 marcado resolvido | ui | , |
 | [x] T05 | F021 fatia 2, trocar o `localStorage` da fila offline por IndexedDB com storage injetável preservado | `src/lib/offline/fila.js` gravando em IndexedDB, fallback para memória em ambiente sem IDB, testes da fila verdes, suíte verde | offline | T01 |
 | [x] T06 | F018 fatia, extrair o CSS inline dos arquivos com mais `style={{`, começando pelos 5 maiores | contagem de `style={{` medida antes e depois, queda registrada no F018, nenhum teste de componente quebrado, suíte verde | ui | T04 |
-| [ ] T07 | Console do dev, próxima fatia da fila do dono: analytics operacional | aba nova no console lendo por RPC agregada, testes da tela, suíte verde | console | , |
+| [x] T07 | Console do dev, próxima fatia da fila do dono: analytics operacional | aba nova no console lendo por RPC agregada, testes da tela, suíte verde | console | , |

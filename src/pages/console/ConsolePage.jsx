@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   LuPlus, LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2,
   LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
-  LuCopy, LuTag, LuExternalLink, LuWifiOff, LuInbox,
+  LuCopy, LuTag, LuExternalLink, LuWifiOff, LuInbox, LuStethoscope,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import { useStatusRede } from "@/hooks/useStatusRede";
@@ -25,6 +25,7 @@ import AddonsModal from "@/components/console/AddonsModal";
 import PlanosDashboard from "@/components/console/PlanosDashboard";
 import SolicitacoesFila from "@/components/console/SolicitacoesFila";
 import AnalyticsDashboard from "@/components/console/AnalyticsDashboard";
+import SaudeDashboard from "@/components/console/SaudeDashboard";
 import SeloStatus from "@/components/console/SeloStatus";
 import ConfirmarRenovacaoModal from "@/components/console/ConfirmarRenovacaoModal";
 import HistoricoPagamentosModal from "@/components/console/HistoricoPagamentosModal";
@@ -720,8 +721,9 @@ export default function ConsolePage() {
 
       <main className="console__conteudo">
         {/* Abas: gestão da base (estabelecimentos), quem paga (planos +
-            assinaturas) e quem usa (uso e faturamento). Sempre visíveis —
-            trocar de aba é a navegação principal do Console (Princípio nº1). */}
+            assinaturas), quem usa (uso e faturamento) e para quem o sistema
+            está quebrado (saúde da operação). Sempre visíveis — trocar de aba
+            é a navegação principal do Console (Princípio nº1). */}
         <nav className="console__abas" aria-label="Seções do console">
           <button
             type="button"
@@ -757,6 +759,13 @@ export default function ConsolePage() {
             onClick={() => escolherAba("uso")}
           >
             <LuActivity size={16} aria-hidden /> Uso e faturamento
+          </button>
+          <button
+            type="button"
+            className={`console__aba${aba === "saude" ? " console__aba--ativa" : ""}`}
+            onClick={() => escolherAba("saude")}
+          >
+            <LuStethoscope size={16} aria-hidden /> Saúde da operação
           </button>
         </nav>
 
@@ -799,6 +808,18 @@ export default function ConsolePage() {
           <AnalyticsDashboard
             tenants={tenants}
             assinaturas={assinaturas}
+            dias={dias}
+            aoTrocarPeriodo={escolherPeriodo}
+          />
+        ) : aba === "saude" ? (
+          // Mesma razão da aba de uso: a leitura é da própria aba (RPC
+          // `saude_plataforma`), então uma base sem a 20260928 aplicada
+          // continua com o resto do Console funcionando igual. Esta aba não
+          // depende da cobrança — quem está com nota parada está com nota
+          // parada pagando ou não, por isso ela fica fora do ramo de
+          // `erroAssinaturas` acima.
+          <SaudeDashboard
+            tenants={tenants}
             dias={dias}
             aoTrocarPeriodo={escolherPeriodo}
           />

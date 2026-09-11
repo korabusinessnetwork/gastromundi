@@ -1228,6 +1228,13 @@ describe("ConsolePage — a aba aberta fica na URL", () => {
     expect(abaBotao("Uso e faturamento")).toHaveClass("console__aba--ativa");
   });
 
+  it("abrir com ?aba=saude já mostra a aba de saúde", async () => {
+    renderComEspiao("/console?aba=saude");
+
+    expect(await screen.findByText("Falhas dos últimos")).toBeInTheDocument();
+    expect(abaBotao("Saúde da operação")).toHaveClass("console__aba--ativa");
+  });
+
   it("aba inventada na URL cai em Estabelecimentos — o Console nunca abre vazio", async () => {
     renderComEspiao("/console?aba=PLANOS");
 

@@ -127,3 +127,44 @@ nome de usuário consegue gastar cinco tentativas erradas e deixar aquela conta 
 minutos, de qualquer lugar. Isso não existia enquanto o contador era do navegador. É o preço de
 qualquer freio por identidade, o bloqueio se dissolve sozinho em dois minutos, e o remédio de
 verdade seria prova de humanidade no formulário, que é uma feature própria.
+
+---
+
+## P05 — Aplicar a migration `20260928_saude_plataforma.sql` para a aba nova do Console funcionar
+
+**Arquivo:** [`supabase/migrations/20260928_saude_plataforma.sql`](https://github.com/korabusinessnetwork/gastromundi/blob/main/supabase/migrations/20260928_saude_plataforma.sql)
+
+**O que ela faz:** cria a RPC `saude_plataforma`, que devolve, por estabelecimento, quantas notas
+fiscais foram recusadas pela SEFAZ, quantas estão paradas na fila de contingência agora, há quanto
+tempo a mais antiga está parada, e a mesma coisa para a impressão de comandas. É o que alimenta a
+aba **Saúde da operação**, nova no Console.
+
+**Por que ela é uma função e não uma permissão nova:** as duas tabelas que ela lê são operacionais,
+e a decisão do ADR-008 é que o super-admin da plataforma não enxerga o dado bruto de todos os
+clientes. A função atravessa isso uma vez, confere o papel dentro do banco e devolve só contagem e
+data. Ela **não** devolve a chave da nota, o motivo da recusa, a venda, nem o que a comanda mandava
+imprimir, e isso é de propósito: chave e motivo identificam a venda e o cliente final. Se um dia o
+suporte precisar ver a nota em si, o caminho é outro (acesso escopado a um tenant), não uma coluna
+a mais aqui.
+
+**Nada quebra se você não aplicar.** O resto do Console funciona igual, porque a leitura acontece
+só quando alguém abre a aba. Sem a migration, a aba mostra a mensagem de que não conseguiu
+carregar, com um botão de tentar de novo, e **não** diz que está tudo certo. Isso também é de
+propósito: dar atestado de saúde com base numa leitura que falhou é pior que assumir que não sabe.
+
+**Passo a passo:**
+
+1. Abrir o painel do Supabase, projeto do GastroMundi, seção SQL Editor.
+2. Colar o conteúdo do arquivo e rodar. Pode rodar mais de uma vez sem erro.
+3. No fim deve aparecer o aviso "saude_plataforma instalada. Estabelecimentos com nota fiscal
+   parada agora: N.".
+
+**Como confirmar que funcionou:** abrir o Console, clicar na aba **Saúde da operação**. Se a base
+estiver limpa, a tela diz com todas as letras que nenhum estabelecimento tem nota ou impressão
+parada, em verde. Se houver pendência, a lista de quem está quebrado aparece no topo, ordenada por
+há quanto tempo está parado.
+
+**Uma coisa para reparar ao ler os números:** "parado agora" ignora o seletor de período. Os três
+botões de 7, 30 e 90 dias valem só para as falhas contadas, as recusas e os erros de impressão. Se
+o período valesse também para a pendência, a nota parada há 60 dias sumiria de uma janela de 30 e a
+tela diria que está tudo bem justamente no caso mais grave.

@@ -21,6 +21,8 @@ import {
   definirMensalidade,
   listarAnalitico,
   resumirUso,
+  listarSaude,
+  resumirSaude,
   PERIODOS_ANALYTICS,
   resumirAddonsDoTenant,
   contarAddonsPorTenant,
@@ -1504,10 +1506,11 @@ describe("normalizarFiltroSituacao", () => {
 });
 
 describe("normalizarAba", () => {
-  it("deixa passar as três seções do Console", () => {
-    expect(normalizarAba("estabelecimentos")).toBe("estabelecimentos");
-    expect(normalizarAba("planos")).toBe("planos");
-    expect(normalizarAba("uso")).toBe("uso");
+  it("deixa passar todas as seções do Console", () => {
+    // Enumerado a partir da constante: aba nova sem lugar na URL abriria
+    // o Console em Estabelecimentos sem ninguém perceber.
+    for (const secao of ABAS_CONSOLE) expect(normalizarAba(secao)).toBe(secao);
+    expect(ABAS_CONSOLE).toContain("saude");
   });
 
   it("valor desconhecido cai na primeira aba — Console nunca abre vazio", () => {
@@ -2015,5 +2018,240 @@ describe("decidirSolicitacao", () => {
     const { data, error } = await decidirSolicitacao("1", "aprovada", { tenantId: "t-1" });
     expect(data).toBeNull();
     expect(error).toBeTruthy();
+  });
+});
+
+// ── F022-SAUDE: saúde da operação ──────────────────────────────────
+
+describe("listarSaude", () => {
+  beforeEach(() => { supabase.reset?.(); });
+
+  it("chama a RPC agregada, não a tabela operacional", async () => {
+    // `.from("nfce_emitidas")` voltaria vazio para o super-admin: a policy
+    // não tem o ramo `OR is_super_admin()`, por decisão (ADR-008, v2 nº 2).
+    supabase.setRpcResult("saude_plataforma", { data: [], error: null });
+    await listarSaude(90);
+    expect(supabase.rpc).toHaveBeenCalledWith("saude_plataforma", { p_dias: 90 });
+  });
+
+  it("erro do banco volta tratável — nunca lança na tela", async () => {
+    supabase.setRpcError("saude_plataforma", { message: "PGRST202" });
+    const { data, error } = await listarSaude(30);
+    // Lista vazia COM erro: a tela precisa poder dizer que não sabe, em vez
+    // de dar atestado de saúde a uma base onde a leitura nem aconteceu.
+    expect(data).toEqual([]);
+    expect(error).toBeTruthy();
+  });
+});
+
+describe("resumirSaude", () => {
+  const TENANTS = [
+    { id: "t1", nome: "Bar do Zé" },
+    { id: "t2", nome: "Café Central" },
+    { id: "t3", nome: "Padaria Nova" },
+  ];
+  const HOJE = new Date("2026-09-11T12:00:00Z");
+  const diasAtras = (n) => new Date(HOJE.getTime() - n * 86400000).toISOString();
+
+  const linhaDe = (resumo, id) => resumo.linhas.find((l) => l.tenantId === id);
+
+  it("tenant que a RPC não devolveu fica zerado e fora dos quebrados", () => {
+    // Ausência de linha é ausência de falha, não falha desconhecida: quem
+    // nunca emitiu nota nem imprimiu nada não está quebrado.
+    const r = resumirSaude(TENANTS, [], HOJE);
+    expect(r.quebrados).toEqual([]);
+    expect(r.linhas).toHaveLength(3);
+    expect(linhaDe(r, "t1")).toMatchObject({
+      fiscaisParadas: 0,
+      fiscaisRecusadas: 0,
+      impressoesParadas: 0,
+      impressoesComErro: 0,
+      paradas: 0,
+      diasParado: null,
+      fiscalParadaDesde: null,
+    });
+  });
+
+  it("só fiscal: entra nos quebrados com a data da nota mais antiga", () => {
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: 3,
+        fiscais_paradas: 2,
+        fiscal_parada_desde: diasAtras(5),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 0,
+        impressao_parada_desde: null,
+      },
+    ], HOJE);
+
+    expect(r.quebrados.map((l) => l.tenantId)).toEqual(["t1"]);
+    expect(linhaDe(r, "t1")).toMatchObject({
+      paradas: 2,
+      diasFiscalParada: 5,
+      diasImpressaoParada: null,
+      diasParado: 5,
+    });
+    expect(r.kpis).toMatchObject({
+      estabelecimentosQuebrados: 1,
+      fiscaisParadas: 2,
+      impressoesParadas: 0,
+      fiscaisRecusadas: 3,
+    });
+  });
+
+  it("só impressão: entra nos quebrados sem nenhuma pendência fiscal", () => {
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t2",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 0,
+        fiscal_parada_desde: null,
+        impressoes_com_erro: 4,
+        impressoes_paradas: 6,
+        impressao_parada_desde: diasAtras(2),
+      },
+    ], HOJE);
+
+    expect(r.quebrados.map((l) => l.tenantId)).toEqual(["t2"]);
+    expect(linhaDe(r, "t2")).toMatchObject({
+      paradas: 6,
+      diasFiscalParada: null,
+      diasImpressaoParada: 2,
+      diasParado: 2,
+    });
+  });
+
+  it("os dois problemas juntos: diasParado é o mais antigo dos dois", () => {
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 1,
+        fiscal_parada_desde: diasAtras(12),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 3,
+        impressao_parada_desde: diasAtras(1),
+      },
+    ], HOJE);
+
+    expect(linhaDe(r, "t1")).toMatchObject({ paradas: 4, diasParado: 12 });
+  });
+
+  it("recusa sem nada parado não põe ninguém na lista de ação", () => {
+    // A recusa já foi resolvida: ela conta no histórico do período, mas não
+    // é o que exige ação hoje.
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: 9,
+        fiscais_paradas: 0,
+        fiscal_parada_desde: null,
+        impressoes_com_erro: 2,
+        impressoes_paradas: 0,
+        impressao_parada_desde: null,
+      },
+    ], HOJE);
+
+    expect(r.quebrados).toEqual([]);
+    expect(r.kpis.fiscaisRecusadas).toBe(9);
+    expect(r.kpis.impressoesComErro).toBe(2);
+  });
+
+  it("gravidade é tempo antes de quantidade", () => {
+    // 1 nota parada há 40 dias é pior que 30 paradas desde hoje de manhã:
+    // a primeira já virou problema com o contador do cliente.
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 1,
+        fiscal_parada_desde: diasAtras(40),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 0,
+        impressao_parada_desde: null,
+      },
+      {
+        tenant_id: "t2",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 30,
+        fiscal_parada_desde: diasAtras(0),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 0,
+        impressao_parada_desde: null,
+      },
+    ], HOJE);
+
+    expect(r.quebrados.map((l) => l.tenantId)).toEqual(["t1", "t2"]);
+  });
+
+  it("a data só vale quando existe pendência", () => {
+    // Defesa contra a RPC mudar: com zero parado, "parado desde terça" seria
+    // uma afirmação falsa na tela.
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 0,
+        fiscal_parada_desde: diasAtras(30),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 0,
+        impressao_parada_desde: diasAtras(30),
+      },
+    ], HOJE);
+
+    expect(linhaDe(r, "t1")).toMatchObject({
+      fiscalParadaDesde: null,
+      impressaoParadaDesde: null,
+      diasParado: null,
+    });
+  });
+
+  it("contagem torta do banco vira zero, nunca NaN na tela", () => {
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: null,
+        fiscais_paradas: "2",
+        fiscal_parada_desde: diasAtras(3),
+        impressoes_com_erro: undefined,
+        impressoes_paradas: -5,
+        impressao_parada_desde: "não é data",
+      },
+    ], HOJE);
+
+    expect(linhaDe(r, "t1")).toMatchObject({
+      fiscaisRecusadas: 0,
+      fiscaisParadas: 2,
+      impressoesComErro: 0,
+      impressoesParadas: 0,
+      paradas: 2,
+      diasParado: 3,
+    });
+  });
+
+  it("a tabela mostra a base inteira, do mais quebrado para o limpo", () => {
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t3",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 5,
+        fiscal_parada_desde: diasAtras(2),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 0,
+        impressao_parada_desde: null,
+      },
+    ], HOJE);
+
+    // Quem está quebrado no topo; os dois limpos desempatam por nome.
+    expect(r.linhas.map((l) => l.nome)).toEqual(["Padaria Nova", "Bar do Zé", "Café Central"]);
+  });
+
+  it("não muda os arrays que recebe", () => {
+    const tenants = [...TENANTS];
+    const saude = [];
+    resumirSaude(tenants, saude, HOJE);
+    expect(tenants).toEqual(TENANTS);
+    expect(saude).toEqual([]);
   });
 });

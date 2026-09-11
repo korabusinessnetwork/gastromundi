@@ -1,3 +1,31 @@
+## Rodada 69 — F022 fatia, aba "Saúde da operação" no Console — 2026-09-11
+- Spec: specs/f022-saude-da-operacao-no-console.md
+- Resultado: 15 de 15 critérios em sim, aprovado sem ressalvas (suíte 235 arquivos / 4148 testes
+  para 237 arquivos / 4181 testes, verde; `npm run build` limpo).
+- A correção de rumo que a rodada precisou fazer: a tarefa dizia "analytics operacional" e a
+  memória da fila do dono listava isso como fatia futura. Só que a aba "Uso e faturamento" de
+  2026-08-01 já era exatamente aquilo, faturamento, pedidos e ticket por tenant. Construir de novo
+  cumpriria a letra e desperdiçaria a rodada. O que de fato restava da fila era a outra fatia
+  listada lá, saúde do sistema, e foi ela que saiu. A memória foi corrigida no mesmo passo.
+- O que a rodada revelou de não óbvio: período e estado de agora são coisas diferentes e a mesma
+  RPC precisa devolver as duas separadas. Recusa da SEFAZ e erro de impressão são eventos, contam
+  dentro da janela escolhida. Pendência é estado, conta o que está travado agora, sem corte. Se o
+  corte valesse para a pendência, a nota parada há 60 dias sumiria de uma janela de 30 e a tela
+  diria que está tudo bem justamente no caso mais grave. O guard cobra a forma: `FILTER` com
+  `v_corte` nos eventos, `FILTER` sem corte nas pendências, e recusa a forma `WHERE ... >=
+  v_corte`, que reintroduziria o defeito.
+- A outra coisa que a fatia teve de decidir: gravidade é tempo antes de quantidade. Um cliente com
+  1 nota parada há 40 dias está pior que outro com 30 paradas desde hoje de manhã, porque a
+  primeira já virou conversa com o contador. A ordenação da lista de ação é por dias parado, e o
+  teste fixa exatamente esse par.
+- A parte que quase passou batido: a tela precisa errar alto quando a leitura falha. Com a
+  migration ainda não aplicada, o PostgREST devolve PGRST202, e uma tela ingênua mostraria
+  "nenhuma pendência" para uma base cheia de nota parada. Dar atestado de saúde em cima de uma
+  leitura que não aconteceu é pior que assumir que não sabe, e tem teste para os dois lados.
+- Fica em aberto: a migration `20260928` não foi aplicada (P05). A tela não diz qual nota falhou, e
+  isso é a decisão v2 nº 2 do ADR-008, não limitação a resolver depois. Trabalho de impressão em
+  `processando` não entra em nenhuma contagem, porque não é erro nem pendência parada; se aparecer
+  caso real de trabalho travado nesse estado, vira fatia própria com critério de tempo.
 ## Rodada 68 — F018 fatia 11, NotasFiscaisTab: Stepper, vínculo, Lista e Detalhe — 2026-09-11
 - Spec: specs/f018-notas-lista-detalhe-css.md
 - Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (195 → 124 `style={{` no arquivo,
