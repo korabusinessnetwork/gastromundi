@@ -737,7 +737,19 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, entregadores = [] })
         <div className="delivery-view__vazio">
           <div className="delivery-view__vazio-emoji">📡</div>
           <div className="delivery-view__vazio-titulo">Não conseguimos carregar os pedidos</div>
-          <div className="delivery-view__vazio-desc">Verifique a conexão e toque em “Atualizar”.</div>
+          {/* "Verifique a conexão" era um chute, e chute errado manda o
+              operador procurar no lugar errado. O Postgres diz o motivo
+              com todas as letras — repassar o texto dele é o que separa
+              "a internet caiu" de "falta rodar a migração". */}
+          <div className="delivery-view__vazio-desc">
+            {erro?.message || "Verifique a conexão e toque em “Atualizar”."}
+          </div>
+          {/column .* does not exist/i.test(erro?.message ?? "") && (
+            <div className="delivery-view__vazio-desc">
+              O banco está atrás do sistema: falta rodar as migrações pendentes
+              (supabase/APLICAR_MIGRACOES_PENDENTES.sql) no SQL Editor do Supabase.
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -3197,13 +3209,25 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   const [faixaKmAte, setFaixaKmAte] = useState("");
   const [faixaTaxa, setFaixaTaxa] = useState("");
 
+  // O motivo da falha fica NA TELA, não num toast que some. Sem ele, uma
+  // coluna que o banco ainda não tem deixava esta aba em "Carregando…"
+  // para sempre, sem uma palavra sobre o que faltava — e a taxa de entrega
+  // simplesmente não abria.
+  const [erroConfig, setErroConfig] = useState("");
+  const [tentativa, setTentativa] = useState(0);
+
   useEffect(() => {
     let ativo = true;
     (async () => {
+      setCarregando(true);
       const { data, error } = await carregarConfigDelivery();
       if (!ativo) return;
       setCarregando(false);
-      if (error) return aviso("Não foi possível carregar as configurações.", "err");
+      if (error) {
+        setErroConfig(error.message || "Não foi possível carregar as configurações.");
+        return;
+      }
+      setErroConfig("");
       const cfg =
         data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
       setConfig(cfg);
@@ -3211,7 +3235,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
       setModoTaxa(temFaixasKm(cfg.faixas_taxa) ? "km" : "area");
     })();
     return () => { ativo = false; };
-  }, [aviso]);
+  }, [tentativa]);
 
   const set = (patch) => setConfig((c) => ({ ...c, ...patch }));
 
@@ -3346,8 +3370,35 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
     [config?.origem_lat, config?.origem_lng]
   );
 
-  if (carregando || !config) {
+  if (carregando) {
     return <div className="delivery-view__carregando delivery-view__carregando--bloco">Carregando…</div>;
+  }
+
+  if (erroConfig || !config) {
+    // Coluna que o banco ainda não tem é o caso mais comum aqui, e o
+    // Postgres diz isso com todas as letras ("column ... does not exist").
+    // Repassar o texto dele é o que transforma "não funciona" em "faltou
+    // rodar a migração" sem ninguém precisar abrir o console.
+    const faltaColuna = /column .* does not exist/i.test(erroConfig);
+    return (
+      <div className="delivery-view__aviso delivery-view__aviso--erro">
+        <div>Não foi possível carregar a configuração de entrega.</div>
+        {erroConfig && <div className="delivery-view__hint">{erroConfig}</div>}
+        {faltaColuna && (
+          <div className="delivery-view__hint">
+            O banco está atrás do sistema: falta rodar as migrações pendentes
+            (supabase/APLICAR_MIGRACOES_PENDENTES.sql) no SQL Editor do Supabase.
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setTentativa((n) => n + 1)}
+          className="delivery-view__btn delivery-view__btn--sm"
+        >
+          Tentar de novo
+        </button>
+      </div>
+    );
   }
 
   const readOnly = !isAdmin;
