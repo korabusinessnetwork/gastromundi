@@ -106,13 +106,25 @@ tarefa inteira; se algo ficou de fora, diga o que e por quê em vez de reportar
 Não adicione features, refactor, abstração, error handling ou fallback além do que a
 tarefa exige. Correção de bug não pede faxina em volta.
 
-### Git — a main é minha
+### Git — merge de rodada terminada está autorizado
 
-Merge na `main` exige aprovação explícita do dono, sempre. Você pode desenvolver na
-branch, commitar, dar push na branch e abrir o PR; **mergear, não** — pare no PR
-aberto e me avise. Vale também para auto-merge e para push direto na `main`. A regra
-de permissão em `.claude/settings.json` faz o Claude Code perguntar antes de mergear;
-a proteção de branch no GitHub é a trava de verdade.
+Mesclar na `main` **toda rodada terminada** está autorizado de forma permanente pelo
+dono (confirmado em 11/09/2026). Rodada terminada quer dizer as três coisas juntas:
+review aprovada sem ressalvas, suíte verde e build limpo. Continua valendo abrir o PR
+antes, para o histórico ficar legível.
+
+Isto substitui a regra anterior ("a main é minha", que exigia aprovação a cada merge)
+e resolve a contradição com a memória `loop-autonomo-e-main`. Se as duas voltarem a
+divergir, esta regra manda.
+
+O que continua fora, sempre: `push --force` em qualquer branch, mesclar rodada que
+não fechou, e reescrever histórico já empurrado.
+
+**Efeito colateral que precisa de aviso:** a integração da Vercel sobe **produção** a
+cada push na `main` (não há `git.deploymentEnabled: false` no `vercel.json`). Se a
+rodada tiver migration ainda não aplicada no Supabase, isso deploya frontend novo
+contra banco velho. Nesse caso, avise antes de mesclar e deixe a decisão comigo, em
+vez de mesclar calado.
 
 ### Comunicação
 
