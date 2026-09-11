@@ -44,6 +44,18 @@ uma nota de leitura no Obsidian em `D:\Vault\kora\Reviews\`.
 
 ---
 
+## Situação em 11/09/2026, depois do fechamento
+
+As cinco pendências abaixo **foram todas resolvidas** no mesmo dia: as quatro migrations foram
+aplicadas no Supabase e a branch foi mesclada na `main` (PR #27 e #28). O texto original de cada
+uma fica abaixo como registro do que foi feito e por quê.
+
+Sobra uma conferência, não uma pendência: **abrir a aba "Saúde da operação" do Console uma vez**.
+É a única entrega desta execução que ninguém viu rodando, porque eu não tenho credencial de
+super-admin para entrar.
+
+---
+
 ## O que você precisa saber, em ordem de urgência
 
 ### 1. Três migrations esperando você, e uma delas trava o próximo deploy

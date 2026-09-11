@@ -3,9 +3,15 @@
 Coisas que só você pode fazer. O app já funciona com contornos, estas tarefas trocam o contorno pelo real.
 Ordem: da mais importante para a menos importante.
 
+**Situação em 11/09/2026: todas as cinco estão fechadas.** As quatro migrations foram aplicadas e a
+branch foi mesclada na `main`. O que sobra não é pendência, é uma conferência: abrir a aba "Saúde
+da operação" do Console uma vez, que é a única entrega desta execução que ninguém viu rodando.
+
 (a preencher durante a execução)
 
-## P01 Aplicar a migration da baixa de estoque no Supabase
+## ~~P01, aplicar a migration da baixa de estoque~~ FECHADA em 11/09/2026
+
+> Aplicada por ele em 11/09/2026. O passo a passo fica abaixo, como registro do que foi rodado.
 Herdada da rodada 62 do ciclo.
 
 Arquivo: `supabase/migrations/20260919_baixa_estoque_cria_linha.sql`
@@ -38,13 +44,11 @@ tem as migrations. Ver o aviso no topo da P03.
 `git merge --ff-only` seguido de `git push origin main` passou. Se quiser que eu use o caminho do
 PR nas próximas, precisa liberar `gh pr merge` nas regras de permissão do Bash.
 
-## P03, aplicar a migration `20260920_vendas_cancelamento.sql` AGORA
+## ~~P03, aplicar a migration `20260920_vendas_cancelamento.sql`~~ FECHADA em 11/09/2026
 
-> **Mudou de urgência em 11/09/2026.** O título dizia "antes do próximo deploy do frontend". O
-> deploy já saiu: a `main` foi mesclada e a Vercel sobe produção a cada push nela. O frontend com
-> o cancelamento de venda está no ar contra um banco que não tem as quatro colunas. Enquanto esta
-> migration não rodar, cancelar uma venda falha em produção. As outras três (`20260919`,
-> `20260927`, `20260928`) não quebram nada que já funcionava, mas também deveriam ir junto.
+> Aplicada por ele em 11/09/2026. Ela chegou a ficar uma janela curta em aberto com o frontend já no ar, porque o
+> merge na `main` dispara deploy na Vercel. Nessa janela, cancelar uma venda falhava em produção.
+> Com a migration aplicada, o caminho fechou.
 
 **Por que virou pendência sua:** aplicar migration em banco de produção é ação irreversível e fora
 do projeto, então eu não rodo sozinho. O arquivo está pronto e é idempotente.
@@ -80,7 +84,10 @@ que ela sai do relatório do dia. Depois, no SQL Editor, rodar
 `select id, cancelada, motivo_cancelamento, cancelada_em from public.vendas where cancelada;` e ver
 a venda de teste marcada, com os itens dela ainda presentes em `venda_itens`.
 
-## P04 — Aplicar a migration `20260927_login_tentativas_servidor.sql` ANTES do próximo deploy do frontend
+## ~~P04, aplicar a migration `20260927_login_tentativas_servidor.sql`~~ FECHADA em 11/09/2026
+
+> Aplicada por ele em 11/09/2026. O bloqueio de login passou a valer no servidor, então limpar o `localStorage`
+> não devolve mais as tentativas.
 
 **Por que virou pendência sua:** aplicar migration em banco de produção é ação irreversível e fora
 do projeto, então eu não rodo sozinho. O arquivo está pronto e é idempotente.
@@ -134,7 +141,12 @@ verdade seria prova de humanidade no formulário, que é uma feature própria.
 
 ---
 
-## P05 — Aplicar a migration `20260928_saude_plataforma.sql` para a aba nova do Console funcionar
+## ~~P05, aplicar a migration `20260928_saude_plataforma.sql`~~ FECHADA em 11/09/2026
+
+> Aplicada por ele em 11/09/2026. A aba "Saúde da operação" do Console passou a ter de onde ler. **Esta é a única
+> que ainda não foi vista funcionando por ninguém**: eu não tenho credencial de super-admin para
+> entrar no Console, então ela está coberta por 10 testes de tela e não por uso. Abrir a aba uma
+> vez fecha isso.
 
 **Arquivo:** [`supabase/migrations/20260928_saude_plataforma.sql`](https://github.com/korabusinessnetwork/gastromundi/blob/main/supabase/migrations/20260928_saude_plataforma.sql)
 
