@@ -106,7 +106,8 @@ async function preencherAteTaxa(onAvancar = vi.fn()) {
   });
   digitar("Seu nome", "Ana");
   digitar("Telefone", TELEFONE);
-  digitar("Endereço (rua, número)", "Rua X, 10");
+  digitar("Rua", "Rua X");
+  digitar("Número", "10");
   digitar("CEP", "90000000");
   await assentar();
   return onAvancar;
@@ -148,7 +149,7 @@ describe("CheckoutEntrega — a taxa na tela é a do endereço na tela (Run 6, l
   it("trocar a rua também tranca — no modo por km o preço vem da coordenada", async () => {
     await preencherAteTaxa();
 
-    digitar("Endereço (rua, número)", "Rua Muito Longe, 9000");
+    digitar("Rua", "Rua Muito Longe");
 
     expect(avancar()).toBeDisabled();
   });
@@ -186,7 +187,8 @@ describe("CheckoutEntrega — a taxa na tela é a do endereço na tela (Run 6, l
     });
     digitar("Seu nome", "Ana");
     digitar("Telefone", TELEFONE);
-    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("Rua", "Rua X");
+    digitar("Número", "10");
     digitar("CEP", "90000000");
 
     expect(calculando()).toBeInTheDocument();
@@ -327,7 +329,7 @@ describe("CheckoutEntrega — a busca do CEP não pode mentir nem travar (Run 6,
 
     expect(buscando()).toBeNull();
     expect(campo("Bairro")).toHaveValue("Centro");
-    expect(campo("Endereço (rua, número)")).toHaveValue(RUA_VIACEP);
+    expect(campo("Rua")).toHaveValue(RUA_VIACEP);
     expect(campo("Cidade")).toHaveValue(CIDADE_VIACEP);
   });
 
@@ -383,7 +385,7 @@ describe("CheckoutEntrega — a busca do CEP não pode mentir nem travar (Run 6,
 
     expect(campo("Bairro")).toHaveValue("Vila Nova");
     // A rua, que ele não digitou, o ViaCEP pode preencher.
-    expect(campo("Endereço (rua, número)")).toHaveValue(RUA_VIACEP);
+    expect(campo("Rua")).toHaveValue(RUA_VIACEP);
     expect(campo("Cidade")).toHaveValue(CIDADE_VIACEP);
   });
 
@@ -393,12 +395,12 @@ describe("CheckoutEntrega — a busca do CEP não pode mentir nem travar (Run 6,
     await montar();
 
     digitar("CEP", "90000000");
-    digitar("Endereço (rua, número)", "Av. Minha, 42");
+    digitar("Rua", "Av. Minha");
 
     resolver(VIACEP_OK);
     await assentar();
 
-    expect(campo("Endereço (rua, número)")).toHaveValue("Av. Minha, 42");
+    expect(campo("Rua")).toHaveValue("Av. Minha");
     expect(campo("Bairro")).toHaveValue("Centro");
   });
 
@@ -410,7 +412,7 @@ describe("CheckoutEntrega — a busca do CEP não pode mentir nem travar (Run 6,
     await assentar();
 
     expect(campo("Bairro")).toHaveValue("Centro");
-    expect(campo("Endereço (rua, número)")).toHaveValue(RUA_VIACEP);
+    expect(campo("Rua")).toHaveValue(RUA_VIACEP);
     expect(campo("Cidade")).toHaveValue(CIDADE_VIACEP);
   });
 });
@@ -484,7 +486,7 @@ describe("CheckoutEntrega — taxa que não respondeu tem que aparecer na tela (
     await preencherAteTaxa();
 
     expect(
-      screen.getByText(/Não consegui localizar seu endereço no mapa/)
+      screen.getByText(/Não consegui localizar esse endereço no mapa/)
     ).toBeInTheDocument();
     expect(erroConexao()).toBeNull();
   });
@@ -553,13 +555,19 @@ describe("CheckoutEntrega — terceiro pendurado não mata o checkout (Run 6, le
     expect(calculando()).toBeInTheDocument();
     expect(avancar()).toBeDisabled();
 
+    // Duas tentativas de mapa, uma de cada vez (a exata e a da região), com
+    // 8 s de prazo cada — por isso o relógio anda duas vezes: a segunda só é
+    // agendada depois que a primeira desiste. Com o terceiro pendurado,
+    // nenhuma responde, e o que importa é a tela terminar dizendo o que houve
+    // em vez de girar para sempre.
+    await assentar(9000);
     await assentar(9000);
 
     // Sem prazo, nada daqui para baixo acontecia: a tela ficava calculando
     // pelo resto da sessão, com o botão morto e sem uma palavra de aviso.
     expect(calculando()).toBeNull();
     expect(
-      screen.getByText(/Não consegui localizar seu endereço no mapa/)
+      screen.getByText(/Não consegui localizar esse endereço no mapa/)
     ).toBeInTheDocument();
   });
 
@@ -619,7 +627,7 @@ describe("CheckoutEntrega — retirar no local", () => {
     // fazia ela inventar um endereço só para conseguir avançar.
     expect(screen.queryByLabelText(/^CEP/)).toBeNull();
     expect(screen.queryByLabelText("Bairro")).toBeNull();
-    expect(screen.queryByLabelText("Endereço (rua, número)")).toBeNull();
+    expect(screen.queryByLabelText("Rua")).toBeNull();
     // E o que ela precisa saber.
     expect(screen.getByText(ENDERECO_LOJA)).toBeInTheDocument();
     expect(screen.getByText(/Sem taxa de entrega/)).toBeInTheDocument();
@@ -643,7 +651,8 @@ describe("CheckoutEntrega — retirar no local", () => {
     await montar({ aoMudar: (p) => patches.push(p) });
     digitar("Seu nome", "Ana");
     digitar("Telefone", TELEFONE);
-    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("Rua", "Rua X");
+    digitar("Número", "10");
     digitar("CEP", "90000000");
     await assentar();
 
@@ -659,7 +668,8 @@ describe("CheckoutEntrega — retirar no local", () => {
     await montar();
     digitar("Seu nome", "Ana");
     digitar("Telefone", TELEFONE);
-    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("Rua", "Rua X");
+    digitar("Número", "10");
     digitar("CEP", "90000000");
     await assentar();
 
@@ -681,7 +691,8 @@ describe("CheckoutEntrega — retirar no local", () => {
     });
     digitar("Seu nome", "Ana");
     digitar("Telefone", TELEFONE);
-    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("Rua", "Rua X");
+    digitar("Número", "10");
     digitar("CEP", "90000000");
     await assentar();
 
@@ -719,7 +730,8 @@ describe("CheckoutEntrega — o CEP é opcional", () => {
     digitar("Telefone", TELEFONE);
     digitar("Cidade", "Porto Alegre/RS");
     digitar("Bairro", "Centro");
-    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("Rua", "Rua X");
+    digitar("Número", "10");
     await assentar();
 
     // O servidor recebe o CEP vazio e resolve pela faixa de bairro.
@@ -738,7 +750,8 @@ describe("CheckoutEntrega — o CEP é opcional", () => {
 
     digitar("Seu nome", "Ana");
     digitar("Telefone", TELEFONE);
-    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("Rua", "Rua X");
+    digitar("Número", "10");
     await assentar();
 
     expect(mockCalcularTaxa).not.toHaveBeenCalled();
@@ -755,7 +768,8 @@ describe("CheckoutEntrega — o CEP é opcional", () => {
     digitar("Seu nome", "Ana");
     digitar("Telefone", TELEFONE);
     digitar("Bairro", "Outra Cidade");
-    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("Rua", "Rua X");
+    digitar("Número", "10");
     await assentar();
 
     expect(screen.getByText(/fora da nossa área de entrega/)).toBeInTheDocument();
@@ -787,7 +801,8 @@ describe("CheckoutEntrega — o telefone virou obrigatório", () => {
       render(<Palco onAvancar={onAvancar} />);
     });
     digitar("Seu nome", "Ana");
-    digitar("Endereço (rua, número)", "Rua X, 10");
+    digitar("Rua", "Rua X");
+    digitar("Número", "10");
     digitar("CEP", "90000000");
     await assentar();
 
@@ -865,5 +880,170 @@ describe("CheckoutEntrega — o telefone virou obrigatório", () => {
 
     digitar("Telefone", TELEFONE);
     expect(avancar()).toBeEnabled();
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────
+// O CEP é opcional de verdade, o número é campo próprio, e rua errada
+// não tranca o pedido.
+//
+// Três defeitos que o dono viu na tela, todos no mesmo lugar: o cliente
+// com o endereço certo na frente dele e o botão morto.
+//
+// 1. O CEP dizia "(opcional)" mas o cálculo só saía com CEP ou bairro.
+//    Quem não sabe o CEP e preenche cidade (o próprio texto de ajuda
+//    manda preencher cidade e bairro) ficava sem taxa nenhuma, e sem
+//    taxa o avanço nunca libera. Opcional no rótulo, obrigatório na
+//    prática.
+//
+// 2. Rua e número no mesmo campo. Quem corrigia a rua por cima do que o
+//    ViaCEP trouxe apagava o número junto, e o pedido chegava na cozinha
+//    sem dizer em qual casa parar.
+//
+// 3. Errar uma letra no nome da rua travava o checkout inteiro. No modo
+//    por distância, o mapa não achava a rua, o servidor devolvia
+//    'sem_coordenada' e o botão ficava morto. Quem entrega é gente, lê o
+//    endereço escrito e acha a casa; a tela é que não deixava pedir.
+// ──────────────────────────────────────────────────────────────────
+
+const SEM_COORDENADA = { data: { ok: false, motivo: "sem_coordenada" }, error: null };
+const COORD = { data: { lat: -29.6, lng: -51.16 }, error: null };
+const porBairro = () =>
+  screen.queryByText(/calculamos a entrega pela\s+região que você informou/);
+
+describe("CheckoutEntrega, pedir sem CEP, com número à parte e rua que o mapa não conhece", () => {
+  it("sem CEP nenhum, cidade e bairro já fazem a taxa ser calculada", async () => {
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+    digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
+    digitar("Cidade", "Ivoti");
+    digitar("Bairro", "Cidade Nova");
+    digitar("Rua", "Rua Santa Cruz do Sul");
+    digitar("Número", "80");
+    await assentar();
+
+    expect(mockCalcularTaxa).toHaveBeenCalled();
+    expect(screen.getByText("R$ 7,50")).toBeInTheDocument();
+    // Aqui está o "opcional de verdade": o CEP ficou em branco e o pedido
+    // segue assim mesmo.
+    expect(campo("CEP")).toHaveValue("");
+    expect(avancar()).toBeEnabled();
+  });
+
+  it("só a cidade já basta para o servidor ser consultado", async () => {
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+    digitar("Cidade", "Ivoti");
+    await assentar();
+
+    expect(mockCalcularTaxa).toHaveBeenCalled();
+  });
+
+  it("o número é campo próprio, e sem ele a tela diz o que falta em vez de só travar", async () => {
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+    digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
+    digitar("Bairro", "Centro");
+    digitar("Rua", "Rua Santa Cruz do Sul");
+    await assentar();
+
+    expect(avancar()).toBeDisabled();
+    expect(screen.getByText(/Falta preencher o número/)).toBeInTheDocument();
+
+    digitar("Número", "80");
+    await assentar();
+
+    expect(avancar()).toBeEnabled();
+    expect(screen.queryByText(/Falta preencher/)).toBeNull();
+  });
+
+  it("corrigir a rua não apaga o número, porque são dois campos", async () => {
+    mockViaCep.mockResolvedValue(VIACEP_OK);
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+    digitar("CEP", "90000000");
+    await assentar();
+    digitar("Número", "80");
+
+    // O ViaCEP trouxe a rua, o cliente reescreve do jeito dele. Antes isso
+    // levava o número junto, no mesmo campo.
+    digitar("Rua", "Rua das Flores de Baixo");
+    await assentar();
+
+    expect(campo("Número")).toHaveValue("80");
+  });
+
+  it("rua que o mapa não conhece cai para o bairro em vez de travar o pedido", async () => {
+    // Modo por distância: o servidor pede coordenada.
+    mockCalcularTaxa.mockResolvedValueOnce(SEM_COORDENADA);
+    // A busca exata não acha (a rua está escrita de um jeito que o mapa não
+    // conhece); a do bairro com a cidade acha.
+    mockGeocodificar
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce(COORD);
+    mockCalcularTaxa.mockResolvedValue({ data: { ok: true, taxa: 9 }, error: null });
+
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+    digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
+    digitar("Cidade", "Ivoti");
+    digitar("Bairro", "Cidade Nova");
+    digitar("Rua", "Rua Sta Cruz do Sull");
+    digitar("Número", "80");
+    await assentar();
+
+    expect(screen.getByText("R$ 9,00")).toBeInTheDocument();
+    expect(avancar()).toBeEnabled();
+    // E a tela conta de onde veio esse preço, antes de pagar.
+    expect(porBairro()).toBeInTheDocument();
+  });
+
+  it("a segunda busca é o bairro com a cidade, não o endereço todo de novo", async () => {
+    mockCalcularTaxa.mockResolvedValueOnce(SEM_COORDENADA);
+    mockGeocodificar
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce(COORD);
+
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+    digitar("Cidade", "Ivoti");
+    digitar("Bairro", "Cidade Nova");
+    digitar("Rua", "Rua Sta Cruz do Sull");
+    digitar("Número", "80");
+    await assentar();
+
+    expect(mockGeocodificar).toHaveBeenNthCalledWith(
+      1,
+      "Rua Sta Cruz do Sull, 80, Cidade Nova, Ivoti"
+    );
+    expect(mockGeocodificar).toHaveBeenNthCalledWith(2, "Cidade Nova, Ivoti");
+  });
+
+  it("quando o mapa acha a rua exata, nada de aviso de cálculo por bairro", async () => {
+    mockCalcularTaxa.mockResolvedValueOnce(SEM_COORDENADA);
+    mockGeocodificar.mockResolvedValue(COORD);
+
+    await act(async () => {
+      render(<Palco onAvancar={vi.fn()} />);
+    });
+    digitar("Seu nome", "Ana");
+    digitar("Telefone", TELEFONE);
+    digitar("Cidade", "Ivoti");
+    digitar("Bairro", "Cidade Nova");
+    digitar("Rua", "Rua Santa Cruz do Sul");
+    digitar("Número", "80");
+    await assentar();
+
+    expect(avancar()).toBeEnabled();
+    expect(porBairro()).toBeNull();
   });
 });

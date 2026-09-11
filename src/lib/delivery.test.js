@@ -27,6 +27,8 @@ import {
   rotuloRegraGrupo,
   primeiroGrupoPendente,
   montarPayloadPedido,
+  enderecoComNumero,
+  buscasDeEndereco,
   valorDigitado,
   revisarSacola,
   mensagemDeErroDoPedido,
@@ -393,6 +395,81 @@ describe("revisarSacola — o ícone acompanha o cardápio de agora", () => {
   });
 });
 
+describe("enderecoComNumero, dois campos na tela e uma linha no pedido", () => {
+  it("junta rua e número com vírgula", () => {
+    expect(enderecoComNumero("Rua Santa Cruz do Sul", "80")).toBe(
+      "Rua Santa Cruz do Sul, 80"
+    );
+  });
+
+  it("aguenta S/N e espaço sobrando, que é o que as pessoas digitam", () => {
+    expect(enderecoComNumero("  Rua X  ", " S/N ")).toBe("Rua X, S/N");
+  });
+
+  it("sem número, o endereço é só a rua, sem vírgula pendurada no fim", () => {
+    expect(enderecoComNumero("Rua X", "")).toBe("Rua X");
+    expect(enderecoComNumero("Rua X", null)).toBe("Rua X");
+  });
+
+  it("sem rua não inventa endereço nenhum", () => {
+    expect(enderecoComNumero("", "80")).toBe("80");
+    expect(enderecoComNumero("", "")).toBe("");
+  });
+});
+
+describe("buscasDeEndereco, o mapa tenta do exato para o largo", () => {
+  const ENTREGA = {
+    endereco: "Rua Santa Cruz do Sul",
+    numero: "80",
+    bairro: "Cidade Nova",
+    cidade: "Ivoti",
+    cep: "93900000",
+  };
+
+  it("a primeira busca é o endereço inteiro, com CEP quando existe", () => {
+    expect(buscasDeEndereco(ENTREGA)[0]).toBe(
+      "Rua Santa Cruz do Sul, 80, Cidade Nova, Ivoti, 93900-000"
+    );
+  });
+
+  it("depois vem o bairro com a cidade, que é o que salva a rua escrita errado", () => {
+    expect(buscasDeEndereco(ENTREGA)[1]).toBe("Cidade Nova, Ivoti");
+  });
+
+  it("depois o CEP e, por último, a cidade sozinha, sem repetir busca", () => {
+    expect(buscasDeEndereco(ENTREGA)).toEqual([
+      "Rua Santa Cruz do Sul, 80, Cidade Nova, Ivoti, 93900-000",
+      "Cidade Nova, Ivoti",
+      "93900-000",
+      "Ivoti",
+    ]);
+  });
+
+  it("com o CEP como única pista, é ele que localiza a região", () => {
+    expect(
+      buscasDeEndereco({ endereco: "Rua Errada", numero: "80", cep: "93900000" })
+    ).toEqual(["Rua Errada, 80, 93900-000", "93900-000"]);
+  });
+
+  it("CEP incompleto não entra na busca, porque não localiza nada", () => {
+    expect(buscasDeEndereco({ ...ENTREGA, cep: "939" })[0]).toBe(
+      "Rua Santa Cruz do Sul, 80, Cidade Nova, Ivoti"
+    );
+  });
+
+  it("sem rua, a busca começa direto pela região", () => {
+    expect(buscasDeEndereco({ bairro: "Centro", cidade: "Ivoti" })).toEqual([
+      "Centro, Ivoti",
+      "Ivoti",
+    ]);
+  });
+
+  it("sem nada para procurar, não sai busca nenhuma", () => {
+    expect(buscasDeEndereco({})).toEqual([]);
+    expect(buscasDeEndereco({ numero: "80" })).toEqual([]);
+  });
+});
+
 describe("montarPayloadPedido", () => {
   it("não envia preço; envia só a intenção do cliente", () => {
     const payload = montarPayloadPedido({
@@ -418,6 +495,25 @@ describe("montarPayloadPedido", () => {
 
     // A retirada é o outro caminho: nada de endereço, e o servidor sabe
     // disso pelo `tipo`.
+  });
+
+  it("rua e número viram a linha única que o entregador lê", () => {
+    const payload = montarPayloadPedido({
+      cliente: { nome: "Ana", telefone: "51999999999" },
+      entrega: {
+        cidade: "Ivoti",
+        bairro: "Cidade Nova",
+        endereco: "Rua Santa Cruz do Sul",
+        numero: "80",
+      },
+      pagamento: { forma: "pix" },
+      itens: [{ produto_id: 1, qtd: 1 }],
+    });
+    expect(payload.entrega.endereco).toBe("Rua Santa Cruz do Sul, 80");
+    // Sem CEP o pedido vai do mesmo jeito: a faixa por bairro não precisa
+    // dele, e é a que a maioria dos estabelecimentos cadastra.
+    expect(payload.entrega.cep).toBe("");
+    expect(payload.entrega.cidade).toBe("Ivoti");
   });
 
   it("retirada não manda endereço nenhum — o cliente é quem vai até lá", () => {

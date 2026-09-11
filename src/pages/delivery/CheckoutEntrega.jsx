@@ -25,6 +25,7 @@ import { apenasDigitosTelefone, mascararTelefone, telefoneValido } from "@/lib/t
 import {
   apenasDigitosCep,
   buscarEnderecoViaCep,
+  buscasDeEndereco,
   calcularTaxaEntrega,
   cepCompleto,
   formatarCep,
@@ -33,6 +34,12 @@ import {
 } from "@/lib/delivery";
 import { useSairDoModal } from "./useSairDoModal";
 import "./CheckoutEntrega.css";
+
+/** ["seu nome", "o telefone", "a rua"] → "seu nome, o telefone e a rua". */
+function listaEmTexto(itens) {
+  if (itens.length <= 1) return itens.join("");
+  return `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}`;
+}
 
 export default function CheckoutEntrega({
   slug,
@@ -47,6 +54,10 @@ export default function CheckoutEntrega({
   const [taxa, setTaxa] = useState(null); // { ok, taxa, motivo, km }
   const [erroTaxa, setErroTaxa] = useState("");
   const [calculandoTaxa, setCalculandoTaxa] = useState(false);
+  // A taxa saiu do bairro/cidade porque o mapa não achou a rua exata. O
+  // pedido segue com o endereço escrito, e o cliente merece saber disso
+  // antes de pagar, não depois.
+  const [taxaAproximada, setTaxaAproximada] = useState(false);
   const [tentativa, setTentativa] = useState(0);
   // O aviso do telefone só aparece depois que a pessoa saiu do campo:
   // acusar "número inválido" no segundo dígito é brigar com quem ainda
@@ -126,16 +137,19 @@ export default function CheckoutEntrega({
     }
     const cep = apenasDigitosCep(dados.cep);
     const bairro = (dados.bairro || "").trim();
-    // Dá para calcular com CEP completo OU com bairro — a faixa por bairro
-    // nunca precisou de CEP. Sem nenhum dos dois não há o que perguntar ao
-    // servidor, e ficar "calculando" seria a tela fingindo que trabalha.
-    if (!cepCompleto(cep) && !bairro) {
+    const cidade = (dados.cidade || "").trim();
+    // Dá para calcular com CEP completo, com bairro OU com cidade: a faixa
+    // por bairro nunca precisou de CEP, e no modo por distância a cidade já
+    // basta para o mapa achar onde é. Sem nenhum dos três não há o que
+    // perguntar ao servidor, e ficar "calculando" seria a tela fingindo que
+    // trabalha.
+    if (!cepCompleto(cep) && !bairro && !cidade) {
       setTaxa(null);
       setErroTaxa("");
       setCalculandoTaxa(false);
+      setTaxaAproximada(false);
       return;
     }
-    const endereco = dados.endereco || "";
 
     // JÁ marca como recalculando — não daqui a 700 ms, quando o debounce
     // dispara. Nessa janela a taxa na tela era a do endereço ANTERIOR e o
@@ -149,16 +163,31 @@ export default function CheckoutEntrega({
       // 1ª tentativa sem coordenada — o modo por área (bairro/CEP) resolve aqui.
       let { data: res } = await calcularTaxaEntrega(slug, cep, bairro);
 
-      // Modo por distância: o servidor pediu coordenada. Geocodifica o
-      // endereço digitado e recalcula. Falha de geocode → mantém o motivo.
+      // Modo por distância: o servidor pediu coordenada. Geocodifica o que
+      // o cliente escreveu e recalcula. As buscas vão da mais exata (rua,
+      // número, bairro, cidade) para a mais larga (bairro e cidade, depois
+      // só a cidade): uma letra errada no nome da rua não pode travar o
+      // pedido, porque quem entrega é gente e vai ler o endereço escrito.
       let coord = null;
-      if (res?.motivo === "sem_coordenada" && endereco.trim()) {
-        const texto = [endereco, bairro].filter(Boolean).join(", ");
-        const { data: geo } = await geocodificarEndereco(texto);
-        if (geo) {
+      let aproximada = false;
+      if (res?.motivo === "sem_coordenada") {
+        // Duas tentativas, não a lista inteira: cada ida ao mapa espera até
+        // 8 segundos por um terceiro que pode estar pendurado, e três delas
+        // seguidas deixariam a tela "calculando" por quase meio minuto. A
+        // exata e a melhor região resolvem o caso real, que é a rua escrita
+        // de um jeito que o mapa não conhece.
+        const buscas = buscasDeEndereco({ ...dadosRef.current, cep, bairro, cidade }).slice(
+          0,
+          2
+        );
+        for (let i = 0; i < buscas.length; i++) {
+          const { data: geo } = await geocodificarEndereco(buscas[i]);
+          if (!geo) continue;
           coord = geo;
+          aproximada = i > 0;
           const r2 = await calcularTaxaEntrega(slug, cep, bairro, geo.lat, geo.lng);
           res = r2.data;
+          break;
         }
       }
 
@@ -173,6 +202,7 @@ export default function CheckoutEntrega({
           ? ""
           : "Não conseguimos calcular a taxa de entrega agora. Confira sua conexão e tente de novo."
       );
+      setTaxaAproximada(Boolean(res?.ok && aproximada));
       if (res?.ok) {
         onMudar({
           taxa: Number(res.taxa) || 0,
@@ -188,7 +218,16 @@ export default function CheckoutEntrega({
       clearTimeout(t);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dados.cep, dados.bairro, dados.endereco, slug, tentativa, retirada]);
+  }, [
+    dados.cep,
+    dados.cidade,
+    dados.bairro,
+    dados.endereco,
+    dados.numero,
+    slug,
+    tentativa,
+    retirada,
+  ]);
 
   const semCoordenada = taxa?.motivo === "sem_coordenada";
   const indisponivelKm = taxa?.motivo === "origem_indefinida";
@@ -205,11 +244,27 @@ export default function CheckoutEntrega({
   // Exigir os 8 dígitos travava quem não sabe o próprio CEP mesmo com o
   // bairro atendido e a taxa já na tela. O telefone, ao contrário, entrou:
   // sem ele ninguém consegue falar com o cliente quando o pedido trava.
+  const numero = (dados.numero || "").trim();
   const podeAvancar = retirada
     ? Boolean(dados.nome.trim() && telefoneOk)
     : Boolean(
-        dados.nome.trim() && telefoneOk && dados.endereco.trim() && temTaxa && !calculandoTaxa
+        dados.nome.trim() &&
+          telefoneOk &&
+          dados.endereco.trim() &&
+          numero &&
+          temTaxa &&
+          !calculandoTaxa
       );
+
+  // Botão desabilitado sem explicação é a tela travando sem dizer por quê:
+  // o cliente preenche tudo o que vê, clica, e nada acontece. Aqui ela diz
+  // o que ainda falta, com o nome do campo que está na frente dele.
+  const faltando = [
+    !dados.nome.trim() && "seu nome",
+    !telefoneOk && "o telefone",
+    !retirada && !dados.endereco.trim() && "a rua",
+    !retirada && !numero && "o número",
+  ].filter(Boolean);
 
   // Trocar de caminho zera o que era do outro: a taxa de uma entrega não
   // pode sobreviver a "vou buscar" (o cliente pagaria por uma corrida que
@@ -386,19 +441,43 @@ export default function CheckoutEntrega({
                 />
               </div>
 
-              <div className="campo">
-                <label className="campo__label" htmlFor="ent-end">
-                  Endereço (rua, número)
-                </label>
-                <input
-                  id="ent-end"
-                  className="campo__input"
-                  autoComplete="address-line1"
-                  value={dados.endereco}
-                  maxLength={160}
-                  onChange={(e) => onMudar({ endereco: e.target.value })}
-                  placeholder="Rua, número"
-                />
+              {/* Rua e número em campos separados. Juntos, o número era a
+                  parte que mais se perdia: quem corrigia a rua apagava o
+                  número junto, e o pedido chegava na cozinha sem dizer em
+                  qual casa parar. Lado a lado porque são uma informação só
+                  para quem lê, e o número é curto. */}
+              <div className="campo-linha">
+                <div className="campo">
+                  <label className="campo__label" htmlFor="ent-end">
+                    Rua
+                  </label>
+                  <input
+                    id="ent-end"
+                    className="campo__input"
+                    autoComplete="address-line1"
+                    value={dados.endereco}
+                    maxLength={160}
+                    onChange={(e) => onMudar({ endereco: e.target.value })}
+                    placeholder="Nome da rua"
+                  />
+                </div>
+
+                <div className="campo">
+                  <label className="campo__label" htmlFor="ent-numero">
+                    Número
+                  </label>
+                  <input
+                    id="ent-numero"
+                    className="campo__input"
+                    // Sem autocompletar: "address-line2" é do complemento,
+                    // logo abaixo, e o navegador acabava oferecendo "Apto 32"
+                    // no campo do número da casa.
+                    value={dados.numero ?? ""}
+                    maxLength={10}
+                    onChange={(e) => onMudar({ numero: e.target.value })}
+                    placeholder="123 ou S/N"
+                  />
+                </div>
               </div>
 
               <div className="campo">
@@ -452,8 +531,8 @@ export default function CheckoutEntrega({
               )}
               {!calculandoTaxa && semCoordenada && (
                 <div className="vitrine__aviso vitrine__aviso--erro">
-                  Não consegui localizar seu endereço no mapa. Confira a rua e o número
-                  para calcular a entrega.
+                  Não consegui localizar esse endereço no mapa. Confira a cidade e o
+                  bairro para calcular a entrega.
                 </div>
               )}
               {!calculandoTaxa && indisponivelKm && (
@@ -479,6 +558,17 @@ export default function CheckoutEntrega({
                   )}
                 </div>
               )}
+              {/* A taxa saiu da região (bairro, cidade ou CEP), não da rua
+                  exata. Dito
+                  antes de pagar, e não depois: o valor pode mudar quando o
+                  estabelecimento olhar o endereço. */}
+              {!calculandoTaxa && temTaxa && taxaAproximada && (
+                <div className="vitrine__aviso">
+                  Não achamos essa rua no mapa, então calculamos a entrega pela
+                  região que você informou. Seu pedido vai com o endereço exatamente
+                  como você escreveu.
+                </div>
+              )}
               {temTaxa && (
                 <div className="resumo">
                   <div className="resumo__linha">
@@ -490,6 +580,12 @@ export default function CheckoutEntrega({
                 </div>
               )}
             </>
+          )}
+
+          {!podeAvancar && !calculandoTaxa && faltando.length > 0 && (
+            <p className="linha-sacola__extra checkout-entrega__falta">
+              Falta preencher {listaEmTexto(faltando)}.
+            </p>
           )}
 
           <button

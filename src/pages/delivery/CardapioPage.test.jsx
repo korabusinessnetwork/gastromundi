@@ -114,7 +114,8 @@ async function irAtePagamento(user) {
   // Telefone é obrigatório: é o único caminho do estabelecimento até o
   // cliente quando o pedido trava.
   await user.type(screen.getByLabelText("Telefone"), TELEFONE);
-  await user.type(screen.getByLabelText("Endereço (rua, número)"), "Rua X, 10");
+  await user.type(screen.getByLabelText("Rua"), "Rua X");
+  await user.type(screen.getByLabelText("Número"), "10");
   await user.type(screen.getByLabelText(/^CEP/), "90000000");
   await assentar();
 
@@ -511,7 +512,8 @@ describe("CardapioPage — sacola velha contra cardápio novo (Run 6, leva 4)", 
     await user.click(screen.getByRole("button", { name: /Ir para a entrega/ }));
     await user.type(screen.getByLabelText("Seu nome"), "Ana");
     await user.type(screen.getByLabelText("Telefone"), TELEFONE);
-    await user.type(screen.getByLabelText("Endereço (rua, número)"), "Rua X, 10");
+    await user.type(screen.getByLabelText("Rua"), "Rua X");
+  await user.type(screen.getByLabelText("Número"), "10");
     await user.type(screen.getByLabelText(/^CEP/), "90000000");
     await assentar();
     await user.click(screen.getByRole("button", { name: "Ir para o pagamento" }));
@@ -795,7 +797,8 @@ describe("CardapioPage — retirar no local", () => {
     // Preenche a entrega inteira, com taxa calculada…
     await user.type(screen.getByLabelText("Seu nome"), "Ana");
     await user.type(screen.getByLabelText("Telefone"), TELEFONE);
-    await user.type(screen.getByLabelText("Endereço (rua, número)"), "Rua X, 10");
+    await user.type(screen.getByLabelText("Rua"), "Rua X");
+  await user.type(screen.getByLabelText("Número"), "10");
     await user.type(screen.getByLabelText(/^CEP/), "90000000");
     await assentar();
     expect(screen.getByText("R$ 7,50")).toBeInTheDocument();
@@ -898,7 +901,10 @@ describe("CardapioPage — meus pedidos sem cadastro", () => {
     // Redigitar nome e endereço a cada pedido é o atrito que faz desistir no
     // meio — e é justamente o que uma conta resolveria.
     expect(screen.getByLabelText("Seu nome")).toHaveValue("Ana");
-    expect(screen.getByLabelText("Endereço (rua, número)")).toHaveValue("Rua X, 10");
+    expect(screen.getByLabelText("Rua")).toHaveValue("Rua X");
+    // O número é campo próprio e é lembrado junto: sem ele, o endereço de
+    // volta seria uma rua sem casa.
+    expect(screen.getByLabelText("Número")).toHaveValue("10");
   });
 
   it("endereço recusado pelo servidor não é lembrado", async () => {

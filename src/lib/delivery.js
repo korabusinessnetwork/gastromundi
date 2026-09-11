@@ -32,6 +32,51 @@ export function cepCompleto(bruto) {
   return apenasDigitosCep(bruto).length === 8;
 }
 
+// ── Endereço ───────────────────────────────────────────────────────
+
+/**
+ * Junta rua e número na linha única que o pedido guarda e o entregador lê.
+ * Na tela são dois campos separados, porque escrever o número no fim da
+ * rua é onde o endereço se perdia: quem digitava a rua por cima do que o
+ * ViaCEP trouxe apagava o número junto, e o entregador recebia "Rua Santa
+ * Cruz do Sul" sem saber em qual casa parar.
+ * @param {string} rua
+ * @param {string} numero
+ */
+export function enderecoComNumero(rua, numero) {
+  return [String(rua ?? "").trim(), String(numero ?? "").trim()]
+    .filter(Boolean)
+    .join(", ");
+}
+
+/**
+ * As buscas que o mapa vai tentar, da mais exata para a mais larga.
+ *
+ * O mapa (Nominatim/OSM) só conhece o que está cadastrado nele, e o
+ * cliente digita o nome da rua do jeito que ele sabe. Uma letra trocada
+ * derrubava o cálculo inteiro e travava o checkout, com o endereço certo
+ * na tela. Então, quando a rua não é encontrada, a entrega é calculada
+ * pelo bairro (ou pela cidade) e o pedido segue com o endereço exatamente
+ * como foi escrito, que é o que o entregador vai usar.
+ * @param {{endereco?: string, numero?: string, bairro?: string, cidade?: string, cep?: string}} entrega
+ * @returns {string[]} sem repetidas e sem vazias, na ordem de tentativa
+ */
+export function buscasDeEndereco(entrega) {
+  const rua = String(entrega?.endereco ?? "").trim();
+  const bairro = String(entrega?.bairro ?? "").trim();
+  const cidade = String(entrega?.cidade ?? "").trim();
+  const cep = cepCompleto(entrega?.cep) ? formatarCep(entrega?.cep) : "";
+  const completa = rua
+    ? [enderecoComNumero(rua, entrega?.numero), bairro, cidade, cep]
+        .filter(Boolean)
+        .join(", ")
+    : "";
+  const regiao = [bairro, cidade].filter(Boolean).join(", ");
+  // O CEP entra como penúltima tentativa: quando ele é a única coisa que o
+  // cliente sabe (sem bairro, sem cidade), é ele que localiza a região.
+  return [...new Set([completa, regiao, cep, cidade].filter(Boolean))];
+}
+
 // ── Dinheiro (exibição) ────────────────────────────────────────────
 
 /**
@@ -410,7 +455,9 @@ export function montarPayloadPedido({ cliente, entrega, pagamento, itens, dispos
           cep: apenasDigitosCep(entrega?.cep),
           cidade: (entrega?.cidade ?? "").trim(),
           bairro: (entrega?.bairro ?? "").trim(),
-          endereco: (entrega?.endereco ?? "").trim(),
+          // Rua e número são dois campos na tela e uma linha só no pedido:
+          // é assim que a comanda imprime e que o entregador lê.
+          endereco: enderecoComNumero(entrega?.endereco, entrega?.numero),
           complemento: (entrega?.complemento ?? "").trim() || null,
           // Coordenadas só entram quando o modo é por km e o navegador
           // conseguiu geocodificar o endereço. O servidor recalcula a taxa a
