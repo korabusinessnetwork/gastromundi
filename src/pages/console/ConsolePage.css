@@ -148,7 +148,12 @@
 
 /* ── Conteúdo ──────────────────────────────────────────────────── */
 .console__conteudo {
-  max-width: 860px;
+  /* 860px cabia quatro abas (672px). A quinta, "Saúde da operação", levou a
+     fila para 846px e passou dos 812px úteis, então a barra começou a rolar
+     na horizontal com a última aba cortada. Alargar resolve a barra e, de
+     quebra, tira parte da rolagem lateral de dentro das tabelas de Uso e de
+     Saúde, que têm seis colunas. */
+  max-width: 1000px;
   margin: 0 auto;
   padding: 28px 24px 48px;
 }
@@ -156,12 +161,14 @@
 /* ── Abas (Estabelecimentos / Planos / Uso e faturamento) ──────── */
 .console__abas {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 24px;
   border-bottom: 1px solid var(--gm-border);
-  /* Com quatro abas a fila passa da largura do celular. Rolar na horizontal
-     é melhor que espremer o rótulo (fica ilegível) ou quebrar a linha
-     (a borda de baixo se duplica e a aba ativa some do lugar). */
+  /* Com cinco abas a fila passa da largura do celular e de tablet estreito.
+     Rolar na horizontal é melhor que espremer o rótulo (fica ilegível) ou
+     quebrar a linha (a borda de baixo se duplica e a aba ativa some do
+     lugar). No desktop não rola mais: a fila cabe em 839px, com o selo de
+     pendentes contado, e sobram 113px. */
   overflow-x: auto;
 }
 .console__aba {
@@ -169,7 +176,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 11px 16px;
+  padding: 11px 13px;
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
