@@ -434,7 +434,7 @@ describe("montarPayloadPedido", () => {
 // ── Run 6, leva 1 ──────────────────────────────────────────────────
 // Dois defeitos que sumiam em silêncio entre a tela e o servidor.
 
-describe("valorDigitado — dinheiro digitado no teclado brasileiro", () => {
+describe("valorDigitado, dinheiro digitado no teclado brasileiro", () => {
   it("lê vírgula como decimal (era NaN, e o valor sumia)", () => {
     expect(valorDigitado("50,00")).toBe(50);
     expect(valorDigitado("7,5")).toBe(7.5);
@@ -452,7 +452,7 @@ describe("valorDigitado — dinheiro digitado no teclado brasileiro", () => {
     expect(valorDigitado(50.5)).toBe(50.5);
   });
 
-  it("campo vazio ou rabisco vira null — nunca 0 disfarçado de valor", () => {
+  it("campo vazio ou rabisco vira null, nunca 0 disfarçado de valor", () => {
     expect(valorDigitado("")).toBeNull();
     expect(valorDigitado("   ")).toBeNull();
     expect(valorDigitado(null)).toBeNull();
@@ -483,7 +483,7 @@ describe("calcularTroco com valor digitado com vírgula (Run 6, leva 1)", () => 
   });
 });
 
-describe("montarPayloadPedido — coordenada e troco (Run 6, leva 1)", () => {
+describe("montarPayloadPedido, coordenada e troco (Run 6, leva 1)", () => {
   const base = {
     cliente: { nome: "Ana" },
     entrega: { cep: "90000000", bairro: "Centro", endereco: "Rua X, 10" },
@@ -491,7 +491,7 @@ describe("montarPayloadPedido — coordenada e troco (Run 6, leva 1)", () => {
     itens: [],
   };
 
-  it("taxa resolvida por bairro/CEP grava lat null — e o payload OMITE a coordenada", () => {
+  it("taxa resolvida por bairro/CEP grava lat null, e o payload OMITE a coordenada", () => {
     // A tela grava lat/lng null sempre que não geocodificou. Number(null) é
     // 0 (e 0 é finito), então o payload ia com 0,0: o meio do Atlântico.
     const payload = montarPayloadPedido({
@@ -690,7 +690,7 @@ describe("revisarSacola (Run 6, leva 4)", () => {
     expect(r.linhas[0].situacao).toBe("ok");
   });
 
-  it("sem cardápio na mão nada é acusado — falha nossa não apaga a sacola", () => {
+  it("sem cardápio na mão nada é acusado, falha nossa não apaga a sacola", () => {
     const itens = [linha({ produto_id: 999 })];
     const r = revisarSacola(itens, null);
     expect(r.linhas[0].situacao).toBe("ok");
@@ -738,7 +738,7 @@ describe("revisarSacola (Run 6, leva 4)", () => {
 // P0001, e os limites/guards que usam `USING ERRCODE = 'check_violation'`
 // saem como 23514. Só esses dois têm texto feito para ser lido.
 // ──────────────────────────────────────────────────────────────────
-describe("mensagemDeErroDoPedido — nada de inglês técnico na tela do cliente", () => {
+describe("mensagemDeErroDoPedido, nada de inglês técnico na tela do cliente", () => {
   const GENERICA = "Não foi possível enviar o pedido. Tente novamente.";
 
   describe("a recusa escrita pelo servidor passa inteira", () => {
@@ -786,7 +786,7 @@ describe("mensagemDeErroDoPedido — nada de inglês técnico na tela do cliente
     });
   });
 
-  describe("nunca devolve vazio — a tela sempre tem o que dizer", () => {
+  describe("nunca devolve vazio, a tela sempre tem o que dizer", () => {
     it.each([
       ["erro nulo (servidor devolveu ok:false sem erro)", null],
       ["erro indefinido", undefined],
@@ -947,7 +947,7 @@ describe("prazo dos serviços de terceiro (Run 6, leva 11)", () => {
     expect(await geocodificarEndereco("Rua X, 10")).toEqual({ data: null, error: null });
   });
 
-  it("Nominatim pendurado desiste no prazo — é o que destrava o checkout", async () => {
+  it("Nominatim pendurado desiste no prazo, é o que destrava o checkout", async () => {
     vi.useFakeTimers();
     globalThis.fetch = fetchPendurado();
 

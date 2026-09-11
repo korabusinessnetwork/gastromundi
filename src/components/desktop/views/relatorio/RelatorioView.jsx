@@ -611,7 +611,7 @@ export default function RelatorioView() {
     ]);
     const totais = `Faturamento: R$ ${adminConsolidado.totalAtual.toFixed(2)} · ${adminConsolidado.count} venda(s)`
       + (adminConsolidado.variacao != null ? ` · ${adminConsolidado.variacao >= 0 ? "+" : ""}${adminConsolidado.variacao.toFixed(1)}% vs período anterior` : "");
-    if (fmt === "pdf") exportToPDF("Relatório Admin — Faturamento por Operador", headers, rows, periodo, { totais });
+    if (fmt === "pdf") exportToPDF("Relatório Admin, Faturamento por Operador", headers, rows, periodo, { totais });
     else               exportToXLSX("Relatorio Admin", headers, rows, periodo);
   };
 
@@ -1423,7 +1423,7 @@ export default function RelatorioView() {
                 color: varColor(C.red), fontWeight: 600,
               }}>
                 <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
-                Área restrita — estas informações são confidenciais. Não compartilhe com terceiros.
+                Área restrita, estas informações são confidenciais. Não compartilhe com terceiros.
               </div>
               <button
                 onClick={exportCredenciais}
@@ -1504,7 +1504,7 @@ export default function RelatorioView() {
               com o quê.
             */}
             <div className="relatorio-view__cred-nota" style={{ marginTop: 12, color: varColor(C.muted) }}>
-              Senhas nunca são exibidas aqui — ficam criptografadas e não podem ser lidas por ninguém, nem pelo administrador. Para dar uma nova senha a um funcionário, use <strong>Configurações › Usuários › Redefinir senha</strong>.
+              Senhas nunca são exibidas aqui, ficam criptografadas e não podem ser lidas por ninguém, nem pelo administrador. Para dar uma nova senha a um funcionário, use <strong>Configurações › Usuários › Redefinir senha</strong>.
             </div>
           </div>
         )}
@@ -1542,7 +1542,7 @@ export default function RelatorioView() {
                 borderRadius: 12, padding: "10px 14px", color: varColor(C.accent), fontWeight: 600,
               }}>
                 <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
-                Visão administrativa consolidada — inclui todos os operadores. Confidencial.
+                Visão administrativa consolidada, inclui todos os operadores. Confidencial.
               </div>
               <ExportBar onPDF={() => exportAdmin("pdf")} onXLSX={() => exportAdmin("xlsx")} sz={sz} />
             </div>

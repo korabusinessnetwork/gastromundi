@@ -58,7 +58,7 @@ beforeEach(() => {
   setAppMock({ currentUser: { name: "Dona", username: "dona", role: "admin" } });
 });
 
-describe("UnidadesMedidaTab — carga da lista", () => {
+describe("UnidadesMedidaTab, carga da lista", () => {
   it("falha ao carregar avisa, em vez de dizer que não há unidades", async () => {
     mockSupabase.current.setTableError("unidades_medida", { message: "network error" });
 
@@ -74,7 +74,7 @@ describe("UnidadesMedidaTab — carga da lista", () => {
   });
 });
 
-describe("UnidadesMedidaTab — contagem antes de excluir (B1)", () => {
+describe("UnidadesMedidaTab, contagem antes de excluir (B1)", () => {
   it("não abre a confirmação se não deu para contar os produtos afetados", async () => {
     await montarComKg();
     mockSupabase.current.setTableError("products", { message: "permission denied" });
@@ -99,7 +99,7 @@ describe("UnidadesMedidaTab — contagem antes de excluir (B1)", () => {
   });
 });
 
-describe("UnidadesMedidaTab — cascata de exclusão (B1)", () => {
+describe("UnidadesMedidaTab, cascata de exclusão (B1)", () => {
   /**
    * Faz a cascata falhar exatamente no passo escolhido. Os quatro passos são,
    * em ordem: update de unidade_estoque, update de unidade_consumo, leitura de
@@ -180,7 +180,7 @@ describe("UnidadesMedidaTab — cascata de exclusão (B1)", () => {
   });
 });
 
-describe("UnidadesMedidaTab — adicionar", () => {
+describe("UnidadesMedidaTab, adicionar", () => {
   it("erro ao adicionar avisa e não insere a unidade na lista", async () => {
     await montarComKg();
     mockSupabase.current.setTableHandler("unidades_medida", ({ method }) =>

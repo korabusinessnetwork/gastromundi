@@ -43,7 +43,7 @@ const RE_PRECO_RS_INTEIRO = /r\$\s*(\d{1,3}(?:\.\d{3}){1,3}|\d{1,9})\s*$/i;
 
 // Sobras de "leader" no fim do nome depois de tirar o preço: pontos de
 // preenchimento, traços, bullets e espaços. Ex.: "X-Salada · · · ".
-const RE_LIXO_FIM_NOME = /[\s.·•–—:-]+$/;
+const RE_LIXO_FIM_NOME = /[\s.·•–, :-]+$/;
 
 /**
  * Separa uma linha em { nome, preco } quando ela termina em preço.
@@ -113,7 +113,7 @@ export function extrairProdutosDoTextoPdf(linhas) {
   const lista = Array.isArray(linhas) ? linhas : [];
   for (let i = 0; i < lista.length; i++) {
     if (produtos.length >= LIMITE_LINHAS) {
-      avisos.push({ linha: 0, mensagem: `PDF muito grande — li os primeiros ${LIMITE_LINHAS} itens. Divida em partes.` });
+      avisos.push({ linha: 0, mensagem: `PDF muito grande, li os primeiros ${LIMITE_LINHAS} itens. Divida em partes.` });
       break;
     }
 
@@ -133,12 +133,12 @@ export function extrairProdutosDoTextoPdf(linhas) {
   if (produtos.length === 0) {
     avisos.push({
       linha: 0,
-      mensagem: "Não encontrei itens com preço nesse PDF. Ele é um cardápio em texto? (PDF escaneado/foto ainda não é lido — em breve, com IA.)",
+      mensagem: "Não encontrei itens com preço nesse PDF. Ele é um cardápio em texto? (PDF escaneado ou foto ainda não é lido, isso vem com IA em breve.)",
     });
   } else if (semCategoria > 0) {
     avisos.push({
       linha: 0,
-      mensagem: `${semCategoria} item(ns) sem seção no PDF entraram em "${CATEGORIA_PADRAO}" — ajuste a categoria na tela de Produtos depois.`,
+      mensagem: `${semCategoria} item(ns) sem seção no PDF entraram em "${CATEGORIA_PADRAO}", ajuste a categoria na tela de Produtos depois.`,
     });
   }
 
@@ -192,7 +192,7 @@ export function normalizarItensIA(entrada) {
 
   for (const item of lista) {
     if (produtos.length >= LIMITE_LINHAS) {
-      avisos.push({ linha: 0, mensagem: `Cardápio muito grande — li os primeiros ${LIMITE_LINHAS} itens. Divida em partes.` });
+      avisos.push({ linha: 0, mensagem: `Cardápio muito grande, li os primeiros ${LIMITE_LINHAS} itens. Divida em partes.` });
       break;
     }
     if (!item || typeof item !== "object") {
@@ -223,13 +223,13 @@ export function normalizarItensIA(entrada) {
     if (semCategoria > 0) {
       avisos.push({
         linha: 0,
-        mensagem: `${semCategoria} item(ns) sem seção entraram em "${CATEGORIA_PADRAO}" — ajuste a categoria na tela de Produtos depois.`,
+        mensagem: `${semCategoria} item(ns) sem seção entraram em "${CATEGORIA_PADRAO}", ajuste a categoria na tela de Produtos depois.`,
       });
     }
     if (descartados > 0) {
       avisos.push({
         linha: 0,
-        mensagem: `${descartados} item(ns) vieram sem nome ou preço válido e foram ignorados — confira o cardápio na prévia.`,
+        mensagem: `${descartados} item(ns) vieram sem nome ou preço válido e foram ignorados, confira o cardápio na prévia.`,
       });
     }
   }

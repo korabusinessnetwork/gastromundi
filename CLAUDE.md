@@ -15,6 +15,38 @@ elegância técnica. Regras práticas:
 - Acessível ao toque (PDV): alvos grandes, legível a distância, funciona no ritmo de operação.
 - Ao entregar qualquer tela nova, justifique brevemente por que ela é intuitiva (ou o que a torna).
 
+## Regra absoluta de escrita — travessão não existe, vírgula existe
+
+**Em qualquer texto em português que apareça na tela, travessão (`—`) é proibido. Use
+vírgula.** Vale para rótulo, botão, placeholder, mensagem de erro, texto de ajuda,
+`aria-label`, `title` e o que mais o usuário lê. Vale também para o que você escreve
+para o dono: docs, relatórios, mensagens, descrição de PR e de commit.
+
+Isto é regra, não preferência de estilo, e **`src/lib/travessaoGuard.test.js` cobra na
+suíte**. A regra já existia e continuava sendo quebrada porque nada a checava; texto
+de tela é escrito no meio de outra tarefa, e é aí que o hábito vence a regra.
+
+Duas formas continuam permitidas, porque não são pontuação:
+
+1. **O marcador de célula vazia**, `{valor ?? "—"}` numa tabela, que quer dizer "não há
+   valor". Vírgula sozinha numa célula não quer dizer nada. Repare no espaço: `"—"` é o
+   marcador, `" — "` com espaço dos dois lados é **separador** dentro de uma frase
+   montada (`[bairro, taxa].join(" — ")` vira "Centro — R$ 5,00" na tela), e separador é
+   pontuação, tem de virar vírgula.
+2. **A frase que cita o próprio símbolo**, como "clique no “—” da coluna Mensalidade".
+   Trocar ali produziria uma instrução falsa, porque a célula continua mostrando o
+   travessão.
+
+**Uma exceção nomeada, por origem e não por forma:** `src/lib/assinatura.js` duplica
+byte a byte uma frase que o BANCO levanta, e outro guard existe para as duas nunca
+divergirem. Mudar só o lado do JS faria o usuário ler duas frases diferentes para a
+mesma recusa. Há mais 21 mensagens de erro com travessão em `RAISE EXCEPTION` de
+migrations, no mesmo caso; limpá-las custa reaplicar migration em produção por causa de
+pontuação, e isso é decisão do dono, não varredura.
+
+Comentário de código fica de fora de propósito. Comentário não é front, e proibir
+travessão lá só tornaria a regra irritante o bastante para ser ignorada.
+
 ## Fonte de verdade (leia antes de qualquer mudança relevante)
 
 - **`memory/`** — identidade, decisões, padrões, aprendizados e restrições do projeto. Consultar antes de decisões de produto/arquitetura.

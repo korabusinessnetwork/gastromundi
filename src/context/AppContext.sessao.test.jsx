@@ -146,8 +146,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("AppContext — sessão local órfã sem JWT (Run 5, leva 1)", () => {
-  it("sessão local sem sessão no Auth, com internet, é descartada — cai no login", async () => {
+describe("AppContext, sessão local órfã sem JWT (Run 5, leva 1)", () => {
+  it("sessão local sem sessão no Auth, com internet, é descartada, cai no login", async () => {
     saveSession(usuario);
     comRede(true);
 
@@ -216,7 +216,7 @@ describe("AppContext — sessão local órfã sem JWT (Run 5, leva 1)", () => {
 // antigas do sessionStorage até fechar a aba. O contraponto é não confundir
 // "sem linha" com "não consegui ler": um soluço de rede não pode derrubar o
 // caixa no meio do turno.
-describe("AppContext — conta desativada com JWT ainda vivo", () => {
+describe("AppContext, conta desativada com JWT ainda vivo", () => {
   /** `users.single()` responde o que o teste mandar; o resto vem vazio. */
   function comPerfilRespondendo(resposta) {
     mockSupabase.from.mockImplementation((tabela) => {
@@ -250,7 +250,7 @@ describe("AppContext — conta desativada com JWT ainda vivo", () => {
     expect(app.current.loading).toBe(false);
   });
 
-  it("leitura do perfil que falha NÃO derruba ninguém — rede ruim não é desativação", async () => {
+  it("leitura do perfil que falha NÃO derruba ninguém, rede ruim não é desativação", async () => {
     comRede(true);
     saveSession(usuario);
     comSessaoNoAuth();
@@ -274,7 +274,7 @@ describe("AppContext — conta desativada com JWT ainda vivo", () => {
 //   • o callback de logout dependia de `currentUser`, cuja identidade troca a
 //     cada refresh da lista de usuários: o efeito do `useIdleTimer` remontava e
 //     a contagem de 30 minutos voltava ao zero.
-describe("AppContext — relógio da sessão e inatividade (Run 5, levas 4 e 5)", () => {
+describe("AppContext, relógio da sessão e inatividade (Run 5, levas 4 e 5)", () => {
   const usuarioComPerms = { ...usuario, permissions: null };
 
   it("o F5 não renova o relógio da sessão", async () => {
@@ -307,7 +307,7 @@ describe("AppContext — relógio da sessão e inatividade (Run 5, levas 4 e 5)"
     expect(lerSessao().user.name).toBe("Fulano Souza");
   });
 
-  it("sessão vencida derruba também a sessão do Auth — o F5 não reabre", async () => {
+  it("sessão vencida derruba também a sessão do Auth, o F5 não reabre", async () => {
     comRede(true);
     comSessaoLocalDe(Date.now() - SESSION_MS - 1);
     comSessaoNoAuth();
@@ -381,7 +381,7 @@ describe("AppContext — relógio da sessão e inatividade (Run 5, levas 4 e 5)"
 // localStorage — inclusive o refresh token. No próximo carregamento o
 // supabase-js religava a sessão sozinho, sem senha: num PDV compartilhado, o
 // turno seguinte entrava como o anterior.
-describe("AppContext — logout (Run 5, leva 6)", () => {
+describe("AppContext, logout (Run 5, leva 6)", () => {
   const usuarioComPerms = { ...usuario, permissions: null };
   const CHAVE_TOKEN = "sb-abcdefgh-auth-token";
 
@@ -410,7 +410,7 @@ describe("AppContext — logout (Run 5, leva 6)", () => {
     expect(mockSupabase.auth.signOut).toHaveBeenCalledWith();
   });
 
-  it("signOut que falha não deixa o token no navegador — o F5 não religa a sessão", async () => {
+  it("signOut que falha não deixa o token no navegador, o F5 não religa a sessão", async () => {
     const app = await montarLogado();
     window.localStorage.setItem(CHAVE_TOKEN, "token valido");
     window.localStorage.setItem("kora.snapshot.bootstrap.v1", "dados do PDV");
@@ -434,7 +434,7 @@ describe("AppContext — logout (Run 5, leva 6)", () => {
 // A tela de login promete "Bloqueio após 5 tentativas", mas o contador morava no
 // sessionStorage: fechar a aba zerava. Num terminal de PDV compartilhado dava
 // para chutar a senha do gerente indefinidamente, cinco de cada vez.
-describe("AppContext — bloqueio por tentativas (Run 5, leva 8)", () => {
+describe("AppContext, bloqueio por tentativas (Run 5, leva 8)", () => {
   it("cinco senhas erradas bloqueiam, e fechar a aba não solta o bloqueio", async () => {
     comRede(true);
     mockSupabase.auth.signInWithPassword.mockResolvedValue({
@@ -463,7 +463,7 @@ describe("AppContext — bloqueio por tentativas (Run 5, leva 8)", () => {
     expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledTimes(MAX_ATTEMPTS);
   });
 
-  it("login certo limpa o contador — o próximo turno começa do zero", async () => {
+  it("login certo limpa o contador, o próximo turno começa do zero", async () => {
     comRede(true);
     mockSupabase.auth.signInWithPassword.mockResolvedValueOnce({
       data: null,

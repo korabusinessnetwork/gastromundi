@@ -106,7 +106,7 @@ export default function ImportarExportarTab() {
       titulo: "Produtos (cardápio)",
       ajuda:
         "Veio de outro sistema? Envie a planilha (CSV ou Excel) OU o PDF do seu " +
-        "cardápio — a gente lê e organiza os itens pra você. Confere tudo antes de gravar.",
+        "cardápio, a gente lê e organiza os itens pra você. Confere tudo antes de gravar.",
       aceita: ["csv", "xlsx", "pdf"],
       montarCSV: montarCSVProdutos, // PDF → produtos → CSV do modelo → mesmo validador
       modeloArquivo: "modelo-produtos-kora.csv",
@@ -204,7 +204,7 @@ export default function ImportarExportarTab() {
         return { criados: 0, atualizados: r.definidos, error: r.error };
       },
       aposGravar: recarregarEstoque,
-      chip: (e) => `${e.nome} — ${e.quantidade}`,
+      chip: (e) => `${e.nome}, ${e.quantidade}`,
       pillAtualizar: (n) => `${n} produto(s) com estoque a definir`,
       tituloGravando: "Gravando estoque…",
       resumo: (r) => `Importação concluída: estoque definido para ${r.atualizados} produto(s).`,
@@ -274,7 +274,7 @@ export default function ImportarExportarTab() {
     }
     if (arquivo.size > LIMITES_BYTES[formato]) {
       const mb = Math.round(LIMITES_BYTES[formato] / (1024 * 1024));
-      setFalha(`Arquivo maior que ${mb} MB — ${DICA_TAMANHO[formato]}`);
+      setFalha(`Arquivo maior que ${mb} MB, ${DICA_TAMANHO[formato]}`);
       return;
     }
 
@@ -342,7 +342,7 @@ export default function ImportarExportarTab() {
     const r = await cfg.aplicar(plano, (feitos, total) => setProgresso({ feitos, total }));
     if (r.error) {
       setFalha(`A gravação parou no meio: ${r.error.message || "erro no banco"}. ` +
-        `${r.criados + r.atualizados} registro(s) já entraram — rode o mesmo arquivo de novo que o resto continua de onde parou.`);
+        `${r.criados + r.atualizados} registro(s) já entraram, rode o mesmo arquivo de novo que o resto continua de onde parou.`);
       setEtapa("preview");
       return;
     }
@@ -401,7 +401,7 @@ export default function ImportarExportarTab() {
           <input ref={inputRef} type="file" accept=".csv,text/csv" hidden onChange={aoEscolherArquivo} />
           {/* accept é reescrito por tipo no clique (produtos aceita PDF; os demais, só planilha) */}
           <div className="imex__nota">
-            Seus dados são seus: o export sai no mesmo formato do modelo de import — serve de
+            Seus dados são seus: o export sai no mesmo formato do modelo de import, serve de
             backup e entra em qualquer conta KORA (e o que sai de lá volta pra cá).
           </div>
         </>
@@ -414,7 +414,7 @@ export default function ImportarExportarTab() {
           </div>
           <div className="imex__ajuda">
             Não achei texto pra ler direto nesse PDF. Posso tentar reconhecer os itens de
-            duas formas — escolha a que preferir:
+            duas formas, escolha a que preferir:
           </div>
 
           <div className="imex__motores">
@@ -486,7 +486,7 @@ export default function ImportarExportarTab() {
       {etapa === "preview" && (
         <div className="imex__card imex__card--coluna">
           <div className="imex__titulo">
-            {cfg.titulo} — conferência de "{nomeArquivo}" (nada foi gravado ainda)
+            {cfg.titulo}, conferência de "{nomeArquivo}" (nada foi gravado ainda)
           </div>
 
           <div className="imex__resumo">
@@ -532,7 +532,7 @@ export default function ImportarExportarTab() {
             {!temErros ? (
               <button type="button" className="imex__botao imex__botao--primario"
                 disabled={nadaAFazer} onClick={confirmar}>
-                {nadaAFazer ? "Nada pra importar — tudo já está igual" : "Confirmar importação"}
+                {nadaAFazer ? "Nada pra importar, tudo já está igual" : "Confirmar importação"}
               </button>
             ) : (
               /* Com erro, gravar as boas é decisão EXPLÍCITA do usuário */

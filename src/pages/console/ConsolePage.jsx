@@ -431,7 +431,7 @@ export default function ConsolePage() {
   const online = useStatusRede();
   const motivoOffline = online
     ? undefined
-    : "Sem conexão com a internet — reconecte para alterar";
+    : "Sem conexão com a internet, reconecte para alterar";
 
   // ── A volta da conexão (CONSOLE-UX 27) ─────────────────────────────
   // Quando a internet voltava, a rodada 52 destravava os botões e sumia com a
@@ -724,10 +724,17 @@ export default function ConsolePage() {
             assinaturas), quem usa (uso e faturamento) e para quem o sistema
             está quebrado (saúde da operação). Sempre visíveis — trocar de aba
             é a navegação principal do Console (Princípio nº1). */}
+        {/* `aria-current="page"` na aba aberta: até aqui, qual seção estava
+            no ar era dito só pela cor. Quem navega por leitor de tela ouvia
+            cinco botões iguais, e quem enxerga pouco dependia do contraste do
+            realce. Os outros grupos de escolha do Console (situação, plano,
+            período) já anunciam o escolhido por `aria-pressed`; a navegação
+            principal era a única muda. */}
         <nav className="console__abas" aria-label="Seções do console">
           <button
             type="button"
             className={`console__aba${aba === "estabelecimentos" ? " console__aba--ativa" : ""}`}
+            aria-current={aba === "estabelecimentos" ? "page" : undefined}
             onClick={() => escolherAba("estabelecimentos")}
           >
             <LuBuilding2 size={16} aria-hidden /> Estabelecimentos
@@ -739,6 +746,7 @@ export default function ConsolePage() {
           <button
             type="button"
             className={`console__aba${aba === "solicitacoes" ? " console__aba--ativa" : ""}`}
+            aria-current={aba === "solicitacoes" ? "page" : undefined}
             onClick={() => escolherAba("solicitacoes")}
           >
             <LuInbox size={16} aria-hidden /> Pedidos de conta
@@ -749,6 +757,7 @@ export default function ConsolePage() {
           <button
             type="button"
             className={`console__aba${aba === "planos" ? " console__aba--ativa" : ""}`}
+            aria-current={aba === "planos" ? "page" : undefined}
             onClick={() => escolherAba("planos")}
           >
             <LuChartColumn size={16} aria-hidden /> Planos e assinaturas
@@ -756,6 +765,7 @@ export default function ConsolePage() {
           <button
             type="button"
             className={`console__aba${aba === "uso" ? " console__aba--ativa" : ""}`}
+            aria-current={aba === "uso" ? "page" : undefined}
             onClick={() => escolherAba("uso")}
           >
             <LuActivity size={16} aria-hidden /> Uso e faturamento
@@ -763,6 +773,7 @@ export default function ConsolePage() {
           <button
             type="button"
             className={`console__aba${aba === "saude" ? " console__aba--ativa" : ""}`}
+            aria-current={aba === "saude" ? "page" : undefined}
             onClick={() => escolherAba("saude")}
           >
             <LuStethoscope size={16} aria-hidden /> Saúde da operação
@@ -795,7 +806,7 @@ export default function ConsolePage() {
             <LuTriangleAlert size={26} aria-hidden />
             <p>
               Não foi possível carregar a cobrança dos estabelecimentos. Isso não quer
-              dizer que ninguém está pagando — os números só aparecem quando a leitura
+              dizer que ninguém está pagando, os números só aparecem quando a leitura
               funcionar.
             </p>
             <button className="console__novo" onClick={() => carregar()}>Tentar de novo</button>
@@ -892,7 +903,7 @@ export default function ConsolePage() {
                       <strong>{sucesso.nome}</strong> criado.
                     </p>
                     <p className="console__acesso-texto">
-                      Entregue estes dados ao responsável — é com eles que ele entra no sistema.
+                      Entregue estes dados ao responsável, é com eles que ele entra no sistema.
                     </p>
                   </div>
                   <button

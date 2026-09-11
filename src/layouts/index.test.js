@@ -91,7 +91,7 @@ describe("temTrocaAutomatica", () => {
 });
 
 describe("variaveisDoLayout", () => {
-  it("padrao devolve mapa vazio — herda tema.css, aparência atual intacta", () => {
+  it("padrao devolve mapa vazio, herda tema.css, aparência atual intacta", () => {
     expect(variaveisDoLayout("padrao", "diurno")).toEqual({});
     expect(variaveisDoLayout("padrao", "noturno")).toEqual({});
   });
@@ -132,7 +132,7 @@ describe("variaveisDoLayout", () => {
     expect(variaveisDoLayout("marca", "qualquer")["--gm-accent"]).toBe("#473CA8");
   });
 
-  it("devolve cópia — mutar o retorno não corrompe o catálogo", () => {
+  it("devolve cópia, mutar o retorno não corrompe o catálogo", () => {
     const vars = variaveisDoLayout("marca", "diurno");
     vars["--gm-accent"] = "#000000";
     expect(variaveisDoLayout("marca", "diurno")["--gm-accent"]).toBe("#473CA8");

@@ -144,9 +144,9 @@ export default function PonteLocalConfig({ sz }) {
   // não fez nada.
   const recado =
     carregando ? "Carregando o ajuste deste estabelecimento…"
-    : semInternet && tentouAgora ? "Ainda sem internet — tentamos agora e não deu. Toque de novo quando a conexão voltar."
-    : semInternet ? "Sem internet agora — quando a conexão voltar, toque no botão abaixo para buscar o ajuste deste estabelecimento."
-    : naoCarregou ? "Não deu para carregar o ajuste deste estabelecimento — confira a internet e recarregue a tela."
+    : semInternet && tentouAgora ? "Ainda sem internet, tentamos agora e não deu. Toque de novo quando a conexão voltar."
+    : semInternet ? "Sem internet agora, quando a conexão voltar, toque no botão abaixo para buscar o ajuste deste estabelecimento."
+    : naoCarregou ? "Não deu para carregar o ajuste deste estabelecimento, confira a internet e recarregue a tela."
     : salvando ? "Salvando…"
     : erroSalvar ? "Não deu para salvar. Confira a internet e tente de novo."
     : ligada ? "Ligado"
@@ -162,7 +162,7 @@ export default function PonteLocalConfig({ sz }) {
           <div className="ponte-config__chave-ajuda">
             Precisa do programa <strong>KORA Ponte</strong> instalado neste computador (o do
             caixa). Com a chave ligada, o pedido que o garçom manda pelo celular cai aqui e
-            sai na impressora — mesmo com a internet fora do ar.
+            sai na impressora, mesmo com a internet fora do ar.
           </div>
           <div
             className={`ponte-config__chave-estado${erroSalvar ? " ponte-config__chave-estado--erro" : ""}${naoCarregou ? " ponte-config__chave-estado--alerta" : ""}`}
@@ -219,8 +219,8 @@ export default function PonteLocalConfig({ sz }) {
         <span className={`ponte-config__dot ${status === "rodando" ? "ponte-config__dot--on" : "ponte-config__dot--off"}`} />
         {status === "procurando" && "Procurando a ponte neste computador…"}
         {status === "rodando"    && (vinculo?.vinculado
-          ? `Ponte ligada e vinculada a ${vinculo.nome} — pedidos e impressão funcionam mesmo sem internet.`
-          : "Ponte rodando neste computador — pedidos funcionam mesmo sem internet.")}
+          ? `Ponte ligada e vinculada a ${vinculo.nome}, pedidos e impressão funcionam mesmo sem internet.`
+          : "Ponte rodando neste computador, pedidos funcionam mesmo sem internet.")}
         {status === "ausente"    && "Ponte não encontrada neste computador."}
       </div>
 
@@ -229,7 +229,7 @@ export default function PonteLocalConfig({ sz }) {
           ficaria parado na ponte. Então o QR só aparece com a chave ligada. */}
       {status === "rodando" && !ligada && !semAjuste && (
         <div className="ponte-config__aviso">
-          O programa está rodando, mas a chave acima está desligada — nada do celular chega
+          O programa está rodando, mas a chave acima está desligada, nada do celular chega
           ao caixa. Ligue a chave para liberar o QR code dos garçons.
         </div>
       )}
@@ -244,7 +244,7 @@ export default function PonteLocalConfig({ sz }) {
             <ol className="ponte-config__passos">
               <li>Conecte o celular no <strong>Wi-Fi do estabelecimento</strong> (o mesmo do caixa).</li>
               <li>Escaneie o QR ao lado com a câmera.</li>
-              <li>Salve a página que abrir na tela inicial — é por ela que o pedido sai quando a internet cair.</li>
+              <li>Salve a página que abrir na tela inicial, é por ela que o pedido sai quando a internet cair.</li>
             </ol>
             {endereco && (
               <>
@@ -282,10 +282,10 @@ export default function PonteLocalConfig({ sz }) {
             <ol className="ponte-config__passos">
               <li>
                 {ENDERECO_DOWNLOAD_PONTE
-                  ? <>Descompacte o <code>KoraPonte.zip</code> que você acabou de baixar — clique nele com o botão direito e escolha <strong>Extrair tudo</strong> — e dê dois cliques no <code>KoraPonte.exe</code> que aparecer.</>
+                  ? <>Descompacte o <code>KoraPonte.zip</code> que você acabou de baixar, clique nele com o botão direito e escolha <strong>Extrair tudo</strong>, e dê dois cliques no <code>KoraPonte.exe</code> que aparecer.</>
                   : <>Copie o arquivo <code>KoraPonte.exe</code> para este computador e dê dois cliques nele.</>}
               </li>
-              <li>No painel que abrir, clique em <strong>Instalar neste computador</strong> — ela passa a abrir sozinha junto com o Windows.</li>
+              <li>No painel que abrir, clique em <strong>Instalar neste computador</strong>, ela passa a abrir sozinha junto com o Windows.</li>
               <li>Volte aqui e ligue a chave <strong>Receber pedidos do celular do garçom neste computador</strong>.</li>
             </ol>
             <p className="ponte-config__muted">

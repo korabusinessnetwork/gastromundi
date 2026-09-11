@@ -52,10 +52,19 @@ export default function SaudeDashboard({ tenants, dias, aoTrocarPeriodo }) {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);
 
-  const carregar = useCallback(async () => {
+  // `valendo` responde se a resposta desta leitura ainda interessa quando ela
+  // chega. Sem isso, trocar de período depressa (7 e depois 90) deixa duas
+  // RPCs em voo, e a última a responder pinta a tela: o cabeçalho da tabela
+  // diz "últimos 90 dias", porque vem da propriedade, que muda na hora, e as
+  // falhas contadas são as de 7. Num painel cuja razão de existir é dizer
+  // quem está quebrado, contar falha a menos é o pior jeito de errar. O mesmo
+  // guarda-chuva cobre a saída do Console no meio da leitura, que sem ele
+  // escreveria estado em componente já desmontado.
+  const carregar = useCallback(async (valendo = () => true) => {
     setCarregando(true);
     setErro(false);
     const { data, error } = await listarSaude(dias);
+    if (!valendo()) return;
     // Lista vazia é indistinguível de "está tudo funcionando": guardamos a
     // falha para a tela dizer que não sabe, em vez de dar um atestado de
     // saúde a uma base onde a leitura nem chegou a acontecer.
@@ -64,7 +73,11 @@ export default function SaudeDashboard({ tenants, dias, aoTrocarPeriodo }) {
     setCarregando(false);
   }, [dias]);
 
-  useEffect(() => { carregar(); }, [carregar]);
+  useEffect(() => {
+    let atual = true;
+    carregar(() => atual);
+    return () => { atual = false; };
+  }, [carregar]);
 
   const { linhas, kpis, quebrados } = useMemo(
     () => resumirSaude(tenants ?? [], saude),
@@ -99,9 +112,13 @@ export default function SaudeDashboard({ tenants, dias, aoTrocarPeriodo }) {
           <LuTriangleAlert size={26} aria-hidden />
           <p>
             Não foi possível carregar a saúde dos estabelecimentos. Isso não quer dizer que
-            está tudo funcionando — as pendências só aparecem quando a leitura funcionar.
+            está tudo funcionando, as pendências só aparecem quando a leitura funcionar.
           </p>
-          <button type="button" className="asau__tentar" onClick={carregar}>Tentar de novo</button>
+          {/* `() => carregar()`, não `carregar`: o evento do clique chegaria
+              como primeiro argumento, que agora é a pergunta "esta resposta
+              ainda vale", e um evento não é função, então a recarga pedida
+              pelo dono quebraria ao voltar. */}
+          <button type="button" className="asau__tentar" onClick={() => carregar()}>Tentar de novo</button>
         </div>
       ) : (
         <>

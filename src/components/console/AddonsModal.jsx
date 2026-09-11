@@ -150,7 +150,7 @@ export default function AddonsModal({ tenant, onFechar, onAlterado }) {
               </p>
               <p className="adm-erro__texto">
                 Sem essa leitura não dá para saber o que este estabelecimento já
-                tem contratado — e ligar às cegas poderia desligar o que estava
+                tem contratado, e ligar às cegas poderia desligar o que estava
                 ligado.
               </p>
               <button type="button" className="adm-relere" onClick={() => setTentativa((n) => n + 1)}>

@@ -81,7 +81,7 @@ export default function MesaReservasView({ mesas, loading, abertas, atualizarSta
         <div>
           <div className="reservas-view__titulo" style={{ color: varColor(C.text) }}>Reservas e manutenção</div>
           <div className="reservas-view__subtitulo" style={{ color: varColor(C.muted) }}>
-            Marque cada mesa como reservada ou em manutenção — o mapa reflete na hora.
+            Marque cada mesa como reservada ou em manutenção, o mapa reflete na hora.
           </div>
         </div>
         <div className="reservas-view__resumo">

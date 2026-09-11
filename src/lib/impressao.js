@@ -341,7 +341,7 @@ export function montarCupomPreNota({ venda, tenant, configImpressao } = {}) {
     ...base,
     tipo: "cupom_pre_nota",
     naoFiscal: true,
-    avisoNaoFiscal: "Documento sem valor fiscal — não substitui a nota fiscal.",
+    avisoNaoFiscal: "Documento sem valor fiscal, não substitui a nota fiscal.",
     dadosFiscais: null,
   };
 }

@@ -206,12 +206,12 @@ export default function DesktopLayout() {
             if (error) {
               // Mantém o modal aberto: o operador precisa saber que o
               // fechamento NÃO foi registrado (antes falhava em silêncio).
-              notify("Não foi possível registrar o fechamento — verifique sua permissão e tente novamente.", "err");
+              notify("Não foi possível registrar o fechamento, verifique sua permissão e tente novamente.", "err");
               return;
             }
             logAction(currentUser.username, "caixa:fechar", { msg: `Caixa fechado · vendas R$ ${data.totalVendas.toFixed(2)} · conferido R$ ${data.totalConferido.toFixed(2)}`, name: currentUser.name, role: currentUser.role, conferido: data.totalConferido, totalVendas: data.totalVendas });
             const fechou = await setCaixaAberto(false);
-            if (fechou?.error) notify("Fechamento registrado, mas o status do caixa não mudou — tente fechar de novo.", "err");
+            if (fechou?.error) notify("Fechamento registrado, mas o status do caixa não mudou, tente fechar de novo.", "err");
             setShowFechamento(false);
           }}
           onClose={() => setShowFechamento(false)}
@@ -230,7 +230,7 @@ export default function DesktopLayout() {
             if (resultados.some(r => r?.error)) {
               // Mantém o modal aberto: sem persistir, outro dispositivo
               // continuaria vendo o caixa fechado (antes falhava em silêncio).
-              notify("Não foi possível abrir o caixa — verifique sua permissão e tente novamente.", "err");
+              notify("Não foi possível abrir o caixa, verifique sua permissão e tente novamente.", "err");
               return;
             }
             logAction(currentUser.username, "caixa:abrir", { msg: `Caixa aberto · fundo R$ ${fundo.toFixed(2)}`, name: currentUser.name, role: currentUser.role, fundo });

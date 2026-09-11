@@ -119,7 +119,7 @@ beforeEach(() => {
   comSupabaseNeutro();
 });
 
-describe("AppContext.addSale — otimista com desfazer (A2)", () => {
+describe("AppContext.addSale, otimista com desfazer (A2)", () => {
   it("venda gravada com sucesso entra no estado local e fica", async () => {
     comGravacaoDeVenda();
     const app = montar();
@@ -131,7 +131,7 @@ describe("AppContext.addSale — otimista com desfazer (A2)", () => {
     expect(app.current.sales.map((v) => v.id)).toContain("venda-1");
   });
 
-  it("erro DURO (RLS/constraint) desfaz o otimista — nada de venda fantasma no Saldo do Dia", async () => {
+  it("erro DURO (RLS/constraint) desfaz o otimista, nada de venda fantasma no Saldo do Dia", async () => {
     comGravacaoDeVenda({
       cabecalhoGravado: false,
       falhas: [{ etapa: "vendas", error: { code: "42501", message: "new row violates row-level security policy" } }],

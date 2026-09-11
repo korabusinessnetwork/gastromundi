@@ -171,7 +171,7 @@ describe("agruparVendasPorOperador", () => {
     expect(bruno.participacao).toBeCloseTo((200 / 370) * 100);
   });
 
-  it("ordena por total desc e trata operador ausente como —", () => {
+  it("ordena por total desc e trata operador ausente como, ", () => {
     const ops = agruparVendasPorOperador(vendas);
     expect(ops[0].operador).toBe("bruno");
     expect(ops.some((o) => o.operador === "—")).toBe(true);

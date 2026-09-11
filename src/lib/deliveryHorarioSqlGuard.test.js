@@ -255,7 +255,7 @@ const ANCORAS_DO_CONSERTO = {
   },
 };
 
-describe("Delivery — guard do horário e do número do pedido no fuso do estabelecimento", () => {
+describe("Delivery, guard do horário e do número do pedido no fuso do estabelecimento", () => {
   it("a migração corretiva roda depois das que definiram as funções, e quem vier depois leva o conserto junto", () => {
     const arquivos = readdirSync(MIGRATIONS_DIR).filter((n) => n.endsWith(".sql"));
     expect(arquivos).toContain(MIGRACAO_CORRETIVA);
@@ -287,13 +287,13 @@ describe("Delivery — guard do horário e do número do pedido no fuso do estab
           for (const ancora of ancoras.exigidas) {
             expect(
               ancora.test(bloco),
-              `${posterior} redefine ${funcao} sem ${ancora} — o conserto do fuso/número foi desfeito`
+              `${posterior} redefine ${funcao} sem ${ancora}, o conserto do fuso/número foi desfeito`
             ).toBe(true);
           }
           for (const proibida of ancoras.proibidas) {
             expect(
               proibida.test(bloco),
-              `${posterior} redefine ${funcao} usando ${proibida} — a numeração do pedido voltou a quebrar`
+              `${posterior} redefine ${funcao} usando ${proibida}, a numeração do pedido voltou a quebrar`
             ).toBe(false);
           }
         }
@@ -450,14 +450,14 @@ describe("Delivery — guard do horário e do número do pedido no fuso do estab
   });
 
   it.each(casosMinutos.map((c) => [c.chamada, c]))(
-    "hhmm_para_minutos concorda com paraMinutos — %s",
+    "hhmm_para_minutos concorda com paraMinutos, %s",
     (_titulo, caso) => {
       expect(paraMinutos(caso.entrada)).toBe(caso.esperado);
     }
   );
 
   it.each(casosAbertura.map((c) => [c.chamada, c]))(
-    "delivery_aberto_agora concorda com deliveryDeveEstarAberto — %s",
+    "delivery_aberto_agora concorda com deliveryDeveEstarAberto, %s",
     (_titulo, caso) => {
       if (caso.instante) {
         const agora = relogioLocal(paraInstante(caso.instante), caso.fuso);

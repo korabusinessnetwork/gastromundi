@@ -6,7 +6,7 @@ import { sha1Hex, montarQrCodeNfce, montarQrCodeNfceContingencia } from "./nfceQ
 const CHAVE = "43260712345678000195650010000000011000000017";
 const URL_CONSULTA = "https://www.exemplo-sefaz.rs.gov.br/nfce/consulta";
 
-describe("nfceQrCode — sha1Hex", () => {
+describe("nfceQrCode, sha1Hex", () => {
   it("bate com o vetor conhecido SHA-1('abc') em hex maiúsculo", async () => {
     // SHA-1("abc") = a9993e364706816aba3e25717850c26c9cd0d89d
     expect(await sha1Hex("abc")).toBe("A9993E364706816ABA3E25717850C26C9CD0D89D");
@@ -18,7 +18,7 @@ describe("nfceQrCode — sha1Hex", () => {
   });
 });
 
-describe("nfceQrCode — montarQrCodeNfce (online / QR 2.00)", () => {
+describe("nfceQrCode, montarQrCodeNfce (online / QR 2.00)", () => {
   const base = { chave: CHAVE, tpAmb: 2, idCsc: 1, csc: "SEGREDO-CSC", urlConsulta: URL_CONSULTA };
 
   it("monta a URL com o parâmetro p no formato posicional da NT 2015.002", async () => {
@@ -68,7 +68,7 @@ describe("nfceQrCode — montarQrCodeNfce (online / QR 2.00)", () => {
     await expect(montarQrCodeNfce({ ...base, idCsc: "" })).rejects.toThrow(/idCSC/);
   });
 
-  it("exige o CSC (segredo injetado) — nunca monta QR sem ele", async () => {
+  it("exige o CSC (segredo injetado), nunca monta QR sem ele", async () => {
     await expect(montarQrCodeNfce({ ...base, csc: "" })).rejects.toThrow(/CSC/);
   });
 
@@ -77,7 +77,7 @@ describe("nfceQrCode — montarQrCodeNfce (online / QR 2.00)", () => {
   });
 });
 
-describe("nfceQrCode — montarQrCodeNfceContingencia (offline / tpEmis=9)", () => {
+describe("nfceQrCode, montarQrCodeNfceContingencia (offline / tpEmis=9)", () => {
   // digVal = DigestValue (Base64) da assinatura; "MjhieXRlc2RpZ2VzdHZhbHVlYWJj" = 21 bytes.
   const base = {
     chave: CHAVE, tpAmb: 2, idCsc: 1, csc: "SEGREDO-CSC", urlConsulta: URL_CONSULTA,

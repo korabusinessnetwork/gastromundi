@@ -254,6 +254,11 @@ export async function listarPagamentosAssinatura(tenantId) {
 export async function estornarPagamentoAssinatura({ pagamentoId, motivo, estornadoPor }) {
   if (!pagamentoId) return { data: null, error: { message: "Pagamento inválido." } };
   if (!motivo || String(motivo).trim().length < 3) {
+    // EXCEÇÃO à regra de não usar travessão em texto de tela: esta frase é
+    // cópia byte a byte da que o banco levanta na `estornar_pagamento_assinatura`
+    // (20260913), e o guard em `estornoPagamentoSqlGuard.test.js` existe para as
+    // duas nunca divergirem. Trocar só aqui faria o usuário ler duas frases
+    // diferentes para a mesma recusa. Sai quando a mensagem do banco sair.
     return { data: null, error: { message: "Escreva o motivo do cancelamento — ele fica gravado no histórico." } };
   }
 

@@ -80,7 +80,7 @@ async function confirmarExclusao() {
   });
 }
 
-describe("MobilePage — excluir item da comanda", () => {
+describe("MobilePage, excluir item da comanda", () => {
   it("o total regravado soma só os itens ativos e vem arredondado", async () => {
     montar();
     abrirDetalheDaComandaSete();

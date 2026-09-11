@@ -65,7 +65,7 @@ beforeEach(() => {
   mockSupabase.current.setTableResult("assinaturas_pagamentos", { data: [], error: null });
 });
 
-describe("MinhaAssinaturaTab — quem enxerga a aba", () => {
+describe("MinhaAssinaturaTab, quem enxerga a aba", () => {
   it("gerente vê a aba 'Minha assinatura' nas Configurações", () => {
     setAppMock({ currentUser: gerente, tenant, assinatura: emDia });
 
@@ -74,7 +74,7 @@ describe("MinhaAssinaturaTab — quem enxerga a aba", () => {
     expect(screen.getByRole("button", { name: /minha assinatura/i })).toBeInTheDocument();
   });
 
-  it("caixa NÃO vê a aba — mensalidade não é assunto de balcão", () => {
+  it("caixa NÃO vê a aba, mensalidade não é assunto de balcão", () => {
     setAppMock({ currentUser: caixa, tenant, assinatura: emDia });
 
     render(<ConfiguracoesView />);
@@ -83,7 +83,7 @@ describe("MinhaAssinaturaTab — quem enxerga a aba", () => {
   });
 });
 
-describe("MinhaAssinaturaTab — situação da assinatura", () => {
+describe("MinhaAssinaturaTab, situação da assinatura", () => {
   it("em dia: diz que está em dia e mostra o próximo vencimento", async () => {
     montar();
 
@@ -104,7 +104,7 @@ describe("MinhaAssinaturaTab — situação da assinatura", () => {
     expect(await screen.findByText(/ainda não há uma assinatura cadastrada/i)).toBeInTheDocument();
   });
 
-  it("com o bootstrap em voo mostra carregando — não 'sem assinatura'", () => {
+  it("com o bootstrap em voo mostra carregando, não 'sem assinatura'", () => {
     montar({ tenant: null, assinatura: null });
 
     expect(screen.getByText(/carregando sua assinatura/i)).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe("MinhaAssinaturaTab — situação da assinatura", () => {
   });
 });
 
-describe("MinhaAssinaturaTab — plano", () => {
+describe("MinhaAssinaturaTab, plano", () => {
   it("mostra o NOME do plano e os módulos por nome, nunca o código", async () => {
     montar();
 
@@ -123,7 +123,7 @@ describe("MinhaAssinaturaTab — plano", () => {
     expect(screen.queryByText("pdv")).toBeNull();
   });
 
-  it("catálogo fora do ar vira frase neutra — nunca o código cru na tela", async () => {
+  it("catálogo fora do ar vira frase neutra, nunca o código cru na tela", async () => {
     mockSupabase.current.setTableError("planos", { message: "falha de rede" });
     montar();
 
@@ -139,7 +139,7 @@ describe("MinhaAssinaturaTab — plano", () => {
   });
 });
 
-describe("MinhaAssinaturaTab — histórico de pagamentos", () => {
+describe("MinhaAssinaturaTab, histórico de pagamentos", () => {
   const pagamento = (id, competencia, valor, extra = {}) => ({
     id,
     competencia,
@@ -177,7 +177,7 @@ describe("MinhaAssinaturaTab — histórico de pagamentos", () => {
     expect(total.textContent.replace(/ /g, " ")).toContain("R$ 300,00");
   });
 
-  it("com tudo cancelado, o zero é afirmado — não parece falha de carregamento", async () => {
+  it("com tudo cancelado, o zero é afirmado, não parece falha de carregamento", async () => {
     mockSupabase.current.setTableResult("assinaturas_pagamentos", {
       data: [
         pagamento("p1", "2026-06-01", 300, {
@@ -199,7 +199,7 @@ describe("MinhaAssinaturaTab — histórico de pagamentos", () => {
     expect(await screen.findByText(/nenhum pagamento registrado ainda/i)).toBeInTheDocument();
   });
 
-  it("falha de leitura vira erro com 'Tentar de novo' — nunca lista vazia", async () => {
+  it("falha de leitura vira erro com 'Tentar de novo', nunca lista vazia", async () => {
     mockSupabase.current.setTableError("assinaturas_pagamentos", { message: "falha de rede" });
     montar();
 

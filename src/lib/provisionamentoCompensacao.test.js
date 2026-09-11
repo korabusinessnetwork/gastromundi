@@ -183,7 +183,7 @@ describe("removerCredencialOrfa", () => {
     expect(erros).not.toHaveBeenCalled();
   });
 
-  it("o outro furo: falha ao apagar a credencial vira aviso — senão o e-mail fica ocupado em silêncio", async () => {
+  it("o outro furo: falha ao apagar a credencial vira aviso, senão o e-mail fica ocupado em silêncio", async () => {
     const deleteUser = vi.fn().mockResolvedValue({ data: null, error: { message: "User not allowed" } });
     const aviso = await removerCredencialOrfa({ auth: { admin: { deleteUser } } }, "u1", "ze@bar.local");
 
@@ -217,7 +217,7 @@ describe("provisionar-estabelecimento/index.ts", () => {
     expect(borda.match(/await removerCredencialOrfa\(/g)).toHaveLength(1);
   });
 
-  it("a compensação usa o JWT do chamador, não o service_role — com a chave de serviço is_super_admin() reprova", () => {
+  it("a compensação usa o JWT do chamador, não o service_role, com a chave de serviço is_super_admin() reprova", () => {
     expect(borda).toMatch(/compensarProvisionamento\(supabaseCaller, tenant\)/);
     expect(borda).not.toMatch(/compensarProvisionamento\(supabaseAdmin/);
   });
@@ -235,7 +235,7 @@ describe("provisionar-estabelecimento/index.ts", () => {
     expect(trechoPerfil).toMatch(/json\(\{ error: `\$\{motivo\}\$\{avisoAuth\}\$\{aviso\}` \}, 400\)/);
   });
 
-  it("a credencial sai antes do tenant — enquanto ela existir o e-mail segue ocupado", () => {
+  it("a credencial sai antes do tenant, enquanto ela existir o e-mail segue ocupado", () => {
     const trechoPerfil = recorte(borda, "if (ePerfil) {", "400);");
     expect(trechoPerfil.indexOf("removerCredencialOrfa")).toBeLessThan(
       trechoPerfil.indexOf("compensarProvisionamento")
@@ -275,7 +275,7 @@ describe("20260910_remover_tenant_provisionado.sql", () => {
     expect(sql.match(/USING ERRCODE = 'check_violation'/g)).toHaveLength(3);
   });
 
-  it("trava a linha do tenant ANTES de contar — senão há janela entre a contagem e o DELETE", () => {
+  it("trava a linha do tenant ANTES de contar, senão há janela entre a contagem e o DELETE", () => {
     expect(sql).toMatch(/PERFORM 1 FROM public\.tenants WHERE id = p_tenant_id FOR UPDATE;/);
     expect(sql.indexOf("FOR UPDATE;")).toBeLessThan(sql.indexOf("INTO v_users"));
   });
@@ -306,7 +306,7 @@ describe("20260910_remover_tenant_provisionado.sql", () => {
     expect(sql).not.toMatch(/ON DELETE CASCADE/);
   });
 
-  it("REVOKE antes do GRANT — invertido, o REVOKE de PUBLIC tira o EXECUTE de authenticated", () => {
+  it("REVOKE antes do GRANT, invertido, o REVOKE de PUBLIC tira o EXECUTE de authenticated", () => {
     const iRevoke = sql.indexOf("REVOKE ALL ON FUNCTION public.remover_tenant_provisionado(uuid) FROM PUBLIC, anon;");
     const iGrant = sql.search(/GRANT\s+EXECUTE ON FUNCTION public\.remover_tenant_provisionado\(uuid\) TO authenticated;/);
     expect(iRevoke).toBeGreaterThan(0);

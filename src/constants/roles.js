@@ -49,10 +49,10 @@ export const ROLES = {
 };
 
 export const ROLE_FEATURES = {
-  garcom:  ["Palm — tirar pedidos", "Cozinha (KDS)", "Clientes"],
-  caixa:   ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Cozinha (KDS)", "Clientes"],
-  gerente: ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Financeiro", "Cozinha (KDS)", "Clientes"],
-  admin:   ["Palm — tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Configurações", "Financeiro", "Cozinha (KDS)", "Clientes"],
+  garcom:  ["Palm, tirar pedidos", "Cozinha (KDS)", "Clientes"],
+  caixa:   ["Palm, tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Cozinha (KDS)", "Clientes"],
+  gerente: ["Palm, tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Financeiro", "Cozinha (KDS)", "Clientes"],
+  admin:   ["Palm, tirar pedidos", "Frente de Caixa", "Transferir Comandas", "Relatório de Vendas", "Cadastro de Produtos", "Configurações", "Financeiro", "Cozinha (KDS)", "Clientes"],
 };
 
 // Cargo desconhecido não herda permissão de ninguém (fail-closed). Antes o
@@ -85,7 +85,7 @@ export const PERMISSION_KEYS = [
 // Rótulos em português do dia a dia (Princípio nº 1 — nada de jargão).
 export const PERMISSION_LABELS = {
   pdv:           "Frente de Caixa (PDV)",
-  palm:          "Palm — tirar pedidos",
+  palm:          "Palm, tirar pedidos",
   transferir:    "Transferir comandas",
   produtos:      "Cadastro de produtos",
   estoque:       "Estoque",

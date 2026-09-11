@@ -50,7 +50,7 @@ const montar = (sobrescrever) => {
 beforeEach(() => { vi.clearAllMocks(); });
 afterEach(() => { vi.unstubAllEnvs(); });
 
-describe("PonteLocalBridge — quem liga é o estabelecimento", () => {
+describe("PonteLocalBridge, quem liga é o estabelecimento", () => {
   it("liga quando o estabelecimento ligou a chave, mesmo sem variável de build definida", () => {
     // Nenhum .env define VITE_PONTE_LOCAL_ATIVA na suíte — é exatamente o
     // cenário de toda build real, e antes era o que mantinha tudo desligado.
@@ -94,7 +94,7 @@ describe("PonteLocalBridge — quem liga é o estabelecimento", () => {
 // A comanda que não sai no papel é o defeito que o serviço sente na hora: a
 // cozinha não recebe e o caixa não fica sabendo. O ciclo já descobria — o que
 // faltava era isso chegar à tela.
-describe("PonteLocalBridge — o que não saiu no papel chega à tela", () => {
+describe("PonteLocalBridge, o que não saiu no papel chega à tela", () => {
   it("mostra na tela o que o ciclo encontrou parado na impressora", () => {
     mockUsePonteLocal.mockReturnValue({
       disponivel: true,

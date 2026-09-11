@@ -33,7 +33,7 @@ describe("aplicarTituloDocumento (white-label na aba do navegador)", () => {
   });
 });
 
-describe("gerarVariaveisTema (Fase 6 — sem tema custom, sem overrides)", () => {
+describe("gerarVariaveisTema (Fase 6, sem tema custom, sem overrides)", () => {
   it("retorna objeto vazio quando o tenant não tem tema (tenant atual, GastroMundi)", () => {
     expect(gerarVariaveisTema(null)).toEqual({});
     expect(gerarVariaveisTema(undefined)).toEqual({});
@@ -72,7 +72,7 @@ describe("nomeExibicaoTenant", () => {
   // estabelecimento sem `nome_exibicao` (o padrão de quem acabou de ser
   // cadastrado) via a marca alheia na sidebar, no PDF exportado e no cupom
   // impresso. Decisão 017 proíbe exatamente isso.
-  it("sem nome nenhum, cai na marca da PLATAFORMA — nunca na de um cliente", () => {
+  it("sem nome nenhum, cai na marca da PLATAFORMA, nunca na de um cliente", () => {
     expect(nomeExibicaoTenant(null)).toBe(MARCA_PLATAFORMA);
     expect(nomeExibicaoTenant({})).toBe(MARCA_PLATAFORMA);
     expect(nomeExibicaoTenant(null)).not.toBe("GastroMundi");
@@ -186,7 +186,7 @@ describe("marcaDoCabecalho (marca única do login ao PDV)", () => {
     });
   });
 
-  it("sem tenant e sem cache, cai na marca neutra da plataforma — nunca a marca de outro cliente", () => {
+  it("sem tenant e sem cache, cai na marca neutra da plataforma, nunca a marca de outro cliente", () => {
     expect(marcaDoCabecalho(null, null)).toEqual({ nome: MARCA_PLATAFORMA, logo: null, doTenant: false });
     expect(marcaDoCabecalho(null, { nome: "   ", logo: null }).nome).toBe(MARCA_PLATAFORMA);
   });
@@ -216,7 +216,7 @@ describe("aplicarVariaveisTema (efeito no DOM)", () => {
     expect(root.style.getPropertyValue("--gm-green")).toBe("#22c55e");
   });
 
-  it("não faz nada (sem lançar) quando não há variáveis — defaults do :root continuam valendo", () => {
+  it("não faz nada (sem lançar) quando não há variáveis, defaults do :root continuam valendo", () => {
     expect(() => aplicarVariaveisTema({}, root)).not.toThrow();
     expect(() => aplicarVariaveisTema(undefined, root)).not.toThrow();
     expect(root.style.length).toBe(0);

@@ -64,7 +64,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("SacolaModal — item que saiu do cardápio (Run 6, leva 4)", () => {
+describe("SacolaModal, item que saiu do cardápio (Run 6, leva 4)", () => {
   it("a linha diz na cara o que houve com ela", () => {
     abrir({ itens: [linha({ situacao: "fora" })], temFora: true });
 
@@ -113,7 +113,7 @@ describe("SacolaModal — item que saiu do cardápio (Run 6, leva 4)", () => {
   });
 });
 
-describe("SacolaModal — preço que mudou (Run 6, leva 4)", () => {
+describe("SacolaModal, preço que mudou (Run 6, leva 4)", () => {
   it("anuncia o preço novo sem travar o pedido", () => {
     const { onAvancar } = abrir({
       itens: [linha({ situacao: "preco" })],
@@ -126,14 +126,14 @@ describe("SacolaModal — preço que mudou (Run 6, leva 4)", () => {
     expect(onAvancar).not.toHaveBeenCalled();
   });
 
-  it("preço novo não esconde os botões de quantidade — o item ainda é pedível", () => {
+  it("preço novo não esconde os botões de quantidade, o item ainda é pedível", () => {
     abrir({ itens: [linha({ situacao: "preco" })], temPrecoNovo: true });
 
     expect(screen.getByRole("button", { name: "Aumentar" })).toBeInTheDocument();
   });
 });
 
-describe("SacolaModal — sacola em ordem (Run 6, leva 4)", () => {
+describe("SacolaModal, sacola em ordem (Run 6, leva 4)", () => {
   it("não inventa aviso nenhum e deixa avançar", async () => {
     const { onAvancar } = abrir();
 

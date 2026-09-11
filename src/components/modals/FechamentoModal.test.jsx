@@ -62,7 +62,7 @@ beforeEach(() => {
   setAppMock({ meiosPagamento: ["dinheiro", "credito", "debito", "pix"] });
 });
 
-describe("FechamentoModal — método não configurado (Run 1)", () => {
+describe("FechamentoModal, método não configurado (Run 1)", () => {
   it("valor em método sem linha de conferência fica FORA do esperado em caixa", () => {
     // R$ 50 em dinheiro (confere) + R$ 20 em fiado (não é meio configurado).
     montar({ sales: [venda(1, [{ metodo: "dinheiro", valor: 50 }, { metodo: "fiado", valor: 20 }])] });
@@ -101,7 +101,7 @@ describe("FechamentoModal — método não configurado (Run 1)", () => {
   });
 });
 
-describe("FechamentoModal — deriva de centavos (Run 1)", () => {
+describe("FechamentoModal, deriva de centavos (Run 1)", () => {
   it("caixa conferido no centavo não aparece como falta", () => {
     // 16.10 × 3 = 48.300000000000004 em ponto flutuante.
     setAppMock({ meiosPagamento: ["dinheiro"] });
@@ -139,7 +139,7 @@ describe("FechamentoModal — deriva de centavos (Run 1)", () => {
   });
 });
 
-describe("FechamentoModal — janela da sessão (Run 1)", () => {
+describe("FechamentoModal, janela da sessão (Run 1)", () => {
   it("abertura de caixa ilegível não faz as vendas do dia desaparecerem", () => {
     // Valor fora do padrão ISO guardado em config.sessao_aberta_em: antes
     // virava NaN e o filtro `>= NaN` descartava todas as vendas.
@@ -164,7 +164,7 @@ describe("FechamentoModal — janela da sessão (Run 1)", () => {
   });
 });
 
-describe("FechamentoModal — meio de pagamento que chega depois (Run 1)", () => {
+describe("FechamentoModal, meio de pagamento que chega depois (Run 1)", () => {
   it("linha nova nasce com o valor do sistema, não em branco", () => {
     // A config chega por realtime: o modal pode abrir antes de o Pix existir
     // na lista de meios. Com o retrato congelado em useState, a linha nova
@@ -187,7 +187,7 @@ describe("FechamentoModal — meio de pagamento que chega depois (Run 1)", () =>
   });
 });
 
-describe("FechamentoModal — botão depois de uma falha (Run 1)", () => {
+describe("FechamentoModal, botão depois de uma falha (Run 1)", () => {
   it("falha ao gravar libera o botão para tentar de novo", async () => {
     // Falha de verdade: quem chama avisa o operador e MANTÉM o modal aberto
     // (DesktopLayout). O botão precisa voltar a funcionar, senão o "tente

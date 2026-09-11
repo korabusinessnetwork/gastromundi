@@ -1277,7 +1277,7 @@ export default function AdminView() {
     setErroTela("");
     const { error } = await supabase.from("config").upsert({ key, value });
     if (error) {
-      setErroTela("Não deu para salvar. A alteração não foi gravada — tente de novo.");
+      setErroTela("Não deu para salvar. A alteração não foi gravada, tente de novo.");
       return { error };
     }
     if (key === "fichas_tecnicas") setFichas(value);

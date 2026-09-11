@@ -14,7 +14,7 @@ import "./ClienteFiadoSelector.css";
  * aparece quando o método "fiado" está em uso e bloqueia a confirmação
  * até um cliente ser escolhido ou cadastrado.
  */
-export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, placeholder = "Fiado exige cliente — busque por nome ou telefone" }) {
+export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, placeholder = "Fiado exige cliente, busque por nome ou telefone" }) {
   const [busca, setBusca] = useState("");
   const [resultados, setResultados] = useState([]);
   const [carregando, setCarregando] = useState(false);
@@ -159,7 +159,7 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, p
           />
           {novoTelefone.trim().length > 0 && !telefoneOk && (
             <div className="cliente-fiado-cadastro__aviso" style={{ color: varColor(C.red) }}>
-              Telefone incompleto — informe DDD e número.
+              Telefone incompleto, informe DDD e número.
             </div>
           )}
           <div style={{ display: "flex", gap: 8 }}>

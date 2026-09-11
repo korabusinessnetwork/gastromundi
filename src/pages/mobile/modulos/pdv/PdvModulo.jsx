@@ -329,7 +329,7 @@ export default function PdvModulo({ onVoltar }) {
     impressao === "imprimindo"
       ? "Imprimindo…"
       : impressao === "erro"
-      ? "Não imprimiu — tentar de novo"
+      ? "Não imprimiu, tentar de novo"
       : impressao === "sucesso"
       ? "Comprovante enviado"
       : "Imprimir comprovante";

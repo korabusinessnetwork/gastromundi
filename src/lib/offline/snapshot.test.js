@@ -46,7 +46,7 @@ describe("salvarSnapshot / lerSnapshot", () => {
     expect(lerSnapshot(s, "T2")).toBeNull();
   });
 
-  it("sem tenantId na leitura (undefined) não valida — retrocompat/uso puro", () => {
+  it("sem tenantId na leitura (undefined) não valida, retrocompat/uso puro", () => {
     const s = criarStorage();
     salvarSnapshot(s, { produtos: [] }, "T1");
     expect(lerSnapshot(s)).not.toBeNull();

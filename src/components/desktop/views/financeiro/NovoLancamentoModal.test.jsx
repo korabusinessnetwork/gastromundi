@@ -13,7 +13,7 @@ import { criarLancamento } from "@/lib/financeiro";
 // o dia do restaurante não.
 const NOITE = new Date("2026-07-16T00:30:00.000Z");
 
-describe("NovoLancamentoModal — competência pré-preenchida", () => {
+describe("NovoLancamentoModal, competência pré-preenchida", () => {
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -30,7 +30,7 @@ describe("NovoLancamentoModal — competência pré-preenchida", () => {
   });
 });
 
-describe("NovoLancamentoModal — duplo clique em Salvar (Run 2)", () => {
+describe("NovoLancamentoModal, duplo clique em Salvar (Run 2)", () => {
   beforeEach(() => {
     criarLancamento.mockReset();
   });

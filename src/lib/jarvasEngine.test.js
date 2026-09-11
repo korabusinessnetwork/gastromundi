@@ -108,7 +108,7 @@ describe("regraDivergenciaCaixa", () => {
     );
   });
 
-  it("Run 1 — fechamento com fiado não gera alerta de falta", async () => {
+  it("Run 1, fechamento com fiado não gera alerta de falta", async () => {
     // R$ 70 vendidos, R$ 20 em fiado: só R$ 50 podiam ser contados. O caixa
     // fechou exato, mas a conta antiga (conferido − vendas − fundo) acusava
     // falta de R$ 20 e o dono recebia alerta de divergência todo dia.
@@ -118,7 +118,7 @@ describe("regraDivergenciaCaixa", () => {
     expect(registrarInsight).not.toHaveBeenCalled();
   });
 
-  it("Run 1 — divergência real de caixa com fiado no meio continua alertando", async () => {
+  it("Run 1, divergência real de caixa com fiado no meio continua alertando", async () => {
     // O guarda do guarda: R$ 20 de fiado e R$ 10 faltando de verdade na gaveta.
     const fechamentos = [{ id: 11, totalVendas: 70, totalEsperado: 50, fundo: 0, totalConferido: 40 }];
     await regraDivergenciaCaixa({ fechamentos, jaExiste: () => false });

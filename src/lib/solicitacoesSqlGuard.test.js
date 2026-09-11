@@ -51,7 +51,7 @@ function corpoDaFuncao(nome) {
   return ativo.slice(marcas[i].index, fim);
 }
 
-describe("Cadastro de conta pelo site — guard da 20260926", () => {
+describe("Cadastro de conta pelo site, guard da 20260926", () => {
   it("(a) a migração existe e roda depois do que ela usa", () => {
     expect(arquivos).toContain(MIGRACAO);
     // `slugify_tenant` e `slug_reservado` são chamadas pela RPC: sem elas

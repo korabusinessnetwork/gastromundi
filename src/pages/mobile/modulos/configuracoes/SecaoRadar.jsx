@@ -56,7 +56,7 @@ export default function SecaoRadar() {
         <div className="cfg-card__titulo">Como o radar funciona</div>
         <div className="cfg-card__ajuda">
           Diga o que é comida, bebida e sobremesa. Com isso o Painel avisa a venda que
-          falta na mesa — por exemplo: pediu comida e não pediu bebida nem sobremesa.
+          falta na mesa, por exemplo: pediu comida e não pediu bebida nem sobremesa.
         </div>
       </div>
 
@@ -111,7 +111,7 @@ export default function SecaoRadar() {
                   disabled={salvandoCat === cat}
                   aria-label={`Grupo da categoria ${cat}`}
                 >
-                  <option value="">— sem grupo —</option>
+                  <option value="">, sem grupo, </option>
                   {(gruposCategoria ?? []).map((g) => (
                     <option key={g.id} value={g.id}>
                       {g.nome}

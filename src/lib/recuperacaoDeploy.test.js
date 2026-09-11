@@ -79,7 +79,7 @@ describe("instalarRecuperacaoDeploy", () => {
     expect(janela.location.reload).not.toHaveBeenCalled();
   });
 
-  it("sem recarregar, o erro NÃO é engolido — a tela de aviso precisa aparecer", () => {
+  it("sem recarregar, o erro NÃO é engolido, a tela de aviso precisa aparecer", () => {
     const janela = janelaFake();
     const armazenamento = armazenamentoFake({ [CHAVE_ULTIMA_RECUPERACAO]: "499000" });
 
@@ -93,7 +93,7 @@ describe("instalarRecuperacaoDeploy", () => {
     expect(janela.location.reload).not.toHaveBeenCalled();
   });
 
-  it("sessionStorage indisponível não derruba o app — recarrega assim mesmo", () => {
+  it("sessionStorage indisponível não derruba o app, recarrega assim mesmo", () => {
     const janela = janelaFake();
     const armazenamento = {
       getItem: vi.fn(() => {

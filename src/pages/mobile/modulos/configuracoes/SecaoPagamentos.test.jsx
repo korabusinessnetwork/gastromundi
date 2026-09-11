@@ -34,7 +34,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("SecaoPagamentos — salvar", () => {
+describe("SecaoPagamentos, salvar", () => {
   it("gravação recusada avisa e não diz que salvou", async () => {
     const user = userEvent.setup();
     montar({ falha: { meios: { message: "rls" } } });
@@ -58,7 +58,7 @@ describe("SecaoPagamentos — salvar", () => {
   });
 });
 
-describe("SecaoPagamentos — maquininha (TEF)", () => {
+describe("SecaoPagamentos, maquininha (TEF)", () => {
   it("gravação recusada avisa", async () => {
     const user = userEvent.setup();
     montar({ falha: { tef: { message: "rls" } } });
@@ -79,7 +79,7 @@ describe("SecaoPagamentos — maquininha (TEF)", () => {
   });
 });
 
-describe("SecaoPagamentos — criar forma personalizada", () => {
+describe("SecaoPagamentos, criar forma personalizada", () => {
   async function preencher(user) {
     await user.click(screen.getByRole("button", { name: /adicionar/i }));
     await user.type(screen.getByLabelText(/nome da nova forma de pagamento/i), "Vale-refeição");
@@ -116,7 +116,7 @@ describe("SecaoPagamentos — criar forma personalizada", () => {
   });
 });
 
-describe("SecaoPagamentos — remover forma personalizada", () => {
+describe("SecaoPagamentos, remover forma personalizada", () => {
   async function confirmarRemocao(user) {
     await user.click(screen.getByRole("button", { name: /remover vale-refeição/i }));
     await user.click(await screen.findByRole("button", { name: /^remover$/i }));

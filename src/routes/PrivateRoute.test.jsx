@@ -30,7 +30,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("PrivateRoute — Fase 5 (bloqueio total por assinatura, ADR-006 §4)", () => {
+describe("PrivateRoute, Fase 5 (bloqueio total por assinatura, ADR-006 §4)", () => {
   it("assinatura ativa: renderiza o conteúdo normalmente", () => {
     renderRota({ assinatura: { status: "ativo", diasParaVencer: 20, statusConfirmado: true } });
 
@@ -60,7 +60,7 @@ describe("PrivateRoute — Fase 5 (bloqueio total por assinatura, ADR-006 §4)",
     expect(screen.getByText(/sua mensalidade está atrasada/i)).toBeInTheDocument();
   });
 
-  it("sem tenant/assinatura carregada ainda (null): não bloqueia — evita falso positivo antes do bootstrap terminar", () => {
+  it("sem tenant/assinatura carregada ainda (null): não bloqueia, evita falso positivo antes do bootstrap terminar", () => {
     renderRota({ assinatura: null });
 
     expect(screen.getByText("Conteúdo protegido")).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe("PrivateRoute — Fase 5 (bloqueio total por assinatura, ADR-006 §4)",
     expect(screen.getByText("Conteúdo protegido")).toBeInTheDocument();
   });
 
-  it("a tela de bloqueio oferece saída (Sair) — nunca é um beco sem saída", () => {
+  it("a tela de bloqueio oferece saída (Sair), nunca é um beco sem saída", () => {
     renderRota({ assinatura: { status: "bloqueado", diasParaVencer: -10, statusConfirmado: true } });
 
     expect(screen.getByRole("button", { name: /sair/i })).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe("PrivateRoute — Fase 5 (bloqueio total por assinatura, ADR-006 §4)",
   });
 });
 
-describe("PrivateRoute — gating de módulo por plano (ADR-005, camada 1)", () => {
+describe("PrivateRoute, gating de módulo por plano (ADR-005, camada 1)", () => {
   it("módulo incluído no plano: renderiza o conteúdo", () => {
     renderRota({ moduloHabilitado: (m) => m === "financeiro" }, { requiredModulo: "financeiro", moduloLabel: "Financeiro" });
 
@@ -113,7 +113,7 @@ describe("PrivateRoute — gating de módulo por plano (ADR-005, camada 1)", () 
     expect(screen.queryByText("Frente de Caixa")).not.toBeInTheDocument();
   });
 
-  it("sem rótulo, o convite fala de 'Este recurso' — nunca 'undefined' na tela", () => {
+  it("sem rótulo, o convite fala de 'Este recurso', nunca 'undefined' na tela", () => {
     renderRota({ moduloHabilitado: () => false }, { requiredModulo: "financeiro" });
 
     expect(screen.getByText(/Este recurso não está no seu plano atual/i)).toBeInTheDocument();
@@ -148,7 +148,7 @@ function renderComDestinos(overrides = {}, routeProps = {}) {
   );
 }
 
-describe("PrivateRoute — negação de permissão manda para casa acessível (anti-laço)", () => {
+describe("PrivateRoute, negação de permissão manda para casa acessível (anti-laço)", () => {
   it("gerente (pdv) sem a permissão da rota vai para o PDV, sua primeira casa", () => {
     renderComDestinos({}, { requiredPermission: "clientes" });
 

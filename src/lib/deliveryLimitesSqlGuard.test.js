@@ -81,7 +81,7 @@ function maxLengthDaTela(arquivo, id) {
   return achado ? Number(achado[1]) : null;
 }
 
-describe("Delivery público — guard dos limites de entrada (DL25)", () => {
+describe("Delivery público, guard dos limites de entrada (DL25)", () => {
   it("a migração corretiva existe e roda depois da que criou o rate-limit", () => {
     expect(arquivos).toContain(CORRETIVA);
     expect(arquivos).toContain(RATE_LIMIT_ORIGINAL);
@@ -117,7 +117,7 @@ describe("Delivery público — guard dos limites de entrada (DL25)", () => {
     }
   });
 
-  it("o trigger do pedido é BEFORE INSERT — e não pega UPDATE", () => {
+  it("o trigger do pedido é BEFORE INSERT, e não pega UPDATE", () => {
     const sql = semComentarios(ler(CORRETIVA));
 
     expect(sql).toMatch(
@@ -198,7 +198,7 @@ describe("Delivery público — guard dos limites de entrada (DL25)", () => {
   });
 });
 
-describe("Delivery público — o teto do servidor cobre o que a tela deixa digitar", () => {
+describe("Delivery público, o teto do servidor cobre o que a tela deixa digitar", () => {
   // Se o teto do servidor ficar ABAIXO do maxLength da vitrine, o cliente
   // digita à vontade e só descobre no "Confirmar pedido" que não podia.
   // Princípio nº 1: prevenir o erro, não avisar depois.
@@ -229,7 +229,7 @@ describe("Delivery público — o teto do servidor cobre o que a tela deixa digi
   });
 });
 
-describe("Delivery público — guard do rate-limit por telefone (DL26)", () => {
+describe("Delivery público, guard do rate-limit por telefone (DL26)", () => {
   it("a contagem compara dígitos dos DOIS lados", () => {
     const sql = semComentarios(ler(CORRETIVA));
 

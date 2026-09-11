@@ -115,7 +115,7 @@ export default function ModalCupomNfce({ estadoEmissao, resultado, venda, onFech
                 <div className="modal-cupom-nfce__banner" role="status">
                   <LuTriangleAlert size={18} />
                   <span>
-                    <strong>Emitida em contingência — cupom válido.</strong> Será
+                    <strong>Emitida em contingência, cupom válido.</strong> Será
                     transmitida à SEFAZ automaticamente quando o serviço voltar.
                   </span>
                 </div>

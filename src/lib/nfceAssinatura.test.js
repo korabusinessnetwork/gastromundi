@@ -62,7 +62,7 @@ function xmlDeTeste(xProd = "X-Salada") {
   });
 }
 
-describe("nfceAssinatura — canonicalização (C14N 1.0) do infNFe", () => {
+describe("nfceAssinatura, canonicalização (C14N 1.0) do infNFe", () => {
   it("declara o namespace default da NFe no ápice <infNFe>", () => {
     const { xml } = xmlDeTeste();
     const c14n = canonicalizarInfNfe(xml);
@@ -87,7 +87,7 @@ describe("nfceAssinatura — canonicalização (C14N 1.0) do infNFe", () => {
   });
 });
 
-describe("nfceAssinatura — digest", () => {
+describe("nfceAssinatura, digest", () => {
   it("DigestValue é estável (mesmo XML → mesmo digest) e é Base64", async () => {
     const { xml } = xmlDeTeste();
     const a = await digestInfNfe(xml);
@@ -105,7 +105,7 @@ describe("nfceAssinatura — digest", () => {
   });
 });
 
-describe("nfceAssinatura — SignedInfo e Signature", () => {
+describe("nfceAssinatura, SignedInfo e Signature", () => {
   it("SignedInfo exige referenceUri #NFe<44> e carrega os algoritmos NFe 4.00", async () => {
     const { xml } = xmlDeTeste();
     const { digestValue } = await digestInfNfe(xml);
@@ -125,7 +125,7 @@ describe("nfceAssinatura — SignedInfo e Signature", () => {
   });
 });
 
-describe("nfceAssinatura — assinarInfNfe (fluxo completo com cert de teste)", () => {
+describe("nfceAssinatura, assinarInfNfe (fluxo completo com cert de teste)", () => {
   it("assina, insere infNFeSupl e Signature, e a assinatura VALIDA contra o certificado", async () => {
     const { xml } = xmlDeTeste();
     const chave = xml.match(/Id="NFe(\d{44})"/)[1];
@@ -161,7 +161,7 @@ describe("nfceAssinatura — assinarInfNfe (fluxo completo com cert de teste)", 
   });
 });
 
-describe("nfceAssinatura — assinarInfEvento (cancelamento, Leva 10)", () => {
+describe("nfceAssinatura, assinarInfEvento (cancelamento, Leva 10)", () => {
   const chave = "43260712345678000195650010000000011000000017";
 
   it("assina o <infEvento> (#ID110111…), com a Signature DENTRO do <evento>", async () => {
@@ -198,7 +198,7 @@ describe("nfceAssinatura — assinarInfEvento (cancelamento, Leva 10)", () => {
   });
 });
 
-describe("nfceAssinatura — assinarInfInut (inutilização, Leva 11)", () => {
+describe("nfceAssinatura, assinarInfInut (inutilização, Leva 11)", () => {
   it("assina o <infInut> (#ID…), com a Signature DENTRO do <inutNFe>", async () => {
     const { xml, id } = montarXmlInutilizacao({
       cnpj: "12345678000195", tpAmb: 2, serie: 1, nNFIni: 45, nNFFin: 48,

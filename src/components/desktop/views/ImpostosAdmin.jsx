@@ -25,12 +25,12 @@ const EMPTY_FISCAL = {
 };
 
 const ORIGENS = [
-  { v: "0", l: "0 — Nacional" },
-  { v: "1", l: "1 — Estrangeira (importação direta)" },
-  { v: "2", l: "2 — Estrangeira (mercado interno)" },
-  { v: "3", l: "3 — Nacional c/ + de 40% de conteúdo estrangeiro" },
-  { v: "4", l: "4 — Nacional produção básica" },
-  { v: "5", l: "5 — Nacional c/ até 40% de conteúdo estrangeiro" },
+  { v: "0", l: "0, Nacional" },
+  { v: "1", l: "1, Estrangeira (importação direta)" },
+  { v: "2", l: "2, Estrangeira (mercado interno)" },
+  { v: "3", l: "3, Nacional c/ + de 40% de conteúdo estrangeiro" },
+  { v: "4", l: "4, Nacional produção básica" },
+  { v: "5", l: "5, Nacional c/ até 40% de conteúdo estrangeiro" },
 ];
 
 const REGIMES = [
@@ -40,37 +40,37 @@ const REGIMES = [
 ];
 
 const CSOSN_OPTS = [
-  { v: "101", l: "101 — Tributada com permissão de crédito" },
-  { v: "102", l: "102 — Tributada sem permissão de crédito" },
-  { v: "103", l: "103 — Isenção para faixa de receita bruta" },
-  { v: "300", l: "300 — Imune" },
-  { v: "400", l: "400 — Não tributada" },
-  { v: "500", l: "500 — ICMS cobrado anteriormente por ST" },
-  { v: "900", l: "900 — Outros" },
+  { v: "101", l: "101, Tributada com permissão de crédito" },
+  { v: "102", l: "102, Tributada sem permissão de crédito" },
+  { v: "103", l: "103, Isenção para faixa de receita bruta" },
+  { v: "300", l: "300, Imune" },
+  { v: "400", l: "400, Não tributada" },
+  { v: "500", l: "500, ICMS cobrado anteriormente por ST" },
+  { v: "900", l: "900, Outros" },
 ];
 
 const CST_ICMS_OPTS = [
-  { v: "00", l: "00 — Tributada integralmente" },
-  { v: "10", l: "10 — Tributada e com cobrança por ST" },
-  { v: "20", l: "20 — Com redução de base de cálculo" },
-  { v: "40", l: "40 — Isenta" },
-  { v: "41", l: "41 — Não tributada" },
-  { v: "50", l: "50 — Suspensão" },
-  { v: "60", l: "60 — ICMS cobrado anteriormente por ST" },
-  { v: "70", l: "70 — Com red. de base de cálculo e cobrança por ST" },
-  { v: "90", l: "90 — Outros" },
+  { v: "00", l: "00, Tributada integralmente" },
+  { v: "10", l: "10, Tributada e com cobrança por ST" },
+  { v: "20", l: "20, Com redução de base de cálculo" },
+  { v: "40", l: "40, Isenta" },
+  { v: "41", l: "41, Não tributada" },
+  { v: "50", l: "50, Suspensão" },
+  { v: "60", l: "60, ICMS cobrado anteriormente por ST" },
+  { v: "70", l: "70, Com red. de base de cálculo e cobrança por ST" },
+  { v: "90", l: "90, Outros" },
 ];
 
 const CST_PIS_COFINS = [
-  { v: "01", l: "01 — Operação tributável (alíquota normal)" },
-  { v: "02", l: "02 — Operação tributável (alíquota diferenciada)" },
-  { v: "04", l: "04 — Operação tributável (alíquota zero)" },
-  { v: "06", l: "06 — Operação tributável (alíquota zero) — setor" },
-  { v: "07", l: "07 — Operação isenta" },
-  { v: "08", l: "08 — Operação sem incidência" },
-  { v: "09", l: "09 — Operação com suspensão" },
-  { v: "49", l: "49 — Outras saídas" },
-  { v: "99", l: "99 — Outras operações" },
+  { v: "01", l: "01, Operação tributável (alíquota normal)" },
+  { v: "02", l: "02, Operação tributável (alíquota diferenciada)" },
+  { v: "04", l: "04, Operação tributável (alíquota zero)" },
+  { v: "06", l: "06, Operação tributável (alíquota zero), setor" },
+  { v: "07", l: "07, Operação isenta" },
+  { v: "08", l: "08, Operação sem incidência" },
+  { v: "09", l: "09, Operação com suspensão" },
+  { v: "49", l: "49, Outras saídas" },
+  { v: "99", l: "99, Outras operações" },
 ];
 
 // ── helpers UI ───────────────────────────────────────────────────────
@@ -319,12 +319,12 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
             <>
               {isSimples ? (
                 <div>
-                  <FLabel>CSOSN — Simples Nacional</FLabel>
+                  <FLabel>CSOSN, Simples Nacional</FLabel>
                   <FSel value={form.csosn} onChange={v => set("csosn", v)} opts={CSOSN_OPTS} placeholder="Selecione o CSOSN..." />
                 </div>
               ) : (
                 <div>
-                  <FLabel>CST ICMS — Regime Normal</FLabel>
+                  <FLabel>CST ICMS, Regime Normal</FLabel>
                   <FSel value={form.cst_icms} onChange={v => set("cst_icms", v)} opts={CST_ICMS_OPTS} placeholder="Selecione o CST..." />
                 </div>
               )}
@@ -342,7 +342,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
 
               <div className="impostos-admin__aviso" style={{ background: alfa(C.accent, "0d"), border: `1px solid ${alfa(C.accent, "22")}` }}>
                 {isSimples
-                  ? "Empresas do Simples Nacional utilizam CSOSN. ICMS é recolhido pelo DAS — preencha a alíquota se houver ST."
+                  ? "Empresas do Simples Nacional utilizam CSOSN. ICMS é recolhido pelo DAS, preencha a alíquota se houver ST."
                   : "Empresas de Lucro Presumido/Real utilizam CST. Preencha alíquota conforme tabela do estado."}
               </div>
             </>
@@ -375,7 +375,7 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
                 </div>
               </Grid2>
 
-              <Divider label="IPI — obrigatório para bebidas e produtos industrializados" />
+              <Divider label="IPI, obrigatório para bebidas e produtos industrializados" />
               <Grid2>
                 <div>
                   <FLabel>CST IPI</FLabel>
@@ -398,15 +398,15 @@ function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
               </div>
 
               <div>
-                <FLabel>Alíquota IBS — substitui ICMS</FLabel>
+                <FLabel>Alíquota IBS, substitui ICMS</FLabel>
                 <FPct value={form.aliquota_ibs} onChange={v => set("aliquota_ibs", v)} />
               </div>
               <div>
-                <FLabel>Alíquota CBS — substitui PIS/COFINS</FLabel>
+                <FLabel>Alíquota CBS, substitui PIS/COFINS</FLabel>
                 <FPct value={form.aliquota_cbs} onChange={v => set("aliquota_cbs", v)} />
               </div>
               <div>
-                <FLabel>Alíquota IS — Imposto Seletivo</FLabel>
+                <FLabel>Alíquota IS, Imposto Seletivo</FLabel>
                 <FPct value={form.aliquota_is} onChange={v => set("aliquota_is", v)} />
                 <div className="impostos-admin__aviso-ajuda">Aplicável a bebidas alcoólicas, cigarros e similares.</div>
               </div>

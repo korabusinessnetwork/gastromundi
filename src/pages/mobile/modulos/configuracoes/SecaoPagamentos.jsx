@@ -98,7 +98,7 @@ export default function SecaoPagamentos() {
     setSalvando(false);
     if (error) {
       setOkMsg(false);
-      setErro("Não deu para salvar os meios de pagamento. Nada foi alterado — tente de novo.");
+      setErro("Não deu para salvar os meios de pagamento. Nada foi alterado, tente de novo.");
       return;
     }
     setOkMsg(true);
@@ -286,7 +286,7 @@ export default function SecaoPagamentos() {
         <div className="cfg-card__titulo">Maquininha (TEF)</div>
         <p className="cfg-card__ajuda">
           Marque quais formas de pagamento passam pela maquininha. Essas precisam de internet na
-          hora de cobrar; as demais funcionam mesmo sem internet — a venda fica guardada e sobe
+          hora de cobrar; as demais funcionam mesmo sem internet, a venda fica guardada e sobe
           sozinha quando a conexão voltar.
         </p>
         <div className="cfg-pagamentos__tefChips">

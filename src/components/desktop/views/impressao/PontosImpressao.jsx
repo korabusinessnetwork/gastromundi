@@ -238,7 +238,7 @@ function SecaoQuandoImprimir({ configCompleta, onSalvo }) {
       <LinhaChave
         titulo="Imprimir sozinho ao lançar o pedido"
         descricao={aoLancar
-          ? "Assim que o garçom lança, o papel sai na produção — ninguém precisa lembrar de mandar imprimir."
+          ? "Assim que o garçom lança, o papel sai na produção, ninguém precisa lembrar de mandar imprimir."
           : "O papel só sai quando alguém pedir na tela da Cozinha. Nada é impresso ao lançar."}
         ligado={aoLancar}
         onAlternar={alternarAoLancar}
@@ -265,7 +265,7 @@ function SecaoQuandoImprimir({ configCompleta, onSalvo }) {
       />
       <p className="pontos-impressao__aviso-aparelho">
         Esta última chave vale só neste computador. Se você tem mais de um caixa
-        aberto, deixe ligada em um só — senão o mesmo pedido sai em duas vias.
+        aberto, deixe ligada em um só, senão o mesmo pedido sai em duas vias.
       </p>
 
       <div className="pontos-impressao__acoes">
@@ -273,7 +273,7 @@ function SecaoQuandoImprimir({ configCompleta, onSalvo }) {
           <span className="pontos-impressao__status pontos-impressao__status--sucesso"><LuCircleCheck size={13} /> Salvo</span>
         )}
         {status === "erro" && (
-          <span className="pontos-impressao__status pontos-impressao__status--erro"><LuCircleAlert size={13} /> Falha ao salvar — nada mudou</span>
+          <span className="pontos-impressao__status pontos-impressao__status--erro"><LuCircleAlert size={13} /> Falha ao salvar, nada mudou</span>
         )}
       </div>
     </section>
@@ -308,7 +308,7 @@ function SecaoPontos({ pontos, onAdicionar, onAtualizar, onMarcarPadrao, onExclu
     <section className="pontos-impressao__secao">
       <h3 className="pontos-impressao__titulo-secao">Pontos de impressão</h3>
       <p className="pontos-impressao__intro">
-        Cada ponto é uma impressora ligada a um setor da produção — cozinha, bar, chapa.
+        Cada ponto é uma impressora ligada a um setor da produção, cozinha, bar, chapa.
         Dê um nome e escolha a impressora dele; na seção abaixo você diz o que sai em cada um.
       </p>
 
@@ -439,7 +439,7 @@ function CardPonto({ ponto, somenteUm, confirmando, onAtualizar, onMarcarPadrao,
         {statusPonte === "ausente" && (
           <div className="pontos-impressao__status pontos-impressao__status--atencao">
             <LuCircleAlert size={13} color={varColor(C.warn)} /> A Ponte não está rodando neste computador. Dê dois
-            cliques no KoraPonte.exe — ele trabalha em segundo plano, sem abrir janela — e procure de novo.
+            cliques no KoraPonte.exe, ele trabalha em segundo plano, sem abrir janela, e procure de novo.
           </div>
         )}
         {statusPonte === "erro" && (
@@ -637,7 +637,7 @@ function SecaoRoteamento({ pontos, roteamento, setRoteamento, categorias, produc
             {pontosNaoSalvos.length === 1
               ? `O ponto "${pontosNaoSalvos[0].nome || "sem nome"}" ainda não foi salvo.`
               : `Estes pontos ainda não foram salvos: ${pontosNaoSalvos.map((p) => p.nome || "sem nome").join(", ")}.`}{" "}
-            Use o <strong>Salvar</strong> da seção de cima primeiro — até lá, o que você mandar
+            Use o <strong>Salvar</strong> da seção de cima primeiro, até lá, o que você mandar
             {pontosNaoSalvos.length === 1 ? " para ele" : " para eles"} sai no ponto padrão.
           </span>
         </div>
@@ -670,7 +670,7 @@ function SecaoRoteamento({ pontos, roteamento, setRoteamento, categorias, produc
                 onChange={(e) => definirCategoria(categoria, e.target.value)}
                 className="pontos-impressao__select"
               >
-                <option value="">— vai pro ponto padrão —</option>
+                <option value="">, vai pro ponto padrão, </option>
                 {pontos.map((p) => (
                   <option key={p.id} value={p.id}>{p.nome || "(sem nome)"}</option>
                 ))}
@@ -688,7 +688,7 @@ function SecaoRoteamento({ pontos, roteamento, setRoteamento, categorias, produc
       {exibirExcecoes && (
         <div className="pontos-impressao__excecoes">
           <p className="pontos-impressao__ajuda">
-            Uma exceção por produto vence a categoria — use quando um item específico precisa sair num ponto
+            Uma exceção por produto vence a categoria, use quando um item específico precisa sair num ponto
             diferente do resto da categoria dele.
           </p>
 

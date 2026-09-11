@@ -49,7 +49,7 @@ function docBase(over = {}) {
   };
 }
 
-describe("nfceXml — grupoIcms (regime decide o grupo)", () => {
+describe("nfceXml, grupoIcms (regime decide o grupo)", () => {
   it("Simples (CRT 1) → ICMSSN com CSOSN, sem base/valor", () => {
     const xml = grupoIcms(1, { orig: 0, csosn: 102 });
     expect(xml).toBe("<ICMS><ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS>");
@@ -85,7 +85,7 @@ describe("nfceXml — grupoIcms (regime decide o grupo)", () => {
   });
 });
 
-describe("nfceXml — montarXmlNfce (documento completo)", () => {
+describe("nfceXml, montarXmlNfce (documento completo)", () => {
   it("produz <NFe> com namespace e <infNFe> Id/versão corretos", () => {
     const { xml, chave } = montarXmlNfce(docBase());
     expect(xml).toContain('<NFe xmlns="http://www.portalfiscal.inf.br/nfe">');
@@ -206,7 +206,7 @@ describe("nfceXml — montarXmlNfce (documento completo)", () => {
     expect(xml).toContain("<CSOSN>102</CSOSN>");
   });
 
-  it("um cliente do Regime Normal (CRT 3) gera ICMS/CST — mesmo código", () => {
+  it("um cliente do Regime Normal (CRT 3) gera ICMS/CST, mesmo código", () => {
     const { xml } = montarXmlNfce(
       docBase({
         emit: { crt: 3 },

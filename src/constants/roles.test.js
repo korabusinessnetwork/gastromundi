@@ -24,7 +24,7 @@ describe("PERMISSION_KEYS / LABELS", () => {
 // palm, cozinha e clientes. Qualquer role fora da tabela (typo no banco, cargo
 // novo criado antes da matriz, o papel `plataforma` do Console) entrava num
 // estabelecimento com essas três liberadas. Cargo desconhecido = nada.
-describe("getPermissions — cargo desconhecido falha FECHADO (leva 2)", () => {
+describe("getPermissions, cargo desconhecido falha FECHADO (leva 2)", () => {
   const semNada = (mapa) => {
     expect(Object.keys(mapa).sort()).toEqual([...PERMISSION_KEYS].sort());
     for (const k of PERMISSION_KEYS) expect(mapa[k]).toBe(false);
@@ -66,7 +66,7 @@ describe("getPermissions — cargo desconhecido falha FECHADO (leva 2)", () => {
     expect(getPermissions("admin").configuracoes).toBe(true);
   });
 
-  it("o mapa fechado é imutável — ninguém liga permissão nele por acidente", () => {
+  it("o mapa fechado é imutável, ninguém liga permissão nele por acidente", () => {
     const mapa = getPermissions("inexistente");
     expect(() => { mapa.pdv = true; }).toThrow();
     expect(getPermissions("outro-inexistente").pdv).toBe(false);

@@ -67,7 +67,7 @@ beforeEach(() => {
   mockEhConsoleHost.mockReturnValue(false);
 });
 
-describe("ConsoleRoute — porta do Console da Plataforma", () => {
+describe("ConsoleRoute, porta do Console da Plataforma", () => {
   it("o dono da plataforma entra no painel", () => {
     renderConsole();
 
@@ -88,7 +88,7 @@ describe("ConsoleRoute — porta do Console da Plataforma", () => {
     expect(screen.queryByText("Painel da Plataforma")).not.toBeInTheDocument();
   });
 
-  it("qualquer outro papel também é recusado — só 'plataforma' passa", () => {
+  it("qualquer outro papel também é recusado, só 'plataforma' passa", () => {
     for (const role of ["gerente", "garcom", "caixa", "cozinha", undefined]) {
       const { unmount } = renderConsole({ currentUser: { ...adminLoja, role } });
       expect(screen.getByText("App do estabelecimento"), `role = ${role}`).toBeInTheDocument();
@@ -105,7 +105,7 @@ describe("ConsoleRoute — porta do Console da Plataforma", () => {
     expect(screen.queryByText("Painel da Plataforma")).not.toBeInTheDocument();
   });
 
-  it("no host errado o veredito é o mesmo para todos — o host decide antes do papel", () => {
+  it("no host errado o veredito é o mesmo para todos, o host decide antes do papel", () => {
     // A única diferença observável entre "host primeiro" e "papel primeiro" é
     // ESTE caso: com a ordem invertida, o admin da loja seria despachado pelo
     // papel (para /app) em vez de pela regra de host. O componente não é o
@@ -127,7 +127,7 @@ describe("ConsoleRoute — porta do Console da Plataforma", () => {
     expect(screen.getByText("Painel da Plataforma")).toBeInTheDocument();
   });
 
-  it("subdomínio do console desligado não bloqueia ninguém — o recurso é inerte por padrão", () => {
+  it("subdomínio do console desligado não bloqueia ninguém, o recurso é inerte por padrão", () => {
     // Sem VITE_ROOT_DOMAIN/VITE_CONSOLE_SUBDOMAIN configurados, `ehConsoleHost`
     // é falso para todo host. Se o primeiro degrau ignorasse `consoleAtivo()`,
     // o Console ficaria inacessível em toda instalação que não usa subdomínio.

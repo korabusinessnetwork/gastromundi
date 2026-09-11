@@ -62,14 +62,14 @@ beforeEach(() => {
   verificarSenhaUsuario.mockResolvedValue({ ok: true, erro: null });
 });
 
-describe("MovimentoCaixaModal — o botão diz por que não dá para confirmar", () => {
+describe("MovimentoCaixaModal, o botão diz por que não dá para confirmar", () => {
   it("abre bloqueado, explicando que falta o valor", () => {
     montar();
     expect(botao()).toBeDisabled();
     expect(pendencia().textContent).toContain("Digite quanto está saindo");
   });
 
-  it("valor sem motivo continua bloqueado — o motivo é o que a conferência lê", () => {
+  it("valor sem motivo continua bloqueado, o motivo é o que a conferência lê", () => {
     montar();
     preencher({ valor: "50" });
 
@@ -85,7 +85,7 @@ describe("MovimentoCaixaModal — o botão diz por que não dá para confirmar",
     expect(pendencia().textContent).toContain("80,00");
   });
 
-  it("sangria exatamente igual ao disponível passa — deixar a gaveta em zero é legítimo", () => {
+  it("sangria exatamente igual ao disponível passa, deixar a gaveta em zero é legítimo", () => {
     montar({ disponivel: 80 });
     preencher({ valor: "80", motivo: "levado ao cofre" });
 
@@ -103,7 +103,7 @@ describe("MovimentoCaixaModal — o botão diz por que não dá para confirmar",
   });
 });
 
-describe("MovimentoCaixaModal — autorização acima do limite", () => {
+describe("MovimentoCaixaModal, autorização acima do limite", () => {
   it("sangria acima do limite pede um gerente antes de liberar o botão", () => {
     montar({ limite: 200 });
     preencher({ valor: "300", motivo: "levado ao cofre" });
@@ -113,7 +113,7 @@ describe("MovimentoCaixaModal — autorização acima do limite", () => {
     expect(pendencia().textContent).toContain("Peça ao gerente");
   });
 
-  it("suprimento acima do limite não pede senha — pôr dinheiro na gaveta não é risco", () => {
+  it("suprimento acima do limite não pede senha, pôr dinheiro na gaveta não é risco", () => {
     montar({ limite: 200 });
     preencher({ tipo: "suprimento", valor: "300", motivo: "reforço de troco" });
 
@@ -186,7 +186,7 @@ describe("MovimentoCaixaModal — autorização acima do limite", () => {
   });
 });
 
-describe("MovimentoCaixaModal — gravação", () => {
+describe("MovimentoCaixaModal, gravação", () => {
   it("abaixo do limite registra direto, sem autorizador", async () => {
     const { onConfirm, onClose } = montar({ limite: 200 });
     preencher({ valor: "50.50", motivo: "  levado ao cofre  " });
@@ -232,7 +232,7 @@ describe("MovimentoCaixaModal — gravação", () => {
     await act(async () => { liberar({ error: null }); });
   });
 
-  it("trocar de tipo limpa o erro anterior — a tela não mistura duas tentativas", async () => {
+  it("trocar de tipo limpa o erro anterior, a tela não mistura duas tentativas", async () => {
     const onConfirm = vi.fn(() => Promise.resolve({ error: { message: "Falhou." } }));
     montar({ onConfirm });
     preencher({ valor: "50", motivo: "levado ao cofre" });

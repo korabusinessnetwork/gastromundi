@@ -418,7 +418,7 @@ export function UsuariosTab({ sz }) {
           <div className="perm-matriz__titulo">Permissões por cargo</div>
           <div className="perm-matriz__nota">
             {isAdminReal
-              ? "Marque o que cada cargo acessa neste estabelecimento. Vale para todos os funcionários do cargo — exceções por pessoa ficam no cadastro do usuário."
+              ? "Marque o que cada cargo acessa neste estabelecimento. Vale para todos os funcionários do cargo, exceções por pessoa ficam no cadastro do usuário."
               : "Só o administrador altera as permissões dos cargos. Aqui você confere o que cada um acessa."}
           </div>
         </div>
@@ -624,7 +624,7 @@ export function UsuariosTab({ sz }) {
                   <div className="perm-override__titulo">Acesso deste funcionário</div>
                   <div className="perm-override__sub">
                     {form.permissions
-                      ? "Personalizado — difere do cargo em algumas permissões."
+                      ? "Personalizado, difere do cargo em algumas permissões."
                       : `Segue o cargo ${ROLE_MAP[form.role]?.label ?? form.role}. Ajuste abaixo só se precisar de exceções.`}
                   </div>
                 </div>
@@ -966,7 +966,7 @@ function MeiosPagamentoTab({ sz }) {
         </div>
         <div className="meios-pagamento-tab__ajuda" style={{ marginBottom: sz.pad }}>
           Marque quais formas de pagamento passam pela maquininha. Essas precisam de internet
-          na hora de cobrar; as demais funcionam mesmo sem internet — a venda fica guardada e
+          na hora de cobrar; as demais funcionam mesmo sem internet, a venda fica guardada e
           sobe sozinha quando a conexão voltar.
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: sz.gap }}>
@@ -1772,7 +1772,7 @@ function CategoriasGrupoTab({ sz }) {
                   fontFamily: "inherit", outline: "none", cursor: "pointer",
                 }}
               >
-                <option value="">— sem grupo —</option>
+                <option value="">, sem grupo, </option>
                 {gruposCategoria.map(g => (
                   <option key={g.id} value={g.id}>{g.nome}</option>
                 ))}

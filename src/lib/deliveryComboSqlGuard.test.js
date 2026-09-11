@@ -80,7 +80,7 @@ const conteudo = ler(CORRETIVA);
 const ativo = semComentarios(conteudo);
 const predicado = corpoDaFuncao(ativo, "combo_indisponivel");
 
-describe("Delivery público — guard do combo que respeita o item indisponível (DL33)", () => {
+describe("Delivery público, guard do combo que respeita o item indisponível (DL33)", () => {
   it("a migração corretiva existe e roda depois de tudo em que ela se apoia", () => {
     expect(arquivos).toContain(CORRETIVA);
 

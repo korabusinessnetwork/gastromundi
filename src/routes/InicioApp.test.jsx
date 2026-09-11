@@ -30,7 +30,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("InicioApp — índice de /app leva cada usuário à sua primeira casa", () => {
+describe("InicioApp, índice de /app leva cada usuário à sua primeira casa", () => {
   it("no celular, quem tem Palm entra direto no Palm (não no PDV)", () => {
     renderInicio({
       isMobile: true,
@@ -41,7 +41,7 @@ describe("InicioApp — índice de /app leva cada usuário à sua primeira casa"
     expect(screen.queryByText("Frente de Caixa")).not.toBeInTheDocument();
   });
 
-  it("no desktop, quem tem Palm NÃO é desviado — cai na primeira rota real (PDV)", () => {
+  it("no desktop, quem tem Palm NÃO é desviado, cai na primeira rota real (PDV)", () => {
     renderInicio({
       isMobile: false,
       currentUser: { id: 1, name: "Admin", permissions: { palm: true, pdv: true } },

@@ -26,7 +26,7 @@ function montar(props = {}) {
   );
 }
 
-describe("AberturaCaixaModal — botão depois de uma falha (Run 1)", () => {
+describe("AberturaCaixaModal, botão depois de uma falha (Run 1)", () => {
   it("falha ao abrir libera o botão para tentar de novo", async () => {
     const onConfirm = vi.fn(() => Promise.resolve());
     montar({ onConfirm });
@@ -60,7 +60,7 @@ describe("AberturaCaixaModal — botão depois de uma falha (Run 1)", () => {
   });
 });
 
-describe("AberturaCaixaModal — valor do fundo (Run 1)", () => {
+describe("AberturaCaixaModal, valor do fundo (Run 1)", () => {
   it("campo vazio não abre caixa (nem pelo Enter)", () => {
     const onConfirm = vi.fn(() => Promise.resolve());
     montar({ onConfirm });
@@ -70,7 +70,7 @@ describe("AberturaCaixaModal — valor do fundo (Run 1)", () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it("zero é um fundo válido — caixa sem troco abre", async () => {
+  it("zero é um fundo válido, caixa sem troco abre", async () => {
     const onConfirm = vi.fn(() => Promise.resolve());
     montar({ onConfirm });
 

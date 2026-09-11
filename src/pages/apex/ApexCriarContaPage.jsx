@@ -135,7 +135,7 @@ export default function ApexCriarContaPage() {
           </p>
           <p className="apex-porta__sucesso-texto">
             Assim que estiver pronto, chamamos você no WhatsApp com o usuário e a
-            senha do primeiro acesso — você entra como administrador do seu
+            senha do primeiro acesso, você entra como administrador do seu
             estabelecimento.
           </p>
           <Link to="/" className="apex-botao apex-botao--primario apex-porta__enviar">
@@ -253,7 +253,7 @@ export default function ApexCriarContaPage() {
               {enderecoCompleto ? (
                 <>É por aqui que sua equipe vai entrar: <strong>{enderecoCompleto}</strong></>
               ) : (
-                "Só letras e números — é o endereço por onde sua equipe entra."
+                "Só letras e números, é o endereço por onde sua equipe entra."
               )}
             </span>
           )}
@@ -300,7 +300,7 @@ export default function ApexCriarContaPage() {
             </span>
           </label>
           <span className="apex-porta__ajuda">
-            Valores de referência — nada é cobrado agora, e o plano pode mudar
+            Valores de referência, nada é cobrado agora, e o plano pode mudar
             antes de começar.
           </span>
         </fieldset>

@@ -101,7 +101,7 @@ describe("podeCancelar", () => {
   });
 });
 
-describe("transicaoValida (N3 — espelha o trigger 20260815)", () => {
+describe("transicaoValida (N3, espelha o trigger 20260815)", () => {
   it("avança um passo no fluxo", () => {
     expect(transicaoValida("recebido", "em_preparo")).toBe(true);
     expect(transicaoValida("em_preparo", "saiu_entrega")).toBe(true);
@@ -299,7 +299,7 @@ describe("atualizarStatusPedido (DL2)", () => {
     expect(data).toBeNull();
   });
 
-  it("DL2 — UPDATE que não bate em nenhuma linha (RLS/id inexistente) vira erro, não sucesso falso", async () => {
+  it("DL2, UPDATE que não bate em nenhuma linha (RLS/id inexistente) vira erro, não sucesso falso", async () => {
     // supabase-js não lança aqui: sem `error`, mas `data: null` porque
     // maybeSingle() não achou a linha (outro tenant ou id apagado).
     supabase.setTableResult("delivery_pedidos", { data: null, error: null });
@@ -308,7 +308,7 @@ describe("atualizarStatusPedido (DL2)", () => {
     expect(error).toBeTruthy();
   });
 
-  it("N3 — com `de` terminal, barra antes do banco (não ressuscita)", async () => {
+  it("N3, com `de` terminal, barra antes do banco (não ressuscita)", async () => {
     // Banco devolveria sucesso; a guarda cliente-side impede chegar lá.
     supabase.setTableResult("delivery_pedidos", {
       data: { id: "p1", status: "recebido" },
@@ -319,7 +319,7 @@ describe("atualizarStatusPedido (DL2)", () => {
     expect(data).toBeNull();
   });
 
-  it("N3 — sem `de` (retrocompat), segue direto pro banco (trigger é a guarda)", async () => {
+  it("N3, sem `de` (retrocompat), segue direto pro banco (trigger é a guarda)", async () => {
     supabase.setTableResult("delivery_pedidos", {
       data: { id: "p1", numero: 7, status: "em_preparo" },
       error: null,

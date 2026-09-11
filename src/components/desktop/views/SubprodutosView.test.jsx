@@ -44,7 +44,7 @@ beforeEach(() => {
   respostas({ subprodutos: [BATATA], usos: [] });
 });
 
-describe("SubprodutosView — carga", () => {
+describe("SubprodutosView, carga", () => {
   it("falha ao ler subprodutos avisa e não diz que a lista está vazia", async () => {
     respostas({ subprodutos: null, erroSubprodutos: { message: "permission denied" }, usos: [] });
     render(<SubprodutosView sz={SZ} />);
@@ -68,7 +68,7 @@ describe("SubprodutosView — carga", () => {
   });
 });
 
-describe("SubprodutosView — ativar/desativar", () => {
+describe("SubprodutosView, ativar/desativar", () => {
   it("falha na gravação volta o status e avisa", async () => {
     const user = userEvent.setup();
     render(<SubprodutosView sz={SZ} />);
@@ -98,7 +98,7 @@ describe("SubprodutosView — ativar/desativar", () => {
   });
 });
 
-describe("SubprodutosView — exclusão", () => {
+describe("SubprodutosView, exclusão", () => {
   it("sem saber o uso em combos, a exclusão fica bloqueada", async () => {
     const user = userEvent.setup();
     respostas({ subprodutos: [BATATA], usos: null, erroUsos: { message: "permission denied" } });

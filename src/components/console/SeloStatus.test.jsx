@@ -47,7 +47,7 @@ describe("SeloStatus", () => {
     expect(screen.getByText("Sem assinatura")).toBeInTheDocument();
   });
 
-  it("status desconhecido ou ausente cai em 'Sem assinatura' — nunca em branco", () => {
+  it("status desconhecido ou ausente cai em 'Sem assinatura', nunca em branco", () => {
     render(<SeloStatus status={undefined} dias={null} />);
     expect(screen.getByText("Sem assinatura")).toBeInTheDocument();
   });

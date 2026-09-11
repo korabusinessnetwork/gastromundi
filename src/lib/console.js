@@ -982,10 +982,10 @@ export function forcaDaSenha(senha, usuario = "") {
     return { nivel: "fraca", motivo: "tem menos de 8 caracteres." };
   }
   if (/^\d+$/.test(s)) {
-    return { nivel: "fraca", motivo: "só tem números — misture letras." };
+    return { nivel: "fraca", motivo: "só tem números, misture letras." };
   }
   if (/^[a-zA-Z]+$/.test(s)) {
-    return { nivel: "fraca", motivo: "só tem letras — misture números." };
+    return { nivel: "fraca", motivo: "só tem letras, misture números." };
   }
 
   const variedade =
@@ -1017,7 +1017,7 @@ const MARCA_TECNICA =
   /failed to fetch|networkerror|network request failed|load failed|typeerror|fetch failed|err_[a-z_]+|econnrefused|<!doctype|violates |duplicate key|permission denied|could not find|schema cache|invalid input syntax|does not exist|null value in column/i;
 
 const SEM_INTERNET =
-  "Sem conexão com a internet. Reconecte para salvar — o que já está na tela continua aqui.";
+  "Sem conexão com a internet. Reconecte para salvar, o que já está na tela continua aqui.";
 
 const FALHA_GENERICA =
   "Não foi possível falar com o servidor agora. Tente de novo em alguns segundos.";

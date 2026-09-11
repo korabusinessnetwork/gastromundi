@@ -59,7 +59,7 @@ function GrupoBloco({ grupo, nivel, selecoes, destaque, onAlternar, registrarRef
           }
         >
           {noLimite
-            ? `Máximo ${max} — desmarque para trocar`
+            ? `Máximo ${max}, desmarque para trocar`
             : obrigatorio && ok
               ? "✓ pronto"
               : rotuloRegraGrupo(grupo)}

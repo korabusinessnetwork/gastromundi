@@ -44,7 +44,7 @@ beforeEach(() => {
   mockBuscarConfig.mockResolvedValue({ data: CONFIG_SALVA, error: null });
 });
 
-describe("PerfilImpressora — cupom de exemplo (Run 5, leva 11)", () => {
+describe("PerfilImpressora, cupom de exemplo (Run 5, leva 11)", () => {
   it("o exemplo usa um nome genérico, nunca a marca de um cliente", async () => {
     await abrir();
 
@@ -80,7 +80,7 @@ const abrirComEndereco = async (endereco) => {
 const botaoBaixar = () => document.querySelector(".perfil-impressora__btn-baixar");
 const dicaBaixar = () => document.querySelector(".perfil-impressora__dica-baixar");
 
-describe("PerfilImpressora — baixar o programa da impressora", () => {
+describe("PerfilImpressora, baixar o programa da impressora", () => {
   beforeEach(() => {
     mockBuscarConfig.mockResolvedValue({ data: CONFIG_TERMICA, error: null });
   });

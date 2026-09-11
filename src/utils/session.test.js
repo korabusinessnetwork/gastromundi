@@ -45,7 +45,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("lerSessao — estado da sessão local", () => {
+describe("lerSessao, estado da sessão local", () => {
   it("sem nada gravado, a sessão está ausente", () => {
     expect(lerSessao()).toEqual({ estado: "ausente", user: null, at: null });
   });
@@ -75,7 +75,7 @@ describe("lerSessao — estado da sessão local", () => {
     expect(lerSessao().estado).toBe("ativa");
   });
 
-  it("payload SEM `at` falha fechado — antes NaN fazia a sessão nunca vencer", () => {
+  it("payload SEM `at` falha fechado, antes NaN fazia a sessão nunca vencer", () => {
     gravarCru({ user: usuario });
     expect(lerSessao().estado).toBe("expirada");
     expect(loadSession()).toBeNull();
@@ -99,7 +99,7 @@ describe("lerSessao — estado da sessão local", () => {
     expect(loadSession()).toBeNull();
   });
 
-  it("ler não apaga a sessão vencida — quem apaga é quem decide o logout", () => {
+  it("ler não apaga a sessão vencida, quem apaga é quem decide o logout", () => {
     gravarCru({ user: usuario, at: Date.now() - SESSION_MS - 1 });
     lerSessao();
     expect(sessionStorage.getItem(CHAVE)).not.toBeNull();
@@ -110,7 +110,7 @@ describe("lerSessao — estado da sessão local", () => {
   });
 });
 
-describe("atualizarUsuarioSessao — atualiza os dados sem renovar o relógio", () => {
+describe("atualizarUsuarioSessao, atualiza os dados sem renovar o relógio", () => {
   it("preserva o `at` do login ao trocar os dados do usuário", () => {
     const nascimento = Date.now() - 7 * 60 * 60 * 1000; // 7h de turno
     gravarCru({ user: usuario, at: nascimento });
@@ -133,7 +133,7 @@ describe("atualizarUsuarioSessao — atualiza os dados sem renovar o relógio", 
     expect(msRestantesDaSessao()).toBeLessThanOrEqual(60_000);
   });
 
-  it("saveSession, ao contrário, RENOVA o relógio — é privilégio do login", () => {
+  it("saveSession, ao contrário, RENOVA o relógio, é privilégio do login", () => {
     const nascimento = Date.now() - 7 * 60 * 60 * 1000;
     gravarCru({ user: usuario, at: nascimento });
 
@@ -154,7 +154,7 @@ describe("atualizarUsuarioSessao — atualiza os dados sem renovar o relógio", 
   });
 });
 
-describe("msRestantesDaSessao — quanto falta para o teto", () => {
+describe("msRestantesDaSessao, quanto falta para o teto", () => {
   it("logo após o login falta praticamente o teto inteiro", () => {
     saveSession(usuario);
     const restante = msRestantesDaSessao();
@@ -170,7 +170,7 @@ describe("msRestantesDaSessao — quanto falta para o teto", () => {
     expect(restante).toBeLessThanOrEqual(2 * 60 * 60 * 1000 + 1_000);
   });
 
-  it("sem sessão ativa devolve null — não há relógio para cobrar", () => {
+  it("sem sessão ativa devolve null, não há relógio para cobrar", () => {
     expect(msRestantesDaSessao()).toBeNull();
     gravarCru({ user: usuario, at: Date.now() - SESSION_MS - 1 });
     expect(msRestantesDaSessao()).toBeNull();
@@ -217,7 +217,7 @@ describe("clearSession", () => {
 // Run 5, leva 6 — o `signOut` que falha na rede sai ANTES de apagar o token, e
 // o logout ignorava esse erro. O token ficava no localStorage e o próximo
 // carregamento religava a sessão sem pedir senha.
-describe("esquecerTokenAuthLocal — o token do Supabase neste navegador", () => {
+describe("esquecerTokenAuthLocal, o token do Supabase neste navegador", () => {
   it("apaga a chave do token, as fatias e o code verifier do PKCE", () => {
     localStorage.setItem("sb-abcdefgh-auth-token", "{\"access_token\":\"x\"}");
     localStorage.setItem("sb-abcdefgh-auth-token.0", "pedaco 1");
@@ -263,7 +263,7 @@ describe("esquecerTokenAuthLocal — o token do Supabase neste navegador", () =>
 // PDV compartilhado tentava cinco vezes, fechava a aba, e recomeçava — sem
 // limite nenhum. Agora vive no localStorage, que é do navegador, com uma janela
 // para o contador não virar armadilha para quem só errou de digitação.
-describe("tentativas de login — o contador do bloqueio", () => {
+describe("tentativas de login, o contador do bloqueio", () => {
   const CHAVE = "kora_attempts";
   /** Grava um registro cru, como ele fica no storage. */
   const gravarTentativas = (username, obj) =>
@@ -283,7 +283,7 @@ describe("tentativas de login — o contador do bloqueio", () => {
     expect(getAttempts("joao")).toEqual({});
   });
 
-  it("a contagem sobrevive ao fechar a aba — antes zerava e liberava mais 5 chutes", () => {
+  it("a contagem sobrevive ao fechar a aba, antes zerava e liberava mais 5 chutes", () => {
     setAttempts("maria", { count: 4, lockedUntil: null });
     sessionStorage.clear(); // é isso que o navegador faz quando a aba morre
     expect(getAttempts("maria").count).toBe(4);
@@ -296,7 +296,7 @@ describe("tentativas de login — o contador do bloqueio", () => {
     expect(att.lockedUntil).toBeGreaterThan(Date.now());
   });
 
-  it("bloqueio ativo vale mesmo com registro antigo — a janela não solta quem está preso", () => {
+  it("bloqueio ativo vale mesmo com registro antigo, a janela não solta quem está preso", () => {
     const daquiUmMinuto = Date.now() + 60_000;
     gravarTentativas("maria", {
       count: MAX_ATTEMPTS,
@@ -306,7 +306,7 @@ describe("tentativas de login — o contador do bloqueio", () => {
     expect(getAttempts("maria").lockedUntil).toBe(daquiUmMinuto);
   });
 
-  it("erro velho para de contar — quem errou ontem não é bloqueado hoje no 1º engano", () => {
+  it("erro velho para de contar, quem errou ontem não é bloqueado hoje no 1º engano", () => {
     gravarTentativas("maria", {
       count: MAX_ATTEMPTS - 1,
       lockedUntil: null,
@@ -331,7 +331,7 @@ describe("tentativas de login — o contador do bloqueio", () => {
     }
   });
 
-  it("bloqueio que não é número não segura nada — o `at` é que manda", () => {
+  it("bloqueio que não é número não segura nada, o `at` é que manda", () => {
     // Um `lockedUntil` de texto não pode ser lido como bloqueio eterno.
     gravarTentativas("maria", { count: 9, lockedUntil: "9999999999999", at: Date.now() });
     expect(getAttempts("maria").count).toBe(9);
@@ -348,7 +348,7 @@ describe("tentativas de login — o contador do bloqueio", () => {
     expect(getAttempts("maria")).toEqual({});
   });
 
-  it("clearAttempts limpa o contador — é o que o login certo faz", () => {
+  it("clearAttempts limpa o contador, é o que o login certo faz", () => {
     setAttempts("maria", { count: MAX_ATTEMPTS, lockedUntil: Date.now() + LOCKOUT_MS });
     clearAttempts("maria");
     expect(getAttempts("maria")).toEqual({});
@@ -384,7 +384,7 @@ describe("tentativas de login — o contador do bloqueio", () => {
 // A busca do perfil devolve `data: null` tanto quando a conta foi desativada
 // quanto quando a leitura falhou — e os desfechos são opostos (derrubar ×
 // manter a sessão). Quem separa os dois é o código do PostgREST.
-describe("perfilInativoConfirmado — desativação × leitura que falhou", () => {
+describe("perfilInativoConfirmado, desativação × leitura que falhou", () => {
   it("sem linha (PGRST116) é resposta definitiva: a conta não está mais ativa", () => {
     expect(perfilInativoConfirmado({ code: PGRST_SEM_LINHA, message: "0 rows" })).toBe(true);
   });
@@ -394,7 +394,7 @@ describe("perfilInativoConfirmado — desativação × leitura que falhou", () =
     expect(perfilInativoConfirmado(undefined)).toBe(true);
   });
 
-  it("falha de rede NÃO conta como desativação — a sessão fica de pé", () => {
+  it("falha de rede NÃO conta como desativação, a sessão fica de pé", () => {
     expect(perfilInativoConfirmado({ message: "Failed to fetch" })).toBe(false);
   });
 

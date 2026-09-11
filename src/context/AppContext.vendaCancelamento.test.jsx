@@ -128,7 +128,7 @@ beforeEach(() => {
   montarSupabase();
 });
 
-describe("cancelarVendaFechada — cancelar é marcar, não apagar (TD009 etapa 3)", () => {
+describe("cancelarVendaFechada, cancelar é marcar, não apagar (TD009 etapa 3)", () => {
   it("marca as colunas de cancelamento em vendas", async () => {
     const app = montar();
     await comVendaFechada(app);
@@ -205,7 +205,7 @@ describe("cancelarVendaFechada — cancelar é marcar, não apagar (TD009 etapa 
   });
 });
 
-describe("reenviarVendaOffline — idempotência do evento (ADR-013 pendência 6)", () => {
+describe("reenviarVendaOffline, idempotência do evento (ADR-013 pendência 6)", () => {
   /** Enfileira a venda e deixa o dreno passar (o efeito dispara sozinho). */
   async function drenar(app) {
     await act(async () => {

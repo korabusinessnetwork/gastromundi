@@ -117,7 +117,7 @@ beforeEach(() => {
   );
 });
 
-describe("AppContext — o bloqueio de login vem do servidor (TD008)", () => {
+describe("AppContext, o bloqueio de login vem do servidor (TD008)", () => {
   it("o cenário tem um subdomínio válido, senão o login pararia antes das RPCs", () => {
     expect(window.location.hostname).toBe("casacoffee.kora.codes");
   });

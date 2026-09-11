@@ -76,7 +76,7 @@ const definemRpc = arquivos
 const ultima = definemRpc[definemRpc.length - 1];
 const sql = ultima ? semComentarios(ler(ultima)) : "";
 
-describe("Console — guard da saúde da plataforma (F022-SAUDE)", () => {
+describe("Console, guard da saúde da plataforma (F022-SAUDE)", () => {
   it("a migração existe e define a RPC com o parâmetro que o front chama", () => {
     expect(arquivos).toContain(MIGRACAO);
     expect(definemRpc).toContain(MIGRACAO);
@@ -128,7 +128,7 @@ describe("Console — guard da saúde da plataforma (F022-SAUDE)", () => {
     expect(cabecalho).toMatch(/\bSTABLE\b/);
   });
 
-  it("não mexe em policy nenhuma — o caminho proibido pela ADR-008", () => {
+  it("não mexe em policy nenhuma, o caminho proibido pela ADR-008", () => {
     // O atalho seria pôr `OR public.is_super_admin()` no USING da policy de
     // `nfce_emitidas`. Isso entregaria o histórico fiscal de TODOS os
     // clientes a qualquer token de plataforma vazado.
@@ -140,7 +140,7 @@ describe("Console — guard da saúde da plataforma (F022-SAUDE)", () => {
     expect(sql).not.toMatch(/USING\s*\(/i);
   });
 
-  it("devolve agregado — nenhuma coluna identifica um documento", () => {
+  it("devolve agregado, nenhuma coluna identifica um documento", () => {
     const assinatura = recorte(sql, "RETURNS TABLE (", "LANGUAGE plpgsql");
 
     // As sete, e só elas. Acrescentar coluna que identifique um documento

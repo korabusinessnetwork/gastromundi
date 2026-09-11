@@ -213,7 +213,7 @@ export default function ProdutosView() {
     const { error } = await salvarCatExtra(catExtra.map(c => c === nomeAntigo ? novoNome : c));
     if (error) {
       setCatOpLoading(false);
-      setCatErro(`Não deu para renomear "${nomeAntigo}". Nada foi alterado — tente de novo.`);
+      setCatErro(`Não deu para renomear "${nomeAntigo}". Nada foi alterado, tente de novo.`);
       return;
     }
     const resultados = await Promise.all(products.filter(p => p.category === nomeAntigo).map(p => updateProduct(p.id, { category: novoNome })));
@@ -234,7 +234,7 @@ export default function ProdutosView() {
     const { error } = await salvarCatExtra(catExtra.filter(c => c !== nome));
     if (error) {
       setCatOpLoading(false);
-      setCatErro(`Não deu para excluir "${nome}". Nada foi alterado — tente de novo.`);
+      setCatErro(`Não deu para excluir "${nome}". Nada foi alterado, tente de novo.`);
       return;
     }
     // Produtos dentro da categoria não são excluídos: caem no balde "Sem

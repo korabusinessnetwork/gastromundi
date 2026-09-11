@@ -294,7 +294,7 @@ export default function PerfilImpressora({ sz }) {
                     <LuCircleAlert size={13} color={varColor(C.warn)} />{" "}
                     {ENDERECO_DOWNLOAD_PONTE
                       ? "A Ponte não está rodando neste computador. Baixe e abra o programa no botão acima e procure de novo."
-                      : "A Ponte não está rodando neste computador. Dê dois cliques no KoraPonte.exe — ele trabalha em segundo plano, sem abrir janela — e procure de novo."}
+                      : "A Ponte não está rodando neste computador. Dê dois cliques no KoraPonte.exe, ele trabalha em segundo plano, sem abrir janela, e procure de novo."}
                   </div>
                 )}
                 {statusPonte === "erro" && (
@@ -417,7 +417,7 @@ export default function PerfilImpressora({ sz }) {
             <div className="perfil-impressora__linha-toggle">
               <div>
                 <div className="perfil-impressora__label perfil-impressora__label--inline">Corta o papel automaticamente</div>
-                <div className="perfil-impressora__ajuda">Impressoras com guilhotina — dá um avanço de linha extra no fim para o corte não pegar o texto.</div>
+                <div className="perfil-impressora__ajuda">Impressoras com guilhotina, dá um avanço de linha extra no fim para o corte não pegar o texto.</div>
               </div>
               <button
                 type="button"

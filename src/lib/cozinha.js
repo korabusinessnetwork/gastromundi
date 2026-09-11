@@ -34,7 +34,7 @@ export async function iniciarPreparo(pedidoId, usuario) {
     .single();
 
   if (!error) {
-    logAction(usuario, "cozinha:iniciar_preparo", { msg: `Preparo iniciado — comanda ${data?.comanda ?? pedidoId}`, pedido_id: pedidoId });
+    logAction(usuario, "cozinha:iniciar_preparo", { msg: `Preparo iniciado, comanda ${data?.comanda ?? pedidoId}`, pedido_id: pedidoId });
     emitirEvento("pedido.em_preparo", "cozinha", { pedido_id: pedidoId }, usuario);
   }
   return { data, error };
@@ -58,7 +58,7 @@ export async function marcarPronto(pedidoId, usuario) {
     .single();
 
   if (!error) {
-    logAction(usuario, "cozinha:marcar_pronto", { msg: `Pedido pronto — comanda ${data?.comanda ?? pedidoId}`, pedido_id: pedidoId });
+    logAction(usuario, "cozinha:marcar_pronto", { msg: `Pedido pronto, comanda ${data?.comanda ?? pedidoId}`, pedido_id: pedidoId });
     emitirEvento("pedido.pronto", "cozinha", { pedido_id: pedidoId }, usuario);
   }
   return { data, error };

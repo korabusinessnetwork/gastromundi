@@ -94,7 +94,7 @@ describe("CardapioPage aberta como prévia (?loja=)", () => {
     expect(mockCarregarCardapio).toHaveBeenCalledWith("casacoffee");
   });
 
-  it("não grava o cache de marca da origem — senão a marca vaza para o login alheio", async () => {
+  it("não grava o cache de marca da origem, senão a marca vaza para o login alheio", async () => {
     render(<CardapioPage />);
     await esperarVitrine();
 

@@ -90,7 +90,7 @@ beforeEach(() => {
   exportado.xlsx.length = 0;
 });
 
-describe("RelatorioView — fechamentos com método sem conferência (Run 1)", () => {
+describe("RelatorioView, fechamentos com método sem conferência (Run 1)", () => {
   it("a linha do relatório mostra diferença zero, não a falsa falta do fiado", () => {
     montar([COM_FIADO]);
 
@@ -138,7 +138,7 @@ describe("RelatorioView — fechamentos com método sem conferência (Run 1)", (
   });
 });
 
-describe("RelatorioView — marca no cabeçalho do arquivo exportado (Run 5, leva 11)", () => {
+describe("RelatorioView, marca no cabeçalho do arquivo exportado (Run 5, leva 11)", () => {
   it("sem tema custom, o PDF e a planilha saem com o nome CADASTRADO do estabelecimento", () => {
     // O relatório exportado sai do sistema: vai para o contador, para o
     // sócio, para o banco. Enquanto o fallback era a marca de um cliente,
@@ -173,7 +173,7 @@ describe("RelatorioView — marca no cabeçalho do arquivo exportado (Run 5, lev
   });
 });
 
-describe("RelatorioView — fechamento gravado antes desta versão (Run 1)", () => {
+describe("RelatorioView, fechamento gravado antes desta versão (Run 1)", () => {
   it("sem o campo gravado, mantém a leitura histórica em vez de inventar zero", () => {
     // Retrocompatibilidade: fechamentos antigos não têm `totalEsperado`, e o
     // fallback (`vendas + fundo`) é o que a tela mostrava na época. Este teste

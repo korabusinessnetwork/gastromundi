@@ -47,7 +47,7 @@ beforeEach(() => {
   });
 });
 
-describe("DeliveryModulo — itens do pedido", () => {
+describe("DeliveryModulo, itens do pedido", () => {
   it("falha ao carregar os itens avisa em vez de dizer que o pedido não tem itens", async () => {
     const user = userEvent.setup();
     carregarItensPedido.mockResolvedValue({ data: null, error: { message: "permission denied" } });
@@ -109,7 +109,7 @@ describe("DeliveryModulo — itens do pedido", () => {
 // em rota na tela, uma piscada de rede fazia o entregador perder de vista
 // TODOS eles — inclusive o que ele acabou de marcar como "saiu para entrega",
 // porque `avancar` chama recarregar() logo depois de mudar o status.
-describe("DeliveryModulo — falha ao atualizar com pedidos na tela (Run 6, leva 7)", () => {
+describe("DeliveryModulo, falha ao atualizar com pedidos na tela (Run 6, leva 7)", () => {
   const comErro = (pedidos) =>
     usePedidosDelivery.mockReturnValue({
       pedidos,

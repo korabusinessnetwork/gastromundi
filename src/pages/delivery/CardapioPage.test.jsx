@@ -143,7 +143,7 @@ async function abrirVitrine() {
   return user;
 }
 
-describe("CardapioPage — recusa do servidor chega ao cliente (Run 6, leva 1)", () => {
+describe("CardapioPage, recusa do servidor chega ao cliente (Run 6, leva 1)", () => {
   it("mostra o motivo da recusa dentro da folha de pagamento", async () => {
     // `code: "P0001"` é o SQLSTATE de todo `RAISE EXCEPTION` do plpgsql — é
     // assim que a recusa de propósito chega de verdade (ver leva 9, DL28).
@@ -225,7 +225,7 @@ describe("CardapioPage — recusa do servidor chega ao cliente (Run 6, leva 1)",
   });
 });
 
-describe("CardapioPage — o que sai da tela para o servidor (Run 6, leva 1)", () => {
+describe("CardapioPage, o que sai da tela para o servidor (Run 6, leva 1)", () => {
   it("taxa por bairro/CEP não inventa coordenada 0,0", async () => {
     const user = await abrirVitrine();
     await irAtePagamento(user);
@@ -312,7 +312,7 @@ async function pedirComSucesso(user) {
   });
 }
 
-describe("CardapioPage — a sacola morre no aceite do pedido (Run 6, leva 3)", () => {
+describe("CardapioPage, a sacola morre no aceite do pedido (Run 6, leva 3)", () => {
   it("esvazia o armazenamento já com a confirmação aberta na tela", async () => {
     const user = await abrirVitrine();
     await pedirComSucesso(user);
@@ -370,7 +370,7 @@ describe("CardapioPage — a sacola morre no aceite do pedido (Run 6, leva 3)", 
 // Run 6, leva 3 — a página é quem sabe se a loja está aberta, e precisa
 // contar isso ao produto. Sem essa ligação, o modal se acha aberto: o item
 // entra numa sacola que a tela nem desenha (a barra depende de `aberto`).
-describe("CardapioPage — produto com a loja fechada (Run 6, leva 3)", () => {
+describe("CardapioPage, produto com a loja fechada (Run 6, leva 3)", () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockCarregarCardapio.mockResolvedValue({
@@ -417,7 +417,7 @@ describe("CardapioPage — produto com a loja fechada (Run 6, leva 3)", () => {
 // FIAÇÃO: a página tem que conferir a sacola e contar o resultado ao
 // SacolaModal. Sem isso, a função pura existe e não serve para nada — o
 // cliente continua descobrindo tudo pela recusa seca do servidor.
-describe("CardapioPage — sacola velha contra cardápio novo (Run 6, leva 4)", () => {
+describe("CardapioPage, sacola velha contra cardápio novo (Run 6, leva 4)", () => {
   it("produto que saiu do cardápio se identifica na sacola e trava o avanço", async () => {
     mockCarregarCardapio.mockResolvedValue({
       data: { ...CARDAPIO, produtos: [] },
@@ -447,7 +447,7 @@ describe("CardapioPage — sacola velha contra cardápio novo (Run 6, leva 4)", 
     expect(mockEnviarPedido).not.toHaveBeenCalled();
   });
 
-  it("remover o item morto libera o caminho — a saída é de verdade", async () => {
+  it("remover o item morto libera o caminho, a saída é de verdade", async () => {
     sessionStorage.setItem(
       chaveSacola(),
       JSON.stringify([
@@ -516,7 +516,7 @@ describe("CardapioPage — sacola velha contra cardápio novo (Run 6, leva 4)", 
   });
 });
 
-describe("CardapioPage — jargão técnico não chega ao cliente (Run 6, leva 9)", () => {
+describe("CardapioPage, jargão técnico não chega ao cliente (Run 6, leva 9)", () => {
   /** Vai até o pagamento e confirma, devolvendo o texto do aviso na tela. */
   async function confirmarEler(user) {
     await irAtePagamento(user);
@@ -608,7 +608,7 @@ describe("CardapioPage — jargão técnico não chega ao cliente (Run 6, leva 9
   });
 });
 
-describe("CardapioPage — a vitrine que não carregou tem saída (Run 6, leva 10)", () => {
+describe("CardapioPage, a vitrine que não carregou tem saída (Run 6, leva 10)", () => {
   /** Rede oscilando: o carregarCardapio devolve erro sem código. */
   const FALHA = { data: null, error: { message: "Failed to fetch" } };
 

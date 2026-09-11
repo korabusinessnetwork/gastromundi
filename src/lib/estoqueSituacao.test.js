@@ -17,7 +17,7 @@ const estoque = { 1: 0, 2: 3, 3: 200, 5: 0 };
 const minimos = { 2: 5 };
 
 describe("situacaoEstoque", () => {
-  it("produto sem linha de estoque não é ruptura — ele não controla estoque", () => {
+  it("produto sem linha de estoque não é ruptura, ele não controla estoque", () => {
     // Era exatamente isto que inflava o aviso do PDV: cada prato do cardápio
     // contava como "sem estoque".
     expect(controlaEstoque(estoque, 4)).toBe(false);

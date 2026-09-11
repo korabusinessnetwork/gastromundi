@@ -173,7 +173,7 @@ describe("gerarAlertaBaixaFalhou", () => {
     expect(insight.origem.chave).toBe("estoque:baixa-falhou:produto:9");
   });
 
-  it("o texto que o gestor lê não tem jargão do banco — o erro técnico fica em origem", async () => {
+  it("o texto que o gestor lê não tem jargão do banco, o erro técnico fica em origem", async () => {
     const cru = "new row violates row-level security policy for table \"estoque\"";
     await gerarAlertaBaixaFalhou({ produtoId: 9, nome: "Chopp", quantidade: 3, erro: { message: cru } }, "maria");
 
@@ -196,7 +196,7 @@ describe("gerarAlertaBaixaFalhou", () => {
     expect(registrarInsight).not.toHaveBeenCalled();
   });
 
-  it("subproduto tem chave própria — não é confundido com o produto de mesmo id", async () => {
+  it("subproduto tem chave própria, não é confundido com o produto de mesmo id", async () => {
     buscarInsights.mockResolvedValue({
       data: [{ origem: { chave: "estoque:baixa-falhou:produto:9" } }],
       error: null,
@@ -262,7 +262,7 @@ describe("decidirAlertaDeLote", () => {
     expect(decidirAlertaDeLote(undefined).modo).toBe("nenhum");
   });
 
-  it("poucas falhas continuam sendo alerta por item — pode ser problema do produto", () => {
+  it("poucas falhas continuam sendo alerta por item, pode ser problema do produto", () => {
     expect(decidirAlertaDeLote([item(1)]).modo).toBe("individual");
     expect(decidirAlertaDeLote([item(1), item(2)]).modo).toBe("individual");
   });
@@ -455,7 +455,7 @@ describe("processarBaixaEstoque", () => {
     expect(registrarInsight).not.toHaveBeenCalled();
   });
 
-  it("RPC que LANÇA vira erro normal — a exceção não sobe para a venda", async () => {
+  it("RPC que LANÇA vira erro normal, a exceção não sobe para a venda", async () => {
     const chamarRpc = vi.fn(() => Promise.reject(new TypeError("Failed to fetch")));
 
     const { error, quantidade } = await processarBaixaEstoque({

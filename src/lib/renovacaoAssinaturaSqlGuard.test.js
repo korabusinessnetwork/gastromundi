@@ -109,7 +109,7 @@ function corpoAtual() {
   );
 }
 
-describe("Assinatura — guard da renovação exclusiva da plataforma (R7L5)", () => {
+describe("Assinatura, guard da renovação exclusiva da plataforma (R7L5)", () => {
   it("a corretiva existe e roda depois de toda versão anterior da RPC", () => {
     expect(arquivos).toContain(CORRETIVA);
 

@@ -75,7 +75,7 @@ export default function ConfirmarRenovacaoModal({
   // pelo erro do servidor.
   let erroCampo = "";
   if (!vazio && valor === null) erroCampo = "Digite só números, com vírgula nos centavos. Exemplo: 300,00";
-  else if (valor !== null && valor <= 0) erroCampo = "O valor recebido tem de ser maior que zero — não existe pagamento de zero reais.";
+  else if (valor !== null && valor <= 0) erroCampo = "O valor recebido tem de ser maior que zero, não existe pagamento de zero reais.";
 
   const podeConfirmar = !vazio && !erroCampo && valor !== null && Boolean(rotulo);
 

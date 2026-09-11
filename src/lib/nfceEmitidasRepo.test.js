@@ -32,7 +32,7 @@ beforeEach(() => {
   setResposta({ data: [], error: null });
 });
 
-describe("listarNfceEmitidas — montagem dos filtros (Leva 12)", () => {
+describe("listarNfceEmitidas, montagem dos filtros (Leva 12)", () => {
   it("status 'todas' NÃO aplica .eq; ordena por created_at desc e pagina a partir de 0", async () => {
     setResposta({ data: linhas(20), error: null });
     const r = await listarNfceEmitidas();

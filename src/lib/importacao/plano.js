@@ -164,7 +164,7 @@ export function planejarImportacaoEstoque(itensPlanilha, produtosExistentes, est
     if (!produto) {
       naoEncontrados.push({
         linha: item.linha,
-        mensagem: `"${item.produto}" não está no cardápio — importe/cadastre os produtos antes do estoque.`,
+        mensagem: `"${item.produto}" não está no cardápio, importe/cadastre os produtos antes do estoque.`,
       });
       continue;
     }

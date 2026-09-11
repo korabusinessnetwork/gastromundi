@@ -30,7 +30,7 @@ const renderGrid = (props) =>
     />,
   );
 
-describe("ComandaGrid — total do card", () => {
+describe("ComandaGrid, total do card", () => {
   it("grid numerado: item sem preço não vira 'R$ NaN'", () => {
     renderGrid({});
 

@@ -81,7 +81,7 @@ export default function CupomNfce({ danfe }) {
       </header>
 
       <p className="cupom-nfce__titulo">
-        DANFE NFC-e — Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica
+        DANFE NFC-e, Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica
       </p>
 
       {/* Itens */}
@@ -152,7 +152,7 @@ export default function CupomNfce({ danfe }) {
       {/* Consumidor */}
       <p className="cupom-nfce__consumidor">
         {consumidor.identificado
-          ? `Consumidor: ${consumidor.documento}${consumidor.nome ? ` — ${consumidor.nome}` : ""}`
+          ? `Consumidor: ${consumidor.documento}${consumidor.nome ? `, ${consumidor.nome}` : ""}`
           : consumidor.texto}
       </p>
 

@@ -7,7 +7,7 @@ import {
 const CNPJ = "12345678000195";
 const JUST = "Falha técnica pulou a numeração; faixa nunca emitida.";
 
-describe("nfceInutilizacao — montarXmlInutilizacao", () => {
+describe("nfceInutilizacao, montarXmlInutilizacao", () => {
   it("monta o <inutNFe>/<infInut Id=ID...> com Id de 41 dígitos e todos os campos", () => {
     const { xml, id } = montarXmlInutilizacao({
       cnpj: CNPJ, tpAmb: 2, serie: 1, nNFIni: 45, nNFFin: 48,
@@ -75,7 +75,7 @@ describe("nfceInutilizacao — montarXmlInutilizacao", () => {
   });
 });
 
-describe("nfceInutilizacao — decidirDesfechoInutilizacao", () => {
+describe("nfceInutilizacao, decidirDesfechoInutilizacao", () => {
   it("cStat 102 → inutilizada, carrega protocolo e procInutNFe", () => {
     const d = decidirDesfechoInutilizacao({
       retornoInterpretado: {

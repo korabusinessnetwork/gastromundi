@@ -55,7 +55,7 @@ beforeEach(() => {
   setAppMock({ products: [PRODUTO] });
 });
 
-describe("CombosView — carga da lista", () => {
+describe("CombosView, carga da lista", () => {
   it("falha ao carregar avisa, em vez de dizer que não há combos", async () => {
     mockSupabase.current.setTableError("combos", { message: "network error" });
 
@@ -82,7 +82,7 @@ describe("CombosView — carga da lista", () => {
   });
 });
 
-describe("CombosView — ligar/desligar combo", () => {
+describe("CombosView, ligar/desligar combo", () => {
   it("erro no banco desfaz a mudança e avisa", async () => {
     await montarComCombo();
     mockSupabase.current.setTableHandler("combos", ({ method }) =>
@@ -108,7 +108,7 @@ describe("CombosView — ligar/desligar combo", () => {
   });
 });
 
-describe("CombosView — editar combo (B2)", () => {
+describe("CombosView, editar combo (B2)", () => {
   /** Abre o modal de edição já com a composição carregada. */
   async function abrirEdicao(user) {
     await user.click(screen.getByTitle("Editar combo"));

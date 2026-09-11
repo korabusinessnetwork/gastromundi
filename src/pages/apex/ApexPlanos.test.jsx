@@ -60,7 +60,7 @@ async function preencherContato(user) {
   await user.type(screen.getByLabelText("E-mail"), "maria@bardamaria.com.br");
 }
 
-describe("ApexPlanos — a conta", () => {
+describe("ApexPlanos, a conta", () => {
   beforeEach(() => {
     mockRegistrar.mockReset();
     mockRegistrar.mockResolvedValue({ ok: true, erro: null });
@@ -106,7 +106,7 @@ describe("ApexPlanos — a conta", () => {
   });
 });
 
-describe("ApexPlanos — o lead", () => {
+describe("ApexPlanos, o lead", () => {
   beforeEach(() => {
     mockRegistrar.mockReset();
     mockRegistrar.mockResolvedValue({ ok: true, erro: null });

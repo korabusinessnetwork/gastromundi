@@ -334,7 +334,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
         <div>
           <div className="combos-view__label">Outros produtos <span style={{ color: varColor(C.muted), fontWeight: 400 }}>(opcional)</span></div>
           <div className="combos-view__ajuda" style={{ color: varColor(C.muted), fontSize: 12, marginBottom: 8 }}>
-            Produtos do catálogo que também compõem o combo — cada um baixa o próprio estoque. Ex.: Hambúrguer (principal) + Coca Zero.
+            Produtos do catálogo que também compõem o combo, cada um baixa o próprio estoque. Ex.: Hambúrguer (principal) + Coca Zero.
           </div>
 
           {itensProd.length > 0 && (

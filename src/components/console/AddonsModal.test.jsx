@@ -77,7 +77,7 @@ beforeEach(() => {
   mockAlternar.mockResolvedValue({ data: linhaAtiva("nfe"), error: null });
 });
 
-describe("AddonsModal — leitura", () => {
+describe("AddonsModal, leitura", () => {
   it("mostra uma linha por add-on do catálogo, com nome e descrição do banco", async () => {
     montar();
     await carregado();
@@ -111,7 +111,7 @@ describe("AddonsModal — leitura", () => {
     expect(within(itemDe("Nota fiscal eletrônica")).getByText(/certificado A1/i)).toBeInTheDocument();
   });
 
-  it("falha de leitura NÃO vira 'catálogo vazio' — diz o que houve e oferece tentar de novo", async () => {
+  it("falha de leitura NÃO vira 'catálogo vazio', diz o que houve e oferece tentar de novo", async () => {
     mockListarPorTenant.mockResolvedValue({ data: [], error: { message: "rede" } });
     montar();
     expect(await screen.findByRole("alert")).toHaveTextContent(/não foi possível ler os add-ons/i);
@@ -145,7 +145,7 @@ describe("AddonsModal — leitura", () => {
   });
 });
 
-describe("AddonsModal — ligar", () => {
+describe("AddonsModal, ligar", () => {
   it("liga direto, sem confirmação: nada é tirado do cliente", async () => {
     const user = userEvent.setup();
     montar();
@@ -199,12 +199,12 @@ describe("AddonsModal — ligar", () => {
   });
 });
 
-describe("AddonsModal — desligar", () => {
+describe("AddonsModal, desligar", () => {
   beforeEach(() => {
     mockListarPorTenant.mockResolvedValue({ data: [linhaAtiva("nfe")], error: null });
   });
 
-  it("não desliga no primeiro clique — pede confirmação nomeando a consequência", async () => {
+  it("não desliga no primeiro clique, pede confirmação nomeando a consequência", async () => {
     const user = userEvent.setup();
     montar();
     await carregado();

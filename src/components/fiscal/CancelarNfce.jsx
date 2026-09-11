@@ -165,9 +165,9 @@ function descreverEstado(registro) {
     case "cancelada":
       return { Icone: LuBan, texto: "NFC-e já cancelada.", mod: "" };
     case "pendente":
-      return { Icone: LuClock, texto: "NFC-e ainda na fila de contingência — aguarde a autorização.", mod: "cancelar-nfce--pendente" };
+      return { Icone: LuClock, texto: "NFC-e ainda na fila de contingência, aguarde a autorização.", mod: "cancelar-nfce--pendente" };
     case "rejeitada":
-      return { Icone: LuCircleX, texto: "NFC-e rejeitada — não há nota válida para cancelar.", mod: "cancelar-nfce--rejeitada" };
+      return { Icone: LuCircleX, texto: "NFC-e rejeitada, não há nota válida para cancelar.", mod: "cancelar-nfce--rejeitada" };
     case "autorizada":
       // Autorizada, mas fora do prazo.
       return { Icone: LuClock, texto: "Fora do prazo de cancelamento da NFC-e.", mod: "cancelar-nfce--pendente" };

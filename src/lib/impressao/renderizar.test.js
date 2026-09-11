@@ -16,7 +16,7 @@ describe("esc", () => {
 });
 
 describe("logoUrlSegura", () => {
-  it("aceita http/https e data:image (X2 — allowlist de esquema do logo do tenant)", () => {
+  it("aceita http/https e data:image (X2, allowlist de esquema do logo do tenant)", () => {
     expect(logoUrlSegura("https://cdn.exemplo.com/logo.png")).toBe(true);
     expect(logoUrlSegura("http://cdn.exemplo.com/logo.png")).toBe(true);
     expect(logoUrlSegura("data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==")).toBe(true);
@@ -76,7 +76,7 @@ describe("renderizarRecibo", () => {
     expect(() => renderizarRecibo({ identidade: {}, itens: [], pagamentos: [] })).not.toThrow();
   });
 
-  it("X2 — descarta logo com esquema perigoso e cai pro nome em texto", () => {
+  it("X2, descarta logo com esquema perigoso e cai pro nome em texto", () => {
     const html = renderizarRecibo({
       ...dadosBase,
       identidade: { ...dadosBase.identidade, logoUrl: "javascript:alert(document.cookie)" },

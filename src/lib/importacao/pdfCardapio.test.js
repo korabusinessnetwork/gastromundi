@@ -38,7 +38,7 @@ describe("separarNomePreco", () => {
     expect(separarNomePreco("Suco 12.50")).toEqual({ nome: "Suco", preco: 12.5 });
   });
 
-  it("NÃO trata inteiro solto (sem R$) como preço — evita gramatura no nome", () => {
+  it("NÃO trata inteiro solto (sem R$) como preço, evita gramatura no nome", () => {
     expect(separarNomePreco("Pizza 4 queijos")).toBeNull();
   });
 

@@ -1281,7 +1281,7 @@ export function AppProvider({ children }) {
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "updateProduct", tabela: "products", id });
-      return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada — sem permissão ou produto inexistente." } };
+      return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada, sem permissão ou produto inexistente." } };
     }
     setProductsLocal(prev => prev.map(p => p.id === id ? { ...p, ...changes } : p));
     return { error: null };
@@ -1294,7 +1294,7 @@ export function AppProvider({ children }) {
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "removeProduct", tabela: "products", id });
-      return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida — sem permissão ou produto inexistente." } };
+      return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida, sem permissão ou produto inexistente." } };
     }
     setProductsLocal(prev => prev.filter(p => p.id !== id));
     return { error: null };
@@ -1446,7 +1446,7 @@ export function AppProvider({ children }) {
     }
     if (!linhas || linhas.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "cancelarVendaFechada", tabela: "vendas", venda_id: vendaId });
-      return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada — venda inexistente ou sem permissão." } };
+      return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada, venda inexistente ou sem permissão." } };
     }
 
     const { error: eLanc } = await supabase.from("lancamentos").delete().eq("venda_id", vendaId);
@@ -1502,7 +1502,7 @@ export function AppProvider({ children }) {
       return {
         error: {
           code: "no_rows_updated",
-          message: "Nenhuma linha atualizada — sem permissão (apenas admin edita usuários) ou usuário inexistente.",
+          message: "Nenhuma linha atualizada, sem permissão (apenas admin edita usuários) ou usuário inexistente.",
         },
       };
     }
@@ -1532,7 +1532,7 @@ export function AppProvider({ children }) {
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "removeUser", tabela: "users", id });
-      return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida — sem permissão (apenas admin remove usuários) ou usuário inexistente." } };
+      return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida, sem permissão (apenas admin remove usuários) ou usuário inexistente." } };
     }
     setUsersLocal(prev => prev.filter(u => u.id !== id));
     return { error: null };
@@ -1546,7 +1546,7 @@ export function AppProvider({ children }) {
   // daquele cargo (cargo ⊕ override de cada um) para refletir na hora.
   const salvarPermissoesCargo = async (role, permissoesCompletas) => {
     if (!ROLES[role]) return { error: { message: "Cargo inválido." } };
-    if (!tenant?.id) return { error: { message: "Estabelecimento ainda carregando — tente de novo." } };
+    if (!tenant?.id) return { error: { message: "Estabelecimento ainda carregando, tente de novo." } };
     const payload = {
       tenant_id: tenant.id,
       role,
@@ -1560,7 +1560,7 @@ export function AppProvider({ children }) {
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "salvarPermissoesCargo", tabela: "role_permissions", role });
-      return { error: { code: "no_rows_updated", message: "Nenhuma linha gravada — só um administrador edita permissões de cargo." } };
+      return { error: { code: "no_rows_updated", message: "Nenhuma linha gravada, só um administrador edita permissões de cargo." } };
     }
     const efetivoCargo = mesclarPermissoes(getPermissions(role), permissoesCompletas);
     const novoMapa = { ...rolePermissions, [role]: efetivoCargo };
@@ -1597,7 +1597,7 @@ export function AppProvider({ children }) {
     // fechado o caixa com este modal já na tela: o movimento entraria numa
     // sessão que o fechamento não vai mais somar.
     if (!caixaAberto) {
-      return { error: { message: "O caixa está fechado — abra o caixa antes de movimentar dinheiro." } };
+      return { error: { message: "O caixa está fechado, abra o caixa antes de movimentar dinheiro." } };
     }
 
     const { ok, erro } = validarMovimento({ tipo, valor, motivo, disponivel });

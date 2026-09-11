@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { AJUSTE_PERCENTUAL_MAX, ajusteExigeSenha, mapearVendaParaLinhas, montarVendaLegada, persistirVendaNormalizada, round2, validarAjuste } from "./vendas";
 
-describe("validarAjuste — desconto que zerava a conta calado", () => {
+describe("validarAjuste, desconto que zerava a conta calado", () => {
   const CONTA = 262.5;
 
   it("barra o percentual acima de 100 (era total R$ 0,00 sem aviso)", () => {
@@ -12,11 +12,11 @@ describe("validarAjuste — desconto que zerava a conta calado", () => {
     expect(r.erro).toContain("Valor Fixo");
   });
 
-  it("barra o acréscimo acima de 100% — mesmo dedo, prejuízo do outro lado", () => {
+  it("barra o acréscimo acima de 100%, mesmo dedo, prejuízo do outro lado", () => {
     expect(validarAjuste({ tipo: "acrescimo", mode: "percentual", valor: "500" }, CONTA).valido).toBe(false);
   });
 
-  it("aceita exatamente 100% — dar a conta de cortesia é decisão legítima", () => {
+  it("aceita exatamente 100%, dar a conta de cortesia é decisão legítima", () => {
     const r = validarAjuste({ tipo: "desconto", mode: "percentual", valor: String(AJUSTE_PERCENTUAL_MAX) }, CONTA);
     expect(r).toEqual({ valido: true, erro: null });
   });
@@ -45,14 +45,14 @@ describe("validarAjuste — desconto que zerava a conta calado", () => {
   });
 });
 
-describe("ajusteExigeSenha — senha de gerente no desconto", () => {
+describe("ajusteExigeSenha, senha de gerente no desconto", () => {
   it("exige senha em TODO desconto, sem faixa de tolerância", () => {
     expect(ajusteExigeSenha({ tipo: "desconto", mode: "percentual", valor: "5" })).toBe(true);
     expect(ajusteExigeSenha({ tipo: "desconto", mode: "percentual", valor: "100" })).toBe(true);
     expect(ajusteExigeSenha({ tipo: "desconto", mode: "fixo", valor: "0.50" })).toBe(true);
   });
 
-  it("acréscimo não passa pela senha — aumenta o total, não esvazia o caixa", () => {
+  it("acréscimo não passa pela senha, aumenta o total, não esvazia o caixa", () => {
     expect(ajusteExigeSenha({ tipo: "acrescimo", mode: "percentual", valor: "10" })).toBe(false);
     expect(ajusteExigeSenha({ tipo: "acrescimo", mode: "fixo", valor: "8" })).toBe(false);
   });
@@ -60,7 +60,7 @@ describe("ajusteExigeSenha — senha de gerente no desconto", () => {
   // A tela calcula com a MESMA comparação (`tipo === "desconto" ? -val : val`),
   // então tipo malformado não vira desconto — soma. Dispensar a senha nesses
   // casos não abre buraco: não há valor saindo da conta para autorizar.
-  it("tipo malformado não é desconto — nem no cálculo, nem aqui", () => {
+  it("tipo malformado não é desconto, nem no cálculo, nem aqui", () => {
     for (const ajuste of [null, undefined, {}, { tipo: "" }, { tipo: "DESCONTO" }]) {
       expect(ajusteExigeSenha(ajuste)).toBe(false);
     }
@@ -86,7 +86,7 @@ describe("round2 (P7)", () => {
 });
 
 describe("mapearVendaParaLinhas", () => {
-  it("P7 — arredonda subtotal/total/taxa/ajuste com erro de centavo de ponto flutuante", () => {
+  it("P7, arredonda subtotal/total/taxa/ajuste com erro de centavo de ponto flutuante", () => {
     const sale = {
       id: "vfloat",
       subtotal: 0.1 + 0.2, // 0.30000000000000004
@@ -344,7 +344,7 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
   });
 });
 
-describe("persistirVendaNormalizada (dual-write — detecção de falha)", () => {
+describe("persistirVendaNormalizada (dual-write, detecção de falha)", () => {
   // Fake client: registra cada insert e devolve o `{ error }` configurado
   // por tabela (ou null). Espelha o supabase-js: NÃO lança em erro de
   // RLS/constraint — resolve com { error }. Um valor-função permite

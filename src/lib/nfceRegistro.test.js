@@ -25,7 +25,7 @@ function base(over = {}) {
   };
 }
 
-describe("montarRegistroNfceEmitida — normalização/validação", () => {
+describe("montarRegistroNfceEmitida, normalização/validação", () => {
   it("autorizada: guarda o nfeProc como xml (xml_tipo='proc') e marca transmitida_em", () => {
     const r = montarRegistroNfceEmitida(base());
     expect(r.tenant_id).toBe(TENANT);

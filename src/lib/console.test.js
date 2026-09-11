@@ -68,7 +68,7 @@ describe("normalizarUsername", () => {
     expect(normalizarUsername("bar.do_zé-01!@#")).toBe("bar.do_ze-01");
   });
 
-  it("é idempotente — normalizar duas vezes dá o mesmo resultado", () => {
+  it("é idempotente, normalizar duas vezes dá o mesmo resultado", () => {
     const uma = normalizarUsername("Café Central 42");
     expect(normalizarUsername(uma)).toBe(uma);
   });
@@ -156,7 +156,7 @@ describe("validarNovoEstabelecimento", () => {
     expect(erros.slug).toContain("console2");
   });
 
-  it("compara endereços já normalizados — 'Bar do Zé' ocupa 'bardoze'", () => {
+  it("compara endereços já normalizados, 'Bar do Zé' ocupa 'bardoze'", () => {
     const { erros } = validarNovoEstabelecimento({ ...valido, slug: "Bar do Zé" }, ["bardoze"]);
     expect(erros.slug).toBeTruthy();
   });
@@ -168,12 +168,12 @@ describe("validarNovoEstabelecimento", () => {
 });
 
 describe("normalizarSlug", () => {
-  it("tira acento, espaço e maiúscula — igual ao slugify_tenant do banco", () => {
+  it("tira acento, espaço e maiúscula, igual ao slugify_tenant do banco", () => {
     expect(normalizarSlug("Bar do Zé")).toBe("bardoze");
     expect(normalizarSlug("  Café ☕  ")).toBe("cafe");
   });
 
-  it("apaga hífen e ponto — o banco não guarda separador nenhum", () => {
+  it("apaga hífen e ponto, o banco não guarda separador nenhum", () => {
     expect(normalizarSlug("bar-do-ze")).toBe("bardoze");
     expect(normalizarSlug("bar.do.ze")).toBe("bardoze");
   });
@@ -198,7 +198,7 @@ describe("sugerirSlugLivre", () => {
     expect(sugerirSlugLivre("bardoze", ["bardoze", "bardoze2"])).toBe("bardoze3");
   });
 
-  it("pula rótulo reservado — mesmo laço da RPC provisionar_tenant", () => {
+  it("pula rótulo reservado, mesmo laço da RPC provisionar_tenant", () => {
     expect(sugerirSlugLivre("console", [])).toBe("console2");
   });
 
@@ -349,7 +349,7 @@ describe("cadastroTemDados", () => {
     expect(cadastroTemDados({ adminPassword: "senha-forte" })).toBe(true);
   });
 
-  it("o plano escolhido sozinho não conta — ele já vem selecionado", () => {
+  it("o plano escolhido sozinho não conta, ele já vem selecionado", () => {
     expect(cadastroTemDados({ planoCodigo: "avancado" })).toBe(false);
   });
 
@@ -357,7 +357,7 @@ describe("cadastroTemDados", () => {
     expect(cadastroTemDados({ nome: "   ", adminNome: "\t" })).toBe(false);
   });
 
-  it("senha só de espaço conta — ali espaço é caractere de verdade", () => {
+  it("senha só de espaço conta, ali espaço é caractere de verdade", () => {
     expect(cadastroTemDados({ adminPassword: "  " })).toBe(true);
   });
 
@@ -412,7 +412,7 @@ describe("usernameSugeridoDoNome", () => {
     }
   });
 
-  it("é pura — mesma entrada, mesma saída", () => {
+  it("é pura, mesma entrada, mesma saída", () => {
     expect(usernameSugeridoDoNome("José Maria")).toBe(usernameSugeridoDoNome("José Maria"));
   });
 });
@@ -495,7 +495,7 @@ describe("sugerirUsuarioLivre", () => {
   });
 });
 
-describe("provisionarEstabelecimento — o endereço no corpo", () => {
+describe("provisionarEstabelecimento, o endereço no corpo", () => {
   const base = {
     nome: "Bar do Zé",
     planoCodigo: "avancado",
@@ -520,12 +520,12 @@ describe("provisionarEstabelecimento — o endereço no corpo", () => {
     expect(corpoEnviado().slug).toBe("bardoze");
   });
 
-  it("sem slug, não manda o campo — a borda deriva do nome como sempre fez", async () => {
+  it("sem slug, não manda o campo, a borda deriva do nome como sempre fez", async () => {
     await provisionarEstabelecimento(base);
     expect(corpoEnviado()).not.toHaveProperty("slug");
   });
 
-  it("slug que vira vazio também não vai — não sobrescreve o fallback do servidor", async () => {
+  it("slug que vira vazio também não vai, não sobrescreve o fallback do servidor", async () => {
     await provisionarEstabelecimento({ ...base, slug: "@@@" });
     expect(corpoEnviado()).not.toHaveProperty("slug");
   });
@@ -706,7 +706,7 @@ describe("compararModulosDoPlano", () => {
 // reais na base e o cartão "Receita mensal" do Console afirmava R$ 0,00 como
 // se fosse fato apurado — sem como distinguir "não fatura nada" de "ninguém
 // preencheu o preço". `semPreco` é o que permite à tela dizer POR QUE.
-describe("resumirPlataforma — mensalidade não definida", () => {
+describe("resumirPlataforma, mensalidade não definida", () => {
   const HOJE = new Date("2026-07-24T12:00:00Z");
   const planos = [{ codigo: "basico", nome: "Básico" }];
   // Datas iguais às do describe acima (status já conferido lá): 08-13 = ativo
@@ -806,7 +806,7 @@ describe("definirMensalidade", () => {
     });
   });
 
-  it("manda zero como zero — cortesia é valor válido, não campo vazio", async () => {
+  it("manda zero como zero, cortesia é valor válido, não campo vazio", async () => {
     await definirMensalidade("t1", 0);
     expect(supabase.rpc).toHaveBeenCalledWith("definir_mensalidade_tenant", {
       p_tenant_id: "t1",
@@ -936,7 +936,7 @@ describe("resumirUso", () => {
     expect(kpis.operando).toBe(2);
   });
 
-  it("dá ticket médio nulo — nunca NaN — para quem não teve pedido", () => {
+  it("dá ticket médio nulo, nunca NaN, para quem não teve pedido", () => {
     const { linhas } = resumirUso(tenants, assinaturas, analitico, HOJE);
     const porId = Object.fromEntries(linhas.map((l) => [l.tenantId, l]));
     expect(porId["t-forte"].ticketMedioCentavos).toBe(Math.round(250075 / 25));
@@ -1009,7 +1009,7 @@ describe("resumirUso", () => {
     expect(pagandoSemUso.every((l) => l.diasSemVender === null)).toBe(true);
   });
 
-  it("mantém em carência no bloco de atenção — ainda é cliente que paga", () => {
+  it("mantém em carência no bloco de atenção, ainda é cliente que paga", () => {
     const emCarencia = [
       { tenant_id: "t-parado", data_vencimento: "2026-07-31", carencia_dias: 3, status: "ativo" },
     ];
@@ -1089,7 +1089,7 @@ describe("resumirAddonsDoTenant", () => {
     expect(r.map((a) => a.codigo)).toEqual(["nfe", "tef"]);
   });
 
-  it("add-on do banco sem nome cai no código — a linha nunca fica sem rótulo", () => {
+  it("add-on do banco sem nome cai no código, a linha nunca fica sem rótulo", () => {
     const [a] = resumirAddonsDoTenant([{ codigo: "novo" }], [], "t-1");
     expect(a.nome).toBe("novo");
     expect(a.descricao).toBeNull();
@@ -1242,7 +1242,7 @@ describe("ordenarPorUrgencia", () => {
     expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual(["urgente", "x", "y", "z"]);
   });
 
-  it("empate total cai na ordem original — a lista não dança entre renders", () => {
+  it("empate total cai na ordem original, a lista não dança entre renders", () => {
     const tenants = [{ id: "primeiro" }, { id: "segundo" }];
     const linhas = [linha("primeiro", "carencia", -3), linha("segundo", "carencia", -3)];
     expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual(["primeiro", "segundo"]);
@@ -1439,7 +1439,7 @@ describe("filtrarPorSituacao", () => {
     expect(ids(filtrarPorSituacao(BASE, "em_dia", new Set()))).toEqual(["a", "b", "c"]);
   });
 
-  it("conjunto ausente não quebra — trata como ninguém pendente", () => {
+  it("conjunto ausente não quebra, trata como ninguém pendente", () => {
     expect(filtrarPorSituacao(BASE, "atencao", undefined)).toEqual([]);
     expect(ids(filtrarPorSituacao(BASE, "em_dia", undefined))).toEqual(["a", "b", "c"]);
   });
@@ -1470,7 +1470,7 @@ describe("normalizarFiltroSituacao", () => {
     expect(normalizarFiltroSituacao("em_dia")).toBe("em_dia");
   });
 
-  it("valor desconhecido vira 'todos' — URL editada à mão não esconde ninguém", () => {
+  it("valor desconhecido vira 'todos', URL editada à mão não esconde ninguém", () => {
     expect(normalizarFiltroSituacao("xpto")).toBe("todos");
     expect(normalizarFiltroSituacao("bloqueado")).toBe("todos");
   });
@@ -1487,7 +1487,7 @@ describe("normalizarFiltroSituacao", () => {
     expect(normalizarFiltroSituacao()).toBe("todos");
   });
 
-  it("chave repetida (array) vira 'todos' — não há escolha honesta entre duas", () => {
+  it("chave repetida (array) vira 'todos', não há escolha honesta entre duas", () => {
     expect(normalizarFiltroSituacao(["atencao", "em_dia"])).toBe("todos");
     expect(normalizarFiltroSituacao(["atencao"])).toBe("todos");
   });
@@ -1513,7 +1513,7 @@ describe("normalizarAba", () => {
     expect(ABAS_CONSOLE).toContain("saude");
   });
 
-  it("valor desconhecido cai na primeira aba — Console nunca abre vazio", () => {
+  it("valor desconhecido cai na primeira aba, Console nunca abre vazio", () => {
     expect(normalizarAba("xpto")).toBe("estabelecimentos");
     expect(normalizarAba("assinaturas")).toBe("estabelecimentos");
   });
@@ -1549,7 +1549,7 @@ describe("normalizarPeriodo", () => {
     expect(normalizarPeriodo("90")).toBe(90);
   });
 
-  it("número fora do conjunto cai no padrão — senão nenhum botão ficaria marcado", () => {
+  it("número fora do conjunto cai no padrão, senão nenhum botão ficaria marcado", () => {
     expect(normalizarPeriodo("45")).toBe(PERIODO_PADRAO);
     expect(normalizarPeriodo("0")).toBe(PERIODO_PADRAO);
     expect(normalizarPeriodo("365")).toBe(PERIODO_PADRAO);
@@ -1656,7 +1656,7 @@ describe("normalizarFiltroPlano", () => {
     expect(normalizarFiltroPlano()).toBe("todos");
   });
 
-  it("caixa diferente não passa — o código do banco é exato", () => {
+  it("caixa diferente não passa, o código do banco é exato", () => {
     expect(normalizarFiltroPlano("BASICO", CATALOGO)).toBe("todos");
     expect(normalizarFiltroPlano("Basico", CATALOGO)).toBe("todos");
   });
@@ -1702,7 +1702,7 @@ describe("contarPorPlano", () => {
     expect(Object.values(contagem).reduce((s, n) => s + n, 0)).toBe(3);
   });
 
-  it("plano sem ninguém simplesmente não aparece — quem lê usa zero", () => {
+  it("plano sem ninguém simplesmente não aparece, quem lê usa zero", () => {
     const contagem = contarPorPlano(BASE);
     expect(contagem.premium ?? 0).toBe(0);
   });
@@ -1746,7 +1746,7 @@ describe("montarMensagemPrimeiroAcesso", () => {
     expect(texto).not.toContain("s3nh4-secreta");
   });
 
-  it("não cita a plataforma — a mensagem é do estabelecimento (decisão 017)", () => {
+  it("não cita a plataforma, a mensagem é do estabelecimento (decisão 017)", () => {
     const texto = montarMensagemPrimeiroAcesso(COMPLETO);
     expect(texto).not.toMatch(/gastromundi/i);
     expect(texto).not.toMatch(/kora/i);
@@ -1927,7 +1927,7 @@ describe("pendentesPrimeiro", () => {
     expect(pendentesPrimeiro(fila).map((s) => s.id)).toEqual(["b", "a"]);
   });
 
-  it("quem pediu primeiro aparece primeiro — é quem espera há mais tempo", () => {
+  it("quem pediu primeiro aparece primeiro, é quem espera há mais tempo", () => {
     const [primeiro] = pendentesPrimeiro(fila);
     expect(primeiro.id).toBe("b");
   });
@@ -1956,7 +1956,7 @@ describe("resumirPlanoSolicitado", () => {
       .toBe("Estoque, Cozinha (KDS)");
   });
 
-  it("sem nada escolhido, DIZ que não escolheu — nunca uma linha vazia", () => {
+  it("sem nada escolhido, DIZ que não escolheu, nunca uma linha vazia", () => {
     expect(resumirPlanoSolicitado({})).toMatch(/não escolheu/i);
     expect(resumirPlanoSolicitado()).toMatch(/não escolheu/i);
     expect(resumirPlanoSolicitado({ plano_nome: "   ", plano_itens: [] })).toMatch(/não escolheu/i);
@@ -1980,7 +1980,7 @@ describe("listarSolicitacoes", () => {
     expect(select.args[0]).toContain("slug_desejado");
   });
 
-  it("falha de leitura volta como erro, com lista vazia — nunca lança", async () => {
+  it("falha de leitura volta como erro, com lista vazia, nunca lança", async () => {
     supabase.setTableError("solicitacoes_conta", { message: "rls" });
     const { data, error } = await listarSolicitacoes();
     expect(data).toEqual([]);
@@ -2013,7 +2013,7 @@ describe("decidirSolicitacao", () => {
     });
   });
 
-  it("erro do banco volta tratável — nunca lança na tela", async () => {
+  it("erro do banco volta tratável, nunca lança na tela", async () => {
     supabase.setRpcError("decidir_solicitacao_conta", { message: "42501" });
     const { data, error } = await decidirSolicitacao("1", "aprovada", { tenantId: "t-1" });
     expect(data).toBeNull();
@@ -2034,7 +2034,7 @@ describe("listarSaude", () => {
     expect(supabase.rpc).toHaveBeenCalledWith("saude_plataforma", { p_dias: 90 });
   });
 
-  it("erro do banco volta tratável — nunca lança na tela", async () => {
+  it("erro do banco volta tratável, nunca lança na tela", async () => {
     supabase.setRpcError("saude_plataforma", { message: "PGRST202" });
     const { data, error } = await listarSaude(30);
     // Lista vazia COM erro: a tela precisa poder dizer que não sabe, em vez

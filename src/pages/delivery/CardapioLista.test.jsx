@@ -38,7 +38,7 @@ function montar(cardapio, onAbrir = vi.fn()) {
 const azulejoEmoji = (raiz = document.body) =>
   raiz.querySelector(".card-produto__foto--emoji");
 
-describe("CardapioLista — foto que não carrega cai no emoji, não no ícone quebrado", () => {
+describe("CardapioLista, foto que não carrega cai no emoji, não no ícone quebrado", () => {
   it("a falha da imagem troca a foto pelo azulejo de emoji", () => {
     const { container } = montar({
       produtos: [produto({ foto_url: "https://bucket/apagada.jpg", emoji: "🍕" })],
@@ -112,7 +112,7 @@ describe("CardapioLista — foto que não carrega cai no emoji, não no ícone q
   });
 });
 
-describe("CardapioLista — o que a vitrine mostra", () => {
+describe("CardapioLista, o que a vitrine mostra", () => {
   it("agrupa por categoria preservando a ordem que veio do servidor", () => {
     const { container } = montar({
       produtos: [

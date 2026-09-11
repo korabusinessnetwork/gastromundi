@@ -56,7 +56,7 @@ describe("buscarConfigFiscal (Leva 13)", () => {
   });
 });
 
-describe("salvarConfigFiscal — allow-list e fronteira de segredo (Leva 13)", () => {
+describe("salvarConfigFiscal, allow-list e fronteira de segredo (Leva 13)", () => {
   it("upsert grava só as colunas do allow-list e usa onConflict tenant_id", async () => {
     await salvarConfigFiscal({ cnpj: "11222333000181", ambiente: 1, serie: 2, ativo: true });
 

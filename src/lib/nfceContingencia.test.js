@@ -10,7 +10,7 @@ import {
 
 const CHAVE = "43260712345678000195650090000000011900000012";
 
-describe("nfceContingencia — tpEmis", () => {
+describe("nfceContingencia, tpEmis", () => {
   it("emContingencia reconhece 9 (offline) e não 1 (normal)", () => {
     expect(emContingencia(9)).toBe(true);
     expect(emContingencia("9")).toBe(true);
@@ -26,7 +26,7 @@ describe("nfceContingencia — tpEmis", () => {
   });
 });
 
-describe("nfceContingencia — dependência da assinatura (digVal)", () => {
+describe("nfceContingencia, dependência da assinatura (digVal)", () => {
   it("em emissão normal não exige campos de contingência", () => {
     expect(camposFaltantesQrContingencia({ tpEmis: 1 })).toEqual([]);
   });
@@ -49,7 +49,7 @@ describe("nfceContingencia — dependência da assinatura (digVal)", () => {
   });
 });
 
-describe("nfceContingencia — fila de notas a transmitir", () => {
+describe("nfceContingencia, fila de notas a transmitir", () => {
   it("monta o item pendente com status e contadores zerados", () => {
     const item = montarNotaPendenteTransmissao({
       chave: CHAVE,

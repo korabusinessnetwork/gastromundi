@@ -18,7 +18,7 @@
 //    dias muda as falhas contadas, nunca o que está parado.
 import { useState } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("@/lib/supabase", async () => {
@@ -69,6 +69,18 @@ const SAUDE = [
   },
   // t-limpo não vem da RPC: nunca emitiu nota nem imprimiu nada.
 ];
+
+// Dois retornos com números que não se confundem com nada mais da tela, para
+// o teste de corrida saber qual das duas leituras pintou a tabela.
+const semPendencia = {
+  fiscais_paradas: 0,
+  fiscal_parada_desde: null,
+  impressoes_com_erro: 0,
+  impressoes_paradas: 0,
+  impressao_parada_desde: null,
+};
+const FALHAS_DE_90 = [{ tenant_id: "t-fiscal", fiscais_recusadas: 99, ...semPendencia }];
+const FALHAS_DE_30 = [{ tenant_id: "t-fiscal", fiscais_recusadas: 33, ...semPendencia }];
 
 // O período é propriedade controlada pela página (ele mora na URL — ver
 // ConsolePage). Aqui a casca guarda o mesmo estado que a página guarda, para
@@ -224,5 +236,31 @@ describe("SaudeDashboard", () => {
     // Sem esta frase, o dono leria "7 impressões paradas" como "nos últimos 30
     // dias" e concluiria errado que o problema é recente.
     expect(await screen.findByText(/não usa o período/i)).toBeTruthy();
+  });
+
+  // Duas leituras em voo ao mesmo tempo é o caso normal de quem troca de
+  // período depressa. O cabeçalho da tabela vem da propriedade, que muda na
+  // hora; se a resposta antiga ainda puder pintar a tela, o dono lê as falhas
+  // de 30 dias sob o título "últimos 90 dias" e conclui que o cliente está
+  // melhor do que está.
+  it("resposta atrasada de um período já trocado não pinta a tela", async () => {
+    const de30 = {};
+    const de90 = {};
+    de30.promessa = new Promise((r) => { de30.resolver = r; });
+    de90.promessa = new Promise((r) => { de90.resolver = r; });
+    mockListar
+      .mockReturnValueOnce(de30.promessa)
+      .mockReturnValueOnce(de90.promessa);
+
+    render(<Casca />);
+    // A leitura de 30 dias fica em voo, e o dono já pede 90.
+    await userEvent.click(screen.getByRole("button", { name: "90 dias" }));
+
+    // A de 90 volta primeiro; a de 30 chega depois, atrasada.
+    await act(async () => { de90.resolver({ data: FALHAS_DE_90, error: null }); });
+    await act(async () => { de30.resolver({ data: FALHAS_DE_30, error: null }); });
+
+    expect((await screen.findAllByText("99")).length).toBeGreaterThan(0);
+    expect(screen.queryByText("33")).toBeNull();
   });
 });

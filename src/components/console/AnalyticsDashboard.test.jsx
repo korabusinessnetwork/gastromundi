@@ -17,7 +17,7 @@
 //    aba é justamente essa.
 import { useState } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("@/lib/supabase", async () => {
@@ -88,7 +88,7 @@ beforeEach(() => {
   mockListar.mockResolvedValue({ data: USO, error: null });
 });
 
-describe("AnalyticsDashboard — carregamento", () => {
+describe("AnalyticsDashboard, carregamento", () => {
   it("mostra que está carregando antes da resposta chegar", () => {
     mockListar.mockReturnValue(new Promise(() => {}));
     montar();
@@ -103,7 +103,7 @@ describe("AnalyticsDashboard — carregamento", () => {
   });
 });
 
-describe("AnalyticsDashboard — a leitura falhou", () => {
+describe("AnalyticsDashboard, a leitura falhou", () => {
   it("diz que não sabe, em vez de mostrar zero como se fosse verdade", async () => {
     mockListar.mockResolvedValue({
       data: [],
@@ -130,7 +130,7 @@ describe("AnalyticsDashboard — a leitura falhou", () => {
   });
 });
 
-describe("AnalyticsDashboard — período", () => {
+describe("AnalyticsDashboard, período", () => {
   it("marca o período escolhido e só oferece os três que o banco aceita", async () => {
     montar();
     await screen.findByRole("table");
@@ -161,7 +161,7 @@ describe("AnalyticsDashboard — período", () => {
   });
 });
 
-describe("AnalyticsDashboard — os números", () => {
+describe("AnalyticsDashboard, os números", () => {
   it("formata os centavos inteiros em reais só na tela", async () => {
     montar();
     const linha = await linhaDe("Bar do Zé");
@@ -183,7 +183,7 @@ describe("AnalyticsDashboard — os números", () => {
     expect(screen.getByText("2 de 3")).toBeInTheDocument();
   });
 
-  it("mostra travessão — nunca NaN — no ticket médio de quem não vendeu", async () => {
+  it("mostra travessão, nunca NaN, no ticket médio de quem não vendeu", async () => {
     montar();
     const linha = await linhaDe("Novo Cliente");
     expect(within(linha).getByText("—")).toBeInTheDocument();
@@ -203,7 +203,7 @@ describe("AnalyticsDashboard — os números", () => {
   });
 });
 
-describe("AnalyticsDashboard — paga e não usa", () => {
+describe("AnalyticsDashboard, paga e não usa", () => {
   it("põe quem paga e não vendeu num bloco de atenção, antes dos números", async () => {
     montar();
     const bloco = await screen.findByRole("status", { name: /pagam e não estão vendendo/i });
@@ -229,7 +229,7 @@ describe("AnalyticsDashboard — paga e não usa", () => {
   });
 });
 
-describe("AnalyticsDashboard — base vazia e linguagem", () => {
+describe("AnalyticsDashboard, base vazia e linguagem", () => {
   it("explica o vazio em vez de mostrar uma tabela sem linha", async () => {
     mockListar.mockResolvedValue({ data: [], error: null });
     montar({ tenants: [], assinaturas: [] });
@@ -255,7 +255,7 @@ describe("AnalyticsDashboard — base vazia e linguagem", () => {
     expect(screen.queryByText(/Nenhuma venda no período/i)).toBeNull();
   });
 
-  it("não usa jargão na tela (CLAUDE.md — nada de MRR, GMV, churn, tenant, RPC)", async () => {
+  it("não usa jargão na tela (CLAUDE.md, nada de MRR, GMV, churn, tenant, RPC)", async () => {
     const { container } = montar();
     await screen.findByRole("table");
     const texto = container.textContent;
@@ -268,5 +268,40 @@ describe("AnalyticsDashboard — base vazia e linguagem", () => {
     montar();
     await screen.findByRole("table");
     expect(screen.getByText(/janela corrida a partir de hoje/i)).toBeInTheDocument();
+  });
+
+  // Duas leituras em voo ao mesmo tempo é o caso normal de quem troca de
+  // período depressa. O cabeçalho da tabela vem da propriedade, que muda na
+  // hora; se a resposta antiga ainda puder pintar a tela, o dono lê o
+  // faturamento de 30 dias sob o título "últimos 90 dias".
+  it("resposta atrasada de um período já trocado não pinta a tela", async () => {
+    const de30 = {};
+    const de90 = {};
+    de30.promessa = new Promise((r) => { de30.resolver = r; });
+    de90.promessa = new Promise((r) => { de90.resolver = r; });
+    mockListar
+      .mockReturnValueOnce(de30.promessa)
+      .mockReturnValueOnce(de90.promessa);
+
+    montar();
+    // A leitura de 30 dias fica em voo, e o dono já pede 90.
+    await userEvent.click(screen.getByRole("button", { name: "90 dias" }));
+
+    // A de 90 volta primeiro; a de 30 chega depois, atrasada.
+    await act(async () => {
+      de90.resolver({
+        data: [{ tenant_id: "t-forte", faturamento_centavos: 990000, pedidos: 99, ultima_venda: horasAtras(2) }],
+        error: null,
+      });
+    });
+    await act(async () => {
+      de30.resolver({
+        data: [{ tenant_id: "t-forte", faturamento_centavos: 330000, pedidos: 33, ultima_venda: horasAtras(2) }],
+        error: null,
+      });
+    });
+
+    expect((await screen.findAllByText("99")).length).toBeGreaterThan(0);
+    expect(screen.queryByText("33")).toBeNull();
   });
 });

@@ -44,7 +44,7 @@ describe("planejarImportacaoClientes (idempotência por telefone no tenant)", ()
     expect(plano.iguais).toHaveLength(1);
   });
 
-  it("existente sem telefone nunca casa (não tem chave) — planilha cria novo", () => {
+  it("existente sem telefone nunca casa (não tem chave), planilha cria novo", () => {
     const existente = { id: "c1", nome: "Ana Souza", telefone: null, endereco: null, observacoes: null };
     const plano = planejarImportacaoClientes([itemPlanilha()], [existente]);
     expect(plano.criar).toHaveLength(1);
@@ -52,7 +52,7 @@ describe("planejarImportacaoClientes (idempotência por telefone no tenant)", ()
 });
 
 describe("paraPayloadCliente", () => {
-  it("mapeia pro shape da tabela clientes — sem tenant_id (vem do JWT)", () => {
+  it("mapeia pro shape da tabela clientes, sem tenant_id (vem do JWT)", () => {
     expect(paraPayloadCliente(itemPlanilha(), "matheus")).toEqual({
       nome: "Ana Souza",
       telefone: "51999990001",

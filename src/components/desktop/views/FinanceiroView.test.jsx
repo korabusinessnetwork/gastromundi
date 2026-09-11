@@ -145,7 +145,7 @@ const linhaCom = (texto) => screen.getByText(texto).closest("tr");
 const card = (rotulo) =>
   screen.getByText(rotulo).parentElement.querySelector(".resumo-cards__valor").textContent;
 
-describe("FinanceiroView — conta atrasada (Run 2)", () => {
+describe("FinanceiroView, conta atrasada (Run 2)", () => {
   it("a conta que venceu mantém o botão de baixar", async () => {
     // Abrir a tela roda processarVencidos, que vira o status para 'vencido'.
     // Daí a linha ficava vermelha e SEM botão: não existia jeito de marcar
@@ -176,7 +176,7 @@ describe("FinanceiroView — conta atrasada (Run 2)", () => {
   });
 });
 
-describe("FinanceiroView — leitura do financeiro falhou (Run 2)", () => {
+describe("FinanceiroView, leitura do financeiro falhou (Run 2)", () => {
   it("não afirma que o mês está sem lançamentos quando não conseguiu ler", async () => {
     await montar({ erroListar: { message: "network" } });
 
@@ -208,7 +208,7 @@ describe("FinanceiroView — leitura do financeiro falhou (Run 2)", () => {
   });
 });
 
-describe("FinanceiroView — baixar conta (Run 2)", () => {
+describe("FinanceiroView, baixar conta (Run 2)", () => {
   it("avisa na tela quando a baixa falha, em vez de não acontecer nada", async () => {
     await montar({ linhas: [ALUGUEL], respostaBaixa: { data: null, error: { message: "sem conexão" } } });
 
@@ -246,7 +246,7 @@ describe("FinanceiroView — baixar conta (Run 2)", () => {
   });
 });
 
-describe("FinanceiroView — lucro do período (Run 2)", () => {
+describe("FinanceiroView, lucro do período (Run 2)", () => {
   const LUCRO = "Lucro (vendas − custo das fichas − saídas pagas)";
 
   it("a venda das 21h30 do dia 31 conta no mês em que foi vendida", async () => {
@@ -333,7 +333,7 @@ describe("FinanceiroView — lucro do período (Run 2)", () => {
   });
 });
 
-describe("FinanceiroView — lançamento salvo fora do período visível (Run 2)", () => {
+describe("FinanceiroView, lançamento salvo fora do período visível (Run 2)", () => {
   /** Preenche e salva uma despesa paga com a competência pedida. */
   async function salvarDespesaPaga(competencia) {
     const user = userEvent.setup();
@@ -359,7 +359,7 @@ describe("FinanceiroView — lançamento salvo fora do período visível (Run 2)
     await salvarDespesaPaga("2026-08-05");
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Lançamento salvo para 05/08/2026 — fora do período que está na tela.",
+      "Lançamento salvo para 05/08/2026, fora do período que está na tela.",
     );
     expect(screen.getByText("Nenhum lançamento no período.")).toBeInTheDocument();
   });

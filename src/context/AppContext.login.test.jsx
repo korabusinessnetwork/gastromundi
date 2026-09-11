@@ -91,7 +91,7 @@ beforeEach(() => {
   mockSupabase.auth.getSession.mockResolvedValue({ data: { session: null } });
 });
 
-describe("AppContext — login com endereço de acesso torto (Run 5, leva 7)", () => {
+describe("AppContext, login com endereço de acesso torto (Run 5, leva 7)", () => {
   it("o cenário é um subdomínio inválido de verdade na URL", () => {
     // Se este assert cair, o docblock de opções do ambiente parou de valer e os
     // testes abaixo estariam medindo o host de dev, não o endereço torto.
@@ -110,7 +110,7 @@ describe("AppContext — login com endereço de acesso torto (Run 5, leva 7)", (
     expect(app.current.currentUser).toBeNull();
   });
 
-  it("não consome tentativa — link torto não bloqueia a conta de ninguém", async () => {
+  it("não consome tentativa, link torto não bloqueia a conta de ninguém", async () => {
     const app = await montar();
 
     for (let i = 0; i < 6; i++) {

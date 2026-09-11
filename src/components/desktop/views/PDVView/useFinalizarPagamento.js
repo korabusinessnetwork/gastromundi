@@ -58,7 +58,7 @@ export function useFinalizarPagamento() {
     // local e sobe quando a internet voltar.
     const exigeTef = (m) => addonHabilitado?.("tef") && metodoUsaTef(m, metodosTef);
     if (!redeOnline && (pagamentos ?? []).some((p) => exigeTef(p?.metodo))) {
-      throw new Error("Sem internet: pagamento pela maquininha (TEF) fica indisponível. Cobre em dinheiro, Pix ou outro método — ou aguarde a conexão voltar.");
+      throw new Error("Sem internet: pagamento pela maquininha (TEF) fica indisponível. Cobre em dinheiro, Pix ou outro método, ou aguarde a conexão voltar.");
     }
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
     const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
@@ -113,7 +113,7 @@ export function useFinalizarPagamento() {
           const dados = isFiado(p.metodo)
             ? {
                 tipo: "receita", categoria: "vendas",
-                descricao: `Fiado — comanda ${selected.comanda}`,
+                descricao: `Fiado, comanda ${selected.comanda}`,
                 valor: valorPagamento, competencia: hoje,
                 vencimento: diaLocalDaqui(30),
                 status: "previsto",
@@ -121,7 +121,7 @@ export function useFinalizarPagamento() {
               }
             : {
                 tipo: "receita", categoria: "vendas",
-                descricao: `Venda — comanda ${selected.comanda}`,
+                descricao: `Venda, comanda ${selected.comanda}`,
                 valor: valorPagamento, competencia: hoje, status: "recebido",
                 origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
               };
@@ -269,7 +269,7 @@ export function useFinalizarPagamento() {
       reportarFalha(remocaoFalhou, { risco: "cobranca_dupla", acao: "removePending", comanda: selected.comanda, venda_id: sale.id });
       // Lança DEPOIS dos efeitos (mesa/estoque/log) para não perdê-los:
       // o CheckoutView exibe esta mensagem e o operador resolve manualmente.
-      throw new Error(`Venda registrada, mas a comanda ${selected.comanda} não saiu da tela. NÃO cobre de novo — feche a comanda manualmente.`);
+      throw new Error(`Venda registrada, mas a comanda ${selected.comanda} não saiu da tela. NÃO cobre de novo, feche a comanda manualmente.`);
     }
 
     return sale;

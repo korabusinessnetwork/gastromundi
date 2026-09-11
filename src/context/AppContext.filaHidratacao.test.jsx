@@ -113,7 +113,7 @@ beforeEach(() => {
   comSupabaseNeutro();
 });
 
-describe("AppContext — contador de pendências e a hidratação do IndexedDB", () => {
+describe("AppContext, contador de pendências e a hidratação do IndexedDB", () => {
   it("o número da sessão anterior chega quando a hidratação termina", async () => {
     const { app, unmount } = montar();
 

@@ -281,7 +281,7 @@ export default function MesasAdmin({ sz }) {
           <div className="mesas-admin__subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
             {mesas.length} mesa{mesas.length !== 1 ? "s" : ""} cadastrada{mesas.length !== 1 ? "s" : ""}
             {mesas.length > 0 && " · arraste os cards para reposicionar"}
-            {ghostCount > 0 && ` · ${ghostCount} em pré-visualização — clique num card tracejado para criar`}
+            {ghostCount > 0 && ` · ${ghostCount} em pré-visualização, clique num card tracejado para criar`}
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -306,7 +306,7 @@ export default function MesasAdmin({ sz }) {
           {/* Planejar N mesas: gera cards-fantasma no mapa para visualizar o
               salão antes de criar. Só visual — nada é gravado. (Princípio nº 1:
               o operador vê o layout que quer antes de cadastrar cada mesa.) */}
-          <div className="mesas-admin__preview" title="Mostra no mapa quantas mesas você planeja ter — nada é gravado até você criar cada uma">
+          <div className="mesas-admin__preview" title="Mostra no mapa quantas mesas você planeja ter, nada é gravado até você criar cada uma">
             <label htmlFor="mesas-preview-total" className="mesas-admin__preview-label">Planejar</label>
             <input
               id="mesas-preview-total"

@@ -58,7 +58,11 @@ export default function ConsoleLoginPage() {
     setError("Esta conta não tem acesso ao Console.");
   }, [currentUser]);
 
-  const submit = async () => {
+  // Recebe o evento porque quem dispara agora é o `submit` do formulário, e
+  // não mais o clique no botão: sem `preventDefault` o navegador recarregaria
+  // a página com os campos na URL.
+  const submit = async (e) => {
+    e?.preventDefault?.();
     if (loading || dbLoading) return;
     const u = sanitizeInput(username, 30);
     const p = password.slice(0, 100);
@@ -82,7 +86,13 @@ export default function ConsoleLoginPage() {
           <div className="console-login__marca-sub">Console da Plataforma · acesso restrito</div>
         </div>
 
-        <div className="console-login__card">
+        {/* Formulário de verdade, não dois campos soltos com Enter na mão:
+            é o `<form>` que faz o navegador e o gerenciador de senha
+            reconhecerem a tela como login, sem ele, nenhum dos dois oferece
+            guardar a credencial, o preenchimento automático degrada e o botão
+            "ir" do teclado do celular não envia nada. O Enter passa a vir de
+            graça pela submissão implícita, então os dois `onKeyDown` saíram. */}
+        <form className="console-login__card" onSubmit={submit}>
           <div className="console-login__campo">
             <label className="console-login__label" htmlFor="console-usuario">Usuário</label>
             <input
@@ -94,8 +104,11 @@ export default function ConsoleLoginPage() {
               maxLength={30}
               autoComplete="username"
               disabled={loading}
+              // Tela de um propósito só, com um primeiro campo óbvio: o dono
+              // abre o Console para digitar, e obrigá-lo a clicar antes é um
+              // passo que não decide nada (Princípio nº1).
+              autoFocus
               onChange={(e) => { setUsername(e.target.value); setError(""); }}
-              onKeyDown={(e) => e.key === "Enter" && submit()}
             />
           </div>
 
@@ -112,7 +125,6 @@ export default function ConsoleLoginPage() {
                 autoComplete="current-password"
                 disabled={loading}
                 onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                onKeyDown={(e) => e.key === "Enter" && submit()}
               />
               <button
                 type="button"
@@ -131,15 +143,17 @@ export default function ConsoleLoginPage() {
             </div>
           )}
 
+          {/* `type="submit"`: é ele que fecha a submissão implícita do Enter
+              e que o gerenciador de senha procura para saber que este
+              formulário é um login. */}
           <button
-            type="button"
+            type="submit"
             className="console-login__entrar"
-            onClick={submit}
             disabled={loading || dbLoading}
           >
             {dbLoading ? "Conectando…" : loading ? "Verificando…" : "Entrar"}
           </button>
-        </div>
+        </form>
 
         <div className="console-login__aviso">
           <LuShieldCheck size={15} aria-hidden />

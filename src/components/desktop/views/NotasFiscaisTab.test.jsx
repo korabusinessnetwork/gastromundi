@@ -89,7 +89,7 @@ async function irAteConferencia({ quantidade = "2", data = "2026-07-15", fator }
   return screen.findByRole("button", { name: /confirmar importação/i });
 }
 
-describe("NotasFiscaisTab — data de emissão sugerida", () => {
+describe("NotasFiscaisTab, data de emissão sugerida", () => {
   it("nota manual aberta às 21h30 nasce com a data de hoje, não a de amanhã", async () => {
     montar();
     const abrir = await screen.findByRole("button", { name: /nova nota manual/i });
@@ -103,7 +103,7 @@ describe("NotasFiscaisTab — data de emissão sugerida", () => {
   });
 });
 
-describe("NotasFiscaisTab — entrada de estoque sem data na nota", () => {
+describe("NotasFiscaisTab, entrada de estoque sem data na nota", () => {
   it("nota sem data de emissão dá entrada no estoque hoje, não amanhã", async () => {
     montar();
     const confirmar = await irAteConferencia({ data: "" });
@@ -135,8 +135,8 @@ describe("NotasFiscaisTab — entrada de estoque sem data na nota", () => {
  *
  * Agora só os itens da nota são tocados, um por um, e quem soma é o banco.
  */
-describe("NotasFiscaisTab — importação e saldo do estoque", () => {
-  it("toca só os produtos da nota — o resto do catálogo fica intacto", async () => {
+describe("NotasFiscaisTab, importação e saldo do estoque", () => {
+  it("toca só os produtos da nota, o resto do catálogo fica intacto", async () => {
     setAppMock({
       products: [PRODUTO, ACUCAR],
       estoque: { p1: 10, p2: 99 },

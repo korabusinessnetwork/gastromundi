@@ -18,7 +18,7 @@ const temaCss = readFileSync(resolve(__dirname, "../styles/tema.css"), "utf8");
  *      (é isso que mantém a aparência default idêntica: o browser resolve
  *       var(--gm-x) para o mesmo hex que colors.js tinha antes.)
  */
-describe("colors.js — fonte única de verdade (F018)", () => {
+describe("colors.js, fonte única de verdade (F018)", () => {
   it("C.x é o nome do token '--gm-x' (nunca um hex em JS)", () => {
     for (const [chave, valor] of Object.entries(C)) {
       expect(valor, `C.${chave}`).toBe(`--gm-${chave}`);

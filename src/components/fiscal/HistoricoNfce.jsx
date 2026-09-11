@@ -160,7 +160,7 @@ export default function HistoricoNfce() {
                 : `${naFila} notas ainda não foram emitidas.`}
             </strong>{" "}
             As vendas estão registradas. O sistema tenta emitir sozinho assim que a
-            conexão voltar — enquanto isso elas não aparecem na lista abaixo.
+            conexão voltar, enquanto isso elas não aparecem na lista abaixo.
           </span>
         </div>
       )}

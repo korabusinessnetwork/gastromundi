@@ -80,7 +80,7 @@ describe("ApexEntrarPage", () => {
     await waitFor(() => expect(mockBranding).toHaveBeenCalledWith("bardoze"));
   });
 
-  it("endereço que não existe recebe resposta — e ninguém é jogado num login errado", async () => {
+  it("endereço que não existe recebe resposta, e ninguém é jogado num login errado", async () => {
     mockBranding.mockResolvedValue({ data: null, error: null });
     const user = userEvent.setup();
     renderizar();
@@ -121,7 +121,7 @@ describe("ApexEntrarPage", () => {
     expect(cadastro).toHaveAttribute("href", "/criar-conta");
   });
 
-  it("não mostra marca de estabelecimento nenhum — é a porta da plataforma", () => {
+  it("não mostra marca de estabelecimento nenhum, é a porta da plataforma", () => {
     renderizar();
     // A tela é da KORA; nome de cliente aqui seria o defeito que ela conserta.
     expect(document.body.textContent).not.toMatch(/gastromundi/i);

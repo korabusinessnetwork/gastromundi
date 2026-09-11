@@ -9,7 +9,7 @@ const BASE = {
   aliquota_icms: "18",
 };
 
-describe("montarItemFiscal — Simples Nacional (CRT 1/2)", () => {
+describe("montarItemFiscal, Simples Nacional (CRT 1/2)", () => {
   it("CSOSN 102: só orig + csosn, sem base/valor de ICMS", () => {
     const r = montarItemFiscal(
       { ...BASE, csosn: "102" },
@@ -36,7 +36,7 @@ describe("montarItemFiscal — Simples Nacional (CRT 1/2)", () => {
   });
 });
 
-describe("montarItemFiscal — Regime Normal (CRT 3)", () => {
+describe("montarItemFiscal, Regime Normal (CRT 3)", () => {
   it("CST 00: calcula vBC e vICMS a partir de vProd e alíquota", () => {
     const r = montarItemFiscal(
       { ...BASE, cst_icms: "00", aliquota_icms: "18" },
@@ -70,7 +70,7 @@ describe("montarItemFiscal — Regime Normal (CRT 3)", () => {
   });
 });
 
-describe("montarItemFiscal — validações comuns e PIS/COFINS", () => {
+describe("montarItemFiscal, validações comuns e PIS/COFINS", () => {
   it("falta NCM → erro claro", () => {
     expect(() => montarItemFiscal({ cfop: "5102", csosn: "102" }, { crt: 1, vProd: 5 }))
       .toThrow(/NCM/);

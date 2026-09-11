@@ -194,7 +194,7 @@ export default function LoginPage() {
               <strong style={{ color: varColor(C.text), wordBreak: "break-all" }}>{endereco}</strong>
             </div>
             <div className="login-page__error-caption" style={{ color: varColor(C.muted), marginTop: 14 }}>
-              Confira se o endereço foi digitado certo — o nome do estabelecimento vem antes do primeiro ponto. Se o erro continuar, fale com quem te passou o link.
+              Confira se o endereço foi digitado certo, o nome do estabelecimento vem antes do primeiro ponto. Se o erro continuar, fale com quem te passou o link.
             </div>
           </div>
           <div className="login-page__footer-text" style={{ color: varColor(C.muted), marginTop: 14 }}>Kora</div>

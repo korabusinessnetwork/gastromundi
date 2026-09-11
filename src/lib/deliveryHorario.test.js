@@ -118,7 +118,7 @@ describe("horarioValido", () => {
   });
 });
 
-describe("deliveryDeveEstarAberto — não governa (null)", () => {
+describe("deliveryDeveEstarAberto, não governa (null)", () => {
   it("retorna null quando o agendamento está desligado", () => {
     expect(deliveryDeveEstarAberto({ auto: false, dias: [1], faixas: [{ abre: "18:00", fecha: "23:00" }] })).toBeNull();
   });
@@ -129,7 +129,7 @@ describe("deliveryDeveEstarAberto — não governa (null)", () => {
   });
 });
 
-describe("deliveryDeveEstarAberto — janela no mesmo dia", () => {
+describe("deliveryDeveEstarAberto, janela no mesmo dia", () => {
   const h = { auto: true, dias: [1], faixas: [{ abre: "18:00", fecha: "23:00" }] }; // só segunda
 
   it("aberto dentro da janela no dia ativo", () => {
@@ -148,7 +148,7 @@ describe("deliveryDeveEstarAberto — janela no mesmo dia", () => {
   });
 });
 
-describe("deliveryDeveEstarAberto — janela que vira a noite", () => {
+describe("deliveryDeveEstarAberto, janela que vira a noite", () => {
   const h = { auto: true, dias: [5], faixas: [{ abre: "18:00", fecha: "02:00" }] }; // só sexta
 
   it("aberto na noite do dia ativo (antes da meia-noite)", () => {
@@ -169,7 +169,7 @@ describe("deliveryDeveEstarAberto — janela que vira a noite", () => {
   });
 });
 
-describe("deliveryDeveEstarAberto — múltiplas faixas no mesmo dia", () => {
+describe("deliveryDeveEstarAberto, múltiplas faixas no mesmo dia", () => {
   // Caso do dono: abre 08 fecha 10, abre 11 fecha 14, abre 18 fecha 00.
   const h = {
     auto: true,

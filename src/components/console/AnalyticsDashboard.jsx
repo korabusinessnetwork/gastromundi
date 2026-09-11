@@ -47,10 +47,17 @@ export default function AnalyticsDashboard({ tenants, assinaturas, dias, aoTroca
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);
 
-  const carregar = useCallback(async () => {
+  // `valendo` responde se a resposta desta leitura ainda interessa quando ela
+  // chega. Sem isso, trocar de período depressa (7 e depois 90) deixa duas
+  // RPCs em voo, e a última a responder pinta a tela: a legenda diz "últimos
+  // 90 dias", porque vem da propriedade, que muda na hora, e os números são
+  // os de 7. O mesmo guarda-chuva cobre a saída do Console no meio da
+  // leitura, que sem ele escreveria estado em componente já desmontado.
+  const carregar = useCallback(async (valendo = () => true) => {
     setCarregando(true);
     setErro(false);
     const { data, error } = await listarAnalitico(dias);
+    if (!valendo()) return;
     // Lista vazia é indistinguível de "ninguém vendeu": guardamos a falha
     // para a tela dizer que não sabe, em vez de afirmar R$ 0,00 para uma
     // base que pode estar faturando.
@@ -59,7 +66,11 @@ export default function AnalyticsDashboard({ tenants, assinaturas, dias, aoTroca
     setCarregando(false);
   }, [dias]);
 
-  useEffect(() => { carregar(); }, [carregar]);
+  useEffect(() => {
+    let atual = true;
+    carregar(() => atual);
+    return () => { atual = false; };
+  }, [carregar]);
 
   const { linhas, kpis, pagandoSemUso } = useMemo(
     () => resumirUso(tenants ?? [], assinaturas ?? [], analitico),
@@ -94,9 +105,13 @@ export default function AnalyticsDashboard({ tenants, assinaturas, dias, aoTroca
           <LuTriangleAlert size={26} aria-hidden />
           <p>
             Não foi possível carregar o uso dos estabelecimentos. Isso não quer dizer que
-            ninguém está vendendo — os números só aparecem quando a leitura funcionar.
+            ninguém está vendendo, os números só aparecem quando a leitura funcionar.
           </p>
-          <button type="button" className="auso__tentar" onClick={carregar}>Tentar de novo</button>
+          {/* `() => carregar()`, não `carregar`: o evento do clique chegaria
+              como primeiro argumento, que agora é a pergunta "esta resposta
+              ainda vale", e um evento não é função, então a recarga pedida
+              pelo dono quebraria ao voltar. */}
+          <button type="button" className="auso__tentar" onClick={() => carregar()}>Tentar de novo</button>
         </div>
       ) : (
         <>

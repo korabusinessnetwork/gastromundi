@@ -95,7 +95,7 @@ const definemRpc = arquivos
 const ultima = definemRpc[definemRpc.length - 1];
 const sql = ultima ? semComentarios(ler(ultima)) : "";
 
-describe("Console — guard do analytics da plataforma (F022-ANALYTICS)", () => {
+describe("Console, guard do analytics da plataforma (F022-ANALYTICS)", () => {
   it("a migração existe e define a RPC com o parâmetro que o front chama", () => {
     expect(arquivos).toContain(CORRETIVA);
     expect(definemRpc).toContain(CORRETIVA);
@@ -145,7 +145,7 @@ describe("Console — guard do analytics da plataforma (F022-ANALYTICS)", () => 
     expect(cabecalho).toMatch(/\bSTABLE\b/);
   });
 
-  it("não mexe em policy nenhuma — o caminho proibido pela ADR-008", () => {
+  it("não mexe em policy nenhuma, o caminho proibido pela ADR-008", () => {
     // O atalho seria `ALTER POLICY ... USING (tenant_id = auth.tenant_id()
     // OR public.is_super_admin())` em `vendas`. Isso entregaria a base de
     // vendas de TODOS os clientes a qualquer token de plataforma vazado —
@@ -160,7 +160,7 @@ describe("Console — guard do analytics da plataforma (F022-ANALYTICS)", () => 
     expect(sql).not.toMatch(/USING\s*\(/i);
   });
 
-  it("devolve agregado — nenhuma coluna identifica uma venda", () => {
+  it("devolve agregado, nenhuma coluna identifica uma venda", () => {
     const assinatura = recorte(sql, "RETURNS TABLE (", "LANGUAGE plpgsql");
 
     // As quatro, e só elas. Acrescentar coluna que identifique uma venda

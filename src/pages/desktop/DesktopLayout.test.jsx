@@ -29,7 +29,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("DesktopLayout — abrir e fechar caixa", () => {
+describe("DesktopLayout, abrir e fechar caixa", () => {
   it("abrir caixa define o fundo, a sessão e caixa_aberto=true", async () => {
     const user = userEvent.setup();
     const appMock = setAppMock({ caixaAberto: false, pending: [], sales: [] });
@@ -78,7 +78,7 @@ describe("DesktopLayout — abrir e fechar caixa", () => {
   });
 });
 
-describe("DesktopLayout — marca no topo (Run 5, leva 11)", () => {
+describe("DesktopLayout, marca no topo (Run 5, leva 11)", () => {
   // A barra com o nome só existe na largura de celular (< 768); useResponsive
   // lê window.innerWidth na montagem, então basta encolher a janela antes de
   // renderizar — sem dublê de hook.

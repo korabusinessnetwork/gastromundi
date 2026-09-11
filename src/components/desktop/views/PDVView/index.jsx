@@ -421,7 +421,7 @@ export default function PDVView({ notify }) {
       handleBack();
     } catch (err) {
       console.error("Erro ao lançar pedido:", err);
-      notify?.("Erro ao lançar o pedido — nada foi salvo. Tente novamente.", "err");
+      notify?.("Erro ao lançar o pedido, nada foi salvo. Tente novamente.", "err");
     } finally {
       setSalvando(false);
     }
@@ -642,7 +642,7 @@ export default function PDVView({ notify }) {
         // 1º passo — cria/adiciona no destino. Origem ainda intacta.
         const { error: erroDestino } = await addPending(novaOrder);
         if (erroDestino) {
-          notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          notify?.("Não foi possível transferir. Nada foi alterado, tente novamente.", "err");
           return;
         }
 
@@ -658,7 +658,7 @@ export default function PDVView({ notify }) {
           if (erroCompensacao) {
             notify?.("Atenção: os itens podem ter ficado duplicados. Confira as duas comandas.", "err");
           } else {
-            notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+            notify?.("Não foi possível transferir. Nada foi alterado, tente novamente.", "err");
           }
           return;
         }
@@ -670,7 +670,7 @@ export default function PDVView({ notify }) {
         // TypeError: a modal ficava aberta, sem mensagem, e o clique de novo
         // repetia o erro.
         if (!destino) {
-          notify?.("A comanda de destino não está mais aberta. Nada foi alterado — escolha outra.", "err");
+          notify?.("A comanda de destino não está mais aberta. Nada foi alterado, escolha outra.", "err");
           return;
         }
         const itensDestinoOrig = Array.isArray(destino.items) ? destino.items : [];
@@ -690,7 +690,7 @@ export default function PDVView({ notify }) {
           destinoId, { items: novosDestino, total: totalDestino }, { baseItems: itensDestinoOrig },
         );
         if (erroDestino) {
-          notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          notify?.("Não foi possível transferir. Nada foi alterado, tente novamente.", "err");
           return;
         }
 
@@ -710,7 +710,7 @@ export default function PDVView({ notify }) {
           if (erroCompensacao) {
             notify?.("Atenção: os itens podem ter ficado duplicados. Confira as duas comandas.", "err");
           } else {
-            notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+            notify?.("Não foi possível transferir. Nada foi alterado, tente novamente.", "err");
           }
           return;
         }
@@ -2136,7 +2136,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                             <div className="pdv__saldo-item-meta">
                               {item._comanda ? `${item._comanda} · ` : ""}
                               {item.canceladoPor || ""}
-                              {item.motivoCancelamento && item.motivoCancelamento !== "—" ? ` — ${item.motivoCancelamento}` : ""}
+                              {item.motivoCancelamento && item.motivoCancelamento !== "—" ? `, ${item.motivoCancelamento}` : ""}
                             </div>
                           )}
                         </div>

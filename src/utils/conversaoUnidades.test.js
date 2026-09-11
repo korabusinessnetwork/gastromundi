@@ -63,7 +63,7 @@ describe("arredondarQtd", () => {
     expect(arredondarQtd(7 * 1.15)).toBe(8.05);   // 8.049999999999999
   });
 
-  it("mantém 3 casas — 1 grama em quilo, 1 ml em litro", () => {
+  it("mantém 3 casas, 1 grama em quilo, 1 ml em litro", () => {
     expect(arredondarQtd(0.001)).toBe(0.001);
     expect(arredondarQtd(2.125)).toBe(2.125);
   });

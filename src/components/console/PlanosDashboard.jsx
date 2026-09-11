@@ -138,7 +138,7 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, confirma
             <span className="pdash__ok-texto">
               Pagamento de {aviso.competencia} registrado para <strong>{aviso.nome}</strong>.
               {" "}O vencimento agora é {formatarData(aviso.vencimento)}.
-              {aindaEmAtraso && " A assinatura continua em atraso — registre também a competência seguinte."}
+              {aindaEmAtraso && " A assinatura continua em atraso, registre também a competência seguinte."}
             </span>
             <button
               type="button"

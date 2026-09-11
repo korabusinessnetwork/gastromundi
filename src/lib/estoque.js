@@ -75,7 +75,7 @@ export async function gerarAlertaOversell({ produtoId, nome, vendido, disponivel
       visibilidade: "operacional",
       modulo: "estoque",
       titulo: `Venda sem estoque: ${nome}`,
-      descricao: `Uma venda baixou ${fmtNum(vendido)} de ${nome}, mas o estoque tinha só ${fmtNum(disponivel)}. O saldo foi zerado e a diferença não existe no sistema — confira a contagem e a reposição.`,
+      descricao: `Uma venda baixou ${fmtNum(vendido)} de ${nome}, mas o estoque tinha só ${fmtNum(disponivel)}. O saldo foi zerado e a diferença não existe no sistema, confira a contagem e a reposição.`,
       acao: { label: "Ver estoque", tipo: "abrir_estoque", params: { produto_ids: [produtoId] } },
       origem: { chave, dados: { produto_id: produtoId, nome, vendido, disponivel } },
     })) ?? {};
@@ -183,7 +183,7 @@ async function registrarAlertaBaixaFalhou({ produtoId, subprodutoId, nome, quant
       titulo: `Estoque não descontado: ${item}`,
       // Sem o texto cru do banco: quem lê isto é dono de restaurante. A
       // mensagem técnica fica em origem.dados.erro, para o diagnóstico.
-      descricao: `Uma venda saiu com ${fmtNum(quantidade)} de ${item}, mas o sistema não conseguiu descontar do estoque. O saldo que aparece na tela está maior do que o que existe de verdade — confira a contagem deste item.`,
+      descricao: `Uma venda saiu com ${fmtNum(quantidade)} de ${item}, mas o sistema não conseguiu descontar do estoque. O saldo que aparece na tela está maior do que o que existe de verdade, confira a contagem deste item.`,
       acao: {
         label: "Ver estoque",
         tipo: "abrir_estoque",

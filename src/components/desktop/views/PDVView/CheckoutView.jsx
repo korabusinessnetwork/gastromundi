@@ -948,13 +948,13 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
               {!podeConfirmar && (
                 <div className="checkout-view__aviso-confirmar" style={{ color: varColor(C.muted) }}>
                   {itensVisiveis.length === 0
-                    ? "Todos os itens foram removidos — volte para a comanda"
+                    ? "Todos os itens foram removidos, volte para a comanda"
                     : tefOffline
-                    ? "Sem internet: a maquininha (TEF) não funciona. Troque para dinheiro, Pix ou outro método — a venda fica guardada e sobe quando a conexão voltar."
+                    ? "Sem internet: a maquininha (TEF) não funciona. Troque para dinheiro, Pix ou outro método, a venda fica guardada e sobe quando a conexão voltar."
                     : usaFiado && !clienteFiado
                     ? "Busque ou cadastre o cliente do fiado acima"
                     : dinheiroInsuficiente
-                    ? `Faltam R$ ${faltaEmDinheiro.toFixed(2)} em dinheiro — corrija o valor recebido ou divida o pagamento`
+                    ? `Faltam R$ ${faltaEmDinheiro.toFixed(2)} em dinheiro, corrija o valor recebido ou divida o pagamento`
                     : isSplit
                     ? Math.abs(faltaAlocar) >= 0.015
                       ? `Distribua os R$ ${Math.abs(faltaAlocar).toFixed(2)} restantes`

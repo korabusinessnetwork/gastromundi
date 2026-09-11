@@ -26,6 +26,17 @@ import "./SolicitacoesFila.css";
  * referência); as duas ações possíveis são dois botões, e a destrutiva
  * (recusar) pede confirmação com motivo opcional antes de valer.
  */
+
+/**
+ * Quantos pedidos JÁ DECIDIDOS a tela mostra por vez. A leitura traz o
+ * histórico inteiro, e ele só cresce: cada conta aberta e cada recusa ficam
+ * ali para sempre. Depois de um ano de venda, quem abre a aba para responder
+ * os pendentes rolaria centenas de linhas mortas antes de chegar ao fim da
+ * página. Dez é o suficiente para conferir o que foi decidido nos últimos
+ * dias, que é a pergunta real ("já respondi esse?"), e quem quiser o resto
+ * pede. Mesmo desenho do bloco da lista de estabelecimentos.
+ */
+const BLOCO_HISTORICO = 10;
 export default function SolicitacoesFila({
   solicitacoes = [],
   carregando = false,
@@ -49,6 +60,13 @@ export default function SolicitacoesFila({
     () => (solicitacoes ?? []).filter((s) => s?.status !== "pendente"),
     [solicitacoes]
   );
+
+  // O corte é só de RENDERIZAÇÃO: a leitura continua trazendo o histórico
+  // inteiro, e é sobre ele que a contagem do rodapé é feita. Se fosse a
+  // consulta que cortasse, a linha "mostrando 10 de 137" passaria a mentir.
+  const [quantosDecididos, setQuantosDecididos] = useState(BLOCO_HISTORICO);
+  const decididasNaTela = decididas.slice(0, quantosDecididos);
+  const restantesDecididas = decididas.length - decididasNaTela.length;
 
   const abrirRecusa = (s) => {
     setRecusando(s.id);
@@ -78,7 +96,7 @@ export default function SolicitacoesFila({
         <LuTriangleAlert size={18} aria-hidden />
         <span>
           Não foi possível carregar os pedidos de conta feitos no site. Ninguém
-          é perdido — eles continuam guardados; é só a leitura que falhou.
+          é perdido, eles continuam guardados; é só a leitura que falhou.
         </span>
         <button type="button" className="sfila__aviso-acao" onClick={onRecarregar}>
           Tentar de novo
@@ -148,7 +166,7 @@ export default function SolicitacoesFila({
               {recusando === s.id ? (
                 <div className="sfila__recusa">
                   <label className="sfila__recusa-campo">
-                    <span>Motivo (opcional — fica guardado com o pedido)</span>
+                    <span>Motivo (opcional, fica guardado com o pedido)</span>
                     <input
                       type="text"
                       value={motivo}
@@ -189,7 +207,7 @@ export default function SolicitacoesFila({
                     className="sfila__botao sfila__botao--primario"
                     onClick={() => onAprovar?.(s)}
                     disabled={!online}
-                    title={online ? undefined : "Sem internet — reconecte para criar o estabelecimento"}
+                    title={online ? undefined : "Sem internet, reconecte para criar o estabelecimento"}
                   >
                     Aprovar e criar estabelecimento
                   </button>
@@ -212,7 +230,7 @@ export default function SolicitacoesFila({
         <section className="sfila__historico">
           <h2 className="sfila__historico-titulo">Já decididos</h2>
           <ul className="sfila__historico-lista">
-            {decididas.map((s) => (
+            {decididasNaTela.map((s) => (
               <li key={s.id} className="sfila__historico-item">
                 {s.status === "aprovada" ? (
                   <LuCircleCheck size={15} aria-hidden className="sfila__icone--ok" />
@@ -230,6 +248,24 @@ export default function SolicitacoesFila({
               </li>
             ))}
           </ul>
+          {/* Primeiro a conta, depois a ação: sem a linha que diz quantos
+              existem, uma lista cortada é indistinguível de um histórico
+              menor do que ele é. */}
+          {restantesDecididas > 0 && (
+            <div className="sfila__historico-mais">
+              <p className="sfila__historico-conta">
+                Mostrando {decididasNaTela.length} de {decididas.length} pedidos já decididos.
+              </p>
+              <button
+                type="button"
+                className="sfila__botao"
+                onClick={() => setQuantosDecididos((q) => q + BLOCO_HISTORICO)}
+              >
+                Ver mais {Math.min(restantesDecididas, BLOCO_HISTORICO)}
+                {Math.min(restantesDecididas, BLOCO_HISTORICO) === 1 ? " pedido" : " pedidos"}
+              </button>
+            </div>
+          )}
         </section>
       )}
     </div>

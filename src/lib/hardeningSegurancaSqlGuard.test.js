@@ -63,7 +63,7 @@ function tabelasDePublicComRlsLigada() {
   return tabelas;
 }
 
-describe("RLS ligada — policy sem ENABLE não protege nada (20260920)", () => {
+describe("RLS ligada, policy sem ENABLE não protege nada (20260920)", () => {
   it("a corretiva existe e roda depois de todas as outras migrations dela", () => {
     expect(ARQUIVOS).toContain(RLS_LIGADA);
     for (const tabela of ["config", "fechamentos", "pending", "products", "sales", "users"]) {
@@ -107,7 +107,7 @@ describe("RLS ligada — policy sem ENABLE não protege nada (20260920)", () => 
   });
 });
 
-describe("combo_produtos — a última policy allow_all (20260923)", () => {
+describe("combo_produtos, a última policy allow_all (20260923)", () => {
   it("a corretiva derruba allow_all_combo_produtos e roda depois de quem a criou", () => {
     expect(ARQUIVOS).toContain(COMBO_TENANT);
     expect(SQL.get(COMBO_TENANT)).toMatch(
@@ -190,7 +190,7 @@ describe("search_path fixo em SECURITY DEFINER (20260924)", () => {
   });
 });
 
-describe("delivery — teto para pedido sem telefone (20260921)", () => {
+describe("delivery, teto para pedido sem telefone (20260921)", () => {
   it("a corretiva roda depois da que criou o rate limit", () => {
     const originais = ARQUIVOS.filter((f) =>
       /CREATE OR REPLACE FUNCTION public\.delivery_rate_limit_check/i.test(SQL.get(f)),
@@ -211,7 +211,7 @@ describe("delivery — teto para pedido sem telefone (20260921)", () => {
   });
 });
 
-describe("config fiscal — leitura por papel (20260922)", () => {
+describe("config fiscal, leitura por papel (20260922)", () => {
   it("a corretiva roda depois da migration que criou a policy", () => {
     expect(ARQUIVOS).toContain(FISCAL_PAPEL);
     expect(FISCAL_PAPEL > "20260731_tenant_fiscal_config.sql").toBe(true);

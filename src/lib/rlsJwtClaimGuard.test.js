@@ -57,7 +57,7 @@ function nomesAfetados(conteudo) {
   return nomes;
 }
 
-describe("RLS — guard do claim de JWT (auth.jwt() ->> 'role')", () => {
+describe("RLS, guard do claim de JWT (auth.jwt() ->> 'role')", () => {
   const arquivosMigracoes = readdirSync(MIGRATIONS_DIR).filter(n => n.endsWith(".sql"));
 
   // Só interessam as migrações que EFETIVAMENTE introduziram o bug (têm o

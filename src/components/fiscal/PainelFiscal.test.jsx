@@ -42,7 +42,7 @@ beforeEach(() => {
   salvarConfigFiscal.mockResolvedValue({ data: {}, error: null });
 });
 
-describe("<PainelFiscal> — configuração fiscal do tenant (Leva 13)", () => {
+describe("<PainelFiscal>, configuração fiscal do tenant (Leva 13)", () => {
   it("renderiza as seções e campos após carregar", async () => {
     render(<PainelFiscal />);
     expect(await screen.findByLabelText(/CNPJ/i)).toBeTruthy();

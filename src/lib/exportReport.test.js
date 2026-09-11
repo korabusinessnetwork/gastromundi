@@ -50,7 +50,7 @@ beforeEach(() => {
   xlsx.arquivos.length = 0;
 });
 
-describe("exportReport — marca no cabeçalho do arquivo (Run 5, leva 11)", () => {
+describe("exportReport, marca no cabeçalho do arquivo (Run 5, leva 11)", () => {
   it("sem identidade informada, o PDF sai com a marca da PLATAFORMA", () => {
     exportToPDF("Vendas", ["Produto"], [["Café"]], "hoje");
 
@@ -69,13 +69,13 @@ describe("exportReport — marca no cabeçalho do arquivo (Run 5, leva 11)", () 
   it("sem identidade informada, a planilha sai com a marca da PLATAFORMA", () => {
     exportToXLSX("Vendas", ["Produto"], [["Café"]], "hoje");
 
-    expect(metaDaPlanilha()).toContain("Kora — Vendas");
+    expect(metaDaPlanilha()).toContain("Kora, Vendas");
     expect(metaDaPlanilha()).not.toContain("GASTROMUNDI");
   });
 
   it("com identidade informada, a planilha sai com a marca do estabelecimento", () => {
     exportToXLSX("Vendas", ["Produto"], [["Café"]], "hoje", { empresa: "CASA COFFEE by Kora" });
 
-    expect(metaDaPlanilha()).toContain("CASA COFFEE by Kora — Vendas");
+    expect(metaDaPlanilha()).toContain("CASA COFFEE by Kora, Vendas");
   });
 });

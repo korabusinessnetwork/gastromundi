@@ -44,7 +44,7 @@ beforeEach(() => {
   config();
 });
 
-describe("AdminView — carga", () => {
+describe("AdminView, carga", () => {
   it("falha de leitura avisa em vez de mostrar tudo zerado em silêncio", async () => {
     config({ erroLeitura: { message: "permission denied" } });
     renderWithProviders(<AdminView />);
@@ -60,7 +60,7 @@ describe("AdminView — carga", () => {
   });
 });
 
-describe("AdminView — salvar fornecedor", () => {
+describe("AdminView, salvar fornecedor", () => {
   it("gravação recusada avisa, mantém o formulário aberto e não altera a lista", async () => {
     const user = userEvent.setup();
     config({ erroGravacao: { message: "rls" } });
@@ -93,7 +93,7 @@ describe("AdminView — salvar fornecedor", () => {
   });
 });
 
-describe("AdminView — excluir fornecedor", () => {
+describe("AdminView, excluir fornecedor", () => {
   async function abrirConfirmacao(user) {
     await abrirFornecedores(user);
     const linha = screen.getByRole("cell", { name: "Distribuidora Sul" }).closest("tr");
@@ -129,7 +129,7 @@ describe("AdminView — excluir fornecedor", () => {
   });
 });
 
-describe("AdminView — registrar compra", () => {
+describe("AdminView, registrar compra", () => {
   it("compra aberta às 21h30 nasce com a data de hoje, não a de amanhã", async () => {
     const user = userEvent.setup();
     renderWithProviders(<AdminView />);

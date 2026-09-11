@@ -39,7 +39,7 @@ function registro(over = {}) {
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("<BotaoReimprimirNfce> — reimpressão do cupom (Leva 9)", () => {
+describe("<BotaoReimprimirNfce>, reimpressão do cupom (Leva 9)", () => {
   it("nota autorizada: mostra o botão 'Reimprimir cupom' e abre o cupom ao clicar", async () => {
     buscarNfcePorVenda.mockResolvedValue({ data: registro(), error: null });
     render(<BotaoReimprimirNfce venda={venda} emit={emit} />);

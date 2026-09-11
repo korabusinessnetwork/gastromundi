@@ -138,7 +138,7 @@ export default function ApexEntrarPage() {
       <div className="apex-porta__cadastro">
         <p className="apex-porta__cadastro-texto">
           Crie sua conta, escolha o plano do seu negócio e a gente prepara o seu
-          KORA — você entra como administrador do seu estabelecimento.
+          KORA, você entra como administrador do seu estabelecimento.
         </p>
         <Link to="/criar-conta" className="apex-botao apex-botao--outline apex-porta__cadastro-cta">
           Criar minha conta

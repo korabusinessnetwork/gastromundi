@@ -17,7 +17,7 @@ describe("tPagDoMetodo", () => {
   });
 });
 
-describe("montarVendaFiscal — itens", () => {
+describe("montarVendaFiscal, itens", () => {
   it("mapeia nome/qtd/preço e calcula vProd, ignorando cancelados", () => {
     const { itens } = montarVendaFiscal({
       items: [
@@ -29,7 +29,7 @@ describe("montarVendaFiscal — itens", () => {
     expect(itens[0]).toMatchObject({ cProd: "p1", xProd: "X-Salada", qCom: 2, vUnCom: 15, vProd: 30, uCom: "UN" });
   });
 
-  it("não inventa dados fiscais do produto (NCM/CFOP/icms ausentes — ponto de extensão)", () => {
+  it("não inventa dados fiscais do produto (NCM/CFOP/icms ausentes, ponto de extensão)", () => {
     const { itens } = montarVendaFiscal({ items: [{ name: "Água", price: 5, qty: 1 }] });
     expect(itens[0]).not.toHaveProperty("ncm");
     expect(itens[0]).not.toHaveProperty("cfop");
@@ -43,7 +43,7 @@ describe("montarVendaFiscal — itens", () => {
   });
 });
 
-describe("montarVendaFiscal — pagamentos", () => {
+describe("montarVendaFiscal, pagamentos", () => {
   it("mapeia método→tPag e anexa troco só quando > 0", () => {
     const { pagamentos } = montarVendaFiscal({
       pagamentos: [
@@ -64,7 +64,7 @@ describe("montarVendaFiscal — pagamentos", () => {
   });
 });
 
-describe("montarVendaFiscal — consumidor", () => {
+describe("montarVendaFiscal, consumidor", () => {
   it("dest nulo por padrão (NFC-e anônima) e preservado quando presente", () => {
     expect(montarVendaFiscal({}).dest).toBeNull();
     const dest = { cpf: "11122233344" };

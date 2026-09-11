@@ -51,7 +51,7 @@ describe("planejarImportacaoEstoque (casamento por nome do cardápio)", () => {
       []
     );
     expect(plano.naoEncontrados).toEqual([
-      { linha: 2, mensagem: '"Não Existe" não está no cardápio — importe/cadastre os produtos antes do estoque.' },
+      { linha: 2, mensagem: '"Não Existe" não está no cardápio, importe/cadastre os produtos antes do estoque.' },
     ]);
     expect(plano.definir).toHaveLength(1);
     expect(plano.definir[0].produto_id).toBe(2);

@@ -84,7 +84,7 @@ const definemProvisionar = arquivos
   )
   .sort();
 
-describe("Console — guard do billing no provisionamento (R7L1)", () => {
+describe("Console, guard do billing no provisionamento (R7L1)", () => {
   it("a corretiva existe e roda depois de toda versão anterior de provisionar_tenant", () => {
     expect(arquivos).toContain(CORRETIVA);
 
@@ -122,7 +122,7 @@ describe("Console — guard do billing no provisionamento (R7L1)", () => {
     expect(ler(CORRETIVA)).toContain(corpoOriginal);
   });
 
-  it("a assinatura da função não muda — sobrecarga tornaria a chamada do Console ambígua", () => {
+  it("a assinatura da função não muda, sobrecarga tornaria a chamada do Console ambígua", () => {
     const sql = semComentarios(ler(CORRETIVA));
 
     // Os 4 parâmetros da 20260803, nessa ordem, e nada além deles.

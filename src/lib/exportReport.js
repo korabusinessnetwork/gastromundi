@@ -85,7 +85,7 @@ export function exportToPDF(titulo, headers, rows, periodo, opts = {}) {
  */
 export function exportToXLSX(titulo, headers, rows, periodo, opts = {}) {
   const empresa  = opts.empresa || EMPRESA_FALLBACK;
-  const metaRow  = [`${empresa} — ${titulo}`, "", "", `Período: ${periodoLabel(periodo)}`, "", `Gerado em: ${new Date().toLocaleString("pt-BR")}`];
+  const metaRow  = [`${empresa}, ${titulo}`, "", "", `Período: ${periodoLabel(periodo)}`, "", `Gerado em: ${new Date().toLocaleString("pt-BR")}`];
   const emptyRow = [];
 
   const data = [metaRow, emptyRow, headers, ...rows];

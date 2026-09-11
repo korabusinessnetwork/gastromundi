@@ -106,7 +106,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
                       : `${esquecidas.length} comandas abertas sem nenhum consumo`}
                   </strong>
                   <div className="comanda-grid__aviso-esquecidas-texto" style={{ color: varColor(C.muted) }}>
-                    Aberta{esquecidas.length === 1 ? "" : "s"} há mais de {HORAS_COMANDA_ESQUECIDA}h e sem itens ativos —
+                    Aberta{esquecidas.length === 1 ? "" : "s"} há mais de {HORAS_COMANDA_ESQUECIDA}h e sem itens ativos,
                     ocupa{esquecidas.length === 1 ? "" : "m"} a mesa e distorce{esquecidas.length === 1 ? "" : "m"} o
                     salão. Abra e cancele para liberar.
                   </div>

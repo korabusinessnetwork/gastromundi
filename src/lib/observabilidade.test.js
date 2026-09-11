@@ -195,7 +195,7 @@ describe("mascararPII", () => {
     expect(mascararPII("cartao 4111 1111 1111 1111")).toBe("cartao [num]");
   });
 
-  it("PRESERVA o code do Postgres (5 dígitos) e UUID — úteis pro diagnóstico", () => {
+  it("PRESERVA o code do Postgres (5 dígitos) e UUID, úteis pro diagnóstico", () => {
     expect(mascararPII("erro code 23505")).toBe("erro code 23505");
     const uuid = "550e8400-e29b-41d4-a716-446655440000";
     expect(mascararPII(`tenant ${uuid}`)).toBe(`tenant ${uuid}`);

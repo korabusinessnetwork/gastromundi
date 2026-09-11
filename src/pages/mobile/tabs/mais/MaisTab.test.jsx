@@ -16,7 +16,7 @@ const baseProps = {
   ],
 };
 
-describe("MaisTab — hub de módulos do Palm", () => {
+describe("MaisTab, hub de módulos do Palm", () => {
   it("lista os módulos recebidos do shell (já filtrados por permissão/plano)", () => {
     render(<MaisTab {...baseProps} onConfiguracoes={vi.fn()} />);
     expect(screen.getByText("PDV")).toBeInTheDocument();

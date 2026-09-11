@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { rotaInicialPermitida } from "./navegacaoInicial";
 
-describe("rotaInicialPermitida — casa segura do usuário (anti-loop)", () => {
+describe("rotaInicialPermitida, casa segura do usuário (anti-loop)", () => {
   it("caixa/admin com pdv cai no PDV", () => {
     expect(rotaInicialPermitida({ pdv: true, palm: true })).toBe("/app/pdv");
   });

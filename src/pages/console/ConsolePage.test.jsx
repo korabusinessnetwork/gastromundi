@@ -127,7 +127,7 @@ async function abrirAbaPlanos(user) {
   await user.click(await screen.findByRole("button", { name: /Planos e assinaturas/i }));
 }
 
-describe("ConsolePage — leituras secundárias que falham", () => {
+describe("ConsolePage, leituras secundárias que falham", () => {
   beforeEach(() => {
     mockListarEstabelecimentos.mockReset();
     mockListarPlanos.mockReset();
@@ -148,7 +148,7 @@ describe("ConsolePage — leituras secundárias que falham", () => {
     expect(screen.queryByText(/não foi possível carregar a cobrança/i)).not.toBeInTheDocument();
   });
 
-  it("não mostra receita R$ 0,00 quando a leitura da cobrança falha — diz que não sabe", async () => {
+  it("não mostra receita R$ 0,00 quando a leitura da cobrança falha, diz que não sabe", async () => {
     mockListarAssinaturas.mockResolvedValue(falhou());
     const user = userEvent.setup();
     renderWithProviders(<ConsolePage />);
@@ -231,7 +231,7 @@ describe("ConsolePage — leituras secundárias que falham", () => {
   });
 });
 
-describe("ConsolePage — o alerta de validade chega à tela", () => {
+describe("ConsolePage, o alerta de validade chega à tela", () => {
   beforeEach(() => {
     mockListarEstabelecimentos.mockReset();
     mockListarPlanos.mockReset();
@@ -270,7 +270,7 @@ describe("ConsolePage — o alerta de validade chega à tela", () => {
 // Sem isso o dono teria de abrir estabelecimento por estabelecimento para
 // descobrir quem tem NF-e ou TEF ligado (Princípio nº1 — estado sempre
 // visível).
-describe("ConsolePage — add-ons no card do estabelecimento", () => {
+describe("ConsolePage, add-ons no card do estabelecimento", () => {
   const cardDe = (nome) => screen.getByText(nome).closest("li");
 
   beforeEach(() => {
@@ -313,7 +313,7 @@ describe("ConsolePage — add-ons no card do estabelecimento", () => {
   // Leitura vazia por falha é indistinguível de "não tem nenhum": todos os
   // cards diriam "Sem add-ons" e o dono poderia desligar a cobrança de quem
   // está com módulo pago ligado. A tela precisa dizer que não sabe.
-  it("com a leitura dos add-ons falhando, o card diz que não sabe — não 'Sem add-ons'", async () => {
+  it("com a leitura dos add-ons falhando, o card diz que não sabe, não 'Sem add-ons'", async () => {
     banco.erroAddons = { message: "network" };
     renderWithProviders(<ConsolePage />);
 
@@ -344,7 +344,7 @@ describe("ConsolePage — add-ons no card do estabelecimento", () => {
 // dono: quem está vencendo, quem está em atraso, quem está bloqueado. Isso só
 // existia na outra aba, com os dados já carregados neste mesmo componente
 // (Princípio nº1 — estado sempre visível).
-describe("ConsolePage — situação da cobrança no card", () => {
+describe("ConsolePage, situação da cobrança no card", () => {
   const cardDe = (nome) => screen.getByText(nome).closest("li");
 
   // data_vencimento é `date` puro: monta a string pelo calendário local, não
@@ -392,7 +392,7 @@ describe("ConsolePage — situação da cobrança no card", () => {
     expect(within(cardDe("Café Central")).getByText("Ativo")).toBeInTheDocument();
   });
 
-  it("estabelecimento sem linha de assinatura diz 'Sem assinatura' — não fica em branco", async () => {
+  it("estabelecimento sem linha de assinatura diz 'Sem assinatura', não fica em branco", async () => {
     mockListarAssinaturas.mockResolvedValue(ok(ASSINATURAS.filter((a) => a.tenant_id !== "t2")));
     renderWithProviders(<ConsolePage />);
     expect(await screen.findByText("Café Central")).toBeInTheDocument();
@@ -402,7 +402,7 @@ describe("ConsolePage — situação da cobrança no card", () => {
     );
   });
 
-  it("com a leitura das assinaturas falhando, o card diz que não sabe — não 'Ativo'", async () => {
+  it("com a leitura das assinaturas falhando, o card diz que não sabe, não 'Ativo'", async () => {
     // Lista vazia por falha é idêntica a "ninguém tem assinatura": sem esta
     // distinção o dono leria "Sem assinatura" em toda a base e poderia sair
     // cobrando quem está em dia.
@@ -419,7 +419,7 @@ describe("ConsolePage — situação da cobrança no card", () => {
   });
 });
 
-describe("ConsolePage — ordem da lista por urgência", () => {
+describe("ConsolePage, ordem da lista por urgência", () => {
   // data_vencimento é `date` puro: monta a string pelo calendário local.
   const emDias = (n) => {
     const d = new Date();
@@ -499,7 +499,7 @@ describe("ConsolePage — ordem da lista por urgência", () => {
   });
 });
 
-describe("ConsolePage — busca por nome", () => {
+describe("ConsolePage, busca por nome", () => {
   const emDias = (n) => {
     const d = new Date();
     d.setDate(d.getDate() + n);
@@ -609,7 +609,7 @@ describe("ConsolePage — busca por nome", () => {
   });
 });
 
-describe("ConsolePage — registrar pagamento pelo card", () => {
+describe("ConsolePage, registrar pagamento pelo card", () => {
   const emDias = (n) => {
     const d = new Date();
     d.setDate(d.getDate() + n);
@@ -750,7 +750,7 @@ describe("ConsolePage — registrar pagamento pelo card", () => {
 // assinaturas". Aqui o que importa é a PORTA: quem ganha o botão, quem não
 // ganha, e o que a lista faz quando o histórico desfaz um pagamento.
 // ---------------------------------------------------------------------------
-describe("ConsolePage — ver pagamentos pelo card", () => {
+describe("ConsolePage, ver pagamentos pelo card", () => {
   const botaoPagamentos = (nome) =>
     screen.queryByRole("button", { name: `Ver pagamentos de ${nome}` });
 
@@ -796,7 +796,7 @@ describe("ConsolePage — ver pagamentos pelo card", () => {
     expect(botaoPagamentos("Bar do Zé")).toBeInTheDocument();
   });
 
-  it("oferece o histórico em estabelecimento cancelado — é onde se confere o que foi pago", async () => {
+  it("oferece o histórico em estabelecimento cancelado, é onde se confere o que foi pago", async () => {
     mockListarAssinaturas.mockResolvedValue(ok([
       ASSINATURAS[0],
       { tenant_id: "t2", valor_mensal: 249.9, data_vencimento: "2026-05-10", carencia_dias: 3, status: "cancelado" },
@@ -889,7 +889,7 @@ describe("ConsolePage — ver pagamentos pelo card", () => {
   });
 });
 
-describe("ConsolePage — filtro por situação", () => {
+describe("ConsolePage, filtro por situação", () => {
   const emDias = (n) => {
     const d = new Date();
     d.setDate(d.getDate() + n);
@@ -1019,7 +1019,7 @@ describe("ConsolePage — filtro por situação", () => {
     expect(nomesNaOrdem()).toEqual(["Bar do Zé", "Café Central"]);
   });
 
-  it("base vazia não mostra atalhos — o vazio de cadastro já resolve", async () => {
+  it("base vazia não mostra atalhos, o vazio de cadastro já resolve", async () => {
     mockListarEstabelecimentos.mockResolvedValue(ok([]));
     renderWithProviders(<ConsolePage />);
     expect(await screen.findByText("Nenhum estabelecimento ainda")).toBeInTheDocument();
@@ -1028,7 +1028,7 @@ describe("ConsolePage — filtro por situação", () => {
   });
 });
 
-describe("ConsolePage — o recorte escolhido fica na URL", () => {
+describe("ConsolePage, o recorte escolhido fica na URL", () => {
   // O MemoryRouter não mexe em `window.location`, então a única forma honesta
   // de ver o endereço é perguntar ao próprio roteador. O espião também expõe um
   // "voltar" para provar que trocar de recorte não empilha histórico.
@@ -1179,7 +1179,7 @@ describe("ConsolePage — o recorte escolhido fica na URL", () => {
   });
 });
 
-describe("ConsolePage — a aba aberta fica na URL", () => {
+describe("ConsolePage, a aba aberta fica na URL", () => {
   const EspiaoURL = () => {
     const loc = useLocation();
     const navigate = useNavigate();
@@ -1235,7 +1235,24 @@ describe("ConsolePage — a aba aberta fica na URL", () => {
     expect(abaBotao("Saúde da operação")).toHaveClass("console__aba--ativa");
   });
 
-  it("aba inventada na URL cai em Estabelecimentos — o Console nunca abre vazio", async () => {
+  // Até aqui, qual seção estava aberta era dito só pela cor do realce. Quem
+  // usa leitor de tela ouvia cinco botões iguais, e os outros grupos de
+  // escolha do Console (situação, plano, período) já anunciavam o escolhido.
+  it("a aba aberta se anuncia, não depende só da cor", async () => {
+    const user = userEvent.setup();
+    renderComEspiao("/console?aba=saude");
+    expect(await screen.findByText("Falhas dos últimos")).toBeInTheDocument();
+
+    expect(abaBotao("Saúde da operação")).toHaveAttribute("aria-current", "page");
+    // E só a aberta: duas abas anunciadas ao mesmo tempo seria pior que nenhuma.
+    expect(abaBotao("Estabelecimentos")).not.toHaveAttribute("aria-current");
+
+    await user.click(abaBotao("Estabelecimentos"));
+    expect(abaBotao("Estabelecimentos")).toHaveAttribute("aria-current", "page");
+    expect(abaBotao("Saúde da operação")).not.toHaveAttribute("aria-current");
+  });
+
+  it("aba inventada na URL cai em Estabelecimentos, o Console nunca abre vazio", async () => {
     renderComEspiao("/console?aba=PLANOS");
 
     expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
@@ -1281,7 +1298,7 @@ describe("ConsolePage — a aba aberta fica na URL", () => {
   });
 });
 
-describe("ConsolePage — o período do uso fica na URL", () => {
+describe("ConsolePage, o período do uso fica na URL", () => {
   const EspiaoURL = () => {
     const loc = useLocation();
     const navigate = useNavigate();
@@ -1384,7 +1401,7 @@ describe("ConsolePage — o período do uso fica na URL", () => {
   });
 });
 
-describe("ConsolePage — o recorte por plano", () => {
+describe("ConsolePage, o recorte por plano", () => {
   // Mesmo espião das rodadas 33 a 35: o MemoryRouter não mexe em
   // `window.location`, então o endereço se lê pelo roteador.
   const EspiaoURL = () => {
@@ -1590,7 +1607,7 @@ describe("ConsolePage — o recorte por plano", () => {
     expect(url()).toBe("/console");
   });
 
-  it("com um plano só no catálogo a linha não aparece — não haveria o que recortar", async () => {
+  it("com um plano só no catálogo a linha não aparece, não haveria o que recortar", async () => {
     mockListarPlanos.mockResolvedValue(ok([{ codigo: "basico", nome: "Básico" }]));
     renderComEspiao();
     expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
@@ -1627,7 +1644,7 @@ describe("ConsolePage — o recorte por plano", () => {
 // estabelecimento e precisa mandar o acesso para o cliente. O cartão é
 // exercitado pela porta de verdade (preencher e enviar o formulário de
 // criação), não injetando estado na página.
-describe("ConsolePage — o cartão de primeiro acesso", () => {
+describe("ConsolePage, o cartão de primeiro acesso", () => {
   const RESPOSTA = { nome: "Bar do Zé", slug: "bar-do-ze", admin: { username: "barze" } };
 
   // A mensagem esperada é a da própria função pura: se ela mudar, o teste
@@ -1700,7 +1717,7 @@ describe("ConsolePage — o cartão de primeiro acesso", () => {
     expect(screen.getByRole("button", { name: /Copiar dados de acesso/i })).toBeInTheDocument();
   });
 
-  it("a senha nunca aparece na tela — só a instrução de mandá-la em separado", async () => {
+  it("a senha nunca aparece na tela, só a instrução de mandá-la em separado", async () => {
     const { user } = prepararTela();
     await criarEstabelecimento(user);
 
@@ -1811,7 +1828,7 @@ describe("ConsolePage — o cartão de primeiro acesso", () => {
     expect(texto).toContain("Usuário: barze");
   });
 
-  it("começar outra ação fecha o cartão — a tela não acumula dois avisos", async () => {
+  it("começar outra ação fecha o cartão, a tela não acumula dois avisos", async () => {
     const { user } = prepararTela();
     await criarEstabelecimento(user);
 
@@ -1824,7 +1841,7 @@ describe("ConsolePage — o cartão de primeiro acesso", () => {
 // prova aqui é o lado da TELA: o cartão confere o valor gravado, a mensagem
 // para o cliente continua sem qualquer valor financeiro, e a falha só do
 // preço aparece como aviso — nunca como "a criação falhou".
-describe("ConsolePage — a mensalidade no cartão de primeiro acesso", () => {
+describe("ConsolePage, a mensalidade no cartão de primeiro acesso", () => {
   const prepararTela = () => {
     const user = userEvent.setup();
     const escrever = vi.fn().mockResolvedValue(undefined);
@@ -1896,7 +1913,7 @@ describe("ConsolePage — a mensalidade no cartão de primeiro acesso", () => {
     expect(dado("Mensalidade")).toBeNull();
   });
 
-  it("preço que não salvou vira aviso — a criação não é desmentida", async () => {
+  it("preço que não salvou vira aviso, a criação não é desmentida", async () => {
     mockDefinirMensalidade.mockResolvedValue({ data: null, error: { message: "recusado" } });
     const { user } = prepararTela();
     await criarEstabelecimento(user, "300,00");
@@ -1916,7 +1933,7 @@ describe("ConsolePage — a mensalidade no cartão de primeiro acesso", () => {
 // quem entrou antes da rodada 38 segue assim. Até aqui isso só existia como um
 // número no aviso da outra aba: na lista principal, o cliente de cortesia e o
 // cliente de R$ 300 tinham exatamente a mesma cara.
-describe("ConsolePage — quem está sem mensalidade na lista", () => {
+describe("ConsolePage, quem está sem mensalidade na lista", () => {
   const cardDe = (nome) => screen.getByText(nome).closest("li");
   const semPreco = (extra = {}) => ({
     tenant_id: "t1",
@@ -1941,7 +1958,7 @@ describe("ConsolePage — quem está sem mensalidade na lista", () => {
     setAppMock({ currentUser: { name: "Plataforma" }, logout: vi.fn() });
   });
 
-  it("card de quem cobra sem preço diz 'Sem mensalidade' — quem tem preço não ganha marca", async () => {
+  it("card de quem cobra sem preço diz 'Sem mensalidade', quem tem preço não ganha marca", async () => {
     renderWithProviders(<ConsolePage />);
     expect(await screen.findByText("Bar do Zé")).toBeInTheDocument();
 
@@ -1953,7 +1970,7 @@ describe("ConsolePage — quem está sem mensalidade na lista", () => {
     expect(within(cardDe("Café Central")).queryByText("Sem mensalidade")).not.toBeInTheDocument();
   });
 
-  it("em carência sem preço também é marcado — continua sendo base que paga", async () => {
+  it("em carência sem preço também é marcado, continua sendo base que paga", async () => {
     const ontem = new Date();
     ontem.setDate(ontem.getDate() - 1);
     const dia = `${ontem.getFullYear()}-${String(ontem.getMonth() + 1).padStart(2, "0")}-${String(ontem.getDate()).padStart(2, "0")}`;
@@ -1966,7 +1983,7 @@ describe("ConsolePage — quem está sem mensalidade na lista", () => {
     );
   });
 
-  it("cancelado e sem assinatura não ganham a marca — não é dinheiro esquecido", async () => {
+  it("cancelado e sem assinatura não ganham a marca, não é dinheiro esquecido", async () => {
     mockListarAssinaturas.mockResolvedValue(ok([semPreco({ status: "cancelado" })]));
     renderWithProviders(<ConsolePage />);
     expect(await screen.findByText("Café Central")).toBeInTheDocument();
@@ -2030,7 +2047,7 @@ describe("ConsolePage — quem está sem mensalidade na lista", () => {
 // cinco botões. O corte é só de renderização — ordem, recortes, busca e
 // contagens continuam sobre a base inteira, senão todo contador da tela
 // passaria a mentir.
-describe("ConsolePage — lista de estabelecimentos por partes", () => {
+describe("ConsolePage, lista de estabelecimentos por partes", () => {
   // 25 estabelecimentos em dia: mais que um bloco, sem ninguém no topo por
   // urgência (isso é assunto do último teste).
   const MUITOS = Array.from({ length: 25 }, (_, i) => ({
@@ -2098,7 +2115,7 @@ describe("ConsolePage — lista de estabelecimentos por partes", () => {
     expect(screen.queryByText(/Mostrando \d+ de/)).not.toBeInTheDocument();
   });
 
-  it("buscar volta ao primeiro bloco — a lista nova não herda o que foi revelado", async () => {
+  it("buscar volta ao primeiro bloco, a lista nova não herda o que foi revelado", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ConsolePage />);
     expect(await screen.findByText("Estabelecimento 01")).toBeInTheDocument();
@@ -2113,7 +2130,7 @@ describe("ConsolePage — lista de estabelecimentos por partes", () => {
     expect(screen.getByText("Mostrando 20 de 25 estabelecimentos.")).toBeInTheDocument();
   });
 
-  it("recortar por plano corta a conta junto — o rodapé fala do recorte, não da base", async () => {
+  it("recortar por plano corta a conta junto, o rodapé fala do recorte, não da base", async () => {
     const user = userEvent.setup();
     renderWithProviders(<ConsolePage />);
     expect(await screen.findByText("Estabelecimento 01")).toBeInTheDocument();
@@ -2126,7 +2143,7 @@ describe("ConsolePage — lista de estabelecimentos por partes", () => {
     expect(screen.queryByRole("button", { name: /Ver mais/i })).not.toBeInTheDocument();
   });
 
-  it("quem precisa de atenção cabe no primeiro bloco — o corte não esconde bloqueado", async () => {
+  it("quem precisa de atenção cabe no primeiro bloco, o corte não esconde bloqueado", async () => {
     // O último da base, que sem urgência cairia no segundo bloco. O status vem
     // do vencimento (`resumirPlataforma` recalcula), então o que se muda aqui é
     // a data: vencida e fora da carência é bloqueado.
@@ -2148,7 +2165,7 @@ describe("ConsolePage — lista de estabelecimentos por partes", () => {
 // O dono acaba de criar (ou de cobrar) um estabelecimento e quer ver a loja
 // de pé. Até aqui isso só existia dentro do app do próprio estabelecimento,
 // onde o super-admin não entra.
-describe("ConsolePage — atalho para o cardápio do estabelecimento", () => {
+describe("ConsolePage, atalho para o cardápio do estabelecimento", () => {
   // Um com slug, um sem (tenant anterior à migration 20260740).
   const COM_SLUG = [
     { ...TENANTS[0], slug: "bar-do-ze" },
@@ -2224,7 +2241,7 @@ describe("ConsolePage — atalho para o cardápio do estabelecimento", () => {
 // O cartão de primeiro acesso só existe no minuto seguinte à criação. Quando o
 // cliente pergunta "onde eu entro?" semanas depois, o dono não tinha de onde
 // tirar a resposta sem abrir o banco.
-describe("ConsolePage — copiar o acesso de quem já existe", () => {
+describe("ConsolePage, copiar o acesso de quem já existe", () => {
   const prepararTela = ({ falharCopia = false } = {}) => {
     const user = userEvent.setup();
     const escrever = falharCopia
@@ -2339,7 +2356,7 @@ describe("ConsolePage — copiar o acesso de quem já existe", () => {
 // esse dado só existia escondido no href do cardápio e no texto copiado: não
 // dava para achar o estabelecimento por ele, nem para distinguir dois cards de
 // nome parecido.
-describe("ConsolePage — endereço do estabelecimento no card e na busca", () => {
+describe("ConsolePage, endereço do estabelecimento no card e na busca", () => {
   const COM_ENDERECO = [
     { ...TENANTS[0], slug: "bar-do-ze" },
     { ...TENANTS[1], slug: null },
@@ -2417,7 +2434,7 @@ describe("ConsolePage — endereço do estabelecimento no card e na busca", () =
 // O Console é a ferramenta que o dono usa na rua, no celular, na frente do
 // cliente. Sem sinal, cada botão de salvar levava o formulário inteiro até um
 // erro em inglês no fim. Aqui a tela avisa ANTES de o dono digitar.
-describe("ConsolePage — sem conexão com a internet", () => {
+describe("ConsolePage, sem conexão com a internet", () => {
   const ficarOffline = () =>
     Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true });
   const voltarOnline = () =>
@@ -2471,7 +2488,7 @@ describe("ConsolePage — sem conexão com a internet", () => {
     expect(screen.getAllByTitle(/sem conex/i).length).toBeGreaterThan(1);
   });
 
-  it("com internet, nada disso aparece — a faixa é só para quando cai", async () => {
+  it("com internet, nada disso aparece, a faixa é só para quando cai", async () => {
     renderWithProviders(<ConsolePage />);
     await screen.findByText("Bar do Zé");
 
@@ -2500,7 +2517,7 @@ describe("ConsolePage — sem conexão com a internet", () => {
 // na tela continuavam sendo os de antes da queda — vencimento, receita, quem
 // precisa de atenção — sem nada dizendo isso. Aqui a volta puxa os dados de
 // novo em silêncio (a lista não pisca) e a faixa conta o que aconteceu.
-describe("ConsolePage — quando a conexão volta", () => {
+describe("ConsolePage, quando a conexão volta", () => {
   const ficarOffline = () =>
     Object.defineProperty(window.navigator, "onLine", { value: false, configurable: true });
   const voltarOnline = () =>

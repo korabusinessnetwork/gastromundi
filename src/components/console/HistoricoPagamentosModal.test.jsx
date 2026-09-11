@@ -80,7 +80,7 @@ beforeEach(() => {
   mockEstornar.mockResolvedValue({ data: { data_vencimento: "2026-07-05" }, error: null });
 });
 
-describe("HistoricoPagamentosModal — leitura", () => {
+describe("HistoricoPagamentosModal, leitura", () => {
   it("busca o histórico do estabelecimento da linha", async () => {
     montar();
     expect(await screen.findByText(/Nenhum pagamento registrado ainda/)).toBeInTheDocument();
@@ -173,7 +173,7 @@ describe("HistoricoPagamentosModal — leitura", () => {
   });
 });
 
-describe("HistoricoPagamentosModal — cancelar um pagamento", () => {
+describe("HistoricoPagamentosModal, cancelar um pagamento", () => {
   beforeEach(() => {
     mockListar.mockResolvedValue({ data: [pg("p-ago", "2026-08-01", 300)], error: null });
   });
@@ -290,7 +290,7 @@ describe("HistoricoPagamentosModal — cancelar um pagamento", () => {
 // O gesto de sair desfaz sempre a coisa mais interna: com um estorno já em
 // confirmação, Esc volta para a lista em vez de fechar o histórico por baixo
 // dele — quem apertou Esc queria desistir do estorno, não do modal.
-describe("HistoricoPagamentosModal — Esc e clique fora", () => {
+describe("HistoricoPagamentosModal, Esc e clique fora", () => {
   beforeEach(() => {
     mockListar.mockResolvedValue({ data: [pg("p-ago", "2026-08-01", 300)], error: null });
   });
@@ -326,7 +326,7 @@ describe("HistoricoPagamentosModal — Esc e clique fora", () => {
 // CONSOLE-UX 25 — este modal não tem campo nenhum ao abrir (o motivo só
 // aparece com um estorno em confirmação), então o foco fica na própria caixa:
 // o Tab começa de dentro em vez de continuar na tabela lá atrás.
-describe("HistoricoPagamentosModal — foco do teclado", () => {
+describe("HistoricoPagamentosModal, foco do teclado", () => {
   beforeEach(() => {
     mockListar.mockResolvedValue({ data: [pg("p-ago", "2026-08-01", 300)], error: null });
   });

@@ -104,7 +104,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("criarStorageIdb — o espelho síncrono", () => {
+describe("criarStorageIdb, o espelho síncrono", () => {
   it("responde na hora, antes de o banco ter respondido qualquer coisa", () => {
     const s = criarStorageIdb({ banco: nomeBanco(), chaves: [K] });
 
@@ -117,7 +117,7 @@ describe("criarStorageIdb — o espelho síncrono", () => {
   });
 });
 
-describe("criarStorageIdb — durabilidade no banco", () => {
+describe("criarStorageIdb, durabilidade no banco", () => {
   it("uma instância nova sobre o mesmo banco enxerga o que a anterior gravou", async () => {
     const banco = nomeBanco();
 
@@ -170,7 +170,7 @@ describe("criarStorageIdb — durabilidade no banco", () => {
   });
 });
 
-describe("criarStorageIdb — a janela de hidratação", () => {
+describe("criarStorageIdb, a janela de hidratação", () => {
   it("op enfileirada ANTES de o banco responder não come nem é comida", async () => {
     const banco = nomeBanco();
 
@@ -217,7 +217,7 @@ describe("criarStorageIdb — a janela de hidratação", () => {
   });
 });
 
-describe("criarStorageIdb — ambiente sem IndexedDB", () => {
+describe("criarStorageIdb, ambiente sem IndexedDB", () => {
   it("sem indexedDB no globo: vive em memória e diz isso no pronto", async () => {
     vi.stubGlobal("indexedDB", undefined);
 
@@ -280,7 +280,7 @@ describe("criarStorageIdb — ambiente sem IndexedDB", () => {
   });
 });
 
-describe("criarStorageIdb — migração do localStorage", () => {
+describe("criarStorageIdb, migração do localStorage", () => {
   it("adota a fila legada e só apaga a chave antiga depois que o banco confirma", async () => {
     const banco = nomeBanco();
     const legado = criarLegado({ [K]: JSON.stringify([{ uid: "u1", payload: { id: "legada" } }]) });
@@ -334,7 +334,7 @@ describe("criarStorageIdb — migração do localStorage", () => {
   });
 });
 
-describe("criarStorageIdb — falha e aviso", () => {
+describe("criarStorageIdb, falha e aviso", () => {
   it("cota estourada na gravação avisa e NÃO derruba o espelho", async () => {
     const aoFalhar = vi.fn();
     vi.stubGlobal("indexedDB", idbFalso({ falhar: "put" }));
@@ -381,7 +381,7 @@ describe("criarStorageIdb — falha e aviso", () => {
   });
 });
 
-describe("criarStorageIdb — assinar", () => {
+describe("criarStorageIdb, assinar", () => {
   it("avisa quando a hidratação traz pendência da sessão anterior", async () => {
     const banco = nomeBanco();
     const s0 = criarStorageIdb({ banco, chaves: [K], mesclar: mesclarPorUid });

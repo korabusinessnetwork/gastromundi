@@ -54,7 +54,7 @@ beforeEach(() => {
   assinantes.clear();
 });
 
-describe("<HistoricoNfce> — histórico de NFC-e (Leva 12)", () => {
+describe("<HistoricoNfce>, histórico de NFC-e (Leva 12)", () => {
   it("estado carregando: mostra o spinner com texto humano", async () => {
     let resolver;
     listarNfceEmitidas.mockReturnValue(new Promise((r) => { resolver = r; }));

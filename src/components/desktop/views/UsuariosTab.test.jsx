@@ -76,7 +76,7 @@ beforeEach(() => {
   });
 });
 
-describe("UsuariosTab — senha validada é a senha gravada (Run 5, leva 3)", () => {
+describe("UsuariosTab, senha validada é a senha gravada (Run 5, leva 3)", () => {
   it("senha que sanitiza para vazio é recusada e nenhum usuário é criado", async () => {
     const user = userEvent.setup();
     renderWithProviders(<UsuariosTab sz={sz} />);
@@ -103,7 +103,7 @@ describe("UsuariosTab — senha validada é a senha gravada (Run 5, leva 3)", ()
     expect(authMock.criarAuthUsuario).not.toHaveBeenCalled();
   });
 
-  it("senha só de espaços é recusada — o trim do sanitize a esvazia", async () => {
+  it("senha só de espaços é recusada, o trim do sanitize a esvazia", async () => {
     const user = userEvent.setup();
     renderWithProviders(<UsuariosTab sz={sz} />);
     await abrirNovo(user);
@@ -143,7 +143,7 @@ describe("UsuariosTab — senha validada é a senha gravada (Run 5, leva 3)", ()
     expect(addUser).toHaveBeenCalledWith(expect.objectContaining({ username: "maria", active: true }));
   });
 
-  it("duas senhas que só diferem nos caracteres removidos são a MESMA senha — não é divergência", async () => {
+  it("duas senhas que só diferem nos caracteres removidos são a MESMA senha, não é divergência", async () => {
     const user = userEvent.setup();
     renderWithProviders(<UsuariosTab sz={sz} />);
     await abrirNovo(user);
@@ -171,7 +171,7 @@ describe("UsuariosTab — senha validada é a senha gravada (Run 5, leva 3)", ()
   });
 });
 
-describe("UsuariosTab — troca de senha na edição (Run 5, leva 3)", () => {
+describe("UsuariosTab, troca de senha na edição (Run 5, leva 3)", () => {
   const funcionario = {
     id: 9, name: "Maria Souza", username: "maria", role: "caixa",
     auth_id: "auth-9", active: true, permissoesOverride: null,
@@ -240,7 +240,7 @@ describe("UsuariosTab — troca de senha na edição (Run 5, leva 3)", () => {
  *   3. Qualquer rejeição no meio travava o botão em "Excluindo..." para sempre,
  *      com a linha já apagada.
  */
-describe("UsuariosTab — exclusão de funcionário (Run 5, leva 9)", () => {
+describe("UsuariosTab, exclusão de funcionário (Run 5, leva 9)", () => {
   const FUNCIONARIO = {
     id: 9, name: "Maria Souza", username: "maria", role: "caixa",
     auth_id: "auth-9", active: true, permissoesOverride: null,
@@ -267,7 +267,7 @@ describe("UsuariosTab — exclusão de funcionário (Run 5, leva 9)", () => {
     const removeUser = vi.fn(() => Promise.resolve({
       error: {
         code: "no_rows_deleted",
-        message: "Nenhuma linha removida — sem permissão (apenas admin remove usuários) ou usuário inexistente.",
+        message: "Nenhuma linha removida, sem permissão (apenas admin remove usuários) ou usuário inexistente.",
       },
     }));
     await abrirExclusao(user, { removeUser });

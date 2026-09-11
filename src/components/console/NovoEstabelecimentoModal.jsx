@@ -290,7 +290,7 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], inic
                 </span>
               ) : (
                 <span className="nem-dica">
-                  Só letras e números, sem espaço nem acento — é o que aparece no link.
+                  Só letras e números, sem espaço nem acento, é o que aparece no link.
                 </span>
               )}
             </label>
@@ -307,7 +307,7 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], inic
                 onChange={(e) => setEndereco(e.target.value)}
               />
               <span className="nem-dica">
-                Para quem quer delivery integrado — vira o ponto de partida no mapa de entrega. Pode preencher ou ajustar depois.
+                Para quem quer delivery integrado, vira o ponto de partida no mapa de entrega. Pode preencher ou ajustar depois.
               </span>
             </label>
 
@@ -350,7 +350,7 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], inic
                 <span className="nem-dica">Vai ficar {formatarReais(mensalidadeParaSalvar)} por mês.</span>
               ) : (
                 <span className="nem-dica">
-                  Pode deixar em branco — o estabelecimento entra sem mensalidade definida e você
+                  Pode deixar em branco, o estabelecimento entra sem mensalidade definida e você
                   define depois em "Planos e assinaturas".
                 </span>
               )}
@@ -416,7 +416,7 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], inic
                 </span>
               ) : !usernameTocado && usernameEfetivo ? (
                 <span className="nem-dica">
-                  Sugerido a partir do responsável — pode trocar por outro.
+                  Sugerido a partir do responsável, pode trocar por outro.
                 </span>
               ) : (
                 <span className="nem-dica">Só letras minúsculas, números, ponto, hífen e sublinhado.</span>
@@ -464,7 +464,7 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], inic
                 </span>
               ) : (
                 <span className="nem-dica">
-                  Essa é a senha do administrador do cliente — use "Gerar senha" e leia para ele.
+                  Essa é a senha do administrador do cliente, use "Gerar senha" e leia para ele.
                 </span>
               )}
             </div>

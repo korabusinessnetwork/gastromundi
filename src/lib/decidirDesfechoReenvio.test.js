@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { decidirDesfechoReenvio } from "./decidirDesfechoReenvio";
 
-describe("decidirDesfechoReenvio — regra do reenvio da fila (Leva 9)", () => {
+describe("decidirDesfechoReenvio, regra do reenvio da fila (Leva 9)", () => {
   it("autorizada (cStat 100): sai da fila, não incrementa tentativas, carrega nfeProc/protocolo/dhRecbto", () => {
     const r = decidirDesfechoReenvio({
       retornoInterpretado: {

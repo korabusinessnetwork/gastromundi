@@ -65,7 +65,7 @@ beforeEach(() => {
   enviarLogoTenant.mockResolvedValue({ url: "https://cdn.exemplo/t1/identidade/logo.png?v=9", error: null });
 });
 
-describe("IdentidadeTab — quem enxerga a aba", () => {
+describe("IdentidadeTab, quem enxerga a aba", () => {
   it("admin vê a aba 'Identidade' nas Configurações", () => {
     setAppMock({ currentUser: admin, tenant });
 
@@ -74,7 +74,7 @@ describe("IdentidadeTab — quem enxerga a aba", () => {
     expect(screen.getByRole("button", { name: /identidade/i })).toBeInTheDocument();
   });
 
-  it("gerente NÃO vê — a RPC é de admin, mostrar a aba só levaria a um erro", () => {
+  it("gerente NÃO vê, a RPC é de admin, mostrar a aba só levaria a um erro", () => {
     setAppMock({ currentUser: gerente, tenant });
 
     render(<ConfiguracoesView />);
@@ -83,8 +83,8 @@ describe("IdentidadeTab — quem enxerga a aba", () => {
   });
 });
 
-describe("IdentidadeTab — bootstrap e preenchimento", () => {
-  it("com o tenant em voo mostra carregando — nunca 'sem identidade'", () => {
+describe("IdentidadeTab, bootstrap e preenchimento", () => {
+  it("com o tenant em voo mostra carregando, nunca 'sem identidade'", () => {
     montar({ tenant: null });
 
     expect(screen.getByText(/carregando a identidade/i)).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe("IdentidadeTab — bootstrap e preenchimento", () => {
   });
 });
 
-describe("IdentidadeTab — prévia (o resultado antes de salvar)", () => {
+describe("IdentidadeTab, prévia (o resultado antes de salvar)", () => {
   it("mostra o logo salvo, com o nome como texto alternativo", () => {
     montar();
 
@@ -114,7 +114,7 @@ describe("IdentidadeTab — prévia (o resultado antes de salvar)", () => {
     expect(img).toHaveAttribute("src", "https://cdn.exemplo/t1/logo.png");
   });
 
-  it("sem logo, mostra o nome escrito — não um quadrado quebrado", () => {
+  it("sem logo, mostra o nome escrito, não um quadrado quebrado", () => {
     montar({ tenant: { ...tenant, tema: { nome_exibicao: "Bar do Zé" } } });
 
     expect(screen.queryByRole("img")).toBeNull();
@@ -138,7 +138,7 @@ describe("IdentidadeTab — prévia (o resultado antes de salvar)", () => {
   });
 });
 
-describe("IdentidadeTab — botão de salvar", () => {
+describe("IdentidadeTab, botão de salvar", () => {
   it("nasce desabilitado: não há o que salvar", () => {
     montar();
 
@@ -163,7 +163,7 @@ describe("IdentidadeTab — botão de salvar", () => {
   });
 });
 
-describe("IdentidadeTab — gravação", () => {
+describe("IdentidadeTab, gravação", () => {
   it("salva pela RPC, com o nome aparado e sem id de tenant", async () => {
     montar();
 
@@ -179,7 +179,7 @@ describe("IdentidadeTab — gravação", () => {
     });
   });
 
-  it("nunca faz update direto em `tenants` — a tabela não tem policy de UPDATE", async () => {
+  it("nunca faz update direto em `tenants`, a tabela não tem policy de UPDATE", async () => {
     montar();
 
     fireEvent.change(screen.getByLabelText(/nome do estabelecimento/i), { target: { value: "Cantina Nova" } });
@@ -215,7 +215,7 @@ describe("IdentidadeTab — gravação", () => {
   });
 });
 
-describe("IdentidadeTab — logo", () => {
+describe("IdentidadeTab, logo", () => {
   it("o arquivo escolhido sobe e entra na prévia, mas ainda não está salvo", async () => {
     montar();
 

@@ -136,7 +136,7 @@ export default function JarvasPanel() {
       {/* ── Sino flutuante ─────────────────────────────────────── */}
       <button
         onClick={() => setAberto((v) => !v)}
-        title="Jarvas — insights e alertas"
+        title="Jarvas, insights e alertas"
         style={{
           position: "fixed", right: 18, bottom: 18, zIndex: 400,
           width: 52, height: 52, borderRadius: "50%",
@@ -224,7 +224,7 @@ export default function JarvasPanel() {
                 <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
                   {mensagens.length === 0 && (
                     <div className="jarvas-chat__empty" style={{ color: varColor(C.muted), textAlign: "center", padding: 24 }}>
-                      Pergunte sobre o negócio — vendas, estoque, caixa.<br />
+                      Pergunte sobre o negócio, vendas, estoque, caixa.<br />
                       Ex.: "Como foram as vendas esta semana?"<br />
                       <span className="jarvas-chat__help" style={{ color: varColor(C.muted) }}>O Jarvas responde só com base nos seus dados reais.</span>
                     </div>

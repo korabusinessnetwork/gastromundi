@@ -49,7 +49,7 @@ function montar(props = {}) {
   return { onAlterado, onFechar };
 }
 
-describe("AlterarLayoutModal — a troca de layout de um estabelecimento", () => {
+describe("AlterarLayoutModal, a troca de layout de um estabelecimento", () => {
   beforeEach(() => {
     mockAlterarLayout.mockReset();
     mockAlterarLayout.mockResolvedValue({
@@ -118,7 +118,7 @@ describe("AlterarLayoutModal — a troca de layout de um estabelecimento", () =>
 //
 // Modal de um campo só: o gesto de sair é o mesmo do "X", reabrir custa um
 // clique e não há o que confirmar.
-describe("AlterarLayoutModal — Esc fecha", () => {
+describe("AlterarLayoutModal, Esc fecha", () => {
   it("Esc chama onFechar", async () => {
     const user = userEvent.setup();
     const onFechar = vi.fn();

@@ -197,7 +197,7 @@ function prepararPlanilha(texto, colunasModelo, colunasObrigatorias, aliases = {
     return { erro: { linha: 0, mensagem: "O arquivo está vazio." } };
   }
   if (linhas.length - 1 > LIMITE_LINHAS) {
-    return { erro: { linha: 0, mensagem: `O arquivo tem mais de ${LIMITE_LINHAS} linhas — divida em partes menores.` } };
+    return { erro: { linha: 0, mensagem: `O arquivo tem mais de ${LIMITE_LINHAS} linhas, divida em partes menores.` } };
   }
 
   const indice = {};
@@ -256,13 +256,13 @@ export function validarPlanilhaProdutos(texto) {
 
     let ativoFinal = ativo;
     if (ativo === null) {
-      avisos.push({ linha: numeroLinha, mensagem: `Não entendi "${pegar("ativo")}" na coluna ativo — considerei "sim".` });
+      avisos.push({ linha: numeroLinha, mensagem: `Não entendi "${pegar("ativo")}" na coluna ativo, considerei "sim".` });
       ativoFinal = true;
     }
 
     const chave = normalizarTexto(nome);
     if (porNome.has(chave)) {
-      avisos.push({ linha: numeroLinha, mensagem: `"${nome}" aparece mais de uma vez no arquivo — vale esta linha.` });
+      avisos.push({ linha: numeroLinha, mensagem: `"${nome}" aparece mais de uma vez no arquivo, vale esta linha.` });
     }
     porNome.set(chave, {
       linha: numeroLinha,
@@ -359,14 +359,14 @@ export function validarPlanilhaClientes(texto) {
     const telefone = normalizarTelefone(telefoneBruto);
 
     if (!nome) { erros.push({ linha: numeroLinha, mensagem: "Nome do cliente vazio." }); continue; }
-    if (!telefone) { erros.push({ linha: numeroLinha, mensagem: "Telefone vazio — é o contato mínimo pra fiado e delivery." }); continue; }
+    if (!telefone) { erros.push({ linha: numeroLinha, mensagem: "Telefone vazio, é o contato mínimo pra fiado e delivery." }); continue; }
     if (telefone.length < 8 || telefone.length > 13) {
       erros.push({ linha: numeroLinha, mensagem: `Telefone "${telefoneBruto}" não parece válido (use DDD + número).` });
       continue;
     }
 
     if (porTelefone.has(telefone)) {
-      avisos.push({ linha: numeroLinha, mensagem: `O telefone ${telefoneBruto} aparece mais de uma vez no arquivo — vale esta linha.` });
+      avisos.push({ linha: numeroLinha, mensagem: `O telefone ${telefoneBruto} aparece mais de uma vez no arquivo, vale esta linha.` });
     }
     porTelefone.set(telefone, {
       linha: numeroLinha,
@@ -436,12 +436,12 @@ export function validarPlanilhaEstoque(texto) {
     if (!produto) { erros.push({ linha: numeroLinha, mensagem: "Nome do produto vazio." }); continue; }
     if (quantidade === null) { erros.push({ linha: numeroLinha, mensagem: `Quantidade "${pegar("quantidade")}" não é um número válido (use 10 ou 2,5).` }); continue; }
     if (quantidade < 0) { erros.push({ linha: numeroLinha, mensagem: "Quantidade não pode ser negativa." }); continue; }
-    if (minimoBruto !== "" && minimo === null) { erros.push({ linha: numeroLinha, mensagem: `Mínimo "${minimoBruto}" não é um número válido — deixe vazio pra manter o atual.` }); continue; }
+    if (minimoBruto !== "" && minimo === null) { erros.push({ linha: numeroLinha, mensagem: `Mínimo "${minimoBruto}" não é um número válido, deixe vazio pra manter o atual.` }); continue; }
     if (minimo !== null && minimo < 0) { erros.push({ linha: numeroLinha, mensagem: "Mínimo não pode ser negativo." }); continue; }
 
     const chave = normalizarTexto(produto);
     if (porProduto.has(chave)) {
-      avisos.push({ linha: numeroLinha, mensagem: `"${produto}" aparece mais de uma vez no arquivo — vale esta linha.` });
+      avisos.push({ linha: numeroLinha, mensagem: `"${produto}" aparece mais de uma vez no arquivo, vale esta linha.` });
     }
     porProduto.set(chave, { linha: numeroLinha, produto, quantidade, minimo });
   }

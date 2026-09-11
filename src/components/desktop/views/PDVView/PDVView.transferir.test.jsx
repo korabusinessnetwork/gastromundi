@@ -96,7 +96,7 @@ const confirmar      = async () => {
   });
 };
 
-describe("PDVView — transferência de itens", () => {
+describe("PDVView, transferência de itens", () => {
   it("item cancelado não aparece na lista de itens a transferir", () => {
     montar([origemCom([CERVEJA_CANCELADA, BATATA]), destinoCom([])]);
 

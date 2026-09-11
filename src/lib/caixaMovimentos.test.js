@@ -145,7 +145,7 @@ describe("exigeAutorizacao", () => {
     expect(exigeAutorizacao({ tipo: "sangria", valor: 199.99, limite: 200 })).toBe(false);
   });
 
-  it("suprimento nunca exige — pôr dinheiro na gaveta não é risco", () => {
+  it("suprimento nunca exige, pôr dinheiro na gaveta não é risco", () => {
     expect(exigeAutorizacao({ tipo: "suprimento", valor: 99999, limite: 200 })).toBe(false);
   });
 
@@ -216,7 +216,7 @@ describe("validarMovimento", () => {
     expect(r.erro).toBe("Não há dinheiro na gaveta para retirar.");
   });
 
-  it("suprimento não olha o disponível — é dinheiro entrando", () => {
+  it("suprimento não olha o disponível, é dinheiro entrando", () => {
     expect(validarMovimento({ tipo: "suprimento", valor: "100", motivo: "Troco", disponivel: 0 }).ok).toBe(true);
   });
 });

@@ -92,7 +92,7 @@ describe("parsearPrecoBR", () => {
     expect(parsearPrecoBR(1_000_000)).toBe(1_000_000);
   });
 
-  it("rejeita valor acima do teto de magnitude — provável erro de digitação/planilha corrompida", () => {
+  it("rejeita valor acima do teto de magnitude, provável erro de digitação/planilha corrompida", () => {
     expect(parsearPrecoBR("1000000,01")).toBeNull();
     expect(parsearPrecoBR("999999999999")).toBeNull();
     expect(parsearPrecoBR(999999999999)).toBeNull();
@@ -197,7 +197,7 @@ describe("montarCSVProdutos / gerarModeloCSV (portabilidade)", () => {
   });
 });
 
-describe("montarCSVProdutos — proteção contra CSV injection (I1)", () => {
+describe("montarCSVProdutos, proteção contra CSV injection (I1)", () => {
   it.each(["=", "+", "-", "@", "\t", "\r"])(
     "prefixa com aspa simples quando o nome começa com %j (fórmula em Excel/Sheets)",
     (charPerigoso) => {
@@ -287,7 +287,7 @@ describe("normalizarTelefone", () => {
 describe("validarPlanilhaClientes", () => {
   const cabecalho = "nome;telefone;endereco;observacoes";
 
-  it("caminho feliz — telefone normalizado pra só dígitos", () => {
+  it("caminho feliz, telefone normalizado pra só dígitos", () => {
     const r = validarPlanilhaClientes(`${cabecalho}\nAna Souza;(51) 99999-0001;Rua A, 1;Fiado ok`);
     expect(r.erros).toEqual([]);
     expect(r.clientes).toEqual([
@@ -306,7 +306,7 @@ describe("validarPlanilhaClientes", () => {
     expect(r.clientes).toEqual([]);
     expect(r.erros).toEqual([
       { linha: 2, mensagem: "Nome do cliente vazio." },
-      { linha: 3, mensagem: "Telefone vazio — é o contato mínimo pra fiado e delivery." },
+      { linha: 3, mensagem: "Telefone vazio, é o contato mínimo pra fiado e delivery." },
       { linha: 4, mensagem: 'Telefone "123" não parece válido (use DDD + número).' },
     ]);
   });
@@ -332,7 +332,7 @@ describe("validarPlanilhaClientes", () => {
 describe("validarPlanilhaEstoque", () => {
   const cabecalho = "produto;quantidade;minimo";
 
-  it("caminho feliz — quantidade decimal pt-BR e mínimo vazio vira null", () => {
+  it("caminho feliz, quantidade decimal pt-BR e mínimo vazio vira null", () => {
     const r = validarPlanilhaEstoque(`${cabecalho}\nX-Salada;30;10\nSuco;2,5;`);
     expect(r.erros).toEqual([]);
     expect(r.itens).toEqual([

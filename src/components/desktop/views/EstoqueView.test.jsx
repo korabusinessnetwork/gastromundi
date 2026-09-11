@@ -91,7 +91,7 @@ describe("lerQuantidade", () => {
   });
 });
 
-describe("EstoqueView — campo de saldo", () => {
+describe("EstoqueView, campo de saldo", () => {
   it("digitar não grava nada até o operador sair do campo", async () => {
     await montarLiberado();
     // Digitando "2" e depois "25": antes isso gravava saldo 2 e depois 25.
@@ -146,7 +146,7 @@ describe("EstoqueView — campo de saldo", () => {
   });
 });
 
-describe("EstoqueView — campo de mínimo", () => {
+describe("EstoqueView, campo de mínimo", () => {
   it("digitar não grava até sair do campo, e grava só o valor final", async () => {
     await montarLiberado();
     fireEvent.change(campoMinimo(), { target: { value: "1" } });
@@ -166,7 +166,7 @@ describe("EstoqueView — campo de mínimo", () => {
   });
 });
 
-describe("EstoqueView — gravação que falha", () => {
+describe("EstoqueView, gravação que falha", () => {
   it("saldo: avisa na tela em vez de deixar o número voltar sozinho", async () => {
     updateEstoque = vi.fn(() => Promise.resolve({ error: { message: "rede caiu" } }));
     await montarLiberado();
@@ -215,7 +215,7 @@ describe("EstoqueView — gravação que falha", () => {
 const campoEntrada = () => screen.getByLabelText("Entrada de Café");
 const botaoAdicionar = () => screen.getByRole("button", { name: /Adicionar/ });
 
-describe("EstoqueView — entrada de mercadoria", () => {
+describe("EstoqueView, entrada de mercadoria", () => {
   it("manda o quanto entrou, não o saldo somado na tela", async () => {
     await montarLiberado({ products: [CAFE_SACA] });
     // Aba do estoque direto ("kg"), para tirar a conversão do caminho.
@@ -277,7 +277,7 @@ describe("EstoqueView — entrada de mercadoria", () => {
  * de 0 para o banco: o campo limpava, nenhum aviso aparecia e o saldo não
  * mexia. O operador só descobria conferindo a prateleira.
  */
-describe("EstoqueView — entrada zerada pela conversão", () => {
+describe("EstoqueView, entrada zerada pela conversão", () => {
   const MSG = "A entrada de Café ficou em 0 depois da conversão. Confira a unidade de compra do produto e a quantidade digitada.";
 
   it("fator em branco no cadastro não grava entrada de 0", async () => {
@@ -302,7 +302,7 @@ describe("EstoqueView — entrada zerada pela conversão", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(MSG);
   });
 
-  it("1 g ainda entra — a guarda não barra o que dá pelo menos 1 grama", async () => {
+  it("1 g ainda entra, a guarda não barra o que dá pelo menos 1 grama", async () => {
     await montarLiberado({ products: [{ ...CAFE, unidades_compra: [{ unidade: "g", fator: 0.001 }] }] });
     fireEvent.change(campoEntrada(), { target: { value: "1" } });
     await act(async () => { fireEvent.click(botaoAdicionar()); });
@@ -324,7 +324,7 @@ describe("EstoqueView — entrada zerada pela conversão", () => {
  * A regra correta já existia no Jarvas (`regraEstoque` em src/lib/jarvasEngine.js):
  * sem linha na tabela, o produto não controla estoque. Agora a tela usa a mesma.
  */
-describe("EstoqueView — produto que não controla estoque", () => {
+describe("EstoqueView, produto que não controla estoque", () => {
   const PRATO = { id: 2, name: "Feijoada", category: "Prato", price: 45, unidade_estoque: "un" };
 
   /**
@@ -357,7 +357,7 @@ describe("EstoqueView — produto que não controla estoque", () => {
     expect(controlaEstoque({ 1: null }, 1)).toBe(false);
   });
 
-  it('KPI "Sem estoque" não conta o cardápio — só insumo que zerou', async () => {
+  it('KPI "Sem estoque" não conta o cardápio, só insumo que zerou', async () => {
     montar({ products: [CAFE, PRATO], estoque: { 1: 0 }, estoqueMinimos: { 1: 5 } });
 
     // Antes marcava 2: o café zerado e a feijoada, que nem controla estoque.
@@ -404,7 +404,7 @@ describe("EstoqueView — produto que não controla estoque", () => {
  *      em estabelecimento que não usa esse nome, e clicar nele dava tabela
  *      vazia — além de contrariar o white-label (decisão 017).
  */
-describe("EstoqueView — busca, ordenação e categorias", () => {
+describe("EstoqueView, busca, ordenação e categorias", () => {
   const ACAI  = { id: 3, name: "Açaí",  category: "Polpa",  price: 20, unidade_estoque: "kg" };
   const ZEBRA = { id: 4, name: "Zebra", category: "Bebida", price: 10, unidade_estoque: "un" };
   const DOIS  = { products: [ZEBRA, ACAI], estoque: { 3: 5, 4: 5 }, estoqueMinimos: { 3: 1, 4: 1 } };
@@ -491,7 +491,7 @@ describe("EstoqueView — busca, ordenação e categorias", () => {
  * O par de testes abaixo é o que importa: o texto próprio da tela tem de
  * continuar aparecendo na senha errada, e sumir quando há motivo de verdade.
  */
-describe("EstoqueView — portão de senha da entrada", () => {
+describe("EstoqueView, portão de senha da entrada", () => {
   const MSG_BLOQUEIO = "Muitas tentativas de senha. Aguarde um minuto e tente novamente.";
   const MSG_SEM_REDE = "Sem internet: a senha de administrador só pode ser validada online.";
 
