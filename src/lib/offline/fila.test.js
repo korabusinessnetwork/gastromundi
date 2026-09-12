@@ -73,7 +73,7 @@ describe("drenarFila", () => {
       },
     });
     expect(enviadas).toEqual(["a", "b"]);
-    expect(resultado).toEqual({ enviadas: 2, falhas: [], restantes: 0 });
+    expect(resultado).toEqual({ enviadas: 2, falhas: [], restantes: 0, parouPorRede: false });
   });
 
   it("para no erro de rede e mantém o restante na fila", async () => {
@@ -91,6 +91,10 @@ describe("drenarFila", () => {
     expect(resultado.falhas).toEqual([]);
     // "b" (que falhou por rede) e "c" (nem tentada) continuam na fila.
     expect(fila.listar().map((op) => op.payload.id)).toEqual(["b", "c"]);
+    // Quem chamou precisa saber POR QUE a fila não esvaziou: é esta bandeira
+    // que deixa o indicador de rede parar de afirmar "Enviando..." quando o
+    // envio parou. Sem ela a tela só vê "sobraram 2" e mente para o operador.
+    expect(resultado.parouPorRede).toBe(true);
   });
 
   it("descarta erro definitivo e devolve em falhas", async () => {
@@ -107,6 +111,8 @@ describe("drenarFila", () => {
     expect(resultado.falhas).toHaveLength(1);
     expect(resultado.falhas[0].op.payload.id).toBe("a");
     expect(resultado.restantes).toBe(0);
+    // Erro definitivo não é parada por rede: repetir não resolveria.
+    expect(resultado.parouPorRede).toBe(false);
   });
 
   it("preserva operação enfileirada durante a drenagem", async () => {

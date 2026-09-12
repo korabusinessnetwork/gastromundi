@@ -34,6 +34,17 @@ import { drenarFila } from "@/lib/offline/fila";
 // contador reassina em `assinarFilaOffline`.
 import { filaOffline, contarPendenciasFiscais, assinarFilaOffline } from "@/lib/offline/filaApp";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
+// Intervalo entre tentativas de esvaziar a fila offline.
+//
+// O dreno só era disparado por MUDANÇA de sinal: rede, fim da carga, ou o
+// contador de pendências. Quando ele parava num erro de rede com o navegador
+// ainda se dizendo online (Wi-Fi conectado sem saída, portal cativo de hotel,
+// Supabase fora do ar), nenhum sinal mudava mais e nada tentava de novo: a
+// venda ficava guardada até alguém enfileirar outra operação ou recarregar a
+// página. 45 s é o meio do caminho: curto o bastante para a fila esvaziar
+// sozinha antes de o operador fechar o caixa, e longo o bastante para não
+// queimar bateria e requisição batendo num link que não volta.
+const INTERVALO_REENVIO_OFFLINE_MS = 45_000;
 import { useStatusRede } from "@/hooks/useStatusRede";
 import IndicadorRede from "@/components/shared/IndicadorRede";
 import AvisoSessao from "@/components/shared/AvisoSessao";
@@ -139,6 +150,11 @@ export function AppProvider({ children }) {
   // quando este computador reconecta (efeito do evento `online`, mais abaixo).
   const [abriuSemInternet, setAbriuSemInternet] = useState(false);
   const [pendenciasOffline, setPendenciasOffline] = useState(() => filaOffline.tamanho());
+  // A última tentativa de envio parou num erro de rede. Existe para o indicador
+  // não afirmar "Enviando..." quando não está enviando nada: com o navegador se
+  // dizendo online e o servidor fora de alcance, o operador precisa ler que a
+  // fila está PARADA, não que ela está saindo.
+  const [envioOfflineFalhou, setEnvioOfflineFalhou] = useState(false);
   const drenandoRef = useRef(false);
   // Notas fiscais que ficaram na fila: a venda saiu, a nota não. Fica visível
   // para o admin/contador em "Notas emitidas" — pendência fiscal não pode
@@ -964,7 +980,8 @@ export function AppProvider({ children }) {
     if (drenandoRef.current || filaOffline.tamanho() === 0) return;
     drenandoRef.current = true;
     try {
-      const { falhas } = await drenarFila({ fila: filaOffline, executar: executarOpOffline, isErroDeRede, tenantAtual: tenantIdRef.current });
+      const { falhas, parouPorRede } = await drenarFila({ fila: filaOffline, executar: executarOpOffline, isErroDeRede, tenantAtual: tenantIdRef.current });
+      setEnvioOfflineFalhou(parouPorRede);
       // Um drain que descarta várias baixas de uma vez é a cara da falha
       // sistêmica: o lote junta tudo num alerta só em vez de encher o painel
       // do Jarvas com um cartão por produto da fila.
@@ -1002,8 +1019,20 @@ export function AppProvider({ children }) {
     }
   };
 
+  // Enquanto houver pendência e este aparelho se disser online, o dreno é
+  // tentado de novo a cada `INTERVALO_REENVIO_OFFLINE_MS`. Sem isso um erro de
+  // rede era o fim da linha, porque nenhum dos três sinais abaixo volta a
+  // mudar quando o navegador continua "online" e só o servidor está fora.
+  //
+  // O temporizador não empilha: este efeito só tem um `setInterval` vivo por
+  // execução, e cada nova execução (ou o desmonte do provider) limpa o da
+  // execução anterior no cleanup.
   useEffect(() => {
-    if (redeOnline && !loading) drenarPendenciasOffline();
+    if (!redeOnline || loading) return undefined;
+    drenarPendenciasOffline();
+    if (pendenciasOffline === 0) return undefined;
+    const id = setInterval(() => { void drenarPendenciasOffline(); }, INTERVALO_REENVIO_OFFLINE_MS);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [redeOnline, loading, pendenciasOffline]);
 
@@ -2159,7 +2188,12 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={value}>
       {children}
-      <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
+      <IndicadorRede
+        online={redeOnline}
+        pendencias={pendenciasOffline}
+        falhaEnvio={envioOfflineFalhou}
+        visivel={!!currentUser}
+      />
       {/* O clique no botão já conta como atividade (o useIdleTimer escuta
           `click` na captura, o que zera a contagem); esconder aqui é só para o
           aviso sumir na hora, sem depender da propagação do evento. */}

@@ -18,7 +18,10 @@
   text-align: center;
 }
 
-.indicador-rede--offline {
+.indicador-rede--offline,
+/* Envio parado por falha de rede: mesma cor do offline de propósito, porque
+   para quem opera o efeito é o mesmo, o pedido não saiu daqui. */
+.indicador-rede--falha {
   background: #b45309;
 }
 
