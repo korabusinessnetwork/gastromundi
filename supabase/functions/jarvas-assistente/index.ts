@@ -32,6 +32,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/** Teto diário de perguntas ao Jarvas por estabelecimento, igual ao da leitura de cardápio. */
+const IA_LIMITE_DIARIO = Number(Deno.env.get("IA_LIMITE_DIARIO") ?? "50");
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -124,7 +127,35 @@ Deno.serve(async (req) => {
       insights_jarvas_abertos: insightsRes.data ?? [],
     };
 
-    // ── 3. Chama a API da Anthropic ────────────────────────────────
+    // ── 3. Teto diário de uso por estabelecimento ──────────────────
+    // Conta 1 uso ANTES de gastar cota paga. O tenant sai do JWT dentro da
+    // RPC, nunca do cliente. Sem isto, qualquer admin ou gerente autenticado
+    // podia chamar o Jarvas em laço e queimar a conta, e o Jarvas custa mais
+    // por chamada que a leitura de cardápio, porque manda todo o contexto do
+    // negócio no system prompt. A tabela `ia_uso` e a RPC já existiam desde a
+    // migration 20260817, e a função irmã (ler-cardapio-ia) já as usava: era
+    // esta aqui que estava de fora.
+    //
+    // Fail-open pelo mesmo motivo da irmã: se a RPC não responder, o Jarvas
+    // segue sem teto. Atraso de migration não pode derrubar a ferramenta, e o
+    // teto é de custo, não de segurança.
+    const { data: uso, error: usoErr } = await supabaseClient.rpc(
+      "registrar_uso_ia",
+      { p_limite: IA_LIMITE_DIARIO },
+    );
+    if (!usoErr) {
+      const linha = Array.isArray(uso) ? uso[0] : uso;
+      if (linha?.excedeu) {
+        return json({
+          error: "O Jarvas já respondeu o máximo de perguntas de hoje.",
+          dica: `São até ${IA_LIMITE_DIARIO} perguntas por dia neste estabelecimento. Tente de novo amanhã.`,
+        }, 429);
+      }
+    } else {
+      console.error("registrar_uso_ia indisponível (seguindo sem teto):", usoErr.message);
+    }
+
+    // ── 4. Chama a API da Anthropic ────────────────────────────────
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) return json({ error: "ANTHROPIC_API_KEY não configurada no Supabase." }, 500);
 

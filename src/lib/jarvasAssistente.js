@@ -27,7 +27,13 @@ export async function perguntarAoJarvas(pergunta, historico = []) {
       body: JSON.stringify({ pergunta, historico }),
     });
     const json = await res.json();
-    if (!res.ok) return { error: json.error ?? "Erro ao consultar o Jarvas." };
+    // A `dica` vem junto quando o servidor recusa por teto diário de uso: sem
+    // ela o operador lê só "já respondeu o máximo de hoje" e não sabe quantas
+    // são nem quando volta a valer.
+    if (!res.ok) {
+      const base = json.error ?? "Erro ao consultar o Jarvas.";
+      return { error: json.dica ? `${base} ${json.dica}` : base };
+    }
     return { resposta: json.resposta };
   } catch {
     return { error: "Sem conexão com o assistente. Tente novamente." };
