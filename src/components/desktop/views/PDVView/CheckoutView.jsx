@@ -27,12 +27,16 @@ const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
 /**
- * Dinheiro na mão nunca é negativo. `min="0"` num <input type="number"> só
+ * Valor de pagamento nunca é negativo. `min="0"` num <input type="number"> só
  * limita a setinha e a validação nativa do form — digitar "-50" passa direto.
  * E "-50" fazia mais do que exibir número errado: a trava de dinheiro
  * insuficiente perguntava `recebido > 0`, então valor negativo escapava dela
  * e LIBERAVA o "Confirmar Pagamento" de uma conta que não foi paga. Prevenir
  * na entrada é melhor do que avisar depois.
+ *
+ * O mesmo valia para o valor de cada linha do pagamento dividido: R$ 100,00
+ * mais R$ -50,00 fechavam uma conta de R$ 50,00 e gravavam pagamento negativo
+ * na venda e no fechamento do caixa.
  */
 export const valorRecebido = (texto) => {
   const n = parseFloat(texto);
@@ -755,7 +759,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                           <input
                             type="number" min="0" step="0.01"
                             value={p.valor === 0 ? "" : p.valor}
-                            onChange={e => updatePagamento(idx, { valor: parseFloat(e.target.value) || 0 })}
+                            onChange={e => updatePagamento(idx, { valor: valorRecebido(e.target.value) })}
                             className="checkout-view__split-input"
                             style={{
                               border: `1.5px solid var(--gm-input-border)`,
