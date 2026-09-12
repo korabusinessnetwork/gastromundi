@@ -138,6 +138,7 @@ export default function ProdutosView() {
   const [erro,      setErro]      = useState("");
   const [deleteId,  setDeleteId]  = useState(null);
   const [deletando, setDeletando] = useState(false);
+  const [erroDelete, setErroDelete] = useState("");
   const [catFiltro,    setCatFiltro]    = useState("Todos");
   const [busca,     setBusca]     = useState("");
   const [unidadesMedida, setUnidadesMedida] = useState([]);
@@ -410,13 +411,26 @@ export default function ProdutosView() {
     fecharModal();
   };
 
+  const abrirDelete = (id) => { setDeleteId(id); setErroDelete(""); };
+  const fecharDelete = () => { setDeleteId(null); setErroDelete(""); };
+
+  // O removeProduct devolve erro quando a RLS barrou ou o produto nem existe
+  // mais, e nesse caso a lista local não muda. Antes o retorno era ignorado: o
+  // produto continuava na tela, sem aviso nenhum, e o log de atividade
+  // registrava uma exclusão que não aconteceu. Mesmo padrão do salvar: o log só
+  // é escrito quando deu certo, e a falha mantém a janela aberta.
   const confirmarDelete = async () => {
     if (!deleteId || deletando) return;
     setDeletando(true);
+    setErroDelete("");
     const p = products.find(x => x.id === deleteId);
-    await removeProduct(deleteId);
-    logAction(currentUser?.username, "produto:remover", { msg: `Produto removido: ${p?.name ?? deleteId}`, name: currentUser?.name, role: currentUser?.role });
+    const { error } = (await removeProduct(deleteId)) ?? {};
     setDeletando(false);
+    if (error) {
+      setErroDelete(`Não deu para excluir "${p?.name ?? "o produto"}". Ele continua na lista. Confira se você tem permissão e tente de novo.`);
+      return;
+    }
+    logAction(currentUser?.username, "produto:remover", { msg: `Produto removido: ${p?.name ?? deleteId}`, name: currentUser?.name, role: currentUser?.role });
     setDeleteId(null);
   };
 
@@ -553,7 +567,7 @@ export default function ProdutosView() {
                       {isAdmin && (
                         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                           <button onClick={() => abrirEditar(p)} className="produtos-view__btn-editar">Editar</button>
-                          <button onClick={() => setDeleteId(p.id)} className="produtos-view__btn-excluir" style={{ borderColor: alfa(C.red, "44"), background: alfa(C.red, "0f"), color: varColor(C.red) }}>Excluir</button>
+                          <button onClick={() => abrirDelete(p.id)} className="produtos-view__btn-excluir" style={{ borderColor: alfa(C.red, "44"), background: alfa(C.red, "0f"), color: varColor(C.red) }}>Excluir</button>
                         </div>
                       )}
                     </td>
@@ -946,7 +960,7 @@ export default function ProdutosView() {
         (() => {
           const p = products.find(x => x.id === deleteId);
           return (
-            <div {...fecharAoClicarFora(() => setDeleteId(null))} className="produtos-view__confirm-overlay" style={{ background: "rgba(0,0,0,0.7)" }}>
+            <div {...fecharAoClicarFora(fecharDelete)} className="produtos-view__confirm-overlay" style={{ background: "rgba(0,0,0,0.7)" }}>
               <div className="produtos-view__confirm-modal">
                 <div className="produtos-view__confirm-topo">
                   <div className="produtos-view__confirm-icone" style={{ background: alfa(C.red, "18"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
@@ -960,8 +974,13 @@ export default function ProdutosView() {
                 <div className="produtos-view__confirm-aviso" style={{ background: alfa(C.red, "0d"), border: `1px solid ${alfa(C.red, "33")}` }}>
                   Esta ação <strong style={{ color: varColor(C.red) }}>não pode ser desfeita</strong>. O produto será removido permanentemente.
                 </div>
+                {erroDelete && (
+                  <div className="produtos-view__erro" role="alert" style={{ background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}` }}>
+                    ⚠️ {erroDelete}
+                  </div>
+                )}
                 <div className="produtos-view__confirm-botoes">
-                  <button onClick={() => setDeleteId(null)} className="produtos-view__confirm-btn-cancelar">Cancelar</button>
+                  <button onClick={fecharDelete} className="produtos-view__confirm-btn-cancelar">Cancelar</button>
                   <button onClick={confirmarDelete} disabled={deletando} className="produtos-view__confirm-btn-excluir" style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer" }}>{deletando ? "Excluindo..." : "Sim, excluir"}</button>
                 </div>
               </div>

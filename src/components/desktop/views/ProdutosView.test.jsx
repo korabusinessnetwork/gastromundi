@@ -19,6 +19,7 @@ vi.mock("@/lib/supabase", async () => {
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
 
 import { setAppMock } from "@/test/mockApp";
+import { logAction } from "@/lib/logger";
 import ProdutosView from "./ProdutosView";
 
 const PRODUTO = { id: 1, name: "X-Burguer", price: 20, category: "Lanches", emoji: "🍔" };
@@ -46,6 +47,7 @@ async function abrirCategorias(user) {
 let updateProduct;
 
 beforeEach(() => {
+  vi.clearAllMocks();
   mockSupabase.current.reset();
   updateProduct = vi.fn(() => Promise.resolve({ error: null }));
   setAppMock({ products: [PRODUTO], updateProduct });
@@ -187,5 +189,47 @@ describe("ProdutosView, renomear categoria", () => {
 
     await waitFor(() => expect(updateProduct).toHaveBeenCalledWith(1, { category: "Sanduíches" }));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("ProdutosView, excluir produto", () => {
+  /** Abre a janela de confirmação do produto da lista. */
+  async function abrirConfirmacao(user) {
+    await user.click(screen.getByRole("button", { name: "Excluir" }));
+    return screen.findByText("Excluir produto?");
+  }
+
+  it("exclusão recusada mantém a janela aberta, avisa e não escreve no log", async () => {
+    const user = userEvent.setup();
+    const removeProduct = vi.fn(() => Promise.resolve({
+      error: { code: "no_rows_deleted", message: "Nenhuma linha removida." },
+    }));
+    setAppMock({ products: [PRODUTO], updateProduct, removeProduct });
+    render(<ProdutosView />);
+    await abrirConfirmacao(user);
+
+    await user.click(screen.getByRole("button", { name: "Sim, excluir" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/não deu para excluir "x-burguer"/i);
+    // A janela continua de pé: o produto não saiu da lista.
+    expect(screen.getByText("Excluir produto?")).toBeInTheDocument();
+    expect(logAction).not.toHaveBeenCalled();
+  });
+
+  it("exclusão bem-sucedida fecha a janela e registra no log", async () => {
+    const user = userEvent.setup();
+    const removeProduct = vi.fn(() => Promise.resolve({ error: null }));
+    setAppMock({ products: [PRODUTO], updateProduct, removeProduct });
+    render(<ProdutosView />);
+    await abrirConfirmacao(user);
+
+    await user.click(screen.getByRole("button", { name: "Sim, excluir" }));
+
+    await waitFor(() => expect(screen.queryByText("Excluir produto?")).not.toBeInTheDocument());
+    expect(logAction).toHaveBeenCalledWith(
+      "teste",
+      "produto:remover",
+      expect.objectContaining({ msg: "Produto removido: X-Burguer" }),
+    );
   });
 });
