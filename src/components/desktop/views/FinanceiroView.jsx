@@ -10,7 +10,7 @@ import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { LuPlus } from "react-icons/lu";
-import { intervaloDoMes } from "@/lib/periodos";
+import { intervaloDoMes, PRESETS_PERIODO, detectarPreset } from "@/lib/periodos";
 import ResumoCards from "./financeiro/ResumoCards";
 import LancamentosList from "./financeiro/LancamentosList";
 import PeriodoSelector from "./financeiro/PeriodoSelector";
@@ -35,7 +35,17 @@ export default function FinanceiroView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
 
-  const [periodo, setPeriodo]   = useState(() => intervaloDoMes(new Date()));
+  // O período nascia congelado (`useState(() => intervaloDoMes(new Date()))`) e
+  // a aba do PDV não recarrega nunca: uma tela montada em 30 de agosto seguia
+  // no Financeiro de agosto durante todo setembro, e nenhum chip aparecia
+  // destacado, porque o PeriodoSelector recalcula o próprio "hoje" a cada
+  // render e o intervalo guardado já não casava com "Este mês". Agora o que
+  // fica guardado é a CHAVE do atalho, e o intervalo é derivado no render.
+  // "personalizado" é o único caso em que o intervalo guardado vale, porque
+  // aí as datas foram escolhidas à mão.
+  const [presetPeriodo, setPresetPeriodo] = useState("mes");
+  const [periodoEscolhido, setPeriodoEscolhido] = useState(() => intervaloDoMes(new Date()));
+
   const [lancamentos, setLancamentos] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [filtroTipo, setFiltroTipo]     = useState("todos");
@@ -44,6 +54,29 @@ export default function FinanceiroView() {
   const [fichas, setFichas] = useState([]);
   const [erroCarregar, setErroCarregar] = useState(false);
   const [aviso, setAviso] = useState("");
+
+  // Tique do relógio: sem ele, a virada do mês não provoca render nenhum e o
+  // intervalo derivado só se corrigiria no próximo toque do usuário. 30 s é o
+  // passo já usado na Cozinha (CozinhaView.jsx).
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const periodo = useMemo(() => {
+    const preset = PRESETS_PERIODO.find((p) => p.chave === presetPeriodo);
+    return preset ? preset.intervalo(new Date(agora)) : periodoEscolhido;
+  }, [presetPeriodo, periodoEscolhido, agora]);
+
+  // O seletor devolve sempre `{de, ate}`, tanto no clique do atalho quanto no
+  // De/Até manual. `detectarPreset` diz qual dos dois foi: batendo com um
+  // atalho, o período passa a acompanhar o calendário; não batendo, fica
+  // exatamente nas datas que o usuário escolheu.
+  const escolherPeriodo = (novo) => {
+    setPeriodoEscolhido(novo);
+    setPresetPeriodo(detectarPreset(novo, new Date()));
+  };
 
   // Leva 15.6 — fichas técnicas para o custo dos produtos vendidos (lucro).
   useEffect(() => {
@@ -178,7 +211,7 @@ export default function FinanceiroView() {
       </div>
 
       <div className="financeiro-view__toolbar" style={{ padding: `${sz.padSm}px ${sz.pad}px 0` }}>
-        <PeriodoSelector periodo={periodo} onChange={setPeriodo} />
+        <PeriodoSelector periodo={periodo} onChange={escolherPeriodo} />
       </div>
 
       {aviso && (
