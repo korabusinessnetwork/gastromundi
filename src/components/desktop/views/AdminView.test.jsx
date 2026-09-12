@@ -129,6 +129,40 @@ describe("AdminView, excluir fornecedor", () => {
   });
 });
 
+/**
+ * Contador do card Impostos (Refino G03).
+ *
+ * O card abre o ImpostosAdmin, que lê `itens_fiscal`, mas o contador vinha da
+ * chave `config.impostos`, abandonada com a tela antiga. O dono via
+ * "0 registros" com as alíquotas todas configuradas e clicava achando que
+ * nunca tinha configurado nada.
+ */
+describe("AdminView, contador do card Impostos", () => {
+  it("conta os itens com configuração fiscal, não a chave morta config.impostos", async () => {
+    // A chave antiga cheia e o `itens_fiscal` com 3 itens: o card tem que
+    // mostrar 3.
+    mockSupabase.current.setTableHandler("config", ({ method }) => {
+      if (method === "select") {
+        return { data: [{ key: "impostos", value: [{ id: "i1" }, { id: "i2" }, { id: "i3" }, { id: "i4" }, { id: "i5" }] }], error: null };
+      }
+      return undefined;
+    });
+    mockSupabase.current.setTableHandler("itens_fiscal", () => ({ data: null, count: 3, error: null }));
+    renderWithProviders(<AdminView />);
+
+    const card = (await screen.findByText("Impostos")).closest("button");
+    expect(within(card).getByText("3 registros")).toBeInTheDocument();
+  });
+
+  it("estabelecimento sem nenhuma configuração fiscal mostra zero", async () => {
+    mockSupabase.current.setTableHandler("itens_fiscal", () => ({ data: null, count: 0, error: null }));
+    renderWithProviders(<AdminView />);
+
+    const card = (await screen.findByText("Impostos")).closest("button");
+    expect(within(card).getByText("0 registros")).toBeInTheDocument();
+  });
+});
+
 describe("AdminView, registrar compra", () => {
   it("compra aberta às 21h30 nasce com a data de hoje, não a de amanhã", async () => {
     const user = userEvent.setup();
