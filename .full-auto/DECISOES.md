@@ -145,3 +145,53 @@ são uma chave e um object store, e dependência em runtime é peso no bundle do
 
 O que a decisão não fecha: a janela entre enfileirar e o banco confirmar. Fechar a aba
 dentro dela ainda perde a última op. Está registrado como pendência residual no ADR-013.
+
+---
+
+# Varredura de fluxos, 12/09/2026
+
+**Decisão: reconstruir o banco real num Postgres nativo, em vez de desistir do teste de
+banco.** Não há Docker nem Supabase CLI nesta máquina, então o Supabase local não sobe. A
+saída fácil seria marcar todo fluxo de RLS e de RPC como não testável. Em vez disso montei
+um shim com os roles e o schema `auth` do Supabase e apliquei `schema.sql` mais as 121
+migrations em dois passes, porque os dois arquivos dependem um do outro (o núcleo
+operacional só existe no `schema.sql`, `planos` e `tenants` só existem nas migrations).
+Resultado estável: 60 tabelas, 107 funções, 209 policies. Sem isso, os bugs B02 e B03 não
+teriam aparecido.
+
+**Decisão: escrever uma ponte que fala o protocolo do Supabase, em vez de dublar o client no
+navegador.** Dublar o client testaria o meu dublê. A ponte traduz PostgREST para SQL no banco
+reconstruído, então o que a tela recebe passou pela RLS de verdade. A ponte responde **501
+em vez de inventar resposta** para o que não emula (realtime, select com recurso embutido,
+storage, Edge Functions), e isso vira `NAO_TESTADO` no relatório em vez de falso verde.
+
+**Decisão: rodar as suítes em sequência, e não em worktrees paralelas.** O procedimento da
+skill pede uma worktree, uma porta e um banco por frente. Com um cluster Postgres só e sem
+Supabase local, o paralelismo real exigiria criar um banco por frente e multiplicar o tempo
+de setup, para ganhar pouco numa varredura deste tamanho. O isolamento que de fato importava,
+entre estabelecimentos, veio de dois tenants no seed. As frentes paralelas foram usadas onde
+rendiam: quatro sessões simultâneas mapeando áreas diferentes na Fase 1.
+
+**Decisão: o mapa registra objetivo, esperado e origem por fluxo, e não o passo a passo
+completo dos 205.** Transcrever entrada, passos e variações de cada um encheria o arquivo sem
+mudar decisão nenhuma. O passo a passo detalhado existe onde é usado: nos testes de
+`tests/e2e/` para o que foi executado, e no arquivo de origem citado em cada fluxo para o
+resto.
+
+**Decisão: instalar o `xlsx` do registro público só em `node_modules`.** O `package.json`
+aponta para `cdn.sheetjs.com`, bloqueado pela política de rede da sessão, e o `npm ci` não
+completa. Instalei a 0.18.5 do registro sem tocar no `package.json` nem no lockfile, para a
+suíte poder rodar. Está registrado como pendência: achado em fluxo de planilha nesta máquina
+precisa ser reconferido com a versão pinada antes de virar bug.
+
+**Decisão: corrigir a ponte quando ela produziu falso positivo, e reexecutar.** O checkout
+zerado apareceu primeiro numa hora em que a ponte estava descartando em silêncio um filtro
+`or=(...)` da trava de comanda. Isso é defeito de ambiente, não do sistema. Implementei o
+filtro, reexecutei, e o defeito continuou, aí sim virou o bug B01. O mesmo critério derrubou
+um falso positivo em `verificar_senha_admin`, que parecia oráculo para anônimo e é só um
+retorno `false` quando não há sessão.
+
+**Decisão: classificar o B01 como FLAKY, e não como confirmado.** Ele reproduz em 12 de 15
+execuções, não em 3 de 3. A regra do formato de achado é clara, e inflar para "confirmado"
+custaria mais do que a diferença: um relatório em que o número não bate é um relatório que
+ninguém confere de novo.

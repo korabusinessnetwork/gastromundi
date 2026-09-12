@@ -1,0 +1,55 @@
+{
+  "onda": 1,
+  "observacao": "Nesta rodada as suítes rodaram no mesmo processo, em sequência, e não em worktrees paralelas. O motivo está em DECISOES.md: sem Docker e sem Supabase CLI no ambiente, existe um único cluster Postgres local, e o paralelismo real exigiria um banco por frente. O isolamento que importava, entre estabelecimentos, foi garantido por dois tenants no seed e por prefixo qa- em todo registro criado.",
+  "suites": [
+    {
+      "id": "banco-isolamento",
+      "fluxos": ["F010", "F024", "F025", "F028", "F040"],
+      "criticidade": "alta",
+      "banco": "qa_base",
+      "usuarios": ["qa-admin-a@qa-a.local", "qa-garcom-a@qa-a.local", "qa-admin-b@qa-b.local"],
+      "dados": "seed padrão, dois tenants, prefixo qa-",
+      "arquivo": "tests/e2e/banco/10-isolamento-e-permissao.sql"
+    },
+    {
+      "id": "banco-permissao",
+      "fluxos": ["F015", "F021", "F022", "F030", "F032", "F033", "F035", "F036", "F037"],
+      "criticidade": "alta",
+      "banco": "qa_base",
+      "usuarios": ["qa-garcom-a@qa-a.local", "qa-admin-a@qa-a.local"],
+      "dados": "seed padrão, prefixo qa-",
+      "arquivo": "tests/e2e/banco/10-isolamento-e-permissao.sql"
+    },
+    {
+      "id": "banco-dinheiro",
+      "fluxos": ["F095", "F126", "F186", "F201", "F202", "F203", "F156"],
+      "criticidade": "alta",
+      "banco": "qa_base",
+      "usuarios": ["qa-admin-a@qa-a.local", "qa-plataforma@qa-a.local", "anônimo"],
+      "dados": "seed padrão mais vendas de fronteira de dia, prefixo qa-",
+      "arquivo": "tests/e2e/banco/20-dinheiro.sql"
+    },
+    {
+      "id": "acesso",
+      "fluxos": ["F001", "F002", "F005", "F006", "F010", "F011", "F015"],
+      "criticidade": "alta",
+      "porta_front": 5201,
+      "porta_api": 54321,
+      "banco": "qa_base",
+      "usuarios": ["qa-admin-a@qa-a.local", "qa-inativo-a", "qa-admin-b@qa-b.local"],
+      "dados": "seed padrão",
+      "arquivo": "tests/e2e/navegador/acesso.mjs"
+    },
+    {
+      "id": "operacao",
+      "fluxos": ["F046", "F047", "F051", "F056", "F058", "F059", "F064", "F067", "F095", "F099"],
+      "criticidade": "alta",
+      "porta_front": 5201,
+      "porta_api": 54321,
+      "banco": "qa_base",
+      "usuarios": ["qa-admin-a@qa-a.local"],
+      "dados": "comandas 15 a 18 e mesas 13 a 31, prefixo qa- nos produtos",
+      "arquivo": "tests/e2e/navegador/pdv.mjs"
+    }
+  ]
+}

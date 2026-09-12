@@ -184,3 +184,43 @@ há quanto tempo está parado.
 botões de 7, 30 e 90 dias valem só para as falhas contadas, as recusas e os erros de impressão. Se
 o período valesse também para a pendência, a nota parada há 60 dias sumiria de uma janela de 30 e a
 tela diria que está tudo bem justamente no caso mais grave.
+
+---
+
+## Pendências abertas pela varredura de 12/09/2026
+
+### P06, decidir o que fazer com os bugs B01 e B02
+
+Os dois estão em `.full-auto/varredura/BUGS.md` com reprodução e evidência. Por padrão a
+varredura não corrige nada, porque relatório honesto vale mais que correção apressada no meio
+de um QA. Se quiser que eu corrija, é `/varredura corrigir`.
+
+- **B01 (S1):** fechar a conta direto do carrinho abre o pagamento com R$ 0,00 dizendo que os
+  itens foram removidos, quando eles estão gravados. Intermitente, 12 de 15 execuções.
+- **B02 (S2):** `relatorio_vendas`, `jarvas_resumo_vendas` e `analytics_plataforma` contam
+  venda cancelada como faturamento, e o front não conta. Duas telas, dois números.
+
+### P07, as 11 tabelas sem a policy RESTRICTIVE de isolamento
+
+`users`, `role_permissions`, `assinaturas`, `assinaturas_pagamentos`, `ia_uso`,
+`nfce_emitidas`, `nfce_inutilizacoes`, `solicitacoes_conta`, `tenant_addons`,
+`tenant_fiscal_config` e `estoque_baixas_aplicadas` têm `tenant_id` e não têm a policy
+`<tabela>_tenant_isolation` que a convenção do `supabase/schema.sql:48` descreve.
+
+Testei em execução: **não há vazamento hoje**, todas isolam por dentro das próprias policies
+permissivas. O que falta é a rede de proteção: nas outras 40 tabelas, uma policy permissiva
+mal escrita amanhã não abre o dado porque a RESTRICTIVE subtrai. Nessas 11, abre.
+
+Decisão sua: escrever a migration que acrescenta as 11 policies (é aditivo e não muda
+comportamento hoje), ou registrar a exceção na convenção do `schema.sql` para o documento
+parar de dizer uma coisa e o banco fazer outra.
+
+### P08, o `xlsx` vindo de CDN em vez do registro público
+
+`package.json` aponta `xlsx` para `https://cdn.sheetjs.com/...`. Esse host é bloqueado pela
+política de rede de sessões de agente e por boa parte das CIs, e o `npm ci` não completa
+aqui. Trabalhei com a 0.18.5 do registro público instalada só em `node_modules`, sem mexer no
+`package.json`.
+
+Decisão sua: manter a versão pinada da CDN (e aceitar que instalação limpa falha em ambiente
+com egresso restrito) ou passar a puxar do registro público.
