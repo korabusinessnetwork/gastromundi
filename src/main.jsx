@@ -6,6 +6,8 @@ import { AppProvider } from "@/context/AppContext";
 import router from "@/routes";
 import "@/styles/tema.css";
 import { registerSW } from "virtual:pwa-register";
+import { anunciarNovaVersao } from "@/lib/novaVersao";
+import AvisoNovaVersao from "@/components/shared/AvisoNovaVersao";
 import { initObservabilidade } from "@/lib/observabilidade";
 import { instalarRecuperacaoDeploy } from "@/lib/recuperacaoDeploy";
 import { pautasAtivo, ehPautasHost } from "@/lib/pautasHost";
@@ -17,10 +19,23 @@ import { pautasAtivo, ehPautasHost } from "@/lib/pautasHost";
 const noHostDasPautas = pautasAtivo() && ehPautasHost();
 
 // PWA (Leva 11): registra o service worker que deixa o app disponível
-// offline. `immediate` atualiza a versão em segundo plano sem prompt.
-// Fora do host das pautas: o manifest instalável é o do PDV, e cachear o
-// app inteiro em um subdomínio que só mostra uma lista não serve a ninguém.
-if (!noHostDasPautas) registerSW({ immediate: true });
+// offline. Fora do host das pautas: o manifest instalável é o do PDV, e cachear
+// o app inteiro em um subdomínio que só mostra uma lista não serve a ninguém.
+//
+// `onNeedRefresh` em vez de recarregar sozinho: antes o registro era
+// `immediate` com `registerType: "autoUpdate"`, e nesse modo o plugin chama
+// `location.reload()` assim que a versão nova ativa. Como a Vercel publica
+// produção a cada push na `main`, um deploy no meio do expediente derrubava a
+// aba do caixa sem avisar, levando o que só existia na memória (carrinho
+// montado e ainda não lançado, modal aberto). Agora a versão nova fica
+// esperando e quem escolhe a hora é o operador, que é a única pessoa que sabe
+// se dá para parar. A recuperação por `vite:preloadError` logo abaixo continua
+// sendo a rede de segurança para quem ficar na versão velha tempo demais.
+if (!noHostDasPautas) {
+  const atualizar = registerSW({
+    onNeedRefresh() { anunciarNovaVersao(atualizar); },
+  });
+}
 
 // Deploy novo com a aba já aberta: os pedaços antigos do app somem do servidor
 // e a tela quebraria em branco. Antes de qualquer render, deixamos armada a
@@ -94,6 +109,8 @@ if (noHostDasPautas) {
       <Sentry.ErrorBoundary fallback={<TelaDeErro />}>
         <AppProvider>
           <RouterProvider router={router} future={{ v7_startTransition: true }} />
+          {/* Fora do roteador: a faixa precisa sobreviver à troca de tela. */}
+          <AvisoNovaVersao />
         </AppProvider>
       </Sentry.ErrorBoundary>
     </StrictMode>

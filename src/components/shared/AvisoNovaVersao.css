@@ -1,0 +1,71 @@
+/*
+ * Faixa de versão nova. Estilo fora do JSX (decisão 018) e cores por token
+ * --gm-* para acompanhar o tema do estabelecimento (decisão 017).
+ *
+ * Altura na pilha: abaixo do aviso de impressão (9550) e do de sessão (9600),
+ * porque versão nova nunca é mais urgente que papel faltando na cozinha ou que
+ * a sessão vencendo no meio de uma venda. Fica no canto, não no meio: é convite,
+ * não interrupção.
+ */
+
+.aviso-nova-versao {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9400;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 28%);
+  color: var(--gm-text);
+  font-family: var(--gm-font-texto);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.aviso-nova-versao__icone {
+  color: var(--gm-accent);
+  flex-shrink: 0;
+}
+
+.aviso-nova-versao__texto {
+  min-width: 0;
+}
+
+.aviso-nova-versao__botao {
+  flex-shrink: 0;
+  /* Alvo de toque de 44 px: esta faixa também aparece no tablet do balcão. */
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--gm-accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.aviso-nova-versao__botao:disabled {
+  background: var(--gm-faint);
+  color: var(--gm-muted);
+  cursor: progress;
+}
+
+/* Celular: a faixa ocupa a largura, com o botão embaixo, senão o texto fica
+   com duas palavras por linha. */
+@media (max-width: 520px) {
+  .aviso-nova-versao {
+    left: 16px;
+    right: 16px;
+    flex-wrap: wrap;
+  }
+  .aviso-nova-versao__botao {
+    width: 100%;
+  }
+}

@@ -22,7 +22,11 @@ export default defineConfig(({ mode }) => {
       // no dispositivo. Sem internet, o PDV abre normalmente e os pedidos
       // entram na fila local do AppContext até a conexão voltar.
       VitePWA({
-        registerType: "autoUpdate",
+        // "prompt" e não "autoUpdate": com autoUpdate o cliente recarrega a
+        // aba sozinho quando a versão nova ativa, e num PDV isso acontece no
+        // meio de uma venda. Quem decide a hora é o operador, pela faixa de
+        // `AvisoNovaVersao`; ver o comentário em `src/main.jsx`.
+        registerType: "prompt",
         manifest: {
           // Nome da PLATAFORMA, não do tenant (white-label, decisão 017) —
           // o manifest é estático por build; a marca do tenant vem do banco.
