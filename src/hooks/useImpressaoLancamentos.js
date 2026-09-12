@@ -12,10 +12,11 @@
 // Roda só no desktop com alguém logado, e só se ESTE computador estiver
 // marcado como o que imprime (ver `lib/impressao/aparelho`).
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { imprimirLancamento } from "@/lib/impressao/despacho";
 import { registroLancamentos } from "@/lib/impressao/lancamentos";
 import { aparelhoImprimeLancamentos, assinarAparelhoImprime } from "@/lib/impressao/aparelho";
+import { fmtComanda } from "@/lib/impressao/layoutComanda";
 
 /** Estado atual da chave deste aparelho, reagindo a mudanças na configuração. */
 export function useAparelhoImprime() {
@@ -24,9 +25,51 @@ export function useAparelhoImprime() {
   return ligado;
 }
 
+/**
+ * Como a comanda é chamada na tela do caixa. O aviso tem que dizer QUAL papel
+ * faltou: "uma impressão não saiu" manda o operador procurar no escuro, com a
+ * cozinha já atrasada. Mesmo formato do PDV e da Cozinha (`fmtComanda`), e
+ * nunca o marcador de vazio dele, que numa frase não diria nada.
+ */
+export function rotuloDaComanda(pedido) {
+  const nome = String(pedido?.comanda ?? "").trim();
+  if (nome) return fmtComanda(nome);
+  const mesa = String(pedido?.mesa ?? "").trim();
+  return mesa ? `Mesa ${mesa}` : "Comanda sem nome";
+}
+
 export function useImpressaoLancamentos({ ativo, pending, loading }) {
   const semeadoRef = useRef(false);
   const filaRef = useRef(Promise.resolve());
+  // Lançamentos que a impressora não colocou no papel, para o aviso da tela.
+  const [falhas, setFalhas] = useState([]);
+
+  // Antes isto era um `console.error` e nada mais: o papel sumia, o salão não
+  // ficava sabendo e a cozinha só descobria quando o cliente reclamava. E não
+  // é caso raro: com o driver padrão (browser-raster) a impressão automática
+  // abre uma janela sem gesto do usuário, e o navegador devolve o pop-up
+  // bloqueado como erro. O caminho da Ponte já faz o certo
+  // (`usePonteLocal.registrarFalhaImpressao`), e agora os dois avisam igual.
+  //
+  // O lançamento que falhou CONTINUA marcado como visto, ou seja, não é
+  // destravado para nova tentativa automática. Destravar parece o mais
+  // generoso e é o pior dos dois: o `pending` muda várias vezes por minuto no
+  // serviço, e cada mudança tentaria de novo o mesmo lançamento. Se a falha
+  // foi pop-up bloqueado, toda tentativa falha igual e o aviso vira um piscar
+  // inútil; se a impressora voltou no meio, a via sai repetida, e papel
+  // dobrado na bancada é pedido feito duas vezes. Quem destrava é uma pessoa,
+  // com um clique, na reimpressão da tela da Cozinha, e aí sai exatamente um
+  // papel. Mesma escolha da Ponte, que também marca antes de imprimir e, na
+  // falha, só reporta.
+  const registrarFalha = useCallback((grupo, erro) => {
+    console.error("[impressao] lançamento não saiu na produção:", erro);
+    setFalhas((atuais) => (atuais.some((f) => f.chave === grupo.chave)
+      ? atuais
+      : [...atuais, { chave: grupo.chave, rotulo: rotuloDaComanda(grupo.pedido) }]));
+  }, []);
+
+  /** Botão do aviso: alguém foi reimprimir, o alarme já fez o trabalho dele. */
+  const dispensarFalhas = useCallback(() => setFalhas([]), []);
 
   useEffect(() => {
     if (!ativo || loading) return;
@@ -49,15 +92,20 @@ export function useImpressaoLancamentos({ ativo, pending, loading }) {
 
     // Uma fila só: são poucos papéis e a térmica atende um trabalho por vez.
     // Disparar em paralelo embaralharia a ordem na bancada da cozinha.
+    //
+    // Continua fire-and-forget: ninguém espera esta fila para vender, e a
+    // falha virar aviso na tela não muda isso.
     filaRef.current = filaRef.current.then(async () => {
       for (const grupo of novos) {
         try {
           const { error } = await imprimirLancamento({ ...grupo.pedido, items: grupo.itens });
-          if (error) console.error("[impressao] lançamento não saiu na produção:", error);
+          if (error) registrarFalha(grupo, error);
         } catch (err) {
-          console.error("[impressao] lançamento não saiu na produção:", err);
+          registrarFalha(grupo, err);
         }
       }
     });
-  }, [ativo, pending, loading]);
+  }, [ativo, pending, loading, registrarFalha]);
+
+  return { falhas, dispensarFalhas };
 }
