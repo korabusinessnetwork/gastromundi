@@ -112,6 +112,7 @@ import {
   formatarReais,
   formatarCep,
   temFaixasKm,
+  sanitizarConfig,
 } from "@/lib/deliveryAdmin";
 import { ajusteAutomaticoAbertura, resumoHorario } from "@/lib/deliveryHorario";
 import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
@@ -520,34 +521,58 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
     [pedidos]
   );
 
+  // Em andamento POR PEDIDO (o celular já fazia assim, DeliveryModulo.jsx).
+  // Sem isto, entre o clique em "Aceitar e preparar" e o fim do recarregar()
+  // o botão seguia clicável e com o mesmo rótulo, o que convida ao clique
+  // duplo. O ref é o guard (não depende de re-render), o state é o que a
+  // tela lê.
+  const processandoRef = useRef({});
+  const [processando, setProcessando] = useState({});
+  const marcarProcessando = useCallback((id, valor) => {
+    processandoRef.current = { ...processandoRef.current, [id]: valor };
+    setProcessando((prev) => ({ ...prev, [id]: valor }));
+  }, []);
+
   const avancar = useCallback(
     async (pedido) => {
       const proximo = proximoStatus(pedido.status);
       if (!proximo) return;
-      const { error } = await atualizarStatusPedido(pedido.id, proximo, {
-        de: pedido.status,
-        operador: currentUser?.username,
-        numero: pedido.numero,
-      });
-      if (error) return aviso("Não foi possível atualizar o pedido. Tente novamente.", "err");
-      aviso(`Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`, "ok");
-      await recarregar();
+      if (processandoRef.current[pedido.id]) return;
+      marcarProcessando(pedido.id, true);
+      try {
+        const { error } = await atualizarStatusPedido(pedido.id, proximo, {
+          de: pedido.status,
+          operador: currentUser?.username,
+          numero: pedido.numero,
+        });
+        if (error) return aviso("Não foi possível atualizar o pedido. Tente novamente.", "err");
+        aviso(`Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`, "ok");
+        await recarregar();
+      } finally {
+        marcarProcessando(pedido.id, false);
+      }
     },
-    [aviso, recarregar, currentUser]
+    [aviso, recarregar, currentUser, marcarProcessando]
   );
 
   const cancelar = useCallback(
     async (pedido) => {
-      const { error } = await atualizarStatusPedido(pedido.id, STATUS_CANCELADO, {
-        de: pedido.status,
-        operador: currentUser?.username,
-        numero: pedido.numero,
-      });
-      if (error) return aviso("Não foi possível cancelar. Tente novamente.", "err");
-      aviso(`Pedido ${pedido.numero} cancelado.`, "ok");
-      await recarregar();
+      if (processandoRef.current[pedido.id]) return;
+      marcarProcessando(pedido.id, true);
+      try {
+        const { error } = await atualizarStatusPedido(pedido.id, STATUS_CANCELADO, {
+          de: pedido.status,
+          operador: currentUser?.username,
+          numero: pedido.numero,
+        });
+        if (error) return aviso("Não foi possível cancelar. Tente novamente.", "err");
+        aviso(`Pedido ${pedido.numero} cancelado.`, "ok");
+        await recarregar();
+      } finally {
+        marcarProcessando(pedido.id, false);
+      }
     },
-    [aviso, recarregar, currentUser]
+    [aviso, recarregar, currentUser, marcarProcessando]
   );
 
   return (
@@ -633,6 +658,12 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
                     <div className="delivery-view__coluna-titulo">
                       <span className="delivery-view__coluna-bolinha" />
                       {col.label}
+                      {/* Coluna terminal mostra só o dia corrente (recorte da
+                          consulta). Sem dizer isso na tela, o contador parece
+                          o total de sempre. */}
+                      {ehTerminal(col.status) && (
+                        <span className="delivery-view__coluna-recorte">de hoje</span>
+                      )}
                       <span className="delivery-view__coluna-contador">
                         {col.pedidos.length}
                       </span>
@@ -644,6 +675,7 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
                           pedido={p}
                           isAdmin={isAdmin}
                           ehAddon={ehAddon}
+                          processando={!!processando[p.id]}
                           onAvancar={() => avancar(p)}
                           onCancelar={() => cancelar(p)}
                         />
@@ -660,7 +692,7 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
   );
 }
 
-function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
+function CardPedido({ pedido, isAdmin, ehAddon, processando, onAvancar, onCancelar }) {
   const [aberto, setAberto] = useState(false);
   const [itens, setItens] = useState(null); // null = ainda não buscou
   const [carregandoItens, setCarregandoItens] = useState(false);
@@ -777,9 +809,10 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
           {acao && (
             <button
               onClick={onAvancar}
+              disabled={processando}
               className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-avancar"
             >
-              {acao}
+              {processando ? "Salvando…" : acao}
             </button>
           )}
           {podeCancelar(pedido.status) && (
@@ -787,12 +820,14 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
               <>
                 <button
                   onClick={onCancelar}
+                  disabled={processando}
                   className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-cancelar-confirma"
                 >
-                  Cancelar mesmo
+                  {processando ? "Cancelando…" : "Cancelar mesmo"}
                 </button>
                 <button
                   onClick={() => setConfirmarCancelar(false)}
+                  disabled={processando}
                   className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-voltar"
                 >
                   Voltar
@@ -801,6 +836,7 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
             ) : (
               <button
                 onClick={() => setConfirmarCancelar(true)}
+                disabled={processando}
                 className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-cancelar"
                 title="Cancelar este pedido"
               >
@@ -823,6 +859,28 @@ function AbaCardapio({
 }) {
   const [importando, setImportando] = useState(false);
   const [modal, setModal] = useState(null); // { modo:'novo'|'editar', item? }
+  // Busca e atalho de indisponíveis. A grade renderizava itens.map direto:
+  // para trocar a foto de um item o dono rolava o cardápio inteiro, e não
+  // havia como ver quantos estavam fora do ar.
+  const [busca, setBusca] = useState("");
+  const [soIndisponiveis, setSoIndisponiveis] = useState(false);
+
+  const indisponiveis = useMemo(
+    () => itens.filter((it) => !it.disponivel).length,
+    [itens]
+  );
+
+  // filtrarItensDelivery (a mesma do seletor de produtos do editor de grupo)
+  // casa nome sem acento e sem caixa. Aqui só a filtragem interessa: a ordem
+  // da grade continua sendo a `ordem` do cardápio, não a alfabética do helper.
+  const itensVisiveis = useMemo(() => {
+    const achados = new Set(
+      filtrarItensDelivery(itens, busca, [], Math.max(1, itens.length)).map((it) => it.id)
+    );
+    return itens.filter(
+      (it) => achados.has(it.id) && (!soIndisponiveis || !it.disponivel)
+    );
+  }, [itens, busca, soIndisponiveis]);
 
   const importar = async () => {
     if (importando || faltamImportar.length === 0) return;
@@ -878,6 +936,32 @@ function AbaCardapio({
         </div>
       )}
 
+      {/* Busca e atalho de indisponíveis, só quando há cardápio para filtrar */}
+      {!carregando && itens.length > 0 && (
+        <div className="delivery-view__busca-barra">
+          <input
+            className="delivery-view__busca-campo"
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar produto pelo nome"
+            aria-label="Buscar produto pelo nome"
+          />
+          <button
+            type="button"
+            onClick={() => setSoIndisponiveis((v) => !v)}
+            aria-pressed={soIndisponiveis}
+            className={`delivery-view__btn delivery-view__btn--sm delivery-view__busca-filtro${soIndisponiveis ? " delivery-view__busca-filtro--ligado" : ""}`}
+            title="Mostrar só os produtos que estão fora do ar no cardápio online"
+          >
+            Só indisponíveis ({indisponiveis})
+          </button>
+          <span className="delivery-view__busca-contagem">
+            {itensVisiveis.length} de {itens.length}
+          </span>
+        </div>
+      )}
+
       {/* Lista / estados */}
       {carregando ? (
         <div className="delivery-view__vazio">
@@ -894,9 +978,26 @@ function AbaCardapio({
               : "Clique em “Novo produto” para começar seu cardápio online."}
           </div>
         </div>
+      ) : itensVisiveis.length === 0 ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">🔎</div>
+          <div className="delivery-view__vazio-titulo">Nenhum produto com esse filtro</div>
+          <div className="delivery-view__vazio-desc">
+            {soIndisponiveis && indisponiveis === 0
+              ? "Todos os produtos estão disponíveis no cardápio online."
+              : "Tente outro nome, ou limpe a busca para ver o cardápio inteiro."}
+          </div>
+          <button
+            type="button"
+            onClick={() => { setBusca(""); setSoIndisponiveis(false); }}
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--tentar"
+          >
+            Limpar filtros
+          </button>
+        </div>
       ) : (
         <div className="delivery-view__cards">
-          {itens.map((it) => (
+          {itensVisiveis.map((it) => (
             <CardProduto
               key={it.id}
               item={it}
@@ -2320,6 +2421,15 @@ function SeletorProdutosMulti({ itens, produtoIds, vinculando, onAlternar }) {
 // ════════════════════════════════════════════════════════════════
 // ABA 3 — Entrega e taxas (config_delivery)
 // ════════════════════════════════════════════════════════════════
+/**
+ * Assinatura estável do que seria gravado. sanitizarConfig devolve sempre as
+ * mesmas chaves na mesma ordem (e normaliza horário e faixas), então comparar
+ * o JSON basta para saber se a config mudou de verdade.
+ */
+function assinaturaConfig(config) {
+  return JSON.stringify(sanitizarConfig(config));
+}
+
 function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   const [config, setConfig] = useState(null);
   const [carregando, setCarregando] = useState(true);
@@ -2365,6 +2475,8 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   // produto desta tela. Guarda o `uid` da faixa, não o índice: a lista muda de
   // ordem e de tamanho enquanto a confirmação está aberta.
   const [faixaParaApagar, setFaixaParaApagar] = useState(null);
+  // Assinatura do que já está gravado, para não regravar config idêntica.
+  const ultimoSalvoRef = useRef(null);
 
   useEffect(() => {
     let ativo = true;
@@ -2375,6 +2487,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
       if (error) return aviso("Não foi possível carregar as configurações.", "err");
       const cfg =
         data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
+      ultimoSalvoRef.current = assinaturaConfig(cfg);
       setConfig({ ...cfg, faixas_taxa: comUid(cfg.faixas_taxa ?? []) });
       setEnderecoOrigem(cfg.endereco_origem || "");
       setModoTaxa(temFaixasKm(cfg.faixas_taxa) ? "km" : "area");
@@ -2387,11 +2500,19 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   const salvar = async (extra) => {
     if (!tenant?.id) return aviso("Estabelecimento não identificado.", "err");
     const alvo = { ...config, ...(extra || {}) };
+    // Nada mudou de verdade: sai antes de gravar. "Pedido mínimo" e "Tempo de
+    // preparo" salvam no onBlur, então só passar o foco pelo campo e sair
+    // fazia upsert em config_delivery, escrevia "Configurações de entrega
+    // atualizadas" no activity_log e dizia "Configurações salvas." ao
+    // operador. A trilha de auditoria ganhava alterações que não existiram.
+    const assinatura = assinaturaConfig(alvo);
+    if (assinatura === ultimoSalvoRef.current) return;
     setSalvando(true);
     const { data, error } = await salvarConfigDelivery(tenant.id, alvo);
     setSalvando(false);
     if (error) return aviso("Não foi possível salvar.", "err");
     const salvo = data || alvo;
+    ultimoSalvoRef.current = assinaturaConfig(salvo);
     setConfig({ ...salvo, faixas_taxa: comUid(salvo.faixas_taxa ?? []) });
     logAction(currentUser?.username, "delivery:config", { msg: "Configurações de entrega atualizadas", name: currentUser?.name, role: currentUser?.role });
     aviso("Configurações salvas.", "ok");

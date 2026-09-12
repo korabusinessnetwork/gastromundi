@@ -216,14 +216,36 @@ const CAMPOS_PEDIDO =
   "subtotal,taxa_entrega,total,forma_pagamento,troco_para,levar_maquininha,status,pending_id,created_at,updated_at";
 
 /**
+ * Início do dia local, em ISO, para recortar as colunas terminais.
+ * `agora` injetável para teste determinístico.
+ *
+ * @param {Date} [agora]
+ * @returns {string}
+ */
+export function inicioDoDiaISO(agora = new Date()) {
+  const d = new Date(agora);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+/**
  * Lista os pedidos de delivery do tenant (recente → antigo). A RLS já
  * filtra por tenant. Nunca lança: erro vira { data: [], error }.
+ *
+ * Recorte: pedido em andamento vem sempre, por mais antigo que seja (é o
+ * que a operação precisa ver). Pedido terminal (entregue/cancelado) só vem
+ * do dia corrente. Sem isso a consulta puxava TODO pedido entregue desde o
+ * primeiro dia, a cada montagem e a cada evento de realtime, e acima do
+ * teto de linhas do PostgREST a resposta era cortada em silêncio, com o
+ * contador da coluna passando a mentir.
  */
-export async function listarPedidosDelivery() {
+export async function listarPedidosDelivery({ agora } = {}) {
+  const desde = inicioDoDiaISO(agora);
   try {
     const { data, error } = await supabase
       .from("delivery_pedidos")
       .select(CAMPOS_PEDIDO)
+      .or(`status.not.in.("entregue","${STATUS_CANCELADO}"),created_at.gte.${desde}`)
       .order("created_at", { ascending: false });
     if (error) return { data: [], error };
     return { data: data ?? [], error: null };

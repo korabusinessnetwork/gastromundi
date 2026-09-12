@@ -17,6 +17,15 @@ const fmtComanda = (name) =>
 // --gm-warn, sobrescrevível pelo tenant como as demais cores da coluna
 // (decisão 017, TD018). Antes era o hex cravado, fora do white-label.
 const AMBER = varColor(C.warn);
+// Falha de ação no cartão: o guard otimista de cozinha.js (.eq no status
+// + .single()) devolve "0 rows" quando outra estação já avançou a mesma
+// comanda, que é caso de disputa e não de rede. Antes os dois caíam num
+// console.error e a cozinha não lia nada.
+const MSG_CONFLITO = "Outra estação já avançou esta comanda.";
+const MSG_FALHA = "Não deu para salvar, tente de novo.";
+const ehConflito = (error) =>
+  error?.code === "PGRST116" || /0 rows/i.test(String(error?.details ?? ""));
+
 const COLUNAS = [
   { status: "aguardando", titulo: "Aguardando", cor: "var(--gm-blue)" },
   { status: "em_preparo", titulo: "Em Preparo", cor: AMBER },
@@ -35,6 +44,7 @@ export default function CozinhaView() {
   const sz = getSizes(width);
 
   const [processando, setProcessando] = useState({});
+  const [erroAcao, setErroAcao] = useState({});
 
   // Recalcula tempo decorrido/atraso periodicamente (os dados não mudam, só o relógio)
   const [, forceTick] = useState(0);
@@ -44,28 +54,24 @@ export default function CozinhaView() {
   }, []);
 
   const marcarProcessando = (id, valor) => setProcessando((prev) => ({ ...prev, [id]: valor }));
+  const marcarErroAcao = (id, msg) => setErroAcao((prev) => ({ ...prev, [id]: msg }));
 
-  const handleIniciarPreparo = async (pedido) => {
+  const executarAcao = async (pedido, acao) => {
     if (processando[pedido.id]) return;
     marcarProcessando(pedido.id, true);
+    marcarErroAcao(pedido.id, null);
     try {
-      const { error } = await iniciarPreparo(pedido.id, currentUser?.username);
-      if (error) console.error("[cozinha] erro ao iniciar preparo:", error);
+      const { error } = await acao(pedido.id, currentUser?.username);
+      if (error) marcarErroAcao(pedido.id, ehConflito(error) ? MSG_CONFLITO : MSG_FALHA);
+    } catch {
+      marcarErroAcao(pedido.id, MSG_FALHA);
     } finally {
       marcarProcessando(pedido.id, false);
     }
   };
 
-  const handleMarcarPronto = async (pedido) => {
-    if (processando[pedido.id]) return;
-    marcarProcessando(pedido.id, true);
-    try {
-      const { error } = await marcarPronto(pedido.id, currentUser?.username);
-      if (error) console.error("[cozinha] erro ao marcar pronto:", error);
-    } finally {
-      marcarProcessando(pedido.id, false);
-    }
-  };
+  const handleIniciarPreparo = (pedido) => executarAcao(pedido, iniciarPreparo);
+  const handleMarcarPronto = (pedido) => executarAcao(pedido, marcarPronto);
 
   // Via de produção: 1 clique imprime a comanda no destino do perfil —
   // impressora térmica pela Ponte KORA (que enfileira e reimprime sozinha
@@ -129,6 +135,7 @@ export default function CozinhaView() {
                       pedido={pedido}
                       sz={sz}
                       processando={!!processando[pedido.id]}
+                      erroAcao={erroAcao[pedido.id] ?? null}
                       onIniciarPreparo={() => handleIniciarPreparo(pedido)}
                       onMarcarPronto={() => handleMarcarPronto(pedido)}
                       onImprimirVia={() => handleImprimirVia(pedido)}
@@ -144,7 +151,7 @@ export default function CozinhaView() {
   );
 }
 
-function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto, onImprimirVia }) {
+function PedidoCard({ pedido, sz, processando, erroAcao, onIniciarPreparo, onMarcarPronto, onImprimirVia }) {
   const referencia = pedido.status_cozinha === "em_preparo" ? pedido.em_preparo_em : pedido.created_at;
   const minutos = tempoDecorridoMin(referencia);
   const atrasado = estaAtrasado(pedido);
@@ -186,6 +193,14 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto,
           </div>
         ))}
       </div>
+
+      {/* Falha da última ação, no próprio cartão */}
+      {erroAcao && (
+        <div className="pedido-card__erro" role="alert">
+          <LuTriangleAlert size={13} color="var(--gm-red)" />
+          <span>{erroAcao}</span>
+        </div>
+      )}
 
       {/* Ação */}
       {pedido.status_cozinha === "aguardando" && (

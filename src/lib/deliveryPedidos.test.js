@@ -27,6 +27,8 @@ import {
   formatarReais,
   tempoDecorrido,
   atualizarStatusPedido,
+  inicioDoDiaISO,
+  listarPedidosDelivery,
 } from "./deliveryPedidos";
 import { supabase } from "./supabase";
 
@@ -336,5 +338,54 @@ describe("atualizarStatusPedido (DL2)", () => {
     const { data, error } = await atualizarStatusPedido("p1", "em_preparo");
     expect(error).toBeNull();
     expect(data).toEqual({ id: "p1", numero: 7, status: "em_preparo" });
+  });
+});
+
+// D02 — antes disso listarPedidosDelivery puxava TODO pedido de delivery do
+// tenant, sem limite e sem recorte de data, a cada montagem e a cada evento de
+// realtime. Acima do teto de linhas do PostgREST a resposta é cortada em
+// silêncio e o contador da coluna passa a mentir.
+describe("listarPedidosDelivery, recorte das colunas terminais (D02)", () => {
+  beforeEach(() => {
+    supabase.reset();
+  });
+
+  const acharOr = () => supabase.calls.find((c) => c.table === "delivery_pedidos" && c.method === "or");
+
+  it("inicioDoDiaISO zera o relógio do dia local", () => {
+    const inicio = new Date(inicioDoDiaISO(new Date(2026, 8, 12, 15, 47, 3)));
+    expect(inicio.getHours()).toBe(0);
+    expect(inicio.getMinutes()).toBe(0);
+    expect(inicio.getSeconds()).toBe(0);
+    expect(inicio.getDate()).toBe(12);
+  });
+
+  it("recorta entregue e cancelado ao dia corrente na própria consulta", async () => {
+    const agora = new Date(2026, 8, 12, 15, 47, 3);
+    await listarPedidosDelivery({ agora });
+
+    const filtro = acharOr();
+    expect(filtro).toBeDefined();
+    const expressao = String(filtro.args[0]);
+    expect(expressao).toContain("entregue");
+    expect(expressao).toContain(STATUS_CANCELADO);
+    expect(expressao).toContain(`created_at.gte.${inicioDoDiaISO(agora)}`);
+  });
+
+  it("não terminal continua sempre visível: o recorte de data é alternativa, não condição", async () => {
+    await listarPedidosDelivery({ agora: new Date(2026, 8, 12, 15, 47, 3) });
+
+    const expressao = String(acharOr().args[0]);
+    // `or` = qualquer uma das duas basta, então pedido em andamento antigo
+    // entra pelo lado do status, sem depender da data.
+    expect(expressao).toMatch(/status\.not\.in\./);
+    expect(expressao.split(",created_at.gte.")).toHaveLength(2);
+  });
+
+  it("erro do Supabase vira data vazia com o erro, sem lançar", async () => {
+    supabase.setTableError("delivery_pedidos", { message: "falhou" });
+    const { data, error } = await listarPedidosDelivery();
+    expect(data).toEqual([]);
+    expect(error).toBeTruthy();
   });
 });

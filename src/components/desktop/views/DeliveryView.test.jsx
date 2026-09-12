@@ -25,18 +25,20 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery, salvarConfigDelivery, carregarItensPedido } = vi.hoisted(() => ({
+const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery, salvarConfigDelivery, carregarItensPedido, atualizarStatusPedido } = vi.hoisted(() => ({
   usePedidosDelivery: vi.fn(),
   listarProdutosDelivery: vi.fn(),
   carregarConfigDelivery: vi.fn(),
   salvarConfigDelivery: vi.fn(),
   carregarItensPedido: vi.fn(),
+  atualizarStatusPedido: vi.fn(),
 }));
 
 // `carregarItensPedido` mora na lib de pedidos, não na de administração.
 vi.mock("@/lib/deliveryPedidos", async (importOriginal) => ({
   ...(await importOriginal()),
   carregarItensPedido,
+  atualizarStatusPedido,
 }));
 
 // Só o hook de pedidos é falso. O resto de @/utils/hooks passa real pelo
@@ -101,6 +103,7 @@ beforeEach(() => {
     data: { aberto: true, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] },
     error: null,
   });
+  atualizarStatusPedido.mockResolvedValue({ data: { id: "p1" }, error: null });
   semErro();
 });
 
@@ -338,5 +341,244 @@ describe("DeliveryView, falha ao carregar os itens do pedido", () => {
 
     expect(await screen.findByText("Sem itens detalhados.")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * D03, avançar e cancelar não tinham estado de "em andamento".
+ *
+ * Entre o clique em "Aceitar e preparar" e o fim do recarregar(), o botão
+ * seguia clicável e com o mesmo rótulo: nada dizia que o toque pegou, o que
+ * convida ao clique duplo e a uma segunda gravação. O módulo do celular já
+ * controlava isso por pedido (DeliveryModulo.jsx, `processando`).
+ */
+describe("DeliveryView, avançar e cancelar mostram que estão em andamento (D03)", () => {
+  beforeEach(() => {
+    setAppMock({ currentUser: { role: "admin", name: "Dona Ana", username: "ana" }, tenant: { id: "t1" } });
+  });
+
+  /** Deixa a gravação pendurada até o teste soltar. */
+  function gravacaoPendurada() {
+    let soltar;
+    atualizarStatusPedido.mockImplementation(
+      () => new Promise((resolve) => { soltar = () => resolve({ data: { id: "p1" }, error: null }); }),
+    );
+    return () => soltar();
+  }
+
+  it("durante a gravação o botão fica desabilitado e diz que está salvando", async () => {
+    const soltar = gravacaoPendurada();
+    const user = userEvent.setup();
+    await montar();
+
+    await user.click(screen.getByRole("button", { name: "Aceitar e preparar" }));
+
+    const emAndamento = await screen.findByRole("button", { name: "Salvando…" });
+    expect(emAndamento).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Aceitar e preparar" })).not.toBeInTheDocument();
+
+    soltar();
+    await screen.findByRole("button", { name: "Aceitar e preparar" });
+  });
+
+  it("o segundo clique não dispara segunda gravação", async () => {
+    const soltar = gravacaoPendurada();
+    const user = userEvent.setup();
+    await montar();
+
+    const botao = screen.getByRole("button", { name: "Aceitar e preparar" });
+    await user.click(botao);
+    await user.click(botao);
+
+    expect(atualizarStatusPedido).toHaveBeenCalledTimes(1);
+
+    soltar();
+    await screen.findByRole("button", { name: "Aceitar e preparar" });
+  });
+
+  it("cancelar também mostra em andamento e não grava duas vezes", async () => {
+    const soltar = gravacaoPendurada();
+    const user = userEvent.setup();
+    await montar();
+
+    await user.click(screen.getByRole("button", { name: "Cancelar este pedido" }));
+    const confirmar = screen.getByRole("button", { name: "Cancelar mesmo" });
+    await user.click(confirmar);
+    await user.click(confirmar);
+
+    expect(atualizarStatusPedido).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole("button", { name: "Cancelando…" })).toBeDisabled();
+
+    soltar();
+    await screen.findByRole("button", { name: "Aceitar e preparar" });
+  });
+
+  it("em andamento é por pedido, não trava a tela inteira", async () => {
+    const soltar = gravacaoPendurada();
+    semErro([
+      PEDIDO,
+      { ...PEDIDO, id: "p2", numero: 43, cliente_nome: "Bruno" },
+    ]);
+    const user = userEvent.setup();
+    // `montar()` espera o resumo no singular, que não bate com dois pedidos.
+    render(<DeliveryView notify={vi.fn()} />);
+    const botoes = await screen.findAllByRole("button", { name: "Aceitar e preparar" });
+    await user.click(botoes[0]);
+
+    expect(await screen.findByRole("button", { name: "Salvando…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Aceitar e preparar" })).toBeEnabled();
+
+    soltar();
+    await screen.findAllByRole("button", { name: "Aceitar e preparar" });
+  });
+});
+
+/**
+ * D04, onBlur gravava mesmo sem alteração nenhuma.
+ *
+ * "Pedido mínimo" e "Tempo de preparo" salvam no onBlur sem comparar com o
+ * valor anterior: passar o foco pelo campo e sair, sem digitar nada, fazia
+ * upsert em config_delivery, escrevia "Configurações de entrega atualizadas"
+ * no activity_log e mostrava "Configurações salvas." ao operador. A trilha de
+ * auditoria ganhava alterações que não existiram.
+ */
+describe("DeliveryView, sair do campo sem mudar nada não grava (D04)", () => {
+  const campo = (rotulo) => screen.getByText(rotulo).parentElement.querySelector("input");
+
+  async function irParaEntrega() {
+    setAppMock({ currentUser: { role: "admin", name: "Dona Ana", username: "ana" }, tenant: { id: "t1" } });
+    await montar();
+    await userEvent.click(screen.getByRole("button", { name: "Entrega e taxas" }));
+    return screen.findByText("Pedido mínimo (R$)");
+  }
+
+  it("foco e saída, sem digitar, não chama o banco nem diz que salvou", async () => {
+    const user = userEvent.setup();
+    await irParaEntrega();
+
+    await user.click(campo("Pedido mínimo (R$)"));
+    await user.tab();
+
+    expect(salvarConfigDelivery).not.toHaveBeenCalled();
+    expect(screen.queryByText("Configurações salvas.")).not.toBeInTheDocument();
+  });
+
+  it("o mesmo vale para o tempo de preparo", async () => {
+    const user = userEvent.setup();
+    await irParaEntrega();
+
+    await user.click(campo("Tempo de preparo (min)"));
+    await user.tab();
+
+    expect(salvarConfigDelivery).not.toHaveBeenCalled();
+  });
+
+  it("mudar o valor e sair continua gravando", async () => {
+    salvarConfigDelivery.mockResolvedValue({
+      data: { aberto: true, pedido_minimo: 25, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] },
+      error: null,
+    });
+    const user = userEvent.setup();
+    await irParaEntrega();
+
+    const input = campo("Pedido mínimo (R$)");
+    await user.clear(input);
+    await user.type(input, "25");
+    await user.tab();
+
+    expect(salvarConfigDelivery).toHaveBeenCalledTimes(1);
+    const [, alvo] = salvarConfigDelivery.mock.calls[0];
+    expect(Number(alvo.pedido_minimo)).toBe(25);
+  });
+
+  it("gravou uma vez, sair do campo de novo sem mudar nada não grava outra", async () => {
+    salvarConfigDelivery.mockResolvedValue({
+      data: { aberto: true, pedido_minimo: 25, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] },
+      error: null,
+    });
+    const user = userEvent.setup();
+    await irParaEntrega();
+
+    const input = campo("Pedido mínimo (R$)");
+    await user.clear(input);
+    await user.type(input, "25");
+    await user.tab();
+    expect(salvarConfigDelivery).toHaveBeenCalledTimes(1);
+
+    await user.click(campo("Pedido mínimo (R$)"));
+    await user.tab();
+
+    expect(salvarConfigDelivery).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * D05, a grade do Cardápio não tinha busca nem filtro.
+ *
+ * `itens.map(...)` direto: para trocar a foto de um item o dono rolava a grade
+ * inteira, e não havia como saber quantos produtos estavam fora do ar no
+ * cardápio online. O helper `filtrarItensDelivery` já existia e já era usado
+ * nesta mesma tela, no seletor de produtos do editor de grupo.
+ */
+describe("DeliveryView, busca e atalho de indisponíveis no Cardápio (D05)", () => {
+  const PRODUTOS = [
+    { id: "pr1", name: "Pastel de queijo", price: 10, emoji: "🥟", category: "Salgados" },
+    { id: "pr2", name: "Açaí 500ml", price: 20, emoji: "🍧", category: "Doces" },
+    { id: "pr3", name: "Coxinha", price: 8, emoji: "🍗", category: "Salgados" },
+  ];
+  const LINHAS = [
+    { id: "l1", produto_id: "pr1", foto_url: null, descricao: null, disponivel: true, ordem: 0 },
+    { id: "l2", produto_id: "pr2", foto_url: null, descricao: null, disponivel: false, ordem: 1 },
+    { id: "l3", produto_id: "pr3", foto_url: null, descricao: null, disponivel: false, ordem: 2 },
+  ];
+
+  async function irParaCardapio() {
+    setAppMock({
+      currentUser: { role: "admin", name: "Dona Ana", username: "ana" },
+      tenant: { id: "t1" },
+      products: PRODUTOS,
+    });
+    listarProdutosDelivery.mockResolvedValue({ data: LINHAS, error: null });
+    await montar();
+    await userEvent.click(screen.getByRole("button", { name: "Cardápio" }));
+    return screen.findByText("Pastel de queijo");
+  }
+
+  it("a busca deixa na grade só o produto procurado", async () => {
+    const user = userEvent.setup();
+    await irParaCardapio();
+
+    await user.type(screen.getByRole("searchbox", { name: /buscar produto pelo nome/i }), "acai");
+
+    expect(await screen.findByText("Açaí 500ml")).toBeInTheDocument();
+    expect(screen.queryByText("Pastel de queijo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Coxinha")).not.toBeInTheDocument();
+  });
+
+  it("o atalho mostra a contagem de indisponíveis e filtra por ela", async () => {
+    const user = userEvent.setup();
+    await irParaCardapio();
+
+    const atalho = screen.getByRole("button", { name: "Só indisponíveis (2)" });
+    await user.click(atalho);
+
+    expect(atalho).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Açaí 500ml")).toBeInTheDocument();
+    expect(screen.getByText("Coxinha")).toBeInTheDocument();
+    expect(screen.queryByText("Pastel de queijo")).not.toBeInTheDocument();
+  });
+
+  it("busca sem resultado explica o que fazer e limpa os filtros", async () => {
+    const user = userEvent.setup();
+    await irParaCardapio();
+
+    await user.type(screen.getByRole("searchbox", { name: /buscar produto pelo nome/i }), "lasanha");
+
+    expect(await screen.findByText("Nenhum produto com esse filtro")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Limpar filtros" }));
+
+    expect(await screen.findByText("Pastel de queijo")).toBeInTheDocument();
+    expect(screen.getByText("Açaí 500ml")).toBeInTheDocument();
   });
 });
