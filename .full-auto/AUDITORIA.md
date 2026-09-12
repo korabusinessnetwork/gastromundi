@@ -275,3 +275,70 @@ nenhum `select *` em tabela sensível da lista do CLAUDE.md, nenhum caminho para
 usuário comum alcançar o papel de super-admin, e o isolamento entre tenants
 íntegro nas leituras do app. O fluxo de fechar a conta (troco, split, TEF offline,
 fiado, NFC-e, retry da pendência) é o mais bem defendido do sistema.
+
+---
+
+# Varredura continuada, rodada 2 (2026-09-12)
+
+As áreas que a primeira passagem não cobriu. Mesma regra: só entra o que tem
+evidência vista, com arquivo e linha.
+
+## Frente V1, pautas, offline, impressão, hooks, utils e PWA
+
+- [ ] V101 | eixo: robustez | onde: hooks/useImpressaoLancamentos.js:56 (impressão automática no caixa)
+      hoje: quando o pedido chega pelo realtime, que é a razão de o hook existir, a falha de impressão só vai para `console.error`. E o lançamento é marcado como visto na linha 48, ANTES de imprimir, então nunca é tentado de novo: o papel some e ninguém no salão fica sabendo. O caminho irmão, o pedido que chega pela Ponte na rede local, faz o certo e alimenta o aviso vermelho da tela. Com o driver padrão isso é rotina, não exceção: a impressão automática abre janela sem gesto do usuário e o navegador bloqueia o pop-up.
+      depois: passar o mesmo registrador de falha da Ponte para o hook e ligar no aviso que já existe.
+      evidência: `useImpressaoLancamentos.js:56` contra `usePonteLocal.js:400` e `:192`.
+      valor: 5 | esforço: 2 | risco: 2 | score: 4
+- [ ] V104 | eixo: qualidade | onde: ponte/palm.html:366 e 400, ponte/painel.html:215, 411, 431, 524, 703, 726
+      hoje: oito frases de tela em português usam travessão. Escapam porque o guard varre só `src/`, e a Ponte é front servido fora do bundle. O marcador de célula vazia de `painel.html:199` é legítimo e continua valendo.
+      depois: trocar as oito por vírgula e estender o guard aos `.html` da Ponte, senão o mesmo texto volta na próxima tela.
+      evidência: as linhas citadas, todas em texto visível; `travessaoGuard.test.js:42` fixa a raiz em `src/`.
+      valor: 4 | esforço: 2 | risco: 1 | score: 4
+- [ ] V102 | eixo: robustez | onde: AppContext.jsx:1003 com shared/IndicadorRede.jsx:15 (dreno da fila offline)
+      hoje: o dreno só dispara quando a rede muda, o carregamento muda ou o contador de pendências muda. Se ele parar num erro de rede com o navegador ainda se dizendo online (Wi-Fi sem saída, portal cativo, Supabase fora), nada mais tenta, e o indicador afirma "Enviando N pedidos guardados" para sempre. Só sai disso quem enfileira outra operação ou recarrega a página.
+      depois: reagendar o dreno em intervalo enquanto houver pendência, e dizer a verdade quando a última tentativa falhou.
+      evidência: o `useEffect` citado é o único gatilho no arquivo inteiro.
+      valor: 4 | esforço: 2 | risco: 2 | score: 2
+- [ ] V103 | eixo: ux | onde: main.jsx:23 com vite.config.js:25 (atualização do PWA)
+      hoje: o service worker usa `autoUpdate` com `immediate: true` e sem `onNeedRefresh`, então o cliente recarrega a aba sozinho assim que a versão nova ativa. Como a Vercel publica produção a cada push na `main`, um deploy no meio do expediente recarrega a tela do caixa sem avisar, levando o que está só na memória, como carrinho montado e ainda não lançado. E a checagem só acontece no carregamento, então aba aberta há dias segue na versão velha sem nada dizer.
+      depois: faixa discreta de "nova versão disponível, atualizar", deixando o momento com o operador.
+      evidência: `main.jsx:23`, `vite.config.js:25`, e nenhum `onNeedRefresh` em `src/`.
+      valor: 4 | esforço: 2 | risco: 2 | score: 2
+- [ ] V107 | eixo: ux | onde: components/pautas/PautaCard.jsx:72 (Pautas dos sócios)
+      hoje: mudar o status descarta o `{ error }` que o contexto devolve. Falhando a escrita, o botão volta ao normal, o card não sai da coluna e nada é dito: o sócio acha que o clique não pegou e clica de novo. O formulário da mesma tela trata certo.
+      depois: mostrar a mesma frase curta do formulário.
+      evidência: `PautaCard.jsx:72` contra `PautaForm.jsx:53`.
+      valor: 3 | esforço: 1 | risco: 1 | score: 3
+- [ ] V105 | eixo: robustez | onde: utils/hooks.js:142 (`useMesas`, mapa e reservas do PDV)
+      hoje: a carga das mesas não checa erro nem tem `catch`. Falha de rede ou de RLS vira lista vazia com carregamento concluído, e a tela de Reservas diz "Nenhuma mesa cadastrada", convidando a cadastrar de novo mesas que existem. O `usePedidosCozinha`, no mesmo arquivo, expõe `erro` justamente por isso.
+      depois: seguir o padrão do vizinho, expor `erro` e `recarregar`.
+      evidência: `utils/hooks.js:138` contra `:221`.
+      valor: 3 | esforço: 2 | risco: 1 | score: 2
+- [ ] V106 | eixo: robustez | onde: lib/offline/filaApp.js:46 com storageIdb.js:225
+      hoje: quando o IndexedDB não abre (aba anônima, storage bloqueado, outra aba segurando versão antiga), a fila passa a viver só em memória e fechar a aba apaga venda que já saiu para o cliente. O sinal existe e é exportado como `prontoOffline`, e não tem um consumidor sequer, enquanto o indicador segue prometendo "pedidos guardados".
+      depois: consumir o sinal e dizer que os pedidos estão guardados só nesta aba.
+      evidência: `filaApp.js:46` sem nenhuma outra ocorrência no `src/`.
+      valor: 3 | esforço: 2 | risco: 1 | score: 2
+- [ ] V108 | eixo: qualidade | onde: hooks/useImpressaoLancamentos.js (sem teste)
+      hoje: o hook que faz o caixa imprimir os pedidos do Palm não tem teste nenhum, embora os vizinhos tenham. As três regras delicadas dele (semeadura que impede reimprimir a véspera, marcar antes de imprimir que impede papel dobrado, fila serial) estão sem rede.
+      depois: teste de hook cobrindo semeadura, lançamento novo e eco do realtime.
+      evidência: nenhum `*.test.js` cita `useImpressaoLancamentos`.
+      valor: 3 | esforço: 2 | risco: 1 | score: 2
+- [ ] V109 | eixo: robustez | onde: shared/Notification.jsx:12 (toast compartilhado)
+      hoje: o temporizador de 2,5 s nunca é guardado nem cancelado: duas notificações seguidas fazem o temporizador antigo apagar a mensagem nova antes da hora, e ele sobrevive à desmontagem.
+      depois: guardar o id numa ref, limpar antes de agendar e no desmonte.
+      evidência: `Notification.jsx:12`, sem `clearTimeout` no arquivo.
+      valor: 2 | esforço: 1 | risco: 1 | score: 1
+- [ ] V110 | eixo: robustez | onde: shared/JarvasPanel.jsx:77 e 124
+      hoje: a busca de insights ignora o erro e grava lista vazia, então busca falha fica idêntica a "não há insight", no painel que o gestor abre para saber se há algo errado. E mudar status faz remoção otimista sem ler o retorno: escrita recusada tira o cartão e ele reaparece na próxima carga.
+      depois: aviso com "Tentar de novo" na carga, e desfazer a remoção quando a escrita falha.
+      evidência: as duas linhas, sem `error` no destructuring.
+      valor: 2 | esforço: 2 | risco: 1 | score: 0
+
+Íntegros nesta frente, verificados e sem achado: a fila offline em si (inclusive
+a corrida entre dreno e hidratação, que era a minha maior suspeita), os drivers e
+telas de impressão, o fluxo de envio da Ponte, todos os hooks quanto a vazamento
+de ouvinte ou temporizador, os utilitários de sessão, data, conversão e
+pagamento, os cabeçalhos de cache do PWA e a recuperação de deploy, a fronteira
+de dados das Pautas, e o protótipo do apex.
