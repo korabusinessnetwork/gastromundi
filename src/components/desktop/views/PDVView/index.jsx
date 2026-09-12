@@ -1215,10 +1215,17 @@ export default function PDVView({ notify }) {
                     if (i !== idx) return it;
                     const novaQty = (it.qty ?? 1) - qty;
                     if (novaQty > 0) {
-                      // cancela parcialmente: divide em ativo + cancelado
+                      // Cancela parcialmente: divide em ativo + cancelado. A
+                      // metade cancelada é uma LINHA NOVA e precisa de `uid`
+                      // próprio, pelo mesmo motivo detalhado no cancelamento do
+                      // fechamento (`handleRemoverItemCheckout`): herdando o uid
+                      // da metade ativa, `mesclarItensComanda` a conta como já
+                      // conhecida e a descarta no primeiro lançamento vindo do
+                      // Palm, então o item volta inteiro e o cliente paga o que
+                      // foi cancelado.
                       return [
                         { ...it, qty: novaQty },
-                        { ...it, qty, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "" },
+                        { ...it, qty, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "", uid: crypto.randomUUID() },
                       ];
                     }
                     return { ...it, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "" };
