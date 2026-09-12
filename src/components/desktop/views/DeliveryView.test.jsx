@@ -432,3 +432,82 @@ describe("DeliveryView, avançar e cancelar mostram que estão em andamento (D03
     await screen.findAllByRole("button", { name: "Aceitar e preparar" });
   });
 });
+
+/**
+ * D04, onBlur gravava mesmo sem alteração nenhuma.
+ *
+ * "Pedido mínimo" e "Tempo de preparo" salvam no onBlur sem comparar com o
+ * valor anterior: passar o foco pelo campo e sair, sem digitar nada, fazia
+ * upsert em config_delivery, escrevia "Configurações de entrega atualizadas"
+ * no activity_log e mostrava "Configurações salvas." ao operador. A trilha de
+ * auditoria ganhava alterações que não existiram.
+ */
+describe("DeliveryView, sair do campo sem mudar nada não grava (D04)", () => {
+  const campo = (rotulo) => screen.getByText(rotulo).parentElement.querySelector("input");
+
+  async function irParaEntrega() {
+    setAppMock({ currentUser: { role: "admin", name: "Dona Ana", username: "ana" }, tenant: { id: "t1" } });
+    await montar();
+    await userEvent.click(screen.getByRole("button", { name: "Entrega e taxas" }));
+    return screen.findByText("Pedido mínimo (R$)");
+  }
+
+  it("foco e saída, sem digitar, não chama o banco nem diz que salvou", async () => {
+    const user = userEvent.setup();
+    await irParaEntrega();
+
+    await user.click(campo("Pedido mínimo (R$)"));
+    await user.tab();
+
+    expect(salvarConfigDelivery).not.toHaveBeenCalled();
+    expect(screen.queryByText("Configurações salvas.")).not.toBeInTheDocument();
+  });
+
+  it("o mesmo vale para o tempo de preparo", async () => {
+    const user = userEvent.setup();
+    await irParaEntrega();
+
+    await user.click(campo("Tempo de preparo (min)"));
+    await user.tab();
+
+    expect(salvarConfigDelivery).not.toHaveBeenCalled();
+  });
+
+  it("mudar o valor e sair continua gravando", async () => {
+    salvarConfigDelivery.mockResolvedValue({
+      data: { aberto: true, pedido_minimo: 25, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] },
+      error: null,
+    });
+    const user = userEvent.setup();
+    await irParaEntrega();
+
+    const input = campo("Pedido mínimo (R$)");
+    await user.clear(input);
+    await user.type(input, "25");
+    await user.tab();
+
+    expect(salvarConfigDelivery).toHaveBeenCalledTimes(1);
+    const [, alvo] = salvarConfigDelivery.mock.calls[0];
+    expect(Number(alvo.pedido_minimo)).toBe(25);
+  });
+
+  it("gravou uma vez, sair do campo de novo sem mudar nada não grava outra", async () => {
+    salvarConfigDelivery.mockResolvedValue({
+      data: { aberto: true, pedido_minimo: 25, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] },
+      error: null,
+    });
+    const user = userEvent.setup();
+    await irParaEntrega();
+
+    const input = campo("Pedido mínimo (R$)");
+    await user.clear(input);
+    await user.type(input, "25");
+    await user.tab();
+    expect(salvarConfigDelivery).toHaveBeenCalledTimes(1);
+
+    await user.click(campo("Pedido mínimo (R$)"));
+    await user.tab();
+
+    expect(salvarConfigDelivery).toHaveBeenCalledTimes(1);
+  });
+});

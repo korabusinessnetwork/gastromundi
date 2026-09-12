@@ -112,6 +112,7 @@ import {
   formatarReais,
   formatarCep,
   temFaixasKm,
+  sanitizarConfig,
 } from "@/lib/deliveryAdmin";
 import { ajusteAutomaticoAbertura, resumoHorario } from "@/lib/deliveryHorario";
 import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
@@ -2355,6 +2356,15 @@ function SeletorProdutosMulti({ itens, produtoIds, vinculando, onAlternar }) {
 // ════════════════════════════════════════════════════════════════
 // ABA 3 — Entrega e taxas (config_delivery)
 // ════════════════════════════════════════════════════════════════
+/**
+ * Assinatura estável do que seria gravado. sanitizarConfig devolve sempre as
+ * mesmas chaves na mesma ordem (e normaliza horário e faixas), então comparar
+ * o JSON basta para saber se a config mudou de verdade.
+ */
+function assinaturaConfig(config) {
+  return JSON.stringify(sanitizarConfig(config));
+}
+
 function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   const [config, setConfig] = useState(null);
   const [carregando, setCarregando] = useState(true);
@@ -2400,6 +2410,8 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   // produto desta tela. Guarda o `uid` da faixa, não o índice: a lista muda de
   // ordem e de tamanho enquanto a confirmação está aberta.
   const [faixaParaApagar, setFaixaParaApagar] = useState(null);
+  // Assinatura do que já está gravado, para não regravar config idêntica.
+  const ultimoSalvoRef = useRef(null);
 
   useEffect(() => {
     let ativo = true;
@@ -2410,6 +2422,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
       if (error) return aviso("Não foi possível carregar as configurações.", "err");
       const cfg =
         data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
+      ultimoSalvoRef.current = assinaturaConfig(cfg);
       setConfig({ ...cfg, faixas_taxa: comUid(cfg.faixas_taxa ?? []) });
       setEnderecoOrigem(cfg.endereco_origem || "");
       setModoTaxa(temFaixasKm(cfg.faixas_taxa) ? "km" : "area");
@@ -2422,11 +2435,19 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   const salvar = async (extra) => {
     if (!tenant?.id) return aviso("Estabelecimento não identificado.", "err");
     const alvo = { ...config, ...(extra || {}) };
+    // Nada mudou de verdade: sai antes de gravar. "Pedido mínimo" e "Tempo de
+    // preparo" salvam no onBlur, então só passar o foco pelo campo e sair
+    // fazia upsert em config_delivery, escrevia "Configurações de entrega
+    // atualizadas" no activity_log e dizia "Configurações salvas." ao
+    // operador. A trilha de auditoria ganhava alterações que não existiram.
+    const assinatura = assinaturaConfig(alvo);
+    if (assinatura === ultimoSalvoRef.current) return;
     setSalvando(true);
     const { data, error } = await salvarConfigDelivery(tenant.id, alvo);
     setSalvando(false);
     if (error) return aviso("Não foi possível salvar.", "err");
     const salvo = data || alvo;
+    ultimoSalvoRef.current = assinaturaConfig(salvo);
     setConfig({ ...salvo, faixas_taxa: comUid(salvo.faixas_taxa ?? []) });
     logAction(currentUser?.username, "delivery:config", { msg: "Configurações de entrega atualizadas", name: currentUser?.name, role: currentUser?.role });
     aviso("Configurações salvas.", "ok");
