@@ -180,3 +180,70 @@ describe("CombosView, editar combo (B2)", () => {
     expect(ordem).toEqual(["delete", "insert"]);
   });
 });
+
+describe("CombosView, leitura falha da composição ao editar", () => {
+  const LINHA_SUB = { id: 11, quantidade: 1, preco_customizado: null, subprodutos: SUB };
+
+  async function abrirModal(user) {
+    await user.click(screen.getByTitle("Editar combo"));
+    await screen.findByText("Editar Combo");
+  }
+
+  /** Só as chamadas que MEXEM no banco, para provar que nada foi gravado. */
+  function gravacoes() {
+    return mockSupabase.current.calls.filter(
+      (c) => c.method === "insert" || c.method === "update" || c.method === "delete" || c.method === "upsert",
+    );
+  }
+
+  it("falha ao ler os produtos adicionais bloqueia o Salvar e não grava nada", async () => {
+    await montarComCombo();
+    mockSupabase.current.setTableHandler("combo_subprodutos", ({ method }) =>
+      method === "select" ? { data: [LINHA_SUB], error: null } : undefined);
+    // Este é o caso perigoso: a leitura dos produtos adicionais falha, a dos
+    // subprodutos passa. Salvando, o delete de combo_produtos limparia os
+    // produtos e nada voltaria no lugar, com o preço total mais baixo.
+    mockSupabase.current.setTableHandler("combo_produtos", ({ method }) =>
+      method === "select" ? { data: null, error: { message: "permission denied" } } : undefined);
+    const user = userEvent.setup();
+    await abrirModal(user);
+
+    expect(await screen.findByText(/não deu para carregar tudo o que este combo tem dentro/i)).toBeInTheDocument();
+    const botao = screen.getByRole("button", { name: /salvar alterações/i });
+    expect(botao).toBeDisabled();
+
+    await user.click(botao);
+    expect(gravacoes()).toHaveLength(0);
+  });
+
+  it("falha ao ler os subprodutos também bloqueia o Salvar", async () => {
+    await montarComCombo();
+    mockSupabase.current.setTableHandler("combo_subprodutos", ({ method }) =>
+      method === "select" ? { data: null, error: { message: "network error" } } : undefined);
+    mockSupabase.current.setTableHandler("combo_produtos", ({ method }) =>
+      method === "select" ? { data: [], error: null } : undefined);
+    const user = userEvent.setup();
+    await abrirModal(user);
+
+    expect(await screen.findByText(/não deu para carregar tudo o que este combo tem dentro/i)).toBeInTheDocument();
+    const botao = screen.getByRole("button", { name: /salvar alterações/i });
+    expect(botao).toBeDisabled();
+
+    await user.click(botao);
+    expect(gravacoes()).toHaveLength(0);
+  });
+
+  it("as duas leituras boas não mostram aviso e deixam o Salvar liberado", async () => {
+    await montarComCombo();
+    mockSupabase.current.setTableHandler("combo_subprodutos", ({ method }) =>
+      method === "select" ? { data: [LINHA_SUB], error: null } : undefined);
+    mockSupabase.current.setTableHandler("combo_produtos", ({ method }) =>
+      method === "select" ? { data: [], error: null } : undefined);
+    const user = userEvent.setup();
+    await abrirModal(user);
+    await screen.findByText(SUB.nome);
+
+    expect(screen.queryByText(/não deu para carregar tudo o que este combo tem dentro/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /salvar alterações/i })).toBeEnabled();
+  });
+});

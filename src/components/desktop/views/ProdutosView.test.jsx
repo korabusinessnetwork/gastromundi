@@ -19,6 +19,7 @@ vi.mock("@/lib/supabase", async () => {
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
 
 import { setAppMock } from "@/test/mockApp";
+import { logAction } from "@/lib/logger";
 import ProdutosView from "./ProdutosView";
 
 const PRODUTO = { id: 1, name: "X-Burguer", price: 20, category: "Lanches", emoji: "🍔" };
@@ -46,6 +47,7 @@ async function abrirCategorias(user) {
 let updateProduct;
 
 beforeEach(() => {
+  vi.clearAllMocks();
   mockSupabase.current.reset();
   updateProduct = vi.fn(() => Promise.resolve({ error: null }));
   setAppMock({ products: [PRODUTO], updateProduct });
@@ -186,6 +188,87 @@ describe("ProdutosView, renomear categoria", () => {
     await user.type(input, "Sanduíches{Enter}");
 
     await waitFor(() => expect(updateProduct).toHaveBeenCalledWith(1, { category: "Sanduíches" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("ProdutosView, excluir produto", () => {
+  /** Abre a janela de confirmação do produto da lista. */
+  async function abrirConfirmacao(user) {
+    await user.click(screen.getByRole("button", { name: "Excluir" }));
+    return screen.findByText("Excluir produto?");
+  }
+
+  it("exclusão recusada mantém a janela aberta, avisa e não escreve no log", async () => {
+    const user = userEvent.setup();
+    const removeProduct = vi.fn(() => Promise.resolve({
+      error: { code: "no_rows_deleted", message: "Nenhuma linha removida." },
+    }));
+    setAppMock({ products: [PRODUTO], updateProduct, removeProduct });
+    render(<ProdutosView />);
+    await abrirConfirmacao(user);
+
+    await user.click(screen.getByRole("button", { name: "Sim, excluir" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/não deu para excluir "x-burguer"/i);
+    // A janela continua de pé: o produto não saiu da lista.
+    expect(screen.getByText("Excluir produto?")).toBeInTheDocument();
+    expect(logAction).not.toHaveBeenCalled();
+  });
+
+  it("exclusão bem-sucedida fecha a janela e registra no log", async () => {
+    const user = userEvent.setup();
+    const removeProduct = vi.fn(() => Promise.resolve({ error: null }));
+    setAppMock({ products: [PRODUTO], updateProduct, removeProduct });
+    render(<ProdutosView />);
+    await abrirConfirmacao(user);
+
+    await user.click(screen.getByRole("button", { name: "Sim, excluir" }));
+
+    await waitFor(() => expect(screen.queryByText("Excluir produto?")).not.toBeInTheDocument());
+    expect(logAction).toHaveBeenCalledWith(
+      "teste",
+      "produto:remover",
+      expect.objectContaining({ msg: "Produto removido: X-Burguer" }),
+    );
+  });
+});
+
+describe("ProdutosView, unidades de medida", () => {
+  const UNIDADE = { id: 9, nome: "Quilograma", abreviacao: "kg", tipo: "estoque", ordem: 1 };
+
+  const responderUnidades = (resposta) =>
+    mockSupabase.current.setTableHandler("unidades_medida", () => resposta);
+
+  async function abrirNovoProduto(user) {
+    await user.click(screen.getByRole("button", { name: /\+ novo produto/i }));
+    return screen.findByText("Novo Produto");
+  }
+
+  it("falha ao ler as unidades avisa em vez de dizer que não há unidade cadastrada", async () => {
+    const user = userEvent.setup();
+    responderUnidades({ data: null, error: { message: "permission denied" } });
+    render(<ProdutosView />);
+    await abrirNovoProduto(user);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/não deu para carregar as unidades de medida/i);
+    // A tela não pode afirmar que o cadastro está vazio quando nem conseguiu ler.
+    expect(screen.queryByText("Nenhuma unidade de estoque cadastrada.")).not.toBeInTheDocument();
+
+    // "Tentar de novo" relê de verdade.
+    responderUnidades({ data: [UNIDADE], error: null });
+    await user.click(screen.getByRole("button", { name: /tentar de novo/i }));
+    expect(await screen.findByRole("button", { name: /kg/i })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("leitura boa e sem unidade nenhuma continua dizendo que não há unidade", async () => {
+    const user = userEvent.setup();
+    responderUnidades({ data: [], error: null });
+    render(<ProdutosView />);
+    await abrirNovoProduto(user);
+
+    expect(screen.getByText("Nenhuma unidade de estoque cadastrada.")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

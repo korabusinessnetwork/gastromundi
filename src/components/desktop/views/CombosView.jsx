@@ -50,6 +50,9 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
   const [itens,      setItens]     = useState([]); // [{ subproduto, quantidade, precoCustom, usarCustom }]
   const [salvando,   setSalvando]  = useState(false);
   const [erro,       setErro]      = useState("");
+  // Uma das duas leituras da composição falhou. Salvar assim apagaria as
+  // junções e reinseriria só o que conseguimos ler, então o Salvar fica travado.
+  const [erroComposicao, setErroComposicao] = useState(false);
 
   // busca produto principal
   const [buscaProd,  setBuscaProd] = useState("");
@@ -71,7 +74,8 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
       .from("combo_subprodutos")
       .select("*, subprodutos(*)")
       .eq("combo_id", combo.id)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { setErroComposicao(true); return; }
         if (!data) return;
         setItens(data.map(r => ({
           csId:       r.id,
@@ -90,7 +94,8 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
       .from("combo_produtos")
       .select("*, products(id, name, price, emoji, category)")
       .eq("combo_id", combo.id)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { setErroComposicao(true); return; }
         if (!data) return;
         setItensProd(data.filter(r => r.products).map(r => ({
           cpId:       r.id,
@@ -523,11 +528,17 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
           <div className="combos-view__preco-total-valor">{fmtBRL(precoTotal)}</div>
         </div>
 
+        {erroComposicao && (
+          <div className="combos-view__erro" role="alert">
+            ⚠ Não deu para carregar tudo o que este combo tem dentro. Salvar agora apagaria os itens que não conseguimos ler, então o Salvar fica bloqueado. Feche esta janela e abra o combo de novo.
+          </div>
+        )}
+
         {erro && <div className="combos-view__erro">⚠ {erro}</div>}
 
         <div className="combos-view__modal-botoes">
           <button onClick={onClose} className="combos-view__btn-cancelar">Cancelar</button>
-          <button onClick={salvar} disabled={salvando} className="combos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}>
+          <button onClick={salvar} disabled={salvando || erroComposicao} className="combos-view__btn-salvar" style={{ background: (salvando || erroComposicao) ? varColor(C.faint) : varColor(C.accent), cursor: (salvando || erroComposicao) ? "not-allowed" : "pointer" }}>
             {salvando ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar combo"}
           </button>
         </div>

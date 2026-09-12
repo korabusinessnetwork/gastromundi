@@ -138,9 +138,11 @@ export default function ProdutosView() {
   const [erro,      setErro]      = useState("");
   const [deleteId,  setDeleteId]  = useState(null);
   const [deletando, setDeletando] = useState(false);
+  const [erroDelete, setErroDelete] = useState("");
   const [catFiltro,    setCatFiltro]    = useState("Todos");
   const [busca,     setBusca]     = useState("");
   const [unidadesMedida, setUnidadesMedida] = useState([]);
+  const [erroUnidades, setErroUnidades] = useState(false);
   const [editingCompra, setEditingCompra] = useState(null);
   const [isInsumo, setIsInsumo] = useState(false);
   const [isProducao, setIsProducao] = useState(false);
@@ -155,6 +157,21 @@ export default function ProdutosView() {
   const [catConfirmDelete, setCatConfirmDelete] = useState(null); // nome da categoria a excluir
   const [catErro,         setCatErro]         = useState("");
   const [catExtraCarregado, setCatExtraCarregado] = useState(false);
+
+  // Sem tratar o erro, a falha de leitura virava "Nenhuma unidade de estoque
+  // cadastrada" (afirmação falsa) e a validação travava o Salvar pedindo uma
+  // unidade que a tela não tinha como mostrar: ninguém conseguia cadastrar
+  // produto e a tela não dizia por quê.
+  const carregarUnidades = useCallback(async () => {
+    const { data, error } = await supabase.from("unidades_medida").select("*").order("ordem");
+    if (error) {
+      setErroUnidades(true);
+      setUnidadesMedida([]);
+      return;
+    }
+    setErroUnidades(false);
+    setUnidadesMedida(data ?? []);
+  }, []);
 
   useEffect(() => {
     supabase.from("config").select("value").eq("key", "categorias_extra").single()
@@ -171,8 +188,7 @@ export default function ProdutosView() {
         setCatExtraCarregado(true);
         if (data?.value && Array.isArray(data.value)) setCatExtra(data.value);
       });
-    supabase.from("unidades_medida").select("*").order("ordem")
-      .then(({ data }) => { if (data) setUnidadesMedida(data); });
+    carregarUnidades();
   }, []);
 
   // Otimista com desfazer: a lista volta ao que era quando o banco recusa.
@@ -410,13 +426,26 @@ export default function ProdutosView() {
     fecharModal();
   };
 
+  const abrirDelete = (id) => { setDeleteId(id); setErroDelete(""); };
+  const fecharDelete = () => { setDeleteId(null); setErroDelete(""); };
+
+  // O removeProduct devolve erro quando a RLS barrou ou o produto nem existe
+  // mais, e nesse caso a lista local não muda. Antes o retorno era ignorado: o
+  // produto continuava na tela, sem aviso nenhum, e o log de atividade
+  // registrava uma exclusão que não aconteceu. Mesmo padrão do salvar: o log só
+  // é escrito quando deu certo, e a falha mantém a janela aberta.
   const confirmarDelete = async () => {
     if (!deleteId || deletando) return;
     setDeletando(true);
+    setErroDelete("");
     const p = products.find(x => x.id === deleteId);
-    await removeProduct(deleteId);
-    logAction(currentUser?.username, "produto:remover", { msg: `Produto removido: ${p?.name ?? deleteId}`, name: currentUser?.name, role: currentUser?.role });
+    const { error } = (await removeProduct(deleteId)) ?? {};
     setDeletando(false);
+    if (error) {
+      setErroDelete(`Não deu para excluir "${p?.name ?? "o produto"}". Ele continua na lista. Confira se você tem permissão e tente de novo.`);
+      return;
+    }
+    logAction(currentUser?.username, "produto:remover", { msg: `Produto removido: ${p?.name ?? deleteId}`, name: currentUser?.name, role: currentUser?.role });
     setDeleteId(null);
   };
 
@@ -553,7 +582,7 @@ export default function ProdutosView() {
                       {isAdmin && (
                         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                           <button onClick={() => abrirEditar(p)} className="produtos-view__btn-editar">Editar</button>
-                          <button onClick={() => setDeleteId(p.id)} className="produtos-view__btn-excluir" style={{ borderColor: alfa(C.red, "44"), background: alfa(C.red, "0f"), color: varColor(C.red) }}>Excluir</button>
+                          <button onClick={() => abrirDelete(p.id)} className="produtos-view__btn-excluir" style={{ borderColor: alfa(C.red, "44"), background: alfa(C.red, "0f"), color: varColor(C.red) }}>Excluir</button>
                         </div>
                       )}
                     </td>
@@ -642,13 +671,20 @@ export default function ProdutosView() {
                 <span>Unidades de medida</span>
               </div>
 
+              {erroUnidades && (
+                <div className="produtos-view__erro" role="alert" style={{ background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}`, display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ flex: 1 }}>⚠️ Não deu para carregar as unidades de medida. Elas existem, só não conseguimos ler agora, e sem elas não dá para cadastrar o produto.</span>
+                  <button onClick={carregarUnidades} className="produtos-view__btn-cancelar">Tentar de novo</button>
+                </div>
+              )}
+
               {/* Bloco 1: Unidade de estoque */}
               <div className="produtos-view__bloco">
                 <div className="produtos-view__bloco-label">
                   Eu estoco esse produto em
                 </div>
                 {unidadesEstoque.length === 0 ? (
-                  <div className="produtos-view__bloco-vazio">Nenhuma unidade de estoque cadastrada.</div>
+                  !erroUnidades && <div className="produtos-view__bloco-vazio">Nenhuma unidade de estoque cadastrada.</div>
                 ) : (
                   <div className="produtos-view__unidades-lista">
                     {unidadesEstoque.map(u => {
@@ -725,7 +761,7 @@ export default function ProdutosView() {
 
                       {/* Botões de unidade */}
                       {unidadesCompra.length === 0 ? (
-                        <div className="produtos-view__bloco-vazio">Nenhuma unidade de compra cadastrada.</div>
+                        !erroUnidades && <div className="produtos-view__bloco-vazio">Nenhuma unidade de compra cadastrada.</div>
                       ) : (
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                           {unidadesCompra.map(u => {
@@ -766,7 +802,7 @@ export default function ProdutosView() {
                   Eu consumo/vendo em
                 </div>
                 {unidadesConsumo.length === 0 ? (
-                  <div className="produtos-view__bloco-vazio">Nenhuma unidade de consumo cadastrada.</div>
+                  !erroUnidades && <div className="produtos-view__bloco-vazio">Nenhuma unidade de consumo cadastrada.</div>
                 ) : (
                   <div className="produtos-view__unidades-lista">
                     {unidadesConsumo.map(u => {
@@ -946,7 +982,7 @@ export default function ProdutosView() {
         (() => {
           const p = products.find(x => x.id === deleteId);
           return (
-            <div {...fecharAoClicarFora(() => setDeleteId(null))} className="produtos-view__confirm-overlay" style={{ background: "rgba(0,0,0,0.7)" }}>
+            <div {...fecharAoClicarFora(fecharDelete)} className="produtos-view__confirm-overlay" style={{ background: "rgba(0,0,0,0.7)" }}>
               <div className="produtos-view__confirm-modal">
                 <div className="produtos-view__confirm-topo">
                   <div className="produtos-view__confirm-icone" style={{ background: alfa(C.red, "18"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
@@ -960,8 +996,13 @@ export default function ProdutosView() {
                 <div className="produtos-view__confirm-aviso" style={{ background: alfa(C.red, "0d"), border: `1px solid ${alfa(C.red, "33")}` }}>
                   Esta ação <strong style={{ color: varColor(C.red) }}>não pode ser desfeita</strong>. O produto será removido permanentemente.
                 </div>
+                {erroDelete && (
+                  <div className="produtos-view__erro" role="alert" style={{ background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}` }}>
+                    ⚠️ {erroDelete}
+                  </div>
+                )}
                 <div className="produtos-view__confirm-botoes">
-                  <button onClick={() => setDeleteId(null)} className="produtos-view__confirm-btn-cancelar">Cancelar</button>
+                  <button onClick={fecharDelete} className="produtos-view__confirm-btn-cancelar">Cancelar</button>
                   <button onClick={confirmarDelete} disabled={deletando} className="produtos-view__confirm-btn-excluir" style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer" }}>{deletando ? "Excluindo..." : "Sim, excluir"}</button>
                 </div>
               </div>

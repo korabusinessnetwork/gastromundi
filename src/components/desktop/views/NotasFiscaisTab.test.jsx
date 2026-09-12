@@ -211,3 +211,82 @@ describe("NotasFiscaisTab, importação e saldo do estoque", () => {
     expect(mockSupabase.current.calls.filter(c => c.table === "notas_fiscais" && c.method === "insert")).toHaveLength(0);
   });
 });
+
+describe("NotasFiscaisTab, falha ao ler as notas", () => {
+  const NOTA = {
+    id: "nf1",
+    numero: "1234",
+    serie: "1",
+    data_emissao: "2026-07-15",
+    fornecedor_nome: "Distribuidora Sul",
+    fornecedor_cnpj: null,
+    valor_total: 150,
+    status: "importada",
+    created_at: "2026-07-15T10:00:00.000Z",
+    notas_fiscais_itens: [{ id: "i1" }],
+  };
+  const ITEM = {
+    id: "i1",
+    descricao_xml: "FARINHA TRIGO 5KG",
+    codigo_xml: "X1",
+    quantidade: 2,
+    unidade_xml: "SC",
+    preco_unitario: 75,
+    quantidade_estoque: 10,
+    products: { name: "Farinha", emoji: "🌾", unidade_estoque: "kg" },
+  };
+
+  const responder = (tabela, resposta) =>
+    mockSupabase.current.setTableHandler(tabela, ({ method }) => (method === "select" ? resposta : undefined));
+
+  it("leitura recusada vira estado de falha com o motivo, não lista vazia", async () => {
+    responder("notas_fiscais", { data: null, error: { message: "permission denied" } });
+    montar();
+
+    const alerta = await screen.findByRole("alert");
+    expect(alerta).toHaveTextContent(/não deu para carregar as notas/i);
+    expect(alerta).toHaveTextContent(/permission denied/i);
+    // A tela não pode afirmar que não há nota nenhuma.
+    expect(screen.queryByText("Nenhuma nota importada")).not.toBeInTheDocument();
+    expect(screen.queryByText(/0 notas importadas/)).not.toBeInTheDocument();
+
+    // "Tentar de novo" relê de verdade.
+    responder("notas_fiscais", { data: [NOTA], error: null });
+    fireEvent.click(screen.getByRole("button", { name: /tentar de novo/i }));
+    expect(await screen.findByText("Distribuidora Sul")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("nenhuma nota de verdade continua dizendo que não há nota", async () => {
+    responder("notas_fiscais", { data: [], error: null });
+    montar();
+
+    expect(await screen.findByText("Nenhuma nota importada")).toBeInTheDocument();
+    expect(screen.getByText(/0 notas importadas/)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("falha ao abrir a nota avisa em vez de mostrar a nota sem itens", async () => {
+    responder("notas_fiscais", { data: [NOTA], error: null });
+    responder("notas_fiscais_itens", { data: null, error: { message: "network error" } });
+    montar();
+
+    fireEvent.click(await screen.findByText("Distribuidora Sul"));
+
+    const alerta = await screen.findByRole("alert");
+    expect(alerta).toHaveTextContent(/não deu para carregar os itens desta nota/i);
+    expect(alerta).toHaveTextContent(/network error/i);
+    expect(screen.getByRole("button", { name: /tentar de novo/i })).toBeInTheDocument();
+  });
+
+  it("nota aberta com sucesso mostra os itens sem aviso", async () => {
+    responder("notas_fiscais", { data: [NOTA], error: null });
+    responder("notas_fiscais_itens", { data: [ITEM], error: null });
+    montar();
+
+    fireEvent.click(await screen.findByText("Distribuidora Sul"));
+
+    expect(await screen.findByText("FARINHA TRIGO 5KG")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
