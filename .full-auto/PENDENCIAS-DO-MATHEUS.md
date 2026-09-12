@@ -184,3 +184,75 @@ há quanto tempo está parado.
 botões de 7, 30 e 90 dias valem só para as falhas contadas, as recusas e os erros de impressão. Se
 o período valesse também para a pendência, a nota parada há 60 dias sumiria de uma janela de 30 e a
 tela diria que está tudo bem justamente no caso mais grave.
+
+---
+
+# Pendências novas da rodada 2 do refino (2026-09-12)
+
+## P06, decidir o fuso da assinatura (o mais sério desta leva)
+
+**O que acontece hoje:** o status da assinatura é calculado em dois lugares com
+fuso diferente. O front lê o dia pelo calendário local do estabelecimento, o
+banco lê por `current_date`, que no Supabase é UTC. No Brasil, entre 21h e
+meia-noite, o banco já está no dia seguinte e o front não.
+
+**Por que isso importa:** no último dia de carência, a partir das 21h, a função
+`assinatura_atual_ativa()` passa a devolver falso e as policies RESTRICTIVE da
+`20260720_assinatura_enforcement` fecham até o SELECT de produtos, comandas,
+mesas e vendas. O PDV fica vazio no meio do movimento, e a tela continua dizendo
+que a assinatura permite operar, então ninguém liga uma coisa à outra.
+
+**Por que não resolvi sozinho:** as duas saídas mexem em decisão sua.
+
+- **A)** alinhar o front ao UTC: duas linhas, sem migration, e o aviso passa a
+  aparecer até três horas antes no fim do dia. Contraria a decisão que está
+  escrita e testada hoje (a suíte fixa o fuso em São Paulo de propósito e há um
+  teste dizendo "um instante em UTC é lido no calendário local de quem opera").
+  Cheguei a aplicar, vi que derrubava 7 testes que codificam essa sua decisão, e
+  revertei.
+- **B)** o banco passar a decidir pelo fuso do estabelecimento, como a
+  `20260903` já fez para o horário do delivery. É o conserto de fundo e o que
+  mantém a regra que você escolheu, e exige migration.
+
+**Minha recomendação:** B, com A como paliativo se o vencimento de algum cliente
+estiver perto. O risco de A é pequeno e o de não fazer nada é o PDV fechar sem
+explicação.
+
+## P07, aplicar o deploy da Edge Function do Jarvas
+
+O teto diário de uso do Jarvas está no código, mas Edge Function só vale depois
+de publicada. Sem o deploy, a proteção de custo não existe em produção.
+
+Comando: `supabase functions deploy jarvas-assistente`. Nenhuma variável nova é
+obrigatória; `IA_LIMITE_DIARIO` já existe e o padrão é 50 por dia por
+estabelecimento, o mesmo da leitura de cardápio por IA.
+
+## P08, conferir no painel do Supabase se o cadastro público está desligado
+
+As Pautas dos sócios decidem quem é sócio só pelo domínio do e-mail
+(`@pautas.local`). Se o cadastro por e-mail e senha estiver habilitado no painel,
+qualquer pessoa com a chave anon se cadastra nesse domínio e passa a ler e
+escrever as pautas internas da Kora. Se a confirmação de e-mail estiver ligada, o
+caminho está fechado, porque esse domínio não recebe correio.
+
+É uma checagem de trinta segundos que só você pode fazer, e ela decide sozinha se
+isto é urgente ou apenas frágil. O reforço no banco (exigir que o sócio exista em
+`pautas_pessoas`) exige migration e fica na sua fila.
+
+## P09, três migrations de segurança e desempenho, na sua ordem
+
+Nenhuma delas é urgente hoje, e todas custam reaplicar migration em produção,
+então a decisão é sua. Em ordem de importância:
+
+1. **Teto geral do delivery público.** O freio atual conta por telefone, e o
+   telefone vem cru do payload: um script que varia o número a cada requisição
+   passa livre e enche a fila da Cozinha. A `20260925_leads_apex` já tem o
+   desenho do balde geral para copiar.
+2. **Índices compostos** em `vendas (tenant_id, at DESC)`, `lancamentos
+   (tenant_id, competencia)` e `operator_logs (tenant_id, created_at DESC)`.
+   Hoje o banco percorre os 90 dias de todos os estabelecimentos para devolver os
+   de um. Com um cliente é invisível; é a conta que chega junto com o décimo.
+3. **`REVOKE EXECUTE FROM PUBLIC`** nas quatro funções da
+   `20260822_complementos_subgrupos`, que hoje o `anon` alcança com a chave
+   pública. Impacto pequeno, mas é a única exceção ao padrão que o resto do
+   projeto segue.
