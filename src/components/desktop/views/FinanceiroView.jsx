@@ -16,6 +16,17 @@ import PeriodoSelector from "./financeiro/PeriodoSelector";
 import NovoLancamentoModal from "./financeiro/NovoLancamentoModal";
 import "./FinanceiroView.css";
 
+// Janela de vendas que o bootstrap carrega em `sales`: só os últimos 90 dias
+// (ver AppContext.jsx:340, "Bootstrap limitado a 90 dias"). O número está
+// duplicado aqui porque o AppContext não o exporta; pedido de virar constante
+// exportada registrado no relatório da rodada.
+const DIAS_JANELA_VENDAS = 90;
+
+/** Primeiro dia (YYYY-MM-DD, fuso local) coberto por `sales`. */
+function inicioJanelaVendas(hoje = new Date()) {
+  return diaLocalISO(new Date(hoje.getTime() - DIAS_JANELA_VENDAS * 24 * 60 * 60 * 1000));
+}
+
 /**
  * Módulo Financeiro — fase 1 (docs/03_REGRAS_DE_NEGOCIO/FINANCEIRO.md).
  * Lançamentos, receita automática por venda, fiado como conta a
@@ -86,6 +97,14 @@ export default function FinanceiroView() {
   //      vendas e a receita só a já recebida, então uma noite de fiado
   //      subtraía o custo sem somar a venda — e o card mostrava prejuízo.
   const lucro = useMemo(() => {
+    // Período que começa antes da janela de `sales`: a receita e o custo
+    // chegariam zerados e só as saídas pagas seriam subtraídas, inventando um
+    // prejuízo em vermelho num mês que pode ter sido o melhor do ano. Aqui o
+    // card não calcula e diz que o lucro daquele período não está disponível.
+    const inicio = inicioJanelaVendas();
+    if (inicio && periodo.de < inicio) {
+      return { indisponivel: true, diasJanela: DIAS_JANELA_VENDAS };
+    }
     const vendasDoPeriodo = (sales ?? []).filter((s) => {
       if (!s || s.cancelada || !s.at) return false;
       const dia = diaLocalISO(s.at);
