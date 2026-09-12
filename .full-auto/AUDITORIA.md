@@ -423,3 +423,21 @@ Abertos desta varredura, e por quê:
 
 - [ ] D10, D11, D12 | baixa | arestas de aba longa: o botão de cancelar NFC-e que continua oferecido depois do prazo vencer, o histórico fiscal que não recarrega sozinho, e quatro registros de controle que nunca esvaziam. Nenhum produz número errado nem perda; entram numa rodada de arestas.
 - [ ] Recarga automática pisca "Conectando ao caixa" | decisão do dono | toda recarga (volta de rede, volta do sono, canal ruim) liga o `loading` por um instante. A frente manteve assim de propósito, para mostrar que o sistema está buscando o que perdeu em vez de fingir estar em dia. Se preferir recarga silenciosa, o `bootstrap` aceita um modo que não mexe no `loading`.
+
+---
+
+# Achados da tela do PDV no celular (2026-09-12, a partir de uma captura do dono)
+
+- [x] L01 | ux | onde: PDVView.css, `.pdv__body`
+      hoje: o corpo do PDV era `display: flex` sem direção, ou seja, linha, em qualquer largura. No celular e no tablet, onde o carrinho deixa de ser coluna fixa e entra a barra de abas Produtos e Carrinho, a barra virava uma COLUNA à esquerda. Medido no Chromium com o CSS real, a 390 px: barra com 161 px de largura por 600 de altura, cada botão com 80 por 599, rótulo centralizado no meio vertical da tela, e 229 px sobrando para a comanda inteira.
+      feito: modificador `--empilhado` aplicado quando `sz.cartWidth === 0`, com a direção decidida por classe e não por media query, porque quem define o que é celular aqui é o breakpoint em JS. Medido de novo: barra 390 por 51 no topo, área 390 por 549 abaixo.
+- [x] L02 | ux | onde: CartPanel, linha do item
+      hoje: o nome do produto não aparecia nas linhas do carrinho, só o seletor de quantidade, o preço e a lixeira.
+      feito: era consequência do L01, não defeito próprio. Medido: com o carrinho em 229 px o nome fica com 60 px e cortado; com 390 px aparece inteiro. Corrigiu junto.
+- [x] L03 | ux | onde: JarvasPanel, sino flutuante, no celular
+      hoje: o sino é `position: fixed` no canto inferior direito, e no celular ficava exatamente sobre o botão "Finalizar Comanda", escondendo o valor que o operador confere antes de cobrar.
+      feito: no celular o sino sobe para acima da faixa de ação. A posição saiu do estilo inline para o CSS, que era onde ela precisava estar para variar com a largura.
+- [ ] L04 | ux | onde: JarvasPanel, sino flutuante, no DESKTOP
+      hoje: a mesma sobreposição existe no desktop, e não é a captura do dono, é medição minha: o carrinho é a coluna da direita e o rodapé dele termina no mesmo canto do sino. Só que ali o rodapé é mais alto (total, subtotal e dois botões), então subir 86 px resolveria um botão e cobriria o outro.
+      depois: DECISÃO DE DESENHO SUA. O conserto de verdade é o sino se afastar da largura do carrinho (ficar à esquerda da coluna) ou mudar de canto. Não escolhi sozinho porque muda a posição de um elemento que aparece em todas as telas do sistema.
+      valor: 3 | esforço: 2 | risco: 2 | score: 0

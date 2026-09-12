@@ -173,8 +173,9 @@ export default function JarvasPanel() {
       <button
         onClick={() => setAberto((v) => !v)}
         title="Jarvas, insights e alertas"
+        className="jarvas-bell"
         style={{
-          position: "fixed", right: 18, bottom: 18, zIndex: 400,
+          zIndex: 400,
           width: 52, height: 52, borderRadius: "50%",
           background: naoLidos > 0 ? varColor(C.accent) : varColor(C.card),
           border: `1px solid ${naoLidos > 0 ? varColor(C.accent) : varColor(C.border)}`,

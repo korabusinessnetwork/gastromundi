@@ -1149,7 +1149,7 @@ export default function PDVView({ notify }) {
       )}
 
       {/* ── Body ────────────────────────────────────────────────── */}
-      <div className="pdv__body">
+      <div className={`pdv__body${isMob ? " pdv__body--empilhado" : ""}`}>
 
         {mode === "mapa" && (
           <MesaMapView

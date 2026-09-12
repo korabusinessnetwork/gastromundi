@@ -121,3 +121,34 @@
   font-size: var(--fs-xs);  /* role: label */
   line-height: var(--lh-xs);
 }
+
+/*
+ * Sino flutuante do Jarvas.
+ *
+ * A posição saiu do JSX porque ela precisa mudar com a largura, e no celular
+ * ela estava cobrindo a ação primária da tela: no PDV, o botão "Finalizar
+ * Comanda" ocupa a largura toda na base, e o sino ficava exatamente por cima do
+ * valor, escondendo justamente o número que o operador confere antes de cobrar.
+ *
+ * No celular ele sobe para acima da faixa de ação (um rodapé de botão tem cerca
+ * de 52 px, mais folga).
+ *
+ * No desktop ele continua onde sempre esteve, e isso NÃO quer dizer que lá esteja
+ * livre: o carrinho é a coluna da direita e o rodapé dele termina no mesmo canto,
+ * então a sobreposição também acontece, só que sobre um rodapé mais alto (total,
+ * subtotal e dois botões). Subir 86 px ali resolveria um botão e cobriria o
+ * outro, e o conserto de verdade é o sino se afastar da largura do carrinho ou
+ * mudar de canto, que é decisão de desenho do dono. Fica registrado em
+ * `.full-auto/AUDITORIA.md` em vez de eu escolher sozinho.
+ */
+.jarvas-bell {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+}
+
+@media (max-width: 768px) {
+  .jarvas-bell {
+    bottom: 86px;
+  }
+}

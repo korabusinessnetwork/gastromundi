@@ -568,6 +568,25 @@
   overflow: hidden;
 }
 
+/*
+ * No celular e no tablet o corpo EMPILHA, e isto não é preferência de layout:
+ * é o que faz a tela funcionar. Nessas larguras o carrinho deixa de ser uma
+ * coluna fixa ao lado da grade (`cartWidth === 0`) e entra a barra de abas
+ * Produtos/Carrinho, que é irmã da área ativa dentro deste contêiner. Sem
+ * empilhar, a barra vira uma COLUNA de largura própria à esquerda: medido em
+ * 390 px, ela ficava com 161 px de largura por 600 de altura, cada botão com
+ * 80 por 599, com o rótulo centralizado no meio vertical da tela, e sobravam
+ * 229 px para a comanda inteira.
+ *
+ * A direção é decidida por classe e não por media query de propósito: quem
+ * define o que é celular aqui é o breakpoint em JS (`sz.cartWidth === 0`, em
+ * src/constants/sizes.js), e repetir a medida no CSS criaria dois donos para a
+ * mesma decisão, que é como as duas se desencontram depois.
+ */
+.pdv__body--empilhado {
+  flex-direction: column;
+}
+
 .pdv__lista-scroll {
   flex: 1;
   overflow-y: auto;
