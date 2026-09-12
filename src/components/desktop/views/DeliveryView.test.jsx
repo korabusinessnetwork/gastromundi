@@ -511,3 +511,74 @@ describe("DeliveryView, sair do campo sem mudar nada não grava (D04)", () => {
     expect(salvarConfigDelivery).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * D05, a grade do Cardápio não tinha busca nem filtro.
+ *
+ * `itens.map(...)` direto: para trocar a foto de um item o dono rolava a grade
+ * inteira, e não havia como saber quantos produtos estavam fora do ar no
+ * cardápio online. O helper `filtrarItensDelivery` já existia e já era usado
+ * nesta mesma tela, no seletor de produtos do editor de grupo.
+ */
+describe("DeliveryView, busca e atalho de indisponíveis no Cardápio (D05)", () => {
+  const PRODUTOS = [
+    { id: "pr1", name: "Pastel de queijo", price: 10, emoji: "🥟", category: "Salgados" },
+    { id: "pr2", name: "Açaí 500ml", price: 20, emoji: "🍧", category: "Doces" },
+    { id: "pr3", name: "Coxinha", price: 8, emoji: "🍗", category: "Salgados" },
+  ];
+  const LINHAS = [
+    { id: "l1", produto_id: "pr1", foto_url: null, descricao: null, disponivel: true, ordem: 0 },
+    { id: "l2", produto_id: "pr2", foto_url: null, descricao: null, disponivel: false, ordem: 1 },
+    { id: "l3", produto_id: "pr3", foto_url: null, descricao: null, disponivel: false, ordem: 2 },
+  ];
+
+  async function irParaCardapio() {
+    setAppMock({
+      currentUser: { role: "admin", name: "Dona Ana", username: "ana" },
+      tenant: { id: "t1" },
+      products: PRODUTOS,
+    });
+    listarProdutosDelivery.mockResolvedValue({ data: LINHAS, error: null });
+    await montar();
+    await userEvent.click(screen.getByRole("button", { name: "Cardápio" }));
+    return screen.findByText("Pastel de queijo");
+  }
+
+  it("a busca deixa na grade só o produto procurado", async () => {
+    const user = userEvent.setup();
+    await irParaCardapio();
+
+    await user.type(screen.getByRole("searchbox", { name: /buscar produto pelo nome/i }), "acai");
+
+    expect(await screen.findByText("Açaí 500ml")).toBeInTheDocument();
+    expect(screen.queryByText("Pastel de queijo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Coxinha")).not.toBeInTheDocument();
+  });
+
+  it("o atalho mostra a contagem de indisponíveis e filtra por ela", async () => {
+    const user = userEvent.setup();
+    await irParaCardapio();
+
+    const atalho = screen.getByRole("button", { name: "Só indisponíveis (2)" });
+    await user.click(atalho);
+
+    expect(atalho).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Açaí 500ml")).toBeInTheDocument();
+    expect(screen.getByText("Coxinha")).toBeInTheDocument();
+    expect(screen.queryByText("Pastel de queijo")).not.toBeInTheDocument();
+  });
+
+  it("busca sem resultado explica o que fazer e limpa os filtros", async () => {
+    const user = userEvent.setup();
+    await irParaCardapio();
+
+    await user.type(screen.getByRole("searchbox", { name: /buscar produto pelo nome/i }), "lasanha");
+
+    expect(await screen.findByText("Nenhum produto com esse filtro")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Limpar filtros" }));
+
+    expect(await screen.findByText("Pastel de queijo")).toBeInTheDocument();
+    expect(screen.getByText("Açaí 500ml")).toBeInTheDocument();
+  });
+});

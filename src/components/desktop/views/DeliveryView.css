@@ -293,6 +293,45 @@
   padding: 9px 14px;
 }
 
+/**
+ * Busca da aba Cardápio. Fica colada acima da grade porque é a primeira
+ * coisa que o dono procura quando o cardápio passa de uma tela de altura.
+ */
+.delivery-view__busca-barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.delivery-view__busca-campo {
+  flex: 1 1 220px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1.5px solid var(--gm-input-border);
+  border-radius: 10px;
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+}
+.delivery-view__busca-filtro {
+  background: color-mix(in srgb, var(--gm-muted) 12%, transparent);
+  color: var(--gm-text);
+  padding: 9px 14px;
+}
+.delivery-view__busca-filtro--ligado {
+  background: color-mix(in srgb, var(--gm-accent) 16%, transparent);
+  color: var(--gm-accent);
+}
+.delivery-view__busca-contagem {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Lista de produtos do delivery (cards) */
 .delivery-view__cards {
   display: grid;

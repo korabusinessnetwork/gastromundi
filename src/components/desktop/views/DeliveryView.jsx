@@ -859,6 +859,28 @@ function AbaCardapio({
 }) {
   const [importando, setImportando] = useState(false);
   const [modal, setModal] = useState(null); // { modo:'novo'|'editar', item? }
+  // Busca e atalho de indisponíveis. A grade renderizava itens.map direto:
+  // para trocar a foto de um item o dono rolava o cardápio inteiro, e não
+  // havia como ver quantos estavam fora do ar.
+  const [busca, setBusca] = useState("");
+  const [soIndisponiveis, setSoIndisponiveis] = useState(false);
+
+  const indisponiveis = useMemo(
+    () => itens.filter((it) => !it.disponivel).length,
+    [itens]
+  );
+
+  // filtrarItensDelivery (a mesma do seletor de produtos do editor de grupo)
+  // casa nome sem acento e sem caixa. Aqui só a filtragem interessa: a ordem
+  // da grade continua sendo a `ordem` do cardápio, não a alfabética do helper.
+  const itensVisiveis = useMemo(() => {
+    const achados = new Set(
+      filtrarItensDelivery(itens, busca, [], Math.max(1, itens.length)).map((it) => it.id)
+    );
+    return itens.filter(
+      (it) => achados.has(it.id) && (!soIndisponiveis || !it.disponivel)
+    );
+  }, [itens, busca, soIndisponiveis]);
 
   const importar = async () => {
     if (importando || faltamImportar.length === 0) return;
@@ -914,6 +936,32 @@ function AbaCardapio({
         </div>
       )}
 
+      {/* Busca e atalho de indisponíveis, só quando há cardápio para filtrar */}
+      {!carregando && itens.length > 0 && (
+        <div className="delivery-view__busca-barra">
+          <input
+            className="delivery-view__busca-campo"
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar produto pelo nome"
+            aria-label="Buscar produto pelo nome"
+          />
+          <button
+            type="button"
+            onClick={() => setSoIndisponiveis((v) => !v)}
+            aria-pressed={soIndisponiveis}
+            className={`delivery-view__btn delivery-view__btn--sm delivery-view__busca-filtro${soIndisponiveis ? " delivery-view__busca-filtro--ligado" : ""}`}
+            title="Mostrar só os produtos que estão fora do ar no cardápio online"
+          >
+            Só indisponíveis ({indisponiveis})
+          </button>
+          <span className="delivery-view__busca-contagem">
+            {itensVisiveis.length} de {itens.length}
+          </span>
+        </div>
+      )}
+
       {/* Lista / estados */}
       {carregando ? (
         <div className="delivery-view__vazio">
@@ -930,9 +978,26 @@ function AbaCardapio({
               : "Clique em “Novo produto” para começar seu cardápio online."}
           </div>
         </div>
+      ) : itensVisiveis.length === 0 ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">🔎</div>
+          <div className="delivery-view__vazio-titulo">Nenhum produto com esse filtro</div>
+          <div className="delivery-view__vazio-desc">
+            {soIndisponiveis && indisponiveis === 0
+              ? "Todos os produtos estão disponíveis no cardápio online."
+              : "Tente outro nome, ou limpe a busca para ver o cardápio inteiro."}
+          </div>
+          <button
+            type="button"
+            onClick={() => { setBusca(""); setSoIndisponiveis(false); }}
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--tentar"
+          >
+            Limpar filtros
+          </button>
+        </div>
       ) : (
         <div className="delivery-view__cards">
-          {itens.map((it) => (
+          {itensVisiveis.map((it) => (
             <CardProduto
               key={it.id}
               item={it}
