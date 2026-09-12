@@ -79,7 +79,7 @@ function montar(pending) {
 
 /** Busca a comanda 7 na grade e entra nela. */
 function entrarNaComandaSete() {
-  fireEvent.change(screen.getByPlaceholderText("Buscar comanda..."), { target: { value: "7" } });
+  fireEvent.change(screen.getByPlaceholderText(/Buscar comanda/), { target: { value: "7" } });
   fireEvent.click(screen.getByRole("button", { name: /Comanda 7/ }));
 }
 

@@ -71,7 +71,7 @@ async function irParaOCarrinho(items, total) {
     removePending: vi.fn(() => Promise.resolve({ error: null })),
   });
   render(<MemoryRouter><PDVView notify={notify} /></MemoryRouter>);
-  fireEvent.change(screen.getByPlaceholderText("Buscar comanda..."), { target: { value: "7" } });
+  fireEvent.change(screen.getByPlaceholderText(/Buscar comanda/), { target: { value: "7" } });
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: /Comanda 7/ }));
   });

@@ -1101,11 +1101,18 @@ export default function PDVView({ notify }) {
               size={18}
               className={`pdv__busca-icone${buscaComanda ? " pdv__busca-icone--ativo" : ""}`}
             />
+            {/* O campo aceitava só dígito, e a grade abaixo sempre soube
+                filtrar por nome da comanda e por garçom: digitar "Balcão" não
+                escrevia nada na tela e não dava retorno nenhum, justamente o
+                nome que o modal de nova comanda sugere ("Ex: Mesa 1, Balcão,
+                Delivery..."). `maxLength` acompanha o limite do nome da
+                comanda, e o teclado do tablet volta a ser o normal. */}
             <input
               value={buscaComanda}
-              onChange={e => { if (e.target.value === "" || /^\d+$/.test(e.target.value)) setBuscaComanda(e.target.value); }}
-              placeholder="Buscar comanda..."
-              inputMode="numeric"
+              onChange={e => setBuscaComanda(e.target.value)}
+              placeholder="Buscar comanda, nome ou garçom"
+              aria-label="Buscar comanda por número, nome ou garçom"
+              maxLength={30}
               className={`pdv__busca-input${buscaComanda ? " pdv__busca-input--preenchido" : ""}`}
             />
             {buscaComanda && (

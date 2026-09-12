@@ -79,7 +79,7 @@ const clicar = async (nome) => {
 /** Entra na comanda 7 e vai direto para a tela de pagamento. */
 async function irParaOCheckout(items, total) {
   montar([comanda("ORDEM7", "7", items, total)]);
-  fireEvent.change(screen.getByPlaceholderText("Buscar comanda..."), { target: { value: "7" } });
+  fireEvent.change(screen.getByPlaceholderText(/Buscar comanda/), { target: { value: "7" } });
   fireEvent.click(screen.getByRole("button", { name: /Comanda 7/ }));
   fireEvent.click(screen.getByRole("button", { name: /Finalizar Comanda/ }));
   await clicar("Sim, finalizar");
