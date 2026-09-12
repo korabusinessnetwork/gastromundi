@@ -359,3 +359,30 @@ describe("LoginPage, alvo de toque do mostrar senha (L04)", () => {
     expect(jsx).toContain("<LuEye size={18} />");
   });
 });
+
+// L05 — rótulo e campo associados.
+//
+// "Usuário" e "Senha" eram <label> soltos, sem `htmlFor` e sem o campo dentro:
+// clicar no rótulo não focava o campo (alvo desperdiçado numa tela de toque) e
+// o leitor de tela anunciava um campo sem nome.
+describe("LoginPage, rótulos associados aos campos (L05)", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    mockConsoleAtivo.mockReturnValue(false);
+    buscarBrandingPorSlug.mockImplementation(() => Promise.resolve({ data: null, error: null }));
+    setAppMock({ currentUser: null, login: vi.fn(() => Promise.resolve({ ok: true })) });
+  });
+
+  it("o rótulo Usuário aponta para o campo de usuário", async () => {
+    await abrir();
+
+    expect(screen.getByLabelText("Usuário")).toBe(screen.getByPlaceholderText("Digite seu usuário"));
+  });
+
+  it("o rótulo Senha aponta para o campo de senha", async () => {
+    await abrir();
+
+    expect(screen.getByLabelText("Senha")).toBe(screen.getByPlaceholderText("Digite sua senha"));
+  });
+});

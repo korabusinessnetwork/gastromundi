@@ -242,8 +242,10 @@ export default function LoginPage() {
             Mesma correção já feita no login do Console. */}
         <form className="login-page__card" onSubmit={submit}>
           <div className="login-page__field">
-            <label className="login-page__label">Usuário</label>
-            <input type="text" value={username} placeholder="Digite seu usuário" maxLength={30} autoComplete="username" disabled={loading}
+            {/* `htmlFor` + `id`: sem o par, clicar no rótulo não focava o
+                campo e o leitor de tela anunciava um campo sem nome. */}
+            <label className="login-page__label" htmlFor="login-usuario">Usuário</label>
+            <input id="login-usuario" type="text" value={username} placeholder="Digite seu usuário" maxLength={30} autoComplete="username" disabled={loading}
               // Tela de um propósito só, com um primeiro campo óbvio: quem abre
               // o login vem para digitar, e obrigar a clicar antes é um passo
               // que não decide nada (Princípio nº 1).
@@ -254,9 +256,9 @@ export default function LoginPage() {
           </div>
 
           <div className="login-page__field login-page__field--senha">
-            <label className="login-page__label">Senha</label>
+            <label className="login-page__label" htmlFor="login-senha">Senha</label>
             <div className="login-page__senha-wrap">
-              <input type={showPass ? "text" : "password"} value={password} placeholder="Digite sua senha" maxLength={100} autoComplete="current-password" disabled={loading}
+              <input id="login-senha" type={showPass ? "text" : "password"} value={password} placeholder="Digite sua senha" maxLength={100} autoComplete="current-password" disabled={loading}
                 onChange={(e) => { setPassword(e.target.value); setError(""); }}
                 className="login-page__input login-page__input--senha"
               />
