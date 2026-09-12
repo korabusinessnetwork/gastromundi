@@ -46,6 +46,10 @@ import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 // sozinha antes de o operador fechar o caixa, e longo o bastante para não
 // queimar bateria e requisição batendo num link que não volta.
 const INTERVALO_REENVIO_OFFLINE_MS = 45_000;
+// Intervalo entre reagendamentos da análise do Jarvas. Justificativa no efeito
+// que o usa (a aba do PDV nunca recarrega, e o throttle de 6 h do motor é quem
+// define a frequência efetiva).
+const INTERVALO_ANALISE_JARVAS_MS = 30 * 60 * 1000;
 import { useStatusRede } from "@/hooks/useStatusRede";
 import IndicadorRede from "@/components/shared/IndicadorRede";
 import AvisoSessao from "@/components/shared/AvisoSessao";
@@ -821,11 +825,44 @@ export function AppProvider({ children }) {
     return () => clearTimeout(timer);
   }, [tenant?.tema, varianteLayout]);
 
-  // ── Jarvas: análise pós-carregamento (fire-and-forget; motor só
-  //    roda para gerente/admin e tem throttle interno de 6h) ──────
+  // ── Jarvas: análise periódica (fire-and-forget; motor só roda para
+  //    gerente/admin e tem throttle interno de 6h) ─────────────────
+  //
+  // Antes isto era só um efeito com dependências [loading, currentUser?.id], o
+  // que basta quando alguém abre a página de manhã e fecha à noite. O PDV do
+  // balcão não faz isso: a aba fica aberta 24 horas por dia, ninguém recarrega
+  // e ninguém desloga, então a análise rodava UMA VEZ na vida da aba e depois
+  // nunca mais. As chaves de deduplicação do motor são por dia, ou seja, o
+  // alerta de hoje seria gerado sem problema, só que ninguém chamava o motor:
+  // ruptura de estoque, divergência de caixa, conta vencida e cancelamento
+  // recorrente paravam de aparecer a partir do segundo dia de aba aberta.
+  //
+  // O ritmo é de 30 minutos, e não menor, porque quem decide a frequência real
+  // é o throttle de 6 horas do próprio motor (jarvasEngine.js): o tique só
+  // custa uma leitura de localStorage nas vezes em que o throttle recusa, e
+  // garante que a análise saia no máximo meia hora depois de a janela de 6
+  // horas abrir. Menos que isso gastaria tique sem antecipar nada; mais que
+  // isso atrasaria o alerta da manhã, que é quando o gestor olha.
+  //
+  // Os dados vão por ref porque o temporizador não pode reassinar: `sales` e
+  // `estoque` mudam a cada venda, e um efeito que dependesse deles reiniciaria
+  // a contagem sem parar num balcão movimentado, o que é o mesmo defeito por
+  // outro caminho.
+  const dadosAnaliseJarvasRef = useRef(null);
   useEffect(() => {
-    if (loading || !currentUser) return;
-    void executarAnaliseJarvas({ products, estoque, estoqueMinimos, sales, fechamentos, currentUser });
+    dadosAnaliseJarvasRef.current = { products, estoque, estoqueMinimos, sales, fechamentos, currentUser };
+  });
+
+  useEffect(() => {
+    if (loading || !currentUser) return undefined;
+    const analisar = () => {
+      if (dadosAnaliseJarvasRef.current) void executarAnaliseJarvas(dadosAnaliseJarvasRef.current);
+    };
+    analisar();
+    // Um único temporizador por execução do efeito: o cleanup abaixo limpa o da
+    // execução anterior (e o do desmonte), então nada empilha.
+    const id = setInterval(analisar, INTERVALO_ANALISE_JARVAS_MS);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, currentUser?.id]);
 
