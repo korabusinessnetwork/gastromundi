@@ -25,11 +25,18 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery, salvarConfigDelivery } = vi.hoisted(() => ({
+const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery, salvarConfigDelivery, carregarItensPedido } = vi.hoisted(() => ({
   usePedidosDelivery: vi.fn(),
   listarProdutosDelivery: vi.fn(),
   carregarConfigDelivery: vi.fn(),
   salvarConfigDelivery: vi.fn(),
+  carregarItensPedido: vi.fn(),
+}));
+
+// `carregarItensPedido` mora na lib de pedidos, não na de administração.
+vi.mock("@/lib/deliveryPedidos", async (importOriginal) => ({
+  ...(await importOriginal()),
+  carregarItensPedido,
 }));
 
 // Só o hook de pedidos é falso. O resto de @/utils/hooks passa real pelo
@@ -273,5 +280,63 @@ describe("DeliveryView, apagar faixa de taxa pede confirmação", () => {
     expect(salvarConfigDelivery).toHaveBeenCalledTimes(1);
     const [, proximo] = salvarConfigDelivery.mock.calls[0];
     expect(proximo.faixas_taxa).toEqual([]);
+  });
+});
+
+/**
+ * "Ver itens" do pedido: falha de leitura aparecia como pedido vazio.
+ *
+ * `carregarItensPedido` devolve `{ data: [], error }` em qualquer falha, e o
+ * desktop descartava o erro: a tela escrevia "Sem itens detalhados." e, como
+ * `itens` deixava de ser nulo, fechar e abrir o cartão não tentava de novo. A
+ * mentira ficava colada até recarregar a página. O módulo do celular já havia
+ * corrigido isso, e o comentário de lá diz o prejuízo: o entregador saía sem a
+ * comida certa.
+ */
+describe("DeliveryView, falha ao carregar os itens do pedido", () => {
+  beforeEach(() => {
+    setAppMock({ currentUser: { role: "admin", name: "Dona Ana", username: "ana" }, tenant: { id: "t1" } });
+  });
+
+  // O rótulo alterna entre "Ver itens" e "Ocultar itens".
+  const alternarItens = () =>
+    userEvent.click(screen.getByRole("button", { name: /(ver|ocultar) itens/i }));
+
+  it("diz que não deu para carregar, em vez de afirmar que o pedido está vazio", async () => {
+    carregarItensPedido.mockResolvedValue({ data: [], error: FALHA });
+    await montar();
+
+    await alternarItens();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/não deu para carregar os itens/i);
+    expect(screen.queryByText("Sem itens detalhados.")).not.toBeInTheDocument();
+  });
+
+  it("fechar e abrir tenta de novo, e o pedido mostra os itens", async () => {
+    carregarItensPedido.mockResolvedValueOnce({ data: [], error: FALHA });
+    await montar();
+    await alternarItens();
+    await screen.findByRole("alert");
+
+    carregarItensPedido.mockResolvedValueOnce({
+      data: [{ id: "i1", qtd: 2, nome: "Pastel de queijo", obs: "" }],
+      error: null,
+    });
+    await alternarItens(); // fecha
+    await alternarItens(); // abre de novo
+
+    expect(carregarItensPedido).toHaveBeenCalledTimes(2);
+    expect(await screen.findByText(/Pastel de queijo/)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("pedido de fato sem itens continua dizendo que não há itens detalhados", async () => {
+    carregarItensPedido.mockResolvedValue({ data: [], error: null });
+    await montar();
+
+    await alternarItens();
+
+    expect(await screen.findByText("Sem itens detalhados.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

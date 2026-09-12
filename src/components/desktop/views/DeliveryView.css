@@ -1773,6 +1773,7 @@
 .delivery-view__zap             { font-size: var(--fs-sm);   line-height: var(--lh-sm); }  /* link (era sz.fontSm) */
 .delivery-view__pedido-itens-toggle { font-size: var(--fs-sm); line-height: var(--lh-sm); } /* (era sz.fontSm) */
 .delivery-view__pedido-itens    { font-size: var(--fs-sm);   line-height: var(--lh-sm); }  /* (era sz.fontSm) */
+.delivery-view__pedido-itens-erro { font-size: var(--fs-sm); line-height: var(--lh-sm); color: oklch(0.6 0.19 25); font-weight: 600; }
 .delivery-view__pedido-total    { font-size: var(--fs-base); line-height: var(--lh-base); font-variant-numeric: tabular-nums; } /* total/money (era sz.fontBase) */
 
 /* Estados vazio / carregando (reutilizáveis) */

@@ -664,6 +664,7 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
   const [aberto, setAberto] = useState(false);
   const [itens, setItens] = useState(null); // null = ainda não buscou
   const [carregandoItens, setCarregandoItens] = useState(false);
+  const [erroItens, setErroItens] = useState(false);
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
 
   const base = baseCorStatus(pedido.status);
@@ -677,10 +678,17 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
   const toggleItens = async () => {
     const proximo = !aberto;
     setAberto(proximo);
-    if (proximo && itens === null && !carregandoItens) {
+    // Refaz a busca quando a anterior falhou, como o módulo do celular já faz:
+    // a lib devolve lista vazia em qualquer falha, então descartar o erro fazia
+    // a tela escrever "Sem itens detalhados." e, como `itens` deixava de ser
+    // nulo, fechar e abrir não tentava de novo. A mentira ficava colada até
+    // recarregar a página, e um pedido com itens parecia um pedido vazio.
+    if (proximo && (itens === null || erroItens) && !carregandoItens) {
       setCarregandoItens(true);
-      const { data } = await carregarItensPedido(pedido.id);
-      setItens(Array.isArray(data) ? data : []);
+      setErroItens(false);
+      const { data, error } = await carregarItensPedido(pedido.id);
+      setItens(error ? null : (Array.isArray(data) ? data : []));
+      setErroItens(Boolean(error));
       setCarregandoItens(false);
     }
   };
@@ -741,6 +749,10 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
         <div className="delivery-view__pedido-itens">
           {carregandoItens ? (
             <div className="delivery-view__pedido-itens-aviso">Carregando itens…</div>
+          ) : erroItens ? (
+            <div className="delivery-view__pedido-itens-erro" role="alert">
+              Não deu para carregar os itens. Feche e abra o pedido para tentar de novo.
+            </div>
           ) : itens && itens.length > 0 ? (
             itens.map((it) => (
               <div key={it.id} className="delivery-view__pedido-item">
