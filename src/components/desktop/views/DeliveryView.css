@@ -1939,6 +1939,24 @@
   line-height: var(--lh-sm);
 }
 .delivery-view__faixa-erro-texto { flex: 1 1 240px; }
+
+/* Faixa de conexão ao vivo caída. Mesma forma da faixa de erro (o operador já
+   conhece o padrão), em azul de informação: a lista na tela continua válida,
+   só parou de se atualizar sozinha. */
+.delivery-view__faixa-offline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--gm-blue) 35%, transparent);
+  background: color-mix(in srgb, var(--gm-blue) 10%, transparent);
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
 .delivery-view__faixa-erro-acao {
   flex: 0 0 auto;
   border: 1px solid var(--gm-border);

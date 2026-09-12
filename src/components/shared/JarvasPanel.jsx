@@ -8,6 +8,7 @@ import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { novoUid } from "@/lib/uidLista";
+import { tratarStatusCanal } from "@/utils/hooks";
 import { LuSparkles, LuX, LuCheck, LuTrash2, LuArrowRight, LuSend, LuTriangleAlert, LuRefreshCw } from "react-icons/lu";
 import "./JarvasPanel.css";
 
@@ -106,6 +107,7 @@ export default function JarvasPanel() {
   // Requer Realtime habilitado na tabela `jarvas_insights` (Database → Replication).
   useEffect(() => {
     if (!currentUser) return;
+    let vivo = true;
     const channel = supabase
       .channel("jarvas-insights-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "jarvas_insights" }, (payload) => {
@@ -119,10 +121,19 @@ export default function JarvasPanel() {
             : prev.map(i => (i.id === atualizado.id ? atualizado : i)),
         );
       })
-      .subscribe();
+      // Canal que morre (RLS, token recusado, servidor reiniciando, Wi-Fi
+      // trocado numa aba de 24 horas) deixava o painel parado sem avisar: o
+      // gestor lia silêncio como "nenhum alerta novo". Ler o status recarrega
+      // a lista quando o canal cai e outra vez quando ele volta, porque o que
+      // aconteceu durante a queda não é reenviado. Aqui não há faixa na tela
+      // de propósito: o painel é consultivo, a recarga já o mantém verdadeiro,
+      // e um aviso técnico num painel secundário só faria ruído.
+      .subscribe(tratarStatusCanal("jarvas-insights-realtime", {
+        recarregar: carregar, estaVivo: () => vivo,
+      }));
 
-    return () => { supabase.removeChannel(channel); };
-  }, [currentUser]);
+    return () => { vivo = false; supabase.removeChannel(channel); };
+  }, [currentUser, carregar]);
 
   if (!currentUser) return null;
 

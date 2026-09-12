@@ -610,3 +610,50 @@ describe("DeliveryView entrega a abertura do caixa ao hook de pedidos (D06)", ()
     );
   });
 });
+
+// D07 — realtime caído deixava o kanban parado sem dizer nada. O operador
+// olhava uma tela sem pedido novo acreditando que não havia pedido novo, que é
+// o pior jeito de perder um pedido.
+describe("DeliveryView avisa quando a atualização automática cai (D07)", () => {
+  const faixaOffline = () => screen.queryByText(/atualização automática caiu/i);
+
+  it("canal ao vivo não mostra aviso nenhum", async () => {
+    semErro();
+    await montar();
+
+    expect(faixaOffline()).not.toBeInTheDocument();
+  });
+
+  it("canal caído mostra o aviso e mantém o kanban na tela", async () => {
+    const recarregar = vi.fn(() => Promise.resolve());
+    usePedidosDelivery.mockReturnValue({
+      pedidos: [PEDIDO], carregando: false, erro: null, aoVivo: false, recarregar,
+    });
+    await montar();
+
+    expect(faixaOffline()).toBeInTheDocument();
+    expect(cartaoDoPedido()).toBeInTheDocument();
+  });
+
+  it("o Atualizar do aviso busca os pedidos de agora", async () => {
+    const user = userEvent.setup();
+    const recarregar = vi.fn(() => Promise.resolve());
+    usePedidosDelivery.mockReturnValue({
+      pedidos: [PEDIDO], carregando: false, erro: null, aoVivo: false, recarregar,
+    });
+    await montar();
+
+    const avisoOffline = screen.getByRole("status");
+    await user.click(avisoOffline.querySelector("button"));
+
+    expect(recarregar).toHaveBeenCalled();
+  });
+
+  it("hook sem o campo aoVivo não faz a tela dizer que a conexão caiu", async () => {
+    // Retrocompatibilidade: o mobile ainda consome o hook sem ler este campo.
+    semErro();
+    await montar();
+
+    expect(faixaOffline()).not.toBeInTheDocument();
+  });
+});
