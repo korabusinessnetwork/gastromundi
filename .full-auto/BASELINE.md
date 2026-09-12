@@ -8,18 +8,18 @@ passando por esta lista inteira. Qualquer piora aqui reverte o commit na hora.
 | # | Passo | Comando | Resultado esperado |
 |---|-------|---------|--------------------|
 | 1 | Instalação limpa | `npm ci` | termina sem erro |
-| 2 | Suíte | `npm test` | 238 arquivos, 4191 testes, todos verdes |
+| 2 | Suíte | `npm test` | 241 arquivos, 4212 testes, todos verdes |
 | 3 | Build | `npm run build` | `✓ built`, sem erro (o aviso de chunk grande é conhecido, item de backlog) |
 | 4 | App sobe | `npm run dev` | Vite serve em 5173 sem erro de módulo |
 | 5 | Fluxos anônimos | navegador em `/login`, `/cardapio`, apex | tela renderiza, sem erro não tratado no console |
 
-## Medidas de 2026-09-12 (antes da rodada 1 do refino)
+## Medidas de 2026-09-12 (depois da rodada 1; entre parênteses, antes dela)
 
 | Medida | Valor |
 |--------|-------|
-| Arquivos de teste | 238 |
-| Testes | 4191 |
-| Tempo da suíte | 78,65 s |
+| Arquivos de teste | 241 (era 238) |
+| Testes | 4212 (era 4191) |
+| Tempo da suíte | 75,69 s (era 78,65 s) |
 | Tempo do build | 2,99 s |
 | Bundle principal (`index-*.js`) | 2.442,98 kB, gzip 702,49 kB |
 | Precache do PWA | 64 entradas, 3.877,99 KiB |

@@ -49,7 +49,7 @@ Como a varredura foi feita:
 Score calculado por mim sobre os números da frente. Onde eu discordei, a nota
 está reavaliada e o motivo fica escrito.
 
-- [ ] C01 | eixo: robustez | onde: relatorio/RelatorioView.jsx:890 e 531 (Relatórios, Vendas detalhado e export)
+- [x] C01 | eixo: robustez | onde: relatorio/RelatorioView.jsx:890 e 531 (Relatórios, Vendas detalhado e export)
       hoje: venda cancelada sai dos relatórios, mas ITEM cancelado dentro de venda válida continua listado como vendido, conta no "3 itens" do cabeçalho e vai para o PDF e o Excel. A soma dos subtotais exibidos não fecha com o total da comanda, porque o total foi calculado sem ele. O mesmo item também aparece na aba Cancelamentos, então é contado duas vezes em dois lugares que se contradizem.
       depois: filtrar `it.cancelado` na lista, na contagem e no export, ou marcar a linha como cancelada e mantê-la fora da soma.
       evidência: verifiquei eu mesmo. `RelatorioView.jsx:890` monta `itens` sem filtro, `:891` soma tudo, `:976` mapeia tudo, `:531` repete no export. `useFinalizarPagamento.js:69` calcula o total com `filter(i => !i.cancelado)`, e a aba Cancelamentos em `:438` filtra `it.cancelado`, prova de que o campo existe.
@@ -112,12 +112,12 @@ está reavaliada e o motivo fica escrito.
 
 ### Frente B, delivery, vitrine pública, cozinha e clientes
 
-- [ ] B03 | eixo: ux | onde: DeliveryView.jsx:2402 e 2662 (Delivery, Entrega e taxas)
+- [x] B03 | eixo: ux | onde: DeliveryView.jsx:2402 e 2662 (Delivery, Entrega e taxas)
       hoje: a lixeira da faixa de taxa grava no banco na hora, sem confirmação, sem desfazer e sem aviso. Um toque errado apaga a faixa do bairro e, daquele segundo em diante, todo cliente do bairro lê "fora da nossa área de entrega" na vitrine, sem ninguém perceber. A mesma tela confirma em dois outros lugares.
       depois: reusar a confirmação em duas etapas do cartão de produto, dizendo qual faixa sai.
       evidência: `:2402` grava direto, chamada no `onClick` de `:2662`; confirmação existente em `:2192` e `:982`.
       valor: 4 | esforço: 1 | risco: 1 | score: 5
-- [ ] B04 | eixo: robustez | onde: DeliveryView.jsx:682 (Delivery, Pedidos, ver itens)
+- [x] B04 | eixo: robustez | onde: DeliveryView.jsx:682 (Delivery, Pedidos, ver itens)
       hoje: "Ver itens" descarta o erro, a lib devolve lista vazia em qualquer falha e a tela escreve "Sem itens detalhados". Como `itens` deixou de ser nulo, fechar e abrir não tenta de novo: a mentira fica colada até recarregar a página. O módulo mobile já corrigiu isso, e o comentário de lá diz o prejuízo: "o entregador saía sem a comida certa".
       depois: guardar o erro como o mobile guarda e refazer a busca quando a tentativa anterior falhou.
       evidência: `DeliveryView.jsx:682` contra `DeliveryModulo.jsx:226` e `:420`.
@@ -127,7 +127,7 @@ está reavaliada e o motivo fica escrito.
       depois: mostrar no cartão o mesmo tipo de aviso que a falha de carga já mostra, com texto humano para o caso de outra estação ter avançado.
       evidência: `CozinhaView.jsx:53` e `:64`; `role="alert"` só em `:92`.
       valor: 4 | esforço: 2 | risco: 1 | score: 5
-- [ ] B05 | eixo: qualidade | onde: lib/travessaoGuard.test.js:64 mais 5 telas
+- [x] B05 | eixo: qualidade | onde: lib/travessaoGuard.test.js:64 mais 5 telas
       hoje: o guard da regra absoluta do dono está furado, e o furo é contra o que o próprio arquivo documenta: o comentário diz que a comparação é exata, "sem `trim`, porque `" — "` com espaço dos dois lados é separador", e o código faz `texto.trim() === "—"` para `JSXText`. Em JSX o separador sempre nasce com espaço em volta, então a única forma que a regra proíbe é a que o guard libera. Passam hoje 5 separadores reais: a observação do item no cartão do pedido do Delivery, o mesmo na Cozinha mobile e no Delivery mobile, e o cabeçalho da nota em dois pontos de NotasFiscaisTab.
       depois: fechar o furo no `marcadorDeVazio` (o `JSXText` só é marcador quando é o conteúdo inteiro do elemento) e trocar as 5 ocorrências por vírgula.
       evidência: verifiquei eu mesmo. `travessaoGuard.test.js:64` contra o comentário em `:22`; ocorrências em `DeliveryView.jsx:748`, `CozinhaModulo.jsx:277`, `DeliveryModulo.jsx:430`, `NotasFiscaisTab.jsx:841` e `:1110`. A suíte do guard passa verde com as cinco no repositório.
@@ -159,12 +159,12 @@ está reavaliada e o motivo fica escrito.
       valor: 3 | esforço: 3 | risco: 2 | score: -1 (mexe em migration, e migration não aplicada é pendência do dono; fica no backlog)
 ### Frente A, venda no balcão e no salão
 
-- [ ] A01 | eixo: robustez | onde: PDVView/index.jsx:1219 (PDV, cancelar item pelo carrinho)
+- [x] A01 | eixo: robustez | onde: PDVView/index.jsx:1219 (PDV, cancelar item pelo carrinho)
       hoje: cancelando parcialmente um item lançado, a metade cancelada nasce com o MESMO `uid` da metade que continua ativa. O caminho do checkout já resolve isso com `uid: crypto.randomUUID()`, e o comentário de lá explica o prejuízo: com uid herdado, `mesclarItensComanda` trata a linha cancelada como já conhecida e a descarta no primeiro lançamento vindo do Palm, então o item volta inteiro para a conta e o cliente paga o que foi cancelado. Nenhum teste cobre `onRemoveAcumulado`.
       depois: dar `uid` novo à metade cancelada, igual ao checkout.
       evidência: `index.jsx:1219` contra `:509`, e o comentário em `:502`.
       valor: 5 | esforço: 1 | risco: 1 | score: 7
-- [ ] A02 | eixo: qualidade | onde: MobilePage.jsx:258 e 297 (Palm, abrir comanda e lançar itens)
+- [x] A02 | eixo: qualidade | onde: MobilePage.jsx:258 e 297 (Palm, abrir comanda e lançar itens)
       hoje: as duas chamadas passam o tipo da ação na posição do usuário. A assinatura é `logAction(operatorId, actionType, payload)`, então o banco recebe `operator_id: "comanda:abrir"`, `action_type: "[object Object]"` e `payload: null`. Toda comanda aberta e todo lançamento do garçom entram na trilha sem operador e fora de qualquer filtro por tipo.
       depois: passar `currentUser?.username` como primeiro argumento, como a chamada correta do mesmo arquivo na linha 791.
       evidência: `logger.js:24`, `MobilePage.jsx:258`, `:297`, contra `:791`.
@@ -179,7 +179,7 @@ está reavaliada e o motivo fica escrito.
       depois: com `situacao !== "conferido"`, exigir a observação, desabilitando o botão com o motivo ao lado.
       evidência: `FechamentoModal.jsx:371` só olha `salvando`; `:114` já calcula a situação.
       valor: 4 | esforço: 2 | risco: 1 | score: 4
-- [ ] A06 | eixo: produto | onde: PDVView/index.jsx:1104 (Frente de Caixa, buscar comanda)
+- [x] A06 | eixo: produto | onde: PDVView/index.jsx:1104 (Frente de Caixa, buscar comanda)
       hoje: o campo descarta tudo que não é dígito, então digitar "Balcão" não escreve nada e não dá retorno nenhum. A capacidade de achar por nome e por garçom já existe embaixo (`ComandaGrid.jsx:60`), e o modal de nova comanda sugere justamente nomes não numéricos ("Ex: Mesa 1, Balcão, Delivery").
       depois: aceitar texto no campo, sem tocar no resto.
       evidência: `index.jsx:1104`, `ComandaGrid.jsx:60`, `index.jsx:1284`; no Palm a busca por nome já funciona (`MobilePage.jsx:464`).
@@ -212,7 +212,7 @@ está reavaliada e o motivo fica escrito.
 
 ### Frente D, acesso, plataforma e contexto
 
-- [ ] D01 | eixo: qualidade | onde: AppContext.jsx:734 com lib/tenant.js:46 (sessão da plataforma)
+- [x] D01 | eixo: qualidade | onde: AppContext.jsx:734 com lib/tenant.js:46 (sessão da plataforma)
       hoje: quando o super-admin entra, `buscarTenantAtual()` devolve o estabelecimento mais antigo (a policy de `tenants` tem o ramo de super-admin e o `limit(1)` pega um cliente real). A guarda que protege a marca neutra só vale quando `ehConsoleHost()` é verdadeiro, e esse switch nasce desligado. Então o Console é pintado com a paleta daquele cliente, a aba recebe o nome dele e, pior, a marca é gravada no cache POR ORIGEM: o próximo funcionário daquele endereço abre o login vendo a marca de outro estabelecimento. É exatamente o que a decisão 017 proíbe.
       depois: tratar `role === "plataforma"` igual a `ehConsoleHost()` na guarda que já existe, limpando os tokens, fixando o título neutro e não gravando cache.
       evidência: `AppContext.jsx:734` e o comentário acima dela, `tenant.js:46`, migration `20260726:61`, `consoleHost.js:43`.
