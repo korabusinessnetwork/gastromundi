@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 /**
@@ -57,7 +57,8 @@ describe("PDVView, Saldo do Dia e os logs de comanda cancelada", () => {
 
     await abrirSaldoAutorizado();
 
-    expect(screen.getByRole("alert").textContent).toMatch(/Não foi possível carregar as comandas canceladas/);
+    const aviso = await screen.findByRole("alert");
+    expect(aviso.textContent).toMatch(/Não foi possível carregar as comandas canceladas/);
   });
 
   it("consulta boa não deixa aviso de falha na tela", async () => {
@@ -65,8 +66,12 @@ describe("PDVView, Saldo do Dia e os logs de comanda cancelada", () => {
 
     await abrirSaldoAutorizado();
 
+    // A consulta resolve num microtask: esperar é mais honesto do que supor
+    // que já voltou, ainda mais com a suíte inteira disputando a máquina.
+    await waitFor(() => {
+      expect(screen.queryByText(/Carregando comandas canceladas/)).toBeNull();
+    });
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.queryByText(/Carregando comandas canceladas/)).toBeNull();
     expect(screen.getByText("Cancelamentos do Dia")).toBeInTheDocument();
   });
 
