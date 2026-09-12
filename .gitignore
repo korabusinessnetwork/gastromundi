@@ -12,3 +12,8 @@ dist/
 # `npm run build:exe` dentro de ponte/). São 56 MB de binário — o LEIAME
 # da pasta vai para o repositório, o executável não.
 executavel/*.exe
+
+# Worktrees das frentes paralelas (sessões de agente em cópia isolada do
+# repositório). São criadas e removidas pelo Claude Code durante a execução, e
+# cada uma é uma cópia inteira do projeto: nunca entram no histórico.
+.claude/worktrees/
