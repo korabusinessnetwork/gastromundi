@@ -22,8 +22,8 @@ Dono de: `src/hooks/useImpressaoLancamentos.js`, `src/components/shared/Impressa
 
 | # | id | eixo | Tarefa |
 |---|----|------|--------|
-| [ ] I01 | V101 | robustez | Falha na impressão automática do pedido do Palm chega ao humano, como já chega no caminho da Ponte |
-| [ ] I02 | V108 | qualidade | O hook da impressão automática ganha teste, cobrindo semeadura, lançamento novo e eco do realtime |
+| [x] I01 | V101 | robustez | Falha na impressão automática do pedido do Palm chega ao humano, como já chega no caminho da Ponte |
+| [x] I02 | V108 | qualidade | O hook da impressão automática ganha teste, cobrindo semeadura, lançamento novo e eco do realtime |
 
 ## Trilha `telas-menores`
 Dono de: `src/components/pautas/`, `src/components/shared/Notification.jsx`, `src/components/shared/JarvasPanel.jsx`, `src/utils/hooks.js`, `src/components/desktop/views/PDVView/MesaReservasView.jsx`

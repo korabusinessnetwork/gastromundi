@@ -35,7 +35,7 @@ Como a varredura foi feita:
       depois: título por tela com o nome do tenant, no padrão "Nome do estabelecimento, PDV".
       evidência: navegador em `/login` devolveu `title = "Kora"`; `grep document.title` mostra ajuste só no apex, no console e nas pautas, nenhum nas telas de `/app`.
       valor: 3 | esforço: 2 | risco: 1 | score: 2
-- [ ] N05 | eixo: qualidade | onde: build (bundle principal)
+- [x] N05 | eixo: qualidade | onde: build (bundle principal)
       hoje: o chunk principal fecha em 2.442,98 kB (702,49 kB gzip) e o build avisa. O PWA pré-carrega 3.877,99 KiB.
       depois: separar do chunk principal o que só uma tela usa (o caminho mais claro é o que já foi feito com o apex e o cardápio, `lazy` por rota de `/app`).
       evidência: saída do `npm run build` de 2026-09-12, "Some chunks are larger than 2000 kB".
@@ -285,7 +285,7 @@ evidência vista, com arquivo e linha.
 
 ## Frente V1, pautas, offline, impressão, hooks, utils e PWA
 
-- [ ] V101 | eixo: robustez | onde: hooks/useImpressaoLancamentos.js:56 (impressão automática no caixa)
+- [x] V101 | eixo: robustez | onde: hooks/useImpressaoLancamentos.js:56 (impressão automática no caixa)
       hoje: quando o pedido chega pelo realtime, que é a razão de o hook existir, a falha de impressão só vai para `console.error`. E o lançamento é marcado como visto na linha 48, ANTES de imprimir, então nunca é tentado de novo: o papel some e ninguém no salão fica sabendo. O caminho irmão, o pedido que chega pela Ponte na rede local, faz o certo e alimenta o aviso vermelho da tela. Com o driver padrão isso é rotina, não exceção: a impressão automática abre janela sem gesto do usuário e o navegador bloqueia o pop-up.
       depois: passar o mesmo registrador de falha da Ponte para o hook e ligar no aviso que já existe.
       evidência: `useImpressaoLancamentos.js:56` contra `usePonteLocal.js:400` e `:192`.
@@ -300,7 +300,7 @@ evidência vista, com arquivo e linha.
       depois: reagendar o dreno em intervalo enquanto houver pendência, e dizer a verdade quando a última tentativa falhou.
       evidência: o `useEffect` citado é o único gatilho no arquivo inteiro.
       valor: 4 | esforço: 2 | risco: 2 | score: 2
-- [ ] V103 | eixo: ux | onde: main.jsx:23 com vite.config.js:25 (atualização do PWA)
+- [x] V103 | eixo: ux | onde: main.jsx:23 com vite.config.js:25 (atualização do PWA)
       hoje: o service worker usa `autoUpdate` com `immediate: true` e sem `onNeedRefresh`, então o cliente recarrega a aba sozinho assim que a versão nova ativa. Como a Vercel publica produção a cada push na `main`, um deploy no meio do expediente recarrega a tela do caixa sem avisar, levando o que está só na memória, como carrinho montado e ainda não lançado. E a checagem só acontece no carregamento, então aba aberta há dias segue na versão velha sem nada dizer.
       depois: faixa discreta de "nova versão disponível, atualizar", deixando o momento com o operador.
       evidência: `main.jsx:23`, `vite.config.js:25`, e nenhum `onNeedRefresh` em `src/`.
@@ -320,7 +320,7 @@ evidência vista, com arquivo e linha.
       depois: consumir o sinal e dizer que os pedidos estão guardados só nesta aba.
       evidência: `filaApp.js:46` sem nenhuma outra ocorrência no `src/`.
       valor: 3 | esforço: 2 | risco: 1 | score: 2
-- [ ] V108 | eixo: qualidade | onde: hooks/useImpressaoLancamentos.js (sem teste)
+- [x] V108 | eixo: qualidade | onde: hooks/useImpressaoLancamentos.js (sem teste)
       hoje: o hook que faz o caixa imprimir os pedidos do Palm não tem teste nenhum, embora os vizinhos tenham. As três regras delicadas dele (semeadura que impede reimprimir a véspera, marcar antes de imprimir que impede papel dobrado, fila serial) estão sem rede.
       depois: teste de hook cobrindo semeadura, lançamento novo e eco do realtime.
       evidência: nenhum `*.test.js` cita `useImpressaoLancamentos`.
