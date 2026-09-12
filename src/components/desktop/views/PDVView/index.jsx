@@ -1935,14 +1935,20 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   useEffect(() => {
     if (!autorizado) return;
     let vivo = true;
-    const inicioDia = new Date(new Date().toDateString()).toISOString();
+    // Mesmo corte das vendas. Antes, este lado era o dia do calendário e era
+    // calculado uma vez, quando a senha era aceita, enquanto o outro lado
+    // recalculava a cada render: com o modal aberto atravessando a meia-noite,
+    // as vendas saltavam para o dia novo e os cancelamentos continuavam sendo
+    // os de ontem, e a mesma tela mostrava "Saldo do Dia" em R$ 0,00 ao lado
+    // de "Cancelamentos do Dia" listando a noite anterior.
+    const desdeAbertura = new Date(inicio).toISOString();
     setLogsCarregando(true);
     setLogsErro(false);
     supabase
       .from("operator_logs")
       .select("payload, created_at")
       .eq("action_type", "comanda:cancelar")
-      .gte("created_at", inicioDia)
+      .gte("created_at", desdeAbertura)
       .then(
         ({ data, error }) => {
           if (!vivo) return;
@@ -1958,7 +1964,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
         },
       );
     return () => { vivo = false; };
-  }, [autorizado]);
+  }, [autorizado, inicio]);
 
   // Leva 15.3 — vendas canceladas não contam no saldo do dia
   const vendasHoje = (sales ?? []).filter(s => s.at && !s.cancelada && new Date(s.at).getTime() >= inicio);

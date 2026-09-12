@@ -145,3 +145,77 @@ describe("PDVView, Saldo do Dia corta pela abertura do caixa", () => {
     }
   });
 });
+
+/**
+ * As duas metades do Saldo do Dia (vendas e cancelamentos) precisam nascer do
+ * MESMO corte. As vendas são recalculadas a cada render; os cancelamentos vêm
+ * de uma consulta feita num efeito. Antes, esse efeito montava o limite pelo
+ * dia do calendário e dependia só de `[autorizado]`, então o limite congelava
+ * no instante em que a senha era aceita: com o modal aberto atravessando a
+ * meia-noite, as vendas saltavam para o dia novo e os cancelamentos
+ * continuavam sendo os de ontem.
+ *
+ * O mock do Supabase não aplica o `gte`, então a prova de concordância é o
+ * limite que a consulta recebe, lido da trilha de chamadas.
+ */
+describe("PDVView, Saldo do Dia consulta os cancelamentos pelo mesmo corte", () => {
+  const MADRUGADA    = new Date("2026-07-16T03:30:00.000Z"); // 00h30 de 16/07, UTC-3
+  const ABERTURA_18H = "2026-07-15T21:00:00.000Z";
+  const VENDA_22H    = "2026-07-16T01:00:00.000Z";
+
+  /**
+   * Limites `created_at` pedidos ao operator_logs, na ordem das chamadas. O
+   * mock do Supabase é do módulo e guarda a trilha entre testes, então cada
+   * caso zera `calls` antes de renderizar.
+   */
+  const cortesPedidos = () =>
+    supabaseMock.calls
+      .filter(c => c.table === "operator_logs" && c.method === "gte" && c.args?.[0] === "created_at")
+      .map(c => c.args[1]);
+
+  it("os dois cards concordam: vendas e cancelamentos partem da abertura do caixa", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.setSystemTime(MADRUGADA);
+      setAppMock({
+        caixaAberto: true,
+        pending: [],
+        sessaoAbertaEm: ABERTURA_18H,
+        sales: [{ id: "v1", at: VENDA_22H, total: 120, pagamentos: [{ metodo: "dinheiro", valor: 120 }] }],
+      });
+      supabaseMock.calls.length = 0;
+
+      await abrirSaldoAutorizado();
+
+      // Lado das vendas: a noite conta.
+      expect(screen.getByText("Vendas Finalizadas").parentElement.textContent).toMatch(/R\$ 120\.00/);
+      // Lado dos cancelamentos: mesmo instante de corte, não a meia-noite.
+      expect(cortesPedidos()).toEqual([ABERTURA_18H]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("caixa reaberto com o modal na tela refaz a consulta com o corte novo", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.setSystemTime(MADRUGADA);
+      setAppMock({ caixaAberto: true, pending: [], sales: [], sessaoAbertaEm: ABERTURA_18H });
+      supabaseMock.calls.length = 0;
+
+      const { rerender } = render(<MemoryRouter><PDVView notify={vi.fn()} /></MemoryRouter>);
+      fireEvent.click(screen.getByTitle("Saldo do dia"));
+      fireEvent.change(screen.getByPlaceholderText("Digite a senha de acesso"), { target: { value: "1234" } });
+      await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Acessar" })); });
+      expect(cortesPedidos()).toEqual([ABERTURA_18H]);
+
+      const NOVA_ABERTURA = "2026-07-16T04:00:00.000Z";
+      setAppMock({ caixaAberto: true, pending: [], sales: [], sessaoAbertaEm: NOVA_ABERTURA });
+      await act(async () => { rerender(<MemoryRouter><PDVView notify={vi.fn()} /></MemoryRouter>); });
+
+      expect(cortesPedidos()).toEqual([ABERTURA_18H, NOVA_ABERTURA]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
