@@ -43,6 +43,9 @@ let updatePending, addPending, addLancada;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // A fila em espera do Palm agora é guardada no aparelho: sem limpar, a
+  // espera de um teste reaparece no próximo e muda o botão de lançar.
+  window.localStorage.clear();
   // O caminho de erro loga com console.error de propósito; só não polui a saída.
   vi.spyOn(console, "error").mockImplementation(() => {});
   updatePending = vi.fn(() => Promise.resolve({ error: null }));
