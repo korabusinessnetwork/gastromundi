@@ -8,21 +8,21 @@ passando por esta lista inteira. Qualquer piora aqui reverte o commit na hora.
 | # | Passo | Comando | Resultado esperado |
 |---|-------|---------|--------------------|
 | 1 | Instalação limpa | `npm ci` | termina sem erro |
-| 2 | Suíte | `npm test` | 252 arquivos, 4334 testes, todos verdes |
+| 2 | Suíte | `npm test` | 265 arquivos, 4415 testes, todos verdes |
 | 3 | Build | `npm run build` | `✓ built`, sem erro (o aviso de chunk grande é conhecido, item de backlog) |
 | 4 | App sobe | `npm run dev` | Vite serve em 5173 sem erro de módulo |
 | 5 | Fluxos anônimos | navegador em `/login`, `/cardapio`, apex | tela renderiza, sem erro não tratado no console |
 
-## Medidas de 2026-09-12 (depois da rodada 2; entre parênteses, o início da sessão)
+## Medidas de 2026-09-12 (depois da rodada 3; entre parênteses, o início da sessão)
 
 | Medida | Valor |
 |--------|-------|
-| Arquivos de teste | 252 (eram 238) |
-| Testes | 4334 (eram 4191) |
-| Tempo da suíte | 134,58 s (eram 78,65 s, com 143 testes a mais) |
-| Tempo do build | 2,20 s |
-| Bundle principal (`index-*.js`) | 2.456,87 kB, gzip 706,29 kB |
-| Precache do PWA | 64 entradas, 3.877,99 KiB |
+| Arquivos de teste | 265 (eram 238) |
+| Testes | 4415 (eram 4191) |
+| Tempo da suíte | 137,31 s (eram 78,65 s, com 224 testes a mais) |
+| Tempo do build | 2,10 s |
+| Bundle principal (`index-*.js`) | 2.214,40 kB, gzip 640,79 kB |
+| Precache do PWA | 71 entradas, 3.906,38 KiB |
 | Arquivos JS/JSX em `src/` | 564 |
 | Linhas de JSX (sem teste) | 49.531 |
 | `style={{` em `src/` | 1516 |

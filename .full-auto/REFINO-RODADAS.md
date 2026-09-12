@@ -117,3 +117,60 @@ pediram a mesma constante. Nenhuma delas teria visto isso sozinha, e nenhuma
 podia resolver, porque são arquivos compartilhados. A conta fecha: o paralelismo
 rendeu, e o custo dele é que a suíte da cópia principal não mede nada enquanto as
 frentes rodam (registrado no `BASELINE.md`).
+
+## Rodada 3, 2026-09-12
+
+Três trilhas mais a minha parte. O tema desta rodada foi infraestrutura
+invisível: o que falha calado, longe dos olhos de quem opera.
+
+### Entregue: 12 itens, nada revertido
+
+| id | O que mudou |
+|---|---|
+| V102 | O dreno da fila offline volta a tentar sozinho a cada 45 s, e o indicador para de dizer "Enviando" quando o envio parou. Antes, parando num erro com o navegador ainda se dizendo online, nada mais tentava e a frase ficava na tela para sempre. |
+| V106 | O sinal de que o IndexedDB não abriu, que existia exportado e sem consumidor, passou a virar aviso: nesse estado a fila vive só na memória e fechar a aba apaga venda já entregue. |
+| V101 | Falha na impressão automática do pedido do Palm passou a chegar ao humano, no mesmo aviso que a Ponte já usava, dizendo qual comanda ficou sem a via. |
+| V108 | O hook dessa impressão saiu de zero teste para 12 casos, cobrindo a semeadura que impede reimprimir a véspera, o lançamento novo, e o eco do realtime que não pode gerar segundo papel. |
+| V105 | Falha ao ler as mesas deixou de virar salão vazio, e a aba Reservas ganhou o aviso e a nova tentativa. |
+| V110 | O painel do Jarvas distingue busca que falhou de "tudo em ordem", e desfaz a remoção que o banco recusou. |
+| V107 | Mudar o status de uma pauta que o banco recusou avisa, em vez de fingir que foi salvo. |
+| V109 | O toast compartilhado para de apagar a mensagem nova antes da hora, e o temporizador morre no desmonte. |
+| V103 | O PWA para de recarregar a aba do caixa sozinho quando sai deploy, e oferece a atualização numa faixa que não bloqueia nada. |
+| N04 | A aba do navegador passou a dizer a tela e o estabelecimento, em vez de três abas idênticas dizendo "KORA". |
+| N05 | Bundle medido por origem (bytes do sourcemap por pacote) e as duas separações óbvias feitas: o Console da plataforma e o mapa do delivery saíram do bundle de quem opera o PDV. |
+| M03 | Dependência de produção com zero vulnerabilidade, por `overrides`, porque `npm audit fix` quebra neste projeto. |
+
+### Medidas, antes e depois
+
+| Medida | Início da rodada 3 | Fim |
+|--------|--------------------|-----|
+| Arquivos de teste | 252 | 265 |
+| Testes | 4334 | 4415 |
+| Tempo da suíte (máquina livre) | 135 s | 137 s |
+| Bundle principal | 2.456,87 kB, gzip 706,29 kB | 2.214,40 kB, gzip 640,79 kB |
+| Vulnerabilidade em dependência de produção | 2 (1 alta, 1 moderada) | 0 |
+| Achados abertos na auditoria | 18 | 7 |
+
+O gzip do chunk principal, que é o que a banda do salão sente, caiu 9,3%. O
+Console virou um arquivo de 93,8 kB baixado só por quem abre o Console, e o mapa
+um de 147,8 kB mais 16 kB de estilo.
+
+### Revertido
+
+Nada. Um item foi ADIADO no meio do caminho e depois feito: o título de aba
+dependia de coordenar com quem escrevia o título (o efeito de tema do provider,
+que é pai do layout e por isso roda depois dele no mesmo commit, sobrescrevendo).
+Em vez de improvisar, esperei o merge da trilha que era dona do `AppContext` e
+fiz a coordenação explícita.
+
+### O que sobrou, e por que
+
+Sete achados abertos, e a natureza deles mudou: não sobrou mais nada que eu possa
+fazer sozinho com ganho claro.
+
+- **Cinco exigem migration** (V202, V204 na metade de banco, V205, V206, B07) e
+  migration em produção é decisão do dono.
+- **V201** é decisão de regra de negócio, e tentar resolver sozinho sobrescreveria
+  uma escolha sua já testada.
+- **N06**, o resto do bundle (`xlsx` com 984 kB e `react-icons` com 778 kB), está
+  abaixo do corte de score até haver medição de ganho real por tela.

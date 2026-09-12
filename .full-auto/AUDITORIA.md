@@ -30,7 +30,7 @@ Como a varredura foi feita:
       depois: associar rótulo e campo por id.
       evidência: consulta no DOM devolveu `{"txt":"Usuário","htmlFor":null,"temInputDentro":false}` e o mesmo para "Senha".
       valor: 2 | esforço: 1 | risco: 1 | score: 1 (abaixo do corte, fica no backlog)
-- [ ] N04 | eixo: ux | onde: index.html mais as telas de `/app` (título da aba)
+- [x] N04 | eixo: ux | onde: index.html mais as telas de `/app` (título da aba)
       hoje: a aba diz "Kora" em todas as telas do estabelecimento. Quem trabalha com PDV, cozinha e relatório abertos em três abas vê três abas idênticas, e o nome do estabelecimento nunca aparece, o que também é marca da plataforma na aba de um cliente white-label.
       depois: título por tela com o nome do tenant, no padrão "Nome do estabelecimento, PDV".
       evidência: navegador em `/login` devolveu `title = "Kora"`; `grep document.title` mostra ajuste só no apex, no console e nas pautas, nenhum nas telas de `/app`.
@@ -295,7 +295,7 @@ evidência vista, com arquivo e linha.
       depois: trocar as oito por vírgula e estender o guard aos `.html` da Ponte, senão o mesmo texto volta na próxima tela.
       evidência: as linhas citadas, todas em texto visível; `travessaoGuard.test.js:42` fixa a raiz em `src/`.
       valor: 4 | esforço: 2 | risco: 1 | score: 4
-- [ ] V102 | eixo: robustez | onde: AppContext.jsx:1003 com shared/IndicadorRede.jsx:15 (dreno da fila offline)
+- [x] V102 | eixo: robustez | onde: AppContext.jsx:1003 com shared/IndicadorRede.jsx:15 (dreno da fila offline)
       hoje: o dreno só dispara quando a rede muda, o carregamento muda ou o contador de pendências muda. Se ele parar num erro de rede com o navegador ainda se dizendo online (Wi-Fi sem saída, portal cativo, Supabase fora), nada mais tenta, e o indicador afirma "Enviando N pedidos guardados" para sempre. Só sai disso quem enfileira outra operação ou recarrega a página.
       depois: reagendar o dreno em intervalo enquanto houver pendência, e dizer a verdade quando a última tentativa falhou.
       evidência: o `useEffect` citado é o único gatilho no arquivo inteiro.
@@ -305,17 +305,17 @@ evidência vista, com arquivo e linha.
       depois: faixa discreta de "nova versão disponível, atualizar", deixando o momento com o operador.
       evidência: `main.jsx:23`, `vite.config.js:25`, e nenhum `onNeedRefresh` em `src/`.
       valor: 4 | esforço: 2 | risco: 2 | score: 2
-- [ ] V107 | eixo: ux | onde: components/pautas/PautaCard.jsx:72 (Pautas dos sócios)
+- [x] V107 | eixo: ux | onde: components/pautas/PautaCard.jsx:72 (Pautas dos sócios)
       hoje: mudar o status descarta o `{ error }` que o contexto devolve. Falhando a escrita, o botão volta ao normal, o card não sai da coluna e nada é dito: o sócio acha que o clique não pegou e clica de novo. O formulário da mesma tela trata certo.
       depois: mostrar a mesma frase curta do formulário.
       evidência: `PautaCard.jsx:72` contra `PautaForm.jsx:53`.
       valor: 3 | esforço: 1 | risco: 1 | score: 3
-- [ ] V105 | eixo: robustez | onde: utils/hooks.js:142 (`useMesas`, mapa e reservas do PDV)
+- [x] V105 | eixo: robustez | onde: utils/hooks.js:142 (`useMesas`, mapa e reservas do PDV)
       hoje: a carga das mesas não checa erro nem tem `catch`. Falha de rede ou de RLS vira lista vazia com carregamento concluído, e a tela de Reservas diz "Nenhuma mesa cadastrada", convidando a cadastrar de novo mesas que existem. O `usePedidosCozinha`, no mesmo arquivo, expõe `erro` justamente por isso.
       depois: seguir o padrão do vizinho, expor `erro` e `recarregar`.
       evidência: `utils/hooks.js:138` contra `:221`.
       valor: 3 | esforço: 2 | risco: 1 | score: 2
-- [ ] V106 | eixo: robustez | onde: lib/offline/filaApp.js:46 com storageIdb.js:225
+- [x] V106 | eixo: robustez | onde: lib/offline/filaApp.js:46 com storageIdb.js:225
       hoje: quando o IndexedDB não abre (aba anônima, storage bloqueado, outra aba segurando versão antiga), a fila passa a viver só em memória e fechar a aba apaga venda que já saiu para o cliente. O sinal existe e é exportado como `prontoOffline`, e não tem um consumidor sequer, enquanto o indicador segue prometendo "pedidos guardados".
       depois: consumir o sinal e dizer que os pedidos estão guardados só nesta aba.
       evidência: `filaApp.js:46` sem nenhuma outra ocorrência no `src/`.
@@ -325,12 +325,12 @@ evidência vista, com arquivo e linha.
       depois: teste de hook cobrindo semeadura, lançamento novo e eco do realtime.
       evidência: nenhum `*.test.js` cita `useImpressaoLancamentos`.
       valor: 3 | esforço: 2 | risco: 1 | score: 2
-- [ ] V109 | eixo: robustez | onde: shared/Notification.jsx:12 (toast compartilhado)
+- [x] V109 | eixo: robustez | onde: shared/Notification.jsx:12 (toast compartilhado)
       hoje: o temporizador de 2,5 s nunca é guardado nem cancelado: duas notificações seguidas fazem o temporizador antigo apagar a mensagem nova antes da hora, e ele sobrevive à desmontagem.
       depois: guardar o id numa ref, limpar antes de agendar e no desmonte.
       evidência: `Notification.jsx:12`, sem `clearTimeout` no arquivo.
       valor: 2 | esforço: 1 | risco: 1 | score: 1
-- [ ] V110 | eixo: robustez | onde: shared/JarvasPanel.jsx:77 e 124
+- [x] V110 | eixo: robustez | onde: shared/JarvasPanel.jsx:77 e 124
       hoje: a busca de insights ignora o erro e grava lista vazia, então busca falha fica idêntica a "não há insight", no painel que o gestor abre para saber se há algo errado. E mudar status faz remoção otimista sem ler o retorno: escrita recusada tira o cartão e ele reaparece na próxima carga.
       depois: aviso com "Tentar de novo" na carga, e desfazer a remoção quando a escrita falha.
       evidência: as duas linhas, sem `error` no destructuring.
@@ -383,3 +383,11 @@ Registrado sem virar achado, porque é decisão tomada e não defeito: o ramo
 `OR is_super_admin()` em `tenant_fiscal_config` (ADR-008 §5) faz com que o raio
 de exposição de um token de plataforma vazado inclua CNPJ, inscrição estadual e
 `csc_id` de todos os estabelecimentos, e não só o billing. Vale você saber.
+
+## Achado novo da rodada 3 (medição do bundle)
+
+- [ ] N06 | eixo: qualidade | onde: dependências no chunk principal
+      hoje: com o Console e o mapa já fora, os dois maiores pesos do chunk principal são `xlsx` (984 kB de fonte, 16% do total medido) e `react-icons` (778 kB, 12,6%). O `xlsx` serve só a importação e exportação de planilha, que é ação de clique, e os ícones entram por importação nomeada em dezenas de telas.
+      depois: `xlsx` por import dinâmico no momento do clique, que é o caminho claro. Para os ícones é preciso medir antes se o peso vem de importação que o tree-shaking não alcança ou do volume real de ícones usados, porque a saída muda conforme a resposta.
+      evidência: soma dos bytes do sourcemap por pacote, medida na rodada 3, com o chunk em 2.208,83 kB e gzip 639,46 kB depois das duas primeiras separações.
+      valor: 3 | esforço: 3 | risco: 2 | score: -1 (abaixo do corte; entra quando houver medição de ganho real por tela)
