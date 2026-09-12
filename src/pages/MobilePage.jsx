@@ -788,6 +788,7 @@ export default function MobilePage() {
           );
           if (error) {
             setToast("Não foi possível excluir o item. Tente de novo.");
+            setTimeout(() => setToast(""), 3000);
             return;
           }
           logAction(currentUser?.username, "item:cancelar", {
@@ -797,6 +798,7 @@ export default function MobilePage() {
             por,
           });
           setToast("Item excluído da comanda.");
+          setTimeout(() => setToast(""), 3000);
         }}
         travada={!!(bloqueio || (orderDetalhe && emUsoPorOutro(orderDetalhe)))}
         nomeTrava={
