@@ -258,6 +258,26 @@ describe("EstoqueView, entrada de mercadoria", () => {
     expect(campoEntrada()).toHaveValue(2);
   });
 
+  it("dois Enter seguidos lançam uma entrada só, não duas", async () => {
+    // A gravação fica pendurada de propósito: é exatamente a janela em que o
+    // campo ainda mostra a quantidade e o operador aperta Enter de novo.
+    let concluir;
+    entradaEstoque = vi.fn(() => new Promise(res => { concluir = res; }));
+    await montarLiberado({ products: [CAFE_SACA] });
+    const campo = campoEntrada();
+    fireEvent.change(campo, { target: { value: "1" } });
+
+    await act(async () => {
+      fireEvent.keyDown(campo, { key: "Enter" });
+      fireEvent.keyDown(campo, { key: "Enter" });
+    });
+
+    // Duas chamadas somariam 120 kg no saldo e no histórico, e quem soma é o banco.
+    expect(entradaEstoque).toHaveBeenCalledTimes(1);
+    await act(async () => { concluir({ error: null }); });
+    expect(entradaEstoque).toHaveBeenCalledTimes(1);
+  });
+
   it("entrada que dá certo limpa o campo", async () => {
     await montarLiberado({ products: [CAFE_SACA] });
     fireEvent.change(campoEntrada(), { target: { value: "2" } });
