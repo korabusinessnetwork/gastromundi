@@ -1,5 +1,6 @@
 ﻿import { useState, useMemo, useEffect } from "react";
-import { fecharAoClicarFora } from "@/lib/overlayFechar";
+import { useFecharModal } from "@/hooks/useFecharModal";
+import { useFocoDoModal } from "@/hooks/useFocoDoModal";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
 import { useResponsive } from "@/utils/hooks";
@@ -174,6 +175,26 @@ function OkBox({ msg }) {
   );
 }
 
+/**
+ * Fundo escuro dos modais da aba Usuários. Existe como componente próprio
+ * porque os dois hooks de modal só podem estar montados enquanto o modal
+ * está aberto: é o que faz o ouvinte de Esc sumir junto com a janela.
+ *
+ * Esc e clique no fundo chamam o MESMO caminho do botão de fechar daquele
+ * modal, e o Tab circula dentro da caixa em vez de passear pela tela de trás.
+ */
+function ModalCfg({ aoFechar, className, style, children }) {
+  const fundo = useFecharModal(aoFechar);
+  const caixa = useFocoDoModal();
+  return (
+    <div {...fundo} className="cfg__overlay">
+      <div ref={caixa} tabIndex={-1} className={className} style={style}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function traduzirErro(error) {
   const msg = error?.message ?? "";
   if (msg.includes("users_username_key") || msg.includes("duplicate key"))
@@ -333,10 +354,11 @@ export function UsuariosTab({ sz }) {
     }
   };
 
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
-  // Só o admin de verdade grava permissões: a RLS de role_permissions e de
-  // users (override) exige gastro_role='admin'. Gerente vê, mas não edita
-  // (prevenção de erro — Princípio nº 1: não oferecer o que vai falhar).
+  // Só o admin de verdade grava qualquer coisa aqui: as quatro policies de
+  // `users` e as de role_permissions exigem gastro_role='admin'. O gerente
+  // chegava a ver "+ Novo Usuário", "Editar" e "Excluir", e toda ação voltava
+  // recusada do banco (prevenção de erro — Princípio nº 1: não oferecer o que
+  // vai falhar). Gerente vê a matriz de cargos, e só.
   const isAdminReal = currentUser?.role === "admin";
 
   // Mapa EFETIVO de um cargo neste estabelecimento (matriz do tenant ⊕ default
@@ -470,10 +492,19 @@ export function UsuariosTab({ sz }) {
 
       {/* Header */}
       <div className="usuarios-tab__header">
-        <div className="usuarios-tab__contagem">
-          {users.length} usuário{users.length !== 1 ? "s" : ""} ativo{users.length !== 1 ? "s" : ""}
-        </div>
-        {isAdmin && (
+        {isAdminReal ? (
+          <div className="usuarios-tab__contagem">
+            {users.length} usuário{users.length !== 1 ? "s" : ""} ativo{users.length !== 1 ? "s" : ""}
+          </div>
+        ) : (
+          // Sem a policy de leitura ampla de `users`, quem não é admin só
+          // enxerga a própria linha: a contagem diria "1 usuário ativo" numa
+          // equipe de dez. Melhor não mostrar número nenhum e dizer por quê.
+          <div className="usuarios-tab__aviso-admin">
+            Somente o administrador vê e gerencia a equipe.
+          </div>
+        )}
+        {isAdminReal && (
           <button
             onClick={abrirNovo}
             className="usuarios-tab__btn-novo"
@@ -536,7 +567,7 @@ export function UsuariosTab({ sz }) {
                   </div>
                 </td>
                 <td className="usuarios-tab__td" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                  {isAdmin && (
+                  {isAdminReal && (
                     <div className="usuarios-tab__acoes">
                       <button
                         onClick={() => abrirEditar(u)}
@@ -565,11 +596,7 @@ export function UsuariosTab({ sz }) {
 
       {/* Modal Novo / Editar */}
       {modal && (
-        <div
-          {...fecharAoClicarFora(fechar)}
-          className="cfg__overlay"
-        >
-          <div className="usuarios-tab__modal" style={{ padding: sz.pad + 4, gap: sz.padSm + 4 }}>
+        <ModalCfg aoFechar={fechar} className="usuarios-tab__modal" style={{ padding: sz.pad + 4, gap: sz.padSm + 4 }}>
             <div className="usuarios-tab__modal-titulo">
               {modal === "novo" ? "Novo Usuário" : "Editar Usuário"}
             </div>
@@ -721,17 +748,12 @@ export function UsuariosTab({ sz }) {
                 {salvando ? "Salvando..." : modal === "novo" ? "Criar Usuário" : "Salvar Alterações"}
               </button>
             </div>
-          </div>
-        </div>
+        </ModalCfg>
       )}
 
       {/* Modal Confirmar Desativação */}
       {deleteId && (
-        <div
-          {...fecharAoClicarFora(() => setDeleteId(null))}
-          className="cfg__overlay"
-        >
-          <div className="usuarios-tab__confirm-modal" style={{ padding: sz.pad }}>
+        <ModalCfg aoFechar={() => setDeleteId(null)} className="usuarios-tab__confirm-modal" style={{ padding: sz.pad }}>
             {(() => {
               const u = users.find(x => x.id === deleteId);
               return (
@@ -757,8 +779,7 @@ export function UsuariosTab({ sz }) {
                 </>
               );
             })()}
-          </div>
-        </div>
+        </ModalCfg>
       )}
     </div>
   );
@@ -1042,7 +1063,12 @@ export function UnidadesMedidaTab({ sz }) {
   const [deletando,   setDeletando]   = useState(false);
   const [erro,        setErro]        = useState("");
 
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+  // Escrever em `unidades_medida` exige gastro_role='admin' na policy. O
+  // gerente entrava aqui com os botões de adicionar e remover ligados, e o
+  // banco recusava tudo, com a tela mandando "tentar de novo" uma coisa que
+  // nunca ia funcionar. Mesma régua da aba Meios de Pagamento: quem não é
+  // administrador consulta, não altera (Princípio nº 1).
+  const isAdmin = currentUser?.role === "admin";
 
   useEffect(() => {
     supabase.from("unidades_medida").select("*").order("ordem").order("nome")
@@ -1163,6 +1189,13 @@ export function UnidadesMedidaTab({ sz }) {
       {/* Fora do diálogo: falhas de carga, de adição e da checagem pré-exclusão. */}
       {erro && !deleteInfo && (
         <div className="unidades-medida-tab__erro" role="alert">{erro}</div>
+      )}
+      {/* Diz de cara por que não há o que clicar aqui, em vez de deixar a
+          pessoa procurar um botão de adicionar que foi escondido. */}
+      {!isAdmin && (
+        <div className="unidades-medida-tab__ajuda">
+          Somente o administrador pode alterar as unidades de medida. Aqui você confere as que já existem.
+        </div>
       )}
       {TIPOS_UNIDADE.map(({ tipo, label, color }) => {
         const lista   = unidades.filter(u => u.tipo === tipo);

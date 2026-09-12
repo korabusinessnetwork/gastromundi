@@ -1,5 +1,7 @@
 ﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
+import { useFecharModal } from "@/hooks/useFecharModal";
+import { useFocoDoModal } from "@/hooks/useFocoDoModal";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -83,13 +85,19 @@ function Txta({ value, onChange, placeholder, rows = 3 }) {
   );
 }
 
+// As duas saídas que faltavam aqui: a tecla Esc e o Tab preso dentro da caixa.
+// O modal de ficha técnica, de fornecedor e de compra só fechava no clique no
+// fundo, e o Tab passeava pela tela que está por baixo. Esc chama o MESMO
+// caminho do "X", nunca um atalho que joga o formulário fora por fora.
 function ModalBase({ title, onClose, onSave, saveLabel = "Salvar", saving, width = 540, children }) {
+  const fundo = useFecharModal(onClose);
+  const caixa = useFocoDoModal();
   return createPortal(
     <div
-      {...fecharAoClicarFora(onClose)}
+      {...fundo}
       className="admin__modal-overlay"
     >
-      <div className="admin__modal" style={{ maxWidth: width }}>
+      <div ref={caixa} tabIndex={-1} className="admin__modal" style={{ maxWidth: width }}>
         <div className="admin__modal-topo">
           <div className="admin__modal-titulo">{title}</div>
           <button
@@ -816,10 +824,37 @@ function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
 const COMPRA_VAZIA = { id: "", fornecedor: "", data: "", itens: [], status: "pendente", observacoes: "" };
 const ITEM_VAZIO   = { nome: "", qtd: "", unidade: "un", valorUnit: "" };
 
+// Compra é registro que só cresce: depois de um ano a lista inteira na tela
+// vira rolagem cega. Mostramos um bloco por vez, com a conta do que ficou de
+// fora logo acima do botão de ver mais.
+const BLOCO_COMPRAS = 20;
+
+// "Todas" primeiro porque é o estado em que a aba abre; depois a situação que
+// o dono procura todo dia ("o que ainda devo"), e por último o arquivo morto.
+const FILTROS_COMPRA = ["todos", "pendente", "pago", "cancelado"];
+
+const ROTULOS_FILTRO_COMPRA = {
+  todos:     "Todas",
+  pendente:  "Pendentes",
+  pago:      "Pagas",
+  cancelado: "Canceladas",
+};
+
+/** Texto comparável: sem caixa, sem acento e sem espaço sobrando, para que
+ *  "sao" ache "São Paulo Distribuidora". */
+const paraBusca = (texto) => String(texto ?? "")
+  .trim()
+  .toLowerCase()
+  .normalize("NFD")
+  .replace(/[̀-ͯ]/g, "");
+
 function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
   const [form,     setForm]     = useState(null);
   const [saving,   setSaving]   = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [busca,    setBusca]    = useState("");
+  const [situacao, setSituacao] = useState("todos");
+  const [quantidade, setQuantidade] = useState(BLOCO_COMPRAS);
 
   const abrirNova   = () => setForm({ ...COMPRA_VAZIA, id: uid(), data: hojeLocalISO() });
   const abrirEditar = (c) => setForm({ ...c, itens: comUid(c.itens ?? []) });
@@ -855,6 +890,38 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
 
   const fns = fornecedores.map(f => f.nome);
 
+  // Contagem por situação sobre a base INTEIRA, não sobre o que está na tela:
+  // o número no botão é o que faz clicar deixar de ser aposta.
+  const contagens = useMemo(() => {
+    const base = { todos: compras.length, pendente: 0, pago: 0, cancelado: 0 };
+    for (const c of compras) {
+      const st = STATUS_COMPRA[c.status] ? c.status : "pendente";
+      base[st] += 1;
+    }
+    return base;
+  }, [compras]);
+
+  // A lista já está toda no cliente (vem da chave `compras` do config), então
+  // buscar e recortar é instantâneo, sem consulta nova. Filtrar não reordena.
+  const comprasVisiveis = useMemo(() => {
+    const termo = paraBusca(busca);
+    return compras.filter(c => {
+      const st = STATUS_COMPRA[c.status] ? c.status : "pendente";
+      if (situacao !== "todos" && st !== situacao) return false;
+      return !termo || paraBusca(c.fornecedor).includes(termo);
+    });
+  }, [compras, busca, situacao]);
+
+  // Voltar ao primeiro bloco a cada recorte novo: continuar em "60 de 60"
+  // depois de filtrar mostraria uma lista vazia sem motivo aparente.
+  useEffect(() => { setQuantidade(BLOCO_COMPRAS); }, [busca, situacao]);
+
+  const comprasNaTela = comprasVisiveis.slice(0, quantidade);
+  const restantes     = comprasVisiveis.length - comprasNaTela.length;
+  const temRecorte    = situacao !== "todos" || busca.trim() !== "";
+
+  const limparRecortes = () => { setBusca(""); setSituacao("todos"); };
+
   return (
     <div>
       <div className="admin__aba-header">
@@ -862,8 +929,62 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
         <AddBtn onClick={abrirNova} label="Registrar Compra" />
       </div>
 
+      {compras.length > 0 && (
+        <>
+          {/* Buscar pelo fornecedor: a pergunta do dia é "o que está pendente
+              com o fornecedor X", e ela não tinha resposta nesta tela. Filtra
+              enquanto digita, sem botão de buscar, nada a confirmar. */}
+          <div className="compras-tab__busca">
+            <LuSearch size={17} aria-hidden className="compras-tab__busca-icone" />
+            <input
+              type="search"
+              className="compras-tab__busca-campo"
+              placeholder="Buscar pelo fornecedor"
+              aria-label="Buscar compra pelo fornecedor"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+            />
+          </div>
+
+          {/* Atalhos de situação, cada um com a sua contagem sobre a base
+              inteira. */}
+          <div className="compras-tab__filtros" role="group" aria-label="Filtrar por situação da compra">
+            {FILTROS_COMPRA.map(f => (
+              <button
+                key={f}
+                type="button"
+                className="compras-tab__filtro"
+                aria-pressed={situacao === f}
+                onClick={() => setSituacao(f)}
+              >
+                {ROTULOS_FILTRO_COMPRA[f]}
+                <span className="compras-tab__filtro-conta">{contagens[f]}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
       {compras.length === 0 ? (
         <EmptyMsg icon={LuShoppingCart} msg="Nenhuma compra registrada" />
+      ) : comprasVisiveis.length === 0 ? (
+        // Vazio do RECORTE, diferente do vazio da base: aqui existem compras,
+        // só nenhuma com esse fornecedor ou nessa situação. Sem esta saída o
+        // dono acha que perdeu registro.
+        <div className="compras-tab__vazio-filtro">
+          <LuSearch size={30} aria-hidden />
+          <div className="compras-tab__vazio-titulo">
+            {busca.trim()
+              ? `Nenhuma compra de “${busca.trim()}”${situacao !== "todos" ? ` em “${ROTULOS_FILTRO_COMPRA[situacao]}”` : ""}`
+              : `Nenhuma compra em “${ROTULOS_FILTRO_COMPRA[situacao]}”`}
+          </div>
+          <div className="compras-tab__vazio-texto">
+            A lista está filtrada. Confira o nome do fornecedor ou veja todas as compras.
+          </div>
+          <button type="button" className="admin__add-btn" onClick={limparRecortes}>
+            Ver todas
+          </button>
+        </div>
       ) : (
         <div className="admin__tabela-moldura">
           <table className="admin__tabela">
@@ -876,7 +997,7 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
               </tr>
             </thead>
             <tbody>
-              {compras.map(c => {
+              {comprasNaTela.map(c => {
                 const st = STATUS_COMPRA[c.status] ?? STATUS_COMPRA.pendente;
                 return (
                   <tr key={c.id} className="admin__tr" onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -900,6 +1021,24 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
               })}
             </tbody>
           </table>
+          {/* Primeiro a conta ("está vendo 20 de 47"), depois a ação: sem essa
+              linha, uma lista cortada é indistinguível de uma base menor. */}
+          {restantes > 0 && (
+            <div className="compras-tab__mais">
+              <p className="compras-tab__mais-conta">
+                Mostrando {comprasNaTela.length} de {comprasVisiveis.length} compras
+                {temRecorte ? " nesta filtragem." : "."}
+              </p>
+              <button
+                type="button"
+                className="compras-tab__mais-botao"
+                onClick={() => setQuantidade(q => q + BLOCO_COMPRAS)}
+              >
+                Ver mais {Math.min(restantes, BLOCO_COMPRAS)}
+                {Math.min(restantes, BLOCO_COMPRAS) === 1 ? " compra" : " compras"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -976,203 +1115,6 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
   );
 }
 
-// ── Aba: Impostos ─────────────────────────────────────────────────
-
-const TIPOS_IMPOSTO = ["ISS", "ICMS", "PIS", "COFINS", "Simples Nacional", "Outro"];
-
-const COR_TIPO = {
-  "ISS":              "#3b82f6",
-  "ICMS":             "#8b5cf6",
-  "PIS":              "#10b981",
-  "COFINS":           "#f59e0b",
-  "Simples Nacional": "#ec4899",
-  "Outro":            "#6b7280",
-};
-
-const IMPOSTO_VAZIO = { id: "", nome: "", tipo: "ISS", aliquota: "", categorias: "", observacoes: "" };
-
-function ImpostosTab({ sz, impostos, onSave, onDelete }) {
-  const [form,     setForm]     = useState(null);
-  const [saving,   setSaving]   = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
-
-  const abrirNovo   = () => setForm({ ...IMPOSTO_VAZIO, id: uid() });
-  const abrirEditar = (imp) => setForm({ ...imp });
-  const fechar      = () => setForm(null);
-  const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  const salvar = async () => {
-    if (!form?.nome?.trim()) return;
-    setSaving(true);
-    const nova = [...impostos.filter(i => i.id !== form.id), { ...form, nome: form.nome.trim() }];
-    const { error } = await onSave("impostos", nova);
-    setSaving(false);
-    if (error) return;
-    fechar();
-  };
-
-  const excluir = async () => {
-    const { error } = await onDelete("impostos", impostos.filter(i => i.id !== deleteId));
-    if (error) return;
-    setDeleteId(null);
-  };
-
-  // Totais por tipo
-  const resumo = TIPOS_IMPOSTO.reduce((acc, tipo) => {
-    acc[tipo] = impostos.filter(i => i.tipo === tipo);
-    return acc;
-  }, {});
-
-  return (
-    <div>
-      <div className="admin__aba-header">
-        <div className="admin__aba-contagem">
-          {impostos.length} imposto{impostos.length !== 1 ? "s" : ""} cadastrado{impostos.length !== 1 ? "s" : ""}
-        </div>
-        <AddBtn onClick={abrirNovo} label="Novo Imposto" />
-      </div>
-
-      {/* Cards de resumo por tipo */}
-      {impostos.length > 0 && (
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24 }}>
-          {TIPOS_IMPOSTO.filter(tipo => resumo[tipo].length > 0).map(tipo => {
-            const cor   = COR_TIPO[tipo];
-            const lista = resumo[tipo];
-            const aliqMedia = lista.reduce((s, i) => s + (parseFloat(i.aliquota) || 0), 0) / lista.length;
-            return (
-              <div key={tipo} className="impostos-tab__resumo-card" style={{ background: alfa(cor, "10"), border: `1px solid ${alfa(cor, "33")}` }}>
-                <div className="impostos-tab__resumo-tipo" style={{ color: cor }}>{tipo}</div>
-                <div className="impostos-tab__resumo-valor" style={{ color: cor }}>
-                  {lista.length === 1 ? `${parseFloat(lista[0].aliquota) || 0}%` : `${lista.length} reg.`}
-                </div>
-                {lista.length > 1 && (
-                  <div className="impostos-tab__resumo-media">média {aliqMedia.toFixed(1)}%</div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {impostos.length === 0 ? (
-        <EmptyMsg icon={LuPercent} msg="Nenhum imposto cadastrado" />
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {impostos.map(imp => {
-            const cor = COR_TIPO[imp.tipo] ?? varColor(C.muted);
-            return (
-              <div key={imp.id} className="impostos-tab__card">
-                {/* Alíquota */}
-                <div className="impostos-tab__aliquota-box" style={{ background: alfa(cor, "12"), border: `1.5px solid ${alfa(cor, "33")}` }}>
-                  <div className="impostos-tab__aliquota-valor" style={{ color: cor }}>
-                    {parseFloat(imp.aliquota) || 0}
-                  </div>
-                  <div className="impostos-tab__aliquota-simbolo" style={{ color: cor }}>%</div>
-                </div>
-
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span className="impostos-tab__nome" style={{ fontWeight: 800 }}>{imp.nome}</span>
-                    <span className="impostos-tab__tipo-badge" style={{ background: alfa(cor, "15"), border: `1px solid ${alfa(cor, "44")}`, color: cor }}>
-                      {imp.tipo}
-                    </span>
-                  </div>
-                  {imp.categorias && (
-                    <div className="impostos-tab__categorias">
-                      Categorias: {imp.categorias}
-                    </div>
-                  )}
-                  {imp.observacoes && (
-                    <div className="impostos-tab__observacoes">
-                      {imp.observacoes}
-                    </div>
-                  )}
-                </div>
-
-                {/* Ações */}
-                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                  <CardBtn onClick={() => abrirEditar(imp)}><LuPencil size={12} /> Editar</CardBtn>
-                  <CardBtn onClick={() => setDeleteId(imp.id)}><LuTrash2 size={12} /></CardBtn>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {form && (
-        <ModalBase
-          title={impostos.find(i => i.id === form.id) ? "Editar Imposto" : "Novo Imposto"}
-          onClose={fechar}
-          onSave={salvar}
-          saving={saving}
-        >
-          <Field label="Nome *">
-            <Inp value={form.nome} onChange={v => setF("nome", v)} placeholder="Ex: ISS Serviços, ICMS Bebidas..." />
-          </Field>
-
-          <Field label="Tipo">
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-              {TIPOS_IMPOSTO.map(tipo => {
-                const cor = COR_TIPO[tipo];
-                return (
-                  <button
-                    key={tipo}
-                    onClick={() => setF("tipo", tipo)}
-                    className="impostos-tab__tipo-chip"
-                    style={{ borderColor: form.tipo === tipo ? cor : varColor(C.border), background: form.tipo === tipo ? alfa(cor, "18") : "none", color: form.tipo === tipo ? cor : varColor(C.muted) }}
-                  >
-                    {tipo}
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-
-          <Field label="Alíquota (%)">
-            <div style={{ position: "relative", marginTop: 6 }}>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value={form.aliquota}
-                onChange={e => setF("aliquota", e.target.value)}
-                placeholder="0,00"
-                className="impostos-tab__input-aliquota"
-                style={{ width: "100%", padding: "10px 36px 10px 12px", borderRadius: 10, border: "1.5px solid var(--gm-input-border)", background: "var(--gm-input-bg)", color: varColor(C.text), fontWeight: 700, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
-              />
-              <span className="impostos-tab__input-aliquota-simbolo" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), fontWeight: 700 }}>%</span>
-            </div>
-            {form.aliquota && (
-              <div className="impostos-tab__aliquota-preview" style={{ color: varColor(C.muted), marginTop: 6 }}>
-                Sobre R$ 1.000,00 → <strong style={{ color: varColor(C.text) }}>R$ {(parseFloat(form.aliquota) * 10).toFixed(2)}</strong> de imposto
-              </div>
-            )}
-          </Field>
-
-          <Field label="Categorias aplicáveis">
-            <Inp value={form.categorias} onChange={v => setF("categorias", v)} placeholder="Ex: Bebidas, Comidas (opcional)" />
-          </Field>
-
-          <Field label="Observações">
-            <Txta value={form.observacoes} onChange={v => setF("observacoes", v)} placeholder="Base de cálculo, regime tributário, notas..." rows={3} />
-          </Field>
-        </ModalBase>
-      )}
-
-      {deleteId && (
-        <DeleteConfirm
-          msg={<>O imposto <strong>{impostos.find(i => i.id === deleteId)?.nome}</strong> será removido.</>}
-          onCancel={() => setDeleteId(null)}
-          onConfirm={excluir}
-        />
-      )}
-    </div>
-  );
-}
-
 // ── Grade inicial ─────────────────────────────────────────────────
 
 // Seções com `secao` são abas internas da Área Admin (abrem aqui mesmo).
@@ -1190,8 +1132,8 @@ const SECOES = [
   { id: "config_fiscal",  label: "Configuração Fiscal", desc: "CNPJ, série, ambiente e certificado do emissor",    Icon: LuFileCheck,     color: "#f97316",         to: "/app/fiscal",        perm: "configuracoes" },
 ];
 
-function GradeInicial({ sz, secoes, onSelecionar, onNavegar, fichas, fornecedores, compras, impostos, notasFiscaisCount }) {
-  const contadores = { fichas: fichas.length, fornecedores: fornecedores.length, compras: compras.length, impostos: impostos.length, notas_fiscais: notasFiscaisCount };
+function GradeInicial({ sz, secoes, onSelecionar, onNavegar, fichas, fornecedores, compras, impostosCount, notasFiscaisCount }) {
+  const contadores = { fichas: fichas.length, fornecedores: fornecedores.length, compras: compras.length, impostos: impostosCount, notas_fiscais: notasFiscaisCount };
   return (
     <div className="grade-inicial">
       <div className="grade-inicial__grid">
@@ -1242,7 +1184,11 @@ export default function AdminView() {
   const [fichas,             setFichas]             = useState([]);
   const [fornecedores,       setFornecedores]       = useState([]);
   const [compras,            setCompras]            = useState([]);
-  const [impostos,           setImpostos]           = useState([]);
+  // O card de Impostos abre o `ImpostosAdmin`, que trabalha em `itens_fiscal`.
+  // O contador vinha da chave `config.impostos`, abandonada junto com a tela
+  // antiga: o card dizia "0 registros" para um estabelecimento com as
+  // alíquotas todas configuradas.
+  const [impostosCount,      setImpostosCount]      = useState(0);
   const [notasFiscaisCount,  setNotasFiscaisCount]  = useState(0);
   const [loading,            setLoading]            = useState(true);
   const [erroTela,           setErroTela]           = useState("");
@@ -1250,9 +1196,10 @@ export default function AdminView() {
   useEffect(() => {
     Promise.all([
       supabase.from("config").select("key, value")
-        .in("key", ["fichas_tecnicas", "fornecedores", "compras", "impostos"]),
+        .in("key", ["fichas_tecnicas", "fornecedores", "compras"]),
       supabase.from("notas_fiscais").select("id", { count: "exact", head: true }),
-    ]).then(([{ data, error }, { count }]) => {
+      supabase.from("itens_fiscal").select("item_id", { count: "exact", head: true }),
+    ]).then(([{ data, error }, { count }, { count: countFiscal }]) => {
       // Sem checar o erro, uma falha de leitura zerava fichas técnicas,
       // fornecedores e compras na tela — e quem estivesse cadastrando salvava
       // por cima, apagando tudo o que já existia no banco.
@@ -1263,9 +1210,9 @@ export default function AdminView() {
         setFichas(get("fichas_tecnicas"));
         setFornecedores(get("fornecedores"));
         setCompras(get("compras"));
-        setImpostos(get("impostos"));
       }
       setNotasFiscaisCount(count || 0);
+      setImpostosCount(countFiscal || 0);
       setLoading(false);
     });
   }, []);
@@ -1283,7 +1230,6 @@ export default function AdminView() {
     if (key === "fichas_tecnicas") setFichas(value);
     if (key === "fornecedores")    setFornecedores(value);
     if (key === "compras")         setCompras(value);
-    if (key === "impostos")        setImpostos(value);
     return { error: null };
   };
 
@@ -1317,7 +1263,7 @@ export default function AdminView() {
         {loading ? (
           <div className="admin-view__carregando">Carregando...</div>
         ) : !secao ? (
-          <GradeInicial sz={sz} secoes={secoesVisiveis} onSelecionar={setSecao} onNavegar={navigate} fichas={fichas} fornecedores={fornecedores} compras={compras} impostos={impostos} notasFiscaisCount={notasFiscaisCount} />
+          <GradeInicial sz={sz} secoes={secoesVisiveis} onSelecionar={setSecao} onNavegar={navigate} fichas={fichas} fornecedores={fornecedores} compras={compras} impostosCount={impostosCount} notasFiscaisCount={notasFiscaisCount} />
         ) : (
           <>
             {secao === "fichas"       && <FichasTecnicasTab sz={sz} fichas={fichas}             products={products} estoque={estoque} onSave={handleSave} onDelete={handleSave} />}

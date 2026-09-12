@@ -196,3 +196,41 @@ describe("UnidadesMedidaTab, adicionar", () => {
     expect(screen.queryByText("Grama")).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Quem pode alterar as unidades (Refino G02).
+ *
+ * A aba tratava gerente como administrador e mostrava a ele o formulário de
+ * adicionar e o "x" de remover. A policy de `unidades_medida` exige
+ * gastro_role='admin', então o insert voltava recusado e a tela respondia
+ * "Não deu para adicionar a unidade. Tente de novo.", mandando insistir numa
+ * coisa que nunca ia dar certo.
+ */
+describe("UnidadesMedidaTab, só o administrador altera (Refino G02)", () => {
+  const montarComo = async (role) => {
+    setAppMock({ currentUser: { name: "Gerson", username: "gerson", role } });
+    await montarComKg();
+  };
+
+  it("gerente não vê formulário de adicionar nem botão de remover", async () => {
+    await montarComo("gerente");
+
+    expect(screen.queryByPlaceholderText("abrev.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /adicionar/i })).not.toBeInTheDocument();
+    expect(screen.queryByTitle("Remover")).not.toBeInTheDocument();
+  });
+
+  it("gerente lê que só o administrador altera, em vez de tentar e ser recusado", async () => {
+    await montarComo("gerente");
+
+    expect(screen.getByText(/Somente o administrador pode alterar as unidades de medida/)).toBeInTheDocument();
+  });
+
+  it("administrador continua podendo adicionar e remover", async () => {
+    await montarComo("admin");
+
+    expect(screen.getAllByPlaceholderText("abrev.").length).toBe(3);
+    expect(screen.getByTitle("Remover")).toBeInTheDocument();
+    expect(screen.queryByText(/Somente o administrador pode alterar as unidades de medida/)).not.toBeInTheDocument();
+  });
+});
