@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const { mockSupabase } = vi.hoisted(() => ({ mockSupabase: { current: null } }));
@@ -114,5 +114,56 @@ describe("DesempenhoReport", () => {
     await user.click(screen.getByRole("button", { name: "Período" }));
 
     expect(screen.getByText(/selecione as duas datas/i)).toBeInTheDocument();
+  });
+});
+
+// ── Refino: a aba que não tinha como ser atualizada ───────────────────
+//
+// Esta aba lê por RPC, não por realtime, e buscava uma vez por combinação de
+// filtro e nunca mais. Como a aba do PDV fica aberta 24 horas por dia, escolher
+// "Hoje" às 23h deixava o dono no dia seguinte olhando o dia anterior, sem nada
+// na tela dizendo que aquele número era um retrato antigo.
+
+describe("DesempenhoReport, atualizar e hora da última leitura (refino)", () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  /** Os `p_inicio` das leituras do período atual, na ordem em que saíram. */
+  const iniciosLidos = () =>
+    mockSupabase.current.calls.filter((c) => c.rpc === "relatorio_vendas").map((c) => c.args[0].p_inicio);
+
+  it("diz de quando é o número que está na tela", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 8, 11, 23, 50));
+    mockSupabase.current.setRpcResult("relatorio_vendas", { data: RESUMO_PADRAO, error: null });
+    mockSupabase.current.setTableResult("config", { data: { key: "fichas_tecnicas", value: [] }, error: null });
+
+    render(<DesempenhoReport />);
+    await waitFor(() => expect(screen.getByText("R$ 500,00")).toBeInTheDocument());
+
+    expect(screen.getByText("Atualizado em 11/09 às 23:50")).toBeInTheDocument();
+  });
+
+  it("o botão Atualizar relê com o recorte recalculado depois da virada do dia", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 8, 11, 23, 50));
+    mockSupabase.current.setRpcResult("relatorio_vendas", { data: RESUMO_PADRAO, error: null });
+    mockSupabase.current.setTableResult("config", { data: { key: "fichas_tecnicas", value: [] }, error: null });
+
+    render(<DesempenhoReport />);
+    await waitFor(() => expect(screen.getByText("R$ 500,00")).toBeInTheDocument());
+
+    // Chip "7 dias" (padrão) em 11/09 23h50: a janela começa em 05/09.
+    expect(iniciosLidos()[0]).toBe(new Date(2026, 8, 5, 0, 0, 0, 0).toISOString());
+
+    // Passa da meia-noite com a aba aberta e ninguém troca de filtro.
+    vi.setSystemTime(new Date(2026, 8, 12, 0, 5));
+    mockSupabase.current.calls.length = 0;
+
+    fireEvent.click(screen.getByRole("button", { name: /atualizar/i }));
+
+    // Antes: não havia botão nenhum, a aba ficava parada no retrato de ontem.
+    await waitFor(() => expect(iniciosLidos().length).toBeGreaterThan(0));
+    expect(iniciosLidos()[0]).toBe(new Date(2026, 8, 6, 0, 0, 0, 0).toISOString());
+    await waitFor(() => expect(screen.getByText("Atualizado em 12/09 às 00:05")).toBeInTheDocument());
   });
 });
