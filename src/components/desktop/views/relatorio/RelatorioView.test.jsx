@@ -25,8 +25,8 @@ vi.mock("@/lib/supabase", async () => {
 // arquivo exportado fica fora do alcance do teste.
 const { exportado } = vi.hoisted(() => ({ exportado: { pdf: [], xlsx: [] } }));
 vi.mock("@/lib/exportReport", () => ({
-  exportToPDF: (titulo, headers, rows, periodo, opts) => exportado.pdf.push({ titulo, headers, rows, opts }),
-  exportToXLSX: (titulo, headers, rows, periodo, opts) => exportado.xlsx.push({ titulo, headers, rows, opts }),
+  exportToPDF: (titulo, headers, rows, periodo, opts) => exportado.pdf.push({ titulo, headers, rows, periodo, opts }),
+  exportToXLSX: (titulo, headers, rows, periodo, opts) => exportado.xlsx.push({ titulo, headers, rows, periodo, opts }),
 }));
 
 // A aba Desempenho tem relatório e teste próprios; aqui ela só não pode
@@ -257,5 +257,103 @@ describe("RelatorioView, item cancelado dentro de venda válida", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toContain("Cerveja");
     expect(rows.flat()).not.toContain("Batata");
+  });
+});
+
+/**
+ * Atalho de período mais largo: o chip dizia "Tudo" e não recortava nada, só
+ * que a lista que ele não recorta já vem limitada a 90 dias pelo bootstrap.
+ * O PDF e a planilha saíam com "Período: Todo o período" impresso sobre dados
+ * de 90 dias, e é esse arquivo que vai para o contador.
+ */
+describe("RelatorioView, janela real do atalho mais largo (R04)", () => {
+  it("o atalho diz a janela real, em vez de prometer todo o histórico", () => {
+    montar([COM_FIADO]);
+
+    expect(screen.getByText("90 dias")).toBeInTheDocument();
+    expect(screen.queryByText("Tudo")).not.toBeInTheDocument();
+  });
+
+  it("o cabeçalho do arquivo exportado diz a janela real", () => {
+    montar([COM_FIADO]);
+    fireEvent.click(screen.getByText("90 dias"));
+
+    fireEvent.click(screen.getByTitle("Exportar PDF"));
+    fireEvent.click(screen.getByTitle("Exportar Excel"));
+
+    // Antes: "tudo", que o exportReport imprime como "Todo o período".
+    expect(exportado.pdf[0].periodo).toBe("Últimos 90 dias");
+    expect(exportado.xlsx[0].periodo).toBe("Últimos 90 dias");
+  });
+
+  it("os demais atalhos continuam chegando iguais ao arquivo", () => {
+    montar([COM_FIADO]);
+    fireEvent.click(screen.getByText("30 dias"));
+    fireEvent.click(screen.getByTitle("Exportar PDF"));
+
+    expect(exportado.pdf[0].periodo).toBe("mes");
+  });
+});
+
+/**
+ * Aba Logs: falha de leitura contra período realmente sem atividade.
+ *
+ * A carga de `operator_logs` ignorava o erro e caía em `data ?? []`: a aba
+ * ficava vazia com "Nenhum evento no período selecionado", indistinguível de
+ * "não houve atividade". É a aba que o dono abre justamente quando desconfia
+ * de algo, então vazio por engano é o pior resultado possível.
+ */
+function montarLogs() {
+  contexto.current = {
+    sales: [],
+    fechamentos: [],
+    pending: [],
+    users: [],
+    currentUser: { role: "gerente" },
+    tenant: null,
+    metodosCustom: [],
+  };
+  render(<RelatorioView />);
+  fireEvent.click(screen.getByText("Logs"));
+}
+
+const LOG_DE_AGORA = {
+  id: "log1",
+  operator_id: "ana",
+  action_type: "caixa:abertura",
+  payload: { name: "Ana", role: "gerente", msg: "Abriu o caixa" },
+  created_at: new Date().toISOString(),
+};
+
+describe("RelatorioView, leitura dos logs de operadores", () => {
+  it("falha de leitura mostra o motivo e um botão de tentar de novo", async () => {
+    mockSupabase.current.setTableError("operator_logs", { message: "conexão perdida" });
+    montarLogs();
+
+    expect(await screen.findByText(/Não foi possível carregar os logs/)).toBeInTheDocument();
+    expect(screen.getByText(/conexão perdida/)).toBeInTheDocument();
+    // O engano que existia antes: aba vazia como se nada tivesse acontecido.
+    expect(screen.queryByText("Nenhum evento no período selecionado")).not.toBeInTheDocument();
+  });
+
+  it("tentar de novo refaz a busca e mostra os logs quando o banco responde", async () => {
+    mockSupabase.current.setTableError("operator_logs", { message: "conexão perdida" });
+    montarLogs();
+    await screen.findByText("Tentar de novo");
+
+    mockSupabase.current.reset();
+    mockSupabase.current.setTableResult("operator_logs", { data: [LOG_DE_AGORA], error: null });
+    fireEvent.click(screen.getByText("Tentar de novo"));
+
+    expect(await screen.findByText("Abriu o caixa")).toBeInTheDocument();
+    expect(screen.queryByText(/Não foi possível carregar os logs/)).not.toBeInTheDocument();
+  });
+
+  it("período realmente sem atividade continua mostrando o estado vazio", async () => {
+    mockSupabase.current.setTableResult("operator_logs", { data: [], error: null });
+    montarLogs();
+
+    expect(await screen.findByText("Nenhum evento no período selecionado")).toBeInTheDocument();
+    expect(screen.queryByText(/Não foi possível carregar os logs/)).not.toBeInTheDocument();
   });
 });

@@ -18,7 +18,17 @@ export default function ResumoCards({ fluxo, lucro, width, sz }) {
   // Leva 15.6 — lucro = entradas − custo das fichas técnicas − saídas pagas.
   // Quando há itens vendidos sem ficha cadastrada, o rótulo avisa que o
   // custo está parcial em vez de mostrar um lucro inflado como se fosse exato.
-  if (lucro) {
+  // Período anterior à janela de vendas carregada: sem as vendas daqueles dias
+  // o cálculo só teria as saídas pagas, e o card mostraria prejuízo inventado.
+  // Dizer que o número não está disponível é mais honesto que um valor falso.
+  if (lucro?.indisponivel) {
+    cards.push({
+      label: `Lucro do período, as vendas carregadas cobrem os últimos ${lucro.diasJanela} dias`,
+      value: "Não disponível",
+      color: varColor(C.muted),
+      Icon: LuPiggyBank,
+    });
+  } else if (lucro) {
     cards.push({
       label: lucro.unidadesSemFicha > 0
         ? `Lucro (parcial, ${lucro.unidadesSemFicha} ${lucro.unidadesSemFicha === 1 ? "item vendido sem ficha técnica" : "itens vendidos sem ficha técnica"})`

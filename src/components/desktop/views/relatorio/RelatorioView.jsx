@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect, Fragment } from "react";
+﻿import { useState, useMemo, useEffect, useCallback, Fragment } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { normalizarPagamentos, totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { agruparVendasPorDia, rotuloDiaBR, intervaloPeriodo, agruparVendasPorOperador } from "@/utils/datas";
@@ -24,13 +24,32 @@ import {
 const ABAS_BASE = ["Vendas", "Desempenho", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
 // "Admin" só entra para role admin (visão consolidada/sensível) — B3.
 
+// Janela que o bootstrap carrega: `sales`, fechamentos e comandas chegam só
+// dos últimos 90 dias (ver AppContext.jsx:340, "Bootstrap limitado a 90 dias").
+// O número está duplicado aqui porque o AppContext não o exporta; pedido de
+// virar constante exportada registrado no relatório da rodada.
+const DIAS_JANELA_BOOTSTRAP = 90;
+
 const PERIODOS = [
   { id: "hoje",    label: "Hoje"    },
   { id: "semana",  label: "7 dias"  },
   { id: "mes",     label: "30 dias" },
-  { id: "tudo",    label: "Tudo"    },
+  // Era "Tudo", mas o atalho não recorta uma lista que já vem recortada em 90
+  // dias: o chip prometia um histórico inteiro que a tela nunca teve.
+  { id: "tudo",    label: `${DIAS_JANELA_BOOTSTRAP} dias` },
   { id: "custom",  label: "Período" },
 ];
+
+/**
+ * Rótulo do período impresso no cabeçalho do PDF e da planilha. O `exportReport`
+ * traduz "tudo" como "Todo o período", e era isso que ia carimbado no arquivo
+ * que vai para o contador, sobre dados de 90 dias. Mandando o rótulo pronto,
+ * o arquivo passa a dizer a janela real (chaves desconhecidas são impressas
+ * como vieram).
+ */
+function rotuloPeriodoExport(periodo) {
+  return periodo === "tudo" ? `Últimos ${DIAS_JANELA_BOOTSTRAP} dias` : periodo;
+}
 
 const METODOS_ICON  = { dinheiro: LuBanknote, credito: LuCreditCard, debito: LuSmartphone, pix: LuZap };
 const ACTION_TYPE_META = {
@@ -328,9 +347,9 @@ export default function RelatorioView() {
   // cliente específico, que ia impressa no PDF e na planilha de todo mundo.
   const empresaExport = marcaComAssinatura(nomeExibicaoTenant(tenant?.tema, tenant?.nome));
   const exportToPDF  = (titulo, headers, rows, periodo, opts = {}) =>
-    exportToPDFBase(titulo, headers, rows, periodo, { empresa: empresaExport, ...opts });
+    exportToPDFBase(titulo, headers, rows, rotuloPeriodoExport(periodo), { empresa: empresaExport, ...opts });
   const exportToXLSX = (titulo, headers, rows, periodo) =>
-    exportToXLSXBase(titulo, headers, rows, periodo, { empresa: empresaExport });
+    exportToXLSXBase(titulo, headers, rows, rotuloPeriodoExport(periodo), { empresa: empresaExport });
 
   const [aba,           setAba]           = useState("Vendas");
   const [periodo,       setPeriodo]       = useState("hoje");
@@ -343,20 +362,37 @@ export default function RelatorioView() {
   const [subVendas,  setSubVendas]  = useState("resumido");
   const [opLogs,     setOpLogs]     = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [erroLogs,   setErroLogs]   = useState("");
 
-  useEffect(() => {
-    if (aba !== "Logs") return;
+  // A falha de leitura era ignorada: a aba ficava vazia, igualzinha a "não
+  // houve atividade no período". E é justamente quando o dono desconfia de
+  // algo que ele abre esta aba, então vazio por engano é o pior resultado
+  // possível. Agora o motivo aparece e dá para tentar de novo.
+  const carregarLogs = useCallback(() => {
     setLoadingLogs(true);
+    setErroLogs("");
     supabase
       .from("operator_logs")
       .select("id, operator_id, action_type, payload, created_at")
       .order("created_at", { ascending: false })
       .limit(2000)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("[relatorio] erro ao carregar logs de operadores:", error);
+          setErroLogs(error.message || "falha na leitura");
+          setOpLogs([]);
+          setLoadingLogs(false);
+          return;
+        }
         setOpLogs(data ?? []);
         setLoadingLogs(false);
       });
-  }, [aba]);
+  }, []);
+
+  useEffect(() => {
+    if (aba !== "Logs") return;
+    carregarLogs();
+  }, [aba, carregarLogs]);
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
   // Visão administrativa consolidada (B3): só role admin — gerente/caixa não veem.
@@ -1332,15 +1368,7 @@ export default function RelatorioView() {
               ))}
               <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
                 <button
-                  onClick={() => {
-                    setLoadingLogs(true);
-                    supabase
-                      .from("operator_logs")
-                      .select("id, operator_id, action_type, payload, created_at")
-                      .order("created_at", { ascending: false })
-                      .limit(2000)
-                      .then(({ data }) => { setOpLogs(data ?? []); setLoadingLogs(false); });
-                  }}
+                  onClick={carregarLogs}
                   className="relatorio-view__log-refresh"
                   style={{
                     padding: "6px 14px", borderRadius: 8,
@@ -1358,6 +1386,13 @@ export default function RelatorioView() {
             <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
               {loadingLogs ? (
                 <div style={{ color: varColor(C.muted), textAlign: "center", padding: 40 }}>Carregando logs…</div>
+              ) : erroLogs ? (
+                <div className="relatorio-view__erro" role="alert">
+                  <div className="relatorio-view__erro-texto">
+                    Não foi possível carregar os logs. Motivo: {erroLogs}
+                  </div>
+                  <button onClick={carregarLogs} className="relatorio-view__btn-tentar">Tentar de novo</button>
+                </div>
               ) : logsFiltrados.length === 0 ? (
                 <Empty icon={LuClipboardList} msg="Nenhum evento no período selecionado" sz={sz} />
               ) : (

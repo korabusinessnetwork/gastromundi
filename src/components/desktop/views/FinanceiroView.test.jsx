@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, waitFor, fireEvent, act, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -17,6 +17,7 @@ vi.mock("@/lib/supabase", async () => {
 
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
 import FinanceiroView from "./FinanceiroView";
+import { intervaloDoMes } from "@/lib/periodos";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -135,6 +136,9 @@ async function montar({ sales = [], ...banco } = {}) {
 
   fireEvent.change(screen.getByLabelText("Data final do período"),   { target: { value: "2026-07-31" } });
   fireEvent.change(screen.getByLabelText("Data inicial do período"), { target: { value: "2026-07-01" } });
+  // O período agora vai na consulta (refino R02), então trocar as datas refaz
+  // a busca: esperar a nova carga antes de olhar a tela.
+  await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
   return utils;
 }
 
@@ -249,6 +253,16 @@ describe("FinanceiroView, baixar conta (Run 2)", () => {
 describe("FinanceiroView, lucro do período (Run 2)", () => {
   const LUCRO = "Lucro (vendas − custo das fichas − saídas pagas)";
 
+  // Estes testes usam julho de 2026 como mês fixo. Desde o refino R01 o card
+  // Lucro depende de "hoje": período que começa antes da janela de 90 dias de
+  // `sales` deixa de ser calculado. Sem parar o relógio em julho, eles
+  // quebrariam sozinhos assim que julho de 2026 ficasse velho demais.
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-07-20T15:00:00.000Z"));
+  });
+  afterEach(() => { vi.useRealTimers(); });
+
   it("a venda das 21h30 do dia 31 conta no mês em que foi vendida", async () => {
     // 2026-08-01T00:30:00Z = 31/07 às 21h30 em São Paulo. Lendo o dia UTC
     // (`at.slice(0,10)`) a venda caía em agosto: no fechamento de julho o
@@ -265,6 +279,7 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
 
     fireEvent.change(screen.getByLabelText("Data inicial do período"), { target: { value: "2026-08-01" } });
     fireEvent.change(screen.getByLabelText("Data final do período"),   { target: { value: "2026-08-31" } });
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
 
     expect(card(LUCRO)).toBe("R$ 0.00");
   });
@@ -376,5 +391,107 @@ describe("FinanceiroView, lançamento salvo fora do período visível (Run 2)", 
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(card("Saídas realizadas")).toBe("R$ 2500.00");
+  });
+});
+
+// ── Refino, robustez do Financeiro ────────────────────────────────────
+//
+// R01: a receita do card Lucro vem de `sales`, que o bootstrap carrega só dos
+// últimos 90 dias (AppContext.jsx:340), enquanto as saídas vêm de
+// `lancamentos`, sem recorte. Escolhendo um mês mais antigo que isso, a receita
+// entrava como zero, o custo como zero, e as despesas pagas daquele mês
+// continuavam sendo subtraídas: prejuízo inventado, em vermelho, num mês que
+// pode ter sido o melhor do ano.
+//
+// R02: a tela pedia TODOS os lançamentos e recortava o período na memória.
+// Passando do teto de linhas do PostgREST (1000 por padrão), os mais antigos
+// paravam de chegar e o mês antigo aparecia zerado, sem aviso nenhum.
+
+/** Dia de calendário local, n dias atrás, no formato do <input type="date">. */
+function diasAtras(n) {
+  const d = new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
+
+const HOJE = diasAtras(0);
+const DIA_ANTIGO = diasAtras(200); // bem antes da janela de 90 dias
+
+/**
+ * Monta a tela SEM mexer no período: fica valendo o mês corrente, que é o que
+ * estes testes precisam comparar com a janela de vendas carregada.
+ */
+async function montarNoMesCorrente({ sales = [], ...banco } = {}) {
+  servirBanco(banco);
+  setAppMock({ currentUser: { name: "Gerente Teste", username: "gerente1", role: "gerente" }, sales });
+
+  const utils = renderWithProviders(<FinanceiroView />);
+  await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+  return utils;
+}
+
+/** Uma despesa já paga na competência pedida. */
+const despesaPaga = (competencia) => ({
+  id: "hortifruti", tipo: "despesa", categoria: "insumos", descricao: "Hortifruti",
+  valor: 30, competencia, status: "pago",
+});
+
+describe("FinanceiroView, lucro de período fora da janela de vendas (R01)", () => {
+  const LUCRO = "Lucro (vendas − custo das fichas − saídas pagas)";
+
+  it("dentro da janela, o card segue calculando o lucro normalmente", async () => {
+    await montarNoMesCorrente({
+      linhas: [despesaPaga(HOJE)],
+      sales: [venda(new Date().toISOString())],
+      fichas: [FICHA_PRATO],
+    });
+
+    // 100 de venda, menos 30 de ficha técnica, menos 30 de despesa paga.
+    expect(card(LUCRO)).toBe("R$ 40.00");
+  });
+
+  it("período que começa antes da janela, o card diz que o lucro não está disponível", async () => {
+    await montarNoMesCorrente({
+      linhas: [despesaPaga(DIA_ANTIGO)],
+      sales: [venda(new Date().toISOString())],
+      fichas: [FICHA_PRATO],
+    });
+
+    // Puxar o "Até" para trás arrasta o "De" junto: o período inteiro fica
+    // antes da janela de vendas carregada.
+    fireEvent.change(screen.getByLabelText("Data final do período"), { target: { value: DIA_ANTIGO } });
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+
+    // Antes: "R$ -30.00", só a despesa paga, sem nenhuma receita para comparar.
+    expect(card(/as vendas carregadas cobrem os últimos 90 dias/)).toBe("Não disponível");
+    expect(screen.queryByText(LUCRO)).not.toBeInTheDocument();
+  });
+});
+
+describe("FinanceiroView, período vai na consulta de lançamentos (R02)", () => {
+  const filtrosDeCompetencia = () =>
+    mockSupabase.current.calls
+      .filter((c) => c.table === "lancamentos" && (c.method === "gte" || c.method === "lte"))
+      .map((c) => `${c.method}:${c.args[0]}:${c.args[1]}`);
+
+  it("a primeira carga já filtra pelo período na consulta, não na memória", async () => {
+    const { de, ate } = intervaloDoMes(new Date());
+    await montarNoMesCorrente({ linhas: [despesaPaga(HOJE)] });
+
+    expect(filtrosDeCompetencia()).toEqual([
+      `gte:competencia:${de}`,
+      `lte:competencia:${ate}`,
+    ]);
+  });
+
+  it("mudar o período refaz a consulta com as novas datas", async () => {
+    await montarNoMesCorrente({ linhas: [] });
+    mockSupabase.current.calls.length = 0;
+
+    fireEvent.change(screen.getByLabelText("Data inicial do período"), { target: { value: DIA_ANTIGO } });
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+
+    expect(filtrosDeCompetencia()).toContain(`gte:competencia:${DIA_ANTIGO}`);
   });
 });
