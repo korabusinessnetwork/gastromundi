@@ -18,9 +18,35 @@ vi.mock("@/context/AppContext", async () => {
   return { useApp: mockUseApp, AppProvider: ({ children }) => children };
 });
 
+// O mock compartilhado engole o callback de status de `subscribe()`. Aqui ele é
+// embrulhado para guardar esse callback, porque o painel passou a ler o estado
+// do canal (D07) e o teste precisa emitir CHANNEL_ERROR como o servidor faria.
+const mockSupabase = vi.hoisted(() => ({ atual: null }));
+
 vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
-  return { supabase: createMockSupabase() };
+  const base = createMockSupabase();
+  const statusPorCanal = {};
+  const channelOriginal = base.channel;
+  base.channel = (nome) => {
+    const ch = channelOriginal(nome);
+    const subscribeOriginal = ch.subscribe;
+    ch.subscribe = (cb) => {
+      if (typeof cb === "function") (statusPorCanal[nome] ??= []).push(cb);
+      return subscribeOriginal();
+    };
+    return ch;
+  };
+  base.emitStatus = (nome, status) => {
+    const cbs = statusPorCanal[nome] ?? [];
+    for (const cb of cbs) cb(status);
+    return cbs.length;
+  };
+  base.limparStatus = () => {
+    for (const k of Object.keys(statusPorCanal)) delete statusPorCanal[k];
+  };
+  mockSupabase.atual = base;
+  return { supabase: base };
 });
 
 const { buscarInsights, atualizarStatusInsight, perguntarAoJarvas } = vi.hoisted(() => ({
@@ -67,6 +93,8 @@ async function montarEAbrir() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockSupabase.atual.reset();
+  mockSupabase.atual.limparStatus();
   setAppMock({ currentUser: { id: 1, name: "Gerente", username: "gerente", role: "gerente", permissions: {} } });
   atualizarStatusInsight.mockResolvedValue({ data: { id: "i1", status: "lido" }, error: null });
 });
@@ -135,5 +163,45 @@ describe("JarvasPanel, escrita recusada ao mudar o status", () => {
     // O botão de "marcar como lido" só existe para insight com status "novo":
     // continuar lá é a prova de que a mudança otimista foi desfeita.
     expect(screen.getByTitle("Marcar como lido")).toBeTruthy();
+  });
+});
+
+// D07 — o canal de realtime do painel chamava `.subscribe()` sem callback de
+// status. Canal recusado pela RLS, token expirado ou servidor reiniciando
+// morria calado, e o painel congelava mostrando os insights da última carga: o
+// gestor lia silêncio como "nenhum aviso novo". Numa aba de 24 horas o
+// websocket cai por motivo banal, então isto não é caso raro.
+describe("JarvasPanel, canal de realtime que cai (D07)", () => {
+  const emitirStatus = async (status) => {
+    await act(async () => {
+      const ouvintes = mockSupabase.atual.emitStatus("jarvas-insights-realtime", status);
+      expect(ouvintes).toBeGreaterThan(0);
+    });
+    await act(async () => { await Promise.resolve(); });
+  };
+
+  it("estado ruim do canal busca os insights de novo", async () => {
+    buscarInsights.mockResolvedValue({ data: [], error: null });
+    await montarEAbrir();
+    buscarInsights.mockClear();
+
+    buscarInsights.mockResolvedValue({ data: [INSIGHT], error: null });
+    await emitirStatus("CHANNEL_ERROR");
+
+    expect(buscarInsights).toHaveBeenCalled();
+    // A prova de que a recarga chegou à tela: o insight que só existe na
+    // segunda resposta aparece sem ninguém tocar em nada.
+    expect(screen.getByText("Caixa aberto há 9 horas")).toBeTruthy();
+  });
+
+  it("quando o canal volta, busca outra vez: o que caiu não é reenviado", async () => {
+    buscarInsights.mockResolvedValue({ data: [], error: null });
+    await montarEAbrir();
+    await emitirStatus("TIMED_OUT");
+    buscarInsights.mockClear();
+
+    await emitirStatus("SUBSCRIBED");
+
+    expect(buscarInsights).toHaveBeenCalled();
   });
 });

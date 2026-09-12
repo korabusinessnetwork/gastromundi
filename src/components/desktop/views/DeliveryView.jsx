@@ -156,7 +156,7 @@ const cssCor = (base) =>
   typeof base === "string" && base.startsWith("--gm-") ? varColor(base) : base;
 
 export default function DeliveryView({ notify } = {}) {
-  const { products, tenant, currentUser, moduloHabilitado, addProduct, updateProduct, recarregarProdutos } = useApp();
+  const { products, tenant, currentUser, moduloHabilitado, addProduct, updateProduct, recarregarProdutos, sessaoAbertaEm } = useApp();
 
   // Modo derivado do plano: tem PDV → addon; só delivery → standalone.
   const ehAddon = moduloHabilitado(MODULOS.PDV);
@@ -408,7 +408,7 @@ export default function DeliveryView({ notify } = {}) {
         )}
 
         {aba === "pedidos" && (
-          <AbaPedidos isAdmin={isAdmin} ehAddon={ehAddon} aviso={aviso} currentUser={currentUser} />
+          <AbaPedidos isAdmin={isAdmin} ehAddon={ehAddon} aviso={aviso} currentUser={currentUser} sessaoAbertaEm={sessaoAbertaEm} />
         )}
 
         {aba === "cardapio" && (
@@ -469,8 +469,16 @@ const lerPrefAvisos = () => {
   }
 };
 
-function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
-  const { pedidos, carregando, erro, recarregar } = usePedidosDelivery();
+function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, sessaoAbertaEm = null }) {
+  // O recorte das colunas terminais é por TURNO (abertura do caixa), e não por
+  // dia de calendário: esta aba fica aberta a noite toda e atravessa a
+  // meia-noite sem recarregar. Sem passar a abertura do caixa, o pedido
+  // entregue às 23h50 saía da coluna "Entregue" na primeira atualização
+  // depois da meia-noite, sozinho, com o entregador ainda na rua.
+  // `aoVivo = true` no destructuring de propósito: hook antigo (ou dublê de
+  // teste) que não devolve o campo não pode fazer a tela dizer que a conexão
+  // caiu.
+  const { pedidos, carregando, erro, aoVivo = true, recarregar } = usePedidosDelivery({ sessaoAbertaEm });
   const [tick, setTick] = useState(0); // recalcula "há X min" de tempos em tempos
 
   // Avisos de pedido novo (Fase 5, Nível 1): som + Notification API. Só
@@ -639,6 +647,25 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
                 className="delivery-view__faixa-erro-acao"
               >
                 Tentar de novo
+              </button>
+            </div>
+          )}
+          {/* Conexão ao vivo caída: a lista continua na tela, mas para de se
+              atualizar sozinha. Sem este aviso o operador olhava um kanban
+              parado acreditando que não havia pedido novo, que é o pior jeito
+              de perder um pedido. */}
+          {!aoVivo && (
+            <div className="delivery-view__faixa-offline" role="status">
+              <span className="delivery-view__faixa-erro-texto">
+                A atualização automática caiu. Estamos tentando reconectar,
+                toque em “Atualizar” para ver os pedidos de agora.
+              </span>
+              <button
+                type="button"
+                onClick={recarregar}
+                className="delivery-view__faixa-erro-acao"
+              >
+                Atualizar
               </button>
             </div>
           )}

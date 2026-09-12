@@ -220,3 +220,45 @@ describe("usePedidosCozinha, o DELETE do espelho tira a comanda do painel (Run 6
     expect(comandasNaTela()).toEqual(["Delivery 1"]);
   });
 });
+
+// D06 — o recorte das colunas terminais é por TURNO. O hook precisa repassar a
+// abertura do caixa para a consulta; sem isso a lib cai no início do dia e a
+// coluna "Entregue" esvazia sozinha à meia-noite, no meio do movimento.
+describe("usePedidosDelivery repassa a abertura do caixa ao recorte (D06)", () => {
+  const ABERTURA = "2026-09-11T21:00:00.000Z";
+
+  function TelaComSessao({ sessaoAbertaEm }) {
+    const { recarregar } = usePedidosDelivery({ sessaoAbertaEm });
+    return <button onClick={recarregar}>Atualizar</button>;
+  }
+
+  it("a primeira carga leva sessaoAbertaEm", async () => {
+    listarPedidosDelivery.mockResolvedValue({ data: [PEDIDO], error: null });
+    await act(async () => { render(<TelaComSessao sessaoAbertaEm={ABERTURA} />); });
+
+    expect(listarPedidosDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({ sessaoAbertaEm: ABERTURA }),
+    );
+  });
+
+  it("o recarregar que vem depois de avançar ou cancelar leva a mesma abertura", async () => {
+    listarPedidosDelivery.mockResolvedValue({ data: [PEDIDO], error: null });
+    await act(async () => { render(<TelaComSessao sessaoAbertaEm={ABERTURA} />); });
+    listarPedidosDelivery.mockClear();
+
+    await act(async () => { screen.getByText("Atualizar").click(); });
+
+    expect(listarPedidosDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({ sessaoAbertaEm: ABERTURA }),
+    );
+  });
+
+  it("sem caixa aberto o hook segue chamando sem sessão (recorte cai no dia)", async () => {
+    listarPedidosDelivery.mockResolvedValue({ data: [], error: null });
+    await montar(TelaDelivery);
+
+    expect(listarPedidosDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({ sessaoAbertaEm: null }),
+    );
+  });
+});

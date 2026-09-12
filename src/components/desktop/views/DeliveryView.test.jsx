@@ -582,3 +582,78 @@ describe("DeliveryView, busca e atalho de indisponíveis no Cardápio (D05)", ()
     expect(screen.getByText("Açaí 500ml")).toBeInTheDocument();
   });
 });
+
+// D06 — a aba fica aberta 24 horas e atravessa a meia-noite. O recorte das
+// colunas terminais tem de ser o TURNO (abertura do caixa), então a tela
+// precisa entregar `sessaoAbertaEm` ao hook. Sem isso o pedido entregue às
+// 23h50 saía da coluna "Entregue" sozinho, na primeira atualização depois da
+// meia-noite, com o contador caindo a zero no meio do movimento.
+describe("DeliveryView entrega a abertura do caixa ao hook de pedidos (D06)", () => {
+  it("com caixa aberto, o hook recebe sessaoAbertaEm", async () => {
+    const abertura = "2026-09-11T21:00:00.000Z";
+    setAppMock({ sessaoAbertaEm: abertura });
+    semErro();
+    await montar();
+
+    expect(usePedidosDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({ sessaoAbertaEm: abertura }),
+    );
+  });
+
+  it("sem caixa aberto, o hook recebe sessão nula e o recorte cai no dia", async () => {
+    setAppMock({ sessaoAbertaEm: null });
+    semErro();
+    await montar();
+
+    expect(usePedidosDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({ sessaoAbertaEm: null }),
+    );
+  });
+});
+
+// D07 — realtime caído deixava o kanban parado sem dizer nada. O operador
+// olhava uma tela sem pedido novo acreditando que não havia pedido novo, que é
+// o pior jeito de perder um pedido.
+describe("DeliveryView avisa quando a atualização automática cai (D07)", () => {
+  const faixaOffline = () => screen.queryByText(/atualização automática caiu/i);
+
+  it("canal ao vivo não mostra aviso nenhum", async () => {
+    semErro();
+    await montar();
+
+    expect(faixaOffline()).not.toBeInTheDocument();
+  });
+
+  it("canal caído mostra o aviso e mantém o kanban na tela", async () => {
+    const recarregar = vi.fn(() => Promise.resolve());
+    usePedidosDelivery.mockReturnValue({
+      pedidos: [PEDIDO], carregando: false, erro: null, aoVivo: false, recarregar,
+    });
+    await montar();
+
+    expect(faixaOffline()).toBeInTheDocument();
+    expect(cartaoDoPedido()).toBeInTheDocument();
+  });
+
+  it("o Atualizar do aviso busca os pedidos de agora", async () => {
+    const user = userEvent.setup();
+    const recarregar = vi.fn(() => Promise.resolve());
+    usePedidosDelivery.mockReturnValue({
+      pedidos: [PEDIDO], carregando: false, erro: null, aoVivo: false, recarregar,
+    });
+    await montar();
+
+    const avisoOffline = screen.getByRole("status");
+    await user.click(avisoOffline.querySelector("button"));
+
+    expect(recarregar).toHaveBeenCalled();
+  });
+
+  it("hook sem o campo aoVivo não faz a tela dizer que a conexão caiu", async () => {
+    // Retrocompatibilidade: o mobile ainda consome o hook sem ler este campo.
+    semErro();
+    await montar();
+
+    expect(faixaOffline()).not.toBeInTheDocument();
+  });
+});

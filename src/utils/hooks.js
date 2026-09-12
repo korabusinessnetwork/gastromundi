@@ -2,6 +2,59 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { listarPedidosDelivery } from "@/lib/deliveryPedidos";
 
+// ── Realtime: ler o estado da assinatura ────────────────────────────────────
+// O supabase-js entrega o estado do canal no callback de `subscribe()`, e
+// ninguém lia: canal recusado pela RLS, token expirado ou servidor reiniciando
+// morria em silêncio. Numa aba que fica 24 horas aberta o websocket cai por
+// motivo banal (troca de Wi-Fi, máquina dormindo, deploy do servidor), e a
+// tela seguia mostrando o dado da última vez que funcionou, sem avisar: a
+// cozinha parava de receber pedido e ninguém percebia.
+export const STATUS_CANAL_RUIM = ["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"];
+
+/**
+ * Monta o callback de status de `subscribe()` de um canal.
+ *
+ * O que ele faz, em ordem de importância:
+ *   • canal caiu → uma carga imediata, porque dali em diante nenhum evento
+ *     chega e o que está na tela começa a envelhecer;
+ *   • canal voltou (SUBSCRIBED depois de ter caído) → outra carga, porque o
+ *     que aconteceu durante a queda não vai ser reenviado;
+ *   • qualquer estado ruim fica REGISTRADO no console (é diagnóstico técnico,
+ *     não dado sensível), que é o que faltava para a queda deixar rastro;
+ *   • `setAoVivo` deixa a tela decidir se mostra o aviso.
+ *
+ * A carga só é disparada na TRANSIÇÃO de estado. O supabase-js tenta
+ * reconectar sozinho e cada tentativa falha emite outro CHANNEL_ERROR: sem
+ * isso, um servidor fora do ar viraria uma enxurrada de consultas.
+ *
+ * `estaVivo` existe porque `removeChannel` na limpeza do efeito também emite
+ * CLOSED — sem o guard, desmontar a tela disparava uma carga inútil.
+ *
+ * @param {string} nome nome do canal (só para o registro)
+ * @param {{ recarregar?: () => void, setAoVivo?: (ok: boolean) => void, estaVivo?: () => boolean }} opcoes
+ * @returns {(status: string, err?: unknown) => void}
+ */
+export function tratarStatusCanal(nome, { recarregar, setAoVivo, estaVivo = () => true } = {}) {
+  let caido = false;
+  return (status, err) => {
+    if (!estaVivo()) return;
+    if (status === "SUBSCRIBED") {
+      setAoVivo?.(true);
+      if (caido) {
+        caido = false;
+        recarregar?.();
+      }
+      return;
+    }
+    if (!STATUS_CANAL_RUIM.includes(status)) return;
+    setAoVivo?.(false);
+    console.warn(`[realtime] canal "${nome}" em estado ${status}`, err ?? "");
+    if (caido) return;
+    caido = true;
+    recarregar?.();
+  };
+}
+
 /**
  * useLS — localStorage com fallback e sincronização
  * Substitua o valor por chamadas Supabase na migração
@@ -134,6 +187,8 @@ export function useMesas() {
   const [mesas,   setMesas]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro,    setErro]    = useState(null);
+  // `aoVivo` é aditivo: quem só desestrutura o que já existia não muda.
+  const [aoVivo,  setAoVivo]  = useState(true);
 
   // Expõe `erro` e `recarregar` pelo mesmo motivo de usePedidosCozinha: a
   // carga antiga ignorava o `error` e gravava `data ?? []`, então falha de
@@ -162,6 +217,7 @@ export function useMesas() {
 
   // Requer Realtime habilitado na tabela `mesas` (Database → Replication).
   useEffect(() => {
+    let vivo = true;
     const channel = supabase
       .channel("mesas-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "mesas" }, (payload) => {
@@ -177,10 +233,12 @@ export function useMesas() {
           setMesas(prev => prev.filter(m => m.numero !== payload.old.numero));
         }
       })
-      .subscribe();
+      .subscribe(tratarStatusCanal("mesas-realtime", {
+        recarregar, setAoVivo, estaVivo: () => vivo,
+      }));
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    return () => { vivo = false; supabase.removeChannel(channel); };
+  }, [recarregar]);
 
   // Marca a mesa como livre/reservada/manutencao (aba "Reservas" do PDV).
   // Update otimista: reflete na hora no mapa e na lista; se o Supabase
@@ -207,7 +265,7 @@ export function useMesas() {
     return { error };
   }
 
-  return { mesas, loading, erro, recarregar, atualizarStatusMesa };
+  return { mesas, loading, erro, aoVivo, recarregar, atualizarStatusMesa };
 }
 
 /**
@@ -226,6 +284,8 @@ export function usePedidosCozinha() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
+  // `aoVivo` é aditivo: o KDS que só lê { pedidos, loading, erro } segue igual.
+  const [aoVivo, setAoVivo] = useState(true);
 
   const recarregar = useCallback(async () => {
     setLoading(true);
@@ -248,6 +308,7 @@ export function usePedidosCozinha() {
 
   // Requer Realtime habilitado na tabela `pending` (Database → Replication).
   useEffect(() => {
+    let vivo = true;
     const channel = supabase
       .channel("cozinha-pedidos-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "pending" }, (payload) => {
@@ -271,12 +332,14 @@ export function usePedidosCozinha() {
           setPedidos(prev => prev.filter(p => p.id !== payload.old.id));
         }
       })
-      .subscribe();
+      .subscribe(tratarStatusCanal("cozinha-pedidos-realtime", {
+        recarregar, setAoVivo, estaVivo: () => vivo,
+      }));
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    return () => { vivo = false; supabase.removeChannel(channel); };
+  }, [recarregar]);
 
-  return { pedidos, loading, erro, recarregar };
+  return { pedidos, loading, erro, aoVivo, recarregar };
 }
 
 /**
@@ -294,14 +357,23 @@ export function usePedidosCozinha() {
  *    correto.
  *
  * Expõe { pedidos, carregando, erro, recarregar }.
+ *
+ * `sessaoAbertaEm` (opcional) é a hora de abertura do caixa, que a tela pega
+ * no contexto e repassa. Ela existe porque o recorte das colunas terminais é
+ * por TURNO, e não por dia de calendário: a aba do PDV fica aberta 24 horas e
+ * a madrugada pertence ao movimento da noite anterior. Sem ela o recorte cai
+ * no início do dia (comportamento anterior).
  */
-export function usePedidosDelivery() {
+export function usePedidosDelivery({ sessaoAbertaEm = null } = {}) {
   const [pedidos, setPedidos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
+  // Um único `aoVivo` para os dois canais: a tela só está ao vivo quando os
+  // dois estão de pé, e é isso que o operador precisa saber. Aditivo.
+  const [aoVivo, setAoVivo] = useState(true);
 
   const recarregar = useCallback(async () => {
-    const { data, error } = await listarPedidosDelivery();
+    const { data, error } = await listarPedidosDelivery({ sessaoAbertaEm });
     if (error) {
       // Mantém a lista que já estava na tela — mesma regra de
       // usePedidosCozinha. `listarPedidosDelivery` devolve data: [] em
@@ -316,12 +388,13 @@ export function usePedidosDelivery() {
       setPedidos(data ?? []);
     }
     setCarregando(false);
-  }, []);
+  }, [sessaoAbertaEm]);
 
   useEffect(() => { recarregar(); }, [recarregar]);
 
   // Status ao vivo entre dispositivos.
   useEffect(() => {
+    let vivo = true;
     const channel = supabase
       .channel("delivery-pedidos-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "delivery_pedidos" }, (payload) => {
@@ -335,15 +408,18 @@ export function usePedidosDelivery() {
           setPedidos((prev) => prev.filter((p) => p.id !== payload.old.id));
         }
       })
-      .subscribe();
+      .subscribe(tratarStatusCanal("delivery-pedidos-realtime", {
+        recarregar, setAoVivo, estaVivo: () => vivo,
+      }));
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    return () => { vivo = false; supabase.removeChannel(channel); };
+  }, [recarregar]);
 
   // Novo pedido do cliente ao vivo HOJE: `pending` já tem Realtime. O espelho
   // do delivery entra com created_by='delivery' — nesse INSERT, recarrega a
   // lista de `delivery_pedidos` (fonte de verdade da aba).
   useEffect(() => {
+    let vivo = true;
     const channel = supabase
       .channel("delivery-pending-espelho")
       .on(
@@ -351,10 +427,12 @@ export function usePedidosDelivery() {
         { event: "INSERT", schema: "public", table: "pending", filter: "created_by=eq.delivery" },
         () => { recarregar(); },
       )
-      .subscribe();
+      .subscribe(tratarStatusCanal("delivery-pending-espelho", {
+        recarregar, setAoVivo, estaVivo: () => vivo,
+      }));
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { vivo = false; supabase.removeChannel(channel); };
   }, [recarregar]);
 
-  return { pedidos, carregando, erro, recarregar };
+  return { pedidos, carregando, erro, aoVivo, recarregar };
 }
