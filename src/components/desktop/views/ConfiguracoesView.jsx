@@ -1052,7 +1052,12 @@ export function UnidadesMedidaTab({ sz }) {
   const [deletando,   setDeletando]   = useState(false);
   const [erro,        setErro]        = useState("");
 
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+  // Escrever em `unidades_medida` exige gastro_role='admin' na policy. O
+  // gerente entrava aqui com os botões de adicionar e remover ligados, e o
+  // banco recusava tudo, com a tela mandando "tentar de novo" uma coisa que
+  // nunca ia funcionar. Mesma régua da aba Meios de Pagamento: quem não é
+  // administrador consulta, não altera (Princípio nº 1).
+  const isAdmin = currentUser?.role === "admin";
 
   useEffect(() => {
     supabase.from("unidades_medida").select("*").order("ordem").order("nome")
@@ -1173,6 +1178,13 @@ export function UnidadesMedidaTab({ sz }) {
       {/* Fora do diálogo: falhas de carga, de adição e da checagem pré-exclusão. */}
       {erro && !deleteInfo && (
         <div className="unidades-medida-tab__erro" role="alert">{erro}</div>
+      )}
+      {/* Diz de cara por que não há o que clicar aqui, em vez de deixar a
+          pessoa procurar um botão de adicionar que foi escondido. */}
+      {!isAdmin && (
+        <div className="unidades-medida-tab__ajuda">
+          Somente o administrador pode alterar as unidades de medida. Aqui você confere as que já existem.
+        </div>
       )}
       {TIPOS_UNIDADE.map(({ tipo, label, color }) => {
         const lista   = unidades.filter(u => u.tipo === tipo);

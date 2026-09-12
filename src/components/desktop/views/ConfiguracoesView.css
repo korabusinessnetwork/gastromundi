@@ -709,6 +709,14 @@
 }
 
 /* Falha de carga/gravação nas unidades — a tela nunca deve seguir em silêncio. */
+/* Explica a aba só de leitura para quem não é administrador, mesmo papel do
+   .meios-pagamento-tab__ajuda da aba vizinha. */
+.unidades-medida-tab__ajuda {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
 .unidades-medida-tab__erro {
   padding: 10px 14px;
   border: 1px solid var(--gm-red);
