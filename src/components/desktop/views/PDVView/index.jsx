@@ -1909,17 +1909,40 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   const isNarrow = width < 540;
   const hoje = new Date().toDateString();
   const [logsComandaCancelada, setLogsComandaCancelada] = useState([]);
+  const [logsCarregando, setLogsCarregando] = useState(false);
+  const [logsErro, setLogsErro] = useState(false);
   const [showCancelList, setShowCancelList] = useState(false);
 
+  // As comandas canceladas inteiras vêm dos logs. Sem olhar o `error`, uma
+  // falha na consulta fazia o card "Cancelamentos do Dia" mostrar menos do que
+  // o real sem nada na tela dizendo isso, e o gerente lia um número errado
+  // como se fosse certo.
   useEffect(() => {
     if (!autorizado) return;
+    let vivo = true;
     const inicioDia = new Date(new Date().toDateString()).toISOString();
+    setLogsCarregando(true);
+    setLogsErro(false);
     supabase
       .from("operator_logs")
       .select("payload, created_at")
       .eq("action_type", "comanda:cancelar")
       .gte("created_at", inicioDia)
-      .then(({ data }) => setLogsComandaCancelada(data ?? []));
+      .then(
+        ({ data, error }) => {
+          if (!vivo) return;
+          if (error) { setLogsErro(true); setLogsComandaCancelada([]); }
+          else       { setLogsComandaCancelada(data ?? []); }
+          setLogsCarregando(false);
+        },
+        () => {
+          if (!vivo) return;
+          setLogsErro(true);
+          setLogsComandaCancelada([]);
+          setLogsCarregando(false);
+        },
+      );
+    return () => { vivo = false; };
   }, [autorizado]);
 
   // Leva 15.3 — vendas canceladas não contam no saldo do dia
@@ -2063,6 +2086,16 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                     {qtdCancelados} {qtdCancelados === 1 ? "item cancelado" : "itens cancelados"}
                   </div>
                   <div className="pdv__saldo-pills">
+                    {logsCarregando && (
+                      <span className="pdv__saldo-pill">
+                        Carregando comandas canceladas...
+                      </span>
+                    )}
+                    {logsErro && (
+                      <span role="alert" className="pdv__saldo-pill pdv__saldo-pill--erro">
+                        Não foi possível carregar as comandas canceladas, o total pode estar incompleto.
+                      </span>
+                    )}
                     {canceladosAbertos.length > 0 && (
                       <span className="pdv__saldo-pill">
                         {canceladosAbertos.reduce((s,i)=>s+(i.qty??1),0)} em aberto

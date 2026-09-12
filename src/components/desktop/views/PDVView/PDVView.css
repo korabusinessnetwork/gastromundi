@@ -2251,3 +2251,11 @@
   font-variant-numeric: tabular-nums;
   font-weight: 800;
 }
+
+/* Falha ao carregar as comandas canceladas: o total do card fica incompleto e
+   isso precisa estar visível, não escondido. */
+.pdv__saldo-pill--erro {
+  background: color-mix(in srgb, var(--gm-red) 12%, transparent);
+  font-weight: 700;
+  color: var(--gm-red);
+}
