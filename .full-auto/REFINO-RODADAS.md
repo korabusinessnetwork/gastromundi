@@ -50,3 +50,70 @@ O build caiu de 2,99 s para 1,56 s e o precache do PWA subiu de 3.877 KiB para
 4.068 KiB. A queda de tempo é cache do Vite entre execuções, não ganho de
 performance meu, e a subida do precache é o peso dos arquivos que mudaram. Não
 conto nenhum dos dois como resultado.
+
+## Rodada 2, 2026-09-12, em frentes paralelas
+
+Seis trilhas em worktree própria, cada uma dona exclusiva de um conjunto de
+arquivos sem interseção, mais duas frentes de varredura somente leitura nas áreas
+que a rodada 1 não cobriu. Tudo despachado de uma vez.
+
+### Entregue: 32 itens, nada revertido
+
+| Trilha | Itens | O que mudou de mais importante |
+|---|---|---|
+| relatórios e financeiro | 4 | O card Lucro parou de inventar prejuízo em período de mais de 90 dias atrás, onde a receita vinha vazia e a despesa cheia. Lançamentos passaram a ser filtrados na consulta, e o atalho "Tudo" deixou de exportar 90 dias dizendo "Todo o período" para quem manda o arquivo ao contador. |
+| cadastros e estoque | 5 | Exclusão de produto recusada pela RLS deixou de ser registrada como sucesso no log, leitura falha da composição do combo passou a travar o Salvar em vez de apagar itens em silêncio, e o segundo Enter na entrada de estoque não lança a quantidade em dobro. |
+| PDV e Palm | 7 | Nome de comanda repetido é bloqueado com o motivo, fechar caixa com diferença exige a justificativa que a regra já pedia, clique no fundo do modal de mesa cancela em vez de confirmar vazio, split não aceita negativo, e a fila de pedidos em espera do Palm sobrevive a recarregar a tela. |
+| acesso e login | 5 | Queda de conexão deixou de ser acusada como senha errada e de queimar tentativa (o Console herdou de graça, usa a mesma função), a tela voltou a ser um formulário de verdade, e a aba aberta direto numa rota protegida espera a sessão em vez de piscar o login. |
+| gestão e configurações | 5 | Duas abas paravam de oferecer ao gerente botões que o banco sempre recusa, o card Impostos passou a contar a fonte que a tela usa (e levou 175 linhas de tela morta), e Compras ganhou busca, recorte por situação e corte em blocos. |
+| delivery e cozinha | 6 | A Cozinha diz no cartão quando a ação não salvou, separando o caso de outra estação ter avançado a comanda, o kanban parou de trazer a base inteira, e os chips do histórico de NFC-e dizem quantas notas esperam ação. |
+| do maestro | 5 | Formatador único de dinheiro ligado às seis telas do desktop, travessão fora das telas da Ponte com o guard estendido aos `.html` dela, teto diário de uso do Jarvas, janela de 90 dias com dono único, e prazo de teste de 20 s. |
+
+### Medidas, antes e depois
+
+| Medida | Início da rodada 2 | Fim |
+|--------|--------------------|-----|
+| Arquivos de teste | 241 | 252 |
+| Testes | 4212 | 4334 |
+| Tempo da suíte (máquina livre) | 76 s | 135 s |
+| Build | limpo | limpo, 2,20 s |
+| Bundle principal | 2.442,98 kB, gzip 702,49 kB | 2.456,87 kB, gzip 706,29 kB |
+| Achados abertos na auditoria | 33 | 18 |
+| Separadores de travessão fora do alcance do guard | 10, na Ponte | 0, e o guard cobre `ponte/*.html` |
+
+O bundle cresceu 14 kB, que é o peso do que foi acrescentado (busca em duas
+telas, estados de erro, persistência da fila do Palm). O tempo da suíte quase
+dobrou porque há 122 testes novos; por teste, ele ficou praticamente igual.
+
+### Revertido
+
+Nada por quebra. Duas mudanças minhas foram desfeitas por julgamento, não por
+falha:
+
+1. **V201, fuso da assinatura.** Alinhar o front ao UTC derrubava 7 testes que
+   codificam uma decisão do dono (o dia que vale é o local do estabelecimento, e
+   a suíte fixa o fuso em São Paulo de propósito). Reverti e virou a pendência
+   P06, com as duas saídas e recomendação.
+2. **Constante da janela exportada do `AppContext`.** Os mocks de tela quebraram
+   na hora, o que mostrou que o lugar certo era um módulo de constante, que
+   ninguém substitui por dublê. Refeito assim.
+
+### Dois erros das frentes, que elas mesmas relataram
+
+Duas frentes criaram arquivo de teste sem checar se já existia e apagaram testes
+antigos: 19 no `FinanceiroView.test.jsx` e 7 no `HistoricoNfce.test.jsx`. Nos
+dois casos a suíte continuou verde, porque o arquivo novo passava, e só o
+`git diff --stat` mostrou a remoção. As duas restauraram por conta própria, e eu
+conferi no merge: o diff dos dois arquivos contra a base é puramente aditivo.
+
+Isto vale como aprendizado da rodada, não como acusação: **suíte verde não
+detecta teste apagado.** Conferir `git diff --stat` dos arquivos de teste antes
+de integrar entrou no meu procedimento.
+
+### O que a paralelização ensinou
+
+Três frentes independentes pediram a mesma coisa (prazo de teste maior) e duas
+pediram a mesma constante. Nenhuma delas teria visto isso sozinha, e nenhuma
+podia resolver, porque são arquivos compartilhados. A conta fecha: o paralelismo
+rendeu, e o custo dele é que a suíte da cópia principal não mede nada enquanto as
+frentes rodam (registrado no `BASELINE.md`).

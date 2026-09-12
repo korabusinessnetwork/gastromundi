@@ -2,19 +2,19 @@
 
 status: AGUARDANDO_MATHEUS
 
-- **modo:** Full Automático Refino (varredura de todos os fluxos)
+- **modo:** Full Automático Refino
 - **projeto:** GastroMundi (KORA)
-- **entrada:** nenhum plano, a lista nasce da auditoria do próprio sistema
 - **branch:** claude/automatic-flow-sweep-qx0arn
 - **início:** 2026-09-12
-- **fase atual:** rodada 1 fechada, rodada 2 montada e não iniciada
+- **fase atual:** rodada 2 fechada, rodada 3 montada e não iniciada
 - **tarefa atual:** nenhuma em andamento
-- **próximo passo:** rodada 2 com o topo do backlog (C04, A04, C02, C05, C06, A03, D02, mais o N01 do meu próprio achado de navegação). Basta dizer para eu seguir.
-- **progresso:** rodada 1 com 8 de 8 entregues, nada revertido
-- **baseline:** verde no fim da rodada, 241 arquivos e 4212 testes, build limpo, medidas em `BASELINE.md`
+- **progresso:** rodada 1 com 8 de 8, rodada 2 com 32 de 32, nada revertido por quebra
+- **baseline:** verde com as frentes paradas, 252 arquivos e 4334 testes, build limpo, medidas em `BASELINE.md`
+- **próximo passo:** rodada 3 com o que sobrou da varredura, na ordem: V101 (falha de impressão automática que ninguém vê), V102 (dreno da fila offline sem repetição), V103 (PWA recarregando a aba do caixa sem avisar), V107, V105, V106, V108, V109, V110, mais N04, N05 e o `npm audit fix`. Basta dizer para eu seguir.
 
 ## Motivo da parada
-A varredura que você pediu está completa e a primeira rodada de correções foi
-entregue. Paro aqui porque o refino é um laço que continua até você mandar parar,
-e seguir por conta própria por mais rodadas gastaria a sessão sem você ver o que
-já saiu. Os oito commits estão na branch, ainda sem PR.
+As duas rodadas fecharam e a varredura cobriu o sistema inteiro, incluindo as
+áreas que faltavam (Ponte, offline, impressão, PWA, pautas, banco, RLS e Edge
+Functions). Paro aqui porque o que sobrou de mais importante depende de decisão
+sua: seis pendências em `PENDENCIAS-DO-MATHEUS.md`, quatro delas exigindo
+migration. Os 40 commits estão na branch, ainda sem PR.
