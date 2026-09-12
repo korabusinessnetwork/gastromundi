@@ -61,6 +61,7 @@ vi.mock("@/lib/tenant", () => ({
 
 import { AppProvider, useApp } from "./AppContext";
 import { saveSession, SESSION_MS } from "@/utils/session";
+import { reportarFalha } from "@/lib/observabilidade";
 
 const usuario = { id: 7, name: "Fulano", username: "fulano", role: "gerente", auth_id: "auth-7" };
 const T0 = new Date("2026-03-10T12:00:00.000Z").getTime();
@@ -85,6 +86,7 @@ function comCanaisCapturados() {
     const registro = { handlers: [], statusCb: null };
     canaisRealtime.set(nome, registro);
     const ch = {
+      registro,
       on: vi.fn((_evento, _filtro, handler) => { registro.handlers.push(handler); return ch; }),
       subscribe: vi.fn((cb) => {
         registro.statusCb = cb ?? null;
@@ -95,6 +97,16 @@ function comCanaisCapturados() {
     };
     return ch;
   });
+  // Fechar o canal também entrega CLOSED pelo callback de status, e é assim que
+  // o desmonte do provider se parece com um canal caindo.
+  mockSupabase.removeChannel.mockImplementation((ch) => { ch?.registro?.statusCb?.("CLOSED"); });
+}
+
+/** O servidor muda o estado de um canal (erro, tempo esgotado, fechado). */
+async function mudarStatusDoCanal(nome, status) {
+  const registro = canaisRealtime.get(nome);
+  if (!registro?.statusCb) throw new Error(`canal ${nome} não leu status nenhum`);
+  await act(async () => { registro.statusCb(status); });
 }
 
 /** Entrega um evento de banco a um canal, como o realtime faria. */
@@ -489,5 +501,74 @@ describe("o computador que dorme e volta (C04)", () => {
     await deixarACargaTerminar();
 
     expect(mockFila.drenarFila.mock.calls.length).toBeGreaterThan(antes);
+  });
+});
+
+// ── C05 ──────────────────────────────────────────────────────────
+// Os `subscribe` dos canais não liam status nenhum. O supabase-js entrega
+// SUBSCRIBED, CHANNEL_ERROR, TIMED_OUT e CLOSED nesse callback, e ninguém lia:
+// canal derrubado por erro de servidor, por RLS ou por token recusado não
+// produzia log, aviso nem sinal de tela. E `pending` só é alimentado pelo
+// realtime depois do bootstrap, com a impressão automática da cozinha reagindo a
+// esse mesmo `pending`, então canal morto em silêncio é pedido do garçom que não
+// aparece no caixa e comanda que não sai no papel, tendo o cliente reclamando
+// como único sinal.
+describe("canal de realtime que morre em silêncio (C05)", () => {
+  it("canal com erro fica registrado, marca o sinal e refaz a carga", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    const { app } = await montarLogado();
+    expect(app.current.realtimeInstavel).toBe(false);
+    const antes = cargasFeitas();
+
+    await mudarStatusDoCanal("pending-realtime", "CHANNEL_ERROR");
+    await deixarACargaTerminar();
+
+    expect(app.current.realtimeInstavel).toBe(true);
+    expect(vi.mocked(reportarFalha)).toHaveBeenCalled();
+    expect(cargasFeitas()).toBe(antes + 1);
+  });
+
+  it("tempo esgotado no canal de vendas conta como canal sem eventos", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    const { app } = await montarLogado();
+    const antes = cargasFeitas();
+
+    await mudarStatusDoCanal("sales-realtime", "TIMED_OUT");
+    await deixarACargaTerminar();
+
+    expect(app.current.realtimeInstavel).toBe(true);
+    expect(cargasFeitas()).toBe(antes + 1);
+  });
+
+  it("canal que volta a receber eventos apaga o sinal", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    const { app } = await montarLogado();
+
+    await mudarStatusDoCanal("estoque-realtime", "CHANNEL_ERROR");
+    expect(app.current.realtimeInstavel).toBe(true);
+
+    await mudarStatusDoCanal("estoque-realtime", "SUBSCRIBED");
+
+    expect(app.current.realtimeInstavel).toBe(false);
+  });
+
+  it("desmontar o provider fecha os canais sem virar falha nem pedir carga", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    const { tela } = await montarLogado();
+    const antes = cargasFeitas();
+
+    await act(async () => { tela.unmount(); });
+    await deixarACargaTerminar();
+
+    expect(cargasFeitas()).toBe(antes);
+    expect(vi.mocked(reportarFalha)).not.toHaveBeenCalled();
   });
 });

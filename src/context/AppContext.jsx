@@ -56,6 +56,11 @@ const INTERVALO_ANALISE_JARVAS_MS = 30 * 60 * 1000;
 // uma enxurrada de leituras. 15 s é curto o bastante para quem está no caixa não
 // perceber, e longo o bastante para uma rajada inteira virar uma carga só.
 const INTERVALO_MIN_RECARGA_MS = 15_000;
+// Estados que o supabase-js entrega no callback do `subscribe` quando o canal
+// NÃO está recebendo eventos. `CLOSED` entra na lista porque canal fechado pelo
+// servidor é tão cego quanto canal com erro; o fechamento normal, o do desmonte
+// do provider, é descartado antes de chegar aqui.
+const STATUS_CANAL_SEM_EVENTO = ["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"];
 import { useStatusRede } from "@/hooks/useStatusRede";
 import IndicadorRede from "@/components/shared/IndicadorRede";
 import AvisoSessao from "@/components/shared/AvisoSessao";
@@ -896,8 +901,56 @@ export function AppProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, currentUser?.id]);
 
+  // ── Realtime: canal que morre em silêncio ────────────────────
+  //
+  // Os três `subscribe` abaixo não liam status nenhum. O supabase-js entrega
+  // SUBSCRIBED, CHANNEL_ERROR, TIMED_OUT e CLOSED nesse callback, e ninguém
+  // lia: canal derrubado por erro de servidor, por RLS ou por token recusado
+  // não produzia log, aviso nem sinal de tela.
+  //
+  // É grave por causa do que depende desses canais: `pending` só é alimentado
+  // pelo realtime depois do bootstrap, e a impressão automática da cozinha
+  // reage a esse mesmo `pending`. Canal morto em silêncio significa pedido do
+  // garçom que não aparece no caixa e comanda que não sai no papel, tendo o
+  // cliente reclamando como único sinal. Numa aba que nunca recarrega, isso não
+  // se resolve sozinho no dia seguinte.
+  //
+  // Um estado ruim fica registrado (console e observabilidade) e refaz a carga:
+  // é a mesma lacuna da queda de rede, o canal não estava lá para entregar o
+  // que aconteceu. A trava da recarga é que impede o canal batendo e voltando
+  // de virar uma enxurrada de leituras.
+  //
+  // Na TELA não desenho nada, de propósito. Quem fala de conexão com quem opera
+  // é o IndicadorRede, e um segundo aviso inventado aqui criaria dois recados
+  // competindo pelo mesmo assunto, que é pior para o caixa do que um recado só
+  // no lugar certo. O sinal sai no contexto como `realtimeInstavel`, para o
+  // indicador adotá-lo sem que o provider passe a desenhar tela.
+  const canaisInstaveisRef = useRef(new Set());
+  const [realtimeInstavel, setRealtimeInstavel] = useState(false);
+
+  const tratarStatusCanal = (nome, status) => {
+    const instaveis = canaisInstaveisRef.current;
+    if (status === "SUBSCRIBED") {
+      instaveis.delete(nome);
+      setRealtimeInstavel(instaveis.size > 0);
+      return;
+    }
+    if (!STATUS_CANAL_SEM_EVENTO.includes(status)) return;
+    instaveis.add(nome);
+    setRealtimeInstavel(true);
+    console.error(`[realtime] o canal de ${nome} parou de receber eventos (${status})`);
+    reportarFalha(new Error(`canal de realtime sem eventos: ${nome} (${status})`), {
+      acao: "statusCanalRealtime", canal: nome, status,
+    });
+    void recarregarAposLacuna(`o canal de ${nome} parou de receber eventos (${status})`);
+  };
+
   // ── Realtime: pedidos pendentes (palm ↔ caixa) ───────────────
   useEffect(() => {
+    // `ativo` separa o fechamento normal do anormal: `removeChannel` no
+    // desmonte também entrega CLOSED, e tratá-lo como falha faria o provider
+    // pedir carga ao morrer.
+    let ativo = true;
     const channel = supabase
       .channel("pending-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "pending" }, (payload) => {
@@ -911,14 +964,15 @@ export function AppProvider({ children }) {
           setPendingLocal(prev => prev.filter(p => p.id !== payload.old.id));
         }
       })
-      .subscribe();
+      .subscribe((status) => { if (ativo) tratarStatusCanal("pedidos", status); });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { ativo = false; supabase.removeChannel(channel); };
   }, []);
 
   // ── Realtime: estoque (sincroniza saldo/mínimo entre dispositivos) ──
   // Requer Realtime habilitado na tabela `estoque` (Database → Replication).
   useEffect(() => {
+    let ativo = true;
     const channel = supabase
       .channel("estoque-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "estoque" }, (payload) => {
@@ -934,9 +988,9 @@ export function AppProvider({ children }) {
         setEstoqueLocal(prev => aplicarNumeroRemoto(prev, produtoId, payload.new?.quantidade));
         setEstoqueMinimosLocal(prev => aplicarNumeroRemoto(prev, produtoId, payload.new?.minimo));
       })
-      .subscribe();
+      .subscribe((status) => { if (ativo) tratarStatusCanal("estoque", status); });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { ativo = false; supabase.removeChannel(channel); };
   }, []);
 
   // ── Realtime: vendas fechadas (saldo do dia entre dispositivos) ──
@@ -944,6 +998,7 @@ export function AppProvider({ children }) {
   // Saldo do Dia / fechamento divergiam entre dispositivos (bug A4/TD010).
   // Requer Realtime habilitado na tabela `sales` (Database → Replication).
   useEffect(() => {
+    let ativo = true;
     const channel = supabase
       .channel("sales-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, (payload) => {
@@ -963,9 +1018,9 @@ export function AppProvider({ children }) {
           if (id) setSalesLocal(prev => prev.filter(s => !s || s.id !== id));
         }
       })
-      .subscribe();
+      .subscribe((status) => { if (ativo) tratarStatusCanal("vendas", status); });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { ativo = false; supabase.removeChannel(channel); };
   }, []);
 
   // ── Offline-first (Leva 11): reenvio da fila local ───────────
@@ -2379,6 +2434,11 @@ export function AppProvider({ children }) {
     // respondeu). Vale junto com o `redeOnline`, nunca no lugar dele: o
     // navegador se diz online com o link do provedor caído.
     redeOnline, abriuSemInternet, pendenciasOffline, enfileirarOffline, pendenciasFiscais,
+    // Algum canal de realtime parou de receber eventos. Diferente dos dois
+    // sinais acima: a internet deste computador pode estar perfeita e o canal,
+    // morto (RLS, token recusado, servidor derrubando a inscrição). Quem
+    // mostrar isso na tela mostra que pedido do garçom pode estar atrasando.
+    realtimeInstavel,
     // Refaz a carga do estabelecimento a pedido de uma pessoa — é o mesmo
     // caminho da abertura do sistema. Serve para quando o link do provedor
     // volta sem este computador ter perdido a rede: o navegador não avisa
