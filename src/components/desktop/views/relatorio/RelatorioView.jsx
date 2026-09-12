@@ -9,7 +9,7 @@ import { useApp } from "@/context/AppContext";
 import { DIAS_JANELA_BOOTSTRAP } from "@/constants/janelaDados";
 import { supabase } from "@/lib/supabase";
 import { exportToPDF as exportToPDFBase, exportToXLSX as exportToXLSXBase } from "@/lib/exportReport";
-import { useResponsive } from "@/utils/hooks";
+import { useResponsive, useAgora } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
@@ -347,14 +347,10 @@ export default function RelatorioView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
 
-  // Tique do relógio: a aba do PDV atravessa a meia-noite sem recarregar, e os
-  // recortes por período ("Hoje", "7 dias", "30 dias") dependem de que hora é
-  // agora. 30 s é o passo já usado na Cozinha (CozinhaView.jsx).
-  const [agora, setAgora] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setAgora(Date.now()), 30000);
-    return () => clearInterval(id);
-  }, []);
+  // O relógio que anda vive em `useAgora` (src/utils/hooks.js): a aba do PDV
+  // atravessa a meia-noite sem recarregar, e os recortes por período dependem
+  // de que hora é agora.
+  const agora = useAgora();
 
   // Cabeçalho dos exports com a identidade do tenant (white-label,
   // decisão 017); "by Kora" é a assinatura da plataforma. Sem tema custom

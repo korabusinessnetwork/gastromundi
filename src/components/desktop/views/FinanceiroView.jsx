@@ -5,7 +5,7 @@ import { listarLancamentos, baixarConta, processarVencidos, calcularFluxoCaixa }
 import { buscarFichasTecnicas, calcularCustoVendas } from "@/lib/relatorios";
 import { round2 } from "@/lib/vendas";
 import { diaLocalISO, rotuloDiaBR } from "@/utils/datas";
-import { useResponsive } from "@/utils/hooks";
+import { useResponsive, useAgora } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -55,14 +55,10 @@ export default function FinanceiroView() {
   const [erroCarregar, setErroCarregar] = useState(false);
   const [aviso, setAviso] = useState("");
 
-  // Tique do relógio: sem ele, a virada do mês não provoca render nenhum e o
-  // intervalo derivado só se corrigiria no próximo toque do usuário. 30 s é o
-  // passo já usado na Cozinha (CozinhaView.jsx).
-  const [agora, setAgora] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setAgora(Date.now()), 30000);
-    return () => clearInterval(id);
-  }, []);
+  // O relógio que anda vive em `useAgora` (src/utils/hooks.js): a aba do PDV
+  // atravessa a meia-noite sem recarregar, e os recortes por período dependem
+  // de que hora é agora.
+  const agora = useAgora();
 
   const periodo = useMemo(() => {
     const preset = PRESETS_PERIODO.find((p) => p.chave === presetPeriodo);

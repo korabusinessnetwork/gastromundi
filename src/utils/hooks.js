@@ -436,3 +436,49 @@ export function usePedidosDelivery({ sessaoAbertaEm = null } = {}) {
 
   return { pedidos, carregando, erro, aoVivo, recarregar };
 }
+
+// ── Relógio ───────────────────────────────────────────────────────
+//
+// Existem porque o PDV não fecha nunca: a aba do balcão atravessa a meia-noite
+// todos os dias sem recarregar, e tudo que resolveu uma data e guardou passa a
+// mostrar o dia errado. Sem um valor que ande, o relatório com "Hoje" ativo
+// segue mostrando a noite passada, e o Financeiro aberto em 30 de agosto
+// continua em agosto o setembro inteiro.
+//
+// 30 segundos é o passo que a Cozinha já usa, e é folgado para o que estes
+// hooks servem: ninguém precisa da virada no segundo exato, precisa é de não
+// ficar preso no dia anterior.
+
+/** Passo padrão dos dois hooks abaixo, igual ao da Cozinha. */
+export const PASSO_RELOGIO_MS = 30_000;
+
+/**
+ * Instante que avança sozinho. Use quando o cálculo precisa da HORA (janelas
+ * de "7 dias", "30 dias", tempo decorrido).
+ *
+ * Cuidado: isto re-renderiza a cada passo. Quando o que importa é só o DIA,
+ * use `useDiaAtual`, que só re-renderiza na virada.
+ */
+export function useAgora(passoMs = PASSO_RELOGIO_MS) {
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), passoMs);
+    return () => clearInterval(id);
+  }, [passoMs]);
+  return agora;
+}
+
+/**
+ * O dia corrente, como texto estável. Regravar o mesmo dia não provoca render,
+ * então quem depende disto refaz o trabalho UMA VEZ por virada, e não a cada
+ * passo do relógio. É o que se quer quando a dependência dispara consulta ao
+ * banco.
+ */
+export function useDiaAtual(passoMs = PASSO_RELOGIO_MS) {
+  const [dia, setDia] = useState(() => new Date().toDateString());
+  useEffect(() => {
+    const id = setInterval(() => setDia(new Date().toDateString()), passoMs);
+    return () => clearInterval(id);
+  }, [passoMs]);
+  return dia;
+}

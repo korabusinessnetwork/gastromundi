@@ -9,6 +9,7 @@ import {
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import "../modulos.css";
 import "./RelatoriosModulo.css";
+import { useDiaAtual } from "@/utils/hooks";
 
 /**
  * RelatoriosModulo — resumo de bolso de Vendas no Palm.
@@ -35,11 +36,7 @@ export default function RelatoriosModulo({ onVoltar }) {
   // que foi aberta. `diaAtual` só muda quando o dia vira (regravar o mesmo
   // texto não provoca render), então a busca é refeita uma vez por virada, não
   // a cada tique. 30 s é o passo já usado na Cozinha (CozinhaView.jsx).
-  const [diaAtual, setDiaAtual] = useState(() => new Date().toDateString());
-  useEffect(() => {
-    const id = setInterval(() => setDiaAtual(new Date().toDateString()), 30000);
-    return () => clearInterval(id);
-  }, []);
+  const diaAtual = useDiaAtual();
 
   const periodo = useMemo(() => calcularPeriodo(periodoChave), [periodoChave, diaAtual]);
   const periodoAnterior = useMemo(
