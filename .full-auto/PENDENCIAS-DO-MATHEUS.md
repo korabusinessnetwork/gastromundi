@@ -3,9 +3,36 @@
 Coisas que só você pode fazer. O app já funciona com contornos, estas tarefas trocam o contorno pelo real.
 Ordem: da mais importante para a menos importante.
 
-**Situação em 11/09/2026: todas as cinco estão fechadas.** As quatro migrations foram aplicadas e a
-branch foi mesclada na `main`. O que sobra não é pendência, é uma conferência: abrir a aba "Saúde
-da operação" do Console uma vez, que é a única entrega desta execução que ninguém viu rodando.
+**Situação em 11/09/2026: as cinco primeiras (P01 a P05) estão fechadas.** As quatro migrations
+foram aplicadas e a branch foi mesclada na `main`.
+
+---
+
+## ÍNDICE DO QUE ESTÁ ABERTO, em 12/09/2026
+
+Nesta ordem. O detalhe de cada uma está mais abaixo, no bloco da rodada em que nasceu.
+
+| # | O que é | Tipo | Por que está nesta posição |
+|---|---------|------|----------------------------|
+| 1 | **P06**, fuso da assinatura | decisão sua, e a saída boa pede migration | É a única que pode FECHAR o PDV no fim do dia enquanto a tela diz que está tudo em ordem. E ficou mais séria agora que sabemos que a aba fica aberta 24 horas: ela atravessa a virada todos os dias. |
+| 2 | **P07**, deploy da Edge Function do Jarvas | comando, 1 minuto | O teto de custo do Jarvas está no código e não existe em produção até a função subir. Sem ele, qualquer admin ou gerente pode chamar a IA em laço e queimar a cota paga. |
+| 3 | **P08**, conferir o cadastro público no painel do Supabase | checagem, 30 segundos | Decide sozinha se as Pautas dos sócios estão expostas ou apenas frágeis. Barata demais para ficar esperando. |
+| 4 | **P09.1**, teto geral do delivery público | migration | Explorável hoje: um script que varia o telefone passa pelo freio atual e enche a fila da Cozinha no meio do serviço. |
+| 5 | **P09.2**, índices compostos em `vendas`, `lancamentos` e `operator_logs` | migration | Com um estabelecimento é invisível. É a conta que chega junto com o cliente número dez, e o padrão certo já existe no projeto. |
+| 6 | **P09.3**, `REVOKE EXECUTE` em quatro funções | migration | Impacto pequeno, mas é a única exceção que sobrou ao padrão que todo o resto segue. |
+| 7 | **P10**, o gerente lê a equipe | decisão sua, e as duas saídas pedem migration | A tela já parou de oferecer o que o banco recusa. O que falta é a lista de uma linha só deixar de parecer que o estabelecimento tem um funcionário. |
+| 8 | Mesclar esta branch na `main` | seu comando, ou me peça o PR | Nada aqui depende de migration para ir ao ar, ver a nota abaixo. |
+
+### Nota que muda o risco do deploy desta leva
+
+**Nenhuma das três rodadas de refino criou migration.** As frentes foram proibidas de tocar em
+`supabase/`, de propósito, justamente para o deploy não ficar preso a uma aplicação manual sua. O
+único item desta leva que precisa de algo no servidor é o **deploy da Edge Function do Jarvas**
+(P07), e ele não bloqueia o frontend: sem o deploy, o Jarvas continua funcionando como antes, só
+sem o teto de uso.
+
+Então, diferente de 11/09, aqui o push na `main` pode acontecer antes das migrations da P09 sem
+deployar frontend novo contra banco velho.
 
 (a preencher durante a execução)
 
@@ -281,3 +308,51 @@ conferir quem está ativo no dia a dia. As duas exigem migration, e a A também
 mexe na matriz de cargos por tenant (decisão 017) se um dia o gerente puder
 gerenciar usuários: nesse caso as policies precisam consultar a matriz em vez do
 papel fixo.
+
+---
+
+# Comandos exatos, para não precisar procurar
+
+## P07, deploy da Edge Function do Jarvas
+
+```bash
+supabase functions deploy jarvas-assistente
+```
+
+Nenhuma variável nova é obrigatória. `IA_LIMITE_DIARIO` já existe e o padrão é 50 perguntas por dia
+por estabelecimento, o mesmo teto da leitura de cardápio por IA. Para mudar o número, é variável de
+ambiente da função no painel, não precisa de código.
+
+Como conferir que pegou: fazer 51 perguntas ao Jarvas no mesmo dia, ou baixar o teto para 1 e
+perguntar duas vezes. A segunda recusa deve dizer que o limite de hoje acabou e quantas são por dia.
+
+## P08, cadastro público no painel do Supabase
+
+Caminho: painel do projeto, **Authentication**, **Providers**, **Email**.
+
+O que olhar, e o que cada resposta significa:
+
+- **"Enable email signup" desligado:** está fechado, nada a fazer. As Pautas seguem seguras mesmo
+  com a função olhando só o domínio do e-mail.
+- **Ligado, com "Confirm email" ligado:** o caminho está fechado na prática, porque `@pautas.local`
+  não recebe correio e a conta nunca confirma. Vale fechar mesmo assim, quando der.
+- **Ligado, com "Confirm email" desligado:** qualquer pessoa com a chave pública se cadastra como
+  `qualquercoisa@pautas.local` e passa a ler e escrever as pautas internas da Kora. Desligue o
+  signup agora, e me peça a migration que passa a exigir o sócio na tabela `pautas_pessoas`.
+
+## Mesclar esta branch na `main`
+
+O caminho que funciona neste repositório, medido em 11/09 (push direto sem PR é recusado pela
+proteção de branch):
+
+```bash
+git checkout main && git pull origin main
+git merge --ff-only claude/automatic-flow-sweep-qx0arn
+git push origin main
+```
+
+Antes disso o PR precisa existir, cobrindo os commits. Se quiser, eu abro o PR e te mando o link,
+basta pedir.
+
+**Efeito colateral que vale lembrar:** a Vercel sobe produção a cada push na `main`. Nesta leva isso
+é seguro, porque nenhuma rodada criou migration (ver a nota do índice).
