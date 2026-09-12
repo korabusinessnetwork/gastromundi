@@ -167,3 +167,9 @@ dentro dela ainda perde a última op. Está registrado como pendência residual 
 - **Decisão:** criei `.env.local` apontando para um host morto (`127.0.0.1:54321`), o que também rendeu o achado N01: com o servidor inalcançável, o login acusa "Usuário ou senha incorretos" e gasta tentativa.
 - **Por quê:** o arquivo está no `.gitignore` (linha 4), então não vai para o repositório.
 - **Como reverter:** apagar o arquivo.
+
+## D-R04 Os merges da rodada 2 foram acumulados, com a verificação completa no fim
+- **Contexto:** a skill manda rodar a verificação completa depois de cada merge. Na rodada 2 as seis trilhas rodam ao mesmo tempo, e a suíte inteira passou de 76 s para mais de 7 minutos com a CPU disputada por elas.
+- **Decisão:** os merges de trilhas com arquivos disjuntos são acumulados, e a verificação completa roda quando a leva chega, mais uma vez no fechamento da rodada.
+- **Por quê:** os conjuntos de arquivos foram desenhados sem interseção, cada trilha já rodou a suíte inteira verde na worktree dela, e uma falha depois do merge se isola por trilha em um comando. O ganho é não gastar meia hora de relógio em verificações que testam a mesma coisa.
+- **Como reverter:** rodar `npm test` entre cada merge, quando não houver frentes concorrendo por CPU.
