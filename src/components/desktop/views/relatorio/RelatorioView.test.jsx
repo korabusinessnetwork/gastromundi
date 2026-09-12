@@ -259,3 +259,66 @@ describe("RelatorioView, item cancelado dentro de venda válida", () => {
     expect(rows.flat()).not.toContain("Batata");
   });
 });
+
+/**
+ * Aba Logs: falha de leitura contra período realmente sem atividade.
+ *
+ * A carga de `operator_logs` ignorava o erro e caía em `data ?? []`: a aba
+ * ficava vazia com "Nenhum evento no período selecionado", indistinguível de
+ * "não houve atividade". É a aba que o dono abre justamente quando desconfia
+ * de algo, então vazio por engano é o pior resultado possível.
+ */
+function montarLogs() {
+  contexto.current = {
+    sales: [],
+    fechamentos: [],
+    pending: [],
+    users: [],
+    currentUser: { role: "gerente" },
+    tenant: null,
+    metodosCustom: [],
+  };
+  render(<RelatorioView />);
+  fireEvent.click(screen.getByText("Logs"));
+}
+
+const LOG_DE_AGORA = {
+  id: "log1",
+  operator_id: "ana",
+  action_type: "caixa:abertura",
+  payload: { name: "Ana", role: "gerente", msg: "Abriu o caixa" },
+  created_at: new Date().toISOString(),
+};
+
+describe("RelatorioView, leitura dos logs de operadores", () => {
+  it("falha de leitura mostra o motivo e um botão de tentar de novo", async () => {
+    mockSupabase.current.setTableError("operator_logs", { message: "conexão perdida" });
+    montarLogs();
+
+    expect(await screen.findByText(/Não foi possível carregar os logs/)).toBeInTheDocument();
+    expect(screen.getByText(/conexão perdida/)).toBeInTheDocument();
+    // O engano que existia antes: aba vazia como se nada tivesse acontecido.
+    expect(screen.queryByText("Nenhum evento no período selecionado")).not.toBeInTheDocument();
+  });
+
+  it("tentar de novo refaz a busca e mostra os logs quando o banco responde", async () => {
+    mockSupabase.current.setTableError("operator_logs", { message: "conexão perdida" });
+    montarLogs();
+    await screen.findByText("Tentar de novo");
+
+    mockSupabase.current.reset();
+    mockSupabase.current.setTableResult("operator_logs", { data: [LOG_DE_AGORA], error: null });
+    fireEvent.click(screen.getByText("Tentar de novo"));
+
+    expect(await screen.findByText("Abriu o caixa")).toBeInTheDocument();
+    expect(screen.queryByText(/Não foi possível carregar os logs/)).not.toBeInTheDocument();
+  });
+
+  it("período realmente sem atividade continua mostrando o estado vazio", async () => {
+    mockSupabase.current.setTableResult("operator_logs", { data: [], error: null });
+    montarLogs();
+
+    expect(await screen.findByText("Nenhum evento no período selecionado")).toBeInTheDocument();
+    expect(screen.queryByText(/Não foi possível carregar os logs/)).not.toBeInTheDocument();
+  });
+});
