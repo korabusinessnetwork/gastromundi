@@ -2347,6 +2347,12 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   const [faixaCepFim, setFaixaCepFim] = useState("");
   const [faixaKmAte, setFaixaKmAte] = useState("");
   const [faixaTaxa, setFaixaTaxa] = useState("");
+  // Apagar faixa é destrutivo e invisível: sem a faixa, todo cliente daquele
+  // bairro passa a ler "fora da nossa área de entrega" na vitrine, e ninguém no
+  // balcão percebe. Confirmação em duas etapas, no mesmo padrão do cartão de
+  // produto desta tela. Guarda o `uid` da faixa, não o índice: a lista muda de
+  // ordem e de tamanho enquanto a confirmação está aberta.
+  const [faixaParaApagar, setFaixaParaApagar] = useState(null);
 
   useEffect(() => {
     let ativo = true;
@@ -2399,9 +2405,11 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
     salvar({ faixas_taxa: faixas });
   };
 
-  const removerFaixa = (idx) => {
-    const alvo = faixasVisiveis[idx];
+  const removerFaixa = (uid) => {
+    const alvo = faixasVisiveis.find((f) => f.uid === uid);
+    if (!alvo) return;
     const faixas = (config.faixas_taxa || []).filter((f) => f !== alvo);
+    setFaixaParaApagar(null);
     salvar({ faixas_taxa: faixas });
   };
 
@@ -2655,13 +2663,38 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
           {faixasVisiveis.length === 0 && (
             <div className="delivery-view__hint">Nenhuma faixa cadastrada ainda.</div>
           )}
-          {faixasVisiveis.map((f, idx) => (
+          {faixasVisiveis.map((f) => (
             <div key={f.uid} className="delivery-view__faixa">
               <span className="delivery-view__faixa-texto">{faixaResumo(f)}</span>
               {isAdmin && (
-                <button onClick={() => removerFaixa(idx)} className="delivery-view__modal-fechar">
-                  <LuTrash2 size={14} />
-                </button>
+                faixaParaApagar === f.uid ? (
+                  <div className="delivery-view__faixa-confirma">
+                    <span className="delivery-view__faixa-confirma-texto">Apagar esta faixa?</span>
+                    <button
+                      onClick={() => removerFaixa(f.uid)}
+                      className="delivery-view__faixa-confirma-sim"
+                    >
+                      Sim, apagar
+                    </button>
+                    <button
+                      onClick={() => setFaixaParaApagar(null)}
+                      className="delivery-view__modal-fechar"
+                      title="Manter a faixa"
+                      aria-label={`Manter a faixa ${faixaResumo(f)}`}
+                    >
+                      <LuX size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setFaixaParaApagar(f.uid)}
+                    className="delivery-view__modal-fechar"
+                    title="Apagar faixa"
+                    aria-label={`Apagar a faixa ${faixaResumo(f)}`}
+                  >
+                    <LuTrash2 size={14} />
+                  </button>
+                )
               )}
             </div>
           ))}

@@ -25,10 +25,11 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery } = vi.hoisted(() => ({
+const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery, salvarConfigDelivery } = vi.hoisted(() => ({
   usePedidosDelivery: vi.fn(),
   listarProdutosDelivery: vi.fn(),
   carregarConfigDelivery: vi.fn(),
+  salvarConfigDelivery: vi.fn(),
 }));
 
 // Só o hook de pedidos é falso. O resto de @/utils/hooks passa real pelo
@@ -42,6 +43,7 @@ vi.mock("@/lib/deliveryAdmin", async (importOriginal) => ({
   ...(await importOriginal()),
   listarProdutosDelivery,
   carregarConfigDelivery,
+  salvarConfigDelivery,
 }));
 
 // O mapa arrasta Leaflet inteiro para o jsdom e não tem nada a ver com pedidos.
@@ -212,5 +214,64 @@ describe("DeliveryView, a prévia abre a loja DESTE estabelecimento", () => {
       "_blank",
       "noopener,noreferrer",
     );
+  });
+});
+
+/**
+ * Apagar faixa de taxa: a lixeira gravava no banco no primeiro toque.
+ *
+ * Sem confirmação, sem desfazer e sem aviso. Um toque errado apaga a faixa do
+ * bairro e, daquele segundo em diante, todo cliente daquele bairro lê "fora da
+ * nossa área de entrega" na vitrine pública, sem ninguém no balcão perceber. A
+ * mesma tela já confirmava em duas etapas no cartão de produto e num modal para
+ * remover grupo de complementos; a faixa ficou de fora.
+ */
+describe("DeliveryView, apagar faixa de taxa pede confirmação", () => {
+  const FAIXA = { uid: "f1", tipo: "bairro", bairro: "Centro", taxa: 5 };
+
+  async function irParaEntregaComUmaFaixa() {
+    carregarConfigDelivery.mockResolvedValue({
+      data: { aberto: true, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [FAIXA] },
+      error: null,
+    });
+    setAppMock({ currentUser: { role: "admin", name: "Dona Ana", username: "ana" }, tenant: { id: "t1" } });
+    await montar();
+    await userEvent.click(screen.getByRole("button", { name: "Entrega e taxas" }));
+    return screen.findByText("Centro, R$ 5,00");
+  }
+
+  it("o primeiro toque na lixeira pergunta, e não grava nada", async () => {
+    await irParaEntregaComUmaFaixa();
+
+    await userEvent.click(screen.getByRole("button", { name: /Apagar a faixa Centro/ }));
+
+    expect(screen.getByText("Apagar esta faixa?")).toBeInTheDocument();
+    expect(salvarConfigDelivery).not.toHaveBeenCalled();
+    expect(screen.getByText("Centro, R$ 5,00")).toBeInTheDocument();
+  });
+
+  it("desistir mantém a faixa e continua sem gravar", async () => {
+    await irParaEntregaComUmaFaixa();
+
+    await userEvent.click(screen.getByRole("button", { name: /Apagar a faixa Centro/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Manter a faixa Centro/ }));
+
+    expect(screen.queryByText("Apagar esta faixa?")).not.toBeInTheDocument();
+    expect(salvarConfigDelivery).not.toHaveBeenCalled();
+  });
+
+  it("confirmar grava a configuração sem aquela faixa", async () => {
+    salvarConfigDelivery.mockResolvedValue({
+      data: { aberto: true, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] },
+      error: null,
+    });
+    await irParaEntregaComUmaFaixa();
+
+    await userEvent.click(screen.getByRole("button", { name: /Apagar a faixa Centro/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Sim, apagar" }));
+
+    expect(salvarConfigDelivery).toHaveBeenCalledTimes(1);
+    const [, proximo] = salvarConfigDelivery.mock.calls[0];
+    expect(proximo.faixas_taxa).toEqual([]);
   });
 });

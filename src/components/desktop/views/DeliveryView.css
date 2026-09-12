@@ -833,6 +833,31 @@
   min-width: 0;
 }
 
+/* Confirmação de apagar faixa de taxa, em duas etapas (mesmo padrão do
+   cartão de produto): a lixeira só pergunta, quem apaga é o "Sim, apagar". */
+.delivery-view__faixa-confirma {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.delivery-view__faixa-confirma-texto {
+  color: var(--gm-muted);
+}
+.delivery-view__faixa-confirma-sim {
+  background: oklch(0.6 0.19 25);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 6px 10px;
+  min-height: 32px;
+}
+.delivery-view__faixa-confirma-sim:hover {
+  background: oklch(0.54 0.19 25);
+}
+
 .delivery-view__aviso {
   border-radius: 10px;
   padding: 10px 12px;
@@ -1734,6 +1759,8 @@
 
 /* Faixas de taxa */
 .delivery-view__faixa-texto { font-size: var(--fs-base); line-height: var(--lh-base); } /* (era sz.fontBase) */
+.delivery-view__faixa-confirma-texto { font-size: var(--fs-sm); line-height: var(--lh-sm); }
+.delivery-view__faixa-confirma-sim   { font-size: var(--fs-sm); line-height: var(--lh-sm); }
 
 /* Kanban / pedidos */
 .delivery-view__pedidos-resumo  { font-size: var(--fs-sm);   line-height: var(--lh-sm); }  /* apoio (era sz.fontSm) */
