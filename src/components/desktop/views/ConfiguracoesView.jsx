@@ -333,10 +333,11 @@ export function UsuariosTab({ sz }) {
     }
   };
 
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
-  // Só o admin de verdade grava permissões: a RLS de role_permissions e de
-  // users (override) exige gastro_role='admin'. Gerente vê, mas não edita
-  // (prevenção de erro — Princípio nº 1: não oferecer o que vai falhar).
+  // Só o admin de verdade grava qualquer coisa aqui: as quatro policies de
+  // `users` e as de role_permissions exigem gastro_role='admin'. O gerente
+  // chegava a ver "+ Novo Usuário", "Editar" e "Excluir", e toda ação voltava
+  // recusada do banco (prevenção de erro — Princípio nº 1: não oferecer o que
+  // vai falhar). Gerente vê a matriz de cargos, e só.
   const isAdminReal = currentUser?.role === "admin";
 
   // Mapa EFETIVO de um cargo neste estabelecimento (matriz do tenant ⊕ default
@@ -470,10 +471,19 @@ export function UsuariosTab({ sz }) {
 
       {/* Header */}
       <div className="usuarios-tab__header">
-        <div className="usuarios-tab__contagem">
-          {users.length} usuário{users.length !== 1 ? "s" : ""} ativo{users.length !== 1 ? "s" : ""}
-        </div>
-        {isAdmin && (
+        {isAdminReal ? (
+          <div className="usuarios-tab__contagem">
+            {users.length} usuário{users.length !== 1 ? "s" : ""} ativo{users.length !== 1 ? "s" : ""}
+          </div>
+        ) : (
+          // Sem a policy de leitura ampla de `users`, quem não é admin só
+          // enxerga a própria linha: a contagem diria "1 usuário ativo" numa
+          // equipe de dez. Melhor não mostrar número nenhum e dizer por quê.
+          <div className="usuarios-tab__aviso-admin">
+            Somente o administrador vê e gerencia a equipe.
+          </div>
+        )}
+        {isAdminReal && (
           <button
             onClick={abrirNovo}
             className="usuarios-tab__btn-novo"
@@ -536,7 +546,7 @@ export function UsuariosTab({ sz }) {
                   </div>
                 </td>
                 <td className="usuarios-tab__td" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                  {isAdmin && (
+                  {isAdminReal && (
                     <div className="usuarios-tab__acoes">
                       <button
                         onClick={() => abrirEditar(u)}

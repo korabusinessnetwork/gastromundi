@@ -341,3 +341,51 @@ describe("UsuariosTab, exclusão de funcionário (Run 5, leva 9)", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Quem pode mexer na equipe (Refino G01).
+ *
+ * `isAdmin` incluía o gerente e liberava "+ Novo Usuário", "Editar" e
+ * "Excluir". As quatro policies de `public.users` exigem gastro_role='admin',
+ * então tudo o que o gerente clicava voltava recusado do banco. E sem a policy
+ * de leitura ampla o gerente só lê a própria linha: o cabeçalho anunciava
+ * "1 usuário ativo" num estabelecimento com dez.
+ */
+describe("UsuariosTab, só o administrador gerencia a equipe (Refino G01)", () => {
+  const EQUIPE = [
+    { id: 1, name: "Dona", username: "dona", role: "admin", active: true },
+    { id: 9, name: "Maria Souza", username: "maria", role: "caixa", active: true },
+  ];
+
+  const montar = (currentUser, users = EQUIPE) => {
+    setAppMock({ users, currentUser, addUser, removeUser: vi.fn(() => Promise.resolve({ error: null })) });
+    renderWithProviders(<UsuariosTab sz={sz} />);
+  };
+
+  it("gerente não vê botão de criar, editar nem excluir", () => {
+    montar({ id: 7, name: "Gerson", username: "gerson", role: "gerente" });
+
+    expect(screen.queryByText("+ Novo Usuário")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Excluir" })).not.toBeInTheDocument();
+  });
+
+  it("gerente não lê contagem nenhuma, lê o motivo", () => {
+    // A lista que a RLS devolve para o gerente é só a linha dele: qualquer
+    // número ali seria mentira sobre o tamanho da equipe.
+    montar({ id: 7, name: "Gerson", username: "gerson", role: "gerente" }, [EQUIPE[0]]);
+
+    expect(screen.queryByText(/usuários? ativos?/)).not.toBeInTheDocument();
+    expect(screen.getByText("Somente o administrador vê e gerencia a equipe.")).toBeInTheDocument();
+  });
+
+  it("administrador continua com os três botões e com a contagem", () => {
+    montar({ id: 1, name: "Dona", username: "dona", role: "admin" });
+
+    expect(screen.getByText("+ Novo Usuário")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Editar" }).length).toBe(2);
+    expect(screen.getByRole("button", { name: "Excluir" })).toBeInTheDocument();
+    expect(screen.getByText("2 usuários ativos")).toBeInTheDocument();
+    expect(screen.queryByText("Somente o administrador vê e gerencia a equipe.")).not.toBeInTheDocument();
+  });
+});
