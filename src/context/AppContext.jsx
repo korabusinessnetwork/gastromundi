@@ -1051,14 +1051,23 @@ export function AppProvider({ children }) {
   // O temporizador não empilha: este efeito só tem um `setInterval` vivo por
   // execução, e cada nova execução (ou o desmonte do provider) limpa o da
   // execução anterior no cleanup.
+  //
+  // E o dreno EXIGE sessão. Sem esta guarda, um PDV que ficou sem internet com
+  // vendas na fila e depois foi deslogado (teto de sessão, inatividade, turno
+  // trocado) drenava a fila sem token quando a rede voltava: cada operação
+  // batia na RLS, e recusa da RLS não é erro de rede, então a fila tratava como
+  // falha definitiva, tirava a operação da lista e a venda era descartada de
+  // vez. Numa operação de 24 horas esse encontro é rotina, não exceção: a rede
+  // cai de madrugada e a sessão vence no meio. Sem sessão a fila espera, que é
+  // o que ela existe para fazer.
   useEffect(() => {
-    if (!redeOnline || loading) return undefined;
+    if (!redeOnline || loading || !currentUser) return undefined;
     drenarPendenciasOffline();
     if (pendenciasOffline === 0) return undefined;
     const id = setInterval(() => { void drenarPendenciasOffline(); }, INTERVALO_REENVIO_OFFLINE_MS);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [redeOnline, loading, pendenciasOffline]);
+  }, [redeOnline, loading, pendenciasOffline, currentUser?.id]);
 
   // O carimbo conta o que aconteceu na ÚLTIMA carga, e nada relê os dados
   // sozinho depois. Se ele nunca se apagasse, a tela seguiria afirmando no

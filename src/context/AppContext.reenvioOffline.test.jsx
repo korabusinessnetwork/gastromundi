@@ -85,6 +85,37 @@ import { AppProvider, useApp } from "./AppContext";
 
 const INTERVALO_MS = 45_000;
 
+/**
+ * O dreno EXIGE sessão, e é por um motivo caro: sem token, cada operação bate na
+ * RLS, recusa da RLS não é erro de rede, e a fila trata como falha definitiva e
+ * DESCARTA a venda. Então o cenário real do dreno é com operador logado, e é
+ * assim que estes testes montam. O caso sem sessão tem teste próprio no fim.
+ */
+const LINHA_USUARIO = {
+  id: 7, name: "Ana", username: "ana", role: "gerente", auth_id: "AUTH1", permissions: null,
+};
+
+function comOperadorLogado() {
+  mockSupabase.auth.getSession.mockResolvedValue({
+    data: { session: { user: { id: "AUTH1", app_metadata: { tenant_id: "t1" } } } },
+  });
+  mockSupabase.from.mockImplementation((tabela) => {
+    let ehSingle = false;
+    const builder = {};
+    for (const m of ["select", "eq", "neq", "order", "limit", "in", "gte", "lte", "not", "or"]) {
+      builder[m] = vi.fn(() => builder);
+    }
+    builder.single = vi.fn(() => { ehSingle = true; return builder; });
+    builder.maybeSingle = builder.single;
+    builder.then = (ok, falha) => Promise.resolve(
+      ehSingle && tabela === "users" ? { data: LINHA_USUARIO, error: null } : { data: [], error: null },
+    ).then(ok, falha);
+    const api = {};
+    for (const m of ["select", "insert", "update", "delete", "upsert"]) api[m] = vi.fn(() => builder);
+    return api;
+  });
+}
+
 function comSupabaseNeutro() {
   mockSupabase.from.mockImplementation(() => {
     const builder = {};
@@ -144,7 +175,7 @@ beforeEach(() => {
     restantes: fila.ops.length,
     parouPorRede: true,
   }));
-  comSupabaseNeutro();
+  comOperadorLogado();
   vi.useFakeTimers();
 });
 
@@ -218,6 +249,25 @@ describe("AppContext, o dreno da fila offline tenta de novo sozinho", () => {
 
     expect(indicador.props.falhaEnvio).toBe(false);
     expect(indicador.props.pendencias).toBe(0);
+
+    unmount();
+  });
+});
+
+describe("AppContext, o dreno sem sessão", () => {
+  it("sem operador logado, a fila espera em vez de ser queimada contra a RLS", async () => {
+    // O encontro é rotina numa operação de 24 horas: a rede cai de madrugada
+    // com vendas na fila, a sessão vence, e quando a rede volta o dreno rodaria
+    // sem token. Cada operação bateria na RLS, e recusa da RLS não é erro de
+    // rede: a fila daria a venda como falha definitiva e a descartaria.
+    comSupabaseNeutro();
+    mockSupabase.auth.getSession.mockResolvedValue({ data: { session: null } });
+
+    const { unmount } = await montar();
+    expect(tentativas()).toBe(0);
+
+    await passar(INTERVALO_MS * 3);
+    expect(tentativas()).toBe(0);
 
     unmount();
   });
