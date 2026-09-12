@@ -9,8 +9,8 @@
 // porque cada um desses três lugares recalculava `totalVendas + fundo` por
 // conta própria. Sem estes testes, voltar qualquer um dos três à conta antiga
 // não quebra nada.
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 
 const { mockSupabase } = vi.hoisted(() => ({ mockSupabase: { current: null } }));
 vi.mock("@/lib/supabase", async () => {
@@ -359,5 +359,85 @@ describe("RelatorioView, leitura dos logs de operadores", () => {
 
     expect(await screen.findByText("Nenhum evento no período selecionado")).toBeInTheDocument();
     expect(screen.queryByText(/Não foi possível carregar os logs/)).not.toBeInTheDocument();
+  });
+});
+
+// ── Refino: a aba que atravessa a meia-noite ──────────────────────────
+//
+// O PDV nunca fecha, a aba fica aberta 24 horas por dia. O recorte "Hoje" era
+// resolvido dentro de um useMemo cujas dependências não tinham nada ligado ao
+// relógio, então ele só reavaliava quando entrava uma venda nova: à 00h05 o
+// relatório ainda mostrava o movimento da noite anterior como se fosse de hoje,
+// e a lista só se corrigia quando a próxima venda chegava, do nada.
+
+/** Uma venda de R$ 100 em dinheiro no instante informado. */
+const vendaEm = (data, comanda) => ({
+  id: comanda, comanda, cashier: "Ana", at: data.toISOString(),
+  total: 100, metodo: "dinheiro", items: [{ id: 1, qty: 1 }],
+});
+
+function montarVendas(sales) {
+  contexto.current = {
+    sales,
+    fechamentos: [],
+    pending: [],
+    users: [],
+    currentUser: { role: "gerente" },
+    tenant: null,
+    metodosCustom: [],
+  };
+  render(<RelatorioView />);
+}
+
+describe("RelatorioView, virada do dia com a aba aberta (refino)", () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  it("o recorte Hoje solta a venda de ontem na virada do dia, sem venda nova para provocar", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 11, 23, 50));
+
+    montarVendas([vendaEm(new Date(2026, 8, 11, 20, 0), "12")]);
+
+    // 23h50 do dia 11: a venda das 20h é de hoje.
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(document.querySelectorAll("tbody tr")).toHaveLength(1);
+
+    // Passa da meia-noite. Nada mais acontece: nenhuma venda entra, ninguém
+    // toca na tela, a aba não recarrega.
+    act(() => {
+      vi.setSystemTime(new Date(2026, 8, 12, 0, 5));
+      vi.advanceTimersByTime(30000);
+    });
+
+    // Antes: a mesma linha continuava lá, como movimento "de hoje".
+    expect(screen.getByText("Nenhuma venda no período selecionado")).toBeInTheDocument();
+    expect(screen.queryByText("12")).not.toBeInTheDocument();
+  });
+
+  it("a visão Admin consolidada também vira o dia junto", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 11, 23, 50));
+
+    contexto.current = {
+      sales: [vendaEm(new Date(2026, 8, 11, 20, 0), "12")],
+      fechamentos: [],
+      pending: [],
+      users: [],
+      currentUser: { role: "admin" },
+      tenant: null,
+      metodosCustom: [],
+    };
+    render(<RelatorioView />);
+    fireEvent.click(screen.getByText("Admin"));
+
+    expect(screen.queryAllByText("R$ 100,00").length).toBeGreaterThan(0);
+
+    act(() => {
+      vi.setSystemTime(new Date(2026, 8, 12, 0, 5));
+      vi.advanceTimersByTime(30000);
+    });
+
+    // Antes: o faturamento de ontem seguia carimbado como o de hoje.
+    expect(screen.queryAllByText("R$ 100,00")).toHaveLength(0);
   });
 });
