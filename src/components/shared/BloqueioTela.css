@@ -1,0 +1,131 @@
+/*
+ * Cadeado da tela. Estilo fora do JSX (decisão 018) e cores por token --gm-*
+ * para acompanhar o tema do estabelecimento (decisão 017).
+ *
+ * Acima de tudo na pilha (9700): enquanto a tela está trancada, nada atrás dela
+ * deve ser alcançável, nem o aviso de sessão nem o de impressão. Cobre a tela
+ * inteira de propósito, e o fundo é opaco: a comanda continua montada atrás,
+ * mas quem não destravou não lê os dados do cliente por cima do ombro.
+ */
+
+.bloqueio-tela {
+  position: fixed;
+  inset: 0;
+  z-index: 9700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--gm-bg);
+  font-family: var(--gm-font-texto);
+}
+
+.bloqueio-tela__caixa {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 28px 24px;
+  border-radius: 18px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 35%);
+}
+
+.bloqueio-tela__icone {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-accent);
+}
+
+.bloqueio-tela__titulo {
+  margin: 0;
+  text-align: center;
+  font-family: var(--gm-font-titulo);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-weight: 900;
+  color: var(--gm-text);
+}
+
+.bloqueio-tela__texto {
+  margin: 0;
+  text-align: center;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.bloqueio-tela__rotulo {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.bloqueio-tela__campo {
+  /* 52 px de altura: é a mesma medida dos campos do login, e esta tela também
+     é usada no tablet do balcão. */
+  min-height: 52px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-size: var(--fs-base);
+}
+
+.bloqueio-tela__erro {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in oklab, oklch(0.6 0.19 25) 14%, transparent);
+  border: 1px solid color-mix(in oklab, oklch(0.6 0.19 25) 40%, transparent);
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 600;
+}
+
+.bloqueio-tela__destravar {
+  min-height: 52px;
+  border: none;
+  border-radius: 12px;
+  background: var(--gm-accent);
+  color: #fff;
+  font-weight: 800;
+  font-size: var(--fs-base);
+  cursor: pointer;
+}
+
+.bloqueio-tela__destravar:disabled {
+  background: var(--gm-faint);
+  color: var(--gm-muted);
+  cursor: progress;
+}
+
+/* Trocar de operador é o logout de verdade, então não compete com o destravar:
+   fica discreto, mas com alvo de toque cheio. */
+.bloqueio-tela__trocar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  background: none;
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
