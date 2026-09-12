@@ -36,3 +36,21 @@ pelos testes de componente existentes e pelos guards da suíte, não por navega�
 autenticada. As superfícies anônimas (login, cardápio público, landing do apex)
 foram abertas de verdade no navegador. Isso está registrado como limite, não como
 aprovação.
+
+## Observação da rodada 2: a suíte não é confiável com as frentes rodando
+
+Medido em 2026-09-12, durante a rodada 2. Com quatro frentes paralelas rodando
+suítes completas no mesmo container, o `npm test` da cópia principal passou de
+76 s para quase 600 s, e o tempo de "environment" de 66 s para 583 s. Nesse
+estado apareceram falhas que NÃO são de código:
+
+| Execução | Falhas |
+|---|---|
+| Primeira, com 4 frentes rodando | 4 arquivos |
+| Segunda, com menos frentes | 1 arquivo |
+| Os mesmos arquivos isolados | 0, em 21 s |
+
+São testes de componente estourando prazo, não defeito. A conclusão prática, que
+vale para as próximas rodadas: **a verificação que conta é a do fim, com as
+frentes paradas.** Verde medido durante o paralelismo não prova nada, e vermelho
+também não, nos dois casos porque o relógio está mentindo.
