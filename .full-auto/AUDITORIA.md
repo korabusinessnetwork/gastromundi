@@ -391,3 +391,35 @@ de exposição de um token de plataforma vazado inclua CNPJ, inscrição estadua
       depois: `xlsx` por import dinâmico no momento do clique, que é o caminho claro. Para os ícones é preciso medir antes se o peso vem de importação que o tree-shaking não alcança ou do volume real de ícones usados, porque a saída muda conforme a resposta.
       evidência: soma dos bytes do sourcemap por pacote, medida na rodada 3, com o chunk em 2.208,83 kB e gzip 639,46 kB depois das duas primeiras separações.
       valor: 3 | esforço: 3 | risco: 2 | score: -1 (abaixo do corte; entra quando houver medição de ganho real por tela)
+
+---
+
+# Varredura da operação 24 horas (2026-09-12)
+
+Contexto que o dono deu e que mudou a leitura do sistema inteiro: **o PDV não
+fecha nunca, a aba fica aberta 24 horas** num computador de balcão que não é
+desligado. Tudo que o app fazia supondo "abre pela manhã, fecha à noite" virou
+suspeito, e a aba atravessa a meia-noite todos os dias sem recarregar.
+
+Duas frentes de varredura, uma sobre sessão e conexão, outra sobre o que
+envelhece e o que acumula. O achado central não foi o logout: foi que **o projeto
+já tem o conceito certo de turno** (`sessao_aberta_em`) e metade das telas usava
+ele enquanto a outra metade usava o dia do calendário, então as duas metades
+divergiam toda madrugada.
+
+- [x] S03 | robustez | fila offline drenada sem sessão: cada operação batia na RLS, recusa da RLS não é erro de rede, e a fila DESCARTAVA a venda. Rotina numa operação 24 horas: a rede cai de madrugada, a sessão vence, e o dreno roda sem token quando a rede volta.
+- [x] S01, S02 | ux | o teto de 8 horas e a inatividade deslogavam, e deslogar desmonta a árvore: ia o carrinho montado e ainda não lançado. Agora trancam a tela.
+- [x] S08 (parte) | robustez | volta do sono reavalia por relógio, incluindo a inatividade, que antes disparava aviso e bloqueio juntos.
+- [x] S09 | ux | ver V103 e a rodada 3: o PWA já não recarrega sozinho, e a verificação periódica entrou aqui.
+- [x] S06, S07 | robustez | canais de realtime passaram a ler o status, e a lacuna da reconexão passou a refazer a carga. Canal morto em silêncio significava pedido do garçom que não chega ao caixa.
+- [x] D01, D02 | dados | Saldo do Dia cortava pelo calendário enquanto o fechamento cortava pelo turno: dois números para o mesmo dinheiro, e o errado era o que o gerente consulta.
+- [x] D03 | robustez | a lista de vendas só crescia numa aba que nunca recarrega.
+- [x] D04, D05, D06, D13 | ux | recortes de período congelados no dia em que a aba abriu.
+- [x] D07 | ux | coluna de entregues do delivery esvaziava sozinha na virada, com o entregador ainda na rua. Corrigido no desktop e no celular.
+- [x] D08 | robustez | o motor de alertas do Jarvas rodava uma vez na vida da aba: estava construído, testado e desligado na prática.
+- [x] D09 | ux | verificação periódica de versão nova.
+
+Abertos desta varredura, e por quê:
+
+- [ ] D10, D11, D12 | baixa | arestas de aba longa: o botão de cancelar NFC-e que continua oferecido depois do prazo vencer, o histórico fiscal que não recarrega sozinho, e quatro registros de controle que nunca esvaziam. Nenhum produz número errado nem perda; entram numa rodada de arestas.
+- [ ] Recarga automática pisca "Conectando ao caixa" | decisão do dono | toda recarga (volta de rede, volta do sono, canal ruim) liga o `loading` por um instante. A frente manteve assim de propósito, para mostrar que o sistema está buscando o que perdeu em vez de fingir estar em dia. Se preferir recarga silenciosa, o `bootstrap` aceita um modo que não mexe no `loading`.
