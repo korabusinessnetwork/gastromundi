@@ -120,12 +120,27 @@
   flex-shrink: 0;
 }
 
+/* `overflow: hidden` aqui recortava o dropdown de "+ N mais": ele abria de
+   verdade — o estado mudava, o elemento entrava no DOM — e era cortado na
+   borda da lista, então o clique não produzia nada visível e as categorias
+   extras ficavam inalcançáveis. O que se queria era só impedir a fila de
+   chips de empurrar a busca para fora, e para isso basta `min-width: 0`
+   com `flex-wrap: nowrap`: o contêiner encolhe sem precisar recortar o que
+   sai dele. */
 .categorias-busca__lista {
   display: flex;
   gap: 8px;
   flex: 1;
+  min-width: 0;
   flex-wrap: nowrap;
+}
+
+/* Os chips que não cabem são escondidos pela própria lógica do "+ N mais"
+   (CATS_VISIVEIS), não pelo recorte — mas se a janela apertar mais que o
+   previsto, o último chip não pode vazar por cima da busca. */
+.categorias-busca__lista > .categorias-busca__cat {
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .categorias-busca__cat {
