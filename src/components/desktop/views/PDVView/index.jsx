@@ -59,7 +59,11 @@ export default function PDVView({ notify }) {
   // em vez de usar o grid de 3 colunas do desktop, que espremia o título
   // ("Frente / de / Caixa") e cortava o botão "Nova Comanda" fora da tela.
   const isCel = width < 768;
-  const { mesas, loading: mesasLoading, atualizarStatusMesa } = useMesas();
+  // `erro` e `recarregar` vêm do hook desde que ele parou de transformar falha
+  // de leitura em salão vazio: sem repassá-los, a aba Reservas continuaria sem
+  // ter como dizer "não conseguimos ler as mesas" e sem caminho de nova
+  // tentativa, que é a metade da correção que aparece para quem opera.
+  const { mesas, loading: mesasLoading, erro: mesasErro, recarregar: recarregarMesas, atualizarStatusMesa } = useMesas();
   const location = useLocation();
 
   // Reset to lista whenever the sidebar navigates to this page
@@ -1160,6 +1164,8 @@ export default function PDVView({ notify }) {
           <MesaReservasView
             mesas={mesas}
             loading={mesasLoading}
+            erroCarga={mesasErro}
+            recarregar={recarregarMesas}
             abertas={abertas}
             atualizarStatus={atualizarStatusMesa}
           />
