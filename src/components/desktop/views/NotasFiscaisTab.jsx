@@ -216,6 +216,10 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
   const [loadingList, setLoadingList] = useState(true);
   const [notaDetalhe, setNotaDetalhe] = useState(null);
   const [notaItens,   setNotaItens]  = useState([]);
+  // Falha de leitura tem de aparecer como falha. Virar lista vazia fazia a tela
+  // afirmar que a nota não existe, e quem acabou de importar importava de novo.
+  const [erroLista,   setErroLista]   = useState("");
+  const [erroDetalhe, setErroDetalhe] = useState("");
 
   // Wizard (XML)
   const [step,         setStep]        = useState(1);
@@ -269,13 +273,19 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
   const loadNotas = async () => {
     setLoadingList(true);
+    setErroLista("");
     // Sem xml_raw: a lista só precisa do cabeçalho (o XML inteiro de
     // cada nota deixaria a listagem pesada à toa).
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("notas_fiscais")
       .select("id, numero, serie, data_emissao, fornecedor_nome, fornecedor_cnpj, valor_total, status, created_at, notas_fiscais_itens(id)")
       .order("created_at", { ascending: false });
-    setNotas(data || []);
+    if (error) {
+      setErroLista(error.message || "a leitura não respondeu");
+      setNotas([]);
+    } else {
+      setNotas(data || []);
+    }
     setLoadingList(false);
   };
 
@@ -528,12 +538,18 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
   const openDetalhe = async (nota) => {
     setNotaDetalhe(nota);
-    const { data } = await supabase
+    setErroDetalhe("");
+    const { data, error } = await supabase
       .from("notas_fiscais_itens")
       .select("*, products(name, emoji, unidade_estoque)")
       .eq("nota_fiscal_id", nota.id)
       .order("id");
-    setNotaItens(data || []);
+    if (error) {
+      setErroDetalhe(error.message || "a leitura não respondeu");
+      setNotaItens([]);
+    } else {
+      setNotaItens(data || []);
+    }
     setView("detalhe");
   };
 
@@ -857,6 +873,14 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
           </div>
         </div>
 
+        {erroDetalhe ? (
+          <div role="alert" className="nf-tab__erro-box" style={{ background: alfa(C.red, "12"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
+            <span style={{ flex: 1 }}>Não deu para carregar os itens desta nota. Motivo: {erroDetalhe}. Os itens existem, só não conseguimos ler agora.</span>
+            <button onClick={() => openDetalhe(cab)} className="nf-tab__btn-secundario nf-tab__btn-secundario--compacto">
+              Tentar de novo
+            </button>
+          </div>
+        ) : (
         <div className="nf-tab__tabela-moldura">
           <div className="nf-tab__tabela-scroll">
           <table className="nf-tab__tabela nf-tab__tabela--itens">
@@ -898,6 +922,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
           </table>
           </div>
         </div>
+        )}
       </div>
     );
   }
@@ -1234,7 +1259,11 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
       {/* Header */}
       <div className="nf-tab__lista-header">
         <div className="nf-tab__sub nf-tab__muted">
-          {loadingList ? "Carregando..." : `${notas.length} ${notas.length === 1 ? "nota importada" : "notas importadas"}`}
+          {loadingList
+            ? "Carregando..."
+            : erroLista
+              ? "Não deu para carregar as notas"
+              : `${notas.length} ${notas.length === 1 ? "nota importada" : "notas importadas"}`}
         </div>
         <div className="nf-tab__lista-acoes">
           <button
@@ -1254,6 +1283,13 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
       {loadingList ? (
         <div className="nf-tab__carregando">Carregando...</div>
+      ) : erroLista ? (
+        <div role="alert" className="nf-tab__erro-box" style={{ background: alfa(C.red, "12"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
+          <span style={{ flex: 1 }}>Não deu para carregar as notas. Motivo: {erroLista}. Não importe de novo antes de conseguir ver a lista, a nota pode já estar lançada.</span>
+          <button onClick={loadNotas} className="nf-tab__btn-secundario nf-tab__btn-secundario--compacto">
+            Tentar de novo
+          </button>
+        </div>
       ) : notas.length === 0 ? (
         <div className="nf-tab__vazio">
           <LuFileText size={48} className="nf-tab__vazio-icone" />
