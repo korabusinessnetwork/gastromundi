@@ -103,11 +103,16 @@ function pedidosDoDia(pedidos) {
 }
 
 export default function DeliveryModulo({ onVoltar }) {
-  const { currentUser } = useApp();
+  const { currentUser, sessaoAbertaEm } = useApp();
 
   // Fonte única da lista: o hook já carrega, assina o realtime e expõe o
   // recarregar manual. `pedidos` pode vir null quando a consulta falha.
-  const { pedidos: pedidosBrutos, carregando, erro, recarregar } = usePedidosDelivery();
+  //
+  // `sessaoAbertaEm` faz o recorte das colunas terminais seguir o TURNO e não o
+  // dia do calendário. Sem ele, o celular do garçom tinha o mesmo defeito que o
+  // desktop acabou de perder: passada a meia-noite, o pedido entregue às 23h50
+  // sumia da lista enquanto o entregador ainda estava na rua com ele.
+  const { pedidos: pedidosBrutos, carregando, erro, recarregar } = usePedidosDelivery({ sessaoAbertaEm });
   const pedidos = useMemo(() => pedidosBrutos ?? [], [pedidosBrutos]);
   const erroCarga = erro ? "Não conseguimos carregar os pedidos." : "";
 
