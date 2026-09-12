@@ -101,6 +101,7 @@ export default function PDVView({ notify }) {
   // modal nova comanda
   const [showNova,          setShowNova]          = useState(false);
   const [nomeComanda,       setNomeComanda]       = useState("");
+  const [novaComandaErro,   setNovaComandaErro]   = useState("");
   const [criando,           setCriando]           = useState(false);
   const [confirmCancelar,        setConfirmCancelar]        = useState(false);
   const [confirmCancelarMotivo,  setConfirmCancelarMotivo]  = useState("");
@@ -143,6 +144,8 @@ export default function PDVView({ notify }) {
   const [barcodeFeedback,   setBarcodeFeedback]   = useState(null); // null | "ok" | "notfound"
 
   const abertas = pending.filter(o => o.status !== "closed");
+  const nomeComandaEmUso = !!nomeComanda.trim()
+    && abertas.some(o => String(o.comanda ?? "").trim() === nomeComanda.trim());
 
   // ── Combos ativos (B4) — vendáveis no PDV ─────────────────────
   // Carrega uma vez por entrada na tela; a receita (subprodutos com
@@ -736,11 +739,20 @@ export default function PDVView({ notify }) {
 
   // ── Nova comanda com nome personalizado ───────────────────────
   const handleNovaComanda = async () => {
-    if (!nomeComanda.trim() || criando) return;
+    const nome = nomeComanda.trim();
+    if (!nome || criando) return;
+    // Nome/número repetido cria DUAS comandas com o mesmo rótulo. No Palm o mapa
+    // de comandas é indexado pelo nome, então só uma delas recebe os lançamentos
+    // e a busca da transferência sempre acha a primeira. Mesma checagem que a
+    // transferência já faz ao criar comanda nova.
+    if (nomeComandaEmUso) {
+      setNovaComandaErro(`${fmtComanda(nome)} já existe. Escolha outro nome ou número.`);
+      return;
+    }
     setCriando(true);
     const order = {
       id:         crypto.randomUUID(),
-      comanda:    nomeComanda.trim(),
+      comanda:    nome,
       items:      [],
       status:     "open",
       total:      0,
@@ -860,7 +872,7 @@ export default function PDVView({ notify }) {
           )}
           {emPainel && (
             <button
-              onClick={() => { setShowNova(true); setNomeComanda(""); }}
+              onClick={() => { setShowNova(true); setNomeComanda(""); setNovaComandaErro(""); }}
               disabled={!caixaAberto}
               className="pdv__nova-comanda-btn"
               style={{
@@ -1293,12 +1305,18 @@ export default function PDVView({ notify }) {
             <input
               autoFocus
               value={nomeComanda}
-              onChange={e => setNomeComanda(e.target.value)}
+              onChange={e => { setNomeComanda(e.target.value); setNovaComandaErro(""); }}
               onKeyDown={e => e.key === "Enter" && handleNovaComanda()}
               placeholder="Ex: Mesa 1, Balcão, Delivery..."
               maxLength={30}
+              aria-invalid={nomeComandaEmUso}
               className="pdv__modal-input pdv__nova-input"
             />
+            {(nomeComandaEmUso || novaComandaErro) && (
+              <div role="alert" className="pdv__modal-erro">
+                {novaComandaErro || `${fmtComanda(nomeComanda.trim())} já está aberta. Escolha outro nome ou número.`}
+              </div>
+            )}
 
             <div className="pdv__nova-acoes">
               <button
@@ -1309,7 +1327,7 @@ export default function PDVView({ notify }) {
               </button>
               <button
                 onClick={handleNovaComanda}
-                disabled={!nomeComanda.trim() || criando}
+                disabled={!nomeComanda.trim() || nomeComandaEmUso || criando}
                 className={`pdv__modal-btn pdv__modal-btn--primario pdv__nova-btn pdv__nova-btn-abrir${nomeComanda.trim() ? " pdv__nova-btn-abrir--ativo" : ""}`}
               >
                 {criando ? "Abrindo..." : "Abrir"}
