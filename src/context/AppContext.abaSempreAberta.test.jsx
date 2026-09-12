@@ -153,6 +153,20 @@ async function passarTempoComGenteNaTela(ms) {
   }
 }
 
+/**
+ * Quantas cargas completas do estabelecimento já aconteceram. Cada `bootstrap`
+ * lê a tabela `products` exatamente uma vez, então contar essa leitura é contar
+ * carga.
+ */
+function cargasFeitas() {
+  return mockSupabase.from.mock.calls.filter(([tabela]) => tabela === "products").length;
+}
+
+/** Deixa as promessas da carga terminarem. */
+async function deixarACargaTerminar() {
+  await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+}
+
 async function montarLogado() {
   comRede(true);
   saveSession(usuario);
@@ -299,5 +313,84 @@ describe("a janela de 90 dias das vendas na aba velha (C02)", () => {
     await chegarVenda({ id: "v-agora", total: 50, at: diasAtras(0), items: [] });
 
     expect(app.current.sales.filter((v) => v.id === "v-agora")).toHaveLength(1);
+  });
+});
+
+// ── C03 ──────────────────────────────────────────────────────────
+// A reconexão do websocket é da biblioteca e ela cuida disso. A LACUNA não: o
+// que aconteceu no banco enquanto o socket esteve fora nunca era reposto, e
+// nada refazia a carga na volta. Um Wi-Fi que troca de canal por 40 segundos às
+// 19h30 significa que os pedidos lançados nesses 40 segundos não existem para a
+// tela do caixa, e numa aba que nunca recarrega isso durava até alguém apertar
+// F5, ou seja, podia durar para sempre.
+describe("a lacuna de eventos quando a rede volta (C03)", () => {
+  it("a volta da conexão refaz a carga", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    await montarLogado();
+    const antes = cargasFeitas();
+
+    await act(async () => { window.dispatchEvent(new Event("online")); });
+    await deixarACargaTerminar();
+
+    expect(cargasFeitas()).toBe(antes + 1);
+  });
+
+  it("rajada de eventos de rede vira uma carga só", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    await montarLogado();
+    const antes = cargasFeitas();
+
+    // Link oscilando: o navegador emite `online` várias vezes em sequência.
+    await act(async () => {
+      window.dispatchEvent(new Event("online"));
+      window.dispatchEvent(new Event("online"));
+      window.dispatchEvent(new Event("online"));
+    });
+    await deixarACargaTerminar();
+
+    expect(cargasFeitas()).toBe(antes + 1);
+  });
+
+  it("passado o intervalo mínimo, uma nova queda e volta recarrega de novo", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    await montarLogado();
+    const antes = cargasFeitas();
+
+    await act(async () => { window.dispatchEvent(new Event("online")); });
+    await deixarACargaTerminar();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60 * 1000); });
+    await act(async () => { window.dispatchEvent(new Event("online")); });
+    await deixarACargaTerminar();
+
+    expect(cargasFeitas()).toBe(antes + 2);
+  });
+
+  it("sem sessão não há o que recarregar, a RLS devolveria tudo vazio", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    // Sem sessão local e sem JWT: o app abre na tela de login.
+    const app = { current: null };
+    const Sonda = capturarApp(app);
+    comRede(true);
+    await act(async () => {
+      render(
+        <AppProvider>
+          <Sonda />
+        </AppProvider>,
+      );
+    });
+    const antes = cargasFeitas();
+
+    await act(async () => { window.dispatchEvent(new Event("online")); });
+    await deixarACargaTerminar();
+
+    expect(cargasFeitas()).toBe(antes);
   });
 });

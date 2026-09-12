@@ -444,6 +444,20 @@ describe("AppContext, a chave da Ponte do estabelecimento", () => {
     expect(recadoDaTela()).toContain("Sem internet agora");
     expect(botaoRecarregar()).toBeNull();
 
+    // Reconectar agora refaz a carga sozinho (a aba do PDV nunca recarrega, e
+    // sem isso o que aconteceu durante a queda ficava perdido para sempre),
+    // então o dublê precisa dizer o que o banco responde AGORA: as leituras
+    // voltam a chegar, e a config segue sem resposta por um motivo que não é
+    // falta de internet, que é justamente o cenário deste teste.
+    comTabelas({
+      singles: { users: { data: LINHA_USUARIO, error: null } },
+      resultados: {
+        products: { data: [PRODUTO], error: null },
+        config: { data: null, error: { message: "permission denied for table config" } },
+      },
+    });
+    mockBootstrapTenant.mockResolvedValue({ data: TENANT_COMPLETO, error: null });
+
     await aRedeVoltou();
 
     expect(app.current.abriuSemInternet).toBe(false);

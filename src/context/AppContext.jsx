@@ -50,6 +50,12 @@ const INTERVALO_REENVIO_OFFLINE_MS = 45_000;
 // que o usa (a aba do PDV nunca recarrega, e o throttle de 6 h do motor é quem
 // define a frequência efetiva).
 const INTERVALO_ANALISE_JARVAS_MS = 30 * 60 * 1000;
+// Intervalo mínimo entre duas recargas automáticas de dados. A volta da rede
+// chega em rajada (o evento `online`, o status do canal de realtime, a aba
+// voltando a ficar visível), e sem um piso dessas o mesmo link oscilando viraria
+// uma enxurrada de leituras. 15 s é curto o bastante para quem está no caixa não
+// perceber, e longo o bastante para uma rajada inteira virar uma carga só.
+const INTERVALO_MIN_RECARGA_MS = 15_000;
 import { useStatusRede } from "@/hooks/useStatusRede";
 import IndicadorRede from "@/components/shared/IndicadorRede";
 import AvisoSessao from "@/components/shared/AvisoSessao";
@@ -1132,6 +1138,48 @@ export function AppProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [redeOnline, loading, pendenciasOffline, currentUser?.id]);
 
+  // ── Volta da conexão: repor a lacuna (Leva 11) ───────────────
+  //
+  // A reconexão do websocket é da biblioteca, e ela cuida disso. A LACUNA não:
+  // o que aconteceu no banco enquanto o socket esteve fora nunca era reposto, e
+  // nada refazia a carga na volta. Um Wi-Fi que troca de canal por 40 segundos
+  // às 19h30 significa que os pedidos lançados nesses 40 segundos não existem
+  // para a tela do caixa, e numa aba que nunca recarrega isso podia durar para
+  // sempre, porque a única reposição possível era alguém apertar F5.
+  //
+  // A carga é o `bootstrap` de sempre, que já é idempotente e é o mesmo caminho
+  // do botão "Recarregar a tela". Ele liga o `loading` enquanto lê, o que é o
+  // comportamento certo aqui: quem está no caixa vê que o sistema está buscando
+  // o que perdeu, em vez de olhar para uma tela que finge estar em dia.
+  //
+  // A trava tem duas partes porque a volta da rede chega em rajada: carga em voo
+  // não é reiniciada, e duas cargas seguidas respeitam `INTERVALO_MIN_RECARGA_MS`.
+  const recarregandoRef = useRef(false);
+  const ultimaRecargaRef = useRef(0);
+  // Espelho do usuário logado para os ouvintes de vida longa (evento de rede,
+  // ciclo de vida da aba, status de canal), que não podem reassinar a cada
+  // render só para saber se ainda existe sessão. Sem sessão não há o que
+  // recarregar: a RLS devolveria tudo vazio.
+  const currentUserRef = useRef(null);
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
+
+  const recarregarAposLacuna = async (motivo) => {
+    if (!currentUserRef.current || recarregandoRef.current) return;
+    if (Date.now() - ultimaRecargaRef.current < INTERVALO_MIN_RECARGA_MS) return;
+    recarregandoRef.current = true;
+    ultimaRecargaRef.current = Date.now();
+    try {
+      await bootstrap();
+    } catch (err) {
+      // `bootstrap` já trata o que sabe tratar e sempre desliga o `loading` no
+      // finally; este catch existe para a recarga automática nunca virar uma
+      // promessa rejeitada sem dono no meio da operação.
+      console.error(`[recarga] falha ao repor os dados (${motivo}):`, err);
+    } finally {
+      recarregandoRef.current = false;
+    }
+  };
+
   // O carimbo conta o que aconteceu na ÚLTIMA carga, e nada relê os dados
   // sozinho depois. Se ele nunca se apagasse, a tela seguiria afirmando no
   // presente que o estabelecimento está sem internet com a conexão já de
@@ -1145,9 +1193,15 @@ export function AppProvider({ children }) {
   // novo pela tela (`recarregarDadosDoEstabelecimento`, exposto no contexto).
   // Nada aqui tenta sozinho de tempos em tempos.
   useEffect(() => {
-    const aoVoltarAConexao = () => setAbriuSemInternet(false);
+    const aoVoltarAConexao = () => {
+      setAbriuSemInternet(false);
+      // Apagar o carimbo dizia que a rede voltou, mas os dados continuavam os
+      // de antes da queda. Quem repõe o que se perdeu no meio é a carga.
+      void recarregarAposLacuna("a conexão deste computador voltou");
+    };
     window.addEventListener("online", aoVoltarAConexao);
     return () => window.removeEventListener("online", aoVoltarAConexao);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Actions: Auth ─────────────────────────────────────────────
