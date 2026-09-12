@@ -177,6 +177,10 @@ const chegaDoRealtime = async (payload) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // `clearAllMocks` zera chamadas, não implementações: sem esta linha, o
+  // `mockResolvedValue` de sessão de um teste vazaria para os seguintes e daria
+  // sessão a quem monta sem ela de propósito.
+  mockSupabase.auth.getSession.mockResolvedValue({ data: { session: null } });
   window.localStorage.clear();
   filaOffline.limpar(); // a fila é singleton de módulo: não vaza de um teste para o outro
   chamadasTabela = [];
@@ -185,6 +189,18 @@ beforeEach(() => {
   comTabelasVazias();
   comRpc(RPC_OK);
 });
+
+/**
+ * O dreno da fila passou a EXIGIR sessão: sem token, cada operação bate na RLS,
+ * recusa da RLS não é erro de rede, e a fila descartava a venda. Então o reenvio
+ * só acontece com operador logado, e os testes de REENVIO precisam dizer isso.
+ * Os demais seguem montando sem sessão de propósito, porque não drenam nada.
+ */
+function comOperadorLogado() {
+  mockSupabase.auth.getSession.mockResolvedValue({
+    data: { session: { user: { id: "AUTH1", app_metadata: { tenant_id: "t1" } } } },
+  });
+}
 
 describe("AppContext, idempotência da baixa de estoque (Leva D)", () => {
   it("toda baixa de produto carrega uma chave de idempotência para o servidor", async () => {
@@ -229,6 +245,7 @@ describe("AppContext, idempotência da baixa de estoque (Leva D)", () => {
   });
 
   it("no reenvio, a fila devolve a MESMA chave ao servidor, o reenvio não desconta de novo", async () => {
+    comOperadorLogado(); // o dreno exige sessão
     semearFila([{
       uid: "op-1", tipo: "rpc_baixar_estoque", produtoId: 7, qtd: 3, opId: "chave-da-baixa-original",
     }]);
@@ -244,6 +261,7 @@ describe("AppContext, idempotência da baixa de estoque (Leva D)", () => {
   });
 
   it("subproduto: a chave enviada é a mesma que fica na fila e a mesma que volta no reenvio", async () => {
+    comOperadorLogado(); // o dreno exige sessão
     comRpc(SEM_REDE);
     const app = montar();
 
@@ -269,6 +287,7 @@ describe("AppContext, idempotência da baixa de estoque (Leva D)", () => {
   });
 
   it("op guardada ANTES desta versão (sem chave) continua sendo reenviada", async () => {
+    comOperadorLogado(); // o dreno exige sessão
     // Compatibilidade do deploy: quem estava offline no momento da atualização
     // tem ops sem `opId` no aparelho. Elas não podem travar a fila — vão sem
     // chave e se comportam como antes (descontam sempre), que é o único
@@ -652,6 +671,7 @@ describe("AppContext, alerta de baixa recusada (TD012)", () => {
   // tentar. É o mesmo furo de inventário do TD012, só que descoberto tarde —
   // precisa do mesmo alerta.
   it("op recusada no reenvio vira alerta: ela foi descartada, ninguém tenta de novo", async () => {
+    comOperadorLogado(); // o dreno exige sessão
     semearFila([{ uid: "op-1", tipo: "rpc_baixar_estoque", produtoId: 7, qtd: 3, opId: "chave-1" }]);
     comRpcPorNome({ baixar_estoque: RECUSADA });
     montar();
@@ -669,6 +689,7 @@ describe("AppContext, alerta de baixa recusada (TD012)", () => {
   // junto com a op, o alerta do reenvio diz "Item sub-1" e o gestor não sabe o
   // que conferir na prateleira.
   it("o nome do subproduto viaja na fila e chega no alerta do reenvio", async () => {
+    comOperadorLogado(); // o dreno exige sessão
     comRpc(SEM_REDE);
     const app = montar();
 

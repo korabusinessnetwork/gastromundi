@@ -124,6 +124,10 @@ async function comVendaFechada(app) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // `clearAllMocks` zera chamadas, não implementações: sem esta linha, o
+  // `mockResolvedValue` de sessão de um teste vazaria para os seguintes e daria
+  // sessão a quem monta sem ela de propósito.
+  mockSupabase.auth.getSession.mockResolvedValue({ data: { session: null } });
   window.localStorage.clear();
   montarSupabase();
 });
@@ -206,6 +210,17 @@ describe("cancelarVendaFechada, cancelar é marcar, não apagar (TD009 etapa 3)"
 });
 
 describe("reenviarVendaOffline, idempotência do evento (ADR-013 pendência 6)", () => {
+  /**
+   * O dreno passou a EXIGIR sessão: sem token, a operação bate na RLS, recusa
+   * da RLS não é erro de rede, e a fila descartava a venda. Reenvio só acontece
+   * com operador logado, então é assim que este bloco monta.
+   */
+  beforeEach(() => {
+    mockSupabase.auth.getSession.mockResolvedValue({
+      data: { session: { user: { id: "AUTH1", app_metadata: { tenant_id: "t1" } } } },
+    });
+  });
+
   /** Enfileira a venda e deixa o dreno passar (o efeito dispara sozinho). */
   async function drenar(app) {
     await act(async () => {
