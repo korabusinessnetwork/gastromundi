@@ -685,7 +685,10 @@ export async function salvarGrupoComplemento(grupo) {
   const payload = {
     nome: String(grupo.nome ?? "").trim(),
     min_escolhas: Math.max(0, Number(grupo.min_escolhas) || 0),
-    max_escolhas: Math.max(1, Number(grupo.max_escolhas) || 1),
+    // 0 = SEM LIMITE (o cliente escolhe quantas quiser). O piso era 1, e
+    // por isso a vitrine sabia ler "sem limite" — grupoSatisfeito só cobra
+    // teto com `max > 0` — mas não havia como cadastrar um.
+    max_escolhas: Math.max(0, Number(grupo.max_escolhas) || 0),
     ordem: Number(grupo.ordem) || 0,
   };
   if (grupo.id) payload.id = grupo.id;

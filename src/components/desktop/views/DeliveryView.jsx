@@ -1837,6 +1837,27 @@ function AbaComplementos({ isAdmin, itens, products, aviso }) {
 // resumo (obrigatório/opcional), quantos itens tem e em quantos produtos
 // aparece. Tocar abre o editor. Nada de campo editável aqui — a edição
 // mora no menu limpo (GrupoEditor), pra grade ficar fácil de escanear.
+/**
+ * O que a dupla mín/máx significa, em português do balcão. Máximo 0 é
+ * SEM LIMITE — é assim que se cadastra "quantos sabores o cliente quiser".
+ * Usada na frase do editor (enquanto se digita) e no selo do cartão.
+ */
+function explicarEscolhas(min, max) {
+  if (min > 0) {
+    if (max === 0) return `Obrigatório — o cliente escolhe ao menos ${min}, quantas quiser acima disso`;
+    if (max === min) return `Obrigatório — o cliente precisa escolher ${min === 1 ? "1 opção" : `${min} opções`}`;
+    return `Obrigatório — o cliente precisa escolher de ${min} a ${max}`;
+  }
+  if (max === 0) return "Opcional — o cliente escolhe quantas quiser";
+  if (max === 1) return "Opcional — o cliente pode escolher 1, se quiser";
+  return `Opcional — o cliente pode escolher até ${max}`;
+}
+
+/** Faixa curta para o selo do cartão: "1–3", "0–1", "2 ou mais". */
+function faixaEscolhas(min, max) {
+  return max > 0 ? `${min}–${max}` : `${min} ou mais`;
+}
+
 function GrupoCardMini({ grupo, onAbrir }) {
   const nItens = (grupo.itens || []).length;
   const nProdutos = (grupo.produtoIds || []).length;
@@ -1859,7 +1880,11 @@ function GrupoCardMini({ grupo, onAbrir }) {
       <span
         className={`delivery-view__grupo-selo delivery-view__grupo-selo--${obrigatorio ? "obrigatorio" : "opcional"}`}
       >
-        {obrigatorio ? "Obrigatório" : "Opcional"} · {grupo.min_escolhas ?? 0}–{grupo.max_escolhas ?? 1}
+        {obrigatorio ? "Obrigatório" : "Opcional"} ·{" "}
+        {faixaEscolhas(
+          Math.max(0, Number(grupo.min_escolhas) || 0),
+          Math.max(0, Number(grupo.max_escolhas ?? 1) || 0),
+        )}
       </span>
 
       <div className="delivery-view__grupo-stats">
@@ -2032,7 +2057,7 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
   const sujo = useMemo(() => {
     if ((nome ?? "").trim() !== (grupo.nome ?? "")) return true;
     if ((Number(min) || 0) !== (Number(grupo.min_escolhas) || 0)) return true;
-    if ((Number(max) || 1) !== (Number(grupo.max_escolhas) || 1)) return true;
+    if ((Number(max) || 0) !== (Number(grupo.max_escolhas) || 0)) return true;
     if (itens.some((i) => !i.id)) return true; // itens novos ainda não salvos
     // Ordem importa (reordenar arrastando também é alteração a salvar):
     // compara os ids preservando a sequência, não como conjunto ordenado.
@@ -2148,7 +2173,8 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
     // 1) Config do grupo (nome, mín, máx).
     const g = await salvarGrupoComplemento({
       id: grupo.id, nome: nome.trim() || grupo.nome,
-      min_escolhas: Number(min) || 0, max_escolhas: Number(max) || 1, ordem: grupo.ordem,
+      // Máximo 0 (ou em branco) é "sem limite" — ver o campo lá embaixo.
+      min_escolhas: Number(min) || 0, max_escolhas: Math.max(0, Number(max) || 0), ordem: grupo.ordem,
     });
     if (g.error) { setSalvando(false); return aviso("Não foi possível salvar o grupo.", "err"); }
 
@@ -2292,9 +2318,20 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
             );
           })}
         </div>
+        {/* Máximo 0 (ou em branco) = sem limite. O que o zero significa não
+            fica escondido no campo: a frase logo abaixo já diz "quantas
+            quiser" enquanto se digita, antes de salvar. */}
         <label className="delivery-view__hint delivery-view__editor-max">
           máx
-          <input className="delivery-view__input delivery-view__input--qtd" type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} disabled={!isAdmin} />
+          <input
+            className="delivery-view__input delivery-view__input--qtd"
+            type="number"
+            min="0"
+            value={max}
+            onChange={(e) => setMax(e.target.value)}
+            disabled={!isAdmin}
+            title="0 = sem limite"
+          />
         </label>
         {isAdmin && (
           <button
@@ -2307,9 +2344,7 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
         )}
       </div>
       <div className="delivery-view__hint delivery-view__editor-explica">
-        {Number(min) > 0
-          ? `Obrigatório — o cliente precisa escolher ${Number(max) > 1 ? `de ${min || 1} a ${max}` : "1 opção"}`
-          : `Opcional — o cliente pode escolher ${Number(max) > 1 ? `até ${max}` : "1, se quiser"}`}
+        {explicarEscolhas(Number(min) || 0, Math.max(0, Number(max) || 0))}
       </div>
 
       {/* Itens do grupo — arraste pela alça (⠿) para reordenar (cima/baixo).

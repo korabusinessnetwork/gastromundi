@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
-import { resolverOpcoes } from "@/lib/gruposEscolha";
+import { resolverOpcoes, instrucaoGrupo } from "@/lib/gruposEscolha";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -27,17 +27,16 @@ function fmtBRL(v) {
   return `R$ ${Number(v || 0).toFixed(2)}`;
 }
 
-// Texto de instrução do grupo em português claro. O número conta UNIDADES,
-// não opções diferentes: "escolha até 2" aceita dois cheddar, e é assim que
-// o cliente pede — "double cheddar", não "dois adicionais distintos".
-function instrucaoGrupo(min, max) {
-  if (min === 0 && max === 1) return "Opcional — escolha 1 se quiser";
-  if (min === 0) return `Opcional — até ${max}`;
-  if (min === max) return `Escolha ${min}`;
-  return `Escolha de ${min} a ${max}`;
-}
-
 const unidades = (qtds) => Object.values(qtds ?? {}).reduce((t, n) => t + n, 0);
+
+// Teto de unidades do grupo. Máximo 0 é SEM LIMITE (é como se cadastra
+// "quantos sabores quiser"), e virar Infinity aqui faz toda a aritmética
+// abaixo — cota cheia, opção bloqueada, "escolha única" — continuar valendo
+// sem um `if` de caso especial em cada uma.
+const tetoDe = (grupo) => {
+  const max = Math.max(0, Number(grupo?.maximo ?? 1) || 0);
+  return max === 0 ? Infinity : max;
+};
 
 export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos = [], products = [], onConfirmar, onClose }) {
   // opções resolvidas por grupo, uma vez
@@ -55,7 +54,7 @@ export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos =
   const alterar = (gi, produtoId, passo) => {
     setSelecao((prev) => {
       const g = gruposResolvidos[gi];
-      const max = g.maximo ?? 1;
+      const max = tetoDe(g);
       const atual = prev[gi] ?? {};
       const chave = String(produtoId);
       const qtd = atual[chave] ?? 0;
@@ -121,7 +120,7 @@ export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos =
           {gruposResolvidos.map((g, gi) => {
             const sel = selecao[gi] ?? {};
             const usadas = unidades(sel);
-            const max = g.maximo ?? 1;
+            const max = tetoDe(g);
             const noMax = usadas >= max;
             const incompleto = usadas < (g.minimo ?? 0);
             // Só faz sentido repetir a mesma opção quando o grupo aceita

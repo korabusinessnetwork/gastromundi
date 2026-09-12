@@ -13,6 +13,7 @@ import {
   carregarTodosGrupos,
   salvarGrupos,
   resolverOpcoes,
+  instrucaoGrupo,
 } from "./gruposEscolha";
 import { supabase } from "./supabase";
 
@@ -269,7 +270,6 @@ describe("salvarGrupos", () => {
       grupos: [
         { minimo: -5, maximo: 2 },
         { minimo: 3, maximo: 1 }, // máximo menor que o mínimo: impossível de satisfazer
-        { minimo: 0, maximo: 0 }, // máximo 0 não deixaria escolher nada
         { minimo: "2", maximo: "4" },
         {}, // sem nada informado
       ],
@@ -277,10 +277,35 @@ describe("salvarGrupos", () => {
     expect(payloadsDeGrupo().map((p) => [p.minimo, p.maximo])).toEqual([
       [0, 2],
       [3, 3],
-      [0, 1],
       [2, 4],
       [1, 1],
     ]);
+  });
+
+  // "Escolha quantos sabores quiser" é o caso que motivou isto: antes o
+  // piso do máximo era 1, então a tela mandava 0 e chegava 1 no banco — o
+  // dono cadastrava "sem limite" e o PDV cobrava "escolha 1".
+  it("máximo 0 chega ao banco como 0 — é o 'sem limite'", async () => {
+    await salvarGrupos({
+      produtoId: 10,
+      grupos: [
+        { minimo: 0, maximo: 0 }, // opcional, quantas quiser
+        { minimo: 2, maximo: 0 }, // ao menos 2, quantas quiser acima disso
+        { minimo: 0, maximo: "0" }, // como o input number entrega
+      ],
+    });
+    expect(payloadsDeGrupo().map((p) => [p.minimo, p.maximo])).toEqual([
+      [0, 0],
+      [2, 0], // o mínimo NÃO puxa o teto: sem limite já cabe qualquer mínimo
+      [0, 0],
+    ]);
+  });
+
+  it("máximo negativo vira sem limite, não uma faixa impossível", async () => {
+    // O banco recusaria um negativo (CHECK maximo >= 0) e o pedido morreria
+    // no salvar; aqui ele cai no caso mais próximo do que se quis dizer.
+    await salvarGrupos({ produtoId: 10, grupos: [{ minimo: 1, maximo: -3 }] });
+    expect(payloadsDeGrupo().map((p) => [p.minimo, p.maximo])).toEqual([[1, 0]]);
   });
 
   it("grupo por categoria guarda a categoria e não grava itens", async () => {
@@ -417,5 +442,29 @@ describe("resolverOpcoes", () => {
   it("catálogo ausente não quebra a lista", () => {
     expect(resolverOpcoes({ origem: "lista", itens: [{ produtoId: 1 }] })).toEqual([]);
     expect(resolverOpcoes({ origem: "categoria", categoria: "Comidas" }, null)).toEqual([]);
+  });
+});
+
+describe("instrucaoGrupo", () => {
+  // O texto é o MESMO no editor (onde o dono cadastra) e no PDV (onde o
+  // operador obedece). Se divergisse, a tela de cadastro prometeria uma
+  // coisa e a de venda cobraria outra.
+  it("diz em português o que a faixa significa", () => {
+    expect(instrucaoGrupo(1, 1)).toBe("Escolha 1");
+    expect(instrucaoGrupo(2, 2)).toBe("Escolha 2");
+    expect(instrucaoGrupo(1, 3)).toBe("Escolha de 1 a 3");
+    expect(instrucaoGrupo(0, 1)).toBe("Opcional — escolha 1 se quiser");
+    expect(instrucaoGrupo(0, 3)).toBe("Opcional — até 3");
+  });
+
+  it("máximo 0 é sem limite, e não 'escolha 0'", () => {
+    expect(instrucaoGrupo(0, 0)).toBe("Opcional — escolha quantas quiser");
+    expect(instrucaoGrupo(2, 0)).toBe("Escolha ao menos 2");
+  });
+
+  it("valor sujo não vira texto quebrado", () => {
+    expect(instrucaoGrupo(undefined, undefined)).toBe("Opcional — escolha quantas quiser");
+    expect(instrucaoGrupo("1", "3")).toBe("Escolha de 1 a 3");
+    expect(instrucaoGrupo(-2, -5)).toBe("Opcional — escolha quantas quiser");
   });
 });

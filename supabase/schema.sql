@@ -677,7 +677,10 @@ CREATE TABLE public.grupos_escolha (
   combo_id   uuid    REFERENCES public.combos(id)   ON DELETE CASCADE,
   nome       text    NOT NULL,
   minimo     integer NOT NULL DEFAULT 1 CHECK (minimo >= 0),
-  maximo     integer NOT NULL DEFAULT 1 CHECK (maximo >= 1),
+  -- 0 = SEM LIMITE: o cliente escolhe quantas quiser (pizza de quantos
+  -- sabores der). O mínimo continua valendo nesse caso — "ao menos 2,
+  -- quantas quiser acima disso" —, por isso a exceção no CHECK abaixo.
+  maximo     integer NOT NULL DEFAULT 1 CHECK (maximo >= 0),
   origem     text    NOT NULL DEFAULT 'lista' CHECK (origem IN ('lista', 'categoria')),
   categoria  text,
   ordem      integer NOT NULL DEFAULT 0,
@@ -687,7 +690,7 @@ CREATE TABLE public.grupos_escolha (
     (produto_id IS NOT NULL AND combo_id IS NULL)
     OR (produto_id IS NULL AND combo_id IS NOT NULL)
   ),
-  CONSTRAINT grupos_escolha_maximo_valido CHECK (maximo >= minimo)
+  CONSTRAINT grupos_escolha_maximo_valido CHECK (maximo = 0 OR maximo >= minimo)
 );
 CREATE INDEX idx_grupos_escolha_produto ON public.grupos_escolha (produto_id);
 CREATE INDEX idx_grupos_escolha_combo   ON public.grupos_escolha (combo_id);
@@ -973,6 +976,8 @@ CREATE TABLE public.grupos_complemento (
   produto_id   bigint NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
   nome         text NOT NULL,
   min_escolhas integer NOT NULL DEFAULT 0,
+  -- 0 = SEM LIMITE, igual a grupos_escolha.maximo. Quem cobra o teto é
+  -- criar_pedido_delivery, e só quando ele é maior que zero.
   max_escolhas integer NOT NULL DEFAULT 1,
   ordem        integer NOT NULL DEFAULT 0,
   created_at   timestamptz NOT NULL DEFAULT now()

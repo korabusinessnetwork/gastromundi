@@ -79,3 +79,46 @@ describe("EditorGruposEscolha — de “categoria inteira” para “escolho qua
     expect(botaoVirarLista().textContent).toContain("os 2 produtos");
   });
 });
+
+describe("EditorGruposEscolha — máximo “sem limite”", () => {
+  const menosMax = () => screen.getByRole("button", { name: "Diminuir o máximo" });
+  const maisMax = () => screen.getByRole("button", { name: "Aumentar o máximo" });
+  const maisMin = () => screen.getByRole("button", { name: "Aumentar o mínimo" });
+  const ultimoGrupo = () => alterou.mock.calls.at(-1)[0][0];
+
+  it("descer o máximo abaixo de 1 grava 0 e a tela diz “sem limite”", async () => {
+    montar({ minimo: 1, maximo: 1 });
+
+    await userEvent.click(menosMax());
+
+    expect(ultimoGrupo().maximo).toBe(0);
+  });
+
+  it("com máximo 0 o contador mostra a palavra, não o número", () => {
+    montar({ minimo: 0, maximo: 0 });
+    expect(screen.getByText("sem limite")).toBeInTheDocument();
+  });
+
+  it("subir a partir de “sem limite” volta para 1", async () => {
+    montar({ minimo: 0, maximo: 0 });
+    await userEvent.click(maisMax());
+    expect(ultimoGrupo().maximo).toBe(1);
+  });
+
+  it("subir o mínimo não tira o “sem limite” — ao menos N, quantas quiser", async () => {
+    montar({ minimo: 1, maximo: 0 });
+    await userEvent.click(maisMin());
+    expect(ultimoGrupo()).toMatchObject({ minimo: 2, maximo: 0 });
+  });
+
+  it("a frase explica a regra em português, e é a mesma que o PDV mostra", () => {
+    montar({ minimo: 2, maximo: 0 });
+    expect(screen.getByText(/Escolha ao menos 2\./)).toBeInTheDocument();
+  });
+
+  it("na faixa comum o máximo nunca cai abaixo do mínimo", async () => {
+    montar({ minimo: 3, maximo: 4 });
+    await userEvent.click(menosMax());
+    expect(ultimoGrupo().maximo).toBe(3);
+  });
+});

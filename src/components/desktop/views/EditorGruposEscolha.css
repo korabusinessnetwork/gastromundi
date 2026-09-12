@@ -449,6 +449,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* O máximo às vezes é palavra ("sem limite") e não número: reservar a
+   largura evita que o contador mude de tamanho ao passar de 1 para 0 e
+   empurre o resto da linha. */
+.editor-grupos__stepper-valor--max {
+  min-width: 74px;
+}
+
 /* ── Adicionar grupo ── */
 .editor-grupos__add {
   display: flex;

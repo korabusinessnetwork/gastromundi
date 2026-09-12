@@ -12,7 +12,7 @@ import { supabase } from "./supabase";
  *     id,        // uuid da linha (ou undefined em grupo novo, ainda não salvo)
  *     nome,      // rótulo mostrado ao operador ("Escolha o hambúrguer")
  *     minimo,    // quantas opções o cliente PRECISA escolher
- *     maximo,    // quantas opções o cliente PODE escolher
+ *     maximo,    // quantas opções o cliente PODE escolher — 0 = sem limite
  *     origem,    // 'lista' (opções fixas) | 'categoria' (todos da categoria)
  *     categoria, // nome da categoria quando origem='categoria'
  *     ordem,     // posição do grupo
@@ -123,13 +123,18 @@ export async function salvarGrupos({ produtoId = null, comboId = null, grupos = 
     const g = grupos[gi];
     const origem = g.origem === "categoria" ? "categoria" : "lista";
     const minimo = Math.max(0, Number(g.minimo ?? 1) || 0);
-    const maximoBruto = Math.max(1, Number(g.maximo ?? 1) || 1);
+    // 0 = SEM LIMITE. O piso aqui era 1, e por isso "escolha quantos
+    // sabores quiser" não tinha como ser gravado — o editor mandava 0 e
+    // chegava 1 no banco. Com máximo 0 o mínimo continua valendo (é
+    // "ao menos N, quantas quiser acima disso"), então ele não puxa o
+    // teto para cima como faz na faixa comum.
+    const maximo = Math.max(0, Number(g.maximo ?? 1) || 0);
     const payload = {
       produto_id: produtoId != null ? Number(produtoId) : null,
       combo_id: comboId != null ? comboId : null,
       nome: (g.nome ?? "").trim() || "Escolha",
       minimo,
-      maximo: Math.max(maximoBruto, minimo),
+      maximo: maximo === 0 ? 0 : Math.max(maximo, minimo),
       origem,
       categoria: origem === "categoria" ? (g.categoria ?? null) : null,
       ordem: gi,
@@ -158,6 +163,33 @@ export async function salvarGrupos({ produtoId = null, comboId = null, grupos = 
     }
   }
   return { error: null };
+}
+
+/**
+ * Regra do grupo em português do balcão — o MESMO texto no editor (onde o
+ * dono cadastra) e no seletor do PDV (onde o operador obedece). Sair dos
+ * dois lados da mesma função é o que impede a tela de cadastro prometer
+ * uma coisa e a de venda cobrar outra.
+ *
+ * `max` 0 é SEM LIMITE: o cliente escolhe quantas quiser. O número conta
+ * UNIDADES, não opções diferentes — "até 2" aceita dois cheddar, que é
+ * como o cliente pede ("double cheddar", não "dois adicionais distintos").
+ *
+ * @param {number} min - quantas o cliente PRECISA escolher
+ * @param {number} max - teto de unidades; 0 = sem limite
+ * @returns {string}
+ */
+export function instrucaoGrupo(min, max) {
+  const piso = Math.max(0, Number(min) || 0);
+  const teto = Math.max(0, Number(max) || 0);
+  if (piso > 0) {
+    if (teto === 0) return `Escolha ao menos ${piso}`;
+    if (teto === piso) return `Escolha ${piso}`;
+    return `Escolha de ${piso} a ${teto}`;
+  }
+  if (teto === 0) return "Opcional — escolha quantas quiser";
+  if (teto === 1) return "Opcional — escolha 1 se quiser";
+  return `Opcional — até ${teto}`;
 }
 
 /**

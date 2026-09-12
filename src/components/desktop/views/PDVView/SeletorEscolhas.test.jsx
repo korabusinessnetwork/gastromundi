@@ -168,3 +168,41 @@ describe("SeletorEscolhas — obrigatoriedade", () => {
     expect(within(lista).getByText("Bacon")).toBeInTheDocument();
   });
 });
+
+describe("SeletorEscolhas — máximo 0 é sem limite", () => {
+  // "Escolha quantos sabores quiser": o grupo é cadastrado com máximo 0 e
+  // aqui não pode existir teto nenhum. Antes o 0 caía em `g.maximo ?? 1`
+  // como zero literal e a primeira escolha já enchia a cota — o operador
+  // não conseguia lançar nem uma unidade.
+  it("nada bloqueia, por mais que se some", async () => {
+    montar([grupo({ nome: "Sabores", minimo: 0, maximo: 0 })]);
+
+    for (let i = 0; i < 5; i++) await userEvent.click(cartao("Somar um Cheddar"));
+    await userEvent.click(cartao("Somar um Bacon"));
+
+    expect(cartao("Somar um Cheddar")).toBeEnabled();
+    expect(cartao("Somar um Bacon")).toBeEnabled();
+    expect(total()).toBe("R$ 40.00"); // 20 + 5×3 + 1×5
+  });
+
+  it("o grupo continua repetível — tem o botão de tirar um", async () => {
+    montar([grupo({ minimo: 0, maximo: 0 })]);
+    await userEvent.click(cartao("Somar um Cheddar"));
+    expect(screen.getByRole("button", { name: "Tirar um Cheddar" })).toBeInTheDocument();
+  });
+
+  it("o mínimo continua valendo com máximo 0", async () => {
+    montar([grupo({ minimo: 2, maximo: 0 })]);
+
+    expect(screen.getByText("Escolha ao menos 2")).toBeInTheDocument();
+    expect(confirmar()).toBeDisabled();
+    await userEvent.click(cartao("Somar um Cheddar"));
+    await userEvent.click(cartao("Somar um Bacon"));
+    expect(confirmar()).toBeEnabled();
+  });
+
+  it("a instrução diz 'quantas quiser', não 'até 0'", () => {
+    montar([grupo({ minimo: 0, maximo: 0 })]);
+    expect(screen.getByText("Opcional — escolha quantas quiser")).toBeInTheDocument();
+  });
+});

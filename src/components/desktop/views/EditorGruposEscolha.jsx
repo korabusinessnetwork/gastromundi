@@ -3,6 +3,7 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { LuPlus, LuX, LuSearch, LuMinus, LuTrash2, LuList, LuLayoutGrid, LuEye, LuEyeOff } from "react-icons/lu";
+import { instrucaoGrupo } from "@/lib/gruposEscolha";
 import NovosProdutosInline from "./NovosProdutosInline";
 import "./EditorGruposEscolha.css";
 
@@ -103,13 +104,19 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
   const setAtivo = (idx, ativo) =>
     set({ itens: grupo.itens.map((it, i) => (i === idx ? { ...it, ativo } : it)) });
 
-  // mínimo ≥ 0; ao subir o mínimo além do máximo, o máximo o acompanha
+  // mínimo ≥ 0; ao subir o mínimo além do máximo, o máximo o acompanha —
+  // exceto quando o máximo é 0 (sem limite), que já cabe qualquer mínimo.
   const setMin = (v) => {
     const m = Math.max(0, v);
-    set({ minimo: m, maximo: Math.max(grupo.maximo ?? 1, m, 1) });
+    const tetoAtual = Math.max(0, grupo.maximo ?? 1);
+    set({ minimo: m, maximo: tetoAtual === 0 ? 0 : Math.max(tetoAtual, m, 1) });
   };
-  // máximo ≥ 1 e nunca abaixo do mínimo
-  const setMax = (v) => set({ maximo: Math.max(1, v, grupo.minimo ?? 0) });
+  // Máximo 0 = SEM LIMITE. Descer abaixo de 1 não é erro a barrar: é como
+  // se diz "quantas o cliente quiser" (pizza de quantos sabores der).
+  // Subir de lá volta para 1, e daí para cima o teto nunca fica abaixo do
+  // mínimo — uma faixa que se contradiz travaria o pedido para sempre.
+  const setMax = (v) =>
+    set({ maximo: v <= 0 ? 0 : Math.max(v, grupo.minimo ?? 0, 1) });
 
   const ehCategoria = grupo.origem === "categoria";
 
@@ -331,24 +338,30 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
         </div>
       )}
 
-      {/* Quantas o cliente escolhe */}
+      {/* Quantas o cliente escolhe. Os dois contadores são só controles —
+          quem diz em português o que a combinação significa é a frase
+          abaixo, a MESMA que o operador lê no PDV na hora de vender. Sem
+          ela, "de 0 a sem limite" viraria charada. */}
       <div className="editor-grupos__minmax">
-        <span className="editor-grupos__minmax-texto">O cliente escolhe de</span>
+        <span className="editor-grupos__minmax-texto">Mínimo</span>
         <div className="editor-grupos__stepper">
-          <button type="button" onClick={() => setMin((grupo.minimo ?? 0) - 1)} className="editor-grupos__stepper-btn"><LuMinus size={12} /></button>
+          <button type="button" aria-label="Diminuir o mínimo" onClick={() => setMin((grupo.minimo ?? 0) - 1)} className="editor-grupos__stepper-btn"><LuMinus size={12} /></button>
           <span className="editor-grupos__stepper-valor">{grupo.minimo ?? 0}</span>
-          <button type="button" onClick={() => setMin((grupo.minimo ?? 0) + 1)} className="editor-grupos__stepper-btn"><LuPlus size={12} /></button>
+          <button type="button" aria-label="Aumentar o mínimo" onClick={() => setMin((grupo.minimo ?? 0) + 1)} className="editor-grupos__stepper-btn"><LuPlus size={12} /></button>
         </div>
-        <span className="editor-grupos__minmax-texto">a</span>
+        <span className="editor-grupos__minmax-texto">Máximo</span>
         <div className="editor-grupos__stepper">
-          <button type="button" onClick={() => setMax((grupo.maximo ?? 1) - 1)} className="editor-grupos__stepper-btn"><LuMinus size={12} /></button>
-          <span className="editor-grupos__stepper-valor">{grupo.maximo ?? 1}</span>
-          <button type="button" onClick={() => setMax((grupo.maximo ?? 1) + 1)} className="editor-grupos__stepper-btn"><LuPlus size={12} /></button>
+          <button type="button" aria-label="Diminuir o máximo" onClick={() => setMax((grupo.maximo ?? 1) - 1)} className="editor-grupos__stepper-btn"><LuMinus size={12} /></button>
+          <span className="editor-grupos__stepper-valor editor-grupos__stepper-valor--max">
+            {(grupo.maximo ?? 1) === 0 ? "sem limite" : (grupo.maximo ?? 1)}
+          </span>
+          <button type="button" aria-label="Aumentar o máximo" onClick={() => setMax((grupo.maximo ?? 1) + 1)} className="editor-grupos__stepper-btn"><LuPlus size={12} /></button>
         </div>
-        <span className="editor-grupos__minmax-texto">
-          {(grupo.maximo ?? 1) === 1 ? "opção" : "opções"}
-          {(grupo.minimo ?? 0) === 0 ? " (opcional)" : ""}
-        </span>
+      </div>
+      <div className="editor-grupos__ajuda">
+        {instrucaoGrupo(grupo.minimo ?? 0, grupo.maximo ?? 1)}. Baixe o máximo até
+        “sem limite” quando o cliente puder repetir à vontade — pizza de quantos
+        sabores quiser, por exemplo.
       </div>
     </div>
   );
