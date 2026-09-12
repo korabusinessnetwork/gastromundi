@@ -1958,3 +1958,19 @@
   color: var(--gm-accent);
   outline: none;
 }
+
+/* Espera do mapa, que agora é carregado só quando esta aba abre (o Leaflet
+   pesava 440 kB no bundle de todo mundo). Altura fixa para a tela não pular
+   quando o mapa chega. */
+.delivery-view__mapa-carregando {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 320px;
+  border-radius: 12px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}

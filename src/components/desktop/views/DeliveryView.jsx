@@ -20,7 +20,7 @@
 // em um clique com contagem clara, e estados de vazio/carregando/erro
 // com texto humano. Nada de jargão técnico na tela.
 // ──────────────────────────────────────────────────────────────────
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense} from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
@@ -115,7 +115,11 @@ import {
   sanitizarConfig,
 } from "@/lib/deliveryAdmin";
 import { ajusteAutomaticoAbertura, resumoHorario } from "@/lib/deliveryHorario";
-import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
+// Leaflet inteiro (440 kB de fonte, medido no chunk principal) entrava no
+// bundle de todo mundo por causa deste import, e o mapa só aparece na aba
+// Entrega e taxas do delivery. Lazy: quem nunca abre essa aba nunca baixa o
+// mapa. O `Suspense` fica no ponto de uso, com a moldura do próprio cartão.
+const MapaRaioEntrega = lazy(() => import("./delivery/MapaRaioEntrega"));
 import ListaArrastavel from "@/components/shared/ListaArrastavel";
 import { geocodificarEndereco, sugerirEnderecos } from "@/lib/delivery";
 import { enviarFotoProduto, listarFotosDelivery, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
@@ -2778,12 +2782,14 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
               )}
             </div>
 
-            <MapaRaioEntrega
-              origem={origem}
-              aneis={aneisKm}
-              onOrigemChange={definirOrigem}
-              readOnly={readOnly || bloqueado}
-            />
+            <Suspense fallback={<div className="delivery-view__mapa-carregando">Carregando o mapa...</div>}>
+              <MapaRaioEntrega
+                origem={origem}
+                aneis={aneisKm}
+                onOrigemChange={definirOrigem}
+                readOnly={readOnly || bloqueado}
+              />
+            </Suspense>
             {!origem && (
               <div className="delivery-view__hint delivery-view__hint--erro">
                 Marque o ponto de partida no mapa, sem ele o cálculo por distância não funciona.
