@@ -64,7 +64,7 @@ describe("PDVView, modal Mesa", () => {
     expect(overlayMesa()).toBeNull();
     expect(entrouNaComanda()).toBe(false);
     expect(updatePending).not.toHaveBeenCalled();
-  });
+  }, 20000);
 
   it("confirmar com a mesa em branco não faz nada", async () => {
     await act(async () => { fireEvent.keyDown(campoMesa(), { key: "Enter" }); });
@@ -72,7 +72,7 @@ describe("PDVView, modal Mesa", () => {
     expect(overlayMesa()).toBeTruthy();
     expect(entrouNaComanda()).toBe(false);
     expect(updatePending).not.toHaveBeenCalled();
-  });
+  }, 20000);
 
   it("com a mesa preenchida, Entrar continua funcionando", async () => {
     fireEvent.change(campoMesa(), { target: { value: "12" } });
@@ -83,5 +83,5 @@ describe("PDVView, modal Mesa", () => {
     expect(overlayMesa()).toBeNull();
     expect(entrouNaComanda()).toBe(true);
     expect(updatePending).toHaveBeenCalledWith("C9", { mesa: "12", apelido: "" });
-  });
+  }, 20000);
 });

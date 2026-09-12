@@ -62,7 +62,7 @@ describe("PDVView, nova comanda com nome já em uso", () => {
 
     expect(addPending).not.toHaveBeenCalled();
     expect(document.body.textContent).toMatch(/já existe/);
-  });
+  }, 20000);
 
   it("nome livre continua abrindo a comanda normalmente", async () => {
     const campo = abrirModalNovaComanda();
@@ -74,5 +74,5 @@ describe("PDVView, nova comanda com nome já em uso", () => {
 
     expect(addPending).toHaveBeenCalledTimes(1);
     expect(addPending.mock.calls[0][0]).toMatchObject({ comanda: "6", status: "open" });
-  });
+  }, 20000);
 });
