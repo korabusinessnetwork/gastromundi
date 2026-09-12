@@ -495,3 +495,75 @@ describe("FinanceiroView, período vai na consulta de lançamentos (R02)", () =>
     expect(filtrosDeCompetencia()).toContain(`gte:competencia:${DIA_ANTIGO}`);
   });
 });
+
+// ── Refino: a aba que atravessa a virada do mês ───────────────────────
+//
+// O PDV nunca fecha. O período nascia congelado (`useState(() =>
+// intervaloDoMes(new Date()))`), então uma aba montada em 30 de agosto seguia
+// no Financeiro de agosto durante todo setembro, e nenhum chip aparecia
+// destacado: o PeriodoSelector recalcula o próprio "hoje" a cada render e o
+// intervalo congelado já não casava com "Este mês". O dono via um período
+// antigo e nenhuma pista de qual atalho estava ativo.
+
+describe("FinanceiroView, virada do mês com a aba aberta (refino)", () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  const chipEsteMes = () => screen.getByRole("button", { name: "Este mês" });
+  const de = () => screen.getByLabelText("Data inicial do período");
+  const ate = () => screen.getByLabelText("Data final do período");
+  const competenciasConsultadas = () =>
+    mockSupabase.current.calls
+      .filter((c) => c.table === "lancamentos" && (c.method === "gte" || c.method === "lte"))
+      .map((c) => `${c.method}:${c.args[1]}`);
+
+  /** Monta a tela com o relógio parado em 30/08/2026, 22h. */
+  async function montarNaViradaDeAgosto() {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date(2026, 7, 30, 22, 0));
+    servirBanco({ linhas: [] });
+    setAppMock({ currentUser: { name: "Gerente Teste", username: "gerente1", role: "gerente" }, sales: [] });
+    renderWithProviders(<FinanceiroView />);
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+  }
+
+  /** Passa para 1º de setembro, 00h05, e deixa o tique do relógio bater. */
+  async function passarParaSetembro() {
+    await act(async () => {
+      vi.setSystemTime(new Date(2026, 8, 1, 0, 5));
+      vi.advanceTimersByTime(30000);
+    });
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+  }
+
+  it("o período vai para setembro e o chip Este mês continua destacado", async () => {
+    await montarNaViradaDeAgosto();
+
+    expect(de()).toHaveValue("2026-08-01");
+    expect(ate()).toHaveValue("2026-08-31");
+    expect(chipEsteMes()).toHaveAttribute("aria-pressed", "true");
+
+    mockSupabase.current.calls.length = 0;
+    await passarParaSetembro();
+
+    // Antes: continuava 01/08 a 31/08, com "personalizado" e nenhum chip aceso.
+    expect(de()).toHaveValue("2026-09-01");
+    expect(ate()).toHaveValue("2026-09-30");
+    expect(chipEsteMes()).toHaveAttribute("aria-pressed", "true");
+    // E os lançamentos do mês novo foram buscados, não os de agosto.
+    expect(competenciasConsultadas()).toContain("gte:2026-09-01");
+  });
+
+  it("datas escolhidas à mão não são arrastadas pela virada do mês", async () => {
+    await montarNaViradaDeAgosto();
+
+    fireEvent.change(de(), { target: { value: "2026-08-10" } });
+    fireEvent.change(ate(), { target: { value: "2026-08-20" } });
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+
+    await passarParaSetembro();
+
+    expect(de()).toHaveValue("2026-08-10");
+    expect(ate()).toHaveValue("2026-08-20");
+    expect(chipEsteMes()).toHaveAttribute("aria-pressed", "false");
+  });
+});

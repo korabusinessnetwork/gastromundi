@@ -68,7 +68,12 @@ function tipoLog(actionType) {
 
 const SALE_PREFIXES = new Set(["comanda", "itens", "produto"]);
 
-function filtrarPorPeriodo(list, campo, periodo, customInicio, customFim) {
+// O instante de referência entra por parâmetro (e não como `Date.now()` lido
+// aqui dentro) porque a tela do PDV fica aberta 24 horas por dia: sem um valor
+// que muda com o relógio, o `useMemo` que chama esta função não tinha nenhuma
+// dependência ligada ao tempo e o recorte "Hoje" continuava preso ao dia em que
+// rodou por último, virando só quando entrava uma venda nova.
+function filtrarPorPeriodo(list, campo, periodo, customInicio, customFim, agora = Date.now()) {
   if (periodo === "tudo") return list;
   if (periodo === "custom") {
     if (!customInicio && !customFim) return list;
@@ -79,9 +84,9 @@ function filtrarPorPeriodo(list, campo, periodo, customInicio, customFim) {
       return t >= ini && t <= fim;
     });
   }
-  const hojeInicio = new Date(new Date().toDateString()).getTime();
+  const hojeInicio = new Date(new Date(agora).toDateString()).getTime();
   const dias  = periodo === "semana" ? 7 : 30;
-  const desde = Date.now() - dias * 24 * 60 * 60 * 1000;
+  const desde = agora - dias * 24 * 60 * 60 * 1000;
   return list.filter(r => {
     const t = r[campo] ? new Date(r[campo]).getTime() : 0;
     return periodo === "hoje" ? t >= hojeInicio : t >= desde;
@@ -342,6 +347,15 @@ export default function RelatorioView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
 
+  // Tique do relógio: a aba do PDV atravessa a meia-noite sem recarregar, e os
+  // recortes por período ("Hoje", "7 dias", "30 dias") dependem de que hora é
+  // agora. 30 s é o passo já usado na Cozinha (CozinhaView.jsx).
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   // Cabeçalho dos exports com a identidade do tenant (white-label,
   // decisão 017); "by Kora" é a assinatura da plataforma. Sem tema custom
   // cai no nome CADASTRADO do estabelecimento — antes caía na marca de um
@@ -402,13 +416,13 @@ export default function RelatorioView() {
 
   // ── Vendas ────────────────────────────────────────────────────
   const vendasFiltradas = useMemo(() => {
-    let l = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim);
+    let l = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim, agora);
     if (metodoFilt !== "todos") l = l.filter(s => Object.keys(totalPorMetodo(s)).includes(metodoFilt));
     // Leva 15.5 — busca por número/nome da comanda
     const busca = buscaComanda.trim().toLowerCase();
     if (busca) l = l.filter(s => String(s.comanda ?? "").toLowerCase().includes(busca));
     return l;
-  }, [sales, periodo, metodoFilt, buscaComanda, customInicio, customFim]);
+  }, [sales, periodo, metodoFilt, buscaComanda, customInicio, customFim, agora]);
 
   const kpis = useMemo(() => {
     const total  = vendasFiltradas.reduce((s, v) => s + (v.total ?? 0), 0);
@@ -433,7 +447,7 @@ export default function RelatorioView() {
   //    mesma duração, ticket médio e faturamento por operador. Calculado a
   //    partir de `sales` (janela de bootstrap) pelos limites do período.
   const adminConsolidado = useMemo(() => {
-    const { ini, fim } = intervaloPeriodo(periodo, customInicio, customFim);
+    const { ini, fim } = intervaloPeriodo(periodo, customInicio, customFim, agora);
     const atMs = (v) => (v.at ? new Date(v.at).getTime() : 0);
     const atuais = (ini == null && fim == null)
       ? sales
@@ -459,19 +473,19 @@ export default function RelatorioView() {
       porOperador: agruparVendasPorOperador(atuais),
       porMetodo,
     };
-  }, [sales, periodo, customInicio, customFim]);
+  }, [sales, periodo, customInicio, customFim, agora]);
 
   // ── Fechamentos ───────────────────────────────────────────────
   const fechsFiltrados = useMemo(() =>
-    filtrarPorPeriodo(fechamentos, "at", periodo, customInicio, customFim),
-  [fechamentos, periodo, customInicio, customFim]);
+    filtrarPorPeriodo(fechamentos, "at", periodo, customInicio, customFim, agora),
+  [fechamentos, periodo, customInicio, customFim, agora]);
 
   // ── Cancelamentos ─────────────────────────────────────────────
   const cancelamentos = useMemo(() => {
     const linhas = [];
 
     // vendas finalizadas — itens cancelados dentro delas
-    const vendasPeriodo = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim);
+    const vendasPeriodo = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim, agora);
     vendasPeriodo.forEach(v => {
       (Array.isArray(v.items) ? v.items : [])
         .filter(it => it.cancelado)
@@ -491,7 +505,7 @@ export default function RelatorioView() {
     });
 
     // comandas em aberto — itens cancelados
-    const pendingPeriodo = filtrarPorPeriodo(pending ?? [], "created_at", periodo, customInicio, customFim);
+    const pendingPeriodo = filtrarPorPeriodo(pending ?? [], "created_at", periodo, customInicio, customFim, agora);
     pendingPeriodo.forEach(p => {
       (Array.isArray(p.items) ? p.items : [])
         .filter(it => it.cancelado)
@@ -511,7 +525,7 @@ export default function RelatorioView() {
     });
 
     return linhas.sort((a, b) => new Date(b.at) - new Date(a.at));
-  }, [sales, pending, periodo, customInicio, customFim]);
+  }, [sales, pending, periodo, customInicio, customFim, agora]);
 
   const kpisCancelamentos = useMemo(() => {
     const total    = cancelamentos.length;
@@ -525,11 +539,11 @@ export default function RelatorioView() {
 
   // ── Logs ──────────────────────────────────────────────────────
   const logsFiltrados = useMemo(() => {
-    let l = filtrarPorPeriodo(opLogs, "created_at", periodo, customInicio, customFim);
+    let l = filtrarPorPeriodo(opLogs, "created_at", periodo, customInicio, customFim, agora);
     if (logTipo === "venda")       l = l.filter(x => SALE_PREFIXES.has((x.action_type ?? "").split(":")[0]));
     else if (logTipo !== "todos")  l = l.filter(x => (x.action_type ?? "").startsWith(logTipo + ":"));
     return l;
-  }, [opLogs, periodo, logTipo, customInicio, customFim]);
+  }, [opLogs, periodo, logTipo, customInicio, customFim, agora]);
 
   // ── Handlers de exportação ────────────────────────────────────
   const totalItens = (v) => Array.isArray(v.items) ? v.items.reduce((s, it) => s + (it.qty ?? 1), 0) : 0;

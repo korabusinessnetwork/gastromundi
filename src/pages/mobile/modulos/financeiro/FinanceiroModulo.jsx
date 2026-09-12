@@ -30,7 +30,19 @@ function periodoDaChave(chave) {
 
 export default function FinanceiroModulo({ onVoltar }) {
   const [periodoChave, setPeriodoChave] = useState("mes");
-  const periodo = useMemo(() => periodoDaChave(periodoChave), [periodoChave]);
+
+  // O Palm desmonta o módulo ao voltar para o menu, mas nada impede a tela de
+  // ficar aberta atravessando a meia-noite, e aí o recorte continuava no dia em
+  // que foi aberta. `diaAtual` só muda quando o dia vira (regravar o mesmo
+  // texto não provoca render), então a busca é refeita uma vez por virada, não
+  // a cada tique. 30 s é o passo já usado na Cozinha (CozinhaView.jsx).
+  const [diaAtual, setDiaAtual] = useState(() => new Date().toDateString());
+  useEffect(() => {
+    const id = setInterval(() => setDiaAtual(new Date().toDateString()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const periodo = useMemo(() => periodoDaChave(periodoChave), [periodoChave, diaAtual]);
 
   const [lancamentos, setLancamentos] = useState([]);
   const [previstos, setPrevistos] = useState([]);

@@ -342,3 +342,40 @@
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
 }
+
+/* Atualizar + hora da última leitura. Fica na toolbar, do lado do resto dos
+   controles, e a hora vem embaixo do botão para o dono saber de quando é o
+   número que está lendo sem precisar clicar em nada. */
+.desempenho__atualizar-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.desempenho__atualizar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+}
+
+.desempenho__atualizar:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.desempenho__ultima-leitura {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}

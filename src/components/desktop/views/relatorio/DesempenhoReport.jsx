@@ -6,7 +6,7 @@ import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
 import { rotuloMetodo } from "@/utils/pagamentos";
 import { getSizes } from "@/constants/sizes";
-import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrendingDown, LuChevronDown } from "react-icons/lu";
+import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrendingDown, LuChevronDown, LuRefreshCw } from "react-icons/lu";
 import {
   calcularPeriodo, calcularPeriodoComparacao, rotuloComparacao, calcularVariacaoPercentual,
   calcularMargemProdutos, buscarRelatorioVendas, buscarFichasTecnicas,
@@ -134,6 +134,13 @@ export default function DesempenhoReport() {
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
+  // Esta aba lê por RPC, não por realtime: sem um botão, ela buscava uma vez
+  // por combinação de filtro e nunca mais. A aba do PDV fica aberta 24 horas
+  // por dia, então escolher "Hoje" às 23h deixava o dono olhando o dia
+  // anterior no dia seguinte, sem nada na tela dizendo que era retrato antigo.
+  // `recarga` força a releitura e `ultimaLeitura` diz de quando é o número.
+  const [recarga, setRecarga] = useState(0);
+  const [ultimaLeitura, setUltimaLeitura] = useState(null);
   const [atual, setAtual] = useState(null);
   const [anterior, setAnterior] = useState(null);
   const [fichas, setFichas] = useState([]);
@@ -173,6 +180,7 @@ export default function DesempenhoReport() {
       setCarregando(false);
 
       if (resAtual.error) { setErro("Não foi possível carregar o relatório agora."); return; }
+      setUltimaLeitura(new Date());
       setAtual(resAtual.data);
       setAnterior(resAnterior.data ?? null);
       setFichas(resFichas.data ?? []);
@@ -181,7 +189,10 @@ export default function DesempenhoReport() {
     carregar();
     return () => { cancelado = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipoPeriodo, customInicio, customFim, comparar, tipoComparacao, compInicio, compFim, periodoValido]);
+    // `recarga` entra aqui de propósito: é o que faz o clique em "Atualizar"
+    // refazer a busca, e com ela o `calcularPeriodo` acima, que resolve o
+    // recorte no instante da leitura.
+  }, [tipoPeriodo, customInicio, customFim, comparar, tipoComparacao, compInicio, compFim, periodoValido, recarga]);
 
   const faturamento = atual?.faturamento ?? 0;
   const numeroVendas = atual?.numero_vendas ?? 0;
@@ -200,6 +211,13 @@ export default function DesempenhoReport() {
   const rotuloBotaoComp = tipoComparacao === "intervalo"
     ? (compInicio && compFim ? rotuloVs : "Período")
     : (COMPARACOES.find((c) => c.id === tipoComparacao)?.label ?? "Ontem");
+
+  // Dia e hora juntos porque a aba atravessa a meia-noite: só "às 23:41" no dia
+  // seguinte não diz que o número é de ontem.
+  const rotuloUltimaLeitura = ultimaLeitura
+    ? `Atualizado em ${ultimaLeitura.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`
+      + ` às ${ultimaLeitura.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+    : "Lendo os dados agora";
 
   const porDia = atual?.por_dia ?? [];
   const porMetodo = atual?.por_metodo ?? [];
@@ -330,6 +348,26 @@ export default function DesempenhoReport() {
               )}
             </div>
           )}
+        </div>
+
+        <div className="desempenho__atualizar-area">
+          <button
+            type="button"
+            className="desempenho__atualizar"
+            onClick={() => setRecarga((n) => n + 1)}
+            disabled={carregando}
+            style={{
+              border: `1.5px solid ${varColor(C.accent)}`,
+              background: varColor(C.surface),
+              color: varColor(C.text),
+            }}
+          >
+            <LuRefreshCw size={14} aria-hidden="true" />
+            {carregando ? "Atualizando..." : "Atualizar"}
+          </button>
+          <span className="desempenho__ultima-leitura" style={{ color: varColor(C.muted) }}>
+            {rotuloUltimaLeitura}
+          </span>
         </div>
       </div>
 

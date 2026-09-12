@@ -29,7 +29,19 @@ const CHIPS = [
 
 export default function RelatoriosModulo({ onVoltar }) {
   const [periodoChave, setPeriodoChave] = useState("dia");
-  const periodo = useMemo(() => calcularPeriodo(periodoChave), [periodoChave]);
+
+  // O Palm desmonta o módulo ao voltar para o menu, mas nada impede a tela de
+  // ficar aberta atravessando a meia-noite, e aí o recorte continuava no dia em
+  // que foi aberta. `diaAtual` só muda quando o dia vira (regravar o mesmo
+  // texto não provoca render), então a busca é refeita uma vez por virada, não
+  // a cada tique. 30 s é o passo já usado na Cozinha (CozinhaView.jsx).
+  const [diaAtual, setDiaAtual] = useState(() => new Date().toDateString());
+  useEffect(() => {
+    const id = setInterval(() => setDiaAtual(new Date().toDateString()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const periodo = useMemo(() => calcularPeriodo(periodoChave), [periodoChave, diaAtual]);
   const periodoAnterior = useMemo(
     () => calcularPeriodoAnterior(periodo.inicio, periodo.fim),
     [periodo],
@@ -73,7 +85,7 @@ export default function RelatoriosModulo({ onVoltar }) {
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodoChave]);
+  }, [periodoChave, diaAtual]);
 
   const faturamento = atual?.faturamento ?? 0;
   const numeroVendas = atual?.numero_vendas ?? 0;
