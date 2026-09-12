@@ -240,6 +240,10 @@ export default function PDVView({ notify }) {
 
   const handleConfirmarMesa = async () => {
     if (!mesaPendingOrder || salvandoMesa) return;
+    // Mesa é obrigatória: a tela já mostra "Campo obrigatório." e desabilita o
+    // botão Entrar. Sem esta guarda o Enter no campo vazio entrava mesmo assim,
+    // e comanda sem mesa não aparece no mapa do salão.
+    if (!mesaInput.trim()) return;
     // Trava de edição (Leva 14): alguém abriu a comanda enquanto a modal estava na tela.
     if (!mesaPendingOrder._virtual) {
       const fresca = pending.find(o => o.id === mesaPendingOrder.id) ?? mesaPendingOrder;
@@ -1777,7 +1781,7 @@ export default function PDVView({ notify }) {
       {/* ── Popup: Mesa ──────────────────────────────────────────── */}
       {showMesa && mesaPendingOrder && createPortal(
         <div
-          {...fecharAoClicarFora(() => { handleConfirmarMesa(); })}
+          {...fecharAoClicarFora(() => { setShowMesa(false); setMesaPendingOrder(null); }, !salvandoMesa)}
           className="pdv__mesa-overlay"
         >
           <div className="pdv__mesa-card">
