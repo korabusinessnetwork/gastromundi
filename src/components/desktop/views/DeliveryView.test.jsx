@@ -25,18 +25,20 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery, salvarConfigDelivery, carregarItensPedido } = vi.hoisted(() => ({
+const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery, salvarConfigDelivery, carregarItensPedido, atualizarStatusPedido } = vi.hoisted(() => ({
   usePedidosDelivery: vi.fn(),
   listarProdutosDelivery: vi.fn(),
   carregarConfigDelivery: vi.fn(),
   salvarConfigDelivery: vi.fn(),
   carregarItensPedido: vi.fn(),
+  atualizarStatusPedido: vi.fn(),
 }));
 
 // `carregarItensPedido` mora na lib de pedidos, não na de administração.
 vi.mock("@/lib/deliveryPedidos", async (importOriginal) => ({
   ...(await importOriginal()),
   carregarItensPedido,
+  atualizarStatusPedido,
 }));
 
 // Só o hook de pedidos é falso. O resto de @/utils/hooks passa real pelo
@@ -101,6 +103,7 @@ beforeEach(() => {
     data: { aberto: true, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] },
     error: null,
   });
+  atualizarStatusPedido.mockResolvedValue({ data: { id: "p1" }, error: null });
   semErro();
 });
 
@@ -338,5 +341,94 @@ describe("DeliveryView, falha ao carregar os itens do pedido", () => {
 
     expect(await screen.findByText("Sem itens detalhados.")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * D03, avançar e cancelar não tinham estado de "em andamento".
+ *
+ * Entre o clique em "Aceitar e preparar" e o fim do recarregar(), o botão
+ * seguia clicável e com o mesmo rótulo: nada dizia que o toque pegou, o que
+ * convida ao clique duplo e a uma segunda gravação. O módulo do celular já
+ * controlava isso por pedido (DeliveryModulo.jsx, `processando`).
+ */
+describe("DeliveryView, avançar e cancelar mostram que estão em andamento (D03)", () => {
+  beforeEach(() => {
+    setAppMock({ currentUser: { role: "admin", name: "Dona Ana", username: "ana" }, tenant: { id: "t1" } });
+  });
+
+  /** Deixa a gravação pendurada até o teste soltar. */
+  function gravacaoPendurada() {
+    let soltar;
+    atualizarStatusPedido.mockImplementation(
+      () => new Promise((resolve) => { soltar = () => resolve({ data: { id: "p1" }, error: null }); }),
+    );
+    return () => soltar();
+  }
+
+  it("durante a gravação o botão fica desabilitado e diz que está salvando", async () => {
+    const soltar = gravacaoPendurada();
+    const user = userEvent.setup();
+    await montar();
+
+    await user.click(screen.getByRole("button", { name: "Aceitar e preparar" }));
+
+    const emAndamento = await screen.findByRole("button", { name: "Salvando…" });
+    expect(emAndamento).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Aceitar e preparar" })).not.toBeInTheDocument();
+
+    soltar();
+    await screen.findByRole("button", { name: "Aceitar e preparar" });
+  });
+
+  it("o segundo clique não dispara segunda gravação", async () => {
+    const soltar = gravacaoPendurada();
+    const user = userEvent.setup();
+    await montar();
+
+    const botao = screen.getByRole("button", { name: "Aceitar e preparar" });
+    await user.click(botao);
+    await user.click(botao);
+
+    expect(atualizarStatusPedido).toHaveBeenCalledTimes(1);
+
+    soltar();
+    await screen.findByRole("button", { name: "Aceitar e preparar" });
+  });
+
+  it("cancelar também mostra em andamento e não grava duas vezes", async () => {
+    const soltar = gravacaoPendurada();
+    const user = userEvent.setup();
+    await montar();
+
+    await user.click(screen.getByRole("button", { name: "Cancelar este pedido" }));
+    const confirmar = screen.getByRole("button", { name: "Cancelar mesmo" });
+    await user.click(confirmar);
+    await user.click(confirmar);
+
+    expect(atualizarStatusPedido).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole("button", { name: "Cancelando…" })).toBeDisabled();
+
+    soltar();
+    await screen.findByRole("button", { name: "Aceitar e preparar" });
+  });
+
+  it("em andamento é por pedido, não trava a tela inteira", async () => {
+    const soltar = gravacaoPendurada();
+    semErro([
+      PEDIDO,
+      { ...PEDIDO, id: "p2", numero: 43, cliente_nome: "Bruno" },
+    ]);
+    const user = userEvent.setup();
+    // `montar()` espera o resumo no singular, que não bate com dois pedidos.
+    render(<DeliveryView notify={vi.fn()} />);
+    const botoes = await screen.findAllByRole("button", { name: "Aceitar e preparar" });
+    await user.click(botoes[0]);
+
+    expect(await screen.findByRole("button", { name: "Salvando…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Aceitar e preparar" })).toBeEnabled();
+
+    soltar();
+    await screen.findAllByRole("button", { name: "Aceitar e preparar" });
   });
 });

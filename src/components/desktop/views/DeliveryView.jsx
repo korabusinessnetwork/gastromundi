@@ -520,34 +520,58 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
     [pedidos]
   );
 
+  // Em andamento POR PEDIDO (o celular já fazia assim, DeliveryModulo.jsx).
+  // Sem isto, entre o clique em "Aceitar e preparar" e o fim do recarregar()
+  // o botão seguia clicável e com o mesmo rótulo, o que convida ao clique
+  // duplo. O ref é o guard (não depende de re-render), o state é o que a
+  // tela lê.
+  const processandoRef = useRef({});
+  const [processando, setProcessando] = useState({});
+  const marcarProcessando = useCallback((id, valor) => {
+    processandoRef.current = { ...processandoRef.current, [id]: valor };
+    setProcessando((prev) => ({ ...prev, [id]: valor }));
+  }, []);
+
   const avancar = useCallback(
     async (pedido) => {
       const proximo = proximoStatus(pedido.status);
       if (!proximo) return;
-      const { error } = await atualizarStatusPedido(pedido.id, proximo, {
-        de: pedido.status,
-        operador: currentUser?.username,
-        numero: pedido.numero,
-      });
-      if (error) return aviso("Não foi possível atualizar o pedido. Tente novamente.", "err");
-      aviso(`Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`, "ok");
-      await recarregar();
+      if (processandoRef.current[pedido.id]) return;
+      marcarProcessando(pedido.id, true);
+      try {
+        const { error } = await atualizarStatusPedido(pedido.id, proximo, {
+          de: pedido.status,
+          operador: currentUser?.username,
+          numero: pedido.numero,
+        });
+        if (error) return aviso("Não foi possível atualizar o pedido. Tente novamente.", "err");
+        aviso(`Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`, "ok");
+        await recarregar();
+      } finally {
+        marcarProcessando(pedido.id, false);
+      }
     },
-    [aviso, recarregar, currentUser]
+    [aviso, recarregar, currentUser, marcarProcessando]
   );
 
   const cancelar = useCallback(
     async (pedido) => {
-      const { error } = await atualizarStatusPedido(pedido.id, STATUS_CANCELADO, {
-        de: pedido.status,
-        operador: currentUser?.username,
-        numero: pedido.numero,
-      });
-      if (error) return aviso("Não foi possível cancelar. Tente novamente.", "err");
-      aviso(`Pedido ${pedido.numero} cancelado.`, "ok");
-      await recarregar();
+      if (processandoRef.current[pedido.id]) return;
+      marcarProcessando(pedido.id, true);
+      try {
+        const { error } = await atualizarStatusPedido(pedido.id, STATUS_CANCELADO, {
+          de: pedido.status,
+          operador: currentUser?.username,
+          numero: pedido.numero,
+        });
+        if (error) return aviso("Não foi possível cancelar. Tente novamente.", "err");
+        aviso(`Pedido ${pedido.numero} cancelado.`, "ok");
+        await recarregar();
+      } finally {
+        marcarProcessando(pedido.id, false);
+      }
     },
-    [aviso, recarregar, currentUser]
+    [aviso, recarregar, currentUser, marcarProcessando]
   );
 
   return (
@@ -650,6 +674,7 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
                           pedido={p}
                           isAdmin={isAdmin}
                           ehAddon={ehAddon}
+                          processando={!!processando[p.id]}
                           onAvancar={() => avancar(p)}
                           onCancelar={() => cancelar(p)}
                         />
@@ -666,7 +691,7 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
   );
 }
 
-function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
+function CardPedido({ pedido, isAdmin, ehAddon, processando, onAvancar, onCancelar }) {
   const [aberto, setAberto] = useState(false);
   const [itens, setItens] = useState(null); // null = ainda não buscou
   const [carregandoItens, setCarregandoItens] = useState(false);
@@ -783,9 +808,10 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
           {acao && (
             <button
               onClick={onAvancar}
+              disabled={processando}
               className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-avancar"
             >
-              {acao}
+              {processando ? "Salvando…" : acao}
             </button>
           )}
           {podeCancelar(pedido.status) && (
@@ -793,12 +819,14 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
               <>
                 <button
                   onClick={onCancelar}
+                  disabled={processando}
                   className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-cancelar-confirma"
                 >
-                  Cancelar mesmo
+                  {processando ? "Cancelando…" : "Cancelar mesmo"}
                 </button>
                 <button
                   onClick={() => setConfirmarCancelar(false)}
+                  disabled={processando}
                   className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-voltar"
                 >
                   Voltar
@@ -807,6 +835,7 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
             ) : (
               <button
                 onClick={() => setConfirmarCancelar(true)}
+                disabled={processando}
                 className="delivery-view__btn delivery-view__btn--sm delivery-view__pedido-cancelar"
                 title="Cancelar este pedido"
               >
