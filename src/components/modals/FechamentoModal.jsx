@@ -116,8 +116,14 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
   const corDiferenca   = situacao === "falta" ? C.red : C.green;
   const totalNaoMapeado = round2(Object.values(naoMapeados).reduce((s, v) => s + v, 0));
 
+  // Regra de negócio (docs/03_REGRAS_DE_NEGOCIO/CAIXA.md): divergência acima do
+  // limite tolerado exige justificativa. Sem isto dava para fechar com falta de
+  // R$ 80,00 gravando observacao: null, e ninguém depois sabia o porquê.
+  const justificativaObrigatoria = !semDiferenca;
+  const faltaJustificativa       = justificativaObrigatoria && !observacao.trim();
+
   const handleConfirm = async () => {
-    if (salvando) return;
+    if (salvando || faltaJustificativa) return;
     setSalvando(true);
     const conferidoPorMetodo = {};
     meios.forEach(k => { conferidoPorMetodo[k] = parsVal(confDe(k)); });
@@ -326,14 +332,17 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             fontWeight: 700, color: varColor(C.muted),
             textTransform: "uppercase", letterSpacing: 1,
           }}>
-            Observação (opcional)
+            {justificativaObrigatoria ? "Justificativa da diferença (obrigatória)" : "Observação (opcional)"}
           </div>
           <textarea
             value={observacao}
             onChange={e => setObservacao(e.target.value)}
-            placeholder="Ex: sobra de R$ 10 devolvida ao caixa, cliente X pagou amanhã..."
+            placeholder={justificativaObrigatoria
+              ? "Explique a diferença. Ex: sobra de R$ 10 devolvida ao caixa, cliente X pagou amanhã..."
+              : "Ex: sobra de R$ 10 devolvida ao caixa, cliente X pagou amanhã..."}
             maxLength={400}
             rows={3}
+            aria-invalid={faltaJustificativa}
             className="fechamento-modal__obs-textarea"
             style={{
               width: "100%", padding: "10px 12px",
@@ -353,6 +362,11 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
         </div>
 
         {/* Botões */}
+        {faltaJustificativa && (
+          <div role="alert" className="fechamento-modal__obs-aviso">
+            Escreva a justificativa da diferença para poder fechar o caixa.
+          </div>
+        )}
         <div style={{ display: "flex", gap: 10 }}>
           <button
             onClick={onClose}
@@ -368,12 +382,12 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
           </button>
           <button
             onClick={handleConfirm}
-            disabled={salvando}
+            disabled={salvando || faltaJustificativa}
             className="fechamento-modal__btn-confirmar"
             style={{
               flex: 2, padding: 13, borderRadius: 10, border: "none",
-              background: salvando ? varColor(C.faint) : varColor(C.accent),
-              color: "#fff", cursor: salvando ? "not-allowed" : "pointer",
+              background: (salvando || faltaJustificativa) ? varColor(C.faint) : varColor(C.accent),
+              color: "#fff", cursor: (salvando || faltaJustificativa) ? "not-allowed" : "pointer",
               fontWeight: 700, fontFamily: "inherit",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
               transition: "background 0.2s",

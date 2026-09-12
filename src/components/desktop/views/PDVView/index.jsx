@@ -101,6 +101,7 @@ export default function PDVView({ notify }) {
   // modal nova comanda
   const [showNova,          setShowNova]          = useState(false);
   const [nomeComanda,       setNomeComanda]       = useState("");
+  const [novaComandaErro,   setNovaComandaErro]   = useState("");
   const [criando,           setCriando]           = useState(false);
   const [confirmCancelar,        setConfirmCancelar]        = useState(false);
   const [confirmCancelarMotivo,  setConfirmCancelarMotivo]  = useState("");
@@ -143,6 +144,8 @@ export default function PDVView({ notify }) {
   const [barcodeFeedback,   setBarcodeFeedback]   = useState(null); // null | "ok" | "notfound"
 
   const abertas = pending.filter(o => o.status !== "closed");
+  const nomeComandaEmUso = !!nomeComanda.trim()
+    && abertas.some(o => String(o.comanda ?? "").trim() === nomeComanda.trim());
 
   // ── Combos ativos (B4) — vendáveis no PDV ─────────────────────
   // Carrega uma vez por entrada na tela; a receita (subprodutos com
@@ -237,6 +240,10 @@ export default function PDVView({ notify }) {
 
   const handleConfirmarMesa = async () => {
     if (!mesaPendingOrder || salvandoMesa) return;
+    // Mesa é obrigatória: a tela já mostra "Campo obrigatório." e desabilita o
+    // botão Entrar. Sem esta guarda o Enter no campo vazio entrava mesmo assim,
+    // e comanda sem mesa não aparece no mapa do salão.
+    if (!mesaInput.trim()) return;
     // Trava de edição (Leva 14): alguém abriu a comanda enquanto a modal estava na tela.
     if (!mesaPendingOrder._virtual) {
       const fresca = pending.find(o => o.id === mesaPendingOrder.id) ?? mesaPendingOrder;
@@ -736,11 +743,20 @@ export default function PDVView({ notify }) {
 
   // ── Nova comanda com nome personalizado ───────────────────────
   const handleNovaComanda = async () => {
-    if (!nomeComanda.trim() || criando) return;
+    const nome = nomeComanda.trim();
+    if (!nome || criando) return;
+    // Nome/número repetido cria DUAS comandas com o mesmo rótulo. No Palm o mapa
+    // de comandas é indexado pelo nome, então só uma delas recebe os lançamentos
+    // e a busca da transferência sempre acha a primeira. Mesma checagem que a
+    // transferência já faz ao criar comanda nova.
+    if (nomeComandaEmUso) {
+      setNovaComandaErro(`${fmtComanda(nome)} já existe. Escolha outro nome ou número.`);
+      return;
+    }
     setCriando(true);
     const order = {
       id:         crypto.randomUUID(),
-      comanda:    nomeComanda.trim(),
+      comanda:    nome,
       items:      [],
       status:     "open",
       total:      0,
@@ -860,7 +876,7 @@ export default function PDVView({ notify }) {
           )}
           {emPainel && (
             <button
-              onClick={() => { setShowNova(true); setNomeComanda(""); }}
+              onClick={() => { setShowNova(true); setNomeComanda(""); setNovaComandaErro(""); }}
               disabled={!caixaAberto}
               className="pdv__nova-comanda-btn"
               style={{
@@ -1293,12 +1309,18 @@ export default function PDVView({ notify }) {
             <input
               autoFocus
               value={nomeComanda}
-              onChange={e => setNomeComanda(e.target.value)}
+              onChange={e => { setNomeComanda(e.target.value); setNovaComandaErro(""); }}
               onKeyDown={e => e.key === "Enter" && handleNovaComanda()}
               placeholder="Ex: Mesa 1, Balcão, Delivery..."
               maxLength={30}
+              aria-invalid={nomeComandaEmUso}
               className="pdv__modal-input pdv__nova-input"
             />
+            {(nomeComandaEmUso || novaComandaErro) && (
+              <div role="alert" className="pdv__modal-erro">
+                {novaComandaErro || `${fmtComanda(nomeComanda.trim())} já está aberta. Escolha outro nome ou número.`}
+              </div>
+            )}
 
             <div className="pdv__nova-acoes">
               <button
@@ -1309,7 +1331,7 @@ export default function PDVView({ notify }) {
               </button>
               <button
                 onClick={handleNovaComanda}
-                disabled={!nomeComanda.trim() || criando}
+                disabled={!nomeComanda.trim() || nomeComandaEmUso || criando}
                 className={`pdv__modal-btn pdv__modal-btn--primario pdv__nova-btn pdv__nova-btn-abrir${nomeComanda.trim() ? " pdv__nova-btn-abrir--ativo" : ""}`}
               >
                 {criando ? "Abrindo..." : "Abrir"}
@@ -1759,7 +1781,7 @@ export default function PDVView({ notify }) {
       {/* ── Popup: Mesa ──────────────────────────────────────────── */}
       {showMesa && mesaPendingOrder && createPortal(
         <div
-          {...fecharAoClicarFora(() => { handleConfirmarMesa(); })}
+          {...fecharAoClicarFora(() => { setShowMesa(false); setMesaPendingOrder(null); }, !salvandoMesa)}
           className="pdv__mesa-overlay"
         >
           <div className="pdv__mesa-card">
@@ -1887,17 +1909,40 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   const isNarrow = width < 540;
   const hoje = new Date().toDateString();
   const [logsComandaCancelada, setLogsComandaCancelada] = useState([]);
+  const [logsCarregando, setLogsCarregando] = useState(false);
+  const [logsErro, setLogsErro] = useState(false);
   const [showCancelList, setShowCancelList] = useState(false);
 
+  // As comandas canceladas inteiras vêm dos logs. Sem olhar o `error`, uma
+  // falha na consulta fazia o card "Cancelamentos do Dia" mostrar menos do que
+  // o real sem nada na tela dizendo isso, e o gerente lia um número errado
+  // como se fosse certo.
   useEffect(() => {
     if (!autorizado) return;
+    let vivo = true;
     const inicioDia = new Date(new Date().toDateString()).toISOString();
+    setLogsCarregando(true);
+    setLogsErro(false);
     supabase
       .from("operator_logs")
       .select("payload, created_at")
       .eq("action_type", "comanda:cancelar")
       .gte("created_at", inicioDia)
-      .then(({ data }) => setLogsComandaCancelada(data ?? []));
+      .then(
+        ({ data, error }) => {
+          if (!vivo) return;
+          if (error) { setLogsErro(true); setLogsComandaCancelada([]); }
+          else       { setLogsComandaCancelada(data ?? []); }
+          setLogsCarregando(false);
+        },
+        () => {
+          if (!vivo) return;
+          setLogsErro(true);
+          setLogsComandaCancelada([]);
+          setLogsCarregando(false);
+        },
+      );
+    return () => { vivo = false; };
   }, [autorizado]);
 
   // Leva 15.3 — vendas canceladas não contam no saldo do dia
@@ -2041,6 +2086,16 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                     {qtdCancelados} {qtdCancelados === 1 ? "item cancelado" : "itens cancelados"}
                   </div>
                   <div className="pdv__saldo-pills">
+                    {logsCarregando && (
+                      <span className="pdv__saldo-pill">
+                        Carregando comandas canceladas...
+                      </span>
+                    )}
+                    {logsErro && (
+                      <span role="alert" className="pdv__saldo-pill pdv__saldo-pill--erro">
+                        Não foi possível carregar as comandas canceladas, o total pode estar incompleto.
+                      </span>
+                    )}
                     {canceladosAbertos.length > 0 && (
                       <span className="pdv__saldo-pill">
                         {canceladosAbertos.reduce((s,i)=>s+(i.qty??1),0)} em aberto

@@ -13,7 +13,7 @@
  * O caminho feliz — escolher itens, lançar na comanda — continua em poucos
  * toques, agora com teclado numérico grande e carrinho em folha inferior.
  */
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LuWifiOff } from "react-icons/lu";
 
@@ -37,6 +37,7 @@ import { cancelarItemComanda, totalItensAtivos } from "@/lib/comandaItens";
 import MODULOS from "@/constants/modulos";
 
 import { fmtComanda, fmtDinheiro } from "@/pages/mobile/fmt";
+import { lerEsperas, gravarEsperas } from "@/pages/mobile/esperasStorage";
 import { BottomNav, Guarda, Toast } from "@/pages/mobile/chrome";
 import PedidoTab from "@/pages/mobile/tabs/pedido/PedidoTab";
 import ComandasTab from "@/pages/mobile/tabs/comandas/ComandasTab";
@@ -132,7 +133,14 @@ export default function MobilePage() {
   const [toast, setToast] = useState("");
   const [buscaGrid, setBuscaGrid] = useState("");
   const [buscaItens, setBuscaItens] = useState("");
-  const [esperas, setEsperas] = useState([]);
+  // A fila em espera é a única coisa da tela que ainda não existe no servidor:
+  // até enviar, ela só vive aqui. Recarregar a tela, a aba ser descartada pelo
+  // sistema, ou o toque em "Sem internet, lançar pelo Wi-Fi do caixa" (que troca
+  // a página inteira) apagavam os pedidos acumulados de várias mesas sem aviso.
+  // Por isso ela é lida do aparelho ao montar e regravada a cada mudança.
+  const [esperas, setEsperas] = useState(lerEsperas);
+
+  useEffect(() => { gravarEsperas(esperas); }, [esperas]);
   const [showEsperas, setShowEsperas] = useState(false);
   const [showLancar, setShowLancar] = useState(false);
   const [lancComanda, setLancComanda] = useState("");
@@ -788,6 +796,7 @@ export default function MobilePage() {
           );
           if (error) {
             setToast("Não foi possível excluir o item. Tente de novo.");
+            setTimeout(() => setToast(""), 3000);
             return;
           }
           logAction(currentUser?.username, "item:cancelar", {
@@ -797,6 +806,7 @@ export default function MobilePage() {
             por,
           });
           setToast("Item excluído da comanda.");
+          setTimeout(() => setToast(""), 3000);
         }}
         travada={!!(bloqueio || (orderDetalhe && emUsoPorOutro(orderDetalhe)))}
         nomeTrava={
