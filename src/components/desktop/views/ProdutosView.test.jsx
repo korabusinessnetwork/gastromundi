@@ -233,3 +233,42 @@ describe("ProdutosView, excluir produto", () => {
     );
   });
 });
+
+describe("ProdutosView, unidades de medida", () => {
+  const UNIDADE = { id: 9, nome: "Quilograma", abreviacao: "kg", tipo: "estoque", ordem: 1 };
+
+  const responderUnidades = (resposta) =>
+    mockSupabase.current.setTableHandler("unidades_medida", () => resposta);
+
+  async function abrirNovoProduto(user) {
+    await user.click(screen.getByRole("button", { name: /\+ novo produto/i }));
+    return screen.findByText("Novo Produto");
+  }
+
+  it("falha ao ler as unidades avisa em vez de dizer que não há unidade cadastrada", async () => {
+    const user = userEvent.setup();
+    responderUnidades({ data: null, error: { message: "permission denied" } });
+    render(<ProdutosView />);
+    await abrirNovoProduto(user);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/não deu para carregar as unidades de medida/i);
+    // A tela não pode afirmar que o cadastro está vazio quando nem conseguiu ler.
+    expect(screen.queryByText("Nenhuma unidade de estoque cadastrada.")).not.toBeInTheDocument();
+
+    // "Tentar de novo" relê de verdade.
+    responderUnidades({ data: [UNIDADE], error: null });
+    await user.click(screen.getByRole("button", { name: /tentar de novo/i }));
+    expect(await screen.findByRole("button", { name: /kg/i })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("leitura boa e sem unidade nenhuma continua dizendo que não há unidade", async () => {
+    const user = userEvent.setup();
+    responderUnidades({ data: [], error: null });
+    render(<ProdutosView />);
+    await abrirNovoProduto(user);
+
+    expect(screen.getByText("Nenhuma unidade de estoque cadastrada.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
