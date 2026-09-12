@@ -13,6 +13,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, act, screen } from "@testing-library/react";
 import { Routes, Route } from "react-router-dom";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 vi.mock("@/context/AppContext", async () => {
   const { mockUseApp } = await import("@/test/mockApp");
@@ -249,5 +251,138 @@ describe("LoginPage, conta da plataforma na porta do estabelecimento (Run 5, lev
 
     expect(screen.getByText("PAINEL DA PLATAFORMA")).toBeInTheDocument();
     expect(appMock.logout).not.toHaveBeenCalled();
+  });
+});
+
+// L02 — a porta de entrada é um formulário de verdade.
+//
+// A tela que a equipe usa todo dia eram dois <div> com Enter tratado na mão em
+// cada input e um <button onClick> sem type. Sem <form>, o navegador e o
+// gerenciador de senha não reconhecem a tela como login: nenhum dos dois
+// oferece guardar a credencial, o preenchimento automático degrada e o botão
+// "ir" do teclado do celular não envia nada.
+//
+// Sobre o Enter: o jsdom não implementa a submissão implícita (medido, a tecla
+// não dispara submit nem por keyDown nem por keyPress). O que o navegador de
+// verdade faz nessa hora é disparar o evento `submit` do formulário que contém
+// o campo, desde que exista um botão `type="submit"` dentro dele. Então é isso
+// que os testes abaixo fixam: os dois campos e o botão de envio no MESMO
+// formulário, e o `submit` desse formulário chamando o login.
+describe("LoginPage, formulário de login (L02)", () => {
+  const formulario = () => document.querySelector("form.login-page__card");
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    mockConsoleAtivo.mockReturnValue(false);
+    buscarBrandingPorSlug.mockImplementation(() => Promise.resolve({ data: null, error: null }));
+  });
+
+  it("os campos e o botão Entrar vivem no mesmo formulário, que é o que faz o Enter e o preenchimento automático funcionarem", async () => {
+    setAppMock({ currentUser: null, login: vi.fn(() => Promise.resolve({ ok: true })) });
+    await abrir();
+
+    const form = formulario();
+    expect(form).not.toBeNull();
+    expect(form).toContainElement(screen.getByPlaceholderText("Digite seu usuário"));
+    expect(form).toContainElement(screen.getByPlaceholderText("Digite sua senha"));
+    expect(screen.getByRole("button", { name: "Entrar" })).toHaveAttribute("type", "submit");
+  });
+
+  it("envio pelo Enter (submit do formulário) chama o login com o que foi digitado", async () => {
+    const login = vi.fn(() => Promise.resolve({ ok: true }));
+    setAppMock({ currentUser: null, login });
+    await abrir();
+
+    digitar("Digite seu usuário", "maria");
+    digitar("Digite sua senha", "SenhaCerta#123");
+    await act(async () => { fireEvent.submit(formulario()); });
+
+    expect(login).toHaveBeenCalledWith("maria", "SenhaCerta#123");
+  });
+
+  it("o envio não recarrega a página, os dados digitados não vão parar na URL", async () => {
+    setAppMock({ currentUser: null, login: vi.fn(() => Promise.resolve({ ok: true })) });
+    await abrir();
+
+    digitar("Digite seu usuário", "maria");
+    digitar("Digite sua senha", "SenhaCerta#123");
+
+    const evento = new Event("submit", { bubbles: true, cancelable: true });
+    await act(async () => { formulario().dispatchEvent(evento); });
+
+    expect(evento.defaultPrevented).toBe(true);
+  });
+
+  it("o clique em Entrar continua entrando, nada do comportamento de hoje se perdeu", async () => {
+    const login = vi.fn(() => Promise.resolve({ ok: true }));
+    setAppMock({ currentUser: null, login });
+    await abrir();
+
+    digitar("Digite seu usuário", "maria");
+    digitar("Digite sua senha", "SenhaCerta#123");
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Entrar" })); });
+
+    expect(login).toHaveBeenCalledWith("maria", "SenhaCerta#123");
+  });
+
+  it("a tela abre com o cursor no usuário, ninguém precisa clicar antes de digitar", async () => {
+    setAppMock({ currentUser: null, login: vi.fn(() => Promise.resolve({ ok: true })) });
+    await abrir();
+
+    expect(document.activeElement).toBe(screen.getByPlaceholderText("Digite seu usuário"));
+  });
+});
+
+// L04 — o alvo de toque do botão de mostrar senha.
+//
+// Medido no navegador em 390x844: o botão do olho tinha 26x26 px contra 304x53
+// do botão Entrar, menos da metade do alvo confortável para dedo, numa tela que
+// roda em celular e tablet o dia inteiro.
+//
+// O teste lê o CSS como texto porque é lá que a medida mora (decisão 018) e o
+// jsdom não calcula layout, então não existe altura de verdade para medir no
+// DOM: o que dá para garantir aqui é que a regra não volte a encolher.
+describe("LoginPage, alvo de toque do mostrar senha (L04)", () => {
+  const css = readFileSync(resolve(process.cwd(), "src/pages/LoginPage.css"), "utf-8");
+  const regra = css.slice(css.indexOf(".login-page__olho {"), css.indexOf("}", css.indexOf(".login-page__olho {")));
+  const medida = (prop) => Number((regra.match(new RegExp(`\\b${prop}:\\s*(\\d+)px`)) || [])[1]);
+
+  it("tem no mínimo 44x44 px de área de toque", () => {
+    expect(medida("width")).toBeGreaterThanOrEqual(44);
+    expect(medida("height")).toBeGreaterThanOrEqual(44);
+  });
+
+  it("o ícone não cresceu junto, quem cresceu foi só a área clicável", () => {
+    const jsx = readFileSync(resolve(process.cwd(), "src/pages/LoginPage.jsx"), "utf-8");
+    expect(jsx).toContain("<LuEyeOff size={18} />");
+    expect(jsx).toContain("<LuEye size={18} />");
+  });
+});
+
+// L05 — rótulo e campo associados.
+//
+// "Usuário" e "Senha" eram <label> soltos, sem `htmlFor` e sem o campo dentro:
+// clicar no rótulo não focava o campo (alvo desperdiçado numa tela de toque) e
+// o leitor de tela anunciava um campo sem nome.
+describe("LoginPage, rótulos associados aos campos (L05)", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    mockConsoleAtivo.mockReturnValue(false);
+    buscarBrandingPorSlug.mockImplementation(() => Promise.resolve({ data: null, error: null }));
+    setAppMock({ currentUser: null, login: vi.fn(() => Promise.resolve({ ok: true })) });
+  });
+
+  it("o rótulo Usuário aponta para o campo de usuário", async () => {
+    await abrir();
+
+    expect(screen.getByLabelText("Usuário")).toBe(screen.getByPlaceholderText("Digite seu usuário"));
+  });
+
+  it("o rótulo Senha aponta para o campo de senha", async () => {
+    await abrir();
+
+    expect(screen.getByLabelText("Senha")).toBe(screen.getByPlaceholderText("Digite sua senha"));
   });
 });

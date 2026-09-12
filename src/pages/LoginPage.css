@@ -126,19 +126,30 @@
 
 .login-page__senha-wrap { position: relative; }
 
+/* Alvo de toque do olho: 44x44, o mínimo confortável para dedo, numa tela
+   que roda em celular e tablet. Media no navegador em 390x844, o botão tinha
+   26x26 contra 304x53 do botão Entrar, menos da metade do alvo.
+   O ícone continua com 18px e o campo não mexe: o botão é posicionado em
+   absoluto dentro do `senha-wrap`, e o `right` acompanha o crescimento para o
+   ícone ficar exatamente onde estava (antes 12 + 13 = 25px da borda direita,
+   agora 3 + 22 = 25px). O texto digitado também não encosta nele, o input
+   reserva 44px de padding à direita e a borda esquerda do botão fica em 47px. */
 .login-page__olho {
   position: absolute;
-  right: 12px;
+  right: 3px;
   top: 50%;
   transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
   background: none;
   border: none;
   color: var(--gm-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
-  padding: 4px;
-  border-radius: 8px;
+  justify-content: center;
+  padding: 0;
+  border-radius: 12px;
   transition: color 0.15s, background 0.15s;
 }
 .login-page__olho:hover { color: var(--gm-text); background: var(--gm-alow); }

@@ -164,7 +164,11 @@ export default function LoginPage() {
     setAttempts(u ? (getAttempts(u).count || 0) : 0);
   }, [username]);
 
-  const submit = async () => {
+  // Recebe o evento porque quem dispara agora é o `submit` do formulário, e
+  // não mais o clique no botão: sem `preventDefault` o navegador recarregaria
+  // a página com os campos na URL.
+  const submit = async (e) => {
+    e?.preventDefault?.();
     if (loading || dbLoading) return;
     const u = sanitizeInput(username, 30);
     const p = password.slice(0, 100);
@@ -229,22 +233,33 @@ export default function LoginPage() {
           <div className="login-page__brand-subtitle">{marca.doTenant ? "by Kora · Acesso ao Sistema" : "Acesso ao Sistema"}</div>
         </div>
 
-        <div className="login-page__card">
+        {/* Formulário de verdade, não dois campos soltos com Enter na mão:
+            é o `<form>` que faz o navegador e o gerenciador de senha
+            reconhecerem a tela como login, sem ele nenhum dos dois oferece
+            guardar a credencial, o preenchimento automático degrada e o botão
+            "ir" do teclado do celular não envia nada. O Enter passa a vir de
+            graça pela submissão implícita, então os dois `onKeyDown` saíram.
+            Mesma correção já feita no login do Console. */}
+        <form className="login-page__card" onSubmit={submit}>
           <div className="login-page__field">
-            <label className="login-page__label">Usuário</label>
-            <input type="text" value={username} placeholder="Digite seu usuário" maxLength={30} autoComplete="username" disabled={loading}
+            {/* `htmlFor` + `id`: sem o par, clicar no rótulo não focava o
+                campo e o leitor de tela anunciava um campo sem nome. */}
+            <label className="login-page__label" htmlFor="login-usuario">Usuário</label>
+            <input id="login-usuario" type="text" value={username} placeholder="Digite seu usuário" maxLength={30} autoComplete="username" disabled={loading}
+              // Tela de um propósito só, com um primeiro campo óbvio: quem abre
+              // o login vem para digitar, e obrigar a clicar antes é um passo
+              // que não decide nada (Princípio nº 1).
+              autoFocus
               onChange={(e) => { setUsername(e.target.value); setError(""); }}
-              onKeyDown={(e) => e.key === "Enter" && submit()}
               className="login-page__input"
             />
           </div>
 
           <div className="login-page__field login-page__field--senha">
-            <label className="login-page__label">Senha</label>
+            <label className="login-page__label" htmlFor="login-senha">Senha</label>
             <div className="login-page__senha-wrap">
-              <input type={showPass ? "text" : "password"} value={password} placeholder="Digite sua senha" maxLength={100} autoComplete="current-password" disabled={loading}
+              <input id="login-senha" type={showPass ? "text" : "password"} value={password} placeholder="Digite sua senha" maxLength={100} autoComplete="current-password" disabled={loading}
                 onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                onKeyDown={(e) => e.key === "Enter" && submit()}
                 className="login-page__input login-page__input--senha"
               />
               <button type="button" aria-label={showPass ? "Ocultar senha" : "Mostrar senha"} onClick={() => setShowPass(s => !s)} className="login-page__olho">
@@ -268,10 +283,13 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button onClick={submit} disabled={loading || dbLoading} className="login-page__button">
+          {/* `type="submit"`: é ele que fecha a submissão implícita do Enter
+              e que o gerenciador de senha procura para saber que este
+              formulário é um login. */}
+          <button type="submit" disabled={loading || dbLoading} className="login-page__button">
             {dbLoading ? "Conectando..." : loading ? "Verificando..." : "Entrar"}
           </button>
-        </div>
+        </form>
 
         <div className="login-page__security" style={{ background: `${alfa(C.blue, "11")}`, border: `1px solid ${alfa(C.blue, "33")}` }}>
           <LuShieldAlert size={15} className="login-page__security-icon" />
