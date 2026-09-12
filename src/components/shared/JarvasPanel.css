@@ -74,6 +74,18 @@
   line-height: var(--lh-lg);
 }
 
+/* Lista — falha de leitura ("Não conseguimos buscar...") e de escrita */
+.jarvas-list__erro {
+  font-size: var(--fs-sm);  /* role: aviso */
+  line-height: var(--lh-sm);
+}
+
+/* Botão "Tentar de novo" do aviso de falha */
+.jarvas-list__tentar {
+  font-size: var(--fs-xs);  /* role: label/button */
+  line-height: var(--lh-xs);
+}
+
 /* Badge de tipo de insight — "INSIGHT" / "ALERTA" / "SUGESTÃO" */
 .jarvas-insight__badge {
   font-size: var(--fs-xs);  /* role: caption/selo */

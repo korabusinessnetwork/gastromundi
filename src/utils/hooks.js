@@ -133,17 +133,32 @@ export function useIdleTimer(callback, delay, enabled = true, onAviso = null, av
 export function useMesas() {
   const [mesas,   setMesas]   = useState([]);
   const [loading, setLoading] = useState(true);
+  const [erro,    setErro]    = useState(null);
 
-  useEffect(() => {
-    supabase
+  // Expõe `erro` e `recarregar` pelo mesmo motivo de usePedidosCozinha: a
+  // carga antiga ignorava o `error` e gravava `data ?? []`, então falha de
+  // rede ou de RLS virava lista vazia com carregamento concluído, e a aba
+  // Reservas dizia "Nenhuma mesa cadastrada" — convidando o operador a
+  // cadastrar de novo mesas que existem. Quem só desestrutura
+  // { mesas, loading, atualizarStatusMesa } continua funcionando como antes.
+  const recarregar = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
       .from("mesas")
       .select("numero,capacidade,posicao_x,posicao_y,status_manual")
-      .order("numero")
-      .then(({ data }) => {
-        setMesas(data ?? []);
-        setLoading(false);
-      });
+      .order("numero");
+    if (error) {
+      // Mantém as mesas que já estavam na tela: o mapa do salão de 1 minuto
+      // atrás é mais útil que um salão vazio que não existe.
+      setErro(error);
+    } else {
+      setErro(null);
+      setMesas(data ?? []);
+    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => { recarregar(); }, [recarregar]);
 
   // Requer Realtime habilitado na tabela `mesas` (Database → Replication).
   useEffect(() => {
@@ -192,7 +207,7 @@ export function useMesas() {
     return { error };
   }
 
-  return { mesas, loading, atualizarStatusMesa };
+  return { mesas, loading, erro, recarregar, atualizarStatusMesa };
 }
 
 /**

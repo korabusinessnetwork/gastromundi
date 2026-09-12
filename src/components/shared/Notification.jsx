@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import "./Notification.css";
@@ -6,11 +6,20 @@ import "./Notification.css";
 /** Hook para disparar notificações toast */
 export function useNotification() {
   const [notif, setNotif] = useState(null);
+  // O id do temporizador fica numa ref porque ele precisa ser cancelado: como
+  // nada guardava o setTimeout, duas notificações em menos de 2,5 s faziam o
+  // temporizador da PRIMEIRA apagar a mensagem NOVA antes da hora (no PDV é o
+  // caso comum, lançar item e receber pagamento em sequência), e o temporizador
+  // ainda sobrevivia à desmontagem da tela.
+  const timerRef = useRef(null);
 
   const notify = (msg, type = "ok") => {
+    clearTimeout(timerRef.current);
     setNotif({ msg, type });
-    setTimeout(() => setNotif(null), 2500);
+    timerRef.current = setTimeout(() => setNotif(null), 2500);
   };
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
 
   return { notif, notify };
 }
