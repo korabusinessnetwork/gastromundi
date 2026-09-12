@@ -1,12 +1,17 @@
 # ESTADO
 
-- status: CONCLUIDO
-- projeto: GastroMundi (KORA)
-- plano de origem: backlog vivo (`docs/09_BACKLOG/`, `specs/_loop.md`, memória `fila-proximas-features`)
-- branch: full-auto/gastromundi
-- início: 2026-09-10
-- fase: 3, encerrada
-- base verificada: instalação limpa do zero (`npm ci --allow-remote root`, com o node_modules apagado antes), `npm test` com 237 arquivos e 4181 testes verdes, `npm run build` limpo, app subindo e servindo / e /console sem erro no console do navegador
-- tarefa atual: nenhuma, execução encerrada
-- próximo passo: nenhum meu. O que resta é do Matheus, nesta ordem: aplicar a migration P04 antes do próximo deploy, abrir o PR da branch (P02), e aplicar a P05 quando quiser usar a aba nova do Console. Tudo em `.full-auto/RELATORIO-FINAL.md`.
-- progresso: 7 de 7
+status: EXECUTANDO
+
+- **modo:** Full Automático Refino (varredura de todos os fluxos)
+- **projeto:** GastroMundi (KORA)
+- **entrada:** nenhum plano, a lista nasce da auditoria do próprio sistema
+- **branch:** claude/automatic-flow-sweep-qx0arn
+- **início:** 2026-09-12
+- **fase atual:** Fase 1, auditoria dos fluxos
+- **tarefa atual:** varredura em 4 frentes (venda no balcão, delivery e cliente, cadastros e fiscal, acesso e plataforma)
+- **próximo passo:** consolidar os achados em `AUDITORIA.md`, dar score, montar o lote da rodada 1 em `TAREFAS.md`
+- **progresso:** rodada 1 ainda não começou a executar
+- **baseline:** verde em 2026-09-12, 238 arquivos e 4191 testes, build limpo, medidas em `BASELINE.md`
+
+## Motivo da parada
+nenhuma

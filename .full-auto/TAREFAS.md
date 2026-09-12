@@ -1,17 +1,23 @@
-# TAREFAS
+# TAREFAS, rodada 1 do refino
 
 Legenda: `[ ]` pendente, `[~]` em andamento, `[x]` concluída e verificada, `[!]` travada com diagnóstico.
 
-Base verificada em 2026-09-10: suíte `npm test` com 229 arquivos e 4067 testes verdes, commit `8513a1c2`.
+Lote montado a partir do `AUDITORIA.md` por score, com pelo menos um item de cada
+eixo e nenhum item de risco 4 ou 5. Baseline verde antes de começar: 238 arquivos,
+4191 testes, build limpo.
 
-Toda tarefa roda pela skill `/ciclo`. Critério de pronto sempre inclui a suíte verde.
+| # | id da auditoria | eixo | Tarefa | Critério de pronto, observável |
+|---|---|---|---|---|
+| [ ] T01 | A01 | robustez | PDV, a metade cancelada do item lançado nasce com `uid` novo, como já acontece no checkout | teste novo que cancela item pelo carrinho, roda `mesclarItensComanda` com um lançamento seguinte do Palm e prova que a linha cancelada continua cancelada; suíte verde |
+| [ ] T02 | C01 | robustez | Relatórios, item cancelado sai do detalhado, da contagem de itens e do export | teste que monta venda com um item cancelado e prova que o detalhado não lista, a contagem não conta e a soma dos subtotais fecha com o total da venda; mesmo para o export; suíte verde |
+| [ ] T03 | A02 | qualidade | Palm, as duas chamadas de `logAction` passam o usuário no lugar certo | teste que prova `operator_id` com o usuário e `action_type` com o tipo nas duas ações do Palm; suíte verde |
+| [ ] T04 | D01 | qualidade | Sessão da plataforma não veste a marca de nenhum estabelecimento nem grava cache de marca | teste que entra como `plataforma` fora do host do console e prova título neutro, tokens limpos e nenhuma escrita no cache de marca; suíte verde |
+| [ ] T05 | B03 | ux | Delivery, apagar faixa de taxa pede confirmação dizendo qual faixa sai | teste que clica na lixeira, prova que nada foi salvo antes da confirmação, e que confirmar salva; suíte verde |
+| [ ] T06 | B04 | robustez | Delivery desktop, falha ao carregar itens do pedido aparece como falha e pode ser tentada de novo | teste com a leitura falhando: a tela diz que não deu para carregar, não diz "sem itens", e reabrir tenta de novo; suíte verde |
+| [ ] T07 | A06 | produto | PDV, buscar comanda aceita nome, não só número | teste que digita "Balcão" no campo e prova que a comanda com esse nome aparece; suíte verde |
+| [ ] T08 | B05 e A08 | qualidade | O guard de travessão passa a pegar o separador em JSX, e as 5 ocorrências viram vírgula | o guard falha com o repositório como está hoje e passa depois da troca; as 5 telas mostram vírgula; suíte verde |
 
-| # | Tarefa | Critério de pronto | trilha | depende |
-|---|--------|--------------------|--------|---------|
-| [x] T01 | F021, escrever o ADR do PDV offline-first (outbox, replay da cascata, idempotência, limites conhecidos) e atualizar a linha do F021 no backlog | `docs/08_DECISOES/adr-013.md` existe, está listado no `overview.md`, o F021 no `features.md` deixa de dizer "sem o ADR", suíte verde | docs | , |
-| [x] T02 | TD009 etapa 3, encerrar a escrita dupla de venda no `AppContext.jsx` (`from("sales")` mais `persistirVendaNormalizada`), deixando só o caminho normalizado | nenhuma escrita direta em `sales` no `AppContext.jsx`, testes do fluxo de venda cobrindo o caminho único, suíte verde, TD009 marcado resolvido | contexto | , |
-| [x] T03 | TD008, mover o bloqueio de tentativas de login para o servidor, no padrão do `senha_admin_tentativas`, mantendo o contador local só como feedback | migration nova com a RPC de tentativas, `LoginPage`/`AppContext` consultando o servidor, teste da regra, suíte verde, pendência de aplicar a migration registrada | auth | , |
-| [x] T04 | TD015, trocar `key={i}` por chave estável nas listas React (40 ocorrências) | nenhuma ocorrência de `key={i}`/`key={index}` sobrando sem justificativa escrita, suíte verde, TD015 marcado resolvido | ui | , |
-| [x] T05 | F021 fatia 2, trocar o `localStorage` da fila offline por IndexedDB com storage injetável preservado | `src/lib/offline/fila.js` gravando em IndexedDB, fallback para memória em ambiente sem IDB, testes da fila verdes, suíte verde | offline | T01 |
-| [x] T06 | F018 fatia, extrair o CSS inline dos arquivos com mais `style={{`, começando pelos 5 maiores | contagem de `style={{` medida antes e depois, queda registrada no F018, nenhum teste de componente quebrado, suíte verde | ui | T04 |
-| [x] T07 | Console do dev, próxima fatia da fila do dono: analytics operacional | aba nova no console lendo por RPC agregada, testes da tela, suíte verde | console | , |
+## Backlog imediato para a rodada 2, por score
+
+C04 (5), A04 (5), C02 (4), C05 (4), C06 (4), A03 (4), D02 (4), C11 (3), C08 (3),
+C09 (3), A05 (3), A10 (3), D03 (3), D04 (3).
