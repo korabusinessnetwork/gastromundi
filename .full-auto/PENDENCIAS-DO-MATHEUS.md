@@ -256,3 +256,28 @@ então a decisão é sua. Em ordem de importância:
    `20260822_complementos_subgrupos`, que hoje o `anon` alcança com a chave
    pública. Impacto pequeno, mas é a única exceção ao padrão que o resto do
    projeto segue.
+
+## P10, decidir se o gerente lê a equipe
+
+Veio da trilha de gestão e configurações, e é decisão sua porque exige migration.
+
+**Hoje:** as policies de `public.users` só deixam o administrador ler a lista
+inteira, então o gerente que abre Configurações, aba Usuários, vê uma tabela com
+uma linha só, a dele. A rodada 2 escondeu a contagem (que dizia "1 usuário ativo"
+num estabelecimento com dez) e tirou os botões que o banco sempre recusava, mas a
+**lista em si continua enganosa**: parece que o estabelecimento tem um
+funcionário.
+
+**As duas saídas:**
+
+- **A)** policy de leitura para o gerente em `public.users`, e a aba passa a
+  mostrar a equipe inteira para ele, só sem os botões de escrita.
+- **B)** decidir que equipe é assunto do administrador e a aba inteira some para
+  o gerente, em vez de mostrar uma lista de uma linha.
+
+**Minha recomendação:** B, porque é a mais simples e não abre leitura de dado de
+pessoal para um papel a mais. A) é melhor se o gerente do seu cliente precisa
+conferir quem está ativo no dia a dia. As duas exigem migration, e a A também
+mexe na matriz de cargos por tenant (decisão 017) se um dia o gerente puder
+gerenciar usuários: nesse caso as policies precisam consultar a matriz em vez do
+papel fixo.
