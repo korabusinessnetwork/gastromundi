@@ -36,6 +36,7 @@ import ClienteComandaModal from "./ClienteComandaModal";
 import MesaMapView   from "./MesaMapView";
 import MesaReservasView from "./MesaReservasView";
 import ModalCupomNfce from "@/components/fiscal/ModalCupomNfce";
+import { inicioSessao } from "@/components/modals/FechamentoModal";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -44,7 +45,7 @@ export default function PDVView({ notify }) {
   const {
     pending, products, estoque, estoqueMinimos,
     addPending, updatePending, removePending,
-    caixaAberto, currentUser, sales, users, metodosCustom,
+    caixaAberto, currentUser, sales, users, metodosCustom, sessaoAbertaEm,
     lancadas, addLancada, diasAlertaValidade,
     loading: bootstrapLoading,
   } = useApp();
@@ -1900,6 +1901,7 @@ export default function PDVView({ notify }) {
           sales={sales}
           pending={pending}
           metodosCustom={metodosCustom}
+          sessaoAbertaEm={sessaoAbertaEm}
         />,
         document.body
       )}
@@ -1909,11 +1911,18 @@ export default function PDVView({ notify }) {
 }
 
 // ── Modal de Saldo do Dia ─────────────────────────────────────────
-function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending, metodosCustom }) {
+function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending, metodosCustom, sessaoAbertaEm }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const isNarrow = width < 540;
-  const hoje = new Date().toDateString();
+  // O corte do Saldo do Dia é a abertura do caixa, o mesmo critério do
+  // fechamento (`inicioSessao`) e da lista de vendas fechadas. Com o dia do
+  // calendário, um bar que abriu às 18h via a noite inteira desaparecer daqui
+  // à 00h10, enquanto o fechamento, às 4h, mostrava o total certo: dois
+  // números para o mesmo dinheiro, e este é o que o gerente consulta antes de
+  // confiar no caixa. Sem sessão aberta, ou com valor ilegível na config, cai
+  // no início do dia local.
+  const inicio = inicioSessao(sessaoAbertaEm);
   const [logsComandaCancelada, setLogsComandaCancelada] = useState([]);
   const [logsCarregando, setLogsCarregando] = useState(false);
   const [logsErro, setLogsErro] = useState(false);
@@ -1926,14 +1935,20 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   useEffect(() => {
     if (!autorizado) return;
     let vivo = true;
-    const inicioDia = new Date(new Date().toDateString()).toISOString();
+    // Mesmo corte das vendas. Antes, este lado era o dia do calendário e era
+    // calculado uma vez, quando a senha era aceita, enquanto o outro lado
+    // recalculava a cada render: com o modal aberto atravessando a meia-noite,
+    // as vendas saltavam para o dia novo e os cancelamentos continuavam sendo
+    // os de ontem, e a mesma tela mostrava "Saldo do Dia" em R$ 0,00 ao lado
+    // de "Cancelamentos do Dia" listando a noite anterior.
+    const desdeAbertura = new Date(inicio).toISOString();
     setLogsCarregando(true);
     setLogsErro(false);
     supabase
       .from("operator_logs")
       .select("payload, created_at")
       .eq("action_type", "comanda:cancelar")
-      .gte("created_at", inicioDia)
+      .gte("created_at", desdeAbertura)
       .then(
         ({ data, error }) => {
           if (!vivo) return;
@@ -1949,10 +1964,10 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
         },
       );
     return () => { vivo = false; };
-  }, [autorizado]);
+  }, [autorizado, inicio]);
 
   // Leva 15.3 — vendas canceladas não contam no saldo do dia
-  const vendasHoje = (sales ?? []).filter(s => s.at && !s.cancelada && new Date(s.at).toDateString() === hoje);
+  const vendasHoje = (sales ?? []).filter(s => s.at && !s.cancelada && new Date(s.at).getTime() >= inicio);
   const totalVendas = vendasHoje.reduce((s, v) => s + (v.total ?? 0), 0);
   const qtdVendas   = vendasHoje.length;
 
