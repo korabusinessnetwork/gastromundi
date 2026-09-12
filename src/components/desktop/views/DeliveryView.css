@@ -940,6 +940,13 @@
   border-radius: 999px;
   flex: none;
 }
+/* Coluna terminal: avisa que o contador é do dia corrente, e não de sempre. */
+.delivery-view__coluna-recorte {
+  color: var(--gm-muted);
+  font-weight: 600;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}
 .delivery-view__coluna-contador {
   background: color-mix(in srgb, var(--cor-status, var(--gm-muted)) 12%, transparent);
   color: var(--cor-status, var(--gm-muted));

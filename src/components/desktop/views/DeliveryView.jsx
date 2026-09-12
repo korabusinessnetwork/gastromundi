@@ -633,6 +633,12 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
                     <div className="delivery-view__coluna-titulo">
                       <span className="delivery-view__coluna-bolinha" />
                       {col.label}
+                      {/* Coluna terminal mostra só o dia corrente (recorte da
+                          consulta). Sem dizer isso na tela, o contador parece
+                          o total de sempre. */}
+                      {ehTerminal(col.status) && (
+                        <span className="delivery-view__coluna-recorte">de hoje</span>
+                      )}
                       <span className="delivery-view__coluna-contador">
                         {col.pedidos.length}
                       </span>
