@@ -14,6 +14,17 @@ export default defineConfig({
     // primeira linha do arquivo (suportado nativamente pelo Vitest).
     environment: "node",
     include: ["src/**/*.test.js", "src/**/*.test.jsx", "ponte/lib/*.test.js"],
+    // 20 s por teste, contra os 5 s padrão. Não é para acomodar teste lento: é
+    // porque montar uma tela grande (PDV, Delivery, Console) passa de 5 s
+    // quando a máquina está sob carga, e aí a suíte acusa falha onde não há
+    // nenhuma. Isso foi medido na rodada 2 do refino: com frentes paralelas
+    // rodando, o tempo de ambiente foi de 66 s para 583 s e apareceram de 1 a 6
+    // falhas por estouro de prazo, em arquivos diferentes a cada execução,
+    // todas passando isoladas. O custo de um prazo folgado é esperar mais para
+    // ver um travamento de verdade; o custo do prazo curto é pior, porque
+    // falha intermitente ensina a ignorar vermelho, e aí a regressão real passa
+    // batida no meio do ruído.
+    testTimeout: 20000,
     setupFiles: ["src/test/setup.js"],
     env: {
       // Fuso fixo para a suíte. As regras de dia (vencimento de assinatura,

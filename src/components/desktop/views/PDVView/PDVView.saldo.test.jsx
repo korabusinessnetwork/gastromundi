@@ -59,7 +59,7 @@ describe("PDVView, Saldo do Dia e os logs de comanda cancelada", () => {
 
     const aviso = await screen.findByRole("alert");
     expect(aviso.textContent).toMatch(/Não foi possível carregar as comandas canceladas/);
-  }, 20000);
+  });
 
   it("consulta boa não deixa aviso de falha na tela", async () => {
     supabaseMock.setTableResult("operator_logs", { data: [], error: null });
@@ -73,7 +73,7 @@ describe("PDVView, Saldo do Dia e os logs de comanda cancelada", () => {
     });
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getByText("Cancelamentos do Dia")).toBeInTheDocument();
-  }, 20000);
+  });
 
   it("enquanto a consulta não volta, a tela diz que está carregando", async () => {
     let liberar;
@@ -84,5 +84,5 @@ describe("PDVView, Saldo do Dia e os logs de comanda cancelada", () => {
 
     await act(async () => { liberar({ data: [], error: null }); });
     expect(screen.queryByText(/Carregando comandas canceladas/)).toBeNull();
-  }, 20000);
+  });
 });

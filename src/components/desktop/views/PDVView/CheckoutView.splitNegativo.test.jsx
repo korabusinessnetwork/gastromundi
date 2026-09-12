@@ -79,7 +79,7 @@ describe("CheckoutView, valor negativo no pagamento dividido", () => {
     expect(camposValor()[1]).toHaveValue(null);
     // R$ 100,00 lançados numa conta de R$ 50,00: sobra a alocar, não confirma.
     expect(botaoConfirmar()).toBeDisabled();
-  }, 20000);
+  });
 
   it("valores positivos que somam a conta continuam confirmando", async () => {
     const [primeiro, segundo] = itensDoSplit();
@@ -92,5 +92,5 @@ describe("CheckoutView, valor negativo no pagamento dividido", () => {
     expect(camposValor()[0]).toHaveValue(30);
     expect(camposValor()[1]).toHaveValue(20);
     expect(botaoConfirmar()).toBeEnabled();
-  }, 20000);
+  });
 });
