@@ -528,16 +528,19 @@ export default function RelatorioView() {
       else               exportToXLSX("Vendas Resumido", headers, rows, periodo);
     } else {
       const headers = ["Comanda", "Caixa", "Método", "Produto", "Qtd", "Unit. (R$)", "Subtotal (R$)", "Data/Hora"];
-      const rows = vendasFiltradas.flatMap(v =>
-        (Array.isArray(v.items) && v.items.length > 0 ? v.items : [{ name: "—", qty: 0, price: 0 }]).map(it => [
+      const rows = vendasFiltradas.flatMap(v => {
+        // Mesmo motivo do detalhado na tela: item cancelado não foi cobrado e
+        // não entra no arquivo que vai para conferência.
+        const itens = (Array.isArray(v.items) ? v.items : []).filter(it => !it.cancelado);
+        return (itens.length > 0 ? itens : [{ name: "—", qty: 0, price: 0 }]).map(it => [
           v.comanda ?? "—", v.cashier ?? "—",
           normalizarPagamentos(v).map(p => rotuloMetodo(p.metodo, customLabels)).join(" + "),
           (it.emoji ? `${it.emoji} ` : "") + (it.name ?? "—"),
           it.qty ?? 1, Number(it.price ?? 0).toFixed(2),
           Number((it.price ?? 0) * (it.qty ?? 1)).toFixed(2),
           fmtData(v.at),
-        ])
-      );
+        ]);
+      });
       if (fmt === "pdf") exportToPDF("Vendas Detalhado", headers, rows, periodo);
       else               exportToXLSX("Vendas Detalhado", headers, rows, periodo);
     }
@@ -887,7 +890,14 @@ export default function RelatorioView() {
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                     {vendasFiltradas.map((v, i) => {
-                      const itens = Array.isArray(v.items) ? v.items : [];
+                      // Item cancelado dentro de venda válida fica fora daqui, do
+                      // mesmo jeito que a venda cancelada fica fora de todos os
+                      // relatórios (Leva 15.3). Ele não foi cobrado: o total da
+                      // comanda é calculado sem ele, então listá-lo aqui fazia a
+                      // soma dos subtotais não fechar com o total mostrado ao
+                      // lado. Quem precisa ver o que foi cancelado, com motivo e
+                      // responsável, tem a aba Cancelamentos.
+                      const itens = (Array.isArray(v.items) ? v.items : []).filter(it => !it.cancelado);
                       const qtdTotal = itens.reduce((s, it) => s + (it.qty ?? 1), 0);
                       return (
                         <div

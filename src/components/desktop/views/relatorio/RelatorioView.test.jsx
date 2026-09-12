@@ -187,3 +187,75 @@ describe("RelatorioView, fechamento gravado antes desta versão (Run 1)", () => 
     expect(screen.getByText("Falta no Caixa")).toBeInTheDocument();
   });
 });
+
+/**
+ * Item cancelado dentro de uma venda VÁLIDA.
+ *
+ * A venda cancelada inteira já ficava fora de todos os relatórios (Leva 15.3),
+ * mas o item cancelado dentro de uma venda que foi cobrada continuava listado
+ * no detalhado como se tivesse sido vendido, contava no "N itens" do cabeçalho
+ * e ia para o PDF e para a planilha. O total da comanda é calculado sem ele
+ * (useFinalizarPagamento), então a soma dos subtotais exibidos não fechava com
+ * o total mostrado ao lado, e o mesmo item ainda aparecia na aba Cancelamentos:
+ * dois lugares da mesma tela se contradizendo.
+ */
+const VENDA_COM_ITEM_CANCELADO = {
+  id: 9,
+  comanda: "12",
+  cashier: "Ana",
+  at: new Date().toISOString(),
+  // Cobrado: 2 cervejas a 16,10 = 32,20. A batata foi cancelada.
+  total: 32.2,
+  pagamentos: [{ metodo: "dinheiro", valor: 32.2 }],
+  items: [
+    { uid: "a1", name: "Cerveja", price: 16.1, qty: 2 },
+    { uid: "a2", name: "Batata", price: 20, qty: 1, cancelado: true, motivoCancelamento: "cliente desistiu", canceladoPor: "Ana" },
+  ],
+};
+
+function montarVendaDetalhada() {
+  contexto.current = {
+    sales: [VENDA_COM_ITEM_CANCELADO],
+    fechamentos: [],
+    pending: [],
+    users: [],
+    currentUser: { role: "gerente" },
+    tenant: null,
+    metodosCustom: [],
+  };
+  render(<RelatorioView />);
+  fireEvent.click(screen.getByText("Detalhado"));
+}
+
+describe("RelatorioView, item cancelado dentro de venda válida", () => {
+  it("o detalhado não lista o item cancelado e conta só o que foi cobrado", () => {
+    montarVendaDetalhada();
+
+    expect(screen.getByText("Cerveja")).toBeInTheDocument();
+    expect(screen.queryByText("Batata")).not.toBeInTheDocument();
+    expect(screen.getByText("2 itens")).toBeInTheDocument();
+  });
+
+  it("a soma dos subtotais exibidos fecha com o total da comanda", () => {
+    montarVendaDetalhada();
+
+    const celulasDeDinheiro = [...document.querySelectorAll("tbody td")]
+      .map(td => td.textContent.trim())
+      .filter(t => /^R\$ /.test(t));
+    const subtotais = celulasDeDinheiro.map(t => Number(t.replace("R$ ", "")));
+    // Unitário 16,10 e subtotal 32,20 da única linha que sobrou.
+    expect(subtotais).toEqual([16.1, 32.2]);
+    expect(subtotais[subtotais.length - 1]).toBe(VENDA_COM_ITEM_CANCELADO.total);
+  });
+
+  it("o arquivo exportado também sai sem o item cancelado", () => {
+    montarVendaDetalhada();
+    fireEvent.click(screen.getByTitle("Exportar Excel"));
+
+    const { titulo, rows } = exportado.xlsx[0];
+    expect(titulo).toBe("Vendas Detalhado");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toContain("Cerveja");
+    expect(rows.flat()).not.toContain("Batata");
+  });
+});
