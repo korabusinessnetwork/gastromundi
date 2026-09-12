@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
+import { DIAS_JANELA_BOOTSTRAP } from "@/constants/janelaDados";
 import { listarLancamentos, baixarConta, processarVencidos, calcularFluxoCaixa } from "@/lib/financeiro";
 import { buscarFichasTecnicas, calcularCustoVendas } from "@/lib/relatorios";
 import { round2 } from "@/lib/vendas";
@@ -16,15 +17,11 @@ import PeriodoSelector from "./financeiro/PeriodoSelector";
 import NovoLancamentoModal from "./financeiro/NovoLancamentoModal";
 import "./FinanceiroView.css";
 
-// Janela de vendas que o bootstrap carrega em `sales`: só os últimos 90 dias
-// (ver AppContext.jsx:340, "Bootstrap limitado a 90 dias"). O número está
-// duplicado aqui porque o AppContext não o exporta; pedido de virar constante
-// exportada registrado no relatório da rodada.
-const DIAS_JANELA_VENDAS = 90;
+
 
 /** Primeiro dia (YYYY-MM-DD, fuso local) coberto por `sales`. */
 function inicioJanelaVendas(hoje = new Date()) {
-  return diaLocalISO(new Date(hoje.getTime() - DIAS_JANELA_VENDAS * 24 * 60 * 60 * 1000));
+  return diaLocalISO(new Date(hoje.getTime() - DIAS_JANELA_BOOTSTRAP * 24 * 60 * 60 * 1000));
 }
 
 /**
@@ -107,7 +104,7 @@ export default function FinanceiroView() {
     // card não calcula e diz que o lucro daquele período não está disponível.
     const inicio = inicioJanelaVendas();
     if (inicio && periodo.de < inicio) {
-      return { indisponivel: true, diasJanela: DIAS_JANELA_VENDAS };
+      return { indisponivel: true, diasJanela: DIAS_JANELA_BOOTSTRAP };
     }
     const vendasDoPeriodo = (sales ?? []).filter((s) => {
       if (!s || s.cancelada || !s.at) return false;

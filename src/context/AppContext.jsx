@@ -20,6 +20,7 @@ import { emitirDocumentoFiscal } from "@/lib/fiscal";
 import { LIMITE_SANGRIA_PADRAO, lerValor, limiteSangriaValido, validarMovimento } from "@/lib/caixaMovimentos";
 import { processarBaixaEstoque, gerarAlertaBaixaFalhou, iniciarLoteDeBaixas, fecharLoteDeBaixas, isRpcAusente } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
+import { DIAS_JANELA_BOOTSTRAP } from "@/constants/janelaDados";
 import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
@@ -38,6 +39,7 @@ import IndicadorRede from "@/components/shared/IndicadorRede";
 import AvisoSessao from "@/components/shared/AvisoSessao";
 import PonteLocalBridge from "@/components/shared/PonteLocalBridge";
 import ImpressaoLancamentosBridge from "@/components/shared/ImpressaoLancamentosBridge";
+
 import {
   saveSession, loadSession, clearSession,
   lerSessao, atualizarUsuarioSessao, msRestantesDaSessao, esquecerTokenAuthLocal,
@@ -337,7 +339,7 @@ export function AppProvider({ children }) {
   // recebe mais escrita nenhuma; a query antiga fica só como fallback de
   // resiliência, e cobre o período anterior ao corte.
   async function buscarSalesData() {
-    const desde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const desde = new Date(Date.now() - DIAS_JANELA_BOOTSTRAP * 24 * 60 * 60 * 1000).toISOString();
     try {
       const COLUNAS_BASE = "id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at";
       const lerVendas = (colunas) => supabase

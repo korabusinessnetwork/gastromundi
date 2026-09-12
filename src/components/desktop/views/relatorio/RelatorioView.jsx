@@ -6,6 +6,7 @@ import { calcularVariacaoPercentual } from "@/lib/relatorios";
 import { esperadoEmCaixa, diferencaCaixa, situacaoCaixa, ROTULO_SITUACAO } from "@/lib/caixa";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
+import { DIAS_JANELA_BOOTSTRAP } from "@/constants/janelaDados";
 import { supabase } from "@/lib/supabase";
 import { exportToPDF as exportToPDFBase, exportToXLSX as exportToXLSXBase } from "@/lib/exportReport";
 import { useResponsive } from "@/utils/hooks";
@@ -29,7 +30,6 @@ const ABAS_BASE = ["Vendas", "Desempenho", "Cancelamentos", "Fechamentos", "Logs
 // dos últimos 90 dias (ver AppContext.jsx:340, "Bootstrap limitado a 90 dias").
 // O número está duplicado aqui porque o AppContext não o exporta; pedido de
 // virar constante exportada registrado no relatório da rodada.
-const DIAS_JANELA_BOOTSTRAP = 90;
 
 const PERIODOS = [
   { id: "hoje",    label: "Hoje"    },
