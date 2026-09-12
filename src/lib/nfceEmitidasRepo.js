@@ -105,3 +105,61 @@ export async function buscarNfcePorVenda(vendaId) {
     return { data: null, error: err };
   }
 }
+
+/**
+ * Conta NFC-e por situação SEM trazer linha nenhuma (`head: true` + count
+ * exato). Serve para os chips do histórico mostrarem quantas notas há em cada
+ * situação — sem isso, nota rejeitada ou parada em pendente só aparece para
+ * quem desconfia e clica no chip, e uma venda sem nota válida fica invisível
+ * por tempo indeterminado.
+ *
+ * Mesmos filtros de `listarNfceEmitidas`, para a contagem bater com a lista.
+ * Nunca lança: erro vira `{ count: 0, error }`.
+ *
+ * @param {{status?: string, busca?: string, de?: string|null, ate?: string|null}} [filtros]
+ * @returns {Promise<{count: number, error: Error|null}>}
+ */
+export async function contarNfceEmitidas({ status, busca = "", de = null, ate = null } = {}) {
+  try {
+    let query = supabase
+      .from("nfce_emitidas")
+      .select("id", { count: "exact", head: true });
+
+    if (status && status !== "todas") query = query.eq("status", status);
+
+    const termo = String(busca ?? "").trim();
+    if (termo) query = query.ilike("chave", `%${termo}%`);
+
+    if (de) query = query.gte("created_at", de);
+    if (ate) query = query.lte("created_at", ate);
+
+    const { count, error } = await query;
+    if (error) return { count: 0, error };
+    return { count: Number(count) || 0, error: null };
+  } catch (err) {
+    return { count: 0, error: err };
+  }
+}
+
+/**
+ * Contagem das situações que pedem ação: rejeitada e pendente.
+ *
+ * O PERÍODO é tratado diferente de propósito. Recusa é um fato datado, então
+ * conta dentro da janela escolhida na tela. Pendente é uma nota que ainda não
+ * terminou: se respeitasse a janela, a nota parada há 60 dias sumiria de uma
+ * janela de 30 dias e a tela diria que está tudo bem.
+ *
+ * @param {{busca?: string, de?: string|null, ate?: string|null}} [filtros]
+ * @returns {Promise<{rejeitada: number, pendente: number, error: Error|null}>}
+ */
+export async function contarAlertasNfce({ busca = "", de = null, ate = null } = {}) {
+  const [rejeitadas, pendentes] = await Promise.all([
+    contarNfceEmitidas({ status: "rejeitada", busca, de, ate }),
+    contarNfceEmitidas({ status: "pendente", busca }),
+  ]);
+  return {
+    rejeitada: rejeitadas.count,
+    pendente: pendentes.count,
+    error: rejeitadas.error || pendentes.error || null,
+  };
+}

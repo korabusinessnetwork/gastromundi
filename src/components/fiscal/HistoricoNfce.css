@@ -81,6 +81,40 @@
   color: #fff;
 }
 
+/**
+ * Chip com nota esperando ação (rejeitada ou pendente). Precisa saltar aos
+ * olhos sem clique: antes, uma venda sem nota válida só aparecia para quem
+ * desconfiava e ia clicar no chip.
+ */
+.historico-nfce__chip--alerta {
+  border-color: var(--gm-red, #d64545);
+  color: var(--gm-red, #d64545);
+}
+
+.historico-nfce__chip--alerta.historico-nfce__chip--ativo {
+  background: var(--gm-red, #d64545);
+  border-color: var(--gm-red, #d64545);
+  color: #fff;
+}
+
+.historico-nfce__chip-contagem {
+  display: inline-block;
+  margin-left: 6px;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--gm-red, #d64545);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.historico-nfce__chip--alerta.historico-nfce__chip--ativo .historico-nfce__chip-contagem {
+  background: rgba(255, 255, 255, 0.28);
+}
+
 .historico-nfce__busca {
   display: inline-flex;
   align-items: center;
