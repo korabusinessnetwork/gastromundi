@@ -38,7 +38,7 @@ Dono de: `src/components/pautas/`, `src/components/shared/Notification.jsx`, `sr
 ## Do maestro
 | # | id | eixo | Tarefa |
 |---|----|------|--------|
-| [ ] M01 | V103 | ux | O PWA para de recarregar a aba do caixa sem avisar, e passa a oferecer a atualização |
-| [ ] M02 | N04 | ux | Título de aba por tela, com o nome do estabelecimento |
-| [ ] M03 | - | qualidade | `npm audit fix` nas duas falhas de dependência de build |
-| [ ] M04 | N05 | qualidade | Medir o bundle por rota antes de decidir o que separar do chunk principal |
+| [x] M01 | V103 | ux | O PWA para de recarregar a aba do caixa sem avisar, e passa a oferecer a atualização |
+| [~] M02 | N04 | ux | Título de aba por tela, com o nome do estabelecimento. DEPENDE do merge da trilha `offline-contexto`: hoje quem escreve o título é o efeito de tema do `AppContext`, que é pai do layout e portanto roda DEPOIS dele na montagem, sobrescrevendo o título da tela. Fazer coexistir sem tocar o contexto seria gambiarra, então espera |
+| [x] M03 | - | qualidade | Dependência de produção com zero vulnerabilidade, via overrides, porque `npm audit fix` quebra neste projeto |
+| [x] M04 | N05 | qualidade | Medido por origem, somando os bytes do sourcemap por pacote. O Console (201 kB de fonte) e o Leaflet (440 kB) saíram do chunk principal: gzip de 706,29 kB para 639,46 kB. Sobraram `xlsx` (984 kB) e `react-icons` (778 kB), que pedem import dinâmico no ponto de uso e entram na fila com os números na mão |
