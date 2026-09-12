@@ -13,6 +13,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, act, screen } from "@testing-library/react";
 import { Routes, Route } from "react-router-dom";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 vi.mock("@/context/AppContext", async () => {
   const { mockUseApp } = await import("@/test/mockApp");
@@ -329,5 +331,31 @@ describe("LoginPage, formulário de login (L02)", () => {
     await abrir();
 
     expect(document.activeElement).toBe(screen.getByPlaceholderText("Digite seu usuário"));
+  });
+});
+
+// L04 — o alvo de toque do botão de mostrar senha.
+//
+// Medido no navegador em 390x844: o botão do olho tinha 26x26 px contra 304x53
+// do botão Entrar, menos da metade do alvo confortável para dedo, numa tela que
+// roda em celular e tablet o dia inteiro.
+//
+// O teste lê o CSS como texto porque é lá que a medida mora (decisão 018) e o
+// jsdom não calcula layout, então não existe altura de verdade para medir no
+// DOM: o que dá para garantir aqui é que a regra não volte a encolher.
+describe("LoginPage, alvo de toque do mostrar senha (L04)", () => {
+  const css = readFileSync(resolve(process.cwd(), "src/pages/LoginPage.css"), "utf-8");
+  const regra = css.slice(css.indexOf(".login-page__olho {"), css.indexOf("}", css.indexOf(".login-page__olho {")));
+  const medida = (prop) => Number((regra.match(new RegExp(`\\b${prop}:\\s*(\\d+)px`)) || [])[1]);
+
+  it("tem no mínimo 44x44 px de área de toque", () => {
+    expect(medida("width")).toBeGreaterThanOrEqual(44);
+    expect(medida("height")).toBeGreaterThanOrEqual(44);
+  });
+
+  it("o ícone não cresceu junto, quem cresceu foi só a área clicável", () => {
+    const jsx = readFileSync(resolve(process.cwd(), "src/pages/LoginPage.jsx"), "utf-8");
+    expect(jsx).toContain("<LuEyeOff size={18} />");
+    expect(jsx).toContain("<LuEye size={18} />");
   });
 });
