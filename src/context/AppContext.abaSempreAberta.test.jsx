@@ -466,7 +466,7 @@ describe("o computador que dorme e volta (C04)", () => {
     expect(cargasFeitas()).toBe(antes);
   });
 
-  it("o teto de 8 horas vencido durante o sono derruba a sessão na volta", async () => {
+  it("o teto de 8 horas vencido durante o sono tranca a tela na volta", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(T0);
 
@@ -481,7 +481,11 @@ describe("o computador que dorme e volta (C04)", () => {
     await aAbaVoltou();
     await deixarACargaTerminar();
 
-    expect(app.current.currentUser).toBeNull();
+    // Decisão de 2026-09-12: dormir a noite com a tela aberta não é motivo para
+    // jogar fora o que estava montado nela, então o teto TRANCA em vez de
+    // deslogar.
+    expect(document.querySelector(".bloqueio-tela")).not.toBeNull();
+    expect(app.current.currentUser).not.toBeNull();
   });
 
   it("a volta da aba tenta o dreno da fila sem esperar o próximo tique", async () => {
@@ -570,5 +574,39 @@ describe("canal de realtime que morre em silêncio (C05)", () => {
 
     expect(cargasFeitas()).toBe(antes);
     expect(vi.mocked(reportarFalha)).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * O cadeado, visto de fora: é o que substituiu o logout por tempo.
+ *
+ * O PDV não fecha nunca, e deslogar desmonta a árvore do app, levando o carrinho
+ * montado e ainda não lançado. Estes casos prendem as duas pontas da decisão do
+ * dono de 2026-09-12: a tela tranca sem derrubar a sessão, e destravar não exige
+ * recarregar nada.
+ */
+describe("AppContext, cadeado de tela em vez de logout por tempo", () => {
+  it("duas horas parado trancam a tela, e a sessão continua de pé", async () => {
+    const T0 = new Date("2026-09-12T20:00:00-03:00").getTime();
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+    const { app } = await montarLogado();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(2 * 60 * 60 * 1000 + 10); });
+
+    expect(document.querySelector(".bloqueio-tela")).not.toBeNull();
+    expect(app.current.currentUser).not.toBeNull();
+    expect(mockSupabase.auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it("antes do prazo, nada tranca", async () => {
+    const T0 = new Date("2026-09-12T20:00:00-03:00").getTime();
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+    await montarLogado();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(90 * 60 * 1000); });
+
+    expect(document.querySelector(".bloqueio-tela")).toBeNull();
   });
 });

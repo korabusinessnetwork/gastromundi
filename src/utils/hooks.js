@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { listarPedidosDelivery } from "@/lib/deliveryPedidos";
 
@@ -136,6 +136,15 @@ export function useResponsive() {
  * exatamente o bug que os 30 minutos de inatividade já tiveram.
  */
 export function useIdleTimer(callback, delay, enabled = true, onAviso = null, avisoMs = 0) {
+  // Carimbo da última atividade, por RELÓGIO. Ele existe porque o PDV não fecha
+  // nunca e a máquina do balcão dorme: durante o sono os temporizadores não
+  // correm, e no retorno os dois disparam atrasados e quase juntos, de modo que
+  // o aviso de "vai bloquear" aparece no mesmo instante do bloqueio. Com o
+  // carimbo, quem volta pode recalcular pelo tempo que passou de verdade, em vez
+  // de confiar num `setTimeout` que ficou congelado.
+  const ultimaAtividadeRef = useRef(Date.now());
+  const reavaliarRef = useRef(() => {});
+
   useEffect(() => {
     if (!enabled) return;
 
@@ -147,16 +156,29 @@ export function useIdleTimer(callback, delay, enabled = true, onAviso = null, av
     let timerAviso;
     let avisando = false;
 
-    const armar = () => {
-      timer = setTimeout(callback, delay);
-      if (comAviso) {
-        timerAviso = setTimeout(() => { avisando = true; onAviso(true); }, delay - avisoMs);
+    const armar = (restanteMs = delay) => {
+      const falta = Math.max(0, restanteMs);
+      timer = setTimeout(callback, falta);
+      if (comAviso && falta > avisoMs) {
+        timerAviso = setTimeout(() => { avisando = true; onAviso(true); }, falta - avisoMs);
       }
     };
 
     armar();
 
+    // Chamado de fora quando a aba volta a ficar visível. Se o prazo já venceu
+    // durante o sono, dispara na hora; senão rearma com o que de fato falta.
+    reavaliarRef.current = () => {
+      const decorrido = Date.now() - ultimaAtividadeRef.current;
+      clearTimeout(timer);
+      clearTimeout(timerAviso);
+      if (decorrido >= delay) { callback(); return; }
+      if (avisando && decorrido < delay - avisoMs) { avisando = false; onAviso(false); }
+      armar(delay - decorrido);
+    };
+
     const reset = () => {
+      ultimaAtividadeRef.current = Date.now();
       clearTimeout(timer);
       clearTimeout(timerAviso);
       // Só derruba o aviso se ele estava de pé: qualquer mexida do mouse passa
@@ -174,9 +196,13 @@ export function useIdleTimer(callback, delay, enabled = true, onAviso = null, av
     return () => {
       clearTimeout(timer);
       clearTimeout(timerAviso);
+      reavaliarRef.current = () => {};
       events.forEach((e) => window.removeEventListener(e, reset, true));
     };
   }, [callback, delay, enabled, onAviso, avisoMs]);
+
+  // Identidade estável: quem recebe isto costuma pôr numa lista de dependências.
+  return useCallback(() => reavaliarRef.current(), []);
 }
 
 /**

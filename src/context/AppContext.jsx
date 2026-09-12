@@ -21,6 +21,8 @@ import { LIMITE_SANGRIA_PADRAO, lerValor, limiteSangriaValido, validarMovimento 
 import { processarBaixaEstoque, gerarAlertaBaixaFalhou, iniciarLoteDeBaixas, fecharLoteDeBaixas, isRpcAusente } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { DIAS_JANELA_BOOTSTRAP } from "@/constants/janelaDados";
+import { PRAZO_BLOQUEIO_MS } from "@/lib/bloqueioTela";
+import BloqueioTela from "@/components/shared/BloqueioTela";
 import { ehRotaDoApp } from "@/lib/tituloAba";
 import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
@@ -255,13 +257,34 @@ export function AppProvider({ children }) {
   // turno movimentado os 30 minutos de inatividade nunca chegavam ao fim.
   // O ref sempre aponta para o `logout` da última renderização.
   const logoutRef = useRef(null);
-  const logoutCallback = useCallback(() => { logoutRef.current?.(); }, []);
-  // Aviso 2 minutos antes de a inatividade derrubar a sessão. O callback é
-  // estável pela mesma razão do `logoutCallback`: se mudar de identidade, o
-  // cronômetro reinicia e ninguém nunca chega aos 30 minutos.
+
+  // ── Cadeado da tela, no lugar do logout por tempo ─────────────
+  //
+  // O PDV não fecha nunca: a aba do balcão fica aberta 24 horas. Enquanto o
+  // prazo de inatividade e o teto de sessão chamavam o logout, vencer o prazo
+  // desmontava a árvore do app, e com ela ia o carrinho montado e ainda não
+  // lançado, a comanda selecionada e os campos digitados, sem trilha nenhuma.
+  // Numa operação contínua isso acontecia três vezes por dia pelo teto, mais uma
+  // vez a cada período parado.
+  //
+  // Agora vencer o prazo TRANCA a tela: nada é desmontado, o caixa segue aberto,
+  // a comanda segue atrás do cadeado, e quem volta digita a senha e continua.
+  // Quem está de fato trocando de turno usa "trocar de operador" no próprio
+  // cadeado, que é o logout de verdade.
+  const [telaBloqueada, setTelaBloqueada] = useState(false);
+  const bloquearTela = useCallback(() => setTelaBloqueada(true), []);
+
+  // Aviso 2 minutos antes de a tela trancar. O callback é estável porque, se
+  // mudar de identidade, o cronômetro reinicia e ninguém nunca chega ao prazo.
   const [avisoSessaoVisivel, setAvisoSessaoVisivel] = useState(false);
   const aoAvisarSessao = useCallback((visivel) => setAvisoSessaoVisivel(visivel), []);
-  useIdleTimer(logoutCallback, IDLE_MS, !!currentUser, aoAvisarSessao, AVISO_INATIVIDADE_MS);
+  // `PRAZO_BLOQUEIO_MS` é de 2 horas, decisão do dono de 2026-09-12, e substitui
+  // os 30 minutos de `IDLE_MS`: com o cadeado o prazo passou a custar uma senha
+  // em vez do trabalho da tela, e meia hora num balcão de madrugada significava
+  // trancar quatro vezes por turno.
+  const reavaliarInatividade = useIdleTimer(
+    bloquearTela, PRAZO_BLOQUEIO_MS, !!currentUser && !telaBloqueada, aoAvisarSessao, AVISO_INATIVIDADE_MS,
+  );
 
   // Teto absoluto da sessão: 8 horas contadas do login. O `lerSessao` só é
   // consultado ao carregar a página, então numa aba aberta o turno inteiro — o
@@ -272,10 +295,10 @@ export function AppProvider({ children }) {
     if (!currentUser) return;
     const restante = msRestantesDaSessao();
     if (restante === null) return;
-    if (restante === 0) { logoutRef.current?.(); return; }
-    const t = setTimeout(() => logoutRef.current?.(), restante);
+    if (restante === 0) { bloquearTela(); return; }
+    const t = setTimeout(bloquearTela, restante);
     return () => clearTimeout(t);
-  }, [currentUser?.id]);
+  }, [currentUser?.id, bloquearTela]);
 
   // ── Restaura sessão do Supabase Auth ao carregar ─────────────
   useEffect(() => {
@@ -1279,6 +1302,10 @@ export function AppProvider({ children }) {
   // de produtos atual (o alerta de baixa recusada usa o nome do produto).
   const drenarPendenciasOfflineRef = useRef(null);
   useEffect(() => { drenarPendenciasOfflineRef.current = drenarPendenciasOffline; });
+  const bloquearTelaRef = useRef(null);
+  useEffect(() => { bloquearTelaRef.current = bloquearTela; });
+  const reavaliarInatividadeRef = useRef(null);
+  useEffect(() => { reavaliarInatividadeRef.current = reavaliarInatividade; });
 
   useEffect(() => {
     const aoVoltarAAba = () => {
@@ -1293,10 +1320,17 @@ export function AppProvider({ children }) {
       if (currentUserRef.current) {
         const { estado } = lerSessao();
         if (estado === "expirada" || msRestantesDaSessao() === 0) {
-          logoutRef.current?.();
+          // Tranca, não desloga: dormir a noite com a tela aberta não é motivo
+          // para jogar fora o que estava montado nela.
+          bloquearTelaRef.current?.();
           return;
         }
       }
+
+      // 1b. A inatividade também é recalculada por relógio. Sem isto, o aviso
+      //     de 2 minutos e o bloqueio saíam juntos no instante do retorno,
+      //     porque os dois temporizadores ficaram congelados durante o sono.
+      reavaliarInatividadeRef.current?.();
 
       // 2. Variante dia/noite do layout: a fronteira das 06:00/19:00 pode ter
       //    passado durante o sono, e o temporizador dela também não correu.
@@ -2451,9 +2485,37 @@ export function AppProvider({ children }) {
     ponteLocalAtiva, setPonteLocalAtiva,
   };
 
+  /**
+   * Destravou. `verificado` é falso quando a senha não pôde ser conferida por
+   * falta de internet, e nesse caso a liberação vai para o log de atividade: é
+   * a contrapartida combinada com o dono para o cadeado não travar um PDV
+   * offline. O relógio da sessão é renovado, senão o teto que acabou de vencer
+   * trancaria a tela outra vez no próximo segundo.
+   */
+  const destravarTela = ({ verificado } = {}) => {
+    if (currentUser) {
+      saveSession(currentUser);
+      if (!verificado) {
+        logAction(currentUser.username, "sessao:destravar-sem-rede", {
+          msg: "Tela destravada sem conferir a senha, sem internet no momento",
+          name: currentUser.name, role: currentUser.role,
+        });
+      }
+    }
+    setAvisoSessaoVisivel(false);
+    setTelaBloqueada(false);
+  };
+
   return (
     <AppContext.Provider value={value}>
       {children}
+      {telaBloqueada && !!currentUser && (
+        <BloqueioTela
+          operador={currentUser}
+          aoDestravar={destravarTela}
+          aoTrocarOperador={() => { setTelaBloqueada(false); void logout(); }}
+        />
+      )}
       <IndicadorRede
         online={redeOnline}
         pendencias={pendenciasOffline}
