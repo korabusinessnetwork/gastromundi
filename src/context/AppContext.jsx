@@ -21,6 +21,7 @@ import { LIMITE_SANGRIA_PADRAO, lerValor, limiteSangriaValido, validarMovimento 
 import { processarBaixaEstoque, gerarAlertaBaixaFalhou, iniciarLoteDeBaixas, fecharLoteDeBaixas, isRpcAusente } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { DIAS_JANELA_BOOTSTRAP } from "@/constants/janelaDados";
+import { ehRotaDoApp } from "@/lib/tituloAba";
 import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
@@ -789,9 +790,17 @@ export function AppProvider({ children }) {
     // não pode herdar tokens órfãos) e aplica o merge da vez.
     limparVariaveisTema();
     aplicarVariaveisTema(variaveis);
-    // Aba do navegador com a marca do tenant (white-label).
+    // Aba do navegador com a marca do tenant (white-label), EXCETO nas telas de
+    // `/app`, que têm título próprio por tela (`useTituloDaAba`, no
+    // DesktopLayout). Sem esta ressalva os dois brigariam e o provider ganharia
+    // sempre: efeito de pai roda depois do de filho no mesmo commit, então o
+    // nome da tela era escrito e sobrescrito no mesmo instante. Quem decide é o
+    // caminho atual, lido uma vez, porque o provider não re-renderiza a cada
+    // navegação e não precisa: dentro de `/app` o dono do título é o layout.
     const nome = nomeExibicaoTenant(tenant.tema, tenant.nome);
-    aplicarTituloDocumento(nome);
+    if (!ehRotaDoApp(typeof window !== "undefined" ? window.location.pathname : "")) {
+      aplicarTituloDocumento(nome);
+    }
     // Cache por origem (anti-flash): a próxima abertura deste endereço
     // já pinta com esta marca antes do bootstrap (script do index.html).
     salvarBrandingCache({ nome, logo: logoUrlTenant(tenant.tema), variaveis });
