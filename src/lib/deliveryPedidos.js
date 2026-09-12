@@ -228,19 +228,66 @@ export function inicioDoDiaISO(agora = new Date()) {
   return d.toISOString();
 }
 
+// Teto de quanto o recorte pode alcançar para trás. Caixa que fica aberto
+// dias (ninguém fechou) não pode transformar o recorte em "a base inteira" de
+// novo — a proteção do D02 precisa continuar valendo por mais longa que a
+// sessão seja.
+const LIMITE_RECORTE_MS = 48 * 60 * 60 * 1000;
+
+/**
+ * Início do recorte das colunas terminais (entregue/cancelado), em ISO.
+ *
+ * O turno do delivery ATRAVESSA A MEIA-NOITE: o pedido entregue às 23h50
+ * pertence ao movimento da noite, e a madrugada é o mesmo turno. Cortar pelo
+ * início do dia do calendário fazia a coluna "Entregue" esvaziar sozinha à
+ * meia-noite (qualquer avançar, cancelar ou pedido novo chama recarregar), com
+ * o contador caindo a zero enquanto o entregador ainda estava na rua.
+ *
+ * Então o corte é a ABERTURA DO CAIXA (`sessao_aberta_em`) quando há sessão
+ * legível, e o início do dia quando não há (delivery standalone sem caixa, ou
+ * valor gravado fora do padrão ISO). Nos dois casos o corte nunca passa de
+ * LIMITE_RECORTE_MS atrás.
+ *
+ * @param {{ sessaoAbertaEm?: string|number|Date|null, agora?: Date }} [opcoes]
+ * @returns {string}
+ */
+export function inicioDoRecorteISO({ sessaoAbertaEm, agora = new Date() } = {}) {
+  const base = agora instanceof Date ? agora : new Date(agora);
+  const agoraMs = base.getTime();
+  const tetoMs = agoraMs - LIMITE_RECORTE_MS;
+
+  const sessaoMs =
+    sessaoAbertaEm == null || sessaoAbertaEm === ""
+      ? NaN
+      : new Date(sessaoAbertaEm).getTime();
+
+  // Sessão ilegível (ou ausente) cai no início do dia, que é o comportamento
+  // anterior — nunca numa data vazia, que traria a base inteira.
+  if (Number.isNaN(sessaoMs)) {
+    const inicioDia = new Date(base);
+    inicioDia.setHours(0, 0, 0, 0);
+    return new Date(Math.max(inicioDia.getTime(), tetoMs)).toISOString();
+  }
+  return new Date(Math.max(sessaoMs, tetoMs)).toISOString();
+}
+
 /**
  * Lista os pedidos de delivery do tenant (recente → antigo). A RLS já
  * filtra por tenant. Nunca lança: erro vira { data: [], error }.
  *
  * Recorte: pedido em andamento vem sempre, por mais antigo que seja (é o
  * que a operação precisa ver). Pedido terminal (entregue/cancelado) só vem
- * do dia corrente. Sem isso a consulta puxava TODO pedido entregue desde o
- * primeiro dia, a cada montagem e a cada evento de realtime, e acima do
- * teto de linhas do PostgREST a resposta era cortada em silêncio, com o
+ * do TURNO corrente (ver inicioDoRecorteISO: abertura do caixa, ou início do
+ * dia quando não há sessão). Sem isso a consulta puxava TODO pedido entregue
+ * desde o primeiro dia, a cada montagem e a cada evento de realtime, e acima
+ * do teto de linhas do PostgREST a resposta era cortada em silêncio, com o
  * contador da coluna passando a mentir.
+ *
+ * `sessaoAbertaEm` é a hora de abertura do caixa (config `sessao_aberta_em`),
+ * injetada por quem chama porque esta camada não tem contexto de React.
  */
-export async function listarPedidosDelivery({ agora } = {}) {
-  const desde = inicioDoDiaISO(agora);
+export async function listarPedidosDelivery({ agora, sessaoAbertaEm } = {}) {
+  const desde = inicioDoRecorteISO({ sessaoAbertaEm, agora });
   try {
     const { data, error } = await supabase
       .from("delivery_pedidos")

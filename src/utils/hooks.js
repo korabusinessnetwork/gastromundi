@@ -294,14 +294,20 @@ export function usePedidosCozinha() {
  *    correto.
  *
  * Expõe { pedidos, carregando, erro, recarregar }.
+ *
+ * `sessaoAbertaEm` (opcional) é a hora de abertura do caixa, que a tela pega
+ * no contexto e repassa. Ela existe porque o recorte das colunas terminais é
+ * por TURNO, e não por dia de calendário: a aba do PDV fica aberta 24 horas e
+ * a madrugada pertence ao movimento da noite anterior. Sem ela o recorte cai
+ * no início do dia (comportamento anterior).
  */
-export function usePedidosDelivery() {
+export function usePedidosDelivery({ sessaoAbertaEm = null } = {}) {
   const [pedidos, setPedidos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
 
   const recarregar = useCallback(async () => {
-    const { data, error } = await listarPedidosDelivery();
+    const { data, error } = await listarPedidosDelivery({ sessaoAbertaEm });
     if (error) {
       // Mantém a lista que já estava na tela — mesma regra de
       // usePedidosCozinha. `listarPedidosDelivery` devolve data: [] em
@@ -316,7 +322,7 @@ export function usePedidosDelivery() {
       setPedidos(data ?? []);
     }
     setCarregando(false);
-  }, []);
+  }, [sessaoAbertaEm]);
 
   useEffect(() => { recarregar(); }, [recarregar]);
 

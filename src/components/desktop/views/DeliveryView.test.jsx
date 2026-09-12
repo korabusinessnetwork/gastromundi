@@ -582,3 +582,31 @@ describe("DeliveryView, busca e atalho de indisponíveis no Cardápio (D05)", ()
     expect(screen.getByText("Açaí 500ml")).toBeInTheDocument();
   });
 });
+
+// D06 — a aba fica aberta 24 horas e atravessa a meia-noite. O recorte das
+// colunas terminais tem de ser o TURNO (abertura do caixa), então a tela
+// precisa entregar `sessaoAbertaEm` ao hook. Sem isso o pedido entregue às
+// 23h50 saía da coluna "Entregue" sozinho, na primeira atualização depois da
+// meia-noite, com o contador caindo a zero no meio do movimento.
+describe("DeliveryView entrega a abertura do caixa ao hook de pedidos (D06)", () => {
+  it("com caixa aberto, o hook recebe sessaoAbertaEm", async () => {
+    const abertura = "2026-09-11T21:00:00.000Z";
+    setAppMock({ sessaoAbertaEm: abertura });
+    semErro();
+    await montar();
+
+    expect(usePedidosDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({ sessaoAbertaEm: abertura }),
+    );
+  });
+
+  it("sem caixa aberto, o hook recebe sessão nula e o recorte cai no dia", async () => {
+    setAppMock({ sessaoAbertaEm: null });
+    semErro();
+    await montar();
+
+    expect(usePedidosDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({ sessaoAbertaEm: null }),
+    );
+  });
+});

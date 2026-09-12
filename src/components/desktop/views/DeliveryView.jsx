@@ -156,7 +156,7 @@ const cssCor = (base) =>
   typeof base === "string" && base.startsWith("--gm-") ? varColor(base) : base;
 
 export default function DeliveryView({ notify } = {}) {
-  const { products, tenant, currentUser, moduloHabilitado, addProduct, updateProduct, recarregarProdutos } = useApp();
+  const { products, tenant, currentUser, moduloHabilitado, addProduct, updateProduct, recarregarProdutos, sessaoAbertaEm } = useApp();
 
   // Modo derivado do plano: tem PDV → addon; só delivery → standalone.
   const ehAddon = moduloHabilitado(MODULOS.PDV);
@@ -408,7 +408,7 @@ export default function DeliveryView({ notify } = {}) {
         )}
 
         {aba === "pedidos" && (
-          <AbaPedidos isAdmin={isAdmin} ehAddon={ehAddon} aviso={aviso} currentUser={currentUser} />
+          <AbaPedidos isAdmin={isAdmin} ehAddon={ehAddon} aviso={aviso} currentUser={currentUser} sessaoAbertaEm={sessaoAbertaEm} />
         )}
 
         {aba === "cardapio" && (
@@ -469,8 +469,13 @@ const lerPrefAvisos = () => {
   }
 };
 
-function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
-  const { pedidos, carregando, erro, recarregar } = usePedidosDelivery();
+function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, sessaoAbertaEm = null }) {
+  // O recorte das colunas terminais é por TURNO (abertura do caixa), e não por
+  // dia de calendário: esta aba fica aberta a noite toda e atravessa a
+  // meia-noite sem recarregar. Sem passar a abertura do caixa, o pedido
+  // entregue às 23h50 saía da coluna "Entregue" na primeira atualização
+  // depois da meia-noite, sozinho, com o entregador ainda na rua.
+  const { pedidos, carregando, erro, recarregar } = usePedidosDelivery({ sessaoAbertaEm });
   const [tick, setTick] = useState(0); // recalcula "há X min" de tempos em tempos
 
   // Avisos de pedido novo (Fase 5, Nível 1): som + Notification API. Só
