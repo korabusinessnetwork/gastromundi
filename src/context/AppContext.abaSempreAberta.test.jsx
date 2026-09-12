@@ -35,6 +35,15 @@ vi.mock("@/lib/jarvasEngine", () => mockJarvasEngine);
 
 // Folhas com efeito colateral, sem relação com o que está sendo medido.
 vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
+// O dreno de verdade falaria com o Supabase. Aqui interessa só SE ele foi
+// tentado, e ele responde "parou por rede" para a operação continuar na fila.
+const mockFila = vi.hoisted(() => ({
+  drenarFila: vi.fn(async () => ({ falhas: [], parouPorRede: true })),
+}));
+vi.mock("@/lib/offline/fila", async () => ({
+  ...(await vi.importActual("@/lib/offline/fila")),
+  ...mockFila,
+}));
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/lib/observabilidade", () => ({
   reportarFalha: vi.fn(),
@@ -51,7 +60,7 @@ vi.mock("@/lib/tenant", () => ({
 }));
 
 import { AppProvider, useApp } from "./AppContext";
-import { saveSession } from "@/utils/session";
+import { saveSession, SESSION_MS } from "@/utils/session";
 
 const usuario = { id: 7, name: "Fulano", username: "fulano", role: "gerente", auth_id: "auth-7" };
 const T0 = new Date("2026-03-10T12:00:00.000Z").getTime();
@@ -119,6 +128,18 @@ function comSessaoNoAuth() {
   mockSupabase.auth.getSession.mockResolvedValue({
     data: { session: { user: { id: "auth-7", app_metadata: { tenant_id: "t1" } } } },
   });
+}
+
+/** A aba some de vista (o computador dormiu, ou alguém trocou de janela). */
+async function aAbaSumiu() {
+  Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+  await act(async () => { document.dispatchEvent(new Event("visibilitychange")); });
+}
+
+/** A aba volta a aparecer. */
+async function aAbaVoltou() {
+  Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+  await act(async () => { document.dispatchEvent(new Event("visibilitychange")); });
 }
 
 let onLineOriginal;
@@ -197,6 +218,7 @@ beforeEach(() => {
 afterEach(() => {
   if (onLineOriginal) Object.defineProperty(window.navigator, "onLine", onLineOriginal);
   else delete window.navigator.onLine;
+  delete document.visibilityState;
   vi.useRealTimers();
 });
 
@@ -392,5 +414,80 @@ describe("a lacuna de eventos quando a rede volta (C03)", () => {
     await deixarACargaTerminar();
 
     expect(cargasFeitas()).toBe(antes);
+  });
+});
+
+// ── C04 ──────────────────────────────────────────────────────────
+// O computador do balcão não é desligado, ele dorme, e a aba continua aberta do
+// outro lado do sono. Durante o sono nenhum `setTimeout` corre, e na volta todos
+// disparam atrasados e em bloco. Por isso o que depende de tempo tem de ser
+// reavaliado por RELÓGIO na volta, e não pelo temporizador que não correu. Nos
+// testes abaixo o relógio anda sem que os temporizadores rodem, que é
+// exatamente o que o sono faz.
+describe("o computador que dorme e volta (C04)", () => {
+  it("a volta da aba refaz a carga, repondo a lacuna do sono", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    await montarLogado();
+    const antes = cargasFeitas();
+
+    await aAbaSumiu();
+    // Duas horas de sono: o relógio anda, os temporizadores não.
+    vi.setSystemTime(T0 + 2 * 60 * 60 * 1000);
+    await aAbaVoltou();
+    await deixarACargaTerminar();
+
+    expect(cargasFeitas()).toBe(antes + 1);
+  });
+
+  it("aba que some não recarrega nada, só a volta é gatilho", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    await montarLogado();
+    const antes = cargasFeitas();
+
+    await aAbaSumiu();
+    await deixarACargaTerminar();
+
+    expect(cargasFeitas()).toBe(antes);
+  });
+
+  it("o teto de 8 horas vencido durante o sono derruba a sessão na volta", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    const { app } = await montarLogado();
+    expect(app.current.currentUser).toMatchObject({ id: 7 });
+
+    await aAbaSumiu();
+    // O computador dorme nove horas. O `setTimeout` de 8 horas do teto de
+    // sessão NÃO correu, e é por isso que o relógio avança sem
+    // `advanceTimersByTime`: é o sono, não a passagem normal do tempo.
+    vi.setSystemTime(T0 + SESSION_MS + 60 * 60 * 1000);
+    await aAbaVoltou();
+    await deixarACargaTerminar();
+
+    expect(app.current.currentUser).toBeNull();
+  });
+
+  it("a volta da aba tenta o dreno da fila sem esperar o próximo tique", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    const { app } = await montarLogado();
+    await act(async () => {
+      app.current.enfileirarOffline({ tipo: "insert", payload: { id: "p-1" } });
+    });
+    await deixarACargaTerminar();
+    const antes = mockFila.drenarFila.mock.calls.length;
+
+    await aAbaSumiu();
+    vi.setSystemTime(T0 + 2 * 60 * 60 * 1000);
+    await aAbaVoltou();
+    await deixarACargaTerminar();
+
+    expect(mockFila.drenarFila.mock.calls.length).toBeGreaterThan(antes);
   });
 });

@@ -1204,6 +1204,62 @@ export function AppProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Ciclo de vida da aba: o computador do balcão dorme ───────
+  //
+  // O PC do caixa não é desligado, ele dorme, e a aba continua aberta do outro
+  // lado do sono. Enquanto isso nenhum `setTimeout` corre: na volta todos
+  // disparam atrasados e em bloco. O aviso de inatividade de 2 minutos aparecia
+  // colado no logout, o dreno da fila só tentava no tique seguinte, a fronteira
+  // de horário do layout podia ter passado sem ninguém notar e o carimbo de
+  // rede seguia afirmando o que valia antes do sono.
+  //
+  // Este é o ÚNICO ponto que, ao voltar, reavalia por RELÓGIO o que depende de
+  // tempo (`Date.now()` contra o carimbo guardado) em vez de confiar no
+  // temporizador que não correu. É o mesmo raciocínio do `AvisoSessao`, que
+  // conta o tempo restante a partir do instante em que apareceu justamente
+  // porque aba em segundo plano atrasa timer.
+  //
+  // O dreno vai por ref para o ouvinte não reassinar a cada mudança de estado e
+  // mesmo assim chamar sempre a versão mais nova, que é a que conhece a lista
+  // de produtos atual (o alerta de baixa recusada usa o nome do produto).
+  const drenarPendenciasOfflineRef = useRef(null);
+  useEffect(() => { drenarPendenciasOfflineRef.current = drenarPendenciasOffline; });
+
+  useEffect(() => {
+    const aoVoltarAAba = () => {
+      if (document.visibilityState !== "visible") return;
+
+      // 1. Teto de 8 horas da sessão, por relógio. O `setTimeout` armado no
+      //    login pode estar atrasado pelo tempo de sono; quem manda é a hora do
+      //    login guardada na sessão. Sessão que passou do teto durante o sono
+      //    já se declara "expirada", e o zero é o teto batendo exatamente
+      //    agora. Storage indisponível (estado "vazia") NÃO derruba ninguém,
+      //    mesma política do cronômetro do teto mais acima.
+      if (currentUserRef.current) {
+        const { estado } = lerSessao();
+        if (estado === "expirada" || msRestantesDaSessao() === 0) {
+          logoutRef.current?.();
+          return;
+        }
+      }
+
+      // 2. Variante dia/noite do layout: a fronteira das 06:00/19:00 pode ter
+      //    passado durante o sono, e o temporizador dela também não correu.
+      setVarianteLayout(varianteDoHorario(new Date().getHours()));
+
+      // 3. A fila não precisa esperar o próximo tique de 45 segundos para
+      //    tentar de novo o que ficou guardado.
+      void drenarPendenciasOfflineRef.current?.();
+
+      // 4. E a carga é refeita pelo mesmo caminho da volta da conexão: dormir
+      //    abre a mesma lacuna que uma queda de rede, o socket não estava lá.
+      void recarregarAposLacuna("a aba voltou a ficar visível");
+    };
+    document.addEventListener("visibilitychange", aoVoltarAAba);
+    return () => document.removeEventListener("visibilitychange", aoVoltarAAba);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Actions: Auth ─────────────────────────────────────────────
   const login = async (username, password) => {
     const clean = sanitizeInput(username);
