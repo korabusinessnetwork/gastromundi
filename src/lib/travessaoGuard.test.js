@@ -40,6 +40,8 @@ import { parse } from "@babel/parser";
  */
 
 const RAIZ = join(__dirname, "..");
+/** Raiz do projeto: o front da Ponte mora fora do `src/` e fora do bundle. */
+const RAIZ_PROJETO = join(__dirname, "..", "..");
 
 /** Origem do texto que o usuário lê. Teste e mock ficam de fora. */
 const IGNORAR = [/\.test\.(jsx|js)$/, /[/\\]test[/\\]/];
@@ -208,5 +210,116 @@ describe("regra absoluta: travessão não entra em texto de tela", () => {
   it("frase que cita o símbolo continua permitida", () => {
     expect(citaOSimbolo('Clique no “—” da coluna Mensalidade')).toBe(true);
     expect(citaOSimbolo("Escreva o motivo — ele fica gravado")).toBe(false);
+  });
+});
+
+
+/**
+ * O front da Ponte (`ponte/*.html`) é tela de verdade, em português, que o dono
+ * e o garçom leem: a página de pedido do celular e o painel de status no
+ * computador do caixa. Ela escapava da regra por um detalhe de caminho, não por
+ * decisão: o guard acima varre `src/`, e a Ponte é servida fora do bundle. A
+ * primeira varredura desta pasta achou oito frases com travessão.
+ *
+ * Aqui não dá para usar a árvore de sintaxe do JS, porque o arquivo é HTML com
+ * script dentro. Então o texto é limpo primeiro: comentário HTML, bloco de
+ * estilo e comentário de JavaScript saem (comentário não é front, mesma isenção
+ * do guard de cima), e o que sobra é o que chega aos olhos de alguém.
+ */
+function textoVisivelDoHtml(fonte) {
+  const linhas = fonte.split("\n");
+  const limpas = linhas.map((l) => l);
+
+  // Comentário HTML e bloco de estilo, que podem atravessar várias linhas:
+  // apaga o conteúdo preservando a contagem de linhas, para o número relatado
+  // continuar sendo o número que a pessoa abre no editor.
+  const apagarBlocos = (texto, abre, fecha) => {
+    let dentro = false;
+    return texto.map((l) => {
+      let saida = "";
+      let resto = l;
+      while (resto.length > 0) {
+        if (!dentro) {
+          const i = resto.indexOf(abre);
+          if (i === -1) { saida += resto; break; }
+          saida += resto.slice(0, i);
+          resto = resto.slice(i + abre.length);
+          dentro = true;
+        } else {
+          const f = resto.indexOf(fecha);
+          if (f === -1) { resto = ""; break; }
+          resto = resto.slice(f + fecha.length);
+          dentro = false;
+        }
+      }
+      return saida;
+    });
+  };
+
+  let saida = apagarBlocos(limpas, "<!--", "-->");
+  saida = apagarBlocos(saida, "<style", "</style>");
+  saida = apagarBlocos(saida, "/*", "*/");
+  // Comentário de linha do JavaScript. O `(^|[^:])` evita cortar a partir do
+  // "//" de uma URL (`http://`), que não é comentário.
+  saida = saida.map((l) => l.replace(/(^|[^:])\/\/.*$/, "$1"));
+  return saida;
+}
+
+/** `>—<` e `"—"` são marcador de vazio; no meio de uma frase é pontuação. */
+function separadorNoHtml(linha) {
+  if (!linha.includes("—")) return false;
+  const semMarcador = linha
+    .replace(/>\s*—\s*</g, "><")
+    .replace(/(["'])\s*—\s*\1/g, "$1$1");
+  return semMarcador.includes("—");
+}
+
+describe("a mesma regra vale no front da Ponte", () => {
+  it("nenhuma tela da Ponte usa travessão como pontuação", () => {
+    const pasta = join(RAIZ_PROJETO, "ponte");
+    const htmls = readdirSync(pasta).filter((n) => n.endsWith(".html"));
+    // Se a Ponte deixar de ter tela, isto avisa em vez de passar vazio.
+    expect(htmls.length).toBeGreaterThan(0);
+
+    const problemas = [];
+    for (const nome of htmls) {
+      const fonte = readFileSync(join(pasta, nome), "utf8");
+      textoVisivelDoHtml(fonte).forEach((linha, i) => {
+        if (separadorNoHtml(linha)) {
+          problemas.push(`ponte/${nome}:${i + 1}  ${linha.replace(/\s+/g, " ").trim().slice(0, 90)}`);
+        }
+      });
+    }
+
+    expect(
+      problemas,
+      problemas.length
+        ? `Travessão em texto de tela da Ponte. Troque por vírgula:\n\n${problemas.join("\n")}`
+        : undefined,
+    ).toEqual([]);
+  });
+
+  it("comentário de código e marcador de vazio continuam de fora", () => {
+    const fonte = [
+      "<!-- Ponte KORA — comentário de topo, não é tela -->",
+      "<p>Sem valor por enquanto</p>",
+      '<p id="x">—</p>',
+      "<script>",
+      "  // reenvio — não duplica",
+      "  var url = 'http://192.168.0.2/api';",
+      "</" + "script>",
+    ].join("\n");
+    expect(textoVisivelDoHtml(fonte).filter(separadorNoHtml)).toEqual([]);
+  });
+
+  it("frase de tela com travessão é pega, na linha certa", () => {
+    const fonte = [
+      "<p>Primeira linha</p>",
+      "<p>Informe seu nome — sai impresso na cozinha.</p>",
+    ].join("\n");
+    const pegas = textoVisivelDoHtml(fonte)
+      .map((l, i) => (separadorNoHtml(l) ? i + 1 : null))
+      .filter(Boolean);
+    expect(pegas).toEqual([2]);
   });
 });

@@ -212,7 +212,7 @@
     <div id="blocoFirewall" hidden>
       <p class="aviso-instalacao" id="firewallAviso">O celular do garçom ainda não alcança esta ponte: falta liberar a passagem no Wi-Fi deste computador.</p>
       <button class="botao" id="btnFirewall" type="button">Liberar o celular no Wi-Fi</button>
-      <p class="discreto">O Windows vai abrir uma janela perguntando se pode. Clique em <strong>Sim</strong> — sem isso o celular continua sem conseguir mandar pedido.</p>
+      <p class="discreto">O Windows vai abrir uma janela perguntando se pode. Clique em <strong>Sim</strong>, sem isso o celular continua sem conseguir mandar pedido.</p>
     </div>
     <p class="resultado" id="firewallResultado" hidden></p>
 
@@ -255,7 +255,7 @@
 
 <p class="erro-bloco" id="blocoErro" hidden>
   Não deu para falar com a Ponte agora. Confira se ela ainda está aberta neste
-  computador — assim que ela voltar, esta tela se atualiza sozinha.
+  computador, assim que ela voltar, esta tela se atualiza sozinha.
 </p>
 
 <p class="erro-bloco" id="blocoParada" hidden>
@@ -408,7 +408,7 @@
     if (estabelecimento && estabelecimento.vinculado) {
       return "Vinculada a " + estabelecimento.nome;
     }
-    return "Aguardando — abra o sistema KORA neste computador e a ponte se vincula sozinha.";
+    return "Aguardando, abra o sistema KORA neste computador e a ponte se vincula sozinha.";
   }
 
   // Endereço fixado: a ponte só atende o site do estabelecimento que a
@@ -428,7 +428,7 @@
       return;
     }
     elOrigemTexto.hidden = false;
-    elOrigemTexto.textContent = "Esta ponte atende só o endereço " + origemPermitida + " — nenhum outro site deste computador fala com ela.";
+    elOrigemTexto.textContent = "Esta ponte atende só o endereço " + origemPermitida + ", nenhum outro site deste computador fala com ela.";
     elBtnLiberarOrigem.hidden = false;
     if (!liberandoOrigem) {
       elBtnLiberarOrigem.disabled = false;
@@ -452,7 +452,7 @@
       elInstalacaoDiscreta.hidden = false;
       elInstalacaoDiscreta.className = info.autoStart === false ? "aviso-instalacao" : "discreto";
       elInstalacaoDiscreta.textContent = info.autoStart === false
-        ? "Instalada, mas não abre sozinha com o Windows — vale reinstalar."
+        ? "Instalada, mas não abre sozinha com o Windows, vale reinstalar."
         : "Instalada e abre junto com o Windows.";
     } else {
       elBtnInstalar.hidden = false;
@@ -521,7 +521,7 @@
       pararRelogioFirewall();
       elFirewallResultado.hidden = false;
       elFirewallResultado.className = "resultado sucesso";
-      elFirewallResultado.textContent = "Liberado! Abra o endereço do celular no aparelho do garçom — agora ele chega até este computador.";
+      elFirewallResultado.textContent = "Liberado! Abra o endereço do celular no aparelho do garçom, agora ele chega até este computador.";
     }
 
     if (precisaLiberar && !liberandoFirewall && !conferindoFirewall) {
@@ -700,7 +700,7 @@
         elFirewallResultado.hidden = false;
         if (r && r.ok && r.liberado) {
           elFirewallResultado.className = "resultado sucesso";
-          elFirewallResultado.textContent = "Liberado! Abra o endereço do celular no aparelho do garçom — agora ele chega até este computador.";
+          elFirewallResultado.textContent = "Liberado! Abra o endereço do celular no aparelho do garçom, agora ele chega até este computador.";
         } else {
           elFirewallResultado.className = "resultado erro";
           elFirewallResultado.textContent = (r && r.erro) || "Não deu para liberar agora. Tente de novo.";
@@ -723,7 +723,7 @@
         liberandoFirewall = false;
         elFirewallResultado.hidden = false;
         elFirewallResultado.className = "resultado";
-        elFirewallResultado.textContent = "O Windows está demorando a responder — conferindo se a liberação passou.";
+        elFirewallResultado.textContent = "O Windows está demorando a responder, conferindo se a liberação passou.";
         elBtnFirewall.disabled = true;
         elBtnFirewall.textContent = "Conferindo…";
         pararRelogioFirewall();
