@@ -173,3 +173,37 @@ describe("PrivateRoute, negação de permissão manda para casa acessível (anti
     expect(screen.queryByText("Tela do Palm")).not.toBeInTheDocument();
   });
 });
+
+// L03 — aba nova aberta direto numa rota do app, com a sessão ainda em voo.
+//
+// A sessão local mora no `sessionStorage`, que é por aba: abrir `/app/pdv` numa
+// aba nova (link colado, favorito, janela restaurada) começa com `currentUser`
+// nulo enquanto o `getSession()` do Supabase está no ar. O redirecionamento
+// para o login não olhava `loading` (a checagem de assinatura logo abaixo já
+// olhava), então a pessoa com token válido era jogada para o login e voltava
+// sozinha ao destino segundos depois, piscando duas telas no caminho.
+describe("PrivateRoute, sessão ainda sendo restaurada (L03)", () => {
+  it("com a restauração em voo e sem usuário ainda, espera em vez de mandar ao login", () => {
+    renderRota({ currentUser: null, loading: true });
+
+    expect(screen.queryByText("Tela de login")).not.toBeInTheDocument();
+    expect(screen.queryByText("Conteúdo protegido")).not.toBeInTheDocument();
+    // Estado sempre visível (Princípio nº 1): a espera aparece, não é tela em
+    // branco.
+    expect(screen.getByRole("status")).toHaveTextContent(/carregando/i);
+  });
+
+  it("restauração terminada e sem sessão: vai para o login, como sempre foi", () => {
+    // Contrapeso: esperar para sempre transformaria "não está logado" em tela
+    // de carregamento eterna.
+    renderRota({ currentUser: null, loading: false });
+
+    expect(screen.getByText("Tela de login")).toBeInTheDocument();
+  });
+
+  it("sessão já restaurada durante um bootstrap ainda em voo: o conteúdo aparece, a espera não segura quem já entrou", () => {
+    renderRota({ loading: true });
+
+    expect(screen.getByText("Conteúdo protegido")).toBeInTheDocument();
+  });
+});

@@ -1,0 +1,31 @@
+/* Espera da rota protegida (decisão 018: estilo fora do JSX).
+   Tokens --gm-* para acompanhar o tema do estabelecimento quando ele já
+   estiver aplicado, e valores neutros do design system quando ainda não. */
+.carregando-sessao {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gm-bg);
+  color: var(--gm-muted);
+  font-family: var(--gm-font-texto);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+
+  /* Atraso de 200ms antes de aparecer: com a sessão em cache a restauração
+     termina antes e ninguém vê a tela de espera piscar. */
+  opacity: 0;
+  animation: carregando-sessao-surge 240ms ease-out 200ms forwards;
+}
+
+@keyframes carregando-sessao-surge {
+  to { opacity: 1; }
+}
+
+/* Quem pediu menos movimento no sistema recebe a tela direto, sem fade. */
+@media (prefers-reduced-motion: reduce) {
+  .carregando-sessao {
+    opacity: 1;
+    animation: none;
+  }
+}
