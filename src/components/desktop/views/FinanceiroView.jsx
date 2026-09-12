@@ -61,7 +61,11 @@ export default function FinanceiroView() {
   const carregar = useCallback(async () => {
     setLoading(true);
     setAviso("");
-    const { data, error } = await listarLancamentos({});
+    // O período vai na CONSULTA, não só no recorte em memória: pedindo a
+    // tabela inteira, ao passar do teto de linhas do PostgREST (1000 por
+    // padrão) os lançamentos mais antigos simplesmente paravam de chegar e o
+    // mês antigo aparecia zerado, sem nenhum aviso.
+    const { data, error } = await listarLancamentos({ de: periodo.de, ate: periodo.ate });
     if (error) {
       // Falha de leitura NÃO é "não tem lançamento": antes a tela caía no
       // estado vazio e o dono lia "Nenhum lançamento no período" com R$ 0,00
@@ -75,7 +79,7 @@ export default function FinanceiroView() {
     const comVencidosProcessados = await processarVencidos(data ?? []);
     setLancamentos(comVencidosProcessados);
     setLoading(false);
-  }, []);
+  }, [periodo.de, periodo.ate]);
 
   useEffect(() => { carregar(); }, [carregar]);
 

@@ -8,6 +8,10 @@
 // entrava como zero, o custo como zero, e as despesas pagas daquele mês
 // continuavam sendo subtraídas: prejuízo inventado, em vermelho, num mês que
 // pode ter sido o melhor do ano.
+//
+// R02: a tela pedia TODOS os lançamentos e recortava o período na memória.
+// Passando do teto de linhas do PostgREST (1000 por padrão), os mais antigos
+// paravam de chegar e o mês antigo aparecia zerado, sem aviso nenhum.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
@@ -61,6 +65,7 @@ function montar({ lancamentos = [], sales = [] } = {}) {
   return render(<FinanceiroView />);
 }
 
+const inputDe  = () => screen.getByLabelText("Data inicial do período");
 const inputAte = () => screen.getByLabelText("Data final do período");
 
 beforeEach(() => {
@@ -92,5 +97,34 @@ describe("FinanceiroView, lucro de período fora da janela de vendas carregada (
     // Antes aparecia "R$ -30.00" como lucro: só a despesa paga, sem nenhuma
     // receita para comparar. Hoje o único card com esse valor é o Saldo.
     expect(screen.queryAllByText("R$ -30.00")).toHaveLength(1);
+  });
+});
+
+describe("FinanceiroView, período vai na consulta de lançamentos (R02)", () => {
+  const filtrosDeCompetencia = () =>
+    mockSupabase.current.calls
+      .filter((c) => c.table === "lancamentos" && (c.method === "gte" || c.method === "lte"))
+      .map((c) => `${c.method}:${c.args[0]}:${c.args[1]}`);
+
+  it("a primeira carga já filtra pelo período na query, não na memória", async () => {
+    const { de, ate } = intervaloDoMes(new Date());
+    montar({ lancamentos: [despesaPaga(de)] });
+    await screen.findByText("Novo lançamento");
+
+    expect(filtrosDeCompetencia()).toEqual([
+      `gte:competencia:${de}`,
+      `lte:competencia:${ate}`,
+    ]);
+  });
+
+  it("mudar o período refaz a consulta com as novas datas", async () => {
+    montar({ lancamentos: [] });
+    await screen.findByText("Novo lançamento");
+    mockSupabase.current.calls.length = 0;
+
+    fireEvent.change(inputDe(), { target: { value: DIA_ANTIGO } });
+
+    expect(await screen.findByText("Novo lançamento")).toBeInTheDocument();
+    expect(filtrosDeCompetencia()).toContain(`gte:competencia:${DIA_ANTIGO}`);
   });
 });
