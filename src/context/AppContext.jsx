@@ -1064,6 +1064,16 @@ export function AppProvider({ children }) {
     });
 
     if (authError) {
+      // Servidor inalcançável (fetch que nem chegou a ter resposta, aparelho
+      // offline) NÃO é senha errada. Isso vinha para a tela como "usuário ou
+      // senha incorretos, N tentativa(s) restante(s)" e ainda gastava uma
+      // tentativa: no meio do serviço, com a internet do salão caída, o
+      // operador trocava a senha certa por chute e se bloqueava sozinho. Aqui
+      // nada é contado, nem no navegador nem no banco, e a mensagem fala do
+      // que realmente aconteceu.
+      if (isErroDeRede(authError)) {
+        return { error: "Não foi possível falar com o servidor. Confira a internet e tente de novo em alguns segundos." };
+      }
       // Quem conta é o servidor; o local só guarda o que ele respondeu, para os
       // pips da tela terem o número certo antes da próxima ida ao banco.
       const servidor = await registrarFalha(email);
