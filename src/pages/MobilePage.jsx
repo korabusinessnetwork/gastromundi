@@ -255,7 +255,7 @@ export default function MobilePage() {
       };
       const { error } = await addPending(order);
       if (error) throw error;
-      logAction("comanda:abrir", { comanda: nomeComanda, mesa });
+      logAction(currentUser?.username, "comanda:abrir", { comanda: nomeComanda, mesa, name: currentUser?.name, role: currentUser?.role });
     } else {
       // Preenche mesa/apelido só se ainda estiverem vazios na comanda — não
       // sobrescreve o que já foi definido antes (mesmo critério dos dois).
@@ -294,9 +294,11 @@ export default function MobilePage() {
       // da fila para sempre.
       if (error) throw error;
       addLancada(order.id);
-      logAction("itens:lancar", {
+      logAction(currentUser?.username, "itens:lancar", {
         comanda: nomeComanda,
         qtd: novos.length,
+        name: currentUser?.name,
+        role: currentUser?.role,
       });
       updatedOrder = {
         ...order,
