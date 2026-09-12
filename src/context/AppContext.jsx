@@ -2521,6 +2521,7 @@ export function AppProvider({ children }) {
         pendencias={pendenciasOffline}
         falhaEnvio={envioOfflineFalhou}
         semArmazenamento={semArmazenamentoOffline}
+        realtimeInstavel={realtimeInstavel}
         visivel={!!currentUser}
       />
       {/* O clique no botão já conta como atividade (o useIdleTimer escuta

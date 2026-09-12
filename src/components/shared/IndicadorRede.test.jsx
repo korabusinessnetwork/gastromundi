@@ -99,3 +99,37 @@ describe("IndicadorRede, o navegador que não guarda os pedidos", () => {
     expect(aviso.textContent).not.toMatch(/Enviando/);
   });
 });
+
+/**
+ * Canal de tempo real caído com a internet aparentando estar de pé.
+ *
+ * Quem opera não percebe isso sozinho: a tela simplesmente para de receber
+ * pedido do garçom, e um kanban parado é lido como "não chegou pedido novo",
+ * que é o pior jeito de perder um pedido. O sinal já existia no contexto e não
+ * tinha quem o mostrasse.
+ */
+describe("IndicadorRede, tempo real instável", () => {
+  it("online e sem pendência, avisa que os pedidos podem estar atrasando", () => {
+    render(<IndicadorRede online pendencias={0} realtimeInstavel />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(/pedidos podem estar atrasando na tela, reconectando/i);
+  });
+
+  it("com pendência, diz que está reconectando e quantos esperam", () => {
+    render(<IndicadorRede online pendencias={2} realtimeInstavel />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Reconectando, 2 pedidos guardados esperando");
+  });
+
+  it("fila parada por falta de servidor continua vindo antes, porque é dinheiro não registrado", () => {
+    render(<IndicadorRede online pendencias={1} falhaEnvio realtimeInstavel />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(/sem conexão com o servidor/i);
+  });
+
+  it("sem instabilidade e sem pendência, o badge continua sumindo da tela", () => {
+    render(<IndicadorRede online pendencias={0} />);
+
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+});

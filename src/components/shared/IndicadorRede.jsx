@@ -10,9 +10,10 @@ export default function IndicadorRede({
   visivel = true,
   falhaEnvio = false,
   semArmazenamento = false,
+  realtimeInstavel = false,
 }) {
   if (!visivel) return null;
-  if (online && pendencias === 0 && !semArmazenamento) return null;
+  if (online && pendencias === 0 && !semArmazenamento && !realtimeInstavel) return null;
 
   const guardados = `${pendencias} ${pendencias === 1 ? "pedido guardado" : "pedidos guardados"}`;
 
@@ -50,6 +51,12 @@ export default function IndicadorRede({
   // servidor fora do ar). Antes a tela dizia "Enviando..." para sempre nessa
   // situação, afirmando estar fazendo o que não estava. Quem opera precisa
   // saber que a fila está PARADA, e que alguém vai tentar de novo sozinho.
+  // `realtimeInstavel` é o canal de tempo real que caiu com a internet aparentando
+  // estar de pé. Quem opera não tem como perceber isso sozinho: a tela
+  // simplesmente para de receber pedido do garçom, e um kanban parado é lido
+  // como "não chegou pedido novo", que é o pior jeito de perder um pedido. Vem
+  // depois da fila na ordem de importância, porque pedido guardado que não subiu
+  // é dinheiro ainda não registrado, e vem antes do estado de sincronia normal.
   let texto;
   let variante;
   if (!online) {
@@ -59,6 +66,12 @@ export default function IndicadorRede({
     variante = "indicador-rede--offline";
   } else if (falhaEnvio) {
     texto = `Sem conexão com o servidor, ${guardados} esperando, tentando de novo sozinho`;
+    variante = "indicador-rede--falha";
+  } else if (realtimeInstavel && pendencias === 0) {
+    texto = "Os pedidos podem estar atrasando na tela, reconectando";
+    variante = "indicador-rede--falha";
+  } else if (realtimeInstavel) {
+    texto = `Reconectando, ${guardados} esperando`;
     variante = "indicador-rede--falha";
   } else {
     texto = `Enviando ${guardados}...`;
