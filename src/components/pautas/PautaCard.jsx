@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LuPencil, LuChevronDown, LuChevronUp } from "react-icons/lu";
+import { LuPencil, LuChevronDown, LuChevronUp, LuTriangleAlert } from "react-icons/lu";
 import {
   STATUS_EM_ORDEM,
   STATUS_PAUTA,
@@ -52,6 +52,7 @@ function dataInteira(iso) {
 export default function PautaCard({ pauta, pessoas = [], onMudarStatus, onEditar }) {
   const [aberto,  setAberto]  = useState(false);
   const [mudando, setMudando] = useState(false);
+  const [erro,    setErro]    = useState("");
 
   const envolvidos = Array.isArray(pauta.envolvidos) ? pauta.envolvidos : [];
   const nomes = nomesDosEnvolvidos(envolvidos, pessoas);
@@ -69,8 +70,14 @@ export default function PautaCard({ pauta, pessoas = [], onMudarStatus, onEditar
   const mudarPara = async (status) => {
     if (mudando || status === pauta.status) return;
     setMudando(true);
-    await onMudarStatus?.(pauta.id, status);
+    setErro("");
+    // O retorno do contexto traz { error } e era descartado aqui: falhando a
+    // escrita, o botão voltava ao normal, o card não saía da coluna e nada era
+    // dito, então o sócio achava que o clique não pegou e clicava de novo. A
+    // frase é a mesma do formulário desta tela (PautaForm).
+    const resultado = await onMudarStatus?.(pauta.id, status);
     setMudando(false);
+    if (resultado?.error) setErro("Não conseguimos salvar. Tente de novo.");
   };
 
   return (
@@ -145,6 +152,12 @@ export default function PautaCard({ pauta, pessoas = [], onMudarStatus, onEditar
           })}
         </div>
       </div>
+
+      {erro && (
+        <p className="pauta-card__erro" role="alert">
+          <LuTriangleAlert size={13} aria-hidden /> {erro}
+        </p>
+      )}
     </article>
   );
 }
