@@ -32,7 +32,7 @@ import { drenarFila } from "@/lib/offline/fila";
 // real) e pela tela de notas emitidas, que conta as pendências fiscais
 // guardadas nela. O banco responde depois do primeiro render, por isso o
 // contador reassina em `assinarFilaOffline`.
-import { filaOffline, contarPendenciasFiscais, assinarFilaOffline } from "@/lib/offline/filaApp";
+import { filaOffline, contarPendenciasFiscais, assinarFilaOffline, prontoOffline } from "@/lib/offline/filaApp";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 // Intervalo entre tentativas de esvaziar a fila offline.
 //
@@ -155,6 +155,12 @@ export function AppProvider({ children }) {
   // dizendo online e o servidor fora de alcance, o operador precisa ler que a
   // fila está PARADA, não que ela está saindo.
   const [envioOfflineFalhou, setEnvioOfflineFalhou] = useState(false);
+  // O banco local não abriu (aba anônima, dados de site bloqueados, outra aba
+  // segurando uma versão antiga do banco). A fila continua funcionando, mas só
+  // na memória desta aba: fechar o navegador apaga venda que já saiu para o
+  // cliente. O sinal existia desde a fatia 2 do F021 e ninguém o lia, então a
+  // tela seguia prometendo "pedidos guardados" sem ter onde guardar.
+  const [semArmazenamentoOffline, setSemArmazenamentoOffline] = useState(false);
   const drenandoRef = useRef(false);
   // Notas fiscais que ficaram na fila: a venda saiu, a nota não. Fica visível
   // para o admin/contador em "Notas emitidas" — pendência fiscal não pode
@@ -168,6 +174,15 @@ export function AppProvider({ children }) {
   // render: o `useState` acima leu o espelho ainda vazio. Quando a hidratação
   // traz o que ficou da sessão anterior, o número chega por aqui.
   useEffect(() => assinarFilaOffline(() => setPendenciasOffline(filaOffline.tamanho())), []);
+  // A hidratação do banco local diz se há banco. `prontoOffline` nunca rejeita
+  // (ver `storageIdb.js`): ambiente sem IndexedDB resolve com `{ idb: false }`.
+  useEffect(() => {
+    let vivo = true;
+    void Promise.resolve(prontoOffline).then((resultado) => {
+      if (vivo && resultado?.idb === false) setSemArmazenamentoOffline(true);
+    });
+    return () => { vivo = false; };
+  }, []);
   // Leva 13 — endereço da página do Palm servida pela Ponte KORA
   // (http://IP:porta/palm?t=token). Persistido em config para o Palm
   // saber para onde ir quando a internet cair.
@@ -2192,6 +2207,7 @@ export function AppProvider({ children }) {
         online={redeOnline}
         pendencias={pendenciasOffline}
         falhaEnvio={envioOfflineFalhou}
+        semArmazenamento={semArmazenamentoOffline}
         visivel={!!currentUser}
       />
       {/* O clique no botão já conta como atividade (o useIdleTimer escuta

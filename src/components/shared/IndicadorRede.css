@@ -29,6 +29,25 @@
   background: #1d4ed8;
 }
 
+/* Pendência viva num navegador que não guarda nada: o mais grave que este badge
+   diz, porque fechar a aba apaga venda. Vermelho para não passar por aviso de
+   rotina. */
+.indicador-rede--alerta {
+  background: #b91c1c;
+}
+
+/* Nada em risco ainda, só a informação de que este navegador não guarda os
+   pedidos: cinza e sem pulso, para não competir com o estado da operação. */
+.indicador-rede--aviso {
+  background: #475569;
+  font-weight: 500;
+}
+
+.indicador-rede--aviso .indicador-rede__ponto {
+  animation: none;
+  opacity: 0.65;
+}
+
 .indicador-rede__ponto {
   width: 9px;
   height: 9px;

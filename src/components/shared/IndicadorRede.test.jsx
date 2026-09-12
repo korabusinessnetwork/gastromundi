@@ -51,3 +51,51 @@ describe("IndicadorRede, o texto dos dois desfechos do envio", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 });
+
+// O banco local que não abriu (aba anônima, dados de site bloqueados, outra aba
+// segurando uma versão antiga). A fila continua funcionando, mas só na memória
+// desta aba: fechar o navegador apaga pedido que já saiu para o cliente. O
+// indicador prometia "pedidos guardados" sem ter onde guardar.
+describe("IndicadorRede, o navegador que não guarda os pedidos", () => {
+  it("com pendência, diz claramente que fechar o navegador perde os pedidos", () => {
+    render(<IndicadorRede online pendencias={2} semArmazenamento />);
+
+    const aviso = screen.getByRole("status");
+    expect(aviso).toHaveTextContent("2 pedidos guardados só nesta aba");
+    expect(aviso).toHaveTextContent("fechar o navegador perde esses pedidos");
+    expect(aviso.className).toContain("indicador-rede--alerta");
+  });
+
+  it("com um pedido só, a frase fica no singular", () => {
+    render(<IndicadorRede online pendencias={1} semArmazenamento />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "1 pedido guardado só nesta aba, fechar o navegador perde esse pedido",
+    );
+  });
+
+  it("sem pendência o aviso aparece discreto, e não desaparece", () => {
+    render(<IndicadorRede online pendencias={0} semArmazenamento />);
+
+    const aviso = screen.getByRole("status");
+    expect(aviso).toHaveTextContent("Este navegador não está guardando os pedidos");
+    expect(aviso.className).toContain("indicador-rede--aviso");
+    expect(aviso.className).not.toContain("indicador-rede--alerta");
+  });
+
+  it("sem internet e sem banco, o texto diz as duas coisas", () => {
+    render(<IndicadorRede online={false} pendencias={0} semArmazenamento />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Sem internet, e os pedidos ficam só nesta aba, evite fechar o navegador",
+    );
+  });
+
+  it("a pendência em risco vem na frente do aviso de envio parado", () => {
+    render(<IndicadorRede online pendencias={3} semArmazenamento falhaEnvio />);
+
+    const aviso = screen.getByRole("status");
+    expect(aviso).toHaveTextContent("3 pedidos guardados só nesta aba");
+    expect(aviso.textContent).not.toMatch(/Enviando/);
+  });
+});
