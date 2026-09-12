@@ -173,3 +173,9 @@ dentro dela ainda perde a última op. Está registrado como pendência residual 
 - **Decisão:** os merges de trilhas com arquivos disjuntos são acumulados, e a verificação completa roda quando a leva chega, mais uma vez no fechamento da rodada.
 - **Por quê:** os conjuntos de arquivos foram desenhados sem interseção, cada trilha já rodou a suíte inteira verde na worktree dela, e uma falha depois do merge se isola por trilha em um comando. O ganho é não gastar meia hora de relógio em verificações que testam a mesma coisa.
 - **Como reverter:** rodar `npm test` entre cada merge, quando não houver frentes concorrendo por CPU.
+
+## D-R05 A recarga automática continua mostrando "Conectando ao caixa"
+- **Contexto:** toda recarga automática (volta de rede, volta do sono, canal de tempo real ruim) passa pelo `bootstrap`, que liga o `loading`, então a tela pisca "Conectando ao caixa" por um instante. A alternativa era um modo silencioso, que troca o conteúdo só quando o dado chega.
+- **Decisão:** fica como está, confirmado pelo dono em 12/09/2026.
+- **Por quê:** mostra que o sistema está buscando o que perdeu, em vez de fingir estar em dia, e é o mesmo comportamento do botão "Recarregar a tela", que a equipe já conhece.
+- **Como reverter:** fazer o `bootstrap` aceitar um modo que não mexe no `loading`, e usá-lo nos três caminhos automáticos.
