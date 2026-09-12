@@ -36,6 +36,7 @@ import ClienteComandaModal from "./ClienteComandaModal";
 import MesaMapView   from "./MesaMapView";
 import MesaReservasView from "./MesaReservasView";
 import ModalCupomNfce from "@/components/fiscal/ModalCupomNfce";
+import { inicioSessao } from "@/components/modals/FechamentoModal";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -44,7 +45,7 @@ export default function PDVView({ notify }) {
   const {
     pending, products, estoque, estoqueMinimos,
     addPending, updatePending, removePending,
-    caixaAberto, currentUser, sales, users, metodosCustom,
+    caixaAberto, currentUser, sales, users, metodosCustom, sessaoAbertaEm,
     lancadas, addLancada, diasAlertaValidade,
     loading: bootstrapLoading,
   } = useApp();
@@ -1900,6 +1901,7 @@ export default function PDVView({ notify }) {
           sales={sales}
           pending={pending}
           metodosCustom={metodosCustom}
+          sessaoAbertaEm={sessaoAbertaEm}
         />,
         document.body
       )}
@@ -1909,11 +1911,18 @@ export default function PDVView({ notify }) {
 }
 
 // ── Modal de Saldo do Dia ─────────────────────────────────────────
-function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending, metodosCustom }) {
+function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending, metodosCustom, sessaoAbertaEm }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const isNarrow = width < 540;
-  const hoje = new Date().toDateString();
+  // O corte do Saldo do Dia é a abertura do caixa, o mesmo critério do
+  // fechamento (`inicioSessao`) e da lista de vendas fechadas. Com o dia do
+  // calendário, um bar que abriu às 18h via a noite inteira desaparecer daqui
+  // à 00h10, enquanto o fechamento, às 4h, mostrava o total certo: dois
+  // números para o mesmo dinheiro, e este é o que o gerente consulta antes de
+  // confiar no caixa. Sem sessão aberta, ou com valor ilegível na config, cai
+  // no início do dia local.
+  const inicio = inicioSessao(sessaoAbertaEm);
   const [logsComandaCancelada, setLogsComandaCancelada] = useState([]);
   const [logsCarregando, setLogsCarregando] = useState(false);
   const [logsErro, setLogsErro] = useState(false);
@@ -1952,7 +1961,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   }, [autorizado]);
 
   // Leva 15.3 — vendas canceladas não contam no saldo do dia
-  const vendasHoje = (sales ?? []).filter(s => s.at && !s.cancelada && new Date(s.at).toDateString() === hoje);
+  const vendasHoje = (sales ?? []).filter(s => s.at && !s.cancelada && new Date(s.at).getTime() >= inicio);
   const totalVendas = vendasHoje.reduce((s, v) => s + (v.total ?? 0), 0);
   const qtdVendas   = vendasHoje.length;
 

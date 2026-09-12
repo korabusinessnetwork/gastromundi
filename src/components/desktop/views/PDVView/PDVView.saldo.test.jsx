@@ -86,3 +86,62 @@ describe("PDVView, Saldo do Dia e os logs de comanda cancelada", () => {
     expect(screen.queryByText(/Carregando comandas canceladas/)).toBeNull();
   });
 });
+
+/**
+ * O corte do Saldo do Dia: a abertura do caixa, não o dia do calendário.
+ *
+ * O PDV fica aberto 24 horas e atravessa a meia-noite sem recarregar, e a
+ * madrugada pertence ao movimento da noite anterior. Com `toDateString()`, num
+ * bar que abriu às 18h, à 00h10 o Saldo do Dia descartava a noite inteira
+ * ("1 venda hoje", total quase zerado) enquanto o fechamento, às 4h, mostrava
+ * o total certo.
+ */
+describe("PDVView, Saldo do Dia corta pela abertura do caixa", () => {
+  // 00h30 de 16/07 no fuso da suíte (America/Sao_Paulo, UTC-3).
+  const MADRUGADA   = new Date("2026-07-16T03:30:00.000Z");
+  // Caixa aberto às 18h de 15/07, venda fechada às 22h da mesma noite.
+  const ABERTURA_18H = "2026-07-15T21:00:00.000Z";
+  const VENDA_22H    = "2026-07-16T01:00:00.000Z";
+
+  it("venda das 22h ainda conta às 00h30 da madrugada seguinte", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.setSystemTime(MADRUGADA);
+      setAppMock({
+        caixaAberto: true,
+        pending: [],
+        sessaoAbertaEm: ABERTURA_18H,
+        sales: [{ id: "v1", at: VENDA_22H, total: 120, pagamentos: [{ metodo: "dinheiro", valor: 120 }] }],
+      });
+
+      await abrirSaldoAutorizado();
+
+      const kpi = screen.getByText("Vendas Finalizadas").parentElement.textContent;
+      expect(kpi).toMatch(/R\$ 120\.00/);
+      expect(kpi).toMatch(/1 comanda/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sem caixa aberto, o corte volta a ser o início do dia local", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.setSystemTime(MADRUGADA);
+      setAppMock({
+        caixaAberto: true,
+        pending: [],
+        sessaoAbertaEm: null,
+        sales: [{ id: "v1", at: VENDA_22H, total: 120, pagamentos: [{ metodo: "dinheiro", valor: 120 }] }],
+      });
+
+      await abrirSaldoAutorizado();
+
+      const kpi = screen.getByText("Vendas Finalizadas").parentElement.textContent;
+      expect(kpi).toMatch(/R\$ 0\.00/);
+      expect(kpi).toMatch(/0 comandas/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
