@@ -209,6 +209,106 @@ describe("AdminView, contador do card Impostos", () => {
   });
 });
 
+/**
+ * Busca, recorte e corte da lista de compras (Refino G05).
+ *
+ * A tabela renderizava `compras.map(...)` inteira, sempre: sem busca por
+ * fornecedor, sem recorte por situação e sem corte de renderização. Compra é
+ * registro que só cresce, e a pergunta do dia ("o que está pendente com o
+ * fornecedor X") não tinha resposta na tela.
+ */
+describe("AdminView, aba Compras com busca e recorte", () => {
+  /** Gera `n` compras alternando fornecedor e situação. */
+  const gerarCompras = (n) => Array.from({ length: n }, (_, i) => ({
+    id: `c${i}`,
+    fornecedor: i % 2 === 0 ? "Distribuidora Sul" : "Atacadão Norte",
+    data: "2026-07-15",
+    itens: [],
+    total: 10,
+    status: i % 3 === 0 ? "pago" : "pendente",
+    observacoes: "",
+  }));
+
+  /** Carrega o config com essas compras e abre a aba. */
+  async function abrirCompras(user, compras) {
+    mockSupabase.current.setTableHandler("config", ({ method }) => {
+      if (method === "select") return { data: [{ key: "compras", value: compras }], error: null };
+      return undefined;
+    });
+    renderWithProviders(<AdminView />);
+    await user.click(await screen.findByText("Compras"));
+    return screen.findByRole("button", { name: /registrar compra/i });
+  }
+
+  const linhasFornecedor = (nome) => screen.queryAllByRole("cell", { name: nome });
+
+  it("a busca por fornecedor deixa na tela só as compras dele", async () => {
+    const user = userEvent.setup();
+    await abrirCompras(user, gerarCompras(6));
+    expect(linhasFornecedor("Atacadão Norte")).toHaveLength(3);
+
+    await user.type(screen.getByRole("searchbox"), "atacadao");
+
+    expect(linhasFornecedor("Atacadão Norte")).toHaveLength(3);
+    expect(linhasFornecedor("Distribuidora Sul")).toHaveLength(0);
+  });
+
+  it("cada atalho de situação traz a contagem da base inteira e filtra ao clicar", async () => {
+    const user = userEvent.setup();
+    await abrirCompras(user, gerarCompras(6));
+
+    const pendentes = screen.getByRole("button", { name: /pendentes/i });
+    expect(pendentes).toHaveTextContent("4");
+    expect(screen.getByRole("button", { name: /pagas/i })).toHaveTextContent("2");
+    expect(screen.getByRole("button", { name: /canceladas/i })).toHaveTextContent("0");
+
+    await user.click(pendentes);
+
+    expect(pendentes).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getAllByRole("row")).toHaveLength(5); // cabeçalho + 4 pendentes
+  });
+
+  it("lista longa é cortada em blocos, com a conta do que ficou de fora", async () => {
+    const user = userEvent.setup();
+    await abrirCompras(user, gerarCompras(47));
+
+    expect(screen.getAllByRole("row")).toHaveLength(21); // cabeçalho + 20
+    expect(screen.getByText(/Mostrando 20 de 47 compras/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /ver mais 20 compras/i }));
+
+    expect(screen.getAllByRole("row")).toHaveLength(41);
+    expect(screen.getByText(/Mostrando 40 de 47 compras/)).toBeInTheDocument();
+  });
+
+  it("filtro que não acha nada explica o recorte e oferece ver todas", async () => {
+    const user = userEvent.setup();
+    await abrirCompras(user, gerarCompras(6));
+
+    await user.type(screen.getByRole("searchbox"), "padaria");
+
+    expect(screen.getByText(/Nenhuma compra de “padaria”/)).toBeInTheDocument();
+    expect(screen.queryAllByRole("row")).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: /ver todas/i }));
+
+    expect(screen.getAllByRole("row")).toHaveLength(7);
+  });
+
+  it("trocar de recorte volta para o primeiro bloco", async () => {
+    const user = userEvent.setup();
+    await abrirCompras(user, gerarCompras(47));
+    await user.click(screen.getByRole("button", { name: /ver mais 20 compras/i }));
+    expect(screen.getAllByRole("row")).toHaveLength(41);
+
+    await user.click(screen.getByRole("button", { name: /pagas/i }));
+
+    // 16 pagas de 47: cabem num bloco só, então nem rodapé de "ver mais" sobra.
+    expect(screen.getAllByRole("row")).toHaveLength(17);
+    expect(screen.queryByText(/Mostrando/)).not.toBeInTheDocument();
+  });
+});
+
 describe("AdminView, registrar compra", () => {
   it("compra aberta às 21h30 nasce com a data de hoje, não a de amanhã", async () => {
     const user = userEvent.setup();

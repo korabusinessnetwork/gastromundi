@@ -824,10 +824,37 @@ function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
 const COMPRA_VAZIA = { id: "", fornecedor: "", data: "", itens: [], status: "pendente", observacoes: "" };
 const ITEM_VAZIO   = { nome: "", qtd: "", unidade: "un", valorUnit: "" };
 
+// Compra é registro que só cresce: depois de um ano a lista inteira na tela
+// vira rolagem cega. Mostramos um bloco por vez, com a conta do que ficou de
+// fora logo acima do botão de ver mais.
+const BLOCO_COMPRAS = 20;
+
+// "Todas" primeiro porque é o estado em que a aba abre; depois a situação que
+// o dono procura todo dia ("o que ainda devo"), e por último o arquivo morto.
+const FILTROS_COMPRA = ["todos", "pendente", "pago", "cancelado"];
+
+const ROTULOS_FILTRO_COMPRA = {
+  todos:     "Todas",
+  pendente:  "Pendentes",
+  pago:      "Pagas",
+  cancelado: "Canceladas",
+};
+
+/** Texto comparável: sem caixa, sem acento e sem espaço sobrando, para que
+ *  "sao" ache "São Paulo Distribuidora". */
+const paraBusca = (texto) => String(texto ?? "")
+  .trim()
+  .toLowerCase()
+  .normalize("NFD")
+  .replace(/[̀-ͯ]/g, "");
+
 function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
   const [form,     setForm]     = useState(null);
   const [saving,   setSaving]   = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [busca,    setBusca]    = useState("");
+  const [situacao, setSituacao] = useState("todos");
+  const [quantidade, setQuantidade] = useState(BLOCO_COMPRAS);
 
   const abrirNova   = () => setForm({ ...COMPRA_VAZIA, id: uid(), data: hojeLocalISO() });
   const abrirEditar = (c) => setForm({ ...c, itens: comUid(c.itens ?? []) });
@@ -863,6 +890,38 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
 
   const fns = fornecedores.map(f => f.nome);
 
+  // Contagem por situação sobre a base INTEIRA, não sobre o que está na tela:
+  // o número no botão é o que faz clicar deixar de ser aposta.
+  const contagens = useMemo(() => {
+    const base = { todos: compras.length, pendente: 0, pago: 0, cancelado: 0 };
+    for (const c of compras) {
+      const st = STATUS_COMPRA[c.status] ? c.status : "pendente";
+      base[st] += 1;
+    }
+    return base;
+  }, [compras]);
+
+  // A lista já está toda no cliente (vem da chave `compras` do config), então
+  // buscar e recortar é instantâneo, sem consulta nova. Filtrar não reordena.
+  const comprasVisiveis = useMemo(() => {
+    const termo = paraBusca(busca);
+    return compras.filter(c => {
+      const st = STATUS_COMPRA[c.status] ? c.status : "pendente";
+      if (situacao !== "todos" && st !== situacao) return false;
+      return !termo || paraBusca(c.fornecedor).includes(termo);
+    });
+  }, [compras, busca, situacao]);
+
+  // Voltar ao primeiro bloco a cada recorte novo: continuar em "60 de 60"
+  // depois de filtrar mostraria uma lista vazia sem motivo aparente.
+  useEffect(() => { setQuantidade(BLOCO_COMPRAS); }, [busca, situacao]);
+
+  const comprasNaTela = comprasVisiveis.slice(0, quantidade);
+  const restantes     = comprasVisiveis.length - comprasNaTela.length;
+  const temRecorte    = situacao !== "todos" || busca.trim() !== "";
+
+  const limparRecortes = () => { setBusca(""); setSituacao("todos"); };
+
   return (
     <div>
       <div className="admin__aba-header">
@@ -870,8 +929,62 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
         <AddBtn onClick={abrirNova} label="Registrar Compra" />
       </div>
 
+      {compras.length > 0 && (
+        <>
+          {/* Buscar pelo fornecedor: a pergunta do dia é "o que está pendente
+              com o fornecedor X", e ela não tinha resposta nesta tela. Filtra
+              enquanto digita, sem botão de buscar, nada a confirmar. */}
+          <div className="compras-tab__busca">
+            <LuSearch size={17} aria-hidden className="compras-tab__busca-icone" />
+            <input
+              type="search"
+              className="compras-tab__busca-campo"
+              placeholder="Buscar pelo fornecedor"
+              aria-label="Buscar compra pelo fornecedor"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+            />
+          </div>
+
+          {/* Atalhos de situação, cada um com a sua contagem sobre a base
+              inteira. */}
+          <div className="compras-tab__filtros" role="group" aria-label="Filtrar por situação da compra">
+            {FILTROS_COMPRA.map(f => (
+              <button
+                key={f}
+                type="button"
+                className="compras-tab__filtro"
+                aria-pressed={situacao === f}
+                onClick={() => setSituacao(f)}
+              >
+                {ROTULOS_FILTRO_COMPRA[f]}
+                <span className="compras-tab__filtro-conta">{contagens[f]}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
       {compras.length === 0 ? (
         <EmptyMsg icon={LuShoppingCart} msg="Nenhuma compra registrada" />
+      ) : comprasVisiveis.length === 0 ? (
+        // Vazio do RECORTE, diferente do vazio da base: aqui existem compras,
+        // só nenhuma com esse fornecedor ou nessa situação. Sem esta saída o
+        // dono acha que perdeu registro.
+        <div className="compras-tab__vazio-filtro">
+          <LuSearch size={30} aria-hidden />
+          <div className="compras-tab__vazio-titulo">
+            {busca.trim()
+              ? `Nenhuma compra de “${busca.trim()}”${situacao !== "todos" ? ` em “${ROTULOS_FILTRO_COMPRA[situacao]}”` : ""}`
+              : `Nenhuma compra em “${ROTULOS_FILTRO_COMPRA[situacao]}”`}
+          </div>
+          <div className="compras-tab__vazio-texto">
+            A lista está filtrada. Confira o nome do fornecedor ou veja todas as compras.
+          </div>
+          <button type="button" className="admin__add-btn" onClick={limparRecortes}>
+            Ver todas
+          </button>
+        </div>
       ) : (
         <div className="admin__tabela-moldura">
           <table className="admin__tabela">
@@ -884,7 +997,7 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
               </tr>
             </thead>
             <tbody>
-              {compras.map(c => {
+              {comprasNaTela.map(c => {
                 const st = STATUS_COMPRA[c.status] ?? STATUS_COMPRA.pendente;
                 return (
                   <tr key={c.id} className="admin__tr" onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
@@ -908,6 +1021,24 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
               })}
             </tbody>
           </table>
+          {/* Primeiro a conta ("está vendo 20 de 47"), depois a ação: sem essa
+              linha, uma lista cortada é indistinguível de uma base menor. */}
+          {restantes > 0 && (
+            <div className="compras-tab__mais">
+              <p className="compras-tab__mais-conta">
+                Mostrando {comprasNaTela.length} de {comprasVisiveis.length} compras
+                {temRecorte ? " nesta filtragem." : "."}
+              </p>
+              <button
+                type="button"
+                className="compras-tab__mais-botao"
+                onClick={() => setQuantidade(q => q + BLOCO_COMPRAS)}
+              >
+                Ver mais {Math.min(restantes, BLOCO_COMPRAS)}
+                {Math.min(restantes, BLOCO_COMPRAS) === 1 ? " compra" : " compras"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
