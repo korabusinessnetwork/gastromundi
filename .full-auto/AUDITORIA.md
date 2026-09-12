@@ -342,3 +342,44 @@ telas de impressão, o fluxo de envio da Ponte, todos os hooks quanto a vazament
 de ouvinte ou temporizador, os utilitários de sessão, data, conversão e
 pagamento, os cabeçalhos de cache do PWA e a recuperação de deploy, a fronteira
 de dados das Pautas, e o protótipo do apex.
+
+## Frente V2, banco, RLS, Edge Functions e libs de regra
+
+A camada de dados está bem mais endurecida do que o resto: RLS ligada nas 52
+tabelas, `search_path` fixo em toda função `SECURITY DEFINER` (com guard na
+suíte), policies de tenant `RESTRICTIVE` no padrão do ADR-008, as 9 Edge
+Functions revalidando papel e coluna `active`, e o `schema.sql` batendo com as
+migrations. A tentativa de escalada mais óbvia (um admin promover funcionário a
+`plataforma` para virar super-admin) está fechada por constraint mais `WITH
+CHECK`. O que segue é o que sobrou.
+
+- [x] V203 | eixo: qualidade | explorável: sim | onde: supabase/functions/jarvas-assistente/index.ts:148
+      hoje: o Jarvas chamava a API paga sem teto e sem contador, e custa mais por chamada que a leitura de cardápio porque manda todo o contexto do negócio no system prompt. A tabela `ia_uso` e a RPC `registrar_uso_ia` existem desde a migration 20260817 e já eram usadas pela função irmã.
+      feito: teto diário por estabelecimento no mesmo desenho da irmã, com fail-open, e a recusa chegando ao operador com a dica junto. Sem migration. Precisa de deploy da função.
+      valor: 4 | esforço: 1 | risco: 1 | score: 5
+- [ ] V201 | eixo: dados | explorável: sim | onde: lib/assinatura.js:60 com migration 20260719_assinaturas.sql:84
+      hoje: o status da assinatura é calculado em dois lugares com fuso diferente. O JS lê o dia pelo calendário local do navegador, o SQL lê por `current_date`, que no Supabase é UTC. No Brasil, entre 21h e meia-noite, o banco já está no dia seguinte. No último dia de carência, a partir das 21h, `assinatura_atual_ativa()` passa a devolver falso e as policies RESTRICTIVE fecham até o SELECT de produtos, comandas, mesas e vendas: o PDV fica vazio no meio do movimento enquanto a tela continua dizendo que está tudo em dia, e ninguém liga uma coisa à outra.
+      depois: DECISÃO SUA, e é por isso que não executei. Alinhar o JS ao UTC são duas linhas e nenhuma migration, mas contraria uma decisão sua que já está escrita e testada (`assinatura.test.js` tem o caso "um instante em UTC é lido no calendário local de quem opera", e a suíte fixa o fuso em São Paulo de propósito). O conserto de fundo é o banco decidir pelo fuso do estabelecimento, como a `20260903` já fez para o horário do delivery, e isso exige migration. Tentei a primeira via, vi que derrubava 7 testes que codificam a sua decisão, e revertei.
+      evidência: `assinatura.js:60` usa getters locais; `20260719:84` usa `current_date`; o comentário em `assinatura.js:68` afirma espelhar a função do banco, e é isso que deixa de ser verdade três horas por dia.
+      valor: 5 | esforço: 1 | risco: 2 | score: 5
+- [ ] V202 | eixo: segurança | explorável: sim | onde: migration 20260921_delivery_rate_limit_sem_telefone.sql:96
+      hoje: o freio do delivery público tem dois baldes, 5 pedidos sem telefone por tenant em 2 minutos e 3 pedidos do mesmo telefone em 2 minutos, e a RPC grava o telefone cru sem validar. Um script que mande um número aleatório a cada requisição cai sempre no ramo "com telefone", nunca chega a 3 para o mesmo número, e cria pedidos sem limite. A tela da Cozinha fica inutilizável no meio do serviço.
+      depois: teto geral por tenant no mesmo trigger, como a `20260925_leads_apex` já faz. EXIGE MIGRATION, decisão sua.
+      valor: 4 | esforço: 2 | risco: 2 | score: 2
+- [ ] V204 | eixo: segurança | explorável: depende de configuração no painel | onde: migration 20260919_pautas.sql:156
+      hoje: `eh_socio_pautas()` decide quem é sócio olhando só o domínio do e-mail no JWT (`LIKE '%@pautas.local'`). Se o cadastro público por e-mail e senha estiver habilitado no painel do Supabase, qualquer pessoa com a chave anon se cadastra com esse domínio e vira sócio, lendo e escrevendo as pautas internas da Kora. A tabela `pautas_pessoas`, que lista os três sócios reais, existe logo acima e não participa da checagem. A confirmação de e-mail, se estiver ligada, fecha o caminho, porque `@pautas.local` não recebe correio.
+      depois: duas coisas independentes. Você conferir no painel se o signup público está desabilitado, custo zero. E a função passar a exigir que o sócio exista em `pautas_pessoas`, o que EXIGE MIGRATION.
+      valor: 3 | esforço: 2 | risco: 2 | score: 2
+- [ ] V205 | eixo: dados | explorável: não | onde: AppContext.jsx:344 e os índices de `vendas`
+      hoje: `vendas` tem índices separados de `tenant_id` e de `at`, e nenhum composto, mas a consulta mais quente do app (bootstrap de toda sessão) filtra 90 dias por `at` e ordena por `at DESC` sob policy que filtra `tenant_id`. Com um estabelecimento é irrelevante; com vários na mesma tabela, o banco percorre os 90 dias de todos para devolver os de um. Mesmo desenho em `lancamentos` e `operator_logs`. `delivery_pedidos` e `caixa_movimentos` já nasceram com o composto certo, então o padrão existe no projeto.
+      depois: índice composto nas três. EXIGE MIGRATION, e é a conta que chega junto com o cliente número dez, não otimização prematura.
+      valor: 3 | esforço: 2 | risco: 2 | score: 0
+- [ ] V206 | eixo: segurança | explorável: sim, impacto pequeno | onde: migration 20260822_complementos_subgrupos.sql:82
+      hoje: quatro funções `SECURITY DEFINER` nunca receberam `REVOKE EXECUTE FROM PUBLIC`, e no Postgres isso concede execução a todos por padrão: a role `anon` alcança as quatro com a chave pública. Duas expõem o que a vitrine já publica de graça; as outras duas respondem se a assinatura de um tenant está em dia e quais módulos o plano inclui, exigindo o UUID do tenant, que nenhuma superfície anônima publica. É a única exceção que sobrou ao padrão que todo o resto do projeto segue.
+      depois: `REVOKE` mais `GRANT TO authenticated` nas quatro. EXIGE MIGRATION, ainda que de quatro pares de linhas.
+      valor: 2 | esforço: 1 | risco: 1 | score: 1
+
+Registrado sem virar achado, porque é decisão tomada e não defeito: o ramo
+`OR is_super_admin()` em `tenant_fiscal_config` (ADR-008 §5) faz com que o raio
+de exposição de um token de plataforma vazado inclua CNPJ, inscrição estadual e
+`csc_id` de todos os estabelecimentos, e não só o billing. Vale você saber.
