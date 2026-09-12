@@ -343,6 +343,65 @@ describe("UsuariosTab, exclusão de funcionário (Run 5, leva 9)", () => {
 });
 
 /**
+ * Saídas dos dois modais da aba (Refino G04).
+ *
+ * Os overlays só tratavam o clique no fundo: Esc não fazia nada e o Tab
+ * passeava pela tela atrás do modal. Agora usam os mesmos hooks dos modais do
+ * Console, e Esc chama o mesmo caminho do botão Cancelar.
+ */
+describe("UsuariosTab, Esc e foco nos modais (Refino G04)", () => {
+  const FUNCIONARIO = {
+    id: 9, name: "Maria Souza", username: "maria", role: "caixa",
+    auth_id: "auth-9", active: true, permissoesOverride: null,
+  };
+
+  beforeEach(() => {
+    setAppMock({
+      users: [FUNCIONARIO],
+      currentUser: { id: 1, name: "Dona", username: "dona", role: "admin" },
+      addUser,
+      updateUser: vi.fn(() => Promise.resolve({ error: null })),
+      removeUser: vi.fn(() => Promise.resolve({ error: null })),
+    });
+  });
+
+  it("Esc fecha o cadastro de usuário sem criar ninguém", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<UsuariosTab sz={sz} />);
+    await user.click(screen.getByText("+ Novo Usuário"));
+    await screen.findByText("Novo Usuário", { selector: ".usuarios-tab__modal-titulo" });
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByPlaceholderText("Ex: João Silva")).not.toBeInTheDocument());
+    expect(addUser).not.toHaveBeenCalled();
+    expect(authMock.criarAuthUsuario).not.toHaveBeenCalled();
+  });
+
+  it("ao abrir o cadastro, o foco já está no primeiro campo", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<UsuariosTab sz={sz} />);
+
+    await user.click(screen.getByText("+ Novo Usuário"));
+
+    expect(await screen.findByPlaceholderText("Ex: João Silva")).toHaveFocus();
+  });
+
+  it("Esc fecha a confirmação de exclusão sem excluir", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<UsuariosTab sz={sz} />);
+    await user.click(screen.getByRole("button", { name: "Excluir" }));
+    await screen.findByText("Excluir usuário?");
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByText("Excluir usuário?")).not.toBeInTheDocument());
+    expect(authMock.deletarAuthUsuario).not.toHaveBeenCalled();
+    expect(screen.getByText("Maria Souza")).toBeInTheDocument();
+  });
+});
+
+/**
  * Quem pode mexer na equipe (Refino G01).
  *
  * `isAdmin` incluía o gerente e liberava "+ Novo Usuário", "Editar" e

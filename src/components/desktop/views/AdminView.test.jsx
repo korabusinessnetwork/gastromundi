@@ -137,6 +137,52 @@ describe("AdminView, excluir fornecedor", () => {
  * "0 registros" com as alíquotas todas configuradas e clicava achando que
  * nunca tinha configurado nada.
  */
+/**
+ * Saídas do modal de ficha técnica, fornecedor e compra (Refino G04).
+ *
+ * O overlay só tratava o clique no fundo: Esc não fazia nada e o Tab passeava
+ * pela tela de trás. Agora são os mesmos hooks dos modais do Console.
+ */
+describe("AdminView, Esc e foco no modal", () => {
+  it("Esc fecha o modal de fornecedor sem gravar nada", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminView />);
+    await abrirFornecedores(user);
+    await user.click(screen.getByRole("button", { name: /novo fornecedor/i }));
+    await screen.findByPlaceholderText("Nome do fornecedor");
+
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByPlaceholderText("Nome do fornecedor")).not.toBeInTheDocument());
+    const upserts = mockSupabase.current.calls.filter((c) => c.table === "config" && c.method === "upsert");
+    expect(upserts).toHaveLength(0);
+  });
+
+  it("ao abrir, o foco já está no primeiro campo do modal", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminView />);
+    await abrirFornecedores(user);
+
+    await user.click(screen.getByRole("button", { name: /novo fornecedor/i }));
+
+    expect(await screen.findByPlaceholderText("Nome do fornecedor")).toHaveFocus();
+  });
+
+  it("Tab no último foco volta para dentro do modal, não vaza para a tela de trás", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AdminView />);
+    await abrirFornecedores(user);
+    await user.click(screen.getByRole("button", { name: /novo fornecedor/i }));
+    const modal = (await screen.findByPlaceholderText("Nome do fornecedor")).closest(".admin__modal");
+
+    // Uma volta inteira pelos focáveis do modal termina de novo dentro dele.
+    const focaveis = within(modal).getAllByRole("button").length + within(modal).getAllByRole("textbox").length;
+    for (let i = 0; i < focaveis + 1; i++) await user.tab();
+
+    expect(modal.contains(document.activeElement)).toBe(true);
+  });
+});
+
 describe("AdminView, contador do card Impostos", () => {
   it("conta os itens com configuração fiscal, não a chave morta config.impostos", async () => {
     // A chave antiga cheia e o `itens_fiscal` com 3 itens: o card tem que

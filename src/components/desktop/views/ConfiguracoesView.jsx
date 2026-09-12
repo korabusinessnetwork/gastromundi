@@ -1,5 +1,6 @@
 ﻿import { useState, useMemo, useEffect } from "react";
-import { fecharAoClicarFora } from "@/lib/overlayFechar";
+import { useFecharModal } from "@/hooks/useFecharModal";
+import { useFocoDoModal } from "@/hooks/useFocoDoModal";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
 import { useResponsive } from "@/utils/hooks";
@@ -170,6 +171,26 @@ function OkBox({ msg }) {
   return (
     <div className="cfg__ok-box" style={{ background: alfa(C.green, "15"), border: `1px solid ${alfa(C.green, "44")}` }}>
       ✓ {msg}
+    </div>
+  );
+}
+
+/**
+ * Fundo escuro dos modais da aba Usuários. Existe como componente próprio
+ * porque os dois hooks de modal só podem estar montados enquanto o modal
+ * está aberto: é o que faz o ouvinte de Esc sumir junto com a janela.
+ *
+ * Esc e clique no fundo chamam o MESMO caminho do botão de fechar daquele
+ * modal, e o Tab circula dentro da caixa em vez de passear pela tela de trás.
+ */
+function ModalCfg({ aoFechar, className, style, children }) {
+  const fundo = useFecharModal(aoFechar);
+  const caixa = useFocoDoModal();
+  return (
+    <div {...fundo} className="cfg__overlay">
+      <div ref={caixa} tabIndex={-1} className={className} style={style}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -575,11 +596,7 @@ export function UsuariosTab({ sz }) {
 
       {/* Modal Novo / Editar */}
       {modal && (
-        <div
-          {...fecharAoClicarFora(fechar)}
-          className="cfg__overlay"
-        >
-          <div className="usuarios-tab__modal" style={{ padding: sz.pad + 4, gap: sz.padSm + 4 }}>
+        <ModalCfg aoFechar={fechar} className="usuarios-tab__modal" style={{ padding: sz.pad + 4, gap: sz.padSm + 4 }}>
             <div className="usuarios-tab__modal-titulo">
               {modal === "novo" ? "Novo Usuário" : "Editar Usuário"}
             </div>
@@ -731,17 +748,12 @@ export function UsuariosTab({ sz }) {
                 {salvando ? "Salvando..." : modal === "novo" ? "Criar Usuário" : "Salvar Alterações"}
               </button>
             </div>
-          </div>
-        </div>
+        </ModalCfg>
       )}
 
       {/* Modal Confirmar Desativação */}
       {deleteId && (
-        <div
-          {...fecharAoClicarFora(() => setDeleteId(null))}
-          className="cfg__overlay"
-        >
-          <div className="usuarios-tab__confirm-modal" style={{ padding: sz.pad }}>
+        <ModalCfg aoFechar={() => setDeleteId(null)} className="usuarios-tab__confirm-modal" style={{ padding: sz.pad }}>
             {(() => {
               const u = users.find(x => x.id === deleteId);
               return (
@@ -767,8 +779,7 @@ export function UsuariosTab({ sz }) {
                 </>
               );
             })()}
-          </div>
-        </div>
+        </ModalCfg>
       )}
     </div>
   );

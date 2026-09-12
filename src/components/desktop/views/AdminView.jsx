@@ -1,5 +1,7 @@
 ﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
+import { useFecharModal } from "@/hooks/useFecharModal";
+import { useFocoDoModal } from "@/hooks/useFocoDoModal";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -83,13 +85,19 @@ function Txta({ value, onChange, placeholder, rows = 3 }) {
   );
 }
 
+// As duas saídas que faltavam aqui: a tecla Esc e o Tab preso dentro da caixa.
+// O modal de ficha técnica, de fornecedor e de compra só fechava no clique no
+// fundo, e o Tab passeava pela tela que está por baixo. Esc chama o MESMO
+// caminho do "X", nunca um atalho que joga o formulário fora por fora.
 function ModalBase({ title, onClose, onSave, saveLabel = "Salvar", saving, width = 540, children }) {
+  const fundo = useFecharModal(onClose);
+  const caixa = useFocoDoModal();
   return createPortal(
     <div
-      {...fecharAoClicarFora(onClose)}
+      {...fundo}
       className="admin__modal-overlay"
     >
-      <div className="admin__modal" style={{ maxWidth: width }}>
+      <div ref={caixa} tabIndex={-1} className="admin__modal" style={{ maxWidth: width }}>
         <div className="admin__modal-topo">
           <div className="admin__modal-titulo">{title}</div>
           <button
