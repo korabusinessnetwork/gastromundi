@@ -243,3 +243,61 @@ describe("Jarvas na aba que nunca recarrega (C01)", () => {
     expect(mockJarvasEngine.executarAnaliseJarvas).toHaveBeenCalledTimes(1);
   });
 });
+
+// ── C02 ──────────────────────────────────────────────────────────
+// `sales` só crescia. A janela de 90 dias era resolvida uma vez, no instante em
+// que a aba abriu, e cada INSERT do realtime empilhava a venda na frente sem
+// nada nunca podar. Numa aba aberta há semanas o array carrega os 90 dias da
+// abertura mais tudo o que foi vendido desde então, cada venda com o blob de
+// itens dentro, e Saldo do Dia, sidebar, relatório e fechamento varrem tudo a
+// cada render. O sintoma no balcão é a lentidão que "melhora quando reiniciam o
+// computador", porque reiniciar é o único momento em que a janela volta a valer.
+describe("a janela de 90 dias das vendas na aba velha (C02)", () => {
+  const diasAtras = (n, base = T0) => new Date(base - n * 24 * 60 * 60 * 1000).toISOString();
+
+  async function chegarVenda(venda) {
+    await emitirRealtime("sales-realtime", { eventType: "INSERT", new: { data: venda } });
+  }
+
+  it("venda mais antiga que a janela sai da lista quando chega uma venda nova", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    const { app } = await montarLogado();
+
+    // A aba está aberta há muito tempo: entrou uma venda de ontem e uma venda
+    // de 100 dias atrás, que já não cabe na janela do bootstrap.
+    await chegarVenda({ id: "v-ontem", total: 30, at: diasAtras(1), items: [] });
+    await chegarVenda({ id: "v-antiga", total: 10, at: diasAtras(100), items: [] });
+    await chegarVenda({ id: "v-agora", total: 50, at: diasAtras(0), items: [] });
+
+    const ids = app.current.sales.map((v) => v.id);
+    expect(ids).toContain("v-agora");
+    expect(ids).toContain("v-ontem");
+    expect(ids).not.toContain("v-antiga");
+  });
+
+  it("venda sem data legível fica, porque não dá para afirmar que envelheceu", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    const { app } = await montarLogado();
+
+    await chegarVenda({ id: "v-sem-data", total: 20, items: [] });
+    await chegarVenda({ id: "v-agora", total: 50, at: diasAtras(0), items: [] });
+
+    expect(app.current.sales.map((v) => v.id)).toContain("v-sem-data");
+  });
+
+  it("venda repetida pelo realtime não entra duas vezes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    const { app } = await montarLogado();
+
+    await chegarVenda({ id: "v-agora", total: 50, at: diasAtras(0), items: [] });
+    await chegarVenda({ id: "v-agora", total: 50, at: diasAtras(0), items: [] });
+
+    expect(app.current.sales.filter((v) => v.id === "v-agora")).toHaveLength(1);
+  });
+});

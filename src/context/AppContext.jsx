@@ -71,6 +71,30 @@ const AppContext = createContext(null);
 const PG_COLUNA_INEXISTENTE = "42703";
 
 
+// Deixa em `sales` só o que cabe na janela que o bootstrap carregou.
+//
+// A carga inicial traz os últimos DIAS_JANELA_BOOTSTRAP dias e resolve esse
+// recorte UMA vez, no instante em que a aba abriu. Depois disso a lista só
+// crescia: cada INSERT do realtime empilhava a venda na frente e nada nunca
+// podava. Na aba do balcão, que fica semanas aberta, o array acabava com os 90
+// dias da abertura MAIS tudo o que foi vendido desde então, cada venda com o
+// blob de itens dentro, e Saldo do Dia, sidebar, relatório e fechamento varrem
+// essa lista inteira a cada render. É a lentidão que "melhora quando reiniciam
+// o computador", porque reiniciar é o único momento em que a janela volta a
+// valer.
+//
+// Só sai o que é comprovadamente antigo: venda sem data legível fica, porque
+// não dá para afirmar que ela está fora da janela, e sumir com venda por
+// dúvida seria trocar um problema de memória por um buraco no relatório.
+function podarJanelaVendas(lista, agora = Date.now()) {
+  const corte = agora - DIAS_JANELA_BOOTSTRAP * 24 * 60 * 60 * 1000;
+  return (lista ?? []).filter((venda) => {
+    const instante = Date.parse(venda?.at ?? "");
+    return Number.isNaN(instante) ? true : instante >= corte;
+  });
+}
+
+
 // Monta o mapa de permissões por cargo CIENTE do tenant: parte do default
 // do roles.js (fallback white-label, decisão 017) e mescla por cima as
 // linhas customizadas da tabela role_permissions daquele estabelecimento.
@@ -920,7 +944,9 @@ export function AppProvider({ children }) {
         if (payload.eventType === "INSERT") {
           const venda = payload.new?.data;
           if (!venda?.id) return;
-          setSalesLocal(prev => prev.find(s => s && s.id === venda.id) ? prev : [venda, ...prev]);
+          setSalesLocal(prev => (
+            prev.find(s => s && s.id === venda.id) ? prev : podarJanelaVendas([venda, ...prev])
+          ));
         } else if (payload.eventType === "UPDATE") {
           // Cancelamento (15.3) e outras edições do blob propagam na hora.
           const venda = payload.new?.data;
