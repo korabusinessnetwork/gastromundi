@@ -727,11 +727,22 @@ export function AppProvider({ children }) {
     // index.html / LoginPage) — limpar aqui apagaria essa pintura e faria a
     // tela piscar o visual default até o bootstrap responder.
     if (!tenant) return;
-    // No host do Console (plataforma), a marca é SEMPRE neutra da KORA: nunca
-    // aplicar tema/título/cache de tenant aqui — senão a marca de um
-    // estabelecimento (ex.: "GASTROMUNDI by Kora") vaza na aba/visual do
-    // console. Limpa qualquer token --gm-* órfão e fixa o título neutro.
-    if (ehConsoleHost()) {
+    // Marca SEMPRE neutra da KORA em duas situações, nunca tema, título ou
+    // cache de tenant aqui, senão a marca de um estabelecimento (ex.:
+    // "GASTROMUNDI by Kora") vaza na aba e no visual do console:
+    //
+    //  1. no host dedicado do Console;
+    //  2. em QUALQUER host, quando quem está logado é a plataforma. O super
+    //     admin não opera estabelecimento, mas o bootstrap dele cai em
+    //     `buscarTenantAtual()`, e a policy de `tenants` tem o ramo
+    //     `is_super_admin()`: o `limit(1)` devolve o estabelecimento mais
+    //     antigo, que é um cliente real. Sem esta guarda, com o switch de
+    //     console em subdomínio desligado (que é o default), o Console era
+    //     pintado com a paleta desse cliente, a aba recebia o nome dele e,
+    //     pior, a marca ia para o cache POR ORIGEM: o próximo funcionário que
+    //     abrisse o login naquele endereço veria a marca de outro
+    //     estabelecimento na primeira pintura. Decisão 017.
+    if (ehConsoleHost() || currentUser?.role === "plataforma") {
       limparVariaveisTema();
       if (typeof document !== "undefined") document.title = "KORA · Console";
       return;
@@ -751,7 +762,10 @@ export function AppProvider({ children }) {
     // Cache por origem (anti-flash): a próxima abertura deste endereço
     // já pinta com esta marca antes do bootstrap (script do index.html).
     salvarBrandingCache({ nome, logo: logoUrlTenant(tenant.tema), variaveis });
-  }, [tenant?.tema, varianteLayout]);
+    // `currentUser?.role` entra nas dependências por causa da guarda acima: o
+    // papel é conhecido depois do primeiro tema em alguns caminhos de login, e
+    // sem ele o efeito não repintaria ao descobrir que é a plataforma.
+  }, [tenant?.tema, varianteLayout, currentUser?.role]);
 
   // ── Timer dia/noite dos layouts adaptativos (marca, casa): arma um
   //    despertar para a próxima fronteira (06:00/19:00). Ao disparar, a
