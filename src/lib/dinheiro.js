@@ -31,19 +31,17 @@ const BRL = new Intl.NumberFormat("pt-BR", {
  * Quem quer dizer "não há valor" usa o marcador de célula vazia, não este.
  */
 export function formatarDinheiro(valor) {
-  const n = Number(valor);
-  return BRL.format(Number.isFinite(n) ? n : 0);
-}
-
-/**
- * O mesmo número sem o símbolo, para célula de planilha e coluna de PDF:
- * "1.234,56". O cabeçalho da coluna já diz que é em reais, e repetir o símbolo
- * em toda linha atrapalha a leitura e a soma na própria planilha.
- */
-export function formatarValor(valor) {
-  const n = Number(valor);
-  return (Number.isFinite(n) ? n : 0).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const bruto = Number(valor);
+  // Zero negativo existe em ponto flutuante e o `Intl` o imprime como
+  // "-R$ 0,00". Na tela isso é pior do que feio: o card de lucro exatamente
+  // zerado aparecia com sinal de menos, e sinal de menos ali significa
+  // prejuízo. Somar 0 devolve o zero sem sinal.
+  const n = bruto === 0 ? 0 : bruto;
+  // `Intl` separa o "R$" do número com espaço INQUEBRÁVEL (U+00A0). Na tela é
+  // idêntico ao espaço comum, mas em comparação exata não é: é um byte
+  // invisível que faz `"R$ 70,00" === "R$ 70,00"` dar falso, e quem cair nisso
+  // vai procurar o erro na conta, não na pontuação. Trocamos por espaço comum
+  // de propósito: a chance de quebrar a linha entre o símbolo e o valor é
+  // pequena, e vale menos que essa classe inteira de armadilha.
+  return BRL.format(Number.isFinite(n) ? n : 0).replace(/\u00a0/g, " ");
 }

@@ -16,6 +16,7 @@ import { arredondarQtd } from "@/utils/conversaoUnidades";
 // aberto), então a chave de renderização não pode ser a posição na lista.
 import { novoUid } from "@/lib/uidLista";
 import "./NotasFiscaisTab.css";
+import { formatarDinheiro } from "@/lib/dinheiro";
 import {
   LuUpload, LuFileText, LuCheck, LuX, LuSearch,
   LuArrowLeft, LuChevronRight, LuPackage, LuTriangleAlert,
@@ -23,7 +24,7 @@ import {
 } from "react-icons/lu";
 
 const fmtDt  = (d) => d ? new Date(d + "T12:00:00").toLocaleDateString("pt-BR") : "—";
-const fmtR   = (v) => "R$ " + Number(v ?? 0).toFixed(2);
+const fmtR = formatarDinheiro;
 const fmtCnpj = (v) => {
   if (!v) return "—";
   const s = String(v).replace(/\D/g, "");

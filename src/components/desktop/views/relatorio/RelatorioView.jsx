@@ -15,6 +15,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor, nomeExibicaoTenant, marcaComAssinatura } from "@/lib/tema";
 import DesempenhoReport from "./DesempenhoReport";
 import "./RelatorioView.css";
+import { formatarDinheiro } from "@/lib/dinheiro";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
   LuLock, LuTriangleAlert, LuPackage, LuClipboardList, LuShieldAlert,
@@ -94,7 +95,7 @@ function fmtData(dateStr) {
     + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-const fmtR = (v) => "R$ " + Number(v ?? 0).toFixed(2);
+const fmtR = formatarDinheiro;
 
 // ── Componentes auxiliares ────────────────────────────────────────
 

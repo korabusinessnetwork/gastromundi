@@ -163,11 +163,11 @@ describe("FinanceiroView, conta atrasada (Run 2)", () => {
   });
 
   it("o dinheiro da conta vencida continua no card de a pagar", async () => {
-    // Antes: "R$ 0.00 / R$ 0.00" — R$ 2.500 de aluguel atrasado sumiam do
+    // Antes: "R$ 0,00 / R$ 0,00" — R$ 2,500 de aluguel atrasado sumiam do
     // resumo no mesmo instante em que a tela marcava a conta como vencida.
     await montar({ linhas: [ALUGUEL] });
 
-    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0.00 / R$ 2500.00");
+    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0,00 / R$ 2.500,00");
   });
 
   it("conta já paga não oferece o botão de baixar de novo", async () => {
@@ -176,7 +176,7 @@ describe("FinanceiroView, conta atrasada (Run 2)", () => {
     const linha = linhaCom("Aluguel de julho");
     expect(within(linha).getByText("Pago")).toBeInTheDocument();
     expect(within(linha).queryByText("Baixar")).not.toBeInTheDocument();
-    expect(card("Saídas realizadas")).toBe("R$ 2500.00");
+    expect(card("Saídas realizadas")).toBe("R$ 2.500,00");
   });
 });
 
@@ -199,7 +199,7 @@ describe("FinanceiroView, leitura do financeiro falhou (Run 2)", () => {
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByText("Aluguel de julho")).toBeInTheDocument();
-    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0.00 / R$ 2500.00");
+    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0,00 / R$ 2.500,00");
   });
 
   it("mês de verdade sem lançamento nenhum continua dizendo que está vazio", async () => {
@@ -235,7 +235,7 @@ describe("FinanceiroView, baixar conta (Run 2)", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent(/não foi possível baixar a conta/i);
     expect(linhaCom("Aluguel de julho")).toBeInTheDocument();
-    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0.00 / R$ 2500.00");
+    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0,00 / R$ 2.500,00");
   });
 
   it("baixa bem-sucedida move o valor de a pagar para saída realizada", async () => {
@@ -245,8 +245,8 @@ describe("FinanceiroView, baixar conta (Run 2)", () => {
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(within(linhaCom("Aluguel de julho")).getByText("Pago")).toBeInTheDocument();
-    expect(card("Saídas realizadas")).toBe("R$ 2500.00");
-    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0.00 / R$ 0.00");
+    expect(card("Saídas realizadas")).toBe("R$ 2.500,00");
+    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0,00 / R$ 0,00");
   });
 });
 
@@ -269,7 +269,7 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
     // lucro do último dia do mês simplesmente não existia.
     await montar({ sales: [venda("2026-08-01T00:30:00.000Z")], fichas: [FICHA_PRATO] });
 
-    expect(card(LUCRO)).toBe("R$ 70.00"); // 100 de venda − 30 de custo
+    expect(card(LUCRO)).toBe("R$ 70,00"); // 100 de venda − 30 de custo
   });
 
   it("essa mesma venda não é contada de novo em agosto", async () => {
@@ -281,14 +281,14 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
     fireEvent.change(screen.getByLabelText("Data final do período"),   { target: { value: "2026-08-31" } });
     await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
 
-    expect(card(LUCRO)).toBe("R$ 0.00");
+    expect(card(LUCRO)).toBe("R$ 0,00");
   });
 
   it("noite de fiado não vira prejuízo: receita e custo saem das mesmas vendas", async () => {
     // A venda foi feita e o prato saiu da cozinha, mas o cliente pagou no
     // fiado — a receita fica 'previsto'. Antes a receita do lucro vinha só do
     // realizado (R$ 0) enquanto o custo vinha de todas as vendas (R$ 30): o
-    // card mostrava "-R$ 30.00" num dia que na verdade deu R$ 70 de lucro.
+    // card mostrava "-R$ 30,00" num dia que na verdade deu R$ 70 de lucro.
     await montar({
       linhas: [{
         id: "fiado", tipo: "receita", categoria: "vendas", descricao: "Fiado do 12",
@@ -298,10 +298,10 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
       fichas: [FICHA_PRATO],
     });
 
-    expect(card(LUCRO)).toBe("R$ 70.00");
+    expect(card(LUCRO)).toBe("R$ 70,00");
     // E o fiado continua sendo dinheiro a receber, não dinheiro recebido.
-    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 100.00 / R$ 0.00");
-    expect(card("Entradas realizadas")).toBe("R$ 0.00");
+    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 100,00 / R$ 0,00");
+    expect(card("Entradas realizadas")).toBe("R$ 0,00");
   });
 
   it("desconta do lucro as despesas já pagas", async () => {
@@ -314,7 +314,7 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
       fichas: [FICHA_PRATO],
     });
 
-    expect(card(LUCRO)).toBe("R$ 50.00"); // 100 − 30 de ficha − 20 de gás
+    expect(card(LUCRO)).toBe("R$ 50,00"); // 100 − 30 de ficha − 20 de gás
   });
 
   it("venda cancelada não entra na receita nem no custo", async () => {
@@ -326,12 +326,12 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
       fichas: [FICHA_PRATO],
     });
 
-    expect(card(LUCRO)).toBe("R$ 70.00");
+    expect(card(LUCRO)).toBe("R$ 70,00");
   });
 
   it("lucro exatamente zerado não sai negativo em vermelho", async () => {
     // 39,90 + 8,70 de vendas contra 48,60 de despesa paga: em float o
-    // resultado cru é -7.1e-15, e o card imprimia "-R$ 0.00" em vermelho
+    // resultado cru é -7.1e-15, e o card imprimia "-R$ 0,00" em vermelho
     // num dia que fechou empatado.
     await montar({
       linhas: [{
@@ -344,7 +344,7 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
       ],
     });
 
-    expect(card(LUCRO)).toBe("R$ 0.00");
+    expect(card(LUCRO)).toBe("R$ 0,00");
   });
 });
 
@@ -390,7 +390,7 @@ describe("FinanceiroView, lançamento salvo fora do período visível (Run 2)", 
     await salvarDespesaPaga("2026-07-20");
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    expect(card("Saídas realizadas")).toBe("R$ 2500.00");
+    expect(card("Saídas realizadas")).toBe("R$ 2.500,00");
   });
 });
 
@@ -448,7 +448,7 @@ describe("FinanceiroView, lucro de período fora da janela de vendas (R01)", () 
     });
 
     // 100 de venda, menos 30 de ficha técnica, menos 30 de despesa paga.
-    expect(card(LUCRO)).toBe("R$ 40.00");
+    expect(card(LUCRO)).toBe("R$ 40,00");
   });
 
   it("período que começa antes da janela, o card diz que o lucro não está disponível", async () => {
@@ -463,7 +463,7 @@ describe("FinanceiroView, lucro de período fora da janela de vendas (R01)", () 
     fireEvent.change(screen.getByLabelText("Data final do período"), { target: { value: DIA_ANTIGO } });
     await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
 
-    // Antes: "R$ -30.00", só a despesa paga, sem nenhuma receita para comparar.
+    // Antes: "-R$ 30,00", só a despesa paga, sem nenhuma receita para comparar.
     expect(card(/as vendas carregadas cobrem os últimos 90 dias/)).toBe("Não disponível");
     expect(screen.queryByText(LUCRO)).not.toBeInTheDocument();
   });

@@ -4,14 +4,13 @@ import { alfa } from "@/constants/colorAlfa";
 import { LuCheck, LuChevronDown } from "react-icons/lu";
 import { contaEmAberto } from "@/lib/financeiro";
 import "./LancamentosList.css";
+import { formatarDinheiro } from "@/lib/dinheiro";
 
 const STATUS_COLOR = { recebido: varColor(C.green), pago: varColor(C.green), previsto: varColor(C.blue), vencido: varColor(C.red) };
 const STATUS_LABEL = { recebido: "Recebido", pago: "Pago", previsto: "Previsto", vencido: "Vencido" };
 const TIPO_LABEL = { receita: "Receita", despesa: "Despesa" };
 
-function fmtR(v) {
-  return "R$ " + Number(v ?? 0).toFixed(2);
-}
+const fmtR = formatarDinheiro;
 
 export default function LancamentosList({
   lancamentos, loading, erro,

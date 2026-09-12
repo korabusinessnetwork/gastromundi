@@ -12,6 +12,7 @@ import {
   calcularMargemProdutos, buscarRelatorioVendas, buscarFichasTecnicas,
 } from "@/lib/relatorios";
 import "./DesempenhoReport.css";
+import { formatarDinheiro } from "@/lib/dinheiro";
 
 const PERIODOS = [
   { id: "dia",       label: "Hoje"    },
@@ -30,7 +31,7 @@ const COMPARACOES = [
 ];
 
 
-const fmtR = (v) => "R$ " + Number(v ?? 0).toFixed(2);
+const fmtR = formatarDinheiro;
 
 function KpiCard({ label, value, color, Icon, variacao, rotuloVs }) {
   return (

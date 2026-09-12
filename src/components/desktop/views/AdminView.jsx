@@ -33,11 +33,12 @@ import {
 // O `novoUid` daqui é chave de renderização, e sai do objeto antes de gravar.
 import { novoUid, comUid, listaSemUid } from "@/lib/uidLista";
 import "./AdminView.css";
+import { formatarDinheiro } from "@/lib/dinheiro";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
 const uid   = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
-const fmtR  = (v) => "R$ " + Number(v ?? 0).toFixed(2);
+const fmtR = formatarDinheiro;
 const fmtDt = (d) => d ? new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "—";
 
 

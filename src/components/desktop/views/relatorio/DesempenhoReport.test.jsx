@@ -53,7 +53,7 @@ describe("DesempenhoReport", () => {
 
     expect(screen.getByText(/carregando relatório/i)).toBeInTheDocument();
 
-    await waitFor(() => expect(screen.getByText("R$ 500.00")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("R$ 500,00")).toBeInTheDocument());
     expect(screen.getByText("Vendas Realizadas")).toBeInTheDocument();
     expect(screen.getByText("X-Burguer")).toBeInTheDocument();
 
@@ -90,7 +90,7 @@ describe("DesempenhoReport", () => {
     mockSupabase.current.setTableResult("config", { data: { key: "fichas_tecnicas", value: [] }, error: null });
 
     render(<DesempenhoReport />);
-    await waitFor(() => expect(screen.getByText("R$ 500.00")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("R$ 500,00")).toBeInTheDocument());
 
     // Comparação ligada por padrão -> selo nomeia a janela ("vs. ontem")
     expect(screen.getAllByText(/vs\. ontem/i).length).toBeGreaterThan(0);
@@ -109,7 +109,7 @@ describe("DesempenhoReport", () => {
     mockSupabase.current.setTableResult("config", { data: { key: "fichas_tecnicas", value: [] }, error: null });
 
     render(<DesempenhoReport />);
-    await waitFor(() => expect(screen.getByText("R$ 500.00")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("R$ 500,00")).toBeInTheDocument());
 
     await user.click(screen.getByRole("button", { name: "Período" }));
 

@@ -5,7 +5,7 @@
 // A conta em si mora em @/lib/caixa e tem teste próprio (caixa.test.js). O que
 // este arquivo prende é o que a tela e a planilha realmente mostram: o MESMO
 // fechamento aparecia "Caixa Conferido" na hora de fechar e "Falta no Caixa
-// -R$ 20.00" depois, na linha do relatório, no detalhe e no arquivo exportado,
+// -R$ 20,00" depois, na linha do relatório, no detalhe e no arquivo exportado,
 // porque cada um desses três lugares recalculava `totalVendas + fundo` por
 // conta própria. Sem estes testes, voltar qualquer um dos três à conta antiga
 // não quebra nada.
@@ -96,19 +96,19 @@ describe("RelatorioView, fechamentos com método sem conferência (Run 1)", () =
 
     const [, usuario, fundo, vendas, conferido, diferenca] = celulas();
     expect(usuario).toBe("Ana");
-    expect(fundo).toBe("R$ 0.00");
-    expect(vendas).toBe("R$ 70.00");
-    expect(conferido).toBe("R$ 50.00");
-    expect(diferenca).toBe("R$ 0.00"); // antes: "R$ -20.00"
+    expect(fundo).toBe("R$ 0,00");
+    expect(vendas).toBe("R$ 70,00");
+    expect(conferido).toBe("R$ 50,00");
+    expect(diferenca).toBe("R$ 0,00"); // antes: "-R$ 20,00"
   });
 
   it("o detalhe do fechamento concorda com a tela de fechar o caixa", () => {
     montar([COM_FIADO]);
     fireEvent.click(document.querySelector("tbody tr"));
 
-    expect(resumo("Total de Vendas (sistema)")).toContain("R$ 70.00");
-    expect(resumo("Total Esperado em Caixa")).toContain("R$ 50.00");
-    expect(resumo("Total Conferido")).toContain("R$ 50.00");
+    expect(resumo("Total de Vendas (sistema)")).toContain("R$ 70,00");
+    expect(resumo("Total Esperado em Caixa")).toContain("R$ 50,00");
+    expect(resumo("Total Conferido")).toContain("R$ 50,00");
     expect(screen.getByText("Caixa Conferido")).toBeInTheDocument();
     expect(screen.queryByText("Falta no Caixa")).not.toBeInTheDocument();
   });
@@ -180,10 +180,10 @@ describe("RelatorioView, fechamento gravado antes desta versão (Run 1)", () => 
     // é o contrapeso do anterior — impede "corrigir" tudo para zero.
     montar([ANTIGO]);
 
-    expect(celulas()[5]).toBe("R$ -20.00");
+    expect(celulas()[5]).toBe("-R$ 20,00");
 
     fireEvent.click(document.querySelector("tbody tr"));
-    expect(resumo("Total Esperado em Caixa")).toContain("R$ 70.00");
+    expect(resumo("Total Esperado em Caixa")).toContain("R$ 70,00");
     expect(screen.getByText("Falta no Caixa")).toBeInTheDocument();
   });
 });
@@ -242,7 +242,11 @@ describe("RelatorioView, item cancelado dentro de venda válida", () => {
     const celulasDeDinheiro = [...document.querySelectorAll("tbody td")]
       .map(td => td.textContent.trim())
       .filter(t => /^R\$ /.test(t));
-    const subtotais = celulasDeDinheiro.map(t => Number(t.replace("R$ ", "")));
+    // "R$ 1.234,56" para 1234.56: ponto é milhar e vírgula é decimal desde que
+    // o dinheiro da tela passou a ser formatado em pt-BR.
+    const subtotais = celulasDeDinheiro.map(t =>
+      Number(t.replace("R$ ", "").replace(/\./g, "").replace(",", ".")),
+    );
     // Unitário 16,10 e subtotal 32,20 da única linha que sobrou.
     expect(subtotais).toEqual([16.1, 32.2]);
     expect(subtotais[subtotais.length - 1]).toBe(VENDA_COM_ITEM_CANCELADO.total);
