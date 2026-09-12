@@ -24,13 +24,32 @@ import {
 const ABAS_BASE = ["Vendas", "Desempenho", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
 // "Admin" só entra para role admin (visão consolidada/sensível) — B3.
 
+// Janela que o bootstrap carrega: `sales`, fechamentos e comandas chegam só
+// dos últimos 90 dias (ver AppContext.jsx:340, "Bootstrap limitado a 90 dias").
+// O número está duplicado aqui porque o AppContext não o exporta; pedido de
+// virar constante exportada registrado no relatório da rodada.
+const DIAS_JANELA_BOOTSTRAP = 90;
+
 const PERIODOS = [
   { id: "hoje",    label: "Hoje"    },
   { id: "semana",  label: "7 dias"  },
   { id: "mes",     label: "30 dias" },
-  { id: "tudo",    label: "Tudo"    },
+  // Era "Tudo", mas o atalho não recorta uma lista que já vem recortada em 90
+  // dias: o chip prometia um histórico inteiro que a tela nunca teve.
+  { id: "tudo",    label: `${DIAS_JANELA_BOOTSTRAP} dias` },
   { id: "custom",  label: "Período" },
 ];
+
+/**
+ * Rótulo do período impresso no cabeçalho do PDF e da planilha. O `exportReport`
+ * traduz "tudo" como "Todo o período", e era isso que ia carimbado no arquivo
+ * que vai para o contador, sobre dados de 90 dias. Mandando o rótulo pronto,
+ * o arquivo passa a dizer a janela real (chaves desconhecidas são impressas
+ * como vieram).
+ */
+function rotuloPeriodoExport(periodo) {
+  return periodo === "tudo" ? `Últimos ${DIAS_JANELA_BOOTSTRAP} dias` : periodo;
+}
 
 const METODOS_ICON  = { dinheiro: LuBanknote, credito: LuCreditCard, debito: LuSmartphone, pix: LuZap };
 const ACTION_TYPE_META = {
@@ -328,9 +347,9 @@ export default function RelatorioView() {
   // cliente específico, que ia impressa no PDF e na planilha de todo mundo.
   const empresaExport = marcaComAssinatura(nomeExibicaoTenant(tenant?.tema, tenant?.nome));
   const exportToPDF  = (titulo, headers, rows, periodo, opts = {}) =>
-    exportToPDFBase(titulo, headers, rows, periodo, { empresa: empresaExport, ...opts });
+    exportToPDFBase(titulo, headers, rows, rotuloPeriodoExport(periodo), { empresa: empresaExport, ...opts });
   const exportToXLSX = (titulo, headers, rows, periodo) =>
-    exportToXLSXBase(titulo, headers, rows, periodo, { empresa: empresaExport });
+    exportToXLSXBase(titulo, headers, rows, rotuloPeriodoExport(periodo), { empresa: empresaExport });
 
   const [aba,           setAba]           = useState("Vendas");
   const [periodo,       setPeriodo]       = useState("hoje");
