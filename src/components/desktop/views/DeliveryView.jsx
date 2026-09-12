@@ -757,7 +757,7 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
             itens.map((it) => (
               <div key={it.id} className="delivery-view__pedido-item">
                 <span>{it.qtd}× {it.nome}</span>
-                {it.obs && <span className="delivery-view__pedido-item-obs"> — {it.obs}</span>}
+                {it.obs && <span className="delivery-view__pedido-item-obs">, {it.obs}</span>}
               </div>
             ))
           ) : (

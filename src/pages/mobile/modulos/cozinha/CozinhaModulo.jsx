@@ -274,7 +274,7 @@ function CartaoPedido({ pedido, processando, onComecar, onPronto }) {
             <span className="cozinha-modulo__itemQtd">{item?.qty ?? 1}×</span>{" "}
             <span className="cozinha-modulo__itemNome">{item?.name}</span>
             {Array.isArray(item?.obs) && item.obs.length > 0 ? (
-              <span className="cozinha-modulo__itemObs"> — {item.obs.join(" · ")}</span>
+              <span className="cozinha-modulo__itemObs">, {item.obs.join(" · ")}</span>
             ) : null}
           </li>
         ))}

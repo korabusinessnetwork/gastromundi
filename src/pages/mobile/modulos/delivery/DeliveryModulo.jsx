@@ -427,7 +427,7 @@ function CartaoPedido({
                 <span>
                   {item.qtd}× {item.nome}
                 </span>
-                {item.obs ? <span className="delivery-modulo__itemObs"> — {item.obs}</span> : null}
+                {item.obs ? <span className="delivery-modulo__itemObs">, {item.obs}</span> : null}
               </div>
             ))
           ) : (

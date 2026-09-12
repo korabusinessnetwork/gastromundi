@@ -838,7 +838,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
 
         <div className="nf-tab__card nf-tab__card--cabecalho">
           <div className="nf-tab__title nf-tab__cabecalho-titulo">
-            Nota nº {cab.numero} — {cab.fornecedor_nome}
+            Nota nº {cab.numero}, {cab.fornecedor_nome}
           </div>
           <div className="nf-tab__cabecalho-grid">
             {[
@@ -1107,7 +1107,7 @@ export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor
           <div style={{ maxWidth: 640 }}>
             <div className="nf-tab__card" style={{ padding: 24, marginBottom: 20 }}>
               <div className="nf-tab__title" style={{ fontWeight: 800, marginBottom: 4 }}>
-                Nota nº {cab.numero} — {cab.fornecedorNome}
+                Nota nº {cab.numero}, {cab.fornecedorNome}
               </div>
               <div className="nf-tab__sub" style={{ color: varColor(C.muted), marginBottom: 20 }}>
                 Emitida em {fmtDt(cab.dataEmissao)} · {fmtR(cab.valorTotal)}
